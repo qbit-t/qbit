@@ -1,0 +1,10 @@
+*.so
+cmake_install.*
+CMakeFiles*
+CMakeCache*
+Makefile*
+quark
+qbit-cli
+qbitd
+qbit-test
+

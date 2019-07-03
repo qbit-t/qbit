@@ -1,0 +1,39 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "jet_malloc", "jet_malloc.vcxproj", "{0EF90935-ACB0-4773-98EE-5AC6338DAEA8}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "jet_malloc_tests", "..\tests\windows\jet_malloc_tests.vcxproj", "{0E3EE2F4-E661-4E20-B3A2-B88005E13B48}"
+	ProjectSection(ProjectDependencies) = postProject
+		{0EF90935-ACB0-4773-98EE-5AC6338DAEA8} = {0EF90935-ACB0-4773-98EE-5AC6338DAEA8}
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Debug|x64 = Debug|x64
+		Release|Win32 = Release|Win32
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0EF90935-ACB0-4773-98EE-5AC6338DAEA8}.Debug|Win32.ActiveCfg = Debug|Win32
+		{0EF90935-ACB0-4773-98EE-5AC6338DAEA8}.Debug|Win32.Build.0 = Debug|Win32
+		{0EF90935-ACB0-4773-98EE-5AC6338DAEA8}.Debug|x64.ActiveCfg = Debug|x64
+		{0EF90935-ACB0-4773-98EE-5AC6338DAEA8}.Debug|x64.Build.0 = Debug|x64
+		{0EF90935-ACB0-4773-98EE-5AC6338DAEA8}.Release|Win32.ActiveCfg = Release|Win32
+		{0EF90935-ACB0-4773-98EE-5AC6338DAEA8}.Release|Win32.Build.0 = Release|Win32
+		{0EF90935-ACB0-4773-98EE-5AC6338DAEA8}.Release|x64.ActiveCfg = Release|x64
+		{0EF90935-ACB0-4773-98EE-5AC6338DAEA8}.Release|x64.Build.0 = Release|x64
+		{0E3EE2F4-E661-4E20-B3A2-B88005E13B48}.Debug|Win32.ActiveCfg = Debug|Win32
+		{0E3EE2F4-E661-4E20-B3A2-B88005E13B48}.Debug|Win32.Build.0 = Debug|Win32
+		{0E3EE2F4-E661-4E20-B3A2-B88005E13B48}.Debug|x64.ActiveCfg = Debug|x64
+		{0E3EE2F4-E661-4E20-B3A2-B88005E13B48}.Debug|x64.Build.0 = Debug|x64
+		{0E3EE2F4-E661-4E20-B3A2-B88005E13B48}.Release|Win32.ActiveCfg = Release|Win32
+		{0E3EE2F4-E661-4E20-B3A2-B88005E13B48}.Release|Win32.Build.0 = Release|Win32
+		{0E3EE2F4-E661-4E20-B3A2-B88005E13B48}.Release|x64.ActiveCfg = Release|x64
+		{0E3EE2F4-E661-4E20-B3A2-B88005E13B48}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
