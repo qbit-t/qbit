@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef QUARK_KEY_H
-#define QUARK_KEY_H
+#ifndef QBIT_KEY_H
+#define QBIT_KEY_H
 
 //
 // allocator.h _MUST_ be included BEFORE all other
@@ -16,8 +16,9 @@
 #include "hash.h"
 #include "context.h"
 #include "containers.h"
+#include "utilstrencodings.h"
 
-namespace quark {
+namespace qbit {
 
 #define KEY_LEN 32
 #define KEY_HASH_LEN 64
@@ -28,8 +29,10 @@ class PKey;
 
 class SKey {
 public:
-	SKey(Context*);
-	SKey(Context*, std::list<std::string>&);
+	SKey() {}
+	SKey(ContextPtr);
+	SKey(ContextPtr, std::list<std::string>&);
+	SKey(std::list<std::string>&);
 
 	const unsigned char* begin() const { return vch_; }
 	const unsigned char* end() const { return vch_ + size(); }
@@ -56,13 +59,15 @@ public:
 		}
 	}
 
-	bool sign(const uint256& hash /*data chunk hash*/, std::vector<unsigned char>& signature /*resulting signature*/) const;
+	bool sign(const uint256& hash /*data chunk hash*/, std::vector<unsigned char>& signature /*resulting signature*/);
+	bool sign(const uint256& hash /*data chunk hash*/, uint512& signature /*resulting signature*/);
 
 private:
 	bool check(const unsigned char *vch);
+	inline ContextPtr getContext() { if (!context_) context_ = Context::instance(); return context_; }
 
 private:
-	Context* context_;
+	ContextPtr context_;
 	std::list<std::basic_string<unsigned char>> seed_;
 	unsigned char vch_[KEY_LEN];
 	bool valid_;
@@ -78,7 +83,7 @@ class PKey
 {
 public:
 	PKey() {}
-	PKey(Context* context) { context_ = context; }
+	PKey(ContextPtr context) { context_ = context; }
 
 	template <typename T> PKey(const T pbegin, const T pend)
 	{
@@ -90,7 +95,7 @@ public:
 		set(vch.begin(), vch.end());
 	}
 
-	void setContext(Context* context) { context_ = context; }
+	void setContext(ContextPtr context) { context_ = context; }
 
 	void setPackedSize(unsigned int size) { size_ = size; }
 	unsigned int getPackedSize() { return size_; }
@@ -102,6 +107,7 @@ public:
 
 	std::string toString();
 	std::string toString(unsigned int len);
+	std::string toHex() { return HexStr(begin(), end()); }
 
 	bool valid() const
 	{
@@ -115,10 +121,10 @@ public:
 		vch_[0] = 0xFF;
 	}
 
-	quark::vector<unsigned char> get()
+	qbit::vector<unsigned char> get()
 	{
-		quark::vector<unsigned char> lKey; lKey.resize(size());
-		memcpy((unsigned char*)&lKey[0], vch_, size());
+		qbit::vector<unsigned char> lKey;
+		lKey.insert(lKey.end(), vch_, vch_+size());
 		return lKey;
 	}
 
@@ -136,7 +142,8 @@ public:
 		return Hash160(vch_, vch_ + size());
 	}
 
-	bool verify(const uint256& hash /*data chunk hash*/, std::vector<unsigned char>& signature /*resulting signature*/) const;
+	bool verify(const uint256& hash /*data chunk hash*/, std::vector<unsigned char>& signature /*resulting signature*/);
+	bool verify(const uint256& hash /*data chunk hash*/, const uint512& signature /*resulting signature*/);
 
 	std::vector<unsigned char> unpack();
 	bool pack(unsigned char*);
@@ -151,11 +158,13 @@ private:
 		return 0;
 	}
 
-	Context* context_;
+	inline ContextPtr getContext() { if (!context_) context_ = Context::instance(); return context_; }
+
+	ContextPtr context_;
 	unsigned char vch_[PKEY_LEN];
 	unsigned int size_;
 };
 
-} // quark
+} // qbit
 
 #endif

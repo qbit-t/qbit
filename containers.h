@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef QUARK_CONTAINERS_H
-#define QUARK_CONTAINERS_H
+#ifndef QBIT_CONTAINERS_H
+#define QBIT_CONTAINERS_H
 
 #include <list>
 #include <vector>
@@ -13,10 +13,10 @@
 // TODO: redefine allocator
 //
 
-namespace quark {
+namespace qbit {
 
 template<class type> class vector : public std::vector<type> {};
 
-} // quark
+} // qbit
 
 #endif

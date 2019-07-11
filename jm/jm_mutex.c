@@ -111,7 +111,7 @@ void _jm_mutex_lock(struct _jm_mutex* mutex)
                 pthread_mutexattr_settype(&lAttr, PTHREAD_MUTEX_RECURSIVE);
                 pthread_mutex_init(&(mutex->lock), &lAttr);
                 pthread_mutexattr_destroy(&lAttr);
-		mutex->initialized = 1;
+				mutex->initialized = 1;
         }
 
         pthread_mutex_lock(&(mutex->lock));

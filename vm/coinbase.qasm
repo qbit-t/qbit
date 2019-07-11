@@ -18,14 +18,12 @@
 
 #
 # input[0] program
-	mov		s15, 0x01
-	mov		r1, height
 	mov		r0, 0x01
 	ret
 
 #
 # output[0] program
 	mov		r0, 0x2023947283749211
-	pushd		r0					# push destination address and [asset/txid/index]
-	cmpe		r0, s0					# suppose, that s0 contains input pubkey, result -> c0
+?	pushd	r0						# push destination address and [asset/txid/index]
+	cmpe	r0, s0					# suppose, that s0 contains input pubkey, result -> c0
 	mov		r0, c0					# set result to r0

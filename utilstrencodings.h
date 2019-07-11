@@ -6,8 +6,8 @@
 /**
  * Utilities for converting data from/to strings.
  */
-#ifndef QUARK_UTIL_STRENCODINGS_H
-#define QUARK_UTIL_STRENCODINGS_H
+#ifndef QBIT_UTIL_STRENCODINGS_H
+#define QBIT_UTIL_STRENCODINGS_H
 
 //
 // allocator.h _MUST_ be included BEFORE all other
@@ -244,4 +244,4 @@ constexpr char ToUpper(char c)
  */
 std::string Capitalize(std::string str);
 
-#endif // QUARK_UTIL_STRENCODINGS_H
+#endif // QBIT_UTIL_STRENCODINGS_H

@@ -1,3 +1,7 @@
+// Copyright (c) 2016-2019 Andrew Demuskov
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
 #ifndef __JM_UTILS__
 #define __JM_UTILS__
 
@@ -83,7 +87,8 @@ JET_MALLOC_DEF longlong_t getTime();
 	longlong_t lEndTime = getTime(); \
 
 #define PRINT_MEASURE(a,b,c,e)\
-	printf("%llu, %d, %d, %d, %d\n", (lEndTime-lBeginTime), a, b, c, e); \
+	printf("\n%llu, %d, %d, %d, %d\n", (lEndTime-lBeginTime), a, b, c, e); \
 }\
 
 #endif
+

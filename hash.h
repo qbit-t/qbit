@@ -167,8 +167,8 @@ public:
     template<typename T>
     CHashVerifier<Source>& operator>>(T&& obj)
     {
-        // Unserialize from this stream
-        ::Unserialize(*this, obj);
+        // Deserialize from this stream
+        ::Deserialize(*this, obj);
         return (*this);
     }
 };

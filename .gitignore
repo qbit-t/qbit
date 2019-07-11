@@ -2,9 +2,10 @@
 cmake_install.*
 CMakeFiles*
 CMakeCache*
-Makefile*
-quark
+Makefile
+qbit
 qbit-cli
 qbitd
 qbit-test
+qbit-unit-tests
 

@@ -1,4 +1,4 @@
-### QUARK Distributed Ledger
+### QBIT Distributed Ledger
 
 1. git clone https://github.com/ElementsProject/secp256k1-zkp secp256k1
 2. git checkout schnorrsig
