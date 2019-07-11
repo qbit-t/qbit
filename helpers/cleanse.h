@@ -6,10 +6,6 @@
 #ifndef BITCOIN_SUPPORT_CLEANSE_H
 #define BITCOIN_SUPPORT_CLEANSE_H
 
-//
-// allocator.h _MUST_ be included BEFORE all other
-//
-#include "../allocator.h"
 #include <stdlib.h>
 
 // Attempt to overwrite data in the specified memory span.

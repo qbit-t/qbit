@@ -15,34 +15,26 @@
 #include "uint256.h"
 #include "crypto/sha256.h"
 
+#include <memory>
+
 #define MESSAGE_START_SIZE 4
 
-namespace quark {
+namespace qbit {
+
+class Context;
+typedef std::shared_ptr<Context> ContextPtr;
 
 class Context
 {
 public:
-	typedef unsigned char MessageStartChars[MESSAGE_START_SIZE];
-
-	enum Base58Type
-	{
-		PUBKEY_ADDRESS,
-		SCRIPT_ADDRESS,
-		SCRIPT_ADDRESS2,
-		SECRET_KEY,
-		EXT_PUBLIC_KEY,
-		EXT_SECRET_KEY,
-		MAX_BASE58_TYPES
-	};
-
 	Context();
 	~Context();
 
 	secp256k1_context* signatureContext();
 	secp256k1_context* noneContext();
-	secp256k1_scratch_space* signatureScratch() { return scratch_; }
+	secp256k1_scratch_space* signatureScratch();
 
-	const std::vector<unsigned char>& Base58Prefix(Base58Type type) const { return base58Prefixes_[type]; }
+	static ContextPtr instance();
 
 private:
 	void initialize();
@@ -51,11 +43,8 @@ private:
 	secp256k1_context* none_ = NULL;
 	secp256k1_context* context_ = NULL;
 	secp256k1_scratch_space* scratch_ = NULL;
-
-	std::vector<unsigned char> base58Prefixes_[MAX_BASE58_TYPES];
-	MessageStartChars messageTag_;
 };
 
-} // quark
+} // qbit
 
 #endif // CONTEXT_H

@@ -629,7 +629,7 @@ void Serialize(Stream& os, const std::basic_string<C>& str)
 }
 
 template<typename Stream, typename C>
-void Unserialize(Stream& is, std::basic_string<C>& str)
+void Deserialize(Stream& is, std::basic_string<C>& str)
 {
     unsigned int nSize = ReadCompactSize(is);
     str.resize(nSize);
@@ -666,7 +666,7 @@ inline void Serialize(Stream& os, const prevector<N, T>& v)
 
 
 template<typename Stream, unsigned int N, typename T>
-void Unserialize_impl(Stream& is, prevector<N, T>& v, const unsigned char&)
+void Deserialize_impl(Stream& is, prevector<N, T>& v, const unsigned char&)
 {
     // Limit size per read so bogus size value won't cause out of memory
     v.clear();
@@ -682,7 +682,7 @@ void Unserialize_impl(Stream& is, prevector<N, T>& v, const unsigned char&)
 }
 
 template<typename Stream, unsigned int N, typename T, typename V>
-void Unserialize_impl(Stream& is, prevector<N, T>& v, const V&)
+void Deserialize_impl(Stream& is, prevector<N, T>& v, const V&)
 {
     v.clear();
     unsigned int nSize = ReadCompactSize(is);
@@ -695,14 +695,14 @@ void Unserialize_impl(Stream& is, prevector<N, T>& v, const V&)
             nMid = nSize;
         v.resize(nMid);
         for (; i < nMid; i++)
-            Unserialize(is, v[i]);
+            Deserialize(is, v[i]);
     }
 }
 
 template<typename Stream, unsigned int N, typename T>
-inline void Unserialize(Stream& is, prevector<N, T>& v)
+inline void Deserialize(Stream& is, prevector<N, T>& v)
 {
-    Unserialize_impl(is, v, T());
+    Deserialize_impl(is, v, T());
 }
 
 
@@ -734,7 +734,7 @@ inline void Serialize(Stream& os, const std::vector<T, A>& v)
 
 
 template<typename Stream, typename T, typename A>
-void Unserialize_impl(Stream& is, std::vector<T, A>& v, const unsigned char&)
+void Deserialize_impl(Stream& is, std::vector<T, A>& v, const unsigned char&)
 {
     // Limit size per read so bogus size value won't cause out of memory
     v.clear();
@@ -750,7 +750,7 @@ void Unserialize_impl(Stream& is, std::vector<T, A>& v, const unsigned char&)
 }
 
 template<typename Stream, typename T, typename A, typename V>
-void Unserialize_impl(Stream& is, std::vector<T, A>& v, const V&)
+void Deserialize_impl(Stream& is, std::vector<T, A>& v, const V&)
 {
     v.clear();
     unsigned int nSize = ReadCompactSize(is);
@@ -763,14 +763,14 @@ void Unserialize_impl(Stream& is, std::vector<T, A>& v, const V&)
             nMid = nSize;
         v.resize(nMid);
         for (; i < nMid; i++)
-            Unserialize(is, v[i]);
+            Deserialize(is, v[i]);
     }
 }
 
 template<typename Stream, typename T, typename A>
-inline void Unserialize(Stream& is, std::vector<T, A>& v)
+inline void Deserialize(Stream& is, std::vector<T, A>& v)
 {
-    Unserialize_impl(is, v, T());
+    Deserialize_impl(is, v, T());
 }
 
 
@@ -786,10 +786,10 @@ void Serialize(Stream& os, const std::pair<K, T>& item)
 }
 
 template<typename Stream, typename K, typename T>
-void Unserialize(Stream& is, std::pair<K, T>& item)
+void Deserialize(Stream& is, std::pair<K, T>& item)
 {
-    Unserialize(is, item.first);
-    Unserialize(is, item.second);
+    Deserialize(is, item.first);
+    Deserialize(is, item.second);
 }
 
 
@@ -806,7 +806,7 @@ void Serialize(Stream& os, const std::map<K, T, Pred, A>& m)
 }
 
 template<typename Stream, typename K, typename T, typename Pred, typename A>
-void Unserialize(Stream& is, std::map<K, T, Pred, A>& m)
+void Deserialize(Stream& is, std::map<K, T, Pred, A>& m)
 {
     m.clear();
     unsigned int nSize = ReadCompactSize(is);
@@ -814,7 +814,7 @@ void Unserialize(Stream& is, std::map<K, T, Pred, A>& m)
     for (unsigned int i = 0; i < nSize; i++)
     {
         std::pair<K, T> item;
-        Unserialize(is, item);
+        Deserialize(is, item);
         mi = m.insert(mi, item);
     }
 }
@@ -833,7 +833,7 @@ void Serialize(Stream& os, const std::set<K, Pred, A>& m)
 }
 
 template<typename Stream, typename K, typename Pred, typename A>
-void Unserialize(Stream& is, std::set<K, Pred, A>& m)
+void Deserialize(Stream& is, std::set<K, Pred, A>& m)
 {
     m.clear();
     unsigned int nSize = ReadCompactSize(is);
@@ -841,7 +841,7 @@ void Unserialize(Stream& is, std::set<K, Pred, A>& m)
     for (unsigned int i = 0; i < nSize; i++)
     {
         K key;
-        Unserialize(is, key);
+        Deserialize(is, key);
         it = m.insert(it, key);
     }
 }
@@ -858,7 +858,7 @@ Serialize(Stream& os, const std::unique_ptr<const T>& p)
 }
 
 template<typename Stream, typename T>
-void Unserialize(Stream& is, std::unique_ptr<const T>& p)
+void Deserialize(Stream& is, std::unique_ptr<const T>& p)
 {
     p.reset(new T(deserialize, is));
 }
@@ -875,7 +875,7 @@ Serialize(Stream& os, const std::shared_ptr<const T>& p)
 }
 
 template<typename Stream, typename T>
-void Unserialize(Stream& is, std::shared_ptr<const T>& p)
+void Deserialize(Stream& is, std::shared_ptr<const T>& p)
 {
     p = std::make_shared<const T>(deserialize, is);
 }
@@ -959,15 +959,15 @@ void SerializeMany(Stream& s, const Arg& arg, const Args&... args)
 }
 
 template<typename Stream>
-inline void UnserializeMany(Stream& s)
+inline void DeserializeMany(Stream& s)
 {
 }
 
 template<typename Stream, typename Arg, typename... Args>
-inline void UnserializeMany(Stream& s, Arg&& arg, Args&&... args)
+inline void DeserializeMany(Stream& s, Arg&& arg, Args&&... args)
 {
-    ::Unserialize(s, arg);
-    ::UnserializeMany(s, args...);
+    ::Deserialize(s, arg);
+    ::DeserializeMany(s, args...);
 }
 
 template<typename Stream, typename... Args>
@@ -979,7 +979,7 @@ inline void SerReadWriteMany(Stream& s, SerActionSerialize ser_action, const Arg
 template<typename Stream, typename... Args>
 inline void SerReadWriteMany(Stream& s, SerActionDeserialize ser_action, Args&&... args)
 {
-    ::UnserializeMany(s, args...);
+    ::DeserializeMany(s, args...);
 }
 
 template<typename I>

@@ -6,6 +6,10 @@
 #ifndef BITCOIN_SUPPORT_ALLOCATORS_ZEROAFTERFREE_H
 #define BITCOIN_SUPPORT_ALLOCATORS_ZEROAFTERFREE_H
 
+//
+// allocator.h _MUST_ be included BEFORE all other
+//
+#include "../allocator.h"
 #include "cleanse.h"
 
 #include <memory>

@@ -1,3 +1,7 @@
+// Copyright (c) 2019 Andrew Demuskov
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
 #ifndef ALLOCATOR_H
 #define ALLOCATOR_H
 

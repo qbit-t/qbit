@@ -29,6 +29,7 @@ public:
     }
 
     explicit base_blob(const std::vector<unsigned char>& vch);
+    explicit base_blob(unsigned char* vch);
 
     bool isNull() const
     {
@@ -45,11 +46,11 @@ public:
 
     inline int compare(const base_blob& other) const { return memcmp(data, other.data, sizeof(data)); }
 
-    friend inline bool operator==(const base_blob& a, const base_blob& b) { return a.Compare(b) == 0; }
-    friend inline bool operator!=(const base_blob& a, const base_blob& b) { return a.Compare(b) != 0; }
-    friend inline bool operator<(const base_blob& a, const base_blob& b) { return a.Compare(b) < 0; }
+    friend inline bool operator==(const base_blob& a, const base_blob& b) { return a.compare(b) == 0; }
+    friend inline bool operator!=(const base_blob& a, const base_blob& b) { return a.compare(b) != 0; }
+    friend inline bool operator<(const base_blob& a, const base_blob& b) { return a.compare(b) < 0; }
 
-    std::string getHex() const;
+    std::string toHex() const;
     void setHex(const char* psz);
     void setHex(const std::string& str);
     std::string toString() const;
@@ -79,9 +80,9 @@ public:
         return sizeof(data);
     }
 
-    quark::vector<unsigned char> get()
+    qbit::vector<unsigned char> get()
     {
-        quark::vector<unsigned char> lData; lData.resize(size());
+        qbit::vector<unsigned char> lData; lData.resize(size());
         memcpy((unsigned char*)&lData[0], data, size());
         return lData;
     }
@@ -126,6 +127,7 @@ public:
     uint160() {}
     uint160(const base_blob<160>& b) : base_blob<160>(b) {}
     explicit uint160(const std::vector<unsigned char>& vch) : base_blob<160>(vch) {}
+    explicit uint160(unsigned char* vch) : base_blob<160>(vch) {}
 };
 
 /** 256-bit opaque blob.
@@ -138,6 +140,7 @@ public:
     uint256() {}
     uint256(const base_blob<256>& b) : base_blob<256>(b) {}
     explicit uint256(const std::vector<unsigned char>& vch) : base_blob<256>(vch) {}
+    explicit uint256(unsigned char* vch) : base_blob<256>(vch) {}
 
     /** A cheap hash function that just returns 64 bits from the result, it can be
      * used when the contents are considered uniformly random. It is not appropriate
@@ -167,6 +170,51 @@ inline uint256 uint256S(const char *str)
 inline uint256 uint256S(const std::string& str)
 {
     uint256 rv;
+    rv.setHex(str);
+    return rv;
+}
+
+
+/** 512-bit opaque blob.
+ * @note This type is called uint512 for historical reasons only. It is an
+ * opaque blob of 512 bits and has no integer operations. Use arith_uint512 if
+ * those are required.
+ */
+class uint512 : public base_blob<512> {
+public:
+    uint512() {}
+    uint512(const base_blob<512>& b) : base_blob<512>(b) {}
+    explicit uint512(const std::vector<unsigned char>& vch) : base_blob<512>(vch) {}
+    explicit uint512(unsigned char* vch) : base_blob<512>(vch) {}
+
+    /** A cheap hash function that just returns 64 bits from the result, it can be
+     * used when the contents are considered uniformly random. It is not appropriate
+     * when the value can easily be influenced from outside as e.g. a network adversary could
+     * provide values to trigger worst-case behavior.
+     */
+    uint64_t getCheapHash() const
+    {
+        return ReadLE64(data);
+    }
+};
+
+/* uint512 from const char *.
+ * This is a separate function because the constructor uint512(const char*) can result
+ * in dangerously catching uint512(0).
+ */
+inline uint512 uint512S(const char *str)
+{
+    uint512 rv;
+    rv.setHex(str);
+    return rv;
+}
+/* uint512 from std::string.
+ * This is a separate function because the constructor uint512(const std::string &str) can result
+ * in dangerously catching uint512(0) via std::string(const char*).
+ */
+inline uint512 uint512S(const std::string& str)
+{
+    uint512 rv;
     rv.setHex(str);
     return rv;
 }

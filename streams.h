@@ -3,8 +3,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef QUARK_STREAMS_H
-#define QUARK_STREAMS_H
+#ifndef QBIT_STREAMS_H
+#define QBIT_STREAMS_H
 
 //
 // allocator.h _MUST_ be included BEFORE all other
@@ -49,8 +49,8 @@ public:
     template<typename T>
     OverrideStream<Stream>& operator>>(T&& obj)
     {
-        // Unserialize from this stream
-        ::Unserialize(*this, obj);
+        // Deserialize from this stream
+        ::Deserialize(*this, obj);
         return (*this);
     }
 
@@ -167,14 +167,14 @@ public:
                   Args&&... args)
         : VectorReader(type, version, data, pos)
     {
-        ::UnserializeMany(*this, std::forward<Args>(args)...);
+        ::DeserializeMany(*this, std::forward<Args>(args)...);
     }
 
     template<typename T>
     VectorReader& operator>>(T& obj)
     {
-        // Unserialize from this stream
-        ::Unserialize(*this, obj);
+        // Deserialize from this stream
+        ::Deserialize(*this, obj);
         return (*this);
     }
 
@@ -463,8 +463,8 @@ public:
     template<typename T>
     DataStream& operator>>(T&& obj)
     {
-        // Unserialize from this stream
-        ::Unserialize(*this, obj);
+        // Deserialize from this stream
+        ::Deserialize(*this, obj);
         return (*this);
     }
 
@@ -700,10 +700,10 @@ public:
     template<typename T>
     AutoFile& operator>>(T&& obj)
     {
-        // Unserialize from this stream
+        // Deserialize from this stream
         if (!file)
             throw std::ios_base::failure("AutoFile::operator>>: file handle is nullptr");
-        ::Unserialize(*this, obj);
+        ::Deserialize(*this, obj);
         return (*this);
     }
 };
@@ -842,8 +842,8 @@ public:
 
     template<typename T>
     BufferedFile& operator>>(T&& obj) {
-        // Unserialize from this stream
-        ::Unserialize(*this, obj);
+        // Deserialize from this stream
+        ::Deserialize(*this, obj);
         return (*this);
     }
 
@@ -859,4 +859,4 @@ public:
     }
 };
 
-#endif // QUARK_STREAMS_H
+#endif // QBIT_STREAMS_H
