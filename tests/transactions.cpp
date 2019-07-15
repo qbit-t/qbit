@@ -108,7 +108,7 @@ bool TxVerify::execute() {
 	uint256 lTx0 = createTx0();
 	TransactionPtr lTx1 = createTx1(lTx0);
 
-	std::cout << std::endl << lTx1->toString() << std::endl;
+	//std::cout << std::endl << lTx1->toString() << std::endl;
 
 	if (lTx1 != nullptr) {
 		TransactionValidator lValidator(store_);
@@ -120,11 +120,11 @@ bool TxVerify::execute() {
 		//
 		// serialize
 		DataStream lStream(SER_NETWORK, 0);
-		TransactionSerializer::serialize<DataStream>(lStream, lTx1);
+		Transaction::Serializer::serialize<DataStream>(lStream, lTx1);
 
 		//
 		// deserialize&check
-		TransactionPtr lTxDeserialized = TransactionDeserializer::deserialize<DataStream>(lStream);
+		TransactionPtr lTxDeserialized = Transaction::Deserializer::deserialize<DataStream>(lStream);
 		TransactionValidator lValidator2(store_);
 		if (!lValidator2.validate(lTxDeserialized)) {
 			error_ = lTxDeserialized->error();

@@ -5,6 +5,8 @@
 #ifndef ALLOCATOR_H
 #define ALLOCATOR_H
 
+#if defined(JM_MALLOC)
+
 #include <new>
 #include "jm/include/jet_malloc.h"
 
@@ -21,5 +23,7 @@ void* operator new(size_t sz, const std::nothrow_t&) throw();
 void* operator new[](std::size_t sz, const std::nothrow_t&) throw();
 void  operator delete(void* ptr, const std::nothrow_t&) throw();
 void  operator delete[](void* ptr, const std::nothrow_t&) throw();
+
+#endif
 
 #endif // ALLOCATOR_H

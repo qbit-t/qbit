@@ -70,7 +70,7 @@ bool VMMovCmpJmpTrue::execute() {
 
 bool VMLoop::execute() {
 	ByteCode lCode; lCode <<
-						OP(QMOV)  << REG(QR0) << CU32(100) <<
+						OP(QMOV)  << REG(QR0) << CU32(1000000) <<
 						OP(QMOV)  << REG(QR1) << CU32(0x00) <<
 						OP(QMOV)  << REG(QR2) << CU32(0x01) <<
 		LAB(1001) <<	OP(QCMP)  << REG(QR1) << REG(QR0) <<
@@ -83,7 +83,7 @@ bool VMLoop::execute() {
 	lVM.execute();
 
 	if (lVM.state() != VirtualMachine::FINISHED) { error_ = _getVMStateText(lVM.state()); return false; }
-	else if (lVM.getR(qasm::QR1).to<uint32_t>() != 100) {
+	else if (lVM.getR(qasm::QR1).to<uint32_t>() != 1000000) {
 		error_ = std::string("R1 = ") + lVM.getR(qasm::QR1).toHex();
 		return false;
 	}

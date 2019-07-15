@@ -1,11 +1,16 @@
 *.so
-cmake_install.*
+*.a
+*.cmake
 CMakeFiles*
 CMakeCache*
 Makefile
 qbit
 qbit-cli
 qbitd
-qbit-test
-qbit-unit-tests
+*test
+*tests
+*bench*
+*util
+*/include/port
+*.log
 

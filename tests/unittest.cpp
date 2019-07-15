@@ -10,6 +10,7 @@
 #endif
 
 #include <iostream>
+#include <iomanip>
 
 #define longlong_t long long
 
@@ -39,7 +40,7 @@ void TestSuit::execute() {
 
 	for(std::list<Unit*>::iterator lUnit = tests_.begin(); lUnit != tests_.end(); lUnit++) {
 
-		std::cout << (*lUnit)->name_ << ": ";
+		std::cout << std::setw(30) << (*lUnit)->name_ << ": ";
 
 		longlong_t lBeginTime = _get_time();		
 		try {

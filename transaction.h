@@ -24,6 +24,40 @@ namespace qbit {
 
 using namespace qasm;
 
+// forward
+class Transaction;
+class TxCoinBase;
+class TxSpend;
+
+typedef std::shared_ptr<Transaction> TransactionPtr;
+typedef std::shared_ptr<TxCoinBase> TxCoinBasePtr;
+typedef std::shared_ptr<TxSpend> TxSpendPtr;
+
+//
+// tx helper
+class TransactionHelper {
+public:
+	TransactionHelper() {}
+
+	template<typename type>
+	static std::shared_ptr<type> from(TransactionPtr tx) { return std::static_pointer_cast<type>(tx); }
+};
+
+//
+// tx creation functro
+class TransactionCreator {
+public:
+	TransactionCreator() {}
+	virtual TransactionPtr create() { return nullptr; }
+};
+
+//
+// tx types
+typedef std::map<unsigned short, TransactionCreator> TransactionTypes;
+extern TransactionTypes gTxTypes; // TODO: init on startup
+
+//
+// generic transaction
 class Transaction {
 public:
 	enum Type {
@@ -49,12 +83,15 @@ public:
 		ORGANIZATION			= 0x0030, 	// Create abstract organization entity
 
 		// roles
-		VALIDATOR               = 0x0040, 	// Validator - block emitter, tx checker and QBIT reward receiver. Validators can be created only (first releases): genesis block issuer
+		VALIDATOR 				= 0x0040, 	// Validator - block emitter, tx checker and QBIT reward receiver. Validators can be created only (first releases): genesis block issuer
 		GATEKEEPER				= 0x0041, 	// Gatekeeper - controls exchange\atomic exchange between DLTs, control and provide partial keys and sigs for multi-sig processing
 
 		// specialized org
 		ORGANIZATION_EXCHANGE	= 0x0100	// Create exchange entity (pre-defined and integrated into core)
 	};
+
+	// use to register tx type functor
+	static void RegisterTransactionType(Type, TransactionCreator&);
 
 	enum Status {
 		CREATED 	= 0x01,
@@ -154,6 +191,66 @@ public:
 		std::string toString() const;
 	};
 
+	class Serializer {
+	public:
+
+		template<typename Stream, typename Tx>
+		static inline void serialize(Stream& s, Tx* tx) {
+			s << (unsigned short)tx->type();
+			s << tx->in();
+			s << tx->out();
+			s << tx->feeIn();
+			s << tx->feeOut();
+
+			tx->serialize(s);
+		}
+
+		template<typename Stream>
+		static inline void serialize(Stream& s, TransactionPtr tx) {
+			s << (unsigned short)tx->type();
+			s << tx->in();
+			s << tx->out();
+			s << tx->feeIn();
+			s << tx->feeOut();
+
+			tx->serialize(s);
+		}
+	};
+
+	class Deserializer {
+	public:
+		template<typename Stream>
+		static inline TransactionPtr deserialize(Stream& s) {
+			unsigned short lTxType = 0x0000;
+			s >> lTxType;
+			Transaction::Type lType = (Transaction::Type)lTxType;
+
+			TransactionPtr lTx = nullptr;
+			switch(lType) {
+				case Transaction::COINBASE: lTx = std::make_shared<TxCoinBase>(); break;
+				case Transaction::SPEND: lTx = std::make_shared<TxSpend>(); break;
+				default: {
+					TransactionTypes::iterator lTypeIterator = gTxTypes.find(lType);
+					if (lTypeIterator != gTxTypes.end()) {
+						lTx = lTypeIterator->second.create();
+					}
+				}
+				break;			
+			}
+
+			if (lTx != nullptr) {
+				s >> lTx->in();
+				s >> lTx->out();
+				s >> lTx->feeIn();
+				s >> lTx->feeOut();
+
+				lTx->deserialize(s);
+			}
+
+			return lTx;
+		}	
+	};	
+
 	Transaction() { status_ = Status::CREATED; id_.setNull(); }
 
 	virtual void serialize(DataStream& s) {}
@@ -169,6 +266,7 @@ public:
 	inline std::vector<Out>& feeOut() { return feeOut_; }
 
 	inline Type type() { return type_; }
+	virtual inline std::string name() { return "basic"; }
 
 	inline Status status() { return status_; }
 	inline std::string error() { return error_; }
@@ -203,12 +301,10 @@ protected:
 	uint256 id_;
 };
 
-class TxCoinBase;
-class TxSpend;
-
-typedef std::shared_ptr<Transaction> TransactionPtr;
-typedef std::shared_ptr<TxCoinBase> TxCoinBasePtr;
-typedef std::shared_ptr<TxSpend> TxSpendPtr;
+//
+// DataStream specialization
+template void Transaction::Serializer::serialize<DataStream>(DataStream&, TransactionPtr);
+template TransactionPtr Transaction::Deserializer::deserialize<DataStream>(DataStream&);
 
 //
 // Coinbase transaction
@@ -237,6 +333,8 @@ public:
 			OP(QMOV) << REG(QR0) << REG(QC0) <<
 			OP(QRET);
 	}
+
+	inline std::string name() { return "coinbase"; }
 
 	inline void serialize(DataStream& s) {}
 	inline void deserialize(DataStream& s) {}
@@ -280,32 +378,11 @@ public:
 		return true;
 	}
 
+	inline std::string name() { return "spend"; }
+
 	inline void serialize(DataStream& s) {}
 	inline void deserialize(DataStream& s) {}
 };
-
-//
-// tx helper
-class TransactionHelper {
-public:
-	TransactionHelper() {}
-
-	template<typename type>
-	static std::shared_ptr<type> from(TransactionPtr tx) { return std::static_pointer_cast<type>(tx); }
-};
-
-//
-// tx creation functro
-class TransactionCreator {
-public:
-	TransactionCreator() {}
-	virtual TransactionPtr create() { return nullptr; }
-};
-
-//
-// tx types
-typedef std::map<Transaction::Type, TransactionCreator> TransactionTypes;
-extern TransactionTypes gTxTypes; // TODO: init on startup
 
 //
 // Tx Factory
@@ -329,65 +406,6 @@ public:
 		return TransactionPtr();
 	}
 };
-
-class TransactionSerializer {
-public:
-
-	template<typename Stream, typename Tx>
-	static inline void serialize(Stream& s, Tx* tx) {
-		s << (unsigned short)tx->type();
-		s << tx->in();
-		s << tx->out();
-		s << tx->feeIn();
-		s << tx->feeOut();
-
-		tx->serialize(s);
-	}
-
-	template<typename Stream>
-	static inline void serialize(Stream& s, TransactionPtr tx) {
-		s << (unsigned short)tx->type();
-		s << tx->in();
-		s << tx->out();
-		s << tx->feeIn();
-		s << tx->feeOut();
-
-		tx->serialize(s);
-	}
-};
-
-class TransactionDeserializer {
-public:
-	template<typename Stream>
-	static inline TransactionPtr deserialize(Stream& s) {
-		unsigned short lTxType = 0x0000;
-		s >> lTxType;
-		Transaction::Type lType = (Transaction::Type)lTxType;
-
-		TransactionPtr lTx;
-		switch(lType) {
-			case Transaction::COINBASE: lTx = std::make_shared<TxCoinBase>(); break;
-			case Transaction::SPEND: lTx = std::make_shared<TxSpend>(); break;
-			default: {
-				TransactionTypes::iterator lTypeIterator = gTxTypes.find(lType);
-				if (lTypeIterator != gTxTypes.end()) {
-					lTx = lTypeIterator->second.create();
-				}
-			}
-			break;			
-		}
-
-		s >> lTx->in();
-		s >> lTx->out();
-		s >> lTx->feeIn();
-		s >> lTx->feeOut();
-
-		lTx->deserialize(s);
-
-		return lTx;
-	}
-};
-
 
 } // qbit
 
