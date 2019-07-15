@@ -111,13 +111,13 @@ bool BlockCreate::execute() {
 	//
 	// serialize
 	DataStream lStream(SER_NETWORK, 0);
-	BlockSerializer::serialize<DataStream>(lStream, lBlock);	
+	Block::Serializer::serialize<DataStream>(lStream, lBlock);	
 
-	std::cout << std::endl << "original->" << lBlock->toString() << std::endl;
+	//std::cout << std::endl << "original->" << lBlock->toString() << std::endl;
 
-	BlockPtr lBlock2 = BlockDeserializer::deserialize<DataStream>(lStream);
+	BlockPtr lBlock2 = Block::Deserializer::deserialize<DataStream>(lStream);
 
-	std::cout << std::endl << "restored->" << lBlock2->toString() << std::endl;
+	//std::cout << std::endl << "restored->" << lBlock2->toString() << std::endl;
 
 	if (!lBlock->equals(lBlock2)) { error_ = "Block is not identical"; return false; }
 	return true;

@@ -7,9 +7,13 @@
 
 qbit::TransactionTypes qbit::gTxTypes;
 
+void qbit::Transaction::RegisterTransactionType(Transaction::Type type, TransactionCreator& creator) {
+	qbit::gTxTypes[type] = creator;
+}
+
 uint256 qbit::Transaction::hash() {
 	CHashWriter lStream(SER_GETHASH, PROTOCOL_VERSION);
-	TransactionSerializer::serialize<CHashWriter>(lStream, this);
+	Transaction::Serializer::serialize<CHashWriter>(lStream, this);
     return (id_ = lStream.GetHash());	
 }
 
@@ -36,7 +40,8 @@ std::string qbit::Transaction::Out::toString() const
 std::string qbit::Transaction::toString() 
 {
 	std::string str;
-	str += strprintf("transaction(hash=%s..., ins=%u, outs=%u)\n",
+	str += strprintf("%s(hash=%s..., ins=%u, outs=%u)\n",
+		name(),
 		hash().toString().substr(0,10),
 		in_.size(),
 		out_.size());

@@ -68,6 +68,7 @@ public:
 	}
 };
 
+// forward
 class Block;
 typedef std::shared_ptr<Block> BlockPtr;
 typedef std::vector<TransactionPtr> TransactionsContainer;
@@ -79,6 +80,54 @@ public:
 
 	// memory only
 	mutable bool checked_;
+
+	class Serializer {
+	public:
+		template<typename Stream>
+		static inline void serialize(Stream& s, Block* block) {
+			block->serialize<Stream>(s);
+
+			WriteCompactSize(s, block->transactions_.size());
+			for (TransactionsContainer::const_iterator lTx = block->transactions_.begin(); 
+				lTx != block->transactions_.end(); ++lTx) {
+				Transaction::Serializer::serialize<Stream>(s, *lTx);
+			}
+		}
+
+		template<typename Stream>
+		static inline void serialize(Stream& s, BlockPtr block) {
+			block->serialize<Stream>(s);
+
+			WriteCompactSize(s, block->transactions_.size());
+			for (TransactionsContainer::const_iterator lTx = block->transactions_.begin(); 
+				lTx != block->transactions_.end(); ++lTx) {
+				Transaction::Serializer::serialize<Stream>(s, *lTx);
+			}
+		}
+	};
+
+	class Deserializer {
+	public:
+		template<typename Stream>
+		static inline BlockPtr deserialize(Stream& s) {
+			BlockPtr lBlock = std::make_shared<Block>();
+
+			lBlock->deserialize<Stream>(s);
+			
+			unsigned int lSize = ReadCompactSize(s);
+			unsigned int lIdx = 0;
+			
+			lBlock->transactions_.resize(lSize);
+
+			while (lIdx < lSize)
+			{
+				TransactionPtr lTx = Transaction::Deserializer::deserialize<Stream>(s);
+				lBlock->transactions_[lIdx++] = lTx;
+			}
+
+			return lBlock;
+		}
+	};
 
 	Block() {
 		setNull();
@@ -114,54 +163,6 @@ public:
 	TransactionsContainer& transactions() { return transactions_; }
 
 	bool equals(BlockPtr other);
-};
-
-class BlockSerializer {
-public:
-	template<typename Stream>
-	static inline void serialize(Stream& s, Block* block) {
-		block->serialize<Stream>(s);
-
-		WriteCompactSize(s, block->transactions_.size());
-		for (TransactionsContainer::const_iterator lTx = block->transactions_.begin(); 
-			lTx != block->transactions_.end(); ++lTx) {
-			TransactionSerializer::serialize<Stream>(s, *lTx);
-		}
-	}
-
-	template<typename Stream>
-	static inline void serialize(Stream& s, BlockPtr block) {
-		block->serialize<Stream>(s);
-
-		WriteCompactSize(s, block->transactions_.size());
-		for (TransactionsContainer::const_iterator lTx = block->transactions_.begin(); 
-			lTx != block->transactions_.end(); ++lTx) {
-			TransactionSerializer::serialize<Stream>(s, *lTx);
-		}
-	}
-};
-
-class BlockDeserializer {
-public:
-	template<typename Stream>
-	static inline BlockPtr deserialize(Stream& s) {
-		BlockPtr lBlock = std::make_shared<Block>();
-
-		lBlock->deserialize<Stream>(s);
-		
-		unsigned int lSize = ReadCompactSize(s);
-		unsigned int lIdx = 0;
-		
-		lBlock->transactions_.resize(lSize);
-
-		while (lIdx < lSize)
-		{
-			TransactionPtr lTx = TransactionDeserializer::deserialize<Stream>(s);
-			lBlock->transactions_[lIdx++] = lTx;
-		}
-
-		return lBlock;
-	}
 };
 
 } // qbit
