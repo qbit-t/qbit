@@ -33,6 +33,12 @@ int main()
 	lSuit << new DbEntityContainerCreate();
 	lSuit << new DbContainerIterator();
 	lSuit << new DbMultiContainerIterator();
+	lSuit << new DbContainerTransaction();
+	lSuit << new DbEntityContainerTransaction();
+	lSuit << new DbMultiContainerTransaction();
+	lSuit << new DbMultiContainerRemove();
+	lSuit << new DbEntityContainerRemove();
+	lSuit << new DbContainerRemove();
 
 	lSuit.execute();
 

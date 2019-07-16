@@ -297,3 +297,222 @@ bool DbMultiContainerIterator::execute() {
 
 	return true;
 }
+
+bool DbContainerTransaction::execute() {
+
+	try {
+		db::DbContainer<std::string, std::string> lContainer("/tmp/db_test");
+		lContainer.open();
+
+		db::DbContainer<std::string, std::string>::Transaction lTransaction = lContainer.transaction();
+
+		for (int lIdx = 201; lIdx < 300; lIdx++) {
+			std::stringstream lKey;
+			std::stringstream lValue;
+
+			lKey << "key" << lIdx;
+			lValue << "value" << lIdx;
+
+			lTransaction.write(lKey.str(), lValue.str());
+		}
+
+		if(!lTransaction.commit()) { error_ = "Commit failed"; return false; }
+		
+		db::DbContainer<std::string, std::string>::Iterator lIter = lContainer.find("key222");
+		if(!(lIter.valid() && (*lIter) == "value222")) {
+			error_ = "data != value222"; return false; 
+		}
+	}
+	catch(const std::exception& ex) {
+		error_ = ex.what();
+		return false;
+	}
+
+	return true;
+}
+
+bool DbEntityContainerTransaction::execute() {
+
+	try {
+		db::DbEntityContainer<uint256, Transaction> lTxContainer("/tmp/db_tx_transaction");
+		lTxContainer.open();
+
+		//
+		// create & check
+		TransactionPtr lTx0 = createTx0();
+		TransactionPtr lTx1 = createTx1(lTx0->hash());
+
+		db::DbEntityContainer<uint256, Transaction>::Transaction lTransaction = lTxContainer.transaction();
+		{
+			lTransaction.write(lTx0->hash(), lTx0);
+			lTransaction.write(lTx1->hash(), lTx1);
+
+			if (!lTransaction.commit()) { error_ = "Commit failed"; return false; }
+		}
+		
+		TransactionPtr lTx00 = lTxContainer.read(lTx0->hash());
+		if (lTx00 == nullptr) { error_ = "Tx00 read failed"; return false; }
+
+		TransactionPtr lTx01 = lTxContainer.read(lTx1->hash());
+		if (lTx01 == nullptr) { error_ = "Tx01 read failed"; return false; }
+
+		if (lTx0->hash() != lTx00->hash()) { error_ = "Tx0 != Tx00"; return false; }
+		if (lTx1->hash() != lTx01->hash()) { error_ = "Tx1 != Tx01"; return false; }
+
+		//std::cout << std::endl << lTx00->toString() << std::endl;
+		//std::cout << lTx01->toString() << std::endl;
+	}
+	catch(const std::exception& ex) {
+		error_ = ex.what();
+		return false;
+	}
+
+	return true;
+}
+
+bool DbMultiContainerTransaction::execute() {
+
+	try {
+		db::DbMultiContainer<std::string, std::string> lContainer("/tmp/db_multi_string");
+		lContainer.open();
+
+		db::DbMultiContainer<std::string, std::string>::Transaction lTransaction = lContainer.transaction();
+
+		for (int lIdx = 10; lIdx < 20; lIdx++) {
+			std::stringstream lKey;
+			std::stringstream lValue;
+
+			lKey << "key3";
+			lValue << "value_s" << lIdx;
+			lTransaction.write(lKey.str(), lValue.str());
+
+			std::stringstream lKey2;
+			std::stringstream lValue2;
+
+			lKey2 << "key4";
+			lValue2 << "value_ss" << lIdx;
+			lTransaction.write(lKey2.str(), lValue2.str());
+		}
+
+		lTransaction.commit();
+
+		int lCount = 0;
+		for (db::DbMultiContainer<std::string, std::string>::Iterator lIter = lContainer.find("key3"); lIter.valid(); lIter++, lCount++) {
+			//std::cout << (*lIter) << std::endl;
+			std::string lVal = (*lIter);
+			
+			bool lFound = false;
+			for (int lIdx = 10; lIdx < 20; lIdx++) {
+				std::stringstream lValue;
+				lValue << "value_s" << lIdx;
+
+				if (lVal == lValue.str()) { lFound = true; }
+			}
+
+			if (!lFound) { error_ = "(str)lVal != lValue"; return false; }
+		}
+
+		if (lCount != 10) { error_ = "(str)Count != 10"; return false; }
+	}
+	catch(const std::exception& ex) {
+		error_ = ex.what();
+		return false;
+	}
+
+	return true;
+}
+
+bool DbMultiContainerRemove::execute() {
+
+	try {
+		db::DbMultiContainer<std::string, std::string> lContainer("/tmp/db_multi_string");
+		lContainer.open();
+
+		db::DbMultiContainer<std::string, std::string>::Transaction lTransaction = lContainer.transaction();
+
+		int lCount = 0;
+		for (db::DbMultiContainer<std::string, std::string>::Iterator lIter = lContainer.find("key3"); lIter.valid(); lIter++, lCount++) {
+			lContainer.remove(lIter);			
+		}
+
+		if (lCount != 10) { error_ = "(str)Count != 10"; return false; }
+
+		//
+		// find* works well, because all key3* entries was erased 
+		db::DbMultiContainer<std::string, std::string>::Iterator lIter = lContainer.find("key3");
+		if (lIter.valid()) { error_ = "(str)Iter is valid"; return false; }
+	}
+	catch(const std::exception& ex) {
+		error_ = ex.what();
+		return false;
+	}
+
+	return true;
+}
+
+bool DbEntityContainerRemove::execute() {
+
+	try {
+		db::DbEntityContainer<uint256, Transaction> lTxContainer("/tmp/db_tx_transaction");
+		lTxContainer.open();
+		
+		TransactionPtr lTx0 = createTx0();
+		TransactionPtr lTx1 = createTx1(lTx0->hash());
+
+		TransactionPtr lTx00 = lTxContainer.read(lTx0->hash());
+		if (lTx00 == nullptr) { error_ = "Tx00 read failed"; return false; }
+
+		if (!lTxContainer.remove(lTx00->hash())) { error_ = "Tx00 remove failed"; return false; }
+
+		lTx00 = lTxContainer.read(lTx0->hash());
+		if (lTx00 != nullptr) { error_ = "Tx00 exists"; return false; }
+	}
+	catch(const std::exception& ex) {
+		error_ = ex.what();
+		return false;
+	}
+
+	return true;
+}
+
+bool DbContainerRemove::execute() {
+
+	try {
+		db::DbContainer<std::string, std::string> lContainer("/tmp/db_test");
+		lContainer.open();
+
+		if (!lContainer.remove("key222")) { error_ = "Error deleting"; return false; }
+
+		std::string lVal;
+		if (lContainer.read("key222", lVal)) {
+			error_ = "key222 exists"; return false; 
+		}
+
+		db::DbContainer<std::string, std::string>::Transaction lTransaction = lContainer.transaction();
+
+		for (int lIdx = 201; lIdx < 300; lIdx++) {
+			std::stringstream lKey;
+			lKey << "key" << lIdx;
+
+			lTransaction.remove(lKey.str());
+		}
+
+		if(!lTransaction.commit()) { error_ = "Commit failed"; return false; }
+		
+		for (int lIdx = 201; lIdx < 300; lIdx++) {
+			std::stringstream lKey;
+			lKey << "key" << lIdx;
+
+			std::string lVal1;
+			if (lContainer.read(lKey.str(), lVal1)) {
+				error_ = lKey.str() + " exists"; return false; 
+			}
+		}
+	}
+	catch(const std::exception& ex) {
+		error_ = ex.what();
+		return false;
+	}
+
+	return true;
+}

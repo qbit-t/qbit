@@ -38,8 +38,8 @@ public:
 	class _iterator {
 	public:
 		_iterator() {}
-		explicit _iterator(leveldb::Iterator* iterator) { iterator_ = std::shared_ptr<leveldb::Iterator>(iterator); valid(); }
-		_iterator(const _iterator& other) : iterator_(other.iterator_) { valid(); }
+		explicit _iterator(leveldb::Iterator* iterator) { iterator_ = std::shared_ptr<leveldb::Iterator>(iterator); }
+		_iterator(const _iterator& other) : iterator_(other.iterator_) {}
 		~_iterator() {}
 
 		bool valid() { return (iterator_ && iterator_->Valid()); }
@@ -93,9 +93,65 @@ public:
 		std::shared_ptr<leveldb::Iterator> iterator_ { nullptr };
 	};
 
+	class _transaction {
+	public:
+		_transaction() {}
+		explicit _transaction(std::shared_ptr<leveldb::DB> db) : db_(db) {}
+
+		void write(const DataStream& k, const DataStream& v) {
+			leveldb::Slice lKey(k.data(), k.size());
+			leveldb::Slice lValue(v.data(), v.size());
+
+			batch_.Put(lKey, lValue);
+		}
+
+		void write(const key& k, const value& v) {
+			DataStream lKeyStream(SER_DISK, CLIENT_VERSION);
+			lKeyStream << k;
+
+			DataStream lValueStream(SER_DISK, CLIENT_VERSION);
+			lValueStream << v;
+
+			write(lKeyStream, lValueStream);
+		}
+
+		void remove(const DataStream& k) {
+			leveldb::Slice lKey(k.data(), k.size());
+			batch_.Delete(lKey);
+		}
+
+		void remove(const key& k) {
+			DataStream lKeyStream(SER_DISK, CLIENT_VERSION);
+			lKeyStream << k;
+
+			remove(lKeyStream);
+		}
+
+		bool commit(bool sync = false) {
+			leveldb::WriteOptions lOptions;
+			lOptions.sync = sync;
+
+			leveldb::Status lStatus = db_->Write(lOptions, &batch_);
+
+			if (!lStatus.ok()) error(lStatus);
+
+			return true;
+		}
+
+	private:
+		void error(const leveldb::Status& status) {
+			const std::string lMessage = "[LevelDBContainer::Transaction/error]: " + status.ToString();
+			throw db::exception(lMessage);      
+		}
+
+	private:
+		leveldb::WriteBatch batch_;
+		std::shared_ptr<leveldb::DB> db_;
+	};
+
 public:
 	LevelDBContainer() {}
-	~LevelDBContainer() { if (db_) delete db_; }
+	~LevelDBContainer() {}
 
 	bool open(const std::string& name, uint32_t cache = 0) { 
 		if (db_ == nullptr) {
@@ -113,13 +169,20 @@ public:
 
 			gLog().write(Log::INFO, std::string("[LevelDBContainer]: Opening ") + name_);
 
-			leveldb::Status lStatus = leveldb::DB::Open(options_, name_, &db_);
+			leveldb::DB* lDB;
+			leveldb::Status lStatus = leveldb::DB::Open(options_, name_, &lDB);
 			if (!lStatus.ok()) error(lStatus);
+
+			db_ = std::shared_ptr<leveldb::DB>(lDB);
 
 			gLog().write(Log::INFO, std::string("[LevelDBContainer]: Opened ") + name_);
 		}
 
 		return true;
+	}
+
+	_transaction transaction() {
+		return _transaction(db_);
 	}
 
 	_iterator find(const DataStream& k) {
@@ -183,7 +246,7 @@ public:
 
 		std::string lValue;
 		leveldb::Status lStatus = db_->Get(lOptions, lKey, &lValue);
-		if (!lStatus.ok()) error(lStatus);
+		if (!lStatus.ok()) { if (lStatus.IsNotFound()) return false; error(lStatus); }
 
 		try {
 			v.insert(v.end(), lValue.data(), lValue.data() + lValue.size());
@@ -208,6 +271,29 @@ public:
 		return false;
 	}
 
+	bool remove(const DataStream& k, bool sync = false) {
+		leveldb::Slice lKey(k.data(), k.size());
+
+		leveldb::WriteOptions lOptions;
+		lOptions.sync = sync;
+
+		leveldb::WriteBatch lBatch;
+		lBatch.Delete(lKey);
+
+		leveldb::Status lStatus = db_->Write(lOptions, &lBatch);
+
+		if (!lStatus.ok()) { if (lStatus.IsNotFound()) return false; error(lStatus); }
+
+		return true;
+	}
+
+	bool remove(const key& k, bool sync = false) {
+		DataStream lKeyStream(SER_DISK, CLIENT_VERSION);
+		lKeyStream << k;
+
+		return remove(lKeyStream, sync);
+	}
+
 private:
 	void error(const leveldb::Status& status) {
 		const std::string lMessage = "[LevelDBContainer/error]: " + status.ToString();
@@ -217,7 +303,7 @@ private:
 	std::string name_;
 
 private:
-	leveldb::DB* db_ {nullptr};
+	std::shared_ptr<leveldb::DB> db_ {nullptr};
 	leveldb::Options options_;
 };
 
