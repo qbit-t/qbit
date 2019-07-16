@@ -22,12 +22,6 @@
 namespace qbit {
 namespace db {
 
-enum Comparer {
-	DEFAULT = 0x01,
-	UINT32 	= 0x02,
-	UINT64 	= 0x03
-};
-
 template<typename _key>
 class MultiKey {
 public:
@@ -91,6 +85,22 @@ public:
 		typename impl<key, value>::_iterator i_;
 	};
 
+	class Transaction {
+	public:
+		Transaction(const typename impl<key, value>::_transaction& t) : t_(t) {}
+
+		inline void write(const key& k, const value& v) { t_.write(k, v); }
+		inline void write(const DataStream& k, const DataStream& v) { t_.write(k, v); }
+
+		inline void remove(const key& k) { t_.remove(k); }
+		inline void remove(const DataStream& k) { t_.remove(k); }
+
+		inline bool commit(bool sync = false) { return t_.commit(sync); }
+
+	private:
+		typename impl<key, value>::_transaction t_;
+	};
+
 public:
 	Container(const std::string& name) : name_(name) {}
 
@@ -104,6 +114,17 @@ public:
 
 	inline Iterator find(const key& k) { return Iterator(impl<key, value>::find(k)); }
 	inline Iterator find(const DataStream& k) { return Iterator(impl<key, value>::find(k)); }
+
+	inline bool remove(const key& k, bool sync = false) { return impl<key, value>::remove(k, sync); }
+	inline bool remove(const DataStream& k, bool sync = false) { return impl<key, value>::remove(k, sync); }
+
+	inline bool remove(const Iterator& iter, bool sync = false) {
+		DataStream lKeyStream(SER_DISK, CLIENT_VERSION);
+		const_cast<Iterator&>(iter).first(lKeyStream);
+		return remove(lKeyStream, sync);
+	}
+
+	inline Transaction transaction() { return Transaction(impl<key, value>::transaction()); }
 
 protected:
 	std::string name_;
@@ -141,12 +162,34 @@ public:
 			value lValue;
 			i_.second(lValue);
 			return lValue; 
-		}		
+		}
+
+		inline bool first(key& k) { return i_.first(k); }
+		inline bool first(DataStream& k) { return i_.first(k); }
+
+		inline bool second(value& v) { return i_.second(v); }
+		inline bool second(DataStream& v) { return i_.second(v); }		
 
 	private:
 		key key_;
 		typename Container<MultiKey<key>, value, impl>::Iterator i_;
 	};
+
+	class Transaction {
+	public:
+		Transaction(const typename Container<MultiKey<key>, value, impl>::Transaction& t) : t_(t) {}
+
+		inline void write(const key& k, const value& v) { t_.write(k, v); }
+		inline void write(const DataStream& k, const DataStream& v) { t_.write(k, v); }
+
+		inline void remove(const key& k) { t_.remove(k); }
+		inline void remove(const DataStream& k) { t_.remove(k); }
+
+		inline bool commit(bool sync = false) { return t_.commit(sync); }
+
+	private:
+		typename Container<MultiKey<key>, value, impl>::Transaction t_;
+	};	
 
 public:
 	MultiContainer(const std::string& name) : Container<MultiKey<key>, value, impl>(name) {}
@@ -168,12 +211,42 @@ public:
 	inline Iterator find(const DataStream& k) {
 		return MultiContainer::Iterator(k, Container<MultiKey<key>, value, impl>::find(MultiKey<key>(k, 0)));
 	}
+
+	inline bool remove(const MultiContainer::Iterator& iter, bool sync = false) {
+		DataStream lKeyStream(SER_DISK, CLIENT_VERSION);
+		const_cast<MultiContainer::Iterator&>(iter).first(lKeyStream);
+		return Container<MultiKey<key>, value, impl>::remove(lKeyStream, sync);
+	}
+
+	inline Transaction transaction() { return Transaction(Container<MultiKey<key>, value, impl>::transaction()); }	
 };
 
 //
 // Entity container for any key and special serialization\desesialization scheme 
 template<typename key, typename value, template<typename, typename> typename impl >
 class EntityContainer: public Container<key, value, impl> {
+public:
+	class Transaction {
+	public:
+		Transaction(const typename Container<key, value, impl>::Transaction& t) : t_(t) {}
+
+		inline void write(const key& k, std::shared_ptr<value> v) {
+			DataStream lKeyStream(SER_DISK, CLIENT_VERSION);
+			lKeyStream << k;
+
+			DataStream lValueStream(SER_DISK, CLIENT_VERSION);
+			value::Serializer::serialize(lValueStream, v);
+
+			t_.write(lKeyStream, lValueStream);
+		}
+
+		inline void remove(const key& k) { t_.remove(k); }
+		inline bool commit(bool sync = false) { return t_.commit(sync); }
+
+	private:
+		typename Container<key, value, impl>::Transaction t_;
+	};
+
 public:
 	EntityContainer(const std::string& name) : Container<key, value, impl>(name) {}
 
@@ -201,6 +274,8 @@ public:
 
 		return nullptr;
 	}
+
+	inline Transaction transaction() { return Transaction(Container<key, value, impl>::transaction()); }
 };
 
 } // db
