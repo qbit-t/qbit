@@ -86,6 +86,7 @@ set(UNITTESTS
 	./tests/transactions.cpp
 	./tests/blocks.cpp
 	./tests/dbs.cpp
+	./tests/cuckoo.cpp
 )
 
 add_definitions(-DHAVE_CONFIG_H)
