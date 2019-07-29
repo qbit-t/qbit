@@ -39,6 +39,8 @@ public:
         return true;
     }
 
+    bool isEmpty() const { return data[0] == data[WIDTH-1] && data[0] == (uint8_t)0x00; }
+
     void setNull()
     {
         memset(data, 0, sizeof(data));
@@ -54,6 +56,8 @@ public:
     void setHex(const char* psz);
     void setHex(const std::string& str);
     std::string toString() const;
+
+    void set(unsigned char *);
 
     unsigned char* begin()
     {

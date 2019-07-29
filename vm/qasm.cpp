@@ -2,7 +2,7 @@
 
 using namespace qbit;
 
-unsigned char qasm::MAX_REG = 0x31;
+unsigned char qasm::MAX_REG = 0x43;
 unsigned int qasm::INCORRECT_LABLE = 0xffff;
 int qasm::LAB_LEN = 3;
 
@@ -22,26 +22,32 @@ uint256			qasm::_letoh(uint256&         v) { return v; }
 
 std::string qasm::_getCommandText(_command cmd) {
 	switch(cmd) {
-		case QNOP: 		return "nop";
-		case QRET: 		return "ret";
-		case QMOV: 		return "mov";
-		case QADD: 		return "add";
-		case QSUB: 		return "sub";
-		case QMUL: 		return "mul";
-		case QDIV: 		return "div";
-		case QCMP: 		return "cmp";
-		case QCMPE:		return "cmpe";
-		case QCMPNE:	return "cmpne";
-		case QPUSHD:	return "pushd";
-		case QPULLD:	return "pulld";
-		case QLHASH256:	return "lhash256";
-		case QCHECKSIG:	return "checksig";
-		case QJMP:		return "jmp";
-		case QJMPT:		return "jmpt";
-		case QJMPF:		return "jmpf";
-		case QJMPL:		return "jmpl";
-		case QJMPG:		return "jmpg";
-		case QJMPE:		return "jmpe";
+		case QNOP: 			return "nop";
+		case QRET: 			return "ret";
+		case QMOV: 			return "mov";
+		case QADD: 			return "add";
+		case QSUB: 			return "sub";
+		case QMUL: 			return "mul";
+		case QDIV: 			return "div";
+		case QCMP: 			return "cmp";
+		case QCMPE:			return "cmpe";
+		case QCMPNE:		return "cmpne";
+		case QPUSHD:		return "pushd";
+		case QPULLD:		return "pulld";
+		case QLHASH256:		return "lhash256";
+		case QCHECKSIG:		return "checksig";
+		case QJMP:			return "jmp";
+		case QJMPT:			return "jmpt";
+		case QJMPF:			return "jmpf";
+		case QJMPL:			return "jmpl";
+		case QJMPG:			return "jmpg";
+		case QJMPE:			return "jmpe";
+		case QCHECKP:		return "checkp";
+		case QCHECKA:		return "checka";
+		case QATXOP:		return "atxop";
+		case QATXOA:		return "atxoa";
+		case QDTXO:			return "dtxo";
+		case QEQADDR:		return "eqaddr";
 	}
 
 	return "EOP";
@@ -89,6 +95,22 @@ std::string qasm::_getRegisterText(_register reg) {
 		case QR13:	return "r13";
 		case QR14:	return "r14";
 		case QR15:	return "r15";
+		case QR16:	return "r16";
+		case QR17:	return "r17";
+		case QR18:	return "r18";
+		case QR19:	return "r19";
+		case QR20:	return "r20";
+		case QR21:	return "r21";
+		case QR22:	return "r22";
+		case QR23:	return "r23";
+		case QR24:	return "r24";
+		case QR25:	return "r25";
+		case QR26:	return "r26";
+		case QR27:	return "r27";
+		case QR28:	return "r28";
+		case QR29:	return "r29";
+		case QR30:	return "r30";
+		case QR31:	return "r31";
 
 		case QS0:	return "s00";
 		case QS1:	return "s01";
@@ -98,34 +120,39 @@ std::string qasm::_getRegisterText(_register reg) {
 		case QS5:	return "s05";
 		case QS6:	return "s06";
 		case QS7:	return "s07";
-		case QS8:	return "s08";
-		case QS9:	return "s09";
-		case QS10:	return "s10";
-		case QS11:	return "s11";
-		case QS12:	return "s12";
-		case QS13:	return "s13";
-		case QS14:	return "s14";
-		case QS15:	return "s15";
 
 		case QC0:	return "c00";
-		case QC1:	return "c01";
-		case QC2:	return "c02";
-		case QC3:	return "c03";
-		case QC4:	return "c04";
-		case QC5:	return "c05";
-		case QC6:	return "c06";
-		case QC7:	return "c07";
-		case QC8:	return "c08";
-		case QC9:	return "c09";
-		case QC10:	return "c10";
-		case QC11:	return "c11";
-		case QC12:	return "c12";
-		case QC13:	return "c13";
-		case QC14:	return "c14";
-		case QC15:	return "c15";
+		case QD0:	return "d00";
 
-		case QTH0:	return "th0";
-		case QTH1:	return "th1";
+		case QA0:	return "a00";
+		case QA1:	return "a01";
+		case QA2:	return "a02";
+		case QA3:	return "a03";
+		case QA4:	return "a04";
+		case QA5:	return "a05";
+		case QA6:	return "a06";
+		case QA7:	return "a07";
+
+		case QTH0:	return "t00";
+		case QTH1:	return "t01";
+		case QTH2:	return "t02";
+		case QTH3:	return "t03";
+		case QTH4:	return "t04";
+		case QTH5:	return "t05";
+		case QTH6:	return "t06";
+		case QTH7:	return "t07";
+		case QTH8:	return "t08";
+		case QTH9:	return "t09";
+		case QTH10:	return "t10";
+		case QTH11:	return "t11";
+		case QTH12:	return "t12";
+		case QTH13:	return "t13";
+		case QTH14:	return "t14";
+		case QTH15:	return "t15";
+
+		case QP0:	return "p00";
+
+		case QE0: 	return "e00";
 	}
 
 	return "EREG";

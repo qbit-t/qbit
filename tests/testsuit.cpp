@@ -15,12 +15,13 @@ using namespace qbit::tests;
 
 int main()
 {
-	std::cout << "q-bit.technology | unit tests v0.1" << std::endl << std::endl;
+	std::cout << std::endl << "q-bit.technology | unit tests v0.1" << std::endl << std::endl;
 	TestSuit lSuit;
 
 	gLog().enable(Log::ALL);
 
-	lSuit << new CreateKeySignAndVerify();
+	lSuit << new RandomTest();
+	lSuit << new CreateKeySignAndVerifyMix();
 	lSuit << new VMMovCmp();
 	lSuit << new VMMovCmpJmpFalse();
 	lSuit << new VMMovCmpJmpTrue();
@@ -28,6 +29,7 @@ int main()
 	lSuit << new VMCheckLHash256();
 	lSuit << new VMCheckSig();
 	lSuit << new TxVerify();
+	lSuit << new TxVerifyPrivate();
 	lSuit << new BlockCreate();
 	lSuit << new DbContainerCreate();
 	lSuit << new DbEntityContainerCreate();

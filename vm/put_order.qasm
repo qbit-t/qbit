@@ -5,13 +5,15 @@
 #	r0 - script result & many other cases
 # -> signature (protected)
 #	s0 - s15
-#	s15 - sich check result
+#	s15 - sign check result, read-only
+#	s0  - set if _empty_, otherwise - exception
 # -> condition check
 #	c0 - c15
 #	all check... functions put result into c0 register
 # -> "this" register, constant registers (initialized before program run by context "this" transaction)
 #	th0 - transaction hash
 #	th1 - transaction type
+#	th2 - transaction input number
 
 # ----------------------------
 # tx_type: put_order

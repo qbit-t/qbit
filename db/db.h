@@ -112,6 +112,8 @@ public:
 	inline bool read(const key& k, value& v) { return impl<key, value>::read(k, v); }
 	inline bool read(const DataStream& k, DataStream& v) { return impl<key, value>::read(k, v); }
 
+	//
+	// any find* methods locating _near_ key/value: >=
 	inline Iterator find(const key& k) { return Iterator(impl<key, value>::find(k)); }
 	inline Iterator find(const DataStream& k) { return Iterator(impl<key, value>::find(k)); }
 

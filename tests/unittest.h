@@ -44,6 +44,8 @@ public:
 	UnitState state() { return state_; }
 	uint32_t time() { return time_; }
 
+	uint32_t now();
+
 protected:
 	std::string name_;
 	std::string error_;

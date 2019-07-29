@@ -1,14 +1,17 @@
 ### Qbit Distributed Ledger
 
-Qbit is a multi-asset platform based on PoW/DPoS consensus with UTXO principles. Qbit focuses are:
+Qbit is a multi-asset privacy oriented platform based on PoW/DPoS consensus with UTXO principles. Qbit focuses are:
 
 - Entity-based governance
 - Various kinds of typed transactions
+- Schnorr signatures/multi-signatures by default
+- Out-of-the-box privacy transactions for the value transfer
 - Scalable architecture
 - Ultra-fast transaction processing
 - Ability to on/off-chain processing and state syncronization
 - Smart contract support
 - Fast virtual machine (QVM) with asm-based machine codes
+- Cuckatoo PoW algorithm
 - Local-to-Global DPoS consensus
 - DApp flexible infrastructure
 - Built-in support for "digital organization" principles
@@ -34,7 +37,6 @@ Qbit Smart contracts based on the following principles:
 
 1. cd ./secp256k1
 2. ./autogen.sh
-3. ./configure --enable-experimental --enable-module-schnorrsig --enable-module-musig --with-bignum=no
-4. ./make
-5. cd ..
-6. cmake -DCMAKE_BUILD_TYPE=Release
+3. ./configure --enable-experimental --enable-module-schnorrsig --enable-module-musig --enable-module-ecdh --enable-module-generator --enable-module-rangeproof --with-bignum=no
+4. cd ..
+5. cmake -DCMAKE_BUILD_TYPE=Release

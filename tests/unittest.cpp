@@ -36,13 +36,17 @@ longlong_t _get_time()
 using namespace qbit;
 using namespace tests;
 
+uint32_t Unit::now() {
+	return _get_time();	
+}
+
 void TestSuit::execute() {
 
 	for(std::list<Unit*>::iterator lUnit = tests_.begin(); lUnit != tests_.end(); lUnit++) {
 
 		std::cout << std::setw(30) << (*lUnit)->name_ << ": ";
 
-		longlong_t lBeginTime = _get_time();		
+		longlong_t lBeginTime = _get_time();	
 		try {
 			if (!(*lUnit)->execute()) (*lUnit)->state_ = UnitState::ERROR;
 			else (*lUnit)->state_ = UnitState::SUCCESS;

@@ -9,6 +9,9 @@
 #include "../helpers/secure.h"
 
 #include "../transaction.h"
+#include "../iwallet.h"
+#include "../itransactionstore.h"
+#include "../transactioncontext.h"
 
 #include <sstream>
 
@@ -26,7 +29,18 @@ public:
 		UNKNOWN_ADDRESS			= 0x13,
 		UNKNOWN_OBJECT			= 0x14,
 		INVALID_SIGNATURE		= 0x15,
-		READONLY_REGISTER		= 0x16
+		READONLY_REGISTER		= 0x16,
+		ILLEGAL_REGISTER_STATE	= 0x17,
+		LOOPS_FORBIDDEN			= 0x18,
+		INVALID_AMOUNT			= 0x19,
+		INVALID_PROOFRANGE		= 0x1a,
+		INVALID_OUT 			= 0x1b,
+		INVALID_ADDRESS			= 0x1c,
+		INVALID_DESTINATION		= 0x1d,
+		INVALID_COINBASE		= 0x1e,
+		INVALID_UTXO			= 0x1f,
+		UNKNOWN_REFTX			= 0x20,
+		INVALID_BALANCE			= 0x21
 	};
 
 	class Register {
@@ -54,8 +68,9 @@ public:
 		void get(qbit::vector<unsigned char>& value) { value.insert(value.end(), data_.begin(), data_.end()); }
 		prevector<64, unsigned char>& get() { return data_; }
 
-		unsigned char* begin() { if (data_.size()) { if (getType() == qasm::QVAR) return &data_[2]; return &data_[1]; } return 0; }
-		unsigned char* end() { if (data_.size()) return &data_[data_.size()]; return 0; }
+		unsigned char* begin() { return &data_[1]; }
+		unsigned char* end() { return &data_[data_.size()]; }
+		size_t size() { return data_.size() - 1; }
 
 		std::string toHex();
 
@@ -199,27 +214,25 @@ public:
 
 	protected:
 
-		unsigned char* getValue() { if (getType() == qasm::QVAR) return &data_[2]; return &data_[1]; }
-		void setData(qasm::_atom type, unsigned char* v, size_t len) {
+		inline unsigned char* getValue() { return &data_[1]; }
+		inline void setData(qasm::_atom type, unsigned char* v, size_t len) {
 			if (type == qasm::QVAR) {
-				int lLen = len > 256 ? 256 : len;
-				data_.resize(lLen + 1 + 1); // type(1b) | len(1b) | data
-				data_[0] = type;
-				data_[1] = lLen;
-				memcpy(&data_[2], v, lLen);
-			} else {
-				data_.resize(len + 1); // type(1b) | data
-				data_[0] = type;
-				memcpy(&data_[1], v, len);
+				len = len > qasm::VarConstant::MAX_SIZE ? qasm::VarConstant::MAX_SIZE : len;
 			}
+
+			data_.resize(len + 1); // type(1b) | data
+			data_[0] = type;
+			memcpy(&data_[1], v, len);
 		}
 
 	protected:
 		prevector<64, unsigned char> data_;
 	};
 
-	VirtualMachine(const qasm::ByteCode& code) : state_(UNDEFINED), pos_(0), code_(code) 
-	{ input_ = 0; registers_.resize(16+16+16+2); }
+	VirtualMachine(const qasm::ByteCode& code) : state_(UNDEFINED), pos_(0), code_(code), allowLoops_(false), dryRun_(false) 
+	{ registers_.resize(qasm::MAX_REG + 1); }
+
+	VirtualMachine(const qasm::ByteCode& code, bool allowLoops) : VirtualMachine(code) { allowLoops_ = allowLoops; }
 
 	State execute();
 
@@ -230,9 +243,12 @@ public:
 	qasm::_command lastCommand() { return lastCommand_; }
 	qasm::_atom lastAtom() { return lastAtom_; }
 
-	void setTransaction(TransactionPtr transaction) { transaction_ = transaction; }
-	void setInput(uint32_t input) { input_ = input; }
+	void setTransaction(TransactionContextPtr transaction) { wrapper_ = transaction; }
 	void setContext(ContextPtr context) { context_ = context; }
+	void setWallet(IWalletPtr wallet) { wallet_ = wallet; }
+	void setTransactionStore(ITransactionStorePtr store) { store_ = store; }
+
+	void setDryRun() { dryRun_ = true; }
 
 protected:
 	inline void qmov();
@@ -253,8 +269,14 @@ protected:
 	inline void qjmpl();
 	inline void qjmpg();
 	inline void qjmpe();
+	inline void qchecka();
+	inline void qcheckp();
+	inline void qatxop();
+	inline void qatxoa();
+	inline void qdtxo();
+	inline void qeqaddr();
 
-	qasm::_atom nextAtom() { return (qasm::_atom)code_[pos_++]; }
+	inline qasm::_atom nextAtom() { return (qasm::_atom)code_[pos_++]; }
 
 	inline int locateLabel(unsigned short);
 
@@ -262,21 +284,33 @@ private:
 	State state_;
 	int pos_;
 	qasm::ByteCode code_; // program byte-code
+	bool allowLoops_; // allow loops
 	std::map<unsigned short, int> labels_; // labels and positions
 
 private:
 	// all registers
 	qbit::vector<Register> registers_;
 
-	// transaction
-	TransactionPtr transaction_;
-	uint32_t input_;
+	// signature context
+	ContextPtr context_;
 
-	// context
-	ContextPtr context_; 
+	// transaction context (wrapped tx)
+	TransactionContextPtr wrapper_;
 
+	// wallet
+	IWalletPtr wallet_;
+
+	// transaction store
+	ITransactionStorePtr store_;
+
+	// last executed command
 	qasm::_command lastCommand_;
+
+	// last defined atom
 	qasm::_atom lastAtom_;
+
+	// skip extended processing (for quick info extractors)
+	bool dryRun_;
 };
 
 extern std::string _getVMStateText(VirtualMachine::State);
@@ -284,6 +318,7 @@ extern std::string _getVMStateText(VirtualMachine::State);
 template<> uint160 VirtualMachine::Register::to<uint160>();
 template<> uint256 VirtualMachine::Register::to<uint256>();
 template<> uint512 VirtualMachine::Register::to<uint512>();
+template<> std::vector<unsigned char> VirtualMachine::Register::to<std::vector<unsigned char> >();
 
 } // qbit
 

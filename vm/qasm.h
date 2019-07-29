@@ -44,6 +44,12 @@ enum _command {
 	QPULLD		= 0x21, // zero operands
 	QLHASH256	= 0x22, // one operand
 	QCHECKSIG	= 0x23, // zero operands
+	QCHECKP		= 0x24, // zero operands
+	QCHECKA		= 0x25, // zero operands
+	QATXOP		= 0x26, // zero operands
+	QATXOA		= 0x27, // zero operands
+	QDTXO		= 0x28, // zero operands
+	QEQADDR		= 0x29, // zero operands
 
 	QJMP		= 0x30, // one operand
 	QJMPT		= 0x31, // one operand
@@ -96,43 +102,64 @@ enum _register {
 	QR13	= 0x0d,
 	QR14	= 0x0e,
 	QR15	= 0x0f,
+	QR16	= 0x10,
+	QR17	= 0x11,
+	QR18	= 0x12,
+	QR19	= 0x13,
+	QR20	= 0x14,
+	QR21	= 0x15,
+	QR22	= 0x16,
+	QR23	= 0x17,
+	QR24	= 0x18,
+	QR25	= 0x19,
+	QR26	= 0x1a,
+	QR27	= 0x1b,
+	QR28	= 0x1c,
+	QR29	= 0x1d,
+	QR30	= 0x1e,
+	QR31	= 0x1f,
 
-	QS0		= 0x10,
-	QS1		= 0x11,
-	QS2		= 0x12,
-	QS3		= 0x13,
-	QS4		= 0x14,
-	QS5		= 0x15,
-	QS6		= 0x16,
-	QS7		= 0x17,
-	QS8		= 0x18,
-	QS9		= 0x19,
-	QS10	= 0x1a,
-	QS11	= 0x1b,
-	QS12	= 0x1c,
-	QS13	= 0x1d,
-	QS14	= 0x1e,
-	QS15	= 0x1f,
+	QS0		= 0x20,
+	QS1		= 0x21,
+	QS2		= 0x22,
+	QS3		= 0x23,
+	QS4		= 0x24,
+	QS5		= 0x25,
+	QS6		= 0x26,
+	QS7		= 0x27,
 
-	QC0		= 0x20,
-	QC1		= 0x21,
-	QC2		= 0x22,
-	QC3		= 0x23,
-	QC4		= 0x24,
-	QC5		= 0x25,
-	QC6		= 0x26,
-	QC7		= 0x27,
-	QC8		= 0x28,
-	QC9		= 0x29,
-	QC10	= 0x2a,
-	QC11	= 0x2b,
-	QC12	= 0x2c,
-	QC13	= 0x2d,
-	QC14	= 0x2e,
-	QC15	= 0x2f,
+	QC0		= 0x28,
+	QD0		= 0x29,
 
-	QTH0	= 0x30,
-	QTH1	= 0x31
+	QA0		= 0x2a,
+	QA1		= 0x2b,
+	QA2		= 0x2c,
+	QA3		= 0x2d,
+	QA4		= 0x2e,
+	QA5		= 0x2f,
+	QA6		= 0x30,
+	QA7		= 0x31,
+
+	QTH0	= 0x32,
+	QTH1	= 0x33,
+	QTH2	= 0x34,
+	QTH3	= 0x35,
+	QTH4	= 0x36,
+	QTH5	= 0x37,
+	QTH6	= 0x38,
+	QTH7	= 0x39,
+	QTH8	= 0x3a,
+	QTH9	= 0x3b,
+	QTH10	= 0x3c,
+	QTH11	= 0x3d,
+	QTH12	= 0x3e,
+	QTH13	= 0x3f,
+	QTH14	= 0x40,
+	QTH15	= 0x41,
+
+	QP0		= 0x42,
+
+	QE0		= 0x43
 };
 
 extern int LAB_LEN;
@@ -280,12 +307,6 @@ public:
 		memcpy(&lValue, &data[pos], sizeof(value)); pos += sizeof(value);
 		return _letoh(lValue);
 	}
-	/*
-	static void extract(Container& data, int& pos, qbit::vector<unsigned char>& result) {
-		result.resize(sizeof(value) + 1); result[0] = code;
-		memcpy(&result[1], &data[pos], sizeof(value)); pos += sizeof(value);
-	}
-	*/
 };
 
 template<class value, _atom code>
@@ -305,37 +326,37 @@ public:
 		memcpy(lValue.begin(), &data[pos], lValue.size()); pos += lValue.size();
 		return lValue;
 	}
-
-	/*
-	static void extract(Container& data, int& pos, qbit::vector<unsigned char>& result) {
-		result.resize(sizeof(value) + 1); result[0] = code;
-		memcpy(&result[1], &data[pos], sizeof(value)); pos += sizeof(value);
-	}
-	*/
 };
 
 //
 // variable length constant
 class VarConstant : public ATOM {
 public:
+	static const size_t MAX_SIZE = 16384;
+public:
 	qbit::vector<unsigned char> data_;
 
-	VarConstant(qbit::vector<unsigned char> data) : ATOM(QVAR), data_(data) {}
+	VarConstant(const qbit::vector<unsigned char>& data) : ATOM(QVAR), data_(data) {}
 
 	void serialize(Container& data) {
 		ATOM::serialize(data);
-		if (data_.size() > 256) {
+		if (data_.size() > MAX_SIZE) {
+			data.insert(data.end(), 0x00);
 			data.insert(data.end(), 0x00);
 		} else {
-			unsigned char lSize = _htole((unsigned char)data_.size()); // max 256 bytes
-			data.insert(data.end(), lSize);
+			unsigned short lSize = _htole((unsigned short)data_.size()); 
+			data.insert(data.end(), ((unsigned char*)&lSize)[0]);
+			data.insert(data.end(), ((unsigned char*)&lSize)[1]);
 			data.insert(data.end(), data_.begin(), data_.end());
 		}
 	}
 
 	static void extract(Container& data, int& pos, qbit::vector<unsigned char>& result) {
-		unsigned char lSize = data[pos]; pos++;
-		if (lSize > 0 && lSize <= 256) {
+		unsigned short lSize;
+		memcpy(&lSize, &data[pos], sizeof(lSize)); pos += sizeof(lSize);
+
+		lSize = _letoh(lSize);
+		if (lSize > 0 && lSize <= MAX_SIZE) {
 			result.insert(result.end(), (unsigned char*)&data[pos], ((unsigned char*)&data[pos]) + lSize);
 		}
 		pos += lSize;

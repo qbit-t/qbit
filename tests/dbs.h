@@ -11,6 +11,7 @@
 #include "unittest.h"
 #include "../db/db.h"
 #include "../db/containers.h"
+#include "transactions.h"
 
 namespace qbit {
 namespace tests {
@@ -24,13 +25,22 @@ public:
 
 class DbEntityContainerCreate: public Unit {
 public:
-	DbEntityContainerCreate(): Unit("DbEntityContainerCreate") {}
-	DbEntityContainerCreate(const std::string& name): Unit(name) {}
+	DbEntityContainerCreate(): Unit("DbEntityContainerCreate") {
+		store_ = std::make_shared<TxStore>(); 
+		wallet_ = std::make_shared<TxWallet>(); 		
+	}
+	DbEntityContainerCreate(const std::string& name): Unit(name) {
+		store_ = std::make_shared<TxStore>(); 
+		wallet_ = std::make_shared<TxWallet>(); 		
+	}
 
-	TransactionPtr createTx0();
+	TransactionPtr createTx0(uint256&);
 	TransactionPtr createTx1(uint256);
 
 	bool execute();
+
+	ITransactionStorePtr store_; 
+	IWalletPtr wallet_;		
 };
 
 class DbContainerIterator: public Unit {

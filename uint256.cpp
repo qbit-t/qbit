@@ -15,7 +15,12 @@ base_blob<BITS>::base_blob(const std::vector<unsigned char>& vch)
 template <unsigned int BITS>
 base_blob<BITS>::base_blob(unsigned char* vch)
 {
-    memcpy(data, vch, sizeof(data));
+    set(vch);
+}
+
+template <unsigned int BITS>
+void base_blob<BITS>::set(unsigned char *vch) {
+    memcpy(data, vch, sizeof(data));   
 }
 
 template <unsigned int BITS>
@@ -75,6 +80,7 @@ template std::string base_blob<160>::toHex() const;
 template std::string base_blob<160>::toString() const;
 template void base_blob<160>::setHex(const char*);
 template void base_blob<160>::setHex(const std::string&);
+template void base_blob<160>::set(unsigned char*);
 
 // Explicit instantiations for base_blob<256>
 template base_blob<256>::base_blob(const std::vector<unsigned char>&);
@@ -83,6 +89,7 @@ template std::string base_blob<256>::toHex() const;
 template std::string base_blob<256>::toString() const;
 template void base_blob<256>::setHex(const char*);
 template void base_blob<256>::setHex(const std::string&);
+template void base_blob<256>::set(unsigned char*);
 
 // Explicit instantiations for base_blob<512>
 template base_blob<512>::base_blob(const std::vector<unsigned char>&);
@@ -91,3 +98,4 @@ template std::string base_blob<512>::toHex() const;
 template std::string base_blob<512>::toString() const;
 template void base_blob<512>::setHex(const char*);
 template void base_blob<512>::setHex(const std::string&);
+template void base_blob<512>::set(unsigned char*);

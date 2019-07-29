@@ -4,6 +4,7 @@
 #include "tinyformat.h"
 #include "utilstrencodings.h"
 #include "crypto/common.h"
+#include "vm/vm.h"
 
 qbit::TransactionTypes qbit::gTxTypes;
 
@@ -19,7 +20,7 @@ uint256 qbit::Transaction::hash() {
 
 std::string qbit::Transaction::Link::toString() const
 {
-    return strprintf("link(asset=%s..., hash=%s..., index=%u)", asset_.toString().substr(0,10), hash_.toString().substr(0,10), index_);
+    return strprintf("link(asset=%s..., hash=%s..., index=%u)", asset_.toString().substr(0,15), tx_.toString().substr(0,15), index_);
 }
 
 std::string qbit::Transaction::In::toString() const
@@ -27,14 +28,13 @@ std::string qbit::Transaction::In::toString() const
 	std::string str;
 	str += "in(";
 	str += out_.toString();
-	str += strprintf(", owner=%s...)", HexStr(ownership_).substr(0, 24));
+	str += strprintf(", owner=%s...)", HexStr(ownership_).substr(0, 30));
 	return str;
 }
 
 std::string qbit::Transaction::Out::toString() const
 {
-    return strprintf("out(asset=%s..., amount=%u, destination=%s...)", asset_.toString().substr(0,10), 
-    	amount_, HexStr(destination_).substr(0, 30));
+    return strprintf("out(asset=%s..., destination=%s...)", asset_.toString().substr(0,15), HexStr(destination_).substr(0, 30));
 }
 
 std::string qbit::Transaction::toString() 
@@ -42,7 +42,7 @@ std::string qbit::Transaction::toString()
 	std::string str;
 	str += strprintf("%s(hash=%s..., ins=%u, outs=%u)\n",
 		name(),
-		hash().toString().substr(0,10),
+		hash().toString().substr(0,15),
 		in_.size(),
 		out_.size());
 	
@@ -51,4 +51,123 @@ std::string qbit::Transaction::toString()
 	for (const auto& tx_out : out_)
 		str += "    " + tx_out.toString() + "\n";
 	return str;
+}
+
+//
+//
+using namespace qbit;
+
+bool qbit::TxSpend::finalize(const SKey& skey) {
+	for (_assetMap::iterator lGroup = assetIn_.begin(); lGroup != assetIn_.end(); lGroup++) {
+
+		uint256 lBlindResult; // blinging = sum(in.blind) - sum(out.blind)
+		amount_t lInAmount = 0;
+		amount_t lOutAmount = 0;
+
+		// sum inputs
+		std::list<Transaction::UnlinkedOut> lInList = lGroup->second;
+		for (std::list<Transaction::UnlinkedOut>::iterator lIUtxo = lInList.begin(); lIUtxo != lInList.end(); lIUtxo++) {
+			if (!Math::add(lBlindResult, lBlindResult, lIUtxo->blind())) {
+				return false;
+			}
+
+			lInAmount += lIUtxo->amount();
+		}
+
+		// sum outputs
+		_assetMap::iterator lOutListPtr = assetOut_.find(lGroup->first);
+		if (lOutListPtr != assetOut_.end()) {
+			std::list<Transaction::UnlinkedOut> lOutList = assetOut_[lGroup->first];
+			for (std::list<Transaction::UnlinkedOut>::iterator lOUtxo = lOutList.begin(); lOUtxo != lOutList.end(); lOUtxo++) {
+
+				uint256 lBlind = lOUtxo->blind();
+				Math::neg(lBlind, lBlind);
+				if (!Math::add(lBlindResult, lBlindResult, lBlind)) {
+					return false;
+				}
+		
+				lOutAmount += lOUtxo->amount();
+			}
+		}
+
+		if (!(lOutAmount == lInAmount && lOutAmount - lInAmount == 0 && lOutAmount != 0)) return false;
+
+		//
+		// add resulting commitment
+		qbit::vector<unsigned char> lCommitment;
+		if (!const_cast<SKey&>(skey).context()->createCommitment(lCommitment, lBlindResult, (uint64_t)0x00)) return false;
+
+		Transaction::Out lOut;
+		lOut.setAsset(lGroup->first);
+		lOut.setDestination(ByteCode() <<
+			OP(QMOV) 		<< REG(QD0) << CU8(0xFF) << 
+			OP(QMOV) 		<< REG(QA0) << CU64(0x00) <<
+			OP(QMOV) 		<< REG(QA1) << CVAR(lCommitment) <<	
+			OP(QMOV) 		<< REG(QA2) << CU256(lBlindResult) <<	
+			OP(QCHECKA) 	<<			
+			OP(QRET));
+
+		out_.push_back(lOut); // add balancing out
+	}
+
+	return true;
+}
+
+bool qbit::TxSpendPrivate::finalize(const SKey& skey) {
+	for (_assetMap::iterator lGroup = assetIn_.begin(); lGroup != assetIn_.end(); lGroup++) {
+
+		uint256 lBlindResult; // blinging = sum(in.blind) - sum(out.blind)
+		amount_t lInAmount = 0;
+		amount_t lOutAmount = 0;
+
+		// sum inputs
+		std::list<Transaction::UnlinkedOut> lInList = lGroup->second;
+		for (std::list<Transaction::UnlinkedOut>::iterator lIUtxo = lInList.begin(); lIUtxo != lInList.end(); lIUtxo++) {
+			if (!Math::add(lBlindResult, lBlindResult, lIUtxo->blind())) {
+				return false;
+			}
+
+			lInAmount += lIUtxo->amount();
+		}
+
+		// sum outputs
+		_assetMap::iterator lOutListPtr = assetOut_.find(lGroup->first);
+		if (lOutListPtr != assetOut_.end()) {
+			std::list<Transaction::UnlinkedOut> lOutList = assetOut_[lGroup->first];
+			for (std::list<Transaction::UnlinkedOut>::iterator lOUtxo = lOutList.begin(); lOUtxo != lOutList.end(); lOUtxo++) {
+
+				uint256 lBlind = lOUtxo->blind();
+				Math::neg(lBlind, lBlind);
+				if (!Math::add(lBlindResult, lBlindResult, lBlind)) {
+					return false;
+				}
+		
+				lOutAmount += lOUtxo->amount();
+			}
+		}
+
+		if (!(lOutAmount == lInAmount && lOutAmount - lInAmount == 0 && lOutAmount != 0)) return false;
+
+		//
+		// add resulting commitment
+		qbit::vector<unsigned char> lCommitment;
+		if (!const_cast<SKey&>(skey).context()->createCommitment(lCommitment, lBlindResult, (uint64_t)0x00)) return false;
+
+		qbit::vector<unsigned char> lRangeProof;
+		if (!const_cast<SKey&>(skey).context()->createRangeProof(lRangeProof, lCommitment, lBlindResult, Random::generate(), (uint64_t)0x00)) return false;
+
+		Transaction::Out lOut;
+		lOut.setAsset(lGroup->first);
+		lOut.setDestination(ByteCode() <<
+			OP(QMOV) 		<< REG(QD0) << CU8(0xFF) << 
+			OP(QMOV) 		<< REG(QA0) << CU64(0x00) <<
+			OP(QMOV) 		<< REG(QA1) << CVAR(lCommitment) <<	
+			OP(QMOV) 		<< REG(QA2) << CVAR(lRangeProof) <<	
+			OP(QCHECKP) 	<<
+			OP(QRET));
+
+		out_.push_back(lOut); // add balancing out
+	}
+
+	return true;	
 }
