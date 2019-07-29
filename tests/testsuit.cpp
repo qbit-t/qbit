@@ -5,6 +5,7 @@
 #include "transactions.h"
 #include "blocks.h"
 #include "dbs.h"
+#include "cuckoo.h"
 
 #include "../log/log.h"
 
@@ -41,6 +42,7 @@ int main()
 	lSuit << new DbMultiContainerRemove();
 	lSuit << new DbEntityContainerRemove();
 	lSuit << new DbContainerRemove();
+	lSuit << new CuckooHash();
 
 	lSuit.execute();
 
