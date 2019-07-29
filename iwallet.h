@@ -2,20 +2,20 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef QBIT_ITRANSACTION_STORE_H
-#define QBIT_ITRANSACTION_STORE_H
+#ifndef QBIT_IWALLET_H
+#define QBIT_IWALLET_H
 
+#include "key.h"
 #include "transaction.h"
-#include <memory>
 
 namespace qbit {
 
-class ITransactionStore {
+class IWallet {
 public:
-	ITransactionStore() {}
+	IWallet() {}
 
-	virtual TransactionPtr locateTransaction(const uint256&) { return nullptr; }
-	virtual void pushTransaction(TransactionPtr) {}
+	virtual SKey createKey(const std::list<std::string>&) { throw qbit::exception("NOT_IMPL", "Not implemented."); }
+	virtual SKey findKey(const PKey&) { throw qbit::exception("NOT_IMPL", "Not implemented."); }
 
 	virtual uint256 pushUnlinkedOut(const Transaction::UnlinkedOut&) {}
 	virtual bool popUnlinkedOut(const uint256&) {}
@@ -23,7 +23,7 @@ public:
 	virtual bool findUnlinkedOut(const uint256&, Transaction::UnlinkedOut&) { return false; }
 };
 
-typedef std::shared_ptr<ITransactionStore> ITransactionStorePtr;
+typedef std::shared_ptr<IWallet> IWalletPtr;
 
 } // qbit
 

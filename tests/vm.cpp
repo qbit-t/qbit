@@ -33,7 +33,7 @@ bool VMMovCmpJmpFalse::execute() {
 		LAB(1000) <<	OP(QMOV)  << REG(QR2) << CU16(0x16) <<
 						OP(QRET);
 
-	VirtualMachine lVM(lCode);
+	VirtualMachine lVM(lCode, false /*allow loops*/);
 	lVM.execute();
 
 	if (lVM.state() != VirtualMachine::FINISHED) { error_ = _getVMStateText(lVM.state()); return false; }
@@ -56,7 +56,7 @@ bool VMMovCmpJmpTrue::execute() {
 		LAB(1000) <<	OP(QMOV)  << REG(QR2) << CU16(0x16) <<
 						OP(QRET);
 
-	VirtualMachine lVM(lCode);
+	VirtualMachine lVM(lCode, false /*allow loops*/);
 	lVM.execute();
 
 	if (lVM.state() != VirtualMachine::FINISHED) { error_ = _getVMStateText(lVM.state()); return false; }
@@ -79,7 +79,7 @@ bool VMLoop::execute() {
 						OP(QJMP)  << TO(1001) <<
 		LAB(1000) <<	OP(QRET);
 
-	VirtualMachine lVM(lCode);
+	VirtualMachine lVM(lCode, true /*allow loops*/);
 	lVM.execute();
 
 	if (lVM.state() != VirtualMachine::FINISHED) { error_ = _getVMStateText(lVM.state()); return false; }
@@ -128,14 +128,14 @@ bool VMCheckLHash256::execute() {
 	// 1.0
 	// create transaction
 	TxCoinBasePtr lTx = TxCoinBase::as(TransactionFactory::create(Transaction::COINBASE));
-	lTx->initialize(lPKey0, 0);
+	lTx->addIn();
 
 	// 1.1
 	// rewrite link data
 	unsigned char* asset0 = (unsigned char*)"01234567890123456789012345678901";
 	unsigned char* hash0 = (unsigned char*)"01234567890123456789012345678901";
 	lTx->in()[0].out().setAsset(uint256(asset0)); 
-	lTx->in()[0].out().setHash(uint256(hash0)); 
+	lTx->in()[0].out().setTx(uint256(hash0)); 
 	lTx->in()[0].out().setIndex(0);
 
 	// 1.2
@@ -151,8 +151,8 @@ bool VMCheckLHash256::execute() {
 						OP(QRET);
 
 	VirtualMachine lVM(lCode);
-	lVM.setTransaction(lTx); // parametrization
-	lVM.setInput(0); // parametrization
+	lVM.getR(qasm::QTH2).set(0); // input number
+	lVM.setTransaction(TransactionContext::instance(lTx)); // parametrization
 	lVM.execute();
 
 	if (lVM.state() != VirtualMachine::FINISHED) { error_ = _getVMStateText(lVM.state()); return false; }
@@ -201,14 +201,14 @@ bool VMCheckSig::execute() {
 	// 1.0
 	// create transaction
 	TxCoinBasePtr lTx = TxCoinBase::as(TransactionFactory::create(Transaction::COINBASE));
-	lTx->initialize(lPKey0, 0);
+	lTx->addIn();
 
 	// 1.1
 	// rewrite link data
 	unsigned char* asset0 = (unsigned char*)"01234567890123456789012345678901";
 	unsigned char* hash0 = (unsigned char*)"01234567890123456789012345678901";
 	lTx->in()[0].out().setAsset(uint256(asset0)); 
-	lTx->in()[0].out().setHash(uint256(hash0)); 
+	lTx->in()[0].out().setTx(uint256(hash0)); 
 	lTx->in()[0].out().setIndex(0);
 
 	// 1.2
@@ -224,26 +224,26 @@ bool VMCheckSig::execute() {
 			OP(QMOV) 		<< REG(QS0) << CVAR(lPKey0.get()) << // pkey.get() - serialized pubkey, pkey.id().get() - hash160 pkey
 			OP(QMOV) 		<< REG(QS1) << CU512(lSig) <<
 			OP(QLHASH256) 	<< REG(QS2) <<
-			OP(QCHECKSIG)	<<  // s15 result
+			OP(QCHECKSIG)	<<  // s7 result
 			OP(QRET));
 
 	// 1.3
 	VirtualMachine lVM(lTx->in()[0].ownership());
-	lVM.setTransaction(lTx); // parametrization
-	lVM.setInput(0); // parametrization
+	lVM.getR(qasm::QTH2).set(0); // input number
+	lVM.setTransaction(TransactionContext::instance(lTx)); // parametrization
 	lVM.execute();
 
-	//std::stringstream lOut;
-	//lVM.dumpState(lOut);
-	//std::cout << lOut.str();
+	//std::stringstream lS;
+	//lVM.dumpState(lS);
+	//std::cout << std::endl << lS.str() << std::endl;
 
 	if (lVM.state() != VirtualMachine::FINISHED) {
 		error_ = _getVMStateText(lVM.state()) + " / " + 
 			qasm::_getCommandText(lVM.lastCommand()) + ":" + qasm::_getAtomText(lVM.lastAtom()); 
 		return false; 
 	}
-	else if (lVM.getR(qasm::QS15).to<unsigned char>() != 0x01) {
-		error_ = std::string("S15 = ") + lVM.getR(qasm::QS15).toHex();
+	else if (lVM.getR(qasm::QS7).to<unsigned char>() != 0x01) {
+		error_ = std::string("S7 = ") + lVM.getR(qasm::QS7).toHex();
 		return false;
 	}
 

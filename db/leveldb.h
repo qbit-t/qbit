@@ -96,7 +96,7 @@ public:
 	class _transaction {
 	public:
 		_transaction() {}
-		explicit _transaction(std::shared_ptr<leveldb::DB> db) : db_(db) {}
+		explicit _transaction(std::shared_ptr<leveldb::DB> db, const std::string name) : db_(db) {}
 
 		void write(const DataStream& k, const DataStream& v) {
 			leveldb::Slice lKey(k.data(), k.size());
@@ -140,13 +140,15 @@ public:
 
 	private:
 		void error(const leveldb::Status& status) {
-			const std::string lMessage = "[LevelDBContainer::Transaction/error]: " + status.ToString();
+			const std::string lMessage = std::string("[Db/") + name_ + std::string("]: ") + status.ToString();
+			gLog().write(Log::ERROR, lMessage);
 			throw db::exception(lMessage);      
 		}
 
 	private:
 		leveldb::WriteBatch batch_;
 		std::shared_ptr<leveldb::DB> db_;
+		std::string name_;
 	};
 
 public:
@@ -167,7 +169,7 @@ public:
 			options_.info_log = new LevelDBLogger();
 			options_.create_if_missing = true;
 
-			gLog().write(Log::INFO, std::string("[LevelDBContainer]: Opening ") + name_);
+			gLog().write(Log::INFO, std::string("Opening ontainer ") + name_);
 
 			leveldb::DB* lDB;
 			leveldb::Status lStatus = leveldb::DB::Open(options_, name_, &lDB);
@@ -175,14 +177,14 @@ public:
 
 			db_ = std::shared_ptr<leveldb::DB>(lDB);
 
-			gLog().write(Log::INFO, std::string("[LevelDBContainer]: Opened ") + name_);
+			gLog().write(Log::INFO, std::string("Opened container ") + name_);
 		}
 
 		return true;
 	}
 
 	_transaction transaction() {
-		return _transaction(db_);
+		return _transaction(db_, name_);
 	}
 
 	_iterator find(const DataStream& k) {
@@ -296,7 +298,8 @@ public:
 
 private:
 	void error(const leveldb::Status& status) {
-		const std::string lMessage = "[LevelDBContainer/error]: " + status.ToString();
+		const std::string lMessage = std::string("[Db/") + name_ + std::string("]: ") + status.ToString();
+		gLog().write(Log::ERROR, lMessage);
 		throw db::exception(lMessage);      
 	}
 

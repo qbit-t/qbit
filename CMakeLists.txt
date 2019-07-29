@@ -48,6 +48,7 @@ set(SOURCES
 	./db/leveldb.cpp
 	./fs.cpp
 	./timestamp.cpp
+	./transactionactions.cpp
 )
 
 set(UNITTESTS
@@ -78,6 +79,7 @@ set(UNITTESTS
 	./db/leveldb.cpp
 	./fs.cpp
 	./timestamp.cpp
+	./transactionactions.cpp	
 
 	./tests/testsuit.cpp
 	./tests/unittest.cpp
@@ -97,7 +99,7 @@ add_subdirectory(./leveldb)
 include_directories(./secp256k1/src ./secp256k1 ./secp256k1/include ./leveldb)
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${SECP256K1})
-target_link_libraries(${PROJECT_NAME} jm leveldb boost_system)
+target_link_libraries(${PROJECT_NAME} jm leveldb boost_system) #gmp
 
 add_executable(qbit-unit-tests ${UNITTESTS} ${SECP256K1})
-target_link_libraries(qbit-unit-tests jm leveldb boost_system)
+target_link_libraries(qbit-unit-tests jm leveldb boost_system) #gmp

@@ -46,7 +46,7 @@ void qbit::db::LevelDBLogger::Logv(const char * format, va_list ap) {
 		assert(p <= limit);
 		base[std::min(bufsize - 1, (int)(p - base))] = '\0';
 		
-		std::string lMsg = std::string("[LevelDBContainer]: ") + std::string(base);
+		std::string lMsg = std::string(base);
 		gLog().write(Log::DB, lMsg);
 		
 		if (base != buffer) {

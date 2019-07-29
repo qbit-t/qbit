@@ -17,12 +17,18 @@ namespace tests {
 
 class BlockCreate: public Unit {
 public:
-	BlockCreate(): Unit("BlockCreate") {}
+	BlockCreate(): Unit("BlockCreate") {
+		store_ = std::make_shared<TxStore>(); 
+		wallet_ = std::make_shared<TxWallet>(); 
+	}
 
 	bool execute();
 
-	TransactionPtr createTx0();
+	TransactionPtr createTx0(uint256&);
 	TransactionPtr createTx1(uint256);
+
+	ITransactionStorePtr store_; 
+	IWalletPtr wallet_;	
 };
 
 }

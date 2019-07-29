@@ -31,8 +31,8 @@ class SKey {
 public:
 	SKey() {}
 	SKey(ContextPtr);
-	SKey(ContextPtr, std::list<std::string>&);
-	SKey(std::list<std::string>&);
+	SKey(ContextPtr, const std::list<std::string>&);
+	SKey(const std::list<std::string>&);
 
 	const unsigned char* begin() const { return vch_; }
 	const unsigned char* end() const { return vch_ + size(); }
@@ -59,8 +59,14 @@ public:
 		}
 	}
 
+	bool valid() { return valid_; }
+
 	bool sign(const uint256& hash /*data chunk hash*/, std::vector<unsigned char>& signature /*resulting signature*/);
 	bool sign(const uint256& hash /*data chunk hash*/, uint512& signature /*resulting signature*/);
+
+	uint256 shared(const PKey& other);
+
+	inline ContextPtr context() { return getContext(); } 
 
 private:
 	bool check(const unsigned char *vch);
@@ -69,7 +75,7 @@ private:
 private:
 	ContextPtr context_;
 	std::list<std::basic_string<unsigned char>> seed_;
-	unsigned char vch_[KEY_LEN];
+	unsigned char vch_[KEY_LEN] = {0};
 	bool valid_;
 };
 
@@ -84,6 +90,7 @@ class PKey
 public:
 	PKey() {}
 	PKey(ContextPtr context) { context_ = context; }
+	PKey(const std::string& str) { fromString(str); }
 
 	template <typename T> PKey(const T pbegin, const T pend)
 	{
@@ -108,6 +115,8 @@ public:
 	std::string toString();
 	std::string toString(unsigned int len);
 	std::string toHex() { return HexStr(begin(), end()); }
+
+	bool fromString(const std::string&);
 
 	bool valid() const
 	{
@@ -161,7 +170,7 @@ private:
 	inline ContextPtr getContext() { if (!context_) context_ = Context::instance(); return context_; }
 
 	ContextPtr context_;
-	unsigned char vch_[PKEY_LEN];
+	unsigned char vch_[PKEY_LEN] = {0};
 	unsigned int size_;
 };
 

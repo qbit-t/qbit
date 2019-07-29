@@ -23,6 +23,12 @@ template<> uint512 VirtualMachine::Register::to<uint512>() {
 	return uint512();
 }
 
+template<> std::vector<unsigned char> VirtualMachine::Register::to<std::vector<unsigned char> >() {
+	std::vector<unsigned char> lValue; 
+	if (size()) lValue.insert(lValue.end(), begin(), end()); 
+	return lValue;
+}
+
 std::string qbit::_getVMStateText(VirtualMachine::State state) {
 	switch(state) {
 		case VirtualMachine::UNDEFINED: return "UNDEFINED";
@@ -35,9 +41,20 @@ std::string qbit::_getVMStateText(VirtualMachine::State state) {
 		case VirtualMachine::UNKNOWN_OBJECT: return "UNKNOWN_OBJECT";
 		case VirtualMachine::INVALID_SIGNATURE: return "INVALID_SIGNATURE";
 		case VirtualMachine::READONLY_REGISTER: return "READONLY_REGISTER";
+		case VirtualMachine::ILLEGAL_REGISTER_STATE: return "ILLEGAL_REGISTER_STATE";
+		case VirtualMachine::LOOPS_FORBIDDEN: return "LOOPS_FORBIDDEN";
+		case VirtualMachine::INVALID_AMOUNT: return "INVALID_AMOUNT";
+		case VirtualMachine::INVALID_PROOFRANGE: return "INVALID_PROOFRANGE";
+		case VirtualMachine::INVALID_OUT: return "INVALID_OUT";
+		case VirtualMachine::INVALID_ADDRESS: return "INVALID_ADDRESS";
+		case VirtualMachine::INVALID_DESTINATION: return "INVALID_DESTINATION";
+		case VirtualMachine::INVALID_COINBASE: return "INVALID_COINBASE";
+		case VirtualMachine::INVALID_UTXO: return "INVALID_UTXO";
+		case VirtualMachine::UNKNOWN_REFTX: return "UNKNOWN_REFTX";
+		case VirtualMachine::INVALID_BALANCE: return "INVALID_BALANCE";
 	}
 
-	return "UNDEFINED";
+	return "ESTATE";
 }
 
 void VirtualMachine::dumpState(std::stringstream& s) {
@@ -61,8 +78,16 @@ void VirtualMachine::qmov() {
 	if (lastAtom_ == qasm::QREG) {
 		qasm::_register lLReg = qasm::REG::extract(code_, pos_);
 
-		if (lLReg == qasm::QS15) {
+		if (lLReg == qasm::QS2 || lLReg == qasm::QS7 || lLReg == qasm::QC0 || 
+			lLReg == qasm::QA7 || lLReg == qasm::QP0 || lLReg == qasm::QE0 ||
+			(lLReg >= qasm::QTH0 && lLReg <= qasm::QTH15)) 
+		{
 			state_ = VirtualMachine::READONLY_REGISTER;
+			return;
+		}
+		else if ((lLReg == qasm::QS0 || lLReg == qasm::QA0 || lLReg == qasm::QA1 || lLReg == qasm::QA2 || lLReg == qasm::QD0) && 
+			registers_[lLReg].getType() != qasm::QNONE) {
+			state_ = VirtualMachine::ILLEGAL_REGISTER_STATE; // this registers can be assigned just once
 			return;
 		}
 
@@ -290,9 +315,10 @@ void VirtualMachine::qlhash256() {
 	if (lastAtom_ == qasm::QREG) {
 		qasm::_register lLReg = qasm::REG::extract(code_, pos_);
 
-		if (transaction_ != 0) {
+		Register& lTH2 = registers_[qasm::QTH2];
+		if (wrapper_ != 0 && lTH2.getType() != qasm::QNONE) {
 			qbit::vector<unsigned char> lSource;
-			transaction_->in()[input_].out().serialize(lSource);
+			wrapper_->tx()->in()[lTH2.to<uint32_t>()].out().serialize(lSource);
 
 			uint256 lHash = Hash(lSource.begin(), lSource.end());
 			registers_[lLReg].set(lHash);
@@ -321,11 +347,16 @@ void VirtualMachine::qchecksig() {
 		// so, we need to break the currect execution
 		state_ = VirtualMachine::INVALID_SIGNATURE;
 
-		// S15 - r/o
-		registers_[qasm::QS15].set((unsigned char)0x00);
+		// S7 - r/o
+		registers_[qasm::QS7].set((unsigned char)0x00);
 	} else {
-		// S15 - r/o
-		registers_[qasm::QS15].set((unsigned char)0x01);
+		// S7 - r/o
+		registers_[qasm::QS7].set((unsigned char)0x01);
+		if (wrapper_ != 0) {
+			wrapper_->addAddress(lPKey); // collect addresses
+		} else {
+			state_ = VirtualMachine::UNKNOWN_OBJECT;
+		}
 	}
 }
 
@@ -336,14 +367,13 @@ void VirtualMachine::qjmp() {
 	lastAtom_ = nextAtom();
 	if (lastAtom_ == qasm::QTO) {
 		unsigned short lLabel = qasm::TO::extract(code_, pos_);
-		//std::cout << lLabel;
 		int lPos = locateLabel(lLabel);
 
 		if (lPos == qasm::INCORRECT_LABLE) state_ = VirtualMachine::UNKNOWN_ADDRESS;
 		else {
 			// goto
-			pos_ = lPos;
-			//std::cout << "->" << lPos;
+			if (!allowLoops_ && pos_ > lPos) state_ = VirtualMachine::LOOPS_FORBIDDEN;
+			else pos_ = lPos;
 		}
 
 	} else {
@@ -358,14 +388,13 @@ void VirtualMachine::qjmpt() {
 	lastAtom_ = nextAtom();
 	if (lastAtom_ == qasm::QTO) {
 		unsigned short lLabel = qasm::TO::extract(code_, pos_);
-		//std::cout << lLabel;
 		int lPos = locateLabel(lLabel);
 
 		if (lPos == qasm::INCORRECT_LABLE) state_ = VirtualMachine::UNKNOWN_ADDRESS;
 		else if (registers_[qasm::QC0].equal<unsigned char>(0x1)) {
 			// goto
-			pos_ = lPos;
-			//std::cout << "->" << lPos;
+			if (pos_ > lPos && !allowLoops_) state_ = VirtualMachine::LOOPS_FORBIDDEN;
+			else pos_ = lPos;
 		}
 
 	} else {
@@ -380,14 +409,13 @@ void VirtualMachine::qjmpf() {
 	lastAtom_ = nextAtom();
 	if (lastAtom_ == qasm::QTO) {
 		unsigned short lLabel = qasm::TO::extract(code_, pos_);
-		//std::cout << lLabel;
 		int lPos = locateLabel(lLabel);
 
 		if (lPos == qasm::INCORRECT_LABLE) state_ = VirtualMachine::UNKNOWN_ADDRESS;
 		else if (registers_[qasm::QC0].equal<unsigned char>(0x0)) {
 			// goto
-			pos_ = lPos;
-			//std::cout << "->" << lPos;
+			if (pos_ > lPos && !allowLoops_) state_ = VirtualMachine::LOOPS_FORBIDDEN;
+			else pos_ = lPos;
 		}
 
 	} else {
@@ -402,14 +430,13 @@ void VirtualMachine::qjmpl() {
 	lastAtom_ = nextAtom();
 	if (lastAtom_ == qasm::QTO) {
 		unsigned short lLabel = qasm::TO::extract(code_, pos_);
-		//std::cout << lLabel;
 		int lPos = locateLabel(lLabel);
 
 		if (lPos == qasm::INCORRECT_LABLE) state_ = VirtualMachine::UNKNOWN_ADDRESS;
 		else if (registers_[qasm::QC0].equal<unsigned char>(0xff)) {
 			// goto
-			pos_ = lPos;
-			//std::cout << "->" << lPos;
+			if (pos_ > lPos && !allowLoops_) state_ = VirtualMachine::LOOPS_FORBIDDEN;
+			else pos_ = lPos;
 		}
 
 	} else {
@@ -424,14 +451,13 @@ void VirtualMachine::qjmpg() {
 	lastAtom_ = nextAtom();
 	if (lastAtom_ == qasm::QTO) {
 		unsigned short lLabel = qasm::TO::extract(code_, pos_);
-		//std::cout << lLabel;
 		int lPos = locateLabel(lLabel);
 
 		if (lPos == qasm::INCORRECT_LABLE) state_ = VirtualMachine::UNKNOWN_ADDRESS;
 		else if (registers_[qasm::QC0].equal<unsigned char>(0x01)) {
 			// goto
-			pos_ = lPos;
-			//std::cout << "->" << lPos;
+			if (pos_ > lPos && !allowLoops_) state_ = VirtualMachine::LOOPS_FORBIDDEN;
+			else pos_ = lPos;
 		}
 
 	} else {
@@ -446,14 +472,13 @@ void VirtualMachine::qjmpe() {
 	lastAtom_ = nextAtom();
 	if (lastAtom_ == qasm::QTO) {
 		unsigned short lLabel = qasm::TO::extract(code_, pos_);
-		//std::cout << lLabel;
 		int lPos = locateLabel(lLabel);
 
 		if (lPos == qasm::INCORRECT_LABLE) state_ = VirtualMachine::UNKNOWN_ADDRESS;
 		else if (registers_[qasm::QC0].equal<unsigned char>(0x00)) {
 			// goto
-			pos_ = lPos;
-			//std::cout << "->" << lPos;
+			if (!allowLoops_ && pos_ > lPos) state_ = VirtualMachine::LOOPS_FORBIDDEN;
+			else pos_ = lPos;
 		}
 
 	} else {
@@ -479,6 +504,269 @@ int VirtualMachine::locateLabel(unsigned short label) {
 
 	if (lFound) return lPos;
 	return qasm::INCORRECT_LABLE;
+}
+
+void VirtualMachine::qchecka() {
+	// null operands instruction
+	// checka #verify amount [a0 - amount, a1 - commitment, a2 - blinding key => result a7]
+
+	if (dryRun_) return; // skip processing
+
+	Register& lA0 = registers_[qasm::QA0]; // amount
+	Register& lA1 = registers_[qasm::QA1]; // commitment
+	Register& lA2 = registers_[qasm::QA2]; // blinding key
+
+	Context lContext;
+	qbit::vector<unsigned char> lCommitment;
+
+	if (!lContext.createCommitment(lCommitment, lA2.to<uint256>(), lA0.to<uint64_t>())) {
+		state_ = VirtualMachine::INVALID_AMOUNT; // general failure
+		return;
+	}
+
+	// better performance, than std::vector::operator ==()
+	if (lCommitment.size() == lA1.size() && !memcmp(&lCommitment[0], lA1.begin(), lA1.size())) {
+		// A7 - r/o
+		registers_[qasm::QA7].set((unsigned char)0x01);		
+	} else {
+		state_ = VirtualMachine::INVALID_AMOUNT; // general failure
+		// A7 - r/o
+		registers_[qasm::QA7].set((unsigned char)0x00);		
+	}
+}
+
+void VirtualMachine::qcheckp() {
+	// null operands instruction
+	// checkp #verify amount [a0 - amount, a1 - commitment, a2 - blinding key => result a7]
+
+	if (dryRun_) return; // skip processing
+
+	Register& lA0 = registers_[qasm::QA0]; // zero amount
+	Register& lA1 = registers_[qasm::QA1]; // commitment
+	Register& lA2 = registers_[qasm::QA2]; // range proof
+
+	// a0 must cointain uint64|0x00
+	if (!(lA0.getType() == qasm::QUI64 && lA0.to<uint64_t>() == (uint64_t)0x00)) {
+		state_ = VirtualMachine::INVALID_AMOUNT; // general failure
+		return;
+	}
+
+	Context lContext;
+	if (!lContext.verifyRangeProof(lA1.begin(), lA2.begin(), lA2.size())) {
+		state_ = VirtualMachine::INVALID_PROOFRANGE; // general failure
+		// A7 - r/o
+		registers_[qasm::QA7].set((unsigned char)0x00);		
+	} else {
+		// A7 - r/o
+		registers_[qasm::QA7].set((unsigned char)0x01);		
+	}
+}
+
+void VirtualMachine::qatxoa() {
+	// null operands instruction
+	// atxoa #push for d0 public amount - [th3 - out number, d0 - address, a0 - amount, a7 - check amount result]
+
+	if (dryRun_) return; // skip processing
+
+	Register& lD0 	= registers_[qasm::QD0]; // PKey.get()
+	Register& lP0 	= registers_[qasm::QP0]; // dtxo -> p0 undefined 
+	Register& lA0 	= registers_[qasm::QA0]; // amount
+	Register& lA1 	= registers_[qasm::QA1]; // commit
+	Register& lA2 	= registers_[qasm::QA2]; // blind
+	Register& lA7 	= registers_[qasm::QA7]; // check amount result
+	Register& lTH3 	= registers_[qasm::QTH3]; // current out number
+
+	if (lA7.to<unsigned char>() == 0x01 && lP0.getType() == qasm::QNONE) { // amount checked by checka AND there was not spend 
+
+		PKey lPKey(context_);
+		lPKey.set<unsigned char*>(lD0.begin(), lD0.end());
+
+		if (wrapper_ != 0 && store_ != 0 && lTH3.getType() != qasm::QNONE) {
+			uint32_t lIndex = lTH3.to<uint32_t>();
+			if (lIndex < wrapper_->tx()->out().size()) {
+				// make link
+				Transaction::Link lLink;
+				lLink.setAsset(wrapper_->tx()->out()[lIndex].asset());
+				lLink.setTx(wrapper_->tx()->id());
+				lLink.setIndex(lIndex);
+
+				Transaction::UnlinkedOut lUTXO(
+					lLink, // link
+					lA0.to<uint64_t>(), // amount
+					lA2.to<uint256>(), // blinding key
+					lA1.to<std::vector<unsigned char> >() // commit
+				);
+
+				SKey lSKey = wallet_->findKey(lPKey);
+				if (lSKey.valid())
+					wallet_->pushUnlinkedOut(lUTXO); // push own UTXO
+				store_->pushUnlinkedOut(lUTXO); // push public
+			} else {
+				state_ = VirtualMachine::INVALID_OUT;
+			}
+
+		} else {
+			state_ = VirtualMachine::UNKNOWN_OBJECT;
+		}
+	}
+}
+
+void VirtualMachine::qatxop() {
+	// null operands instruction
+	// atxop #push for d0 private amount - [th3 - out number, d0 - address, a1 - commit, a2 - proof, a7 - check amount result]
+
+	if (dryRun_) return; // skip processing
+
+	Register& lD0 	= registers_[qasm::QD0]; // PKey.get()
+	Register& lP0 	= registers_[qasm::QP0]; // dtxo -> p0 undefined 	
+	Register& lA1 	= registers_[qasm::QA1]; // commit
+	Register& lA2 	= registers_[qasm::QA2]; // proof
+	Register& lA7 	= registers_[qasm::QA7]; // checkp amount result
+	Register& lTH3 	= registers_[qasm::QTH3]; // current out number
+
+	// for incoming transactions only
+	if (lA7.to<unsigned char>() == 0x01 && lP0.getType() == qasm::QNONE) { // amount checked by checkp AND there was not spend 
+
+		PKey lPKey(context_);
+		lPKey.set<unsigned char*>(lD0.begin(), lD0.end());
+
+		// only in case if we have destination for one of _our_ public keys - addresses
+		// so, try to rewind proof range and extract actual amount
+
+		if (wrapper_ != 0 && store_ != 0 && lTH3.getType() != qasm::QNONE) {
+			uint32_t lIndex = lTH3.to<uint32_t>();
+			if (lIndex < wrapper_->tx()->out().size()) {
+				// make link
+				Transaction::Link lLink;
+				uint256 lHash = wrapper_->tx()->id(); // tx hash
+				lLink.setAsset(wrapper_->tx()->out()[lIndex].asset());
+				lLink.setTx(lHash);
+				lLink.setIndex(lIndex);
+
+				std::vector<PKey>& lInAddresses = wrapper_->addresses();
+				if (!lInAddresses.size()) { // no cached in-addresses, doing hard
+					uint32_t lIdx = 0;
+					for (std::vector<Transaction::In>::iterator lInPtr = wrapper_->tx()->in().begin(); lInPtr != wrapper_->tx()->in().end(); lInPtr++, lIdx++) {
+						Transaction::In& lIn = (*lInPtr);
+
+						VirtualMachine lVM(lIn.ownership()); // ownership script
+						lVM.setDryRun();
+						lVM.getR(qasm::QTH0).set(lHash);
+						lVM.getR(qasm::QTH1).set((unsigned short)wrapper_->tx()->type()); // tx type - 2b
+						lVM.getR(qasm::QTH2).set(lIdx); // input number
+						lVM.setTransaction(wrapper_);
+						lVM.setWallet(wallet_);
+						lVM.setTransactionStore(store_);
+
+						lVM.execute();
+
+						if (lVM.state() == VirtualMachine::RUNNING || lVM.state() == VirtualMachine::FINISHED) {
+							// s0 contains sender's address, extract it
+							Register& lIS0 = lVM.getR(qasm::QS0);
+							if (lIS0.getType() == qasm::QVAR) {
+								PKey lIPKey(context_);
+								lIPKey.set<unsigned char*>(lIS0.begin(), lIS0.end());
+								if (lIPKey.valid()) {
+									wrapper_->addAddress(lIPKey);
+								} else {
+									state_ = VirtualMachine::INVALID_ADDRESS;
+									break;
+								}
+							} else {
+								state_ = VirtualMachine::INVALID_ADDRESS;
+								break;
+							}
+						}
+					}
+				}
+
+				if (lInAddresses.size()) { // search and apply: try to select appropriate nonce
+					uint64_t lAmount = 0x00;
+					uint256 lBlindFactor;
+
+					SKey lSKey = (wallet_ ? wallet_->findKey(lPKey) : SKey());
+					if (lSKey.valid()) { // potentially our future input
+
+						for (std::vector<PKey>::iterator lPKeyPtr = lInAddresses.begin(); lPKeyPtr != lInAddresses.end(); lPKeyPtr++) {
+							uint256 lNonce = lSKey.shared(*lPKeyPtr);
+							if (lSKey.context()->rewindRangeProof(&lAmount, lBlindFactor, lNonce, lA1.begin(), lA2.begin(), lA2.size())) {
+								// success
+								Transaction::UnlinkedOut lUTXO(
+									lLink, // link
+									lAmount, // amount
+									lBlindFactor, // blinding key
+									lA1.to<std::vector<unsigned char> >(), // commit
+									lNonce
+								);
+
+								wallet_->pushUnlinkedOut(lUTXO); // push UTXO
+							}
+						}
+					}
+
+					// public 
+					store_->pushUnlinkedOut(Transaction::UnlinkedOut(lLink)); // push public
+
+				} else {
+					state_ = VirtualMachine::INVALID_DESTINATION;
+				}
+
+			} else {
+				state_ = VirtualMachine::INVALID_OUT;
+			}
+
+		} else {
+			state_ = VirtualMachine::UNKNOWN_OBJECT;
+		}
+
+	} else {
+		state_ = VirtualMachine::INVALID_AMOUNT; // general failure
+	}
+}
+
+void VirtualMachine::qdtxo() {
+	// null operands instruction
+	// dtxo # th2 - in index, p0 - result
+
+	if (dryRun_) return; // skip processing
+
+	Register& lS0 	= registers_[qasm::QS0]; // our pubkey
+	Register& lTH2	= registers_[qasm::QTH2]; // index
+
+	if (wrapper_ != 0 && lTH2.getType() != qasm::QNONE && wrapper_ != 0 && store_ != 0) {
+
+		uint256 lHash = wrapper_->tx()->in()[lTH2.to<uint32_t>()].out().hash();
+		if (store_->popUnlinkedOut(lHash)) {
+
+			PKey lPKey(context_);
+			lPKey.set<unsigned char*>(lS0.begin(), lS0.end());			
+			SKey lSKey = (wallet_ ? wallet_->findKey(lPKey) : SKey());
+			if (lSKey.valid()) {
+				if (wallet_->popUnlinkedOut(lHash)) {
+					registers_[qasm::QP0].set((unsigned char)0x01);
+				} else {
+					state_ = VirtualMachine::INVALID_UTXO;		
+					registers_[qasm::QP0].set((unsigned char)0x00);
+				}
+			}
+		} else {
+			state_ = VirtualMachine::INVALID_UTXO;
+			registers_[qasm::QP0].set((unsigned char)0x00);
+		}
+	} else {
+		state_ = VirtualMachine::UNKNOWN_OBJECT;
+		registers_[qasm::QP0].set((unsigned char)0x00);
+	}
+}
+
+void VirtualMachine::qeqaddr() {
+
+	Register& lD0 = registers_[qasm::QD0];
+	Register& lS0 = registers_[qasm::QS0];
+
+	if (lD0.getType() != qasm::QNONE && lS0.getType() != qasm::QNONE) {
+		registers_[qasm::QE0].set((unsigned char)lS0.equals(lD0));
+	}
 }
 
 VirtualMachine::State VirtualMachine::execute()
@@ -511,12 +799,17 @@ VirtualMachine::State VirtualMachine::execute()
 				case qasm::QJMPL: qjmpl(); break;
 				case qasm::QJMPG: qjmpg(); break;
 				case qasm::QJMPE: qjmpe(); break;
+				case qasm::QCHECKA: qchecka(); break;
+				case qasm::QCHECKP: qcheckp(); break;
+				case qasm::QATXOP: qatxop(); break;
+				case qasm::QATXOA: qatxoa(); break;
+				case qasm::QDTXO: qdtxo(); break;
+				case qasm::QEQADDR: qeqaddr(); break;
 				default:
 					state_ = VirtualMachine::ILLEGAL_COMMAND;
 				break;
 			}
 
-			// std::cout << std::endl;
 		} else if (lastAtom_ == qasm::QLAB) {
 			unsigned short lLabel = qasm::LAB::extract(code_, pos_);
 			labels_[lLabel] = pos_; // next code pointer

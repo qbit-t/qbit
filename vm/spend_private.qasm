@@ -29,7 +29,7 @@
 #	e0 - read-only, address equality result (eqaddr) 
 
 # ----------------------------
-# tx type: spend (public)
+# tx type: spend (private)
 # ----------------------------
 
 #
@@ -37,19 +37,18 @@
 	mov			s0, 0x2023947283749211				# pubkey - our address
 	mov			s1, 0x85389659837439875498347598357	# signature
 	lhash256	s2									# hash link, result -> s2
-	checksig										# s0 - key, s1 - sig, s2 - message -> result s7 [s7-r/o]
-	dtxo											# p0 - pop utxo result
+	checksig										# s0 - key, s1 - sig, s2 - message -> result s15 [s15-r/o]
+	dtxo
 
 #
 # output[0] program
 	mov			d0, 0x2023947283749211				# destination address
-	mov			a0, 0x0000000000000009				# amount, uint64
-	mov			a1, 0x3459385793464634				# pedersen commitment for open tx
-	mov			a2, 0x4535345345345345				# blinding key - need to calculate commitment to verify futher 
-													# thransition to the privacy
-	checka											# verify amount [a0, a1, a2 => result a7]
-	atxoa											# push for d0 public amount - [d0, a0, a7]
-	eqaddr											# suppose, that s0 contains input pubkey, result -> c1
+	mov			a0, 0x0000000000000000				# zero-amount, uint64
+	mov			a1, 0x3459385793464634				# pedersen commitment for hidden amount
+	mov			a2, 0x3454873593857938579385479345	# range proof
+	checkp											# verify range proof [a1 - commitment, a2 - proof => result a7]
+	atxop											# push for d0 private amount - [d0, a1, a2, a7]
+	eqaddr											# suppose, that s0 contains input pubkey, result -> e0
 
 #
 # result: [e0, s7, a7, p0]

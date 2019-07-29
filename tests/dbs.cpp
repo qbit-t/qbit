@@ -28,7 +28,7 @@ bool DbContainerCreate::execute() {
 	return true;
 }
 
-TransactionPtr DbEntityContainerCreate::createTx0() {
+TransactionPtr DbEntityContainerCreate::createTx0(uint256& utxo) {
 	// 0
 	// make pair (pubkey, key)
 	std::list<std::string> lSeed0;
@@ -57,20 +57,26 @@ TransactionPtr DbEntityContainerCreate::createTx0() {
 	lSeed0.push_back(std::string("leopard"));
 	lSeed0.push_back(std::string("lobster"));
 
-	SKey lKey0(lSeed0);
-	lKey0.create();
-	
+	SKey lKey0 = wallet_->createKey(lSeed0);
 	PKey lPKey0 = lKey0.createPKey();
 
 	// 1.0
 	// create transaction
 	TxCoinBasePtr lTx = TxCoinBase::as(TransactionFactory::create(Transaction::COINBASE));
-	lTx->initialize(lPKey0, 10);
+	lTx->addIn();
+	unsigned char* asset0 = (unsigned char*)"01234567890123456789012345678901";
+	Transaction::UnlinkedOut lUTXO = lTx->addOut(lKey0, lPKey0, uint256(asset0), 10);
+	lUTXO.out().setTx(lTx->id());
 
+	//std::cout << std::endl << lTx->toString() << std::endl;
+
+	store_->pushTransaction(lTx);
+	store_->pushUnlinkedOut(lUTXO);
+	utxo = wallet_->pushUnlinkedOut(lUTXO);
 	return lTx;
 }
 
-TransactionPtr DbEntityContainerCreate::createTx1(uint256 tx0) {
+TransactionPtr DbEntityContainerCreate::createTx1(uint256 utxo) {
 	// 0
 	// make pair (pubkey, key)
 	std::list<std::string> lSeed0;
@@ -99,39 +105,41 @@ TransactionPtr DbEntityContainerCreate::createTx1(uint256 tx0) {
 	lSeed0.push_back(std::string("leopard"));
 	lSeed0.push_back(std::string("lobster"));
 
-	SKey lKey0(lSeed0);
-	lKey0.create();
-	
+	SKey lKey0 = wallet_->createKey(lSeed0);
 	PKey lPKey0 = lKey0.createPKey();
 
 	// 1.0
 	// create transaction
 	TxSpendPtr lTx = TxSpend::as(TransactionFactory::create(Transaction::SPEND));
 
-	lTx->in().resize(1); // add input
-	lTx->in()[0].out().setHash(tx0);
-	lTx->in()[0].out().setIndex(0);
+	Transaction::UnlinkedOut lUTXO;
+	wallet_->findUnlinkedOut(utxo, lUTXO);
+	lTx->addIn(lKey0, lUTXO);
 
-	if (!lTx->initIn(lTx->in()[0], lPKey0, lKey0)) { error_ = "Signing failed"; return nullptr; }
+	unsigned char* asset0 = (unsigned char*)"01234567890123456789012345678901";
+	Transaction::UnlinkedOut lUTXO1 = lTx->addOut(lKey0, lPKey0, uint256(asset0), 10);
+	lUTXO1.out().setTx(lTx->id());
 
-	lTx->out().resize(1); // add out
-	lTx->out()[0].setAmount(5);
+	lTx->finalize(lKey0); // bool
 
-	if (!lTx->initOut(lTx->out()[0], lPKey0)) { error_ = "Destination failed"; return nullptr; }
+	store_->pushTransaction(lTx);
+	store_->pushUnlinkedOut(lUTXO);
+	wallet_->pushUnlinkedOut(lUTXO);
 
 	return lTx;
 }
 
 bool DbEntityContainerCreate::execute() {
 
+		//
+		// create & check
+		uint256 utxo;
+		TransactionPtr lTx0 = createTx0(utxo);
+		TransactionPtr lTx1 = createTx1(utxo);
+
 	try {
 		db::DbEntityContainer<uint256, Transaction> lTxContainer("/tmp/db_tx");
 		lTxContainer.open();
-
-		//
-		// create & check
-		TransactionPtr lTx0 = createTx0();
-		TransactionPtr lTx1 = createTx1(lTx0->hash());
 
 		if (!lTxContainer.write(lTx0->hash(), lTx0)) { error_ = "Tx0 write failed"; return false; }
 		if (!lTxContainer.write(lTx1->hash(), lTx1)) { error_ = "Tx1 write failed"; return false; }
@@ -156,11 +164,6 @@ bool DbEntityContainerCreate::execute() {
 	try {
 		db::DbEntityContainer<uint256, Block> lBlockContainer("/tmp/db_block");
 		lBlockContainer.open();
-
-		//
-		// create & check
-		TransactionPtr lTx0 = createTx0();
-		TransactionPtr lTx1 = createTx1(lTx0->hash());
 
 		BlockPtr lBlock = Block::create();
 		lBlock->append(lTx0);
@@ -339,8 +342,9 @@ bool DbEntityContainerTransaction::execute() {
 
 		//
 		// create & check
-		TransactionPtr lTx0 = createTx0();
-		TransactionPtr lTx1 = createTx1(lTx0->hash());
+		uint256 utxo;
+		TransactionPtr lTx0 = createTx0(utxo);
+		TransactionPtr lTx1 = createTx1(utxo);
 
 		db::DbEntityContainer<uint256, Transaction>::Transaction lTransaction = lTxContainer.transaction();
 		{
@@ -456,8 +460,19 @@ bool DbEntityContainerRemove::execute() {
 		db::DbEntityContainer<uint256, Transaction> lTxContainer("/tmp/db_tx_transaction");
 		lTxContainer.open();
 		
-		TransactionPtr lTx0 = createTx0();
-		TransactionPtr lTx1 = createTx1(lTx0->hash());
+		//
+		// create & check
+		uint256 utxo;
+		TransactionPtr lTx0 = createTx0(utxo);
+		TransactionPtr lTx1 = createTx1(utxo);
+
+		db::DbEntityContainer<uint256, Transaction>::Transaction lTransaction = lTxContainer.transaction();
+		{
+			lTransaction.write(lTx0->hash(), lTx0);
+			lTransaction.write(lTx1->hash(), lTx1);
+
+			if (!lTransaction.commit()) { error_ = "Commit failed"; return false; }
+		}		
 
 		TransactionPtr lTx00 = lTxContainer.read(lTx0->hash());
 		if (lTx00 == nullptr) { error_ = "Tx00 read failed"; return false; }

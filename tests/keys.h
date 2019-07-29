@@ -13,9 +13,23 @@
 namespace qbit {
 namespace tests {
 
+class RandomTest: public Unit {
+public:
+	RandomTest(): Unit("RandomTest") {}
+
+	bool execute();
+};
+
 class CreateKeySignAndVerify: public Unit {
 public:
 	CreateKeySignAndVerify(): Unit("CreateKeySignAndVerify") {}
+
+	bool execute();
+};
+
+class CreateKeySignAndVerifyMix: public Unit {
+public:
+	CreateKeySignAndVerifyMix(): Unit("CreateKeySignAndVerifyMix") {}
 
 	bool execute();
 };

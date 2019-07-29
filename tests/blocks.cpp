@@ -3,7 +3,7 @@
 using namespace qbit;
 using namespace qbit::tests;
 
-TransactionPtr BlockCreate::createTx0() {
+TransactionPtr BlockCreate::createTx0(uint256& utxo) {
 	// 0
 	// make pair (pubkey, key)
 	std::list<std::string> lSeed0;
@@ -32,20 +32,28 @@ TransactionPtr BlockCreate::createTx0() {
 	lSeed0.push_back(std::string("leopard"));
 	lSeed0.push_back(std::string("lobster"));
 
-	SKey lKey0(lSeed0);
-	lKey0.create();
-	
+	SKey lKey0 = wallet_->createKey(lSeed0);
 	PKey lPKey0 = lKey0.createPKey();
 
 	// 1.0
 	// create transaction
 	TxCoinBasePtr lTx = TxCoinBase::as(TransactionFactory::create(Transaction::COINBASE));
-	lTx->initialize(lPKey0, 10);
+	lTx->addIn();
+	unsigned char* asset0 = (unsigned char*)"01234567890123456789012345678901";
+	Transaction::UnlinkedOut lUTXO = lTx->addOut(lKey0, lPKey0, uint256(asset0), 10);
+	lUTXO.out().setTx(lTx->id());
 
+	lTx->finalize(lKey0); // bool
+
+	//std::cout << std::endl << lTx->toString() << std::endl;
+
+	store_->pushTransaction(lTx);
+	store_->pushUnlinkedOut(lUTXO);
+	utxo = wallet_->pushUnlinkedOut(lUTXO);
 	return lTx;
 }
 
-TransactionPtr BlockCreate::createTx1(uint256 tx0) {
+TransactionPtr BlockCreate::createTx1(uint256 utxo) {
 	// 0
 	// make pair (pubkey, key)
 	std::list<std::string> lSeed0;
@@ -74,25 +82,26 @@ TransactionPtr BlockCreate::createTx1(uint256 tx0) {
 	lSeed0.push_back(std::string("leopard"));
 	lSeed0.push_back(std::string("lobster"));
 
-	SKey lKey0(lSeed0);
-	lKey0.create();
-	
+	SKey lKey0 = wallet_->createKey(lSeed0);
 	PKey lPKey0 = lKey0.createPKey();
 
 	// 1.0
 	// create transaction
 	TxSpendPtr lTx = TxSpend::as(TransactionFactory::create(Transaction::SPEND));
 
-	lTx->in().resize(1); // add input
-	lTx->in()[0].out().setHash(tx0);
-	lTx->in()[0].out().setIndex(0);
+	Transaction::UnlinkedOut lUTXO;
+	wallet_->findUnlinkedOut(utxo, lUTXO);
+	lTx->addIn(lKey0, lUTXO);
 
-	if (!lTx->initIn(lTx->in()[0], lPKey0, lKey0)) { error_ = "Signing failed"; return nullptr; }
+	unsigned char* asset0 = (unsigned char*)"01234567890123456789012345678901";
+	Transaction::UnlinkedOut lUTXO1 = lTx->addOut(lKey0, lPKey0, uint256(asset0), 10);
+	lUTXO1.out().setTx(lTx->id());
 
-	lTx->out().resize(1); // add out
-	lTx->out()[0].setAmount(5);
+	lTx->finalize(lKey0); // bool
 
-	if (!lTx->initOut(lTx->out()[0], lPKey0)) { error_ = "Destination failed"; return nullptr; }
+	store_->pushTransaction(lTx);
+	store_->pushUnlinkedOut(lUTXO);
+	wallet_->pushUnlinkedOut(lUTXO);
 
 	return lTx;
 }
@@ -101,8 +110,9 @@ bool BlockCreate::execute() {
 
 	//
 	// create & check
-	TransactionPtr lTx0 = createTx0();
-	TransactionPtr lTx1 = createTx1(lTx0->hash());
+	uint256 utxo; 
+	TransactionPtr lTx0 = createTx0(utxo);
+	TransactionPtr lTx1 = createTx1(utxo);
 
 	BlockPtr lBlock = Block::create();
 	lBlock->append(lTx0);
