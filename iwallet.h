@@ -21,6 +21,8 @@ public:
 	virtual bool popUnlinkedOut(const uint256&) {}
 
 	virtual bool findUnlinkedOut(const uint256&, Transaction::UnlinkedOut&) { return false; }
+
+	virtual amount_t balance() { return 0; }
 };
 
 typedef std::shared_ptr<IWallet> IWalletPtr;

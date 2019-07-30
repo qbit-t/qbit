@@ -6,6 +6,7 @@
 #define QBIT_ITRANSACTION_STORE_H
 
 #include "transaction.h"
+#include "block.h"
 #include <memory>
 
 namespace qbit {
@@ -16,6 +17,7 @@ public:
 
 	virtual TransactionPtr locateTransaction(const uint256&) { return nullptr; }
 	virtual void pushTransaction(TransactionPtr) {}
+	virtual void pushBlock(BlockPtr) {}
 
 	virtual uint256 pushUnlinkedOut(const Transaction::UnlinkedOut&) {}
 	virtual bool popUnlinkedOut(const uint256&) {}

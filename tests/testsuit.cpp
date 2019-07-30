@@ -31,6 +31,8 @@ int main()
 	lSuit << new VMCheckSig();
 	lSuit << new TxVerify();
 	lSuit << new TxVerifyPrivate();
+	lSuit << new TxVerifyFee();
+	lSuit << new TxVerifyPrivateFee();
 	lSuit << new BlockCreate();
 	lSuit << new DbContainerCreate();
 	lSuit << new DbEntityContainerCreate();

@@ -35,7 +35,6 @@
 #
 # input[0] program
 	mov		r0, 0x01
-	ret
 
 #
 # output[0] program

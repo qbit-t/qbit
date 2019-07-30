@@ -21,11 +21,16 @@ TransactionAction::Result TxCoinBaseVerifyPush::execute(TransactionContextPtr wr
 			lVM.getR(qasm::QTH0).set(wrapper->tx()->id()); // tx hash
 			lVM.getR(qasm::QTH1).set((unsigned short)wrapper->tx()->type()); // tx type - 2b
 			lVM.getR(qasm::QTH2).set(0); // input number
+			lVM.getR(qasm::QTH3).set(0); // output number
 			lVM.setTransaction(wrapper);
 			lVM.setWallet(wallet);
 			lVM.setTransactionStore(store);
 
 			lVM.execute();
+
+			//std::stringstream lS;
+			//lVM.dumpState(lS);
+			//std::cout << std::endl << lS.str() << std::endl;
 
 			if (lVM.state() != VirtualMachine::FINISHED) {
 				std::string lError = _getVMStateText(lVM.state()) + " | " + 
@@ -162,6 +167,10 @@ TransactionAction::Result TxSpendOutVerify::execute(TransactionContextPtr wrappe
 
 			lVM.execute();
 
+			//std::stringstream lS;
+			//lVM.dumpState(lS);
+			//std::cout << std::endl << lS.str() << std::endl;			
+
 			if (lVM.state() != VirtualMachine::FINISHED) {
 				std::string lError = _getVMStateText(lVM.state()) + " | " + 
 					qasm::_getCommandText(lVM.lastCommand()) + ":" + qasm::_getAtomText(lVM.lastAtom()); 
@@ -182,6 +191,11 @@ TransactionAction::Result TxSpendOutVerify::execute(TransactionContextPtr wrappe
 			
 			// extract commit
 			wrapper->commitOut()[lOut.asset()].push_back(lVM.getR(qasm::QA1).to<std::vector<unsigned char>>());
+
+			// extract fee
+			if (lVM.getR(qasm::QD0).to<unsigned short>() == PKey::miner()) {
+				wrapper->addFee(lVM.getR(qasm::QA0).to<uint64_t>());
+			}
 		}
 
 		return TransactionAction::CONTINUE; // continue any way
@@ -200,6 +214,7 @@ TransactionAction::Result TxSpendBalanceVerify::execute(TransactionContextPtr wr
 
 			TransactionContext::_commitMap::iterator lOutPtr = wrapper->commitOut().find(lInPtr->first);
 			if (lOutPtr != wrapper->commitOut().end()) {
+
 				if(!lContext->verifyTally(lInPtr->second, lOutPtr->second)) {
 					std::string lError = _getVMStateText(VirtualMachine::INVALID_BALANCE);
 					wrapper->tx()->setStatus(Transaction::DECLINED);

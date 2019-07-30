@@ -581,32 +581,34 @@ void VirtualMachine::qatxoa() {
 		PKey lPKey(context_);
 		lPKey.set<unsigned char*>(lD0.begin(), lD0.end());
 
-		if (wrapper_ != 0 && store_ != 0 && lTH3.getType() != qasm::QNONE) {
-			uint32_t lIndex = lTH3.to<uint32_t>();
-			if (lIndex < wrapper_->tx()->out().size()) {
-				// make link
-				Transaction::Link lLink;
-				lLink.setAsset(wrapper_->tx()->out()[lIndex].asset());
-				lLink.setTx(wrapper_->tx()->id());
-				lLink.setIndex(lIndex);
+		if (lPKey.valid()) {
+			if (wrapper_ != 0 && store_ != 0 && lTH3.getType() != qasm::QNONE) {
+				uint32_t lIndex = lTH3.to<uint32_t>();
+				if (lIndex < wrapper_->tx()->out().size()) {
+					// make link
+					Transaction::Link lLink;
+					lLink.setAsset(wrapper_->tx()->out()[lIndex].asset());
+					lLink.setTx(wrapper_->tx()->id());
+					lLink.setIndex(lIndex);
 
-				Transaction::UnlinkedOut lUTXO(
-					lLink, // link
-					lA0.to<uint64_t>(), // amount
-					lA2.to<uint256>(), // blinding key
-					lA1.to<std::vector<unsigned char> >() // commit
-				);
+					Transaction::UnlinkedOut lUTXO(
+						lLink, // link
+						lA0.to<uint64_t>(), // amount
+						lA2.to<uint256>(), // blinding key
+						lA1.to<std::vector<unsigned char> >() // commit
+					);
 
-				SKey lSKey = wallet_->findKey(lPKey);
-				if (lSKey.valid())
-					wallet_->pushUnlinkedOut(lUTXO); // push own UTXO
-				store_->pushUnlinkedOut(lUTXO); // push public
+					SKey lSKey = wallet_->findKey(lPKey);
+					if (lSKey.valid())
+						wallet_->pushUnlinkedOut(lUTXO); // push own UTXO
+					store_->pushUnlinkedOut(lUTXO); // push public
+				} else {
+					state_ = VirtualMachine::INVALID_OUT;
+				}
+
 			} else {
-				state_ = VirtualMachine::INVALID_OUT;
+				state_ = VirtualMachine::UNKNOWN_OBJECT;
 			}
-
-		} else {
-			state_ = VirtualMachine::UNKNOWN_OBJECT;
 		}
 	}
 }
@@ -733,7 +735,7 @@ void VirtualMachine::qdtxo() {
 	Register& lS0 	= registers_[qasm::QS0]; // our pubkey
 	Register& lTH2	= registers_[qasm::QTH2]; // index
 
-	if (wrapper_ != 0 && lTH2.getType() != qasm::QNONE && wrapper_ != 0 && store_ != 0) {
+	if (lTH2.getType() != qasm::QNONE && wrapper_ != 0 && store_ != 0) {
 
 		uint256 lHash = wrapper_->tx()->in()[lTH2.to<uint32_t>()].out().hash();
 		if (store_->popUnlinkedOut(lHash)) {
@@ -743,11 +745,13 @@ void VirtualMachine::qdtxo() {
 			SKey lSKey = (wallet_ ? wallet_->findKey(lPKey) : SKey());
 			if (lSKey.valid()) {
 				if (wallet_->popUnlinkedOut(lHash)) {
-					registers_[qasm::QP0].set((unsigned char)0x01);
+					registers_[qasm::QP0].set((unsigned char)0x01); // wallet_ successfully popped
 				} else {
 					state_ = VirtualMachine::INVALID_UTXO;		
 					registers_[qasm::QP0].set((unsigned char)0x00);
 				}
+			} else {
+				registers_[qasm::QP0].set((unsigned char)0x01); // store_ has successfully popped
 			}
 		} else {
 			state_ = VirtualMachine::INVALID_UTXO;

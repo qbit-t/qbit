@@ -40,7 +40,7 @@ public:
 	TransactionHelper() {}
 
 	template<typename type>
-	static std::shared_ptr<type> from(TransactionPtr tx) { return std::static_pointer_cast<type>(tx); }
+	static std::shared_ptr<type> to(TransactionPtr tx) { return std::static_pointer_cast<type>(tx); }
 };
 
 //
@@ -246,11 +246,9 @@ public:
 		static inline void serialize(Stream& s, Tx* tx) {
 			s << (unsigned short)tx->type();
 			s << tx->version();
+			s << tx->timeLock();
 			s << tx->in();
 			s << tx->out();
-			s << tx->feeIn();
-			s << tx->feeOut();
-			s << tx->timeLock();
 
 			tx->serialize(s);
 		}
@@ -259,11 +257,9 @@ public:
 		static inline void serialize(Stream& s, TransactionPtr tx) {
 			s << (unsigned short)tx->type();
 			s << tx->version();
+			s << tx->timeLock();
 			s << tx->in();
 			s << tx->out();
-			s << tx->feeIn();
-			s << tx->feeOut();
-			s << tx->timeLock();
 
 			tx->serialize(s);
 		}
@@ -293,11 +289,9 @@ public:
 
 			if (lTx != nullptr) {
 				s >> lTx->version_;
+				s >> lTx->timeLock_;
 				s >> lTx->in();
 				s >> lTx->out();
-				s >> lTx->feeIn();
-				s >> lTx->feeOut();
-				s >> lTx->timeLock_;
 
 				lTx->deserialize(s);
 			}
@@ -309,7 +303,7 @@ public:
 	Transaction() { status_ = Status::CREATED; id_.setNull(); timeLock_ = 0; }
 
 	virtual void serialize(DataStream& s) {}
-	virtual void serialize(CHashWriter& s) {}
+	virtual void serialize(HashWriter& s) {}
 	virtual void deserialize(DataStream& s) {}
 	virtual bool finalize(const SKey&) { return false; }
 
@@ -318,8 +312,6 @@ public:
 
 	inline std::vector<In>& in() { return in_; }
 	inline std::vector<Out>& out() { return out_; }
-	inline std::vector<In>& feeIn() { return feeIn_; }
-	inline std::vector<Out>& feeOut() { return feeOut_; }
 
 	inline Out* out(uint32_t o) { if (o < out_.size()) return &out_[o]; return nullptr; }
 
@@ -335,8 +327,8 @@ public:
 	inline uint32_t timeLock() { return timeLock_; }
 	inline void setTimelock(uint32_t timelock) { timeLock_ = timelock; }
 
-	virtual In* addFeeIn(SKey& /*our key*/, uint256 /*asset*/, uint256 /*tx hash*/, uint32_t /*out index*/) { return nullptr; }
-	virtual Out* addFeeOut(SKey& /* our key*/, PKey& /*destination key*/, amount_t /*amount*/) { return nullptr; }
+	virtual In& addFeeIn(const SKey&, const UnlinkedOut&) { throw qbit::exception("NOT_IMPLEMENTED", "Not implemented."); }
+	virtual Transaction::UnlinkedOut addFeeOut(const SKey&, const PKey&, const uint256&, amount_t) { throw qbit::exception("NOT_IMPLEMENTED", "Not implemented."); }
 
 protected:
 	// tx type
@@ -348,11 +340,6 @@ protected:
 	std::vector<In> in_;
 	// outputs
 	std::vector<Out> out_;
-
-	// fee input
-	std::vector<In> feeIn_;
-	// fee output, without destination address
-	std::vector<Out> feeOut_;
 
 	// time-lock
 	uint32_t timeLock_;
@@ -385,8 +372,7 @@ public:
 		in_.resize(1);
 		in_[0].out_.setNull();
 		in_[0].ownership_ = ByteCode() <<
-			OP(QMOV) << REG(QR0) << CU8(0x01) <<
-			OP(QRET);
+			OP(QMOV) << REG(QR0) << CU8(0x01);
 
 		return in_[0];
 	}
@@ -494,6 +480,42 @@ public:
 			OP(QCHECKA) 	<<
 			OP(QATXOA) 		<<
 			OP(QEQADDR) 	<<
+			OP(QRET));
+
+		Transaction::UnlinkedOut lUTXO(
+			Transaction::Link(asset, out_.size()), // link
+			amount, // amount
+			lBlind, // blinding key
+			lCommitment // commit
+		);
+
+		// fill up for finalization
+		assetOut_[asset].push_back(lUTXO);
+
+		out_.push_back(lOut);
+		return lUTXO;
+	}
+
+	//
+	// skey - our secret key
+	// pkey - destination address
+	// asset - asset type hash
+	virtual Transaction::UnlinkedOut addFeeOut(const SKey& skey, const uint256& asset, amount_t amount) {
+		qbit::vector<unsigned char> lCommitment;
+
+		uint256 lBlind = Random::generate();
+		if (!const_cast<SKey&>(skey).context()->createCommitment(lCommitment, lBlind, amount)) {
+			throw qbit::exception("INVALID_COMMITMENT", "Commitment creation failed.");
+		}
+
+		Transaction::Out lOut;
+		lOut.setAsset(asset);
+		lOut.setDestination(ByteCode() <<
+			OP(QMOV) 		<< REG(QD0) << CU16(0xFFFA) << // miner
+			OP(QMOV) 		<< REG(QA0) << CU64(amount) << // always open amount
+			OP(QMOV) 		<< REG(QA1) << CVAR(lCommitment) <<			
+			OP(QMOV) 		<< REG(QA2) << CU256(lBlind) <<			
+			OP(QCHECKA) 	<<
 			OP(QRET));
 
 		Transaction::UnlinkedOut lUTXO(

@@ -13,8 +13,8 @@ void qbit::Transaction::RegisterTransactionType(Transaction::Type type, Transact
 }
 
 uint256 qbit::Transaction::hash() {
-	CHashWriter lStream(SER_GETHASH, PROTOCOL_VERSION);
-	Transaction::Serializer::serialize<CHashWriter>(lStream, this);
+	HashWriter lStream(SER_GETHASH, PROTOCOL_VERSION);
+	Transaction::Serializer::serialize<HashWriter>(lStream, this);
     return (id_ = lStream.GetHash());	
 }
 
@@ -100,7 +100,7 @@ bool qbit::TxSpend::finalize(const SKey& skey) {
 		Transaction::Out lOut;
 		lOut.setAsset(lGroup->first);
 		lOut.setDestination(ByteCode() <<
-			OP(QMOV) 		<< REG(QD0) << CU8(0xFF) << 
+			OP(QMOV) 		<< REG(QD0) << CU16(0xFFFF) << 
 			OP(QMOV) 		<< REG(QA0) << CU64(0x00) <<
 			OP(QMOV) 		<< REG(QA1) << CVAR(lCommitment) <<	
 			OP(QMOV) 		<< REG(QA2) << CU256(lBlindResult) <<	
@@ -159,7 +159,7 @@ bool qbit::TxSpendPrivate::finalize(const SKey& skey) {
 		Transaction::Out lOut;
 		lOut.setAsset(lGroup->first);
 		lOut.setDestination(ByteCode() <<
-			OP(QMOV) 		<< REG(QD0) << CU8(0xFF) << 
+			OP(QMOV) 		<< REG(QD0) << CU16(0xFFFF) << 
 			OP(QMOV) 		<< REG(QA0) << CU64(0x00) <<
 			OP(QMOV) 		<< REG(QA1) << CVAR(lCommitment) <<	
 			OP(QMOV) 		<< REG(QA2) << CVAR(lRangeProof) <<	
