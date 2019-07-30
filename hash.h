@@ -96,7 +96,7 @@ inline uint160 Hash160(const prevector<N, unsigned char>& vch)
 }
 
 /** A writer stream (for serialization) that computes a 256-bit hash. */
-class CHashWriter
+class HashWriter
 {
 private:
     CHash256 ctx;
@@ -105,7 +105,7 @@ private:
     const int nVersion;
 public:
 
-    CHashWriter(int nTypeIn, int nVersionIn) : nType(nTypeIn), nVersion(nVersionIn) {}
+    HashWriter(int nTypeIn, int nVersionIn) : nType(nTypeIn), nVersion(nVersionIn) {}
 
     int GetType() const { return nType; }
     int GetVersion() const { return nVersion; }
@@ -131,7 +131,7 @@ public:
     }
 
     template<typename T>
-    CHashWriter& operator<<(const T& obj) {
+    HashWriter& operator<<(const T& obj) {
         // Serialize to this stream
         ::Serialize(*this, obj);
         return (*this);
@@ -140,13 +140,13 @@ public:
 
 /** Reads data from an underlying stream, while hashing the read data. */
 template<typename Source>
-class CHashVerifier : public CHashWriter
+class HashVerifier : public HashWriter
 {
 private:
     Source* source;
 
 public:
-    explicit CHashVerifier(Source* source_) : CHashWriter(source_->GetType(), source_->GetVersion()), source(source_) {}
+    explicit HashVerifier(Source* source_) : HashWriter(source_->GetType(), source_->GetVersion()), source(source_) {}
 
     void read(char* pch, size_t nSize)
     {
@@ -165,7 +165,7 @@ public:
     }
 
     template<typename T>
-    CHashVerifier<Source>& operator>>(T&& obj)
+    HashVerifier<Source>& operator>>(T&& obj)
     {
         // Deserialize from this stream
         ::Deserialize(*this, obj);
@@ -177,7 +177,7 @@ public:
 template<typename T>
 uint256 SerializeHash(const T& obj, int nType=SER_GETHASH, int nVersion=PROTOCOL_VERSION)
 {
-    CHashWriter ss(nType, nVersion);
+    HashWriter ss(nType, nVersion);
     ss << obj;
     return ss.GetHash();
 }

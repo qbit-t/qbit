@@ -16,8 +16,8 @@ class TransactionContext {
 public:
 	typedef std::map<uint256, std::list<std::vector<unsigned char>>> _commitMap;
 public:
-	explicit TransactionContext() {}
-	TransactionContext(TransactionPtr tx) : tx_(tx) {}
+	explicit TransactionContext() { fee_ = 0; }
+	TransactionContext(TransactionPtr tx) : tx_(tx) { fee_ = 0; }
 
 	inline TransactionPtr tx() { return tx_; }
 
@@ -31,6 +31,9 @@ public:
 	inline _commitMap& commitIn() { return commitIn_; }
 	inline _commitMap& commitOut() { return commitOut_; }
 
+	inline amount_t fee() { return fee_; }
+	inline void addFee(amount_t fee) { fee_ += fee; }
+
 private:
 	TransactionPtr tx_;
 	// in-addresses
@@ -41,6 +44,8 @@ private:
 	_commitMap commitIn_;
 	// commit out group
 	_commitMap commitOut_;
+	// miner fee
+	amount_t fee_;
 };
 
 } // qbit

@@ -8,8 +8,8 @@
 using namespace qbit;
 
 uint256 BlockHeader::hash() {
-	CHashWriter lStream(SER_GETHASH, PROTOCOL_VERSION);
-	serialize<CHashWriter>(lStream);
+	HashWriter lStream(SER_GETHASH, PROTOCOL_VERSION);
+	serialize<HashWriter>(lStream);
     return lStream.GetHash();
 }
 

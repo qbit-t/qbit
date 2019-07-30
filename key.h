@@ -29,7 +29,7 @@ class PKey;
 
 class SKey {
 public:
-	SKey() {}
+	SKey() { valid_ = false; }
 	SKey(ContextPtr);
 	SKey(ContextPtr, const std::list<std::string>&);
 	SKey(const std::list<std::string>&);
@@ -121,6 +121,10 @@ public:
 	bool valid() const
 	{
 		return size() > 0;
+	}
+
+	static unsigned short miner() {
+		return 0xFFFA;
 	}
 
 	uint256 hash();

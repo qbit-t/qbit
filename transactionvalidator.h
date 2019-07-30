@@ -9,6 +9,7 @@
 #include "transactioncontext.h"
 #include "itransactionstore.h"
 #include "iwallet.h"
+#include "txassettype.h"
 #include <list>
 
 namespace qbit {

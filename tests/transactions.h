@@ -13,6 +13,7 @@
 #include "../iwallet.h"
 #include "../transactionvalidator.h"
 #include "../transactionactions.h"
+#include "../block.h"
 
 namespace qbit {
 namespace tests {
@@ -32,7 +33,14 @@ public:
 	}
 
 	SKey findKey(const PKey& pkey) {
-		return keys_[pkey.id()];
+		if (pkey.valid()) {
+			std::map<uint160, SKey>::iterator lKey = keys_.find(pkey.id());
+			if (lKey != keys_.end()) {
+				return lKey->second;
+			}
+		}
+
+		return SKey();
 	}
 
 	uint256 pushUnlinkedOut(const Transaction::UnlinkedOut& out) {
@@ -58,6 +66,17 @@ public:
 		return false;
 	}
 
+	amount_t balance() {
+		// TODO: asset type matters: lOut.out().asset()
+		amount_t lBalance = 0;
+		for (std::map<uint256, Transaction::UnlinkedOut>::iterator lIter = utxo_.begin(); lIter != utxo_.end(); lIter++) {
+			Transaction::UnlinkedOut& lOut = lIter->second;
+			lBalance += lOut.amount();
+		}
+
+		return lBalance;
+	}
+
 	std::map<uint160, SKey> keys_;
 	std::map<uint256, Transaction::UnlinkedOut> utxo_;
 };
@@ -75,6 +94,12 @@ public:
 
 		txs_[tx->hash()] = tx;
 	}
+
+	void pushBlock(BlockPtr block) {
+		for(TransactionsContainer::iterator lIter = block->transactions().begin(); lIter != block->transactions().end(); lIter++) {
+			txs_[(*lIter)->id()] = *lIter;
+		}
+	}	
 
 	uint256 pushUnlinkedOut(const Transaction::UnlinkedOut& out) {
 		utxo_[const_cast<Transaction::UnlinkedOut&>(out).hash()] = out;
@@ -128,6 +153,38 @@ public:
 
 	uint256 createTx0();
 	TransactionPtr createTx1(uint256);
+
+	bool execute();
+
+	ITransactionStorePtr store_; 
+	IWalletPtr wallet_;
+};
+
+class TxVerifyFee: public Unit {
+public:
+	TxVerifyFee(): Unit("TxVerifyFee") {
+		store_ = std::make_shared<TxStore>(); 
+		wallet_ = std::make_shared<TxWallet>(); 
+	}
+
+	uint256 createTx0(BlockPtr);
+	TransactionPtr createTx1(uint256, BlockPtr);
+
+	bool execute();
+
+	ITransactionStorePtr store_; 
+	IWalletPtr wallet_;
+};
+
+class TxVerifyPrivateFee: public Unit {
+public:
+	TxVerifyPrivateFee(): Unit("TxVerifyPrivateFee") {
+		store_ = std::make_shared<TxStore>(); 
+		wallet_ = std::make_shared<TxWallet>(); 
+	}
+
+	uint256 createTx0(BlockPtr);
+	TransactionPtr createTx1(uint256, BlockPtr);
 
 	bool execute();
 
