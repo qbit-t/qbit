@@ -66,6 +66,8 @@ const word_t NONPART_MASK = -1;
 const word_t NONPART_MASK = ((word_t)1 << NONPART_BITS) - 1;
 #endif
 
+int main_solv(int argc, char **argv);
+
 // set that starts out full and gets reset by threads on disjoint words
 class shrinkingset {
 public:

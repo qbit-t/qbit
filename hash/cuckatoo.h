@@ -25,7 +25,7 @@ typedef uint64_t u64;
 #ifndef EDGEBITS
 // the main parameter is the number of bits in an edge index,
 // i.e. the 2-log of the number of edges
-#define EDGEBITS 31
+#define EDGEBITS 19
 #endif
 #ifndef PROOFSIZE
 // the next most important parameter is the (even) length
