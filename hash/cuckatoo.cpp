@@ -15,7 +15,7 @@ const char *errstr[] = { "OK", "wrong header length", "edge too big", "edges not
 
 int main_verify(int argc, char **argv) {
   const char *header = "";
-  int nonce = 0;
+  int nonce = 68;
   int c;
   while ((c = getopt (argc, argv, "h:n:")) != -1) {
     switch (c) {

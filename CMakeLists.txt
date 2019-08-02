@@ -67,6 +67,7 @@ set(UNITTESTS
 	./base58.cpp
 	./helpers/cleanse.cpp
 	./hash/cuckatoo.cpp
+	./hash/lean.cpp
 	./hash/crypto/blake2b-ref.c
 	./allocator.cpp
 	./lockedpool.cpp

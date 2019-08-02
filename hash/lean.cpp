@@ -108,7 +108,7 @@ CALL_CONVENTION void fill_default_params(SolverParams* params) {
 int main_solv(int argc, char **argv) {
   int nthreads = 1;
   int ntrims   = 8 * (PART_BITS+3) * (PART_BITS+4);
-  int nonce = 0;
+  int nonce = 68;
   int range = 1;
   char header[HEADERLEN];
   unsigned len;
