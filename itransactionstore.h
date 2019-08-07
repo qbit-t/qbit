@@ -19,10 +19,10 @@ public:
 	virtual void pushTransaction(TransactionPtr) {}
 	virtual void pushBlock(BlockPtr) {}
 
-	virtual uint256 pushUnlinkedOut(const Transaction::UnlinkedOut&) {}
-	virtual bool popUnlinkedOut(const uint256&) {}
+	virtual uint256 pushUnlinkedOut(Transaction::UnlinkedOutPtr) { throw qbit::exception("NOT_IMPL", "Not implemented."); }
+	virtual bool popUnlinkedOut(const uint256&) { throw qbit::exception("NOT_IMPL", "Not implemented."); }
 
-	virtual bool findUnlinkedOut(const uint256&, Transaction::UnlinkedOut&) { return false; }
+	virtual Transaction::UnlinkedOutPtr findUnlinkedOut(const uint256&) { throw qbit::exception("NOT_IMPL", "Not implemented."); }
 };
 
 typedef std::shared_ptr<ITransactionStore> ITransactionStorePtr;

@@ -11,7 +11,7 @@ bool TransactionProcessor::process(TransactionContextPtr tx) {
 		TransactionAction::Result lResult = TransactionAction::CONTINUE;
 		for(std::list<TransactionActionPtr>::iterator lAction = actions_.begin(); 
 			lResult == TransactionAction::CONTINUE && lAction != actions_.end(); ++lAction) {
-			lResult = (*lAction)->execute(tx, store_, wallet_);
+			lResult = (*lAction)->execute(tx, store_, wallet_, entityStore_);
 		}
 
 		if (lResult == TransactionAction::SUCCESS)

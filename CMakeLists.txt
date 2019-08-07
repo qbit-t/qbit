@@ -79,7 +79,7 @@ set(UNITTESTS
 	./db/leveldb.cpp
 	./fs.cpp
 	./timestamp.cpp
-	./transactionactions.cpp	
+	./transactionactions.cpp
 
 	./tests/testsuit.cpp
 	./tests/unittest.cpp
@@ -89,6 +89,7 @@ set(UNITTESTS
 	./tests/blocks.cpp
 	./tests/dbs.cpp
 	./tests/cuckoo.cpp
+	./tests/assets.cpp
 )
 
 add_definitions(-DHAVE_CONFIG_H)

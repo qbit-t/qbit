@@ -9,12 +9,12 @@
 
 namespace qbit {
 
-class TxCoinBaseVerifyPush: public TransactionAction {
+class TxCoinBaseVerify: public TransactionAction {
 public:
-	TxCoinBaseVerifyPush() {}
-	static TransactionActionPtr instance() { return std::make_shared<TxCoinBaseVerifyPush>(); }
+	TxCoinBaseVerify() {}
+	static TransactionActionPtr instance() { return std::make_shared<TxCoinBaseVerify>(); }
 
-	TransactionAction::Result execute(TransactionContextPtr, ITransactionStorePtr, IWalletPtr);
+	TransactionAction::Result execute(TransactionContextPtr, ITransactionStorePtr, IWalletPtr, IEntityStorePtr);
 };
 
 class TxSpendVerify: public TransactionAction {
@@ -22,7 +22,7 @@ public:
 	TxSpendVerify() {}
 	static TransactionActionPtr instance() { return std::make_shared<TxSpendVerify>(); }
 
-	TransactionAction::Result execute(TransactionContextPtr, ITransactionStorePtr, IWalletPtr);
+	TransactionAction::Result execute(TransactionContextPtr, ITransactionStorePtr, IWalletPtr, IEntityStorePtr);
 };
 
 class TxSpendOutVerify: public TransactionAction {
@@ -30,15 +30,23 @@ public:
 	TxSpendOutVerify() {}
 	static TransactionActionPtr instance() { return std::make_shared<TxSpendOutVerify>(); }
 
-	TransactionAction::Result execute(TransactionContextPtr, ITransactionStorePtr, IWalletPtr);
+	TransactionAction::Result execute(TransactionContextPtr, ITransactionStorePtr, IWalletPtr, IEntityStorePtr);
 };
 
-class TxSpendBalanceVerify: public TransactionAction {
+class TxBalanceVerify: public TransactionAction {
 public:
-	TxSpendBalanceVerify() {}
-	static TransactionActionPtr instance() { return std::make_shared<TxSpendBalanceVerify>(); }
+	TxBalanceVerify() {}
+	static TransactionActionPtr instance() { return std::make_shared<TxBalanceVerify>(); }
 
-	TransactionAction::Result execute(TransactionContextPtr, ITransactionStorePtr, IWalletPtr);
+	TransactionAction::Result execute(TransactionContextPtr, ITransactionStorePtr, IWalletPtr, IEntityStorePtr);
+};
+
+class TxAssetTypeVerify: public TransactionAction {
+public:
+	TxAssetTypeVerify() {}
+	static TransactionActionPtr instance() { return std::make_shared<TxAssetTypeVerify>(); }
+
+	TransactionAction::Result execute(TransactionContextPtr, ITransactionStorePtr, IWalletPtr, IEntityStorePtr);
 };
 
 } // qbit

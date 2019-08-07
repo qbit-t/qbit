@@ -1,6 +1,7 @@
 #include "vm.h"
 #include "../transaction.h"
 #include "../utilstrencodings.h"
+#include "../txassettype.h"
 
 #include <iostream>
 
@@ -52,6 +53,10 @@ std::string qbit::_getVMStateText(VirtualMachine::State state) {
 		case VirtualMachine::INVALID_UTXO: return "INVALID_UTXO";
 		case VirtualMachine::UNKNOWN_REFTX: return "UNKNOWN_REFTX";
 		case VirtualMachine::INVALID_BALANCE: return "INVALID_BALANCE";
+		case VirtualMachine::INVALID_FEE: return "INVALID_FEE";
+		case VirtualMachine::INVALID_RESULT: return "INVALID_RESULT";
+		case VirtualMachine::INVALID_ENTITY: return "INVALID_ENTITY";
+		case VirtualMachine::ENTITY_NAME_EXISTS: return "ENTITY_NAME_EXISTS";
 	}
 
 	return "ESTATE";
@@ -262,6 +267,21 @@ void VirtualMachine::qcmpe() {
 
 		lastAtom_ = nextAtom();
 		switch (lastAtom_) {
+			case qasm::QUI8: registers_[qasm::QC0].set((char)registers_[lLReg].equal<unsigned char>(qasm::CU8::extract(code_, pos_))); break;
+			case qasm::QUI16: registers_[qasm::QC0].set((char)registers_[lLReg].equal<unsigned short>(qasm::CU16::extract(code_, pos_))); break;
+			case qasm::QUI32: registers_[qasm::QC0].set((char)registers_[lLReg].equal<uint32_t>(qasm::CU32::extract(code_, pos_))); break;
+			case qasm::QUI64: registers_[qasm::QC0].set((char)registers_[lLReg].equal<uint64_t>(qasm::CU64::extract(code_, pos_))); break;
+						
+			case qasm::QUI160: registers_[qasm::QC0].set((char)registers_[lLReg].equal<uint160>(qasm::CU160::extract(code_, pos_))); break;
+			case qasm::QUI256: registers_[qasm::QC0].set((char)registers_[lLReg].equal<uint256>(qasm::CU256::extract(code_, pos_))); break;
+			case qasm::QUI512: registers_[qasm::QC0].set((char)registers_[lLReg].equal<uint512>(qasm::CU512::extract(code_, pos_))); break;
+
+			case qasm::QVAR: {
+				qbit::vector<unsigned char> lValue;
+				qasm::CVAR::extract(code_, pos_, lValue);
+				registers_[lLReg].set(lValue);
+			}
+			break;			
 			case qasm::QREG: {
 				qasm::_register lRReg = qasm::REG::extract(code_, pos_);
 				registers_[qasm::QC0].set((char)registers_[lLReg].equals(registers_[lRReg]));
@@ -574,9 +594,62 @@ void VirtualMachine::qatxoa() {
 	Register& lA1 	= registers_[qasm::QA1]; // commit
 	Register& lA2 	= registers_[qasm::QA2]; // blind
 	Register& lA7 	= registers_[qasm::QA7]; // check amount result
+	Register& lTH1 	= registers_[qasm::QTH1]; // tx type
 	Register& lTH3 	= registers_[qasm::QTH3]; // current out number
 
 	if (lA7.to<unsigned char>() == 0x01 && lP0.getType() == qasm::QNONE) { // amount checked by checka AND there was not spend 
+
+		PKey lPKey(context_);
+		lPKey.set<unsigned char*>(lD0.begin(), lD0.end());
+
+		if (lPKey.valid()) {
+			if (wrapper_ != 0 && store_ != 0 && lTH3.getType() != qasm::QNONE) {
+				uint32_t lIndex = lTH3.to<uint32_t>();
+				if (lIndex < wrapper_->tx()->out().size()) {
+					// make link
+					Transaction::Link lLink;
+					uint256 lAsset = wrapper_->tx()->out()[lIndex].asset();
+					// fix unlinked out
+					if (lAsset == TxAssetType::nullAsset() && lTH1.to<unsigned short>() == Transaction::ASSET_TYPE) {
+						lAsset = wrapper_->tx()->id();
+					}
+					lLink.setAsset(lAsset);
+					lLink.setTx(wrapper_->tx()->id());
+					lLink.setIndex(lIndex);
+
+					Transaction::UnlinkedOutPtr lUTXO = Transaction::UnlinkedOut::instance(
+						lLink, // link
+						lA0.to<uint64_t>(), // amount
+						lA2.to<uint256>(), // blinding key
+						lA1.to<std::vector<unsigned char> >() // commit
+					);
+
+					SKey lSKey = wallet_->findKey(lPKey);
+					if (lSKey.valid())
+						wallet_->pushUnlinkedOut(lUTXO, wrapper_); // push own UTXO
+					store_->pushUnlinkedOut(lUTXO); // push public
+				} else {
+					state_ = VirtualMachine::INVALID_OUT;
+				}
+
+			} else {
+				state_ = VirtualMachine::UNKNOWN_OBJECT;
+			}
+		}
+	}
+}
+
+void VirtualMachine::qatxo() {
+	// null operands instruction
+	// atxo #push for d0 public
+
+	if (dryRun_) return; // skip processing
+
+	Register& lD0 	= registers_[qasm::QD0]; // PKey.get()
+	Register& lP0 	= registers_[qasm::QP0]; // dtxo -> p0 undefined 
+	Register& lTH3 	= registers_[qasm::QTH3]; // current out number
+
+	if (lP0.getType() == qasm::QNONE) { // amount checked by checka AND there was not spend 
 
 		PKey lPKey(context_);
 		lPKey.set<unsigned char*>(lD0.begin(), lD0.end());
@@ -591,16 +664,13 @@ void VirtualMachine::qatxoa() {
 					lLink.setTx(wrapper_->tx()->id());
 					lLink.setIndex(lIndex);
 
-					Transaction::UnlinkedOut lUTXO(
-						lLink, // link
-						lA0.to<uint64_t>(), // amount
-						lA2.to<uint256>(), // blinding key
-						lA1.to<std::vector<unsigned char> >() // commit
+					Transaction::UnlinkedOutPtr lUTXO = Transaction::UnlinkedOut::instance(
+						lLink // link
 					);
 
 					SKey lSKey = wallet_->findKey(lPKey);
 					if (lSKey.valid())
-						wallet_->pushUnlinkedOut(lUTXO); // push own UTXO
+						wallet_->pushUnlinkedOut(lUTXO, wrapper_); // push own UTXO
 					store_->pushUnlinkedOut(lUTXO); // push public
 				} else {
 					state_ = VirtualMachine::INVALID_OUT;
@@ -693,7 +763,7 @@ void VirtualMachine::qatxop() {
 							uint256 lNonce = lSKey.shared(*lPKeyPtr);
 							if (lSKey.context()->rewindRangeProof(&lAmount, lBlindFactor, lNonce, lA1.begin(), lA2.begin(), lA2.size())) {
 								// success
-								Transaction::UnlinkedOut lUTXO(
+								Transaction::UnlinkedOutPtr lUTXO = Transaction::UnlinkedOut::instance(
 									lLink, // link
 									lAmount, // amount
 									lBlindFactor, // blinding key
@@ -701,13 +771,13 @@ void VirtualMachine::qatxop() {
 									lNonce
 								);
 
-								wallet_->pushUnlinkedOut(lUTXO); // push UTXO
+								wallet_->pushUnlinkedOut(lUTXO, wrapper_); // push UTXO
 							}
 						}
 					}
 
 					// public 
-					store_->pushUnlinkedOut(Transaction::UnlinkedOut(lLink)); // push public
+					store_->pushUnlinkedOut(Transaction::UnlinkedOut::instance(lLink)); // push public
 
 				} else {
 					state_ = VirtualMachine::INVALID_DESTINATION;
@@ -773,6 +843,27 @@ void VirtualMachine::qeqaddr() {
 	}
 }
 
+void VirtualMachine::qpat() {
+
+	Register& lTH0 = registers_[qasm::QTH0];
+	Register& lTH1 = registers_[qasm::QTH1];
+
+	if (lTH0.getType() != qasm::QNONE && lTH1.getType() != qasm::QNONE && 
+		(lTH1.to<unsigned short>() == Transaction::ASSET_EMISSION || 
+			lTH1.to<unsigned short>() == Transaction::ASSET_TYPE)) {
+		// push transaction type
+		if (entityStore_ != 0) {
+			if (!entityStore_->pushEntity(lTH0.to<uint256>(), wrapper_)) {
+				state_ = VirtualMachine::ENTITY_NAME_EXISTS;
+			}
+		} else {
+			state_ = VirtualMachine::UNKNOWN_OBJECT;
+		}
+	} else {
+			state_ = VirtualMachine::INVALID_ENTITY;
+	}
+}
+
 VirtualMachine::State VirtualMachine::execute()
 {
 	state_ = VirtualMachine::RUNNING;
@@ -807,8 +898,10 @@ VirtualMachine::State VirtualMachine::execute()
 				case qasm::QCHECKP: qcheckp(); break;
 				case qasm::QATXOP: qatxop(); break;
 				case qasm::QATXOA: qatxoa(); break;
+				case qasm::QATXO: qatxo(); break;
 				case qasm::QDTXO: qdtxo(); break;
 				case qasm::QEQADDR: qeqaddr(); break;
+				case qasm::QPAT: qpat(); break;
 				default:
 					state_ = VirtualMachine::ILLEGAL_COMMAND;
 				break;

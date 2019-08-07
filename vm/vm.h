@@ -11,6 +11,7 @@
 #include "../transaction.h"
 #include "../iwallet.h"
 #include "../itransactionstore.h"
+#include "../ientitystore.h"
 #include "../transactioncontext.h"
 
 #include <sstream>
@@ -40,7 +41,11 @@ public:
 		INVALID_COINBASE		= 0x1e,
 		INVALID_UTXO			= 0x1f,
 		UNKNOWN_REFTX			= 0x20,
-		INVALID_BALANCE			= 0x21
+		INVALID_BALANCE			= 0x21,
+		INVALID_FEE				= 0x22,
+		INVALID_RESULT			= 0x23,
+		INVALID_ENTITY			= 0x24,
+		ENTITY_NAME_EXISTS		= 0x25
 	};
 
 	class Register {
@@ -247,6 +252,7 @@ public:
 	void setContext(ContextPtr context) { context_ = context; }
 	void setWallet(IWalletPtr wallet) { wallet_ = wallet; }
 	void setTransactionStore(ITransactionStorePtr store) { store_ = store; }
+	void setEntityStore(IEntityStorePtr entityStore) { entityStore_ = entityStore; }
 
 	void setDryRun() { dryRun_ = true; }
 
@@ -273,8 +279,10 @@ protected:
 	inline void qcheckp();
 	inline void qatxop();
 	inline void qatxoa();
+	inline void qatxo();
 	inline void qdtxo();
 	inline void qeqaddr();
+	inline void qpat();
 
 	inline qasm::_atom nextAtom() { return (qasm::_atom)code_[pos_++]; }
 
@@ -302,6 +310,9 @@ private:
 
 	// transaction store
 	ITransactionStorePtr store_;
+
+	// entity store
+	IEntityStorePtr entityStore_;
 
 	// last executed command
 	qasm::_command lastCommand_;

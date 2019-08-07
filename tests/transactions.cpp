@@ -37,17 +37,16 @@ uint256 TxVerify::createTx0() {
 
 	// 1.0
 	// create transaction
-	TxCoinBasePtr lTx = TxCoinBase::as(TransactionFactory::create(Transaction::COINBASE));
+	TxCoinBasePtr lTx = TransactionHelper::to<TxCoinBase>(TransactionFactory::create(Transaction::COINBASE));
 	lTx->addIn();
-	unsigned char* asset0 = (unsigned char*)"01234567890123456789012345678901";
-	Transaction::UnlinkedOut lUTXO = lTx->addOut(lKey0, lPKey0, uint256(asset0), 10);
-	lUTXO.out().setTx(lTx->id());
+	Transaction::UnlinkedOutPtr lUTXO = lTx->addOut(lKey0, lPKey0, TxAssetType::qbitAsset(), 10);
+	lUTXO->out().setTx(lTx->id());
 
 	//std::cout << std::endl << lTx->toString() << std::endl;
 
 	store_->pushTransaction(lTx);
 	store_->pushUnlinkedOut(lUTXO);
-	return wallet_->pushUnlinkedOut(lUTXO);
+	return wallet_->pushUnlinkedOut(lUTXO, nullptr);
 }
 
 TransactionPtr TxVerify::createTx1(uint256 utxo) {
@@ -84,21 +83,22 @@ TransactionPtr TxVerify::createTx1(uint256 utxo) {
 
 	// 1.0
 	// create transaction
-	TxSpendPtr lTx = TxSpend::as(TransactionFactory::create(Transaction::SPEND));
+	TxSpendPtr lTx = TransactionHelper::to<TxSpend>(TransactionFactory::create(Transaction::SPEND));
 
-	Transaction::UnlinkedOut lUTXO;
-	wallet_->findUnlinkedOut(utxo, lUTXO);
+	Transaction::UnlinkedOutPtr lUTXO = wallet_->findUnlinkedOut(utxo);
 	lTx->addIn(lKey0, lUTXO);
 
-	unsigned char* asset0 = (unsigned char*)"01234567890123456789012345678901";
-	Transaction::UnlinkedOut lUTXO1 = lTx->addOut(lKey0, lPKey0, uint256(asset0), 10);
-	lUTXO1.out().setTx(lTx->id());
+	Transaction::UnlinkedOutPtr lUTXO1 = lTx->addOut(lKey0, lPKey0, TxAssetType::qbitAsset(), 9);
+	lUTXO1->out().setTx(lTx->id());
+
+	Transaction::UnlinkedOutPtr lUTXO2 = lTx->addFeeOut(lKey0, TxAssetType::qbitAsset(), 1); // to miner
+	lUTXO2->out().setTx(lTx->id());	
 
 	lTx->finalize(lKey0); // bool
 
 	store_->pushTransaction(lTx);
-	store_->pushUnlinkedOut(lUTXO);
-	wallet_->pushUnlinkedOut(lUTXO);
+	store_->pushUnlinkedOut(lUTXO1);
+	wallet_->pushUnlinkedOut(lUTXO1, nullptr);
 
 	return lTx;
 }
@@ -113,9 +113,9 @@ bool TxVerify::execute() {
 	//std::cout << std::endl << lTx1->toString() << std::endl;
 
 	if (lTx1 != nullptr) {
-		TransactionProcessor lProcessor = TransactionProcessor(store_, wallet_) << 
-			TxCoinBaseVerifyPush::instance() << TxSpendVerify::instance() << 
-			TxSpendOutVerify::instance() << TxSpendBalanceVerify::instance();
+		TransactionProcessor lProcessor = TransactionProcessor(store_, wallet_, entityStore_) << 
+			TxCoinBaseVerify::instance() << TxSpendVerify::instance() << 
+			TxSpendOutVerify::instance() << TxBalanceVerify::instance();
 		
 		TransactionContextPtr lCtx = TransactionContext::instance(lTx1);
 		if (!lProcessor.process(lCtx)) {
@@ -190,18 +190,16 @@ uint256 TxVerifyPrivate::createTx0() {
 
 	// 1.0
 	// create transaction
-	TxCoinBasePtr lTx = TxCoinBase::as(TransactionFactory::create(Transaction::COINBASE));
+	TxCoinBasePtr lTx = TransactionHelper::to<TxCoinBase>(TransactionFactory::create(Transaction::COINBASE));
 	lTx->addIn();
-	unsigned char asset00[] = { "0123456789012345678901234567890123654208352765429837659287635928673592863759286" };
-	uint256 asset0 = Hash(asset00, asset00 + sizeof(asset00));
-	Transaction::UnlinkedOut lUTXO = lTx->addOut(lKey0, lPKey0, asset0, 10);
-	lUTXO.out().setTx(lTx->id());
+	Transaction::UnlinkedOutPtr lUTXO = lTx->addOut(lKey0, lPKey0, TxAssetType::qbitAsset(), 10);
+	lUTXO->out().setTx(lTx->id());
 
 	//std::cout << std::endl << lTx->toString() << std::endl;
 
 	store_->pushTransaction(lTx);
 	store_->pushUnlinkedOut(lUTXO);
-	return wallet_->pushUnlinkedOut(lUTXO);
+	return wallet_->pushUnlinkedOut(lUTXO, nullptr);
 }
 
 TransactionPtr TxVerifyPrivate::createTx1(uint256 utxo) {
@@ -238,17 +236,16 @@ TransactionPtr TxVerifyPrivate::createTx1(uint256 utxo) {
 
 	// 1.0
 	// create transaction
-	TxSpendPtr lTx = TxSpend::as(TransactionFactory::create(Transaction::SPEND_PRIVATE));
+	TxSpendPtr lTx = TransactionHelper::to<TxSpend>(TransactionFactory::create(Transaction::SPEND_PRIVATE));
 
-	Transaction::UnlinkedOut lUTXO;
-	wallet_->findUnlinkedOut(utxo, lUTXO);
+	Transaction::UnlinkedOutPtr lUTXO = wallet_->findUnlinkedOut(utxo);
 	lTx->addIn(lKey0, lUTXO);
 
-	unsigned char asset00[] = { "0123456789012345678901234567890123654208352765429837659287635928673592863759286" };
-	uint256 asset0 = Hash(asset00, asset00 + sizeof(asset00));
-	//std::cout << "\n" << asset0.toHex() << "\n";
-	Transaction::UnlinkedOut lUTXO1 = lTx->addOut(lKey0, lPKey0, asset0, 10);
-	lUTXO1.out().setTx(lTx->id());
+	Transaction::UnlinkedOutPtr lUTXO1 = lTx->addOut(lKey0, lPKey0, TxAssetType::qbitAsset(), 9);
+	lUTXO1->out().setTx(lTx->id());
+
+	Transaction::UnlinkedOutPtr lUTXO2 = lTx->addFeeOut(lKey0, TxAssetType::qbitAsset(), 1); // to miner
+	lUTXO2->out().setTx(lTx->id());	
 
 	if (!lTx->finalize(lKey0)) { // bool
 		error_ = "Tx finalization failed";
@@ -256,8 +253,8 @@ TransactionPtr TxVerifyPrivate::createTx1(uint256 utxo) {
 	}
 
 	store_->pushTransaction(lTx);
-	store_->pushUnlinkedOut(lUTXO);
-	wallet_->pushUnlinkedOut(lUTXO);
+	store_->pushUnlinkedOut(lUTXO1); // add utxo
+	wallet_->pushUnlinkedOut(lUTXO1, nullptr);
 
 	//std::cout << std::endl << lTx->toString() << std::endl;
 
@@ -274,9 +271,9 @@ bool TxVerifyPrivate::execute() {
 	//std::cout << std::endl << lTx1->toString() << std::endl;
 
 	if (lTx1 != nullptr) {
-		TransactionProcessor lProcessor = TransactionProcessor(store_, wallet_) << 
-			TxCoinBaseVerifyPush::instance() << TxSpendVerify::instance() << 
-			TxSpendOutVerify::instance() << TxSpendBalanceVerify::instance();
+		TransactionProcessor lProcessor = TransactionProcessor(store_, wallet_, entityStore_) << 
+			TxCoinBaseVerify::instance() << TxSpendVerify::instance() << 
+			TxSpendOutVerify::instance() << TxBalanceVerify::instance();
 		
 		uint32_t lBegin = now();
 		TransactionContextPtr lCtx = TransactionContext::instance(lTx1);
@@ -353,17 +350,17 @@ uint256 TxVerifyFee::createTx0(BlockPtr block) {
 
 	// 1.0
 	// create transaction
-	TxCoinBasePtr lTx = TxCoinBase::as(TransactionFactory::create(Transaction::COINBASE));
+	TxCoinBasePtr lTx = TransactionHelper::to<TxCoinBase>(TransactionFactory::create(Transaction::COINBASE));
 	lTx->addIn();
-	Transaction::UnlinkedOut lUTXO = lTx->addOut(lKey0, lPKey0, TxAssetType::qbitAsset(), 10);
-	lUTXO.out().setTx(lTx->id());
+	Transaction::UnlinkedOutPtr lUTXO = lTx->addOut(lKey0, lPKey0, TxAssetType::qbitAsset(), 10);
+	lUTXO->out().setTx(lTx->id());
 
 	store_->pushTransaction(lTx);
 	store_->pushUnlinkedOut(lUTXO);
 
 	block->append(lTx);
 
-	return wallet_->pushUnlinkedOut(lUTXO);
+	return wallet_->pushUnlinkedOut(lUTXO, nullptr);
 }
 
 TransactionPtr TxVerifyFee::createTx1(uint256 utxo, BlockPtr block) {
@@ -428,17 +425,16 @@ TransactionPtr TxVerifyFee::createTx1(uint256 utxo, BlockPtr block) {
 
 	// 1.0
 	// create transaction
-	TxSpendPtr lTx = TxSpend::as(TransactionFactory::create(Transaction::SPEND));
+	TxSpendPtr lTx = TransactionHelper::to<TxSpend>(TransactionFactory::create(Transaction::SPEND));
 
-	Transaction::UnlinkedOut lUTXO;
-	wallet_->findUnlinkedOut(utxo, lUTXO);
+	Transaction::UnlinkedOutPtr lUTXO = wallet_->findUnlinkedOut(utxo);
 	lTx->addIn(lKey0, lUTXO);
 
-	Transaction::UnlinkedOut lUTXO1 = lTx->addOut(lKey0, lPKey1 /*to receiver*/, TxAssetType::qbitAsset(), 9);
-	lUTXO1.out().setTx(lTx->id());
+	Transaction::UnlinkedOutPtr lUTXO1 = lTx->addOut(lKey0, lPKey1 /*to receiver*/, TxAssetType::qbitAsset(), 9);
+	lUTXO1->out().setTx(lTx->id());
 
-	Transaction::UnlinkedOut lUTXO2 = lTx->addFeeOut(lKey0, TxAssetType::qbitAsset(), 1); // to miner
-	lUTXO2.out().setTx(lTx->id());
+	Transaction::UnlinkedOutPtr lUTXO2 = lTx->addFeeOut(lKey0, TxAssetType::qbitAsset(), 1); // to miner
+	lUTXO2->out().setTx(lTx->id());
 
 	lTx->finalize(lKey0); // bool
 
@@ -462,9 +458,9 @@ bool TxVerifyFee::execute() {
 	TransactionPtr lTx1 = createTx1(utxo, lBlock);
 
 	if (lTx1 != nullptr) {
-		TransactionProcessor lProcessor = TransactionProcessor(store_, wallet_) << 
-			TxCoinBaseVerifyPush::instance() << TxSpendVerify::instance() << 
-			TxSpendOutVerify::instance() << TxSpendBalanceVerify::instance();
+		TransactionProcessor lProcessor = TransactionProcessor(store_, wallet_, entityStore_) << 
+			TxCoinBaseVerify::instance() << TxSpendVerify::instance() << 
+			TxSpendOutVerify::instance() << TxBalanceVerify::instance();
 		
 		TransactionContextPtr lCtx = TransactionContext::instance(lTx1);
 		if (!lProcessor.process(lCtx)) {
@@ -499,9 +495,9 @@ bool TxVerifyFee::execute() {
 	bool lFound = false;
 	for(TransactionsContainer::iterator lIter = lBlock2->transactions().begin(); lIter != lBlock2->transactions().end(); lIter++) {
 
-		TransactionProcessor lProcessor = TransactionProcessor(store_, wallet_) << 
-			TxCoinBaseVerifyPush::instance() << TxSpendVerify::instance() << 
-			TxSpendOutVerify::instance() << TxSpendBalanceVerify::instance();
+		TransactionProcessor lProcessor = TransactionProcessor(store_, wallet_, entityStore_) << 
+			TxCoinBaseVerify::instance() << TxSpendVerify::instance() << 
+			TxSpendOutVerify::instance() << TxBalanceVerify::instance();
 		
 		//std::cout << std::endl << (*lIter)->toString() << std::endl;
 
@@ -571,9 +567,9 @@ bool TxVerifyFee::execute() {
 	lFound = false;
 	for(TransactionsContainer::iterator lIter = lBlock2->transactions().begin(); lIter != lBlock2->transactions().end(); lIter++) {
 
-		TransactionProcessor lProcessor = TransactionProcessor(store_, wallet_) << 
-			TxCoinBaseVerifyPush::instance() << TxSpendVerify::instance() << 
-			TxSpendOutVerify::instance() << TxSpendBalanceVerify::instance();
+		TransactionProcessor lProcessor = TransactionProcessor(store_, wallet_, entityStore_) << 
+			TxCoinBaseVerify::instance() << TxSpendVerify::instance() << 
+			TxSpendOutVerify::instance() << TxBalanceVerify::instance();
 		
 		//std::cout << std::endl << (*lIter)->toString() << std::endl;
 
@@ -640,17 +636,17 @@ uint256 TxVerifyPrivateFee::createTx0(BlockPtr block) {
 
 	// 1.0
 	// create transaction
-	TxCoinBasePtr lTx = TxCoinBase::as(TransactionFactory::create(Transaction::COINBASE));
+	TxCoinBasePtr lTx = TransactionHelper::to<TxCoinBase>(TransactionFactory::create(Transaction::COINBASE));
 	lTx->addIn();
-	Transaction::UnlinkedOut lUTXO = lTx->addOut(lKey0, lPKey0, TxAssetType::qbitAsset(), 10);
-	lUTXO.out().setTx(lTx->id());
+	Transaction::UnlinkedOutPtr lUTXO = lTx->addOut(lKey0, lPKey0, TxAssetType::qbitAsset(), 10);
+	lUTXO->out().setTx(lTx->id());
 
 	store_->pushTransaction(lTx);
 	store_->pushUnlinkedOut(lUTXO);
 
 	block->append(lTx);
 
-	return wallet_->pushUnlinkedOut(lUTXO);
+	return wallet_->pushUnlinkedOut(lUTXO, nullptr);
 }
 
 TransactionPtr TxVerifyPrivateFee::createTx1(uint256 utxo, BlockPtr block) {
@@ -720,18 +716,17 @@ TransactionPtr TxVerifyPrivateFee::createTx1(uint256 utxo, BlockPtr block) {
 	// create transaction
 	TxSpendPrivatePtr lTx = TransactionHelper::to<TxSpendPrivate>(TransactionFactory::create(Transaction::SPEND_PRIVATE));
 
-	Transaction::UnlinkedOut lUTXO;
-	wallet_->findUnlinkedOut(utxo, lUTXO);
+	Transaction::UnlinkedOutPtr lUTXO = wallet_->findUnlinkedOut(utxo);
 	lTx->addIn(lKey0, lUTXO);
 
-	Transaction::UnlinkedOut lUTXO1 = lTx->addOut(lKey0, lPKey1 /*to receiver*/, TxAssetType::qbitAsset(), 5);
-	lUTXO1.out().setTx(lTx->id());
+	Transaction::UnlinkedOutPtr lUTXO1 = lTx->addOut(lKey0, lPKey1 /*to receiver*/, TxAssetType::qbitAsset(), 5);
+	lUTXO1->out().setTx(lTx->id());
 
-	Transaction::UnlinkedOut lUTXO2 = lTx->addOut(lKey0, lPKey0 /*to self*/, TxAssetType::qbitAsset(), 4);
-	lUTXO2.out().setTx(lTx->id());
+	Transaction::UnlinkedOutPtr lUTXO2 = lTx->addOut(lKey0, lPKey0 /*to self*/, TxAssetType::qbitAsset(), 4);
+	lUTXO2->out().setTx(lTx->id());
 
-	Transaction::UnlinkedOut lUTXO3 = lTx->addFeeOut(lKey0, TxAssetType::qbitAsset(), 1); // to miner
-	lUTXO3.out().setTx(lTx->id());
+	Transaction::UnlinkedOutPtr lUTXO3 = lTx->addFeeOut(lKey0, TxAssetType::qbitAsset(), 1); // to miner
+	lUTXO3->out().setTx(lTx->id());
 
 	lTx->finalize(lKey0); // bool
 
@@ -756,9 +751,9 @@ bool TxVerifyPrivateFee::execute() {
 	TransactionPtr lTx1 = createTx1(utxo, lBlock);
 
 	if (lTx1 != nullptr) {
-		TransactionProcessor lProcessor = TransactionProcessor(store_, wallet_) << 
-			TxCoinBaseVerifyPush::instance() << TxSpendVerify::instance() << 
-			TxSpendOutVerify::instance() << TxSpendBalanceVerify::instance();
+		TransactionProcessor lProcessor = TransactionProcessor(store_, wallet_, entityStore_) << 
+			TxCoinBaseVerify::instance() << TxSpendVerify::instance() << 
+			TxSpendOutVerify::instance() << TxBalanceVerify::instance();
 		
 		TransactionContextPtr lCtx = TransactionContext::instance(lTx1);
 		if (!lProcessor.process(lCtx)) {
@@ -779,8 +774,20 @@ bool TxVerifyPrivateFee::execute() {
 
 	//
 	// serialize
+	uint32_t lBegin = now();
 	DataStream lStream(SER_NETWORK, 0);
 	Block::Serializer::serialize<DataStream>(lStream, lBlock);	
+	std::cout << "DataStream - " << (now() - lBegin) << "mc / ";
+
+	lBegin = now();
+	SizeComputer lSize(0);
+	Block::Serializer::serialize<SizeComputer>(lSize, lBlock);
+	std::cout << "SizeComputer - " << (now() - lBegin) << "mc / ";
+
+	if (lStream.size() != lSize.size()) {
+		error_ = "DataStream.size != SizeComputer.size";
+		return false;
+	}
 
 	BlockPtr lBlock2 = Block::Deserializer::deserialize<DataStream>(lStream);
 
@@ -793,9 +800,9 @@ bool TxVerifyPrivateFee::execute() {
 	bool lFound = false;
 	for(TransactionsContainer::iterator lIter = lBlock2->transactions().begin(); lIter != lBlock2->transactions().end(); lIter++) {
 
-		TransactionProcessor lProcessor = TransactionProcessor(store_, wallet_) << 
-			TxCoinBaseVerifyPush::instance() << TxSpendVerify::instance() << 
-			TxSpendOutVerify::instance() << TxSpendBalanceVerify::instance();
+		TransactionProcessor lProcessor = TransactionProcessor(store_, wallet_, entityStore_) << 
+			TxCoinBaseVerify::instance() << TxSpendVerify::instance() << 
+			TxSpendOutVerify::instance() << TxBalanceVerify::instance();
 		
 		//std::cout << std::endl << (*lIter)->toString() << std::endl;
 
@@ -865,9 +872,9 @@ bool TxVerifyPrivateFee::execute() {
 	lFound = false;
 	for(TransactionsContainer::iterator lIter = lBlock2->transactions().begin(); lIter != lBlock2->transactions().end(); lIter++) {
 
-		TransactionProcessor lProcessor = TransactionProcessor(store_, wallet_) << 
-			TxCoinBaseVerifyPush::instance() << TxSpendVerify::instance() << 
-			TxSpendOutVerify::instance() << TxSpendBalanceVerify::instance();
+		TransactionProcessor lProcessor = TransactionProcessor(store_, wallet_, entityStore_) << 
+			TxCoinBaseVerify::instance() << TxSpendVerify::instance() << 
+			TxSpendOutVerify::instance() << TxBalanceVerify::instance();
 		
 		//std::cout << std::endl << (*lIter)->toString() << std::endl;
 
