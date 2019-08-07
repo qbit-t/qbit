@@ -6,6 +6,7 @@
 #define QBIT_TRANSACTION_CONTEXT_H
 
 #include "transaction.h"
+#include "version.h"
 
 namespace qbit {
 
@@ -33,6 +34,12 @@ public:
 
 	inline amount_t fee() { return fee_; }
 	inline void addFee(amount_t fee) { fee_ += fee; }
+
+	inline size_t size() {
+		SizeComputer lStream(CLIENT_VERSION);
+		Transaction::Serializer::serialize<SizeComputer>(lStream, tx_);
+		return lStream.size();
+	}
 
 private:
 	TransactionPtr tx_;

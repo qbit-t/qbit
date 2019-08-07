@@ -895,12 +895,6 @@ struct SerActionDeserialize
 };
 
 
-
-
-
-
-
-
 /* ::GetSerializeSize implementations
  *
  * Computing the serialized size of objects is done through a special stream

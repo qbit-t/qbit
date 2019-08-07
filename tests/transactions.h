@@ -11,6 +11,7 @@
 #include "unittest.h"
 #include "../itransactionstore.h"
 #include "../iwallet.h"
+#include "../ientitystore.h"
 #include "../transactionvalidator.h"
 #include "../transactionactions.h"
 #include "../block.h"
@@ -43,9 +44,9 @@ public:
 		return SKey();
 	}
 
-	uint256 pushUnlinkedOut(const Transaction::UnlinkedOut& out) {
-		utxo_[const_cast<Transaction::UnlinkedOut&>(out).hash()] = out;
-		return const_cast<Transaction::UnlinkedOut&>(out).hash();
+	uint256 pushUnlinkedOut(Transaction::UnlinkedOutPtr out, TransactionContextPtr ctx) {
+		utxo_[out->hash()] = out;
+		return out->hash();
 	}
 	
 	bool popUnlinkedOut(const uint256& hash) {
@@ -56,29 +57,28 @@ public:
 		return false;
 	}
 
-	bool findUnlinkedOut(const uint256& hash, Transaction::UnlinkedOut& out) {
-		std::map<uint256, Transaction::UnlinkedOut>::iterator lIter = utxo_.find(hash);
+	Transaction::UnlinkedOutPtr findUnlinkedOut(const uint256& hash) {
+		std::map<uint256, Transaction::UnlinkedOutPtr>::iterator lIter = utxo_.find(hash);
 		if (lIter != utxo_.end()) {
-			out = lIter->second;
-			return true;
+			return lIter->second;
 		}
 
-		return false;
+		return nullptr;
 	}
 
 	amount_t balance() {
 		// TODO: asset type matters: lOut.out().asset()
 		amount_t lBalance = 0;
-		for (std::map<uint256, Transaction::UnlinkedOut>::iterator lIter = utxo_.begin(); lIter != utxo_.end(); lIter++) {
-			Transaction::UnlinkedOut& lOut = lIter->second;
-			lBalance += lOut.amount();
+		for (std::map<uint256, Transaction::UnlinkedOutPtr>::iterator lIter = utxo_.begin(); lIter != utxo_.end(); lIter++) {
+			Transaction::UnlinkedOutPtr lOut = lIter->second;
+			lBalance += lOut->amount();
 		}
 
 		return lBalance;
 	}
 
 	std::map<uint160, SKey> keys_;
-	std::map<uint256, Transaction::UnlinkedOut> utxo_;
+	std::map<uint256, Transaction::UnlinkedOutPtr> utxo_;
 };
 
 class TxStore: public ITransactionStore {
@@ -101,9 +101,9 @@ public:
 		}
 	}	
 
-	uint256 pushUnlinkedOut(const Transaction::UnlinkedOut& out) {
-		utxo_[const_cast<Transaction::UnlinkedOut&>(out).hash()] = out;
-		return const_cast<Transaction::UnlinkedOut&>(out).hash();
+	uint256 pushUnlinkedOut(Transaction::UnlinkedOutPtr out) {
+		utxo_[out->hash()] = out;
+		return out->hash();
 	}
 	
 	bool popUnlinkedOut(const uint256& hash) {
@@ -114,18 +114,34 @@ public:
 		return false;
 	}
 
-	bool findUnlinkedOut(const uint256& hash, Transaction::UnlinkedOut& out) {
-		std::map<uint256, Transaction::UnlinkedOut>::iterator lIter = utxo_.find(hash);
+	Transaction::UnlinkedOutPtr findUnlinkedOut(const uint256& hash) {
+		std::map<uint256, Transaction::UnlinkedOutPtr>::iterator lIter = utxo_.find(hash);
 		if (lIter != utxo_.end()) {
-			out = lIter->second;
-			return true;
+			return lIter->second;
 		}
+
+		return nullptr;
+	}
+
+	std::map<uint256, TransactionPtr> txs_;
+	std::map<uint256, Transaction::UnlinkedOutPtr> utxo_;
+};
+
+class EntityStore: public IEntityStore {
+public:
+	EntityStore() {}
+
+	EntityPtr locateEntity(const uint256&) { return nullptr; }
+	
+	bool pushEntity(const uint256&, EntityPtr entity) {
 
 		return false;
 	}
 
-	std::map<uint256, TransactionPtr> txs_;
-	std::map<uint256, Transaction::UnlinkedOut> utxo_;
+	bool pushEntity(const uint256&, TransactionContextPtr wrapper) {
+
+		return false;
+	}
 };
 
 class TxVerify: public Unit {
@@ -133,6 +149,7 @@ public:
 	TxVerify(): Unit("TxVerify") {
 		store_ = std::make_shared<TxStore>(); 
 		wallet_ = std::make_shared<TxWallet>(); 
+		entityStore_ = std::make_shared<EntityStore>(); 
 	}
 
 	uint256 createTx0();
@@ -142,13 +159,15 @@ public:
 
 	ITransactionStorePtr store_; 
 	IWalletPtr wallet_;
+	IEntityStorePtr entityStore_;
 };
 
 class TxVerifyPrivate: public Unit {
 public:
 	TxVerifyPrivate(): Unit("TxVerifyPrivate") {
 		store_ = std::make_shared<TxStore>(); 
-		wallet_ = std::make_shared<TxWallet>(); 
+		wallet_ = std::make_shared<TxWallet>();
+		entityStore_ = std::make_shared<EntityStore>();		
 	}
 
 	uint256 createTx0();
@@ -158,13 +177,15 @@ public:
 
 	ITransactionStorePtr store_; 
 	IWalletPtr wallet_;
+	IEntityStorePtr entityStore_;
 };
 
 class TxVerifyFee: public Unit {
 public:
 	TxVerifyFee(): Unit("TxVerifyFee") {
 		store_ = std::make_shared<TxStore>(); 
-		wallet_ = std::make_shared<TxWallet>(); 
+		wallet_ = std::make_shared<TxWallet>();
+		entityStore_ = std::make_shared<EntityStore>();	
 	}
 
 	uint256 createTx0(BlockPtr);
@@ -174,13 +195,15 @@ public:
 
 	ITransactionStorePtr store_; 
 	IWalletPtr wallet_;
+	IEntityStorePtr entityStore_;
 };
 
 class TxVerifyPrivateFee: public Unit {
 public:
 	TxVerifyPrivateFee(): Unit("TxVerifyPrivateFee") {
 		store_ = std::make_shared<TxStore>(); 
-		wallet_ = std::make_shared<TxWallet>(); 
+		wallet_ = std::make_shared<TxWallet>();
+		entityStore_ = std::make_shared<EntityStore>();
 	}
 
 	uint256 createTx0(BlockPtr);
@@ -190,6 +213,7 @@ public:
 
 	ITransactionStorePtr store_; 
 	IWalletPtr wallet_;
+	IEntityStorePtr entityStore_;
 };
 
 

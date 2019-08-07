@@ -8,6 +8,7 @@
 #include "transaction.h"
 #include "transactioncontext.h"
 #include "itransactionstore.h"
+#include "ientitystore.h"
 #include "iwallet.h"
 #include "txassettype.h"
 #include <list>
@@ -25,14 +26,15 @@ public:
 public:
 	TransactionAction() {}
 
-	virtual Result execute(TransactionContextPtr, ITransactionStorePtr, IWalletPtr) { return Result::ERROR; }
+	virtual Result execute(TransactionContextPtr, ITransactionStorePtr, IWalletPtr, IEntityStorePtr) { return Result::ERROR; }
 };
 
 typedef std::shared_ptr<TransactionAction> TransactionActionPtr;
 
 class TransactionProcessor {
 public:
-	TransactionProcessor(ITransactionStorePtr store, IWalletPtr wallet) : store_(store), wallet_(wallet) {}
+	TransactionProcessor(ITransactionStorePtr store, IWalletPtr wallet, IEntityStorePtr entityStore) : 
+		store_(store), wallet_(wallet), entityStore_(entityStore) {}
 
 	void add(TransactionActionPtr action) { actions_.push_back(action); }
 	bool process(TransactionContextPtr);
@@ -46,6 +48,7 @@ public:
 private:
 	ITransactionStorePtr store_;
 	IWalletPtr wallet_;
+	IEntityStorePtr entityStore_;
 	std::list<TransactionActionPtr> actions_;
 };
 

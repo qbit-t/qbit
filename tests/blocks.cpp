@@ -37,11 +37,11 @@ TransactionPtr BlockCreate::createTx0(uint256& utxo) {
 
 	// 1.0
 	// create transaction
-	TxCoinBasePtr lTx = TxCoinBase::as(TransactionFactory::create(Transaction::COINBASE));
+	TxCoinBasePtr lTx = TransactionHelper::to<TxCoinBase>(TransactionFactory::create(Transaction::COINBASE));
 	lTx->addIn();
 	unsigned char* asset0 = (unsigned char*)"01234567890123456789012345678901";
-	Transaction::UnlinkedOut lUTXO = lTx->addOut(lKey0, lPKey0, uint256(asset0), 10);
-	lUTXO.out().setTx(lTx->id());
+	Transaction::UnlinkedOutPtr lUTXO = lTx->addOut(lKey0, lPKey0, uint256(asset0), 10);
+	lUTXO->out().setTx(lTx->id());
 
 	lTx->finalize(lKey0); // bool
 
@@ -49,7 +49,7 @@ TransactionPtr BlockCreate::createTx0(uint256& utxo) {
 
 	store_->pushTransaction(lTx);
 	store_->pushUnlinkedOut(lUTXO);
-	utxo = wallet_->pushUnlinkedOut(lUTXO);
+	utxo = wallet_->pushUnlinkedOut(lUTXO, nullptr);
 	return lTx;
 }
 
@@ -87,21 +87,20 @@ TransactionPtr BlockCreate::createTx1(uint256 utxo) {
 
 	// 1.0
 	// create transaction
-	TxSpendPtr lTx = TxSpend::as(TransactionFactory::create(Transaction::SPEND));
+	TxSpendPtr lTx = TransactionHelper::to<TxSpend>(TransactionFactory::create(Transaction::SPEND));
 
-	Transaction::UnlinkedOut lUTXO;
-	wallet_->findUnlinkedOut(utxo, lUTXO);
+	Transaction::UnlinkedOutPtr lUTXO = wallet_->findUnlinkedOut(utxo);
 	lTx->addIn(lKey0, lUTXO);
 
 	unsigned char* asset0 = (unsigned char*)"01234567890123456789012345678901";
-	Transaction::UnlinkedOut lUTXO1 = lTx->addOut(lKey0, lPKey0, uint256(asset0), 10);
-	lUTXO1.out().setTx(lTx->id());
+	Transaction::UnlinkedOutPtr lUTXO1 = lTx->addOut(lKey0, lPKey0, uint256(asset0), 10);
+	lUTXO1->out().setTx(lTx->id());
 
 	lTx->finalize(lKey0); // bool
 
 	store_->pushTransaction(lTx);
 	store_->pushUnlinkedOut(lUTXO);
-	wallet_->pushUnlinkedOut(lUTXO);
+	wallet_->pushUnlinkedOut(lUTXO, nullptr);
 
 	return lTx;
 }

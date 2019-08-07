@@ -7,6 +7,7 @@
 
 #include "key.h"
 #include "transaction.h"
+#include "transactioncontext.h"
 
 namespace qbit {
 
@@ -14,15 +15,23 @@ class IWallet {
 public:
 	IWallet() {}
 
+	// key menegement
 	virtual SKey createKey(const std::list<std::string>&) { throw qbit::exception("NOT_IMPL", "Not implemented."); }
 	virtual SKey findKey(const PKey&) { throw qbit::exception("NOT_IMPL", "Not implemented."); }
 
-	virtual uint256 pushUnlinkedOut(const Transaction::UnlinkedOut&) {}
-	virtual bool popUnlinkedOut(const uint256&) {}
+	// new utxo and tx context to process deeply
+	virtual uint256 pushUnlinkedOut(Transaction::UnlinkedOutPtr, TransactionContextPtr) { throw qbit::exception("NOT_IMPL", "Not implemented."); }
+	virtual bool popUnlinkedOut(const uint256&) { throw qbit::exception("NOT_IMPL", "Not implemented."); }
 
-	virtual bool findUnlinkedOut(const uint256&, Transaction::UnlinkedOut&) { return false; }
+	// try to locate utxo
+	virtual Transaction::UnlinkedOutPtr findUnlinkedOut(const uint256&) { throw qbit::exception("NOT_IMPL", "Not implemented."); }
 
-	virtual amount_t balance() { return 0; }
+	// try to find utxo by asset with amount >=
+	virtual Transaction::UnlinkedOutPtr findUnlinkedOutByAsset(const uint256&, amount_t) { throw qbit::exception("NOT_IMPL", "Not implemented."); }
+
+	// wallet balance
+	virtual amount_t balance() { return 0; } // qbit balance
+	virtual amount_t balance(const uint256& asset) { return 0; }
 };
 
 typedef std::shared_ptr<IWallet> IWalletPtr;

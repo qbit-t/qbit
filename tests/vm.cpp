@@ -127,7 +127,7 @@ bool VMCheckLHash256::execute() {
 
 	// 1.0
 	// create transaction
-	TxCoinBasePtr lTx = TxCoinBase::as(TransactionFactory::create(Transaction::COINBASE));
+	TxCoinBasePtr lTx = TransactionHelper::to<TxCoinBase>(TransactionFactory::create(Transaction::COINBASE));
 	lTx->addIn();
 
 	// 1.1
@@ -200,7 +200,7 @@ bool VMCheckSig::execute() {
 
 	// 1.0
 	// create transaction
-	TxCoinBasePtr lTx = TxCoinBase::as(TransactionFactory::create(Transaction::COINBASE));
+	TxCoinBasePtr lTx = TransactionHelper::to<TxCoinBase>(TransactionFactory::create(Transaction::COINBASE));
 	lTx->addIn();
 
 	// 1.1

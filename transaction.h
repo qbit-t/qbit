@@ -51,9 +51,11 @@ public:
 	virtual TransactionPtr create() { return nullptr; }
 };
 
+typedef std::shared_ptr<TransactionCreator> TransactionCreatorPtr;
+
 //
 // tx types
-typedef std::map<unsigned short, TransactionCreator> TransactionTypes;
+typedef std::map<unsigned short, TransactionCreatorPtr> TransactionTypes;
 extern TransactionTypes gTxTypes; // TODO: init on startup
 
 // tx version type
@@ -95,7 +97,7 @@ public:
 	};
 
 	// use to register tx type functor
-	static void RegisterTransactionType(Type, TransactionCreator&);
+	static void registerTransactionType(Type, TransactionCreatorPtr);
 
 	enum Status {
 		CREATED 	= 0x01,
@@ -202,6 +204,9 @@ public:
 	// is not a part of regular transaction
 	// and it is _never_ persisted to the blockchain
 	// used internally by wallet and transaction store for UTXO control
+	class UnlinkedOut;
+	typedef std::shared_ptr<Transaction::UnlinkedOut> UnlinkedOutPtr;
+
 	class UnlinkedOut {
 	public:
 		UnlinkedOut() {}
@@ -230,6 +235,13 @@ public:
 		std::vector<unsigned char>& commit() { return commit_; }
 
 		uint256 hash() { return out_.hash(); }
+
+		static UnlinkedOutPtr instance() { return std::make_shared<UnlinkedOut>(); }
+		static UnlinkedOutPtr instance(const Link& o) { return std::make_shared<UnlinkedOut>(o); }
+		static UnlinkedOutPtr instance(const Link& o, amount_t a, const uint256& b, const std::vector<unsigned char>& c) 
+		{ return std::make_shared<UnlinkedOut>(o, a, b, c); }
+		static UnlinkedOutPtr instance(const Link& o, amount_t a, const uint256& b, const std::vector<unsigned char>& c, const uint256& n) 
+		{ return std::make_shared<UnlinkedOut>(o, a, b, c, n); }
 
 	private:
 		Link out_; // one of previous out		
@@ -281,7 +293,7 @@ public:
 				default: {
 					TransactionTypes::iterator lTypeIterator = gTxTypes.find(lType);
 					if (lTypeIterator != gTxTypes.end()) {
-						lTx = lTypeIterator->second.create();
+						lTx = lTypeIterator->second->create();
 					}
 				}
 				break;			
@@ -304,6 +316,7 @@ public:
 
 	virtual void serialize(DataStream& s) {}
 	virtual void serialize(HashWriter& s) {}
+	virtual void serialize(SizeComputer& s) {}
 	virtual void deserialize(DataStream& s) {}
 	virtual bool finalize(const SKey&) { return false; }
 
@@ -327,8 +340,8 @@ public:
 	inline uint32_t timeLock() { return timeLock_; }
 	inline void setTimelock(uint32_t timelock) { timeLock_ = timelock; }
 
-	virtual In& addFeeIn(const SKey&, const UnlinkedOut&) { throw qbit::exception("NOT_IMPLEMENTED", "Not implemented."); }
-	virtual Transaction::UnlinkedOut addFeeOut(const SKey&, const PKey&, const uint256&, amount_t) { throw qbit::exception("NOT_IMPLEMENTED", "Not implemented."); }
+	virtual In& addFeeIn(const SKey&, UnlinkedOutPtr) { throw qbit::exception("NOT_IMPLEMENTED", "Not implemented."); }
+	virtual Transaction::UnlinkedOutPtr addFeeOut(const SKey&, const PKey&, const uint256&, amount_t) { throw qbit::exception("NOT_IMPLEMENTED", "Not implemented."); }
 
 protected:
 	// tx type
@@ -366,8 +379,6 @@ public:
 		type_ = Transaction::COINBASE;
 	}
 
-	static TxCoinBasePtr as(TransactionPtr tx) { return std::static_pointer_cast<TxCoinBase>(tx); }
-
 	In& addIn() {
 		in_.resize(1);
 		in_[0].out_.setNull();
@@ -377,7 +388,7 @@ public:
 		return in_[0];
 	}
 
-	Transaction::UnlinkedOut addOut(const SKey& skey, const PKey& pkey, const uint256& asset, amount_t amount) {
+	Transaction::UnlinkedOutPtr addOut(const SKey& skey, const PKey& pkey, const uint256& asset, amount_t amount) {
 		qbit::vector<unsigned char> lCommitment;
 
 		uint256 lBlind = const_cast<SKey&>(skey).shared(pkey);
@@ -397,9 +408,10 @@ public:
 			OP(QCHECKA) <<
 			OP(QATXOA) 	<<
 			OP(QEQADDR) <<
+			OP(QMOV) 	<< REG(QR0) << CU8(0x01) <<	
 			OP(QRET);
 
-		return Transaction::UnlinkedOut(
+		return Transaction::UnlinkedOut::instance(
 			Transaction::Link(asset, 0), // link
 			amount, // amount
 			lBlind, // blinding key
@@ -419,17 +431,15 @@ class TxSpend : public Transaction {
 public:
 	TxSpend() { type_ = Transaction::SPEND; }
 
-	static TxSpendPtr as(TransactionPtr tx) { return std::static_pointer_cast<TxSpend>(tx); }
-
 	//
 	// skey - our secret key
 	// utxo - unlinked tx out
-	virtual In& addIn(const SKey& skey, const UnlinkedOut& utxo) {
+	virtual In& addIn(const SKey& skey, UnlinkedOutPtr utxo) {
 		Transaction::In lIn;
 		lIn.out().setNull();
-		lIn.out().setAsset(const_cast<UnlinkedOut&>(utxo).out().asset());
-		lIn.out().setTx(const_cast<UnlinkedOut&>(utxo).out().tx());
-		lIn.out().setIndex(const_cast<UnlinkedOut&>(utxo).out().index());
+		lIn.out().setAsset(utxo->out().asset());
+		lIn.out().setTx(utxo->out().tx());
+		lIn.out().setIndex(utxo->out().index());
 
 		qbit::vector<unsigned char> lSource;
 		lIn.out().serialize(lSource);
@@ -450,7 +460,7 @@ public:
 			OP(QDTXO));
 
 		// fill up for finalization
-		assetIn_[const_cast<UnlinkedOut&>(utxo).out().asset()].push_back(utxo);
+		assetIn_[utxo->out().asset()].push_back(utxo);
 
 		in_.push_back(lIn);
 		return in_[in_.size()-1];
@@ -460,7 +470,7 @@ public:
 	// skey - our secret key
 	// pkey - destination address
 	// asset - asset type hash
-	virtual Transaction::UnlinkedOut addOut(const SKey& skey, const PKey& pkey, const uint256& asset, amount_t amount) {
+	virtual Transaction::UnlinkedOutPtr addOut(const SKey& skey, const PKey& pkey, const uint256& asset, amount_t amount) {
 		qbit::vector<unsigned char> lCommitment;
 
 		uint256 lBlind = const_cast<SKey&>(skey).shared(pkey);
@@ -480,9 +490,10 @@ public:
 			OP(QCHECKA) 	<<
 			OP(QATXOA) 		<<
 			OP(QEQADDR) 	<<
+			OP(QMOV) 		<< REG(QR0) << CU8(0x01) <<	
 			OP(QRET));
 
-		Transaction::UnlinkedOut lUTXO(
+		Transaction::UnlinkedOutPtr lUTXO = Transaction::UnlinkedOut::instance(
 			Transaction::Link(asset, out_.size()), // link
 			amount, // amount
 			lBlind, // blinding key
@@ -500,7 +511,7 @@ public:
 	// skey - our secret key
 	// pkey - destination address
 	// asset - asset type hash
-	virtual Transaction::UnlinkedOut addFeeOut(const SKey& skey, const uint256& asset, amount_t amount) {
+	virtual Transaction::UnlinkedOutPtr addFeeOut(const SKey& skey, const uint256& asset, amount_t amount) {
 		qbit::vector<unsigned char> lCommitment;
 
 		uint256 lBlind = Random::generate();
@@ -518,7 +529,7 @@ public:
 			OP(QCHECKA) 	<<
 			OP(QRET));
 
-		Transaction::UnlinkedOut lUTXO(
+		Transaction::UnlinkedOutPtr lUTXO = Transaction::UnlinkedOut::instance(
 			Transaction::Link(asset, out_.size()), // link
 			amount, // amount
 			lBlind, // blinding key
@@ -543,7 +554,7 @@ public:
 	virtual bool finalize(const SKey&);
 
 protected:
-	typedef std::map<uint256, std::list<Transaction::UnlinkedOut>> _assetMap;
+	typedef std::map<uint256, std::list<Transaction::UnlinkedOutPtr>> _assetMap;
 	_assetMap assetIn_; // in asset group
 	_assetMap assetOut_; // out asset group
 };
@@ -554,13 +565,11 @@ class TxSpendPrivate : public TxSpend {
 public:
 	TxSpendPrivate() { type_ = Transaction::SPEND_PRIVATE; }
 
-	static TxSpendPrivatePtr as(TransactionPtr tx) { return std::static_pointer_cast<TxSpendPrivate>(tx); }
-
 	//
 	// skey - our secret key
 	// pkey - destination address
 	// asset - asset type hash
-	Transaction::UnlinkedOut addOut(const SKey& skey, const PKey& pkey, const uint256& asset, amount_t amount) {
+	Transaction::UnlinkedOutPtr addOut(const SKey& skey, const PKey& pkey, const uint256& asset, amount_t amount) {
 		qbit::vector<unsigned char> lCommitment;
 		qbit::vector<unsigned char> lRangeProof;
 
@@ -586,9 +595,10 @@ public:
 			OP(QCHECKP) 	<<
 			OP(QATXOP)	 	<<
 			OP(QEQADDR) 	<<
+			OP(QMOV) 		<< REG(QR0) << CU8(0x01) <<	
 			OP(QRET));
 
-		Transaction::UnlinkedOut lUTXO(
+		Transaction::UnlinkedOutPtr lUTXO = Transaction::UnlinkedOut::instance(
 			Transaction::Link(asset, out_.size()), // link
 			amount, // amount
 			lBlind, // blinding key
@@ -628,7 +638,7 @@ public:
 			default: {
 				TransactionTypes::iterator lType = gTxTypes.find(txType);
 				if (lType != gTxTypes.end()) {
-					return lType->second.create();
+					return lType->second->create();
 				}
 			}
 			break;			

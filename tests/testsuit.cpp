@@ -6,6 +6,7 @@
 #include "blocks.h"
 #include "dbs.h"
 #include "cuckoo.h"
+#include "assets.h"
 
 #include "../log/log.h"
 
@@ -33,6 +34,9 @@ int main()
 	lSuit << new TxVerifyPrivate();
 	lSuit << new TxVerifyFee();
 	lSuit << new TxVerifyPrivateFee();
+	lSuit << new TxAssetVerify();
+	lSuit << new TxAssetEmissionVerify();
+	lSuit << new TxAssetEmissionSpend();
 	lSuit << new BlockCreate();
 	lSuit << new DbContainerCreate();
 	lSuit << new DbEntityContainerCreate();

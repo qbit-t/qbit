@@ -50,6 +50,8 @@
 	checka											# verify amount [a0, a1, a2 => result a7]
 	atxoa											# push for d0 public amount - [d0, a0, a7]
 	eqaddr											# suppose, that s0 contains input pubkey, result -> c1
+	mov			r0, 0x01
+	ret
 
 #
-# result: [e0, s7, a7, p0]
+# result: [r0, e0, s7, a7, p0]

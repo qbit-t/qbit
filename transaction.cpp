@@ -5,10 +5,11 @@
 #include "utilstrencodings.h"
 #include "crypto/common.h"
 #include "vm/vm.h"
+#include "txassettype.h"
 
 qbit::TransactionTypes qbit::gTxTypes;
 
-void qbit::Transaction::RegisterTransactionType(Transaction::Type type, TransactionCreator& creator) {
+void qbit::Transaction::registerTransactionType(Transaction::Type type, TransactionCreatorPtr creator) {
 	qbit::gTxTypes[type] = creator;
 }
 
@@ -20,7 +21,7 @@ uint256 qbit::Transaction::hash() {
 
 std::string qbit::Transaction::Link::toString() const
 {
-    return strprintf("link(asset=%s..., hash=%s..., index=%u)", asset_.toString().substr(0,15), tx_.toString().substr(0,15), index_);
+    return strprintf("link(asset=%s..., tx=%s..., index=%u)", asset_.toString().substr(0,15), tx_.toString().substr(0,15), index_);
 }
 
 std::string qbit::Transaction::In::toString() const
@@ -65,28 +66,28 @@ bool qbit::TxSpend::finalize(const SKey& skey) {
 		amount_t lOutAmount = 0;
 
 		// sum inputs
-		std::list<Transaction::UnlinkedOut> lInList = lGroup->second;
-		for (std::list<Transaction::UnlinkedOut>::iterator lIUtxo = lInList.begin(); lIUtxo != lInList.end(); lIUtxo++) {
-			if (!Math::add(lBlindResult, lBlindResult, lIUtxo->blind())) {
+		std::list<Transaction::UnlinkedOutPtr> lInList = lGroup->second;
+		for (std::list<Transaction::UnlinkedOutPtr>::iterator lIUtxo = lInList.begin(); lIUtxo != lInList.end(); lIUtxo++) {
+			if (!Math::add(lBlindResult, lBlindResult, (*lIUtxo)->blind())) {
 				return false;
 			}
 
-			lInAmount += lIUtxo->amount();
+			lInAmount += (*lIUtxo)->amount();
 		}
 
 		// sum outputs
 		_assetMap::iterator lOutListPtr = assetOut_.find(lGroup->first);
 		if (lOutListPtr != assetOut_.end()) {
-			std::list<Transaction::UnlinkedOut> lOutList = assetOut_[lGroup->first];
-			for (std::list<Transaction::UnlinkedOut>::iterator lOUtxo = lOutList.begin(); lOUtxo != lOutList.end(); lOUtxo++) {
+			std::list<Transaction::UnlinkedOutPtr> lOutList = assetOut_[lGroup->first];
+			for (std::list<Transaction::UnlinkedOutPtr>::iterator lOUtxo = lOutList.begin(); lOUtxo != lOutList.end(); lOUtxo++) {
 
-				uint256 lBlind = lOUtxo->blind();
+				uint256 lBlind = (*lOUtxo)->blind();
 				Math::neg(lBlind, lBlind);
 				if (!Math::add(lBlindResult, lBlindResult, lBlind)) {
 					return false;
 				}
 		
-				lOutAmount += lOUtxo->amount();
+				lOutAmount += (*lOUtxo)->amount();
 			}
 		}
 
@@ -110,6 +111,25 @@ bool qbit::TxSpend::finalize(const SKey& skey) {
 		out_.push_back(lOut); // add balancing out
 	}
 
+	//for (std::vector<Out>::iterator lOutIter = out_.begin(); lOutIter != out_.end(); lOutIter++) {
+	//	if (lOutIter->asset() == TxAssetType::nullAsset()) lOutIter->setAsset(hash()); 
+	//}
+
+	// double check
+	//for (std::vector<Out>::iterator lOutIter = out_.begin(); lOutIter != out_.end(); lOutIter++) {
+	//	if (lOutIter->asset() == TxAssetType::nullAsset()) lOutIter->setAsset(hash()); 
+	//}
+
+	// adjust utxos tx references
+	for (_assetMap::iterator lIter = assetOut_.begin(); lIter != assetOut_.end(); lIter++) {
+		std::list<Transaction::UnlinkedOutPtr> lOutList = lIter->second;
+		for (std::list<Transaction::UnlinkedOutPtr>::iterator lOUtxo = lOutList.begin(); lOUtxo != lOutList.end(); lOUtxo++) {
+			if ((*lOUtxo)->out().asset() == TxAssetType::nullAsset()) (*lOUtxo)->out().setAsset(hash());
+			(*lOUtxo)->out().setTx(hash());
+			//std::cout << (*lOUtxo)->out().tx().toHex() << "\n";
+		}
+	}
+
 	return true;
 }
 
@@ -121,28 +141,28 @@ bool qbit::TxSpendPrivate::finalize(const SKey& skey) {
 		amount_t lOutAmount = 0;
 
 		// sum inputs
-		std::list<Transaction::UnlinkedOut> lInList = lGroup->second;
-		for (std::list<Transaction::UnlinkedOut>::iterator lIUtxo = lInList.begin(); lIUtxo != lInList.end(); lIUtxo++) {
-			if (!Math::add(lBlindResult, lBlindResult, lIUtxo->blind())) {
+		std::list<Transaction::UnlinkedOutPtr> lInList = lGroup->second;
+		for (std::list<Transaction::UnlinkedOutPtr>::iterator lIUtxo = lInList.begin(); lIUtxo != lInList.end(); lIUtxo++) {
+			if (!Math::add(lBlindResult, lBlindResult, (*lIUtxo)->blind())) {
 				return false;
 			}
 
-			lInAmount += lIUtxo->amount();
+			lInAmount += (*lIUtxo)->amount();
 		}
 
 		// sum outputs
 		_assetMap::iterator lOutListPtr = assetOut_.find(lGroup->first);
 		if (lOutListPtr != assetOut_.end()) {
-			std::list<Transaction::UnlinkedOut> lOutList = assetOut_[lGroup->first];
-			for (std::list<Transaction::UnlinkedOut>::iterator lOUtxo = lOutList.begin(); lOUtxo != lOutList.end(); lOUtxo++) {
+			std::list<Transaction::UnlinkedOutPtr> lOutList = assetOut_[lGroup->first];
+			for (std::list<Transaction::UnlinkedOutPtr>::iterator lOUtxo = lOutList.begin(); lOUtxo != lOutList.end(); lOUtxo++) {
 
-				uint256 lBlind = lOUtxo->blind();
+				uint256 lBlind = (*lOUtxo)->blind();
 				Math::neg(lBlind, lBlind);
 				if (!Math::add(lBlindResult, lBlindResult, lBlind)) {
 					return false;
 				}
 		
-				lOutAmount += lOUtxo->amount();
+				lOutAmount += (*lOUtxo)->amount();
 			}
 		}
 
@@ -167,6 +187,21 @@ bool qbit::TxSpendPrivate::finalize(const SKey& skey) {
 			OP(QRET));
 
 		out_.push_back(lOut); // add balancing out
+	}
+
+	//for (std::vector<Out>::iterator lOutIter = out_.begin(); lOutIter != out_.end(); lOutIter++) {
+	//	if (lOutIter->asset() == TxAssetType::nullAsset()) lOutIter->setAsset(hash()); 
+	//}
+
+	// adjust utxos tx references
+	for (_assetMap::iterator lIter = assetOut_.begin(); lIter != assetOut_.end(); lIter++) {
+		//size_t lIndex = 0;
+		std::list<Transaction::UnlinkedOutPtr> lOutList = lIter->second;
+		for (std::list<Transaction::UnlinkedOutPtr>::iterator lOUtxo = lOutList.begin(); lOUtxo != lOutList.end(); lOUtxo++) {
+			if ((*lOUtxo)->out().asset() == TxAssetType::nullAsset()) (*lOUtxo)->out().setAsset(hash());
+			(*lOUtxo)->out().setTx(hash());
+			//(*lOUtxo)->out().setIndex(lIndex++);
+		}
 	}
 
 	return true;	
