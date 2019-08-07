@@ -66,6 +66,9 @@ set(UNITTESTS
 	./crypto/hmac_sha512.cpp
 	./base58.cpp
 	./helpers/cleanse.cpp
+	./hash/cuckatoo.cpp
+	./hash/lean.cpp
+	./hash/crypto/blake2b-ref.c
 	./allocator.cpp
 	./lockedpool.cpp
 	./vm/qasm.cpp

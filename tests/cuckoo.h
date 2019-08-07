@@ -1,7 +1,7 @@
 #ifndef QBIT_UNITTEST_CUCKOO_H
 #define QBIT_UNITTEST_CUCKOO_H
 
-#include "../hash/cuckoo.h"
+#include "../hash/lean.hpp"
 
 #include "unittest.h"
 
