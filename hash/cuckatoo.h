@@ -195,7 +195,7 @@ inline void print_log(const char *fmt, ...) {
 	va_end(args);
 }
 
-int main_verify(int argc, char **argv);
+int main_verify(int argc, char **argv, char* input);
 
 //////////////////////////////////////////////////////////////////
 // END caller QOL

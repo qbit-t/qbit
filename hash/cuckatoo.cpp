@@ -13,7 +13,7 @@ const char *errstr[] = { "OK", "wrong header length", "edge too big", "edges not
 // arbitrary length of header hashed into siphash key
 #define HEADERLEN 80
 
-int main_verify(int argc, char **argv) {
+int main_verify(int argc, char **argv, char* input) {
   const char *header = "";
   int nonce = 68;
   int c;
