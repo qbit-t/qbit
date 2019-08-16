@@ -7,6 +7,7 @@
 #include <stdlib.h>   // exit
 #include <unistd.h>   // getopt
 #include <assert.h>   // d'uh
+#include <sstream>
 
 const char *errstr[] = { "OK", "wrong header length", "edge too big", "edges not ascending", "endpoints don't match up", "branch in cycle", "cycle dead ends", "cycle too short"};
 
@@ -38,25 +39,38 @@ int main_verify(int argc, char **argv, char* input) {
   printf("nonce %d k0 k1 k2 k3 %llx %llx %llx %llx\n", nonce, keys.k0, keys.k1, keys.k2, keys.k3);
   printf("Verifying size %d proof for cuckatoo%d(\"%s\",%d)\n",
                PROOFSIZE, EDGEBITS, header, nonce);
-  for (int nsols=0; scanf(" Solution") == 0; nsols++) {
-    word_t nonces[PROOFSIZE];
-    for (int n = 0; n < PROOFSIZE; n++) {
-      uint64_t nonce;
-      int nscan = scanf(" %" SCNx64, &nonce);
-      assert(nscan == 1);
-      nonces[n] = nonce;
-    }
-    int pow_rc = verify(nonces, &keys);
-    if (pow_rc == POW_OK) {
-      printf("Verified with cyclehash ");
-      unsigned char cyclehash[32];
-      blake2b((void *)cyclehash, sizeof(cyclehash), (const void *)nonces, sizeof(nonces), 0, 0);
-      for (int i=0; i<32; i++)
-        printf("%02x", cyclehash[i]);
-      printf("\n");
-    } else {
-      printf("FAILED due to %s\n", errstr[pow_rc]);
-    }
+  std::stringstream ssin(input);
+  word_t nonces[PROOFSIZE];
+  for(int i = 0; i < 43; i++)
+  {
+    std::string data;
+    ssin >> data;
+    if(i == 0) continue;
+    uint64_t nonce;
+    int nscan = sscanf(data.c_str(), " %" SCNx64, &nonce);
+    assert(nscan == 1);
+    nonces[i-1] = nonce;
+    printf("'%s' %d\n", data.c_str(), nonce);
   }
+  // for (int nsols=0; scanf(" Solution") == 0; nsols++) {
+  //   word_t nonces[PROOFSIZE];
+  //   for (int n = 0; n < PROOFSIZE; n++) {
+  //     uint64_t nonce;
+  //     int nscan = scanf(" %" SCNx64, &nonce);
+  //     assert(nscan == 1);
+  //     nonces[n] = nonce;
+  //   }
+  //   int pow_rc = verify(nonces, &keys);
+  //   if (pow_rc == POW_OK) {
+  //     printf("Verified with cyclehash ");
+  //     unsigned char cyclehash[32];
+  //     blake2b((void *)cyclehash, sizeof(cyclehash), (const void *)nonces, sizeof(nonces), 0, 0);
+  //     for (int i=0; i<32; i++)
+  //       printf("%02x", cyclehash[i]);
+  //     printf("\n");
+  //   } else {
+  //     printf("FAILED due to %s\n", errstr[pow_rc]);
+  //   }
+  // }
   return 0;
 }
