@@ -50,7 +50,7 @@ int main_verify(int argc, char **argv, char* input) {
     int nscan = sscanf(data.c_str(), " %" SCNx64, &nonce);
     assert(nscan == 1);
     nonces[i-1] = nonce;
-    printf("'%s' %d\n", data.c_str(), nonce);
+    //printf("'%s' %d\n", data.c_str(), nonce);
   }
   int pow_rc = verify(nonces, &keys);
   if (pow_rc == POW_OK) {
@@ -63,25 +63,5 @@ int main_verify(int argc, char **argv, char* input) {
   } else {
     printf("FAILED due to %s\n", errstr[pow_rc]);
   }
-  // for (int nsols=0; scanf(" Solution") == 0; nsols++) {
-  //   word_t nonces[PROOFSIZE];
-  //   for (int n = 0; n < PROOFSIZE; n++) {
-  //     uint64_t nonce;
-  //     int nscan = scanf(" %" SCNx64, &nonce);
-  //     assert(nscan == 1);
-  //     nonces[n] = nonce;
-  //   }
-  //   int pow_rc = verify(nonces, &keys);
-  //   if (pow_rc == POW_OK) {
-  //     printf("Verified with cyclehash ");
-  //     unsigned char cyclehash[32];
-  //     blake2b((void *)cyclehash, sizeof(cyclehash), (const void *)nonces, sizeof(nonces), 0, 0);
-  //     for (int i=0; i<32; i++)
-  //       printf("%02x", cyclehash[i]);
-  //     printf("\n");
-  //   } else {
-  //     printf("FAILED due to %s\n", errstr[pow_rc]);
-  //   }
-  // }
   return 0;
 }
