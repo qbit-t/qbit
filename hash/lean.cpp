@@ -175,5 +175,10 @@ int solver()
   int c;
 
   memset(header, 0, sizeof(header));
+
+  SolverParams params;
+  fill_default_params(&params);
+  params.nthreads = nthreads;
+  params.ntrims = ntrims;
   return 0;
 }
