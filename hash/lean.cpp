@@ -163,3 +163,17 @@ int main_solv(int argc, char **argv) {
 
   return 0;
 }
+
+int solver()
+{
+  int nthreads = 1;
+  int ntrims   = 8 * (PART_BITS+3) * (PART_BITS+4);
+  int nonce = 68;
+  int range = 1;
+  char header[HEADERLEN];
+  unsigned len;
+  int c;
+
+  memset(header, 0, sizeof(header));
+  return 0;
+}
