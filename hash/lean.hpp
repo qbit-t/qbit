@@ -117,6 +117,7 @@ public:
   u32 nsols;
   u32 nthreads;
   u32 ntrims;
+  u64 edgebits;
   bool mutatenonce;
   trim_barrier barry;
 
