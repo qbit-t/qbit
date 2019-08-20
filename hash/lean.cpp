@@ -126,7 +126,7 @@ CALL_CONVENTION int run_solver_fix(SolverCtx* ctx,
         for (u32 i = 0; i < PROOFSIZE; i++) 
           solutions->sols[sumnsols+s].proof[i] = (u64) ctx->sols[s][i];
       }
-      int pow_rc = verify_fix(ctx->sols[s], &ctx->sip_keys);
+      int pow_rc = verify_fix(ctx->sols[s], &ctx->sip_keys, ctx->nodemask);
       if (pow_rc == POW_OK) {
         print_log("Verified with cyclehash ");
         unsigned char cyclehash[32];
@@ -240,6 +240,7 @@ int solver(int nonce)
 {
   u64 edgebits = 19;
   u64 nedges = 1ULL << edgebits;
+  word_t nodemask = ((word_t)nedges - 1);
   int part_bits = 0;
   int idxshift = (part_bits + 8);
   
@@ -278,6 +279,7 @@ int solver(int nonce)
                                  MAXSOLS,
                                  params.mutate_nonce);
   ctx->edgebits = edgebits;
+  ctx->nodemask = nodemask;
 
 
   run_solver_fix(ctx, header, sizeof(header), nonce, range, NULL, NULL);

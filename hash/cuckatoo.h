@@ -153,12 +153,12 @@ inline int verify(word_t edges[PROOFSIZE], siphash_keys *keys) {
 }
 
 // verify that edges are ascending and form a cycle in header-generated graph
-inline int verify_fix(word_t edges[PROOFSIZE], siphash_keys *keys) {
+inline int verify_fix(word_t edges[PROOFSIZE], siphash_keys *keys, u64 nodemask) {
   word_t uvs[2*PROOFSIZE], xor0, xor1;
   xor0 = xor1 = (PROOFSIZE/2) & 1;
 
   for (u32 n = 0; n < PROOFSIZE; n++) {
-    if (edges[n] > NODEMASK)
+    if (edges[n] > nodemask)
       return POW_TOO_BIG;
     if (n && edges[n] <= edges[n-1])
       return POW_TOO_SMALL;

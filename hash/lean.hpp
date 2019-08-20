@@ -118,6 +118,7 @@ public:
   u32 nthreads;
   u32 ntrims;
   u64 edgebits;
+  word_t nodemask;
   bool mutatenonce;
   trim_barrier barry;
 
