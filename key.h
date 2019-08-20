@@ -17,17 +17,45 @@
 #include "context.h"
 #include "containers.h"
 #include "utilstrencodings.h"
+#include "serialize.h"
 
 namespace qbit {
 
 #define KEY_LEN 32
 #define KEY_HASH_LEN 64
 #define KEY_BUF_LEN 128
+#define WORD_LEN 64
 
 // forward
 class PKey;
 
 class SKey {
+public:
+	class Word {
+	public:
+		Word() {}
+		Word(const std::string& word) { 
+			if (word.size() < WORD_LEN) memcpy(word_, word.c_str(), word.size()); 
+			else memcpy(word_, word.c_str(), WORD_LEN-1);
+		}
+
+		template<typename Stream>
+		void serialize(Stream& s) const
+		{
+			s.write((char*)word_, sizeof(word_));
+		}
+
+		template<typename Stream>
+		void deserialize(Stream& s)
+		{
+			s.read((char*)word_, sizeof(word_));
+		}
+
+		std::basic_string<unsigned char> word() { return std::basic_string<unsigned char>(word_); }
+
+	private:
+		unsigned char word_[WORD_LEN] = {0};
+	};
 public:
 	SKey() { valid_ = false; }
 	SKey(ContextPtr);
@@ -66,7 +94,23 @@ public:
 
 	uint256 shared(const PKey& other);
 
-	inline ContextPtr context() { return getContext(); } 
+	inline ContextPtr context() { return getContext(); }
+
+	ADD_SERIALIZE_METHODS;
+
+	template <typename Stream, typename Operation>
+	inline void serializationOp(Stream& s, Operation ser_action) {
+		READWRITE(valid_);
+		READWRITE(vch_);
+		READWRITE(seed_);
+
+		if (!ser_action.ForRead()) {
+			if (vch_[0] != 0 && vch_[KEY_LEN-1] != 0)
+				valid_ = true;
+		}
+	}
+
+	std::vector<Word>& seed() { return seed_; }
 
 private:
 	bool check(const unsigned char *vch);
@@ -74,7 +118,7 @@ private:
 
 private:
 	ContextPtr context_;
-	std::list<std::basic_string<unsigned char>> seed_;
+	std::vector<Word> seed_;
 	unsigned char vch_[KEY_LEN] = {0};
 	bool valid_;
 };
@@ -160,6 +204,13 @@ public:
 
 	std::vector<unsigned char> unpack();
 	bool pack(unsigned char*);
+
+	ADD_SERIALIZE_METHODS;
+
+	template <typename Stream, typename Operation>
+	inline void serializationOp(Stream& s, Operation ser_action) {
+		READWRITE(vch_);
+	}	
 
 private:
 	unsigned int static length(unsigned char chHeader)

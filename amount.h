@@ -8,10 +8,13 @@
 namespace qbit {
 
 typedef uint64_t amount_t;
+typedef uint64_t qunit_t;
+typedef uint64_t qbit_t;
 
-static const amount_t QBIT = 100000000;
-static const amount_t QBIT_MIN = 1 * QBIT;
-static const amount_t QBIT_MAX = 10 * QBIT;
+static const amount_t QBIT  = 100000000;
+static const amount_t QUNIT = 1;
+static const amount_t QBIT_MIN = QUNIT;
+static const amount_t QBIT_MAX = QBIT;
 
 } // qbit
 

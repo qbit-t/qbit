@@ -23,7 +23,7 @@ SKey::SKey(ContextPtr context, const std::list<std::string>& seed) {
 	context_ = context;
 
 	for (std::list<std::string>::const_iterator lIter = seed.begin(); lIter != seed.end(); ++lIter) {
-		seed_.push_back(std::basic_string<unsigned char>((unsigned char*)(*lIter).c_str()));
+		seed_.push_back(Word(*lIter));
 	}
 }
 
@@ -32,7 +32,7 @@ SKey::SKey(const std::list<std::string>& seed) {
 	valid_ = false;
 
 	for (std::list<std::string>::const_iterator lIter = seed.begin(); lIter != seed.end(); lIter++) {
-		seed_.push_back(std::basic_string<unsigned char>((unsigned char*)(*lIter).c_str()));
+		seed_.push_back(Word(*lIter));
 	}
 }
 
@@ -46,8 +46,8 @@ bool SKey::create() {
 		unsigned char lHash[KEY_BUF_LEN]; // max
 
 		std::basic_string<unsigned char> lPhrase;
-		for(std::list<std::basic_string<unsigned char>>::iterator lItem = seed_.begin(); lItem != seed_.end(); lItem++) {
-			lPhrase += *lItem;
+		for(std::vector<Word>::iterator lItem = seed_.begin(); lItem != seed_.end(); lItem++) {
+			lPhrase += lItem->word();
 		}
 
 		CSHA512 lHasher;
@@ -59,6 +59,7 @@ bool SKey::create() {
 	}
 	else // collect seed words
 	{
+		// TODO: add words dictionary and random selection
 	}
 
 	return valid_;

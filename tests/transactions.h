@@ -49,7 +49,7 @@ public:
 		return out->hash();
 	}
 	
-	bool popUnlinkedOut(const uint256& hash) {
+	bool popUnlinkedOut(const uint256& hash, TransactionContextPtr ctx) {
 		if (utxo_.find(hash) != utxo_.end()) {
 			utxo_.erase(hash);
 			return true;

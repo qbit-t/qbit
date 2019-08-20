@@ -187,6 +187,23 @@ public:
 		return _transaction(db_, name_);
 	}
 
+	_iterator begin() {
+		leveldb::ReadOptions lOptions;
+		lOptions.verify_checksums = true;
+
+		leveldb::Iterator* lIterator = db_->NewIterator(lOptions);
+
+		try {
+			lIterator->SeekToFirst();	
+		}
+		catch(std::exception&) {
+			delete lIterator;
+			lIterator = nullptr;
+		}
+
+		return _iterator(lIterator);
+	}
+
 	_iterator find(const DataStream& k) {
 		leveldb::ReadOptions lOptions;
 		lOptions.verify_checksums = true;

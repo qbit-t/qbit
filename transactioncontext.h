@@ -24,8 +24,13 @@ public:
 
 	inline std::vector<PKey>& addresses() { return addresses_; }
 	inline std::list<std::string>& errors() { return errors_; }
+	inline std::list<Transaction::UnlinkedOutPtr>& usedUtxo() { return usedUtxo_; }
+	inline std::list<Transaction::UnlinkedOutPtr>& newUtxo() { return newUtxo_; }
 	inline void addAddress(const PKey& key) { addresses_.push_back(key); }
 	inline void addError(const std::string& error) { errors_.push_back(error); }
+	
+	inline void addUsedUnlinkedOut(Transaction::UnlinkedOutPtr out) { usedUtxo_.push_back(out); }
+	inline void addNewUnlinkedOut(Transaction::UnlinkedOutPtr out) { newUtxo_.push_back(out); }
 
 	inline static TransactionContextPtr instance(TransactionPtr tx) { return std::make_shared<TransactionContext>(tx); }
 
@@ -53,6 +58,10 @@ private:
 	_commitMap commitOut_;
 	// miner fee
 	amount_t fee_;
+	// used utxo's
+	std::list<Transaction::UnlinkedOutPtr> usedUtxo_;
+	// new utxo's
+	std::list<Transaction::UnlinkedOutPtr> newUtxo_;
 };
 
 } // qbit

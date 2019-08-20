@@ -7,6 +7,7 @@
 #include "dbs.h"
 #include "cuckoo.h"
 #include "assets.h"
+#include "wallet.h"
 
 #include "../log/log.h"
 
@@ -48,6 +49,9 @@ int main()
 	lSuit << new DbMultiContainerRemove();
 	lSuit << new DbEntityContainerRemove();
 	lSuit << new DbContainerRemove();
+	lSuit << new WalletQbitCreateSpend();
+	lSuit << new WalletQbitCreateSpendRollback();
+	lSuit << new WalletAssetCreateAndSpend();
 	lSuit << new CuckooHash();
 
 	lSuit.execute();
