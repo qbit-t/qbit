@@ -126,7 +126,7 @@ CALL_CONVENTION int run_solver_fix(SolverCtx* ctx,
         for (u32 i = 0; i < PROOFSIZE; i++) 
           solutions->sols[sumnsols+s].proof[i] = (u64) ctx->sols[s][i];
       }
-      int pow_rc = verify(ctx->sols[s], &ctx->sip_keys);
+      int pow_rc = verify_fix(ctx->sols[s], &ctx->sip_keys);
       if (pow_rc == POW_OK) {
         print_log("Verified with cyclehash ");
         unsigned char cyclehash[32];
