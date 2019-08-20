@@ -164,21 +164,51 @@ int main_solv(int argc, char **argv) {
   return 0;
 }
 
-int solver()
+int solver(int nonce)
 {
+  u64 edgebits = 19;
+  u64 nedges = 1ULL << edgebits;
+  int part_bits = 0;
+  
   int nthreads = 1;
-  int ntrims   = 8 * (PART_BITS+3) * (PART_BITS+4);
-  int nonce = 68;
+  int ntrims   = 8 * (part_bits+3) * (part_bits+4);
+  //int nonce = 68;
   int range = 1;
   char header[HEADERLEN];
   unsigned len;
   int c;
 
+  printf("nedges %d edgebits %d\n", nedges, edgebits);
+
   memset(header, 0, sizeof(header));
 
   SolverParams params;
-  fill_default_params(&params);
   params.nthreads = nthreads;
   params.ntrims = ntrims;
+
+  print_log("Looking for %d-cycle on cuckatoo%d(\"%s\",%d", PROOFSIZE, edgebits, header, nonce);
+  if (range > 1)
+    print_log("-%d", nonce+range-1);
+  print_log(") with trimming to %d bits, %d threads\n", edgebits-IDXSHIFT, nthreads);
+
+  u64 EdgeBytes = nedges/8;
+  int EdgeUnit;
+  for (EdgeUnit=0; EdgeBytes >= 1024; EdgeBytes>>=10,EdgeUnit++) ;
+  u64 NodeBytes = (nedges >> part_bits)/8;
+  int NodeUnit;
+  for (NodeUnit=0; NodeBytes >= 1024; NodeBytes>>=10,NodeUnit++) ;
+  print_log("Using %d%cB edge and %d%cB node memory, and %d-way siphash\n",
+     (int)EdgeBytes, " KMGT"[EdgeUnit], (int)NodeBytes, " KMGT"[NodeUnit], NSIPHASH);
+
+  SolverCtx* ctx = new SolverCtx(params.nthreads,
+                                 params.ntrims,
+                                 MAXSOLS,
+                                 params.mutate_nonce);
+
+
+  run_solver(ctx, header, sizeof(header), nonce, range, NULL, NULL);
+
+  destroy_solver_ctx(ctx);
+
   return 0;
 }
