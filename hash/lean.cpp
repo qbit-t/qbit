@@ -81,6 +81,78 @@ CALL_CONVENTION int run_solver(SolverCtx* ctx,
   return 0;
 }
 
+CALL_CONVENTION int run_solver_fix(SolverCtx* ctx,
+                               char* header,
+                               int header_length,
+                               u32 nonce,
+                               u32 range,
+                               SolverSolutions *solutions,
+                               SolverStats *stats
+                               )
+{
+  u64 time0, time1;
+  u32 timems;
+  u32 sumnsols = 0;
+  thread_ctx *threads = new thread_ctx[ctx->nthreads];
+  assert(threads);
+  for (u32 r = 0; r < range; r++) {
+    time0 = timestamp();
+    ctx->setheadernonce(header, header_length, nonce + r);
+    print_log("nonce %d k0 k1 k2 k3 %llx %llx %llx %llx\n", nonce+r, ctx->sip_keys.k0, ctx->sip_keys.k1, ctx->sip_keys.k2, ctx->sip_keys.k3);
+    ctx->barry.clear();
+    for (u32 t = 0; t < ctx->nthreads; t++) {
+      threads[t].id = t;
+      threads[t].ctx = ctx;
+      int err = pthread_create(&threads[t].thread, NULL, worker, (void *)&threads[t]);
+      assert(err == 0);
+    }
+    // sleep(39); ctx->abort();
+    for (u32 t = 0; t < ctx->nthreads; t++) {
+      int err = pthread_join(threads[t].thread, NULL);
+      assert(err == 0);
+    }
+    time1 = timestamp();
+    timems = (time1 - time0) / 1000000;
+    print_log("Time: %d ms\n", timems);
+    for (unsigned s = 0; s < ctx->nsols; s++) {
+      print_log("Solution");
+      for (int j = 0; j < PROOFSIZE; j++)
+        print_log(" %jx", (uintmax_t)ctx->sols[s][j]);
+      print_log("\n");
+      if (solutions != NULL){
+        solutions->edge_bits = ctx->edgebits;
+        solutions->num_sols++;
+        solutions->sols[sumnsols+s].nonce = nonce + r;
+        for (u32 i = 0; i < PROOFSIZE; i++) 
+          solutions->sols[sumnsols+s].proof[i] = (u64) ctx->sols[s][i];
+      }
+      int pow_rc = verify_fix(ctx->sols[s], &ctx->sip_keys, ctx->nodemask);
+      if (pow_rc == POW_OK) {
+        print_log("Verified with cyclehash ");
+        unsigned char cyclehash[32];
+        blake2b((void *)cyclehash, sizeof(cyclehash), (const void *)ctx->sols[s], sizeof(ctx->sols[0]), 0, 0);
+        for (int i=0; i<32; i++)
+          print_log("%02x", cyclehash[i]);
+        print_log("\n");
+      } else {
+        print_log("FAILED due to %s\n", errstr[pow_rc]);
+      }
+      sumnsols += ctx->nsols;
+    }
+    if (stats != NULL) {
+      stats->device_id = 0;
+      stats->edge_bits = ctx->edgebits;
+      strncpy(stats->device_name, "CPU\0", MAX_NAME_LEN);
+      stats->last_start_time = time0;
+      stats->last_end_time = time1;
+      stats->last_solution_time = time1 - time0;
+    }
+  }
+  delete[] threads;
+  print_log("%d total solutions\n", sumnsols);
+  return 0;
+}
+
 CALL_CONVENTION SolverCtx* create_solver_ctx(SolverParams* params) {
   if (params->nthreads == 0) params->nthreads = 1;
   if (params->ntrims == 0) params->ntrims = EDGEBITS > 30 ? 96 : 68;
@@ -158,6 +230,59 @@ int main_solv(int argc, char **argv) {
   SolverCtx* ctx = create_solver_ctx(&params);
 
   run_solver(ctx, header, sizeof(header), nonce, range, NULL, NULL);
+
+  destroy_solver_ctx(ctx);
+
+  return 0;
+}
+
+int solver(int nonce)
+{
+  u64 edgebits = 19;
+  u64 nedges = 1ULL << edgebits;
+  word_t nodemask = ((word_t)nedges - 1);
+  int part_bits = 0;
+  int idxshift = (part_bits + 8);
+  
+  int nthreads = 1;
+  int ntrims   = 8 * (part_bits+3) * (part_bits+4);
+  //int nonce = 68;
+  int range = 1;
+  char header[HEADERLEN];
+  unsigned len;
+  int c;
+
+  printf("nedges %d edgebits %d\n", nedges, edgebits);
+
+  memset(header, 0, sizeof(header));
+
+  SolverParams params;
+  params.nthreads = nthreads;
+  params.ntrims = ntrims;
+
+  print_log("Looking for %d-cycle on cuckatoo%d(\"%s\",%d", PROOFSIZE, edgebits, header, nonce);
+  if (range > 1)
+    print_log("-%d", nonce+range-1);
+  print_log(") with trimming to %d bits, %d threads\n", edgebits-idxshift, nthreads);
+
+  u64 EdgeBytes = nedges/8;
+  int EdgeUnit;
+  for (EdgeUnit=0; EdgeBytes >= 1024; EdgeBytes>>=10,EdgeUnit++) ;
+  u64 NodeBytes = (nedges >> part_bits)/8;
+  int NodeUnit;
+  for (NodeUnit=0; NodeBytes >= 1024; NodeBytes>>=10,NodeUnit++) ;
+  print_log("Using %d%cB edge and %d%cB node memory, and %d-way siphash\n",
+     (int)EdgeBytes, " KMGT"[EdgeUnit], (int)NodeBytes, " KMGT"[NodeUnit], NSIPHASH);
+
+  SolverCtx* ctx = new SolverCtx(params.nthreads,
+                                 params.ntrims,
+                                 MAXSOLS,
+                                 params.mutate_nonce);
+  ctx->edgebits = edgebits;
+  ctx->nodemask = nodemask;
+
+
+  run_solver_fix(ctx, header, sizeof(header), nonce, range, NULL, NULL);
 
   destroy_solver_ctx(ctx);
 
