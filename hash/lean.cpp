@@ -241,6 +241,7 @@ int solver(int nonce)
   u64 edgebits = 19;
   u64 nedges = 1ULL << edgebits;
   int part_bits = 0;
+  int idxshift = (part_bits + 8);
   
   int nthreads = 1;
   int ntrims   = 8 * (part_bits+3) * (part_bits+4);
@@ -261,7 +262,7 @@ int solver(int nonce)
   print_log("Looking for %d-cycle on cuckatoo%d(\"%s\",%d", PROOFSIZE, edgebits, header, nonce);
   if (range > 1)
     print_log("-%d", nonce+range-1);
-  print_log(") with trimming to %d bits, %d threads\n", edgebits-IDXSHIFT, nthreads);
+  print_log(") with trimming to %d bits, %d threads\n", edgebits-idxshift, nthreads);
 
   u64 EdgeBytes = nedges/8;
   int EdgeUnit;
