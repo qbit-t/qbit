@@ -111,22 +111,12 @@ bool qbit::TxSpend::finalize(const SKey& skey) {
 		out_.push_back(lOut); // add balancing out
 	}
 
-	//for (std::vector<Out>::iterator lOutIter = out_.begin(); lOutIter != out_.end(); lOutIter++) {
-	//	if (lOutIter->asset() == TxAssetType::nullAsset()) lOutIter->setAsset(hash()); 
-	//}
-
-	// double check
-	//for (std::vector<Out>::iterator lOutIter = out_.begin(); lOutIter != out_.end(); lOutIter++) {
-	//	if (lOutIter->asset() == TxAssetType::nullAsset()) lOutIter->setAsset(hash()); 
-	//}
-
 	// adjust utxos tx references
 	for (_assetMap::iterator lIter = assetOut_.begin(); lIter != assetOut_.end(); lIter++) {
 		std::list<Transaction::UnlinkedOutPtr> lOutList = lIter->second;
 		for (std::list<Transaction::UnlinkedOutPtr>::iterator lOUtxo = lOutList.begin(); lOUtxo != lOutList.end(); lOUtxo++) {
 			if ((*lOUtxo)->out().asset() == TxAssetType::nullAsset()) (*lOUtxo)->out().setAsset(hash());
 			(*lOUtxo)->out().setTx(hash());
-			//std::cout << (*lOUtxo)->out().tx().toHex() << "\n";
 		}
 	}
 
@@ -189,18 +179,12 @@ bool qbit::TxSpendPrivate::finalize(const SKey& skey) {
 		out_.push_back(lOut); // add balancing out
 	}
 
-	//for (std::vector<Out>::iterator lOutIter = out_.begin(); lOutIter != out_.end(); lOutIter++) {
-	//	if (lOutIter->asset() == TxAssetType::nullAsset()) lOutIter->setAsset(hash()); 
-	//}
-
 	// adjust utxos tx references
 	for (_assetMap::iterator lIter = assetOut_.begin(); lIter != assetOut_.end(); lIter++) {
-		//size_t lIndex = 0;
 		std::list<Transaction::UnlinkedOutPtr> lOutList = lIter->second;
 		for (std::list<Transaction::UnlinkedOutPtr>::iterator lOUtxo = lOutList.begin(); lOUtxo != lOutList.end(); lOUtxo++) {
 			if ((*lOUtxo)->out().asset() == TxAssetType::nullAsset()) (*lOUtxo)->out().setAsset(hash());
 			(*lOUtxo)->out().setTx(hash());
-			//(*lOUtxo)->out().setIndex(lIndex++);
 		}
 	}
 

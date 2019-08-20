@@ -619,6 +619,7 @@ void VirtualMachine::qatxoa() {
 
 					Transaction::UnlinkedOutPtr lUTXO = Transaction::UnlinkedOut::instance(
 						lLink, // link
+						lPKey,
 						lA0.to<uint64_t>(), // amount
 						lA2.to<uint256>(), // blinding key
 						lA1.to<std::vector<unsigned char> >() // commit
@@ -665,7 +666,8 @@ void VirtualMachine::qatxo() {
 					lLink.setIndex(lIndex);
 
 					Transaction::UnlinkedOutPtr lUTXO = Transaction::UnlinkedOut::instance(
-						lLink // link
+						lLink, // link
+						lPKey
 					);
 
 					SKey lSKey = wallet_->findKey(lPKey);
@@ -765,6 +767,7 @@ void VirtualMachine::qatxop() {
 								// success
 								Transaction::UnlinkedOutPtr lUTXO = Transaction::UnlinkedOut::instance(
 									lLink, // link
+									lPKey,
 									lAmount, // amount
 									lBlindFactor, // blinding key
 									lA1.to<std::vector<unsigned char> >(), // commit
@@ -777,7 +780,7 @@ void VirtualMachine::qatxop() {
 					}
 
 					// public 
-					store_->pushUnlinkedOut(Transaction::UnlinkedOut::instance(lLink)); // push public
+					store_->pushUnlinkedOut(Transaction::UnlinkedOut::instance(lLink, lPKey)); // push public
 
 				} else {
 					state_ = VirtualMachine::INVALID_DESTINATION;
@@ -814,7 +817,7 @@ void VirtualMachine::qdtxo() {
 			lPKey.set<unsigned char*>(lS0.begin(), lS0.end());			
 			SKey lSKey = (wallet_ ? wallet_->findKey(lPKey) : SKey());
 			if (lSKey.valid()) {
-				if (wallet_->popUnlinkedOut(lHash)) {
+				if (wallet_->popUnlinkedOut(lHash, wrapper_)) {
 					registers_[qasm::QP0].set((unsigned char)0x01); // wallet_ successfully popped
 				} else {
 					state_ = VirtualMachine::INVALID_UTXO;		

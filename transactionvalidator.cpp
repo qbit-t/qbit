@@ -18,6 +18,10 @@ bool TransactionProcessor::process(TransactionContextPtr tx) {
 			return true;
 		return false;
 	}
+	catch(qbit::exception& ex) {
+		gLog().write(Log::ERROR, std::string("[TransactionProcessor]: ") + ex.code() + " | " + ex.what());
+		tx->addError(ex.code() + "|" + ex.what());
+	}
 	catch(std::exception& ex) {
 		gLog().write(Log::ERROR, std::string("[TransactionProcessor]: ") + ex.what());
 		tx->addError(ex.what());

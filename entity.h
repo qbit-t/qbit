@@ -12,6 +12,9 @@ namespace qbit {
 class Entity : public TxSpend {
 public:
 	Entity() {}
+
+	virtual bool isValue(UnlinkedOutPtr) { return false; }
+	virtual bool isEntity(UnlinkedOutPtr) { return true; }		
 };
 
 typedef std::shared_ptr<Entity> EntityPtr;

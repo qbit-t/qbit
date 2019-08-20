@@ -209,19 +209,37 @@ public:
 
 	class UnlinkedOut {
 	public:
+		class Updater {
+		public:
+			Updater() {}
+			virtual void update(const UnlinkedOut&) {}
+		};
+
+		typedef std::shared_ptr<Transaction::UnlinkedOut> UpdaterPtr;
+
+	public:
 		UnlinkedOut() {}
-		UnlinkedOut(const Link& o) : 
-			out_(o) {}
-		UnlinkedOut(const Link& o, amount_t a, const uint256& b, const std::vector<unsigned char>& c) : 
-			out_(o), amount_(a), blind_(b), commit_(c) {}
-		UnlinkedOut(const Link& o, amount_t a, const uint256& b, const std::vector<unsigned char>& c, const uint256& n) : 
-			UnlinkedOut(o, a, b, c) { nonce_ = n; }
+		UnlinkedOut(const UnlinkedOut& utxo) {
+			out_ = const_cast<UnlinkedOut&>(utxo).out();
+			address_ = const_cast<UnlinkedOut&>(utxo).address();
+			amount_ = const_cast<UnlinkedOut&>(utxo).amount();
+			blind_ = const_cast<UnlinkedOut&>(utxo).blind();
+			nonce_ = const_cast<UnlinkedOut&>(utxo).nonce();
+			commit_ = const_cast<UnlinkedOut&>(utxo).commit();
+		} 
+		UnlinkedOut(const Link& o, const PKey& address) : 
+			out_(o), address_(address) {}
+		UnlinkedOut(const Link& o, const PKey& address, amount_t a, const uint256& b, const std::vector<unsigned char>& c) : 
+			out_(o), address_(address), amount_(a), blind_(b), commit_(c) {}
+		UnlinkedOut(const Link& o, const PKey& address, amount_t a, const uint256& b, const std::vector<unsigned char>& c, const uint256& n) : 
+			UnlinkedOut(o, address, a, b, c) { nonce_ = n; }
 
 		ADD_SERIALIZE_METHODS;
 
 		template <typename Stream, typename Operation>
 		inline void serializationOp(Stream& s, Operation ser_action) {
 			READWRITE(out_);
+			READWRITE(address_);
 			READWRITE(amount_);
 			READWRITE(blind_);
 			READWRITE(nonce_);
@@ -232,19 +250,22 @@ public:
 		amount_t amount() { return amount_; }
 		uint256& blind() { return blind_; }
 		uint256& nonce() { return nonce_; }
+		PKey& address() { return address_; }
 		std::vector<unsigned char>& commit() { return commit_; }
 
 		uint256 hash() { return out_.hash(); }
 
 		static UnlinkedOutPtr instance() { return std::make_shared<UnlinkedOut>(); }
-		static UnlinkedOutPtr instance(const Link& o) { return std::make_shared<UnlinkedOut>(o); }
-		static UnlinkedOutPtr instance(const Link& o, amount_t a, const uint256& b, const std::vector<unsigned char>& c) 
-		{ return std::make_shared<UnlinkedOut>(o, a, b, c); }
-		static UnlinkedOutPtr instance(const Link& o, amount_t a, const uint256& b, const std::vector<unsigned char>& c, const uint256& n) 
-		{ return std::make_shared<UnlinkedOut>(o, a, b, c, n); }
+		static UnlinkedOutPtr instance(const UnlinkedOut& utxo) { return std::make_shared<UnlinkedOut>(utxo); }
+		static UnlinkedOutPtr instance(const Link& o, const PKey& address) { return std::make_shared<UnlinkedOut>(o, address); }
+		static UnlinkedOutPtr instance(const Link& o, const PKey& address, amount_t a, const uint256& b, const std::vector<unsigned char>& c) 
+		{ return std::make_shared<UnlinkedOut>(o, address, a, b, c); }
+		static UnlinkedOutPtr instance(const Link& o, const PKey& address, amount_t a, const uint256& b, const std::vector<unsigned char>& c, const uint256& n) 
+		{ return std::make_shared<UnlinkedOut>(o, address, a, b, c, n); }
 
 	private:
-		Link out_; // one of previous out		
+		Link out_; // one of previous out
+		PKey address_;	
 		amount_t amount_;
 		uint256 blind_;
 		uint256 nonce_;
@@ -343,6 +364,9 @@ public:
 	virtual In& addFeeIn(const SKey&, UnlinkedOutPtr) { throw qbit::exception("NOT_IMPLEMENTED", "Not implemented."); }
 	virtual Transaction::UnlinkedOutPtr addFeeOut(const SKey&, const PKey&, const uint256&, amount_t) { throw qbit::exception("NOT_IMPLEMENTED", "Not implemented."); }
 
+	virtual bool isValue(UnlinkedOutPtr) { return false; }
+	virtual bool isEntity(UnlinkedOutPtr) { return false; }
+
 protected:
 	// tx type
 	Type type_; // 2 bytes
@@ -383,7 +407,7 @@ public:
 		in_.resize(1);
 		in_[0].out_.setNull();
 		in_[0].ownership_ = ByteCode() <<
-			OP(QMOV) << REG(QR0) << CU8(0x01);
+			OP(QMOV) << REG(QR0) << CU8(0x00);
 
 		return in_[0];
 	}
@@ -413,6 +437,7 @@ public:
 
 		return Transaction::UnlinkedOut::instance(
 			Transaction::Link(asset, 0), // link
+			pkey,
 			amount, // amount
 			lBlind, // blinding key
 			lCommitment // commit
@@ -423,6 +448,9 @@ public:
 
 	inline void serialize(DataStream& s) {}
 	inline void deserialize(DataStream& s) {}
+
+	bool isValue(UnlinkedOutPtr) { return true; }
+	bool isEntity(UnlinkedOutPtr) { return false; }
 };
 
 //
@@ -495,6 +523,7 @@ public:
 
 		Transaction::UnlinkedOutPtr lUTXO = Transaction::UnlinkedOut::instance(
 			Transaction::Link(asset, out_.size()), // link
+			pkey,
 			amount, // amount
 			lBlind, // blinding key
 			lCommitment // commit
@@ -509,7 +538,6 @@ public:
 
 	//
 	// skey - our secret key
-	// pkey - destination address
 	// asset - asset type hash
 	virtual Transaction::UnlinkedOutPtr addFeeOut(const SKey& skey, const uint256& asset, amount_t amount) {
 		qbit::vector<unsigned char> lCommitment;
@@ -518,6 +546,8 @@ public:
 		if (!const_cast<SKey&>(skey).context()->createCommitment(lCommitment, lBlind, amount)) {
 			throw qbit::exception("INVALID_COMMITMENT", "Commitment creation failed.");
 		}
+
+		PKey lPKey = const_cast<SKey&>(skey).createPKey();
 
 		Transaction::Out lOut;
 		lOut.setAsset(asset);
@@ -531,6 +561,7 @@ public:
 
 		Transaction::UnlinkedOutPtr lUTXO = Transaction::UnlinkedOut::instance(
 			Transaction::Link(asset, out_.size()), // link
+			lPKey,
 			amount, // amount
 			lBlind, // blinding key
 			lCommitment // commit
@@ -547,6 +578,9 @@ public:
 
 	virtual inline void serialize(DataStream& s) {}
 	virtual inline void deserialize(DataStream& s) {}
+
+	virtual bool isValue(UnlinkedOutPtr) { return true; }
+	virtual bool isEntity(UnlinkedOutPtr) { return false; }	
 
 	//
 	// balance amounts and make extra out for balance check
@@ -600,6 +634,7 @@ public:
 
 		Transaction::UnlinkedOutPtr lUTXO = Transaction::UnlinkedOut::instance(
 			Transaction::Link(asset, out_.size()), // link
+			pkey,
 			amount, // amount
 			lBlind, // blinding key
 			lCommitment, // commit
@@ -617,6 +652,9 @@ public:
 
 	inline void serialize(DataStream& s) {}
 	inline void deserialize(DataStream& s) {}
+
+	virtual bool isValue(UnlinkedOutPtr) { return true; }
+	virtual bool isEntity(UnlinkedOutPtr) { return false; }		
 
 	//
 	// balance amounts and make extra out for balance check

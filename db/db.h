@@ -117,6 +117,8 @@ public:
 	inline Iterator find(const key& k) { return Iterator(impl<key, value>::find(k)); }
 	inline Iterator find(const DataStream& k) { return Iterator(impl<key, value>::find(k)); }
 
+	inline Iterator begin() { return Iterator(impl<key, value>::begin()); }
+
 	inline bool remove(const key& k, bool sync = false) { return impl<key, value>::remove(k, sync); }
 	inline bool remove(const DataStream& k, bool sync = false) { return impl<key, value>::remove(k, sync); }
 
@@ -139,11 +141,12 @@ class MultiContainer: public Container<MultiKey<key>, value, impl> {
 public:
 	class Iterator {
 	public:
-		Iterator(const key& k, const typename Container<MultiKey<key>, value, impl>::Iterator& i) : key_(k), i_(i) {}
+		Iterator(const key& k, const typename Container<MultiKey<key>, value, impl>::Iterator& i) : keyEmpty_(false), key_(k), i_(i) {}
+		Iterator(const typename Container<MultiKey<key>, value, impl>::Iterator& i) : keyEmpty_(true), i_(i) {}
 
 		inline bool valid() {
 			MultiKey<key> lKey;
-			if (i_.valid() && i_.first(lKey) && lKey.key() == key_) {
+			if (i_.valid() && i_.first(lKey) && (!keyEmpty_ && lKey.key() == key_ || keyEmpty_)) {
 				return true;
 			}
 
@@ -166,13 +169,20 @@ public:
 			return lValue; 
 		}
 
-		inline bool first(key& k) { return i_.first(k); }
+		inline bool first(key& k) {
+			MultiKey<key> lKey;
+			bool lResult = i_.first(lKey);
+			k = lKey.key();
+			return lResult; 
+		}
+
 		inline bool first(DataStream& k) { return i_.first(k); }
 
 		inline bool second(value& v) { return i_.second(v); }
-		inline bool second(DataStream& v) { return i_.second(v); }		
+		inline bool second(DataStream& v) { return i_.second(v); }
 
 	private:
+		bool keyEmpty_;
 		key key_;
 		typename Container<MultiKey<key>, value, impl>::Iterator i_;
 	};
@@ -186,6 +196,12 @@ public:
 
 		inline void remove(const key& k) { t_.remove(k); }
 		inline void remove(const DataStream& k) { t_.remove(k); }
+
+		inline void remove(const MultiContainer::Iterator& iter) {
+			DataStream lKeyStream(SER_DISK, CLIENT_VERSION);
+			const_cast<MultiContainer::Iterator&>(iter).first(lKeyStream);
+			remove(lKeyStream);
+		}
 
 		inline bool commit(bool sync = false) { return t_.commit(sync); }
 
@@ -213,6 +229,8 @@ public:
 	inline Iterator find(const DataStream& k) {
 		return MultiContainer::Iterator(k, Container<MultiKey<key>, value, impl>::find(MultiKey<key>(k, 0)));
 	}
+
+	inline Iterator begin() { return MultiContainer::Iterator(Container<MultiKey<key>, value, impl>::begin()); }
 
 	inline bool remove(const MultiContainer::Iterator& iter, bool sync = false) {
 		DataStream lKeyStream(SER_DISK, CLIENT_VERSION);

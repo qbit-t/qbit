@@ -120,6 +120,7 @@ public:
 
 		Transaction::UnlinkedOutPtr lUTXO = Transaction::UnlinkedOut::instance(
 			Transaction::Link(nullAsset(), out_.size()), // link
+			pkey,
 			emission, // amount
 			lBlind, // blinding key
 			lCommitment // commit
@@ -151,7 +152,8 @@ public:
 			OP(QRET));
 
 		Transaction::UnlinkedOutPtr lUTXO = Transaction::UnlinkedOut::instance(
-			Transaction::Link(nullAsset(), out_.size()) // link
+			Transaction::Link(nullAsset(), out_.size()), // link
+			pkey
 		);
 
 		assetOut_[nullAsset()].push_back(lUTXO);
@@ -182,6 +184,13 @@ public:
 		return lResult;
 	}
 
+	bool isValue(UnlinkedOutPtr utxo) {
+		return !(utxo->out().asset() == id()); 
+	}
+
+	bool isEntity(UnlinkedOutPtr utxo) {
+		return utxo->out().asset() == id(); 
+	}
 };
 
 typedef std::shared_ptr<TxAssetType> TxAssetTypePtr;

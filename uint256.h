@@ -200,6 +200,16 @@ public:
     {
         return ReadLE64(data);
     }
+
+    void cat(const uint256& a, const uint256& b) {
+        memcpy(data, a.begin(), a.size());
+        memcpy(data+a.size(), b.begin(), b.size());
+    }
+
+    void split(uint256& a, uint256& b) {
+        memcpy(a.begin(), data, a.size());
+        memcpy(b.begin(), data+a.size(), b.size());
+    }
 };
 
 /* uint512 from const char *.

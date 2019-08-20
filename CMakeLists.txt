@@ -49,6 +49,8 @@ set(SOURCES
 	./fs.cpp
 	./timestamp.cpp
 	./transactionactions.cpp
+	./wallet.cpp
+	./mkpath.cpp
 )
 
 set(UNITTESTS
@@ -83,6 +85,8 @@ set(UNITTESTS
 	./fs.cpp
 	./timestamp.cpp
 	./transactionactions.cpp
+	./wallet.cpp
+	./mkpath.cpp
 
 	./tests/testsuit.cpp
 	./tests/unittest.cpp
@@ -93,6 +97,7 @@ set(UNITTESTS
 	./tests/dbs.cpp
 	./tests/cuckoo.cpp
 	./tests/assets.cpp
+	./tests/wallet.cpp
 )
 
 add_definitions(-DHAVE_CONFIG_H)
