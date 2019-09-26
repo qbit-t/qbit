@@ -27,7 +27,6 @@ int main()
 
 	gLog().enable(Log::ALL);
 
-	/*
 	lSuit << new RandomTest();
 	lSuit << new CreateKeySignAndVerifyMix();
 	lSuit << new VMMovCmp();
@@ -58,7 +57,6 @@ int main()
 	lSuit << new WalletQbitCreateSpendRollback();
 	lSuit << new WalletAssetCreateAndSpend();
 	lSuit << new MemoryPoolQbitCreateSpend();
-	*/
 	lSuit << new StoreQbitCreateSpend();
 	//lSuit << new CuckooHash();
 
