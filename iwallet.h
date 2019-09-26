@@ -7,6 +7,7 @@
 
 #include "key.h"
 #include "transaction.h"
+#include "itransactionstore.h"
 #include "transactioncontext.h"
 #include "txassettype.h"
 #include "txassetemission.h"
@@ -17,33 +18,34 @@ class IWallet {
 public:
 	IWallet() {}
 
-	virtual bool open() { throw qbit::exception("NOT_IMPL", "Not implemented."); }
-	virtual bool close() { throw qbit::exception("NOT_IMPL", "Not implemented."); }
-	virtual bool isOpened() { throw qbit::exception("NOT_IMPL", "Not implemented."); }
+	virtual bool open() { throw qbit::exception("NOT_IMPL", "IWallet::open - not implemented."); }
+	virtual bool close() { throw qbit::exception("NOT_IMPL", "IWallet::close - not implemented."); }
+	virtual bool isOpened() { throw qbit::exception("NOT_IMPL", "IWallet::isOpened - not implemented."); }
 
 	// key menagement
-	virtual SKey createKey(const std::list<std::string>&) { throw qbit::exception("NOT_IMPL", "Not implemented."); }
-	virtual SKey findKey(const PKey&) { throw qbit::exception("NOT_IMPL", "Not implemented."); }
+	virtual SKey createKey(const std::list<std::string>&) { throw qbit::exception("NOT_IMPL", "IWallet::createKey - not implemented."); }
+	virtual SKey findKey(const PKey&) { throw qbit::exception("NOT_IMPL", "IWallet::findKey - not implemented."); }
+	virtual SKey firstKey() { throw qbit::exception("NOT_IMPL", "IWallet::firstKey - not implemented."); }
 
 	// new utxo and tx context to process deeply
-	virtual uint256 pushUnlinkedOut(Transaction::UnlinkedOutPtr, TransactionContextPtr) { throw qbit::exception("NOT_IMPL", "Not implemented."); }
-	virtual bool popUnlinkedOut(const uint256&, TransactionContextPtr) { throw qbit::exception("NOT_IMPL", "Not implemented."); }
+	virtual bool pushUnlinkedOut(Transaction::UnlinkedOutPtr, TransactionContextPtr) { throw qbit::exception("NOT_IMPL", "IWallet::pushUnlinkedOut - not implemented."); }
+	virtual bool popUnlinkedOut(const uint256&, TransactionContextPtr) { throw qbit::exception("NOT_IMPL", "IWallet::popUnlinkedOut - not implemented."); }
 
 	// try to locate utxo
-	virtual Transaction::UnlinkedOutPtr findUnlinkedOut(const uint256&) { throw qbit::exception("NOT_IMPL", "Not implemented."); }
+	virtual Transaction::UnlinkedOutPtr findUnlinkedOut(const uint256&) { throw qbit::exception("NOT_IMPL", "IWallet::findUnlinkedOut - not implemented."); }
 
 	// try to find utxo by asset with amount >=
-	virtual Transaction::UnlinkedOutPtr findUnlinkedOutByAsset(const uint256&, amount_t) { throw qbit::exception("NOT_IMPL", "Not implemented."); }
-	virtual std::list<Transaction::UnlinkedOutPtr> collectUnlinkedOutsByAsset(const uint256&, amount_t) { throw qbit::exception("NOT_IMPL", "Not implemented."); }
+	virtual Transaction::UnlinkedOutPtr findUnlinkedOutByAsset(const uint256&, amount_t) { throw qbit::exception("NOT_IMPL", "IWallet::findUnlinkedOutByAsset - not implemented."); }
+	virtual std::list<Transaction::UnlinkedOutPtr> collectUnlinkedOutsByAsset(const uint256&, amount_t) { throw qbit::exception("NOT_IMPL", "IWallet::collectUnlinkedOutsByAsset - not implemented."); }
 
 	// clean-up assets utxo
-	virtual void cleanUp() { throw qbit::exception("NOT_IMPL", "Not implemented."); }
+	virtual void cleanUp() { throw qbit::exception("NOT_IMPL", "IWallet::cleanUp - not implemented."); }
 
 	// dump utxo by asset
-	virtual void dumpUnlinkedOutByAsset(const uint256&, std::stringstream&) { throw qbit::exception("NOT_IMPL", "Not implemented."); }
+	virtual void dumpUnlinkedOutByAsset(const uint256&, std::stringstream&) { throw qbit::exception("NOT_IMPL", "IWallet::dumpUnlinkedOutByAsset - not implemented."); }
 
 	// rollback tx
-	virtual bool rollback(TransactionContextPtr) { throw qbit::exception("NOT_IMPL", "Not implemented."); }
+	virtual bool rollback(TransactionContextPtr) { throw qbit::exception("NOT_IMPL", "IWallet::rollback - not implemented."); }
 
 	// create coinbase tx
 	virtual TransactionContextPtr createTxCoinBase(amount_t /*amount*/) { throw qbit::exception("NOT_IMPL", "Not implemented."); }

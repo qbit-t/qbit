@@ -40,6 +40,7 @@ JET_MALLOC_DEF void* _jm_calloc
 #endif
 );
 JET_MALLOC_DEF void  _jm_free(void* address);
+JET_MALLOC_DEF void  _jm_free_direct(void* address);
 
 JET_MALLOC_DEF void* _jm_aligned_malloc
 (

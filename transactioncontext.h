@@ -17,8 +17,8 @@ class TransactionContext {
 public:
 	typedef std::map<uint256, std::list<std::vector<unsigned char>>> _commitMap;
 public:
-	explicit TransactionContext() { fee_ = 0; }
-	TransactionContext(TransactionPtr tx) : tx_(tx) { fee_ = 0; }
+	explicit TransactionContext() { fee_ = 0; size_ = 0; qbitTx_ = false; }
+	TransactionContext(TransactionPtr tx) : tx_(tx) { fee_ = 0; size_ = 0; qbitTx_ = false; }
 
 	inline TransactionPtr tx() { return tx_; }
 
@@ -29,8 +29,13 @@ public:
 	inline void addAddress(const PKey& key) { addresses_.push_back(key); }
 	inline void addError(const std::string& error) { errors_.push_back(error); }
 	
+	// wallet processed unlinked outs (my)
 	inline void addUsedUnlinkedOut(Transaction::UnlinkedOutPtr out) { usedUtxo_.push_back(out); }
 	inline void addNewUnlinkedOut(Transaction::UnlinkedOutPtr out) { newUtxo_.push_back(out); }
+
+	inline void addOut(const Transaction::Link& out) { outs_.push_back(out); }
+	inline std::vector<Transaction::Link>& out() { return outs_; }
+	inline std::vector<Transaction::In>& in() { return tx_->in(); }
 
 	inline static TransactionContextPtr instance(TransactionPtr tx) { return std::make_shared<TransactionContext>(tx); }
 
@@ -40,10 +45,26 @@ public:
 	inline amount_t fee() { return fee_; }
 	inline void addFee(amount_t fee) { fee_ += fee; }
 
+	inline void setQbitTx() { qbitTx_ = true; }
+	inline void resetQbitTx() { qbitTx_ = true; }
+	inline bool qbitTx() { return qbitTx_; }
+
+	// estimated rate (feeIn/out maybe excluded)
+	inline qunit_t feeRate() {
+		size_t lSize = size();
+		qunit_t lRate = fee_ / lSize; 
+		if (!lRate) return QUNIT;
+		return lRate;
+	}
+
 	inline size_t size() {
-		SizeComputer lStream(CLIENT_VERSION);
-		Transaction::Serializer::serialize<SizeComputer>(lStream, tx_);
-		return lStream.size();
+		if (!size_) {
+			SizeComputer lStream(CLIENT_VERSION);
+			Transaction::Serializer::serialize<SizeComputer>(lStream, tx_);
+			size_ = lStream.size();
+		}
+
+		return size_;
 	}
 
 private:
@@ -58,10 +79,16 @@ private:
 	_commitMap commitOut_;
 	// miner fee
 	amount_t fee_;
-	// used utxo's
+	// cached size
+	size_t size_;
+	// used my utxo's
 	std::list<Transaction::UnlinkedOutPtr> usedUtxo_;
-	// new utxo's
+	// new my utxo's
 	std::list<Transaction::UnlinkedOutPtr> newUtxo_;
+	// outs
+	std::vector<Transaction::Link> outs_;
+	// qbit tx
+	bool qbitTx_;
 };
 
 } // qbit

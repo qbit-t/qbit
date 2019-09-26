@@ -38,7 +38,7 @@ bool WalletQbitCreateSpend::execute() {
 		return false;
 	}
 	// 3. push
-	store_->pushTransaction(lCtx->tx());
+	store_->pushTransaction(lCtx);
 
 	// 4. check
 	if (wallet_->balance() != QBIT) {
@@ -65,7 +65,7 @@ bool WalletQbitCreateSpend::execute() {
 		return false;
 	}
 	// 3. push
-	store_->pushTransaction(lCtx->tx());
+	store_->pushTransaction(lCtx);
 
 	// 4. check
 	if (wallet_->balance() != (QBIT-1000-lCtx->fee()*QUNIT*1)) {
@@ -105,13 +105,12 @@ bool WalletQbitCreateSpendRollback::execute() {
 		TxSpendVerify::instance() 		<< 
 		TxSpendOutVerify::instance() 	<< TxAssetTypeVerify::instance() <<  // or
 		TxBalanceVerify::instance();
-
 	if (!lProcessor.process(lCtx)) {
 		if (lCtx->errors().size()) error_ = *lCtx->errors().begin();
 		return false;
 	}
 	// 3. push
-	store_->pushTransaction(lCtx->tx());
+	store_->pushTransaction(lCtx);
 
 	// 4. check
 	if (wallet_->balance() != QBIT) {
@@ -119,6 +118,7 @@ bool WalletQbitCreateSpendRollback::execute() {
 		wallet_.reset();
 		return false;
 	}
+
 
 	//
 	// QBIT spend
@@ -138,7 +138,7 @@ bool WalletQbitCreateSpendRollback::execute() {
 		return false;
 	}
 	// 3. push
-	store_->pushTransaction(lCtx->tx());
+	store_->pushTransaction(lCtx);
 
 	// 4. check
 	if (wallet_->balance() != (QBIT-1000-lCtx->fee()*QUNIT*1)) {
@@ -201,7 +201,7 @@ bool WalletAssetCreateAndSpend::execute() {
 		return false;
 	}
 	// 3. push
-	store_->pushTransaction(lCtx->tx());
+	store_->pushTransaction(lCtx);
 
 	// 4. check
 	if (wallet_->balance() != QBIT) {
@@ -223,7 +223,7 @@ bool WalletAssetCreateAndSpend::execute() {
 		return false;
 	}
 	// 3. push
-	store_->pushTransaction(lCtx->tx());
+	store_->pushTransaction(lCtx);
 
 	// 4. TOKEN id
 	uint256 TOKEN = lCtx->tx()->hash();
@@ -248,7 +248,7 @@ bool WalletAssetCreateAndSpend::execute() {
 		return false;
 	}
 	// 3. push
-	store_->pushTransaction(lCtx->tx());
+	store_->pushTransaction(lCtx);
 
 	// 4. check
 	if (wallet_->balance(TOKEN) != 100 /*chunk*/ * 10 /*scale*/) {
@@ -275,7 +275,7 @@ bool WalletAssetCreateAndSpend::execute() {
 		return false;
 	}
 	// 3. push
-	store_->pushTransaction(lCtx->tx());
+	store_->pushTransaction(lCtx);
 
 	// 4. check
 	if (wallet_->balance(TOKEN) != 90 /*chunk*/ * 10 /*scale*/) {
@@ -300,7 +300,7 @@ bool WalletAssetCreateAndSpend::execute() {
 		return false;
 	}
 	// 3. push
-	store_->pushTransaction(lCtx->tx());
+	store_->pushTransaction(lCtx);
 
 	// 4. rollback
 	wallet_->rollback(lCtx);

@@ -142,6 +142,9 @@ TransactionAction::Result TxSpendVerify::execute(TransactionContextPtr wrapper, 
 					
 					// extract commit
 					wrapper->commitIn()[lIn.out().asset()].push_back(lVM.getR(qasm::QA1).to<std::vector<unsigned char>>());
+
+					// push link
+					store->addLink(lInTx->id(), wrapper->tx()->id());
 				} else {
 					std::string lError = "INCONSISTENT_INOUTS";
 					gLog().write(Log::ERROR, std::string("[TxSpendVerify]: ") + lError);

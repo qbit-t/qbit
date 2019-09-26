@@ -75,6 +75,7 @@ public:
 
 	inline std::string& shortName() { return shortName_; }
 	inline void setShortName(const std::string& name) { shortName_ = name; }
+	virtual std::string entityName() { return shortName_; }
 
 	inline std::string& longName() { return longName_; }
 	inline void setLongName(const std::string& name) { longName_ = name; }
@@ -119,7 +120,7 @@ public:
 			OP(QRET));
 
 		Transaction::UnlinkedOutPtr lUTXO = Transaction::UnlinkedOut::instance(
-			Transaction::Link(nullAsset(), out_.size()), // link
+			Transaction::Link(MainChain::id(), nullAsset(), out_.size()), // link
 			pkey,
 			emission, // amount
 			lBlind, // blinding key
@@ -152,7 +153,7 @@ public:
 			OP(QRET));
 
 		Transaction::UnlinkedOutPtr lUTXO = Transaction::UnlinkedOut::instance(
-			Transaction::Link(nullAsset(), out_.size()), // link
+			Transaction::Link(MainChain::id(), nullAsset(), out_.size()), // link
 			pkey
 		);
 

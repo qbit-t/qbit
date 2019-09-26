@@ -1,4 +1,5 @@
 #include "transactionvalidator.h"
+#include "transactionactions.h"
 #include "vm/vm.h"
 #include "log/log.h"
 
@@ -28,4 +29,12 @@ bool TransactionProcessor::process(TransactionContextPtr tx) {
 	}
 
 	return false;
+}
+
+TransactionProcessor TransactionProcessor::general(ITransactionStorePtr store, IWalletPtr wallet, IEntityStorePtr entityStore) {
+	return TransactionProcessor(store, wallet, entityStore) << 
+		TxCoinBaseVerify::instance() 	<< 
+		TxSpendVerify::instance() 		<< 
+		TxSpendOutVerify::instance() 	<< TxAssetTypeVerify::instance() <<  // or
+		TxBalanceVerify::instance();
 }

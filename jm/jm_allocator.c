@@ -1044,6 +1044,11 @@ JET_MALLOC_DEF void _jm_free(void* address)
 	}
 }
 
+JET_MALLOC_DEF void _jm_free_direct(void* address)
+{
+	_jm_free(address);
+}
+
 JET_MALLOC_DEF void _jm_aligned_free(void* address)
 {
 	unsigned char* lAddress = (unsigned char*)address;

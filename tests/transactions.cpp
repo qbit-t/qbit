@@ -44,9 +44,11 @@ uint256 TxVerify::createTx0() {
 
 	//std::cout << std::endl << lTx->toString() << std::endl;
 
-	store_->pushTransaction(lTx);
-	store_->pushUnlinkedOut(lUTXO);
-	return wallet_->pushUnlinkedOut(lUTXO, nullptr);
+	store_->pushTransaction(TransactionContext::instance(lTx));
+	store_->pushUnlinkedOut(lUTXO, nullptr);
+	wallet_->pushUnlinkedOut(lUTXO, nullptr);
+
+	return lUTXO->hash();
 }
 
 TransactionPtr TxVerify::createTx1(uint256 utxo) {
@@ -96,8 +98,8 @@ TransactionPtr TxVerify::createTx1(uint256 utxo) {
 
 	lTx->finalize(lKey0); // bool
 
-	store_->pushTransaction(lTx);
-	store_->pushUnlinkedOut(lUTXO1);
+	store_->pushTransaction(TransactionContext::instance(lTx));
+	store_->pushUnlinkedOut(lUTXO1, nullptr);
 	wallet_->pushUnlinkedOut(lUTXO1, nullptr);
 
 	return lTx;
@@ -197,9 +199,11 @@ uint256 TxVerifyPrivate::createTx0() {
 
 	//std::cout << std::endl << lTx->toString() << std::endl;
 
-	store_->pushTransaction(lTx);
-	store_->pushUnlinkedOut(lUTXO);
-	return wallet_->pushUnlinkedOut(lUTXO, nullptr);
+	store_->pushTransaction(TransactionContext::instance(lTx));
+	store_->pushUnlinkedOut(lUTXO, nullptr);
+	wallet_->pushUnlinkedOut(lUTXO, nullptr);
+
+	return lUTXO->hash();
 }
 
 TransactionPtr TxVerifyPrivate::createTx1(uint256 utxo) {
@@ -252,8 +256,8 @@ TransactionPtr TxVerifyPrivate::createTx1(uint256 utxo) {
 		return nullptr;
 	}
 
-	store_->pushTransaction(lTx);
-	store_->pushUnlinkedOut(lUTXO1); // add utxo
+	store_->pushTransaction(TransactionContext::instance(lTx));
+	store_->pushUnlinkedOut(lUTXO1, nullptr); // add utxo
 	wallet_->pushUnlinkedOut(lUTXO1, nullptr);
 
 	//std::cout << std::endl << lTx->toString() << std::endl;
@@ -355,12 +359,13 @@ uint256 TxVerifyFee::createTx0(BlockPtr block) {
 	Transaction::UnlinkedOutPtr lUTXO = lTx->addOut(lKey0, lPKey0, TxAssetType::qbitAsset(), 10);
 	lUTXO->out().setTx(lTx->id());
 
-	store_->pushTransaction(lTx);
-	store_->pushUnlinkedOut(lUTXO);
+	store_->pushTransaction(TransactionContext::instance(lTx));
+	store_->pushUnlinkedOut(lUTXO, nullptr);
 
 	block->append(lTx);
 
-	return wallet_->pushUnlinkedOut(lUTXO, nullptr);
+	wallet_->pushUnlinkedOut(lUTXO, nullptr);
+	return lUTXO->hash();
 }
 
 TransactionPtr TxVerifyFee::createTx1(uint256 utxo, BlockPtr block) {
@@ -438,10 +443,10 @@ TransactionPtr TxVerifyFee::createTx1(uint256 utxo, BlockPtr block) {
 
 	lTx->finalize(lKey0); // bool
 
-	store_->pushTransaction(lTx);
+	store_->pushTransaction(TransactionContext::instance(lTx));
 
-	store_->pushUnlinkedOut(lUTXO1); // add utxo
-	store_->pushUnlinkedOut(lUTXO2); // add utxo
+	store_->pushUnlinkedOut(lUTXO1, nullptr); // add utxo
+	store_->pushUnlinkedOut(lUTXO2, nullptr); // add utxo
 
 	block->append(lTx);
 
@@ -450,7 +455,7 @@ TransactionPtr TxVerifyFee::createTx1(uint256 utxo, BlockPtr block) {
 
 bool TxVerifyFee::execute() {
 
-	BlockPtr lBlock = Block::create();
+	BlockPtr lBlock = Block::instance();
 
 	//
 	// create & check
@@ -641,12 +646,13 @@ uint256 TxVerifyPrivateFee::createTx0(BlockPtr block) {
 	Transaction::UnlinkedOutPtr lUTXO = lTx->addOut(lKey0, lPKey0, TxAssetType::qbitAsset(), 10);
 	lUTXO->out().setTx(lTx->id());
 
-	store_->pushTransaction(lTx);
-	store_->pushUnlinkedOut(lUTXO);
+	store_->pushTransaction(TransactionContext::instance(lTx));
+	store_->pushUnlinkedOut(lUTXO, nullptr);
 
 	block->append(lTx);
 
-	return wallet_->pushUnlinkedOut(lUTXO, nullptr);
+	wallet_->pushUnlinkedOut(lUTXO, nullptr);
+	return lUTXO->hash();
 }
 
 TransactionPtr TxVerifyPrivateFee::createTx1(uint256 utxo, BlockPtr block) {
@@ -730,11 +736,11 @@ TransactionPtr TxVerifyPrivateFee::createTx1(uint256 utxo, BlockPtr block) {
 
 	lTx->finalize(lKey0); // bool
 
-	store_->pushTransaction(lTx);
+	store_->pushTransaction(TransactionContext::instance(lTx));
 
-	store_->pushUnlinkedOut(lUTXO1); // add utxo
-	store_->pushUnlinkedOut(lUTXO2); // add utxo
-	store_->pushUnlinkedOut(lUTXO3); // add utxo
+	store_->pushUnlinkedOut(lUTXO1, nullptr); // add utxo
+	store_->pushUnlinkedOut(lUTXO2, nullptr); // add utxo
+	store_->pushUnlinkedOut(lUTXO3, nullptr); // add utxo
 
 	block->append(lTx);
 
@@ -743,7 +749,7 @@ TransactionPtr TxVerifyPrivateFee::createTx1(uint256 utxo, BlockPtr block) {
 
 bool TxVerifyPrivateFee::execute() {
 
-	BlockPtr lBlock = Block::create();
+	BlockPtr lBlock = Block::instance();
 
 	//
 	// create & check

@@ -21,6 +21,9 @@ public:
 		WARNING	= (1 <<  1),
 		ERROR	= (1 <<  2),
 		DB 		= (1 <<  3),
+		POOL	= (1 <<  4),
+		WALLET	= (1 <<  5),
+		STORE	= (1 <<  6),
 		ALL		= ~(uint32_t)0
 	};
 

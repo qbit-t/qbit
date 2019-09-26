@@ -36,15 +36,20 @@ public:
 
 	static IWalletPtr instance(ISettingsPtr settings, IMemoryPoolPtr mempool, IEntityStorePtr entityStore) {
 		return std::make_shared<Wallet>(settings, mempool, entityStore); 
-	} 
+	}
+
+	void setTransactionStore(ITransactionStorePtr persistentStore) {
+		persistentStore_ = persistentStore;
+	}
 
 	// key management
 	SKey createKey(const std::list<std::string>&);
 	SKey findKey(const PKey& pkey);
 	SKey firstKey();
+	SKey changeKey();
 
 	// utxo management
-	uint256 pushUnlinkedOut(Transaction::UnlinkedOutPtr, TransactionContextPtr);
+	bool pushUnlinkedOut(Transaction::UnlinkedOutPtr, TransactionContextPtr);
 	bool popUnlinkedOut(const uint256&, TransactionContextPtr);
 	Transaction::UnlinkedOutPtr findUnlinkedOut(const uint256&);
 	Transaction::UnlinkedOutPtr findUnlinkedOutByAsset(const uint256&, amount_t);
@@ -121,6 +126,8 @@ private:
 	IMemoryPoolPtr mempool_;
 	// entity store
 	IEntityStorePtr entityStore_;
+	// tranaction store
+	ITransactionStorePtr persistentStore_;
 	// wallet keys
 	db::DbContainer<uint160 /*id*/, SKey> keys_;
 	// unlinked outs

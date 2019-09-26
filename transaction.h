@@ -17,6 +17,7 @@
 #include "streams.h"
 #include "amount.h"
 #include "random.h"
+#include "mainchain.h"
 
 namespace qbit {
 
@@ -110,19 +111,25 @@ public:
 	public:
 		static constexpr uint32_t NULL_INDEX = std::numeric_limits<uint32_t>::max();
 
+		uint256 chain_; // chain
 		uint256 asset_; // asset type transaction
 		uint256 tx_; // previous transaction hash
 		uint32_t index_; // output index
 
-		Link() : index_(NULL_INDEX) { asset_.setNull(); tx_.setNull(); }
-		Link(const uint256& asset) : asset_(asset), index_(NULL_INDEX) { tx_.setNull(); }
-		Link(const uint256& asset, uint32_t index) : asset_(asset), index_(index) { tx_.setNull(); }
-		Link(const uint256& asset, const uint256& tx, uint32_t index) : asset_(asset), tx_(tx), index_(index) {}
+		Link() : index_(NULL_INDEX) { asset_.setNull(); tx_.setNull(); chain_ = MainChain::id(); }
+		//Link(const uint256& asset) : asset_(asset), index_(NULL_INDEX) { tx_.setNull(); chain_ = MainChain::id(); }
+		//Link(const uint256& asset, uint32_t index) : asset_(asset), index_(index) { tx_.setNull(); chain_ = MainChain::id(); }
+		//Link(const uint256& asset, const uint256& tx, uint32_t index) : asset_(asset), tx_(tx), index_(index) { chain_ = MainChain::id(); }
+
+		Link(const uint256& chain, const uint256& asset) : chain_(chain), asset_(asset), index_(NULL_INDEX) { tx_.setNull(); }
+		Link(const uint256& chain, const uint256& asset, uint32_t index) : chain_(chain), asset_(asset), index_(index) { tx_.setNull(); }
+		Link(const uint256& chain, const uint256& asset, const uint256& tx, uint32_t index) : chain_(chain), asset_(asset), tx_(tx), index_(index) {}
 
 		ADD_SERIALIZE_METHODS;
 
 		template <typename Stream, typename Operation>
 		inline void serializationOp(Stream& s, Operation ser_action) {
+			READWRITE(chain_);
 			READWRITE(asset_);
 			READWRITE(tx_);
 			READWRITE(index_);
@@ -132,15 +139,18 @@ public:
 		bool isNull() const { return (asset_.isNull() && tx_.isNull() && index_ == NULL_INDEX); }
 
 		inline void serialize(qbit::vector<unsigned char>& result) {
+			result.insert(result.end(), chain_.begin(), chain_.end());
 			result.insert(result.end(), asset_.begin(), asset_.end());
 			result.insert(result.end(), tx_.begin(), tx_.end());
 			result.insert(result.end(), (unsigned char*)(&index_), (unsigned char*)(&index_) + sizeof(index_));
 		}
 
+		uint256& chain() { return chain_; }
 		uint256& asset() { return asset_; }
 		uint256& tx() { return tx_; }
 		uint32_t index() { return index_; }
 
+		void setChain(const uint256& chain) { chain_ = chain; }
 		void setAsset(const uint256& asset) { asset_ = asset; }
 		void setTx(const uint256& tx) { tx_ = tx; }
 		void setIndex(uint32_t index) { index_ = index; }
@@ -227,6 +237,8 @@ public:
 			nonce_ = const_cast<UnlinkedOut&>(utxo).nonce();
 			commit_ = const_cast<UnlinkedOut&>(utxo).commit();
 		} 
+		UnlinkedOut(const Link& o) : 
+			out_(o) {}
 		UnlinkedOut(const Link& o, const PKey& address) : 
 			out_(o), address_(address) {}
 		UnlinkedOut(const Link& o, const PKey& address, amount_t a, const uint256& b, const std::vector<unsigned char>& c) : 
@@ -257,6 +269,7 @@ public:
 
 		static UnlinkedOutPtr instance() { return std::make_shared<UnlinkedOut>(); }
 		static UnlinkedOutPtr instance(const UnlinkedOut& utxo) { return std::make_shared<UnlinkedOut>(utxo); }
+		static UnlinkedOutPtr instance(const Link& o) { return std::make_shared<UnlinkedOut>(o); }
 		static UnlinkedOutPtr instance(const Link& o, const PKey& address) { return std::make_shared<UnlinkedOut>(o, address); }
 		static UnlinkedOutPtr instance(const Link& o, const PKey& address, amount_t a, const uint256& b, const std::vector<unsigned char>& c) 
 		{ return std::make_shared<UnlinkedOut>(o, address, a, b, c); }
@@ -280,6 +293,7 @@ public:
 			s << (unsigned short)tx->type();
 			s << tx->version();
 			s << tx->timeLock();
+			s << tx->chain();
 			s << tx->in();
 			s << tx->out();
 
@@ -291,6 +305,7 @@ public:
 			s << (unsigned short)tx->type();
 			s << tx->version();
 			s << tx->timeLock();
+			s << tx->chain();
 			s << tx->in();
 			s << tx->out();
 
@@ -323,6 +338,7 @@ public:
 			if (lTx != nullptr) {
 				s >> lTx->version_;
 				s >> lTx->timeLock_;
+				s >> lTx->chain_;
 				s >> lTx->in();
 				s >> lTx->out();
 
@@ -333,7 +349,7 @@ public:
 		}
 	};	
 
-	Transaction() { status_ = Status::CREATED; id_.setNull(); timeLock_ = 0; }
+	Transaction() { status_ = Status::CREATED; id_.setNull(); timeLock_ = 0; chain_ = MainChain::id(); }
 
 	virtual void serialize(DataStream& s) {}
 	virtual void serialize(HashWriter& s) {}
@@ -361,17 +377,24 @@ public:
 	inline uint32_t timeLock() { return timeLock_; }
 	inline void setTimelock(uint32_t timelock) { timeLock_ = timelock; }
 
-	virtual In& addFeeIn(const SKey&, UnlinkedOutPtr) { throw qbit::exception("NOT_IMPLEMENTED", "Not implemented."); }
-	virtual Transaction::UnlinkedOutPtr addFeeOut(const SKey&, const PKey&, const uint256&, amount_t) { throw qbit::exception("NOT_IMPLEMENTED", "Not implemented."); }
+	virtual In& addFeeIn(const SKey&, UnlinkedOutPtr) { throw qbit::exception("NOT_IMPL", "Not implemented."); }
+	virtual Transaction::UnlinkedOutPtr addFeeOut(const SKey&, const PKey&, const uint256&, amount_t) { throw qbit::exception("NOT_IMPL", "Not implemented."); }
 
 	virtual bool isValue(UnlinkedOutPtr) { return false; }
 	virtual bool isEntity(UnlinkedOutPtr) { return false; }
+	virtual bool isEntity() { return false; }
+	virtual std::string entityName() { throw qbit::exception("NOT_IMPL", "Not implemented."); }
+
+	virtual inline void setChain(const uint256& chain) { chain_ = chain; }
+	inline uint256& chain() { return chain_; }
 
 protected:
 	// tx type
 	Type type_; // 2 bytes
 	// tx version
 	version_t version_; // 1 byte
+	// branch (shard)
+	uint256 chain_; // 32 b
 
 	// inputs
 	std::vector<In> in_;
@@ -436,7 +459,7 @@ public:
 			OP(QRET);
 
 		return Transaction::UnlinkedOut::instance(
-			Transaction::Link(asset, 0), // link
+			Transaction::Link(chain(), asset, 0), // link
 			pkey,
 			amount, // amount
 			lBlind, // blinding key
@@ -465,6 +488,7 @@ public:
 	virtual In& addIn(const SKey& skey, UnlinkedOutPtr utxo) {
 		Transaction::In lIn;
 		lIn.out().setNull();
+		lIn.out().setChain(utxo->out().chain());
 		lIn.out().setAsset(utxo->out().asset());
 		lIn.out().setTx(utxo->out().tx());
 		lIn.out().setIndex(utxo->out().index());
@@ -522,7 +546,7 @@ public:
 			OP(QRET));
 
 		Transaction::UnlinkedOutPtr lUTXO = Transaction::UnlinkedOut::instance(
-			Transaction::Link(asset, out_.size()), // link
+			Transaction::Link(chain(), asset, out_.size()), // link
 			pkey,
 			amount, // amount
 			lBlind, // blinding key
@@ -560,7 +584,7 @@ public:
 			OP(QRET));
 
 		Transaction::UnlinkedOutPtr lUTXO = Transaction::UnlinkedOut::instance(
-			Transaction::Link(asset, out_.size()), // link
+			Transaction::Link(chain(), asset, out_.size()), // link
 			lPKey,
 			amount, // amount
 			lBlind, // blinding key
@@ -633,7 +657,7 @@ public:
 			OP(QRET));
 
 		Transaction::UnlinkedOutPtr lUTXO = Transaction::UnlinkedOut::instance(
-			Transaction::Link(asset, out_.size()), // link
+			Transaction::Link(chain(), asset, out_.size()), // link
 			pkey,
 			amount, // amount
 			lBlind, // blinding key

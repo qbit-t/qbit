@@ -8,8 +8,12 @@
 #include "cuckoo.h"
 #include "assets.h"
 #include "wallet.h"
+#include "memorypool.h"
+#include "transactionstore.h"
 
 #include "../log/log.h"
+
+//#include "../transactionstore.h"
 
 #include <iostream>
 
@@ -23,6 +27,7 @@ int main()
 
 	gLog().enable(Log::ALL);
 
+	/*
 	lSuit << new RandomTest();
 	lSuit << new CreateKeySignAndVerifyMix();
 	lSuit << new VMMovCmp();
@@ -52,7 +57,10 @@ int main()
 	lSuit << new WalletQbitCreateSpend();
 	lSuit << new WalletQbitCreateSpendRollback();
 	lSuit << new WalletAssetCreateAndSpend();
-	lSuit << new CuckooHash();
+	lSuit << new MemoryPoolQbitCreateSpend();
+	*/
+	lSuit << new StoreQbitCreateSpend();
+	//lSuit << new CuckooHash();
 
 	lSuit.execute();
 

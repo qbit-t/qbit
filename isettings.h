@@ -18,6 +18,7 @@ public:
 	virtual size_t keysCache() { return 0; }
 
 	virtual qunit_t maxFeeRate() { return QUNIT * 10; } // 10 qunits per byte
+	virtual PKey changeKey() { return PKey(); } // for change output
 };
 
 typedef std::shared_ptr<ISettings> ISettingsPtr;

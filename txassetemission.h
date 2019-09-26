@@ -7,6 +7,8 @@
 
 #include "entity.h"
 
+#include <iostream>
+
 namespace qbit {
 
 //
@@ -21,9 +23,14 @@ class TxAssetEmission : public TxSpend {
 public:
 	TxAssetEmission() { type_ = Transaction::ASSET_EMISSION; }
 
+	virtual bool isEntity() { return true; }
+	virtual std::string entityName() { return Entity::emptyName(); }
+	virtual inline void setChain(const uint256&) { chain_ = MainChain::id(); /* all entities live in mainchain */ }
+
 	virtual In& addLimitedIn(const SKey& skey, UnlinkedOutPtr utxo) {
 		Transaction::In lIn;
 		lIn.out().setNull();
+		lIn.out().setChain(MainChain::id());
 		lIn.out().setAsset(utxo->out().asset());
 		lIn.out().setTx(utxo->out().tx());
 		lIn.out().setIndex(utxo->out().index());
@@ -56,6 +63,7 @@ public:
 	virtual In& addPeggedIn(const SKey& skey, UnlinkedOutPtr utxo) {
 		Transaction::In lIn;
 		lIn.out().setNull();
+		lIn.out().setChain(MainChain::id());
 		lIn.out().setAsset(utxo->out().asset());
 		lIn.out().setTx(utxo->out().tx());
 		lIn.out().setIndex(utxo->out().index());

@@ -31,6 +31,18 @@ public:
 	DbEntityContainer(const std::string& name) : EntityContainer<key, value, LevelDBContainer>(name) {}
 };
 
+template<typename key1, typename key2, typename value>
+class DbTwoKeyContainer: public TwoKeyContainer<key1, key2, value, LevelDBContainer> {
+public: 
+	DbTwoKeyContainer(const std::string& name) : TwoKeyContainer<key1, key2, value, LevelDBContainer>(name) {}
+};
+
+template<typename key1, typename key2, typename key3, typename value>
+class DbThreeKeyContainer: public ThreeKeyContainer<key1, key2, key3, value, LevelDBContainer> {
+public: 
+	DbThreeKeyContainer(const std::string& name) : ThreeKeyContainer<key1, key2, key3, value, LevelDBContainer>(name) {}
+};
+
 } // db
 } // qbit
 

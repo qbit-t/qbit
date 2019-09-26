@@ -51,6 +51,8 @@ set(SOURCES
 	./transactionactions.cpp
 	./wallet.cpp
 	./mkpath.cpp
+	./memorypool.cpp
+	./transactionstore.cpp
 )
 
 set(UNITTESTS
@@ -87,6 +89,8 @@ set(UNITTESTS
 	./transactionactions.cpp
 	./wallet.cpp
 	./mkpath.cpp
+	./memorypool.cpp
+	./transactionstore.cpp
 
 	./tests/testsuit.cpp
 	./tests/unittest.cpp
@@ -98,6 +102,8 @@ set(UNITTESTS
 	./tests/cuckoo.cpp
 	./tests/assets.cpp
 	./tests/wallet.cpp
+	./tests/memorypool.cpp
+	./tests/transactionstore.cpp
 )
 
 add_definitions(-DHAVE_CONFIG_H)
