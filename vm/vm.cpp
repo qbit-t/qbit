@@ -613,6 +613,8 @@ void VirtualMachine::qatxoa() {
 					if (lAsset == TxAssetType::nullAsset() && lTH1.to<unsigned short>() == Transaction::ASSET_TYPE) {
 						lAsset = wrapper_->tx()->id();
 					}
+
+					lLink.setChain(wrapper_->tx()->chain());
 					lLink.setAsset(lAsset);
 					lLink.setTx(wrapper_->tx()->id());
 					lLink.setIndex(lIndex);
@@ -628,7 +630,7 @@ void VirtualMachine::qatxoa() {
 					SKey lSKey = wallet_->findKey(lPKey);
 					if (lSKey.valid())
 						wallet_->pushUnlinkedOut(lUTXO, wrapper_); // push own UTXO
-					store_->pushUnlinkedOut(lUTXO); // push public
+					store_->pushUnlinkedOut(lUTXO, wrapper_); // push public
 				} else {
 					state_ = VirtualMachine::INVALID_OUT;
 				}
@@ -661,6 +663,7 @@ void VirtualMachine::qatxo() {
 				if (lIndex < wrapper_->tx()->out().size()) {
 					// make link
 					Transaction::Link lLink;
+					lLink.setChain(wrapper_->tx()->chain());
 					lLink.setAsset(wrapper_->tx()->out()[lIndex].asset());
 					lLink.setTx(wrapper_->tx()->id());
 					lLink.setIndex(lIndex);
@@ -673,7 +676,7 @@ void VirtualMachine::qatxo() {
 					SKey lSKey = wallet_->findKey(lPKey);
 					if (lSKey.valid())
 						wallet_->pushUnlinkedOut(lUTXO, wrapper_); // push own UTXO
-					store_->pushUnlinkedOut(lUTXO); // push public
+					store_->pushUnlinkedOut(lUTXO, wrapper_); // push public
 				} else {
 					state_ = VirtualMachine::INVALID_OUT;
 				}
@@ -713,6 +716,7 @@ void VirtualMachine::qatxop() {
 				// make link
 				Transaction::Link lLink;
 				uint256 lHash = wrapper_->tx()->id(); // tx hash
+				lLink.setChain(wrapper_->tx()->chain());
 				lLink.setAsset(wrapper_->tx()->out()[lIndex].asset());
 				lLink.setTx(lHash);
 				lLink.setIndex(lIndex);
@@ -780,7 +784,7 @@ void VirtualMachine::qatxop() {
 					}
 
 					// public 
-					store_->pushUnlinkedOut(Transaction::UnlinkedOut::instance(lLink, lPKey)); // push public
+					store_->pushUnlinkedOut(Transaction::UnlinkedOut::instance(lLink, lPKey), wrapper_); // push public
 
 				} else {
 					state_ = VirtualMachine::INVALID_DESTINATION;
@@ -811,7 +815,7 @@ void VirtualMachine::qdtxo() {
 	if (lTH2.getType() != qasm::QNONE && wrapper_ != 0 && store_ != 0) {
 
 		uint256 lHash = wrapper_->tx()->in()[lTH2.to<uint32_t>()].out().hash();
-		if (store_->popUnlinkedOut(lHash)) {
+		if (store_->popUnlinkedOut(lHash, wrapper_)) {
 
 			PKey lPKey(context_);
 			lPKey.set<unsigned char*>(lS0.begin(), lS0.end());			
@@ -851,9 +855,9 @@ void VirtualMachine::qpat() {
 	Register& lTH0 = registers_[qasm::QTH0];
 	Register& lTH1 = registers_[qasm::QTH1];
 
-	if (lTH0.getType() != qasm::QNONE && lTH1.getType() != qasm::QNONE && 
-		(lTH1.to<unsigned short>() == Transaction::ASSET_EMISSION || 
-			lTH1.to<unsigned short>() == Transaction::ASSET_TYPE)) {
+	if (lTH0.getType() != qasm::QNONE && lTH1.getType() != qasm::QNONE && wrapper_->tx()->isEntity()
+		/*(lTH1.to<unsigned short>() == Transaction::ASSET_EMISSION || 
+			lTH1.to<unsigned short>() == Transaction::ASSET_TYPE)*/) {
 		// push transaction type
 		if (entityStore_ != 0) {
 			if (!entityStore_->pushEntity(lTH0.to<uint256>(), wrapper_)) {

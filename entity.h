@@ -11,10 +11,16 @@ namespace qbit {
 
 class Entity : public TxSpend {
 public:
+	inline static std::string emptyName() { return "empty"; }
+public:
 	Entity() {}
 
 	virtual bool isValue(UnlinkedOutPtr) { return false; }
 	virtual bool isEntity(UnlinkedOutPtr) { return true; }		
+	virtual bool isEntity() { return true; }		
+	virtual std::string entityName() { throw qbit::exception("NOT_IMPL", "Not implemented."); }
+
+	virtual inline void setChain(const uint256&) { chain_ = MainChain::id(); /* all entities live in mainchain */ }
 };
 
 typedef std::shared_ptr<Entity> EntityPtr;

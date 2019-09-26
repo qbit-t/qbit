@@ -20,22 +20,24 @@ public:
 	int32_t version_;
 	uint256 prev_;
 	uint256 root_;
-	uint32_t time_;
+	uint64_t time_;
 	uint32_t bits_;
 	uint32_t nonce_;
+	uint32_t qbits_; // qbit cout txs
 
 	BlockHeader() {
 		setNull();
 	}
 
 	template <typename Stream>
-	void serialize(Stream& s) {
+	void serialize(Stream& s) const {
 		s << version_;		
 		s << prev_;		
 		s << root_;
 		s << time_;		
 		s << bits_;		
 		s << nonce_;
+		s << qbits_;
 	}
 
 	template <typename Stream>
@@ -46,6 +48,7 @@ public:
 		s >> time_;		
 		s >> bits_;		
 		s >> nonce_;
+		s >> qbits_;
 	}
 
 	void setNull() {
@@ -55,6 +58,7 @@ public:
 		time_ = 0;
 		bits_ = 0;
 		nonce_ = 0;
+		qbits_ = 0;
 	}
 
 	bool isNull() const {
@@ -63,46 +67,96 @@ public:
 
 	uint256 hash();
 
-	int64_t time() const {
-		return (int64_t)time_;
+	uint64_t time() const {
+		return time_;
 	}
+
+	inline void setQbits(uint32_t qbits) { qbits_ = qbits; }
+	inline uint32_t qbits() { return qbits_; }
 };
 
 // forward
-class Block;
-typedef std::shared_ptr<Block> BlockPtr;
 typedef std::vector<TransactionPtr> TransactionsContainer;
 
-class Block : public BlockHeader {
+class BlockTransactions;
+typedef std::shared_ptr<BlockTransactions> BlockTransactionsPtr;
+
+class BlockTransactions {
 public:
 	// network and disk
 	TransactionsContainer transactions_;
 
-	// memory only
-	mutable bool checked_;
+	BlockTransactions() {}
+	BlockTransactions(const TransactionsContainer& txs) {
+		transactions_.insert(transactions_.end(), txs.begin(), txs.end());
+	}
 
 	class Serializer {
 	public:
 		template<typename Stream>
-		static inline void serialize(Stream& s, Block* block) {
-			block->serialize<Stream>(s);
-
-			WriteCompactSize(s, block->transactions_.size());
-			for (TransactionsContainer::const_iterator lTx = block->transactions_.begin(); 
-				lTx != block->transactions_.end(); ++lTx) {
+		static inline void serialize(Stream& s, BlockTransactions* txs) {
+			WriteCompactSize(s, txs->transactions_.size());
+			for (TransactionsContainer::const_iterator lTx = txs->transactions_.begin(); 
+				lTx != txs->transactions_.end(); ++lTx) {
 				Transaction::Serializer::serialize<Stream>(s, *lTx);
 			}
 		}
 
 		template<typename Stream>
-		static inline void serialize(Stream& s, BlockPtr block) {
-			block->serialize<Stream>(s);
-
-			WriteCompactSize(s, block->transactions_.size());
-			for (TransactionsContainer::const_iterator lTx = block->transactions_.begin(); 
-				lTx != block->transactions_.end(); ++lTx) {
+		static inline void serialize(Stream& s, BlockTransactionsPtr txs) {
+			WriteCompactSize(s, txs->transactions_.size());
+			for (TransactionsContainer::const_iterator lTx = txs->transactions_.begin(); 
+				lTx != txs->transactions_.end(); ++lTx) {
 				Transaction::Serializer::serialize<Stream>(s, *lTx);
 			}
+		}
+	};
+
+	class Deserializer {
+	public:
+		template<typename Stream>
+		static inline BlockTransactionsPtr deserialize(Stream& s) {
+			BlockTransactionsPtr lTxs = std::make_shared<BlockTransactions>();
+			
+			unsigned int lSize = ReadCompactSize(s);
+			unsigned int lIdx = 0;
+			
+			lTxs->transactions_.resize(lSize);
+
+			while (lIdx < lSize)
+			{
+				TransactionPtr lTx = Transaction::Deserializer::deserialize<Stream>(s);
+				lTxs->transactions_[lIdx++] = lTx;
+			}
+
+			return lTxs;
+		}
+	};
+
+	static BlockTransactionsPtr instance() { return std::make_shared<BlockTransactions>(); }
+	static BlockTransactionsPtr instance(const TransactionsContainer& txs) { return std::make_shared<BlockTransactions>(txs); }
+
+	void append(TransactionPtr tx) { transactions_.push_back(tx); }
+	TransactionsContainer& transactions() { return transactions_; }	
+};
+
+class Block;
+typedef std::shared_ptr<Block> BlockPtr;
+
+class Block: public BlockHeader, public BlockTransactions {
+public:
+	class Serializer {
+	public:
+		template<typename Stream>
+		static inline void serialize(Stream& s, Block* block) {
+			block->serialize<Stream>(s);
+			BlockTransactions::Serializer::serialize<Stream>(s, block);
+		}
+
+		template<typename Stream>
+		static inline void serialize(Stream& s, BlockPtr block) {
+			block->serialize<Stream>(s);
+			BlockTransactions::Serializer::serialize<Stream>(s, block);
 		}
 	};
 
@@ -141,23 +195,23 @@ public:
 	void setNull() {
 		BlockHeader::setNull();
 		transactions_.clear();
-		checked_ = false;
 	}
 
 	BlockHeader blockHeader() const {
-		BlockHeader lBlock;
-		lBlock.version_ = version_;
-		lBlock.prev_	= prev_;
-		lBlock.root_	= prev_;
-		lBlock.time_	= time_;
-		lBlock.bits_ 	= bits_;
-		lBlock.nonce_	= nonce_;
+		BlockHeader lBlock(*(BlockHeader*)this);
 		return lBlock;
 	}
 
+	BlockTransactionsPtr blockTransactions() { return BlockTransactions::instance(transactions_); }
+
 	std::string toString();
 
-	static BlockPtr create() { return std::make_shared<Block>(); }
+	static BlockPtr instance() { return std::make_shared<Block>(); }
+	static BlockPtr instance(const BlockHeader& header) { return std::make_shared<Block>(header); }
+
+	void append(BlockTransactionsPtr txs) {
+		transactions_.insert(transactions_.end(), txs->transactions().begin(), txs->transactions().end()); 
+	}
 
 	void append(TransactionPtr tx) { transactions_.push_back(tx); }
 	TransactionsContainer& transactions() { return transactions_; }

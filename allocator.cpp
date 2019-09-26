@@ -42,4 +42,8 @@ void operator delete[](void* ptr, const std::nothrow_t&) throw()
 	jm_free(ptr);
 }
 
+void std::_jm_free(void* address) {
+	_jm_free_direct(address);
+}
+
 #endif

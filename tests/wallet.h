@@ -59,7 +59,8 @@ public:
 		mempool_ = std::make_shared<MemoryPoolA>(); 
 		settings_ = std::make_shared<SettingsA>(); 
 
-		wallet_ = Wallet::instance(settings_, mempool_, entityStore_); 
+		wallet_ = Wallet::instance(settings_, mempool_, entityStore_);
+		std::static_pointer_cast<Wallet>(wallet_)->setTransactionStore(store_);
 
 		seedMy_.push_back(std::string("fitness"));
 		seedMy_.push_back(std::string("exchange"));
@@ -133,6 +134,7 @@ public:
 		settings_ = std::make_shared<SettingsA>(); 
 
 		wallet_ = Wallet::instance(settings_, mempool_, entityStore_); 
+		std::static_pointer_cast<Wallet>(wallet_)->setTransactionStore(store_);
 
 		seedMy_.push_back(std::string("fitness"));
 		seedMy_.push_back(std::string("exchange"));
@@ -205,7 +207,8 @@ public:
 		mempool_ = std::make_shared<MemoryPoolA>(); 
 		settings_ = std::make_shared<SettingsA>(); 
 
-		wallet_ = Wallet::instance(settings_, mempool_, entityStore_); 
+		wallet_ = Wallet::instance(settings_, mempool_, entityStore_);
+		std::static_pointer_cast<Wallet>(wallet_)->setTransactionStore(store_);
 
 		seedMy_.push_back(std::string("fitness"));
 		seedMy_.push_back(std::string("exchange"));

@@ -7,6 +7,10 @@
 
 #include "transaction.h"
 #include "block.h"
+#include "blockcontext.h"
+#include "transactioncontext.h"
+#include "ientitystore.h"
+
 #include <memory>
 
 namespace qbit {
@@ -15,14 +19,27 @@ class ITransactionStore {
 public:
 	ITransactionStore() {}
 
-	virtual TransactionPtr locateTransaction(const uint256&) { return nullptr; }
-	virtual void pushTransaction(TransactionPtr) {}
-	virtual void pushBlock(BlockPtr) {}
+	virtual bool open() { throw qbit::exception("NOT_IMPL", "ITransactionStore::open - not implemented."); }
+	virtual bool close() { throw qbit::exception("NOT_IMPL", "ITransactionStore::close - not implemented."); }
+	virtual bool isOpened() { throw qbit::exception("NOT_IMPL", "ITransactionStore::isOpened - not implemented."); }
 
-	virtual uint256 pushUnlinkedOut(Transaction::UnlinkedOutPtr) { throw qbit::exception("NOT_IMPL", "Not implemented."); }
-	virtual bool popUnlinkedOut(const uint256&) { throw qbit::exception("NOT_IMPL", "Not implemented."); }
+	virtual TransactionPtr locateTransaction(const uint256&) { throw qbit::exception("NOT_IMPL", "ITransactionStore::locateTransaction - not implemented."); }
+	virtual TransactionContextPtr locateTransactionContext(const uint256&) { throw qbit::exception("NOT_IMPL", "ITransactionStore::locateTransactionContext - not implemented."); }
+	virtual bool pushTransaction(TransactionContextPtr) { throw qbit::exception("NOT_IMPL", "ITransactionStore::pushTransaction - not implemented."); }
+	virtual BlockContextPtr pushBlock(BlockPtr) { throw qbit::exception("NOT_IMPL", "ITransactionStore::pushBlock - not implemented."); }
+	virtual bool commitBlock(BlockContextPtr) { throw qbit::exception("NOT_IMPL", "ITransactionStore::commitBlock - not implemented."); }
 
-	virtual Transaction::UnlinkedOutPtr findUnlinkedOut(const uint256&) { throw qbit::exception("NOT_IMPL", "Not implemented."); }
+	// main entry
+	virtual TransactionContextPtr pushTransaction(TransactionPtr) { throw qbit::exception("NOT_IMPL", "ITransactionStore::pushTransaction - not implemented."); }
+
+	virtual bool pushUnlinkedOut(Transaction::UnlinkedOutPtr, TransactionContextPtr) { throw qbit::exception("NOT_IMPL", "ITransactionStore::pushUnlinkedOut - not implemented."); }
+	virtual bool popUnlinkedOut(const uint256&, TransactionContextPtr) { throw qbit::exception("NOT_IMPL", "ITransactionStore::popUnlinkedOut - not implemented."); }
+	virtual void addLink(const uint256& /*from*/, const uint256& /*to*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::addLink - not implemented."); }
+
+	virtual Transaction::UnlinkedOutPtr findUnlinkedOut(const uint256&) { throw qbit::exception("NOT_IMPL", "ITransactionStore::findUnlinkedOut - not implemented."); }
+	virtual bool isUnlinkedOutUsed(const uint256&) { throw qbit::exception("NOT_IMPL", "ITransactionStore::isUnlinkedOutUsed - not implemented."); }
+
+	virtual IEntityStorePtr entityStore() { return nullptr; }
 };
 
 typedef std::shared_ptr<ITransactionStore> ITransactionStorePtr;

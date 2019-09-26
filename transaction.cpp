@@ -21,7 +21,7 @@ uint256 qbit::Transaction::hash() {
 
 std::string qbit::Transaction::Link::toString() const
 {
-    return strprintf("link(asset=%s..., tx=%s..., index=%u)", asset_.toString().substr(0,15), tx_.toString().substr(0,15), index_);
+    return strprintf("link(chain=%s..., asset=%s..., tx=%s..., index=%u)", chain_.toString().substr(0,15), asset_.toString().substr(0,15), tx_.toString().substr(0,15), index_);
 }
 
 std::string qbit::Transaction::In::toString() const

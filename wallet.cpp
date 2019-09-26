@@ -38,6 +38,15 @@ SKey Wallet::firstKey() {
 	return SKey();
 }
 
+SKey Wallet::changeKey() {
+	PKey lChangeKey = settings_->changeKey();
+	if (lChangeKey.valid()) {
+		return findKey(lChangeKey);
+	}
+
+	return firstKey();
+}
+
 bool Wallet::open() {
 	try {
 		if (mkpath(std::string(settings_->dataPath() + "/wallet").c_str(), 0777)) return false;
@@ -56,6 +65,11 @@ bool Wallet::open() {
 }
 
 bool Wallet::close() {
+	settings_.reset();
+	mempool_.reset();
+	entityStore_.reset();
+	persistentStore_.reset();
+
 	return true;
 }
 
@@ -135,9 +149,9 @@ bool Wallet::prepareCache() {
 	return true;
 }
 
-uint256 Wallet::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, TransactionContextPtr ctx) {
+bool Wallet::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, TransactionContextPtr ctx) {
 	uint256 lUtxoId = utxo->hash();
-	if (!findUnlinkedOut(lUtxoId)) {
+	if (!findUnlinkedOut(lUtxoId) && !persistentStore_->isUnlinkedOutUsed(lUtxoId)) {
 		// cache it
 		cacheUtxo(utxo);
 
@@ -167,9 +181,11 @@ uint256 Wallet::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, TransactionCon
 			// update db
 			entities_.write(lAssetId, lUtxoId);
 		}
+
+		return true;
 	}
 
-	return lUtxoId;
+	return false;
 }
 
 bool Wallet::popUnlinkedOut(const uint256& hash, TransactionContextPtr ctx) {
@@ -419,7 +435,7 @@ TransactionContextPtr Wallet::makeTxSpend(Transaction::Type type, const uint256&
 	amount_t lAmount = fillInputs(lTx, asset, amount);
 
 	// fill output
-	SKey lSKey = firstKey(); // TODO: do we need to specify exact skey?
+	SKey lSKey = changeKey(); // TODO: do we need to specify exact skey?
 	if (!lSKey.valid()) throw qbit::exception("E_KEY", "Secret key is invalid.");
 	lTx->addOut(lSKey, dest, asset, amount);
 
@@ -494,7 +510,7 @@ TransactionContextPtr Wallet::createTxAssetType(const PKey& dest, const std::str
 	lAssetTypeTx->setScale(scale);
 	lAssetTypeTx->setEmission(emission);
 
-	SKey lSKey = firstKey(); // TODO: do we need to specify exact skey?
+	SKey lSKey = changeKey(); // TODO: do we need to specify exact skey?
 	if (!lSKey.valid()) throw qbit::exception("E_KEY", "Secret key is invalid.");
 
 	if (emission == TxAssetType::LIMITED) {
@@ -561,7 +577,7 @@ TransactionContextPtr Wallet::createTxLimitedAssetEmission(const PKey& dest, con
 	Transaction::UnlinkedOutPtr lUtxoPtr = findUnlinkedOutByEntity(asset);
 	if (!lUtxoPtr) throw qbit::exception("E_ASSET_EMPTY", "Asset is empty.");
 
-	SKey lSKey = firstKey(); // TODO: do we need to specify exact skey?
+	SKey lSKey = changeKey(); // TODO: do we need to specify exact skey?
 	if (!lSKey.valid()) throw qbit::exception("E_KEY", "Secret key is invalid.");
 
 	lAssetEmissionTx->addLimitedIn(lSKey, lUtxoPtr);
@@ -602,7 +618,7 @@ TransactionContextPtr Wallet::createTxCoinBase(amount_t amount) {
 	// add input
 	lTx->addIn();
 
-	SKey lSKey = firstKey(); // TODO: do we need to specify exact skey?
+	SKey lSKey = changeKey(); // TODO: do we need to specify exact skey?
 	if (!lSKey.valid()) throw qbit::exception("E_KEY", "Secret key is invalid.");
 
 	// make output

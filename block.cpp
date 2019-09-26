@@ -23,7 +23,6 @@ bool Block::equals(BlockPtr other) {
 		return true;
 	}
 
-	std::cout << "[3]\n";
 	return false;
 }
 

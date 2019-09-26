@@ -18,7 +18,6 @@ public:
 	IEntityStore() {}
 
 	virtual EntityPtr locateEntity(const uint256&) { return nullptr; }
-	virtual bool pushEntity(const uint256&, EntityPtr) { return false; }
 	virtual bool pushEntity(const uint256&, TransactionContextPtr) { return false; }
 };
 

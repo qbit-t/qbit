@@ -10,6 +10,10 @@
 #include <new>
 #include "jm/include/jet_malloc.h"
 
+namespace std {
+void _jm_free(void* address);
+}
+
 #define malloc(a) jm_malloc(a)
 #define calloc(a, b) jm_calloc(a, b)
 #define realloc(a, b) jm_realloc(a, b)

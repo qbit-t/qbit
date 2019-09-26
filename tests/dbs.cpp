@@ -71,8 +71,9 @@ TransactionPtr DbEntityContainerCreate::createTx0(uint256& utxo) {
 	//std::cout << std::endl << lTx->toString() << std::endl;
 
 	store_->pushTransaction(lTx);
-	store_->pushUnlinkedOut(lUTXO);
-	utxo = wallet_->pushUnlinkedOut(lUTXO, nullptr);
+	store_->pushUnlinkedOut(lUTXO, nullptr);
+	wallet_->pushUnlinkedOut(lUTXO, nullptr);
+	utxo = lUTXO->hash();
 	return lTx;
 }
 
@@ -122,7 +123,7 @@ TransactionPtr DbEntityContainerCreate::createTx1(uint256 utxo) {
 	lTx->finalize(lKey0); // bool
 
 	store_->pushTransaction(lTx);
-	store_->pushUnlinkedOut(lUTXO);
+	store_->pushUnlinkedOut(lUTXO, nullptr);
 	wallet_->pushUnlinkedOut(lUTXO, nullptr);
 
 	return lTx;
@@ -164,7 +165,7 @@ bool DbEntityContainerCreate::execute() {
 		db::DbEntityContainer<uint256, Block> lBlockContainer("/tmp/db_block");
 		lBlockContainer.open();
 
-		BlockPtr lBlock = Block::create();
+		BlockPtr lBlock = Block::instance();
 		lBlock->append(lTx0);
 		lBlock->append(lTx1);
 

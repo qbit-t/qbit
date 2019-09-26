@@ -19,12 +19,13 @@ uint256 TxAssetVerify::create_qbitTx(BlockPtr block) {
 	// id() = hash()
 	lUTXO->out().setTx(lTx->id());
 
-	store_->pushTransaction(lTx);
-	store_->pushUnlinkedOut(lUTXO);
+	store_->pushTransaction(TransactionContext::instance(lTx));
+	store_->pushUnlinkedOut(lUTXO, nullptr);
 
 	block->append(lTx);
 
-	return wallet_->pushUnlinkedOut(lUTXO, nullptr);
+	wallet_->pushUnlinkedOut(lUTXO, nullptr);
+	return lUTXO->hash(); 
 }
 
 TransactionPtr TxAssetVerify::create_assetTypeTx(uint256 utxo, BlockPtr block) {
@@ -66,10 +67,10 @@ TransactionPtr TxAssetVerify::create_assetTypeTx(uint256 utxo, BlockPtr block) {
 		return nullptr;
 	}
 
-	store_->pushTransaction(lAssetTypeTx);
+	store_->pushTransaction(TransactionContext::instance(lAssetTypeTx));
 
-	store_->pushUnlinkedOut(lUTXO1); // add utxo
-	store_->pushUnlinkedOut(lUTXO2); // add utxo
+	store_->pushUnlinkedOut(lUTXO1, nullptr); // add utxo
+	store_->pushUnlinkedOut(lUTXO2, nullptr); // add utxo
 
 	block->append(lAssetTypeTx);
 
@@ -82,7 +83,7 @@ bool TxAssetVerify::execute() {
 	//
 	Transaction::registerTransactionType(Transaction::ASSET_TYPE, TxAssetTypeCreator::instance());
 
-	BlockPtr lBlock = Block::create();
+	BlockPtr lBlock = Block::instance();
 
 	//
 	// create & check
@@ -249,12 +250,13 @@ uint256 TxAssetEmissionVerify::create_qbitTx(BlockPtr block) {
 	// id() = hash()
 	lUTXO->out().setTx(lTx->id());
 
-	store_->pushTransaction(lTx);
-	store_->pushUnlinkedOut(lUTXO);
+	store_->pushTransaction(TransactionContext::instance(lTx));
+	store_->pushUnlinkedOut(lUTXO, nullptr);
 
 	block->append(lTx);
 
-	return wallet_->pushUnlinkedOut(lUTXO, nullptr);
+	wallet_->pushUnlinkedOut(lUTXO, nullptr);
+	return lUTXO->hash();
 }
 
 TransactionPtr TxAssetEmissionVerify::create_assetTypeTx(uint256 utxo, BlockPtr block, uint256& limitedOut, uint256& feeOut) {
@@ -299,14 +301,14 @@ TransactionPtr TxAssetEmissionVerify::create_assetTypeTx(uint256 utxo, BlockPtr 
 	limitedOut = lUTXO0->hash();
 	feeOut = lUTXO1->hash();
 
-	store_->pushTransaction(lAssetTypeTx);
+	store_->pushTransaction(TransactionContext::instance(lAssetTypeTx));
 
 	wallet_->pushUnlinkedOut(lUTXO0, nullptr); // add utxo
 	wallet_->pushUnlinkedOut(lUTXO1, nullptr); // add utxo
 
-	store_->pushUnlinkedOut(lUTXO0); // add utxo
-	store_->pushUnlinkedOut(lUTXO1); // add utxo
-	store_->pushUnlinkedOut(lUTXO2); // add utxo
+	store_->pushUnlinkedOut(lUTXO0, nullptr); // add utxo
+	store_->pushUnlinkedOut(lUTXO1, nullptr); // add utxo
+	store_->pushUnlinkedOut(lUTXO2, nullptr); // add utxo
 
 	block->append(lAssetTypeTx);
 
@@ -352,14 +354,14 @@ TransactionPtr TxAssetEmissionVerify::create_assetEmissionTx(uint256 qbit_utxo, 
 		return nullptr;
 	}
 
-	store_->pushTransaction(lAssetEmissionTx);
+	store_->pushTransaction(TransactionContext::instance(lAssetEmissionTx));
 
 	wallet_->pushUnlinkedOut(lUTXO0, nullptr); // add utxo
 	wallet_->pushUnlinkedOut(lUTXO1, nullptr); // add utxo
 
-	store_->pushUnlinkedOut(lUTXO0); // add utxo
-	store_->pushUnlinkedOut(lUTXO1); // add utxo
-	store_->pushUnlinkedOut(lUTXO2); // add utxo
+	store_->pushUnlinkedOut(lUTXO0, nullptr); // add utxo
+	store_->pushUnlinkedOut(lUTXO1, nullptr); // add utxo
+	store_->pushUnlinkedOut(lUTXO2, nullptr); // add utxo
 
 	block->append(lAssetEmissionTx);
 
@@ -399,7 +401,7 @@ bool TxAssetEmissionVerify::execute() {
 	//
 	Transaction::registerTransactionType(Transaction::ASSET_EMISSION, TxAssetEmissionCreator::instance());
 
-	BlockPtr lBlock = Block::create();
+	BlockPtr lBlock = Block::instance();
 
 	//
 	// create & check
@@ -414,7 +416,6 @@ bool TxAssetEmissionVerify::execute() {
 		error_ = "Incorrect wallet balance";
 		return false;		
 	}
-
 
 	//
 	// re-create and re-check
@@ -455,7 +456,7 @@ bool TxAssetEmissionSpend::execute() {
 
 	//
 	//
-	BlockPtr lBlock = Block::create();
+	BlockPtr lBlock = Block::instance();
 
 	//
 	// create & check

@@ -11,11 +11,14 @@ qbit::Log& qbit::gLog() {
 
 std::string _getLogCategoryText(Log::Category category) {
 	switch(category) {
-		case Log::Category::INFO: 		return "info ";
-		case Log::Category::WARNING: 	return "warn ";
-		case Log::Category::ERROR: 		return "error";
-		case Log::Category::DB: 		return "db   ";
-		case Log::Category::ALL: 		return "*    ";
+		case Log::Category::INFO: 		return "info  ";
+		case Log::Category::WARNING: 	return "warn  ";
+		case Log::Category::ERROR: 		return "error ";
+		case Log::Category::DB: 		return "db    ";
+		case Log::Category::POOL: 		return "pool  ";
+		case Log::Category::WALLET: 	return "wallet";
+		case Log::Category::STORE: 		return "store ";
+		case Log::Category::ALL: 		return "*     ";
 	}
 
 	return "ECAT";

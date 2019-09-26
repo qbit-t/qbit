@@ -204,6 +204,23 @@ public:
 		return _iterator(lIterator);
 	}
 
+	_iterator last() {
+		leveldb::ReadOptions lOptions;
+		lOptions.verify_checksums = true;
+
+		leveldb::Iterator* lIterator = db_->NewIterator(lOptions);
+
+		try {
+			lIterator->SeekToLast();	
+		}
+		catch(std::exception&) {
+			delete lIterator;
+			lIterator = nullptr;
+		}
+
+		return _iterator(lIterator);
+	}
+
 	_iterator find(const DataStream& k) {
 		leveldb::ReadOptions lOptions;
 		lOptions.verify_checksums = true;

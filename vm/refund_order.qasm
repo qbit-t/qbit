@@ -21,24 +21,24 @@
 
 #
 # input[0] program (executed with previous out - common for market and user previous output)
-	mov		s0, 0x2023947283749211			# pubkey - our address
-	mov		s1, 0x85389659837439875498347598357	# signature
-	lhash256	s2					# hash link, result -> s2
-	checksig						# s0 - keym s1 - sig, s2 - message -> result c0
-	mov		s15, c0					# store checksig result to the output sig result register s15
-	pulld							# pull-out [link.asset, link.hash, link.index]
+	mov			s0, 0x2023947283749211				# pubkey - our address
+	mov			s1, 0x85389659837439875498347598357	# signature
+	lhash256	s2									# hash link, result -> s2
+	checksig										# s0 - keym s1 - sig, s2 - message -> result c0
+	mov			s15, c0								# store checksig result to the output sig result register s15
+	pulld											# pull-out [link.asset, link.hash, link.index]
 
 #
 # output[0] program (two possible recipients: market and user-initiator)
-	mov		r0, 0x2023947283749211			# users address (order source)
+	mov			r0, 0x2023947283749211	# users address (order source)
 	pushd		r0
 	cmpe		r0, s0					# s0 - target address (users, refund)
-	jmpt		:0					# jump to offset if c0 == true
-	mov		r0, 0x01				# reset r0: all fine, just check
-	ret							# return: [s15 = checksig result, r0 = 0x01: if s15 == 0x01 && r0 == 0x01 => successed] 
+	jmpt		:0						# jump to offset if c0 == true
+	mov			r0, 0x01				# reset r0: all fine, just check
+	ret									# return: [s15 = checksig result, r0 = 0x01: if s15 == 0x01 && r0 == 0x01 => successed] 
 0:	cmpe		th1, 0x48				# put order
 	jmpt		:1
-	mov             r0, 0x00
+	mov			r0, 0x00
 	ret
-1:	mov             r0, 0x01
+1:	mov			r0, 0x01
 	ret

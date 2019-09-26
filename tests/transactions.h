@@ -44,9 +44,9 @@ public:
 		return SKey();
 	}
 
-	uint256 pushUnlinkedOut(Transaction::UnlinkedOutPtr out, TransactionContextPtr ctx) {
+	bool pushUnlinkedOut(Transaction::UnlinkedOutPtr out, TransactionContextPtr ctx) {
 		utxo_[out->hash()] = out;
-		return out->hash();
+		return true;
 	}
 	
 	bool popUnlinkedOut(const uint256& hash, TransactionContextPtr ctx) {
@@ -87,26 +87,41 @@ public:
 
 	TransactionPtr locateTransaction(const uint256& tx) 
 	{
+		return txs_[tx]->tx(); 
+	}
+
+	TransactionContextPtr locateTransactionContext(const uint256& tx) {
 		return txs_[tx]; 
-	}
-
-	void pushTransaction(TransactionPtr tx) {
-
-		txs_[tx->hash()] = tx;
-	}
-
-	void pushBlock(BlockPtr block) {
-		for(TransactionsContainer::iterator lIter = block->transactions().begin(); lIter != block->transactions().end(); lIter++) {
-			txs_[(*lIter)->id()] = *lIter;
-		}
 	}	
 
-	uint256 pushUnlinkedOut(Transaction::UnlinkedOutPtr out) {
+	bool pushTransaction(TransactionContextPtr tx) {
+
+		txs_[tx->tx()->hash()] = tx;
+		return true;
+	}
+
+	TransactionContextPtr pushTransaction(TransactionPtr tx) {
+
+		txs_[tx->hash()] = TransactionContext::instance(tx);
+		return txs_[tx->hash()];
+	}
+
+	void addLink(const uint256& /*from*/, const uint256& /*to*/) { }
+
+	BlockContextPtr pushBlock(BlockPtr block) {
+		for(TransactionsContainer::iterator lIter = block->transactions().begin(); lIter != block->transactions().end(); lIter++) {
+			txs_[(*lIter)->id()] = TransactionContext::instance(*lIter);
+		}
+
+		return BlockContext::instance(block);
+	}	
+
+	bool pushUnlinkedOut(Transaction::UnlinkedOutPtr out, TransactionContextPtr) {
 		utxo_[out->hash()] = out;
-		return out->hash();
+		return true;
 	}
 	
-	bool popUnlinkedOut(const uint256& hash) {
+	bool popUnlinkedOut(const uint256& hash, TransactionContextPtr) {
 		if (utxo_.find(hash) != utxo_.end()) {
 			utxo_.erase(hash);
 			return true;
@@ -123,7 +138,7 @@ public:
 		return nullptr;
 	}
 
-	std::map<uint256, TransactionPtr> txs_;
+	std::map<uint256, TransactionContextPtr> txs_;
 	std::map<uint256, Transaction::UnlinkedOutPtr> utxo_;
 };
 
@@ -133,11 +148,6 @@ public:
 
 	EntityPtr locateEntity(const uint256&) { return nullptr; }
 	
-	bool pushEntity(const uint256&, EntityPtr entity) {
-
-		return false;
-	}
-
 	bool pushEntity(const uint256&, TransactionContextPtr wrapper) {
 
 		return false;

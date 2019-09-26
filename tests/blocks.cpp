@@ -48,8 +48,9 @@ TransactionPtr BlockCreate::createTx0(uint256& utxo) {
 	//std::cout << std::endl << lTx->toString() << std::endl;
 
 	store_->pushTransaction(lTx);
-	store_->pushUnlinkedOut(lUTXO);
-	utxo = wallet_->pushUnlinkedOut(lUTXO, nullptr);
+	store_->pushUnlinkedOut(lUTXO, nullptr);
+	wallet_->pushUnlinkedOut(lUTXO, nullptr);
+	utxo = lUTXO->hash();
 	return lTx;
 }
 
@@ -99,7 +100,7 @@ TransactionPtr BlockCreate::createTx1(uint256 utxo) {
 	lTx->finalize(lKey0); // bool
 
 	store_->pushTransaction(lTx);
-	store_->pushUnlinkedOut(lUTXO);
+	store_->pushUnlinkedOut(lUTXO, nullptr);
 	wallet_->pushUnlinkedOut(lUTXO, nullptr);
 
 	return lTx;
@@ -113,7 +114,7 @@ bool BlockCreate::execute() {
 	TransactionPtr lTx0 = createTx0(utxo);
 	TransactionPtr lTx1 = createTx1(utxo);
 
-	BlockPtr lBlock = Block::create();
+	BlockPtr lBlock = Block::instance();
 	lBlock->append(lTx0);
 	lBlock->append(lTx1);
 

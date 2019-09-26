@@ -47,7 +47,11 @@ public:
 		return SKey();
 	}
 
-	uint256 pushUnlinkedOut(Transaction::UnlinkedOutPtr out, TransactionContextPtr ctx) {
+	SKey firstKey() {
+		return keys_.begin()->second;		
+	}
+
+	bool pushUnlinkedOut(Transaction::UnlinkedOutPtr out, TransactionContextPtr ctx) {
 		if (utxo_.find(out->hash()) == utxo_.end()) {
 			utxo_[out->hash()] = out;
 
@@ -57,9 +61,11 @@ public:
 
 				//dumpUnlinkedOutByAsset();				
 			}
+
+			return true;
 		}
 
-		return out->hash();
+		return false;
 	}
 	
 	bool popUnlinkedOut(const uint256& hash, TransactionContextPtr ctx) {
@@ -138,28 +144,44 @@ public:
 
 	TransactionPtr locateTransaction(const uint256& tx) 
 	{
+		return txs_[tx]->tx(); 
+	}
+
+	TransactionContextPtr locateTransactionContext(const uint256& tx) {
 		return txs_[tx]; 
 	}
 
-	void pushTransaction(TransactionPtr tx) {
+	bool pushTransaction(TransactionContextPtr tx) {
 
-		txs_[tx->hash()] = tx;
+		txs_[tx->tx()->hash()] = tx;
+		return true;
 	}
 
-	void pushBlock(BlockPtr block) {
+	bool isUnlinkedOutUsed(const uint256&) {
+		return false;
+	}
+
+	void addLink(const uint256& /*from*/, const uint256& /*to*/) { }
+
+	BlockContextPtr pushBlock(BlockPtr block) {
 		for(TransactionsContainer::iterator lIter = block->transactions().begin(); lIter != block->transactions().end(); lIter++) {
-			txs_[(*lIter)->id()] = *lIter;
+			txs_[(*lIter)->id()] = TransactionContext::instance(*lIter);
 		}
+
+		return BlockContext::instance(block);
 	}	
 
-	uint256 pushUnlinkedOut(Transaction::UnlinkedOutPtr out) {
+	bool pushUnlinkedOut(Transaction::UnlinkedOutPtr out, TransactionContextPtr) {
+		//std::cout << "push " << out->out().toString() << " " << out->amount() << "\n"; 
 		utxo_[out->hash()] = out;
-		return out->hash();
+		return true;
 	}
 	
-	bool popUnlinkedOut(const uint256& hash) {
+	bool popUnlinkedOut(const uint256& hash, TransactionContextPtr) {
 		std::map<uint256, Transaction::UnlinkedOutPtr>::iterator lIter = utxo_.find(hash);
 		if (lIter != utxo_.end()) {
+			//std::cout << "pop " << lIter->second->out().toString() << " " << lIter->second->amount() << "\n"; 
+
 			utxo_.erase(hash);
 			return true;
 		}
@@ -176,8 +198,10 @@ public:
 		return nullptr;
 	}
 
-	std::map<uint256, TransactionPtr> txs_;
+
+	std::map<uint256, TransactionContextPtr> txs_;
 	std::map<uint256, Transaction::UnlinkedOutPtr> utxo_;
+	std::map<uint256, Transaction::UnlinkedOutPtr> usedUtxo_;
 };
 
 class EntityStoreA: public IEntityStore {
@@ -188,25 +212,18 @@ public:
 		return enities_[tx]; 
 	}
 	
-	bool pushEntity(const uint256& tx, EntityPtr entity) {
-
-		TxAssetTypePtr lAssetType = TransactionHelper::to<TxAssetType>(entity);
-		if (lAssetType) {
-			std::map<std::string, uint256>::iterator lI = assetTypes_.find(lAssetType->shortName());
-			if (lI != assetTypes_.end() && lI->second != entity->id()) return false;
+	bool pushEntity(const uint256& tx, TransactionContextPtr wrapper) {
+		if (wrapper->tx()->isEntity() && wrapper->tx()->entityName() != Entity::emptyName()) {
+			std::map<std::string, uint256>::iterator lI = assetTypes_.find(wrapper->tx()->entityName());
+			if (lI != assetTypes_.end() && lI->second != wrapper->tx()->id()) return false;
 			if (lI == assetTypes_.end()) {
-				assetTypes_[lAssetType->shortName()] = entity->id();
+				assetTypes_[wrapper->tx()->entityName()] = wrapper->tx()->id();
 			}
 		}
 
-		enities_[tx] = entity;
+		enities_[tx] = TransactionHelper::to<Entity>(wrapper->tx());
 
 		return true;
-	}
-
-	bool pushEntity(const uint256& tx, TransactionContextPtr wrapper) {
-
-		return pushEntity(tx, TransactionHelper::to<Entity>(wrapper->tx()));
 	}
 
 	std::map<uint256, EntityPtr> enities_;
