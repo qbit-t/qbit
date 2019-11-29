@@ -161,6 +161,10 @@ public:
 		return false;
 	}
 
+	bool isUnlinkedOutExists(const uint256&) {
+		return true;
+	}
+
 	void addLink(const uint256& /*from*/, const uint256& /*to*/) { }
 
 	BlockContextPtr pushBlock(BlockPtr block) {

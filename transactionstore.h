@@ -201,7 +201,15 @@ public:
 	bool popUnlinkedOut(const uint256&, TransactionContextPtr);
 	void addLink(const uint256& /*from*/, const uint256& /*to*/);
 	bool isUnlinkedOutUsed(const uint256&);
+	bool isUnlinkedOutExists(const uint256&);
+
 	Transaction::UnlinkedOutPtr findUnlinkedOut(const uint256&);
+
+	bool rollbackToHeight(size_t);
+	bool resyncHeight();
+
+	size_t currentHeight();
+	BlockHeader currentBlockHeader();
 
 	static ITransactionStorePtr instance(const uint256& chain, ISettingsPtr settings, IConsensusPtr consensus) {
 		return std::make_shared<TransactionStore>(chain, settings, consensus); 

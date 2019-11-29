@@ -9,7 +9,7 @@
 //
 // allocator.h _MUST_ be included BEFORE all other
 //
-#include "../allocator.h"
+#include "allocator.h"
 
 #include "helpers/zeroafterfree.h"
 #include "serialize.h"
@@ -303,6 +303,7 @@ public:
     const_reference operator[](size_type pos) const  { return vch[pos + nReadPos]; }
     reference operator[](size_type pos)              { return vch[pos + nReadPos]; }
     void clear()                                     { vch.clear(); nReadPos = 0; }
+    void reset()                                     { nReadPos = 0; }
     iterator insert(iterator it, const char x=char()) { return vch.insert(it, x); }
     void insert(iterator it, size_type n, const char x) { vch.insert(it, n, x); }
     value_type* data()                               { return vch.data() + nReadPos; }

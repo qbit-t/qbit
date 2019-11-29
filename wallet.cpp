@@ -35,6 +35,7 @@ SKey Wallet::firstKey() {
 		return *lKey;
 	}
 
+	// TODO: create key silently from seed words
 	return SKey();
 }
 
@@ -159,7 +160,7 @@ bool Wallet::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, TransactionContex
 		utxo_.write(lUtxoId, *utxo);
 
 		// preserve in tx context for rollback
-		ctx->addNewUnlinkedOut(utxo);		
+		ctx->addNewUnlinkedOut(utxo);
 
 		uint256 lAssetId = utxo->out().asset();
 		if (ctx->tx()->isValue(utxo)) {
@@ -229,11 +230,12 @@ Transaction::UnlinkedOutPtr Wallet::findUnlinkedOut(const uint256& hash) {
 	if (useUtxoCache_) {
 		std::map<uint256, Transaction::UnlinkedOutPtr>::iterator lUtxo = utxoCache_.find(hash);
 		if (lUtxo != utxoCache_.end()) {
-			return lUtxo->second;
+			if (persistentStore_->isUnlinkedOutExists(hash))
+				return lUtxo->second;
 		}
 	} else {
 		Transaction::UnlinkedOut lUtxo;
-		if (utxo_.read(hash, lUtxo)) {
+		if (utxo_.read(hash, lUtxo) && persistentStore_->isUnlinkedOutExists(hash)) {
 			// utxo exists
 			return Transaction::UnlinkedOut::instance(lUtxo);
 		}

@@ -34,7 +34,11 @@ class ConsensusA: public IConsensus {
 public:
 	ConsensusA() {}
 
-	size_t getMaxBlockSize() { return 1024 * 1024 * 8; }
+	size_t maxBlockSize() { return 1024 * 1024 * 8; }
+	uint64_t getTime() { return getTime(); }
+
+	void pushPeer(const std::string /*endpoint*/, IPeerPtr /*peer*/) { }
+	void popPeer(const std::string /*endpoint*/, IPeerPtr /*peer*/) { }
 };	
 
 class MemoryPoolQbitCreateSpend: public Unit {

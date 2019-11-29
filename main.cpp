@@ -1,7 +1,7 @@
 //
 // allocator.h _MUST_ be included BEFORE all other
 //
-#include "../allocator.h"
+#include "allocator.h"
 
 #include <iostream>
 #include "key.h"
@@ -13,6 +13,8 @@
 #include "utilstrencodings.h"
 
 #include "jm/include/jm_utils.h"
+
+#include "server.h"
 
 using namespace qbit;
 using namespace qasm;

@@ -98,6 +98,10 @@ bool TransactionStore::processBlock(BlockContextPtr ctx, bool processWallet) {
 		}
 
 		//
+		// --- NO CHANGES to the block header or block data ---
+		//
+
+		//
 		// write block data
 		uint256 lHash = ctx->block()->hash();
 		BlockHeader lHeader = ctx->block()->blockHeader();
@@ -106,17 +110,122 @@ bool TransactionStore::processBlock(BlockContextPtr ctx, bool processWallet) {
 
 		//
 		// indexes
+		//
+
+		//
+		// block time index
+		timeIdx_.write(ctx->block()->time(), lHash);
+
+		//
+		// tx to block|index
 		uint32_t lIndex = 0;
 		for(TransactionsContainer::iterator lTx = ctx->block()->transactions().begin(); lTx != ctx->block()->transactions().end(); lTx++) {
 			transactionsIdx_.write((*lTx)->id(), TxBlockIndex(lHash, lIndex++));
 		}
 
 		//
-		// block time index
-		timeIdx_.write(ctx->block()->time(), lHash);
+		// block to utxo
+		TxBlockStorePtr lIndexBlockStore = std::static_pointer_cast<TxBlockStore>(lTransactionStore);
+		for (std::list<TxBlockAction>::iterator lAction = lIndexBlockStore->actions().begin(); lAction != lIndexBlockStore->actions().end(); lAction++) {
+			blockUtxoIdx_.write(lHash, lAction->utxo());
+		}
+
+		// push new hight
+		height_.push_back(lHash);
 	}
 
 	return true;	
+}
+
+bool TransactionStore::resyncHeight() {
+	//
+	height_.clear();
+
+	for (db::DbContainer<uint64_t /*time*/, uint256 /*block*/>::Iterator lTime = timeIdx_.begin(); lTime.valid(); ++lTime) {
+		height_.push_back(*lTime);
+	}
+
+	return true;
+}
+
+bool TransactionStore::rollbackToHeight(size_t height) {
+	//
+	for (size_t lIdx = height; lIdx < height_.size(); lIdx++) {
+		uint256 lHash = height_[lIdx];
+
+		db::DbMultiContainer<uint256 /*block*/, uint256 /*utxo*/>::Transaction lBlockIdxTransaction = blockUtxoIdx_.transaction();
+		for (db::DbMultiContainer<uint256 /*block*/, uint256 /*utxo*/>::Iterator lUtxo = blockUtxoIdx_.find(lHash); lUtxo.valid(); ++lUtxo) {
+
+			// clear utxo
+			bool lFound = false;
+			Transaction::UnlinkedOut lUtxoObj;
+			if (ltxo_.read(*lUtxo, lUtxoObj)) {
+				ltxo_.remove(*lUtxo); lFound = true;
+			} else if (utxo_.read(*lUtxo, lUtxoObj)) {
+				utxo_.remove(*lUtxo); lFound = true;
+			}
+
+			// clear addresses
+			if (lFound) {
+				addressAssetUtxoIdx_.remove(lUtxoObj.address().id(), lUtxoObj.out().asset(), *lUtxo);
+			}
+
+			// clear transactions
+			BlockTransactionsPtr lTransactions = transactions_.read(*lUtxo);
+			if (lTransactions) {
+				for(TransactionsContainer::iterator lTx = lTransactions->transactions().begin(); lTx != lTransactions->transactions().end(); lTx++) {
+					transactionsIdx_.remove((*lTx)->id());
+
+					if ((*lTx)->isEntity() && (*lTx)->entityName() == Entity::emptyName()) {
+						entities_.remove((*lTx)->entityName());
+					}
+				}
+			}
+
+			// clear time-related data
+			BlockHeader lHeader;
+			if (headers_.read(lHash, lHeader)) {
+				timeIdx_.remove(lHeader.time());
+			}
+
+			// remove data
+			headers_.remove(*lUtxo);
+			transactions_.remove(*lUtxo);
+
+			// mark to remove
+			lBlockIdxTransaction.remove(lUtxo);
+		}
+
+		// commit changes
+		lBlockIdxTransaction.commit();
+	}
+
+	// cut height
+	height_.resize(height);
+
+	// reset connected wallet cache
+	wallet_->resetCache();
+
+	return true;
+}
+
+size_t TransactionStore::currentHeight() {
+	//
+	return height_.size();
+}
+
+BlockHeader TransactionStore::currentBlockHeader() {
+	//
+	if (height_.size()) { 
+		uint256 lHash = *height_.rbegin();
+
+		BlockHeader lHeader;
+		if (headers_.read(lHash, lHeader)) {
+			return lHeader;
+		}
+	}
+
+	return BlockHeader();
 }
 
 bool TransactionStore::commitBlock(BlockContextPtr ctx) {
@@ -141,13 +250,13 @@ bool TransactionStore::open() {
 		utxo_.open();
 		ltxo_.open();
 		entities_.open();
-		blockUtxoIdx_.open();
+		blockUtxoIdx_.open(); // TODO: implement
 		transactionsIdx_.open();
 		addressAssetUtxoIdx_.open();
-		entities_.open();
 		timeIdx_.open();
 
 		for (db::DbContainer<uint64_t /*time*/, uint256 /*block*/>::Iterator lTime = timeIdx_.begin(); lTime.valid(); ++lTime) {
+			// TODO: check pushBlock and commitBlock
 			height_.push_back(*lTime);
 		}
 
@@ -209,6 +318,16 @@ bool TransactionStore::isUnlinkedOutUsed(const uint256& ltxo) {
 	// 
 	Transaction::UnlinkedOut lUtxo;
 	if (ltxo_.read(ltxo, lUtxo)) {
+		return true;
+	}
+
+	return false;
+}
+
+bool TransactionStore::isUnlinkedOutExists(const uint256& utxo) {
+	//
+	Transaction::UnlinkedOut lUtxo;
+	if (ltxo_.read(utxo, lUtxo) || utxo_.read(utxo, lUtxo)) {
 		return true;
 	}
 

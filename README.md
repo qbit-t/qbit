@@ -5,11 +5,11 @@ Qbit is a multi-asset privacy oriented platform based on PoW/DPoS consensus with
 - Entity-based governance
 - Various kinds of typed transactions
 - Schnorr signatures/multi-signatures by default
+- Support of different signature schemes
 - Out-of-the-box privacy transactions for the value transfer
 - Scalable architecture
-- Atomic swaps support (cross-chain)
+- Atomic swaps support
 - Ultra-fast transaction processing
-- Ability to on/off-chain processing and state syncronization
 - Multichain support with sharding principles (including different parametrized consensuses for each shard) 
 - Smart contract support
 - Fast virtual machine (QVM) with asm-based machine codes

@@ -1,4 +1,6 @@
 #include "log.h"
+#include "../tinyformat.h"
+
 #include <iomanip>
 
 using namespace qbit;
@@ -18,6 +20,7 @@ std::string _getLogCategoryText(Log::Category category) {
 		case Log::Category::POOL: 		return "pool  ";
 		case Log::Category::WALLET: 	return "wallet";
 		case Log::Category::STORE: 		return "store ";
+		case Log::Category::NET: 		return "net   ";
 		case Log::Category::ALL: 		return "*     ";
 	}
 
@@ -27,11 +30,19 @@ std::string _getLogCategoryText(Log::Category category) {
 void qbit::Log::write(Log::Category category, const std::string& str) {
 	if (isEnabled(category)) {
 		if (open()) {
-			// TODO: fix
-			// TODO: timestamp
-			std::string lMessage = std::string("[") + _getLogCategoryText(category) + std::string("]") + str;
+			std::string lMessage = std::string("[");
+			uint64_t lMicroSeconds = getMicroseconds();
+			lMessage += formatISO8601DateTime(lMicroSeconds / 1000000);
+			lMessage += strprintf(".%06dZ", lMicroSeconds % 1000000);
+			lMessage += std::string("][") + _getLogCategoryText(category) + std::string("]") + str;
+
 			if (lMessage.at(lMessage.length()-1) != '\n') lMessage += "\n";
-			fwrite(lMessage.data(), 1, lMessage.size(), out_);
+			if (console_) std::cout << lMessage;
+
+			{
+				std::lock_guard<std::mutex> scoped_lock(mutex_);
+				fwrite(lMessage.data(), 1, lMessage.size(), out_);
+			}
 		}
 	}
 }

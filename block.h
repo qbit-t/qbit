@@ -8,7 +8,7 @@
 //
 // allocator.h _MUST_ be included BEFORE all other
 //
-#include "../allocator.h"
+#include "allocator.h"
 
 #include "transaction.h"
 
@@ -18,6 +18,7 @@ class BlockHeader {
 public:
 	// header
 	int32_t version_;
+	uint256 chain_;
 	uint256 prev_;
 	uint256 root_;
 	uint64_t time_;
@@ -31,7 +32,8 @@ public:
 
 	template <typename Stream>
 	void serialize(Stream& s) const {
-		s << version_;		
+		s << version_;
+		s << chain_;	
 		s << prev_;		
 		s << root_;
 		s << time_;		
@@ -42,7 +44,8 @@ public:
 
 	template <typename Stream>
 	void deserialize(Stream& s) {
-		s >> version_;		
+		s >> version_;
+		s >> chain_;
 		s >> prev_;		
 		s >> root_;
 		s >> time_;		
@@ -53,6 +56,7 @@ public:
 
 	void setNull() {
 		version_ = 0;
+		chain_ = MainChain::id();
 		prev_.setNull();
 		root_.setNull();
 		time_ = 0;
@@ -61,18 +65,23 @@ public:
 		qbits_ = 0;
 	}
 
-	bool isNull() const {
+	inline bool isNull() const {
 		return (bits_ == 0);
 	}
 
 	uint256 hash();
 
-	uint64_t time() const {
+	inline uint64_t time() const {
 		return time_;
 	}
+	inline void setTime(uint64_t time) { time_ = time; } 
+
 
 	inline void setQbits(uint32_t qbits) { qbits_ = qbits; }
 	inline uint32_t qbits() { return qbits_; }
+
+	inline void setChain(const uint256& chain) { chain_ = chain; }
+	inline uint256 chain() { return chain_; }
 };
 
 // forward

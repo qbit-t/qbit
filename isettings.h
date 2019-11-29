@@ -19,6 +19,11 @@ public:
 
 	virtual qunit_t maxFeeRate() { return QUNIT * 10; } // 10 qunits per byte
 	virtual PKey changeKey() { return PKey(); } // for change output
+
+	virtual int serverPort() { return 31415; } // main net
+	virtual size_t maxMessageSize() { return 1024 * 1024; } // max incoming message size
+
+	virtual size_t threadPoolSize() { return 4; } // tread pool size
 };
 
 typedef std::shared_ptr<ISettings> ISettingsPtr;

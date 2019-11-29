@@ -53,6 +53,7 @@ set(SOURCES
 	./mkpath.cpp
 	./memorypool.cpp
 	./transactionstore.cpp
+	./peer.cpp
 )
 
 set(UNITTESTS
@@ -91,6 +92,7 @@ set(UNITTESTS
 	./mkpath.cpp
 	./memorypool.cpp
 	./transactionstore.cpp
+	./peer.cpp
 
 	./tests/testsuit.cpp
 	./tests/unittest.cpp
@@ -104,6 +106,7 @@ set(UNITTESTS
 	./tests/wallet.cpp
 	./tests/memorypool.cpp
 	./tests/transactionstore.cpp
+	./tests/server.cpp
 )
 
 add_definitions(-DHAVE_CONFIG_H)
@@ -112,10 +115,10 @@ add_definitions(-DJM_MALLOC)
 add_subdirectory(./jm)
 add_subdirectory(./leveldb)
 
-include_directories(./secp256k1/src ./secp256k1 ./secp256k1/include ./leveldb)
+include_directories(./secp256k1/src ./secp256k1 ./secp256k1/include ./leveldb ./lib)
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${SECP256K1})
-target_link_libraries(${PROJECT_NAME} jm leveldb boost_system) #gmp
+target_link_libraries(${PROJECT_NAME} jm leveldb boost_system boost_thread boost_chrono) #gmp
 
 add_executable(qbit-unit-tests ${UNITTESTS} ${SECP256K1})
-target_link_libraries(qbit-unit-tests jm leveldb boost_system) #gmp
+target_link_libraries(qbit-unit-tests jm leveldb boost_system boost_thread boost_chrono) #gmp

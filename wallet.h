@@ -64,12 +64,21 @@ public:
 	}
 
 	inline amount_t balance(const uint256& asset) {
+		if (!balanceCache_.size()) prepareCache();
+
 		std::map<uint256 /*asset*/, amount_t /*balance*/>::iterator lBalance = balanceCache_.find(asset);
 		if (lBalance != balanceCache_.end()) {
 			return lBalance->second;
 		}
 
 		return 0;
+	}
+
+	void resetCache() {
+		utxoCache_.clear();
+		assetsCache_.clear();
+		balanceCache_.clear();
+		entitiesCache_.clear();
 	}
 
 	// clean-up assets utxo
