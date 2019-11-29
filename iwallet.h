@@ -72,6 +72,7 @@ public:
 	// wallet balance
 	virtual amount_t balance() { return 0; } // qbit balance
 	virtual amount_t balance(const uint256& asset) { return 0; }
+	virtual void resetCache() { throw qbit::exception("NOT_IMPL", "IWallet::resetCache - not implemented."); }
 };
 
 typedef std::shared_ptr<IWallet> IWalletPtr;

@@ -84,6 +84,10 @@ TransactionContextPtr MemoryPool::PoolStore::locateTransactionContext(const uint
 
 TransactionContextPtr MemoryPool::pushTransaction(TransactionPtr tx) {
 	//
+	// 0. check
+	if (poolStore_->locateTransactionContext(tx->id())) return nullptr; // already exists
+
+	//
 	// 1. create ctx
 	TransactionContextPtr lCtx = TransactionContext::instance(tx);
 
@@ -168,7 +172,7 @@ bool MemoryPool::traverseRight(TransactionContextPtr root, const TxTree& tree) {
 	for (std::multimap<uint256 /*from*/, uint256 /*to*/>::iterator lTo = lRange.first; lTo != lRange.second; lTo++) {
 		TransactionContextPtr lTx = poolStore_->locateTransactionContext(lTo->second); // TODO: duplicates?
 		if (lTx) {
-			if (const_cast<TxTree&>(tree).size() + lTx->size() < consensus_->getMaxBlockSize()) {
+			if (const_cast<TxTree&>(tree).size() + lTx->size() < consensus_->maxBlockSize()) {
 				const_cast<TxTree&>(tree).add(lTx);
 				traverseRight(lTx, tree);  // recursion!
 			} else return true;
@@ -216,12 +220,12 @@ BlockContextPtr MemoryPool::beginBlock(BlockPtr block) {
 		}
 
 		// traverse right
-		lLimitReached = traverseRight(lTx, lTree); // up to getMaxBlockSize
+		lLimitReached = traverseRight(lTx, lTree); // up to maxBlockSize
 
 		// calc size
 		lSize += lTree.size();
 
-		if (lSize < consensus_->getMaxBlockSize()) { // sanity, it should be Ok, even if lLimitReached == true
+		if (lSize < consensus_->maxBlockSize()) { // sanity, it should be Ok, even if lLimitReached == true
 			// fill index
 			lCtx->txs().insert(lTree.bundle().begin(), lTree.bundle().end());
 			// add pool entry
@@ -234,8 +238,14 @@ BlockContextPtr MemoryPool::beginBlock(BlockPtr block) {
 	//
 	// we have appropriate index - fill the block
 	for (std::map<uint256 /*tx*/, TransactionContextPtr /*obj*/>::iterator lItem = lCtx->txs().begin(); lItem != lCtx->txs().end(); lItem++) {
-		lCtx->block()->append(lItem->second->tx()); // push to block
+		lCtx->block()->append(lItem->second->tx()); // push to the block
 	}
+
+	// set adjusted time
+	lCtx->block()->setTime(consensus_->currentTime());
+
+	// TODO: set chain
+	// lCtx->block()->setChain(?);	
 
 	return lCtx;
 }

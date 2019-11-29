@@ -9,7 +9,7 @@
 //
 // allocator.h _MUST_ be included BEFORE all other
 //
-#include "../allocator.h"
+#include "allocator.h"
 
 #include "compat/endian.h"
 

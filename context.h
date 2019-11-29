@@ -8,7 +8,7 @@
 //
 // allocator.h _MUST_ be included BEFORE all other
 //
-#include "../allocator.h"
+#include "allocator.h"
 
 #include "secp256k1/include/secp256k1.h"
 #include <vector>

@@ -10,6 +10,7 @@
 #include <mutex>
 
 #include "../fs.h"
+#include "../timestamp.h"
 
 namespace qbit {
 
@@ -24,6 +25,7 @@ public:
 		POOL	= (1 <<  4),
 		WALLET	= (1 <<  5),
 		STORE	= (1 <<  6),
+		NET		= (1 <<  7),
 		ALL		= ~(uint32_t)0
 	};
 
@@ -45,6 +47,7 @@ private:
 	std::mutex mutex_;
 	std::atomic_bool startedNewLine_ {true};
 	std::atomic<uint32_t> categories_ {0};
+	bool console_ = true;
 	
 	std::string name_;
 };

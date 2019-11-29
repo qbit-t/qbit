@@ -38,8 +38,15 @@ public:
 
 	virtual Transaction::UnlinkedOutPtr findUnlinkedOut(const uint256&) { throw qbit::exception("NOT_IMPL", "ITransactionStore::findUnlinkedOut - not implemented."); }
 	virtual bool isUnlinkedOutUsed(const uint256&) { throw qbit::exception("NOT_IMPL", "ITransactionStore::isUnlinkedOutUsed - not implemented."); }
+	virtual bool isUnlinkedOutExists(const uint256&) { throw qbit::exception("NOT_IMPL", "ITransactionStore::isUnlinkedOutExists - not implemented."); }
 
-	virtual IEntityStorePtr entityStore() { return nullptr; }
+	virtual IEntityStorePtr entityStore() { throw qbit::exception("NOT_IMPL", "ITransactionStore::entityStore - not implemented."); }
+
+	virtual bool rollbackToHeight(size_t) { throw qbit::exception("NOT_IMPL", "ITransactionStore::rollbackToHeight - not implemented."); }
+	virtual bool resyncHeight() { throw qbit::exception("NOT_IMPL", "ITransactionStore::resyncHeight - not implemented."); }
+
+	virtual size_t currentHeight() { throw qbit::exception("NOT_IMPL", "ITransactionStore::currentHeight - not implemented."); }
+	virtual BlockHeader currentBlockHeader() { throw qbit::exception("NOT_IMPL", "ITransactionStore::currentBlockHeader - not implemented."); }
 };
 
 typedef std::shared_ptr<ITransactionStore> ITransactionStorePtr;

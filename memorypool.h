@@ -5,6 +5,7 @@
 #ifndef QBIT_MEMORY_POOL_H
 #define QBIT_MEMORY_POOL_H
 
+#include "iconsensus.h"
 #include "imemorypool.h"
 #include "itransactionstore.h"
 #include "iwallet.h"

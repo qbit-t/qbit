@@ -7,7 +7,7 @@
 //
 // allocator.h _MUST_ be included BEFORE all other
 //
-#include "../allocator.h"
+#include "allocator.h"
 
 int mkpath(const char *path, mode_t mode);
 int rmpath(const char *path);
