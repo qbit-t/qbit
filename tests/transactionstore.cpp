@@ -49,7 +49,8 @@ bool StoreQbitCreateSpend::execute() {
 		// 3. process block
 		BlockContextPtr lBlockCtx = mempool_->beginBlock(lBlock);
 		mempool_->commit(lBlockCtx);
-		store_->commitBlock(lBlockCtx);
+		size_t lHeight;
+		store_->commitBlock(lBlockCtx, lHeight);
 
 		if (lBlockCtx->errors().size()) {
 			error_ = *lBlockCtx->errors().begin();
@@ -71,10 +72,22 @@ bool StoreQbitCreateSpend::execute() {
 		// 1. create block
 		BlockPtr lBlock = Block::instance();
 
+		//std::stringstream s0;
+		//wallet_->dumpUnlinkedOutByAsset(TxAssetType::qbitAsset(), s0);
+		//std::cout << s0.str() << "\n";
+
 		// 2. create tx
 		for (int i = 0; i < 10; i++) {
 			TransactionContextPtr lCtx = wallet_->createTxSpend(TxAssetType::qbitAsset(), lBob, 100);
 			lCtx = mempool_->pushTransaction(lCtx->tx());
+			
+			if (lCtx->errors().size()) {
+				error_ = *lCtx->errors().begin();
+				wallet_->close();
+				store_->close();
+				mempool_->close();
+				return false;
+			}
 
 			lBlock->append(lCtx->tx());
 		}
@@ -82,7 +95,8 @@ bool StoreQbitCreateSpend::execute() {
 		// 3. process block
 		BlockContextPtr lBlockCtx = mempool_->beginBlock(lBlock);
 		mempool_->commit(lBlockCtx);
-		store_->commitBlock(lBlockCtx);
+		size_t lHeight;
+		store_->commitBlock(lBlockCtx, lHeight);
 
 		if (lBlockCtx->errors().size()) {
 			error_ = *lBlockCtx->errors().begin();

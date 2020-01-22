@@ -35,10 +35,10 @@ public:
 	ConsensusA() {}
 
 	size_t maxBlockSize() { return 1024 * 1024 * 8; }
-	uint64_t getTime() { return getTime(); }
+	uint64_t currentTime() { return getTime(); }
 
-	void pushPeer(const std::string /*endpoint*/, IPeerPtr /*peer*/) { }
-	void popPeer(const std::string /*endpoint*/, IPeerPtr /*peer*/) { }
+	void pushPeer(IPeerPtr /*peer*/) { }
+	void popPeer(IPeerPtr /*peer*/) { }
 };	
 
 class MemoryPoolQbitCreateSpend: public Unit {

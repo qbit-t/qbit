@@ -39,7 +39,7 @@ public:
 		settings_ = std::make_shared<SettingsA>();
 		consensus_ = std::make_shared<ConsensusA>();
 
-		store_ = TransactionStore::instance(settings_, consensus_);
+		store_ = TransactionStore::instance(settings_);
 		entityStore_ = store_->entityStore();
 
 		mempool_ = MemoryPool::instance(consensus_, store_, entityStore_); 

@@ -65,4 +65,8 @@ Qbit Smart contracts based on the following principles:
 2. ./autogen.sh
 3. ./configure --enable-experimental --enable-module-schnorrsig --enable-module-musig --enable-module-ecdh --enable-module-generator --enable-module-rangeproof --with-bignum=no
 4. cd ..
-5. cmake -DCMAKE_BUILD_TYPE=Release
+5. cd ./boost
+6. ./bootstrap.sh --with-libraries=system,thread,chrono --prefix=../
+7. ./b2
+8. cd ..
+9. cmake -DCMAKE_BUILD_TYPE=Release

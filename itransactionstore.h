@@ -15,6 +15,9 @@
 
 namespace qbit {
 
+class IMemoryPool;
+typedef std::shared_ptr<IMemoryPool> IMemoryPoolPtr;
+
 class ITransactionStore {
 public:
 	ITransactionStore() {}
@@ -22,12 +25,17 @@ public:
 	virtual bool open() { throw qbit::exception("NOT_IMPL", "ITransactionStore::open - not implemented."); }
 	virtual bool close() { throw qbit::exception("NOT_IMPL", "ITransactionStore::close - not implemented."); }
 	virtual bool isOpened() { throw qbit::exception("NOT_IMPL", "ITransactionStore::isOpened - not implemented."); }
+	virtual uint256 chain() { throw qbit::exception("NOT_IMPL", "ITransactionStore::chain - not implemented."); }
 
 	virtual TransactionPtr locateTransaction(const uint256&) { throw qbit::exception("NOT_IMPL", "ITransactionStore::locateTransaction - not implemented."); }
 	virtual TransactionContextPtr locateTransactionContext(const uint256&) { throw qbit::exception("NOT_IMPL", "ITransactionStore::locateTransactionContext - not implemented."); }
 	virtual bool pushTransaction(TransactionContextPtr) { throw qbit::exception("NOT_IMPL", "ITransactionStore::pushTransaction - not implemented."); }
 	virtual BlockContextPtr pushBlock(BlockPtr) { throw qbit::exception("NOT_IMPL", "ITransactionStore::pushBlock - not implemented."); }
-	virtual bool commitBlock(BlockContextPtr) { throw qbit::exception("NOT_IMPL", "ITransactionStore::commitBlock - not implemented."); }
+	virtual bool commitBlock(BlockContextPtr, size_t&) { throw qbit::exception("NOT_IMPL", "ITransactionStore::commitBlock - not implemented."); }
+
+	virtual void saveBlock(BlockPtr) { throw qbit::exception("NOT_IMPL", "ITransactionStore::saveBlock - not implemented."); }
+	virtual void reindexFull(const uint256&, IMemoryPoolPtr /*pool*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::reindexFull - not implemented."); }
+	virtual void reindex(const uint256&, const uint256&, IMemoryPoolPtr /*pool*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::reindex - not implemented."); }
 
 	// main entry
 	virtual TransactionContextPtr pushTransaction(TransactionPtr) { throw qbit::exception("NOT_IMPL", "ITransactionStore::pushTransaction - not implemented."); }
@@ -42,11 +50,22 @@ public:
 
 	virtual IEntityStorePtr entityStore() { throw qbit::exception("NOT_IMPL", "ITransactionStore::entityStore - not implemented."); }
 
-	virtual bool rollbackToHeight(size_t) { throw qbit::exception("NOT_IMPL", "ITransactionStore::rollbackToHeight - not implemented."); }
 	virtual bool resyncHeight() { throw qbit::exception("NOT_IMPL", "ITransactionStore::resyncHeight - not implemented."); }
 
-	virtual size_t currentHeight() { throw qbit::exception("NOT_IMPL", "ITransactionStore::currentHeight - not implemented."); }
+	virtual void erase(const uint256&, const uint256&) { throw qbit::exception("NOT_IMPL", "ITransactionStore::erase - not implemented."); }
+	virtual void remove(const uint256&, const uint256&) { throw qbit::exception("NOT_IMPL", "ITransactionStore::remove - not implemented."); }
+	virtual bool processBlocks(const uint256& /*from*/, const uint256& /*to*/, std::list<BlockContextPtr>& /*ctxs*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::processBlocks - not implemented."); }
+	virtual bool setLastBlock(const uint256& /*block*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::setLastBlock - not implemented."); }
+
+	virtual size_t currentHeight(BlockHeader&) { throw qbit::exception("NOT_IMPL", "ITransactionStore::currentHeight - not implemented."); }
 	virtual BlockHeader currentBlockHeader() { throw qbit::exception("NOT_IMPL", "ITransactionStore::currentBlockHeader - not implemented."); }
+
+	virtual BlockPtr block(size_t /*height*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::block - not implemented."); }
+	virtual BlockPtr block(const uint256& /*id*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::block - not implemented."); }
+
+	virtual bool blockExists(const uint256& /*block*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::blockExists - not implemented."); }
+
+	virtual bool enqueueBlock(const uint256& /*block*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::enqueueBlock - not implemented."); }
 };
 
 typedef std::shared_ptr<ITransactionStore> ITransactionStorePtr;

@@ -35,12 +35,16 @@ public:
 		errors_.insert(errors_.end(), errors.begin(), errors.end());
 	}
 
+	inline void setHeight(size_t height) { height_ = height; }
+	inline size_t height() { return height_; }
+
 	inline std::list<std::string>& errors() { return errors_; }
 
 private:
 	BlockPtr block_;
 	std::list<_poolEntry> poolEntries_;
 	std::map<uint256, TransactionContextPtr> txs_;
+	size_t height_;
 	// errors
 	std::list<std::string> errors_;
 };

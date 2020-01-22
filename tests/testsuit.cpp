@@ -26,10 +26,18 @@ int main(int argv, char** argc)
 
 	gLog().enable(Log::ALL);
 
-	if (argv > 1 && std::string(argc[1]) == "-A")
-		lSuit << new ServerA();
-	else if (argv > 1 && std::string(argc[1]) == "-B")
-		lSuit << new ServerB();
+	if (argv > 1 && std::string(argc[1]) == "-S0") {
+		gLog().enableConsole();
+		lSuit << new ServerS0();
+	}
+	else if (argv > 1 && std::string(argc[1]) == "-S1") {
+		gLog().enableConsole();
+		lSuit << new ServerS1();
+	}
+	else if (argv > 1 && std::string(argc[1]) == "-S2") {
+		gLog().enableConsole();
+		lSuit << new ServerS2();
+	}
 	else {
 		lSuit << new RandomTest();
 		lSuit << new CreateKeySignAndVerifyMix();

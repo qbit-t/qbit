@@ -169,7 +169,7 @@ public:
 			options_.info_log = new LevelDBLogger();
 			options_.create_if_missing = true;
 
-			gLog().write(Log::INFO, std::string("[leveldb]: Opening ontainer ") + name_);
+			gLog().write(Log::DB, std::string("[leveldb]: Opening container ") + name_);
 
 			leveldb::DB* lDB;
 			leveldb::Status lStatus = leveldb::DB::Open(options_, name_, &lDB);
@@ -177,10 +177,16 @@ public:
 
 			db_ = std::shared_ptr<leveldb::DB>(lDB);
 
-			gLog().write(Log::INFO, std::string("[leveldb]: Opened container ") + name_);
+			gLog().write(Log::DB, std::string("[leveldb]: Opened container ") + name_);
 		}
 
 		return true;
+	}
+
+	bool opened() { return db_ != nullptr; }
+
+	void close() {
+		db_ = nullptr; // release
 	}
 
 	_transaction transaction() {

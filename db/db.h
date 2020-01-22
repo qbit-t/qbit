@@ -152,6 +152,8 @@ public:
 	Container(const std::string& name) : name_(name) {}
 
 	inline bool open(uint32_t cache = 0) { return impl<key, value>::open(name_, cache); }
+	inline void close() { impl<key, value>::close(); }
+	inline bool opened() { return impl<key, value>::opened(); }
 
 	inline bool write(const key& k, const value& v, bool sync = false) { return impl<key, value>::write(k, v, sync); }
 	inline bool write(const DataStream& k, const DataStream& v, bool sync = false) { return impl<key, value>::write(k, v, sync); }
@@ -261,6 +263,8 @@ public:
 	MultiContainer(const std::string& name) : Container<MultiKey<key>, value, impl>(name) {}
 
 	inline bool open(uint32_t cache = 0) { return Container<MultiKey<key>, value, impl>::open(cache); }
+	inline void close() { Container<MultiKey<key>, value, impl>::close(); }
+	inline bool opened() { return Container<MultiKey<key>, value, impl>::opened(); }
 
 	bool write(const key& k, const value& v, bool sync = false) {
 		MultiKey<key> lKey(k, 0);
@@ -388,6 +392,8 @@ public:
 	TwoKeyContainer(const std::string& name) : Container<TwoKey<key1, key2>, value, impl>(name) {}
 
 	inline bool open(uint32_t cache = 0) { return Container<TwoKey<key1, key2>, value, impl>::open(cache); }
+	inline void close() { Container<TwoKey<key1, key2>, value, impl>::close(); }
+	inline bool opened() { return Container<TwoKey<key1, key2>, value, impl>::opened(); }
 
 	bool write(const key1& k1, const value& v, bool sync = false) {
 		TwoKey<key1, key2> lKey(k1, key2());
@@ -535,6 +541,8 @@ public:
 	ThreeKeyContainer(const std::string& name) : Container<ThreeKey<key1, key2, key3>, value, impl>(name) {}
 
 	inline bool open(uint32_t cache = 0) { return Container<ThreeKey<key1, key2, key3>, value, impl>::open(cache); }
+	inline void close() { Container<ThreeKey<key1, key2, key3>, value, impl>::close(); }
+	inline bool opened() { return Container<ThreeKey<key1, key2, key3>, value, impl>::opened(); }	
 
 	bool write(const key1& k1, const value& v, bool sync = false) {
 		ThreeKey<key1, key2, key3> lKey(k1, key2(), key3());
@@ -609,6 +617,8 @@ public:
 	EntityContainer(const std::string& name) : Container<key, value, impl>(name) {}
 
 	inline bool open(uint32_t cache = 0) { return Container<key, value, impl>::open(cache); }
+	inline void close() { Container<key, value, impl>::close(); }
+	inline bool opened() { return Container<key, value, impl>::opened(); }	
 
 	bool write(const key& k, std::shared_ptr<value> v, bool sync = false) {
 		DataStream lKeyStream(SER_DISK, CLIENT_VERSION);

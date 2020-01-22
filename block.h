@@ -9,7 +9,6 @@
 // allocator.h _MUST_ be included BEFORE all other
 //
 #include "allocator.h"
-
 #include "transaction.h"
 
 namespace qbit {
@@ -82,6 +81,45 @@ public:
 
 	inline void setChain(const uint256& chain) { chain_ = chain; }
 	inline uint256 chain() { return chain_; }
+
+	inline void setPrev(const uint256& prev) { prev_ = prev; }
+	inline uint256 prev() { return prev_; }
+};
+
+// broadcast found block
+class NetworkBlockHeader {
+public:
+	NetworkBlockHeader() {}
+	NetworkBlockHeader(const BlockHeader &header, size_t height, TransactionPtr coinbase, const uint160& address) : 
+		header_(header), coinbase_(coinbase), address_(address), height_(height) {}
+
+	BlockHeader& blockHeader() { return header_; }
+	TransactionPtr coinbase() { return coinbase_; }
+	uint160 addressId() { return address_; }
+	size_t height() { return height_; }
+
+	ADD_SERIALIZE_METHODS;
+
+	template <typename Stream, typename Operation>
+	inline void serializationOp(Stream& s, Operation ser_action) {
+		if (ser_action.ForRead()) {
+			header_.deserialize(s); // header info
+			coinbase_ = Transaction::Deserializer::deserialize<Stream>(s); // "mined" transaction
+			s >> address_;
+			s >> height_;
+		} else {
+			header_.serialize(s);
+			Transaction::Serializer::serialize<Stream>(s, coinbase_);
+			s << address_;
+			s << height_;
+		}
+	}
+
+private:
+	BlockHeader header_;
+	TransactionPtr coinbase_;
+	uint160 address_;
+	size_t height_;
 };
 
 // forward
@@ -201,6 +239,12 @@ public:
 		*(static_cast<BlockHeader*>(this)) = header;
 	}
 
+	Block(const BlockHeader &header, BlockTransactionsPtr transactions) {
+		setNull();
+		*(static_cast<BlockHeader*>(this)) = header;
+		append(transactions);
+	}
+
 	void setNull() {
 		BlockHeader::setNull();
 		transactions_.clear();
@@ -217,6 +261,11 @@ public:
 
 	static BlockPtr instance() { return std::make_shared<Block>(); }
 	static BlockPtr instance(const BlockHeader& header) { return std::make_shared<Block>(header); }
+	static BlockPtr instance(const BlockHeader& header, BlockTransactionsPtr transactions) { 
+		return std::make_shared<Block>(header, transactions); 
+	}
+
+	BlockPtr clone();
 
 	void append(BlockTransactionsPtr txs) {
 		transactions_.insert(transactions_.end(), txs->transactions().begin(), txs->transactions().end()); 

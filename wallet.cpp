@@ -49,27 +49,40 @@ SKey Wallet::changeKey() {
 }
 
 bool Wallet::open() {
-	try {
-		if (mkpath(std::string(settings_->dataPath() + "/wallet").c_str(), 0777)) return false;
+	if (!opened_) {
+		try {
+			if (mkpath(std::string(settings_->dataPath() + "/wallet").c_str(), 0777)) return false;
 
-		keys_.open();
-		utxo_.open();
-		assets_.open();
-		entities_.open();
-	}
-	catch(const std::exception& ex) {
-		gLog().write(Log::ERROR, std::string("[Wallet/open]: ") + ex.what());
-		return false;
+			keys_.open();
+			utxo_.open();
+			assets_.open();
+			entities_.open();
+		}
+		catch(const std::exception& ex) {
+			gLog().write(Log::ERROR, std::string("[wallet/open]: ") + ex.what());
+			return false;
+		}
+
+		return prepareCache();
 	}
 
-	return prepareCache();
+	return true;
 }
 
 bool Wallet::close() {
+	gLog().write(Log::INFO, std::string("[wallet/close]: closing wallet data..."));
+
 	settings_.reset();
+	mempoolManager_.reset();
 	mempool_.reset();
 	entityStore_.reset();
+	persistentStoreManager_.reset();
 	persistentStore_.reset();
+
+	keys_.close();
+	utxo_.close();
+	assets_.close();
+	entities_.close();
 
 	return true;
 }
@@ -78,6 +91,8 @@ bool Wallet::prepareCache() {
 	try {
 		// scan assets, check utxo and fill balance
 		db::DbMultiContainer<uint256 /*asset*/, uint256 /*utxo*/>::Transaction lAssetTransaction = assets_.transaction();
+		// 
+		db::DbContainer<uint256 /*utxo*/, Transaction::UnlinkedOut /*data*/>::Transaction lUtxoTransaction = utxo_.transaction();
 
 		for (db::DbMultiContainer<uint256 /*asset*/, uint256 /*utxo*/>::Iterator lAsset = assets_.begin(); lAsset.valid(); ++lAsset) {
 			Transaction::UnlinkedOut lUtxo;
@@ -86,21 +101,27 @@ bool Wallet::prepareCache() {
 			lAsset.first(lAssetId); // asset hash
 
 			if (utxo_.read(lUtxoId, lUtxo)) {
-				// utxo exists
-				Transaction::UnlinkedOutPtr lUtxoPtr = Transaction::UnlinkedOut::instance(lUtxo);
-				
-				// cache it
-				cacheUtxo(lUtxoPtr);
+				// if utxo exists
+				// TODO: all chains?
+				if (isUnlinkedOutExists(lUtxoId)) {
+					// utxo exists
+					Transaction::UnlinkedOutPtr lUtxoPtr = Transaction::UnlinkedOut::instance(lUtxo);
+					
+					// cache it
+					cacheUtxo(lUtxoPtr);
 
-				// calc balance
-				if (balanceCache_.find(lAssetId) == balanceCache_.end()) {
-					balanceCache_[lAssetId] = lUtxo.amount();
+					// calc balance
+					if (balanceCache_.find(lAssetId) == balanceCache_.end()) {
+						balanceCache_[lAssetId] = lUtxo.amount();
+					} else {
+						balanceCache_[lAssetId] += lUtxo.amount();
+					}
+
+					// make map
+					assetsCache_[lAssetId].insert(std::multimap<amount_t, uint256>::value_type(lUtxo.amount(), lUtxoId));
 				} else {
-					balanceCache_[lAssetId] += lUtxo.amount();
+					lUtxoTransaction.remove(lUtxoId);
 				}
-
-				// make map
-				assetsCache_[lAssetId].insert(std::multimap<amount_t, uint256>::value_type(lUtxo.amount(), lUtxoId));
 			} else {
 				// mark to remove: absent entry
 				lAssetTransaction.remove(lAsset);
@@ -124,12 +145,19 @@ bool Wallet::prepareCache() {
 			else {
 				Transaction::UnlinkedOut lUtxo;
 				if (utxo_.read(lEntityId, lUtxo)) {
-					// utxo exists
-					lUtxoPtr = Transaction::UnlinkedOut::instance(lUtxo);
-					
-					// cache it
-					cacheUtxo(lUtxoPtr);
-					entitiesCache_[lEntityId][lUtxoId] = lUtxoPtr;	
+					// if utxo exists
+					// TODO: all chains?
+					if (isUnlinkedOutExists(lUtxoId)) {
+
+						// utxo exists
+						lUtxoPtr = Transaction::UnlinkedOut::instance(lUtxo);
+						
+						// cache it
+						cacheUtxo(lUtxoPtr);
+						entitiesCache_[lEntityId][lUtxoId] = lUtxoPtr;
+					} else {
+						lUtxoTransaction.remove(lEntityId);
+					}
 				} else {
 					// mark to remove: absent entry
 					lEntityTransaction.remove(lEntity);				
@@ -137,22 +165,26 @@ bool Wallet::prepareCache() {
 			}
 		}
 
+		// make changes to utxo
+		lUtxoTransaction.commit();
+
 		// make changes to entities
 		lEntityTransaction.commit();		
 
 		opened_ = true;
 	}
 	catch(const std::exception& ex) {
-		gLog().write(Log::ERROR, std::string("[Wallet/prepareCache]: ") + ex.what());
-		return false;
+		gLog().write(Log::ERROR, std::string("[wallet/prepareCache]: ") + ex.what());
+		opened_ = true; // half-opened
 	}
 
-	return true;
+	return opened_;
 }
 
 bool Wallet::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, TransactionContextPtr ctx) {
 	uint256 lUtxoId = utxo->hash();
-	if (!findUnlinkedOut(lUtxoId) && !persistentStore_->isUnlinkedOutUsed(lUtxoId)) {
+	// TODO: all chains?
+	if (!findUnlinkedOut(lUtxoId) && !isUnlinkedOutUsed(lUtxoId)) {
 		// cache it
 		cacheUtxo(utxo);
 
@@ -230,12 +262,13 @@ Transaction::UnlinkedOutPtr Wallet::findUnlinkedOut(const uint256& hash) {
 	if (useUtxoCache_) {
 		std::map<uint256, Transaction::UnlinkedOutPtr>::iterator lUtxo = utxoCache_.find(hash);
 		if (lUtxo != utxoCache_.end()) {
-			if (persistentStore_->isUnlinkedOutExists(hash))
+			// TODO: all chains?
+			if (isUnlinkedOutExists(hash))
 				return lUtxo->second;
 		}
 	} else {
 		Transaction::UnlinkedOut lUtxo;
-		if (utxo_.read(hash, lUtxo) && persistentStore_->isUnlinkedOutExists(hash)) {
+		if (utxo_.read(hash, lUtxo) && isUnlinkedOutExists(hash)) {
 			// utxo exists
 			return Transaction::UnlinkedOut::instance(lUtxo);
 		}
@@ -255,6 +288,8 @@ Transaction::UnlinkedOutPtr Wallet::findUnlinkedOutByAsset(const uint256& asset,
 				Transaction::UnlinkedOutPtr lUtxo = findUnlinkedOut(lAmount->second);
 
 				if (lUtxo == nullptr) {
+					// delete from store
+					utxo_.remove(lAmount->second);
 					lAsset->second.erase(lAmount);
 				} else {
 					return lUtxo;
@@ -277,6 +312,8 @@ std::list<Transaction::UnlinkedOutPtr> Wallet::collectUnlinkedOutsByAsset(const 
 			
 			Transaction::UnlinkedOutPtr lUtxo = findUnlinkedOut(lAmount->second);
 			if (lUtxo == nullptr) {
+				// delete from store
+				utxo_.remove(lAmount->second);
 				lAsset->second.erase(std::next(lAmount).base());
 				continue;
 			}
@@ -303,6 +340,30 @@ void Wallet::cleanUp() {
 	balanceCache_.clear();
 
 	prepareCache();
+}
+
+void Wallet::cleanUpData() {
+	utxo_.close();
+	assets_.close();
+	entities_.close();
+
+	// clean up
+	std::string lPath = settings_->dataPath() + "/wallet/utxo";
+	rmpath(lPath.c_str());
+	lPath = settings_->dataPath() + "/wallet/utxo";
+	rmpath(lPath.c_str());
+	lPath = settings_->dataPath() + "/wallet/utxo";
+	rmpath(lPath.c_str());
+
+	// re-open
+	try {
+		utxo_.open();
+		assets_.open();
+		entities_.open();
+	}
+	catch(const std::exception& ex) {
+		gLog().write(Log::ERROR, std::string("[wallet/cleanUpData]: ") + ex.what());
+	}
 }
 
 // dump utxo by asset
@@ -351,7 +412,6 @@ bool Wallet::rollback(TransactionContextPtr ctx) {
 			// remove entry
 			removeUtxo(lUtxoId);
 			utxo_.remove(lUtxoId);
-
 		}
 	}
 	ctx->newUtxo().clear();
@@ -450,9 +510,9 @@ TransactionContextPtr Wallet::makeTxSpend(Transaction::Type type, const uint256&
 	// try to estimate fee
 	qunit_t lRate = 0;
 	if (targetBlock == -1) {
-		lRate = mempool_->estimateFeeRateByLimit(lCtx, feeRateLimit);
+		lRate = mempool()->estimateFeeRateByLimit(lCtx, feeRateLimit);
 	} else {
-		lRate = mempool_->estimateFeeRateByBlock(lCtx, targetBlock);
+		lRate = mempool()->estimateFeeRateByBlock(lCtx, targetBlock);
 	}
 
 	amount_t lFee = lRate * lCtx->size(); 
@@ -526,9 +586,9 @@ TransactionContextPtr Wallet::createTxAssetType(const PKey& dest, const std::str
 	// try to estimate fee
 	qunit_t lRate = 0;
 	if (targetBlock == -1) {
-		lRate = mempool_->estimateFeeRateByLimit(lCtx, feeRateLimit);
+		lRate = mempool()->estimateFeeRateByLimit(lCtx, feeRateLimit);
 	} else {
-		lRate = mempool_->estimateFeeRateByBlock(lCtx, targetBlock);
+		lRate = mempool()->estimateFeeRateByBlock(lCtx, targetBlock);
 	}
 
 	amount_t lFee = lRate * lCtx->size(); 	
@@ -588,9 +648,9 @@ TransactionContextPtr Wallet::createTxLimitedAssetEmission(const PKey& dest, con
 	// try to estimate fee
 	qunit_t lRate = 0;
 	if (targetBlock == -1) {
-		lRate = mempool_->estimateFeeRateByLimit(lCtx, feeRateLimit);
+		lRate = mempool()->estimateFeeRateByLimit(lCtx, feeRateLimit);
 	} else {
-		lRate = mempool_->estimateFeeRateByBlock(lCtx, targetBlock);
+		lRate = mempool()->estimateFeeRateByBlock(lCtx, targetBlock);
 	}
 
 	amount_t lFee = lRate * lCtx->size(); 	

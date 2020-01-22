@@ -7,6 +7,15 @@
 
 #include "state.h"
 #include "key.h"
+
+namespace qbit {
+	class IConsensus;
+	typedef std::shared_ptr<IConsensus> IConsensusPtr;
+	class SynchronizationJob;
+	typedef std::shared_ptr<SynchronizationJob> SynchronizationJobPtr;
+}
+
+#include "synchronizationjob.h"
 #include "iconsensus.h"
 
 #include <boost/asio.hpp>
@@ -37,7 +46,11 @@ public:
 	IPeer() {}
 
 	virtual Status status() { throw qbit::exception("NOT_IMPL", "IPeer::status - not implemented."); }
+	virtual State& state() { throw qbit::exception("NOT_IMPL", "IPeer::state - not implemented."); }
 	virtual uint160 addressId() { throw qbit::exception("NOT_IMPL", "IPeer::addressId - not implemented."); }
+	virtual bool hasRole(State::PeerRoles /*role*/) { throw qbit::exception("NOT_IMPL", "IPeer::hasRole - not implemented."); }
+
+	virtual void close() { throw qbit::exception("NOT_IMPL", "IPeer::close - not implemented."); }
 
 	virtual std::string statusString() { throw qbit::exception("NOT_IMPL", "IPeer::statusString - not implemented."); }
 
@@ -46,6 +59,7 @@ public:
 
 	virtual PKey address() { throw qbit::exception("NOT_IMPL", "IPeer::address - not implemented."); }
 	virtual uint32_t latency() { throw qbit::exception("NOT_IMPL", "IPeer::latency - not implemented."); }
+	virtual uint32_t latencyPrev() { throw qbit::exception("NOT_IMPL", "IPeer::latencyPrev - not implemented."); }
 	virtual uint32_t quarantine() { throw qbit::exception("NOT_IMPL", "IPeer::quarantine - not implemented.");}
 	virtual int contextId() { throw qbit::exception("NOT_IMPL", "IPeer::contextId - not implemented."); }
 
@@ -66,6 +80,15 @@ public:
 	virtual void waitForMessage() { throw qbit::exception("NOT_IMPL", "IPeer::waitForMessage - not implemented."); }
 	virtual void ping() { throw qbit::exception("NOT_IMPL", "IPeer::ping - not implemented."); }
 	virtual void connect() { throw qbit::exception("NOT_IMPL", "IPeer::connect - not implemented."); }
+	virtual void requestPeers() { throw qbit::exception("NOT_IMPL", "IPeer::requestPeers - not implemented."); }
+
+	virtual void broadcastState(StatePtr /*state*/) { throw qbit::exception("NOT_IMPL", "IPeer::broadcastState - not implemented."); }
+	virtual void broadcastBlockHeader(const NetworkBlockHeader& /*blockHeader*/) { throw qbit::exception("NOT_IMPL", "IPeer::broadcastBlockHeader - not implemented."); }	
+
+	virtual void synchronizeFullChain(IConsensusPtr, SynchronizationJobPtr /*job*/) { throw qbit::exception("NOT_IMPL", "IPeer::synchronizeFullChain - not implemented."); }
+	virtual void synchronizeFullChainHead(IConsensusPtr, SynchronizationJobPtr /*job*/) { throw qbit::exception("NOT_IMPL", "IPeer::synchronizeFullChainHead - not implemented."); }
+
+	virtual void acquireBlock(const NetworkBlockHeader& /*block*/) { throw qbit::exception("NOT_IMPL", "IPeer::acquireBlock - not implemented."); }
 };
 
 typedef std::shared_ptr<IPeer> IPeerPtr;

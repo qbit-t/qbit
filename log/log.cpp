@@ -21,6 +21,8 @@ std::string _getLogCategoryText(Log::Category category) {
 		case Log::Category::WALLET: 	return "wallet";
 		case Log::Category::STORE: 		return "store ";
 		case Log::Category::NET: 		return "net   ";
+		case Log::Category::VALIDATOR:	return "val   ";
+		case Log::Category::CONSENSUS:	return "con   ";
 		case Log::Category::ALL: 		return "*     ";
 	}
 

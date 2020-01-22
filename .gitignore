@@ -13,4 +13,6 @@ qbitd
 *util
 */include/port
 *.log
+boost/bin.v2/
+boost/stage/
 

@@ -17,6 +17,7 @@
 
 namespace qbit {
 
+// TODO: Concurrency!!
 class MemoryPool: public IMemoryPool {
 public:
 	class TxTree {
@@ -61,6 +62,15 @@ public:
 		std::map<uint256 /*to*/, uint256 /*from*/>& reverse() { return reverse_; }
 
 		void cleanUp(TransactionContextPtr);
+		void remove(TransactionContextPtr);
+
+		bool isUnlinkedOutUsed(const uint256& utxo) {
+			return usedUtxo_.find(utxo) != usedUtxo_.end();
+		}
+
+		bool isUnlinkedOutExists(const uint256& utxo) {
+			return freeUtxo_.find(utxo) != freeUtxo_.end() || usedUtxo_.find(utxo) != usedUtxo_.end();
+		}
 
 		static std::shared_ptr<PoolStore> toStore(ITransactionStorePtr store) { return std::static_pointer_cast<PoolStore>(store); }
 
@@ -75,15 +85,16 @@ public:
 		// used utxo
 		std::map<uint256 /*utxo*/, bool> usedUtxo_;
 		// free utxo
-		std::map<uint256 /*utxo*/, bool> freeUtxo_;
+		std::map<uint256 /*utxo*/, Transaction::UnlinkedOutPtr> freeUtxo_;
 	};
 	typedef std::shared_ptr<PoolStore> PoolStorePtr;
 
 public:
-	MemoryPool(IConsensusPtr consensus, ITransactionStorePtr persistentStore, IEntityStorePtr entityStore) { 
+	MemoryPool(const uint256& chain, IConsensusPtr consensus, ITransactionStorePtr persistentStore, IEntityStorePtr entityStore) { 
 		consensus_ = consensus;
 		persistentStore_ = persistentStore; 
 		entityStore_ = entityStore;
+		chain_ = chain;
 
 		poolStore_ = PoolStore::instance(std::shared_ptr<IMemoryPool>(this)); 
 	}
@@ -91,12 +102,26 @@ public:
 	qunit_t estimateFeeRateByLimit(TransactionContextPtr /* ctx */, qunit_t /* max qunit\byte */);
 	qunit_t estimateFeeRateByBlock(TransactionContextPtr /* ctx */, uint32_t /* target block */);
 
+	virtual void setMainStore(ITransactionStorePtr store) { persistentMainStore_ = store; }
+
+	inline ITransactionStorePtr persistentMainStore() { return persistentMainStore_; }
 	inline ITransactionStorePtr persistentStore() { return persistentStore_; }
 	inline void setWallet(IWalletPtr wallet) { wallet_ = wallet; }
 
+	inline bool isUnlinkedOutUsed(const uint256&);
+	inline bool isUnlinkedOutExists(const uint256&);
+
 	inline static IMemoryPoolPtr instance(IConsensusPtr consensus, ITransactionStorePtr persistentStore, IEntityStorePtr entityStore) {
-		return std::make_shared<MemoryPool>(consensus, persistentStore, entityStore); 
+		return std::make_shared<MemoryPool>(MainChain::id(), consensus, persistentStore, entityStore); 
 	}
+
+	inline static IMemoryPoolPtr instance(const uint256& chain, IConsensusPtr consensus, ITransactionStorePtr persistentStore, IEntityStorePtr entityStore) {
+		return std::make_shared<MemoryPool>(chain, consensus, persistentStore, entityStore); 
+	}
+
+	void removeTransactions(BlockPtr);
+
+	uint256 chain() { return chain_; }	
 
 	bool close() {
 		consensus_.reset();
@@ -120,6 +145,10 @@ public:
 	// main entry
 	TransactionContextPtr pushTransaction(TransactionPtr);
 
+	//
+	// wallet
+	IWalletPtr wallet() { return wallet_; }
+
 private:
 	inline qunit_t getTop() {
 		std::multimap<qunit_t /*fee rate*/, uint256 /*tx*/>::reverse_iterator lBegin = map_.rbegin();
@@ -135,10 +164,12 @@ private:
 
 private:
 	IConsensusPtr consensus_;
+	ITransactionStorePtr persistentMainStore_;
 	ITransactionStorePtr persistentStore_;
 	ITransactionStorePtr poolStore_;
 	IWalletPtr wallet_;
 	IEntityStorePtr entityStore_;
+	uint256 chain_;
 
 	// weighted map
 	std::multimap<qunit_t /*fee rate*/, uint256 /*tx*/> map_;

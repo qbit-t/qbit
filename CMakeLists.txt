@@ -115,7 +115,8 @@ add_definitions(-DJM_MALLOC)
 add_subdirectory(./jm)
 add_subdirectory(./leveldb)
 
-include_directories(./secp256k1/src ./secp256k1 ./secp256k1/include ./leveldb ./lib)
+include_directories(./secp256k1/src ./secp256k1 ./secp256k1/include ./leveldb ./boost)
+link_directories(./boost/stage/lib)
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${SECP256K1})
 target_link_libraries(${PROJECT_NAME} jm leveldb boost_system boost_thread boost_chrono) #gmp
