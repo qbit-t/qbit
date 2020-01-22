@@ -38,6 +38,10 @@ int main(int argv, char** argc)
 		gLog().enableConsole();
 		lSuit << new ServerS2();
 	}
+	else if (argv > 1 && std::string(argc[1]) == "-S3") {
+		gLog().enableConsole();
+		lSuit << new ServerS3();
+	}
 	else {
 		lSuit << new RandomTest();
 		lSuit << new CreateKeySignAndVerifyMix();

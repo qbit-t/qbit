@@ -40,7 +40,6 @@ bool StoreQbitCreateSpend::execute() {
 
 		// 1. create
 		TransactionContextPtr lCtx = wallet_->createTxCoinBase(QBIT);
-		lCtx = mempool_->pushTransaction(lCtx->tx());
 
 		// 2. create block
 		BlockPtr lBlock = Block::instance();
