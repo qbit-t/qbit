@@ -37,18 +37,40 @@ public:
 	};
 
 public:
+	class PersistentState {
+	public:
+		PersistentState() {}
+		PersistentState(const State& state, IPeer::Status status) : state_(state), status_(status) {}
+
+		ADD_SERIALIZE_METHODS;
+
+		template <typename Stream, typename Operation>
+		inline void serializationOp(Stream& s, Operation ser_action) {
+			READWRITE(state_);
+			READWRITE((int)status_);
+		}
+
+		State& state() { return state_; }
+		IPeer::Status status() { return status_; }
+
+	private:
+		State state_;
+		IPeer::Status status_;
+	};
+
+public:
 	Peer() : status_(IPeer::UNDEFINED) { 
-		quarantine_ = 0; latency_ = 1000000; 
+		quarantine_ = 0; latencyPrev_ = latency_ = 1000000; 
 	}
 
 	Peer(SocketPtr socket, const State& state, IPeerManagerPtr peerManager) : 
-		socket_(socket), status_(IPeer::UNDEFINED), state_(state), latency_(1000000), quarantine_(0), peerManager_(peerManager) {
+		socket_(socket), status_(IPeer::UNDEFINED), state_(state), latency_(1000000), latencyPrev_(1000000), quarantine_(0), peerManager_(peerManager) {
 		socketStatus_ = CONNECTED;
 		socketType_ = SERVER;
 	}
 
 	Peer(int contextId, const std::string endpoint, IPeerManagerPtr peerManager) : 
-		socket_(nullptr), status_(IPeer::UNDEFINED), latency_(1000000), quarantine_(0), peerManager_(peerManager) {
+		socket_(nullptr), status_(IPeer::UNDEFINED), latency_(1000000), latencyPrev_(1000000), quarantine_(0), peerManager_(peerManager) {
 		contextId_ = contextId;
 		endpoint_ = endpoint;
 		socketType_ = CLIENT;
@@ -57,7 +79,7 @@ public:
 	}
 
 	Peer(int contextId, IPeerManagerPtr peerManager) : 
-		socket_(nullptr), status_(IPeer::UNDEFINED), latency_(1000000), quarantine_(0), peerManager_(peerManager) {
+		socket_(nullptr), status_(IPeer::UNDEFINED), latency_(1000000), latencyPrev_(1000000), quarantine_(0), peerManager_(peerManager) {
 		contextId_ = contextId;
 		socketStatus_ = CONNECTED;
 		socketType_ = SERVER;
@@ -65,12 +87,22 @@ public:
 	}
 
 	void setState(const State& state) { state_ = state; }
-	void setLatency(uint32_t latency) { latency_ = latency; }
+	void setLatency(uint32_t latency) { latencyPrev_ = latency_; latency_ = latency; }
+
+	bool hasRole(State::PeerRoles role) { return (state_.roles() & role) != 0; }
 
 	IPeer::Status status() { return status_; }
+	State& state() { return state_; }
+	void close() {
+		if (socket_) {
+			socket_->close();
+			socket_ = nullptr;
+		}
+	}
 
 	PKey address() { return state_.address(); }
 	uint32_t latency() { return latency_; }
+	uint32_t latencyPrev() { return latencyPrev_; }
 	uint32_t quarantine() { return quarantine_; }
 	int contextId() { return contextId_; }
 	bool isOutbound() { return socketType_ == CLIENT; }
@@ -112,16 +144,17 @@ public:
 	}
 
 	inline std::string key(SocketPtr socket) {
+		// TODO: we need to consider removing :port part from key for production
 		if (socket != nullptr) {
 			if (socketType_ == CLIENT) {
 				boost::system::error_code lEndpoint; socket->remote_endpoint(lEndpoint);
 				if (!lEndpoint)
-					return socket->remote_endpoint().address().to_string() + ":" + std::to_string(socket->remote_endpoint().port());
+					return (endpoint_ = socket->remote_endpoint().address().to_string() + ":" + std::to_string(socket->remote_endpoint().port()));
 			} else {
 				boost::system::error_code lLocalEndpoint; socket->local_endpoint(lLocalEndpoint);
 				boost::system::error_code lRemoteEndpoint; socket->remote_endpoint(lRemoteEndpoint);
 				if (!lLocalEndpoint && !lRemoteEndpoint)
-					return socket->remote_endpoint().address().to_string() + ":" + std::to_string(socket->remote_endpoint().port());
+					return (endpoint_ = socket->remote_endpoint().address().to_string() + ":" + std::to_string(socket->remote_endpoint().port()));
 			}
 		}
 
@@ -130,9 +163,15 @@ public:
 
 	void connect();
 	void ping();
-	void sendState();
+	void sendState() { internalSendState(peerManager_->consensusManager()->currentState(), false /*global_state*/); }
+	void broadcastState(StatePtr state) { internalSendState(state, true /*global_state*/); }
 	void requestPeers();
 	void waitForMessage();
+	void broadcastBlockHeader(const NetworkBlockHeader& /*blockHeader*/);
+
+	void synchronizeFullChain(IConsensusPtr, SynchronizationJobPtr /*job*/);
+	void synchronizeFullChainHead(IConsensusPtr, SynchronizationJobPtr /*job*/);
+	void acquireBlock(const NetworkBlockHeader& /*block*/);
 
 	std::string statusString() {
 		switch(status_) {
@@ -152,17 +191,33 @@ private:
 	// all processX functions - going to waitForMessage
 	void processMessage(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processState(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processGlobalState(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processPing(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processPong(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processSent(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
-	void processRequestPeers();
+	void processRequestPeers(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processPeers(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processBlockHeader(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+
+	void processGetBlockByHeight(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processGetBlockById(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processGetNetworkBlock(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+
+	void processBlockByHeight(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processBlockById(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processNetworkBlock(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+
+	void processBlockByHeightAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processBlockByIdAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processNetworkBlockAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 
 	// finalize - just remove sent message
 	void messageFinalize(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void peerFinalize(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void connected(const boost::system::error_code& error, tcp::resolver::iterator endpoint_iterator);
 	void resolved(const boost::system::error_code& err, tcp::resolver::iterator endpoint_iterator);
+
+	void internalSendState(StatePtr state, bool global);	
 
 private:
 	// service methods
@@ -179,15 +234,18 @@ private:
 	}
 
 	std::list<DataStream>::iterator newOutMessage() {
+		boost::unique_lock<boost::mutex> lLock(rawOutMutex_);
 		DataStream lMessage(SER_NETWORK, CLIENT_VERSION);
 		return rawOutMessages_.insert(rawOutMessages_.end(), lMessage);
 	}
 
 	std::list<DataStream>::iterator emptyOutMessage() {
+		boost::unique_lock<boost::mutex> lLock(rawOutMutex_);
 		return rawOutMessages_.end();
 	}
 
 	void eraseOutMessage(std::list<DataStream>::iterator msg) {
+		boost::unique_lock<boost::mutex> lLock(rawOutMutex_);
 		rawOutMessages_.erase(msg);
 	}
 
@@ -199,11 +257,30 @@ private:
 		rawInData_.erase(msg);
 	}
 
+	void addJob(const uint256& chain, SynchronizationJobPtr job) {
+		boost::unique_lock<boost::mutex> lLock(jobsMutex_);
+		if (jobs_.find(chain) == jobs_.end()) jobs_[chain] = job;
+	}
+
+	void removeJob(const uint256& chain) {
+		boost::unique_lock<boost::mutex> lLock(jobsMutex_);
+		jobs_.erase(chain);
+	}
+
+	SynchronizationJobPtr locateJob(const uint256& chain) {
+		boost::unique_lock<boost::mutex> lLock(jobsMutex_);
+		std::map<uint256, SynchronizationJobPtr>::iterator lJob = jobs_.find(chain);
+		if (lJob != jobs_.end()) return lJob->second;
+
+		return nullptr;
+	}
+
 private:
 	SocketPtr socket_;
 	IPeer::Status status_;
 	State state_;
 	uint32_t latency_;
+	uint32_t latencyPrev_;
 	uint32_t quarantine_;
 	std::string endpoint_;
 	std::shared_ptr<tcp::resolver> resolver_;
@@ -213,10 +290,16 @@ private:
 	std::list<DataStream> rawInMessages_;
 	std::list<DataStream> rawInData_;
 	std::list<DataStream> rawOutMessages_;
+	boost::mutex rawOutMutex_;
+
+	std::map<uint256, SynchronizationJobPtr> jobs_;
+	boost::mutex jobsMutex_;
 
 	IPeerManagerPtr peerManager_;
 	int contextId_ = -1;
 	int postponeTime_ = 0;
+
+	uint64_t peersPoll_ = 0;
 };
 
 }

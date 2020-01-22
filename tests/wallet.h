@@ -49,6 +49,10 @@ public:
 	qunit_t estimateFeeRateByBlock(TransactionContextPtr ctx, uint32_t targetBlock) {
 		return QUNIT * 5;
 	}
+
+	bool isUnlinkedOutUsed(const uint256&) { return false; }
+	bool isUnlinkedOutExists(const uint256&) { return false; }
+
 };
 
 class WalletQbitCreateSpend: public Unit {

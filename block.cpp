@@ -13,6 +13,12 @@ uint256 BlockHeader::hash() {
     return lStream.GetHash();
 }
 
+BlockPtr Block::clone() { 
+	BlockPtr lBlock = std::make_shared<Block>(*(static_cast<BlockHeader*>(this))); 
+	lBlock->transactions().insert(lBlock->transactions().end(), transactions_.begin(), transactions_.end());
+	return lBlock;
+}
+
 bool Block::equals(BlockPtr other) {
 	if (hash() == other->hash() && transactions_.size() == other->transactions_.size()) {
 		for (int lIdx = 0; lIdx < transactions_.size(); lIdx++) {

@@ -21,12 +21,12 @@ typedef std::shared_ptr<Server> ServerPtr;
 
 class Server {
 public:
-	Server(ISettingsPtr settings, IConsensusPtr consensus, IPeerManagerPtr peerManager) : 
-		Server(settings, consensus, peerManager, settings->serverPort()) {
+	Server(ISettingsPtr settings, IPeerManagerPtr peerManager) : 
+		Server(settings, peerManager, settings->serverPort()) {
 	}
 
-	Server(ISettingsPtr settings, IConsensusPtr consensus, IPeerManagerPtr peerManager, int port) : 
-		settings_(settings), consensus_(consensus), peerManager_(peerManager),
+	Server(ISettingsPtr settings, IPeerManagerPtr peerManager, int port) : 
+		settings_(settings), peerManager_(peerManager),
 		signals_(peerManager_->getContext(0)),
 		endpoint4_(tcp::v4(), port),
 		acceptor4_(peerManager_->getContext(0), endpoint4_) {
@@ -41,12 +41,12 @@ public:
 		accept4();
 	}
 
-	static ServerPtr instance(ISettingsPtr settings, IConsensusPtr consensus, IPeerManagerPtr peerManager) { 
-		return std::make_shared<Server>(settings, consensus, peerManager); 
+	static ServerPtr instance(ISettingsPtr settings, IPeerManagerPtr peerManager) { 
+		return std::make_shared<Server>(settings, peerManager); 
 	}
 
-	static ServerPtr instance(ISettingsPtr settings, IConsensusPtr consensus, IPeerManagerPtr peerManager, int port) { 
-		return std::make_shared<Server>(settings, consensus, peerManager, port); 
+	static ServerPtr instance(ISettingsPtr settings, IPeerManagerPtr peerManager, int port) { 
+		return std::make_shared<Server>(settings, peerManager, port); 
 	}
 
 	void run() {
@@ -83,7 +83,6 @@ private:
 
 private:
 	ISettingsPtr settings_;
-	IConsensusPtr consensus_;
 	IPeerManagerPtr peerManager_;
 
 	boost::asio::signal_set signals_;

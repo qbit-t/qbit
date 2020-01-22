@@ -5,7 +5,7 @@
 #ifndef QBIT_IPEER_MANAGER_H
 #define QBIT_IPEER_MANAGER_H
 
-#include "iconsensus.h"
+#include "iconsensusmanager.h"
 #include "isettings.h"
 #include "imemorypool.h"
 #include "ipeer.h"
@@ -19,6 +19,7 @@ public:
 
 	virtual bool exists(const std::string& /*endpoint*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::exists - not implemented."); }
 	virtual bool existsActive(const std::string& /*endpoint*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::existsActive - not implemented."); }
+	virtual bool existsBanned(const std::string& /*endpoint*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::existsBanned - not implemented."); }
 
 	virtual bool updatePeerState(IPeerPtr /*peer*/, State& /*state*/, IPeer::UpdatePeerResult& /*peerResult*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::updatePeerState - not implemented."); }
 	virtual bool updatePeerLatency(IPeerPtr /*peer*/, uint32_t /*latency*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::updatePeerLatency - not implemented."); }
@@ -29,11 +30,12 @@ public:
 	virtual void run() { throw qbit::exception("NOT_IMPL", "IPeerManager::run - not implemented."); }
 	virtual void stop() { throw qbit::exception("NOT_IMPL", "IPeerManager::stop - not implemented."); }
 
-	virtual bool addPeer(const std::string& /*endpoint*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::addPeer - not implemented."); }
+	virtual IPeerPtr addPeer(const std::string& /*endpoint*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::addPeer - not implemented."); }
 	virtual void deactivatePeer(IPeerPtr /*peer*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::deactivatePeer - not implemented."); }
 	virtual void removePeer(IPeerPtr /*peer*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::removePeer - not implemented."); }
 
-	virtual IConsensusPtr consensus() { throw qbit::exception("NOT_IMPL", "IPeerManager::consensus - not implemented."); }	
+	virtual IConsensusManagerPtr consensusManager() { throw qbit::exception("NOT_IMPL", "IPeerManager::consensusManager - not implemented."); }	
+	virtual IMemoryPoolManagerPtr memoryPoolManager() { throw qbit::exception("NOT_IMPL", "IPeerManager::memoryPoolManager - not implemented."); }	
 	virtual ISettingsPtr settings() { throw qbit::exception("NOT_IMPL", "IPeerManager::settings - not implemented."); }	
 
 	virtual void activePeers(std::vector<std::string>& /*peers container*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::activePeers - not implemented."); }

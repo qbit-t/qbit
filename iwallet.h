@@ -22,6 +22,8 @@ public:
 	virtual bool close() { throw qbit::exception("NOT_IMPL", "IWallet::close - not implemented."); }
 	virtual bool isOpened() { throw qbit::exception("NOT_IMPL", "IWallet::isOpened - not implemented."); }
 
+	virtual void cleanUpData() { throw qbit::exception("NOT_IMPL", "IWallet::cleanUpData - not implemented."); }
+
 	// key menagement
 	virtual SKey createKey(const std::list<std::string>&) { throw qbit::exception("NOT_IMPL", "IWallet::createKey - not implemented."); }
 	virtual SKey findKey(const PKey&) { throw qbit::exception("NOT_IMPL", "IWallet::findKey - not implemented."); }
@@ -73,6 +75,7 @@ public:
 	virtual amount_t balance() { return 0; } // qbit balance
 	virtual amount_t balance(const uint256& asset) { return 0; }
 	virtual void resetCache() { throw qbit::exception("NOT_IMPL", "IWallet::resetCache - not implemented."); }
+	virtual bool prepareCache() { throw qbit::exception("NOT_IMPL", "IWallet::prepareCache - not implemented."); }
 };
 
 typedef std::shared_ptr<IWallet> IWalletPtr;

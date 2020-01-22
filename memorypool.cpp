@@ -17,14 +17,16 @@ bool MemoryPool::PoolStore::pushTransaction(TransactionContextPtr ctx) {
 	// extract ins and check possible double linking and check pure qbit tx
 	for (std::vector<Transaction::In>::iterator lIn = ctx->tx()->in().begin(); lIn != ctx->tx()->in().end(); lIn++) {
 		uint256 lInHash = (*lIn).out().hash();
+		/*
 		if (usedUtxo_.find(lInHash) == usedUtxo_.end()) {
-			usedUtxo_.insert(std::map<uint256 /*utxo*/, bool>::value_type(lInHash, true));
+			usedUtxo_.insert(std::map<uint256, bool>::value_type(lInHash, true));
 		} else {
 			if (ctx->tx()->isValue(Transaction::UnlinkedOut::instance((*lIn).out()))) {
 				ctx->addError("E_OUT_USED|Output is already used.");
 				return false;
 			}
 		}
+		*/
 
 		freeUtxo_.erase(lInHash);
 
@@ -38,16 +40,32 @@ bool MemoryPool::PoolStore::pushTransaction(TransactionContextPtr ctx) {
 }
 
 void MemoryPool::PoolStore::cleanUp(TransactionContextPtr ctx) {
+	//
 	for (std::vector<Transaction::In>::iterator lIn = ctx->tx()->in().begin(); lIn != ctx->tx()->in().end(); lIn++) {
 		uint256 lInHash = (*lIn).out().hash();
 		usedUtxo_.erase(lInHash);
 	}
 }
 
+void MemoryPool::PoolStore::remove(TransactionContextPtr ctx) {
+	//
+	for (std::vector<Transaction::In>::iterator lIn = ctx->tx()->in().begin(); lIn != ctx->tx()->in().end(); lIn++) {
+		uint256 lInHash = (*lIn).out().hash();
+		usedUtxo_.erase(lInHash);
+		freeUtxo_.erase(lInHash);
+	}
+
+	forward_.erase(ctx->tx()->id()); // clean-up
+	reverse_.erase(ctx->tx()->id()); // clean-up
+	tx_.erase(ctx->tx()->id());
+}
+
 bool MemoryPool::PoolStore::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, TransactionContextPtr) {
 	uint256 lHash = utxo->out().hash();
-	if (freeUtxo_.find(lHash) == freeUtxo_.end() && !pool_->persistentStore()->isUnlinkedOutUsed(lHash)) {
-		freeUtxo_.insert(std::map<uint256 /*utxo*/, bool>::value_type(lHash, true));
+	if (freeUtxo_.find(lHash) == freeUtxo_.end() && 
+		(!pool_->persistentStore()->isUnlinkedOutUsed(lHash) || 
+			(pool_->persistentMainStore() && !pool_->persistentMainStore()->isUnlinkedOutUsed(lHash)))) {
+		freeUtxo_.insert(std::map<uint256 /*utxo*/, Transaction::UnlinkedOutPtr>::value_type(lHash, utxo));
 		return true;
 	}
 
@@ -55,20 +73,38 @@ bool MemoryPool::PoolStore::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, Tr
 }
 
 bool MemoryPool::PoolStore::popUnlinkedOut(const uint256& utxo, TransactionContextPtr ctx) {
-	if (freeUtxo_.erase(utxo)) {
+	std::map<uint256 /*utxo*/, Transaction::UnlinkedOutPtr>::iterator lFreeUtxo = freeUtxo_.find(utxo);
+	if (lFreeUtxo != freeUtxo_.end()) {
+		// case for mem-pool tx's only
+		// usedUtxo_.insert(std::map<uint256, bool>::value_type(utxo, true));
+
+		freeUtxo_.erase(lFreeUtxo);
+
+		if (usedUtxo_.find(utxo) == usedUtxo_.end()) {
+			usedUtxo_.insert(std::map<uint256, bool>::value_type(utxo, true));
+		} else {
+			if (ctx->tx()->isValue(lFreeUtxo->second)) {
+				ctx->addError("E_OUT_USED|Output is already used.");
+				return false;
+			}
+		}
+
 		return true;
 	}
 
 	// just check for existence
 	// usedUtxo_ already has all used and processed inputs
-	return pool_->persistentStore()->findUnlinkedOut(utxo) != nullptr;
+	return pool_->persistentStore()->findUnlinkedOut(utxo) != nullptr ||
+			(pool_->persistentMainStore() && pool_->persistentMainStore()->findUnlinkedOut(utxo) != nullptr);
 }
 
 TransactionPtr MemoryPool::PoolStore::locateTransaction(const uint256& hash) {
 	std::map<uint256 /*id*/, TransactionContextPtr /*tx*/>::iterator lTx = tx_.find(hash);
 	if (lTx != tx_.end()) return lTx->second->tx();
 
-	return pool_->persistentStore()->locateTransaction(hash);
+	TransactionPtr lTxPtr = pool_->persistentStore()->locateTransaction(hash);
+	if (lTxPtr == nullptr && pool_->persistentMainStore()) lTxPtr = pool_->persistentMainStore()->locateTransaction(hash);
+	return lTxPtr;
 }
 
 TransactionContextPtr MemoryPool::PoolStore::locateTransactionContext(const uint256& hash) {
@@ -81,6 +117,14 @@ TransactionContextPtr MemoryPool::PoolStore::locateTransactionContext(const uint
 //
 // MemoryPool
 //
+
+bool MemoryPool::isUnlinkedOutUsed(const uint256& utxo) {
+	return poolStore_->isUnlinkedOutUsed(utxo);
+}
+
+bool MemoryPool::isUnlinkedOutExists(const uint256& utxo) {
+	return poolStore_->isUnlinkedOutExists(utxo);
+}
 
 TransactionContextPtr MemoryPool::pushTransaction(TransactionPtr tx) {
 	//
@@ -104,6 +148,9 @@ TransactionContextPtr MemoryPool::pushTransaction(TransactionPtr tx) {
 	if (!lCtx->errors().size()) {
 		map_.insert(std::multimap<qunit_t /*fee rate*/, uint256 /*tx*/>::value_type(lCtx->feeRate(), lCtx->tx()->id()));
 	}
+
+	// 5. check if "qbit"
+	if (lCtx->qbitTx()) qbitTxs_[lCtx->tx()->id()] = lCtx;
 
 	return lCtx;
 }
@@ -155,7 +202,8 @@ bool MemoryPool::traverseLeft(TransactionContextPtr root, const TxTree& tree) {
 		// try pool store
 		TransactionContextPtr lTx = poolStore_->locateTransactionContext(lId);
 		if (lTx) const_cast<TxTree&>(tree).add(lTx);
-		else if (persistentStore_->locateTransactionContext(lId)) return true; // done
+		else if (persistentStore_->locateTransactionContext(lId) || 
+					(persistentMainStore_ && persistentMainStore_->locateTransactionContext(lId))) return true; // done
 		else return false;
 	}
 
@@ -244,8 +292,11 @@ BlockContextPtr MemoryPool::beginBlock(BlockPtr block) {
 	// set adjusted time
 	lCtx->block()->setTime(consensus_->currentTime());
 
-	// TODO: set chain
-	// lCtx->block()->setChain(?);	
+	// set chain
+	lCtx->block()->setChain(chain_);
+
+	// set prev block
+	lCtx->block()->setPrev(persistentStore_->currentBlockHeader().hash());
 
 	return lCtx;
 }
@@ -254,12 +305,24 @@ void MemoryPool::commit(BlockContextPtr ctx) {
 	//
 	PoolStorePtr lPoolStore = PoolStore::toStore(poolStore_);
 	for (std::map<uint256 /*tx*/, TransactionContextPtr /*obj*/>::iterator lItem = ctx->txs().begin(); lItem != ctx->txs().end(); lItem++) {
-		lPoolStore->forward().erase(lItem->first); // clean-up
-		lPoolStore->reverse().erase(lItem->first); // clean-up
-		lPoolStore->cleanUp(lItem->second); // clean-up
+		//lPoolStore->forward().erase(lItem->first); // clean-up
+		//lPoolStore->reverse().erase(lItem->first); // clean-up
+		//lPoolStore->cleanUp(lItem->second); // clean-up
+		lPoolStore->remove(lItem->second);
 	}
 
 	for (std::list<BlockContext::_poolEntry>::iterator lEntry = ctx->poolEntries().begin(); lEntry != ctx->poolEntries().end(); lEntry++) {
+		qbitTxs_.erase((*lEntry)->second);
 		map_.erase(std::next(*lEntry).base());
+	}
+}
+
+void MemoryPool::removeTransactions(BlockPtr block) {
+	PoolStorePtr lPoolStore = PoolStore::toStore(poolStore_);
+	for (TransactionsContainer::iterator lTx = block->transactions().begin(); lTx != block->transactions().end(); lTx++) {
+		TransactionContextPtr lCtx = poolStore_->locateTransactionContext((*lTx)->id());
+		if (lCtx) {
+			lPoolStore->remove(lCtx);
+		}
 	}
 }

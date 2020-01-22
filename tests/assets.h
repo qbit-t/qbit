@@ -165,6 +165,8 @@ public:
 		return true;
 	}
 
+	BlockHeader currentBlockHeader() { return BlockHeader(); }
+
 	void addLink(const uint256& /*from*/, const uint256& /*to*/) { }
 
 	BlockContextPtr pushBlock(BlockPtr block) {

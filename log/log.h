@@ -16,17 +16,19 @@ namespace qbit {
 
 class Log {
 public:
-	enum Category : uint32_t {
-		NONE	= 0,
-		INFO	= (1 <<  0),
-		WARNING	= (1 <<  1),
-		ERROR	= (1 <<  2),
-		DB 		= (1 <<  3),
-		POOL	= (1 <<  4),
-		WALLET	= (1 <<  5),
-		STORE	= (1 <<  6),
-		NET		= (1 <<  7),
-		ALL		= ~(uint32_t)0
+	enum Category: uint32_t {
+		NONE		= 0,
+		INFO		= (1 <<  0),
+		WARNING		= (1 <<  1),
+		ERROR		= (1 <<  2),
+		DB 			= (1 <<  3),
+		POOL		= (1 <<  4),
+		WALLET		= (1 <<  5),
+		STORE		= (1 <<  6),
+		NET			= (1 <<  7),
+		VALIDATOR	= (1 <<  8),
+		CONSENSUS	= (1 <<  9),
+		ALL			= ~(uint32_t)0
 	};
 
 	Log(const std::string& name) : name_ (name) {}
@@ -38,6 +40,9 @@ public:
 
 	bool isEnabled(Category category) { return (categories_.load(std::memory_order_relaxed) & category) != 0; }
 
+	void enableConsole() { console_ = true; }
+	void disableConsole() { console_ = false; }
+
 private:
 	std::string timestamp();
 	bool open();
@@ -47,7 +52,7 @@ private:
 	std::mutex mutex_;
 	std::atomic_bool startedNewLine_ {true};
 	std::atomic<uint32_t> categories_ {0};
-	bool console_ = true;
+	bool console_ = false;
 	
 	std::string name_;
 };

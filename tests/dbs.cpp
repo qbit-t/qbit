@@ -1,4 +1,5 @@
 #include "dbs.h"
+#include "../mkpath.h"
 
 using namespace qbit;
 using namespace qbit::tests;
@@ -6,6 +7,8 @@ using namespace qbit::tests;
 bool DbContainerCreate::execute() {
 
 	try {
+		rmpath("/tmp/db_test");
+
 		db::DbContainer<std::string, std::string> lContainer("/tmp/db_test");
 		lContainer.open();
 
@@ -138,6 +141,7 @@ bool DbEntityContainerCreate::execute() {
 		TransactionPtr lTx1 = createTx1(utxo);
 
 	try {
+		rmpath("/tmp/db_tx");
 		db::DbEntityContainer<uint256, Transaction> lTxContainer("/tmp/db_tx");
 		lTxContainer.open();
 
@@ -162,6 +166,8 @@ bool DbEntityContainerCreate::execute() {
 	}
 	
 	try {
+		rmpath("/tmp/db_block");
+
 		db::DbEntityContainer<uint256, Block> lBlockContainer("/tmp/db_block");
 		lBlockContainer.open();
 
@@ -218,6 +224,8 @@ bool DbContainerIterator::execute() {
 bool DbMultiContainerIterator::execute() {
 
 	try {
+		rmpath("/tmp/db_multi_string");
+
 		db::DbMultiContainer<std::string, std::string> lContainer("/tmp/db_multi_string");
 		lContainer.open();
 
@@ -261,6 +269,8 @@ bool DbMultiContainerIterator::execute() {
 	}
 
 	try {
+		rmpath("/tmp/db_multi_int");
+
 		db::DbMultiContainer<int, std::string> lContainer("/tmp/db_multi_int");
 		lContainer.open();
 
@@ -337,6 +347,8 @@ bool DbContainerTransaction::execute() {
 bool DbEntityContainerTransaction::execute() {
 
 	try {
+		rmpath("/tmp/db_tx_transaction");
+
 		db::DbEntityContainer<uint256, Transaction> lTxContainer("/tmp/db_tx_transaction");
 		lTxContainer.open();
 

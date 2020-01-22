@@ -22,7 +22,17 @@ namespace qbit {
 // TODO: concurrency model!
 class Wallet: public IWallet {
 public:
-	//explicit Wallet() {}
+	Wallet(ISettingsPtr settings) : 
+		settings_(settings),
+		keys_(settings_->dataPath() + "/wallet/keys"), 
+		utxo_(settings_->dataPath() + "/wallet/utxo"), 
+		assets_(settings_->dataPath() + "/wallet/assets"), 
+		entities_(settings_->dataPath() + "/wallet/entities")
+	{
+		opened_ = false;
+		useUtxoCache_ = false;
+	}
+
 	Wallet(ISettingsPtr settings, IMemoryPoolPtr mempool, IEntityStorePtr entityStore) : 
 		settings_(settings), mempool_(mempool), entityStore_(entityStore),
 		keys_(settings_->dataPath() + "/wallet/keys"), 
@@ -38,9 +48,14 @@ public:
 		return std::make_shared<Wallet>(settings, mempool, entityStore); 
 	}
 
-	void setTransactionStore(ITransactionStorePtr persistentStore) {
-		persistentStore_ = persistentStore;
+	static IWalletPtr instance(ISettingsPtr settings) {
+		return std::make_shared<Wallet>(settings); 
 	}
+
+	void setTransactionStore(ITransactionStorePtr persistentStore) { persistentStore_ = persistentStore; }
+	void setStoreManager(ITransactionStoreManagerPtr persistentStoreManager) { persistentStoreManager_ = persistentStoreManager; }
+	void setMemoryPoolManager(IMemoryPoolManagerPtr mempoolManager) { mempoolManager_ = mempoolManager; }
+	void setEntityStore(IEntityStorePtr entityStore) { entityStore_ = entityStore; }
 
 	// key management
 	SKey createKey(const std::list<std::string>&);
@@ -81,8 +96,11 @@ public:
 		entitiesCache_.clear();
 	}
 
+	bool prepareCache();	
+
 	// clean-up assets utxo
 	void cleanUp();
+	void cleanUpData(); 
 
 	// dump utxo by asset
 	void dumpUnlinkedOutByAsset(const uint256&, std::stringstream&);
@@ -115,7 +133,6 @@ public:
 	TransactionContextPtr createTxLimitedAssetEmission(const PKey& /*dest*/, const uint256& /*asset*/);
 
 private:
-	bool prepareCache();
 	amount_t fillInputs(TxSpendPtr /*tx*/, const uint256& /*asset*/, amount_t /*amount*/);
 	TransactionContextPtr makeTxSpend(Transaction::Type /*type*/, const uint256& /*asset*/, const PKey& /*dest*/, amount_t /*amount*/, qunit_t /*fee limit*/, int32_t /*targetBlock*/);
 	Transaction::UnlinkedOutPtr findUnlinkedOutByEntity(const uint256& /*entity*/);
@@ -128,14 +145,52 @@ private:
 		if (useUtxoCache_) utxoCache_.erase(hash);
 	}
 
+	IMemoryPoolPtr mempool() {
+		// TODO: chain id?
+		if (mempoolManager_ == nullptr) { 
+			return mempool_; 
+		}
+		return mempoolManager_->locate(MainChain::id());
+	}
+
+	bool isUnlinkedOutUsed(const uint256& utxo) {
+		if (!mempool()->isUnlinkedOutUsed(utxo)) {
+			// TODO: implement isUnlinkedOutUsed in store manager
+			if (persistentStoreManager_) {
+				return persistentStoreManager_->locate(MainChain::id())->isUnlinkedOutUsed(utxo);
+			}
+
+			return persistentStore_->isUnlinkedOutUsed(utxo);
+		}
+
+		return true;
+	}
+
+	bool isUnlinkedOutExists(const uint256& utxo) {
+		if (!mempool()->isUnlinkedOutExists(utxo)) {
+			// TODO: implement isUnlinkedOutUsed in store manager
+			if (persistentStoreManager_) {
+				return persistentStoreManager_->locate(MainChain::id())->isUnlinkedOutExists(utxo);
+			}
+
+			return persistentStore_->isUnlinkedOutExists(utxo);
+		}
+
+		return true;
+	}
+
 private:
 	// various settings, command line args & config file
 	ISettingsPtr settings_;
-	// memory poool
+	// memory pool
+	IMemoryPoolManagerPtr mempoolManager_;
+	// main pool
 	IMemoryPoolPtr mempool_;
 	// entity store
 	IEntityStorePtr entityStore_;
-	// tranaction store
+	// store manager
+	ITransactionStoreManagerPtr persistentStoreManager_;
+	// main store
 	ITransactionStorePtr persistentStore_;
 	// wallet keys
 	db::DbContainer<uint160 /*id*/, SKey> keys_;

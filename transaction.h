@@ -76,6 +76,7 @@ public:
 		CONTRACT 				= 0x0010,	// Smart-contract publishing
 		EVENT 					= 0x0011,	// Publish non-persistable event as transaction (ignition for smart-contracts processing)
 		MESSAGE					= 0x0012,	// Create and send encrypted message (up to 256 bytes)
+		CHAIN					= 0x0013,	// Create chain (shard) transaction 
 
 		// entity / action
 		ASSET_TYPE 				= 0x0020, 	// Create crypto-asset type and embed crypto-asset specification as meta-data
@@ -178,7 +179,7 @@ public:
 			READWRITE(ownership_);
 		}
 
-		Link& out() { return  out_; }
+		Link& out() { return out_; }
 		qasm::ByteCode& ownership() { return ownership_; }
 
 		void setOwnership(const qasm::ByteCode& ownership) { ownership_ = ownership; }

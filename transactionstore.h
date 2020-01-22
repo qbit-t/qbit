@@ -154,23 +154,22 @@ public:
 	};
 
 public:
-	TransactionStore(const uint256& chain, ISettingsPtr settings, IConsensusPtr consensus) : 
+	TransactionStore(const uint256& chain, ISettingsPtr settings) : 
 		chain_(chain),
 		settings_(settings),
-		consensus_(consensus),
 		opened_(false),
+		workingSettings_(settings_->dataPath() + "/" + chain.toHex() + "/settings"),
 		headers_(settings_->dataPath() + "/" + chain.toHex() + "/headers"), 
 		transactions_(settings_->dataPath() + "/" + chain.toHex() + "/transactions"), 
 		utxo_(settings_->dataPath() + "/" + chain.toHex() + "/utxo"), 
 		ltxo_(settings_->dataPath() + "/" + chain.toHex() + "/ltxo"), 
 		entities_(settings_->dataPath() + "/" + chain.toHex() + "/entities"), 
-		timeIdx_(settings_->dataPath() + "/" + chain.toHex() + "/indexes/time"), 
 		transactionsIdx_(settings_->dataPath() + "/" + chain.toHex() + "/indexes/transactions"), 
 		addressAssetUtxoIdx_(settings_->dataPath() + "/" + chain.toHex() + "/indexes/utxo"),
 		blockUtxoIdx_(settings_->dataPath() + "/" + chain.toHex() + "/indexes/blocks")
 	{}
 
-	// stubs
+	// stub
 	bool pushTransaction(TransactionContextPtr) {}
 	TransactionContextPtr pushTransaction(TransactionPtr) { return nullptr; }
 
@@ -186,11 +185,17 @@ public:
 	void setWallet(IWalletPtr wallet) { wallet_ = wallet; }
 	
 	BlockContextPtr pushBlock(BlockPtr); // sync blocks
-	bool commitBlock(BlockContextPtr); // from mempool->beginBlock()
+	bool commitBlock(BlockContextPtr, size_t&); // from mempool->beginBlock()
+	bool setLastBlock(const uint256& /*block*/);
+	void saveBlock(BlockPtr); // just save block
+	void reindexFull(const uint256&, IMemoryPoolPtr /*pool*/); // rescan and re-fill indexes and local wallet
+	void reindex(const uint256&, const uint256&, IMemoryPoolPtr /*pool*/); // rescan and re-fill indexes and local wallet
 
 	IEntityStorePtr entityStore() {
 		return std::static_pointer_cast<IEntityStore>(shared_from_this());
 	}
+
+	uint256 chain() { return chain_; }	
 
 	// store management
 	bool open();
@@ -203,41 +208,56 @@ public:
 	bool isUnlinkedOutUsed(const uint256&);
 	bool isUnlinkedOutExists(const uint256&);
 
+	bool enqueueBlock(const uint256& /*block*/);
+	void dequeueBlock(const uint256& /*block*/);
+
 	Transaction::UnlinkedOutPtr findUnlinkedOut(const uint256&);
 
-	bool rollbackToHeight(size_t);
 	bool resyncHeight();
 
-	size_t currentHeight();
+	void erase(const uint256& /*from*/, const uint256& /*to*/); // erase indexes, reverse order (native)
+	void remove(const uint256& /*from*/, const uint256& /*to*/); // remove indexes with data (headers, transactions), reverse order (native)
+	bool processBlocks(const uint256& /*from*/, const uint256& /*to*/, std::list<BlockContextPtr>& /*ctxs*/);	// re\process blocks, forward order
+
+	BlockPtr block(size_t /*height*/);
+	BlockPtr block(const uint256& /*id*/);
+	bool blockExists(const uint256& /*id*/);
+
+	size_t currentHeight(BlockHeader&);
 	BlockHeader currentBlockHeader();
 
-	static ITransactionStorePtr instance(const uint256& chain, ISettingsPtr settings, IConsensusPtr consensus) {
-		return std::make_shared<TransactionStore>(chain, settings, consensus); 
+	static ITransactionStorePtr instance(const uint256& chain, ISettingsPtr settings) {
+		return std::make_shared<TransactionStore>(chain, settings); 
 	}	
 
-	static ITransactionStorePtr instance(ISettingsPtr settings, IConsensusPtr consensus) {
-		return std::make_shared<TransactionStore>(MainChain::id(), settings, consensus); 
+	static ITransactionStorePtr instance(ISettingsPtr settings) {
+		return std::make_shared<TransactionStore>(MainChain::id(), settings); 
 	}	
 
 private:
-	bool processBlock(BlockContextPtr, bool /*processWallet*/);
+	bool processBlock(BlockContextPtr, size_t& /*new height*/, bool /*processWallet*/);
+	void removeBlocks(const uint256& /*from*/, const uint256& /*to*/, bool /*removeData*/);
+	void writeLastBlock(const uint256&);
+	size_t pushNewHeight(const uint256&);
 
 private:
 	// chain id
 	uint256 chain_;
 	// various settings, command line args & config file
 	ISettingsPtr settings_;
-	// consensus settings and processing
-	IConsensusPtr consensus_;
 	// local wallet
 	IWalletPtr wallet_;
 	// flag
 	bool opened_;
+	// last block
+	uint256 lastBlock_;
 
 	//
 	// main data
 	//
 
+	// persistent settings
+	db::DbContainer<std::string /*name*/, std::string /*data*/> workingSettings_;
 	// block headers
 	db::DbContainer<uint256 /*block*/, BlockHeader /*data*/> headers_;
 	// block transactions
@@ -253,19 +273,19 @@ private:
 	// indexes
 	//
 
-	// time-to-block
-	db::DbContainer<uint64_t /*time*/, uint256 /*block*/> timeIdx_;
 	// tx-to-block|index
 	db::DbContainer<uint256 /*tx*/, TxBlockIndex /*block|index*/> transactionsIdx_;
 	// address|asset|utxo -> tx
 	db::DbThreeKeyContainer<uint160 /*address*/, uint256 /*asset*/, uint256 /*utxo*/, uint256 /*tx*/> addressAssetUtxoIdx_;
 	// block | utxo
-	db::DbMultiContainer<uint256 /*block*/, uint256 /*utxo*/> blockUtxoIdx_; // TODO: implement	
+	db::DbMultiContainer<uint256 /*block*/, uint256 /*utxo*/> blockUtxoIdx_;
 
 	//
-	// cache
+	boost::mutex storageMutex_;
+	std::map<size_t, uint256> heightMap_;
+
 	//
-	std::vector<uint256> height_;
+	std::set<uint256> blocksQueue_;
 };
 
 } // qbit

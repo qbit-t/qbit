@@ -7,6 +7,7 @@
 
 #include "key.h"
 #include "amount.h"
+#include "state.h"
 
 namespace qbit {
 
@@ -24,6 +25,15 @@ public:
 	virtual size_t maxMessageSize() { return 1024 * 1024; } // max incoming message size
 
 	virtual size_t threadPoolSize() { return 4; } // tread pool size
+
+	virtual uint64_t consensusSynchronizationLatency() { return 30; } // latency in seconds
+
+	virtual uint32_t roles() { return State::PeerRoles::FULLNODE|State::PeerRoles::MINER; } // default role	
+
+	virtual bool isMiner() { uint32_t lRoles(roles()); return (lRoles & State::PeerRoles::MINER) != 0; }
+	virtual bool isNode() { uint32_t lRoles(roles());  return (lRoles & State::PeerRoles::NODE) != 0; }
+	virtual bool isFullNode() { uint32_t lRoles(roles()); return (lRoles & State::PeerRoles::FULLNODE) != 0; }
+	virtual bool isClient() { uint32_t lRoles(roles()); return (lRoles & State::PeerRoles::CLIENT) != 0; }
 };
 
 typedef std::shared_ptr<ISettings> ISettingsPtr;
