@@ -11,6 +11,7 @@
 #include "memorypool.h"
 #include "transactionstore.h"
 #include "server.h"
+#include "httpserver.h"
 
 #include "../log/log.h"
 
@@ -42,7 +43,10 @@ int main(int argv, char** argc)
 		gLog().enableConsole();
 		lSuit << new ServerS3();
 	}
-	else {
+	else if (argv > 1 && std::string(argc[1]) == "-http") {
+		gLog().enableConsole();
+		lSuit << new ServerHttp();
+	} else {
 		lSuit << new RandomTest();
 		lSuit << new CreateKeySignAndVerifyMix();
 		lSuit << new VMMovCmp();

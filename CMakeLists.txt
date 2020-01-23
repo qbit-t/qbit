@@ -54,6 +54,12 @@ set(SOURCES
 	./memorypool.cpp
 	./transactionstore.cpp
 	./peer.cpp
+	./httpconnection.cpp
+	./httpconnectionmanager.cpp
+	./httpreply.cpp
+	./httprequesthandler.cpp
+	./httprequestparser.cpp
+	./json.cpp
 )
 
 set(UNITTESTS
@@ -93,6 +99,12 @@ set(UNITTESTS
 	./memorypool.cpp
 	./transactionstore.cpp
 	./peer.cpp
+	./httpconnection.cpp
+	./httpconnectionmanager.cpp
+	./httpreply.cpp
+	./httprequesthandler.cpp
+	./httprequestparser.cpp
+	./json.cpp
 
 	./tests/testsuit.cpp
 	./tests/unittest.cpp
@@ -107,6 +119,7 @@ set(UNITTESTS
 	./tests/memorypool.cpp
 	./tests/transactionstore.cpp
 	./tests/server.cpp
+	./tests/httpserver.cpp
 )
 
 add_definitions(-DHAVE_CONFIG_H)

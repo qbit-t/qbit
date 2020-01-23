@@ -8,6 +8,10 @@
 #define RAPIDJSON_HAS_STDSTRING 1
 #define RAPIDJSON_HAS_CXX11_RVALUE_REFS 0
 
+//
+// allocator.h _MUST_ be included BEFORE all other
+//
+#include "allocator.h"
 #include "rapidjson/prettywriter.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/document.h"
@@ -20,8 +24,7 @@
 namespace qbit {
 namespace json {
 
-enum ValueType
-{
+enum ValueType {
 	Null,
 	Bool,
 	Object,
@@ -36,8 +39,7 @@ enum ValueType
 };
 
 template <typename Type, bool arrayed = true>
-class RawPointerGuard
-{
+class RawPointerGuard {
 public:
 	RawPointerGuard(Type * pointer) : pointer_(pointer) {}
 	RawPointerGuard(const RawPointerGuard<Type>& right) { pointer_ = right.pointer_; }
@@ -59,15 +61,13 @@ typedef rapidjson::PrettyWriter<RapidJsonOutputStream, rapidjson::UTF8<>, rapidj
 //
 // implementation of "::Json"
 //
-class Error
-{
+class Error {
 public:
 	static std::string getError(int);
 };
 
 class Value;
-class ValueMemberIterator
-{
+class ValueMemberIterator {
 private:
 	explicit ValueMemberIterator() : document_(0) {}
 
@@ -76,14 +76,12 @@ public:
 
 	ValueMemberIterator& operator++ (int) { return operator++(); }
 	ValueMemberIterator& operator-- (int) { return operator--(); }
-	ValueMemberIterator& operator++ ()
-	{
+	ValueMemberIterator& operator++ () {
 		iterator_++;
 		return *this;
 	}
 
-	ValueMemberIterator& operator-- ()
-	{
+	ValueMemberIterator& operator-- () {
 		iterator_--;
 		return *this;
 	}
@@ -100,8 +98,7 @@ private:
 };
 
 class Document;
-class Value
-{
+class Value {
 public:
 	explicit Value() { value_ = 0; document_ = 0; }
 
@@ -110,10 +107,8 @@ public:
 	virtual ~Value() {}
 
 	// get/set value
-	bool getBool()
-	{
-		if (isBool())
-		{
+	bool getBool() {
+		if (isBool()) {
 			if (isFalse()) return false;
 			return true;
 		}
@@ -121,80 +116,67 @@ public:
 		return false;
 	}
 
-	void setBool(bool value)
-	{
+	void setBool(bool value) {
 		checkReference();
 		value_->SetBool(value);
 	}
 
-	std::string getString()
-	{
+	std::string getString() {
 		checkReference();
 		return std::string(value_->GetString());
 	}
 
-	void setString(const std::string& value)
-	{
+	void setString(const std::string& value) {
 		checkReference();
 		value_->SetString(value, document_->GetAllocator());
 	}
 
-	int getInt()
-	{
+	int getInt() {
 		checkReference();
 		return value_->GetInt();
 	}
 
-	void setInt(int value)
-	{
+	void setInt(int value) {
 		checkReference();
 		value_->SetInt(value);
 	}
 
-	unsigned int getUInt()
-	{
+	unsigned int getUInt() {
 		checkReference();
 		return value_->GetUint();
 	}
 
-	void setUInt(unsigned int value)
-	{
+	void setUInt(unsigned int value) {
 		checkReference();
 		value_->SetUint(value);
 	}
 
-	int64_t getInt64()
-	{
+	int64_t getInt64() {
 		checkReference();
 		return value_->GetInt64();
 	}
 
-	void setInt64(int64_t value)
-	{
+	void setInt64(int64_t value) {
 		checkReference();
 		value_->SetInt64(value);
 	}
 
-	uint64_t getUInt64()
-	{
+	uint64_t getUInt64() {
 		checkReference();
 		return value_->GetUint64();
 	}
 
-	void setUInt64(uint64_t value)
-	{
+	void setUInt64(uint64_t value) {
 		checkReference();
 		value_->SetUint64(value);
 	}
 
-	double getDouble()
-	{
+	double getDouble() {
 		checkReference();
 		return value_->GetDouble();
 	}
 
-	void setDouble(double value)
-	{
+	void setDouble(double value) {
 		checkReference();
 		value_->SetDouble(value);
 	}
@@ -239,7 +221,7 @@ public:
 	void toObject() { checkReference(); value_->SetObject(); }
 
 	Value addBool(const std::string&, bool);
-	Value addString(const std::string&, const std::wstring&);
+	Value addString(const std::string&, const std::string&);
 	Value addInt(const std::string&, int);
 	Value addUInt(const std::string&, unsigned int);
 	Value addInt64(const std::string&, int64_t);
@@ -260,13 +242,11 @@ public:
 	virtual void clone(Document&);
 
 private:
-	void checkReference() const
-	{
+	void checkReference() const {
 		if (!value_) NULL_REFERENCE_EXCEPTION();
 	}
 
-	void assign(RapidJsonValue* value, RapidJsonDocument* document)
-	{
+	void assign(RapidJsonValue* value, RapidJsonDocument* document)	{
 		value_ = value;
 		document_ = document;
 	}
@@ -277,21 +257,19 @@ private:
 };
 
 // json::Document
-class Document : public Value
-{
+class Document : public Value {
 	friend class Value;
 
 public:
 	Document() : Value(document_, document_) {}
 	virtual ~Document() {}
-	void loadFromString(const std::string&);
-	void loadFromStream(const std::vector<unsigned char>&);
-	void loadFromFile(const std::string&);
+	bool loadFromString(const std::string&);
+	bool loadFromStream(const std::vector<unsigned char>&);
+	bool loadFromFile(const std::string&);
 	bool hasErrors();
 	std::string lastError();
 	void writeToString(std::string&);
 	void writeToStream(std::vector<unsigned char>&);
-	void saveToFile(const std::string& dest);
 	Value operator[](const std::string& name);
 	Value addObject(const std::string&);
 	Value addArray(const std::string&);
