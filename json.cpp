@@ -4,10 +4,8 @@ using namespace qbit::json;
 
 rapidjson::CrtAllocator gAllocator;
 
-std::string Error::getError(int code)
-{
-	switch(code)
-	{
+std::string Error::getError(int code) {
+	switch(code) {
 		case rapidjson::ParseErrorCode::kParseErrorNone: return std::string("No error.");
 		case rapidjson::ParseErrorCode::kParseErrorDocumentEmpty: return std::string("The document is empty.");
 		case rapidjson::ParseErrorCode::kParseErrorDocumentRootNotSingular: return std::string("The document root must not follow by other values.");
@@ -33,21 +31,18 @@ std::string Error::getError(int code)
 //
 // Iterator
 //
-Value ValueMemberIterator::getValue()
-{
+Value ValueMemberIterator::getValue() {
 	return Value(iterator_->value, *document_);
 }
 
-std::string ValueMemberIterator::getName()
-{
+std::string ValueMemberIterator::getName() {
 	return std::string(iterator_->name.GetString());
 }
 
 //
 // Value
 //
-ValueType Value::type()
-{
+ValueType Value::type() {
 	if (isBool()) return ValueType::Bool;
 	else if(isString()) return ValueType::String;
 	else if (isInt()) return ValueType::Int;
@@ -60,20 +55,17 @@ ValueType Value::type()
 	return ValueType::Null;
 }
 
-Value Value::operator[](const std::string& name)
-{
+Value Value::operator[](const std::string& name) {
 	checkReference();
 	return Value(value_->operator[](name), *document_);
 }
 
-Value Value::operator[](size_t index)
-{
+Value Value::operator[](size_t index) {
 	checkReference();
 	return Value(value_->operator[](index), *document_);
 }
 
-bool Value::find(const std::string& name, Value& value)
-{
+bool Value::find(const std::string& name, Value& value) {
 	checkReference();
 
 	if (value_->IsNull()) return false;
@@ -88,8 +80,7 @@ bool Value::find(const std::string& name, Value& value)
 	return false;
 }
 
-Value Value::addBool(const std::string& name, bool value)
-{
+Value Value::addBool(const std::string& name, bool value) {
 	checkReference();
 
 	RapidJsonValue lName, lValue; lName.SetString(name, document_->GetAllocator());
@@ -100,8 +91,7 @@ Value Value::addBool(const std::string& name, bool value)
 	return Value(value_->AddMember(lName, lValue, document_->GetAllocator()), *document_);
 }
 
-Value Value::addString(const std::string& name, const std::string& value)
-{
+Value Value::addString(const std::string& name, const std::string& value) {
 	checkReference();
 
 	RapidJsonValue lName, lValue; lName.SetString(name, document_->GetAllocator());
@@ -112,8 +102,7 @@ Value Value::addString(const std::string& name, const std::string& value)
 	return Value(value_->AddMember(lName, lValue, document_->GetAllocator()), *document_);
 }
 
-Value Value::addInt(const std::string& name, int value)
-{
+Value Value::addInt(const std::string& name, int value) {
 	checkReference();
 
 	RapidJsonValue lName, lValue; lName.SetString(name, document_->GetAllocator());
@@ -124,8 +113,7 @@ Value Value::addInt(const std::string& name, int value)
 	return Value(value_->AddMember(lName, lValue, document_->GetAllocator()), *document_);
 }
 
-Value Value::addUInt(const std::string& name, unsigned int value)
-{
+Value Value::addUInt(const std::string& name, unsigned int value) {
 	checkReference();
 
 	RapidJsonValue lName, lValue; lName.SetString(name, document_->GetAllocator());
@@ -136,8 +124,7 @@ Value Value::addUInt(const std::string& name, unsigned int value)
 	return Value(value_->AddMember(lName, lValue, document_->GetAllocator()), *document_);
 }
 
-Value Value::addInt64(const std::string& name, int64_t value)
-{
+Value Value::addInt64(const std::string& name, int64_t value) {
 	checkReference();
 
 	RapidJsonValue lName, lValue; lName.SetString(name, document_->GetAllocator());
@@ -148,8 +135,7 @@ Value Value::addInt64(const std::string& name, int64_t value)
 	return Value(value_->AddMember(lName, lValue, document_->GetAllocator()), *document_);
 }
 
-Value Value::addUInt64(const std::string& name, uint64_t value)
-{
+Value Value::addUInt64(const std::string& name, uint64_t value) {
 	checkReference();
 
 	RapidJsonValue lName, lValue; lName.SetString(name, document_->GetAllocator());
@@ -160,8 +146,7 @@ Value Value::addUInt64(const std::string& name, uint64_t value)
 	return Value(value_->AddMember(lName, lValue, document_->GetAllocator()), *document_);
 }
 
-Value Value::addDouble(const std::string& name, double value)
-{
+Value Value::addDouble(const std::string& name, double value) {
 	checkReference();
 
 	RapidJsonValue lName, lValue; lName.SetString(name, document_->GetAllocator());
@@ -172,8 +157,7 @@ Value Value::addDouble(const std::string& name, double value)
 	return Value(value_->AddMember(lName, lValue, document_->GetAllocator()), *document_);
 }
 
-Value Value::addObject(const std::string& name)
-{
+Value Value::addObject(const std::string& name) {
 	checkReference();
 
 	RapidJsonValue lName, lValue;
@@ -183,8 +167,7 @@ Value Value::addObject(const std::string& name)
 	return Value(value_->FindMember(name)->value, *document_);
 }
 
-Value Value::addArray(const std::string& name)
-{
+Value Value::addArray(const std::string& name) {
 	checkReference();
 
 	RapidJsonValue lName, lValue;
@@ -195,8 +178,7 @@ Value Value::addArray(const std::string& name)
 	return Value(value_->FindMember(name)->value, *document_);
 }
 
-Value Value::newArrayItem()
-{
+Value Value::newArrayItem() {
 	checkReference();
 
 	RapidJsonValue lValue;
@@ -206,32 +188,28 @@ Value Value::newArrayItem()
 	return Value(value_->operator[](value_->Size()-1), *document_);
 }
 
-void Value::makeArrayItem(Value& value)
-{
+void Value::makeArrayItem(Value& value) {
 }
 
-Value Value::newItem()
-{
+Value Value::newItem() {
 	checkReference();
 
-	RapidJsonValue lName(L"__raw__"), lValue;
+	RapidJsonValue lName("__raw__"), lValue;
 	value_->AddMember(lName, lValue, document_->GetAllocator());
 	
-	RapidJsonValue::MemberIterator lMember = value_->FindMember(L"__raw__");
+	RapidJsonValue::MemberIterator lMember = value_->FindMember("__raw__");
 	lMember->name.SetNull();
 
 	return Value(lMember->value, *document_);
 }
 
-std::string Value::toString()
-{
+std::string Value::toString() {
 	std::string lData;
 	writeToString(lData);
 	return lData;
 }
 
-void Value::writeToString(std::string& stream)
-{
+void Value::writeToString(std::string& stream) {
 	checkReference();
 
 	RapidJsonUTF8StringBuffer lBuffer;
@@ -241,8 +219,7 @@ void Value::writeToString(std::string& stream)
 	stream.insert(0, lBuffer.GetString());
 }
 
-void Value::writeToStream(std::vector<unsigned char>& stream)
-{
+void Value::writeToStream(std::vector<unsigned char>& stream) {
 	checkReference();
 
 	RapidJsonUTF8StringBuffer lBuffer;
@@ -254,22 +231,19 @@ void Value::writeToStream(std::vector<unsigned char>& stream)
 }
 
 // Iteration
-ValueMemberIterator Value::begin()
-{
+ValueMemberIterator Value::begin() {
 	checkReference();
 
 	return ValueMemberIterator(value_->MemberBegin(), *document_);
 }
 
-ValueMemberIterator Value::end()
-{
+ValueMemberIterator Value::end() {
 	checkReference();
 
 	return ValueMemberIterator(value_->MemberEnd(), *document_);
 }
 
-void Value::clone(Document& other)
-{
+void Value::clone(Document& other) {
 	other.document_.CopyFrom(*value_, other.document_.GetAllocator());
 }
 
@@ -277,66 +251,46 @@ void Value::clone(Document& other)
 // Document
 //
 
-void Document::loadFromString(const std::string& source)
-{
-	if(document_.Parse<0, rapidjson::UTF8<> >(source).HasParseError())
-	{
-		throw Exception(document_.GetParseError(), std::string("[JsonDocument/LoadFromString/Error]: ") + Error::getError(document_.GetParseError()));
-	}
+bool Document::loadFromString(const std::string& source) {
+	return !(document_.Parse<0, rapidjson::UTF8<> >(source).HasParseError());
 }
 
-void Document::loadFromStream(const std::vector<unsigned char>& source)
-{
-	if(document_.Parse<0, rapidjson::UTF8<> >((char*)&source[0], source.size()).HasParseError())
-	{
-		throw Exception(document_.GetParseError(), std::string("[JsonDocument/LoadFromStream/Error]: ") + Error::getError(document_.GetParseError()));
-	}
+bool Document::loadFromStream(const std::vector<unsigned char>& source) {
+	return !(document_.Parse<0, rapidjson::UTF8<> >((char*)&source[0], source.size()).HasParseError());
 }
 
-void Document::loadFromFile(const std::string& source)
-{
+bool Document::loadFromFile(const std::string& source) {
+	return true;
 }
 
-void Document::saveToFile(const std::string& dest)
-{
-}
-
-bool Document::hasErrors()
-{
+bool Document::hasErrors() {
 	return document_.HasParseError();
 }
 
-std::string Document::lastError()
-{
+std::string Document::lastError() {
 	return Error::getError(document_.GetParseError());
 }
 
-void Document::writeToString(std::string& stream)
-{
+void Document::writeToString(std::string& stream) {
 	Value::writeToString(stream);
 }
 
-void Document::writeToStream(std::vector<unsigned char>& stream)
-{
+void Document::writeToStream(std::vector<unsigned char>& stream) {
 	Value::writeToStream(stream);
 }
 
-Value Document::operator[](const std::string& name)
-{
+Value Document::operator[](const std::string& name) {
 	return Value(document_[name], document_);
 }
 
-Value Document::addObject(const std::string& name)
-{
+Value Document::addObject(const std::string& name) {
 	return Value::addObject(name);
 }
 
-Value Document::addArray(const std::string& name)
-{
+Value Document::addArray(const std::string& name) {
 	return Value::addArray(name);
 }
 
-void Document::clone(Document& other)
-{
+void Document::clone(Document& other) {
 	other.document_.CopyFrom(document_, other.document_.GetAllocator());
 }

@@ -28,6 +28,7 @@ public:
 		NET			= (1 <<  7),
 		VALIDATOR	= (1 <<  8),
 		CONSENSUS	= (1 <<  9),
+		HTTP		= (1 << 10),
 		ALL			= ~(uint32_t)0
 	};
 

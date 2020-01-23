@@ -23,6 +23,14 @@ private:
 	std::string code_;
 };
 
+
+#define NULL_REFERENCE_EXCEPTION()\
+{ \
+	char lMsg[512] = {0}; \
+	snprintf(lMsg, sizeof(lMsg)-1, "Null reference exception at %s(), %s: %d", __FUNCTION__, __FILE__, __LINE__); \
+	throw exception("ENULL", std::string(lMsg)); \
+} \
+
 }
 
 #endif

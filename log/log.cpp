@@ -23,6 +23,7 @@ std::string _getLogCategoryText(Log::Category category) {
 		case Log::Category::NET: 		return "net   ";
 		case Log::Category::VALIDATOR:	return "val   ";
 		case Log::Category::CONSENSUS:	return "con   ";
+		case Log::Category::HTTP:		return "http  ";
 		case Log::Category::ALL: 		return "*     ";
 	}
 
