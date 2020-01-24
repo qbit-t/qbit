@@ -10,7 +10,7 @@ qbitd
 *test
 *tests
 *bench*
-*util
+leveldb/leveldbutil
 */include/port
 *.log
 boost/bin.v2/
