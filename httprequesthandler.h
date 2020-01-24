@@ -25,15 +25,16 @@ typedef std::shared_ptr<HttpRequestHandler> HttpRequestHandlerPtr;
 
 class HttpRequestHandler: private boost::noncopyable {
 public:
-	HttpRequestHandler(ISettingsPtr);
+	HttpRequestHandler(ISettingsPtr, IWalletPtr);
 
 	void handleRequest(const std::string&, const HttpRequest&, HttpReply&);
 
-	static HttpRequestHandlerPtr instance(ISettingsPtr settings) { 
-		return std::make_shared<HttpRequestHandler>(settings); 
+	static HttpRequestHandlerPtr instance(ISettingsPtr settings, IWalletPtr wallet) { 
+		return std::make_shared<HttpRequestHandler>(settings, wallet); 
 	}
 
 	void push(IHttpCallEnpointPtr endpoint) {
+		endpoint->setWallet(wallet_);
 		methods_.insert(std::map<std::string /*method*/, IHttpCallEnpointPtr>::value_type(endpoint->method(), endpoint));
 	}
 
@@ -43,12 +44,12 @@ private:
 private:
 	// settings
 	ISettingsPtr settings_;
+	// wallet
+	IWalletPtr wallet_;
 
 	// Need to be filled BEFORE all processing started
 	std::map<std::string /*method*/, IHttpCallEnpointPtr> methods_;
 };
-
-typedef std::shared_ptr<HttpRequestHandler> HttpRequestHandlerPtr;
 
 }
 

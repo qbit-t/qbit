@@ -219,12 +219,31 @@ void Value::writeToString(std::string& stream) {
 	stream.insert(0, lBuffer.GetString());
 }
 
+void Value::writeToStringPlain(std::string& stream) {
+	checkReference();
+
+	RapidJsonStringBuffer lBuffer;
+	RapidJsonWriter lWriter(lBuffer);
+	value_->Accept(lWriter);
+	stream.insert(0, lBuffer.GetString());
+}
+
 void Value::writeToStream(std::vector<unsigned char>& stream) {
 	checkReference();
 
 	RapidJsonUTF8StringBuffer lBuffer;
 	RapidJsonOutputStream lOutStream(lBuffer, false);
 	RapidJsonUTF8PrettyWriter lWriter(lOutStream);
+	value_->Accept(lWriter);
+	stream.resize(lBuffer.GetSize());
+	memcpy(&stream[0], lBuffer.GetString(), lBuffer.GetSize());
+}
+
+void Value::writeToStreamPlain(std::vector<unsigned char>& stream) {
+	checkReference();
+
+	RapidJsonStringBuffer lBuffer;
+	RapidJsonWriter lWriter(lBuffer);
 	value_->Accept(lWriter);
 	stream.resize(lBuffer.GetSize());
 	memcpy(&stream[0], lBuffer.GetString(), lBuffer.GetSize());
@@ -277,6 +296,14 @@ void Document::writeToString(std::string& stream) {
 
 void Document::writeToStream(std::vector<unsigned char>& stream) {
 	Value::writeToStream(stream);
+}
+
+void Document::writeToStringPlain(std::string& stream) {
+	Value::writeToStringPlain(stream);
+}
+
+void Document::writeToStreamPlain(std::vector<unsigned char>& stream) {
+	Value::writeToStreamPlain(stream);
 }
 
 Value Document::operator[](const std::string& name) {

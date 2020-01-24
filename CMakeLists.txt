@@ -60,6 +60,7 @@ set(SOURCES
 	./httprequesthandler.cpp
 	./httprequestparser.cpp
 	./json.cpp
+	./httpendpoints.cpp
 )
 
 set(UNITTESTS
@@ -105,6 +106,7 @@ set(UNITTESTS
 	./httprequesthandler.cpp
 	./httprequestparser.cpp
 	./json.cpp
+	./httpendpoints.cpp
 
 	./tests/testsuit.cpp
 	./tests/unittest.cpp

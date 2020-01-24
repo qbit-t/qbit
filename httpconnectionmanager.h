@@ -64,19 +64,12 @@ public:
 		gLog().write(Log::INFO, std::string("[connectionManager]: stopping contexts..."));
 		for (std::vector<IOContextPtr>::iterator lCtx = contexts_.begin(); lCtx != contexts_.end(); lCtx++)
 			(*lCtx)->stop();
-
-		wait();
 	}
 
 	void wait() {
-		if (!waiting_) {
-			//
-			waiting_ = true;
-
-			// wait for all threads in the pool to exit
-			for (std::vector<boost::shared_ptr<boost::thread> >::iterator lThread = threads_.begin(); lThread != threads_.end(); lThread++)
-				(*lThread)->join();		
-		}
+		// wait for all threads in the pool to exit
+		for (std::vector<boost::shared_ptr<boost::thread> >::iterator lThread = threads_.begin(); lThread != threads_.end(); lThread++)
+			(*lThread)->join();		
 	}
 
 	HttpRequestHandlerPtr requestHandler() { return requestHandler_; }
@@ -102,14 +95,11 @@ public:
 private:
 	void processor(std::shared_ptr<boost::asio::io_context> ctx) {
 		gLog().write(Log::INFO, std::string("[connectionManager]: context run..."));
-		while(true) {
-			try {
-				ctx->run();
-				break;
-			} 
-			catch(boost::system::system_error& ex) {
-				gLog().write(Log::ERROR, std::string("[connectionManager]: context error -> ") + ex.what());
-			}
+		try {
+			ctx->run();
+		} 
+		catch(boost::system::system_error& ex) {
+			gLog().write(Log::ERROR, std::string("[connectionManager]: context error -> ") + ex.what());
 		}
 		gLog().write(Log::NET, std::string("[connectionManager]: context stop."));
 	}
@@ -131,8 +121,7 @@ private:
 	std::list<IOContextWork> work_;
 	std::vector<boost::shared_ptr<boost::thread> > threads_;
 	int nextContext_ = 0;
-	bool waiting_ = false;
-
+	
 	ISettingsPtr settings_;
 	HttpRequestHandlerPtr requestHandler_;
 };

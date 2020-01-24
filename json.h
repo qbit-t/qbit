@@ -54,7 +54,7 @@ typedef rapidjson::GenericDocument<rapidjson::UTF8<> > RapidJsonDocument;
 typedef rapidjson::GenericValue<rapidjson::UTF8<> > RapidJsonValue;
 typedef rapidjson::GenericStringBuffer<rapidjson::UTF8<> > RapidJsonStringBuffer;
 typedef rapidjson::GenericStringBuffer<rapidjson::UTF8<> > RapidJsonUTF8StringBuffer;
-typedef rapidjson::PrettyWriter<RapidJsonStringBuffer, rapidjson::UTF8<>, rapidjson::UTF8<> > RapidJsonWriter;
+typedef rapidjson::Writer<RapidJsonStringBuffer, rapidjson::UTF8<>, rapidjson::UTF8<> > RapidJsonWriter;
 typedef rapidjson::EncodedOutputStream<rapidjson::UTF8<>, RapidJsonUTF8StringBuffer> RapidJsonOutputStream;
 typedef rapidjson::PrettyWriter<RapidJsonOutputStream, rapidjson::UTF8<>, rapidjson::UTF8<> > RapidJsonUTF8PrettyWriter;
 
@@ -239,6 +239,9 @@ public:
 	virtual void writeToString(std::string&);
 	virtual void writeToStream(std::vector<unsigned char>&);
 
+	virtual void writeToStringPlain(std::string&);
+	virtual void writeToStreamPlain(std::vector<unsigned char>&);
+
 	virtual void clone(Document&);
 
 private:
@@ -270,6 +273,8 @@ public:
 	std::string lastError();
 	void writeToString(std::string&);
 	void writeToStream(std::vector<unsigned char>&);
+	void writeToStringPlain(std::string&);
+	void writeToStreamPlain(std::vector<unsigned char>&);
 	Value operator[](const std::string& name);
 	Value addObject(const std::string&);
 	Value addArray(const std::string&);

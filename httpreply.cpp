@@ -78,80 +78,73 @@ namespace stock_replies {
 
 const char ok[] = "";
 const char created[] =
-	"<html>"
-	"<head><title>Created</title></head>"
-	"<body><h1>201 Created</h1></body>"
-	"</html>";
+	"{"
+		"\"result\": \"201 Created\""
+	"}";
 const char accepted[] =
-	"<html>"
-	"<head><title>Accepted</title></head>"
-	"<body><h1>202 Accepted</h1></body>"
-	"</html>";
+	"{"
+		"\"result\": \"202 Accepted\""
+	"}";
 const char no_content[] =
-	"<html>"
-	"<head><title>No Content</title></head>"
-	"<body><h1>204 Content</h1></body>"
-	"</html>";
+	"{"
+		"\"result\": \"204 No Content\""
+	"}";
 const char multiple_choices[] =
-	"<html>"
-	"<head><title>Multiple Choices</title></head>"
-	"<body><h1>300 Multiple Choices</h1></body>"
-	"</html>";
+	"{"
+		"\"result\": \"300 Multiple Choices\""
+	"}";
 const char moved_permanently[] =
-	"<html>"
-	"<head><title>Moved Permanently</title></head>"
-	"<body><h1>301 Moved Permanently</h1></body>"
-	"</html>";
+	"{"
+		"\"result\": \"301 Moved Permanently\""
+	"}";
 const char moved_temporarily[] =
-	"<html>"
-	"<head><title>Moved Temporarily</title></head>"
-	"<body><h1>302 Moved Temporarily</h1></body>"
-	"</html>";
+	"{"
+		"\"result\": \"302 Moved Temporarily\""
+	"}";
 const char not_modified[] =
-	"<html>"
-	"<head><title>Not Modified</title></head>"
-	"<body><h1>304 Not Modified</h1></body>"
-	"</html>";
+	"{"
+		"\"result\": \"304 Not Modified\""
+	"}";
 const char bad_request[] =
-	"<html>"
-	"<head><title>Bad Request</title></head>"
-	"<body><h1>400 Bad Request</h1></body>"
-	"</html>";
+	"{"
+		"\"result\": null, "
+		"\"error\": {\"code\": 400, \"message\": \"Bad Request\"}"
+	"}";
 const char unauthorized[] =
-	"<html>"
-	"<head><title>Unauthorized</title></head>"
-	"<body><h1>401 Unauthorized</h1></body>"
-	"</html>";
+	"{"
+		"\"result\": null, "
+		"\"error\": {\"code\": 401, \"message\": \"Unauthorized\"}"
+	"}";
 const char forbidden[] =
-	"<html>"
-	"<head><title>Forbidden</title></head>"
-	"<body><h1>403 Forbidden</h1></body>"
-	"</html>";
+	"{"
+		"\"result\": null, "
+		"\"error\": {\"code\": 403, \"message\": \"Forbidden\"}"
+	"}";
 const char not_found[] =
-	"<html>"
-	"<head><title>Not Found</title></head>"
-	"<body><h1>404 Not Found</h1></body>"
-	"</html>";
+	"{"
+		"\"result\": null, "
+		"\"error\": {\"code\": 404, \"message\": \"Not Found\"}"
+	"}";
 const char internal_server_error[] =
-	"<html>"
-	"<head><title>Internal Server Error</title></head>"
-	"<body><h1>500 Internal Server Error</h1></body>"
-	"</html>";
+	"{"
+		"\"result\": null, "
+		"\"error\": {\"code\": 405, \"message\": \"Internal Server Error\"}"
+	"}";
 const char not_implemented[] =
-	"<html>"
-	"<head><title>Not Implemented</title></head>"
-	"<body><h1>501 Not Implemented</h1></body>"
-	"</html>";
+	"{"
+		"\"result\": null, "
+		"\"error\": {\"code\": 501, \"message\": \"Not Implemented\"}"
+	"}";
 const char bad_gateway[] =
-	"<html>"
-	"<head><title>Bad Gateway</title></head>"
-	"<body><h1>502 Bad Gateway</h1></body>"
-	"</html>";
+	"{"
+		"\"result\": null, "
+		"\"error\": {\"code\": 502, \"message\": \"Bad Gateway\"}"
+	"}";
 const char service_unavailable[] =
-	"<html>"
-	"<head><title>Service Unavailable</title></head>"
-	"<body><h1>503 Service Unavailable</h1></body>"
-	"</html>";
+	"{"
+		"\"result\": null, "
+		"\"error\": {\"code\": 503, \"message\": \"Service Unavailable\"}"
+	"}";
 
 std::string toString(HttpReply::StatusType status) {
  	switch (status) {
@@ -185,6 +178,6 @@ HttpReply HttpReply::stockReply(HttpReply::StatusType status) {
 	lReply.headers[0].name = "Content-Length";
 	lReply.headers[0].value = boost::lexical_cast<std::string>(lReply.content.size());
 	lReply.headers[1].name = "Content-Type";
-	lReply.headers[1].value = "text/html";
+	lReply.headers[1].value = "application/json";
 	return lReply;
 }
