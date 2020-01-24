@@ -33,6 +33,8 @@ set(SOURCES
 	./crypto/sha512.cpp
 	./crypto/hmac_sha256.cpp
 	./crypto/hmac_sha512.cpp
+	./hash/blake2/blake2b-ref.c
+	./hash/cuckoo.cpp
 	./base58.cpp
 	./helpers/cleanse.cpp
 	./allocator.cpp
@@ -76,11 +78,10 @@ set(UNITTESTS
 	./crypto/sha512.cpp
 	./crypto/hmac_sha256.cpp
 	./crypto/hmac_sha512.cpp
+	./hash/blake2/blake2b-ref.c
+	./hash/cuckoo.cpp
 	./base58.cpp
 	./helpers/cleanse.cpp
-	./hash/cuckatoo.cpp
-	./hash/lean.cpp
-	./hash/crypto/blake2b-ref.c
 	./allocator.cpp
 	./lockedpool.cpp
 	./vm/qasm.cpp
@@ -115,7 +116,6 @@ set(UNITTESTS
 	./tests/transactions.cpp
 	./tests/blocks.cpp
 	./tests/dbs.cpp
-	./tests/cuckoo.cpp
 	./tests/assets.cpp
 	./tests/wallet.cpp
 	./tests/memorypool.cpp
