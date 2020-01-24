@@ -10,37 +10,34 @@
 
 using namespace qbit;
 
-HttpRequestHandler::HttpRequestHandler(ISettingsPtr settings) : settings_(settings) {
+HttpRequestHandler::HttpRequestHandler(ISettingsPtr settings, IWalletPtr wallet) : settings_(settings), wallet_(wallet) {
 }
 
-void HttpRequestHandler::handleRequest(const std::string& endpoint, const HttpRequest& req, HttpReply& rep) {
+void HttpRequestHandler::handleRequest(const std::string& endpoint, const HttpRequest& request, HttpReply& reply) {
 	// Decode url to path
-	std::string request_path;
-	if (!urlDecode(req.uri, request_path)) {
-		rep = HttpReply::stockReply(HttpReply::bad_request);
+	std::string lRequestPath;
+	if (!urlDecode(request.uri, lRequestPath)) {
+		reply = HttpReply::stockReply(HttpReply::bad_request);
 		return;
 	}
 
 	// Request path must be absolute and not contain "..".
-	if (request_path.empty() || request_path[0] != '/' || request_path.find("..") != std::string::npos) {
-		rep = HttpReply::stockReply(HttpReply::bad_request);
+	if (lRequestPath.empty() || lRequestPath[0] != '/' || lRequestPath.find("..") != std::string::npos) {
+		reply = HttpReply::stockReply(HttpReply::bad_request);
 		return;
 	}
-
-	// extract data
-	// req.method = "POST" | "GET"
 
 	// log
 	gLog().write(Log::HTTP, std::string("[handleRequest]: ") + 
 			strprintf("host = %s, url = %s, method = %s, headers ->\n%s", 
-				endpoint, request_path, req.method, const_cast<HttpRequest&>(req).toString()));
+				endpoint, lRequestPath, request.method, const_cast<HttpRequest&>(request).toString()));
 
 	// deserialize data
 	json::Document lData;
-	if (!lData.loadFromStream(req.data)) {
+	if (!lData.loadFromStream(request.data)) {
 		// error
 		gLog().write(Log::HTTP, std::string("[handleRequest/error]: ") + lData.lastError());
-		rep = HttpReply::stockReply(HttpReply::bad_request);
+		reply = HttpReply::stockReply(HttpReply::bad_request);
 		return;
 	}
 
@@ -48,23 +45,27 @@ void HttpRequestHandler::handleRequest(const std::string& endpoint, const HttpRe
 	if (gLog().isEnabled(Log::HTTP)) {
 		std::string lJson;
 		lData.writeToString(lJson);
-		gLog().write(Log::HTTP, std::string("[handleRequest]: ") + strprintf("host = %s, json ->\n%s", endpoint, lData.toString()));
+		gLog().write(Log::HTTP, std::string("[handleRequest]: ") + strprintf("host = %s, json request ->\n%s", endpoint, lData.toString()));
 	}
 
-	// select by method from methods_ map...
-	// 
+	json::Value lMethod;
+	if (lData.find("method", lMethod) && lMethod.isString()) {
+		std::map<std::string /*method*/, IHttpCallEnpointPtr>::iterator lEndpoint = methods_.find(lMethod.getString());
+		if (lEndpoint != methods_.end()) {
+			lEndpoint->second->process(endpoint, request, lData, reply);
+		} else {
+			reply = HttpReply::stockReply(HttpReply::not_found);
+			return;
+		}
+	} else {
+		reply = HttpReply::stockReply(HttpReply::bad_request);
+		return;
+	}
 
-	// Fill out the reply to be sent to the client.
-	rep.status = HttpReply::ok;
-	//char buf[512];
-	//while (is.read(buf, sizeof(buf)).gcount() > 0)
-	//rep.content.append(buf, is.gcount());
-	
-	rep.headers.resize(2);
-	rep.headers[0].name = "Content-Length";
-	rep.headers[0].value = boost::lexical_cast<std::string>(rep.content.size());
-	rep.headers[1].name = "Content-Type";
-	rep.headers[1].value = "application/json";
+	// log
+	if (gLog().isEnabled(Log::HTTP)) {
+		gLog().write(Log::HTTP, std::string("[handleRequest]: ") + strprintf("host = %s, json reply ->\n%s", endpoint, reply.content));
+	}
 }
 
 bool HttpRequestHandler::urlDecode(const std::string& in, std::string& out) {

@@ -38,6 +38,9 @@
 #include "../consensusmanager.h"
 #include "../validatormanager.h"
 
+#include "../httpserver.h"
+#include "../httpendpoints.h"
+
 namespace qbit {
 namespace tests {
 
@@ -54,7 +57,9 @@ public:
 
 	size_t threadPoolSize() { return 2; } // tread pool size
 
-	uint32_t roles() { return State::PeerRoles::FULLNODE|State::PeerRoles::MINER; } // default role		
+	uint32_t roles() { return State::PeerRoles::FULLNODE|State::PeerRoles::MINER; } // default role
+
+	int httpServerPort() { return 8080; }
 };
 
 class SettingsS1: public ISettings {
@@ -74,6 +79,8 @@ public:
 
 	bool isMiner() { uint32_t lRoles(roles()); return (lRoles & State::PeerRoles::MINER) != 0; }
 	bool isFullNode() { uint32_t lRoles(roles()); return (lRoles & State::PeerRoles::FULLNODE) != 0; }
+
+	int httpServerPort() { return 8081; }
 };
 
 class SettingsS2: public ISettings {
@@ -93,6 +100,8 @@ public:
 
 	bool isMiner() { uint32_t lRoles(roles()); return (lRoles & State::PeerRoles::MINER) != 0; }
 	bool isFullNode() { uint32_t lRoles(roles()); return (lRoles & State::PeerRoles::FULLNODE) != 0; }
+
+	int httpServerPort() { return 8082; }	
 };
 
 class SettingsS3: public ISettings {
@@ -112,6 +121,8 @@ public:
 
 	bool isMiner() { uint32_t lRoles(roles()); return (lRoles & State::PeerRoles::MINER) != 0; }
 	bool isFullNode() { uint32_t lRoles(roles()); return (lRoles & State::PeerRoles::FULLNODE) != 0; }
+
+	int httpServerPort() { return 8083; }	
 };
 
 class ServerS0: public Unit {
@@ -155,6 +166,13 @@ public:
 		//
 		server_ = Server::instance(settings_, peerManager_);
 
+		//
+		httpRequestHandler_ = HttpRequestHandler::instance(settings_, wallet_);
+		httpRequestHandler_->push(HttpGetBalance::instance());
+		httpConnectionManager_ = HttpConnectionManager::instance(settings_, httpRequestHandler_);
+		httpServer_ = HttpServer::instance(settings_, httpConnectionManager_);		
+
+		//
 		seed_.push_back(std::string("fitness"));
 		seed_.push_back(std::string("exchange"));
 		seed_.push_back(std::string("glance"));
@@ -189,6 +207,10 @@ public:
 	IConsensusManagerPtr consensusManager_;
 	IValidatorManagerPtr validatorManager_;
 	ServerPtr server_;
+
+	HttpRequestHandlerPtr httpRequestHandler_;
+	HttpConnectionManagerPtr httpConnectionManager_;
+	HttpServerPtr httpServer_;
 
 	IWalletPtr wallet_;
 	ISettingsPtr settings_;
@@ -236,6 +258,13 @@ public:
 		//
 		server_ = Server::instance(settings_, peerManager_);
 
+		//
+		httpRequestHandler_ = HttpRequestHandler::instance(settings_, wallet_);
+		httpRequestHandler_->push(HttpGetBalance::instance());
+		httpConnectionManager_ = HttpConnectionManager::instance(settings_, httpRequestHandler_);
+		httpServer_ = HttpServer::instance(settings_, httpConnectionManager_);		
+
+		//
 		seed_.push_back(std::string("fitness"));
 		seed_.push_back(std::string("exchange"));
 		seed_.push_back(std::string("glance"));
@@ -270,6 +299,10 @@ public:
 	IConsensusManagerPtr consensusManager_;
 	IValidatorManagerPtr validatorManager_;
 	ServerPtr server_;
+
+	HttpRequestHandlerPtr httpRequestHandler_;
+	HttpConnectionManagerPtr httpConnectionManager_;
+	HttpServerPtr httpServer_;
 
 	IWalletPtr wallet_;
 	ISettingsPtr settings_;
@@ -317,6 +350,13 @@ public:
 		//
 		server_ = Server::instance(settings_, peerManager_);
 
+		//
+		httpRequestHandler_ = HttpRequestHandler::instance(settings_, wallet_);
+		httpRequestHandler_->push(HttpGetBalance::instance());
+		httpConnectionManager_ = HttpConnectionManager::instance(settings_, httpRequestHandler_);
+		httpServer_ = HttpServer::instance(settings_, httpConnectionManager_);		
+
+		//
 		seed_.push_back(std::string("fitness"));
 		seed_.push_back(std::string("exchange"));
 		seed_.push_back(std::string("glance"));
@@ -351,6 +391,10 @@ public:
 	IConsensusManagerPtr consensusManager_;
 	IValidatorManagerPtr validatorManager_;
 	ServerPtr server_;
+
+	HttpRequestHandlerPtr httpRequestHandler_;
+	HttpConnectionManagerPtr httpConnectionManager_;
+	HttpServerPtr httpServer_;
 
 	IWalletPtr wallet_;
 	ISettingsPtr settings_;
@@ -398,6 +442,13 @@ public:
 		//
 		server_ = Server::instance(settings_, peerManager_);
 
+		//
+		httpRequestHandler_ = HttpRequestHandler::instance(settings_, wallet_);
+		httpRequestHandler_->push(HttpGetBalance::instance());
+		httpConnectionManager_ = HttpConnectionManager::instance(settings_, httpRequestHandler_);
+		httpServer_ = HttpServer::instance(settings_, httpConnectionManager_);		
+
+		//
 		seed_.push_back(std::string("fitness"));
 		seed_.push_back(std::string("exchange"));
 		seed_.push_back(std::string("glance"));
@@ -432,6 +483,10 @@ public:
 	IConsensusManagerPtr consensusManager_;
 	IValidatorManagerPtr validatorManager_;
 	ServerPtr server_;
+
+	HttpRequestHandlerPtr httpRequestHandler_;
+	HttpConnectionManagerPtr httpConnectionManager_;
+	HttpServerPtr httpServer_;
 
 	IWalletPtr wallet_;
 	ISettingsPtr settings_;

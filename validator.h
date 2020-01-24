@@ -20,6 +20,9 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
 
+#include <boost/random/mersenne_twister.hpp>
+#include <boost/random/uniform_int_distribution.hpp>
+
 namespace qbit {
 
 class MainValidator: public IValidator, public std::enable_shared_from_this<MainValidator> {
@@ -149,7 +152,12 @@ private:
 
 				// TODO: mine
 				gLog().write(Log::INFO, std::string("[validator/miner]: looking for a block for ") + strprintf("%s#", chain_.toHex().substr(0, 10)) + "...");
-				boost::this_thread::sleep_for(boost::chrono::milliseconds(consensus_->blockTime()));
+				
+				boost::random::mt19937 lGen;
+				boost::random::uniform_int_distribution<> lDist(2000, consensus_->blockTime());
+				int lMSeconds = lDist(lGen);
+				boost::this_thread::sleep_for(boost::chrono::milliseconds(lMSeconds));
+				
 				gLog().write(Log::INFO, std::string("[validator/miner]: new block found ") + strprintf("%s/%s#", currentBlock_->hash().toHex(), chain_.toHex().substr(0, 10)));
 
 				// commit block

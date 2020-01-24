@@ -15,6 +15,8 @@ static const amount_t QBIT  = 100000000;
 static const amount_t QUNIT = 1;
 static const amount_t QBIT_MIN = QUNIT;
 static const amount_t QBIT_MAX = QBIT;
+static const amount_t QBIT_DECIMALS = 8;
+static const char* QBIT_FORMAT = "%.8f";
 
 } // qbit
 

@@ -25,8 +25,10 @@ bool ServerS0::execute() {
 	peerManager_->addPeer("127.0.0.1:31415");
 	peerManager_->addPeer("127.0.0.1:31416");
 	peerManager_->addPeer("127.0.0.1:31417");
+	peerManager_->addPeer("127.0.0.1:31418");
 
 	validatorManager_->run();
+	httpServer_->run();
 	server_->run();
 
 	return true;
@@ -53,8 +55,10 @@ bool ServerS1::execute() {
 	peerManager_->addPeer("127.0.0.1:31415");
 	peerManager_->addPeer("127.0.0.1:31416");
 	peerManager_->addPeer("127.0.0.1:31417");
+	peerManager_->addPeer("127.0.0.1:31418");
 
 	validatorManager_->run();
+	httpServer_->run();
 	server_->run();
 
 	return true;
@@ -81,8 +85,10 @@ bool ServerS2::execute() {
 	peerManager_->addPeer("127.0.0.1:31415");
 	peerManager_->addPeer("127.0.0.1:31416");
 	peerManager_->addPeer("127.0.0.1:31417");
+	peerManager_->addPeer("127.0.0.1:31418");
 
 	validatorManager_->run();
+	httpServer_->run();
 	server_->run();
 
 	return true;
@@ -112,6 +118,7 @@ bool ServerS3::execute() {
 	peerManager_->addPeer("127.0.0.1:31418");
 
 	validatorManager_->run();
+	httpServer_->run();
 	server_->run();
 
 	return true;
