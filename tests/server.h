@@ -168,7 +168,9 @@ public:
 
 		//
 		httpRequestHandler_ = HttpRequestHandler::instance(settings_, wallet_);
+		httpRequestHandler_->push(HttpGetKey::instance());
 		httpRequestHandler_->push(HttpGetBalance::instance());
+		httpRequestHandler_->push(HttpSendToAddress::instance());
 		httpConnectionManager_ = HttpConnectionManager::instance(settings_, httpRequestHandler_);
 		httpServer_ = HttpServer::instance(settings_, httpConnectionManager_);		
 
@@ -260,7 +262,9 @@ public:
 
 		//
 		httpRequestHandler_ = HttpRequestHandler::instance(settings_, wallet_);
+		httpRequestHandler_->push(HttpGetKey::instance());
 		httpRequestHandler_->push(HttpGetBalance::instance());
+		httpRequestHandler_->push(HttpSendToAddress::instance());
 		httpConnectionManager_ = HttpConnectionManager::instance(settings_, httpRequestHandler_);
 		httpServer_ = HttpServer::instance(settings_, httpConnectionManager_);		
 
@@ -352,7 +356,9 @@ public:
 
 		//
 		httpRequestHandler_ = HttpRequestHandler::instance(settings_, wallet_);
+		httpRequestHandler_->push(HttpGetKey::instance());
 		httpRequestHandler_->push(HttpGetBalance::instance());
+		httpRequestHandler_->push(HttpSendToAddress::instance());
 		httpConnectionManager_ = HttpConnectionManager::instance(settings_, httpRequestHandler_);
 		httpServer_ = HttpServer::instance(settings_, httpConnectionManager_);		
 
@@ -444,7 +450,9 @@ public:
 
 		//
 		httpRequestHandler_ = HttpRequestHandler::instance(settings_, wallet_);
+		httpRequestHandler_->push(HttpGetKey::instance());
 		httpRequestHandler_->push(HttpGetBalance::instance());
+		httpRequestHandler_->push(HttpSendToAddress::instance());
 		httpConnectionManager_ = HttpConnectionManager::instance(settings_, httpRequestHandler_);
 		httpServer_ = HttpServer::instance(settings_, httpConnectionManager_);		
 

@@ -25,6 +25,21 @@ public:
 	
 	void setWallet(IWalletPtr wallet) { wallet_ = wallet; }
 
+	void pack(HttpReply& reply, json::Document& data) {
+		// pack
+		data.writeToString(reply.content); // TODO: writeToStringPlain for minimizing output
+		reply.content += "\n"; // extra line
+	}
+
+	void finalize(HttpReply& reply) {
+		reply.status = HttpReply::ok;
+		reply.headers.resize(2);
+		reply.headers[0].name = "Content-Length";
+		reply.headers[0].value = boost::lexical_cast<std::string>(reply.content.size());
+		reply.headers[1].name = "Content-Type";
+		reply.headers[1].value = "application/json";		
+	}
+
 protected:
 	IWalletPtr wallet_;
 };

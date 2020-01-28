@@ -84,6 +84,9 @@ public:
 
 	inline void setPrev(const uint256& prev) { prev_ = prev; }
 	inline uint256 prev() { return prev_; }
+
+	inline void setRoot(const uint256& root) { root_ = root; }
+	inline uint256 root() { return root_; }
 };
 
 // broadcast found block
@@ -185,6 +188,8 @@ public:
 
 	void append(TransactionPtr tx) { transactions_.push_back(tx); }
 	TransactionsContainer& transactions() { return transactions_; }	
+
+	void transactionsHashes(std::vector<uint256>&);
 };
 
 class Block;

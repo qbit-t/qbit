@@ -43,6 +43,7 @@ struct HttpReply {
 	std::vector<boost::asio::const_buffer> toBuffers();
 
 	static HttpReply stockReply(StatusType status);
+	static HttpReply stockReply(const std::string&, const std::string&);
 };
 
 }

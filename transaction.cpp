@@ -16,7 +16,7 @@ void qbit::Transaction::registerTransactionType(Transaction::Type type, Transact
 uint256 qbit::Transaction::hash() {
 	HashWriter lStream(SER_GETHASH, PROTOCOL_VERSION);
 	Transaction::Serializer::serialize<HashWriter>(lStream, this);
-    return (id_ = lStream.GetHash());	
+	return (id_ = lStream.GetHash());
 }
 
 std::string qbit::Transaction::Link::toString() const

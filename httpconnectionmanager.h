@@ -11,6 +11,7 @@
 
 #include <boost/thread/thread.hpp>
 #include <boost/thread/mutex.hpp>
+#include <boost/thread/recursive_mutex.hpp>
 #include <boost/chrono.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
@@ -121,7 +122,7 @@ private:
 	std::list<IOContextWork> work_;
 	std::vector<boost::shared_ptr<boost::thread> > threads_;
 	int nextContext_ = 0;
-	
+
 	ISettingsPtr settings_;
 	HttpRequestHandlerPtr requestHandler_;
 };

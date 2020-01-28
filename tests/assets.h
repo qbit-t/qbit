@@ -138,6 +138,20 @@ public:
 	std::map<uint256, std::map<uint256, Transaction::UnlinkedOutPtr>> assetUtxo_;
 };
 
+class ConsensusAA: public IConsensus {
+public:
+	ConsensusAA() {}
+
+	size_t maxBlockSize() { return 1024 * 1024 * 8; }
+	uint64_t currentTime() { return getTime(); }
+
+	void pushPeer(IPeerPtr /*peer*/) { }
+	void popPeer(IPeerPtr /*peer*/) { }
+	size_t maturity() { return 0; }	
+	size_t coinbaseMaturity() { return 0; }	
+};	
+
+
 class TxStoreA: public ITransactionStore {
 public:
 	TxStoreA() {}
@@ -204,6 +218,16 @@ public:
 		return nullptr;
 	}
 
+	bool transactionHeight(const uint256& tx, size_t& height, bool& coinbase) {
+
+		height = 1; coinbase = false;
+		return true;
+	}
+
+	size_t currentHeight(BlockHeader& block) {
+		//
+		return 1;
+	}
 
 	std::map<uint256, TransactionContextPtr> txs_;
 	std::map<uint256, Transaction::UnlinkedOutPtr> utxo_;

@@ -121,6 +121,10 @@ public:
         return result;
     }
 
+    uint256 hash() {
+        return GetHash();
+    }
+
     /**
      * Returns the first 64 bits from the resulting hash.
      */

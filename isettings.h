@@ -37,6 +37,8 @@ public:
 
 	virtual int httpServerPort() { return 8080; }
 	virtual size_t httpThreadPoolSize() { return 2; } // tread pool size
+
+	virtual size_t incomingBlockQueueLength() { return 50; }
 };
 
 typedef std::shared_ptr<ISettings> ISettingsPtr;

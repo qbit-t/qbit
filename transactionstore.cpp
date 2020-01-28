@@ -9,14 +9,35 @@ using namespace qbit;
 
 TransactionPtr TransactionStore::locateTransaction(const uint256& tx) {
 	//
+	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[locateTransaction]: try to load transaction ") + 
+		strprintf("%s/%s#", 
+			tx.toHex(), chain_.toHex().substr(0, 10)));
+	//
 	TxBlockIndex lIdx;
 	if (transactionsIdx_.read(tx, lIdx)) {
+		//
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[locateTransaction]: found index ") + 
+			strprintf("block(%d/%s) for %s/%s#", 
+				lIdx.index(), lIdx.block().toHex(), tx.toHex(), chain_.toHex().substr(0, 10)));
 
 		BlockTransactionsPtr lTransactions = transactions_.read(lIdx.block());
 		if (lTransactions) {
 			if (lIdx.index() < lTransactions->transactions().size())
 				return lTransactions->transactions()[lIdx.index()];
+			else {
+				if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[locateTransaction]: transaction index not found for ") + 
+					strprintf("%s/%s/%s#", 
+						tx.toHex(), lIdx.block().toHex(), chain_.toHex().substr(0, 10)));
+			}
+		} else {
+			//
+			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[locateTransaction]: transactions not found for block ") + 
+				strprintf("%s", lIdx.block().toHex()));
 		}
+	} else {
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[locateTransaction]: transaction NOT FOUND - ") + 
+			strprintf("%s/%s#", 
+				tx.toHex(), chain_.toHex().substr(0, 10)));
 	}
 
 	return nullptr;
@@ -29,34 +50,93 @@ TransactionContextPtr TransactionStore::locateTransactionContext(const uint256& 
 	return nullptr;
 }
 
-bool TransactionStore::processBlock(BlockContextPtr ctx, size_t& height, bool processWallet) {
+bool TransactionStore::processBlockTransactions(ITransactionStorePtr store, BlockContextPtr ctx, BlockTransactionsPtr transactions, size_t approxHeight, bool processWallet) {
 	//
 	// make context block store and wallet store
-	ITransactionStorePtr lTransactionStore = TxBlockStore::instance(std::static_pointer_cast<ITransactionStore>(shared_from_this()));
+	ITransactionStorePtr lTransactionStore = store;
 	IWalletPtr lWallet = TxWalletStore::instance(wallet_, std::static_pointer_cast<ITransactionStore>(shared_from_this()));
 	BlockContextPtr lBlockCtx = ctx;
+
+	// check merkle root
+	std::vector<uint256> lHashes;
+	transactions->transactionsHashes(lHashes);
+
+	bool lMutated;
+	uint256 lRoot = ctx->calculateMerkleRoot(lHashes, lMutated);
+	if (ctx->block()->blockHeader().root() != lRoot) {
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlockTransactions]: merkle root is NOT VALID ") +
+			strprintf("header = %s, transactions = %s, %s/%s#", 
+				ctx->block()->blockHeader().root().toHex(), lRoot.toHex(), ctx->block()->hash().toHex(), chain_.toHex().substr(0, 10)));
+		return false;
+	} else if (lMutated) {
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlockTransactions]: merkle root is MUTATED ") +
+			strprintf("root = %s, %s/%s#", 
+				lRoot.toHex(), ctx->block()->hash().toHex(), chain_.toHex().substr(0, 10)));
+	}
 
 	//
 	// process block under local context block&wallet
 	bool lHasErrors = false;
+	// 
+	amount_t lCoinBaseAmount = 0;
+	amount_t lFeeAmount = 0;
+	//
 	TransactionProcessor lProcessor = TransactionProcessor::general(lTransactionStore, lWallet, std::static_pointer_cast<IEntityStore>(shared_from_this()));
-	for(TransactionsContainer::iterator lTx = ctx->block()->transactions().begin(); lTx != ctx->block()->transactions().end(); lTx++) {
-		TransactionContextPtr lCtx = TransactionContext::instance(*lTx);
+	for(TransactionsContainer::iterator lTx = transactions->transactions().begin(); lTx != transactions->transactions().end(); lTx++) {
+		TransactionContextPtr lCtx = TransactionContext::instance(*lTx, 
+			(processWallet ? TransactionContext::STORE_COMMIT : TransactionContext::STORE_PUSH));
+		//
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlockTransactions]: processing tx ") +
+			strprintf("%s/%s/%s#", lCtx->tx()->id().toHex(), ctx->block()->hash().toHex(), chain_.toHex().substr(0, 10)));
+		//
 		if (!lProcessor.process(lCtx)) {
 			lHasErrors = true;
 			for (std::list<std::string>::iterator lErr = lCtx->errors().begin(); lErr != lCtx->errors().end(); lErr++) {
-				gLog().write(Log::STORE, std::string("[TransactionStore::pushBlock/error]: ") + (*lErr));
+				gLog().write(Log::ERROR, std::string("[processBlockTransactions/error]: ") + (*lErr));
 			}
 
 			lBlockCtx->addErrors(lCtx->errors());
 		} else {
 			lTransactionStore->pushTransaction(lCtx);
+
+			// if coinbase
+			if (lCtx->tx()->type() == Transaction::COINBASE) {
+				if (!lCoinBaseAmount) {
+					lCoinBaseAmount = lCtx->amount();
+				} else {
+					lHasErrors = true;
+					if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlockTransactions]: COINBASE already exists ") +
+						strprintf("%s/%s/%s#", lCtx->tx()->id().toHex(), ctx->block()->hash().toHex(), chain_.toHex().substr(0, 10)));
+					lBlockCtx->addError(std::string("COINBASE already exists ") +
+						strprintf("%s/%s/%s#", lCtx->tx()->id().toHex(), ctx->block()->hash().toHex(), chain_.toHex().substr(0, 10)));
+				}
+			} else {
+				lFeeAmount += lCtx->fee();
+			}
 		}
 	}
 
 	//
 	// check and commit
 	if (!lHasErrors) {
+		//
+		ctx->setCoinbaseAmount(lCoinBaseAmount);
+		ctx->setFee(lFeeAmount);
+
+		// check coinbase/fee consistence
+		IMemoryPoolPtr lMempool = wallet_->mempoolManager()->locate(chain_);
+		if (lMempool) {
+			if (approxHeight && !lMempool->consensus()->checkEmission(lCoinBaseAmount, lFeeAmount, approxHeight)) {
+				if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlockTransactions]: coinbase AMOUNT/FEE is not consistent ") +
+					strprintf("amount = %d, fee = %d, %s/%s#", lCoinBaseAmount, lFeeAmount, ctx->block()->hash().toHex(), chain_.toHex().substr(0, 10)));
+				return false;
+			}
+		} else {
+			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlockTransactions]: mempool was not found ") +
+				strprintf("%s/%s#", ctx->block()->hash().toHex(), chain_.toHex().substr(0, 10)));
+			return false;
+		}
+
 		//
 		// commit transaction store changes
 		TxBlockStorePtr lBlockStore = std::static_pointer_cast<TxBlockStore>(lTransactionStore);
@@ -65,9 +145,13 @@ bool TransactionStore::processBlock(BlockContextPtr ctx, size_t& height, bool pr
 				pushUnlinkedOut(lAction->utxoPtr(), nullptr);
 			} else if (lAction->action() == TxBlockAction::POP) {
 				if (!popUnlinkedOut(lAction->utxo(), nullptr)) {
-					gLog().write(Log::STORE, std::string("[TransactionStore::pushBlock/error]: Block with utxo inconsistency - ") + lAction->utxo().toHex());
+					gLog().write(Log::ERROR, std::string("[processBlockTransactions/error]: Block with utxo inconsistency - ") + 
+						strprintf("pop: utxo = %s, tx = %s, block = %s", 
+							lAction->utxo().toHex(), lAction->utxoPtr()->out().tx().toHex(), ctx->block()->hash().toHex()));
 
-					lBlockCtx->addError("Block with utxo inconsistency - " + lAction->utxo().toHex());
+					lBlockCtx->addError("Block with utxo inconsistency - " +
+						strprintf("pop: utxo = %s, tx = %s, block = %s", 
+							lAction->utxo().toHex(), lAction->utxoPtr()->out().tx().toHex(), ctx->block()->hash().toHex()));
 					return false;
 				}
 			}
@@ -77,25 +161,48 @@ bool TransactionStore::processBlock(BlockContextPtr ctx, size_t& height, bool pr
 		// commit local wallet changes
 		TxWalletStorePtr lWalletStore = std::static_pointer_cast<TxWalletStore>(lWallet);
 		for (std::list<TxBlockAction>::iterator lAction = lWalletStore->actions().begin(); lAction != lWalletStore->actions().end(); lAction++) {
-			if (processWallet || lAction->ctx()->tx()->type() == Transaction::COINBASE) {
-				if (lAction->action() == TxBlockAction::PUSH) {
-					if (!wallet_->pushUnlinkedOut(lAction->utxoPtr(), lAction->ctx())) {
-						gLog().write(Log::STORE, std::string("TransactionStore::pushBlock/wallet/error]: Block with utxo inconsistency - ") + lAction->utxo().toHex());
+			//
+			if ((processWallet || lAction->ctx()->tx()->type() == Transaction::COINBASE) && 
+				lAction->action() == TxBlockAction::PUSH) {
+				if (!wallet_->pushUnlinkedOut(lAction->utxoPtr(), lAction->ctx())) {
+					gLog().write(Log::ERROR, std::string("[processBlockTransactions/wallet/error]: Block with utxo inconsistency - ") + 
+						strprintf("push: utxo = %s, tx = %s, block = %s", 
+							lAction->utxo().toHex(), lAction->utxoPtr()->out().tx().toHex(), ctx->block()->hash().toHex()));
 
-						lBlockCtx->addError("Block/pushWallet with utxo inconsistency - " + lAction->utxo().toHex());
-						return false;					
-					}
-				} else if (lAction->action() == TxBlockAction::POP) {
-					if (!wallet_->popUnlinkedOut(lAction->utxo(), lAction->ctx())) {
-						gLog().write(Log::STORE, std::string("TransactionStore::pushBlock/wallet/error]: Block with utxo inconsistency - ") + lAction->utxo().toHex());
+					lBlockCtx->addError("Block/pushWallet with utxo inconsistency - " +
+						strprintf("push: utxo = %s, tx = %s, block = %s", 
+							lAction->utxo().toHex(), lAction->utxoPtr()->out().tx().toHex(), ctx->block()->hash().toHex()));							
+					return false;					
+				}
+			}
 
-						lBlockCtx->addError("Block/popWallet with utxo inconsistency - " + lAction->utxo().toHex());
-						return false;
-					}
+			if (processWallet && lAction->action() == TxBlockAction::POP) {
+				if (!wallet_->popUnlinkedOut(lAction->utxo(), lAction->ctx())) {
+					gLog().write(Log::ERROR, std::string("[processBlockTransactions/wallet/error]: Block with utxo inconsistency - ") + 
+						strprintf("pop: utxo = %s, tx = %s, block = %s", 
+							lAction->utxo().toHex(), lAction->utxoPtr()->out().tx().toHex(), ctx->block()->hash().toHex()));
+
+					lBlockCtx->addError("Block/popWallet with utxo inconsistency - " +
+						strprintf("pop: utxo = %s, tx = %s, block = %s", 
+							lAction->utxo().toHex(), lAction->utxoPtr()->out().tx().toHex(), ctx->block()->hash().toHex()));
+					return false;
 				}
 			}
 		}
 
+		return true;
+	}
+
+	return false;
+}
+
+bool TransactionStore::processBlock(BlockContextPtr ctx, size_t& height, bool processWallet) {
+	//
+	size_t lHeight = top();
+	BlockTransactionsPtr lTransactions = ctx->block()->blockTransactions();
+	ITransactionStorePtr lTransactionStore = TxBlockStore::instance(std::static_pointer_cast<ITransactionStore>(shared_from_this()));
+	//
+	if (processBlockTransactions(lTransactionStore, ctx, lTransactions, lHeight+1 /*next*/, processWallet)) {
 		//
 		// --- NO CHANGES to the block header or block data ---
 		//
@@ -105,7 +212,7 @@ bool TransactionStore::processBlock(BlockContextPtr ctx, size_t& height, bool pr
 		uint256 lHash = ctx->block()->hash();
 		BlockHeader lHeader = ctx->block()->blockHeader();
 		headers_.write(lHash, lHeader);
-		transactions_.write(lHash, ctx->block()->blockTransactions());
+		transactions_.write(lHash, lTransactions);
 
 		//
 		// indexes
@@ -115,6 +222,10 @@ bool TransactionStore::processBlock(BlockContextPtr ctx, size_t& height, bool pr
 		// tx to block|index
 		uint32_t lIndex = 0;
 		for(TransactionsContainer::iterator lTx = ctx->block()->transactions().begin(); lTx != ctx->block()->transactions().end(); lTx++) {
+			//
+			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlock]: writing index ") +
+				strprintf("%s/block(%d/%s)/%s#", (*lTx)->id().toHex(), lIndex, lHash.toHex(), chain_.toHex().substr(0, 10)));
+			//
 			transactionsIdx_.write((*lTx)->id(), TxBlockIndex(lHash, lIndex++));
 		}
 
@@ -132,6 +243,35 @@ bool TransactionStore::processBlock(BlockContextPtr ctx, size_t& height, bool pr
 		height = pushNewHeight(lHash);
 
 		// ok
+		return true;
+	}
+
+	return false;
+}
+
+bool TransactionStore::transactionHeight(const uint256& tx, size_t& height, bool& coinbase) {
+	TxBlockIndex lIndex;
+	if (transactionsIdx_.read(tx, lIndex)) {
+		//
+		boost::unique_lock<boost::mutex> lLock(storageMutex_);
+		std::map<uint256, size_t>::iterator lHeight = blockMap_.find(lIndex.block());
+		if (lHeight != blockMap_.end()) {
+			if (!lIndex.index()) coinbase = true;
+			else coinbase = false;
+			height = lHeight->second;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool TransactionStore::blockHeight(const uint256& block, size_t& height) {
+	//
+	boost::unique_lock<boost::mutex> lLock(storageMutex_);
+	std::map<uint256, size_t>::iterator lHeight = blockMap_.find(block);
+	if (lHeight != blockMap_.end()) {
+		height = lHeight->second;
 		return true;
 	}
 
@@ -166,11 +306,29 @@ bool TransactionStore::resyncHeight() {
 
 	for (std::list<uint256>::reverse_iterator lIter = lSeq.rbegin(); lIter != lSeq.rend(); lIter++) {
 		heightMap_.insert(std::map<size_t, uint256>::value_type(++lIndex, *lIter));
+		blockMap_.insert(std::map<uint256, size_t>::value_type(*lIter, lIndex));
 	}
 
-	gLog().write(Log::STORE, std::string("[storage/resyncHeight]: ") + strprintf("height = %d, block = %s, chain = %s#", lIndex, lastBlock_.toHex(), chain_.toHex().substr(0, 10)));
+	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight]: ") + strprintf("height = %d, block = %s, chain = %s#", lIndex, lastBlock_.toHex(), chain_.toHex().substr(0, 10)));
 
 	return true;
+}
+
+size_t TransactionStore::calcHeight(const uint256& from) {
+	//
+	boost::unique_lock<boost::mutex> lLock(storageMutex_);
+
+	//
+	BlockHeader lHeader;
+	uint256 lHash = from;
+	size_t lIndex = 0;
+
+	while (headers_.read(lHash, lHeader)) {
+		lIndex++;
+		lHash = lHeader.prev();
+	}
+
+	return lIndex;
 }
 
 //
@@ -267,91 +425,40 @@ bool TransactionStore::processBlocks(const uint256& from, const uint256& to, std
 	for (std::list<BlockHeader>::reverse_iterator lBlock = lHeadersSeq.rbegin(); lBlock != lHeadersSeq.rend(); lBlock++) {
 		//
 		BlockContextPtr lBlockCtx = BlockContext::instance(Block::instance(*lBlock)); // just header without transactions attached
-		BlockTransactionsPtr lTransactions = transactions_.read(lBlockCtx->block()->hash());
+		uint256 lBlockHash = lBlockCtx->block()->hash();
+		BlockTransactionsPtr lTransactions = transactions_.read(lBlockHash);
 		ctxs.push_back(lBlockCtx);
 
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlocks]: processing block ") +
+			strprintf("%s/%s#", lBlockHash.toHex(), chain_.toHex().substr(0, 10)));
+
 		//
-		// make context block store and wallet store
+		// process txs
 		ITransactionStorePtr lTransactionStore = TxBlockStore::instance(std::static_pointer_cast<ITransactionStore>(shared_from_this()));
-		IWalletPtr lWallet = TxWalletStore::instance(wallet_, std::static_pointer_cast<ITransactionStore>(shared_from_this()));
-
-		//
-		// process block under local context block&wallet
-		bool lHasErrors = false;
-		TransactionProcessor lProcessor = TransactionProcessor::general(lTransactionStore, lWallet, std::static_pointer_cast<IEntityStore>(shared_from_this()));
-		for(TransactionsContainer::iterator lTx = lTransactions->transactions().begin(); lTx != lTransactions->transactions().end(); lTx++) {
-			TransactionContextPtr lCtx = TransactionContext::instance(*lTx);
-			if (!lProcessor.process(lCtx)) {
-				lHasErrors = true;
-				for (std::list<std::string>::iterator lErr = lCtx->errors().begin(); lErr != lCtx->errors().end(); lErr++) {
-					gLog().write(Log::STORE, std::string("[TransactionStore::processBlocks/error]: ") + (*lErr));
-				}
-
-				lBlockCtx->addErrors(lCtx->errors());
-			} else {
-				lTransactionStore->pushTransaction(lCtx);
-			}
-		}
-
-		//
-		// check and commit
-		if (!lHasErrors) {
-			//
-			// commit transaction store changes
-			TxBlockStorePtr lBlockStore = std::static_pointer_cast<TxBlockStore>(lTransactionStore);
-			for (std::list<TxBlockAction>::iterator lAction = lBlockStore->actions().begin(); lAction != lBlockStore->actions().end(); lAction++) {
-				if (lAction->action() == TxBlockAction::PUSH) {
-					pushUnlinkedOut(lAction->utxoPtr(), nullptr);
-				} else if (lAction->action() == TxBlockAction::POP) {
-					if (!popUnlinkedOut(lAction->utxo(), nullptr)) {
-						gLog().write(Log::STORE, std::string("[TransactionStore::processBlocks/error]: Block with utxo inconsistency - ") + lAction->utxo().toHex());
-
-						lBlockCtx->addError("Block with utxo inconsistency - " + lAction->utxo().toHex());
-						return false;
-					}
-				}
-			}
-
-			//
-			// commit local wallet changes
-			TxWalletStorePtr lWalletStore = std::static_pointer_cast<TxWalletStore>(lWallet);
-			for (std::list<TxBlockAction>::iterator lAction = lWalletStore->actions().begin(); lAction != lWalletStore->actions().end(); lAction++) {
-				if (lAction->action() == TxBlockAction::PUSH) {
-					if (!wallet_->pushUnlinkedOut(lAction->utxoPtr(), lAction->ctx())) {
-						gLog().write(Log::STORE, std::string("TransactionStore::processBlocks/wallet/error]: Block with utxo inconsistency - ") + lAction->utxo().toHex());
-
-						lBlockCtx->addError("Block/pushWallet with utxo inconsistency - " + lAction->utxo().toHex());
-						return false;					
-					}
-				} else if (lAction->action() == TxBlockAction::POP) {
-					if (!wallet_->popUnlinkedOut(lAction->utxo(), lAction->ctx())) {
-						gLog().write(Log::STORE, std::string("TransactionStore::processBlocks/wallet/error]: Block with utxo inconsistency - ") + lAction->utxo().toHex());
-
-						lBlockCtx->addError("Block/popWallet with utxo inconsistency - " + lAction->utxo().toHex());
-						return false;
-					}
-				}
-			}
-
+		if (processBlockTransactions(lTransactionStore, lBlockCtx, lTransactions, 0 /*just re-sync*/, true /*process wallet*/)) {
 			//
 			// tx to block|index
 			uint32_t lIndex = 0;
-			for(TransactionsContainer::iterator lTx = lBlockCtx->block()->transactions().begin(); lTx != lBlockCtx->block()->transactions().end(); lTx++) {
-				transactionsIdx_.write((*lTx)->id(), TxBlockIndex(lHash, lIndex++));
+			for(TransactionsContainer::iterator lTx = lTransactions->transactions().begin(); lTx != lTransactions->transactions().end(); lTx++) {
+				//
+				if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlocks]: writing index ") +
+					strprintf("%s/block(%d/%s)/%s#", (*lTx)->id().toHex(), lIndex, lBlockHash.toHex(), chain_.toHex().substr(0, 10)));
+				//
+				transactionsIdx_.write((*lTx)->id(), TxBlockIndex(lBlockHash, lIndex++));
 			}
 
 			//
 			// block to utxo
 			TxBlockStorePtr lIndexBlockStore = std::static_pointer_cast<TxBlockStore>(lTransactionStore);
 			for (std::list<TxBlockAction>::iterator lAction = lIndexBlockStore->actions().begin(); lAction != lIndexBlockStore->actions().end(); lAction++) {
-				blockUtxoIdx_.write(lHash, lAction->utxo());
+				blockUtxoIdx_.write(lBlockHash, lAction->utxo());
 			}
-
-			return true;
+		} else {
+			return false;
 		}
 	}
 
-	return false;
+	return true;
 }
 
 size_t TransactionStore::currentHeight(BlockHeader& block) {
@@ -360,9 +467,20 @@ size_t TransactionStore::currentHeight(BlockHeader& block) {
 	if (heightMap_.size()) {
 		std::map<size_t, uint256>::reverse_iterator lHeader = heightMap_.rbegin();
 		if (headers_.read(lHeader->second, block)) {
-			gLog().write(Log::STORE, std::string("[storage/currentHeight]: ") + strprintf("%d/%s/%s#", lHeader->first, block.hash().toHex(), chain_.toHex().substr(0, 10)));
+			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[currentHeight]: ") + strprintf("%d/%s/%s#", lHeader->first, block.hash().toHex(), chain_.toHex().substr(0, 10)));
 			return lHeader->first;
 		}
+	}
+
+	return 0;
+}
+
+size_t TransactionStore::top() {
+	//
+	boost::unique_lock<boost::mutex> lLock(storageMutex_);
+	if (heightMap_.size()) {
+		std::map<size_t, uint256>::reverse_iterator lHeader = heightMap_.rbegin();
+		return lHeader->first;
 	}
 
 	return 0;
@@ -378,6 +496,8 @@ size_t TransactionStore::pushNewHeight(const uint256& block) {
 
 	std::pair<std::map<size_t, uint256>::iterator, bool> lNewHeight = 
 		heightMap_.insert(std::map<size_t, uint256>::value_type(lHeight, block));
+	blockMap_.insert(std::map<uint256, size_t>::value_type(block, lHeight));
+
 	return lNewHeight.first->first;
 }
 
@@ -395,19 +515,46 @@ BlockHeader TransactionStore::currentBlockHeader() {
 
 bool TransactionStore::commitBlock(BlockContextPtr ctx, size_t& height) {
 	//
-	return processBlock(ctx, height, false);
+	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[commitBlock]: COMMITING block ") + 
+		strprintf("%s/%s#", ctx->block()->hash().toHex(), chain_.toHex().substr(0, 10)));
+
+	bool lResult = processBlock(ctx, height, false);
+
+	//
+	if (lResult)
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[commitBlock]: block COMMITED - ") + 
+			strprintf("%s/%s#", ctx->block()->hash().toHex(), chain_.toHex().substr(0, 10)));
+	else
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[commitBlock]: block SKIPPED - ") + 
+			strprintf("%s/%s#", ctx->block()->hash().toHex(), chain_.toHex().substr(0, 10)));
+
+	return lResult;	
 }
 
 BlockContextPtr TransactionStore::pushBlock(BlockPtr block) {
 	//
+	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[pushBlock]: PUSHING block ") + 
+		strprintf("%s/%s#", block->hash().toHex(), chain_.toHex().substr(0, 10)));
+
+	//
+	bool lResult;
 	size_t lHeight;
 	BlockContextPtr lBlockCtx = BlockContext::instance(block);	
-	if (processBlock(lBlockCtx, lHeight, true)) {
+	lResult = processBlock(lBlockCtx, lHeight, true);
+	if (lResult) {
 		lBlockCtx->setHeight(lHeight);
 	}
 
 	// remove
 	dequeueBlock(lBlockCtx->block()->hash());
+
+	//
+	if (lResult) 
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[pushBlock]: block PUSHED ") + 
+			strprintf("%s/%s#", block->hash().toHex(), chain_.toHex().substr(0, 10)));
+	else
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[pushBlock]: block SKIPPED ") + 
+			strprintf("%s/%s#", block->hash().toHex(), chain_.toHex().substr(0, 10)));
 
 	return lBlockCtx;
 }
@@ -461,7 +608,7 @@ bool TransactionStore::open() {
 	//
 	if (!opened_) { 
 		try {
-			gLog().write(Log::INFO, std::string("[store/open]: opening store for ") + strprintf("%s", chain_.toHex()));
+			gLog().write(Log::INFO, std::string("[open]: opening store for ") + strprintf("%s", chain_.toHex()));
 
 			if (mkpath(std::string(settings_->dataPath() + "/" + chain_.toHex() + "/indexes").c_str(), 0777)) return false;
 
@@ -480,14 +627,14 @@ bool TransactionStore::open() {
 				lastBlock_.setHex(lLastBlock);
 			}
 
-			gLog().write(Log::INFO, std::string("[store/open]: lastBlock = ") + strprintf("%s/%s#", lastBlock_.toHex(), chain_.toHex().substr(0, 10)));
+			gLog().write(Log::INFO, std::string("[open]: lastBlock = ") + strprintf("%s/%s#", lastBlock_.toHex(), chain_.toHex().substr(0, 10)));
 
 			resyncHeight();
 
 			opened_ = true;
 		}
 		catch(const std::exception& ex) {
-			gLog().write(Log::ERROR, std::string("[store/open/error]: ") + ex.what());
+			gLog().write(Log::ERROR, std::string("[open/error]: ") + ex.what());
 			return false;
 		}
 	}
@@ -497,7 +644,7 @@ bool TransactionStore::open() {
 
 bool TransactionStore::close() {
 	//
-	gLog().write(Log::INFO, std::string("[store/close]: closing storage for ") + strprintf("%s#...", chain_.toHex().substr(0, 10)));
+	gLog().write(Log::INFO, std::string("[close]: closing storage for ") + strprintf("%s#...", chain_.toHex().substr(0, 10)));
 
 	settings_.reset();
 	wallet_.reset();
@@ -546,7 +693,7 @@ bool TransactionStore::popUnlinkedOut(const uint256& utxo, TransactionContextPtr
 		return true;
 	}
 
-	return true;
+	return false;
 }
 
 void TransactionStore::addLink(const uint256& /*from*/, const uint256& /*to*/) {
@@ -566,7 +713,7 @@ bool TransactionStore::isUnlinkedOutUsed(const uint256& ltxo) {
 bool TransactionStore::isUnlinkedOutExists(const uint256& utxo) {
 	//
 	Transaction::UnlinkedOut lUtxo;
-	if (ltxo_.read(utxo, lUtxo) || utxo_.read(utxo, lUtxo)) {
+	if (/*ltxo_.read(utxo, lUtxo) ||*/ utxo_.read(utxo, lUtxo)) {
 		return true;
 	}
 
@@ -636,6 +783,10 @@ bool TransactionStore::blockExists(const uint256& id) {
 }
 
 void TransactionStore::reindexFull(const uint256& from, IMemoryPoolPtr pool) {
+	//
+	gLog().write(Log::STORE, std::string("[reindexFull]: STARTING FULL reindex for ") + 
+		strprintf("%s#", chain_.toHex().substr(0, 10)));
+
 	// reset connected wallet cache
 	wallet_->resetCache();	
 	// remove wallet utxo-binding data
@@ -643,7 +794,14 @@ void TransactionStore::reindexFull(const uint256& from, IMemoryPoolPtr pool) {
 	// process blocks
 	std::list<BlockContextPtr> lContexts;
 	if (!processBlocks(from, uint256(), lContexts)) {
-		gLog().write(Log::STORE, std::string("[TransactionStore::reindexFull]: there are some errors occured during reindex."));
+		if (lContexts.size()) {
+			std::list<BlockContextPtr>::reverse_iterator lLast = (++lContexts.rbegin());
+			if (lLast != lContexts.rend()) {
+				lastBlock_ = (*lLast)->block()->hash();
+				// build height map
+				resyncHeight();
+			}
+		}
 	} else {
 		// clean-up
 		for (std::list<BlockContextPtr>::iterator lBlock = lContexts.begin(); lBlock != lContexts.end(); lBlock++) {
@@ -654,26 +812,44 @@ void TransactionStore::reindexFull(const uint256& from, IMemoryPoolPtr pool) {
 		// build height map
 		resyncHeight();		
 	}
+
+	//
+	gLog().write(Log::STORE, std::string("[reindexFull]: FULL reindex FINISHED for ") + 
+		strprintf("%s#", chain_.toHex().substr(0, 10)));
 }
 
 void TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPoolPtr pool) {
+	//
+	gLog().write(Log::STORE, std::string("[reindex]: STARTING reindex for ") + 
+		strprintf("%s#", chain_.toHex().substr(0, 10)));
+
 	// remove index
 	removeBlocks(from, to, false);
-	// reset connected wallet cache
-	wallet_->resetCache();	
 	// process blocks
 	std::list<BlockContextPtr> lContexts;
 	if (!processBlocks(from, to, lContexts)) {
-		gLog().write(Log::STORE, std::string("[TransactionStore::reindex]: there are some errors occured during reindex."));
+		if (lContexts.size()) {
+			std::list<BlockContextPtr>::reverse_iterator lLast = (++lContexts.rbegin());
+			if (lLast != lContexts.rend()) {
+				lastBlock_ = (*lLast)->block()->hash();
+				// build height map
+				resyncHeight();
+			}
+		}
 	} else {
 		// clean-up
 		for (std::list<BlockContextPtr>::iterator lBlock = lContexts.begin(); lBlock != lContexts.end(); lBlock++) {
 			pool->removeTransactions((*lBlock)->block());
 		}
+
 		lastBlock_ = from;
 		// build height map
 		resyncHeight();
 	}
+
+	//
+	gLog().write(Log::STORE, std::string("[reindex]: reindex FINISHED for ") + 
+		strprintf("%s#", chain_.toHex().substr(0, 10)));
 }
 
 bool TransactionStore::enqueueBlock(const uint256& block) {
