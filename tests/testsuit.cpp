@@ -5,7 +5,6 @@
 #include "transactions.h"
 #include "blocks.h"
 #include "dbs.h"
-#include "cuckoo.h"
 #include "assets.h"
 #include "wallet.h"
 #include "memorypool.h"
