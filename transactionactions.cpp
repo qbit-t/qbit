@@ -49,7 +49,8 @@ TransactionAction::Result TxCoinBaseVerify::execute(TransactionContextPtr wrappe
 			}
 
 			//
-			// maybe amount checks?
+			// extract amount
+			wrapper->addAmount(lVM.getR(qasm::QA0).to<uint64_t>());
 
 			return TransactionAction::SUCCESS;
 		} else {

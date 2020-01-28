@@ -40,11 +40,54 @@ public:
 
 	inline std::list<std::string>& errors() { return errors_; }
 
+	inline void setCoinbaseAmount(amount_t amount) { coinbaseAmount_ = amount; }
+	inline amount_t coinbaseAmount() { return coinbaseAmount_; }
+
+	inline void setFee(amount_t fee) { coinbaseAmount_ = fee; }
+	inline amount_t fee() { return fee_; }
+
+	uint256 calculateMerkleRoot() {
+		std::vector<uint256> lHashes;
+		block_->transactionsHashes(lHashes);
+
+		return calculateMerkleRoot(lHashes, mutated_);
+	}
+
+	uint256 calculateMerkleRoot(std::vector<uint256>& hashes, bool& mutated) {
+		//
+		bool lMutation = false;
+		//
+		while (hashes.size() > 1) {
+			for (size_t lPos = 0; lPos + 1 < hashes.size(); lPos += 2) {
+				if (hashes[lPos] == hashes[lPos + 1]) lMutation = true;
+			}
+			
+			if (hashes.size() & 1) {
+				hashes.push_back(hashes.back());
+			}
+
+			HashWriter lStream(SER_GETHASH, PROTOCOL_VERSION);
+			lStream.write((char*)hashes[0].begin(), hashes.size() / 2);
+			hashes[0] = lStream.hash();			
+
+			hashes.resize(hashes.size() / 2);
+		}
+
+		mutated = lMutation;
+		if (hashes.size() == 0) return uint256();
+
+		return hashes[0];
+	}
+
 private:
 	BlockPtr block_;
 	std::list<_poolEntry> poolEntries_;
 	std::map<uint256, TransactionContextPtr> txs_;
 	size_t height_;
+	amount_t coinbaseAmount_;
+	amount_t fee_;
+	bool mutated_ = false;
+
 	// errors
 	std::list<std::string> errors_;
 };

@@ -48,18 +48,39 @@ public:
 
 		inline bool pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, TransactionContextPtr ctx) {
 			uint256 lId = utxo->hash();
+
+			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[TxBlockStore::pushUnlinkedOut]: try to push ") +
+				strprintf("utxo = %s, tx = %s", 
+					utxo->hash().toHex(), utxo->out().tx().toHex()));
+
 			if (utxo_.find(lId) == utxo_.end() && !persistentStore_->isUnlinkedOutUsed(lId)) {
 				utxo_[lId] = utxo;
 				actions_.push_back(TxBlockAction(TxBlockAction::PUSH, lId, utxo, ctx));
+
+				if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[TxBlockStore::pushUnlinkedOut]: PUSHED ") +
+					strprintf("utxo = %s, tx = %s", 
+						utxo->hash().toHex(), utxo->out().tx().toHex()));
+
+				return true;
 			}
 
 			return false;
 		}
 
 		inline bool popUnlinkedOut(const uint256& utxo, TransactionContextPtr ctx) {
-			if (utxo_.erase(utxo) || persistentStore_->findUnlinkedOut(utxo) != nullptr)
+			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[TxBlockStore::popUnlinkedOut]: try to pop ") +
+				strprintf("utxo = %s, tx = %s", 
+					utxo.toHex(), ctx->tx()->hash().toHex()));
+
+			if (utxo_.erase(utxo) || persistentStore_->findUnlinkedOut(utxo) != nullptr) {
 				actions_.push_back(TxBlockAction(TxBlockAction::POP, utxo, ctx));
+	
+				if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[TxBlockStore::popUnlinkedOut]: POPPED ") +
+					strprintf("utxo = %s, tx = %s", 
+						utxo.toHex(), ctx->tx()->hash().toHex()));
+	
 				return true;
+			}
 
 			return false;
 		}
@@ -101,19 +122,43 @@ public:
 		}
 
 		inline bool pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, TransactionContextPtr ctx) {
+			//
 			uint256 lId = utxo->hash();
-			if (utxo_.find(lId) == utxo_.end() && !persistentStore_->isUnlinkedOutUsed(lId)) {
+			//
+			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[TxWalletStore::pushUnlinkedOut]: try to push ") +
+				strprintf("utxo = %s, tx = %s", 
+					utxo->hash().toHex(), utxo->out().tx().toHex()));
+
+			if (utxo_.find(lId) == utxo_.end() /*&& !persistentStore_->isUnlinkedOutUsed(lId)*/) {
 				utxo_[lId] = utxo;
 				actions_.push_back(TxBlockAction(TxBlockAction::PUSH, lId, utxo, ctx));
+
+				//
+				if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[TxWalletStore::pushUnlinkedOut]: PUSHED ") +
+					strprintf("utxo = %s, tx = %s", 
+						utxo->hash().toHex(), utxo->out().tx().toHex()));
+
+				return true;
 			}
 
 			return false;
 		}
 
 		inline bool popUnlinkedOut(const uint256& utxo, TransactionContextPtr ctx) {
-			if (utxo_.erase(utxo) || persistentWallet_->findUnlinkedOut(utxo) != nullptr)
+			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[TxWalletStore::popUnlinkedOut]: try to pop ") +
+				strprintf("utxo = %s, tx = %s", 
+					utxo.toHex(), ctx->tx()->hash().toHex()));
+
+			Transaction::UnlinkedOutPtr lUtxo = persistentWallet_->findUnlinkedOut(utxo);
+			if (true /*utxo_.erase(utxo) || lUtxo != nullptr*/) {
 				actions_.push_back(TxBlockAction(TxBlockAction::POP, utxo, ctx));
+
+				if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[TxWalletStore::popUnlinkedOut]: POPPED ") +
+					strprintf("utxo = %s, tx = %s", 
+						utxo.toHex(), ctx->tx()->hash().toHex()));
+
 				return true;
+			}
 
 			return false;
 		}
@@ -122,7 +167,9 @@ public:
 
 		inline std::list<TxBlockAction>& actions() { return actions_; } 
 
-		inline SKey findKey(const PKey& pkey) { return persistentWallet_->findKey(pkey); }
+		inline SKey findKey(const PKey& pkey) { 
+			return persistentWallet_->findKey(pkey); 
+		}
 
 	private:
 		IWalletPtr persistentWallet_;
@@ -226,6 +273,9 @@ public:
 	size_t currentHeight(BlockHeader&);
 	BlockHeader currentBlockHeader();
 
+	bool transactionHeight(const uint256& /*tx*/, size_t& /*height*/, bool& /*coinbase*/);
+	bool blockHeight(const uint256& /*block*/, size_t& /*height*/);
+
 	static ITransactionStorePtr instance(const uint256& chain, ISettingsPtr settings) {
 		return std::make_shared<TransactionStore>(chain, settings); 
 	}	
@@ -235,10 +285,13 @@ public:
 	}	
 
 private:
+	bool processBlockTransactions(ITransactionStorePtr /*tempStore*/, BlockContextPtr /*block*/, BlockTransactionsPtr /*transactions*/, size_t /*approxHeight*/, bool /*processWallet*/);
 	bool processBlock(BlockContextPtr, size_t& /*new height*/, bool /*processWallet*/);
 	void removeBlocks(const uint256& /*from*/, const uint256& /*to*/, bool /*removeData*/);
 	void writeLastBlock(const uint256&);
 	size_t pushNewHeight(const uint256&);
+	size_t top();
+	size_t calcHeight(const uint256&);
 
 private:
 	// chain id
@@ -283,6 +336,7 @@ private:
 	//
 	boost::mutex storageMutex_;
 	std::map<size_t, uint256> heightMap_;
+	std::map<uint256, size_t> blockMap_;
 
 	//
 	std::set<uint256> blocksQueue_;

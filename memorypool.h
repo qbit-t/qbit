@@ -69,7 +69,7 @@ public:
 		}
 
 		bool isUnlinkedOutExists(const uint256& utxo) {
-			return freeUtxo_.find(utxo) != freeUtxo_.end() || usedUtxo_.find(utxo) != usedUtxo_.end();
+			return freeUtxo_.find(utxo) != freeUtxo_.end() /*|| usedUtxo_.find(utxo) != usedUtxo_.end()*/;
 		}
 
 		static std::shared_ptr<PoolStore> toStore(ITransactionStorePtr store) { return std::static_pointer_cast<PoolStore>(store); }
@@ -144,10 +144,15 @@ public:
 	//
 	// main entry
 	TransactionContextPtr pushTransaction(TransactionPtr);
+	bool pushTransaction(TransactionContextPtr);
 
 	//
 	// wallet
 	IWalletPtr wallet() { return wallet_; }
+
+	//
+	// consensus
+	IConsensusPtr consensus() { return consensus_; }
 
 private:
 	inline qunit_t getTop() {
@@ -175,6 +180,8 @@ private:
 	std::multimap<qunit_t /*fee rate*/, uint256 /*tx*/> map_;
 	// qbit txs
 	std::map<uint256, TransactionContextPtr> qbitTxs_;
+	//
+	boost::recursive_mutex mempoolMutex_;
 };
 
 } // qbit

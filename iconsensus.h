@@ -19,6 +19,7 @@
 
 #include <boost/thread/thread.hpp>
 #include <boost/thread/mutex.hpp>
+#include <boost/thread/recursive_mutex.hpp>
 #include <boost/chrono.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
@@ -59,6 +60,8 @@ public:
 	virtual void broadcastBlockHeader(const NetworkBlockHeader& /*block*/, IPeerPtr /*peer*/) { throw qbit::exception("NOT_IMPL", "IConsensus::broadcastBlockHeader - not implemented."); }
 	virtual bool acquireBlock(const NetworkBlockHeader& /*block*/) { throw qbit::exception("NOT_IMPL", "IConsensus::acquireBlock - not implemented."); }
 
+	virtual bool broadcastTransaction(TransactionContextPtr /*ctx*/, uint160 /*except*/) { throw qbit::exception("NOT_IMPL", "IConsensus::broadcastTransaction - not implemented."); }
+
 	virtual SKey mainKey() { throw qbit::exception("NOT_IMPL", "IConsensus::mainKey - not implemented."); }
 
 	virtual size_t blockTime() { throw qbit::exception("NOT_IMPL", "IConsensus::blockTime - not implemented."); }
@@ -80,6 +83,10 @@ public:
 	virtual ITransactionStorePtr store() { throw qbit::exception("NOT_IMPL", "IConsensus::store - not implemented."); }
 
 	virtual std::string chainStateString() { throw qbit::exception("NOT_IMPL", "IConsensus::chainStateString - not implemented."); }
+	virtual size_t maturity() { throw qbit::exception("NOT_IMPL", "IConsensus::maturity - not implemented."); }
+	virtual size_t coinbaseMaturity() { throw qbit::exception("NOT_IMPL", "IConsensus::coinbaseMaturity - not implemented."); }
+
+	virtual bool checkEmission(amount_t /*coinbaseAmount*/, amount_t /*blockFee*/, size_t /*height*/) { throw qbit::exception("NOT_IMPL", "IConsensus::checkCoinbaseAmountAndFee - not implemented."); }
 };
 
 typedef std::shared_ptr<IConsensus> IConsensusPtr;
