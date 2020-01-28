@@ -37,7 +37,7 @@ void HttpRequestHandler::handleRequest(const std::string& endpoint, const HttpRe
 	if (!lData.loadFromStream(request.data)) {
 		// error
 		gLog().write(Log::HTTP, std::string("[handleRequest/error]: ") + lData.lastError());
-		reply = HttpReply::stockReply(HttpReply::bad_request);
+		reply = HttpReply::stockReply("E_JSON", lData.lastError());
 		return;
 	}
 

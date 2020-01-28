@@ -16,6 +16,18 @@
 
 namespace qbit {
 
+class HttpGetKey: public IHttpCallEnpoint {
+public:
+	HttpGetKey() {}
+
+	void process(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
+	std::string method() { return std::string("getkey"); }
+
+	static IHttpCallEnpointPtr instance() {
+		return std::make_shared<HttpGetKey>();
+	}
+};
+
 class HttpGetBalance: public IHttpCallEnpoint {
 public:
 	HttpGetBalance() {}
@@ -25,6 +37,18 @@ public:
 
 	static IHttpCallEnpointPtr instance() {
 		return std::make_shared<HttpGetBalance>();
+	}
+};
+
+class HttpSendToAddress: public IHttpCallEnpoint {
+public:
+	HttpSendToAddress() {}
+
+	void process(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
+	std::string method() { return std::string("sendtoaddress"); }
+
+	static IHttpCallEnpointPtr instance() {
+		return std::make_shared<HttpSendToAddress>();
 	}
 };
 

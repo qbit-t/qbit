@@ -54,6 +54,30 @@ public:
 	size_t quarantineTime() { return 100; }
 
 	//
+	// maturity period (blocks)
+	// TODO: settings
+	size_t maturity() { return 5; }	
+
+	//
+	// coinbase maturity period (blocks)
+	// TODO: settings
+	size_t coinbaseMaturity() { return 5; }	
+
+	//
+	// mining/emission schedule control
+	bool checkEmission(amount_t coinbaseAmount, amount_t blockFee, size_t height) {
+		// TODO: implement
+		// coinbaseAmount - blockFee should/can be in schedule, for example
+		// 1		- 1000000 block height, coinbase = 1 qbit
+		// 1000001	- 2000000 block height, coinbase = 0.9 qbit
+		// 2000001	- 3000000 block height, coinbase = 0.8 qbit
+		// ...
+		// NOTE: height might be a bit floating, so need flexible borders
+
+		return true;
+	}
+
+	//
 	// use peer for network participation
 	void pushPeer(IPeerPtr peer) {
 		//
@@ -151,36 +175,40 @@ public:
 		// check work
 		if (validator->checkBlockHeader(blockHeader)) {
 			//
-			bool lProcess = true;
+			size_t lPeersCount = 0;
+			{
+				boost::unique_lock<boost::mutex> lLock(peersMutex_);
+				lPeersCount = directPeerMap_.size();
+			}
 
 			// check that sequence of blocks is not in row for one address
 			{
 				boost::unique_lock<boost::mutex> lLock(queueMutex_); // LOCK!
 
-				PeerBlockTimeMap::iterator lPeerBlockTime = peerBlockTime_.find(const_cast<NetworkBlockHeader&>(blockHeader).addressId());
-				if (lPeerBlockTime != peerBlockTime_.end()) {
-					// block by peer exists
-					BlockTimePeerMap::iterator lBlockTimePeer = blockTimePeer_.find(lPeerBlockTime->second);
-					if (lBlockTimePeer != blockTimePeer_.end()) {
-						BlockTimePeerMap::iterator lBlockTimePeerPrev = --lBlockTimePeer; // look to the prev one
-						BlockTimePeerMap::iterator lBlockTimePeerNext = ++(++lBlockTimePeer); // look to the next one
-						if ((lBlockTimePeerPrev != blockTimePeer_.end() && lBlockTimePeerPrev->second != const_cast<NetworkBlockHeader&>(blockHeader).addressId()) || 
-							(lBlockTimePeerNext != blockTimePeer_.end() && lBlockTimePeerNext->second != const_cast<NetworkBlockHeader&>(blockHeader).addressId()) || 
-							blockTimePeer_.size() < 3 /**/) {
-							blockTimePeer_.erase(--lBlockTimePeer); // remove time peer
-							peerBlockTime_.erase(lPeerBlockTime); // remove peer time
-						} else {
-							lProcess = false;
+				std::pair<BlockTimePeerMap::iterator, bool> lBlockPeer = blockTimePeer_.insert(BlockTimePeerMap::value_type(const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().time(), const_cast<NetworkBlockHeader&>(blockHeader).addressId()));
+				if (lBlockPeer.second) {
+					BlockTimePeerMap::iterator lPrevBlockPeer = lBlockPeer.first; lPrevBlockPeer--;
+					if (lPrevBlockPeer != blockTimePeer_.end()) {
+						if (lPrevBlockPeer->second == const_cast<NetworkBlockHeader&>(blockHeader).addressId() && lPeersCount >= 3 /*TODO: settings*/) {
+							gLog().write(Log::CONSENSUS, 
+								strprintf("[pushBlockHeader]: sequential blocks NOT ALLOWED from one peer %s/%d/%s#, skipping.", 
+									const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().hash().toHex(), 
+									const_cast<NetworkBlockHeader&>(blockHeader).height(),
+									chain_.toHex().substr(0, 10)));
+
+							blockTimePeer_.erase(lBlockPeer.first);
+							return false;
 						}
 					}
 				}
 			}
 
 			// process
-			if (lProcess && validator->acceptBlockHeader(blockHeader)) {
+			if (validator->acceptBlockHeader(blockHeader)) {
 				boost::unique_lock<boost::mutex> lLock(queueMutex_); // LOCK!
-				blockTimePeer_.insert(BlockTimePeerMap::value_type(const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().time(), const_cast<NetworkBlockHeader&>(blockHeader).addressId()));
-				peerBlockTime_.insert(PeerBlockTimeMap::value_type(const_cast<NetworkBlockHeader&>(blockHeader).addressId(), const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().time()));
+
+				if (blockTimePeer_.size() > 50 /*TODO: settings*/) 
+					blockTimePeer_.erase(blockTimePeer_.begin());
 
 				// accept block header
 				return true;
@@ -207,6 +235,27 @@ public:
 		for (std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
 			if (!except || (*lPeer)->key() != except->key()) (*lPeer)->broadcastBlockHeader(blockHeader);
 		}
+	}
+
+	//
+	// broadcast transaction
+	bool broadcastTransaction(TransactionContextPtr ctx, uint160 except) {
+		// prepare
+		std::list<IPeerPtr> lPeers;
+		{
+			boost::unique_lock<boost::mutex> lLock(peersMutex_);
+			for (PeersMap::iterator lItem = directPeerMap_.begin(); lItem != directPeerMap_.end(); lItem++) {
+				lPeers.push_back(lItem->second);
+			}
+		}
+
+		// broadcast
+		for (std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
+			if (except.isNull() || (except != (*lPeer)->addressId()))
+				(*lPeer)->broadcastTransaction(ctx);
+		}
+
+		return lPeers.size() > 0; 
 	}
 
 	//
@@ -274,7 +323,7 @@ public:
 			heightMap_[lInfo.height()][lInfo.hash()].insert(lPeerId);
 
 			gLog().write(Log::CONSENSUS, 
-				strprintf("[consensus/pushState]: %d/%s/%s/%s#", lInfo.height(), lInfo.hash().toHex(), lPeerId.toHex(), chain_.toHex().substr(0, 10)));
+				strprintf("[pushState]: %d/%s/%s/%s#", lInfo.height(), lInfo.hash().toHex(), lPeerId.toHex(), chain_.toHex().substr(0, 10)));
 
 			// all peers
 			peerSet_.insert(lPeerId);
@@ -348,7 +397,7 @@ public:
 		}
 
 		gLog().write(Log::CONSENSUS, 
-			strprintf("[consensus/isChainSynchronized]: %s/%s/%d/%s#", 
+			strprintf("[isChainSynchronized]: %s/%s/%d/%s#", 
 				(lResult ? "true" : "FALSE"), lHeader.hash().toHex(), lHeight, chain_.toHex().substr(0, 10)));
 
 		return lResult;
@@ -378,7 +427,7 @@ public:
 						block = lState->first;
 
 						gLog().write(Log::CONSENSUS, 
-							strprintf("[consensus/locateSynchronizedRoot]: candidates %d/%s/%s#", 
+							strprintf("[locateSynchronizedRoot]: candidates %d/%s/%s#", 
 								lResultHeight, block.toHex(), chain_.toHex().substr(0, 10)));
 
 						lFound = true;
@@ -386,7 +435,7 @@ public:
 						break;
 					} else if (lHeightPos->first == lHeight) {
 						gLog().write(Log::CONSENSUS, 
-							strprintf("[consensus/locateSynchronizedRoot]: already SYNCHRONIZED %d/%s/%s#", 
+							strprintf("[locateSynchronizedRoot]: already SYNCHRONIZED %d/%s/%s#", 
 								lHeightPos->first, lState->first.toHex(), chain_.toHex().substr(0, 10)));
 					}
 				}
@@ -464,7 +513,7 @@ public:
 				} else if (settings_->isNode()) {
 
 				} else {
-					gLog().write(Log::CONSENSUS, "[consensus/doSynchronize]: synchronization is allowed for NODE or FULLNODE only.");
+					gLog().write(Log::CONSENSUS, "[doSynchronize]: synchronization is allowed for NODE or FULLNODE only.");
 					//
 					boost::unique_lock<boost::mutex> lLock(transitionMutex_);
 					chainState_ = IConsensus::SYNCHRONIZED;
@@ -603,7 +652,6 @@ private:
 	//
 	// chain -> time -> peer
 	typedef std::map<time_t, peer_t> BlockTimePeerMap;
-	typedef std::map<peer_t, time_t> PeerBlockTimeMap;
 
 	//
 	// chain -> active peers
@@ -620,7 +668,6 @@ private:
 	PeersSet peerSet_;
 
 	BlockTimePeerMap blockTimePeer_;
-	PeerBlockTimeMap peerBlockTime_;
 
 	HeightMap heightMap_;
 };

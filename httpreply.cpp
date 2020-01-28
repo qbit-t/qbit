@@ -1,5 +1,6 @@
 #include "httpreply.h"
 #include "log/log.h"
+#include "tinyformat.h"
 
 #include <iostream>
 #include <boost/lexical_cast.hpp>
@@ -173,7 +174,19 @@ std::string toString(HttpReply::StatusType status) {
 HttpReply HttpReply::stockReply(HttpReply::StatusType status) {
 	HttpReply lReply;
 	lReply.status = status;
-	lReply.content = stock_replies::toString(status);
+	lReply.content = stock_replies::toString(status) + "\n";
+	lReply.headers.resize(2);
+	lReply.headers[0].name = "Content-Length";
+	lReply.headers[0].value = boost::lexical_cast<std::string>(lReply.content.size());
+	lReply.headers[1].name = "Content-Type";
+	lReply.headers[1].value = "application/json";
+	return lReply;
+}
+
+HttpReply HttpReply::stockReply(const std::string& code, const std::string& message) {
+	HttpReply lReply;
+	lReply.status = internal_server_error;
+	lReply.content = strprintf("{\"result\": null, \"error\": {\"code\": \"%s\", \"message\": \"%s\"}}\n", code, message);
 	lReply.headers.resize(2);
 	lReply.headers[0].name = "Content-Length";
 	lReply.headers[0].value = boost::lexical_cast<std::string>(lReply.content.size());

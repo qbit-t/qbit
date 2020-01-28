@@ -52,6 +52,7 @@ public:
 		}
 
 		std::basic_string<unsigned char> word() { return std::basic_string<unsigned char>(word_); }
+		std::basic_string<char> wordA() { return std::basic_string<char>((char*)word_); }
 
 	private:
 		unsigned char word_[WORD_LEN] = {0};
@@ -72,6 +73,7 @@ public:
 	PKey createPKey();
 
 	std::string toString();
+	std::string toHex() { return HexStr(begin(), end()); }	
 
 	template <typename T> void set(const T pbegin, const T pend)
 	{

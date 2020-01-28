@@ -76,7 +76,7 @@ bool StoreQbitCreateSpend::execute() {
 		//std::cout << s0.str() << "\n";
 
 		// 2. create tx
-		for (int i = 0; i < 10; i++) {
+		for (int i = 0; i < 1; i++) {
 			TransactionContextPtr lCtx = wallet_->createTxSpend(TxAssetType::qbitAsset(), lBob, 100);
 			lCtx = mempool_->pushTransaction(lCtx->tx());
 			

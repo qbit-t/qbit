@@ -18,6 +18,9 @@
 
 namespace qbit {
 
+class IWallet;
+typedef std::shared_ptr<IWallet> IWalletPtr;
+
 class IMemoryPool {
 public:
 	IMemoryPool() {}
@@ -36,7 +39,9 @@ public:
 	virtual ITransactionStorePtr persistentMainStore() { throw qbit::exception("NOT_IMPL", "IMemoryPool::persistentMainStore - not implemented."); }
 	virtual ITransactionStorePtr persistentStore() { throw qbit::exception("NOT_IMPL", "IMemoryPool::persistentStore - not implemented."); }
 	virtual TransactionContextPtr pushTransaction(TransactionPtr) { throw qbit::exception("NOT_IMPL", "IMemoryPool::pushTransaction - not implemented."); }
+	virtual bool pushTransaction(TransactionContextPtr) { throw qbit::exception("NOT_IMPL", "IMemoryPool::pushTransaction - not implemented."); }
 	virtual IWalletPtr wallet() { throw qbit::exception("NOT_IMPL", "IMemoryPool::wallet - not implemented."); }
+	virtual IConsensusPtr consensus() { throw qbit::exception("NOT_IMPL", "IMemoryPool::consensus - not implemented."); }
 
 	virtual BlockContextPtr beginBlock(BlockPtr) { throw qbit::exception("NOT_IMPL", "IMemoryPool::beginBlock - not implemented."); }
 	virtual void commit(BlockContextPtr) { throw qbit::exception("NOT_IMPL", "IMemoryPool::commit - not implemented."); }

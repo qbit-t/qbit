@@ -21,7 +21,7 @@ void Peer::ping() {
 		(*lMsg) << lMessage;
 		(*lMsg) << lTimestamp;
 
-		gLog().write(Log::NET, std::string("[peer]: ping to ") + key() + " -> " + HexStr(lMsg->begin(), lMsg->end()));
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: ping to ") + key() + " -> " + HexStr(lMsg->begin(), lMsg->end()));
 
 		boost::asio::async_write(*socket_,
 			boost::asio::buffer(lMsg->data(), lMsg->size()),
@@ -56,7 +56,7 @@ void Peer::internalSendState(StatePtr state, bool global) {
 		lMsg->write(lStateStream.data(), lStateStream.size());
 
 		// log
-		gLog().write(Log::NET, std::string("[peer]: sending ") + (global ? "global ": "") + std::string("state to ") + key() + " -> " + HexStr(lMsg->begin(), lMsg->end()));
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: sending ") + (global ? "global ": "") + std::string("state to ") + key() + " -> " + HexStr(lMsg->begin(), lMsg->end()));
 
 		// write
 		boost::asio::async_write(*socket_,
@@ -91,7 +91,7 @@ void Peer::synchronizeFullChain(IConsensusPtr consensus, SynchronizationJobPtr j
 				lHeight = job->reacquireJob(lPendingJobs.rbegin()->first, shared_from_this());
 			else {
 				// log
-				gLog().write(Log::NET, std::string("[peer]: synchronization job is done, root = ") + strprintf("%s", job->block().toHex()));
+				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: synchronization job is done, root = ") + strprintf("%s", job->block().toHex()));
 				
 				// cleanup
 				removeJob(consensus->chain());
@@ -115,7 +115,7 @@ void Peer::synchronizeFullChain(IConsensusPtr consensus, SynchronizationJobPtr j
 		lMsg->write(lStateStream.data(), lStateStream.size());
 
 		// log
-		gLog().write(Log::NET, std::string("[peer]: requesting BLOCK ") + strprintf("%d", lHeight) + std::string(" from ") + key());
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: requesting BLOCK ") + strprintf("%d", lHeight) + std::string(" from ") + key());
 
 		// write
 		boost::asio::async_write(*socket_,
@@ -136,7 +136,7 @@ void Peer::synchronizeFullChainHead(IConsensusPtr consensus, SynchronizationJobP
 		uint256 lId = job->nextBlock();
 		if (lId.isNull()) {
 			// log
-			gLog().write(Log::NET, std::string("[peer]: synchronization job is done, root = ") + strprintf("%s", job->block().toHex()));
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: synchronization job is done, root = ") + strprintf("%s", job->block().toHex()));
 
 			// cleanup
 			removeJob(consensus->chain());
@@ -166,7 +166,7 @@ void Peer::synchronizeFullChainHead(IConsensusPtr consensus, SynchronizationJobP
 		lMsg->write(lStateStream.data(), lStateStream.size());
 
 		// log
-		gLog().write(Log::NET, std::string("[peer]: requesting block ") + lId.toHex() + std::string(" from ") + key());
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: requesting block ") + lId.toHex() + std::string(" from ") + key());
 
 		// write
 		boost::asio::async_write(*socket_,
@@ -194,7 +194,7 @@ void Peer::acquireBlock(const NetworkBlockHeader& block) {
 		lMsg->write(lStateStream.data(), lStateStream.size());
 
 		// log
-		gLog().write(Log::NET, std::string("[peer]: acquiring block ") + lId.toHex() + std::string(" from ") + key());
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: acquiring block ") + lId.toHex() + std::string(" from ") + key());
 
 		// write
 		boost::asio::async_write(*socket_,
@@ -225,7 +225,7 @@ void Peer::requestPeers() {
 		lMsg->write(lStateStream.data(), lStateStream.size());
 
 		// log
-		gLog().write(Log::NET, std::string("[peer]: exchanging peers with ") + key() + " -> " + HexStr(lMsg->begin(), lMsg->end()));
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: exchanging peers with ") + key() + " -> " + HexStr(lMsg->begin(), lMsg->end()));
 
 		// write
 		boost::asio::async_write(*socket_,
@@ -255,7 +255,7 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 	if (!error)	{
 		if (!msg->size()) {
 			// log
-			gLog().write(Log::ERROR, std::string("[peer]: empty message from ") + key());
+			gLog().write(Log::NET, std::string("[peer/processMessage/error]: empty message from ") + key());
 			rawInMessages_.erase(msg);
 
 			waitForMessage(); 
@@ -263,14 +263,14 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 		}
 
 		//
-		gLog().write(Log::NET, std::string("[peer]: raw message from ") + key() + " -> " + HexStr(msg->begin(), msg->end()) + ", " + statusString());
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: raw message from ") + key() + " -> " + HexStr(msg->begin(), msg->end()) + ", " + statusString());
 
 		Message lMessage;
 		(*msg) >> lMessage; // deserialize
 		eraseInMessage(msg); // erase
 
 		// log
-		gLog().write(Log::NET, std::string("[peer]: message from ") + key() + " -> " + lMessage.toString() + (lMessage.valid()?" - valid":" - invalid"));
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: message from ") + key() + " -> " + lMessage.toString() + (lMessage.valid()?" - valid":" - invalid"));
 
 		// process
 		if (lMessage.valid() && lMessage.dataSize() < peerManager_->settings()->maxMessageSize()) {
@@ -281,7 +281,7 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 			// sanity check
 			if (peerManager_->existsBanned(key())) {
 				// log
-				gLog().write(Log::NET, std::string("[peer]: peer ") + key() + std::string(" is BANNED."));
+				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: peer ") + key() + std::string(" is BANNED."));
 				// terminate session
 				socketStatus_ = ERROR;
 				// close socket
@@ -329,6 +329,12 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 					boost::asio::buffer(lMsg->data(), lMessage.dataSize()),
 					boost::bind(
 						&Peer::processBlockHeader, shared_from_this(), lMsg,
+						boost::asio::placeholders::error));
+			} else if (lMessage.type() == Message::TRANSACTION) {
+				boost::asio::async_read(*socket_,
+					boost::asio::buffer(lMsg->data(), lMessage.dataSize()),
+					boost::bind(
+						&Peer::processTransaction, shared_from_this(), lMsg,
 						boost::asio::placeholders::error));
 			} else if (lMessage.type() == Message::GET_BLOCK_BY_HEIGHT) {
 				boost::asio::async_read(*socket_,
@@ -408,7 +414,7 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 	} else {
 		// log
 		if (key() != "EKEY") {
-			gLog().write(Log::NET, "[peer/processMessage]: closing session " + key() + " -> " + error.message() + ", " + statusString());
+			gLog().write(Log::NET, "[peer/processMessage/error]: closing session " + key() + " -> " + error.message() + ", " + statusString());
 			//
 			socketStatus_ = ERROR;
 			// try to deactivate peer
@@ -422,7 +428,7 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 void Peer::processBlockByHeightAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
 	//
 	if (!error) {
-		gLog().write(Log::NET, std::string("[peer]: block by height is absent from ") + key());
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: block by height is absent from ") + key());
 
 		// extract
 		uint256 lChain;
@@ -431,11 +437,11 @@ void Peer::processBlockByHeightAbsent(std::list<DataStream>::iterator msg, const
 		(*msg) >> lHeight;
 		eraseInData(msg);
 		
-		gLog().write(Log::ERROR, std::string("[peer]: block is absent for ") + strprintf("%d/%s#", lHeight, lChain.toHex().substr(0, 10)));
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: block is absent for ") + strprintf("%d/%s#", lHeight, lChain.toHex().substr(0, 10)));
 
 	} else {
 		// log
-		gLog().write(Log::ERROR, "[peer/processBlockByHeightAbsent]: closing session " + key() + " -> " + error.message());
+		gLog().write(Log::NET, "[peer/processBlockByHeightAbsent/error]: closing session " + key() + " -> " + error.message());
 		//
 		socketStatus_ = ERROR;
 		// try to deactivate peer
@@ -448,7 +454,7 @@ void Peer::processBlockByHeightAbsent(std::list<DataStream>::iterator msg, const
 void Peer::processBlockByIdAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error){
 	//
 	if (!error) {
-		gLog().write(Log::NET, std::string("[peer]: block by id is absent from ") + key());
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: block by id is absent from ") + key());
 
 		// extract
 		uint256 lChain;
@@ -457,11 +463,11 @@ void Peer::processBlockByIdAbsent(std::list<DataStream>::iterator msg, const boo
 		(*msg) >> lId;
 		eraseInData(msg);
 		
-		gLog().write(Log::ERROR, std::string("[peer]: block is absent for ") + strprintf("%s/%s#", lId.toHex(), lChain.toHex().substr(0, 10)));
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: block is absent for ") + strprintf("%s/%s#", lId.toHex(), lChain.toHex().substr(0, 10)));
 
 	} else {
 		// log
-		gLog().write(Log::ERROR, "[peer/processBlockByIdAbsent]: closing session " + key() + " -> " + error.message());
+		gLog().write(Log::NET, "[peer/processBlockByIdAbsent/error]: closing session " + key() + " -> " + error.message());
 		//
 		socketStatus_ = ERROR;
 		// try to deactivate peer
@@ -474,7 +480,7 @@ void Peer::processBlockByIdAbsent(std::list<DataStream>::iterator msg, const boo
 void Peer::processNetworkBlockAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
 	//
 	if (!error) {
-		gLog().write(Log::NET, std::string("[peer]: network block is absent from ") + key());
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: network block is absent from ") + key());
 
 		// extract
 		uint256 lChain;
@@ -483,11 +489,11 @@ void Peer::processNetworkBlockAbsent(std::list<DataStream>::iterator msg, const 
 		(*msg) >> lId;
 		eraseInData(msg);
 		
-		gLog().write(Log::ERROR, std::string("[peer]: network block is absent for ") + strprintf("%s/%s#", lId.toHex(), lChain.toHex().substr(0, 10)));
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: network block is absent for ") + strprintf("%s/%s#", lId.toHex(), lChain.toHex().substr(0, 10)));
 
 	} else {
 		// log
-		gLog().write(Log::ERROR, "[peer/processNetworkBlockAbsent]: closing session " + key() + " -> " + error.message());
+		gLog().write(Log::NET, "[peer/processNetworkBlockAbsent/error]: closing session " + key() + " -> " + error.message());
 		//
 		socketStatus_ = ERROR;
 		// try to deactivate peer
@@ -500,7 +506,7 @@ void Peer::processNetworkBlockAbsent(std::list<DataStream>::iterator msg, const 
 void Peer::processBlockByHeight(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
 	//
 	if (!error) {
-		gLog().write(Log::NET, std::string("[peer]: processing response for block by height from ") + key());
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing response for block by height from ") + key());
 
 		// extract
 		uint256 lChain;
@@ -514,12 +520,12 @@ void Peer::processBlockByHeight(std::list<DataStream>::iterator msg, const boost
 		SynchronizationJobPtr lJob = locateJob(lChain);
 		if (lJob && lJob->releaseJob(lHeight)) {
 			// log
-			gLog().write(Log::NET, std::string("[peer]: processing BLOCK ") + strprintf("%s/%d", lBlock->hash().toHex(), lHeight) + std::string("..."));
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing BLOCK ") + strprintf("%s/%d", lBlock->hash().toHex(), lHeight) + std::string("..."));
 			// save block
 			peerManager_->consensusManager()->locate(lChain)->store()->saveBlock(lBlock);
 		} else {
 			// log
-			gLog().write(Log::WARNING, std::string("[peer]: local job was not found for ") + strprintf("%d/%s#", lHeight, lChain.toHex().substr(0, 10)));
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::WARNING, std::string("[peer]: local job was not found for ") + strprintf("%d/%s#", lHeight, lChain.toHex().substr(0, 10)));
 		}
 
 		// go do next job
@@ -531,7 +537,7 @@ void Peer::processBlockByHeight(std::list<DataStream>::iterator msg, const boost
 		}
 	} else {
 		// log
-		gLog().write(Log::ERROR, "[peer/processBlockByHeight]: closing session " + key() + " -> " + error.message());
+		gLog().write(Log::NET, "[peer/processBlockByHeight/error]: closing session " + key() + " -> " + error.message());
 		//
 		socketStatus_ = ERROR;
 		// try to deactivate peer
@@ -544,7 +550,7 @@ void Peer::processBlockByHeight(std::list<DataStream>::iterator msg, const boost
 void Peer::processGetBlockByHeight(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
 	//
 	if (!error) {
-		gLog().write(Log::NET, std::string("[peer]: processing request block by height from ") + key());
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing request block by height from ") + key());
 
 		// extract
 		uint256 lChain;
@@ -571,7 +577,7 @@ void Peer::processGetBlockByHeight(std::list<DataStream>::iterator msg, const bo
 			lMsg->write(lStream.data(), lStream.size());
 
 			// log
-			gLog().write(Log::NET, std::string("[peer]: sending block by height ") + strprintf("%s/%d", lBlock->hash().toHex(), lHeight) + std::string(" for ") + key());
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: sending block by height ") + strprintf("%s/%d", lBlock->hash().toHex(), lHeight) + std::string(" for ") + key());
 
 			// write
 			boost::asio::async_write(*socket_,
@@ -595,7 +601,7 @@ void Peer::processGetBlockByHeight(std::list<DataStream>::iterator msg, const bo
 			lMsg->write(lStream.data(), lStream.size());
 
 			// log
-			gLog().write(Log::NET, std::string("[peer]: block is absent for chain ") + strprintf("%d/%s#", lHeight, lChain.toHex().substr(0, 10)) + std::string(" -> ") + key());
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: block is absent for chain ") + strprintf("%d/%s#", lHeight, lChain.toHex().substr(0, 10)) + std::string(" -> ") + key());
 
 			// write
 			boost::asio::async_write(*socket_,
@@ -607,7 +613,7 @@ void Peer::processGetBlockByHeight(std::list<DataStream>::iterator msg, const bo
 
 	} else {
 		// log
-		gLog().write(Log::ERROR, "[peer/processGetBlockByHeight]: closing session " + key() + " -> " + error.message());
+		gLog().write(Log::NET, "[peer/processGetBlockByHeight/error]: closing session " + key() + " -> " + error.message());
 		//
 		socketStatus_ = ERROR;
 		// try to deactivate peer
@@ -620,7 +626,7 @@ void Peer::processGetBlockByHeight(std::list<DataStream>::iterator msg, const bo
 void Peer::processBlockById(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
 	//
 	if (!error) {
-		gLog().write(Log::NET, std::string("[peer]: processing response for block by id from ") + key());
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing response for block by id from ") + key());
 
 		// extract
 		uint256 lChain;
@@ -634,7 +640,7 @@ void Peer::processBlockById(std::list<DataStream>::iterator msg, const boost::sy
 		SynchronizationJobPtr lJob = locateJob(lChain);
 		if (lJob) {
 			// log
-			gLog().write(Log::NET, std::string("[peer]: processing block ") + strprintf("%s/%s#", lBlock->hash().toHex(), lChain.toHex().substr(0, 10)) + std::string("..."));
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing block ") + strprintf("%s/%s#", lBlock->hash().toHex(), lChain.toHex().substr(0, 10)) + std::string("..."));
 			// save block
 			peerManager_->consensusManager()->locate(lChain)->store()->saveBlock(lBlock);
 			// extract next block id
@@ -654,7 +660,7 @@ void Peer::processBlockById(std::list<DataStream>::iterator msg, const boost::sy
 		}
 	} else {
 		// log
-		gLog().write(Log::ERROR, "[peer/processBlockById]: closing session " + key() + " -> " + error.message());
+		gLog().write(Log::NET, "[peer/processBlockById/error]: closing session " + key() + " -> " + error.message());
 		//
 		socketStatus_ = ERROR;
 		// try to deactivate peer
@@ -667,7 +673,7 @@ void Peer::processBlockById(std::list<DataStream>::iterator msg, const boost::sy
 void Peer::processGetBlockById(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
 	//
 	if (!error) {
-		gLog().write(Log::NET, std::string("[peer]: processing request block by id from ") + key());
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing request block by id from ") + key());
 
 		// extract
 		uint256 lChain;
@@ -694,7 +700,7 @@ void Peer::processGetBlockById(std::list<DataStream>::iterator msg, const boost:
 			lMsg->write(lStream.data(), lStream.size());
 
 			// log
-			gLog().write(Log::NET, std::string("[peer]: sending block by id ") + strprintf("%s/%s#", lBlock->hash().toHex(), lChain.toHex().substr(0, 10)) + std::string(" for ") + key());
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: sending block by id ") + strprintf("%s/%s#", lBlock->hash().toHex(), lChain.toHex().substr(0, 10)) + std::string(" for ") + key());
 
 			// write
 			boost::asio::async_write(*socket_,
@@ -718,7 +724,7 @@ void Peer::processGetBlockById(std::list<DataStream>::iterator msg, const boost:
 			lMsg->write(lStream.data(), lStream.size());
 
 			// log
-			gLog().write(Log::NET, std::string("[peer]: block is absent for chain ") + strprintf("%s/%s#", lId.toHex(), lChain.toHex().substr(0, 10)) + std::string(" -> ") + key());
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: block is absent for chain ") + strprintf("%s/%s#", lId.toHex(), lChain.toHex().substr(0, 10)) + std::string(" -> ") + key());
 
 			// write
 			boost::asio::async_write(*socket_,
@@ -730,7 +736,7 @@ void Peer::processGetBlockById(std::list<DataStream>::iterator msg, const boost:
 
 	} else {
 		// log
-		gLog().write(Log::ERROR, "[peer/processGetBlockById]: closing session " + key() + " -> " + error.message());
+		gLog().write(Log::NET, "[peer/processGetBlockById/error]: closing session " + key() + " -> " + error.message());
 		//
 		socketStatus_ = ERROR;
 		// try to deactivate peer
@@ -743,7 +749,7 @@ void Peer::processGetBlockById(std::list<DataStream>::iterator msg, const boost:
 void Peer::processNetworkBlock(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
 	//
 	if (!error) {
-		gLog().write(Log::NET, std::string("[peer]: processing response for network block from ") + key());
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing response for network block from ") + key());
 
 		// extract
 		uint256 lChain;
@@ -754,7 +760,7 @@ void Peer::processNetworkBlock(std::list<DataStream>::iterator msg, const boost:
 		eraseInData(msg);
 
 		// log
-		gLog().write(Log::NET, std::string("[peer]: processing network block ") + strprintf("%s/%s#", lBlock->hash().toHex(), lChain.toHex().substr(0, 10)) + std::string("..."));
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing network block ") + strprintf("%s/%s#", lBlock->hash().toHex(), lChain.toHex().substr(0, 10)) + std::string("..."));
 
 		BlockHeader lHeader;
 		size_t lHeight = peerManager_->consensusManager()->locate(lChain)->store()->currentHeight(lHeader);
@@ -764,11 +770,11 @@ void Peer::processNetworkBlock(std::list<DataStream>::iterator msg, const boost:
 		if (lCurrentHash != lBlock->prev()) {
 			// sequence is broken
 			if (lCurrentHash == lBlock->hash()) {
-				gLog().write(Log::NET, std::string("[peer]: block already EXISTS ") + 
+				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: block already EXISTS ") + 
 					strprintf("current height:%d/hash:%s, proposing hash:%s/%s#", 
 						lHeight, lHeader.hash().toHex(), lBlock->hash().toHex(), lChain.toHex().substr(0, 10)));
 			} else { 
-				gLog().write(Log::NET, std::string("[peer]: blocks sequence is BROKEN ") + 
+				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: blocks sequence is BROKEN ") + 
 					strprintf("current height:%d/hash:%s, proposing hash:%s/prev:%s/%s#", 
 						lHeight, lHeader.hash().toHex(), lBlock->hash().toHex(), lBlock->prev().toHex(), lChain.toHex().substr(0, 10)));
 			}
@@ -790,7 +796,7 @@ void Peer::processNetworkBlock(std::list<DataStream>::iterator msg, const boost:
 		//waitForMessage();
 	} else {
 		// log
-		gLog().write(Log::ERROR, "[peer/processNetworkBlock]: closing session " + key() + " -> " + error.message());
+		gLog().write(Log::NET, "[peer/processNetworkBlock/error]: closing session " + key() + " -> " + error.message());
 		//
 		socketStatus_ = ERROR;
 		// try to deactivate peer
@@ -803,7 +809,7 @@ void Peer::processNetworkBlock(std::list<DataStream>::iterator msg, const boost:
 void Peer::processGetNetworkBlock(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
 	//
 	if (!error) {
-		gLog().write(Log::NET, std::string("[peer]: processing request network block from ") + key());
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing request network block from ") + key());
 
 		// extract
 		uint256 lChain;
@@ -830,7 +836,7 @@ void Peer::processGetNetworkBlock(std::list<DataStream>::iterator msg, const boo
 			lMsg->write(lStream.data(), lStream.size());
 
 			// log
-			gLog().write(Log::NET, std::string("[peer]: sending network block ") + strprintf("%s/%s#", lBlock->hash().toHex(), lChain.toHex().substr(0, 10)) + std::string(" for ") + key());
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: sending network block ") + strprintf("%s/%s#", lBlock->hash().toHex(), lChain.toHex().substr(0, 10)) + std::string(" for ") + key());
 
 			// write
 			boost::asio::async_write(*socket_,
@@ -854,7 +860,7 @@ void Peer::processGetNetworkBlock(std::list<DataStream>::iterator msg, const boo
 			lMsg->write(lStream.data(), lStream.size());
 
 			// log
-			gLog().write(Log::NET, std::string("[peer]: network block is absent for chain ") + strprintf("%s/%s#", lId.toHex(), lChain.toHex().substr(0, 10)) + std::string(" -> ") + key());
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: network block is absent for chain ") + strprintf("%s/%s#", lId.toHex(), lChain.toHex().substr(0, 10)) + std::string(" -> ") + key());
 
 			// write
 			boost::asio::async_write(*socket_,
@@ -866,7 +872,7 @@ void Peer::processGetNetworkBlock(std::list<DataStream>::iterator msg, const boo
 
 	} else {
 		// log
-		gLog().write(Log::ERROR, "[peer/processGetNetworkBlock]: closing session " + key() + " -> " + error.message());
+		gLog().write(Log::NET, "[peer/processGetNetworkBlock/error]: closing session " + key() + " -> " + error.message());
 		//
 		socketStatus_ = ERROR;
 		// try to deactivate peer
@@ -879,19 +885,19 @@ void Peer::processGetNetworkBlock(std::list<DataStream>::iterator msg, const boo
 void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
 	//
 	if (!error) {
-		gLog().write(Log::NET, std::string("[peer]: raw block header from ") + key() + " -> " + HexStr(msg->begin(), msg->end()));
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: raw block header from ") + key() + " -> " + HexStr(msg->begin(), msg->end()));
 
 		// extract block header data
 		NetworkBlockHeader lNetworkBlockHeader;
 		(*msg) >> lNetworkBlockHeader;
 		eraseInData(msg);
 
-		gLog().write(Log::NET, std::string("[peer]: process block header from ") + key() + " -> " + 
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: process block header from ") + key() + " -> " + 
 				strprintf("%s/%d/%s#", lNetworkBlockHeader.blockHeader().hash().toHex(), lNetworkBlockHeader.height(), lNetworkBlockHeader.blockHeader().chain().toHex().substr(0, 10)));
 
 		if (lNetworkBlockHeader.addressId() == peerManager_->consensusManager()->mainPKey().id()) {
-			gLog().write(Log::NET, "[peer/processBlockHeader]: skip re-broadcasting block header " + 
-				strprintf("%s/%s", lNetworkBlockHeader.blockHeader().hash().toHex(), lNetworkBlockHeader.blockHeader().chain().toHex()));
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, "[peer]: skip re-broadcasting block header " + 
+				strprintf("%s/%s/%s#", lNetworkBlockHeader.blockHeader().hash().toHex(), lNetworkBlockHeader.height(), lNetworkBlockHeader.blockHeader().chain().toHex().substr(0, 10)));
 		} else if (peerManager_->consensusManager()->pushBlockHeader(lNetworkBlockHeader)) {
 			// re-broadcast
 			peerManager_->consensusManager()->broadcastBlockHeader(lNetworkBlockHeader, shared_from_this());
@@ -901,7 +907,50 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 		//waitForMessage();
 	} else {
 		// log
-		gLog().write(Log::ERROR, "[peer/processBlockHeader]: closing session " + key() + " -> " + error.message());
+		gLog().write(Log::NET, "[peer/processBlockHeader/error]: closing session " + key() + " -> " + error.message());
+		//
+		socketStatus_ = ERROR;
+		// try to deactivate peer
+		peerManager_->deactivatePeer(shared_from_this());
+		// close socket
+		socket_->close();
+	}
+}
+
+void Peer::processTransaction(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
+	//
+	if (!error) {
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: raw transaction from ") + key() + " -> " + HexStr(msg->begin(), msg->end()));
+
+		// extract transaction data
+		TransactionPtr lTx = Transaction::Deserializer::deserialize<DataStream>(*msg);
+		eraseInData(msg);
+
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: process transaction from ") + key() + " -> " + 
+				strprintf("%s/%s#", lTx->id().toHex(), lTx->chain().toHex().substr(0, 10)));
+
+		IMemoryPoolPtr lMempool = peerManager_->consensusManager()->mempoolManager()->locate(lTx->chain());
+		if (lMempool) {
+			//
+			TransactionContextPtr lCtx = lMempool->pushTransaction(lTx);
+			if (!lCtx) {
+				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: transaction is ALREADY exists ") + 
+						strprintf("%s/%s#", lTx->id().toHex(), lTx->chain().toHex().substr(0, 10)));
+			} else if (lCtx->errors().size()) {
+				for (std::list<std::string>::iterator lErr = lCtx->errors().begin(); lErr != lCtx->errors().end(); lErr++) {
+					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: transaction processing ERROR - ") + (*lErr) +
+							strprintf(" -> %s/%s#", lTx->id().toHex(), lTx->chain().toHex().substr(0, 10)));
+				}
+			} else {
+				peerManager_->consensusManager()->broadcastTransaction(lCtx, addressId());
+			}
+		} else {
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: chain is NOT SUPPORTED for ") + 
+					strprintf("%s/%s#", lTx->id().toHex(), lTx->chain().toHex().substr(0, 10)));
+		}
+	} else {
+		// log
+		gLog().write(Log::NET, "[peer/processBlockHeader/error]: closing session " + key() + " -> " + error.message());
 		//
 		socketStatus_ = ERROR;
 		// try to deactivate peer
@@ -919,7 +968,7 @@ void Peer::broadcastBlockHeader(const NetworkBlockHeader& blockHeader) {
 		// new message
 		std::list<DataStream>::iterator lMsg = newOutMessage();
 
-		// push own current state
+		// push blockheader
 		DataStream lStateStream(SER_NETWORK, CLIENT_VERSION);
 		lStateStream << blockHeader;
 
@@ -928,7 +977,7 @@ void Peer::broadcastBlockHeader(const NetworkBlockHeader& blockHeader) {
 		lMsg->write(lStateStream.data(), lStateStream.size());
 
 		// log
-		gLog().write(Log::NET, std::string("[peer]: broadcasting block header to ") + key() + " -> " + HexStr(lMsg->begin(), lMsg->end()));
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: broadcasting block header to ") + key() + " -> " + HexStr(lMsg->begin(), lMsg->end()));
 
 		// write
 		boost::asio::async_write(*socket_,
@@ -937,6 +986,34 @@ void Peer::broadcastBlockHeader(const NetworkBlockHeader& blockHeader) {
 				&Peer::messageFinalize, shared_from_this(), lMsg,
 				boost::asio::placeholders::error));
 	}
+}
+
+void Peer::broadcastTransaction(TransactionContextPtr ctx) {
+	//
+	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; } // TODO: connect will skip current call
+	else if (socketStatus_ == CONNECTED) {
+
+		// new message
+		std::list<DataStream>::iterator lMsg = newOutMessage();
+
+		// push tx
+		DataStream lStateStream(SER_NETWORK, CLIENT_VERSION);
+		Transaction::Serializer::serialize<DataStream>(lStateStream, ctx->tx());
+
+		Message lMessage(Message::TRANSACTION, lStateStream.size());
+		(*lMsg) << lMessage;
+		lMsg->write(lStateStream.data(), lStateStream.size());
+
+		// log
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: broadcasting transaction to ") + key() + " -> " + HexStr(lMsg->begin(), lMsg->end()));
+
+		// write
+		boost::asio::async_write(*socket_,
+			boost::asio::buffer(lMsg->data(), lMsg->size()),
+			boost::bind(
+				&Peer::messageFinalize, shared_from_this(), lMsg,
+				boost::asio::placeholders::error));
+	}	
 }
 
 void Peer::processRequestPeers(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
@@ -949,7 +1026,7 @@ void Peer::processRequestPeers(std::list<DataStream>::iterator msg, const boost:
 
 		// push peers
 		for (std::vector<std::string>::iterator lPeer = lOuterPeers.begin(); lPeer != lOuterPeers.end(); lPeer++) {
-			gLog().write(Log::NET, std::string("[peer]: trying to add proposed peer - ") + (*lPeer));
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: trying to add proposed peer - ") + (*lPeer));
 			peerManager_->addPeer(*lPeer);
 		}
 
@@ -970,7 +1047,7 @@ void Peer::processRequestPeers(std::list<DataStream>::iterator msg, const boost:
 		lMsg->write(lStateStream.data(), lStateStream.size());
 
 		// log
-		gLog().write(Log::NET, std::string("[peer]: sending peers list to ") + key() + " -> " + HexStr(lMsg->begin(), lMsg->end()));
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: sending peers list to ") + key() + " -> " + HexStr(lMsg->begin(), lMsg->end()));
 
 		// write
 		boost::asio::async_write(*socket_,
@@ -980,7 +1057,7 @@ void Peer::processRequestPeers(std::list<DataStream>::iterator msg, const boost:
 				boost::asio::placeholders::error));
 	} else {
 		// log
-		gLog().write(Log::ERROR, "[peer/processRequestPeers]: closing session " + key() + " -> " + error.message());
+		gLog().write(Log::NET, "[peer/processRequestPeers/error]: closing session " + key() + " -> " + error.message());
 		//
 		socketStatus_ = ERROR;
 		// try to deactivate peer
@@ -993,7 +1070,7 @@ void Peer::processRequestPeers(std::list<DataStream>::iterator msg, const boost:
 void Peer::processPeers(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
 	//
 	if (!error) {
-		gLog().write(Log::NET, std::string("[peer]: peers list from ") + key());
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: peers list from ") + key());
 
 		// extract peers
 		std::vector<std::string> lPeers;
@@ -1001,14 +1078,14 @@ void Peer::processPeers(std::list<DataStream>::iterator msg, const boost::system
 		eraseInData(msg);
 
 		for (std::vector<std::string>::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
-			gLog().write(Log::NET, std::string("[peer]: trying to add proposed peer - ") + (*lPeer));
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: trying to add proposed peer - ") + (*lPeer));
 			peerManager_->addPeer(*lPeer);	
 		}
 
 		//waitForMessage();
 	} else {
 		// log
-		gLog().write(Log::ERROR, "[peer/processPeers]: closing session " + key() + " -> " + error.message());
+		gLog().write(Log::NET, "[peer/processPeers/error]: closing session " + key() + " -> " + error.message());
 		//
 		socketStatus_ = ERROR;
 		// try to deactivate peer
@@ -1021,7 +1098,7 @@ void Peer::processPeers(std::list<DataStream>::iterator msg, const boost::system
 void Peer::processPing(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
 	//
 	if (!error) {
-		gLog().write(Log::NET, std::string("[peer]: ping from ") + key());
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: ping from ") + key());
 
 		uint64_t lTimestamp;
 		(*msg) >> lTimestamp;
@@ -1033,7 +1110,7 @@ void Peer::processPing(std::list<DataStream>::iterator msg, const boost::system:
 		(*lMsg) << lMessage;
 		(*lMsg) << lTimestamp;
 
-		gLog().write(Log::NET, std::string("[peer]: pong to ") + key());
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: pong to ") + key());
 
 		boost::asio::async_write(*socket_,
 			boost::asio::buffer(lMsg->data(), lMsg->size()),
@@ -1042,7 +1119,7 @@ void Peer::processPing(std::list<DataStream>::iterator msg, const boost::system:
 				boost::asio::placeholders::error));
 	} else {
 		// log
-		gLog().write(Log::ERROR, "[peer/processPing]: closing session " + key() + " -> " + error.message());
+		gLog().write(Log::NET, "[peer/processPing/error]: closing session " + key() + " -> " + error.message());
 		//
 		socketStatus_ = ERROR;
 		// try to deactivate peer
@@ -1055,7 +1132,7 @@ void Peer::processPing(std::list<DataStream>::iterator msg, const boost::system:
 void Peer::processPong(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
 	//
 	if (!error) {
-		gLog().write(Log::NET, std::string("[peer]: pong from ") + key());
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: pong from ") + key());
 
 		uint64_t lTimestamp;
 		(*msg) >> lTimestamp;
@@ -1067,7 +1144,7 @@ void Peer::processPong(std::list<DataStream>::iterator msg, const boost::system:
 		//waitForMessage();
 	} else {
 		// log
-		gLog().write(Log::ERROR, "[peer/processPong]: closing session " + key() + " -> " + error.message());
+		gLog().write(Log::NET, "[peer/processPong/error]: closing session " + key() + " -> " + error.message());
 		//
 		socketStatus_ = ERROR;
 		// try to deactivate peer
@@ -1081,7 +1158,7 @@ void Peer::processGlobalState(std::list<DataStream>::iterator msg, const boost::
 	//
 	if (!error) {
 		// log
-		gLog().write(Log::NET, std::string("[peer]: raw global state message from ") + key() + " -> " + HexStr(msg->begin(), msg->end()));
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: raw global state message from ") + key() + " -> " + HexStr(msg->begin(), msg->end()));
 
 		State lState;
 		lState.deserialize<DataStream>(*msg);
@@ -1089,10 +1166,10 @@ void Peer::processGlobalState(std::list<DataStream>::iterator msg, const boost::
 
 		StatePtr lOwnState = peerManager_->consensusManager()->currentState();
 		if (lOwnState->address().id() == lState.address().id()) {
-			gLog().write(Log::NET, "[peer/processGlobalState]: skip re-broadcasting state for " + 
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, "[peer/processGlobalState]: skip re-broadcasting state for " + 
 				strprintf("%s", lOwnState->address().toHex()));
 		} else {
-			gLog().write(Log::NET, std::string("[peer]: processing global state from ") + key() + " -> " + lState.toString());
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing global state from ") + key() + " -> " + lState.toString());
 
 			if (lState.valid()) {
 				StatePtr lStatePtr = State::instance(lState);
@@ -1106,7 +1183,7 @@ void Peer::processGlobalState(std::list<DataStream>::iterator msg, const boost::
 		//waitForMessage();
 	} else {
 		// log
-		gLog().write(Log::ERROR, "[peer/processGlobalState]: closing session " + key() + " -> " + error.message());
+		gLog().write(Log::NET, "[peer/processGlobalState/error]: closing session " + key() + " -> " + error.message());
 		//
 		socketStatus_ = ERROR;
 		// try to deactivate peer
@@ -1120,13 +1197,13 @@ void Peer::processState(std::list<DataStream>::iterator msg, const boost::system
 	//
 	if (!error) {
 		// log
-		gLog().write(Log::NET, std::string("[peer]: raw state message from ") + key() + " -> " + HexStr(msg->begin(), msg->end()));
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: raw state message from ") + key() + " -> " + HexStr(msg->begin(), msg->end()));
 
 		State lState;
 		lState.deserialize<DataStream>(*msg);
 		eraseInData(msg); // erase
 
-		gLog().write(Log::NET, std::string("[peer]: processing state from ") + key() + " -> " + lState.toString());
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing state from ") + key() + " -> " + lState.toString());
 
 		IPeer::UpdatePeerResult lPeerResult;
 		if (!peerManager_->updatePeerState(shared_from_this(), lState, lPeerResult)) {
@@ -1137,7 +1214,7 @@ void Peer::processState(std::list<DataStream>::iterator msg, const boost::system
 
 				(*lMsg) << lMessage;
 
-				gLog().write(Log::NET, std::string("[peer]: peer already exists ") + key());
+				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: peer already exists ") + key());
 
 				boost::asio::async_write(*socket_,
 					boost::asio::buffer(lMsg->data(), lMsg->size()),
@@ -1150,7 +1227,7 @@ void Peer::processState(std::list<DataStream>::iterator msg, const boost::system
 
 				(*lMsg) << lMessage;
 
-				gLog().write(Log::NET, std::string("[peer]: peer banned ") + key());
+				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: peer banned ") + key());
 
 				boost::asio::async_write(*socket_,
 					boost::asio::buffer(lMsg->data(), lMsg->size()),
@@ -1177,7 +1254,7 @@ void Peer::processState(std::list<DataStream>::iterator msg, const boost::system
 		}
 	} else {
 		// log
-		gLog().write(Log::ERROR, "[peer/processState]: closing session " + key() + " -> " + error.message());
+		gLog().write(Log::NET, "[peer/processState/error]: closing session " + key() + " -> " + error.message());
 		//
 		socketStatus_ = ERROR;		
 		// try to deactivate peer
@@ -1193,7 +1270,7 @@ void Peer::processSent(std::list<DataStream>::iterator msg, const boost::system:
 
 	if (error) {
 		// log
-		gLog().write(Log::ERROR, "[peer/processSent]: closing session " + key() + " -> " + error.message());
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, "[peer/processSent/error]: closing session " + key() + " -> " + error.message());
 		//
 		socketStatus_ = ERROR;		
 		// try to deactivate peer
@@ -1208,7 +1285,7 @@ void Peer::messageFinalize(std::list<DataStream>::iterator msg, const boost::sys
 
 	if (error) {
 		// log
-		gLog().write(Log::ERROR, "[peer/messageFinalize]: closing session " + key() + " -> " + error.message());
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, "[peer/messageFinalize/error]: closing session " + key() + " -> " + error.message());
 		//
 		socketStatus_ = ERROR;		
 		// try to deactivate peer
@@ -1221,7 +1298,7 @@ void Peer::messageFinalize(std::list<DataStream>::iterator msg, const boost::sys
 void Peer::peerFinalize(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
 	if (msg != emptyOutMessage()) eraseOutMessage(msg);
 	// log
-	gLog().write(Log::NET, "[peer]: finalizing session " + key());
+	if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, "[peer/peerFinalize/error]: finalizing session " + key());
 	//
 	socketStatus_ = ERROR;
 	// try to deactivate peer
@@ -1232,12 +1309,12 @@ void Peer::peerFinalize(std::list<DataStream>::iterator msg, const boost::system
 
 void Peer::connect() {
 	if (socketType_ == SERVER) { 
-		gLog().write(Log::NET, std::string("[peer]: server endpoint - connect() not allowed"));
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: server endpoint - connect() not allowed"));
 		return;
 	}
 
 	if (socketType_ == CLIENT && (socketStatus_ == CLOSED || socketStatus_ == ERROR)) {
-		gLog().write(Log::NET, std::string("[peer]: connecting ") + key());
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: connecting ") + key());
 
 		// change status
 		socketStatus_ = CONNECTING;
@@ -1265,7 +1342,7 @@ void Peer::resolved(const boost::system::error_code& error, tcp::resolver::itera
 			boost::bind(&Peer::connected, shared_from_this(),
 				boost::asio::placeholders::error, ++endpoint_iterator));
 	} else {
-		gLog().write(Log::NET, std::string("[peer/resolve]: resolve failed for ") + key() + " -> " + error.message());
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/resolve]: resolve failed for ") + key() + " -> " + error.message());
 		socketStatus_ = ERROR;
 		socket_ = nullptr;
 	}
@@ -1276,7 +1353,7 @@ void Peer::connected(const boost::system::error_code& error, tcp::resolver::iter
 		socketStatus_ = CONNECTED;
 
 		// connected
-		gLog().write(Log::NET, std::string("[peer]: connected to ") + key());
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: connected to ") + key());
 
 		// connected - send our state
 		sendState();
@@ -1294,7 +1371,7 @@ void Peer::connected(const boost::system::error_code& error, tcp::resolver::iter
 			boost::bind(&Peer::connected, this,
 				boost::asio::placeholders::error, ++endpoint_iterator));
 	} else {
-		gLog().write(Log::ERROR, std::string("[peer/connect]: connection failed for ") + key() + " -> " + error.message());
+		gLog().write(Log::NET, std::string("[peer/connect/error]: connection failed for ") + key() + " -> " + error.message());
 		socketStatus_ = ERROR;
 		socket_ = nullptr;
 	}
