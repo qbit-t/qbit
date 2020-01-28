@@ -40,6 +40,7 @@ public:
 
 class MemoryPoolA: public IMemoryPool {
 public:
+	MemoryPoolA(IConsensusPtr consensus) : consensus_(consensus) {}	
 	MemoryPoolA() {}
 
 	qunit_t estimateFeeRateByLimit(TransactionContextPtr ctx, qunit_t feeRateLimit) {
@@ -53,14 +54,18 @@ public:
 	bool isUnlinkedOutUsed(const uint256&) { return false; }
 	bool isUnlinkedOutExists(const uint256&) { return false; }
 
+	IConsensusPtr consensus() { return consensus_; }
+
+	IConsensusPtr consensus_;
 };
 
 class WalletQbitCreateSpend: public Unit {
 public:
 	WalletQbitCreateSpend(): Unit("WalletQbitCreateSpend") {
+		consensus_ = std::make_shared<ConsensusAA>();
 		store_ = std::make_shared<TxStoreA>(); 
 		entityStore_ = std::make_shared<EntityStoreA>(); 
-		mempool_ = std::make_shared<MemoryPoolA>(); 
+		mempool_ = std::make_shared<MemoryPoolA>(consensus_);
 		settings_ = std::make_shared<SettingsA>(); 
 
 		wallet_ = Wallet::instance(settings_, mempool_, entityStore_);
@@ -124,6 +129,7 @@ public:
 	IEntityStorePtr entityStore_;
 	IMemoryPoolPtr mempool_;
 	ISettingsPtr settings_;
+	IConsensusPtr consensus_;
 
 	std::list<std::string> seedMy_;
 	std::list<std::string> seedBob_;

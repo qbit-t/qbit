@@ -15,4 +15,6 @@ leveldb/leveldbutil
 *.log
 boost/bin.v2/
 boost/stage/
+b2
+bjam
 

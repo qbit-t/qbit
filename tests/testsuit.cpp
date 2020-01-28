@@ -24,7 +24,14 @@ int main(int argv, char** argc)
 	std::cout << std::endl << "q-bit.technology | unit tests v0.1" << std::endl << std::endl;
 	TestSuit lSuit;
 
-	gLog().enable(Log::ALL);
+	gLog().enable(Log::INFO);
+	gLog().enable(Log::POOL);
+	gLog().enable(Log::CONSENSUS);
+	gLog().enable(Log::STORE);
+	gLog().enable(Log::WALLET);
+	gLog().enable(Log::HTTP);
+	gLog().enable(Log::ERROR);
+	//gLog().enable(Log::ALL);
 
 	if (argv > 1 && std::string(argc[1]) == "-S0") {
 		gLog().enableConsole();

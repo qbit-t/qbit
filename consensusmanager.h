@@ -201,31 +201,53 @@ public:
 	//
 	// broadcast block header
 	void broadcastBlockHeader(const NetworkBlockHeader& blockHeader, IPeerPtr except) {
-		bool lFound = false;
-		std::map<uint256, IConsensusPtr>::iterator lConsensus;
+		IConsensusPtr lConsensus = nullptr;
 		{
 			boost::unique_lock<boost::mutex> lLock(consensusesMutex_);
-			lConsensus = consensuses_.find(const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().chain());
-			lFound = lConsensus != consensuses_.end();
+			std::map<uint256, IConsensusPtr>::iterator lConsensusPtr = consensuses_.find(const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().chain());
+			if (lConsensusPtr != consensuses_.end()) lConsensus = lConsensusPtr->second;
 		}
 
-		if (lFound)
-			lConsensus->second->broadcastBlockHeader(blockHeader, except);
+		if (lConsensus)
+			lConsensus->broadcastBlockHeader(blockHeader, except);
+	}
+
+	//
+	// broadcast transaction
+	void broadcastTransaction(TransactionContextPtr ctx, uint160 except) {
+		IConsensusPtr lConsensus = nullptr;
+		{
+			boost::unique_lock<boost::mutex> lLock(consensusesMutex_);
+			std::map<uint256, IConsensusPtr>::iterator lConsensusPtr = consensuses_.find(ctx->tx()->chain());
+			if (lConsensusPtr != consensuses_.end()) lConsensus = lConsensusPtr->second;
+		}
+
+		if (lConsensus)
+			lConsensus->broadcastTransaction(ctx, except);
 	}
 
 	//
 	// check block
 	bool pushBlockHeader(const NetworkBlockHeader& blockHeader) {
-		bool lFound = false;
-		std::map<uint256, IConsensusPtr>::iterator lConsensus;
-		{
-			boost::unique_lock<boost::mutex> lLock(consensusesMutex_);
-			lConsensus = consensuses_.find(const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().chain());
-			lFound = lConsensus != consensuses_.end();
+		//
+		if (!enqueueBlockHeader(blockHeader)) {
+			gLog().write(Log::CONSENSUS, "[pushBlockHeader]: block is already PROCESSED " + 
+				strprintf("%s/%d/%s#", const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().hash().toHex(), 
+					const_cast<NetworkBlockHeader&>(blockHeader).height(), 
+					const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().chain().toHex().substr(0, 10)));
+			return false;
 		}
 
-		if (lFound)
-			return lConsensus->second->pushBlockHeader(blockHeader, validatorManager_->locate(const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().chain()));
+		//
+		IConsensusPtr lConsensus = nullptr;
+		{
+			boost::unique_lock<boost::mutex> lLock(consensusesMutex_);
+			std::map<uint256, IConsensusPtr>::iterator lConsensusPtr = consensuses_.find(const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().chain());
+			if (lConsensusPtr != consensuses_.end()) lConsensus = lConsensusPtr->second;
+		}
+
+		if (lConsensus)
+			return lConsensus->pushBlockHeader(blockHeader, validatorManager_->locate(const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().chain()));
 		return false;
 	}
 
@@ -260,8 +282,24 @@ public:
 	IMemoryPoolManagerPtr mempoolManager() { return validatorManager_->mempoolManager(); }
 
 private:
+	bool enqueueBlockHeader(const NetworkBlockHeader& blockHeader) {
+		boost::unique_lock<boost::mutex> lLock(consensusesMutex_);
+		uint256 lHash = const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().hash();
+		for(std::list<uint256>::iterator lBlock = incomingBlockQueue_.begin(); lBlock != incomingBlockQueue_.end(); lBlock++) {
+			if (lHash == *lBlock) return false;
+		}
+
+		incomingBlockQueue_.push_back(lHash);
+		if (incomingBlockQueue_.size() > settings_->incomingBlockQueueLength()) incomingBlockQueue_.pop_front();
+		return true;
+	}
+
+private:
 	boost::mutex consensusesMutex_;
 	boost::mutex latencyMutex_;
+	boost::mutex incomingBlockQueueMutex_;
+
+	std::list<uint256> incomingBlockQueue_;
 
 	std::map<uint256, IConsensusPtr> consensuses_;
 	ISettingsPtr settings_;

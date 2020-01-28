@@ -10,7 +10,7 @@ using namespace qbit;
 uint256 BlockHeader::hash() {
 	HashWriter lStream(SER_GETHASH, PROTOCOL_VERSION);
 	serialize<HashWriter>(lStream);
-    return lStream.GetHash();
+	return lStream.GetHash();
 }
 
 BlockPtr Block::clone() { 
@@ -47,4 +47,12 @@ std::string Block::toString() {
 	}
 	
 	return s.str();
+}
+
+void BlockTransactions::transactionsHashes(std::vector<uint256>& hashes) {
+	hashes.resize(transactions_.size());
+
+	for (int lIdx = 0; lIdx < transactions_.size(); lIdx++) {
+		hashes[lIdx] = transactions_[0]->id(); // hash
+	}
 }

@@ -37,6 +37,7 @@ public:
 	virtual PKey mainPKey() { throw qbit::exception("NOT_IMPL", "IConsensusManager::mainPKey - not implemented."); }
 	virtual bool pushBlockHeader(const NetworkBlockHeader& /*block*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::pushBlockHeader - not implemented."); }
 	virtual void broadcastBlockHeader(const NetworkBlockHeader& /*block*/, IPeerPtr /*peer*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::broadcastBlockHeader - not implemented."); }
+	virtual void broadcastTransaction(TransactionContextPtr /*ctx*/, uint160 /*peer*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::broadcastTransaction - not implemented."); }
 
 	virtual IValidatorManagerPtr validatorManager() { throw qbit::exception("NOT_IMPL", "IConsensusManager::validatorManager - not implemented."); }
 	virtual ITransactionStoreManagerPtr storeManager() { throw qbit::exception("NOT_IMPL", "IConsensusManager::storeManager - not implemented."); }

@@ -16,6 +16,7 @@
 
 #include <boost/thread/thread.hpp>
 #include <boost/thread/mutex.hpp>
+#include <boost/thread/recursive_mutex.hpp>
 #include <boost/chrono.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
@@ -68,9 +69,10 @@ public:
 		if (lOther.prev() == lHeader.hash())
 			return true;
 		else {
-			gLog().write(Log::INFO, std::string("[validator/checkBlockHeader]: broken chain for ") + 
+			gLog().write(Log::VALIDATOR, std::string("[checkBlockHeader]: broken chain for ") + 
 				strprintf("%s/%s#", lOther.hash().toHex(), chain_.toHex().substr(0, 10)));
 			consensus_->toNonSynchronized();
+			return false;
 		}
 
 		return true;
@@ -87,7 +89,7 @@ public:
 			// 2. request found block
 			if (!consensus_->acquireBlock(blockHeader)) {
 				// 2.1 peer was not found - reset state
-				gLog().write(Log::INFO, std::string("[validator/acceptBlockHeader]: peer for network block ") + 
+				gLog().write(Log::VALIDATOR, std::string("[acceptBlockHeader]: peer for network block ") + 
 					strprintf("%s", const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().hash().toHex()) + std::string(" was not found. Begin synchronization..."));
 				consensus_->toNonSynchronized();
 			}
@@ -101,7 +103,7 @@ private:
 	void stopMiner() {
 		// stop miner
 		if (consensus_->settings()->isMiner() && miner_) {
-			gLog().write(Log::INFO, std::string("[validator/miner]: stopping for ") + strprintf("%s#", chain_.toHex().substr(0, 10)));
+			gLog().write(Log::VALIDATOR, std::string("[miner]: stopping for ") + strprintf("%s#", chain_.toHex().substr(0, 10)));
 			miner_->interrupt();
 			miner_->join();
 			miner_ = nullptr; // reset
@@ -132,7 +134,7 @@ private:
 	}
 
 	void miner() {
-		gLog().write(Log::INFO, std::string("[validator/miner]: starting for ") + strprintf("%s#", chain_.toHex().substr(0, 10)));
+		gLog().write(Log::VALIDATOR, std::string("[miner]: starting for ") + strprintf("%s#", chain_.toHex().substr(0, 10)));
 
 		// mark
 		minerRunning_ = true;
@@ -151,27 +153,27 @@ private:
 				currentBlockContext_ = mempool_->beginBlock(currentBlock_); // LOCK!
 
 				// TODO: mine
-				gLog().write(Log::INFO, std::string("[validator/miner]: looking for a block for ") + strprintf("%s#", chain_.toHex().substr(0, 10)) + "...");
+				gLog().write(Log::VALIDATOR, std::string("[validator/miner]: looking for a block for ") + strprintf("%s#", chain_.toHex().substr(0, 10)) + "...");
 				
 				boost::random::mt19937 lGen;
-				boost::random::uniform_int_distribution<> lDist(2000, consensus_->blockTime());
+				boost::random::uniform_int_distribution<> lDist(1000, consensus_->blockTime());
 				int lMSeconds = lDist(lGen);
 				boost::this_thread::sleep_for(boost::chrono::milliseconds(lMSeconds));
 				
-				gLog().write(Log::INFO, std::string("[validator/miner]: new block found ") + strprintf("%s/%s#", currentBlock_->hash().toHex(), chain_.toHex().substr(0, 10)));
+				gLog().write(Log::VALIDATOR, std::string("[validator/miner]: new block found ") + strprintf("%s/%s#", currentBlock_->hash().toHex(), chain_.toHex().substr(0, 10)));
 
 				// commit block
 				size_t lHeight = 0;
 				mempool_->commit(currentBlockContext_);
 				if (store_->commitBlock(currentBlockContext_, lHeight)) {
 					// broadcast
-					gLog().write(Log::INFO, std::string("[validator/miner]: broadcasting found block ") + strprintf("%s/%s#", currentBlock_->hash().toHex(), chain_.toHex().substr(0, 10)));
+					gLog().write(Log::VALIDATOR, std::string("[validator/miner]: broadcasting found block ") + strprintf("%s/%s#", currentBlock_->hash().toHex(), chain_.toHex().substr(0, 10)));
 					NetworkBlockHeader lHeader(currentBlock_->blockHeader(), lHeight, lCoinbase->tx(), mempool_->wallet()->firstKey().createPKey().id());
 					consensus_->broadcastState(consensus_->currentState(), nullptr); // broadcast changed state
 					consensus_->broadcastBlockHeader(lHeader, nullptr); // broadcast new header
 				} else {
 					for (std::list<std::string>::iterator lError = currentBlockContext_->errors().begin(); lError != currentBlockContext_->errors().end(); lError++) {
-						gLog().write(Log::ERROR, std::string("[validator]: ") + (*lError));
+						gLog().write(Log::ERROR, std::string("[miner/error]: ") + (*lError));
 					}
 				}
 			}
@@ -180,7 +182,7 @@ private:
 			}
 		}
 
-		gLog().write(Log::INFO, std::string("[validator/miner]: stopped for ") + strprintf("%s#", chain_.toHex().substr(0, 10)));
+		gLog().write(Log::VALIDATOR, std::string("[miner]: stopped for ") + strprintf("%s#", chain_.toHex().substr(0, 10)));
 	}	
 
 	void touch(const boost::system::error_code& error) {
@@ -188,23 +190,23 @@ private:
 		if(!error) {
 			//
 			IConsensus::ChainState lState = consensus_->chainState();
-			gLog().write(Log::INFO, std::string("[validator/touch]: chain state = ") + strprintf("%s/%s#", consensus_->chainStateString(), chain_.toHex().substr(0, 10)));
+			gLog().write(Log::VALIDATOR, std::string("[touch]: chain state = ") + strprintf("%s/%s#", consensus_->chainStateString(), chain_.toHex().substr(0, 10)));
 
 			if (lState != IConsensus::SYNCHRONIZED && lState != IConsensus::SYNCHRONIZING) {
 				// stop miner
 				stopMiner();
 
-				gLog().write(Log::VALIDATOR, std::string("[validator/touch]: chain ") + strprintf("%s#", chain_.toHex().substr(0, 10)) + std::string(" NOT synchronized, starting synchronization..."));
+				gLog().write(Log::VALIDATOR, std::string("[touch]: chain ") + strprintf("%s#", chain_.toHex().substr(0, 10)) + std::string(" NOT synchronized, starting synchronization..."));
 				if (consensus_->doSynchronize()) {
 					// already synchronized
-					gLog().write(Log::VALIDATOR, std::string("[validator/touch]: chain ") + strprintf("%s#", chain_.toHex().substr(0, 10)) + std::string(" IS synchronized."));
+					gLog().write(Log::VALIDATOR, std::string("[touch]: chain ") + strprintf("%s#", chain_.toHex().substr(0, 10)) + std::string(" IS synchronized."));
 					startMiner();
 				}
 			} else if (lState == IConsensus::SYNCHRONIZING) {
 				SynchronizationJobPtr lJob = consensus_->lastJob();
 				if (lJob && getTime() - lJob->timestamp() > consensus_->settings()->consensusSynchronizationLatency()) {
 					consensus_->toNonSynchronized(); // restart sync process
-					gLog().write(Log::ERROR, std::string("[validator/touch]: synchronization was stalled."));
+					gLog().write(Log::ERROR, std::string("[validator/touch/error]: synchronization was stalled."));
 				}
 			} else if (lState == IConsensus::SYNCHRONIZED) {
 				// mining

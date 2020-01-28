@@ -19,13 +19,13 @@ namespace qbit {
 
 //
 // Heavy Wallet implementation
-// TODO: concurrency model!
 class Wallet: public IWallet {
 public:
 	Wallet(ISettingsPtr settings) : 
 		settings_(settings),
 		keys_(settings_->dataPath() + "/wallet/keys"), 
 		utxo_(settings_->dataPath() + "/wallet/utxo"), 
+		ltxo_(settings_->dataPath() + "/wallet/ltxo"), 
 		assets_(settings_->dataPath() + "/wallet/assets"), 
 		entities_(settings_->dataPath() + "/wallet/entities")
 	{
@@ -37,6 +37,7 @@ public:
 		settings_(settings), mempool_(mempool), entityStore_(entityStore),
 		keys_(settings_->dataPath() + "/wallet/keys"), 
 		utxo_(settings_->dataPath() + "/wallet/utxo"), 
+		ltxo_(settings_->dataPath() + "/wallet/ltxo"), 
 		assets_(settings_->dataPath() + "/wallet/assets"), 
 		entities_(settings_->dataPath() + "/wallet/entities")
 	{
@@ -77,22 +78,13 @@ public:
 	inline amount_t balance() {
 		return balance(TxAssetType::qbitAsset());
 	}
-
-	inline amount_t balance(const uint256& asset) {
-		if (!balanceCache_.size()) prepareCache();
-
-		std::map<uint256 /*asset*/, amount_t /*balance*/>::iterator lBalance = balanceCache_.find(asset);
-		if (lBalance != balanceCache_.end()) {
-			return lBalance->second;
-		}
-
-		return 0;
-	}
+	amount_t balance(const uint256&);
 
 	void resetCache() {
+		boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
+
 		utxoCache_.clear();
 		assetsCache_.clear();
-		balanceCache_.clear();
 		entitiesCache_.clear();
 	}
 
@@ -109,6 +101,11 @@ public:
 	bool open();
 	bool close();
 	bool isOpened() { return opened_; }
+
+	ITransactionStorePtr persistentStore() {
+		if (persistentStore_) return persistentStore_;
+		return persistentStoreManager_->locate(MainChain::id());
+	} // main
 
 	// create coinbase tx
 	TransactionContextPtr createTxCoinBase(amount_t /*amount*/);
@@ -132,6 +129,20 @@ public:
 	TransactionContextPtr createTxLimitedAssetEmission(const PKey& /*dest*/, const uint256& /*asset*/, qunit_t /*fee limit*/, int32_t targetBlock = -1);
 	TransactionContextPtr createTxLimitedAssetEmission(const PKey& /*dest*/, const uint256& /*asset*/);
 
+	IMemoryPoolManagerPtr mempoolManager() { return mempoolManager_; }
+	ITransactionStoreManagerPtr storeManager() { return persistentStoreManager_; }
+
+	IMemoryPoolPtr mempool() {
+		// TODO: chain id?
+		if (mempoolManager_ == nullptr) { 
+			return mempool_; 
+		}
+		return mempoolManager_->locate(MainChain::id());
+	}
+
+	bool isUnlinkedOutUsed(const uint256& utxo);
+	bool isUnlinkedOutExists(const uint256& utxo);
+
 private:
 	amount_t fillInputs(TxSpendPtr /*tx*/, const uint256& /*asset*/, amount_t /*amount*/);
 	TransactionContextPtr makeTxSpend(Transaction::Type /*type*/, const uint256& /*asset*/, const PKey& /*dest*/, amount_t /*amount*/, qunit_t /*fee limit*/, int32_t /*targetBlock*/);
@@ -145,35 +156,16 @@ private:
 		if (useUtxoCache_) utxoCache_.erase(hash);
 	}
 
-	IMemoryPoolPtr mempool() {
-		// TODO: chain id?
-		if (mempoolManager_ == nullptr) { 
-			return mempool_; 
-		}
-		return mempoolManager_->locate(MainChain::id());
-	}
+	bool isUnlinkedOutExistsGlobal(const uint256& utxo) {
+		//
+		if (settings_->isNode() || settings_->isFullNode()) {
+			if (!mempool()->isUnlinkedOutExists(utxo)) {
+				if (persistentStoreManager_) {
+					return persistentStoreManager_->locate(MainChain::id())->isUnlinkedOutExists(utxo);
+				}
 
-	bool isUnlinkedOutUsed(const uint256& utxo) {
-		if (!mempool()->isUnlinkedOutUsed(utxo)) {
-			// TODO: implement isUnlinkedOutUsed in store manager
-			if (persistentStoreManager_) {
-				return persistentStoreManager_->locate(MainChain::id())->isUnlinkedOutUsed(utxo);
+				return persistentStore_->isUnlinkedOutExists(utxo);
 			}
-
-			return persistentStore_->isUnlinkedOutUsed(utxo);
-		}
-
-		return true;
-	}
-
-	bool isUnlinkedOutExists(const uint256& utxo) {
-		if (!mempool()->isUnlinkedOutExists(utxo)) {
-			// TODO: implement isUnlinkedOutUsed in store manager
-			if (persistentStoreManager_) {
-				return persistentStoreManager_->locate(MainChain::id())->isUnlinkedOutExists(utxo);
-			}
-
-			return persistentStore_->isUnlinkedOutExists(utxo);
 		}
 
 		return true;
@@ -196,6 +188,8 @@ private:
 	db::DbContainer<uint160 /*id*/, SKey> keys_;
 	// unlinked outs
 	db::DbContainer<uint256 /*utxo*/, Transaction::UnlinkedOut /*data*/> utxo_;
+	// linked outs
+	db::DbContainer<uint256 /*utxo*/, Transaction::UnlinkedOut /*data*/> ltxo_;
 	// unlinked outs by asset
 	db::DbMultiContainer<uint256 /*asset*/, uint256 /*utxo*/> assets_;
 	// unlinked outs by entity
@@ -206,8 +200,6 @@ private:
 	std::map<uint256 /*utxo*/, Transaction::UnlinkedOutPtr /*data*/> utxoCache_; // optionally
 	// asset/utxo/data
 	std::map<uint256 /*asset*/, std::multimap<amount_t /*amount*/, uint256 /*utxo*/>> assetsCache_;
-	// asset/aggregated balance
-	std::map<uint256 /*asset*/, amount_t /*balance*/> balanceCache_;
 
 	// entity/utxo/data
 	std::map<uint256 /*entity*/, std::map<uint256 /*utxo*/, Transaction::UnlinkedOutPtr /*data*/>> entitiesCache_;
@@ -217,6 +209,9 @@ private:
 
 	// use utxo cache (in case of slow db functionality)
 	bool useUtxoCache_;
+
+	//
+	boost::recursive_mutex cacheMutex_;
 };
 
 } // qbit

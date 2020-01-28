@@ -168,6 +168,7 @@ public:
 	void requestPeers();
 	void waitForMessage();
 	void broadcastBlockHeader(const NetworkBlockHeader& /*blockHeader*/);
+	void broadcastTransaction(TransactionContextPtr /*ctx*/);
 
 	void synchronizeFullChain(IConsensusPtr, SynchronizationJobPtr /*job*/);
 	void synchronizeFullChainHead(IConsensusPtr, SynchronizationJobPtr /*job*/);
@@ -188,7 +189,6 @@ public:
 
 private:
 	// internal processing
-	// all processX functions - going to waitForMessage
 	void processMessage(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processState(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processGlobalState(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
@@ -198,6 +198,7 @@ private:
 	void processRequestPeers(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processPeers(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processBlockHeader(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processTransaction(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 
 	void processGetBlockByHeight(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processGetBlockById(std::list<DataStream>::iterator msg, const boost::system::error_code& error);

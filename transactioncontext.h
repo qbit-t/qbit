@@ -15,10 +15,21 @@ typedef std::shared_ptr<TransactionContext> TransactionContextPtr;
 
 class TransactionContext {
 public:
+	enum ProcessingContext {
+		COMMON,
+		MEMPOOL_COMMIT,
+		STORE_COMMIT,
+		STORE_PUSH
+	};
+
+public:
 	typedef std::map<uint256, std::list<std::vector<unsigned char>>> _commitMap;
 public:
 	explicit TransactionContext() { fee_ = 0; size_ = 0; qbitTx_ = false; }
 	TransactionContext(TransactionPtr tx) : tx_(tx) { fee_ = 0; size_ = 0; qbitTx_ = false; }
+	TransactionContext(TransactionPtr tx, ProcessingContext context) : tx_(tx), context_(context) { 
+		fee_ = 0; size_ = 0; qbitTx_ = false; 
+	}
 
 	inline TransactionPtr tx() { return tx_; }
 
@@ -38,6 +49,9 @@ public:
 	inline std::vector<Transaction::In>& in() { return tx_->in(); }
 
 	inline static TransactionContextPtr instance(TransactionPtr tx) { return std::make_shared<TransactionContext>(tx); }
+	inline static TransactionContextPtr instance(TransactionPtr tx, ProcessingContext context) { 
+		return std::make_shared<TransactionContext>(tx, context); 
+	}
 
 	inline _commitMap& commitIn() { return commitIn_; }
 	inline _commitMap& commitOut() { return commitOut_; }
@@ -45,9 +59,15 @@ public:
 	inline amount_t fee() { return fee_; }
 	inline void addFee(amount_t fee) { fee_ += fee; }
 
+	inline amount_t amount() { return amount_; }
+	inline void addAmount(amount_t amount) { amount_ += amount; }
+
 	inline void setQbitTx() { qbitTx_ = true; }
 	inline void resetQbitTx() { qbitTx_ = true; }
 	inline bool qbitTx() { return qbitTx_; }
+
+	inline ProcessingContext context() { return context_; }
+	inline void setContext(ProcessingContext context) { context_ = context; }
 
 	// estimated rate (feeIn/out maybe excluded)
 	inline qunit_t feeRate() {
@@ -79,6 +99,8 @@ private:
 	_commitMap commitOut_;
 	// miner fee
 	amount_t fee_;
+	// output amount (if possible)
+	amount_t amount_;
 	// cached size
 	size_t size_;
 	// used my utxo's
@@ -89,6 +111,8 @@ private:
 	std::vector<Transaction::Link> outs_;
 	// qbit tx
 	bool qbitTx_;
+	// processing context
+	ProcessingContext context_ = TransactionContext::COMMON;
 };
 
 } // qbit
