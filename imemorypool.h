@@ -34,6 +34,8 @@ public:
 	virtual bool isUnlinkedOutUsed(const uint256&) { throw qbit::exception("NOT_IMPL", "IMemoryPool::isUnlinkedOutUsed - not implemented."); }
 	virtual bool isUnlinkedOutExists(const uint256&) { throw qbit::exception("NOT_IMPL", "IMemoryPool::isUnlinkedOutExists - not implemented."); }
 
+	virtual bool isTransactionExists(const uint256&) { throw qbit::exception("NOT_IMPL", "IMemoryPool::isTransactionExists - not implemented."); }
+
 	virtual void setMainStore(ITransactionStorePtr /*store*/) { throw qbit::exception("NOT_IMPL", "IMemoryPool::setMainStore - not implemented."); }
 
 	virtual ITransactionStorePtr persistentMainStore() { throw qbit::exception("NOT_IMPL", "IMemoryPool::persistentMainStore - not implemented."); }

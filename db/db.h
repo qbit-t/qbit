@@ -592,6 +592,40 @@ public:
 template<typename key, typename value, template<typename, typename> typename impl >
 class EntityContainer: public Container<key, value, impl> {
 public:
+	class Iterator {
+	public:
+		Iterator(const typename Container<key, value, impl>::Iterator& i) : i_(i) {}
+
+		virtual inline bool valid() { return i_.valid(); }
+
+		inline Iterator& operator++() {
+			i_.next();
+			return *this;
+		}
+
+		inline Iterator& operator++(int) {
+			i_.next();
+			return *this;
+		}
+
+		inline void next() { i_.next(); }
+
+		inline bool first(key& k) { return i_.first(k); }
+		inline bool first(DataStream& k) { return i_.first(k); }
+
+		inline std::shared_ptr<value> operator* () {
+			DataStream lValueStream(SER_DISK, CLIENT_VERSION);
+			if (i_.second(lValueStream)) {
+				return value::Deserializer::deserialize(lValueStream);
+			}
+
+			return nullptr;
+		}
+
+	private:
+		typename Container<key, value, impl>::Iterator i_;
+	};
+public:
 	class Transaction {
 	public:
 		Transaction(const typename Container<key, value, impl>::Transaction& t) : t_(t) {}
@@ -642,6 +676,8 @@ public:
 
 		return nullptr;
 	}
+
+	inline Iterator begin() { return EntityContainer::Iterator(Container<key, value, impl>::begin()); }
 
 	inline Transaction transaction() { return Transaction(Container<key, value, impl>::transaction()); }
 };

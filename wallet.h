@@ -27,7 +27,8 @@ public:
 		utxo_(settings_->dataPath() + "/wallet/utxo"), 
 		ltxo_(settings_->dataPath() + "/wallet/ltxo"), 
 		assets_(settings_->dataPath() + "/wallet/assets"), 
-		entities_(settings_->dataPath() + "/wallet/entities")
+		entities_(settings_->dataPath() + "/wallet/entities"),
+		pendingtxs_(settings_->dataPath() + "/wallet/pendingtxs")
 	{
 		opened_ = false;
 		useUtxoCache_ = false;
@@ -39,7 +40,8 @@ public:
 		utxo_(settings_->dataPath() + "/wallet/utxo"), 
 		ltxo_(settings_->dataPath() + "/wallet/ltxo"), 
 		assets_(settings_->dataPath() + "/wallet/assets"), 
-		entities_(settings_->dataPath() + "/wallet/entities")
+		entities_(settings_->dataPath() + "/wallet/entities"),
+		pendingtxs_(settings_->dataPath() + "/wallet/pendingtxs")
 	{
 		opened_ = false;
 		useUtxoCache_ = false;
@@ -72,7 +74,7 @@ public:
 	std::list<Transaction::UnlinkedOutPtr> collectUnlinkedOutsByAsset(const uint256&, amount_t);
 
 	// rollback tx
-	bool rollback(TransactionContextPtr);	
+	bool rollback(TransactionContextPtr);
 
 	// balance
 	inline amount_t balance() {
@@ -143,6 +145,18 @@ public:
 	bool isUnlinkedOutUsed(const uint256& utxo);
 	bool isUnlinkedOutExists(const uint256& utxo);
 
+	void removePendingTransaction(const uint256& tx) {
+		pendingtxs_.remove(tx);
+	}
+
+	void collectPendingTransactions(std::list<TransactionPtr>& list) {
+		//
+		for (db::DbEntityContainer<uint256 /*tx*/, Transaction /*data*/>::Iterator lTx = pendingtxs_.begin(); lTx.valid(); lTx++) {
+			//
+			list.push_back(*lTx);
+		}
+	}
+
 private:
 	amount_t fillInputs(TxSpendPtr /*tx*/, const uint256& /*asset*/, amount_t /*amount*/);
 	TransactionContextPtr makeTxSpend(Transaction::Type /*type*/, const uint256& /*asset*/, const PKey& /*dest*/, amount_t /*amount*/, qunit_t /*fee limit*/, int32_t /*targetBlock*/);
@@ -156,17 +170,17 @@ private:
 		if (useUtxoCache_) utxoCache_.erase(hash);
 	}
 
-	bool isUnlinkedOutExistsGlobal(const uint256& utxo) {
+	bool isUnlinkedOutExistsGlobal(const uint256& hash, Transaction::UnlinkedOut& utxo) {
 		//
-		if (settings_->isNode() || settings_->isFullNode()) {
-			if (!mempool()->isUnlinkedOutExists(utxo)) {
+		//if (settings_->isNode() || settings_->isFullNode()) {
+			if (!mempool()->isUnlinkedOutExists(hash)) {
 				if (persistentStoreManager_) {
-					return persistentStoreManager_->locate(MainChain::id())->isUnlinkedOutExists(utxo);
+					return persistentStoreManager_->locate(utxo.out().chain())->isUnlinkedOutExists(hash);
 				}
 
-				return persistentStore_->isUnlinkedOutExists(utxo);
+				return persistentStore_->isUnlinkedOutExists(hash);
 			}
-		}
+		//}
 
 		return true;
 	}
@@ -194,13 +208,14 @@ private:
 	db::DbMultiContainer<uint256 /*asset*/, uint256 /*utxo*/> assets_;
 	// unlinked outs by entity
 	db::DbMultiContainer<uint256 /*entity*/, uint256 /*utxo*/> entities_;
+	// pending tx
+	db::DbEntityContainer<uint256 /*tx*/, Transaction /*data*/> pendingtxs_;
 
 	// cache
 	// utxo/data
 	std::map<uint256 /*utxo*/, Transaction::UnlinkedOutPtr /*data*/> utxoCache_; // optionally
 	// asset/utxo/data
 	std::map<uint256 /*asset*/, std::multimap<amount_t /*amount*/, uint256 /*utxo*/>> assetsCache_;
-
 	// entity/utxo/data
 	std::map<uint256 /*entity*/, std::map<uint256 /*utxo*/, Transaction::UnlinkedOutPtr /*data*/>> entitiesCache_;
 
@@ -210,7 +225,7 @@ private:
 	// use utxo cache (in case of slow db functionality)
 	bool useUtxoCache_;
 
-	//
+	// lock
 	boost::recursive_mutex cacheMutex_;
 };
 

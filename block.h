@@ -93,11 +93,11 @@ public:
 class NetworkBlockHeader {
 public:
 	NetworkBlockHeader() {}
-	NetworkBlockHeader(const BlockHeader &header, size_t height, TransactionPtr coinbase, const uint160& address) : 
-		header_(header), coinbase_(coinbase), address_(address), height_(height) {}
+	NetworkBlockHeader(const BlockHeader &header, size_t height, /*TransactionPtr coinbase,*/ const uint160& address) : 
+		header_(header), /*coinbase_(coinbase),*/ address_(address), height_(height) {}
 
 	BlockHeader& blockHeader() { return header_; }
-	TransactionPtr coinbase() { return coinbase_; }
+	//TransactionPtr coinbase() { return coinbase_; }
 	uint160 addressId() { return address_; }
 	size_t height() { return height_; }
 
@@ -107,12 +107,12 @@ public:
 	inline void serializationOp(Stream& s, Operation ser_action) {
 		if (ser_action.ForRead()) {
 			header_.deserialize(s); // header info
-			coinbase_ = Transaction::Deserializer::deserialize<Stream>(s); // "mined" transaction
+			//coinbase_ = Transaction::Deserializer::deserialize<Stream>(s); // "mined" transaction
 			s >> address_;
 			s >> height_;
 		} else {
 			header_.serialize(s);
-			Transaction::Serializer::serialize<Stream>(s, coinbase_);
+			//Transaction::Serializer::serialize<Stream>(s, coinbase_);
 			s << address_;
 			s << height_;
 		}
@@ -120,7 +120,7 @@ public:
 
 private:
 	BlockHeader header_;
-	TransactionPtr coinbase_;
+	//TransactionPtr coinbase_;
 	uint160 address_;
 	size_t height_;
 };

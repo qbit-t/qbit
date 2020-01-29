@@ -64,10 +64,13 @@ public:
 	virtual BlockPtr block(const uint256& /*id*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::block - not implemented."); }
 
 	virtual bool blockExists(const uint256& /*block*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::blockExists - not implemented."); }
-	virtual bool enqueueBlock(const uint256& /*block*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::enqueueBlock - not implemented."); }
+	virtual bool enqueueBlock(const NetworkBlockHeader& /*block*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::enqueueBlock - not implemented."); }
+	virtual void dequeueBlock(const uint256& /*block*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::dequeueBlock - not implemented."); }
 
 	virtual bool transactionHeight(const uint256& /*tx*/, size_t& /*height*/, bool& /*coinbase*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::transactionHeight - not implemented."); }
 	virtual bool blockHeight(const uint256& /*block*/, size_t& /*height*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::blockHeight - not implemented."); }
+
+	virtual bool firstEnqueuedBlock(NetworkBlockHeader& /*block*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::firstEnqueuedBlock - not implemented."); }
 };
 
 typedef std::shared_ptr<ITransactionStore> ITransactionStorePtr;

@@ -84,6 +84,10 @@ public:
 	virtual ITransactionStorePtr persistentStore() { throw qbit::exception("NOT_IMPL", "IWallet::persistentStore - Not implemented."); }
 	virtual IMemoryPoolManagerPtr mempoolManager() { throw qbit::exception("NOT_IMPL", "IWallet::mempoolManager - Not implemented."); }
 	virtual ITransactionStoreManagerPtr storeManager() { throw qbit::exception("NOT_IMPL", "IWallet::storeManager - Not implemented."); }
+
+	//
+	virtual void removePendingTransaction(const uint256& /*tx*/) { throw qbit::exception("NOT_IMPL", "IWallet::removePendingTransaction - Not implemented."); }
+	virtual void collectPendingTransactions(std::list<TransactionPtr>& /*list*/) { throw qbit::exception("NOT_IMPL", "IWallet::collectPendingTransactions - Not implemented."); }
 };
 
 typedef std::shared_ptr<IWallet> IWalletPtr;

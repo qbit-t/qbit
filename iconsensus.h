@@ -78,6 +78,7 @@ public:
 	virtual void doIndex(const uint256& /*block*/) { throw qbit::exception("NOT_IMPL", "IConsensus::doIndex - not implemented."); }
 	virtual void doIndex(const uint256& /*block*/, const uint256& /*lastFoundBlock*/) { throw qbit::exception("NOT_IMPL", "IConsensus::doIndex - not implemented."); }
 	virtual void toNonSynchronized() { throw qbit::exception("NOT_IMPL", "IConsensus::toNonSynchronized - not implemented."); }
+	virtual void toSynchronizing() { throw qbit::exception("NOT_IMPL", "IConsensus::toSynchronizing - not implemented."); }
 
 	virtual SynchronizationJobPtr lastJob() { throw qbit::exception("NOT_IMPL", "IConsensus::lastJob - not implemented."); }
 	virtual ITransactionStorePtr store() { throw qbit::exception("NOT_IMPL", "IConsensus::store - not implemented."); }
@@ -87,6 +88,8 @@ public:
 	virtual size_t coinbaseMaturity() { throw qbit::exception("NOT_IMPL", "IConsensus::coinbaseMaturity - not implemented."); }
 
 	virtual bool checkEmission(amount_t /*coinbaseAmount*/, amount_t /*blockFee*/, size_t /*height*/) { throw qbit::exception("NOT_IMPL", "IConsensus::checkCoinbaseAmountAndFee - not implemented."); }
+
+	virtual int activeValidatorsCount() { throw qbit::exception("NOT_IMPL", "IConsensus::activeValidatorsCount - not implemented."); }
 };
 
 typedef std::shared_ptr<IConsensus> IConsensusPtr;

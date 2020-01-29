@@ -213,7 +213,8 @@ public:
 		entities_(settings_->dataPath() + "/" + chain.toHex() + "/entities"), 
 		transactionsIdx_(settings_->dataPath() + "/" + chain.toHex() + "/indexes/transactions"), 
 		addressAssetUtxoIdx_(settings_->dataPath() + "/" + chain.toHex() + "/indexes/utxo"),
-		blockUtxoIdx_(settings_->dataPath() + "/" + chain.toHex() + "/indexes/blocks")
+		blockUtxoIdx_(settings_->dataPath() + "/" + chain.toHex() + "/indexes/blockutxo"),
+		utxoBlock_(settings_->dataPath() + "/" + chain.toHex() + "/indexes/utxoblock")
 	{}
 
 	// stub
@@ -255,8 +256,9 @@ public:
 	bool isUnlinkedOutUsed(const uint256&);
 	bool isUnlinkedOutExists(const uint256&);
 
-	bool enqueueBlock(const uint256& /*block*/);
+	bool enqueueBlock(const NetworkBlockHeader& /*block*/);
 	void dequeueBlock(const uint256& /*block*/);
+	bool firstEnqueuedBlock(NetworkBlockHeader& /*block*/);
 
 	Transaction::UnlinkedOutPtr findUnlinkedOut(const uint256&);
 
@@ -332,6 +334,8 @@ private:
 	db::DbThreeKeyContainer<uint160 /*address*/, uint256 /*asset*/, uint256 /*utxo*/, uint256 /*tx*/> addressAssetUtxoIdx_;
 	// block | utxo
 	db::DbMultiContainer<uint256 /*block*/, uint256 /*utxo*/> blockUtxoIdx_;
+	// utxo | block
+	db::DbContainer<uint256 /*utxo*/, uint256 /*block*/> utxoBlock_;
 
 	//
 	boost::mutex storageMutex_;
@@ -339,7 +343,7 @@ private:
 	std::map<uint256, size_t> blockMap_;
 
 	//
-	std::set<uint256> blocksQueue_;
+	std::map<uint256, NetworkBlockHeader> blocksQueue_;
 };
 
 } // qbit

@@ -78,6 +78,11 @@ public:
 	}
 
 	//
+	// minimum network size
+	// TODO: settings
+	size_t simpleNetworkSize() { return 5; }	
+
+	//
 	// use peer for network participation
 	void pushPeer(IPeerPtr peer) {
 		//
@@ -155,12 +160,15 @@ public:
 		}
 
 		if (lPeer) {
-			uint256 lHash = const_cast<NetworkBlockHeader&>(block).blockHeader().hash();
-			if (store_->enqueueBlock(lHash)) {
+			if (store_->enqueueBlock(block)) {
+				if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, 
+					strprintf("[acquireBlock]: acquiring BLOCK %s/%s#", 
+						const_cast<NetworkBlockHeader&>(block).blockHeader().hash().toHex(), chain_.toHex().substr(0, 10)));
 				lPeer->acquireBlock(block);
 			} else {
-				gLog().write(Log::CONSENSUS, 
-					strprintf("[acquireBlock]: block is already ENQUEUED %s/%s#, skipping.", lHash.toHex(), chain_.toHex().substr(0, 10)));				
+				if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, 
+					strprintf("[acquireBlock]: block is already ENQUEUED %s/%s#, skipping.", 
+						const_cast<NetworkBlockHeader&>(block).blockHeader().hash().toHex(), chain_.toHex().substr(0, 10)));
 			}
 		} else {
 			return false;
@@ -182,6 +190,7 @@ public:
 			}
 
 			// check that sequence of blocks is not in row for one address
+			if (false)
 			{
 				boost::unique_lock<boost::mutex> lLock(queueMutex_); // LOCK!
 
@@ -240,6 +249,10 @@ public:
 	//
 	// broadcast transaction
 	bool broadcastTransaction(TransactionContextPtr ctx, uint160 except) {
+		//
+		if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, 
+			strprintf("[broadcastTransaction]: broadcasting transaction %s/%s#", ctx->tx()->id().toHex(), chain_.toHex().substr(0, 10)));
+
 		// prepare
 		std::list<IPeerPtr> lPeers;
 		{
@@ -250,17 +263,34 @@ public:
 		}
 
 		// broadcast
+		bool lResult = false;
 		for (std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
-			if (except.isNull() || (except != (*lPeer)->addressId()))
+			if (except.isNull() || (except != (*lPeer)->addressId())) {
 				(*lPeer)->broadcastTransaction(ctx);
+				lResult = true; // at least one
+			}
 		}
 
-		return lPeers.size() > 0; 
+		if (lResult) {
+			if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, 
+				strprintf("[broadcastTransaction]: removing pending transaction %s/%s#", ctx->tx()->id().toHex(), chain_.toHex().substr(0, 10)));
+
+			wallet_->removePendingTransaction(ctx->tx()->id());
+		} else {
+			if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, 
+				strprintf("[broadcastTransaction]: transaction is in pending state %s/%s#", ctx->tx()->id().toHex(), chain_.toHex().substr(0, 10)));
+		}
+
+		return lResult; 
 	}
 
 	//
 	// broadcast state
 	void broadcastState(StatePtr state, IPeerPtr except) {
+		//
+		if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, 
+			strprintf("[broadcastState]: broadcasting state - %s", state->toStringShort()));
+
 		// prepare
 		std::list<IPeerPtr> lPeers;
 		{
@@ -375,6 +405,20 @@ public:
 		}
 
 		return true;
+	}
+
+	//
+	// active validators 
+	int activeValidatorsCount() {
+		boost::unique_lock<boost::mutex> lLock(stateMutex_);
+
+		// previous/exists
+		int lCount = 0;
+		for (PeersStateMap::iterator lState = peerStateMap_.begin(); lState != peerStateMap_.end(); lState++) {
+			if (lState->second->isMinerOrValidator()) lCount++;
+		}
+
+		return lCount;
 	}
 
 	//
@@ -593,6 +637,17 @@ public:
 			boost::unique_lock<boost::mutex> lLock(transitionMutex_);
 			if (chainState_ == IConsensus::SYNCHRONIZING || chainState_ == IConsensus::SYNCHRONIZED) {
 				chainState_ = IConsensus::NOT_SYNCRONIZED;
+			}
+		}
+	}
+
+	//
+	// to sync'ing
+	void toSynchronizing() {
+		{
+			boost::unique_lock<boost::mutex> lLock(transitionMutex_);
+			if (chainState_ == IConsensus::NOT_SYNCRONIZED || chainState_ == IConsensus::SYNCHRONIZED) {
+				chainState_ = IConsensus::SYNCHRONIZING;
 			}
 		}
 	}

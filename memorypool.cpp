@@ -175,6 +175,11 @@ bool MemoryPool::pushTransaction(TransactionContextPtr ctx) {
 	return true;
 }
 
+bool MemoryPool::isTransactionExists(const uint256& tx) {
+	boost::unique_lock<boost::recursive_mutex> lLock(mempoolMutex_);
+	return poolStore_->locateTransactionContext(tx) != nullptr;
+}
+
 qunit_t MemoryPool::estimateFeeRateByLimit(TransactionContextPtr ctx, qunit_t feeRateLimit) {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(mempoolMutex_);
