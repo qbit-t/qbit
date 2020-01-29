@@ -145,6 +145,7 @@ public:
 	// main entry
 	TransactionContextPtr pushTransaction(TransactionPtr);
 	bool pushTransaction(TransactionContextPtr);
+	bool isTransactionExists(const uint256&);
 
 	//
 	// wallet

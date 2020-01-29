@@ -31,6 +31,8 @@ int main(int argv, char** argc)
 	gLog().enable(Log::WALLET);
 	gLog().enable(Log::HTTP);
 	gLog().enable(Log::ERROR);
+	gLog().enable(Log::VALIDATOR);
+	//gLog().enable(Log::NET);
 	//gLog().enable(Log::ALL);
 
 	if (argv > 1 && std::string(argc[1]) == "-S0") {

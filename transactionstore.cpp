@@ -234,6 +234,7 @@ bool TransactionStore::processBlock(BlockContextPtr ctx, size_t& height, bool pr
 		TxBlockStorePtr lIndexBlockStore = std::static_pointer_cast<TxBlockStore>(lTransactionStore);
 		for (std::list<TxBlockAction>::iterator lAction = lIndexBlockStore->actions().begin(); lAction != lIndexBlockStore->actions().end(); lAction++) {
 			blockUtxoIdx_.write(lHash, lAction->utxo());
+			utxoBlock_.write(lAction->utxo(), lHash);
 		}
 
 		// mark as last
@@ -452,6 +453,7 @@ bool TransactionStore::processBlocks(const uint256& from, const uint256& to, std
 			TxBlockStorePtr lIndexBlockStore = std::static_pointer_cast<TxBlockStore>(lTransactionStore);
 			for (std::list<TxBlockAction>::iterator lAction = lIndexBlockStore->actions().begin(); lAction != lIndexBlockStore->actions().end(); lAction++) {
 				blockUtxoIdx_.write(lBlockHash, lAction->utxo());
+				utxoBlock_.write(lAction->utxo(), lBlockHash);
 			}
 		} else {
 			return false;
@@ -619,6 +621,7 @@ bool TransactionStore::open() {
 			ltxo_.open();
 			entities_.open();
 			blockUtxoIdx_.open();
+			utxoBlock_.open();
 			transactionsIdx_.open();
 			addressAssetUtxoIdx_.open();
 
@@ -658,6 +661,7 @@ bool TransactionStore::close() {
 	transactionsIdx_.close();
 	addressAssetUtxoIdx_.close();
 	blockUtxoIdx_.close();
+	utxoBlock_.close();
 
 	opened_ = false;
 
@@ -713,8 +717,19 @@ bool TransactionStore::isUnlinkedOutUsed(const uint256& ltxo) {
 bool TransactionStore::isUnlinkedOutExists(const uint256& utxo) {
 	//
 	Transaction::UnlinkedOut lUtxo;
-	if (/*ltxo_.read(utxo, lUtxo) ||*/ utxo_.read(utxo, lUtxo)) {
-		return true;
+	if (utxo_.read(utxo, lUtxo)) {
+
+		uint256 lBlock;
+		if (utxoBlock_.read(utxo, lBlock)) {
+			size_t lHeight;
+			if (!blockHeight(lBlock, lHeight)) 
+				return false;
+			return (lHeight > 0);
+		} else {
+			return false;
+		}
+
+		return false;
 	}
 
 	return false;
@@ -852,11 +867,12 @@ void TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 		strprintf("%s#", chain_.toHex().substr(0, 10)));
 }
 
-bool TransactionStore::enqueueBlock(const uint256& block) {
+bool TransactionStore::enqueueBlock(const NetworkBlockHeader& block) {
 	//
 	boost::unique_lock<boost::mutex> lLock(storageMutex_);
-	if (blocksQueue_.find(block) == blocksQueue_.end()) {
-		blocksQueue_.insert(block);	
+	uint256 lHash = const_cast<NetworkBlockHeader&>(block).blockHeader().hash();
+	if (blocksQueue_.find(lHash) == blocksQueue_.end()) {
+		blocksQueue_.insert(std::map<uint256, NetworkBlockHeader>::value_type(lHash, block));	
 		return true;
 	}
 
@@ -867,4 +883,15 @@ void TransactionStore::dequeueBlock(const uint256& block) {
 	//
 	boost::unique_lock<boost::mutex> lLock(storageMutex_);
 	blocksQueue_.erase(block);	
+}
+
+bool TransactionStore::firstEnqueuedBlock(NetworkBlockHeader& block) {
+	//
+	boost::unique_lock<boost::mutex> lLock(storageMutex_);
+	if (blocksQueue_.size()) {
+		block = blocksQueue_.begin()->second;
+		return true;
+	}
+
+	return false;	
 }

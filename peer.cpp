@@ -400,10 +400,8 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 			} else if (lMessage.type() == Message::PEER_EXISTS) {
 				// mark peer
 				peerManager_->postpone(shared_from_this());
-				//waitForMessage();
 			} else if (lMessage.type() == Message::PEER_BANNED) {
 				// mark peer
-				toBan();
 				peerManager_->ban(shared_from_this());
 			} else {
 				eraseInData(lMsg);
@@ -788,7 +786,8 @@ void Peer::processNetworkBlock(std::list<DataStream>::iterator msg, const boost:
 				StatePtr lState = peerManager_->consensusManager()->currentState();
 				peerManager_->consensusManager()->broadcastState(lState, shared_from_this());
 			} else {
-				// TODO: ban peer?
+				// mark peer
+				peerManager_->ban(shared_from_this());
 			}
 		}
 
@@ -901,10 +900,10 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 		} else if (peerManager_->consensusManager()->pushBlockHeader(lNetworkBlockHeader)) {
 			// re-broadcast
 			peerManager_->consensusManager()->broadcastBlockHeader(lNetworkBlockHeader, shared_from_this());
+		} else {
+			// TODO: what to do with the peer? Do we need reason - why blockHeader was not pushed?
 		}
 
-		// go to read
-		//waitForMessage();
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processBlockHeader/error]: closing session " + key() + " -> " + error.message());

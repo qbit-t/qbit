@@ -58,6 +58,7 @@ bool Wallet::open() {
 			ltxo_.open();
 			assets_.open();
 			entities_.open();
+			pendingtxs_.open();
 		}
 		catch(const std::exception& ex) {
 			gLog().write(Log::ERROR, std::string("[wallet/open]: ") + ex.what());
@@ -85,6 +86,7 @@ bool Wallet::close() {
 	ltxo_.close();
 	assets_.close();
 	entities_.close();
+	pendingtxs_.close();
 
 	return true;
 }
@@ -107,8 +109,7 @@ bool Wallet::prepareCache() {
 
 			if (utxo_.read(lUtxoId, lUtxo)) {
 				// if utxo exists
-				// TODO: all chains?
-				if (isUnlinkedOutExistsGlobal(lUtxoId)) {
+				if (isUnlinkedOutExistsGlobal(lUtxoId, lUtxo)) {
 					// utxo exists
 					Transaction::UnlinkedOutPtr lUtxoPtr = Transaction::UnlinkedOut::instance(lUtxo);
 					
@@ -145,7 +146,7 @@ bool Wallet::prepareCache() {
 				if (utxo_.read(lEntityId, lUtxo)) {
 					// if utxo exists
 					// TODO: all chains?
-					if (isUnlinkedOutExistsGlobal(lUtxoId)) {
+					if (isUnlinkedOutExistsGlobal(lUtxoId, lUtxo)) {
 
 						// utxo exists
 						lUtxoPtr = Transaction::UnlinkedOut::instance(lUtxo);
@@ -345,13 +346,13 @@ Transaction::UnlinkedOutPtr Wallet::findUnlinkedOut(const uint256& hash) {
 	if (useUtxoCache_) {
 		std::map<uint256, Transaction::UnlinkedOutPtr>::iterator lUtxo = utxoCache_.find(hash);
 		if (lUtxo != utxoCache_.end()) {
-			if (isUnlinkedOutExistsGlobal(hash)) {
+			if (isUnlinkedOutExistsGlobal(hash, (*lUtxo->second))) {
 				return lUtxo->second;
 			}
 		}
 	} else {
 		Transaction::UnlinkedOut lUtxo;
-		if (utxo_.read(hash, lUtxo) && isUnlinkedOutExistsGlobal(hash)) {
+		if (utxo_.read(hash, lUtxo) && isUnlinkedOutExistsGlobal(hash, lUtxo)) {
 			return Transaction::UnlinkedOut::instance(lUtxo);
 		}
 	}
@@ -669,6 +670,9 @@ TransactionContextPtr Wallet::makeTxSpend(Transaction::Type type, const uint256&
 
 	if (!lTx->finalize(lSKey)) throw qbit::exception("E_TX_FINALIZE", "Transaction finlization failed.");
 
+	// write to pending transactions
+	pendingtxs_.write(lTx->id(), lTx);
+
 	return lCtx;
 }
 
@@ -729,6 +733,9 @@ TransactionContextPtr Wallet::createTxAssetType(const PKey& dest, const std::str
 	}
 
 	if (!lAssetTypeTx->finalize(lSKey)) throw qbit::exception("E_TX_FINALIZE", "Transaction finlization failed.");
+
+	// write to pending transactions
+	pendingtxs_.write(lAssetTypeTx->id(), lAssetTypeTx);	
 	
 	return lCtx;
 }
@@ -791,6 +798,9 @@ TransactionContextPtr Wallet::createTxLimitedAssetEmission(const PKey& dest, con
 	}
 
 	if (!lAssetEmissionTx->finalize(lSKey)) throw qbit::exception("E_TX_FINALIZE", "Transaction finlization failed.");
+
+	// write to pending transactions
+	pendingtxs_.write(lAssetEmissionTx->id(), lAssetEmissionTx);	
 	
 	return lCtx;
 }
@@ -815,6 +825,6 @@ TransactionContextPtr Wallet::createTxCoinBase(amount_t amount) {
 	// make output
 	Transaction::UnlinkedOutPtr lUtxoPtr = lTx->addOut(lSKey, lSKey.createPKey(), TxAssetType::qbitAsset(), amount);
 	lUtxoPtr->out().setTx(lTx->id()); // finalize
-	
+
 	return lCtx;
 }

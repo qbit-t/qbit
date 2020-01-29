@@ -159,6 +159,10 @@ public:
 		return lRoles;
 	}
 
+	bool isMinerOrValidator() {
+		return ((roles_ & MINER) != 0) || ((roles_ & VALIDATOR) != 0);
+	}
+
 	bool containsChain(const uint256& chain) {
 		if (!chains_.size()) {
 			for (std::vector<BlockInfo>::iterator lInfo = infos_.begin(); lInfo != infos_.end(); lInfo++) {
@@ -202,6 +206,14 @@ public:
 		
 		for (auto& lInfo : infos_)
 			str += "  -> chain(" + strprintf("%d/%s#", lInfo.height(), lInfo.chain().toHex().substr(0, 10)) + ")\n";
+		return str;
+	}
+
+	std::string toStringShort() {
+		std::string str;
+		str += strprintf("state(time=%u, roles=%s, pkey=%s, chains=%d)\n",
+			time_, rolesString(),
+			pkey_.toString(), infos_.size());
 		return str;
 	}
 
