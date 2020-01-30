@@ -8,6 +8,17 @@
 
 #define MAXPATHLEN 8192
 
+enum verify_code {
+    POW_OK,
+    POW_HEADER_LENGTH,
+    POW_TOO_BIG,
+    POW_TOO_SMALL,
+    POW_NON_MATCHING,
+    POW_BRANCH,
+    POW_DEAD_END,
+    POW_SHORT_CYCLE
+};
+
 #if defined(_MSC_VER) && (MSC_VER <= 1500) && !defined(CYBOZU_DEFINED_INTXX)
 	#define CYBOZU_DEFINED_INTXX
 	typedef __int64 int64_t;
@@ -109,5 +120,8 @@ uint32_t sipnode(const siphash_keys* keys, uint32_t mask, uint32_t nonce, uint32
 
 // Find proofsize-length cuckoo cycle in random graph
 bool FindCycle(const uint256& hash, uint8_t edgeBits, uint8_t proofSize, std::set<uint32_t>& cycle);
+
+// verify that cycle is valid in block hash generated graph
+int VerifyCycle(const uint256& hash, uint8_t edgeBits, uint8_t proofSize, const std::vector<uint32_t>& cycle);
 
 #endif
