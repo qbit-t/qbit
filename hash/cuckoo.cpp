@@ -283,3 +283,71 @@ bool FindCycle(const uint256& hash, uint8_t edgeBits, uint8_t proofSize, std::se
 
     return false;
 }
+
+// check it easiness makes any sence here
+// verify that nonces are ascending and form a cycle in header-generated graph
+int VerifyCycle(const uint256& hash, uint8_t edgeBits, uint8_t proofSize, const std::vector<uint32_t>& cycle)
+{
+    assert(cycle.size() == proofSize);
+    assert(edgeBits >= MIN_EDGE_BITS && edgeBits <= MAX_EDGE_BITS);
+    siphash_keys keys;
+
+    // edge mask is a max valid value of an edge (max index of nodes array).
+    uint32_t edgeMask = (1 << edgeBits) - 1;
+
+    auto hashStr = hash.toHex();
+/*
+printf("\nhashStr ----- %s\n",hashStr.c_str());
+printf("\nedgebits ----- %i\n",edgeBits);
+printf("\proofSize ----- %i\n",proofSize);
+*/
+    setKeys(hashStr.c_str(), hashStr.size(), &keys);
+/*
+printf("\keys->k0 ----- %i\n",keys.k0);
+printf("\keys->k1 ----- %i\n",keys.k1);
+  */  
+
+    std::vector<uint32_t> uvs(2 * proofSize);
+    uint32_t xor0 = 0, xor1 = 0;
+
+    for (uint32_t n = 0; n < proofSize; n++) {
+//printf("\nCYCLE ----- %i: %x\n",n, cycle[n]);
+        if (cycle[n] > edgeMask) {
+            return POW_TOO_BIG;
+        }
+
+        if (n && cycle[n] <= cycle[n - 1]) {
+            return POW_TOO_SMALL;
+        }
+
+        xor0 ^= uvs[2 * n] = sipnode(&keys, edgeMask, cycle[n], 0);
+        xor1 ^= uvs[2 * n + 1] = sipnode(&keys, edgeMask, cycle[n], 1);
+    }
+
+    // matching endpoints imply zero xors
+    if (xor0 | xor1) {
+//printf("NON MATCHING\n");
+        return POW_NON_MATCHING;
+    }
+
+    uint32_t n = 0, i = 0, j;
+    do { // follow cycle
+        for (uint32_t k = j = i; (k = (k + 2) % (2 * proofSize)) != i;) {
+            if (uvs[k] == uvs[i]) { // find other edge endpoint identical to one at i
+                if (j != i) {       // already found one before
+                    return POW_BRANCH;
+                }
+
+                j = k;
+            }
+        }
+        if (j == i) {
+            return POW_DEAD_END; // no matching endpoint
+        }
+
+        i = j ^ 1;
+        n++;
+    } while (i != 0); // must cycle back to start or we would have found branch
+
+    return n == proofSize ? POW_OK : POW_SHORT_CYCLE;
+}
