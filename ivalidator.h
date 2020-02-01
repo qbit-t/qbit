@@ -12,13 +12,24 @@ namespace qbit {
 
 class IValidator {
 public:
+	enum BlockCheckResult {
+		SUCCESS = 0,
+		BROKEN_CHAIN = 1,
+		ORIGIN_NOT_ALLOWED = 2,
+		INTEGRITY_IS_INVALID = 3,
+		ALREADY_PROCESSED = 4,
+		VALIDATOR_ABSENT = 5,
+		PEERS_IS_ABSENT = 6
+	};
+
+public:
 	IValidator() {}
 
 	virtual uint256 chain() { throw qbit::exception("NOT_IMPL", "IValidator::chain - not implemented."); }
 	virtual void run() { throw qbit::exception("NOT_IMPL", "IValidator::run - not implemented."); }
 	virtual void stop() { throw qbit::exception("NOT_IMPL", "IValidator::stop - not implemented."); }
 
-	virtual bool checkBlockHeader(const NetworkBlockHeader& /*blockHeader*/) { throw qbit::exception("NOT_IMPL", "IValidator::checkBlockHeader - not implemented."); }
+	virtual BlockCheckResult checkBlockHeader(const NetworkBlockHeader& /*blockHeader*/) { throw qbit::exception("NOT_IMPL", "IValidator::checkBlockHeader - not implemented."); }
 	virtual bool acceptBlockHeader(const NetworkBlockHeader& /*blockHeader*/) { throw qbit::exception("NOT_IMPL", "IValidator::acceptBlockHeader - not implemented."); }
 
 	virtual IMemoryPoolPtr mempool() { throw qbit::exception("NOT_IMPL", "IValidator::mempool - not implemented."); }

@@ -44,11 +44,14 @@ void Peer::internalSendState(StatePtr state, bool global) {
 		// push own current state
 		StatePtr lState = state;
 		DataStream lStateStream(SER_NETWORK, CLIENT_VERSION);
+		/*
 		if (!global || state->addressId() == peerManager_->consensusManager()->mainPKey().id())  {
 			lState->serialize<DataStream>(lStateStream, peerManager_->consensusManager()->mainKey());
 		} else {
 			lState->serialize<DataStream>(lStateStream);
 		}
+		*/
+		lState->serialize<DataStream>(lStateStream, peerManager_->consensusManager()->mainKey());
 
 		Message lMessage((global ? Message::GLOBAL_STATE : Message::STATE), lStateStream.size());
 
@@ -101,7 +104,7 @@ void Peer::synchronizeFullChain(IConsensusPtr consensus, SynchronizationJobPtr j
 
 				// broadcast new state
 				StatePtr lState = peerManager_->consensusManager()->currentState();
-				peerManager_->consensusManager()->broadcastState(lState, shared_from_this());
+				peerManager_->consensusManager()->broadcastState(lState, addressId());
 
 				return; // we are done
 			}
@@ -142,11 +145,14 @@ void Peer::synchronizeFullChainHead(IConsensusPtr consensus, SynchronizationJobP
 			removeJob(consensus->chain());
 
 			// reindex, partial
-			consensus->doIndex(job->block()/*root block*/, job->lastBlock());
-
-			// broadcast new state
-			StatePtr lState = peerManager_->consensusManager()->currentState();
-			peerManager_->consensusManager()->broadcastState(lState, shared_from_this());
+			if (consensus->doIndex(job->block()/*root block*/, job->lastBlock())) {
+				// broadcast new state
+				StatePtr lState = peerManager_->consensusManager()->currentState();
+				peerManager_->consensusManager()->broadcastState(lState, addressId());
+			} else {
+				// log
+				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: partial reindex FAILED skipping subtree switching, root = ") + strprintf("%s", job->block().toHex()));				
+			}
 
 			return;
 		}
@@ -298,7 +304,7 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 				boost::asio::async_read(*socket_,
 					boost::asio::buffer(lMsg->data(), lMessage.dataSize()),
 					boost::bind(
-						&Peer::processState, shared_from_this(), lMsg,
+						&Peer::processState, shared_from_this(), lMsg, true,
 						boost::asio::placeholders::error));
 			} else if (lMessage.type() == Message::GLOBAL_STATE) {
 				boost::asio::async_read(*socket_,
@@ -329,6 +335,12 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 					boost::asio::buffer(lMsg->data(), lMessage.dataSize()),
 					boost::bind(
 						&Peer::processBlockHeader, shared_from_this(), lMsg,
+						boost::asio::placeholders::error));
+			} else if (lMessage.type() == Message::BLOCK_HEADER_AND_STATE) {
+				boost::asio::async_read(*socket_,
+					boost::asio::buffer(lMsg->data(), lMessage.dataSize()),
+					boost::bind(
+						&Peer::processBlockHeaderAndState, shared_from_this(), lMsg,
 						boost::asio::placeholders::error));
 			} else if (lMessage.type() == Message::TRANSACTION) {
 				boost::asio::async_read(*socket_,
@@ -642,8 +654,9 @@ void Peer::processBlockById(std::list<DataStream>::iterator msg, const boost::sy
 			// save block
 			peerManager_->consensusManager()->locate(lChain)->store()->saveBlock(lBlock);
 			// extract next block id
+			size_t lHeight;
 			uint256 lPrev = lBlock->prev();
-			if (!peerManager_->consensusManager()->locate(lChain)->store()->blockExists(lPrev)) {
+			if (!peerManager_->consensusManager()->locate(lChain)->store()->blockHeight(lPrev, lHeight)) {
 				// go do next job
 				lJob->setNextBlock(lPrev);
 			} else {
@@ -779,20 +792,22 @@ void Peer::processNetworkBlock(std::list<DataStream>::iterator msg, const boost:
 		} else {
 			// save block
 			BlockContextPtr lCtx = peerManager_->consensusManager()->locate(lChain)->store()->pushBlock(lBlock);
-			if (!lCtx->errors().size()) {
-				// clean-up mempool
-				peerManager_->memoryPoolManager()->locate(lChain)->removeTransactions(lBlock);
-				// broadcast state
-				StatePtr lState = peerManager_->consensusManager()->currentState();
-				peerManager_->consensusManager()->broadcastState(lState, shared_from_this());
-			} else {
-				// mark peer
-				peerManager_->ban(shared_from_this());
+			if (lCtx) {
+				if (!lCtx->errors().size()) {
+					// clean-up mempool
+					peerManager_->memoryPoolManager()->locate(lChain)->removeTransactions(lBlock);
+					// create state and block info
+					StatePtr lState = peerManager_->consensusManager()->currentState();
+					NetworkBlockHeader lHeader(lCtx->block()->blockHeader(), lCtx->height());
+					// broadcast block and state
+					peerManager_->consensusManager()->broadcastBlockHeaderAndState(lHeader, lState, lState->addressId());
+				} else {
+					// mark peer
+					peerManager_->ban(shared_from_this());
+				}
 			}
 		}
 
-		// go to read
-		//waitForMessage();
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processNetworkBlock/error]: closing session " + key() + " -> " + error.message());
@@ -894,16 +909,86 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: process block header from ") + key() + " -> " + 
 				strprintf("%s/%d/%s#", lNetworkBlockHeader.blockHeader().hash().toHex(), lNetworkBlockHeader.height(), lNetworkBlockHeader.blockHeader().chain().toHex().substr(0, 10)));
 
-		if (lNetworkBlockHeader.addressId() == peerManager_->consensusManager()->mainPKey().id()) {
+		if (lNetworkBlockHeader.blockHeader().origin() == peerManager_->consensusManager()->mainPKey().id()) {
 			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, "[peer]: skip re-broadcasting block header " + 
 				strprintf("%s/%s/%s#", lNetworkBlockHeader.blockHeader().hash().toHex(), lNetworkBlockHeader.height(), lNetworkBlockHeader.blockHeader().chain().toHex().substr(0, 10)));
 		} else if (peerManager_->consensusManager()->pushBlockHeader(lNetworkBlockHeader)) {
 			// re-broadcast
-			peerManager_->consensusManager()->broadcastBlockHeader(lNetworkBlockHeader, shared_from_this());
+			peerManager_->consensusManager()->broadcastBlockHeader(lNetworkBlockHeader, addressId());
 		} else {
 			// TODO: what to do with the peer? Do we need reason - why blockHeader was not pushed?
 		}
 
+	} else {
+		// log
+		gLog().write(Log::NET, "[peer/processBlockHeader/error]: closing session " + key() + " -> " + error.message());
+		//
+		socketStatus_ = ERROR;
+		// try to deactivate peer
+		peerManager_->deactivatePeer(shared_from_this());
+		// close socket
+		socket_->close();
+	}
+}
+
+void Peer::processBlockHeaderAndState(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
+	//
+	if (!error) {
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: raw block header and state from ") + key() + " -> " + HexStr(msg->begin(), msg->end()));
+
+		// extract block header data
+		NetworkBlockHeader lNetworkBlockHeader;
+		(*msg) >> lNetworkBlockHeader;
+
+		// extract state
+		State lState;
+		lState.deserialize<DataStream>(*msg);
+		eraseInData(msg); // erase		
+
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing block header from ") + key() + " -> " + 
+				strprintf("%d/%s/%s#", lNetworkBlockHeader.height(), lNetworkBlockHeader.blockHeader().hash().toHex(), lNetworkBlockHeader.blockHeader().chain().toHex().substr(0, 10)));
+
+		if (lNetworkBlockHeader.blockHeader().origin() == peerManager_->consensusManager()->mainPKey().id()) {
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, "[peer]: skip re-processing block header " + 
+				strprintf("%s/%s/%s#", lNetworkBlockHeader.blockHeader().hash().toHex(), lNetworkBlockHeader.height(), lNetworkBlockHeader.blockHeader().chain().toHex().substr(0, 10)));
+		} else {
+			//
+			IValidator::BlockCheckResult lResult = peerManager_->consensusManager()->pushBlockHeader(lNetworkBlockHeader);
+			switch(lResult) {
+				case IValidator::SUCCESS:
+				case IValidator::BROKEN_CHAIN: {
+						// process state
+						if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing state from ") + key() + " -> " + lState.toString());
+						StatePtr lStatePtr = State::instance(lState);
+						peerManager_->consensusManager()->pushState(lStatePtr);
+					}
+					break;
+				/*
+				case IValidator::BROKEN_CHAIN: {
+						// synchronize ?
+						IConsensusPtr lConsensus = peerManager_->consensusManager()->locate(lNetworkBlockHeader.blockHeader().chain());
+						if (lConsensus) lConsensus->toNonSynchronized();
+					}
+					break;
+				*/
+				case IValidator::ORIGIN_NOT_ALLOWED:
+						// quarantine? - just skip for now
+					break;
+				case IValidator::INTEGRITY_IS_INVALID:
+						// ban
+						peerManager_->ban(shared_from_this());
+					break;
+				case IValidator::ALREADY_PROCESSED:
+						// skip
+					break;
+				case IValidator::VALIDATOR_ABSENT:
+						// skip
+					break;
+				case IValidator::PEERS_IS_ABSENT:
+						// skip
+					break;
+			}
+		}
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processBlockHeader/error]: closing session " + key() + " -> " + error.message());
@@ -977,6 +1062,42 @@ void Peer::broadcastBlockHeader(const NetworkBlockHeader& blockHeader) {
 
 		// log
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: broadcasting block header to ") + key() + " -> " + HexStr(lMsg->begin(), lMsg->end()));
+
+		// write
+		boost::asio::async_write(*socket_,
+			boost::asio::buffer(lMsg->data(), lMsg->size()),
+			boost::bind(
+				&Peer::messageFinalize, shared_from_this(), lMsg,
+				boost::asio::placeholders::error));
+	}
+}
+
+void Peer::broadcastBlockHeaderAndState(const NetworkBlockHeader& blockHeader, StatePtr state) {
+	//
+	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; } // TODO: connect will skip current call
+	else if (socketStatus_ == CONNECTED) {
+
+		// new message
+		std::list<DataStream>::iterator lMsg = newOutMessage();
+
+		// push blockheader
+		DataStream lStateStream(SER_NETWORK, CLIENT_VERSION);
+		lStateStream << blockHeader;
+
+		if (state->addressId() == peerManager_->consensusManager()->mainPKey().id()) {
+			// own state
+			state->serialize<DataStream>(lStateStream, peerManager_->consensusManager()->mainKey());
+		} else {
+			// impossible
+			state->serialize<DataStream>(lStateStream);
+		}
+
+		Message lMessage(Message::BLOCK_HEADER_AND_STATE, lStateStream.size());
+		(*lMsg) << lMessage;
+		lMsg->write(lStateStream.data(), lStateStream.size());
+
+		// log
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: broadcasting block header and state to ") + key() + " -> " + HexStr(lMsg->begin(), lMsg->end()));
 
 		// write
 		boost::asio::async_write(*socket_,
@@ -1172,8 +1293,7 @@ void Peer::processGlobalState(std::list<DataStream>::iterator msg, const boost::
 
 			if (lState.valid()) {
 				StatePtr lStatePtr = State::instance(lState);
-				if (peerManager_->consensusManager()->pushState(lStatePtr))
-					peerManager_->consensusManager()->broadcastState(lStatePtr, shared_from_this());
+				peerManager_->consensusManager()->pushState(lStatePtr);
 			} else {
 				peerManager_->ban(shared_from_this());
 			}
@@ -1192,12 +1312,10 @@ void Peer::processGlobalState(std::list<DataStream>::iterator msg, const boost::
 	}
 }
 
-void Peer::processState(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
+void Peer::processState(std::list<DataStream>::iterator msg, bool broadcast, const boost::system::error_code& error) {
 	//
 	if (!error) {
-		// log
-		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: raw state message from ") + key() + " -> " + HexStr(msg->begin(), msg->end()));
-
+		//
 		State lState;
 		lState.deserialize<DataStream>(*msg);
 		eraseInData(msg); // erase
@@ -1243,13 +1361,11 @@ void Peer::processState(std::list<DataStream>::iterator msg, const boost::system
 				// close socket
 				socket_->close();
 			}
-		} else {
+		} else if (broadcast) {
 			// send state only for inbound peers
 			if (!isOutbound()) sendState();
 			// broadcast state
-			peerManager_->consensusManager()->broadcastState(State::instance(lState), shared_from_this());
-			// goto start
-			//waitForMessage();
+			// peerManager_->consensusManager()->broadcastState(State::instance(lState), addressId());
 		}
 	} else {
 		// log

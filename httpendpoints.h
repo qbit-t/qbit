@@ -52,6 +52,18 @@ public:
 	}
 };
 
+class HttpGetPeerInfo: public IHttpCallEnpoint {
+public:
+	HttpGetPeerInfo() {}
+
+	void process(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
+	std::string method() { return std::string("getpeerinfo"); }
+
+	static IHttpCallEnpointPtr instance() {
+		return std::make_shared<HttpGetPeerInfo>();
+	}
+};
+
 } // qbit
 
 #endif

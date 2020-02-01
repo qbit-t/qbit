@@ -26,7 +26,7 @@ public:
 
 	virtual bool pushState(StatePtr /*state*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::pushState - not implemented."); }
 	virtual bool popState(StatePtr /*state*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::popState - not implemented."); }
-	virtual void broadcastState(StatePtr /*state*/, IPeerPtr /*peer*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::broadcastState - not implemented."); }
+	virtual void broadcastState(StatePtr /*state*/, const uint160& /*peer*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::broadcastState - not implemented."); }
 
 	virtual bool add(IConsensusPtr /*consensus*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::add - not implemented."); }
 	virtual void push(const uint256& /*chain*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::push - not implemented."); }
@@ -35,9 +35,10 @@ public:
 
 	virtual SKey mainKey() { throw qbit::exception("NOT_IMPL", "IConsensusManager::mainKey - not implemented."); }
 	virtual PKey mainPKey() { throw qbit::exception("NOT_IMPL", "IConsensusManager::mainPKey - not implemented."); }
-	virtual bool pushBlockHeader(const NetworkBlockHeader& /*block*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::pushBlockHeader - not implemented."); }
-	virtual void broadcastBlockHeader(const NetworkBlockHeader& /*block*/, IPeerPtr /*peer*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::broadcastBlockHeader - not implemented."); }
-	virtual void broadcastTransaction(TransactionContextPtr /*ctx*/, uint160 /*peer*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::broadcastTransaction - not implemented."); }
+	virtual IValidator::BlockCheckResult pushBlockHeader(const NetworkBlockHeader& /*block*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::pushBlockHeader - not implemented."); }
+	virtual void broadcastBlockHeader(const NetworkBlockHeader& /*block*/, const uint160& /*peer*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::broadcastBlockHeader - not implemented."); }
+	virtual void broadcastTransaction(TransactionContextPtr /*ctx*/, const uint160& /*peer*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::broadcastTransaction - not implemented."); }
+	virtual void broadcastBlockHeaderAndState(const NetworkBlockHeader& /*block*/, StatePtr /*state*/, const uint160& /*except*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::broadcastBlockHeaderAndState - not implemented."); }
 
 	virtual IValidatorManagerPtr validatorManager() { throw qbit::exception("NOT_IMPL", "IConsensusManager::validatorManager - not implemented."); }
 	virtual ITransactionStoreManagerPtr storeManager() { throw qbit::exception("NOT_IMPL", "IConsensusManager::storeManager - not implemented."); }

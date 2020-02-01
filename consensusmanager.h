@@ -200,7 +200,7 @@ public:
 
 	//
 	// broadcast block header
-	void broadcastBlockHeader(const NetworkBlockHeader& blockHeader, IPeerPtr except) {
+	void broadcastBlockHeader(const NetworkBlockHeader& blockHeader, const uint160& except) {
 		IConsensusPtr lConsensus = nullptr;
 		{
 			boost::unique_lock<boost::mutex> lLock(consensusesMutex_);
@@ -213,8 +213,22 @@ public:
 	}
 
 	//
+	// broadcast block header
+	void broadcastBlockHeaderAndState(const NetworkBlockHeader& blockHeader, StatePtr state, const uint160& except) {
+		IConsensusPtr lConsensus = nullptr;
+		{
+			boost::unique_lock<boost::mutex> lLock(consensusesMutex_);
+			std::map<uint256, IConsensusPtr>::iterator lConsensusPtr = consensuses_.find(const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().chain());
+			if (lConsensusPtr != consensuses_.end()) lConsensus = lConsensusPtr->second;
+		}
+
+		if (lConsensus)
+			lConsensus->broadcastBlockHeaderAndState(blockHeader, state, except);
+	}
+
+	//
 	// broadcast transaction
-	void broadcastTransaction(TransactionContextPtr ctx, uint160 except) {
+	void broadcastTransaction(TransactionContextPtr ctx, const uint160& except) {
 		IConsensusPtr lConsensus = nullptr;
 		{
 			boost::unique_lock<boost::mutex> lLock(consensusesMutex_);
@@ -228,14 +242,14 @@ public:
 
 	//
 	// check block
-	bool pushBlockHeader(const NetworkBlockHeader& blockHeader) {
+	IValidator::BlockCheckResult pushBlockHeader(const NetworkBlockHeader& blockHeader) {
 		//
 		if (!enqueueBlockHeader(blockHeader)) {
 			gLog().write(Log::CONSENSUS, "[pushBlockHeader]: block is already PROCESSED " + 
 				strprintf("%s/%d/%s#", const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().hash().toHex(), 
 					const_cast<NetworkBlockHeader&>(blockHeader).height(), 
 					const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().chain().toHex().substr(0, 10)));
-			return false;
+			return IValidator::ALREADY_PROCESSED;
 		}
 
 		//
@@ -248,12 +262,12 @@ public:
 
 		if (lConsensus)
 			return lConsensus->pushBlockHeader(blockHeader, validatorManager_->locate(const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().chain()));
-		return false;
+		return IValidator::VALIDATOR_ABSENT;
 	}
 
 	//
 	// broadcast state
-	void broadcastState(StatePtr state, IPeerPtr except) {
+	void broadcastState(StatePtr state, const uint160& except) {
 		// prepare
 		std::map<uint256, IConsensusPtr> lConsensuses;
 		{

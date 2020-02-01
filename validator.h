@@ -60,26 +60,37 @@ public:
 		return std::make_shared<MainValidator>(chain, consensus, mempool, store);
 	}
 
-	bool checkBlockHeader(const NetworkBlockHeader& blockHeader) {
+	IValidator::BlockCheckResult checkBlockHeader(const NetworkBlockHeader& blockHeader) {
 		// TODO: quick check block
 		// if workDone()
 		//
 		BlockHeader lHeader = store_->currentBlockHeader();
 		BlockHeader& lOther = const_cast<NetworkBlockHeader&>(blockHeader).blockHeader();
 		if (lOther.prev() == lHeader.hash()) {
+			if (lOther.origin() == lHeader.origin() && !consensus_->isSimpleNetwork()) {
+				if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[checkBlockHeader]: sequential blocks is not allowed ") + 
+					strprintf("height = %d, new = %s, our = %s, origin = %s/%s#", const_cast<NetworkBlockHeader&>(blockHeader).height(), 
+						lOther.hash().toHex(), lHeader.hash().toHex(), 
+							lOther.origin().toHex(), chain_.toHex().substr(0, 10)));
+				return IValidator::ORIGIN_NOT_ALLOWED;
+			}
+
 			if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[checkBlockHeader]: proposed header is correct ") + 
-				strprintf("new = %s, our = %s/%s#", lOther.hash().toHex(), lHeader.hash().toHex(), chain_.toHex().substr(0, 10)));
+				strprintf("height = %d, new = %s, our = %s, origin = %s/%s#", const_cast<NetworkBlockHeader&>(blockHeader).height(), 
+					lOther.hash().toHex(), lHeader.hash().toHex(), lOther.origin().toHex(), chain_.toHex().substr(0, 10)));
 			// go sych'ing
 			// consensus_->toSynchronizing();
 			// stop mining
 			stopMiner();
-			return true;
+			return IValidator::SUCCESS;
 		}
 
-		gLog().write(Log::VALIDATOR, std::string("[checkBlockHeader]: broken chain for ") + 
-			strprintf("%s/%s#", lOther.hash().toHex(), chain_.toHex().substr(0, 10)));
+		if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[checkBlockHeader]: broken chain for ") + 
+			strprintf("%d/%s/%s#", const_cast<NetworkBlockHeader&>(blockHeader).height(), 
+				lOther.hash().toHex(), chain_.toHex().substr(0, 10)));
+		
 		consensus_->toNonSynchronized();
-		return false;
+		return IValidator::BROKEN_CHAIN;
 	}
 
 	bool acceptBlockHeader(const NetworkBlockHeader& blockHeader) {
@@ -107,18 +118,16 @@ public:
 private:
 	void stopMiner() {
 		// stop miner
-		if (consensus_->settings()->isMiner() && miner_) {
+		if (consensus_->settings()->isMiner()) {
 			gLog().write(Log::VALIDATOR, std::string("[miner]: stopping for ") + strprintf("%s#", chain_.toHex().substr(0, 10)));
-			miner_->interrupt();
-			miner_->join();
-			miner_ = nullptr; // reset
 			minerRunning_ = false;
+			minerActive_.notify_one();
 		}
 	}
 
 	void startMiner() {
 		// start miner
-		if (consensus_->settings()->isMiner() && (!miner_ || !minerRunning_)) {
+		if (consensus_->settings()->isMiner() && !minerRunning_) {
 			BlockHeader lHeader = store_->currentBlockHeader();
 			// log
 			/*
@@ -129,12 +138,14 @@ private:
 					miner_ == nullptr, currentBlock_ == nullptr, lHeader.hash() != currentBlock_->blockHeader().hash(),
 					consensus_->currentTime() - currentBlock_->blockHeader().time() >= (consensus_->blockTime() / 1000)));
 			*/
-			if (currentBlock_ == nullptr ||
-					(lHeader.hash() != currentBlock_->blockHeader().hash() || 
-						consensus_->currentTime() - currentBlock_->blockHeader().time() >= (consensus_->blockTime() / 1000)))
-				miner_ = boost::shared_ptr<boost::thread>(
+			if (lHeader.hash() != currentBlockHeader_.hash() || 
+						consensus_->currentTime() - currentBlockHeader_.time() >= (consensus_->blockTime() / 1000)) {
+				if (!miner_) miner_ = boost::shared_ptr<boost::thread>(
 							new boost::thread(
 								boost::bind(&MainValidator::miner, shared_from_this())));
+				minerRunning_ = true;
+				minerActive_.notify_one();
+			}
 		}
 	}
 
@@ -160,60 +171,71 @@ private:
 	//
 	// TODO: rewrite
 	void miner() {
-		gLog().write(Log::VALIDATOR, std::string("[miner]: starting for ") + strprintf("%s#", chain_.toHex().substr(0, 10)));
+		//
+		while(true) {
+			boost::mutex::scoped_lock lLock(minerMutex_);
+			while(!minerRunning_) minerActive_.wait(lLock);
 
-		// mark
-		minerRunning_ = true;
+			gLog().write(Log::VALIDATOR, std::string("[miner]: starting for ") + strprintf("%s#", chain_.toHex().substr(0, 10)));
 
-		// check and run
-		while(minerRunning_) {
-			try {
-				// get block template
-				currentBlock_ = Block::instance();
+			// check and run
+			while(minerRunning_) {
+				try {
+					// get block template
+					BlockPtr lCurrentBlock = Block::instance();
 
-				// make coinbase tx
-				TransactionContextPtr lCoinbase = mempool_->wallet()->createTxCoinBase(QBIT);
-				currentBlock_->append(lCoinbase->tx());
+					// make coinbase tx
+					TransactionContextPtr lCoinbase = mempool_->wallet()->createTxCoinBase(QBIT);
+					lCurrentBlock->append(lCoinbase->tx());
 
-				// prepare block
-				currentBlockContext_ = mempool_->beginBlock(currentBlock_); // LOCK!
+					// prepare block
+					BlockContextPtr lCurrentBlockContext = mempool_->beginBlock(lCurrentBlock); // LOCK!
+					currentBlockHeader_ = lCurrentBlock->blockHeader();
 
-				// TODO: mine
-				gLog().write(Log::VALIDATOR, std::string("[validator/miner]: looking for a block for ") + strprintf("%s#", chain_.toHex().substr(0, 10)) + "...");
-				
-				boost::random::uniform_int_distribution<> lDist(1, (consensus_->blockTime())/1000);
-				int lMSeconds = lDist(lGen);
-				boost::this_thread::sleep_for(boost::chrono::milliseconds(lMSeconds*1000));
-				
-				gLog().write(Log::VALIDATOR, std::string("[validator/miner]: new block found ") + strprintf("%s/%s#", currentBlock_->hash().toHex(), chain_.toHex().substr(0, 10)));
-
-				IConsensus::ChainState lState = consensus_->chainState();
-				if (lState == IConsensus::SYNCHRONIZED) {
-					// commit block
-					size_t lHeight = 0;
-					mempool_->commit(currentBlockContext_);
-					if (store_->commitBlock(currentBlockContext_, lHeight)) {
-						// broadcast
-						gLog().write(Log::VALIDATOR, std::string("[validator/miner]: broadcasting found block ") + strprintf("%s/%s#", currentBlock_->hash().toHex(), chain_.toHex().substr(0, 10)));
-						NetworkBlockHeader lHeader(currentBlock_->blockHeader(), lHeight, /*lCoinbase->tx(),*/ mempool_->wallet()->firstKey().createPKey().id());
-						consensus_->broadcastState(consensus_->currentState(), nullptr); // broadcast changed state
-						consensus_->broadcastBlockHeader(lHeader, nullptr); // broadcast new header
-						minerRunning_ = false; // stop until next block or timeout
-					} else {
-						for (std::list<std::string>::iterator lError = currentBlockContext_->errors().begin(); lError != currentBlockContext_->errors().end(); lError++) {
-							gLog().write(Log::ERROR, std::string("[miner/error]: ") + (*lError));
-						}
+					// TODO: mine
+					gLog().write(Log::VALIDATOR, std::string("[validator/miner]: looking for a block for ") + strprintf("%s#", chain_.toHex().substr(0, 10)) + "...");
+					
+					boost::random::uniform_int_distribution<> lDist(3, (consensus_->blockTime())/1000);
+					int lMSeconds = lDist(lGen);
+					//boost::this_thread::sleep_for(boost::chrono::milliseconds(lMSeconds*1000));
+					uint64_t lStartTime = getTime();
+					while(minerRunning_) {
+						if (getTime() - lStartTime >= lMSeconds) break;
+						boost::this_thread::sleep_for(boost::chrono::milliseconds(50));
 					}
-				} else {
-					gLog().write(Log::VALIDATOR, std::string("[validator/miner]: skip found block ") + strprintf("%s/%s#", currentBlock_->hash().toHex(), chain_.toHex().substr(0, 10)));
+					
+					gLog().write(Log::VALIDATOR, std::string("[validator/miner]: new block found ") + strprintf("%s/%s#", lCurrentBlock->hash().toHex(), chain_.toHex().substr(0, 10)));
+
+					IConsensus::ChainState lState = consensus_->chainState();
+					if (minerRunning_ && lState == IConsensus::SYNCHRONIZED) {
+						// commit block
+						size_t lHeight = 0;
+						mempool_->commit(lCurrentBlockContext);
+						if (store_->commitBlock(lCurrentBlockContext, lHeight)) {
+							// broadcast
+							gLog().write(Log::VALIDATOR, std::string("[validator/miner]: broadcasting found block ") + strprintf("%s/%s#", lCurrentBlock->hash().toHex(), chain_.toHex().substr(0, 10)));
+							NetworkBlockHeader lHeader(lCurrentBlock->blockHeader(), lHeight);
+							StatePtr lState = consensus_->currentState();
+							consensus_->broadcastBlockHeaderAndState(lHeader, lState, lState->addressId()); // broadcast new header and state
+							minerRunning_ = false; // stop until next block or timeout
+						} else {
+							if (lCurrentBlockContext->errors().size()) {
+								for (std::list<std::string>::iterator lError = lCurrentBlockContext->errors().begin(); lError != lCurrentBlockContext->errors().end(); lError++) {
+									gLog().write(Log::ERROR, std::string("[miner/error]: ") + (*lError));
+								}
+							}
+						}
+					} else {
+						gLog().write(Log::VALIDATOR, std::string("[validator/miner]: skip found block ") + strprintf("%s/%s#", lCurrentBlock->hash().toHex(), chain_.toHex().substr(0, 10)));
+					}
+				}
+				catch(boost::thread_interrupted&) {
+					minerRunning_ = false;
 				}
 			}
-			catch(boost::thread_interrupted&) {
-				minerRunning_ = false;
-			}
-		}
 
-		gLog().write(Log::VALIDATOR, std::string("[miner]: stopped for ") + strprintf("%s#", chain_.toHex().substr(0, 10)));
+			gLog().write(Log::VALIDATOR, std::string("[miner]: stopped for ") + strprintf("%s#", chain_.toHex().substr(0, 10)));
+		}
 	}	
 
 	void touch(const boost::system::error_code& error) {
@@ -290,15 +312,16 @@ private:
 	IMemoryPoolPtr mempool_;
 	ITransactionStorePtr store_;
 
-	// current block template
-	BlockPtr currentBlock_;
-	BlockContextPtr currentBlockContext_;
+	// last maybe found block
+	BlockHeader currentBlockHeader_;
 
 	// controller
 	boost::shared_ptr<boost::thread> controller_;
 
 	// miner
 	boost::shared_ptr<boost::thread> miner_;
+	boost::mutex minerMutex_;
+	boost::condition_variable minerActive_;
 
 	// context
 	boost::asio::io_context context_;

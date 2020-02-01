@@ -96,17 +96,6 @@ public:
 		s << signature_;
 	}
 
-	/*
-	template <typename Stream>
-	void deserialize(Stream& s) {
-		s >> time_;
-		s >> infos_;
-		s >> (uint32_t)roles_;
-		s >> pkey_;
-		s >> signature_;
-	}
-	*/
-
 	ADD_SERIALIZE_METHODS;
 
 	template <typename Stream, typename Operation>

@@ -35,7 +35,7 @@ public:
 
 	virtual void saveBlock(BlockPtr) { throw qbit::exception("NOT_IMPL", "ITransactionStore::saveBlock - not implemented."); }
 	virtual void reindexFull(const uint256&, IMemoryPoolPtr /*pool*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::reindexFull - not implemented."); }
-	virtual void reindex(const uint256&, const uint256&, IMemoryPoolPtr /*pool*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::reindex - not implemented."); }
+	virtual bool reindex(const uint256&, const uint256&, IMemoryPoolPtr /*pool*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::reindex - not implemented."); }
 
 	// main entry
 	virtual TransactionContextPtr pushTransaction(TransactionPtr) { throw qbit::exception("NOT_IMPL", "ITransactionStore::pushTransaction - not implemented."); }

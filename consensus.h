@@ -125,7 +125,7 @@ public:
 		IPeerPtr lPeer = nullptr;
 		{
 			boost::unique_lock<boost::mutex> lLock(peersMutex_);
-			PeersMap::iterator lPeerPtr = directPeerMap_.find(const_cast<NetworkBlockHeader&>(block).addressId());
+			PeersMap::iterator lPeerPtr = directPeerMap_.find(const_cast<NetworkBlockHeader&>(block).blockHeader().origin());
 			if (lPeerPtr != directPeerMap_.end()) {
 				lPeer = lPeerPtr->second;
 			}
@@ -179,9 +179,12 @@ public:
 
 	//
 	// check block
-	bool pushBlockHeader(const NetworkBlockHeader& blockHeader, IValidatorPtr validator) {
+	IValidator::BlockCheckResult pushBlockHeader(const NetworkBlockHeader& blockHeader, IValidatorPtr validator) {
 		// check work
-		if (validator->checkBlockHeader(blockHeader)) {
+		IValidator::BlockCheckResult lResult = validator->checkBlockHeader(blockHeader);
+
+		//
+		if (lResult == IValidator::SUCCESS) {
 			//
 			size_t lPeersCount = 0;
 			{
@@ -189,48 +192,20 @@ public:
 				lPeersCount = directPeerMap_.size();
 			}
 
-			// check that sequence of blocks is not in row for one address
-			if (false)
-			{
-				boost::unique_lock<boost::mutex> lLock(queueMutex_); // LOCK!
-
-				std::pair<BlockTimePeerMap::iterator, bool> lBlockPeer = blockTimePeer_.insert(BlockTimePeerMap::value_type(const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().time(), const_cast<NetworkBlockHeader&>(blockHeader).addressId()));
-				if (lBlockPeer.second) {
-					BlockTimePeerMap::iterator lPrevBlockPeer = lBlockPeer.first; lPrevBlockPeer--;
-					if (lPrevBlockPeer != blockTimePeer_.end()) {
-						if (lPrevBlockPeer->second == const_cast<NetworkBlockHeader&>(blockHeader).addressId() && lPeersCount >= 3 /*TODO: settings*/) {
-							gLog().write(Log::CONSENSUS, 
-								strprintf("[pushBlockHeader]: sequential blocks NOT ALLOWED from one peer %s/%d/%s#, skipping.", 
-									const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().hash().toHex(), 
-									const_cast<NetworkBlockHeader&>(blockHeader).height(),
-									chain_.toHex().substr(0, 10)));
-
-							blockTimePeer_.erase(lBlockPeer.first);
-							return false;
-						}
-					}
-				}
-			}
-
 			// process
-			if (validator->acceptBlockHeader(blockHeader)) {
-				boost::unique_lock<boost::mutex> lLock(queueMutex_); // LOCK!
-
-				if (blockTimePeer_.size() > 50 /*TODO: settings*/) 
-					blockTimePeer_.erase(blockTimePeer_.begin());
-
-				// accept block header
-				return true;
+			if (!validator->acceptBlockHeader(blockHeader)) {
+				// peers not found
+				return IValidator::PEERS_IS_ABSENT;
 			}
 		}
 
 		// reject
-		return false;
+		return lResult;
 	}
 
 	//
 	// broadcast block header
-	void broadcastBlockHeader(const NetworkBlockHeader& blockHeader, IPeerPtr except) {
+	void broadcastBlockHeader(const NetworkBlockHeader& blockHeader, const uint160& except) {
 		// prepare
 		std::list<IPeerPtr> lPeers;
 		{
@@ -242,13 +217,40 @@ public:
 
 		// broadcast
 		for (std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
-			if (!except || (*lPeer)->key() != except->key()) (*lPeer)->broadcastBlockHeader(blockHeader);
+			if (except.isNull() || (except != (*lPeer)->addressId())) (*lPeer)->broadcastBlockHeader(blockHeader);
+		}
+	}
+
+	//
+	// broadcast block header and state
+	void broadcastBlockHeaderAndState(const NetworkBlockHeader& block, StatePtr state, const uint160& except) {
+		//
+		if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, 
+			strprintf("[broadcastTransaction]: broadcasting block header and state %s/%s#", 
+				const_cast<NetworkBlockHeader&>(block).blockHeader().hash().toHex(), chain_.toHex().substr(0, 10)));
+
+		// prepare
+		std::list<IPeerPtr> lPeers;
+		{
+			boost::unique_lock<boost::mutex> lLock(peersMutex_);
+			for (PeersMap::iterator lItem = directPeerMap_.begin(); lItem != directPeerMap_.end(); lItem++) {
+				lPeers.push_back(lItem->second);
+			}
+		}
+
+		// broadcast
+		bool lResult = false;
+		for (std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
+			if (except.isNull() || (except != (*lPeer)->addressId())) {
+				(*lPeer)->broadcastBlockHeaderAndState(block, state);
+				lResult = true; // at least one
+			}
 		}
 	}
 
 	//
 	// broadcast transaction
-	bool broadcastTransaction(TransactionContextPtr ctx, uint160 except) {
+	bool broadcastTransaction(TransactionContextPtr ctx, const uint160& except) {
 		//
 		if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, 
 			strprintf("[broadcastTransaction]: broadcasting transaction %s/%s#", ctx->tx()->id().toHex(), chain_.toHex().substr(0, 10)));
@@ -286,7 +288,7 @@ public:
 
 	//
 	// broadcast state
-	void broadcastState(StatePtr state, IPeerPtr except) {
+	void broadcastState(StatePtr state, const uint160& except) {
 		//
 		if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, 
 			strprintf("[broadcastState]: broadcasting state - %s", state->toStringShort()));
@@ -302,7 +304,7 @@ public:
 
 		// broadcast
 		for (std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
-			if (!except || (*lPeer)->key() != except->key()) (*lPeer)->broadcastState(state);
+			if (except.isNull() || (except != (*lPeer)->addressId())) (*lPeer)->broadcastState(state);
 		}
 	}
 
@@ -408,17 +410,10 @@ public:
 	}
 
 	//
-	// active validators 
-	int activeValidatorsCount() {
+	// network is simple?  
+	bool isSimpleNetwork() {
 		boost::unique_lock<boost::mutex> lLock(stateMutex_);
-
-		// previous/exists
-		int lCount = 0;
-		for (PeersStateMap::iterator lState = peerStateMap_.begin(); lState != peerStateMap_.end(); lState++) {
-			if (lState->second->isMinerOrValidator()) lCount++;
-		}
-
-		return lCount;
+		return peerSet_.size() < simpleNetworkSize();
 	}
 
 	//
@@ -436,7 +431,7 @@ public:
 				HeightMap::reverse_iterator lStateMap = heightMap_.rbegin();
 				if (lStateMap->first > lHeight) {
 					lResult = false;
-				}
+				} else lResult = true;
 			} else lResult = false;
 		}
 
@@ -471,7 +466,7 @@ public:
 						block = lState->first;
 
 						gLog().write(Log::CONSENSUS, 
-							strprintf("[locateSynchronizedRoot]: candidates %d/%s/%s#", 
+							strprintf("[locateSynchronizedRoot]: ROOT [%d]/%s/%s#", 
 								lResultHeight, block.toHex(), chain_.toHex().substr(0, 10)));
 
 						lFound = true;
@@ -481,6 +476,7 @@ public:
 						gLog().write(Log::CONSENSUS, 
 							strprintf("[locateSynchronizedRoot]: already SYNCHRONIZED %d/%s/%s#", 
 								lHeightPos->first, lState->first.toHex(), chain_.toHex().substr(0, 10)));
+						break;
 					}
 				}
 			}
@@ -605,7 +601,7 @@ public:
 
 	//
 	// to indexing
-	void doIndex(const uint256& block, const uint256& lastBlock) {
+	bool doIndex(const uint256& block, const uint256& lastBlock) {
 		//
 		bool lProcess = false; 
 		{
@@ -617,8 +613,11 @@ public:
 		}
 
 		if (lProcess) {
-			// full re-index
-			store_->reindex(block, lastBlock, consensusManager_->mempoolManager()->locate(chain_));
+			// partial re-index
+			if (!store_->reindex(block, lastBlock, consensusManager_->mempoolManager()->locate(chain_))) {
+				// partial reindex for given blocks intervale is not possible
+				return false;
+			}
 
 			// check
 			bool lIsSynchronized = isChainSynchronized();
@@ -628,6 +627,8 @@ public:
 				else chainState_ = IConsensus::NOT_SYNCRONIZED;
 			}
 		}
+
+		return true;
 	}
 
 	//

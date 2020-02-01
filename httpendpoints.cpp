@@ -340,3 +340,69 @@ void HttpSendToAddress::process(const std::string& source, const HttpRequest& re
 		return;
 	}
 }
+
+void HttpGetPeerInfo::process(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
+	/* request
+	{
+		"jsonrpc": "1.0",
+		"id": "curltext",
+		"method": "getpeerinfo",
+		"params": []
+	}
+	*/
+	/* reply
+	{
+		"result": [
+			{
+				"id": "<peer_id>",				-- (string) peer default address id (uint160)
+				"endpoint": "address:port",		-- (string) peer endpoint
+				"outbound": true|false,			-- (bool) is outbound connection
+				"roles": "<peer_roles>",		-- (string) peer roles
+				"status": "<peer_status>",		-- (string) peer status
+				"latency": <latency>,			-- (int) latency, ms
+				"time": "<peer_time>",			-- (string) peer_time, s
+				"chains": [
+					{
+						"id": "<chain_id>",		-- (string) chain id
+						...
+					}
+				]
+			},
+			...
+		],
+		"error":								-- (object or null) error description
+		{
+			"code": "EFAIL", 
+			"message": "<explanation>" 
+		},
+		"id": "curltext"						-- (string) request id
+	}
+	*/
+
+	// id
+	json::Value lId;
+	if (!(const_cast<json::Document&>(data).find("id", lId) && lId.isString())) {
+		reply = HttpReply::stockReply(HttpReply::bad_request);
+		return;
+	}
+
+	// params
+	json::Value lParams;
+	if (const_cast<json::Document&>(data).find("params", lParams) && lParams.isArray()) {
+
+		// prepare reply
+		json::Document lReply;
+		lReply.loadFromString("{}");
+		//lReply.addString("result", strprintf(QBIT_FORMAT, lBalance));
+		lReply.addObject("error").toNull();
+		lReply.addString("id", lId.getString());
+
+		// pack
+		pack(reply, lReply);
+		// finalize
+		finalize(reply);
+	} else {
+		reply = HttpReply::stockReply(HttpReply::bad_request);
+		return;
+	}
+}
