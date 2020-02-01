@@ -29,6 +29,7 @@ public:
 		BLOCK = 0x05,
 		TRANSACTION = 0x06,
 		BLOCK_HEADER = 0x07,
+		BLOCK_HEADER_AND_STATE = 0x08,
 		
 		GET_BLOCK_HEADER = 0x10,
 		GET_BLOCK_DATA = 0x11,
@@ -98,6 +99,7 @@ public:
 			case BLOCK_BY_HEIGHT_IS_ABSENT: lMsg = "BLOCK_BY_HEIGHT_IS_ABSENT"; break;
 			case BLOCK_BY_ID_IS_ABSENT: lMsg = "BLOCK_BY_ID_IS_ABSENT"; break;
 			case NETWORK_BLOCK_IS_ABSENT: lMsg = "NETWORK_BLOCK_IS_ABSENT"; break;
+			case BLOCK_HEADER_AND_STATE: lMsg = "BLOCK_HEADER_AND_STATE"; break;
 			default: lMsg = "UNKNOWN"; break;
 		}
 

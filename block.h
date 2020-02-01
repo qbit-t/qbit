@@ -20,10 +20,10 @@ public:
 	uint256 chain_;
 	uint256 prev_;
 	uint256 root_;
+	uint160 origin_;
 	uint64_t time_;
 	uint32_t bits_;
 	uint32_t nonce_;
-	uint32_t qbits_; // qbit cout txs
 
 	BlockHeader() {
 		setNull();
@@ -32,25 +32,25 @@ public:
 	template <typename Stream>
 	void serialize(Stream& s) const {
 		s << version_;
-		s << chain_;	
-		s << prev_;		
+		s << chain_;
+		s << prev_;
 		s << root_;
-		s << time_;		
-		s << bits_;		
+		s << origin_;
+		s << time_;
+		s << bits_;
 		s << nonce_;
-		s << qbits_;
 	}
 
 	template <typename Stream>
 	void deserialize(Stream& s) {
 		s >> version_;
 		s >> chain_;
-		s >> prev_;		
+		s >> prev_;
 		s >> root_;
-		s >> time_;		
-		s >> bits_;		
+		s >> origin_;
+		s >> time_;
+		s >> bits_;
 		s >> nonce_;
-		s >> qbits_;
 	}
 
 	void setNull() {
@@ -58,10 +58,10 @@ public:
 		chain_ = MainChain::id();
 		prev_.setNull();
 		root_.setNull();
+		origin_.setNull();
 		time_ = 0;
 		bits_ = 0;
 		nonce_ = 0;
-		qbits_ = 0;
 	}
 
 	inline bool isNull() const {
@@ -70,14 +70,8 @@ public:
 
 	uint256 hash();
 
-	inline uint64_t time() const {
-		return time_;
-	}
+	inline uint64_t time() const { return time_; }
 	inline void setTime(uint64_t time) { time_ = time; } 
-
-
-	inline void setQbits(uint32_t qbits) { qbits_ = qbits; }
-	inline uint32_t qbits() { return qbits_; }
 
 	inline void setChain(const uint256& chain) { chain_ = chain; }
 	inline uint256 chain() { return chain_; }
@@ -87,18 +81,19 @@ public:
 
 	inline void setRoot(const uint256& root) { root_ = root; }
 	inline uint256 root() { return root_; }
+
+	inline void setOrigin(const uint160& origin) { origin_ = origin; }
+	inline uint160 origin() { return origin_; }
 };
 
 // broadcast found block
 class NetworkBlockHeader {
 public:
 	NetworkBlockHeader() {}
-	NetworkBlockHeader(const BlockHeader &header, size_t height, /*TransactionPtr coinbase,*/ const uint160& address) : 
-		header_(header), /*coinbase_(coinbase),*/ address_(address), height_(height) {}
+	NetworkBlockHeader(const BlockHeader &header, size_t height) : 
+		header_(header), height_(height) {}
 
 	BlockHeader& blockHeader() { return header_; }
-	//TransactionPtr coinbase() { return coinbase_; }
-	uint160 addressId() { return address_; }
 	size_t height() { return height_; }
 
 	ADD_SERIALIZE_METHODS;
@@ -107,21 +102,15 @@ public:
 	inline void serializationOp(Stream& s, Operation ser_action) {
 		if (ser_action.ForRead()) {
 			header_.deserialize(s); // header info
-			//coinbase_ = Transaction::Deserializer::deserialize<Stream>(s); // "mined" transaction
-			s >> address_;
 			s >> height_;
 		} else {
 			header_.serialize(s);
-			//Transaction::Serializer::serialize<Stream>(s, coinbase_);
-			s << address_;
 			s << height_;
 		}
 	}
 
 private:
 	BlockHeader header_;
-	//TransactionPtr coinbase_;
-	uint160 address_;
 	size_t height_;
 };
 

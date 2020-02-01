@@ -334,6 +334,9 @@ BlockContextPtr MemoryPool::beginBlock(BlockPtr block) {
 	// calc merkle root
 	lCtx->block()->setRoot(lCtx->calculateMerkleRoot());
 
+	// set origin
+	lCtx->block()->setOrigin(consensus_->mainKey().createPKey().id());
+
 	return lCtx;
 }
 

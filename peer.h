@@ -169,6 +169,7 @@ public:
 	void waitForMessage();
 	void broadcastBlockHeader(const NetworkBlockHeader& /*blockHeader*/);
 	void broadcastTransaction(TransactionContextPtr /*ctx*/);
+	void broadcastBlockHeaderAndState(const NetworkBlockHeader& /*block*/, StatePtr /*state*/);
 
 	void synchronizeFullChain(IConsensusPtr, SynchronizationJobPtr /*job*/);
 	void synchronizeFullChainHead(IConsensusPtr, SynchronizationJobPtr /*job*/);
@@ -190,7 +191,7 @@ public:
 private:
 	// internal processing
 	void processMessage(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
-	void processState(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processState(std::list<DataStream>::iterator msg, bool broadcast, const boost::system::error_code& error);
 	void processGlobalState(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processPing(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processPong(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
@@ -199,6 +200,7 @@ private:
 	void processPeers(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processBlockHeader(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processTransaction(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processBlockHeaderAndState(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 
 	void processGetBlockByHeight(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processGetBlockById(std::list<DataStream>::iterator msg, const boost::system::error_code& error);

@@ -254,7 +254,7 @@ bool TransactionStore::transactionHeight(const uint256& tx, size_t& height, bool
 	TxBlockIndex lIndex;
 	if (transactionsIdx_.read(tx, lIndex)) {
 		//
-		boost::unique_lock<boost::mutex> lLock(storageMutex_);
+		boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
 		std::map<uint256, size_t>::iterator lHeight = blockMap_.find(lIndex.block());
 		if (lHeight != blockMap_.end()) {
 			if (!lIndex.index()) coinbase = true;
@@ -269,7 +269,7 @@ bool TransactionStore::transactionHeight(const uint256& tx, size_t& height, bool
 
 bool TransactionStore::blockHeight(const uint256& block, size_t& height) {
 	//
-	boost::unique_lock<boost::mutex> lLock(storageMutex_);
+	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
 	std::map<uint256, size_t>::iterator lHeight = blockMap_.find(block);
 	if (lHeight != blockMap_.end()) {
 		height = lHeight->second;
@@ -291,7 +291,7 @@ bool TransactionStore::setLastBlock(const uint256& block) {
 
 bool TransactionStore::resyncHeight() {
 	//
-	boost::unique_lock<boost::mutex> lLock(storageMutex_);
+	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
 	//
 	heightMap_.clear();
 
@@ -317,7 +317,7 @@ bool TransactionStore::resyncHeight() {
 
 size_t TransactionStore::calcHeight(const uint256& from) {
 	//
-	boost::unique_lock<boost::mutex> lLock(storageMutex_);
+	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
 
 	//
 	BlockHeader lHeader;
@@ -345,13 +345,16 @@ void TransactionStore::removeBlocks(const uint256& from, const uint256& to, bool
 		// iterate
 		for (db::DbMultiContainer<uint256 /*block*/, uint256 /*utxo*/>::Iterator lUtxo = blockUtxoIdx_.find(lHash); lUtxo.valid(); ++lUtxo) {
 
-			// clear utxo
+			// reconstruct utxo
 			bool lFound = false;
-			Transaction::UnlinkedOut lUtxoObj;
+			Transaction::UnlinkedOut lUtxoObj;			
 			if (ltxo_.read(*lUtxo, lUtxoObj)) {
-				ltxo_.remove(*lUtxo); lFound = true;
+				ltxo_.remove(*lUtxo);
+				utxo_.write(*lUtxo, lUtxoObj);
+				lFound = true;
 			} else if (utxo_.read(*lUtxo, lUtxoObj)) {
-				utxo_.remove(*lUtxo); lFound = true;
+				utxo_.remove(*lUtxo);
+				lFound = true;
 			}
 
 			// clear addresses
@@ -465,7 +468,7 @@ bool TransactionStore::processBlocks(const uint256& from, const uint256& to, std
 
 size_t TransactionStore::currentHeight(BlockHeader& block) {
 	//
-	boost::unique_lock<boost::mutex> lLock(storageMutex_);
+	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
 	if (heightMap_.size()) {
 		std::map<size_t, uint256>::reverse_iterator lHeader = heightMap_.rbegin();
 		if (headers_.read(lHeader->second, block)) {
@@ -479,7 +482,7 @@ size_t TransactionStore::currentHeight(BlockHeader& block) {
 
 size_t TransactionStore::top() {
 	//
-	boost::unique_lock<boost::mutex> lLock(storageMutex_);
+	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
 	if (heightMap_.size()) {
 		std::map<size_t, uint256>::reverse_iterator lHeader = heightMap_.rbegin();
 		return lHeader->first;
@@ -490,7 +493,7 @@ size_t TransactionStore::top() {
 
 size_t TransactionStore::pushNewHeight(const uint256& block) {
 	//
-	boost::unique_lock<boost::mutex> lLock(storageMutex_);
+	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
 	size_t lHeight = 1;
 	if (heightMap_.size()) {
 		lHeight = heightMap_.rbegin()->first+1;
@@ -517,8 +520,18 @@ BlockHeader TransactionStore::currentBlockHeader() {
 
 bool TransactionStore::commitBlock(BlockContextPtr ctx, size_t& height) {
 	//
+	boost::unique_lock<boost::recursive_mutex> lLock(storageCommitMutex_);
+	//
 	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[commitBlock]: COMMITING block ") + 
 		strprintf("%s/%s#", ctx->block()->hash().toHex(), chain_.toHex().substr(0, 10)));
+
+	BlockHeader lCurrentHeader = currentBlockHeader();
+	if (lCurrentHeader.hash() != ctx->block()->blockHeader().prev()) {
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[commitBlock]: WRONG commit sequence: ") + 
+			strprintf("current = %s, proposed = %s, prev = %s/%s#", lCurrentHeader.hash().toHex(),
+				ctx->block()->hash().toHex(), ctx->block()->blockHeader().prev().toHex(), chain_.toHex().substr(0, 10)));
+		return false;
+	}
 
 	bool lResult = processBlock(ctx, height, false);
 
@@ -535,8 +548,20 @@ bool TransactionStore::commitBlock(BlockContextPtr ctx, size_t& height) {
 
 BlockContextPtr TransactionStore::pushBlock(BlockPtr block) {
 	//
+	boost::unique_lock<boost::recursive_mutex> lLock(storageCommitMutex_);
+	//
 	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[pushBlock]: PUSHING block ") + 
 		strprintf("%s/%s#", block->hash().toHex(), chain_.toHex().substr(0, 10)));
+
+	BlockHeader lCurrentHeader = currentBlockHeader();
+	if (lCurrentHeader.hash() != block->blockHeader().prev()) {
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[pushBlock]: WRONG push sequence: ") + 
+			strprintf("current = %s, proposed = %s, prev = %s/%s#", lCurrentHeader.hash().toHex(),
+				block->hash().toHex(), block->blockHeader().prev().toHex(), chain_.toHex().substr(0, 10)));
+		// remove
+		dequeueBlock(block->hash());
+		return nullptr;
+	}
 
 	//
 	bool lResult;
@@ -574,7 +599,7 @@ BlockPtr TransactionStore::block(size_t height) {
 	BlockHeader lHeader;
 	uint256 lHash;
 	{
-		boost::unique_lock<boost::mutex> lLock(storageMutex_);
+		boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
 		std::map<size_t, uint256>::iterator lHeight = heightMap_.find(height);
 		if (lHeight != heightMap_.end()) {
 			lHash = lHeight->second;
@@ -774,6 +799,8 @@ bool TransactionStore::pushEntity(const uint256& id, TransactionContextPtr ctx) 
 
 void TransactionStore::saveBlock(BlockPtr block) {
 	//
+	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);	
+	//
 	// WARNING: should not ever be called from mining circle
 	//
 	uint256 lHash = block->hash();
@@ -798,6 +825,8 @@ bool TransactionStore::blockExists(const uint256& id) {
 }
 
 void TransactionStore::reindexFull(const uint256& from, IMemoryPoolPtr pool) {
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(storageCommitMutex_);	
 	//
 	gLog().write(Log::STORE, std::string("[reindexFull]: STARTING FULL reindex for ") + 
 		strprintf("%s#", chain_.toHex().substr(0, 10)));
@@ -833,43 +862,59 @@ void TransactionStore::reindexFull(const uint256& from, IMemoryPoolPtr pool) {
 		strprintf("%s#", chain_.toHex().substr(0, 10)));
 }
 
-void TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPoolPtr pool) {
+bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPoolPtr pool) {
 	//
 	gLog().write(Log::STORE, std::string("[reindex]: STARTING reindex for ") + 
 		strprintf("%s#", chain_.toHex().substr(0, 10)));
 
-	// remove index
-	removeBlocks(from, to, false);
-	// process blocks
-	std::list<BlockContextPtr> lContexts;
-	if (!processBlocks(from, to, lContexts)) {
-		if (lContexts.size()) {
-			std::list<BlockContextPtr>::reverse_iterator lLast = (++lContexts.rbegin());
-			if (lLast != lContexts.rend()) {
-				lastBlock_ = (*lLast)->block()->hash();
-				// build height map
-				resyncHeight();
-			}
-		}
-	} else {
-		// clean-up
-		for (std::list<BlockContextPtr>::iterator lBlock = lContexts.begin(); lBlock != lContexts.end(); lBlock++) {
-			pool->removeTransactions((*lBlock)->block());
-		}
+	// WARNING: lastBlock AND to MUST be in current chain - otherwise all indexes will be invalidated
+	size_t lLastHeight, lToHeight;
+	if (!blockHeight(lastBlock_, lLastHeight) || !blockHeight(to, lToHeight)) {
+		//
+		gLog().write(Log::STORE, std::string("[reindex]: partial reindex is NOT POSSIBLE for ") + 
+			strprintf("%s/%s/%s#", lastBlock_.toHex(), to.toHex(), chain_.toHex().substr(0, 10)));
 
-		lastBlock_ = from;
-		// build height map
-		resyncHeight();
+		return false;
 	}
 
-	//
-	gLog().write(Log::STORE, std::string("[reindex]: reindex FINISHED for ") + 
-		strprintf("%s#", chain_.toHex().substr(0, 10)));
+	{
+		//
+		boost::unique_lock<boost::recursive_mutex> lLock(storageCommitMutex_);
+		// remove index
+		removeBlocks(lastBlock_, to, false);
+		// process blocks
+		std::list<BlockContextPtr> lContexts;
+		if (!processBlocks(from, to, lContexts)) {
+			if (lContexts.size()) {
+				std::list<BlockContextPtr>::reverse_iterator lLast = (++lContexts.rbegin());
+				if (lLast != lContexts.rend()) {
+					lastBlock_ = (*lLast)->block()->hash();
+					// build height map
+					resyncHeight();
+				}
+			}
+		} else {
+			// clean-up
+			for (std::list<BlockContextPtr>::iterator lBlock = lContexts.begin(); lBlock != lContexts.end(); lBlock++) {
+				pool->removeTransactions((*lBlock)->block());
+			}
+
+			lastBlock_ = from;
+			// build height map
+			resyncHeight();
+		}
+
+		//
+		gLog().write(Log::STORE, std::string("[reindex]: reindex FINISHED for ") + 
+			strprintf("%s#", chain_.toHex().substr(0, 10)));
+	}
+
+	return true;
 }
 
 bool TransactionStore::enqueueBlock(const NetworkBlockHeader& block) {
 	//
-	boost::unique_lock<boost::mutex> lLock(storageMutex_);
+	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
 	uint256 lHash = const_cast<NetworkBlockHeader&>(block).blockHeader().hash();
 	if (blocksQueue_.find(lHash) == blocksQueue_.end()) {
 		blocksQueue_.insert(std::map<uint256, NetworkBlockHeader>::value_type(lHash, block));	
@@ -881,13 +926,13 @@ bool TransactionStore::enqueueBlock(const NetworkBlockHeader& block) {
 
 void TransactionStore::dequeueBlock(const uint256& block) {
 	//
-	boost::unique_lock<boost::mutex> lLock(storageMutex_);
+	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
 	blocksQueue_.erase(block);	
 }
 
 bool TransactionStore::firstEnqueuedBlock(NetworkBlockHeader& block) {
 	//
-	boost::unique_lock<boost::mutex> lLock(storageMutex_);
+	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
 	if (blocksQueue_.size()) {
 		block = blocksQueue_.begin()->second;
 		return true;

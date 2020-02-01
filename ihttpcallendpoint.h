@@ -13,6 +13,7 @@
 #include "httprequest.h"
 #include "iwallet.h"
 #include "json.h"
+#include "ipeermanager.h"
 
 namespace qbit {
 
@@ -24,6 +25,7 @@ public:
 	virtual std::string method() { throw qbit::exception("NOT_IMPL", "IHttpCallEnpoint::method - not implemented."); }
 	
 	void setWallet(IWalletPtr wallet) { wallet_ = wallet; }
+	void setPeerManager(IPeerManagerPtr peerManager) { peerManager_ = peerManager; }
 
 	void pack(HttpReply& reply, json::Document& data) {
 		// pack
@@ -42,6 +44,7 @@ public:
 
 protected:
 	IWalletPtr wallet_;
+	IPeerManagerPtr peerManager_;
 };
 
 typedef std::shared_ptr<IHttpCallEnpoint> IHttpCallEnpointPtr;

@@ -237,7 +237,7 @@ public:
 	bool setLastBlock(const uint256& /*block*/);
 	void saveBlock(BlockPtr); // just save block
 	void reindexFull(const uint256&, IMemoryPoolPtr /*pool*/); // rescan and re-fill indexes and local wallet
-	void reindex(const uint256&, const uint256&, IMemoryPoolPtr /*pool*/); // rescan and re-fill indexes and local wallet
+	bool reindex(const uint256&, const uint256&, IMemoryPoolPtr /*pool*/); // rescan and re-fill indexes and local wallet
 
 	IEntityStorePtr entityStore() {
 		return std::static_pointer_cast<IEntityStore>(shared_from_this());
@@ -338,7 +338,10 @@ private:
 	db::DbContainer<uint256 /*utxo*/, uint256 /*block*/> utxoBlock_;
 
 	//
-	boost::mutex storageMutex_;
+	boost::recursive_mutex storageCommitMutex_;
+
+	//
+	boost::recursive_mutex storageMutex_;
 	std::map<size_t, uint256> heightMap_;
 	std::map<uint256, size_t> blockMap_;
 
