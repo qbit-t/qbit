@@ -60,13 +60,15 @@ public:
 
 public:
 	Peer() : status_(IPeer::UNDEFINED) { 
-		quarantine_ = 0; latencyPrev_ = latency_ = 1000000; 
+		quarantine_ = 0; latencyPrev_ = latency_ = 1000000; time_ = getMicroseconds(); timestamp_ = time_;
 	}
 
 	Peer(SocketPtr socket, const State& state, IPeerManagerPtr peerManager) : 
 		socket_(socket), status_(IPeer::UNDEFINED), state_(state), latency_(1000000), latencyPrev_(1000000), quarantine_(0), peerManager_(peerManager) {
 		socketStatus_ = CONNECTED;
 		socketType_ = SERVER;
+		time_ = getMicroseconds();
+		timestamp_ = time_;
 	}
 
 	Peer(int contextId, const std::string endpoint, IPeerManagerPtr peerManager) : 
@@ -76,6 +78,8 @@ public:
 		socketType_ = CLIENT;
 
 		resolver_.reset(new tcp::resolver(peerManager->getContext(contextId))); 
+		time_ = getMicroseconds();
+		timestamp_ = time_;
 	}
 
 	Peer(int contextId, IPeerManagerPtr peerManager) : 
@@ -84,12 +88,16 @@ public:
 		socketStatus_ = CONNECTED;
 		socketType_ = SERVER;
 		socket_ = std::make_shared<tcp::socket>(peerManager->getContext(contextId_));
+		time_ = getMicroseconds();
+		timestamp_ = time_;
 	}
 
 	void setState(const State& state) { state_ = state; }
 	void setLatency(uint32_t latency) { latencyPrev_ = latency_; latency_ = latency; }
 
 	bool hasRole(State::PeerRoles role) { return (state_.roles() & role) != 0; }
+	uint64_t time() { return time_; }	
+	uint64_t timestamp() { return timestamp_; }	
 
 	IPeer::Status status() { return status_; }
 	State& state() { return state_; }
@@ -289,6 +297,8 @@ private:
 	std::shared_ptr<tcp::resolver> resolver_;
 	SocketStatus socketStatus_ = CLOSED;
 	SocketType socketType_ = DEFAULT;
+	uint64_t time_;
+	uint64_t timestamp_;
 
 	std::list<DataStream> rawInMessages_;
 	std::list<DataStream> rawInData_;

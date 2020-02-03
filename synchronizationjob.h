@@ -95,6 +95,7 @@ private:
 	uint256 lastBlock_;
 	uint64_t time_;
 	std::map<size_t, IPeerPtr> workers_;
+	std::map<uint256, IPeerPtr> txWorkers_;
 };
 
 } // qbit

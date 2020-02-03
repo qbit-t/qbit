@@ -63,6 +63,9 @@ public:
 	virtual uint32_t quarantine() { throw qbit::exception("NOT_IMPL", "IPeer::quarantine - not implemented.");}
 	virtual int contextId() { throw qbit::exception("NOT_IMPL", "IPeer::contextId - not implemented."); }
 
+	virtual uint64_t time() { throw qbit::exception("NOT_IMPL", "IPeer::time - not implemented."); }
+	virtual uint64_t timestamp() { throw qbit::exception("NOT_IMPL", "IPeer::timestamp - not implemented."); }
+
 	virtual void toQuarantine(uint32_t /*block*/) { throw qbit::exception("NOT_IMPL", "IPeer::toQuarantine - not implemented."); }
 	virtual void toBan() { throw qbit::exception("NOT_IMPL", "IPeer::toBan - not implemented."); }
 	virtual void toActive() { throw qbit::exception("NOT_IMPL", "IPeer::toActive - not implemented."); }

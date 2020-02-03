@@ -467,6 +467,9 @@ std::list<Transaction::UnlinkedOutPtr> Wallet::collectUnlinkedOutsByAsset(const 
 				}
 			}
 
+			if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[collectUnlinkedOutsByAsset]: tx found for amount ") + 
+				strprintf("%d/%s/%s/%s#", lAmount->first, lUtxo->out().hash().toHex(), lUtxo->out().tx().toHex(), lUtxo->out().chain().toHex().substr(0, 10)));
+
 			lTotal += lAmount->first;
 			lList.push_back(lUtxo);
 
@@ -479,6 +482,10 @@ std::list<Transaction::UnlinkedOutPtr> Wallet::collectUnlinkedOutsByAsset(const 
 	}
 
 	if (lTotal < amount) lList.clear(); // amount is unreachable
+
+	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[collectUnlinkedOutsByAsset]: total amount collected ") + 
+		strprintf("%d", lTotal));
+
 	return lList;
 }
 
@@ -534,12 +541,19 @@ void Wallet::dumpUnlinkedOutByAsset(const uint256& asset, std::stringstream& s) 
 // rollback tx
 bool Wallet::rollback(TransactionContextPtr ctx) {
 	//
+	gLog().write(Log::WALLET, std::string("[rollback]: rollback tx ") + 
+		strprintf("%s/%s#", ctx->tx()->id().toHex(), ctx->tx()->chain().toHex().substr(0, 10)));
 	// recover new utxos
 	for (std::list<Transaction::UnlinkedOutPtr>::iterator lUtxo = ctx->newUtxo().begin(); lUtxo != ctx->newUtxo().end(); lUtxo++) {
 		// locate utxo
 		uint256 lUtxoId = (*lUtxo)->hash();
 		Transaction::UnlinkedOutPtr lUtxoPtr = findUnlinkedOut(lUtxoId);
 		if (lUtxoPtr) {
+			//
+			if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[rollback]: remove utxo ") + 
+				strprintf("%s/%s/%s#", 
+					lUtxoId.toHex(), (*lUtxo)->out().tx().toHex(), (*lUtxo)->out().chain().toHex().substr(0, 10)));
+
 			// remove entry
 			removeUtxo(lUtxoId);
 			utxo_.remove(lUtxoId);
@@ -556,6 +570,10 @@ bool Wallet::rollback(TransactionContextPtr ctx) {
 		ltxo_.remove(lUtxoId);
 
 		if (!findUnlinkedOut(lUtxoId)) {
+			//
+			if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[rollback]: reconstruct utxo ") + 
+				strprintf("%s/%s/%s#", 
+					lUtxoId.toHex(), (*lUtxo)->out().tx().toHex(), (*lUtxo)->out().chain().toHex().substr(0, 10)));
 			// recover
 			utxo_.write(lUtxoId, *(*lUtxo));
 			cacheUtxo((*lUtxo));
@@ -593,6 +611,8 @@ bool Wallet::rollback(TransactionContextPtr ctx) {
 	}
 
 	ctx->usedUtxo().clear();
+
+	return true;
 }
 
 // fill inputs

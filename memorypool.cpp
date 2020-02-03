@@ -152,7 +152,12 @@ bool MemoryPool::pushTransaction(TransactionContextPtr ctx) {
 		ctx->setContext(TransactionContext::MEMPOOL_COMMIT);
 
 		// 1. check
-		if (poolStore_->locateTransactionContext(ctx->tx()->id())) return false; // already exists
+		if (poolStore_->locateTransaction(ctx->tx()->id())) { 
+			if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[pushTransaction]: ") + 
+				strprintf("transaction is ALREADY processed: %s/%s#",
+					ctx->tx()->hash().toHex(), ctx->tx()->chain().toHex().substr(0, 10)));
+			return false; // already exists
+		}
 
 		// 2. check using processor
 		TransactionProcessor lProcessor = TransactionProcessor::general(poolStore_, wallet_, entityStore_);
@@ -291,7 +296,8 @@ BlockContextPtr MemoryPool::beginBlock(BlockPtr block) {
 		TxTree lTree;
 		lTree.add(lTx); // put current tx
 
-		gLog().write(Log::POOL, std::string("[fillBlock]: adding tx ") + strprintf("%s/%s#", lTx->tx()->id().toHex(), chain_.toHex().substr(0, 10)));
+		if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[fillBlock]: adding tx ") + strprintf("%s|%s/%s#", lTx->tx()->id().toHex(), 
+			lTx->tx()->hash().toHex(), chain_.toHex().substr(0, 10)));
 
 		// traverse left
 		if (!traverseLeft(lTx, lTree)) {
@@ -344,13 +350,18 @@ void MemoryPool::commit(BlockContextPtr ctx) {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(mempoolMutex_);
 	//
-	PoolStorePtr lPoolStore = PoolStore::toStore(poolStore_);
-	for (std::map<uint256 /*tx*/, TransactionContextPtr /*obj*/>::iterator lItem = ctx->txs().begin(); lItem != ctx->txs().end(); lItem++) {
+	// optimization
+	//
+	
+	//PoolStorePtr lPoolStore = PoolStore::toStore(poolStore_);
+	//for (std::map<uint256 /*tx*/, TransactionContextPtr /*obj*/>::iterator lItem = ctx->txs().begin(); lItem != ctx->txs().end(); lItem++) {
 		//lPoolStore->forward().erase(lItem->first); // clean-up
 		//lPoolStore->reverse().erase(lItem->first); // clean-up
 		//lPoolStore->cleanUp(lItem->second); // clean-up
-		lPoolStore->remove(lItem->second);
-	}
+		//if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[commit]: remove tx ") + 
+		//	strprintf("%s/%s/%s#", lCtx->tx()->hash().toHex(), block->blockHeader().hash().toHex(), chain_.toHex().substr(0, 10)));	
+		//lPoolStore->remove(lItem->second);
+	//}
 
 	for (std::list<BlockContext::_poolEntry>::iterator lEntry = ctx->poolEntries().begin(); lEntry != ctx->poolEntries().end(); lEntry++) {
 		qbitTxs_.erase((*lEntry)->second);
@@ -361,11 +372,15 @@ void MemoryPool::commit(BlockContextPtr ctx) {
 void MemoryPool::removeTransactions(BlockPtr block) {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(mempoolMutex_);
+	if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[removeTransactions]: cleaning up mempool for ") + 
+		strprintf("%s/%s#", block->blockHeader().hash().toHex(), chain_.toHex().substr(0, 10)));	
 	//
 	PoolStorePtr lPoolStore = PoolStore::toStore(poolStore_);
 	for (TransactionsContainer::iterator lTx = block->transactions().begin(); lTx != block->transactions().end(); lTx++) {
 		TransactionContextPtr lCtx = poolStore_->locateTransactionContext((*lTx)->id());
 		if (lCtx) {
+			if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[removeTransactions]: remove tx ") + 
+				strprintf("%s/%s/%s#", lCtx->tx()->hash().toHex(), block->blockHeader().hash().toHex(), chain_.toHex().substr(0, 10)));	
 			lPoolStore->remove(lCtx);
 		}
 	}

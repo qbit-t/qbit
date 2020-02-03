@@ -4,6 +4,7 @@
 #include "tinyformat.h"
 #include "utilstrencodings.h"
 #include "crypto/common.h"
+#include "log/log.h"
 
 using namespace qbit;
 
@@ -53,6 +54,9 @@ void BlockTransactions::transactionsHashes(std::vector<uint256>& hashes) {
 	hashes.resize(transactions_.size());
 
 	for (int lIdx = 0; lIdx < transactions_.size(); lIdx++) {
-		hashes[lIdx] = transactions_[0]->id(); // hash
+		if (gLog().isEnabled(Log::INFO)) gLog().write(Log::INFO, std::string("[transactionsHashes] tx = ") + 
+			strprintf("%s|%s", transactions_[lIdx]->id().toHex(), transactions_[lIdx]->hash().toHex()));
+
+		hashes[lIdx] = transactions_[lIdx]->id(); // hash
 	}
 }

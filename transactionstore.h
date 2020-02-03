@@ -18,8 +18,9 @@ class TransactionStore: public ITransactionStore, public IEntityStore, public st
 public:
 	class TxBlockAction {
 	public:
-		enum Type { PUSH, POP };
+		enum Type { UNDEFINED = 0, PUSH = 1, POP = 2 };
 	public:
+		TxBlockAction() {}
 		TxBlockAction(TxBlockAction::Type action, const uint256& utxo, TransactionContextPtr ctx) :
 			action_(action), utxo_(utxo), utxoPtr_(nullptr), ctx_(ctx) {}
 
@@ -30,6 +31,22 @@ public:
 		inline Transaction::UnlinkedOutPtr utxoPtr() { return utxoPtr_; }
 		inline TxBlockAction::Type action() { return action_; }
 		inline TransactionContextPtr ctx() { return ctx_; }
+
+		ADD_SERIALIZE_METHODS;
+
+		template <typename Stream, typename Operation>
+		inline void serializationOp(Stream& s, Operation ser_action) {
+			if (ser_action.ForRead()) {
+				char lAction;
+				s >> lAction;
+				s >> utxo_;
+				action_ = (Type)lAction;
+			} else {
+				char lAction = (char)action_;
+				s << lAction;
+				s << utxo_;
+			}
+		}
 
 	private:
 		 TxBlockAction::Type action_;
@@ -69,10 +86,9 @@ public:
 
 		inline bool popUnlinkedOut(const uint256& utxo, TransactionContextPtr ctx) {
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[TxBlockStore::popUnlinkedOut]: try to pop ") +
-				strprintf("utxo = %s, tx = %s", 
-					utxo.toHex(), ctx->tx()->hash().toHex()));
+				strprintf("utxo = %s, tx = %s",	utxo.toHex(), ctx->tx()->hash().toHex()));
 
-			if (utxo_.erase(utxo) || persistentStore_->findUnlinkedOut(utxo) != nullptr) {
+			if (utxo_.erase(utxo) || persistentStore_->findUnlinkedOut(utxo) != nullptr /*|| persistentStore_->isUnlinkedOutUsed(utxo)*/) {
 				actions_.push_back(TxBlockAction(TxBlockAction::POP, utxo, ctx));
 	
 				if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[TxBlockStore::popUnlinkedOut]: POPPED ") +
@@ -149,8 +165,8 @@ public:
 				strprintf("utxo = %s, tx = %s", 
 					utxo.toHex(), ctx->tx()->hash().toHex()));
 
-			Transaction::UnlinkedOutPtr lUtxo = persistentWallet_->findUnlinkedOut(utxo);
-			if (true /*utxo_.erase(utxo) || lUtxo != nullptr*/) {
+			// just add action - wallet will process correcly
+			{
 				actions_.push_back(TxBlockAction(TxBlockAction::POP, utxo, ctx));
 
 				if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[TxWalletStore::popUnlinkedOut]: POPPED ") +
@@ -333,7 +349,7 @@ private:
 	// address|asset|utxo -> tx
 	db::DbThreeKeyContainer<uint160 /*address*/, uint256 /*asset*/, uint256 /*utxo*/, uint256 /*tx*/> addressAssetUtxoIdx_;
 	// block | utxo
-	db::DbMultiContainer<uint256 /*block*/, uint256 /*utxo*/> blockUtxoIdx_;
+	db::DbMultiContainer<uint256 /*block*/, TxBlockAction /*utxo action*/> blockUtxoIdx_;
 	// utxo | block
 	db::DbContainer<uint256 /*utxo*/, uint256 /*block*/> utxoBlock_;
 

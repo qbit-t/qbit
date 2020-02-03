@@ -24,6 +24,9 @@ int main(int argv, char** argc)
 	std::cout << std::endl << "q-bit.technology | unit tests v0.1" << std::endl << std::endl;
 	TestSuit lSuit;
 
+	//std::cout << qbit::getTime() << "\n";
+	//std::cout << qbit::getMicroseconds() << "\n";
+
 	gLog().enable(Log::INFO);
 	gLog().enable(Log::POOL);
 	gLog().enable(Log::CONSENSUS);
