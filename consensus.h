@@ -26,9 +26,18 @@ public:
 	//
 	// max block size
 	size_t maxBlockSize() { return 1024 * 1024 * 1; }
+
 	//
 	// current time (adjusted? averaged?)
-	uint64_t currentTime() { return qbit::getTime(); }
+	uint64_t currentTime() {
+		uint64_t lTime = qbit::getTime();
+		uint64_t lMedianTime = consensusManager_->medianTime();
+
+		if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, 
+			strprintf("[currentTime]: local %d, median %d, avg %d", lTime, lMedianTime, (lTime + lMedianTime)/2));
+
+		return (lTime + lMedianTime)/2; 
+	}
 	
 	StatePtr currentState() {
 		return consensusManager_->currentState();
@@ -41,31 +50,26 @@ public:
 	//
 	// block time for main chain, ms
 	// TODO: settings
-	size_t blockTime() { return 5000; }
-
-	//
-	// block time for the shard, ms
-	// TODO: settings
-	size_t blockShardTime() { return 1000; }	
+	virtual size_t blockTime() { return 5000; }
 
 	//
 	// block count (100 blocks)
 	// TODO: settings
-	size_t quarantineTime() { return 100; }
+	virtual size_t quarantineTime() { return 100; }
 
 	//
 	// maturity period (blocks)
 	// TODO: settings
-	size_t maturity() { return 5; }	
+	virtual size_t maturity() { return 5; }	
 
 	//
 	// coinbase maturity period (blocks)
 	// TODO: settings
-	size_t coinbaseMaturity() { return 5; }	
+	virtual size_t coinbaseMaturity() { return 5; }	
 
 	//
 	// mining/emission schedule control
-	bool checkEmission(amount_t coinbaseAmount, amount_t blockFee, size_t height) {
+	virtual bool checkBalance(amount_t coinbaseAmount, amount_t blockFee, size_t height) {
 		// TODO: implement
 		// coinbaseAmount - blockFee should/can be in schedule, for example
 		// 1		- 1000000 block height, coinbase = 1 qbit
@@ -78,9 +82,15 @@ public:
 	}
 
 	//
+	// PoW/PoS work sequnce with "block" and "block->prev"
+	virtual bool checkSequenceConsistency(const BlockHeader& /*block*/) {
+		return true;
+	}
+
+	//
 	// minimum network size
 	// TODO: settings
-	size_t simpleNetworkSize() { return 5; }	
+	virtual size_t simpleNetworkSize() { return 5; }	
 
 	//
 	// use peer for network participation
@@ -113,10 +123,10 @@ public:
 
 	//
 	// push acquired block
-	bool pushBlock(BlockPtr block) {
+	//bool pushBlock(BlockPtr block) {
 		// TODO: implement
-		return false;
-	}
+	//	return false;
+	//}
 
 	//
 	//
@@ -636,7 +646,7 @@ public:
 	void toNonSynchronized() {
 		{
 			boost::unique_lock<boost::mutex> lLock(transitionMutex_);
-			if (chainState_ == IConsensus::SYNCHRONIZING || chainState_ == IConsensus::SYNCHRONIZED) {
+			if (chainState_ == IConsensus::SYNCHRONIZING || chainState_ == IConsensus::SYNCHRONIZED || chainState_ == IConsensus::INDEXING) {
 				chainState_ = IConsensus::NOT_SYNCRONIZED;
 			}
 		}

@@ -294,7 +294,11 @@ void HttpSendToAddress::process(const std::string& source, const HttpRequest& re
 			if (lMempool) {
 				//
 				if (lMempool->pushTransaction(lCtx)) {
+					// check for errors
 					if (lCtx->errors().size()) {
+						// rollback transaction
+						wallet_->rollback(lCtx);
+						// 
 						reply = HttpReply::stockReply("E_TX_MEMORYPOOL", *lCtx->errors().begin()); 
 						return;
 					}

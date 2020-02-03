@@ -13,6 +13,7 @@ qbitd
 leveldb/leveldbutil
 */include/port
 *.log
+*.err
 boost/bin.v2/
 boost/stage/
 b2

@@ -30,6 +30,8 @@ public:
 	virtual void run() { throw qbit::exception("NOT_IMPL", "IPeerManager::run - not implemented."); }
 	virtual void stop() { throw qbit::exception("NOT_IMPL", "IPeerManager::stop - not implemented."); }
 
+	virtual void updateMedianTime() { throw qbit::exception("NOT_IMPL", "IPeerManager::updateMedianTime - not implemented."); }
+
 	virtual IPeerPtr addPeer(const std::string& /*endpoint*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::addPeer - not implemented."); }
 	virtual void deactivatePeer(IPeerPtr /*peer*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::deactivatePeer - not implemented."); }
 	virtual void removePeer(IPeerPtr /*peer*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::removePeer - not implemented."); }

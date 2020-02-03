@@ -13,7 +13,7 @@ namespace qbit {
 
 class ConsensusManager: public IConsensusManager, public std::enable_shared_from_this<ConsensusManager> {
 public:
-	ConsensusManager(ISettingsPtr settings) : settings_(settings) {}
+	ConsensusManager(ISettingsPtr settings) : settings_(settings) { medianTime_ = 0; }
 
 	bool exists(const uint256& chain) {
 		boost::unique_lock<boost::mutex> lLock(consensusesMutex_);
@@ -57,6 +57,16 @@ public:
 		}
 
 		return lConsensuses;
+	}
+
+	void setMedianTime(uint64_t time) {
+		//
+		medianTime_ = time;
+	}
+
+	uint64_t medianTime() {
+		if (!medianTime_) return qbit::getTime();
+		return medianTime_;
 	}
 
 	//
@@ -246,8 +256,8 @@ public:
 		//
 		if (!enqueueBlockHeader(blockHeader)) {
 			gLog().write(Log::CONSENSUS, "[pushBlockHeader]: block is already PROCESSED " + 
-				strprintf("%s/%d/%s#", const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().hash().toHex(), 
-					const_cast<NetworkBlockHeader&>(blockHeader).height(), 
+				strprintf("%d/%s/%s#", const_cast<NetworkBlockHeader&>(blockHeader).height(), 
+					const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().hash().toHex(), 
 					const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().chain().toHex().substr(0, 10)));
 			return IValidator::ALREADY_PROCESSED;
 		}
@@ -320,6 +330,8 @@ private:
 	IWalletPtr wallet_;
 	ITransactionStoreManagerPtr storeManager_;
 	IValidatorManagerPtr validatorManager_;
+
+	uint64_t medianTime_;
 
 	typedef uint160 peer_t;
 

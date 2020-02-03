@@ -47,13 +47,15 @@ public:
 	inline amount_t fee() { return fee_; }
 
 	uint256 calculateMerkleRoot() {
-		std::vector<uint256> lHashes;
-		block_->transactionsHashes(lHashes);
+		//std::vector<uint256> lHashes;
+		//block_->transactionsHashes(lHashes);
 
-		return calculateMerkleRoot(lHashes, mutated_);
+		return uint256(); //calculateMerkleRoot(lHashes, mutated_);
 	}
 
 	uint256 calculateMerkleRoot(std::vector<uint256>& hashes, bool& mutated) {
+		mutated = false;
+		/*
 		//
 		bool lMutation = false;
 		//
@@ -68,7 +70,7 @@ public:
 
 			HashWriter lStream(SER_GETHASH, PROTOCOL_VERSION);
 			lStream.write((char*)hashes[0].begin(), hashes.size() / 2);
-			hashes[0] = lStream.hash();			
+			hashes[0] = lStream.hash();
 
 			hashes.resize(hashes.size() / 2);
 		}
@@ -77,6 +79,8 @@ public:
 		if (hashes.size() == 0) return uint256();
 
 		return hashes[0];
+		*/
+		return uint256();
 	}
 
 private:

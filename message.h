@@ -28,7 +28,7 @@ public:
 		GLOBAL_STATE = 0x04,
 		BLOCK = 0x05,
 		TRANSACTION = 0x06,
-		BLOCK_HEADER = 0x07,
+		BLOCK_HEADER = 0x07, // TODO: reuse for headers -> to data sync & new sync job implementation
 		BLOCK_HEADER_AND_STATE = 0x08,
 		
 		GET_BLOCK_HEADER = 0x10,

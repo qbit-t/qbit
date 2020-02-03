@@ -125,6 +125,34 @@ public:
 		return false;
 	}
 
+	void updateMedianTime() {
+		// traverse
+		uint64_t lTime = 0;
+		int lPeers = 0;
+
+		for (std::map<int, PeersMap>::iterator lChannel = peers_.begin(); lChannel != peers_.end(); lChannel++) {
+			boost::unique_lock<boost::mutex> lLock(contextMutex_[lChannel->first]);
+
+			for (std::map<std::string /*endpoint*/, IPeerPtr>::iterator lPeer = lChannel->second.begin(); lPeer != lChannel->second.end(); lPeer++) {
+				lTime += lPeer->second->time() + (getMicroseconds() - lPeer->second->timestamp());
+				lPeers++;
+			}
+		}
+
+		// own time
+		lTime += getMicroseconds();
+		lPeers++;
+
+		// median time
+		uint64_t lMedianTime = (lTime / lPeers) / 100000;
+		uint64_t lLastDigit = lMedianTime % 10;
+
+		lMedianTime = lMedianTime / 10;
+		if (lLastDigit >= 5) lMedianTime++;
+
+		consensusManager_->setMedianTime(lMedianTime); // seconds
+	}
+
 	void deactivatePeer(IPeerPtr peer) {
 		//
 		IPeerPtr lPeer = peer;

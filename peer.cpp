@@ -13,7 +13,7 @@ void Peer::ping() {
 	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
 	else if (socketStatus_ == CONNECTED /*&& socketType_ == CLIENT*/) {
 
-		uint64_t lTimestamp = getMicroseconds();
+		uint64_t lTimestamp = getMicroseconds(); // time 1580721029 | microseconds 1580721029.120664
 
 		Message lMessage(Message::PING, sizeof(uint64_t));
 		std::list<DataStream>::iterator lMsg = newOutMessage();
@@ -152,6 +152,8 @@ void Peer::synchronizeFullChainHead(IConsensusPtr consensus, SynchronizationJobP
 			} else {
 				// log
 				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: partial reindex FAILED skipping subtree switching, root = ") + strprintf("%s", job->block().toHex()));				
+				//
+				consensus->toNonSynchronized();				
 			}
 
 			return;
@@ -656,19 +658,24 @@ void Peer::processBlockById(std::list<DataStream>::iterator msg, const boost::sy
 			// extract next block id
 			size_t lHeight;
 			uint256 lPrev = lBlock->prev();
-			if (!peerManager_->consensusManager()->locate(lChain)->store()->blockHeight(lPrev, lHeight)) {
-				// go do next job
-				lJob->setNextBlock(lPrev);
+			if (lPrev != BlockHeader().hash()) { // BlockHeader().hash() - final/absent link 
+				if (!peerManager_->consensusManager()->locate(lChain)->store()->blockHeight(lPrev, lHeight)) {
+					// go do next job
+					lJob->setNextBlock(lPrev);
+				} else {
+					// we found root
+					lJob->setLastBlock(lPrev);
+				}
 			} else {
-				// we found root
+				// we have new shiny full chain
+				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: full chain found, switching to ") + 
+					strprintf("head = %s, root = %s/%s#", lBlock->hash().toHex(), lJob->block().toHex(), lChain.toHex().substr(0, 10)) + std::string("..."));
 				lJob->setLastBlock(lPrev);
 			}
-
+			
 			synchronizeFullChainHead(peerManager_->consensusManager()->locate(lChain), lJob);
-		} else {
-			// go to read
-			//waitForMessage();
 		}
+
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processBlockById/error]: closing session " + key() + " -> " + error.message());
@@ -1258,10 +1265,13 @@ void Peer::processPong(std::list<DataStream>::iterator msg, const boost::system:
 		(*msg) >> lTimestamp;
 		eraseInData(msg);
 
-		// update
-		peerManager_->updatePeerLatency(shared_from_this(), (uint32_t)(getMicroseconds() - lTimestamp));
+		time_ = lTimestamp;
+		timestamp_ = getMicroseconds();
 
-		//waitForMessage();
+		// update and median time
+		peerManager_->updatePeerLatency(shared_from_this(), (uint32_t)(getMicroseconds() - lTimestamp));
+		peerManager_->updateMedianTime();
+
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processPong/error]: closing session " + key() + " -> " + error.message());

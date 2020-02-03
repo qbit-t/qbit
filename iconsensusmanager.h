@@ -24,6 +24,9 @@ public:
 	virtual StatePtr currentState() { throw qbit::exception("NOT_IMPL", "IConsensusManager::currentState - not implemented."); }
 	virtual size_t quarantineTime() { throw qbit::exception("NOT_IMPL", "IConsensusManager::quarantineTime - not implemented."); }
 
+	virtual void setMedianTime(uint64_t /*time*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::setMedianTime - not implemented."); }
+	virtual uint64_t medianTime() { throw qbit::exception("NOT_IMPL", "IConsensusManager::medianTime - not implemented."); }
+
 	virtual bool pushState(StatePtr /*state*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::pushState - not implemented."); }
 	virtual bool popState(StatePtr /*state*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::popState - not implemented."); }
 	virtual void broadcastState(StatePtr /*state*/, const uint160& /*peer*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::broadcastState - not implemented."); }
