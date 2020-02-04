@@ -4,6 +4,7 @@
 #include "vm.h"
 #include "transactions.h"
 #include "blocks.h"
+#include "hash.h"
 #include "dbs.h"
 #include "assets.h"
 #include "wallet.h"
@@ -89,6 +90,7 @@ int main(int argv, char** argc)
 		lSuit << new WalletAssetCreateAndSpend();
 		lSuit << new MemoryPoolQbitCreateSpend();
 		lSuit << new StoreQbitCreateSpend();
+		lSuit << new HashTest();
 		//lSuit << new CuckooHash();
 	}
 
