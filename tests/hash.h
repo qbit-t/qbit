@@ -6,6 +6,9 @@ namespace tests {
 
 class HashTest: public Unit {
 public:
+	HashTest(): Unit("HashTest") {
+	}
+	
 	bool execute();
 };
 
