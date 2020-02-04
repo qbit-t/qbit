@@ -58,24 +58,20 @@ bool TransactionStore::processBlockTransactions(ITransactionStorePtr store, Bloc
 	BlockContextPtr lBlockCtx = ctx;
 
 	// check merkle root
-	std::vector<uint256> lHashes;
+	std::list<uint256> lHashes;
 	transactions->transactionsHashes(lHashes);
 
-	bool lMutated;
-	uint256 lRoot = ctx->calculateMerkleRoot(lHashes, lMutated);
+	uint256 lRoot = ctx->calculateMerkleRoot(lHashes);
 	if (ctx->block()->blockHeader().root() != lRoot) {
 		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlockTransactions]: merkle root is NOT VALID ") +
 			strprintf("header = %s, transactions = %s, %s/%s#", 
 				ctx->block()->blockHeader().root().toHex(), lRoot.toHex(), ctx->block()->hash().toHex(), chain_.toHex().substr(0, 10)));
 		return false;
-	} else if (lMutated) {
-		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlockTransactions]: merkle root is MUTATED, ") +
-			strprintf("root = %s, %s/%s#", 
-				lRoot.toHex(), ctx->block()->hash().toHex(), chain_.toHex().substr(0, 10)));
-		else if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlockTransactions]: merkle ") +
-					strprintf("root = %s, %s/%s#", 
-						lRoot.toHex(), ctx->block()->hash().toHex(), chain_.toHex().substr(0, 10)));
 	}
+
+	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlockTransactions]: ") +
+			strprintf("merkle root = %s, %s/%s#", 
+				lRoot.toHex(), ctx->block()->hash().toHex(), chain_.toHex().substr(0, 10)));
 
 	//
 	// process block under local context block&wallet
@@ -488,6 +484,7 @@ bool TransactionStore::processBlocks(const uint256& from, const uint256& to, std
 		BlockContextPtr lBlockCtx = BlockContext::instance(Block::instance(*lBlock)); // just header without transactions attached
 		uint256 lBlockHash = lBlockCtx->block()->hash();
 		BlockTransactionsPtr lTransactions = transactions_.read(lBlockHash);
+		lBlockCtx->block()->append(lTransactions); // reconstruct block consistensy
 		ctxs.push_back(lBlockCtx);
 
 		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlocks]: processing block ") +

@@ -50,13 +50,12 @@ std::string Block::toString() {
 	return s.str();
 }
 
-void BlockTransactions::transactionsHashes(std::vector<uint256>& hashes) {
-	hashes.resize(transactions_.size());
-
+void BlockTransactions::transactionsHashes(std::list<uint256>& hashes) {
+	//
 	for (int lIdx = 0; lIdx < transactions_.size(); lIdx++) {
-		if (gLog().isEnabled(Log::INFO)) gLog().write(Log::INFO, std::string("[transactionsHashes] tx = ") + 
+		if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::INFO, std::string("[transactionsHashes] tx = ") + 
 			strprintf("%s|%s", transactions_[lIdx]->id().toHex(), transactions_[lIdx]->hash().toHex()));
 
-		hashes[lIdx] = transactions_[lIdx]->id(); // hash
+		hashes.push_back(transactions_[lIdx]->id()); // hash
 	}
 }

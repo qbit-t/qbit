@@ -24,10 +24,18 @@ public:
 	public:
 		TxTree() : size_(0) {}
 
-		inline std::map<uint256, TransactionContextPtr>& bundle() { return bundle_; }
-		inline void add(TransactionContextPtr ctx) {
-			if (bundle_.find(ctx->tx()->id()) == bundle_.end()) {
-				bundle_[ctx->tx()->id()] = ctx; size_ += ctx->size(); 
+		inline std::list<TransactionContextPtr>& back() { return back_; }
+		inline std::list<TransactionContextPtr>& front() { return front_; }
+		inline void back(TransactionContextPtr ctx) {
+			std::pair<std::set<uint256>::iterator, bool> lResult = presense_.insert(ctx->tx()->id());
+			if (lResult.second) {
+				back_.insert(back_.begin(), ctx); size_ += ctx->size(); 
+			}
+		}
+		inline void front(TransactionContextPtr ctx) {
+			std::pair<std::set<uint256>::iterator, bool> lResult = presense_.insert(ctx->tx()->id());
+			if (lResult.second) {
+				front_.push_back(ctx); size_ += ctx->size(); 
 			}
 		}
 
@@ -35,7 +43,9 @@ public:
 
 	private:
 		size_t size_;
-		std::map<uint256, TransactionContextPtr> bundle_;
+		std::set<uint256> presense_;
+		std::list<TransactionContextPtr> back_;
+		std::list<TransactionContextPtr> front_;
 	};
 
 	class PoolStore: public ITransactionStore {
