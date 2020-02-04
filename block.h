@@ -178,7 +178,7 @@ public:
 	void append(TransactionPtr tx) { transactions_.push_back(tx); }
 	TransactionsContainer& transactions() { return transactions_; }	
 
-	void transactionsHashes(std::vector<uint256>&);
+	void transactionsHashes(std::list<uint256>&);
 };
 
 class Block;

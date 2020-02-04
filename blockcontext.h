@@ -5,6 +5,10 @@
 #ifndef QBIT_BLOCK_CONTEXT_H
 #define QBIT_BLOCK_CONTEXT_H
 
+//
+// allocator.h _MUST_ be included BEFORE all other
+//
+#include "allocator.h"
 #include "block.h"
 #include "version.h"
 #include "transactioncontext.h"
@@ -26,7 +30,31 @@ public:
 		poolEntries_.push_back(entry);
 	}
 	inline std::list<_poolEntry>& poolEntries() { return poolEntries_; }
-	inline std::map<uint256, TransactionContextPtr>& txs() { return txs_; }
+	inline std::list<TransactionContextPtr>& txs() { return txs_; }
+
+	template<typename _iterator>
+	void insertReverseTransactions(_iterator begin, _iterator end) {
+		while (begin != end) {
+			std::pair<std::set<uint256>::iterator, bool> lResult = index_.insert((*begin)->tx()->id());
+			if (lResult.second) {
+				txs_.insert(txs_.begin(), *begin);
+			}
+			
+			begin++; 
+		}
+	}
+
+	template<typename _iterator>
+	void insertTransactions(_iterator begin, _iterator end) {
+		while (begin != end) {
+			std::pair<std::set<uint256>::iterator, bool> lResult = index_.insert((*begin)->tx()->id());
+			if (lResult.second) {
+				txs_.insert(txs_.end(), *begin);
+			}
+			
+			begin++; 
+		}
+	}
 
 	inline static BlockContextPtr instance(BlockPtr block) { return std::make_shared<BlockContext>(block); }
 
@@ -47,50 +75,25 @@ public:
 	inline amount_t fee() { return fee_; }
 
 	uint256 calculateMerkleRoot() {
-		//std::vector<uint256> lHashes;
-		//block_->transactionsHashes(lHashes);
+		std::list<uint256> lHashes;
+		block_->transactionsHashes(lHashes);
 
-		return uint256(); //calculateMerkleRoot(lHashes, mutated_);
+		return calculateMerkleRoot(lHashes);
 	}
 
-	uint256 calculateMerkleRoot(std::vector<uint256>& hashes, bool& mutated) {
-		mutated = false;
-		/*
-		//
-		bool lMutation = false;
-		//
-		while (hashes.size() > 1) {
-			for (size_t lPos = 0; lPos + 1 < hashes.size(); lPos += 2) {
-				if (hashes[lPos] == hashes[lPos + 1]) lMutation = true;
-			}
-			
-			if (hashes.size() & 1) {
-				hashes.push_back(hashes.back());
-			}
+	uint256 calculateMerkleRoot(std::list<uint256>& hashes);
 
-			HashWriter lStream(SER_GETHASH, PROTOCOL_VERSION);
-			lStream.write((char*)hashes[0].begin(), hashes.size() / 2);
-			hashes[0] = lStream.hash();
-
-			hashes.resize(hashes.size() / 2);
-		}
-
-		mutated = lMutation;
-		if (hashes.size() == 0) return uint256();
-
-		return hashes[0];
-		*/
-		return uint256();
-	}
+private:
+	uint256 calcTree(std::list<uint256>::iterator, std::list<uint256>::iterator);
 
 private:
 	BlockPtr block_;
 	std::list<_poolEntry> poolEntries_;
-	std::map<uint256, TransactionContextPtr> txs_;
+	std::list<TransactionContextPtr> txs_;
+	std::set<uint256> index_;
 	size_t height_;
 	amount_t coinbaseAmount_;
 	amount_t fee_;
-	bool mutated_ = false;
 
 	// errors
 	std::list<std::string> errors_;
