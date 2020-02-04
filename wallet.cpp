@@ -190,18 +190,18 @@ bool Wallet::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, TransactionContex
 
 	Transaction::UnlinkedOut lLtxo;
 	if (ltxo_.read(lUtxoId, lLtxo)) {
-		// already exists - reject
+		// already exists - just skip
 		if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[pushUnlinkedOut]: ") + 
-			strprintf("utxo ALREDY USED: %s/%s/%s#", 
+			strprintf("utxo ALREDY USED, skip action: %s/%s/%s#", 
 				utxo->hash().toHex(), utxo->out().tx().toHex(), utxo->out().chain().toHex().substr(0, 10)));
-		return false;
+		return true;
 	}
 
 	Transaction::UnlinkedOut lUtxo;
 	if (utxo_.read(lUtxoId, lUtxo)) {
 		// already exists - accept
 		if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[pushUnlinkedOut]: ") + 
-			strprintf("utxo ALREDY pushed: %s/%s/%s#", 
+			strprintf("utxo ALREDY pushed, skip action: %s/%s/%s#", 
 				utxo->hash().toHex(), utxo->out().tx().toHex(), utxo->out().chain().toHex().substr(0, 10)));
 		return true;
 	}

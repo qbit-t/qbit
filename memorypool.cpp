@@ -170,7 +170,14 @@ bool MemoryPool::pushTransaction(TransactionContextPtr ctx) {
 
 		// 4. add tx to pool map
 		if (!ctx->errors().size()) {
+			if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[pushTransaction]: ") + 
+				strprintf("transaction PUSHED: %d/%s/%s#",
+					ctx->feeRate(), ctx->tx()->hash().toHex(), ctx->tx()->chain().toHex().substr(0, 10)));
 			map_.insert(std::multimap<qunit_t /*fee rate*/, uint256 /*tx*/>::value_type(ctx->feeRate(), ctx->tx()->id()));
+		} else {
+			if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[pushTransaction]: ") + 
+				strprintf("transaction NOT PUSHED: %d/%s/%s#",
+					ctx->feeRate(), ctx->tx()->hash().toHex(), ctx->tx()->chain().toHex().substr(0, 10)));			
 		}
 
 		// 5. check if "qbit"
@@ -235,7 +242,12 @@ bool MemoryPool::traverseLeft(TransactionContextPtr root, const TxTree& tree) {
 
 		// try pool store
 		TransactionContextPtr lTx = poolStore_->locateTransactionContext(lId);
-		if (lTx) const_cast<TxTree&>(tree).add(lTx);
+		if (lTx) { 
+			//
+			if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[traverseLeft]: adding tx ") + strprintf("%s|%s/%s#", lTx->tx()->id().toHex(), 
+				lTx->tx()->hash().toHex(), chain_.toHex().substr(0, 10)));				
+			const_cast<TxTree&>(tree).back(lTx);
+		}			
 		else if (persistentStore_->locateTransactionContext(lId) || 
 					(persistentMainStore_ && persistentMainStore_->locateTransactionContext(lId))) return true; // done
 		else return false;
@@ -255,7 +267,10 @@ bool MemoryPool::traverseRight(TransactionContextPtr root, const TxTree& tree) {
 		TransactionContextPtr lTx = poolStore_->locateTransactionContext(lTo->second); // TODO: duplicates?
 		if (lTx) {
 			if (const_cast<TxTree&>(tree).size() + lTx->size() < consensus_->maxBlockSize()) {
-				const_cast<TxTree&>(tree).add(lTx);
+				//
+				if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[traverseRight]: adding tx ") + strprintf("%s|%s/%s#", lTx->tx()->id().toHex(), 
+					lTx->tx()->hash().toHex(), chain_.toHex().substr(0, 10)));				
+				const_cast<TxTree&>(tree).front(lTx);
 				traverseRight(lTx, tree);  // recursion!
 			} else return true;
 		} else return false;
@@ -294,7 +309,7 @@ BlockContextPtr MemoryPool::beginBlock(BlockPtr block) {
 
 		// partial tree
 		TxTree lTree;
-		lTree.add(lTx); // put current tx
+		lTree.back(lTx); // put current tx
 
 		if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[fillBlock]: adding tx ") + strprintf("%s|%s/%s#", lTx->tx()->id().toHex(), 
 			lTx->tx()->hash().toHex(), chain_.toHex().substr(0, 10)));
@@ -308,15 +323,22 @@ BlockContextPtr MemoryPool::beginBlock(BlockPtr block) {
 
 		// traverse right
 		lLimitReached = traverseRight(lTx, lTree); // up to maxBlockSize
+		if (lLimitReached) if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[fillBlock]: block limit reached by flag ") + 
+			strprintf("%d/%d/%s#", lTree.size(), consensus_->maxBlockSize(), chain_.toHex().substr(0, 10)));
 
 		// calc size
 		lSize += lTree.size();
 
 		if (lSize < consensus_->maxBlockSize()) { // sanity, it should be Ok, even if lLimitReached == true
 			// fill index
-			lCtx->txs().insert(lTree.bundle().begin(), lTree.bundle().end());
+			lCtx->insertReverseTransactions<std::list<TransactionContextPtr>::reverse_iterator>(lTree.back().rbegin(), lTree.back().rend());
+			lCtx->insertTransactions<std::list<TransactionContextPtr>::iterator>(lTree.front().begin(), lTree.front().end());
 			// add pool entry
 			lCtx->addPoolEntry(lEntry);
+		} else { 
+			if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[fillBlock]: block limit reached by size ") +
+				strprintf("%d/%d/%s#", lSize, consensus_->maxBlockSize(), chain_.toHex().substr(0, 10)));
+			break; 
 		}
 
 		lEntry++;
@@ -324,8 +346,8 @@ BlockContextPtr MemoryPool::beginBlock(BlockPtr block) {
 
 	//
 	// we have appropriate index - fill the block
-	for (std::map<uint256 /*tx*/, TransactionContextPtr /*obj*/>::iterator lItem = lCtx->txs().begin(); lItem != lCtx->txs().end(); lItem++) {
-		lCtx->block()->append(lItem->second->tx()); // push to the block
+	for (std::list<TransactionContextPtr /*obj*/>::iterator lItem = lCtx->txs().begin(); lItem != lCtx->txs().end(); lItem++) {
+		lCtx->block()->append((*lItem)->tx()); // push to the block
 	}
 
 	// set adjusted time
@@ -352,7 +374,7 @@ void MemoryPool::commit(BlockContextPtr ctx) {
 	//
 	// optimization
 	//
-	
+
 	//PoolStorePtr lPoolStore = PoolStore::toStore(poolStore_);
 	//for (std::map<uint256 /*tx*/, TransactionContextPtr /*obj*/>::iterator lItem = ctx->txs().begin(); lItem != ctx->txs().end(); lItem++) {
 		//lPoolStore->forward().erase(lItem->first); // clean-up
@@ -377,6 +399,10 @@ void MemoryPool::removeTransactions(BlockPtr block) {
 	//
 	PoolStorePtr lPoolStore = PoolStore::toStore(poolStore_);
 	for (TransactionsContainer::iterator lTx = block->transactions().begin(); lTx != block->transactions().end(); lTx++) {
+		//
+		if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[removeTransactions]: try to remove tx ") + 
+			strprintf("%s/%s/%s#", (*lTx)->id().toHex(), block->blockHeader().hash().toHex(), chain_.toHex().substr(0, 10)));	
+		//
 		TransactionContextPtr lCtx = poolStore_->locateTransactionContext((*lTx)->id());
 		if (lCtx) {
 			if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[removeTransactions]: remove tx ") + 
