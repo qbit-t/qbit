@@ -63,6 +63,7 @@ set(SOURCES
 	./httprequestparser.cpp
 	./json.cpp
 	./httpendpoints.cpp
+	./blockcontext.cpp
 )
 
 set(UNITTESTS
@@ -108,6 +109,7 @@ set(UNITTESTS
 	./httprequestparser.cpp
 	./json.cpp
 	./httpendpoints.cpp
+	./blockcontext.cpp
 
 	./tests/testsuit.cpp
 	./tests/unittest.cpp
