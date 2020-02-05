@@ -85,12 +85,12 @@ int main(int argv, char** argc)
 		lSuit << new DbMultiContainerRemove();
 		lSuit << new DbEntityContainerRemove();
 		lSuit << new DbContainerRemove();
+		lSuit << new HashTest();
 		lSuit << new WalletQbitCreateSpend();
 		lSuit << new WalletQbitCreateSpendRollback();
 		lSuit << new WalletAssetCreateAndSpend();
 		lSuit << new MemoryPoolQbitCreateSpend();
 		lSuit << new StoreQbitCreateSpend();
-		lSuit << new HashTest();
 		//lSuit << new CuckooHash();
 	}
 
