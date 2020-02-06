@@ -67,16 +67,16 @@ public:
 			uint256 lId = utxo->hash();
 
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[TxBlockStore::pushUnlinkedOut]: try to push ") +
-				strprintf("utxo = %s, tx = %s", 
-					utxo->hash().toHex(), utxo->out().tx().toHex()));
+				strprintf("utxo = %s, tx = %s, ctx = %s", 
+					lId.toHex(), utxo->out().tx().toHex(), ctx->tx()->id().toHex()));
 
 			if (utxo_.find(lId) == utxo_.end() && !persistentStore_->isUnlinkedOutUsed(lId)) {
 				utxo_[lId] = utxo;
 				actions_.push_back(TxBlockAction(TxBlockAction::PUSH, lId, utxo, ctx));
 
 				if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[TxBlockStore::pushUnlinkedOut]: PUSHED ") +
-					strprintf("utxo = %s, tx = %s", 
-						utxo->hash().toHex(), utxo->out().tx().toHex()));
+					strprintf("utxo = %s, tx = %s, ctx = %s", 
+						lId.toHex(), utxo->out().tx().toHex(), ctx->tx()->id().toHex()));
 
 				return true;
 			}
@@ -86,14 +86,19 @@ public:
 
 		inline bool popUnlinkedOut(const uint256& utxo, TransactionContextPtr ctx) {
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[TxBlockStore::popUnlinkedOut]: try to pop ") +
-				strprintf("utxo = %s, tx = %s",	utxo.toHex(), ctx->tx()->hash().toHex()));
+				strprintf("utxo = %s, tx = ?, ctx = %s", utxo.toHex(), ctx->tx()->hash().toHex()));
 
-			if (utxo_.erase(utxo) || persistentStore_->findUnlinkedOut(utxo) != nullptr /*|| persistentStore_->isUnlinkedOutUsed(utxo)*/) {
+			// TODO: for debug reasons only - need optimization
+			Transaction::UnlinkedOutPtr lUtxo;
+			std::map<uint256, Transaction::UnlinkedOutPtr>::iterator lUtxoPtr = utxo_.find(utxo);
+			if (lUtxoPtr != utxo_.end()) lUtxo = lUtxoPtr->second;
+			if (!lUtxo) lUtxo = persistentStore_->findUnlinkedOut(utxo);
+
+			if (utxo_.erase(utxo) || lUtxo != nullptr) {
 				actions_.push_back(TxBlockAction(TxBlockAction::POP, utxo, ctx));
 	
 				if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[TxBlockStore::popUnlinkedOut]: POPPED ") +
-					strprintf("utxo = %s, tx = %s", 
-						utxo.toHex(), ctx->tx()->hash().toHex()));
+					strprintf("utxo = %s, tx = %s, ctx = %s", utxo.toHex(), lUtxo->out().tx().toHex(), ctx->tx()->id().toHex()));
 	
 				return true;
 			}

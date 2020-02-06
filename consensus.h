@@ -446,8 +446,8 @@ public:
 		}
 
 		gLog().write(Log::CONSENSUS, 
-			strprintf("[isChainSynchronized]: %s/%s/%d/%s#", 
-				(lResult ? "true" : "FALSE"), lHeader.hash().toHex(), lHeight, chain_.toHex().substr(0, 10)));
+			strprintf("[isChainSynchronized]: %s/%d/%s/%s#", 
+				(lResult ? "true" : "FALSE"), lHeight, lHeader.hash().toHex(), chain_.toHex().substr(0, 10)));
 
 		return lResult;
 	}
