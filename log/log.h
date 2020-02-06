@@ -5,6 +5,11 @@
 #ifndef QBIT_LOG_H
 #define QBIT_LOG_H
 
+//
+// allocator.h _MUST_ be included BEFORE all other
+//
+#include "../allocator.h"
+
 #include <iostream>
 #include <atomic>
 #include <mutex>
@@ -59,6 +64,7 @@ private:
 };
 
 extern Log& gLog();
+extern Log& gLog(const std::string&);
 
 } // qbit
 

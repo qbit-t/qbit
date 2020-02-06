@@ -355,7 +355,7 @@ void TransactionStore::removeBlocks(const uint256& from, const uint256& to, bool
 	uint256 lHash = from;
 	//
 	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[removeBlocks]: ") +
-		strprintf("removing block data [%s-%s]/%s#", from.toHex(), to.toHex(), chain_.toHex().substr(0, 10)));		
+		strprintf("removing blocks data [%s-%s]/%s#", from.toHex(), to.toHex(), chain_.toHex().substr(0, 10)));		
 	//
 	BlockHeader lHeader;
 	while(lHash != to && headers_.read(lHash, lHeader)) {
@@ -381,7 +381,7 @@ void TransactionStore::removeBlocks(const uint256& from, const uint256& to, bool
 				Transaction::UnlinkedOut lUtxoObj;
 				if (utxo_.read(lAction.utxo(), lUtxoObj)) {
 					if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[removeBlocks]: ") +
-						strprintf("remove utxo = %s/%s#", lAction.utxo().toHex(), chain_.toHex().substr(0, 10)));
+						strprintf("remove utxo = %s, tx = %s/%s#", lAction.utxo().toHex(), lUtxoObj.out().tx().toHex(), chain_.toHex().substr(0, 10)));
 
 					utxo_.remove(lAction.utxo());
 					utxoBlock_.remove(lAction.utxo()); // just for push
@@ -399,7 +399,7 @@ void TransactionStore::removeBlocks(const uint256& from, const uint256& to, bool
 					ltxo_.remove(lAction.utxo());
 
 					if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[removeBlocks]: ") +
-						strprintf("remove/add ltxo/utxo = %s, tx = %s", lAction.utxo().toHex(), lUtxoObj.out().tx().toHex()));
+						strprintf("remove/add ltxo/utxo = %s, tx = %s/%s#", lAction.utxo().toHex(), lUtxoObj.out().tx().toHex(), chain_.toHex().substr(0, 10)));
 				} else {
 					if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[removeBlocks]: ") +
 						strprintf("ltxo was NOT FOUND - %s/%s#", lAction.utxo().toHex(), chain_.toHex().substr(0, 10)));
@@ -416,7 +416,7 @@ void TransactionStore::removeBlocks(const uint256& from, const uint256& to, bool
 			for(TransactionsContainer::iterator lTx = lTransactions->transactions().begin(); lTx != lTransactions->transactions().end(); lTx++) {
 				//
 				if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[removeBlocks]: ") +
-					strprintf("removing tx inedx %s/%s/%s#", (*lTx)->id().toHex(), lHash.toHex(), chain_.toHex().substr(0, 10)));
+					strprintf("removing tx index %s/%s/%s#", (*lTx)->id().toHex(), lHash.toHex(), chain_.toHex().substr(0, 10)));
 
 				transactionsIdx_.remove((*lTx)->id());
 
@@ -440,19 +440,11 @@ void TransactionStore::removeBlocks(const uint256& from, const uint256& to, bool
 //
 // interval [..)
 void TransactionStore::remove(const uint256& from, const uint256& to) {
-	//removeBlocks(from, to, true);
-	
-	// reset connected wallet cache
-	//wallet_->resetCache();
 }
 
 //
 // interval [..)
 void TransactionStore::erase(const uint256& from, const uint256& to) {
-	//removeBlocks(from, to, false);
-
-	// reset connected wallet cache
-	//wallet_->resetCache();
 }
 
 //
@@ -462,6 +454,9 @@ bool TransactionStore::processBlocks(const uint256& from, const uint256& to, std
 	std::list<BlockHeader> lHeadersSeq;
 	uint256 lHash = from;
 	IMemoryPoolPtr lMempool = wallet_->mempoolManager()->locate(chain_);
+	//
+	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlocks]: ") +
+		strprintf("processing blocks data [%s-%s]/%s#", from.toHex(), to.toHex(), chain_.toHex().substr(0, 10)));		
 	//
 	BlockHeader lHeader;
 	while(lHash != to && headers_.read(lHash, lHeader)) {
@@ -752,11 +747,11 @@ bool TransactionStore::close() {
 	return true;
 }
 
-bool TransactionStore::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, TransactionContextPtr) {
+bool TransactionStore::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, TransactionContextPtr ctx) {
 	//
 	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[pushUnlinkedOut]: try to push ") +
-		strprintf("utxo = %s, tx = %s", 
-			utxo->hash().toHex(), utxo->out().tx().toHex()));
+		strprintf("utxo = %s, tx = %s, ctx = %s", 
+			utxo->hash().toHex(), utxo->out().tx().toHex(), ctx->tx()->id().toHex()));
 
 	uint256 lUtxo = utxo->hash();
 	if (!isUnlinkedOutUsed(lUtxo) && !findUnlinkedOut(lUtxo)) {
@@ -766,8 +761,8 @@ bool TransactionStore::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, Transac
 		addressAssetUtxoIdx_.write(utxo->address().id(), utxo->out().asset(), lUtxo, utxo->out().tx());
 		//
 		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[pushUnlinkedOut]: PUSHED ") +
-			strprintf("utxo = %s, tx = %s", 
-				utxo->hash().toHex(), utxo->out().tx().toHex()));
+			strprintf("utxo = %s, tx = %s, ctx = %s", 
+				lUtxo.toHex(), utxo->out().tx().toHex(), ctx->tx()->id().toHex()));
 		return true;
 	}
 
@@ -777,7 +772,7 @@ bool TransactionStore::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, Transac
 bool TransactionStore::popUnlinkedOut(const uint256& utxo, TransactionContextPtr ctx) {
 	//
 	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[popUnlinkedOut]: try to pop ") +
-		strprintf("utxo = %s, tx = %s",	utxo.toHex(), ctx->tx()->hash().toHex()));
+		strprintf("utxo = %s, tx = ?, ctx = %s", utxo.toHex(), ctx->tx()->hash().toHex()));
 
 	Transaction::UnlinkedOutPtr lUtxo = findUnlinkedOut(utxo); 
 	if (!isUnlinkedOutUsed(utxo) && lUtxo) {
@@ -789,8 +784,8 @@ bool TransactionStore::popUnlinkedOut(const uint256& utxo, TransactionContextPtr
 		addressAssetUtxoIdx_.remove(lUtxo->address().id(), lUtxo->out().asset(), utxo);
 		//
 		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[popUnlinkedOut]: POPPED ") +
-			strprintf("utxo = %s, tx = %s", 
-				utxo.toHex(), ctx->tx()->hash().toHex()));		
+			strprintf("utxo = %s, tx = %s, ctx = %s", 
+				utxo.toHex(), lUtxo->out().tx().toHex(), ctx->tx()->id().toHex()));		
 		return true;
 	}
 
@@ -903,6 +898,8 @@ void TransactionStore::reindexFull(const uint256& from, IMemoryPoolPtr pool) {
 	gLog().write(Log::STORE, std::string("[reindexFull]: starting FULL reindex for ") + 
 		strprintf("%s#", chain_.toHex().substr(0, 10)));
 
+	// remove index
+	removeBlocks(from, uint256(), false);
 	// reset connected wallet cache
 	wallet_->resetCache();	
 	// remove wallet utxo-binding data

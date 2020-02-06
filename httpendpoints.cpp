@@ -253,7 +253,7 @@ void HttpSendToAddress::process(const std::string& source, const HttpRequest& re
 
 			// param[2]
 			json::Value lP2 = lParams[2];
-			if (lP2.isString()) lValue = (amount_t)(boost::lexical_cast<double>(lP2.getString()));
+			if (lP2.isString()) lValue = (double)(boost::lexical_cast<double>(lP2.getString()));
 			else { reply = HttpReply::stockReply(HttpReply::bad_request); return; }
 		} else {
 			reply = HttpReply::stockReply("E_PARAMS", "Insufficient or extra parameters"); 
@@ -283,7 +283,7 @@ void HttpSendToAddress::process(const std::string& source, const HttpRequest& re
 		TransactionContextPtr lCtx = nullptr;
 		try {
 			// create tx
-			lCtx = wallet_->createTxSpend(lAsset, lAddress, (amount_t)(lValue * lScale));
+			lCtx = wallet_->createTxSpend(lAsset, lAddress, (amount_t)(lValue * (double)lScale));
 			if (lCtx->errors().size()) {
 				reply = HttpReply::stockReply("E_TX_CREATE_SPEND", *lCtx->errors().begin()); 
 				return;

@@ -2,12 +2,19 @@
 #include "../tinyformat.h"
 
 #include <iomanip>
+#include <boost/thread.hpp>
 
 using namespace qbit;
 
-qbit::Log& qbit::gLog() {
+static qbit::Log* pgLog = nullptr;
 
-	static qbit::Log* pgLog = new qbit::Log("debug.log");
+qbit::Log& qbit::gLog() {
+	if (!pgLog) pgLog = new qbit::Log("debug.log");
+	return *pgLog;
+}
+
+qbit::Log& qbit::gLog(const std::string& name) {
+	pgLog = new qbit::Log(name);
 	return *pgLog;
 }
 
@@ -33,11 +40,10 @@ std::string _getLogCategoryText(Log::Category category) {
 void qbit::Log::write(Log::Category category, const std::string& str) {
 	if (isEnabled(category)) {
 		if (open()) {
-			std::string lMessage = std::string("[");
 			uint64_t lMicroSeconds = getMicroseconds();
-			lMessage += formatISO8601DateTime(lMicroSeconds / 1000000);
-			lMessage += strprintf(".%06dZ", lMicroSeconds % 1000000);
-			lMessage += std::string("][") + _getLogCategoryText(category) + std::string("]") + str;
+			std::string lMessage = 
+				strprintf("[%d][%s.%06d][%s]%s", boost::this_thread::get_id(), 
+					formatISO8601DateTime(lMicroSeconds / 1000000), lMicroSeconds % 1000000, _getLogCategoryText(category), str);
 
 			if (lMessage.at(lMessage.length()-1) != '\n') lMessage += "\n";
 			if (console_) std::cout << lMessage;
