@@ -124,6 +124,7 @@ set(UNITTESTS
 	./tests/transactionstore.cpp
 	./tests/server.cpp
 	./tests/httpserver.cpp
+	./tests/hash.cpp
 )
 
 add_definitions(-DHAVE_CONFIG_H)
