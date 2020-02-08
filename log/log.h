@@ -34,6 +34,7 @@ public:
 		VALIDATOR	= (1 <<  8),
 		CONSENSUS	= (1 <<  9),
 		HTTP		= (1 << 10),
+		BALANCE		= (1 << 11),
 		ALL			= ~(uint32_t)0
 	};
 

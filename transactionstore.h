@@ -257,6 +257,7 @@ public:
 	bool commitBlock(BlockContextPtr, size_t&); // from mempool->beginBlock()
 	bool setLastBlock(const uint256& /*block*/);
 	void saveBlock(BlockPtr); // just save block
+	void saveBlockHeader(const BlockHeader& /*header*/);
 	void reindexFull(const uint256&, IMemoryPoolPtr /*pool*/); // rescan and re-fill indexes and local wallet
 	bool reindex(const uint256&, const uint256&, IMemoryPoolPtr /*pool*/); // rescan and re-fill indexes and local wallet
 
@@ -292,6 +293,8 @@ public:
 	BlockPtr block(size_t /*height*/);
 	BlockPtr block(const uint256& /*id*/);
 	bool blockExists(const uint256& /*id*/);
+	bool blockHeader(const uint256& /*id*/, BlockHeader& /*header*/);
+	bool blockHeaderHeight(const uint256& /*block*/, size_t& /*height*/, BlockHeader& /*header*/);	
 
 	size_t currentHeight(BlockHeader&);
 	BlockHeader currentBlockHeader();
