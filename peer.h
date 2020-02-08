@@ -180,7 +180,9 @@ public:
 	void broadcastBlockHeaderAndState(const NetworkBlockHeader& /*block*/, StatePtr /*state*/);
 
 	void synchronizeFullChain(IConsensusPtr, SynchronizationJobPtr /*job*/);
-	void synchronizeFullChainHead(IConsensusPtr, SynchronizationJobPtr /*job*/);
+	void synchronizePartialTree(IConsensusPtr, SynchronizationJobPtr /*job*/);
+	void synchronizeLargePartialTree(IConsensusPtr, SynchronizationJobPtr /*job*/);
+	void synchronizePendingBlocks(IConsensusPtr, SynchronizationJobPtr /*job*/);
 	void acquireBlock(const NetworkBlockHeader& /*block*/);
 
 	std::string statusString() {
@@ -209,10 +211,13 @@ private:
 	void processBlockHeader(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processTransaction(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processBlockHeaderAndState(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processBlock(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 
 	void processGetBlockByHeight(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processGetBlockById(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processGetNetworkBlock(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processGetBlockHeader(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processGetBlockData(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 
 	void processBlockByHeight(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processBlockById(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
@@ -221,6 +226,8 @@ private:
 	void processBlockByHeightAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processBlockByIdAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processNetworkBlockAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processBlockHeaderAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processBlockAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 
 	// finalize - just remove sent message
 	void messageFinalize(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
