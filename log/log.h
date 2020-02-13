@@ -5,6 +5,11 @@
 #ifndef QBIT_LOG_H
 #define QBIT_LOG_H
 
+//
+// allocator.h _MUST_ be included BEFORE all other
+//
+#include "../allocator.h"
+
 #include <iostream>
 #include <atomic>
 #include <mutex>
@@ -29,6 +34,7 @@ public:
 		VALIDATOR	= (1 <<  8),
 		CONSENSUS	= (1 <<  9),
 		HTTP		= (1 << 10),
+		BALANCE		= (1 << 11),
 		ALL			= ~(uint32_t)0
 	};
 
@@ -59,6 +65,7 @@ private:
 };
 
 extern Log& gLog();
+extern Log& gLog(const std::string&);
 
 } // qbit
 

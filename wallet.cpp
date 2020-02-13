@@ -185,15 +185,15 @@ bool Wallet::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, TransactionContex
 	uint256 lUtxoId = utxo->hash();
 
 	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[pushUnlinkedOut]: ") + 
-		strprintf("try to push utxo: %s/%s/%s#", 
-			utxo->hash().toHex(), utxo->out().tx().toHex(), utxo->out().chain().toHex().substr(0, 10)));
+		strprintf("try to push utxo = %s, tx = %s, ctx = %s/%s#", 
+			utxo->hash().toHex(), utxo->out().tx().toHex(), ctx->tx()->id().toHex(), utxo->out().chain().toHex().substr(0, 10)));
 
 	Transaction::UnlinkedOut lLtxo;
 	if (ltxo_.read(lUtxoId, lLtxo)) {
 		// already exists - just skip
 		if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[pushUnlinkedOut]: ") + 
-			strprintf("utxo ALREDY USED, skip action: %s/%s/%s#", 
-				utxo->hash().toHex(), utxo->out().tx().toHex(), utxo->out().chain().toHex().substr(0, 10)));
+			strprintf("ALREDY USED, skip action for utxo = %s, tx = %s, ctx = %s/%s#", 
+				utxo->hash().toHex(), utxo->out().tx().toHex(), ctx->tx()->id().toHex(), utxo->out().chain().toHex().substr(0, 10)));
 		return true;
 	}
 
@@ -201,8 +201,8 @@ bool Wallet::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, TransactionContex
 	if (utxo_.read(lUtxoId, lUtxo)) {
 		// already exists - accept
 		if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[pushUnlinkedOut]: ") + 
-			strprintf("utxo ALREDY pushed, skip action: %s/%s/%s#", 
-				utxo->hash().toHex(), utxo->out().tx().toHex(), utxo->out().chain().toHex().substr(0, 10)));
+			strprintf("ALREDY pushed, skip action for utxo = %s, tx = %s, ctx = %s/%s#", 
+				utxo->hash().toHex(), utxo->out().tx().toHex(), ctx->tx()->id().toHex(), utxo->out().chain().toHex().substr(0, 10)));
 		return true;
 	}
 
@@ -216,8 +216,8 @@ bool Wallet::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, TransactionContex
 	ctx->addNewUnlinkedOut(utxo);
 
 	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[pushUnlinkedOut]: pushed ") + 
-		strprintf("utxo: %s/%s/%s#", 
-			utxo->hash().toHex(), utxo->out().tx().toHex(), utxo->out().chain().toHex().substr(0, 10)));
+		strprintf("utxo = %s, tx = %s, ctx = %s/%s#", 
+			utxo->hash().toHex(), utxo->out().tx().toHex(), ctx->tx()->id().toHex(), utxo->out().chain().toHex().substr(0, 10)));
 
 	uint256 lAssetId = utxo->out().asset();
 	if (ctx->tx()->isValue(utxo)) {
@@ -247,15 +247,15 @@ bool Wallet::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, TransactionContex
 bool Wallet::popUnlinkedOut(const uint256& hash, TransactionContextPtr ctx) {
 	//
 	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[popUnlinkedOut]: ") + 
-		strprintf("try to pop utxo: %s/%s/%s#", 
-			hash.toHex(), ctx->tx()->hash().toHex(), ctx->tx()->chain().toHex().substr(0, 10)));
+		strprintf("try to pop utxo = %s, tx = ?, ctx = %s/%s#", 
+			hash.toHex(), ctx->tx()->id().toHex(), ctx->tx()->chain().toHex().substr(0, 10)));
 
 	Transaction::UnlinkedOut lLtxo;
 	if (ltxo_.read(hash, lLtxo)) {
 		// already exists - accept
 		if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[popUnlinkedOut]: ") + 
-			strprintf("utxo ALREDY popped: %s/%s/%s#", 
-				lLtxo.hash().toHex(), lLtxo.out().tx().toHex(), lLtxo.out().chain().toHex().substr(0, 10)));
+			strprintf("ALREDY popped, skip action for utxo = %s, tx = %s, ctx = %s/%s#", 
+				lLtxo.hash().toHex(), lLtxo.out().tx().toHex(), ctx->tx()->id().toHex(), lLtxo.out().chain().toHex().substr(0, 10)));
 		return true;
 	}
 
@@ -275,8 +275,8 @@ bool Wallet::popUnlinkedOut(const uint256& hash, TransactionContextPtr ctx) {
 		ctx->addUsedUnlinkedOut(lUtxoPtr);
 
 		if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[popUnlinkedOut]: ") + 
-			strprintf("popped utxo: %s/%s/%s#", 
-				hash.toHex(), ctx->tx()->hash().toHex(), ctx->tx()->chain().toHex().substr(0, 10)));
+			strprintf("popped utxo = %s, tx = %s, ctx = %s/%s#", 
+				hash.toHex(), lUtxoPtr->out().tx().toHex(), ctx->tx()->id().toHex(), ctx->tx()->chain().toHex().substr(0, 10)));
 
 		{
 			boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
@@ -315,8 +315,8 @@ bool Wallet::popUnlinkedOut(const uint256& hash, TransactionContextPtr ctx) {
 	}
 
 	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[popUnlinkedOut]: ") + 
-		strprintf("utxo is NOT FOUND: %s/%s/%s#",
-			hash.toHex(), ctx->tx()->hash().toHex(), ctx->tx()->chain().toHex().substr(0, 10)));
+		strprintf("link NOT FOUND for utxo = %s, tx = ?, ctx = %s/%s#",
+			hash.toHex(), ctx->tx()->id().toHex(), ctx->tx()->chain().toHex().substr(0, 10)));
 
 	return false;
 }
@@ -389,24 +389,34 @@ amount_t Wallet::balance(const uint256& asset) {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
 	//
+	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[balance]: ") + strprintf("computing balance for %s", asset.toHex()));
+	//
 	amount_t lBalance = 0;
 	std::map<uint256 /*asset*/, std::multimap<amount_t /*amount*/, uint256 /*utxo*/>>::iterator lAsset = assetsCache_.find(asset);
 	if (lAsset != assetsCache_.end()) {
 		for (std::multimap<amount_t /*amount*/, uint256 /*utxo*/>::iterator lAmount = lAsset->second.begin(); 
 			lAmount != lAsset->second.end(); lAmount++) {
-		
+
 			Transaction::UnlinkedOutPtr lUtxo = findUnlinkedOut(lAmount->second);
 
 			if (lUtxo == nullptr) {
+				//
+				if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[balance]: ") + 
+							strprintf("utxo NOT FOUND %s/%s", lAmount->second.toHex(), asset.toHex()));
 				// delete from store
 				utxo_.remove(lAmount->second);
 				lAsset->second.erase(lAmount);
 			} else {
+				//
+				if (gLog().isEnabled(Log::BALANCE)) gLog().write(Log::WALLET, std::string("[balance]: ") + 
+							strprintf("utxo FOUND %d/%s/%s", lAmount->first, lAmount->second.toHex(), asset.toHex()));
+
 				lBalance += lAmount->first;
 			}
 		}
 	}
 
+	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[balance]: ") + strprintf("wallet balance for %s = %d", asset.toHex(), lBalance));
 	return lBalance;
 }
 
@@ -646,6 +656,9 @@ TransactionContextPtr Wallet::makeTxSpend(Transaction::Type type, const uint256&
 	// fill inputs
 	amount_t lAmount = fillInputs(lTx, asset, amount);
 
+	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[makeTxSpend]: creating spend tx: ") + 
+		strprintf("to = %s, amount = %d, asset = %s#", const_cast<PKey&>(dest).toString(), amount, asset.toHex().substr(0, 10)));
+
 	// fill output
 	SKey lSKey = changeKey(); // TODO: do we need to specify exact skey?
 	if (!lSKey.valid()) throw qbit::exception("E_KEY", "Secret key is invalid.");
@@ -689,6 +702,9 @@ TransactionContextPtr Wallet::makeTxSpend(Transaction::Type type, const uint256&
 	}
 
 	if (!lTx->finalize(lSKey)) throw qbit::exception("E_TX_FINALIZE", "Transaction finlization failed.");
+
+	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[makeTxSpend]: spend tx created: ") + 
+		strprintf("to = %s, amount = %d/%d, fee = %d, asset = %s#", const_cast<PKey&>(dest).toString(), amount, lAmount, lFee, asset.toHex().substr(0, 10)));
 
 	// write to pending transactions
 	pendingtxs_.write(lTx->id(), lTx);

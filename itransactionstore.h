@@ -34,6 +34,7 @@ public:
 	virtual bool commitBlock(BlockContextPtr, size_t&) { throw qbit::exception("NOT_IMPL", "ITransactionStore::commitBlock - not implemented."); }
 
 	virtual void saveBlock(BlockPtr) { throw qbit::exception("NOT_IMPL", "ITransactionStore::saveBlock - not implemented."); }
+	virtual void saveBlockHeader(const BlockHeader& /*header*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::saveBlockHeader - not implemented."); }
 	virtual void reindexFull(const uint256&, IMemoryPoolPtr /*pool*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::reindexFull - not implemented."); }
 	virtual bool reindex(const uint256&, const uint256&, IMemoryPoolPtr /*pool*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::reindex - not implemented."); }
 
@@ -62,6 +63,7 @@ public:
 
 	virtual BlockPtr block(size_t /*height*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::block - not implemented."); }
 	virtual BlockPtr block(const uint256& /*id*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::block - not implemented."); }
+	virtual bool blockHeader(const uint256& /*id*/, BlockHeader& /*header*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::blockHeader - not implemented."); }
 
 	virtual bool blockExists(const uint256& /*block*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::blockExists - not implemented."); }
 	virtual bool enqueueBlock(const NetworkBlockHeader& /*block*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::enqueueBlock - not implemented."); }
@@ -69,6 +71,7 @@ public:
 
 	virtual bool transactionHeight(const uint256& /*tx*/, size_t& /*height*/, bool& /*coinbase*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::transactionHeight - not implemented."); }
 	virtual bool blockHeight(const uint256& /*block*/, size_t& /*height*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::blockHeight - not implemented."); }
+	virtual bool blockHeaderHeight(const uint256& /*block*/, size_t& /*height*/, BlockHeader& /*header*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::blockHeaderHeight - not implemented."); }
 
 	virtual bool firstEnqueuedBlock(NetworkBlockHeader& /*block*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::firstEnqueuedBlock - not implemented."); }
 };

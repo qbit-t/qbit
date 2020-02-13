@@ -91,7 +91,9 @@ public:
 	virtual void broadcastBlockHeaderAndState(const NetworkBlockHeader& /*block*/, StatePtr /*state*/) { throw qbit::exception("NOT_IMPL", "IPeer::broadcastBlockHeaderAndState - not implemented."); }
 
 	virtual void synchronizeFullChain(IConsensusPtr, SynchronizationJobPtr /*job*/) { throw qbit::exception("NOT_IMPL", "IPeer::synchronizeFullChain - not implemented."); }
-	virtual void synchronizeFullChainHead(IConsensusPtr, SynchronizationJobPtr /*job*/) { throw qbit::exception("NOT_IMPL", "IPeer::synchronizeFullChainHead - not implemented."); }
+	virtual void synchronizePartialTree(IConsensusPtr, SynchronizationJobPtr /*job*/) { throw qbit::exception("NOT_IMPL", "IPeer::synchronizePartialTree - not implemented."); }
+	virtual void synchronizeLargePartialTree(IConsensusPtr, SynchronizationJobPtr /*job*/) { throw qbit::exception("NOT_IMPL", "IPeer::synchronizeLargePartialTree - not implemented."); }
+	virtual void synchronizePendingBlocks(IConsensusPtr, SynchronizationJobPtr /*job*/) { throw qbit::exception("NOT_IMPL", "IPeer::synchronizePendingBlocks - not implemented."); }
 
 	virtual void acquireBlock(const NetworkBlockHeader& /*block*/) { throw qbit::exception("NOT_IMPL", "IPeer::acquireBlock - not implemented."); }
 };

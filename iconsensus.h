@@ -32,7 +32,7 @@ class IConsensus {
 public:
 	enum ChainState {
 		UNDEFINED = 0,
-		NOT_SYNCRONIZED = 1,
+		NOT_SYNCHRONIZED = 1,
 		SYNCHRONIZING = 2,
 		INDEXING = 3, 
 		SYNCHRONIZED = 4
@@ -47,6 +47,7 @@ public:
 	virtual uint64_t currentTime() { throw qbit::exception("NOT_IMPL", "IConsensus::currentTime - not implemented."); }
 	virtual StatePtr currentState() { throw qbit::exception("NOT_IMPL", "IConsensus::currentState - not implemented."); }
 	virtual size_t quarantineTime() { throw qbit::exception("NOT_IMPL", "IConsensus::quarantineTime - not implemented."); }
+	virtual size_t partialTreeThreshold() { throw qbit::exception("NOT_IMPL", "IConsensus::partialTreeThreshold - not implemented."); }
 
 	virtual void pushPeer(IPeerPtr /*peer*/) { throw qbit::exception("NOT_IMPL", "IConsensus::pushPeer - not implemented."); }
 	virtual void popPeer(IPeerPtr /*peer*/) { throw qbit::exception("NOT_IMPL", "IConsensus::popPeer - not implemented."); }
@@ -89,6 +90,8 @@ public:
 
 	virtual bool checkBalance(amount_t /*coinbaseAmount*/, amount_t /*blockFee*/, size_t /*height*/) { throw qbit::exception("NOT_IMPL", "IConsensus::checkCoinbaseAmountAndFee - not implemented."); }
 	virtual bool checkSequenceConsistency(const BlockHeader& /*block*/) { throw qbit::exception("NOT_IMPL", "IConsensus::checkSequenceConsistency - not implemented."); }
+
+	virtual bool processPartialTreeHeaders(SynchronizationJobPtr /*job*/) { throw qbit::exception("NOT_IMPL", "IConsensus::processPartialTreeHeaders - not implemented."); }
 
 	virtual bool isSimpleNetwork() { throw qbit::exception("NOT_IMPL", "IConsensus::isSimpleNetwork - not implemented."); }
 };

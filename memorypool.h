@@ -22,30 +22,123 @@ class MemoryPool: public IMemoryPool {
 public:
 	class TxTree {
 	public:
+		class TxInfo {
+		public:
+			TxInfo(int priority, TransactionContextPtr ctx) : priority_(priority), ctx_(ctx) {}
+
+			inline TransactionContextPtr ctx() { return ctx_; }
+			inline size_t priority() { return priority_; }
+			inline void changePriority(int priority) { priority_ = priority; }
+
+		private:
+			TransactionContextPtr ctx_;
+			size_t priority_;
+		};
+
+	public:
 		TxTree() : size_(0) {}
 
-		inline std::list<TransactionContextPtr>& back() { return back_; }
-		inline std::list<TransactionContextPtr>& front() { return front_; }
-		inline void back(TransactionContextPtr ctx) {
-			std::pair<std::set<uint256>::iterator, bool> lResult = presense_.insert(ctx->tx()->id());
-			if (lResult.second) {
-				back_.insert(back_.begin(), ctx); size_ += ctx->size(); 
+		enum Direction {
+			UP = -1,
+			DOWN = 1,
+			NEUTRAL = 0
+		};
+
+		inline int push(const uint256& context, TransactionContextPtr candidate, Direction direction) {
+			//
+			int lPriority = 0;
+			std::map<uint256 /*tx*/, TxInfo>::iterator lContext = txs_.find(context);
+			if (lContext != txs_.end()) {
+				lPriority = lContext->second.priority(); // extract context node priority
+			}
+
+			if (direction == TxTree::NEUTRAL) neutral_ = candidate->tx()->id();
+			lPriority += (int)direction;
+
+			//
+			std::map<uint256 /*tx*/, TxInfo>::iterator lInfo = txs_.find(candidate->tx()->id());
+			if (lInfo != txs_.end()) {
+				//
+				if (lInfo->second.priority() != lPriority) {
+					//
+					std::pair<std::multimap<int, TransactionContextPtr>::iterator,
+								std::multimap<int, TransactionContextPtr>::iterator> lRange = queue_.equal_range(lInfo->second.priority());
+					for (std::multimap<int, TransactionContextPtr>::iterator lItem = lRange.first; lItem != lRange.second; lItem++) {
+						//
+						if (lItem->second->tx()->id() == candidate->tx()->id()) {
+							queue_.erase(lItem);
+							break; 
+						}
+					}
+
+					queue_.insert(std::multimap<int /*priority*/, TransactionContextPtr>::value_type(lPriority, candidate));
+				}
+			} else {
+				queue_.insert(std::multimap<int /*priority*/, TransactionContextPtr>::value_type(lPriority, candidate));
+			}
+
+			txs_.insert(std::map<uint256 /*tx*/, TxInfo>::value_type(candidate->tx()->id(), TxInfo(lPriority, candidate)));
+
+			return lPriority;
+		}
+
+		inline void merge(const TxTree& other) {
+			//
+			if (!txs_.size()) {
+				txs_.insert(const_cast<TxTree&>(other).transactions().begin(), const_cast<TxTree&>(other).transactions().end());
+				queue_.insert(const_cast<TxTree&>(other).queue().begin(), const_cast<TxTree&>(other).queue().end());
+			} else {
+				//
+				int lNeutralPriority = 0;
+				std::map<uint256 /*tx*/, TxInfo>::iterator lNeutral = txs_.find(const_cast<TxTree&>(other).neutral());
+				if (lNeutral != txs_.end()) {
+					//
+					lNeutralPriority = lNeutral->second.priority();
+				}
+
+				for (std::map<uint256 /*tx*/, TxInfo>::iterator lInfo = const_cast<TxTree&>(other).transactions().begin(); 
+															lInfo != const_cast<TxTree&>(other).transactions().end(); lInfo++) {
+					std::map<uint256 /*tx*/, TxInfo>::iterator lOurInfo = txs_.find(lInfo->first);
+					if (lOurInfo == txs_.end()) {
+						//
+						txs_.insert(std::map<uint256 /*tx*/, TxInfo>::value_type(
+							lInfo->first, 
+							TxInfo(lInfo->second.priority() + lNeutralPriority, lInfo->second.ctx())));
+						queue_.insert(std::multimap<int /*priority*/, TransactionContextPtr>::value_type(
+							lInfo->second.priority() + lNeutralPriority, 
+							lInfo->second.ctx()));
+					} else if ((lOurInfo->second.priority() < 0 && lOurInfo->second.priority() > lNeutralPriority + lInfo->second.priority()) ||
+								(lOurInfo->second.priority() > 0 && lOurInfo->second.priority() < lNeutralPriority + lInfo->second.priority())) {
+						//
+						std::pair<std::multimap<int, TransactionContextPtr>::iterator,
+									std::multimap<int, TransactionContextPtr>::iterator> lRange = queue_.equal_range(lOurInfo->second.priority());
+						for (std::multimap<int, TransactionContextPtr>::iterator lItem = lRange.first; lItem != lRange.second; lItem++) {
+							//
+							if (lItem->second->tx()->id() == lInfo->second.ctx()->tx()->id()) { queue_.erase(lItem); break; }
+						}
+
+						txs_.insert(std::map<uint256 /*tx*/, TxInfo>::value_type(
+							lInfo->second.ctx()->tx()->id(), 
+							TxInfo(lInfo->second.priority() + lNeutralPriority, lInfo->second.ctx())));
+						queue_.insert(std::multimap<int /*priority*/, TransactionContextPtr>::value_type(
+							lInfo->second.priority() + lNeutralPriority, 
+							lInfo->second.ctx()));
+					}
+				}
 			}
 		}
-		inline void front(TransactionContextPtr ctx) {
-			std::pair<std::set<uint256>::iterator, bool> lResult = presense_.insert(ctx->tx()->id());
-			if (lResult.second) {
-				front_.push_back(ctx); size_ += ctx->size(); 
-			}
-		}
+
+		inline std::map<uint256 /*tx*/, TxInfo>& transactions() { return txs_; }
+		inline std::multimap<int /*priority*/, TransactionContextPtr>& queue() { return queue_; }
+		inline uint256 neutral() { return neutral_; }
 
 		inline size_t size() { return size_; }
 
 	private:
 		size_t size_;
-		std::set<uint256> presense_;
-		std::list<TransactionContextPtr> back_;
-		std::list<TransactionContextPtr> front_;
+		std::map<uint256 /*tx*/, TxInfo> txs_;
+		std::multimap<int /*priority*/, TransactionContextPtr> queue_;
+		uint256 neutral_;
 	};
 
 	class PoolStore: public ITransactionStore {
@@ -69,7 +162,7 @@ public:
 		}
 
 		std::multimap<uint256 /*from*/, uint256 /*to*/>& forward() { return forward_; }
-		std::map<uint256 /*to*/, uint256 /*from*/>& reverse() { return reverse_; }
+		std::multimap<uint256 /*to*/, uint256 /*from*/>& reverse() { return reverse_; }
 
 		void cleanUp(TransactionContextPtr);
 		void remove(TransactionContextPtr);
@@ -90,7 +183,7 @@ public:
 		// tx tree
 		std::map<uint256 /*id*/, TransactionContextPtr /*tx*/> tx_;
 		std::multimap<uint256 /*from*/, uint256 /*to*/> forward_;
-		std::map<uint256 /*to*/, uint256 /*from*/> reverse_;
+		std::multimap<uint256 /*to*/, uint256 /*from*/> reverse_;
 
 		// used utxo
 		std::map<uint256 /*utxo*/, bool> usedUtxo_;
@@ -175,8 +268,8 @@ private:
 		return QUNIT;
 	}
 
-	bool traverseLeft(TransactionContextPtr, const TxTree&);
-	bool traverseRight(TransactionContextPtr, const TxTree&);
+	bool traverseLeft(TransactionContextPtr, TxTree&);
+	bool traverseRight(TransactionContextPtr, TxTree&);
 
 private:
 	IConsensusPtr consensus_;
