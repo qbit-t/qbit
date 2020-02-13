@@ -128,7 +128,6 @@ public:
 class ServerS0: public Unit {
 public:
 	ServerS0(): Unit("ServerS0") {
-
 		settings_ = std::make_shared<SettingsS0>();
 
 		// main working configuration

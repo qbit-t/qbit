@@ -28,7 +28,7 @@ public:
 		GLOBAL_STATE = 0x04,
 		BLOCK = 0x05,
 		TRANSACTION = 0x06,
-		BLOCK_HEADER = 0x07, // TODO: reuse for headers -> to data sync & new sync job implementation
+		BLOCK_HEADER = 0x07,
 		BLOCK_HEADER_AND_STATE = 0x08,
 		
 		GET_BLOCK_HEADER = 0x10,
@@ -43,6 +43,8 @@ public:
 		BLOCK_BY_HEIGHT_IS_ABSENT = 0x23,
 		BLOCK_BY_ID_IS_ABSENT = 0x24,
 		NETWORK_BLOCK_IS_ABSENT = 0x25,
+		BLOCK_HEADER_IS_ABSENT = 0x26,
+		BLOCK_IS_ABSENT = 0x27,
 
 		GET_PEERS = 0x30,
 		PEER_EXISTS = 0x31,
@@ -100,6 +102,9 @@ public:
 			case BLOCK_BY_ID_IS_ABSENT: lMsg = "BLOCK_BY_ID_IS_ABSENT"; break;
 			case NETWORK_BLOCK_IS_ABSENT: lMsg = "NETWORK_BLOCK_IS_ABSENT"; break;
 			case BLOCK_HEADER_AND_STATE: lMsg = "BLOCK_HEADER_AND_STATE"; break;
+			case BLOCK_HEADER_IS_ABSENT: lMsg = "BLOCK_HEADER_IS_ABSENT"; break;
+			case BLOCK_IS_ABSENT: lMsg = "BLOCK_IS_ABSENT"; break;
+
 			default: lMsg = "UNKNOWN"; break;
 		}
 

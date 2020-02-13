@@ -90,7 +90,12 @@ public:
 	//
 	// minimum network size
 	// TODO: settings
-	virtual size_t simpleNetworkSize() { return 5; }	
+	virtual size_t simpleNetworkSize() { return 5; }
+
+	//
+	// mini-tree for sync
+	// TODO: settings
+	virtual size_t partialTreeThreshold() { return 5; }
 
 	//
 	// use peer for network participation
@@ -446,8 +451,8 @@ public:
 		}
 
 		gLog().write(Log::CONSENSUS, 
-			strprintf("[isChainSynchronized]: %s/%s/%d/%s#", 
-				(lResult ? "true" : "FALSE"), lHeader.hash().toHex(), lHeight, chain_.toHex().substr(0, 10)));
+			strprintf("[isChainSynchronized]: %s/%d/%s/%s#", 
+				(lResult ? "true" : "FALSE"), lHeight, lHeader.hash().toHex(), chain_.toHex().substr(0, 10)));
 
 		return lResult;
 	}
@@ -516,7 +521,7 @@ public:
 			{
 				boost::unique_lock<boost::mutex> lLock(transitionMutex_);
 				if (lIsSynchronized) chainState_ = IConsensus::SYNCHRONIZED;
-				else chainState_ = IConsensus::NOT_SYNCRONIZED;
+				else chainState_ = IConsensus::NOT_SYNCHRONIZED;
 			}
 		}
 
@@ -536,7 +541,7 @@ public:
 		bool lProcess = false; 
 		{
 			boost::unique_lock<boost::mutex> lLock(transitionMutex_);
-			if (chainState_ == IConsensus::UNDEFINED || chainState_ == IConsensus::NOT_SYNCRONIZED) {
+			if (chainState_ == IConsensus::UNDEFINED || chainState_ == IConsensus::NOT_SYNCHRONIZED) {
 				chainState_ = IConsensus::SYNCHRONIZING;
 				lProcess = true;
 			}
@@ -550,15 +555,37 @@ public:
 				if (settings_->isFullNode()) {
 					// store is empty - full sync
 					BlockHeader lHeader;
-					if (!store_->currentHeight(lHeader)) {
+					size_t lOurHeight = store_->currentHeight(lHeader);
+					if (!lOurHeight) {
+						//
+						if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[doSynchronize]: starting FULL synchronization ") + 
+							strprintf("%d/%s/%s#", lHeight, lBlock.toHex(), chain_.toHex().substr(0, 10)));
+						//
+						// TODO: that is tricky to get by height, we need optimized way to get block headers from peer (bundled?)
+						// 
+						/*
 						job_ = SynchronizationJob::instance(lHeight, lBlock); // height from
 						for(std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
 							(*lPeer)->synchronizeFullChain(shared_from_this(), job_);
 						}
-					} else {
+						*/
+						std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); // this node -> get current block thread
+						job_ = SynchronizationJob::instance(lBlock); // block from
+						(*lPeer)->synchronizeLargePartialTree(shared_from_this(), job_);
+					} else if (lHeight > lOurHeight && lHeight - lOurHeight < partialTreeThreshold()) {
+						//
+						if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[doSynchronize]: starting PARTIAL tree synchronization ") + 
+							strprintf("%d/%s/%s#", lHeight, lBlock.toHex(), chain_.toHex().substr(0, 10)));
 						std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); // just first?
 						job_ = SynchronizationJob::instance(lBlock); // block from
-						(*lPeer)->synchronizeFullChainHead(shared_from_this(), job_);
+						(*lPeer)->synchronizePartialTree(shared_from_this(), job_);
+					} else {
+						//
+						if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[doSynchronize]: starting LARGE PARTIAL tree synchronization ") + 
+							strprintf("%d/%s/%s#", lHeight, lBlock.toHex(), chain_.toHex().substr(0, 10)));
+						std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); // just first?
+						job_ = SynchronizationJob::instance(lBlock); // block from
+						(*lPeer)->synchronizeLargePartialTree(shared_from_this(), job_);
 					}
 				} else if (settings_->isNode()) {
 
@@ -576,6 +603,49 @@ public:
 				chainState_ = IConsensus::SYNCHRONIZED;
 
 				return true;
+			}
+		}
+
+		return false;
+	}
+
+	//
+	// process downloaded partial tree blocks
+	bool processPartialTreeHeaders(SynchronizationJobPtr job) {
+		//
+		bool lProcess = false; 
+		{
+			boost::unique_lock<boost::mutex> lLock(transitionMutex_);
+			if (chainState_ == IConsensus::SYNCHRONIZING || chainState_ == IConsensus::NOT_SYNCHRONIZED) {
+				lProcess = true;
+			}
+		}
+
+		if (lProcess) {
+			std::list<IPeerPtr> lPeers;
+			uint256 lBlock;
+			locateSynchronizedRoot(lPeers, lBlock); // get peers, height and block
+			if (lPeers.size()) {
+				if (settings_->isFullNode() || settings_->isNode()) {
+					for(std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
+						(*lPeer)->synchronizePendingBlocks(shared_from_this(), job);
+					}
+
+					return true;
+				} else {
+					gLog().write(Log::CONSENSUS, "[processPartialTreeHeaders]: synchronization is allowed for NODE or FULLNODE only.");
+					//
+					boost::unique_lock<boost::mutex> lLock(transitionMutex_);
+					chainState_ = IConsensus::SYNCHRONIZED;
+
+					return true;
+				}			
+			} else {
+				// there is no peers
+				boost::unique_lock<boost::mutex> lLock(transitionMutex_);
+				chainState_ = IConsensus::NOT_SYNCHRONIZED;
+
+				return false;
 			}
 		}
 
@@ -604,7 +674,7 @@ public:
 			{
 				boost::unique_lock<boost::mutex> lLock(transitionMutex_);
 				if (lIsSynchronized) chainState_ = IConsensus::SYNCHRONIZED;
-				else chainState_ = IConsensus::NOT_SYNCRONIZED;
+				else chainState_ = IConsensus::NOT_SYNCHRONIZED;
 			}
 		}
 	}
@@ -634,7 +704,7 @@ public:
 			{
 				boost::unique_lock<boost::mutex> lLock(transitionMutex_);
 				if (lIsSynchronized) chainState_ = IConsensus::SYNCHRONIZED;
-				else chainState_ = IConsensus::NOT_SYNCRONIZED;
+				else chainState_ = IConsensus::NOT_SYNCHRONIZED;
 			}
 		}
 
@@ -647,7 +717,7 @@ public:
 		{
 			boost::unique_lock<boost::mutex> lLock(transitionMutex_);
 			if (chainState_ == IConsensus::SYNCHRONIZING || chainState_ == IConsensus::SYNCHRONIZED || chainState_ == IConsensus::INDEXING) {
-				chainState_ = IConsensus::NOT_SYNCRONIZED;
+				chainState_ = IConsensus::NOT_SYNCHRONIZED;
 			}
 		}
 	}
@@ -657,7 +727,7 @@ public:
 	void toSynchronizing() {
 		{
 			boost::unique_lock<boost::mutex> lLock(transitionMutex_);
-			if (chainState_ == IConsensus::NOT_SYNCRONIZED || chainState_ == IConsensus::SYNCHRONIZED) {
+			if (chainState_ == IConsensus::NOT_SYNCHRONIZED || chainState_ == IConsensus::SYNCHRONIZED) {
 				chainState_ = IConsensus::SYNCHRONIZING;
 			}
 		}
@@ -680,7 +750,7 @@ public:
 	std::string chainStateString() {
 		switch(chainState_) {
 			case IConsensus::UNDEFINED: return "UNDEFINED";
-			case IConsensus::NOT_SYNCRONIZED: return "NOT_SYNCRONIZED";
+			case IConsensus::NOT_SYNCHRONIZED: return "NOT_SYNCHRONIZED";
 			case IConsensus::SYNCHRONIZING: return "SYNCHRONIZING";
 			case IConsensus::INDEXING: return "INDEXING";
 			case IConsensus::SYNCHRONIZED: return "SYNCHRONIZED";

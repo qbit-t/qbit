@@ -25,8 +25,10 @@ int main(int argv, char** argc)
 	std::cout << std::endl << "q-bit.technology | unit tests v0.1" << std::endl << std::endl;
 	TestSuit lSuit;
 
-	//std::cout << qbit::getTime() << "\n";
-	//std::cout << qbit::getMicroseconds() << "\n";
+	if (argv > 1 && std::string(argc[1]) == "-S0") gLog("/tmp/.qbitS0/debug.log"); // setup
+	else if (argv > 1 && std::string(argc[1]) == "-S1") gLog("/tmp/.qbitS1/debug.log"); // setup
+	else if (argv > 1 && std::string(argc[1]) == "-S2") gLog("/tmp/.qbitS2/debug.log"); // setup
+	else if (argv > 1 && std::string(argc[1]) == "-S3") gLog("/tmp/.qbitS3/debug.log"); // setup
 
 	gLog().enable(Log::INFO);
 	gLog().enable(Log::POOL);
