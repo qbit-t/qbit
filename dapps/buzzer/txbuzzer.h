@@ -99,7 +99,7 @@ public:
 	}
 
 	//
-	Transaction::UnlinkedOutPtr addBuzzerPublicOut(const SKey& skey, const PKey& pkey) {
+	Transaction::UnlinkedOutPtr addBuzzerSubscriptionOut(const SKey& skey, const PKey& pkey) {
 		//
 		Transaction::Out lOut;
 		lOut.setAsset(TxAssetType::nullAsset());
