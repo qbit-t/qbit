@@ -64,6 +64,42 @@ public:
 	}
 };
 
+class HttpCreateDApp: public IHttpCallEnpoint {
+public:
+	HttpCreateDApp() {}
+
+	void process(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
+	std::string method() { return std::string("createdapp"); }
+
+	static IHttpCallEnpointPtr instance() {
+		return std::make_shared<HttpCreateDApp>();
+	}
+};
+
+class HttpCreateShard: public IHttpCallEnpoint {
+public:
+	HttpCreateShard() {}
+
+	void process(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
+	std::string method() { return std::string("createshard"); }
+
+	static IHttpCallEnpointPtr instance() {
+		return std::make_shared<HttpCreateShard>();
+	}
+};
+
+class HttpGetTransaction: public IHttpCallEnpoint {
+public:
+	HttpGetTransaction() {}
+
+	void process(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
+	std::string method() { return std::string("gettransaction"); }
+
+	static IHttpCallEnpointPtr instance() {
+		return std::make_shared<HttpGetTransaction>();
+	}
+};
+
 } // qbit
 
 #endif

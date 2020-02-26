@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Andrew Demuskov
+// Copyright (c) 2019-2020 Andrew Demuskov
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -19,6 +19,8 @@
 #include "random.h"
 #include "mainchain.h"
 
+#include <boost/logic/tribool.hpp>
+
 namespace qbit {
 
 using namespace qasm;
@@ -28,11 +30,13 @@ class Transaction;
 class TxCoinBase;
 class TxSpend;
 class TxSpendPrivate;
+class TxFee;
 
 typedef std::shared_ptr<Transaction> TransactionPtr;
 typedef std::shared_ptr<TxCoinBase> TxCoinBasePtr;
 typedef std::shared_ptr<TxSpend> TxSpendPtr;
 typedef std::shared_ptr<TxSpendPrivate> TxSpendPrivatePtr;
+typedef std::shared_ptr<TxFee> TxFeePtr;
 
 //
 // tx helper
@@ -68,15 +72,19 @@ class Transaction {
 public:
 	enum Type {
 		// value transfer
-		COINBASE 				= 0x0001,	// QBIT coinbase transaction, validator selected (cookaroo maybe)
+		COINBASE 				= 0x0001,	// QBIT coinbase transaction
 		SPEND					= 0x0002,	// Spend transaction: any asset
 		SPEND_PRIVATE			= 0x0003,	// Spend private transaction: any asset (default for all spend operations)
+		FEE 					= 0x0004,	// Special type of transaction: fee for sharding puposes
+		BASE 					= 0x0005,	// QBIT rewardless transaction: only fee collected without emission (shrding), unspendible
+		BLOCKBASE 				= 0x0006,	// QBIT transaction: special tx type for rewarding and spending 
 
 		// entity / action
 		CONTRACT 				= 0x0010,	// Smart-contract publishing
 		EVENT 					= 0x0011,	// Publish non-persistable event as transaction (ignition for smart-contracts processing)
 		MESSAGE					= 0x0012,	// Create and send encrypted message (up to 256 bytes)
-		CHAIN					= 0x0013,	// Create chain (shard) transaction 
+		SHARD					= 0x0013,	// Create chain (shard) transaction 
+		DAPP					= 0x0014,	// DApp root
 
 		// entity / action
 		ASSET_TYPE 				= 0x0020, 	// Create crypto-asset type and embed crypto-asset specification as meta-data
@@ -94,8 +102,28 @@ public:
 		VALIDATOR 				= 0x0040, 	// Validator - block emitter, tx checker and QBIT reward receiver. Validators can be created only (first releases): genesis block issuer
 		GATEKEEPER				= 0x0041, 	// Gatekeeper - controls exchange\atomic exchange between DLTs, control and provide partial keys and sigs for multi-sig processing
 
-		// specialized org
-		ORGANIZATION_EXCHANGE	= 0x0100	// Create exchange entity (pre-defined and integrated into core)
+		// custom tx types
+		CUSTOM_00 				= 0x1000, 	// Custom tx types (for dapp developing), CUSTOM + 1 - first custom tx type
+		CUSTOM_01 				= 0x1001,
+		CUSTOM_02 				= 0x1002,
+		CUSTOM_03 				= 0x1003,
+		CUSTOM_04 				= 0x1004,
+		CUSTOM_05 				= 0x1005,
+		CUSTOM_06 				= 0x1006,
+		CUSTOM_07 				= 0x1007,
+		CUSTOM_08 				= 0x1008,
+		CUSTOM_09 				= 0x1009,
+		CUSTOM_10 				= 0x100a,
+		CUSTOM_11 				= 0x100b,
+		CUSTOM_12 				= 0x100c,
+		CUSTOM_13 				= 0x100d,
+		CUSTOM_14 				= 0x100e,
+		CUSTOM_15 				= 0x100f,
+		CUSTOM_16 				= 0x1010,
+		CUSTOM_17 				= 0x1011,
+		CUSTOM_18 				= 0x1012,
+		CUSTOM_19 				= 0x1013,
+		CUSTOM_20 				= 0x1014
 	};
 
 	// use to register tx type functor
@@ -280,7 +308,7 @@ public:
 	private:
 		Link out_; // one of previous out
 		PKey address_;	
-		amount_t amount_;
+		amount_t amount_ = 0;
 		uint256 blind_;
 		uint256 nonce_;
 		std::vector<unsigned char> commit_;
@@ -327,6 +355,7 @@ public:
 				case Transaction::COINBASE: lTx = std::make_shared<TxCoinBase>(); break;
 				case Transaction::SPEND: lTx = std::make_shared<TxSpend>(); break;
 				case Transaction::SPEND_PRIVATE: lTx = std::make_shared<TxSpendPrivate>(); break;
+				case Transaction::FEE: lTx = std::make_shared<TxFee>(); break;
 				default: {
 					TransactionTypes::iterator lTypeIterator = gTxTypes.find(lType);
 					if (lTypeIterator != gTxTypes.end()) {
@@ -350,7 +379,7 @@ public:
 		}
 	};	
 
-	Transaction() { status_ = Status::CREATED; id_.setNull(); timeLock_ = 0; chain_ = MainChain::id(); }
+	Transaction() { status_ = Status::CREATED; id_.setNull(); timeLock_ = 0; chain_ = MainChain::id(); version_ = 0; }
 
 	virtual void serialize(DataStream& s) {}
 	virtual void serialize(HashWriter& s) {}
@@ -375,8 +404,8 @@ public:
 
 	virtual std::string toString();
 
-	inline uint32_t timeLock() { return timeLock_; }
-	inline void setTimelock(uint32_t timelock) { timeLock_ = timelock; }
+	inline uint64_t timeLock() { return timeLock_; }
+	inline void setTimelock(uint64_t timelock) { timeLock_ = timelock; }
 
 	virtual In& addFeeIn(const SKey&, UnlinkedOutPtr) { throw qbit::exception("NOT_IMPL", "Not implemented."); }
 	virtual Transaction::UnlinkedOutPtr addFeeOut(const SKey&, const PKey&, const uint256&, amount_t) { throw qbit::exception("NOT_IMPL", "Not implemented."); }
@@ -388,6 +417,26 @@ public:
 
 	virtual inline void setChain(const uint256& chain) { chain_ = chain; }
 	inline uint256& chain() { return chain_; }
+
+	virtual void properties(std::map<std::string, std::string>&) {
+	}
+
+	virtual std::list<Transaction::UnlinkedOutPtr> utxos(const uint256& asset) {
+		return std::list<Transaction::UnlinkedOutPtr>();
+	}
+
+	inline bool hasOuterIns() {
+		//
+		if (hasOuterIns_ == -1) {
+			for (std::vector<In>::iterator lIn = in_.begin(); lIn != in_.end(); lIn++) {
+				if ((*lIn).out().chain() != chain_) { hasOuterIns_ = 1; break; }
+			}
+
+			if (hasOuterIns_ == -1) hasOuterIns_ = 0;
+		}
+
+		return (hasOuterIns_ == 1 ? true : false);
+	}
 
 protected:
 	// tx type
@@ -403,7 +452,7 @@ protected:
 	std::vector<Out> out_;
 
 	// time-lock
-	uint32_t timeLock_;
+	uint64_t timeLock_;
 
 	//
 	// in-memory only
@@ -412,6 +461,8 @@ protected:
 	Status status_;
 	// id
 	uint256 id_;
+	// has outer ins
+	int hasOuterIns_ = -1;
 };
 
 //
@@ -607,6 +658,14 @@ public:
 	virtual bool isValue(UnlinkedOutPtr) { return true; }
 	virtual bool isEntity(UnlinkedOutPtr) { return false; }	
 
+	virtual std::list<Transaction::UnlinkedOutPtr> utxos(const uint256& asset) {
+		_assetMap::iterator lItem = assetOut_.find(asset);
+		if (lItem != assetOut_.end())
+			return lItem->second;
+ 
+		return std::list<Transaction::UnlinkedOutPtr>();
+	}
+
 	//
 	// balance amounts and make extra out for balance check
 	// acts as finalization for create
@@ -688,6 +747,60 @@ public:
 };
 
 //
+// Fee transaction
+class TxFee : public TxSpend {
+public:
+	TxFee() { type_ = Transaction::FEE; }
+
+	virtual Transaction::UnlinkedOutPtr addExternalOut(const SKey& skey, const PKey& pkey, const uint256& asset, amount_t amount) {
+		qbit::vector<unsigned char> lCommitment;
+
+		uint256 lBlind = const_cast<SKey&>(skey).shared(pkey);
+		Math::mul(lBlind, lBlind, Random::generate());
+
+		if (!const_cast<SKey&>(skey).context()->createCommitment(lCommitment, lBlind, amount)) {
+			throw qbit::exception("INVALID_COMMITMENT", "Commitment creation failed.");
+		}
+
+		Transaction::Out lOut;
+		lOut.setAsset(asset);
+		lOut.setDestination(ByteCode() <<
+			OP(QMOV) 		<< REG(QD0) << CVAR(const_cast<PKey&>(pkey).get()) << 
+			OP(QMOV) 		<< REG(QA0) << CU64(amount) <<
+			OP(QMOV) 		<< REG(QA1) << CVAR(lCommitment) <<			
+			OP(QMOV) 		<< REG(QA2) << CU256(lBlind) <<			
+			OP(QCHECKA) 	<<
+			OP(QATXOA) 		<<
+			OP(QEQADDR) 	<<
+			OP(QTIFMC)		<<
+			OP(QMOV) 		<< REG(QR0) << CU8(0x01) <<	
+			OP(QRET));
+
+		Transaction::UnlinkedOutPtr lUTXO = Transaction::UnlinkedOut::instance(
+			Transaction::Link(chain(), asset, out_.size()), // link
+			pkey,
+			amount, // amount
+			lBlind, // blinding key
+			lCommitment // commit
+		);
+
+		// fill up for finalization
+		assetOut_[asset].push_back(lUTXO);
+
+		out_.push_back(lOut);
+		return lUTXO;
+	}
+
+	inline std::string name() { return "fee"; }
+
+	inline void serialize(DataStream& s) {}
+	inline void deserialize(DataStream& s) {}
+
+	virtual bool isValue(UnlinkedOutPtr) { return true; }
+	virtual bool isEntity(UnlinkedOutPtr) { return false; }		
+};
+
+//
 // Tx Factory
 //
 class TransactionFactory {
@@ -697,6 +810,7 @@ public:
 			case Transaction::COINBASE: return std::make_shared<TxCoinBase>();
 			case Transaction::SPEND: return std::make_shared<TxSpend>();
 			case Transaction::SPEND_PRIVATE: return std::make_shared<TxSpendPrivate>();
+			case Transaction::FEE: return std::make_shared<TxFee>();
 
 			default: {
 				TransactionTypes::iterator lType = gTxTypes.find(txType);

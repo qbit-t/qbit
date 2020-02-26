@@ -38,6 +38,16 @@ public:
 		return false;
 	}
 
+	void pop(const uint256& chain) {
+		//
+		boost::unique_lock<boost::mutex> lLock(consensusesMutex_);
+		std::map<uint256, IConsensusPtr>::iterator lConsensus = consensuses_.find(chain);
+		if (lConsensus != consensuses_.end()) {
+			lConsensus->second->close();
+			consensuses_.erase(chain);
+		}
+	}
+
 	void push(const uint256& chain) {
 		//
 		boost::unique_lock<boost::mutex> lLock(consensusesMutex_);
@@ -85,7 +95,8 @@ public:
 			ITransactionStorePtr lStore = storeManager_->locate(lConsensus->first);
 			if (lStore) {
 				BlockHeader lHeader;
-				size_t lHeight = lStore->currentHeight(lHeader);
+				uint64_t lHeight = lStore->currentHeight(lHeader);
+				if (!lHeight) lHeader.setChain(lStore->chain());
 				lState->addHeader(lHeader, lHeight);
 			}
 		}
@@ -107,6 +118,17 @@ public:
 			lConsensuses = consensuses_; // copy
 		}
 
+		{
+			// push
+			boost::unique_lock<boost::mutex> lLock(peersMutex_);
+			uint160 lAddress = peer->addressId();
+			peers_.insert(std::map<uint160 /*peer*/, IPeerPtr>::value_type(lAddress, peer));
+			std::vector<State::BlockInfo> lInfos = peer->state().infos();
+			for (std::vector<State::BlockInfo>::iterator lInfo = lInfos.begin(); lInfo != lInfos.end(); lInfo++) {
+				chainPeers_[(*lInfo).chain()].insert(lAddress);
+			}
+		}
+
 		for (std::map<uint256, IConsensusPtr>::iterator lConsensus = lConsensuses.begin(); lConsensus != lConsensuses.end(); lConsensus++) {
 			lConsensus->second->pushPeer(peer);
 		}
@@ -119,15 +141,14 @@ public:
 						LatencyMap::iterator> lRange = latencyMap_.equal_range(peer->latencyPrev());
 
 			for (LatencyMap::iterator lTo = lRange.first; lTo != lRange.second; lTo++)
-				if (lPeerId == lTo->second->addressId())
+				if (lPeerId == lTo->second->addressId()) {
 					latencyMap_.erase(lTo);
+					break;
+				}
 
 			// update latency
 			latencyMap_.insert(LatencyMap::value_type(peer->latency(), peer));
 		}
-
-		// update state
-		//pushState(State::instance(peer->state()));
 	}
 
 	//
@@ -143,6 +164,19 @@ public:
 			lConsensuses = consensuses_; // copy
 		}
 
+		{
+			// pop
+			boost::unique_lock<boost::mutex> lLock(peersMutex_);
+			uint160 lAddress = peer->addressId();
+			std::vector<State::BlockInfo> lInfos = peer->state().infos();
+			for (std::vector<State::BlockInfo>::iterator lInfo = lInfos.begin(); lInfo != lInfos.end(); lInfo++) {
+				chainPeers_[(*lInfo).chain()].erase(lAddress);
+				if (!chainPeers_[(*lInfo).chain()].size()) chainPeers_.erase((*lInfo).chain()); 
+			}
+
+			peers_.erase(lAddress);
+		}		
+
 		for (std::map<uint256, IConsensusPtr>::iterator lConsensus = lConsensuses.begin(); lConsensus != lConsensuses.end(); lConsensus++) {
 			lConsensus->second->popPeer(peer);
 		}
@@ -154,12 +188,11 @@ public:
 						LatencyMap::iterator> lRange = latencyMap_.equal_range(peer->latencyPrev());
 
 			for (LatencyMap::iterator lTo = lRange.first; lTo != lRange.second; lTo++)
-				if (lPeerId == lTo->second->addressId())
+				if (lPeerId == lTo->second->addressId()) {
 					latencyMap_.erase(lTo);
+					break;
+				}
 		}
-
-		// remove state
-		//popState(State::instance(peer->state()));
 	}	
 
 	//
@@ -172,9 +205,18 @@ public:
 			lConsensuses = consensuses_; // copy
 		}
 
+		{
+			// push
+			boost::unique_lock<boost::mutex> lLock(peersMutex_);
+			uint160 lAddress = state->addressId();
+			std::vector<State::BlockInfo> lInfos = state->infos();
+			for (std::vector<State::BlockInfo>::iterator lInfo = lInfos.begin(); lInfo != lInfos.end(); lInfo++) {
+				chainPeers_[(*lInfo).chain()].insert(lAddress);
+			}
+		}
+
 		for (std::map<uint256, IConsensusPtr>::iterator lConsensus = lConsensuses.begin(); lConsensus != lConsensuses.end(); lConsensus++) {
-			if (!lConsensus->second->pushState(state))
-				return false;
+			lConsensus->second->pushState(state);
 		}
 
 		return true;
@@ -190,9 +232,19 @@ public:
 			lConsensuses = consensuses_; // copy
 		}
 
+		// pop
+		{
+			boost::unique_lock<boost::mutex> lLock(peersMutex_);
+			uint160 lAddress = state->addressId();
+			std::vector<State::BlockInfo> lInfos = state->infos();
+			for (std::vector<State::BlockInfo>::iterator lInfo = lInfos.begin(); lInfo != lInfos.end(); lInfo++) {
+				chainPeers_[(*lInfo).chain()].erase(lAddress);
+				if (!chainPeers_[(*lInfo).chain()].size()) chainPeers_.erase((*lInfo).chain()); 
+			}
+		}
+
 		for (std::map<uint256, IConsensusPtr>::iterator lConsensus = lConsensuses.begin(); lConsensus != lConsensuses.end(); lConsensus++) {
-			if (!lConsensus->second->popState(state))
-				return false;
+			lConsensus->second->popState(state);
 		}
 
 		return true;
@@ -285,8 +337,13 @@ public:
 			lConsensuses = consensuses_; // copy
 		}
 
+		std::map<uint160, IPeerPtr> lPeers;
 		for (std::map<uint256, IConsensusPtr>::iterator lConsensus = lConsensuses.begin(); lConsensus != lConsensuses.end(); lConsensus++) {
-			lConsensus->second->broadcastState(state, except);
+			lConsensus->second->collectPeers(lPeers);
+		}
+
+		for (std::map<uint160, IPeerPtr>::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
+			if (except.isNull() || (except != lPeer->second->addressId())) lPeer->second->broadcastState(state);
 		}
 	}
 
@@ -294,7 +351,35 @@ public:
 	// make instance
 	static IConsensusManagerPtr instance(ISettingsPtr settings) {
 		return std::make_shared<ConsensusManager>(settings);
-	}	
+	}
+
+	//
+	// nodes supported given chain
+	size_t chainSupportPeersCount(const uint256& chain) {
+		//
+		boost::unique_lock<boost::mutex> lLock(peersMutex_);
+		std::map<uint256 /*chain*/, std::set<uint160>>::iterator lPeers = chainPeers_.find(chain);
+		if (lPeers != chainPeers_.end()) return lPeers->second.size();
+
+		return 0;
+	}
+
+	//
+	// get block header
+	void acquireBlockHeaderWithCoinbase(const uint256& block, const uint256& chain, INetworkBlockHandlerWithCoinBasePtr handler) {
+		//
+		boost::unique_lock<boost::mutex> lLock(peersMutex_);
+		size_t lCount = 0;
+		std::map<uint256 /*chain*/, std::set<uint160>>::iterator lPeers = chainPeers_.find(chain);
+		if (lPeers == chainPeers_.end()) return;
+		for (std::set<uint160>::iterator lPeer = lPeers->second.begin(); lPeer != lPeers->second.end() && lCount < settings_->minDAppNodes(); lPeer++) {
+			std::map<uint160 /*peer*/, IPeerPtr>::iterator lPeerPtr = peers_.find(*lPeer);
+			if (lPeerPtr != peers_.end()) {
+				lPeerPtr->second->acquireBlockHeaderWithCoinbase(block, chain, handler);
+				lCount++;
+			}
+		}
+	}
 
 	void setWallet(IWalletPtr wallet) { wallet_ = wallet; }
 	void setStoreManager(ITransactionStoreManagerPtr storeManager) { storeManager_ = storeManager; }
@@ -320,6 +405,7 @@ private:
 
 private:
 	boost::mutex consensusesMutex_;
+	boost::mutex peersMutex_;
 	boost::mutex latencyMutex_;
 	boost::mutex incomingBlockQueueMutex_;
 
@@ -337,6 +423,9 @@ private:
 
 	typedef std::multimap<uint32_t /*latency*/, IPeerPtr> LatencyMap;
 	LatencyMap latencyMap_;
+
+	std::map<uint160 /*peer*/, IPeerPtr> peers_;
+	std::map<uint256 /*chain*/, std::set<uint160>> chainPeers_;
 };
 
 } // qbit

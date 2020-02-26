@@ -28,6 +28,8 @@ public:
 	virtual void push(const uint256& /*chain*/) { throw qbit::exception("NOT_IMPL", "IMemoryPoolManager::push - not implemented."); }
 	virtual void pop(const uint256& /*chain*/) { throw qbit::exception("NOT_IMPL", "IMemoryPoolManager::pop - not implemented."); }	
 	virtual std::vector<IMemoryPoolPtr> pools() { throw qbit::exception("NOT_IMPL", "IMemoryPoolManager::pools - not implemented."); }
+	virtual TransactionContextPtr locateTransactionContext(const uint256& /*tx*/) { throw qbit::exception("NOT_IMPL", "IMemoryPoolManager::locateTransactionContext - not implemented."); }
+	virtual bool popUnlinkedOut(const uint256& /*utxo*/, TransactionContextPtr /*ctx*/, IMemoryPoolPtr /*except*/) { throw qbit::exception("NOT_IMPL", "IMemoryPoolManager::popUnlinkedOut - not implemented."); }
 };
 
 typedef std::shared_ptr<IMemoryPoolManager> IMemoryPoolManagerPtr;

@@ -25,6 +25,49 @@ namespace qbit {
 
 typedef std::shared_ptr<tcp::socket> SocketPtr;
 
+//
+// basic handler
+class IReplyHandler {
+public:
+	IReplyHandler() {}
+};
+typedef std::shared_ptr<IReplyHandler> IReplyHandlerPtr;
+
+//
+// basic handler
+class RequestWrapper {
+public:
+	RequestWrapper(IReplyHandlerPtr handler) : timestamp_(qbit::getTime()), handler_(handler) {}
+
+	IReplyHandlerPtr handler() { return handler_; }
+	bool timedout() { return qbit::getTime() - timestamp_ > 10; }
+
+private:
+	uint64_t timestamp_;
+	IReplyHandlerPtr handler_;
+};
+
+//
+// tx helper
+class ReplyHelper {
+public:
+	ReplyHelper() {}
+
+	template<typename type>
+	static std::shared_ptr<type> to(IReplyHandlerPtr handler) { return std::static_pointer_cast<type>(handler); }
+};
+
+//
+// network block handler with coinbase tx
+class INetworkBlockHandlerWithCoinBase: public IReplyHandler {
+public:
+	INetworkBlockHandlerWithCoinBase() {}
+	virtual void handleReply(const NetworkBlockHeader&, TransactionPtr) = 0;
+};
+typedef std::shared_ptr<INetworkBlockHandlerWithCoinBase> INetworkBlockHandlerWithCoinBasePtr;
+
+//
+// p2p protocol processor
 class IPeer {
 public:
 	enum Status {
@@ -96,6 +139,9 @@ public:
 	virtual void synchronizePendingBlocks(IConsensusPtr, SynchronizationJobPtr /*job*/) { throw qbit::exception("NOT_IMPL", "IPeer::synchronizePendingBlocks - not implemented."); }
 
 	virtual void acquireBlock(const NetworkBlockHeader& /*block*/) { throw qbit::exception("NOT_IMPL", "IPeer::acquireBlock - not implemented."); }
+	
+	// open requests
+	virtual void acquireBlockHeaderWithCoinbase(const uint256& /*block*/, const uint256& /*chain*/, INetworkBlockHandlerWithCoinBasePtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IPeer::acquireBlockHeaderWithCoinbase - not implemented."); }
 };
 
 typedef std::shared_ptr<IPeer> IPeerPtr;

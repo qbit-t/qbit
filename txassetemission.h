@@ -19,7 +19,7 @@ namespace qbit {
 // out[0] - unlinked out a-la coinbase out
 // out[1] - emission supply-amount (emission rest)
 // out[2] - qbit fee change
-class TxAssetEmission : public TxSpend {
+class TxAssetEmission: public TxSpend {
 public:
 	TxAssetEmission() { type_ = Transaction::ASSET_EMISSION; }
 

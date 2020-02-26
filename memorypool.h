@@ -17,8 +17,7 @@
 
 namespace qbit {
 
-// TODO: Concurrency!!
-class MemoryPool: public IMemoryPool {
+class MemoryPool: public IMemoryPool, public INetworkBlockHandlerWithCoinBase, public std::enable_shared_from_this<MemoryPool> {
 public:
 	class TxTree {
 	public:
@@ -141,6 +140,30 @@ public:
 		uint256 neutral_;
 	};
 
+	class PoolEntityStore: public IEntityStore {
+	public:
+		PoolEntityStore(IMemoryPoolPtr pool) : pool_(pool) {}
+
+		EntityPtr locateEntity(const uint256& entity) {
+			return pool_->entityStore()->locateEntity(entity);
+		}
+
+		EntityPtr locateEntity(const std::string& name) {
+			return pool_->entityStore()->locateEntity(name);
+		}
+
+		bool pushEntity(const uint256& entity, TransactionContextPtr ctx) {
+			return pool_->entityStore()->locateEntity(entity) == nullptr;
+		}
+
+		inline static IEntityStorePtr instance(IMemoryPoolPtr pool) {
+			return std::make_shared<PoolEntityStore>(pool); 
+		}		
+
+	private:
+		IMemoryPoolPtr pool_;
+	};
+
 	class PoolStore: public ITransactionStore {
 	public:
 		PoolStore(IMemoryPoolPtr pool) : pool_(pool) {}
@@ -177,6 +200,9 @@ public:
 
 		static std::shared_ptr<PoolStore> toStore(ITransactionStorePtr store) { return std::static_pointer_cast<PoolStore>(store); }
 
+		uint256 chain() { return pool_->chain(); }
+		ITransactionStoreManagerPtr storeManager() { return pool_->wallet()->storeManager(); }		
+
 	private:
 		IMemoryPoolPtr pool_;
 
@@ -193,6 +219,20 @@ public:
 	typedef std::shared_ptr<PoolStore> PoolStorePtr;
 
 public:
+	class ConfirmedBlockInfo {
+	public:
+		ConfirmedBlockInfo() {}
+		ConfirmedBlockInfo(const NetworkBlockHeader& blockHeader, TransactionPtr base) : blockHeader_(blockHeader), base_(base) {}
+
+		NetworkBlockHeader& blockHeader() { return blockHeader_; }
+		TransactionPtr base() { return base_; }
+
+	private:
+		NetworkBlockHeader blockHeader_;
+		TransactionPtr base_;
+	};
+
+public:
 	MemoryPool(const uint256& chain, IConsensusPtr consensus, ITransactionStorePtr persistentStore, IEntityStorePtr entityStore) { 
 		consensus_ = consensus;
 		persistentStore_ = persistentStore; 
@@ -207,6 +247,7 @@ public:
 
 	virtual void setMainStore(ITransactionStorePtr store) { persistentMainStore_ = store; }
 
+	inline IEntityStorePtr entityStore() { return entityStore_; }
 	inline ITransactionStorePtr persistentMainStore() { return persistentMainStore_; }
 	inline ITransactionStorePtr persistentStore() { return persistentStore_; }
 	inline void setWallet(IWalletPtr wallet) { wallet_ = wallet; }
@@ -229,6 +270,7 @@ public:
 	bool close() {
 		consensus_.reset();
 		persistentStore_.reset();
+		persistentMainStore_.reset();
 		poolStore_.reset();
 		wallet_.reset();
 		entityStore_.reset();
@@ -249,6 +291,9 @@ public:
 	TransactionContextPtr pushTransaction(TransactionPtr);
 	bool pushTransaction(TransactionContextPtr);
 	bool isTransactionExists(const uint256&);
+	TransactionPtr locateTransaction(const uint256&);
+	TransactionContextPtr locateTransactionContext(const uint256&);
+	bool popUnlinkedOut(const uint256&, TransactionContextPtr);
 
 	//
 	// wallet
@@ -257,6 +302,34 @@ public:
 	//
 	// consensus
 	IConsensusPtr consensus() { return consensus_; }
+
+	//
+	// INetworkBlockHandlerWithCoinBase handler
+	void handleReply(const NetworkBlockHeader& blockHeader, TransactionPtr base) {
+		//
+		boost::unique_lock<boost::recursive_mutex> lLock(confirmedBlocksMutex_);
+		confirmedBlocks_.insert(std::map<uint256, ConfirmedBlockInfo>::value_type(
+			const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().hash(), 
+			ConfirmedBlockInfo(blockHeader, base)));
+	}
+
+	bool locateConfirmedBlock(const uint256& id, ConfirmedBlockInfo& block) {
+		//
+		boost::unique_lock<boost::recursive_mutex> lLock(confirmedBlocksMutex_);
+		std::map<uint256, ConfirmedBlockInfo>::iterator lBlock = confirmedBlocks_.find(id);
+		if (lBlock != confirmedBlocks_.end()) {
+			block = lBlock->second; 
+			return true; 
+		}
+		
+		return false; 
+	}
+
+	void removeConfirmedBlock(const uint256& id) {
+		//
+		boost::unique_lock<boost::recursive_mutex> lLock(confirmedBlocksMutex_);
+		confirmedBlocks_.erase(id);
+	}
 
 private:
 	inline qunit_t getTop() {
@@ -270,6 +343,20 @@ private:
 
 	bool traverseLeft(TransactionContextPtr, TxTree&);
 	bool traverseRight(TransactionContextPtr, TxTree&);
+
+	void processLocalBlockBaseTx(const uint256& /*block*/, const uint256& /*chain*/);
+
+	void removeTx(const uint256& tx) {
+		PoolStorePtr lPoolStore = PoolStore::toStore(poolStore_);
+		TransactionContextPtr lCtx = poolStore_->locateTransactionContext(tx);
+		if (lCtx) {
+			lPoolStore->remove(lCtx);
+		}
+	}
+
+private:
+	std::map<uint256, ConfirmedBlockInfo> confirmedBlocks_;
+	boost::recursive_mutex confirmedBlocksMutex_;
 
 private:
 	IConsensusPtr consensus_;

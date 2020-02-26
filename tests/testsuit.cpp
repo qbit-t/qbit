@@ -13,6 +13,17 @@
 #include "server.h"
 #include "httpserver.h"
 
+#include "../txassettype.h"
+#include "../txassetemission.h"
+#include "../txdapp.h"
+#include "../txshard.h"
+#include "../txbase.h"
+#include "../txblockbase.h"
+
+#include "../dapps/buzzer/validator.h"
+#include "../dapps/buzzer/txbuzzer.h"
+#include "../dapps/buzzer/txbuzz.h"
+
 #include "../log/log.h"
 
 #include <iostream>
@@ -25,6 +36,44 @@ int main(int argv, char** argc)
 	std::cout << std::endl << "q-bit.technology | unit tests v0.1" << std::endl << std::endl;
 	TestSuit lSuit;
 
+	/*
+	//
+	std::string text = "猫伸ばしチャレンジ😃 #tag1 @buzzer1";
+	std::vector<unsigned char> data; data.insert(data.end(), text.begin(), text.end());
+	std::string text1; text1.insert(text1.end(), data.begin(), data.end()); 
+	std::cout << text << ' ' << text.size() << "\n";
+	std::cout << text1 << ' ' << text1.length() << "\n";
+
+	size_t lSize = 0;
+	for (std::string::iterator lS = text1.begin(); lS != text1.end(); lS++, lSize++) {
+		if (*lS == '#') std::cout << "tag start found\n";
+		else if (*lS == '@') std::cout << "buzzer start found\n";
+	}
+
+	for (std::vector<unsigned char>::iterator lS = data.begin(); lS != data.end(); lS++) {
+		if (*lS == '#') std::cout << "tag start found\n";
+		else if (*lS == '@') std::cout << "buzzer start found\n";
+	}
+
+	std::cout << HexStr(data.begin(), data.end()) << ' ' << data.size() << ' ' << lSize << "\n";
+	//
+	return 0;
+	*/
+
+	// pre-launch
+	// tx types
+	Transaction::registerTransactionType(Transaction::ASSET_TYPE, TxAssetTypeCreator::instance());
+	Transaction::registerTransactionType(Transaction::ASSET_EMISSION, TxAssetEmissionCreator::instance());
+	Transaction::registerTransactionType(Transaction::DAPP, TxDAppCreator::instance());
+	Transaction::registerTransactionType(Transaction::SHARD, TxShardCreator::instance());
+	Transaction::registerTransactionType(Transaction::BASE, TxBaseCreator::instance());
+	Transaction::registerTransactionType(Transaction::BLOCKBASE, TxBlockBaseCreator::instance());
+	Transaction::registerTransactionType(TX_BUZZER, TxBuzzerCreator::instance());
+	Transaction::registerTransactionType(TX_BUZZ, TxBuzzCreator::instance());
+	// validators
+	ValidatorManager::registerValidator("buzzer", BuzzerValidatorCreator::instance());
+
+	// logs
 	if (argv > 1 && std::string(argc[1]) == "-S0") gLog("/tmp/.qbitS0/debug.log"); // setup
 	else if (argv > 1 && std::string(argc[1]) == "-S1") gLog("/tmp/.qbitS1/debug.log"); // setup
 	else if (argv > 1 && std::string(argc[1]) == "-S2") gLog("/tmp/.qbitS2/debug.log"); // setup
@@ -38,7 +87,8 @@ int main(int argv, char** argc)
 	gLog().enable(Log::HTTP);
 	gLog().enable(Log::ERROR);
 	gLog().enable(Log::VALIDATOR);
-	//gLog().enable(Log::NET);
+	gLog().enable(Log::SHARDING);
+	gLog().enable(Log::NET);
 	//gLog().enable(Log::ALL);
 
 	if (argv > 1 && std::string(argc[1]) == "-S0") {

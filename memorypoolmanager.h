@@ -51,6 +51,16 @@ public:
 		}
 	}
 
+	void pop(const uint256& chain) {
+		//
+		boost::unique_lock<boost::mutex> lLock(poolsMutex_);
+		std::map<uint256, IMemoryPoolPtr>::iterator lMempool = pools_.find(chain);
+		if (lMempool != pools_.end()) {
+			lMempool->second->close();
+			pools_.erase(chain);
+		}
+	}
+
 	std::vector<IMemoryPoolPtr> pools() {
 		//
 		boost::unique_lock<boost::mutex> lLock(poolsMutex_);
@@ -61,6 +71,29 @@ public:
 		}
 
 		return lPools;
+	}
+
+	TransactionContextPtr locateTransactionContext(const uint256& tx) {
+		//
+		std::vector<IMemoryPoolPtr> lPools = pools();
+		TransactionContextPtr lTx = nullptr;
+		for (std::vector<IMemoryPoolPtr>::iterator lPool = lPools.begin(); lPool != lPools.end(); lPool++) {
+			lTx = (*lPool)->locateTransactionContext(tx);
+			if (lTx) break;
+		}
+
+		return lTx;
+	}
+
+	bool popUnlinkedOut(const uint256& utxo, TransactionContextPtr ctx, IMemoryPoolPtr except) {
+		//
+		std::vector<IMemoryPoolPtr> lPools = pools();
+		bool lResult = false;
+		for (std::vector<IMemoryPoolPtr>::iterator lPool = lPools.begin(); lPool != lPools.end(); lPool++) {
+			if (except->chain() != (*lPool)->chain()) lResult |= (*lPool)->popUnlinkedOut(utxo, ctx);
+		}
+
+		return lResult;
 	}
 
 	static IMemoryPoolManagerPtr instance(ISettingsPtr settings) {

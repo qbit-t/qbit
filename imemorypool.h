@@ -35,9 +35,12 @@ public:
 	virtual bool isUnlinkedOutExists(const uint256&) { throw qbit::exception("NOT_IMPL", "IMemoryPool::isUnlinkedOutExists - not implemented."); }
 
 	virtual bool isTransactionExists(const uint256&) { throw qbit::exception("NOT_IMPL", "IMemoryPool::isTransactionExists - not implemented."); }
+	virtual TransactionPtr locateTransaction(const uint256&) { throw qbit::exception("NOT_IMPL", "IMemoryPool::locateTransaction - not implemented."); }
+	virtual TransactionContextPtr locateTransactionContext(const uint256& /*tx*/) { throw qbit::exception("NOT_IMPL", "IMemoryPool::locateTransactionContext - not implemented."); }
 
 	virtual void setMainStore(ITransactionStorePtr /*store*/) { throw qbit::exception("NOT_IMPL", "IMemoryPool::setMainStore - not implemented."); }
 
+	virtual IEntityStorePtr entityStore() { throw qbit::exception("NOT_IMPL", "IMemoryPool::entityStore - not implemented."); }
 	virtual ITransactionStorePtr persistentMainStore() { throw qbit::exception("NOT_IMPL", "IMemoryPool::persistentMainStore - not implemented."); }
 	virtual ITransactionStorePtr persistentStore() { throw qbit::exception("NOT_IMPL", "IMemoryPool::persistentStore - not implemented."); }
 	virtual TransactionContextPtr pushTransaction(TransactionPtr) { throw qbit::exception("NOT_IMPL", "IMemoryPool::pushTransaction - not implemented."); }
@@ -49,6 +52,8 @@ public:
 	virtual void commit(BlockContextPtr) { throw qbit::exception("NOT_IMPL", "IMemoryPool::commit - not implemented."); }
 
 	virtual void removeTransactions(BlockPtr) { throw qbit::exception("NOT_IMPL", "IMemoryPool::removeTransactions - not implemented."); }
+	virtual void pushConfirmedBlock(const NetworkBlockHeader& /*blockHeader*/) { throw qbit::exception("NOT_IMPL", "IMemoryPool::pushConfirmedBlock - not implemented."); }
+	virtual bool popUnlinkedOut(const uint256& /*utxo*/, TransactionContextPtr /*ctx*/) { throw qbit::exception("NOT_IMPL", "IMemoryPool::popUnlinkedOut - not implemented."); }	
 };
 
 typedef std::shared_ptr<IMemoryPool> IMemoryPoolPtr;

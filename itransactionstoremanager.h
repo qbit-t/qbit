@@ -23,8 +23,11 @@ public:
 	virtual ITransactionStorePtr push(const uint256& /*chain*/) { throw qbit::exception("NOT_IMPL", "ITransactionStoreManager::push - not implemented."); }
 	virtual void pop(const uint256& /*chain*/) { throw qbit::exception("NOT_IMPL", "ITransactionStoreManager::pop - not implemented."); }		
 	virtual std::vector<ITransactionStorePtr> storages() { throw qbit::exception("NOT_IMPL", "ITransactionStoreManager::storages - not implemented."); }
+	virtual TransactionPtr locateTransaction(const uint256& /*tx*/, ITransactionStorePtr /*except*/) { throw qbit::exception("NOT_IMPL", "ITransactionStoreManager::locateTransaction - not implemented."); }
 
 	virtual void stop() { throw qbit::exception("NOT_IMPL", "ITransactionStoreManager::stop - not implemented."); }
+
+	virtual void pushChain(const uint256& /*chain*/, EntityPtr /*dapp*/) { throw qbit::exception("NOT_IMPL", "ITransactionStoreManager::pushChain - not implemented."); }
 };
 
 typedef std::shared_ptr<ITransactionStoreManager> ITransactionStoreManagerPtr;
