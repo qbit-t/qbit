@@ -258,8 +258,8 @@ private:
 		return rawInMessages_.insert(rawInMessages_.end(), lMessage);
 	}
 
-	std::list<DataStream>::iterator newInData() {
-		DataStream lMessage(SER_NETWORK, CLIENT_VERSION);
+	std::list<DataStream>::iterator newInData(const Message& msg) {
+		DataStream lMessage(SER_NETWORK, CLIENT_VERSION, const_cast<Message&>(msg).checkSum());
 		return rawInData_.insert(rawInData_.end(), lMessage);
 	}
 

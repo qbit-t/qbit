@@ -13,6 +13,8 @@
 
 #include "helpers/zeroafterfree.h"
 #include "serialize.h"
+#include "uint256.h"
+#include "hash.h"
 
 #include <algorithm>
 #include <assert.h>
@@ -211,6 +213,7 @@ protected:
     typedef SerializeData vector_type;
     vector_type vch;
     unsigned int nReadPos;
+    uint160 checkSum;
 
     int nType;
     int nVersion;
@@ -229,6 +232,11 @@ public:
     explicit DataStream(int nTypeIn, int nVersionIn)
     {
         Init(nTypeIn, nVersionIn);
+    }
+
+    explicit DataStream(int nTypeIn, int nVersionIn, uint160 bCheckSum)
+    {
+        Init(nTypeIn, nVersionIn); checkSum = bCheckSum;
     }
 
     DataStream(const_iterator pbegin, const_iterator pend, int nTypeIn, int nVersionIn) : vch(pbegin, pend)
@@ -288,6 +296,16 @@ public:
         return (std::string(begin(), end()));
     }
 
+    //
+    bool valid() {
+        //
+        if (size() > sizeof(uint160)) {
+            uint160 lSum = Hash160(begin(), end());
+            return lSum == checkSum;
+        }
+
+        return true;
+    }
 
     //
     // Vector subset
