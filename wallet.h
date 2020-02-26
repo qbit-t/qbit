@@ -27,8 +27,8 @@ public:
 		utxo_(settings_->dataPath() + "/wallet/utxo"), 
 		ltxo_(settings_->dataPath() + "/wallet/ltxo"), 
 		assets_(settings_->dataPath() + "/wallet/assets"), 
-		entities_(settings_->dataPath() + "/wallet/entities"),
-		pendingtxs_(settings_->dataPath() + "/wallet/pendingtxs")
+		assetEntities_(settings_->dataPath() + "/wallet/asset_entities"),
+		pendingtxs_(settings_->dataPath() + "/wallet/pending_txs")
 	{
 		opened_ = false;
 		useUtxoCache_ = false;
@@ -40,8 +40,8 @@ public:
 		utxo_(settings_->dataPath() + "/wallet/utxo"), 
 		ltxo_(settings_->dataPath() + "/wallet/ltxo"), 
 		assets_(settings_->dataPath() + "/wallet/assets"), 
-		entities_(settings_->dataPath() + "/wallet/entities"),
-		pendingtxs_(settings_->dataPath() + "/wallet/pendingtxs")
+		assetEntities_(settings_->dataPath() + "/wallet/asset_entities"),
+		pendingtxs_(settings_->dataPath() + "/wallet/pending_txs")
 	{
 		opened_ = false;
 		useUtxoCache_ = false;
@@ -70,6 +70,7 @@ public:
 	bool pushUnlinkedOut(Transaction::UnlinkedOutPtr, TransactionContextPtr);
 	bool popUnlinkedOut(const uint256&, TransactionContextPtr);
 	Transaction::UnlinkedOutPtr findUnlinkedOut(const uint256&);
+	Transaction::UnlinkedOutPtr findLinkedOut(const uint256&);
 	Transaction::UnlinkedOutPtr findUnlinkedOutByAsset(const uint256&, amount_t);
 	std::list<Transaction::UnlinkedOutPtr> collectUnlinkedOutsByAsset(const uint256&, amount_t);
 
@@ -87,7 +88,7 @@ public:
 
 		utxoCache_.clear();
 		assetsCache_.clear();
-		entitiesCache_.clear();
+		assetEntitiesCache_.clear();
 	}
 
 	bool prepareCache();	
@@ -109,8 +110,16 @@ public:
 		return persistentStoreManager_->locate(MainChain::id());
 	} // main
 
+	IEntityStorePtr entityStore() { return entityStore_; }
+
 	// create coinbase tx
 	TransactionContextPtr createTxCoinBase(amount_t /*amount*/);
+
+	// create generic base tx
+	TransactionContextPtr createTxBase(const uint256& /*chain*/, amount_t /*amount*/);
+
+	// create generic base tx
+	TransactionContextPtr createTxBlockBase(const BlockHeader& /*block header*/, amount_t /*amount*/);
 
 	// create spend tx
 	TransactionContextPtr createTxSpend(const uint256& /*asset*/, const PKey& /*dest*/, amount_t /*amount*/, qunit_t /*fee limit*/, int32_t targetBlock = -1);
@@ -131,6 +140,16 @@ public:
 	TransactionContextPtr createTxLimitedAssetEmission(const PKey& /*dest*/, const uint256& /*asset*/, qunit_t /*fee limit*/, int32_t targetBlock = -1);
 	TransactionContextPtr createTxLimitedAssetEmission(const PKey& /*dest*/, const uint256& /*asset*/);
 
+	// create dapp tx
+	TransactionContextPtr createTxDApp(const PKey& /*dest*/, const std::string& /*short name*/, const std::string& /*long name*/, TxDApp::Sharding /*sharding*/);
+
+	// create dapp tx
+	TransactionContextPtr createTxShard(const PKey& /*dest*/, const std::string& /*dapp name*/, const std::string& /*short name*/, const std::string& /*long name*/);
+
+	// create tx fee
+	TransactionContextPtr createTxFee(const PKey& /*dest*/, amount_t /*amount*/);	
+
+	//
 	IMemoryPoolManagerPtr mempoolManager() { return mempoolManager_; }
 	ITransactionStoreManagerPtr storeManager() { return persistentStoreManager_; }
 
@@ -151,14 +170,30 @@ public:
 
 	void collectPendingTransactions(std::list<TransactionPtr>& list) {
 		//
+		db::DbEntityContainer<uint256 /*tx*/, Transaction /*data*/>::Transaction lDbTx = pendingtxs_.transaction();
 		for (db::DbEntityContainer<uint256 /*tx*/, Transaction /*data*/>::Iterator lTx = pendingtxs_.begin(); lTx.valid(); lTx++) {
 			//
-			list.push_back(*lTx);
+			TransactionPtr lTxPtr = *lTx;
+			if (lTxPtr) {
+				list.push_back(lTxPtr);
+			} else {
+				uint256 lId;
+				if (lTx.first(lId)) {
+					lDbTx.remove(lId);
+				}
+			}
 		}
+
+		lDbTx.commit();
 	}
 
-private:
+	void writePendingTransaction(const uint256& id, TransactionPtr tx) {
+		pendingtxs_.write(id, tx);
+	}
+
 	amount_t fillInputs(TxSpendPtr /*tx*/, const uint256& /*asset*/, amount_t /*amount*/);
+
+private:
 	TransactionContextPtr makeTxSpend(Transaction::Type /*type*/, const uint256& /*asset*/, const PKey& /*dest*/, amount_t /*amount*/, qunit_t /*fee limit*/, int32_t /*targetBlock*/);
 	Transaction::UnlinkedOutPtr findUnlinkedOutByEntity(const uint256& /*entity*/);
 
@@ -172,15 +207,26 @@ private:
 
 	bool isUnlinkedOutExistsGlobal(const uint256& hash, Transaction::UnlinkedOut& utxo) {
 		//
-		//if (settings_->isNode() || settings_->isFullNode()) {
-			if (!mempool()->isUnlinkedOutExists(hash)) {
-				if (persistentStoreManager_) {
-					return persistentStoreManager_->locate(utxo.out().chain())->isUnlinkedOutExists(hash);
-				}
-
-				return persistentStore_->isUnlinkedOutExists(hash);
+		if (!mempool()->isUnlinkedOutExists(hash)) {
+			if (persistentStoreManager_) {
+				return persistentStoreManager_->locate(utxo.out().chain())->isUnlinkedOutExists(hash);
 			}
-		//}
+
+			return persistentStore_->isUnlinkedOutExists(hash);
+		}
+
+		return true;
+	}
+
+	bool isLinkedOutExistsGlobal(const uint256& hash, Transaction::UnlinkedOut& utxo) {
+		//
+		if (!mempool()->isUnlinkedOutExists(hash)) {
+			if (persistentStoreManager_) {
+				return persistentStoreManager_->locate(utxo.out().chain())->isLinkedOutExists(hash);
+			}
+
+			return persistentStore_->isLinkedOutExists(hash);
+		}
 
 		return true;
 	}
@@ -206,8 +252,8 @@ private:
 	db::DbContainer<uint256 /*utxo*/, Transaction::UnlinkedOut /*data*/> ltxo_;
 	// unlinked outs by asset
 	db::DbMultiContainer<uint256 /*asset*/, uint256 /*utxo*/> assets_;
-	// unlinked outs by entity
-	db::DbMultiContainer<uint256 /*entity*/, uint256 /*utxo*/> entities_;
+	// unlinked outs by asset entity
+	db::DbMultiContainer<uint256 /*entity*/, uint256 /*utxo*/> assetEntities_;
 	// pending tx
 	db::DbEntityContainer<uint256 /*tx*/, Transaction /*data*/> pendingtxs_;
 
@@ -217,7 +263,7 @@ private:
 	// asset/utxo/data
 	std::map<uint256 /*asset*/, std::multimap<amount_t /*amount*/, uint256 /*utxo*/>> assetsCache_;
 	// entity/utxo/data
-	std::map<uint256 /*entity*/, std::map<uint256 /*utxo*/, Transaction::UnlinkedOutPtr /*data*/>> entitiesCache_;
+	std::map<uint256 /*entity*/, std::map<uint256 /*utxo*/, Transaction::UnlinkedOutPtr /*data*/>> assetEntitiesCache_;
 
 	// flag
 	bool opened_;

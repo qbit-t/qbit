@@ -47,6 +47,11 @@ public:
 	virtual ITransactionStoreManagerPtr storeManager() { throw qbit::exception("NOT_IMPL", "IConsensusManager::storeManager - not implemented."); }
 	virtual IWalletPtr wallet() { throw qbit::exception("NOT_IMPL", "IConsensusManager::wallet - not implemented."); }
 	virtual IMemoryPoolManagerPtr mempoolManager() { throw qbit::exception("NOT_IMPL", "IConsensusManager::mempoolManager - not implemented."); }
+
+	virtual size_t chainSupportPeersCount(const uint256& /*chain*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::chainSupportPeersCount - not implemented."); }	
+
+	// open requests
+	virtual void acquireBlockHeaderWithCoinbase(const uint256& /*block*/, const uint256& /*chain*/, INetworkBlockHandlerWithCoinBasePtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IConsensus::acquireBlockHeaderWithCoinbase - not implemented."); }
 };
 
 typedef std::shared_ptr<IConsensusManager> IConsensusManagerPtr;

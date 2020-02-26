@@ -63,15 +63,15 @@ public:
 		errors_.insert(errors_.end(), errors.begin(), errors.end());
 	}
 
-	inline void setHeight(size_t height) { height_ = height; }
-	inline size_t height() { return height_; }
+	inline void setHeight(uint64_t height) { height_ = height; }
+	inline uint64_t height() { return height_; }
 
 	inline std::list<std::string>& errors() { return errors_; }
 
 	inline void setCoinbaseAmount(amount_t amount) { coinbaseAmount_ = amount; }
 	inline amount_t coinbaseAmount() { return coinbaseAmount_; }
 
-	inline void setFee(amount_t fee) { coinbaseAmount_ = fee; }
+	inline void setFee(amount_t fee) { fee_ = fee; }
 	inline amount_t fee() { return fee_; }
 
 	uint256 calculateMerkleRoot() {
@@ -91,7 +91,7 @@ private:
 	std::list<_poolEntry> poolEntries_;
 	std::list<TransactionContextPtr> txs_;
 	std::set<uint256> index_;
-	size_t height_;
+	uint64_t height_;
 	amount_t coinbaseAmount_;
 	amount_t fee_;
 

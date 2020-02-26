@@ -55,6 +55,72 @@ public:
 		 TransactionContextPtr ctx_;
 	}; 
 
+	class TxEntityStore: public IEntityStore {
+	public:
+		TxEntityStore(IEntityStorePtr persistentEntityStore, ITransactionStorePtr persistentStore) : 
+			persistentEntityStore_(persistentEntityStore), persistentStore_(persistentStore) {}
+
+		static IEntityStorePtr instance(IEntityStorePtr persistentEntityStore, ITransactionStorePtr persistentStore) {
+			return std::make_shared<TxEntityStore>(persistentEntityStore, persistentStore);
+		}
+
+		EntityPtr locateEntity(const uint256& entity) {
+			//
+			std::map<uint256, TransactionContextPtr>::iterator lEntity = entities_.find(entity);
+			if (lEntity != entities_.end()) {
+				return TransactionHelper::to<Entity>((lEntity->second)->tx());
+			}
+
+			return persistentEntityStore_->locateEntity(entity);
+		}
+
+		EntityPtr locateEntity(const std::string& name) {
+			//
+			std::map<std::string, uint256>::iterator lEntity = entityByName_.find(name);
+			if (lEntity != entityByName_.end()) {
+				return locateEntity(lEntity->second);
+			}
+
+			return nullptr;
+		}
+
+		bool pushEntity(const uint256& id, TransactionContextPtr ctx) {
+			//
+			if (ctx->tx()->isEntity() && ctx->tx()->entityName() == Entity::emptyName()) return true;
+
+			//
+			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[TxEntityStore::pushEntity]: try to push entity ") +
+				strprintf("'%s'/%s", ctx->tx()->entityName(), id.toHex()));
+
+			if (persistentEntityStore_->locateEntity(id)) { 
+				if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[TxEntityStore::pushEntity]: entity ALREADY EXISTS - ") +
+					strprintf("'%s'/%s", ctx->tx()->entityName(), id.toHex()));
+				return false;
+			}
+
+			if (entities_.find(id) == entities_.end()) {
+				entities_.insert(std::map<uint256, TransactionContextPtr>::value_type(id, ctx));
+				entityByName_.insert(std::map<std::string, uint256>::value_type(ctx->tx()->entityName(), ctx->tx()->id()));
+				pushEntities_.push_back(ctx);
+			}
+
+			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[TxEntityStore::pushEntity]: PUSHED entity ") +
+				strprintf("'%s'/%s", ctx->tx()->entityName(), id.toHex()));
+
+			return true;
+		}
+
+		inline std::list<TransactionContextPtr>& actions() { return pushEntities_; }		
+
+	private:
+		IEntityStorePtr persistentEntityStore_;
+		ITransactionStorePtr persistentStore_;
+		std::list<TransactionContextPtr> pushEntities_;
+		std::map<std::string, uint256> entityByName_;
+		std::map<uint256, TransactionContextPtr> entities_;
+	};
+	typedef std::shared_ptr<TxEntityStore> TxEntityStorePtr;
+
 	class TxBlockStore: public ITransactionStore {
 	public:
 		TxBlockStore(ITransactionStorePtr persistentStore) : persistentStore_(persistentStore) {}
@@ -101,6 +167,8 @@ public:
 					strprintf("utxo = %s, tx = %s, ctx = %s", utxo.toHex(), lUtxo->out().tx().toHex(), ctx->tx()->id().toHex()));
 	
 				return true;
+			} else if (!lUtxo && persistentStore_->chain() != MainChain::id()) {
+				return persistentStore_->storeManager()->locate(MainChain::id())->findUnlinkedOut(utxo) != nullptr;
 			}
 
 			return false;
@@ -123,6 +191,9 @@ public:
 
 			return persistentStore_->locateTransaction(id);
 		}
+
+		uint256 chain() { return persistentStore_->chain(); }
+		ITransactionStoreManagerPtr storeManager() { return persistentStore_->storeManager(); }
 
 	private:
 		ITransactionStorePtr persistentStore_;
@@ -222,9 +293,10 @@ public:
 	};
 
 public:
-	TransactionStore(const uint256& chain, ISettingsPtr settings) : 
+	TransactionStore(const uint256& chain, ISettingsPtr settings, ITransactionStoreManagerPtr storeManager) : 
 		chain_(chain),
 		settings_(settings),
+		storeManager_(storeManager),
 		opened_(false),
 		workingSettings_(settings_->dataPath() + "/" + chain.toHex() + "/settings"),
 		headers_(settings_->dataPath() + "/" + chain.toHex() + "/headers"), 
@@ -234,8 +306,11 @@ public:
 		entities_(settings_->dataPath() + "/" + chain.toHex() + "/entities"), 
 		transactionsIdx_(settings_->dataPath() + "/" + chain.toHex() + "/indexes/transactions"), 
 		addressAssetUtxoIdx_(settings_->dataPath() + "/" + chain.toHex() + "/indexes/utxo"),
-		blockUtxoIdx_(settings_->dataPath() + "/" + chain.toHex() + "/indexes/blockutxo"),
-		utxoBlock_(settings_->dataPath() + "/" + chain.toHex() + "/indexes/utxoblock")
+		blockUtxoIdx_(settings_->dataPath() + "/" + chain.toHex() + "/indexes/block_utxo"),
+		utxoBlock_(settings_->dataPath() + "/" + chain.toHex() + "/indexes/utxo_block"),
+		shards_(settings_->dataPath() + "/" + chain.toHex() + "/indexes/shards"),
+		entityUtxo_(settings_->dataPath() + "/" + chain.toHex() + "/indexes/entity_utxo"),
+		shardEntities_(settings_->dataPath() + "/" + chain.toHex() + "/indexes/shard_entities")
 	{}
 
 	// stub
@@ -245,6 +320,7 @@ public:
 	//
 	// IEntityStore implementation
 	EntityPtr locateEntity(const uint256&);
+	EntityPtr locateEntity(const std::string&);
 	bool pushEntity(const uint256&, TransactionContextPtr);
 
 	//
@@ -254,7 +330,7 @@ public:
 	void setWallet(IWalletPtr wallet) { wallet_ = wallet; }
 	
 	BlockContextPtr pushBlock(BlockPtr); // sync blocks
-	bool commitBlock(BlockContextPtr, size_t&); // from mempool->beginBlock()
+	bool commitBlock(BlockContextPtr, uint64_t&); // from mempool->beginBlock()
 	bool setLastBlock(const uint256& /*block*/);
 	void saveBlock(BlockPtr); // just save block
 	void saveBlockHeader(const BlockHeader& /*header*/);
@@ -265,7 +341,12 @@ public:
 		return std::static_pointer_cast<IEntityStore>(shared_from_this());
 	}
 
-	uint256 chain() { return chain_; }	
+	ITransactionStoreManagerPtr storeManager() { return storeManager_; }
+
+	uint256 chain() { return chain_; }
+
+	bool collectUtxoByEntityName(const std::string& /*name*/, std::vector<Transaction::UnlinkedOutPtr>& /*result*/);
+	bool entityCountByShards(const std::string& /*name*/, std::map<uint32_t, uint256>& /*result*/);
 
 	// store management
 	bool open();
@@ -277,12 +358,14 @@ public:
 	void addLink(const uint256& /*from*/, const uint256& /*to*/);
 	bool isUnlinkedOutUsed(const uint256&);
 	bool isUnlinkedOutExists(const uint256&);
+	bool isLinkedOutExists(const uint256&);
 
 	bool enqueueBlock(const NetworkBlockHeader& /*block*/);
 	void dequeueBlock(const uint256& /*block*/);
 	bool firstEnqueuedBlock(NetworkBlockHeader& /*block*/);
 
 	Transaction::UnlinkedOutPtr findUnlinkedOut(const uint256&);
+	Transaction::UnlinkedOutPtr findLinkedOut(const uint256&);
 
 	bool resyncHeight();
 
@@ -290,34 +373,35 @@ public:
 	void remove(const uint256& /*from*/, const uint256& /*to*/); // remove indexes with data (headers, transactions), reverse order (native)
 	bool processBlocks(const uint256& /*from*/, const uint256& /*to*/, std::list<BlockContextPtr>& /*ctxs*/);	// re\process blocks, forward order
 
-	BlockPtr block(size_t /*height*/);
+	BlockPtr block(uint64_t /*height*/);
 	BlockPtr block(const uint256& /*id*/);
 	bool blockExists(const uint256& /*id*/);
 	bool blockHeader(const uint256& /*id*/, BlockHeader& /*header*/);
-	bool blockHeaderHeight(const uint256& /*block*/, size_t& /*height*/, BlockHeader& /*header*/);	
+	bool blockHeaderHeight(const uint256& /*block*/, uint64_t& /*height*/, BlockHeader& /*header*/);	
 
-	size_t currentHeight(BlockHeader&);
+	uint64_t currentHeight(BlockHeader&);
 	BlockHeader currentBlockHeader();
 
-	bool transactionHeight(const uint256& /*tx*/, size_t& /*height*/, bool& /*coinbase*/);
-	bool blockHeight(const uint256& /*block*/, size_t& /*height*/);
+	bool transactionHeight(const uint256& /*tx*/, uint64_t& /*height*/, uint64_t& /*confirms*/, bool& /*coinbase*/);
+	bool transactionInfo(const uint256& /*tx*/, uint256& /*block*/, uint64_t& /*height*/, uint64_t& /*confirms*/, uint32_t& /*index*/, bool& /*coinbase*/);	
+	bool blockHeight(const uint256& /*block*/, uint64_t& /*height*/);
 
-	static ITransactionStorePtr instance(const uint256& chain, ISettingsPtr settings) {
-		return std::make_shared<TransactionStore>(chain, settings); 
+	static ITransactionStorePtr instance(const uint256& chain, ISettingsPtr settings, ITransactionStoreManagerPtr storeManager) {
+		return std::make_shared<TransactionStore>(chain, settings, storeManager); 
 	}	
 
-	static ITransactionStorePtr instance(ISettingsPtr settings) {
-		return std::make_shared<TransactionStore>(MainChain::id(), settings); 
+	static ITransactionStorePtr instance(ISettingsPtr settings, ITransactionStoreManagerPtr storeManager) {
+		return std::make_shared<TransactionStore>(MainChain::id(), settings, storeManager); 
 	}	
 
 private:
-	bool processBlockTransactions(ITransactionStorePtr /*tempStore*/, BlockContextPtr /*block*/, BlockTransactionsPtr /*transactions*/, size_t /*approxHeight*/, bool /*processWallet*/);
-	bool processBlock(BlockContextPtr, size_t& /*new height*/, bool /*processWallet*/);
+	bool processBlockTransactions(ITransactionStorePtr /*tempStore*/, IEntityStorePtr /*tempEntityStore*/, BlockContextPtr /*block*/, BlockTransactionsPtr /*transactions*/, uint64_t /*approxHeight*/, bool /*processWallet*/);
+	bool processBlock(BlockContextPtr, uint64_t& /*new height*/, bool /*processWallet*/);
 	void removeBlocks(const uint256& /*from*/, const uint256& /*to*/, bool /*removeData*/);
 	void writeLastBlock(const uint256&);
-	size_t pushNewHeight(const uint256&);
-	size_t top();
-	size_t calcHeight(const uint256&);
+	uint64_t pushNewHeight(const uint256&);
+	uint64_t top();
+	uint64_t calcHeight(const uint256&);
 
 private:
 	// chain id
@@ -326,6 +410,8 @@ private:
 	ISettingsPtr settings_;
 	// local wallet
 	IWalletPtr wallet_;
+	// store manager
+	ITransactionStoreManagerPtr storeManager_;
 	// flag
 	bool opened_;
 	// last block
@@ -346,7 +432,11 @@ private:
 	// linked outs
 	db::DbContainer<uint256 /*utxo*/, Transaction::UnlinkedOut /*data*/> ltxo_;	
 	// entities
-	db::DbContainer<std::string /*short name*/, uint256 /*tx*/> entities_;	 // TODO: remove if tx does not exists
+	db::DbContainer<std::string /*short name*/, uint256 /*tx*/> entities_;
+	// entities utxo
+	db::DbMultiContainer<std::string /*short name*/, uint256 /*utxo*/> entityUtxo_;
+	// shards by entity
+	db::DbMultiContainer<uint256 /*entity*/, uint256 /*shard*/> shards_;
 
 	//
 	// indexes
@@ -360,14 +450,16 @@ private:
 	db::DbMultiContainer<uint256 /*block*/, TxBlockAction /*utxo action*/> blockUtxoIdx_;
 	// utxo | block
 	db::DbContainer<uint256 /*utxo*/, uint256 /*block*/> utxoBlock_;
+	// shard | entities count
+	db::DbContainer<uint256 /*shard*/, uint32_t /*entities_count*/> shardEntities_;
 
 	//
 	boost::recursive_mutex storageCommitMutex_;
 
 	//
 	boost::recursive_mutex storageMutex_;
-	std::map<size_t, uint256> heightMap_;
-	std::map<uint256, size_t> blockMap_;
+	std::map<uint64_t, uint256> heightMap_;
+	std::map<uint256, uint64_t> blockMap_;
 
 	//
 	std::map<uint256, NetworkBlockHeader> blocksQueue_;

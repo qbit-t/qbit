@@ -35,6 +35,7 @@ public:
 		CONSENSUS	= (1 <<  9),
 		HTTP		= (1 << 10),
 		BALANCE		= (1 << 11),
+		SHARDING	= (1 << 12),		
 		ALL			= ~(uint32_t)0
 	};
 

@@ -23,6 +23,10 @@ public:
 	ValidatorManager(ISettingsPtr settings, IConsensusManagerPtr consensusManager, IMemoryPoolManagerPtr mempoolManager, ITransactionStoreManagerPtr storeManager) : 
 		settings_(settings), consensusManager_(consensusManager), mempoolManager_(mempoolManager), storeManager_(storeManager) {}
 
+	static void registerValidator(const std::string& name, ValidatorCreatorPtr creator) {
+		gValidators[name] = creator;
+	}
+
 	bool exists(const uint256& chain) {
 		boost::unique_lock<boost::mutex> lLock(validatorsMutex_);
 		return validators_.find(chain) != validators_.end();
@@ -35,12 +39,19 @@ public:
 		return nullptr;
 	}
 
-	IValidatorPtr push(const uint256& chain) {
+	IValidatorPtr push(const uint256& chain, EntityPtr dapp) {
 		//
 		boost::unique_lock<boost::mutex> lLock(validatorsMutex_);
 		if (validators_.find(chain) == validators_.end()) {
-			IValidatorPtr lValidator = ValidatorFactory::create(chain, consensusManager_->locate(chain), mempoolManager_->locate(chain), storeManager_->locate(chain), nullptr);
-			validators_[chain] = lValidator;
+			IValidatorPtr lValidator = ValidatorFactory::create(chain, consensusManager_->locate(chain), mempoolManager_->locate(chain), storeManager_->locate(chain), dapp);
+			if (lValidator) {
+				validators_[chain] = lValidator;
+				lValidator->run();
+			} else {
+				if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, 
+						strprintf("[manager/push]: validator was NOT FOUND for %s/%s#", dapp->entityName(), chain.toHex().substr(0, 10)));
+			}
+
 			return lValidator;
 		}
 

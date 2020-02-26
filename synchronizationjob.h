@@ -25,34 +25,34 @@ typedef std::shared_ptr<SynchronizationJob> SynchronizationJobPtr;
 class SynchronizationJob {
 public:
 	SynchronizationJob(const uint256& block) : height_(0), block_(block), nextBlock_(block) {}
-	SynchronizationJob(size_t height, const uint256& block) : height_(height), block_(block) {}
+	SynchronizationJob(uint64_t height, const uint256& block) : height_(height), block_(block) {}
 
-	size_t acquireNextJob(IPeerPtr peer) {
+	uint64_t acquireNextJob(IPeerPtr peer) {
 		boost::unique_lock<boost::mutex> lLock(jobMutex_);
 		time_ = getTime(); // timestamp
 		if (height_) {
-			std::pair<std::map<size_t, IPeerPtr>::iterator,bool> lPtr = 
-				workers_.insert(std::map<size_t, IPeerPtr>::value_type(height_--, peer));
+			std::pair<std::map<uint64_t, IPeerPtr>::iterator,bool> lPtr = 
+				workers_.insert(std::map<uint64_t, IPeerPtr>::value_type(height_--, peer));
 			return lPtr.first->first;
 		}
 
 		return 0;
 	}
 
-	size_t reacquireJob(size_t height, IPeerPtr peer) {
+	uint64_t reacquireJob(uint64_t height, IPeerPtr peer) {
 		boost::unique_lock<boost::mutex> lLock(jobMutex_);
 		time_ = getTime(); // timestamp
 		workers_[height] = peer;
 		return height;
 	}
 
-	bool releaseJob(size_t height) {
+	bool releaseJob(uint64_t height) {
 		boost::unique_lock<boost::mutex> lLock(jobMutex_);
 		time_ = getTime(); // timestamp
 		return workers_.erase(height) == 1;
 	}
 
-	std::map<size_t, IPeerPtr> pendingJobs() {
+	std::map<uint64_t, IPeerPtr> pendingJobs() {
 		boost::unique_lock<boost::mutex> lLock(jobMutex_);
 		return workers_;
 	}
@@ -84,7 +84,7 @@ public:
 	uint256& block() { return block_; }
 	uint64_t timestamp() { return time_; }
 
-	static SynchronizationJobPtr instance(size_t height, const uint256& block) { return std::make_shared<SynchronizationJob>(height, block); }
+	static SynchronizationJobPtr instance(uint64_t height, const uint256& block) { return std::make_shared<SynchronizationJob>(height, block); }
 	static SynchronizationJobPtr instance(const uint256& block) { return std::make_shared<SynchronizationJob>(block); }
 
 	//
@@ -127,12 +127,12 @@ public:
 
 private:
 	boost::mutex jobMutex_;
-	size_t height_;
+	uint64_t height_;
 	uint256 block_;
 	uint256 nextBlock_;
 	uint256 lastBlock_;
 	uint64_t time_;
-	std::map<size_t, IPeerPtr> workers_;
+	std::map<uint64_t, IPeerPtr> workers_;
 	std::map<uint256, IPeerPtr> txWorkers_;
 	std::list<uint256> pendingBlocks_;
 };

@@ -8,6 +8,7 @@
 #include "itransactionstoremanager.h"
 #include "transactionstore.h"
 #include "iconsensusmanager.h"
+#include "ishardingmanager.h"
 
 namespace qbit {
 
@@ -45,14 +46,25 @@ public:
 		//
 		boost::unique_lock<boost::mutex> lLock(storagesMutex_);
 		if (storages_.find(chain) == storages_.end()) {
-			ITransactionStorePtr lStore = TransactionStore::instance(chain, settings_);
+			ITransactionStorePtr lStore = TransactionStore::instance(chain, settings_, shared_from_this());
 
 			std::static_pointer_cast<TransactionStore>(lStore)->setWallet(wallet_);
 			storages_[chain] = lStore;
+			lStore->open();
 			return lStore;
 		}
 
 		return nullptr;
+	}
+
+	void pop(const uint256& chain) {
+		//
+		boost::unique_lock<boost::mutex> lLock(storagesMutex_);
+		std::map<uint256, ITransactionStorePtr>::iterator lStore = storages_.find(chain);
+		if (lStore != storages_.end()) {
+			lStore->second->close();
+			storages_.erase(chain);
+		}
 	}
 
 	std::vector<ITransactionStorePtr> storages() {
@@ -61,7 +73,7 @@ public:
 		std::vector<ITransactionStorePtr> lStores;
 
 		for (std::map<uint256, ITransactionStorePtr>::iterator lStore = storages_.begin(); lStore != storages_.end(); lStore++) {
-			lStores.push_back(lStore->second);
+			if (lStore->second->isOpened()) lStores.push_back(lStore->second);
 		}
 
 		return lStores;
@@ -73,19 +85,30 @@ public:
 		for (std::map<uint256, ITransactionStorePtr>::iterator lStore = storages_.begin(); lStore != storages_.end(); lStore++) {
 			lStore->second->close();
 		}
-	}	
+	}
+
+	void pushChain(const uint256& chain, EntityPtr dapp) {
+		//
+		shardingManager_->push(chain, dapp);
+	}
 
 	static ITransactionStoreManagerPtr instance(ISettingsPtr settings) {
 		return std::make_shared<TransactionStoreManager>(settings); 
 	}
 
 	void setWallet(IWalletPtr wallet) { wallet_ = wallet; }
+	void setShardingManager(IShardingManagerPtr shardingManager) { shardingManager_ = shardingManager; }
+
+	TransactionPtr locateTransaction(const uint256& tx, ITransactionStorePtr except) {
+		return nullptr;
+	}
 
 private:
 	boost::mutex storagesMutex_;
 	std::map<uint256, ITransactionStorePtr> storages_;
 	IWalletPtr wallet_;
 	ISettingsPtr settings_;
+	IShardingManagerPtr shardingManager_;
 };
 
 } // qbit

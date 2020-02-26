@@ -39,6 +39,9 @@ public:
 	virtual size_t httpThreadPoolSize() { return 2; } // tread pool size
 
 	virtual size_t incomingBlockQueueLength() { return 50; }
+
+	virtual size_t minDAppNodes() { return 5; }	
+	virtual size_t maxShardsByNode() { return 25; }	
 };
 
 typedef std::shared_ptr<ISettings> ISettingsPtr;

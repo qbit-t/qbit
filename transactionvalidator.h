@@ -34,6 +34,10 @@ typedef std::shared_ptr<TransactionAction> TransactionActionPtr;
 class TransactionProcessor;
 typedef std::shared_ptr<TransactionProcessor> TransactionProcessorPtr;
 
+//
+typedef std::list<TransactionActionPtr> TransactionActions;
+extern TransactionActions gTransactionActions; // TODO: init on startup
+
 class TransactionProcessor {
 public:
 	TransactionProcessor(ITransactionStorePtr store, IWalletPtr wallet, IEntityStorePtr entityStore) : 
@@ -49,6 +53,7 @@ public:
 	}
 
 	static TransactionProcessor general(ITransactionStorePtr, IWalletPtr, IEntityStorePtr);
+	static void registerTransactionAction(TransactionActionPtr);
 
 private:
 	ITransactionStorePtr store_;

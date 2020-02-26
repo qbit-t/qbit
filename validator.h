@@ -168,7 +168,7 @@ private:
 			boost::mutex::scoped_lock lLock(minerMutex_);
 			while(!minerRunning_) minerActive_.wait(lLock);
 
-			gLog().write(Log::VALIDATOR, std::string("[miner]: starting for ") + strprintf("%s#", chain_.toHex().substr(0, 10)));
+			if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[miner]: starting for ") + strprintf("%s#", chain_.toHex().substr(0, 10)));
 
 			// check and run
 			while(minerRunning_) {
@@ -176,16 +176,25 @@ private:
 					// get block template
 					BlockPtr lCurrentBlock = Block::instance();
 
-					// make coinbase tx
-					TransactionContextPtr lCoinbase = mempool_->wallet()->createTxCoinBase(QBIT);
-					lCurrentBlock->append(lCoinbase->tx());
-
 					// prepare block
-					BlockContextPtr lCurrentBlockContext = mempool_->beginBlock(lCurrentBlock); // LOCK!
+					BlockContextPtr lCurrentBlockContext = mempool_->beginBlock(lCurrentBlock);
+
+					// make coinbase tx
+					BlockHeader lHeader;
+					uint64_t lCurrentHeight = store_->currentHeight(lHeader);
+					TransactionContextPtr lCoinbase = mempool_->wallet()->createTxCoinBase(
+						consensus_->blockReward(lCurrentHeight + 1 /*next height*/) + 
+							lCurrentBlockContext->fee());
+					lCurrentBlock->prepend(lCoinbase->tx());
+
+					// calc merkle root
+					lCurrentBlock->setRoot(lCurrentBlockContext->calculateMerkleRoot());
+
+					// get current header
 					currentBlockHeader_ = lCurrentBlock->blockHeader();
 
 					// TODO: mining -----------------------------------------
-					gLog().write(Log::VALIDATOR, std::string("[validator/miner]: looking for a block for ") + strprintf("%s#", chain_.toHex().substr(0, 10)) + "...");
+					if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[validator/miner]: looking for a block for ") + strprintf("%s#", chain_.toHex().substr(0, 10)) + "...");
 					
 					boost::random::uniform_int_distribution<> lDist(3, (consensus_->blockTime())/1000);
 					int lMSeconds = lDist(lGen);
@@ -196,18 +205,18 @@ private:
 					}
 					// TODO: mining -----------------------------------------
 					
-					gLog().write(Log::VALIDATOR, std::string("[validator/miner]: new block found ") + strprintf("%s/%s#", lCurrentBlock->hash().toHex(), chain_.toHex().substr(0, 10)));
+					if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[validator/miner]: new block found ") + strprintf("%s/%s#", lCurrentBlock->hash().toHex(), chain_.toHex().substr(0, 10)));
 
 					IConsensus::ChainState lState = consensus_->chainState();
 					if (minerRunning_ && lState == IConsensus::SYNCHRONIZED) {
 						// commit block
-						size_t lHeight = 0;
+						uint64_t lHeight = 0;
 						mempool_->commit(lCurrentBlockContext);
 						if (store_->commitBlock(lCurrentBlockContext, lHeight)) {
 							// clean-up mempool (sanity)
 							mempool_->removeTransactions(lCurrentBlockContext->block());
 							// broadcast
-							gLog().write(Log::VALIDATOR, std::string("[validator/miner]: broadcasting found block ") + strprintf("%s/%s#", lCurrentBlock->hash().toHex(), chain_.toHex().substr(0, 10)));
+							if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[validator/miner]: broadcasting found block ") + strprintf("%s/%s#", lCurrentBlock->hash().toHex(), chain_.toHex().substr(0, 10)));
 							NetworkBlockHeader lHeader(lCurrentBlock->blockHeader(), lHeight);
 							StatePtr lState = consensus_->currentState();
 							consensus_->broadcastBlockHeaderAndState(lHeader, lState, lState->addressId()); // broadcast new header and state
@@ -215,12 +224,12 @@ private:
 						} else {
 							if (lCurrentBlockContext->errors().size()) {
 								for (std::list<std::string>::iterator lError = lCurrentBlockContext->errors().begin(); lError != lCurrentBlockContext->errors().end(); lError++) {
-									gLog().write(Log::ERROR, std::string("[miner/error]: ") + (*lError));
+									if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::ERROR, std::string("[miner/error]: ") + (*lError));
 								}
 							}
 						}
 					} else {
-						gLog().write(Log::VALIDATOR, std::string("[validator/miner]: skip found block ") + strprintf("%s/%s#", lCurrentBlock->hash().toHex(), chain_.toHex().substr(0, 10)));
+						if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[validator/miner]: skip found block ") + strprintf("%s/%s#", lCurrentBlock->hash().toHex(), chain_.toHex().substr(0, 10)));
 					}
 				}
 				catch(boost::thread_interrupted&) {
@@ -228,7 +237,7 @@ private:
 				}
 			}
 
-			gLog().write(Log::VALIDATOR, std::string("[miner]: stopped for ") + strprintf("%s#", chain_.toHex().substr(0, 10)));
+			if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[miner]: stopped for ") + strprintf("%s#", chain_.toHex().substr(0, 10)));
 		}
 	}	
 
@@ -237,23 +246,23 @@ private:
 		if(!error) {
 			//
 			IConsensus::ChainState lState = consensus_->chainState();
-			gLog().write(Log::VALIDATOR, std::string("[touch]: chain state = ") + strprintf("%s/%s#", consensus_->chainStateString(), chain_.toHex().substr(0, 10)));
+			if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[touch]: chain state = ") + strprintf("%s/%s#", consensus_->chainStateString(), chain_.toHex().substr(0, 10)));
 
 			if (lState != IConsensus::SYNCHRONIZED && lState != IConsensus::SYNCHRONIZING) {
 				// stop miner
 				stopMiner();
 
-				gLog().write(Log::VALIDATOR, std::string("[touch]: chain ") + strprintf("%s#", chain_.toHex().substr(0, 10)) + std::string(" NOT synchronized, starting synchronization..."));
+				if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[touch]: chain ") + strprintf("%s#", chain_.toHex().substr(0, 10)) + std::string(" NOT synchronized, starting synchronization..."));
 				if (consensus_->doSynchronize()) {
 					// already synchronized
-					gLog().write(Log::VALIDATOR, std::string("[touch]: chain ") + strprintf("%s#", chain_.toHex().substr(0, 10)) + std::string(" IS synchronized."));
+					if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[touch]: chain ") + strprintf("%s#", chain_.toHex().substr(0, 10)) + std::string(" IS synchronized."));
 					startMiner();
 				}
 			} else if (lState == IConsensus::SYNCHRONIZING) {
 				SynchronizationJobPtr lJob = consensus_->lastJob();
 				if (lJob && getTime() - lJob->timestamp() > consensus_->settings()->consensusSynchronizationLatency()) {
 					consensus_->toNonSynchronized(); // restart sync process
-					gLog().write(Log::ERROR, std::string("[validator/touch/error]: synchronization was stalled."));
+					if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::ERROR, std::string("[validator/touch/error]: synchronization was stalled."));
 				} else {
 					// in case of acquiring block is in progress
 					NetworkBlockHeader lEnqueuedBlock;
@@ -263,7 +272,7 @@ private:
 						// re-acquire block
 						if (!consensus_->acquireBlock(lEnqueuedBlock)) {
 							// 2.1 peer was not found - reset state
-							gLog().write(Log::VALIDATOR, std::string("[touch]: peer for network block ") + 
+							if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[touch]: peer for network block ") + 
 								strprintf("%s", const_cast<NetworkBlockHeader&>(lEnqueuedBlock).blockHeader().hash().toHex()) + std::string(" was not found. Begin synchronization..."));
 							consensus_->toNonSynchronized();
 						}
@@ -278,6 +287,7 @@ private:
 			std::list<TransactionPtr> lPendingTxs;
 			mempool_->wallet()->collectPendingTransactions(lPendingTxs);
 			for (std::list<TransactionPtr>::iterator lTx = lPendingTxs.begin(); lTx != lPendingTxs.end(); lTx++) {
+				if (*lTx == nullptr) continue;
 				if (mempool_->isTransactionExists((*lTx)->id())) {
 					TransactionContextPtr lCtx = TransactionContext::instance(*lTx);
 					consensus_->broadcastTransaction(lCtx, mempool_->wallet()->firstKey().createPKey().id());
@@ -288,7 +298,6 @@ private:
 					mempool_->wallet()->removePendingTransaction((*lTx)->id());
 				}
 			}
-
 		}
 
 		timer_->expires_at(timer_->expiry() + boost::asio::chrono::milliseconds(500));
@@ -326,9 +335,14 @@ private:
 class ValidatorFactory {
 public:
 	// shard - entity based transaction
-	static IValidatorPtr create(const uint256& chain, IConsensusPtr consensus, IMemoryPoolPtr mempool, ITransactionStorePtr store, EntityPtr /*entity*/) {
+	static IValidatorPtr create(const uint256& chain, IConsensusPtr consensus, IMemoryPoolPtr mempool, ITransactionStorePtr store, EntityPtr dapp) {
 		if (MainChain::id() == chain) {
 			return MainValidator::instance(chain, consensus, mempool, store);
+		} else if (dapp) {
+			Validators::iterator lCreator = gValidators.find(dapp->entityName());
+			if (lCreator != gValidators.end()) {
+				return lCreator->second->create(chain, consensus, mempool, store);
+			}			
 		}
 
 		return nullptr;

@@ -45,7 +45,8 @@ public:
 		INVALID_FEE				= 0x22,
 		INVALID_RESULT			= 0x23,
 		INVALID_ENTITY			= 0x24,
-		ENTITY_NAME_EXISTS		= 0x25
+		ENTITY_NAME_EXISTS		= 0x25,
+		INVALID_CHAIN			= 0x26
 	};
 
 	class Register {
@@ -256,6 +257,77 @@ public:
 
 	void setDryRun() { dryRun_ = true; }
 
+public:
+	class DisassemblyLine {
+	public:
+		DisassemblyLine() {}
+
+		std::string label() { return label_; }
+		std::string instruction() { return instruction_; }
+		std::list<std::string>& params() { return params_; }
+
+		std::string toString() {
+			std::string lParams;
+			for (std::list<std::string>::iterator lParam = params_.begin(); lParam != params_.end(); lParam++) {
+				if (lParams.size()) lParams += ", ";
+				lParams += *lParam;
+			}
+
+			return strprintf("%-5s %-15s %s", label_, instruction_, lParams);
+		}
+
+		void setLabel(unsigned short  label) { label_ = strprintf("%d:", label); }
+		void setInstruction(const std::string& instruction) { instruction_ = instruction; }
+		void addParam(const std::string& param) { params_.push_back(param); }
+
+		void addLabel(unsigned short lab) {
+			params_.push_back(strprintf(":%d", lab));
+		}
+		void addParam(unsigned char v) {
+			params_.push_back(strprintf("cu08(%#x)", v));
+		}
+		void addParam(unsigned short v) {
+			params_.push_back(strprintf("cu16(%#x)", v));
+		}
+		void addParam(uint32_t v) {
+			params_.push_back(strprintf("cu32(%#x)", v));
+		}
+		void addParam(uint64_t v) {
+			params_.push_back(strprintf("cu64(%#x)", v));
+		}
+		void addParam(uint160 v) {
+			params_.push_back(strprintf("cu160(0x%s)", v.toHex()));
+		}
+		void addParam(uint256 v) {
+			params_.push_back(strprintf("cu256(0x%s)", v.toHex()));
+		}
+		void addParam(uint512 v) {
+			params_.push_back(strprintf("cu512(0x%s)", v.toHex()));
+		}
+		void addParam(char v) {
+			params_.push_back(strprintf("c08(%#x)", v));
+		}
+		void addParam(short v) {
+			params_.push_back(strprintf("c16(%#x)", v));
+		}
+		void addParam(int32_t v) {
+			params_.push_back(strprintf("c32(%#x)", v));
+		}
+		void addParam(int64_t v) {
+			params_.push_back(strprintf("c64(%#x)", v));
+		}
+		void addParam(qbit::vector<unsigned char>& v) {
+			params_.push_back(strprintf("var(0x%s)", HexStr(v.begin(), v.end())));
+		}
+
+	private:
+		std::string label_;
+		std::string instruction_;
+		std::list<std::string> params_;
+	};
+
+	void disassemble(std::list<DisassemblyLine>&);
+
 protected:
 	inline void qmov();
 	inline void qadd();
@@ -281,8 +353,44 @@ protected:
 	inline void qatxoa();
 	inline void qatxo();
 	inline void qdtxo();
+	inline void qdetxo();
 	inline void qeqaddr();
 	inline void qpat();
+	inline void qpen();
+	inline void qptxo();
+	inline void qtifmc();
+
+	// disasm
+	inline void qmov(DisassemblyLine&);
+	inline void qadd(DisassemblyLine&);
+	inline void qsub(DisassemblyLine&);
+	inline void qmul(DisassemblyLine&);
+	inline void qdiv(DisassemblyLine&);
+	inline void qcmp(DisassemblyLine&);
+	inline void qcmpe(DisassemblyLine&);
+	inline void qcmpne(DisassemblyLine&);
+	inline void qpushd(DisassemblyLine&);
+	inline void qpulld(DisassemblyLine&);
+	inline void qlhash256(DisassemblyLine&);
+	inline void qchecksig(DisassemblyLine&);
+	inline void qjmp(DisassemblyLine&);
+	inline void qjmpt(DisassemblyLine&);
+	inline void qjmpf(DisassemblyLine&);
+	inline void qjmpl(DisassemblyLine&);
+	inline void qjmpg(DisassemblyLine&);
+	inline void qjmpe(DisassemblyLine&);
+	inline void qchecka(DisassemblyLine&);
+	inline void qcheckp(DisassemblyLine&);
+	inline void qatxop(DisassemblyLine&);
+	inline void qatxoa(DisassemblyLine&);
+	inline void qatxo(DisassemblyLine&);
+	inline void qdtxo(DisassemblyLine&);
+	inline void qdetxo(DisassemblyLine&);
+	inline void qeqaddr(DisassemblyLine&);
+	inline void qpat(DisassemblyLine&);
+	inline void qpen(DisassemblyLine&);
+	inline void qptxo(DisassemblyLine&);
+	inline void qtifmc(DisassemblyLine&);
 
 	inline qasm::_atom nextAtom() { return (qasm::_atom)code_[pos_++]; }
 
