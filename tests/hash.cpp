@@ -27,7 +27,7 @@ bool HashTest::execute() {
     	bool fOverflow;
 		arith_uint256 target;
 		target.SetCompact(blk.bits_, &fNegative, &fOverflow);
-		target /= 10;
+		target *= 10;
 		arith_uint256 cycle_hash_arith = UintToArith256(ch);
 		
 		if (fNegative || target == 0 || fOverflow || target < cycle_hash_arith)
