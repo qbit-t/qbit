@@ -23,6 +23,7 @@ set(SOURCES
 	./secp256k1/src/secp256k1.c
 	key.cpp
 	uint256.cpp
+	arith_uint256.cpp
 	utilstrencodings.cpp
 	context.cpp
 	main.cpp
@@ -44,6 +45,7 @@ set(SOURCES
 	./transaction.cpp
 	./hash.cpp
 	./uint256.cpp
+	./arith_uint256.cpp
 	./transactionvalidator.cpp
 	./block.cpp
 	./log/log.cpp
@@ -75,6 +77,7 @@ set(UNITTESTS
 	./secp256k1/src/secp256k1.c
 	key.cpp
 	uint256.cpp
+	arith_uint256.cpp
 	utilstrencodings.cpp
 	context.cpp
 	./crypto/ctaes/ctaes.c

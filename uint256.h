@@ -30,6 +30,24 @@ public:
 
     explicit base_blob(const std::vector<unsigned char>& vch);
     explicit base_blob(unsigned char* vch);
+    base_blob(uint64_t b)
+    {
+        data[0] = (unsigned char)b;
+        for(int i = 1; i < 8; i++)
+            data[i] = (unsigned char)(b >> 8);
+        for (int i = 8; i < WIDTH; i++)
+            data[i] = 0;
+    }
+
+    base_blob& operator=(uint64_t b)
+    {
+        data[0] = (unsigned char)b;
+        for(int i = 1; i < 8; i++)
+            data[i] = (unsigned char)(b >> 8);
+        for (int i = 8; i < WIDTH; i++)
+            data[i] = 0;
+        return *this;
+    }
 
     bool isNull() const
     {
@@ -51,7 +69,6 @@ public:
     friend inline bool operator==(const base_blob& a, const base_blob& b) { return a.compare(b) == 0; }
     friend inline bool operator!=(const base_blob& a, const base_blob& b) { return a.compare(b) != 0; }
     friend inline bool operator<(const base_blob& a, const base_blob& b) { return a.compare(b) < 0; }
-
     std::string toHex() const;
     void setHex(const char* psz);
     void setHex(const std::string& str);
@@ -145,6 +162,7 @@ public:
     uint256(const base_blob<256>& b) : base_blob<256>(b) {}
     explicit uint256(const std::vector<unsigned char>& vch) : base_blob<256>(vch) {}
     explicit uint256(unsigned char* vch) : base_blob<256>(vch) {}
+    uint256(uint64_t b) : base_blob<256>(b) {}
 
     /** A cheap hash function that just returns 64 bits from the result, it can be
      * used when the contents are considered uniformly random. It is not appropriate
@@ -155,6 +173,7 @@ public:
     {
         return ReadLE64(data);
     }
+
 };
 
 /* uint256 from const char *.
