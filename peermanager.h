@@ -143,14 +143,20 @@ public:
 		lTime += getMicroseconds();
 		lPeers++;
 
+		// median microseconds
+		uint64_t lMedianMicroseconds = lTime / lPeers;
+		//consensusManager_->setMedianMicroseconds(lMedianMicroseconds);
+		qbit::gMedianMicroseconds = lMedianMicroseconds;
+
 		// median time
-		uint64_t lMedianTime = (lTime / lPeers) / 100000;
+		uint64_t lMedianTime = lMedianMicroseconds / 100000;
 		uint64_t lLastDigit = lMedianTime % 10;
 
 		lMedianTime = lMedianTime / 10;
 		if (lLastDigit >= 5) lMedianTime++;
 
-		consensusManager_->setMedianTime(lMedianTime); // seconds
+		//consensusManager_->setMedianTime(lMedianTime); // seconds
+		qbit::gMedianTime = lMedianTime;
 	}
 
 	void deactivatePeer(IPeerPtr peer) {

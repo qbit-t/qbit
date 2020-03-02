@@ -11,8 +11,9 @@
 #include "../allocator.h"
 
 #include <iostream>
-#include <atomic>
-#include <mutex>
+
+#include <boost/atomic.hpp>
+#include <boost/thread/mutex.hpp>
 
 #include "../fs.h"
 #include "../timestamp.h"
@@ -57,7 +58,7 @@ private:
 
 private:	
 	FILE* out_ = nullptr;
-	std::mutex mutex_;
+	boost::mutex mutex_;
 	std::atomic_bool startedNewLine_ {true};
 	std::atomic<uint32_t> categories_ {0};
 	bool console_ = false;

@@ -32,12 +32,24 @@ public:
 
 	std::string dAppName() { return "buzzer"; }
 
+	//
+	uint256 attachBuzzer(const std::string& /*buzzer*/);
+
 	// create buzzer tx
 	TransactionContextPtr createTxBuzzer(const PKey& /*self*/, const std::string& /*buzzer*/, const std::string& /*alias*/, const std::string& /*description*/);
 	TransactionContextPtr createTxBuzzer(const std::string& /*buzzer*/, const std::string& /*alias*/, const std::string& /*description*/);
 	// create buzz tx
 	TransactionContextPtr createTxBuzz(const PKey& /*self*/, const std::string& /*body*/);
 	TransactionContextPtr createTxBuzz(const std::string& /*body*/);
+	TransactionContextPtr createTxBuzz(const std::string& /*publisher*/, const std::string& /*body*/);
+	// create buzzer subscribe tx
+	TransactionContextPtr createTxBuzzerSubscribe(const PKey& /*self*/, const std::string& /*publisher*/);
+	TransactionContextPtr createTxBuzzerSubscribe(const std::string& /*publisher*/);
+	TransactionContextPtr createTxBuzzerSubscribe(const std::string& /*owner*/, const std::string& /*publisher*/);
+	// create buzzer unsubscribe tx
+	TransactionContextPtr createTxBuzzerUnsubscribe(const PKey& /*self*/, const std::string& /*publisher*/);
+	TransactionContextPtr createTxBuzzerUnsubscribe(const std::string& /*publisher*/);
+	TransactionContextPtr createTxBuzzerUnsubscribe(const std::string& /*owner*/, const std::string& /*publisher*/);
 
 private:
 	// various settings, command line args & config file

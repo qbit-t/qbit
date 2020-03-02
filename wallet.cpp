@@ -878,7 +878,7 @@ TransactionContextPtr Wallet::createTxCoinBase(amount_t amount) {
 	return lCtx;
 }
 
-TransactionContextPtr Wallet::createTxDApp(const PKey& dest, const std::string& shortName, const std::string& longName, TxDApp::Sharding sharding) {
+TransactionContextPtr Wallet::createTxDApp(const PKey& dest, const std::string& shortName, const std::string& longName, TxDApp::Sharding sharding, Transaction::Type instances) {
 	// create empty tx
 	TxDAppPtr lDAppTx = TransactionHelper::to<TxDApp>(TransactionFactory::create(Transaction::DAPP));
 	// create context
@@ -897,7 +897,7 @@ TransactionContextPtr Wallet::createTxDApp(const PKey& dest, const std::string& 
 	// make dapp main out
 	lDAppTx->addDAppOut(lSKey, dest); // first out - identity link
 	// main public out
-	lDAppTx->addDAppPublicOut(lSKey, dest);  // second out - public link
+	lDAppTx->addDAppPublicOut(lSKey, dest, instances);  // second out - public link
 
 	// try to estimate fee
 	qunit_t lRate = mempool()->estimateFeeRateByLimit(lCtx, settings_->maxFeeRate());

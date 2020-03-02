@@ -183,7 +183,10 @@ public:
 		httpRequestHandler_->push(HttpCreateShard::instance());
 		httpRequestHandler_->push(HttpGetTransaction::instance());
 		httpRequestHandler_->push(HttpCreateBuzzer::instance(buzzerComposer_)); // custom
+		httpRequestHandler_->push(HttpAttachBuzzer::instance(buzzerComposer_)); // custom
 		httpRequestHandler_->push(HttpBuzz::instance(buzzerComposer_)); // custom
+		httpRequestHandler_->push(HttpBuzzerSubscribe::instance(buzzerComposer_)); // custom
+		httpRequestHandler_->push(HttpBuzzerUnsubscribe::instance(buzzerComposer_)); // custom
 		httpConnectionManager_ = HttpConnectionManager::instance(settings_, httpRequestHandler_);
 		httpServer_ = HttpServer::instance(settings_, httpConnectionManager_);		
 
@@ -290,7 +293,10 @@ public:
 		httpRequestHandler_->push(HttpCreateShard::instance());
 		httpRequestHandler_->push(HttpGetTransaction::instance());
 		httpRequestHandler_->push(HttpCreateBuzzer::instance(buzzerComposer_)); // custom
+		httpRequestHandler_->push(HttpAttachBuzzer::instance(buzzerComposer_)); // custom
 		httpRequestHandler_->push(HttpBuzz::instance(buzzerComposer_)); // custom		
+		httpRequestHandler_->push(HttpBuzzerSubscribe::instance(buzzerComposer_)); // custom
+		httpRequestHandler_->push(HttpBuzzerUnsubscribe::instance(buzzerComposer_)); // custom
 		httpConnectionManager_ = HttpConnectionManager::instance(settings_, httpRequestHandler_);
 		httpServer_ = HttpServer::instance(settings_, httpConnectionManager_);		
 
@@ -397,7 +403,10 @@ public:
 		httpRequestHandler_->push(HttpCreateShard::instance());
 		httpRequestHandler_->push(HttpGetTransaction::instance());
 		httpRequestHandler_->push(HttpCreateBuzzer::instance(buzzerComposer_)); // custom
+		httpRequestHandler_->push(HttpAttachBuzzer::instance(buzzerComposer_)); // custom
 		httpRequestHandler_->push(HttpBuzz::instance(buzzerComposer_)); // custom		
+		httpRequestHandler_->push(HttpBuzzerSubscribe::instance(buzzerComposer_)); // custom
+		httpRequestHandler_->push(HttpBuzzerUnsubscribe::instance(buzzerComposer_)); // custom
 		httpConnectionManager_ = HttpConnectionManager::instance(settings_, httpRequestHandler_);
 		httpServer_ = HttpServer::instance(settings_, httpConnectionManager_);		
 
@@ -504,7 +513,10 @@ public:
 		httpRequestHandler_->push(HttpCreateShard::instance());
 		httpRequestHandler_->push(HttpGetTransaction::instance());
 		httpRequestHandler_->push(HttpCreateBuzzer::instance(buzzerComposer_)); // custom
+		httpRequestHandler_->push(HttpAttachBuzzer::instance(buzzerComposer_)); // custom
 		httpRequestHandler_->push(HttpBuzz::instance(buzzerComposer_)); // custom		
+		httpRequestHandler_->push(HttpBuzzerSubscribe::instance(buzzerComposer_)); // custom
+		httpRequestHandler_->push(HttpBuzzerUnsubscribe::instance(buzzerComposer_)); // custom
 		httpConnectionManager_ = HttpConnectionManager::instance(settings_, httpRequestHandler_);
 		httpServer_ = HttpServer::instance(settings_, httpConnectionManager_);		
 

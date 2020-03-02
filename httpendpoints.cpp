@@ -316,7 +316,12 @@ void HttpSendToAddress::process(const std::string& source, const HttpRequest& re
 				} else {
 					lCode = "E_TX_EXISTS";
 					lMessage = "Transaction already exists";
-					return;
+					// unpack
+					if (!unpackTransaction(lCtx->tx(), uint256(), 0, 0, 0, false, false, lReply, reply)) return;
+					// rollback transaction
+					wallet_->rollback(lCtx);
+					// reset
+					lCtx = nullptr;
 				}
 			} else {
 				reply = HttpReply::stockReply("E_MEMPOOL", "Corresponding memory pool was not found"); 
@@ -424,6 +429,7 @@ void HttpCreateDApp::process(const std::string& source, const HttpRequest& reque
 			"<address>", 		-- (string) owners' address
 			"<short_name>",		-- (string) dapp short name, should be unique
 			"<description>",	-- (string) dapp description
+			"<instances_tx>",	-- (short)  dapp instances tx types (transaction::type)			
 			"<sharding>"		-- (string, optional) static|dynamic, default = 'static'
 		]
 	}
@@ -454,9 +460,10 @@ void HttpCreateDApp::process(const std::string& source, const HttpRequest& reque
 		PKey lAddress; // 0
 		std::string lShortName; // 1
 		std::string lDescription; // 2
-		std::string lSharding = "static"; // 3
+		Transaction::Type lInstances; // 3
+		std::string lSharding = "static"; // 4
 
-		if (lParams.size() == 3 || lParams.size() == 4) {
+		if (lParams.size() == 4 || lParams.size() == 5) {
 			// param[0]
 			json::Value lP0 = lParams[0];
 			if (lP0.isString()) lAddress.fromString(lP0.getString());
@@ -473,9 +480,14 @@ void HttpCreateDApp::process(const std::string& source, const HttpRequest& reque
 			else { reply = HttpReply::stockReply(HttpReply::bad_request); return; }
 
 			// param[3]
-			if (lParams.size() == 4) {
-				json::Value lP3 = lParams[3];
-				if (lP3.isString()) lSharding = lP3.getString();
+			json::Value lP3 = lParams[3];
+			if (lP3.isString()) lInstances = (Transaction::Type)boost::lexical_cast<unsigned short>(lP3.getString());
+			else { reply = HttpReply::stockReply(HttpReply::bad_request); return; }
+
+			// param[4]
+			if (lParams.size() == 5) {
+				json::Value lP4 = lParams[4];
+				if (lP4.isString()) lSharding = lP4.getString();
 				else { reply = HttpReply::stockReply(HttpReply::bad_request); return; }
 			}
 		} else {
@@ -492,7 +504,7 @@ void HttpCreateDApp::process(const std::string& source, const HttpRequest& reque
 		TransactionContextPtr lCtx = nullptr;
 		try {
 			// create tx
-			lCtx = wallet_->createTxDApp(lAddress, lShortName, lDescription, (lSharding == "static" ? TxDApp::STATIC : TxDApp::DYNAMIC));
+			lCtx = wallet_->createTxDApp(lAddress, lShortName, lDescription, (lSharding == "static" ? TxDApp::STATIC : TxDApp::DYNAMIC), lInstances);
 			if (lCtx->errors().size()) {
 				reply = HttpReply::stockReply("E_TX_CREATE_DAPP", *lCtx->errors().begin()); 
 				return;
@@ -520,7 +532,12 @@ void HttpCreateDApp::process(const std::string& source, const HttpRequest& reque
 				} else {
 					lCode = "E_TX_EXISTS";
 					lMessage = "Transaction already exists";
-					return;
+					// unpack
+					if (!unpackTransaction(lCtx->tx(), uint256(), 0, 0, 0, false, false, lReply, reply)) return;
+					// rollback transaction
+					wallet_->rollback(lCtx);
+					// reset
+					lCtx = nullptr;
 				}
 			} else {
 				reply = HttpReply::stockReply("E_MEMPOOL", "Corresponding memory pool was not found"); 
@@ -656,7 +673,12 @@ void HttpCreateShard::process(const std::string& source, const HttpRequest& requ
 				} else {
 					lCode = "E_TX_EXISTS";
 					lMessage = "Transaction already exists";
-					return;
+					// unpack
+					if (!unpackTransaction(lCtx->tx(), uint256(), 0, 0, 0, false, false, lReply, reply)) return;
+					// rollback transaction
+					wallet_->rollback(lCtx);
+					// reset
+					lCtx = nullptr;
 				}
 			} else {
 				reply = HttpReply::stockReply("E_MEMPOOL", "Corresponding memory pool was not found"); 

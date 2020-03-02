@@ -9,7 +9,6 @@
 
 namespace qbit {
 
-#define TX_BUZZ Transaction::CUSTOM_01
 #define TX_BUZZ_BODY_SIZE 512 
 
 typedef LimitedString<64> buzzer_tag_t;
@@ -19,7 +18,9 @@ class TxBuzz: public Entity {
 public:
 	TxBuzz() { type_ = TX_BUZZ; }
 
-	inline void serialize(DataStream& s) {
+	ADD_INHERITABLE_SERIALIZE_METHODS;
+
+	template<typename Stream> void serialize(Stream& s) {
 		s << timestamp_;
 		s << body_;
 	}
@@ -32,6 +33,11 @@ public:
 	}
 
 	inline std::vector<unsigned char>& body() { return body_; }
+	inline void body(std::string& body) {
+		body.insert(body.end(), body_.begin(), body_.end());		
+	}
+	inline uint64_t timestamp() { return timestamp_; }
+
 	inline void setBody(const std::vector<unsigned char>& body) {
 		if (body.size() <= TX_BUZZ_BODY_SIZE) 
 			body_ = body;
@@ -42,6 +48,7 @@ public:
 			body_.insert(body_.end(), body.begin(), body.end()); 
 		else throw qbit::exception("E_SIZE", "Body size is incorrect.");
 	}
+	inline void setTimestamp(uint64_t timestamp) { timestamp_ = timestamp; }
 
 	inline void properties(std::map<std::string, std::string>& props) {
 		//
@@ -74,7 +81,7 @@ public:
 			OP(QRET));
 
 		Transaction::UnlinkedOutPtr lUTXO = Transaction::UnlinkedOut::instance(
-			Transaction::Link(MainChain::id(), TxAssetType::nullAsset(), out_.size()), // link
+			Transaction::Link(chain(), TxAssetType::nullAsset(), out_.size()), // link
 			pkey
 		);
 
@@ -89,7 +96,7 @@ public:
 		lOut.setAsset(TxAssetType::nullAsset());
 		lOut.setDestination(ByteCode() <<
 			OP(QPTXO)		<<
-			OP(QMOV) 		<< REG(QR0) << CU8(0x01) <<	
+			OP(QMOV) 		<< REG(QR0) << CU8(0x01) <<	// TODO: out for reply, out for rebuzz, out for like, out for dislike
 			OP(QRET));
 
 		Transaction::UnlinkedOutPtr lUTXO = Transaction::UnlinkedOut::instance(
@@ -132,6 +139,14 @@ public:
 	}
 
 	inline std::string name() { return "buzz"; }
+
+	bool isValue(UnlinkedOutPtr utxo) {
+		return (utxo->out().asset() != TxAssetType::nullAsset()); 
+	}
+
+	bool isEntity(UnlinkedOutPtr utxo) {
+		return (utxo->out().asset() == TxAssetType::nullAsset()); 
+	}	
 
 private:
 	uint64_t timestamp_;

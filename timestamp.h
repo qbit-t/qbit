@@ -16,6 +16,8 @@
 #include <time.h>
 #include <string>
 
+#include <boost/atomic.hpp>
+
 #if defined(__linux__)
 #include <sys/time.h>
 #endif
@@ -27,6 +29,12 @@
 #include <cstdint>
 
 namespace qbit {
+
+extern boost::atomic<uint64_t> gMedianTime;
+extern boost::atomic<uint64_t> gMedianMicroseconds;
+
+extern uint64_t getMedianMicroseconds();
+extern uint64_t getMedianTime();
 
 extern uint64_t getMicroseconds();
 extern uint64_t getTime();

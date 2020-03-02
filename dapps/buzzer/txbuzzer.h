@@ -6,12 +6,18 @@
 #define QBIT_TXBUZZER_H
 
 #include "../../entity.h"
+#include "../../txassettype.h"
+#include "../../vm/vm.h"
 
 namespace qbit {
 
 typedef LimitedString<64> buzzer_name_t;
 
-#define TX_BUZZER Transaction::CUSTOM_00
+#define TX_BUZZER 				Transaction::CUSTOM_00
+#define TX_BUZZ 				Transaction::CUSTOM_01
+#define TX_BUZZER_SUBSCRIBE 	Transaction::CUSTOM_02
+#define TX_BUZZER_UNSUBSCRIBE 	Transaction::CUSTOM_03
+
 #define TX_BUZZER_ALIAS_SIZE 64 
 #define TX_BUZZER_DESCRIPTION_SIZE 256 
 
@@ -20,7 +26,9 @@ class TxBuzzer: public Entity {
 public:
 	TxBuzzer() { type_ = TX_BUZZER; }
 
-	inline void serialize(DataStream& s) {
+	ADD_INHERITABLE_SERIALIZE_METHODS;
+
+	template<typename Stream> void serialize(Stream& s) {
 		buzzer_name_t lName(name_);
 		lName.Serialize(s);
 		s << alias_;
@@ -105,7 +113,9 @@ public:
 		lOut.setAsset(TxAssetType::nullAsset());
 		lOut.setDestination(ByteCode() <<
 			OP(QPTXO)		<< // use in entity-based pushUnlinkedOut's
-			OP(QMOV) 		<< REG(QR0) << CU8(0x01) <<	
+			OP(QMOV)		<< REG(QR1) << CU16(TX_BUZZER_SUBSCRIBE) <<
+			OP(QCMPE)		<< REG(QTH1) << REG(QR1) <<
+			OP(QMOV) 		<< REG(QR0) << REG(QC0) <<	
 			OP(QRET));
 
 		Transaction::UnlinkedOutPtr lUTXO = Transaction::UnlinkedOut::instance(
@@ -178,6 +188,29 @@ public:
 	}
 
 	inline std::string name() { return "buzzer"; }
+
+	bool isValue(UnlinkedOutPtr utxo) {
+		return (utxo->out().asset() != TxAssetType::nullAsset()); 
+	}
+
+	bool isEntity(UnlinkedOutPtr utxo) {
+		return (utxo->out().asset() == TxAssetType::nullAsset()); 
+	}	
+
+	inline bool extractAddress(PKey& pkey) {
+		//
+		Transaction::Out& lOut = (*out().begin());
+		VirtualMachine lVM(lOut.destination());
+		lVM.execute();
+
+		if (lVM.getR(qasm::QD0).getType() != qasm::QNONE) {		
+			pkey.set<unsigned char*>(lVM.getR(qasm::QD0).begin(), lVM.getR(qasm::QD0).end());
+
+			return true;
+		}
+
+		return false;
+	}
 
 private:
 	std::string name_;
