@@ -79,9 +79,12 @@ public:
 
 	inline std::string name() { return "blockbase"; }
 
-	inline void serialize(DataStream& s) {
+	ADD_INHERITABLE_SERIALIZE_METHODS;
+
+	template<typename Stream> void serialize(Stream& s) {
 		blockHeader_.serialize(s);
 	}
+
 	inline void deserialize(DataStream& s) {
 		blockHeader_.deserialize(s);
 	}

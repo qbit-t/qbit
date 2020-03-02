@@ -23,6 +23,9 @@
 #include "../dapps/buzzer/validator.h"
 #include "../dapps/buzzer/txbuzzer.h"
 #include "../dapps/buzzer/txbuzz.h"
+#include "../dapps/buzzer/txbuzzersubscribe.h"
+#include "../dapps/buzzer/txbuzzerunsubscribe.h"
+#include "../dapps/buzzer/transactionstoreextension.h"
 
 #include "../log/log.h"
 
@@ -69,9 +72,13 @@ int main(int argv, char** argc)
 	Transaction::registerTransactionType(Transaction::BASE, TxBaseCreator::instance());
 	Transaction::registerTransactionType(Transaction::BLOCKBASE, TxBlockBaseCreator::instance());
 	Transaction::registerTransactionType(TX_BUZZER, TxBuzzerCreator::instance());
+	Transaction::registerTransactionType(TX_BUZZER_SUBSCRIBE, TxBuzzerSubscribeCreator::instance());
+	Transaction::registerTransactionType(TX_BUZZER_UNSUBSCRIBE, TxBuzzerUnsubscribeCreator::instance());
 	Transaction::registerTransactionType(TX_BUZZ, TxBuzzCreator::instance());
 	// validators
 	ValidatorManager::registerValidator("buzzer", BuzzerValidatorCreator::instance());
+	// store extensions
+	ShardingManager::registerStoreExtension("buzzer", BuzzerTransactionStoreExtensionCreator::instance());	
 
 	// logs
 	if (argv > 1 && std::string(argc[1]) == "-S0") gLog("/tmp/.qbitS0/debug.log"); // setup
@@ -89,6 +96,7 @@ int main(int argv, char** argc)
 	gLog().enable(Log::VALIDATOR);
 	gLog().enable(Log::SHARDING);
 	gLog().enable(Log::NET);
+	//gLog().enable(Log::BALANCE);
 	//gLog().enable(Log::ALL);
 
 	if (argv > 1 && std::string(argc[1]) == "-S0") {

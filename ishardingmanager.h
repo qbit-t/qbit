@@ -10,6 +10,7 @@
 #include "imemorypoolmanager.h"
 #include "itransactionstoremanager.h"
 #include "ivalidatormanager.h"
+#include "itransactionstoreextension.h"
 
 namespace qbit {
 

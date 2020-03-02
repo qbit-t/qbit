@@ -51,7 +51,7 @@ void qbit::Log::write(Log::Category category, const std::string& str) {
 			if (console_) std::cout << lMessage;
 
 			{
-				std::lock_guard<std::mutex> scoped_lock(mutex_);
+				boost::unique_lock<boost::mutex> lLock(mutex_);
 				fwrite(lMessage.data(), 1, lMessage.size(), out_);
 			}
 		}
@@ -65,7 +65,7 @@ std::string qbit::Log::timestamp() {
 bool qbit::Log::open() {
 	if (out_) return true;
 
-	std::lock_guard<std::mutex> scoped_lock(mutex_);
+	boost::unique_lock<boost::mutex> lLock(mutex_);
 
 	out_ = fsbridge::fopen(name_, "a");
 	if (!out_) return false;

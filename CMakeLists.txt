@@ -69,6 +69,8 @@ set(SOURCES
 	./validator.cpp
 	./dapps/buzzer/composer.cpp
 	./dapps/buzzer/httpendpoints.cpp
+	./dapps/buzzer/transactionstoreextension.cpp
+	./itransactionstoreextension.cpp
 )
 
 set(UNITTESTS
@@ -119,6 +121,8 @@ set(UNITTESTS
 	./validator.cpp
 	./dapps/buzzer/composer.cpp
 	./dapps/buzzer/httpendpoints.cpp
+	./dapps/buzzer/transactionstoreextension.cpp
+	./itransactionstoreextension.cpp	
 
 	./tests/testsuit.cpp
 	./tests/unittest.cpp

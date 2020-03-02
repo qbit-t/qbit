@@ -154,7 +154,7 @@ void VirtualMachine::qmov(DisassemblyLine& line) {
 			}
 			break;
 			case qasm::QREG: {
-				line.addParam(qasm::REG::extract(code_, pos_));
+				line.addParam(qasm::_getRegisterText(qasm::REG::extract(code_, pos_)));
 			}
 			break;
 		}
@@ -1339,8 +1339,6 @@ void VirtualMachine::disassemble(std::list<DisassemblyLine>& disassembly) {
 				case qasm::QPEN: qpen(lLine); break;
 				case qasm::QPTXO: qptxo(lLine); break;
 				case qasm::QTIFMC: qtifmc(lLine); break;
-				default:
-					return;
 			}
 
 		} else if (lastAtom_ == qasm::QLAB) {

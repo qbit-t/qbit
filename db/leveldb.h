@@ -44,6 +44,7 @@ public:
 
 		bool valid() { return (iterator_ && iterator_->Valid()); }
 		void next() { iterator_->Next(); }
+		void prev() { iterator_->Prev(); }
 
 		bool first(key& k) {
 			DataStream lKeyStream(SER_DISK, CLIENT_VERSION);

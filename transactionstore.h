@@ -86,7 +86,13 @@ public:
 
 		bool pushEntity(const uint256& id, TransactionContextPtr ctx) {
 			//
-			if (ctx->tx()->isEntity() && ctx->tx()->entityName() == Entity::emptyName()) return true;
+			if (ctx->tx()->isEntity() && ctx->tx()->entityName() == Entity::emptyName()) {
+				// just register it
+				entities_.insert(std::map<uint256, TransactionContextPtr>::value_type(id, ctx));
+				pushEntities_.push_back(ctx);
+
+				return true;
+			}
 
 			//
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[TxEntityStore::pushEntity]: try to push entity ") +
@@ -310,7 +316,8 @@ public:
 		utxoBlock_(settings_->dataPath() + "/" + chain.toHex() + "/indexes/utxo_block"),
 		shards_(settings_->dataPath() + "/" + chain.toHex() + "/indexes/shards"),
 		entityUtxo_(settings_->dataPath() + "/" + chain.toHex() + "/indexes/entity_utxo"),
-		shardEntities_(settings_->dataPath() + "/" + chain.toHex() + "/indexes/shard_entities")
+		shardEntities_(settings_->dataPath() + "/" + chain.toHex() + "/indexes/shard_entities"),
+		txUtxo_(settings_->dataPath() + "/" + chain.toHex() + "/indexes/tx_utxo")
 	{}
 
 	// stub
@@ -359,6 +366,7 @@ public:
 	bool isUnlinkedOutUsed(const uint256&);
 	bool isUnlinkedOutExists(const uint256&);
 	bool isLinkedOutExists(const uint256&);
+	bool enumUnlinkedOuts(const uint256& /*tx*/, std::vector<Transaction::UnlinkedOutPtr>& /*outs*/);
 
 	bool enqueueBlock(const NetworkBlockHeader& /*block*/);
 	void dequeueBlock(const uint256& /*block*/);
@@ -392,7 +400,15 @@ public:
 
 	static ITransactionStorePtr instance(ISettingsPtr settings, ITransactionStoreManagerPtr storeManager) {
 		return std::make_shared<TransactionStore>(MainChain::id(), settings, storeManager); 
-	}	
+	}
+
+	void setExtension(ITransactionStoreExtensionPtr extension) {
+		//
+		extension_ = extension;
+		extension_->open();
+	}
+
+	ITransactionStoreExtensionPtr extension() { return extension_; }
 
 private:
 	bool processBlockTransactions(ITransactionStorePtr /*tempStore*/, IEntityStorePtr /*tempEntityStore*/, BlockContextPtr /*block*/, BlockTransactionsPtr /*transactions*/, uint64_t /*approxHeight*/, bool /*processWallet*/);
@@ -416,6 +432,8 @@ private:
 	bool opened_;
 	// last block
 	uint256 lastBlock_;
+	// store extension
+	ITransactionStoreExtensionPtr extension_;
 
 	//
 	// main data
@@ -452,6 +470,8 @@ private:
 	db::DbContainer<uint256 /*utxo*/, uint256 /*block*/> utxoBlock_;
 	// shard | entities count
 	db::DbContainer<uint256 /*shard*/, uint32_t /*entities_count*/> shardEntities_;
+	// tx | utxo
+	db::DbMultiContainer<uint256 /*tx*/, uint256 /*utxo*/> txUtxo_;
 
 	//
 	boost::recursive_mutex storageCommitMutex_;

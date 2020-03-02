@@ -87,13 +87,10 @@ public:
 
 	bool popUnlinkedOut(const uint256& utxo, TransactionContextPtr ctx, IMemoryPoolPtr except) {
 		//
-		std::vector<IMemoryPoolPtr> lPools = pools();
-		bool lResult = false;
-		for (std::vector<IMemoryPoolPtr>::iterator lPool = lPools.begin(); lPool != lPools.end(); lPool++) {
-			if (except->chain() != (*lPool)->chain()) lResult |= (*lPool)->popUnlinkedOut(utxo, ctx);
-		}
+		IMemoryPoolPtr lMainChain = locate(MainChain::id());
+		if (lMainChain && except->chain() != MainChain::id()) return lMainChain->popUnlinkedOut(utxo, ctx);
 
-		return lResult;
+		return false;
 	}
 
 	static IMemoryPoolManagerPtr instance(ISettingsPtr settings) {

@@ -10,6 +10,7 @@
 #include "blockcontext.h"
 #include "transactioncontext.h"
 #include "ientitystore.h"
+#include "itransactionstoreextension.h"
 
 #include <memory>
 
@@ -20,6 +21,9 @@ typedef std::shared_ptr<IMemoryPool> IMemoryPoolPtr;
 
 class ITransactionStoreManager;
 typedef std::shared_ptr<ITransactionStoreManager> ITransactionStoreManagerPtr;
+
+class ITransactionStoreExtension;
+typedef std::shared_ptr<ITransactionStoreExtension> ITransactionStoreExtensionPtr;
 
 class ITransactionStore {
 public:
@@ -47,6 +51,8 @@ public:
 	virtual bool pushUnlinkedOut(Transaction::UnlinkedOutPtr, TransactionContextPtr) { throw qbit::exception("NOT_IMPL", "ITransactionStore::pushUnlinkedOut - not implemented."); }
 	virtual bool popUnlinkedOut(const uint256&, TransactionContextPtr) { throw qbit::exception("NOT_IMPL", "ITransactionStore::popUnlinkedOut - not implemented."); }
 	virtual void addLink(const uint256& /*from*/, const uint256& /*to*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::addLink - not implemented."); }
+
+	virtual bool enumUnlinkedOuts(const uint256& /*tx*/, std::vector<Transaction::UnlinkedOutPtr>& /*outs*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::enumUnlinkedOuts - not implemented."); }
 
 	virtual Transaction::UnlinkedOutPtr findUnlinkedOut(const uint256&) { throw qbit::exception("NOT_IMPL", "ITransactionStore::findUnlinkedOut - not implemented."); }
 	virtual Transaction::UnlinkedOutPtr findLinkedOut(const uint256&) { throw qbit::exception("NOT_IMPL", "ITransactionStore::findLinkedOut - not implemented."); }
@@ -81,6 +87,9 @@ public:
 	virtual bool blockHeaderHeight(const uint256& /*block*/, uint64_t& /*height*/, BlockHeader& /*header*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::blockHeaderHeight - not implemented."); }
 
 	virtual bool firstEnqueuedBlock(NetworkBlockHeader& /*block*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::firstEnqueuedBlock - not implemented."); }
+
+	virtual void setExtension(ITransactionStoreExtensionPtr /*extension*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::setExtension - not implemented."); }
+	virtual ITransactionStoreExtensionPtr extension() { throw qbit::exception("NOT_IMPL", "ITransactionStore::extension - not implemented."); }
 };
 
 typedef std::shared_ptr<ITransactionStore> ITransactionStorePtr;

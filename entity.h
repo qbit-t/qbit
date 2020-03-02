@@ -11,7 +11,7 @@ namespace qbit {
 
 class Entity : public TxSpend {
 public:
-	inline static std::string emptyName() { return "empty"; }
+	inline static std::string emptyName() { return "_e_"; }
 public:
 	Entity() {}
 
