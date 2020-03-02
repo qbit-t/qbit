@@ -18,6 +18,7 @@
 #include "prevector.h"
 #include "serialize.h"
 #include "uint256.h"
+#include "arith_uint256.h"
 #include "version.h"
 
 #include <vector>

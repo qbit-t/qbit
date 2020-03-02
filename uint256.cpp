@@ -99,3 +99,4 @@ template std::string base_blob<512>::toString() const;
 template void base_blob<512>::setHex(const char*);
 template void base_blob<512>::setHex(const std::string&);
 template void base_blob<512>::set(unsigned char*);
+
