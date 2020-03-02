@@ -57,6 +57,7 @@ std::string qbit::_getVMStateText(VirtualMachine::State state) {
 		case VirtualMachine::INVALID_RESULT: return "INVALID_RESULT";
 		case VirtualMachine::INVALID_ENTITY: return "INVALID_ENTITY";
 		case VirtualMachine::ENTITY_NAME_EXISTS: return "ENTITY_NAME_EXISTS";
+		case VirtualMachine::INVALID_CHAIN: return "INVALID_CHAIN";
 	}
 
 	return "ESTATE";
@@ -129,6 +130,37 @@ void VirtualMachine::qmov() {
 	}
 }
 
+void VirtualMachine::qmov(DisassemblyLine& line) {
+	//
+	lastAtom_ = nextAtom();
+	if (lastAtom_ == qasm::QREG) {
+		line.addParam(qasm::_getRegisterText(qasm::REG::extract(code_, pos_)));
+
+		lastAtom_ = nextAtom();
+		switch (lastAtom_) {
+			case qasm::QUI8: line.addParam(qasm::CU8::extract(code_, pos_)); break;
+			case qasm::QUI16: line.addParam(qasm::CU16::extract(code_, pos_)); break;
+			case qasm::QUI32: line.addParam(qasm::CU32::extract(code_, pos_)); break;
+			case qasm::QUI64: line.addParam(qasm::CU64::extract(code_, pos_)); break;
+						
+			case qasm::QUI160: line.addParam(qasm::CU160::extract(code_, pos_)); break;
+			case qasm::QUI256: line.addParam(qasm::CU256::extract(code_, pos_)); break;
+			case qasm::QUI512: line.addParam(qasm::CU512::extract(code_, pos_)); break;
+
+			case qasm::QVAR: {
+				qbit::vector<unsigned char> lValue;
+				qasm::CVAR::extract(code_, pos_, lValue);
+				line.addParam(lValue);
+			}
+			break;
+			case qasm::QREG: {
+				line.addParam(qasm::REG::extract(code_, pos_));
+			}
+			break;
+		}
+	}
+}
+
 void VirtualMachine::qadd() {
 	// two operands instruction
 	// add r0, r1 -> result r0
@@ -151,6 +183,22 @@ void VirtualMachine::qadd() {
 
 	} else {
 		state_ = VirtualMachine::ILLEGAL_OPERAND_TYPE;
+	}
+}
+
+void VirtualMachine::qadd(DisassemblyLine& line) {
+	//
+	lastAtom_ = nextAtom();
+	if (lastAtom_ == qasm::QREG) {
+		line.addParam(qasm::_getRegisterText(qasm::REG::extract(code_, pos_)));
+
+		lastAtom_ = nextAtom();
+		switch (lastAtom_) {
+			case qasm::QREG: {
+				line.addParam(qasm::_getRegisterText(qasm::REG::extract(code_, pos_)));
+			}
+			break;
+		}
 	}
 }
 
@@ -179,6 +227,22 @@ void VirtualMachine::qsub() {
 	}	
 }
 
+void VirtualMachine::qsub(DisassemblyLine& line) {
+	//
+	lastAtom_ = nextAtom();
+	if (lastAtom_ == qasm::QREG) {
+		line.addParam(qasm::_getRegisterText(qasm::REG::extract(code_, pos_)));
+
+		lastAtom_ = nextAtom();
+		switch (lastAtom_) {
+			case qasm::QREG: {
+				line.addParam(qasm::_getRegisterText(qasm::REG::extract(code_, pos_)));
+			}
+			break;
+		}
+	}	
+}
+
 void VirtualMachine::qmul() {
 	// two operands instruction
 	// mul r0, r1 -> result r0
@@ -201,6 +265,22 @@ void VirtualMachine::qmul() {
 
 	} else {
 		state_ = VirtualMachine::ILLEGAL_OPERAND_TYPE;
+	}		
+}
+
+void VirtualMachine::qmul(DisassemblyLine& line) {
+	//
+	lastAtom_ = nextAtom();
+	if (lastAtom_ == qasm::QREG) {
+		line.addParam(qasm::_getRegisterText(qasm::REG::extract(code_, pos_)));
+
+		lastAtom_ = nextAtom();
+		switch (lastAtom_) {
+			case qasm::QREG: {
+				line.addParam(qasm::_getRegisterText(qasm::REG::extract(code_, pos_)));
+			}
+			break;
+		}
 	}		
 }
 
@@ -229,6 +309,22 @@ void VirtualMachine::qdiv() {
 	}		
 }
 
+void VirtualMachine::qdiv(DisassemblyLine& line) {
+	//
+	lastAtom_ = nextAtom();
+	if (lastAtom_ == qasm::QREG) {
+		line.addParam(qasm::_getRegisterText(qasm::REG::extract(code_, pos_)));
+
+		lastAtom_ = nextAtom();
+		switch (lastAtom_) {
+			case qasm::QREG: {
+				line.addParam(qasm::_getRegisterText(qasm::REG::extract(code_, pos_)));
+			}
+			break;
+		}
+	}		
+}
+
 void VirtualMachine::qcmp() {
 	// two operands instruction, result -> c0 {-1, 0, 1}
 	// cmp r0, r1
@@ -254,6 +350,22 @@ void VirtualMachine::qcmp() {
 
 	} else {
 		state_ = VirtualMachine::ILLEGAL_OPERAND_TYPE;
+	}
+}
+
+void VirtualMachine::qcmp(DisassemblyLine& line) {
+	//
+	lastAtom_ = nextAtom();
+	if (lastAtom_ == qasm::QREG) {
+		line.addParam(qasm::_getRegisterText(qasm::REG::extract(code_, pos_)));
+
+		lastAtom_ = nextAtom();
+		switch (lastAtom_) {
+			case qasm::QREG: {
+				line.addParam(qasm::_getRegisterText(qasm::REG::extract(code_, pos_)));
+			}
+			break;
+		}
 	}
 }
 
@@ -297,6 +409,37 @@ void VirtualMachine::qcmpe() {
 	}
 }
 
+void VirtualMachine::qcmpe(DisassemblyLine& line) {
+	//
+	lastAtom_ = nextAtom();
+	if (lastAtom_ == qasm::QREG) {
+		line.addParam(qasm::_getRegisterText(qasm::REG::extract(code_, pos_)));
+
+		lastAtom_ = nextAtom();
+		switch (lastAtom_) {
+			case qasm::QUI8: line.addParam(qasm::CU8::extract(code_, pos_)); break;
+			case qasm::QUI16: line.addParam(qasm::CU16::extract(code_, pos_)); break;
+			case qasm::QUI32: line.addParam(qasm::CU32::extract(code_, pos_)); break;
+			case qasm::QUI64: line.addParam(qasm::CU64::extract(code_, pos_)); break;
+						
+			case qasm::QUI160: line.addParam(qasm::CU160::extract(code_, pos_)); break;
+			case qasm::QUI256: line.addParam(qasm::CU256::extract(code_, pos_)); break;
+			case qasm::QUI512: line.addParam(qasm::CU512::extract(code_, pos_)); break;
+
+			case qasm::QVAR: {
+				qbit::vector<unsigned char> lValue;
+				qasm::CVAR::extract(code_, pos_, lValue);
+				line.addParam(lValue);
+			}
+			break;			
+			case qasm::QREG: {
+				line.addParam(qasm::_getRegisterText(qasm::REG::extract(code_, pos_)));
+			}
+			break;
+		}
+	}
+}
+
 void VirtualMachine::qcmpne() {
 	// two operands instruction, result -> c0
 	// cmpne r0, r1
@@ -324,8 +467,26 @@ void VirtualMachine::qcmpne() {
 	}
 }
 
+void VirtualMachine::qcmpne(DisassemblyLine& line) {
+	//
+	lastAtom_ = nextAtom();
+	if (lastAtom_ == qasm::QREG) {
+		line.addParam(qasm::_getRegisterText(qasm::REG::extract(code_, pos_)));
+
+		lastAtom_ = nextAtom();
+		switch (lastAtom_) {
+			case qasm::QREG: {
+				line.addParam(qasm::_getRegisterText(qasm::REG::extract(code_, pos_)));
+			}
+			break;
+		}
+	}
+}
+
 void VirtualMachine::qpushd() {}
+void VirtualMachine::qpushd(DisassemblyLine& line) {}
 void VirtualMachine::qpulld() {}
+void VirtualMachine::qpulld(DisassemblyLine& line) {}
 
 void VirtualMachine::qlhash256() {
 	// one operand instruction
@@ -346,6 +507,14 @@ void VirtualMachine::qlhash256() {
 
 	} else {
 		state_ = VirtualMachine::ILLEGAL_OPERAND_TYPE;
+	}
+}
+
+void VirtualMachine::qlhash256(DisassemblyLine& line) {
+	//
+	lastAtom_ = nextAtom();
+	if (lastAtom_ == qasm::QREG) {
+		line.addParam(qasm::_getRegisterText(qasm::REG::extract(code_, pos_)));
 	}
 }
 
@@ -380,6 +549,10 @@ void VirtualMachine::qchecksig() {
 	}
 }
 
+void VirtualMachine::qchecksig(DisassemblyLine& line) {
+	//
+}
+
 void VirtualMachine::qjmp() {
 	// one operand instruction
 	// jmp :lab
@@ -398,6 +571,14 @@ void VirtualMachine::qjmp() {
 
 	} else {
 		state_ = VirtualMachine::ILLEGAL_OPERAND_TYPE;
+	}
+}
+
+void VirtualMachine::qjmp(DisassemblyLine& line) {
+	//
+	lastAtom_ = nextAtom();
+	if (lastAtom_ == qasm::QTO) {
+		line.addLabel(qasm::TO::extract(code_, pos_));
 	}
 }
 
@@ -422,6 +603,14 @@ void VirtualMachine::qjmpt() {
 	}
 }
 
+void VirtualMachine::qjmpt(DisassemblyLine& line) {
+	//
+	lastAtom_ = nextAtom();
+	if (lastAtom_ == qasm::QTO) {
+		line.addLabel(qasm::TO::extract(code_, pos_));
+	}
+}
+
 void VirtualMachine::qjmpf() {
 	// one operand instruction, if c0 = 0
 	// jmpf :lab
@@ -440,6 +629,14 @@ void VirtualMachine::qjmpf() {
 
 	} else {
 		state_ = VirtualMachine::ILLEGAL_OPERAND_TYPE;
+	}
+}
+
+void VirtualMachine::qjmpf(DisassemblyLine& line) {
+	//
+	lastAtom_ = nextAtom();
+	if (lastAtom_ == qasm::QTO) {
+		line.addLabel(qasm::TO::extract(code_, pos_));
 	}
 }
 
@@ -464,6 +661,14 @@ void VirtualMachine::qjmpl() {
 	}
 }
 
+void VirtualMachine::qjmpl(DisassemblyLine& line) {
+	//
+	lastAtom_ = nextAtom();
+	if (lastAtom_ == qasm::QTO) {
+		line.addLabel(qasm::TO::extract(code_, pos_));
+	}
+}
+
 void VirtualMachine::qjmpg() {
 	// one operand instruction, if c0 = 1
 	// jmpg :lab
@@ -482,7 +687,15 @@ void VirtualMachine::qjmpg() {
 
 	} else {
 		state_ = VirtualMachine::ILLEGAL_OPERAND_TYPE;
-	}	
+	}
+}
+
+void VirtualMachine::qjmpg(DisassemblyLine& line) {
+	//
+	lastAtom_ = nextAtom();
+	if (lastAtom_ == qasm::QTO) {
+		line.addLabel(qasm::TO::extract(code_, pos_));
+	}
 }
 
 void VirtualMachine::qjmpe() {
@@ -503,7 +716,15 @@ void VirtualMachine::qjmpe() {
 
 	} else {
 		state_ = VirtualMachine::ILLEGAL_OPERAND_TYPE;
-	}		
+	}
+}
+
+void VirtualMachine::qjmpe(DisassemblyLine& line) {
+	//
+	lastAtom_ = nextAtom();
+	if (lastAtom_ == qasm::QTO) {
+		line.addLabel(qasm::TO::extract(code_, pos_));
+	}
 }
 
 int VirtualMachine::locateLabel(unsigned short label) {
@@ -524,6 +745,20 @@ int VirtualMachine::locateLabel(unsigned short label) {
 
 	if (lFound) return lPos;
 	return qasm::INCORRECT_LABLE;
+}
+
+void VirtualMachine::qtifmc() {
+	// null operands instruction
+	if (dryRun_) return; // skip processing
+
+	if (wrapper_) {
+		if (wrapper_->tx()->chain() == MainChain::id()) {
+			state_ = VirtualMachine::INVALID_CHAIN; // general failure
+		}
+	}
+}
+
+void VirtualMachine::qtifmc(DisassemblyLine& line) {
 }
 
 void VirtualMachine::qchecka() {
@@ -555,6 +790,9 @@ void VirtualMachine::qchecka() {
 	}
 }
 
+void VirtualMachine::qchecka(DisassemblyLine& line) {
+}
+
 void VirtualMachine::qcheckp() {
 	// null operands instruction
 	// checkp #verify amount [a0 - amount, a1 - commitment, a2 - blinding key => result a7]
@@ -580,6 +818,51 @@ void VirtualMachine::qcheckp() {
 		// A7 - r/o
 		registers_[qasm::QA7].set((unsigned char)0x01);		
 	}
+}
+
+void VirtualMachine::qcheckp(DisassemblyLine& line) {
+}
+
+void VirtualMachine::qptxo() {
+	//
+	if (dryRun_) return; // skip processing
+
+	Register& lTH1 	= registers_[qasm::QTH1]; // tx type
+	Register& lTH3 	= registers_[qasm::QTH3]; // current out number
+
+	if (lTH1.getType() != qasm::QNONE && lTH3.getType() != qasm::QNONE) {
+		//
+		uint32_t lIndex = lTH3.to<uint32_t>();
+		if (lIndex < wrapper_->tx()->out().size()) {
+			// make link
+			Transaction::Link lLink;
+			uint256 lAsset = wrapper_->tx()->out()[lIndex].asset();
+			// fix unlinked out
+			if (lAsset == TxAssetType::nullAsset() && lTH1.to<unsigned short>() == Transaction::ASSET_TYPE) {
+				lAsset = wrapper_->tx()->id();
+			}
+
+			lLink.setChain(wrapper_->tx()->chain());
+			lLink.setAsset(lAsset);
+			lLink.setTx(wrapper_->tx()->id());
+			lLink.setIndex(lIndex);
+
+			Transaction::UnlinkedOutPtr lUTXO = Transaction::UnlinkedOut::instance(
+				lLink // link
+			);
+
+			store_->pushUnlinkedOut(lUTXO, wrapper_); // push public
+		} else {
+			state_ = VirtualMachine::INVALID_OUT;
+		}
+/*
+	} else {
+		state_ = VirtualMachine::UNKNOWN_OBJECT;
+*/
+	}
+}
+
+void VirtualMachine::qptxo(DisassemblyLine& line) {
 }
 
 void VirtualMachine::qatxoa() {
@@ -642,6 +925,9 @@ void VirtualMachine::qatxoa() {
 	}
 }
 
+void VirtualMachine::qatxoa(DisassemblyLine& line) {
+}
+
 void VirtualMachine::qatxo() {
 	// null operands instruction
 	// atxo #push for d0 public
@@ -686,6 +972,9 @@ void VirtualMachine::qatxo() {
 			}
 		}
 	}
+}
+
+void VirtualMachine::qatxo(DisassemblyLine& line) {
 }
 
 void VirtualMachine::qatxop() {
@@ -803,6 +1092,9 @@ void VirtualMachine::qatxop() {
 	}
 }
 
+void VirtualMachine::qatxop(DisassemblyLine& line) {
+}
+
 void VirtualMachine::qdtxo() {
 	// null operands instruction
 	// dtxo # th2 - in index, p0 - result
@@ -840,6 +1132,55 @@ void VirtualMachine::qdtxo() {
 	}
 }
 
+void VirtualMachine::qdtxo(DisassemblyLine& line) {
+}
+
+void VirtualMachine::qdetxo() {
+	// null operands instruction
+	// dtxo # th2 - in index, p0 - result
+
+	if (dryRun_) return; // skip processing
+
+	Register& lS0 	= registers_[qasm::QS0]; // our pubkey
+	Register& lTH2	= registers_[qasm::QTH2]; // index
+
+	if (lTH2.getType() != qasm::QNONE && wrapper_ != 0 && store_ != 0) {
+
+		uint256 lHash = wrapper_->tx()->in()[lTH2.to<uint32_t>()].out().hash();
+		
+		if (wrapper_->tx()->isEntity()) { 
+			registers_[qasm::QP0].set((unsigned char)0x01); // wallet_ successfully popped
+			return;
+		}
+
+		if (store_->popUnlinkedOut(lHash, wrapper_)) {
+
+			PKey lPKey(context_);
+			lPKey.set<unsigned char*>(lS0.begin(), lS0.end());			
+			SKey lSKey = (wallet_ ? wallet_->findKey(lPKey) : SKey());
+			if (lSKey.valid()) {
+				if (wallet_->popUnlinkedOut(lHash, wrapper_)) {
+					registers_[qasm::QP0].set((unsigned char)0x01); // wallet_ successfully popped
+				} else {
+					state_ = VirtualMachine::INVALID_UTXO;		
+					registers_[qasm::QP0].set((unsigned char)0x00);
+				}
+			} else {
+				registers_[qasm::QP0].set((unsigned char)0x01); // store_ has successfully popped
+			}
+		} else {
+			state_ = VirtualMachine::INVALID_UTXO;
+			registers_[qasm::QP0].set((unsigned char)0x00);
+		}
+	} else {
+		state_ = VirtualMachine::UNKNOWN_OBJECT;
+		registers_[qasm::QP0].set((unsigned char)0x00);
+	}
+}
+
+void VirtualMachine::qdetxo(DisassemblyLine& line) {
+}
+
 void VirtualMachine::qeqaddr() {
 
 	Register& lD0 = registers_[qasm::QD0];
@@ -850,8 +1191,11 @@ void VirtualMachine::qeqaddr() {
 	}
 }
 
-void VirtualMachine::qpat() {
+void VirtualMachine::qeqaddr(DisassemblyLine& line) {
+}
 
+void VirtualMachine::qpat() {
+	// strict
 	Register& lTH0 = registers_[qasm::QTH0];
 	Register& lTH1 = registers_[qasm::QTH1];
 
@@ -869,6 +1213,29 @@ void VirtualMachine::qpat() {
 	} else {
 			state_ = VirtualMachine::INVALID_ENTITY;
 	}
+}
+
+void VirtualMachine::qpat(DisassemblyLine& line) {
+}
+
+void VirtualMachine::qpen() {
+	// not strict
+	Register& lTH0 = registers_[qasm::QTH0];
+	Register& lTH1 = registers_[qasm::QTH1];
+
+	if (lTH0.getType() != qasm::QNONE && lTH1.getType() != qasm::QNONE && wrapper_->tx()->isEntity()) {
+		// push transaction type
+		if (entityStore_ != 0) {
+			if (!entityStore_->pushEntity(lTH0.to<uint256>(), wrapper_)) {
+				state_ = VirtualMachine::ENTITY_NAME_EXISTS;
+			}
+		} else {
+			state_ = VirtualMachine::UNKNOWN_OBJECT;
+		}
+	}
+}
+
+void VirtualMachine::qpen(DisassemblyLine& line) {
 }
 
 VirtualMachine::State VirtualMachine::execute()
@@ -907,8 +1274,12 @@ VirtualMachine::State VirtualMachine::execute()
 				case qasm::QATXOA: qatxoa(); break;
 				case qasm::QATXO: qatxo(); break;
 				case qasm::QDTXO: qdtxo(); break;
+				case qasm::QDETXO: qdetxo(); break;
 				case qasm::QEQADDR: qeqaddr(); break;
 				case qasm::QPAT: qpat(); break;
+				case qasm::QPEN: qpen(); break;
+				case qasm::QPTXO: qptxo(); break;
+				case qasm::QTIFMC: qtifmc(); break;
 				default:
 					state_ = VirtualMachine::ILLEGAL_COMMAND;
 				break;
@@ -926,3 +1297,56 @@ VirtualMachine::State VirtualMachine::execute()
 	return state_;
 }
 
+void VirtualMachine::disassemble(std::list<DisassemblyLine>& disassembly) {
+	//
+	while(pos_ < code_.size()) {
+		// new line
+		DisassemblyLine lLine;
+
+		lastAtom_ = nextAtom();
+		if (lastAtom_ == qasm::QOP) {
+			lastCommand_ = qasm::OP::extract(code_, pos_);
+			lLine.setInstruction(qasm::_getCommandText(lastCommand_));
+
+			switch(lastCommand_) {
+				case qasm::QMOV: qmov(lLine); break;
+				case qasm::QADD: qadd(lLine); break;
+				case qasm::QSUB: qsub(lLine); break;
+				case qasm::QMUL: qmul(lLine); break;
+				case qasm::QDIV: qdiv(lLine); break;
+				case qasm::QCMP: qcmp(lLine); break;
+				case qasm::QCMPE: qcmpe(lLine); break;
+				case qasm::QCMPNE: qcmpne(lLine); break;
+				case qasm::QPUSHD: qpushd(lLine); break;
+				case qasm::QPULLD: qpulld(lLine); break;
+				case qasm::QLHASH256: qlhash256(lLine); break;
+				case qasm::QCHECKSIG: qchecksig(lLine); break;
+				case qasm::QJMP: qjmp(lLine); break;
+				case qasm::QJMPT: qjmpt(lLine); break;
+				case qasm::QJMPF: qjmpf(lLine); break;
+				case qasm::QJMPL: qjmpl(lLine); break;
+				case qasm::QJMPG: qjmpg(lLine); break;
+				case qasm::QJMPE: qjmpe(lLine); break;
+				case qasm::QCHECKA: qchecka(lLine); break;
+				case qasm::QCHECKP: qcheckp(lLine); break;
+				case qasm::QATXOP: qatxop(lLine); break;
+				case qasm::QATXOA: qatxoa(lLine); break;
+				case qasm::QATXO: qatxo(lLine); break;
+				case qasm::QDTXO: qdtxo(lLine); break;
+				case qasm::QDETXO: qdetxo(lLine); break;
+				case qasm::QEQADDR: qeqaddr(lLine); break;
+				case qasm::QPAT: qpat(lLine); break;
+				case qasm::QPEN: qpen(lLine); break;
+				case qasm::QPTXO: qptxo(lLine); break;
+				case qasm::QTIFMC: qtifmc(lLine); break;
+				default:
+					return;
+			}
+
+		} else if (lastAtom_ == qasm::QLAB) {
+			lLine.setLabel(qasm::LAB::extract(code_, pos_));
+		}
+
+		disassembly.push_back(lLine);
+	}
+}

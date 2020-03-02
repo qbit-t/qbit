@@ -18,7 +18,10 @@ public:
 	IEntityStore() {}
 
 	virtual EntityPtr locateEntity(const uint256&) { return nullptr; }
+	virtual EntityPtr locateEntity(const std::string&) { return nullptr; }
 	virtual bool pushEntity(const uint256&, TransactionContextPtr) { return false; }
+	virtual bool collectUtxoByEntityName(const std::string& /*name*/, std::vector<Transaction::UnlinkedOutPtr>& /*result*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::collectUtxoByEntityName - not implemented."); }	
+	virtual bool entityCountByShards(const std::string& /*name*/, std::map<uint32_t, uint256>& /*result*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::collectUtxoByEntityName - not implemented."); }	
 };
 
 typedef std::shared_ptr<IEntityStore> IEntityStorePtr;

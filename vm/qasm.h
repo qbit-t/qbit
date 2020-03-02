@@ -52,6 +52,10 @@ enum _command {
 	QEQADDR		= 0x29, // zero operands
 	QATXO		= 0x2a, // zero operands
 	QPAT		= 0x2b, // 
+	QPEN		= 0x2c, // 
+	QPTXO		= 0x2d, // 
+	QDETXO		= 0x2e, //
+	QTIFMC		= 0x2f, // 
 
 	QJMP		= 0x30, // one operand
 	QJMPT		= 0x31, // one operand

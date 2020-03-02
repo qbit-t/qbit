@@ -47,9 +47,13 @@ std::string qasm::_getCommandText(_command cmd) {
 		case QATXOP:		return "atxop";
 		case QATXOA:		return "atxoa";
 		case QDTXO:			return "dtxo";
+		case QDETXO:		return "detxo";
 		case QEQADDR:		return "eqaddr";
 		case QATXO:			return "atxo";
 		case QPAT:			return "pat";
+		case QPEN:			return "pen";
+		case QPTXO:			return "ptxo";
+		case QTIFMC:		return "tifmc";
 	}
 
 	return "EOP";

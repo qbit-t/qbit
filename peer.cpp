@@ -10,12 +10,13 @@ bool Peer::onQuarantine() {
 // external procedure: just finalize message we need
 //
 void Peer::ping() {
+	//
 	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
 	else if (socketStatus_ == CONNECTED /*&& socketType_ == CLIENT*/) {
 
 		uint64_t lTimestamp = getMicroseconds(); // time 1580721029 | microseconds 1580721029.120664
 
-		Message lMessage(Message::PING, sizeof(uint64_t));
+		Message lMessage(Message::PING, sizeof(uint64_t), uint160());
 		std::list<DataStream>::iterator lMsg = newOutMessage();
 
 		(*lMsg) << lMessage;
@@ -35,6 +36,7 @@ void Peer::ping() {
 // external procedure: just finalize message we need
 //
 void Peer::internalSendState(StatePtr state, bool global) {
+	//
 	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
 	else if (socketStatus_ == CONNECTED) {
 
@@ -53,8 +55,7 @@ void Peer::internalSendState(StatePtr state, bool global) {
 		*/
 		lState->serialize<DataStream>(lStateStream, peerManager_->consensusManager()->mainKey());
 
-		Message lMessage((global ? Message::GLOBAL_STATE : Message::STATE), lStateStream.size());
-
+		Message lMessage((global ? Message::GLOBAL_STATE : Message::STATE), lStateStream.size(), Hash160(lStateStream.begin(), lStateStream.end()));
 		(*lMsg) << lMessage;
 		lMsg->write(lStateStream.data(), lStateStream.size());
 
@@ -74,6 +75,7 @@ void Peer::internalSendState(StatePtr state, bool global) {
 // external repeatable procedure
 //
 void Peer::synchronizeFullChain(IConsensusPtr consensus, SynchronizationJobPtr job) {
+	//
 	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
 	else if (socketStatus_ == CONNECTED) {
 
@@ -85,11 +87,11 @@ void Peer::synchronizeFullChain(IConsensusPtr consensus, SynchronizationJobPtr j
 
 		// prepare message
 		DataStream lStateStream(SER_NETWORK, CLIENT_VERSION);
-		size_t lHeight = job->acquireNextJob(shared_from_this());
+		uint64_t lHeight = job->acquireNextJob(shared_from_this());
 
 		// done?
 		if (!lHeight) {
-			std::map<size_t, IPeerPtr> lPendingJobs = job->pendingJobs();
+			std::map<uint64_t, IPeerPtr> lPendingJobs = job->pendingJobs();
 			if (lPendingJobs.size()) 
 				lHeight = job->reacquireJob(lPendingJobs.rbegin()->first, shared_from_this());
 			else {
@@ -112,7 +114,7 @@ void Peer::synchronizeFullChain(IConsensusPtr consensus, SynchronizationJobPtr j
 
 		lStateStream << consensus->chain();
 		lStateStream << lHeight;
-		Message lMessage(Message::GET_BLOCK_BY_HEIGHT, lStateStream.size());
+		Message lMessage(Message::GET_BLOCK_BY_HEIGHT, lStateStream.size(), Hash160(lStateStream.begin(), lStateStream.end()));
 
 		(*lMsg) << lMessage;
 		lMsg->write(lStateStream.data(), lStateStream.size());
@@ -133,6 +135,7 @@ void Peer::synchronizeFullChain(IConsensusPtr consensus, SynchronizationJobPtr j
 // external repeatable procedure
 //
 void Peer::synchronizePartialTree(IConsensusPtr consensus, SynchronizationJobPtr job) {
+	//
 	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
 	else if (socketStatus_ == CONNECTED) {
 
@@ -168,7 +171,7 @@ void Peer::synchronizePartialTree(IConsensusPtr consensus, SynchronizationJobPtr
 
 		lStateStream << consensus->chain();
 		lStateStream << lId;
-		Message lMessage(Message::GET_BLOCK_BY_ID, lStateStream.size());
+		Message lMessage(Message::GET_BLOCK_BY_ID, lStateStream.size(), Hash160(lStateStream.begin(), lStateStream.end()));
 
 		(*lMsg) << lMessage;
 		lMsg->write(lStateStream.data(), lStateStream.size());
@@ -189,6 +192,7 @@ void Peer::synchronizePartialTree(IConsensusPtr consensus, SynchronizationJobPtr
 // external repeatable procedure
 //
 void Peer::synchronizeLargePartialTree(IConsensusPtr consensus, SynchronizationJobPtr job) {
+	//
 	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
 	else if (socketStatus_ == CONNECTED) {
 
@@ -213,7 +217,7 @@ void Peer::synchronizeLargePartialTree(IConsensusPtr consensus, SynchronizationJ
 
 		lStateStream << consensus->chain();
 		lStateStream << lId;
-		Message lMessage(Message::GET_BLOCK_HEADER, lStateStream.size());
+		Message lMessage(Message::GET_BLOCK_HEADER, lStateStream.size(), Hash160(lStateStream.begin(), lStateStream.end()));
 
 		(*lMsg) << lMessage;
 		lMsg->write(lStateStream.data(), lStateStream.size());
@@ -234,6 +238,7 @@ void Peer::synchronizeLargePartialTree(IConsensusPtr consensus, SynchronizationJ
 // external repeatable procedure
 //
 void Peer::synchronizePendingBlocks(IConsensusPtr consensus, SynchronizationJobPtr job) {
+	//
 	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
 	else if (socketStatus_ == CONNECTED) {
 
@@ -277,7 +282,7 @@ void Peer::synchronizePendingBlocks(IConsensusPtr consensus, SynchronizationJobP
 
 		lStateStream << consensus->chain();
 		lStateStream << lBlockHeader;
-		Message lMessage(Message::GET_BLOCK_DATA, lStateStream.size());
+		Message lMessage(Message::GET_BLOCK_DATA, lStateStream.size(), Hash160(lStateStream.begin(), lStateStream.end()));
 
 		(*lMsg) << lMessage;
 		lMsg->write(lStateStream.data(), lStateStream.size());
@@ -295,6 +300,7 @@ void Peer::synchronizePendingBlocks(IConsensusPtr consensus, SynchronizationJobP
 }
 
 void Peer::acquireBlock(const NetworkBlockHeader& block) {
+	//
 	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
 	else if (socketStatus_ == CONNECTED) {
 		
@@ -305,7 +311,7 @@ void Peer::acquireBlock(const NetworkBlockHeader& block) {
 		uint256 lId = const_cast<NetworkBlockHeader&>(block).blockHeader().hash();
 		lStateStream << const_cast<NetworkBlockHeader&>(block).blockHeader().chain();
 		lStateStream << lId;
-		Message lMessage(Message::GET_NETWORK_BLOCK, lStateStream.size());
+		Message lMessage(Message::GET_NETWORK_BLOCK, lStateStream.size(), Hash160(lStateStream.begin(), lStateStream.end()));
 
 		(*lMsg) << lMessage;
 		lMsg->write(lStateStream.data(), lStateStream.size());
@@ -322,7 +328,38 @@ void Peer::acquireBlock(const NetworkBlockHeader& block) {
 	}
 }
 
+void Peer::acquireBlockHeaderWithCoinbase(const uint256& block, const uint256& chain, INetworkBlockHandlerWithCoinBasePtr handler) {
+	//
+	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
+	else if (socketStatus_ == CONNECTED) {
+		
+		// new message
+		std::list<DataStream>::iterator lMsg = newOutMessage();
+		DataStream lStateStream(SER_NETWORK, CLIENT_VERSION);
+
+		uint256 lRequestId = addRequest(handler);
+		lStateStream << lRequestId;
+		lStateStream << chain;
+		lStateStream << block;
+		Message lMessage(Message::GET_NETWORK_BLOCK_HEADER, lStateStream.size(), Hash160(lStateStream.begin(), lStateStream.end()));
+
+		(*lMsg) << lMessage;
+		lMsg->write(lStateStream.data(), lStateStream.size());
+
+		// log
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: acquiring block header ") + block.toHex() + std::string(" from ") + key());
+
+		// write
+		boost::asio::async_write(*socket_,
+			boost::asio::buffer(lMsg->data(), lMsg->size()),
+			boost::bind(
+				&Peer::messageFinalize, shared_from_this(), lMsg,
+				boost::asio::placeholders::error));
+	}
+}
+
 void Peer::requestPeers() {	
+	//
 	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
 	else if (socketStatus_ == CONNECTED) {
 		// new message
@@ -337,7 +374,7 @@ void Peer::requestPeers() {
 		lStateStream << lPeers;
 
 		// make message
-		Message lMessage(Message::GET_PEERS, lStateStream.size());
+		Message lMessage(Message::GET_PEERS, lStateStream.size(), Hash160(lStateStream.begin(), lStateStream.end()));
 		(*lMsg) << lMessage;
 		lMsg->write(lStateStream.data(), lStateStream.size());
 
@@ -354,6 +391,16 @@ void Peer::requestPeers() {
 }
 
 void Peer::waitForMessage() {
+	//
+	if (waitingForMessage_) {
+		// log
+		gLog().write(Log::NET, std::string("[peer]: ALREADY waiting for message..."));
+		return;
+	}
+
+	// mark
+	waitingForMessage_ = true;
+
 	// log
 	gLog().write(Log::NET, std::string("[peer]: waiting for message..."));
 
@@ -368,6 +415,9 @@ void Peer::waitForMessage() {
 }
 
 void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
+	// unmark
+	waitingForMessage_ = false;
+
 	//
 	if (!error)	{
 		if (!msg->size()) {
@@ -395,7 +445,7 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 		// process
 		if (lMessage.valid() && lMessage.dataSize() < peerManager_->settings()->maxMessageSize()) {
 			// new data entry
-			std::list<DataStream>::iterator lMsg = newInData();
+			std::list<DataStream>::iterator lMsg = newInData(lMessage);
 			lMsg->resize(lMessage.dataSize());
 
 			// sanity check
@@ -419,6 +469,7 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 				lMessage.type() == Message::BLOCK_BY_ID || 
 				lMessage.type() == Message::BLOCK ||
 				lMessage.type() == Message::NETWORK_BLOCK ||
+				lMessage.type() == Message::NETWORK_BLOCK_HEADER ||
 				lMessage.type() == Message::TRANSACTION ||
 				lMessage.type() == Message::BLOCK_HEADER_AND_STATE ||
 				lMessage.type() == Message::STATE ||
@@ -490,6 +541,12 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 					boost::bind(
 						&Peer::processGetNetworkBlock, shared_from_this(), lMsg,
 						boost::asio::placeholders::error));
+			} else if (lMessage.type() == Message::GET_NETWORK_BLOCK_HEADER) {
+				boost::asio::async_read(*socket_,
+					boost::asio::buffer(lMsg->data(), lMessage.dataSize()),
+					boost::bind(
+						&Peer::processGetNetworkBlockHeader, shared_from_this(), lMsg,
+						boost::asio::placeholders::error));
 			} else if (lMessage.type() == Message::GET_BLOCK_HEADER) {
 				boost::asio::async_read(*socket_,
 					boost::asio::buffer(lMsg->data(), lMessage.dataSize()),
@@ -526,6 +583,12 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 					boost::bind(
 						&Peer::processNetworkBlock, shared_from_this(), lMsg,
 						boost::asio::placeholders::error));
+			} else if (lMessage.type() == Message::NETWORK_BLOCK_HEADER) {
+				boost::asio::async_read(*socket_,
+					boost::asio::buffer(lMsg->data(), lMessage.dataSize()),
+					boost::bind(
+						&Peer::processNetworkBlockHeader, shared_from_this(), lMsg,
+						boost::asio::placeholders::error));
 			} else if (lMessage.type() == Message::BLOCK_BY_HEIGHT_IS_ABSENT) {
 				boost::asio::async_read(*socket_,
 					boost::asio::buffer(lMsg->data(), lMessage.dataSize()),
@@ -543,6 +606,12 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 					boost::asio::buffer(lMsg->data(), lMessage.dataSize()),
 					boost::bind(
 						&Peer::processNetworkBlockAbsent, shared_from_this(), lMsg,
+						boost::asio::placeholders::error));
+			} else if (lMessage.type() == Message::NETWORK_BLOCK_HEADER_IS_ABSENT) {
+				boost::asio::async_read(*socket_,
+					boost::asio::buffer(lMsg->data(), lMessage.dataSize()),
+					boost::bind(
+						&Peer::processNetworkBlockHeaderAbsent, shared_from_this(), lMsg,
 						boost::asio::placeholders::error));
 			} else if (lMessage.type() == Message::BLOCK_HEADER_IS_ABSENT) {
 				boost::asio::async_read(*socket_,
@@ -573,7 +642,8 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 			}
 		} else {
 			// message too large or invalid
-			peerManager_->ban(shared_from_this());
+			// TODO: quarantine?
+			// peerManager_->ban(shared_from_this());
 			// close
 			if (key() != "EKEY") {
 				gLog().write(Log::NET, "[peer/processMessage/error]: closing session " + key() + 
@@ -613,7 +683,7 @@ void Peer::processBlockByHeightAbsent(std::list<DataStream>::iterator msg, const
 
 		// extract
 		uint256 lChain;
-		size_t lHeight;
+		uint64_t lHeight;
 		(*msg) >> lChain;
 		(*msg) >> lHeight;
 		eraseInData(msg);
@@ -684,9 +754,44 @@ void Peer::processNetworkBlockAbsent(std::list<DataStream>::iterator msg, const 
 	}	
 }
 
+void Peer::processNetworkBlockHeaderAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
+	//
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: checksum is INVALID for message from ") + key());
+	if (!error && lMsgValid) {
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: network block header is absent from ") + key());
+
+		// extract
+		uint256 lRequestId;
+		uint256 lChain;
+		uint256 lId;
+		(*msg) >> lRequestId;
+		(*msg) >> lChain;
+		(*msg) >> lId;
+		eraseInData(msg);
+
+		// clean-up
+		removeRequest(lRequestId);
+		
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: network block header is absent for ") + strprintf("%s/%s#", lId.toHex(), lChain.toHex().substr(0, 10)));
+
+	} else {
+		// log
+		gLog().write(Log::NET, "[peer/processNetworkBlockAbsent/error]: closing session " + key() + " -> " + error.message());
+		//
+		socketStatus_ = ERROR;
+		// try to deactivate peer
+		peerManager_->deactivatePeer(shared_from_this());
+		// close socket
+		socket_->close();
+	}	
+}
+
 void Peer::processBlockHeaderAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
 	//
-	if (!error) {
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: checksum is INVALID for message from ") + key());
+	if (!error && lMsgValid) {
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: block header is absent from ") + key());
 
 		// extract
@@ -712,7 +817,9 @@ void Peer::processBlockHeaderAbsent(std::list<DataStream>::iterator msg, const b
 
 void Peer::processBlockAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
 	//
-	if (!error) {
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: checksum is INVALID for message from ") + key());
+	if (!error && lMsgValid) {
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: block is absent from ") + key());
 
 		// extract
@@ -738,11 +845,13 @@ void Peer::processBlockAbsent(std::list<DataStream>::iterator msg, const boost::
 
 void Peer::processBlockByHeight(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
 	//
-	if (!error) {
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: checksum is INVALID for message from ") + key());
+	if (!error && lMsgValid) {
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing response for block by height from ") + key());
 
 		// extract
-		size_t lHeight;
+		uint64_t lHeight;
 		(*msg) >> lHeight;
 		BlockPtr lBlock = Block::Deserializer::deserialize<DataStream>(*msg);
 		eraseInData(msg);
@@ -780,12 +889,14 @@ void Peer::processBlockByHeight(std::list<DataStream>::iterator msg, const boost
 
 void Peer::processGetBlockByHeight(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
 	//
-	if (!error) {
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: checksum is INVALID for message from ") + key());
+	if (!error && lMsgValid) {
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing request block by height from ") + key());
 
 		// extract
 		uint256 lChain;
-		size_t lHeight;
+		uint64_t lHeight;
 		(*msg) >> lChain;
 		(*msg) >> lHeight;
 		eraseInData(msg);
@@ -802,7 +913,7 @@ void Peer::processGetBlockByHeight(std::list<DataStream>::iterator msg, const bo
 			Block::Serializer::serialize<DataStream>(lStream, lBlock); // block
 
 			// prepare message
-			Message lMessage(Message::BLOCK_BY_HEIGHT, lStream.size());
+			Message lMessage(Message::BLOCK_BY_HEIGHT, lStream.size(), Hash160(lStream.begin(), lStream.end()));
 			(*lMsg) << lMessage;
 			lMsg->write(lStream.data(), lStream.size());
 
@@ -826,7 +937,7 @@ void Peer::processGetBlockByHeight(std::list<DataStream>::iterator msg, const bo
 			lStream << lHeight; // height
 
 			// prepare message
-			Message lMessage(Message::BLOCK_BY_HEIGHT_IS_ABSENT, lStream.size());
+			Message lMessage(Message::BLOCK_BY_HEIGHT_IS_ABSENT, lStream.size(), Hash160(lStream.begin(), lStream.end()));
 			(*lMsg) << lMessage;
 			lMsg->write(lStream.data(), lStream.size());
 
@@ -855,7 +966,9 @@ void Peer::processGetBlockByHeight(std::list<DataStream>::iterator msg, const bo
 
 void Peer::processBlockById(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
 	//
-	if (!error) {
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: checksum is INVALID for message from ") + key());
+	if (!error && lMsgValid) {
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing response for block by id from ") + key());
 
 		// extract
@@ -870,7 +983,7 @@ void Peer::processBlockById(std::list<DataStream>::iterator msg, const boost::sy
 			// save block
 			peerManager_->consensusManager()->locate(lBlock->chain())->store()->saveBlock(lBlock);
 			// extract next block id
-			size_t lHeight;
+			uint64_t lHeight;
 			uint256 lPrev = lBlock->prev();
 			if (lPrev != BlockHeader().hash()) { // BlockHeader().hash() - final/absent link 
 				if (!peerManager_->consensusManager()->locate(lBlock->chain())->store()->blockHeight(lPrev, lHeight)) {
@@ -906,7 +1019,9 @@ void Peer::processBlockById(std::list<DataStream>::iterator msg, const boost::sy
 
 void Peer::processBlock(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
 	//
-	if (!error) {
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: checksum is INVALID for message from ") + key());
+	if (!error && lMsgValid) {
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing response for block from ") + key());
 
 		// extract
@@ -942,7 +1057,9 @@ void Peer::processBlock(std::list<DataStream>::iterator msg, const boost::system
 
 void Peer::processGetBlockById(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
 	//
-	if (!error) {
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: checksum is INVALID for message from ") + key());
+	if (!error && lMsgValid) {
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing request block by id from ") + key());
 
 		// extract
@@ -963,7 +1080,7 @@ void Peer::processGetBlockById(std::list<DataStream>::iterator msg, const boost:
 			Block::Serializer::serialize<DataStream>(lStream, lBlock); // block
 
 			// prepare message
-			Message lMessage(Message::BLOCK_BY_ID, lStream.size());
+			Message lMessage(Message::BLOCK_BY_ID, lStream.size(), Hash160(lStream.begin(), lStream.end()));
 			(*lMsg) << lMessage;
 			lMsg->write(lStream.data(), lStream.size());
 
@@ -987,7 +1104,7 @@ void Peer::processGetBlockById(std::list<DataStream>::iterator msg, const boost:
 			lStream << lId; // id
 
 			// prepare message
-			Message lMessage(Message::BLOCK_BY_ID_IS_ABSENT, lStream.size());
+			Message lMessage(Message::BLOCK_BY_ID_IS_ABSENT, lStream.size(), Hash160(lStream.begin(), lStream.end()));
 			(*lMsg) << lMessage;
 			lMsg->write(lStream.data(), lStream.size());
 
@@ -1016,7 +1133,9 @@ void Peer::processGetBlockById(std::list<DataStream>::iterator msg, const boost:
 
 void Peer::processGetBlockData(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
 	//
-	if (!error) {
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: checksum is INVALID for message from ") + key());
+	if (!error && lMsgValid) {
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing request block data from ") + key());
 
 		// extract
@@ -1037,7 +1156,7 @@ void Peer::processGetBlockData(std::list<DataStream>::iterator msg, const boost:
 			Block::Serializer::serialize<DataStream>(lStream, lBlock); // block
 
 			// prepare message
-			Message lMessage(Message::BLOCK, lStream.size());
+			Message lMessage(Message::BLOCK, lStream.size(), Hash160(lStream.begin(), lStream.end()));
 			(*lMsg) << lMessage;
 			lMsg->write(lStream.data(), lStream.size());
 
@@ -1061,7 +1180,7 @@ void Peer::processGetBlockData(std::list<DataStream>::iterator msg, const boost:
 			lStream << lId; // id
 
 			// prepare message
-			Message lMessage(Message::BLOCK_IS_ABSENT, lStream.size());
+			Message lMessage(Message::BLOCK_IS_ABSENT, lStream.size(), Hash160(lStream.begin(), lStream.end()));
 			(*lMsg) << lMessage;
 			lMsg->write(lStream.data(), lStream.size());
 
@@ -1090,7 +1209,9 @@ void Peer::processGetBlockData(std::list<DataStream>::iterator msg, const boost:
 
 void Peer::processNetworkBlock(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
 	//
-	if (!error) {
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: checksum is INVALID for message from ") + key());
+	if (!error && lMsgValid) {
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing response for network block from ") + key());
 
 		// extract
@@ -1101,7 +1222,7 @@ void Peer::processNetworkBlock(std::list<DataStream>::iterator msg, const boost:
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing network block ") + strprintf("%s/%s#", lBlock->hash().toHex(), lBlock->chain().toHex().substr(0, 10)) + std::string("..."));
 
 		BlockHeader lHeader;
-		size_t lHeight = peerManager_->consensusManager()->locate(lBlock->chain())->store()->currentHeight(lHeader);
+		uint64_t lHeight = peerManager_->consensusManager()->locate(lBlock->chain())->store()->currentHeight(lHeader);
 
 		// check sequence
 		uint256 lCurrentHash = lHeader.hash();
@@ -1129,8 +1250,8 @@ void Peer::processNetworkBlock(std::list<DataStream>::iterator msg, const boost:
 					// broadcast block and state
 					peerManager_->consensusManager()->broadcastBlockHeaderAndState(lHeader, lState, lState->addressId());
 				} else {
-					// mark peer
-					peerManager_->ban(shared_from_this());
+					// TODO: quarantine
+					//peerManager_->ban(shared_from_this());
 				}
 			}
 		}
@@ -1149,9 +1270,52 @@ void Peer::processNetworkBlock(std::list<DataStream>::iterator msg, const boost:
 	}	
 }
 
+void Peer::processNetworkBlockHeader(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
+	//
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: checksum is INVALID for message from ") + key());
+	if (!error && lMsgValid) {
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing response for network block header from ") + key());
+
+		// extract
+		uint256 lRequestId;
+		NetworkBlockHeader lNetworkBlockHeader;
+		TransactionPtr lBase;
+
+		(*msg) >> lRequestId;
+		(*msg) >> lNetworkBlockHeader;
+		lBase = Transaction::Deserializer::deserialize<DataStream>(*msg);
+
+		// log
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing network block header ") + strprintf("r = %s, %s/%s#", lRequestId.toHex(), lNetworkBlockHeader.blockHeader().hash().toHex(), lNetworkBlockHeader.blockHeader().chain().toHex().substr(0, 10)) + std::string("..."));
+
+		IReplyHandlerPtr lHandler = locateRequest(lRequestId);
+		if (lHandler) {
+			ReplyHelper::to<INetworkBlockHandlerWithCoinBase>(lHandler)->handleReply(lNetworkBlockHeader, lBase);
+			removeRequest(lRequestId);
+		} else {
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: request was NOT FOUND for network block header ") + strprintf("r = %s, %s/%s#", lRequestId.toHex(), lNetworkBlockHeader.blockHeader().hash().toHex(), lNetworkBlockHeader.blockHeader().chain().toHex().substr(0, 10)) + std::string("..."));
+		}
+
+		// WARNING: in case of async_read for large data
+		waitForMessage();
+	} else {
+		// log
+		gLog().write(Log::NET, "[peer/processNetworkBlockHeader/error]: closing session " + key() + " -> " + error.message());
+		//
+		socketStatus_ = ERROR;
+		// try to deactivate peer
+		peerManager_->deactivatePeer(shared_from_this());
+		// close socket
+		socket_->close();
+	}	
+}
+
 void Peer::processGetNetworkBlock(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
 	//
-	if (!error) {
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: checksum is INVALID for message from ") + key());
+	if (!error && lMsgValid) {
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing request network block from ") + key());
 
 		// extract
@@ -1172,7 +1336,7 @@ void Peer::processGetNetworkBlock(std::list<DataStream>::iterator msg, const boo
 			Block::Serializer::serialize<DataStream>(lStream, lBlock); // block
 
 			// prepare message
-			Message lMessage(Message::NETWORK_BLOCK, lStream.size());
+			Message lMessage(Message::NETWORK_BLOCK, lStream.size(), Hash160(lStream.begin(), lStream.end()));
 			(*lMsg) << lMessage;
 			lMsg->write(lStream.data(), lStream.size());
 
@@ -1196,7 +1360,7 @@ void Peer::processGetNetworkBlock(std::list<DataStream>::iterator msg, const boo
 			lStream << lId; // id
 
 			// prepare message
-			Message lMessage(Message::NETWORK_BLOCK_IS_ABSENT, lStream.size());
+			Message lMessage(Message::NETWORK_BLOCK_IS_ABSENT, lStream.size(), Hash160(lStream.begin(), lStream.end()));
 			(*lMsg) << lMessage;
 			lMsg->write(lStream.data(), lStream.size());
 
@@ -1223,9 +1387,109 @@ void Peer::processGetNetworkBlock(std::list<DataStream>::iterator msg, const boo
 	}	
 }
 
+void Peer::processGetNetworkBlockHeader(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
+	//
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: checksum is INVALID for message from ") + key());
+	if (!error && lMsgValid) {
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing request network block header from ") + key());
+
+		// extract
+		uint256 lRequestId;
+		uint256 lChain;
+		uint256 lId;
+		(*msg) >> lRequestId;
+		(*msg) >> lChain;
+		(*msg) >> lId;
+		eraseInData(msg);
+
+		// get block header
+		uint64_t lHeight;
+		BlockHeader lBlockHeader;
+		ITransactionStorePtr lStore = peerManager_->consensusManager()->locate(lChain)->store();
+		//
+		if (lStore->blockHeaderHeight(lId, lHeight, lBlockHeader)) {
+			//
+			BlockHeader lCurrentBlockHeader;
+			uint64_t lCurrentHeight = lStore->currentHeight(lCurrentBlockHeader);
+
+			uint64_t lConfirms = 0;
+			if (lCurrentHeight > lHeight) lConfirms = lCurrentHeight - lHeight;
+
+			// load block and extract ...base (coinbase\base) transaction
+			BlockPtr lBlock = lStore->block(lId);
+			TransactionPtr lTx = *lBlock->transactions().begin();
+
+			// make network block header
+			NetworkBlockHeader lNetworkBlockHeader(lBlockHeader, lHeight, lConfirms);
+
+			// make message, serialize, send back
+			std::list<DataStream>::iterator lMsg = newOutMessage();
+
+			// fill data
+			DataStream lStream(SER_NETWORK, CLIENT_VERSION);
+			lStream << lRequestId;
+			lStream << lNetworkBlockHeader;
+			Transaction::Serializer::serialize<DataStream>(lStream, lTx);
+
+			// prepare message
+			Message lMessage(Message::NETWORK_BLOCK_HEADER, lStream.size(), Hash160(lStream.begin(), lStream.end()));
+			(*lMsg) << lMessage;
+			lMsg->write(lStream.data(), lStream.size());
+
+			// log
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: sending network block header ") + strprintf("%s/%s#", lBlock->hash().toHex(), lChain.toHex().substr(0, 10)) + std::string(" for ") + key());
+
+			// write
+			boost::asio::async_write(*socket_,
+				boost::asio::buffer(lMsg->data(), lMsg->size()),
+				boost::bind(
+					&Peer::messageFinalize, shared_from_this(), lMsg,
+					boost::asio::placeholders::error));
+		} else {
+			// block is absent
+			// make message, serialize, send back
+			std::list<DataStream>::iterator lMsg = newOutMessage();
+
+			// fill data
+			DataStream lStream(SER_NETWORK, CLIENT_VERSION);
+			lStream << lRequestId;
+			lStream << lChain; // chain
+			lStream << lId; // id
+
+			// prepare message
+			Message lMessage(Message::NETWORK_BLOCK_HEADER_IS_ABSENT, lStream.size(), Hash160(lStream.begin(), lStream.end()));
+			(*lMsg) << lMessage;
+			lMsg->write(lStream.data(), lStream.size());
+
+			// log
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: network block header is absent for chain ") + strprintf("%s/%s#", lId.toHex(), lChain.toHex().substr(0, 10)) + std::string(" -> ") + key());
+
+			// write
+			boost::asio::async_write(*socket_,
+				boost::asio::buffer(lMsg->data(), lMsg->size()),
+				boost::bind(
+					&Peer::messageFinalize, shared_from_this(), lMsg,
+					boost::asio::placeholders::error));
+		}
+
+	} else {
+		// log
+		gLog().write(Log::NET, "[peer/processGetNetworkBlockHeader/error]: closing session " + key() + " -> " + error.message());
+		//
+		socketStatus_ = ERROR;
+		// try to deactivate peer
+		peerManager_->deactivatePeer(shared_from_this());
+		// close socket
+		socket_->close();
+	}	
+}
+
 void Peer::processGetBlockHeader(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
 	//
-	if (!error) {
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: checksum is INVALID for message from ") + key());
+	if (!error && lMsgValid) {
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing request for block header(s) from ") + key());
 
 		// extract
@@ -1236,7 +1500,7 @@ void Peer::processGetBlockHeader(std::list<DataStream>::iterator msg, const boos
 		eraseInData(msg);
 
 		// get header
-		size_t lHeight;
+		uint64_t lHeight;
 		uint256 lCurrent = lId;
 		BlockHeader lHeader;
 		if (peerManager_->consensusManager()->locate(lChain)->store()->blockHeaderHeight(lCurrent, lHeight, lHeader)) {
@@ -1256,7 +1520,7 @@ void Peer::processGetBlockHeader(std::list<DataStream>::iterator msg, const boos
 			lStream << lHeaders;
 
 			// prepare message
-			Message lMessage(Message::BLOCK_HEADER, lStream.size());
+			Message lMessage(Message::BLOCK_HEADER, lStream.size(), Hash160(lStream.begin(), lStream.end()));
 			(*lMsg) << lMessage;
 			lMsg->write(lStream.data(), lStream.size());
 
@@ -1280,7 +1544,7 @@ void Peer::processGetBlockHeader(std::list<DataStream>::iterator msg, const boos
 			lStream << lId; // id
 
 			// prepare message
-			Message lMessage(Message::BLOCK_HEADER_IS_ABSENT, lStream.size());
+			Message lMessage(Message::BLOCK_HEADER_IS_ABSENT, lStream.size(), Hash160(lStream.begin(), lStream.end()));
 			(*lMsg) << lMessage;
 			lMsg->write(lStream.data(), lStream.size());
 
@@ -1309,8 +1573,10 @@ void Peer::processGetBlockHeader(std::list<DataStream>::iterator msg, const boos
 
 void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
 	//
-	if (!error) {
-		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: raw block header(s) from ") + key() + " -> " + HexStr(msg->begin(), msg->end()));
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: checksum is INVALID for message from ") + key());
+	if (!error && lMsgValid) {
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: raw block header(s) from ") + key() + " -> " + HexStr(msg->begin(), msg->end()).substr(0, 100) + "#");
 
 		// extract block header data
 		std::vector<NetworkBlockHeader> lHeaders;
@@ -1325,9 +1591,9 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 		//
 		// locate job
 		SynchronizationJobPtr lJob = locateJob(lHeaders.begin()->blockHeader().chain());
+		IConsensusPtr lConsensus = peerManager_->consensusManager()->locate(lHeaders.begin()->blockHeader().chain());
 		if (lJob) {
 			//
-			IConsensusPtr lConsensus = nullptr;
 			for (std::vector<NetworkBlockHeader>::iterator lHeader = lHeaders.begin(); lHeader != lHeaders.end(); lHeader++) {
 				//
 				BlockHeader lBlockHeader = (*lHeader).blockHeader();
@@ -1335,15 +1601,12 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: process block header from ") + key() + " -> " + 
 					strprintf("%s/%s#", lBlockHeader.hash().toHex(), lBlockHeader.chain().toHex().substr(0, 10)));
 
-				// save header
-				lConsensus = peerManager_->consensusManager()->locate(lBlockHeader.chain());
-				if (lConsensus->checkSequenceConsistency(lBlockHeader)) {
-					lConsensus->store()->saveBlockHeader(lBlockHeader);
-					lJob->pushPendingBlock(lBlockHeader.hash());
-				}
+				// save
+				lConsensus->store()->saveBlockHeader(lBlockHeader);
+				lJob->pushPendingBlock(lBlockHeader.hash());				
 
 				// extract next block id
-				size_t lHeight;
+				uint64_t lHeight;
 				uint256 lPrev = lBlockHeader.prev();
 				if (lPrev != BlockHeader().hash()) { // BlockHeader().hash() - final/absent link 
 					if (!peerManager_->consensusManager()->locate(lBlockHeader.chain())->store()->blockHeight(lPrev, lHeight)) {
@@ -1352,12 +1615,14 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 					} else {
 						// we found root
 						lJob->setLastBlock(lPrev);
+						break;
 					}
 				} else {
 					// we have new shiny full chain
 					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: full chain found, try switching to ") + 
 						strprintf("head = %s, root = %s/%s#", lBlockHeader.hash().toHex(), lJob->block().toHex(), lBlockHeader.chain().toHex().substr(0, 10)) + std::string("..."));
 					lJob->setLastBlock(lPrev);
+					break;
 				}
 			}
 			
@@ -1380,7 +1645,9 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 
 void Peer::processBlockHeaderAndState(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
 	//
-	if (!error) {
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: checksum is INVALID for message from ") + key());
+	if (!error && lMsgValid) {
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: raw block header and state from ") + key() + " -> " + HexStr(msg->begin(), msg->end()));
 
 		// extract block header data
@@ -1398,6 +1665,16 @@ void Peer::processBlockHeaderAndState(std::list<DataStream>::iterator msg, const
 		if (lNetworkBlockHeader.blockHeader().origin() == peerManager_->consensusManager()->mainPKey().id()) {
 			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, "[peer]: skip re-processing block header " + 
 				strprintf("%s/%s/%s#", lNetworkBlockHeader.blockHeader().hash().toHex(), lNetworkBlockHeader.height(), lNetworkBlockHeader.blockHeader().chain().toHex().substr(0, 10)));
+			
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing state from ") + key() + " -> " + lState.toString());
+			
+			StatePtr lStatePtr = State::instance(lState);
+			IPeer::UpdatePeerResult lPeerResult;
+			if (!peerManager_->updatePeerState(shared_from_this(), lState, lPeerResult)) {
+				setState(lState);
+				peerManager_->consensusManager()->pushPeer(shared_from_this());
+			}
+			peerManager_->consensusManager()->pushState(lStatePtr);
 		} else {
 			//
 			IValidator::BlockCheckResult lResult = peerManager_->consensusManager()->pushBlockHeader(lNetworkBlockHeader);
@@ -1407,6 +1684,11 @@ void Peer::processBlockHeaderAndState(std::list<DataStream>::iterator msg, const
 						// process state
 						if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing state from ") + key() + " -> " + lState.toString());
 						StatePtr lStatePtr = State::instance(lState);
+						IPeer::UpdatePeerResult lPeerResult;
+						if (!peerManager_->updatePeerState(shared_from_this(), lState, lPeerResult)) {
+							setState(lState);
+							peerManager_->consensusManager()->pushPeer(shared_from_this());
+						}
 						peerManager_->consensusManager()->pushState(lStatePtr);
 					}
 					break;
@@ -1453,7 +1735,9 @@ void Peer::processBlockHeaderAndState(std::list<DataStream>::iterator msg, const
 
 void Peer::processTransaction(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
 	//
-	if (!error) {
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: checksum is INVALID for message from ") + key());
+	if (!error && lMsgValid) {
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: raw transaction from ") + key() + " -> " + HexStr(msg->begin(), msg->end()));
 
 		// extract transaction data
@@ -1509,7 +1793,7 @@ void Peer::broadcastBlockHeader(const NetworkBlockHeader& blockHeader) {
 		DataStream lStateStream(SER_NETWORK, CLIENT_VERSION);
 		lStateStream << blockHeader;
 
-		Message lMessage(Message::BLOCK_HEADER, lStateStream.size());
+		Message lMessage(Message::BLOCK_HEADER, lStateStream.size(), Hash160(lStateStream.begin(), lStateStream.end()));
 		(*lMsg) << lMessage;
 		lMsg->write(lStateStream.data(), lStateStream.size());
 
@@ -1545,7 +1829,7 @@ void Peer::broadcastBlockHeaderAndState(const NetworkBlockHeader& blockHeader, S
 			state->serialize<DataStream>(lStateStream);
 		}
 
-		Message lMessage(Message::BLOCK_HEADER_AND_STATE, lStateStream.size());
+		Message lMessage(Message::BLOCK_HEADER_AND_STATE, lStateStream.size(), Hash160(lStateStream.begin(), lStateStream.end()));
 		(*lMsg) << lMessage;
 		lMsg->write(lStateStream.data(), lStateStream.size());
 
@@ -1573,7 +1857,7 @@ void Peer::broadcastTransaction(TransactionContextPtr ctx) {
 		DataStream lStateStream(SER_NETWORK, CLIENT_VERSION);
 		Transaction::Serializer::serialize<DataStream>(lStateStream, ctx->tx());
 
-		Message lMessage(Message::TRANSACTION, lStateStream.size());
+		Message lMessage(Message::TRANSACTION, lStateStream.size(), Hash160(lStateStream.begin(), lStateStream.end()));
 		(*lMsg) << lMessage;
 		lMsg->write(lStateStream.data(), lStateStream.size());
 
@@ -1591,7 +1875,9 @@ void Peer::broadcastTransaction(TransactionContextPtr ctx) {
 
 void Peer::processRequestPeers(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
 	//
-	if (!error) {
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: checksum is INVALID for message from ") + key());
+	if (!error && lMsgValid) {
 		// extract peers
 		std::vector<std::string> lOuterPeers;
 		(*msg) >> lOuterPeers;
@@ -1615,7 +1901,7 @@ void Peer::processRequestPeers(std::list<DataStream>::iterator msg, const boost:
 		lStateStream << lPeers;
 
 		// make message
-		Message lMessage(Message::PEERS, lStateStream.size());
+		Message lMessage(Message::PEERS, lStateStream.size(), Hash160(lStateStream.begin(), lStateStream.end()));
 		(*lMsg) << lMessage;
 		lMsg->write(lStateStream.data(), lStateStream.size());
 
@@ -1642,7 +1928,9 @@ void Peer::processRequestPeers(std::list<DataStream>::iterator msg, const boost:
 
 void Peer::processPeers(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
 	//
-	if (!error) {
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: checksum is INVALID for message from ") + key());
+	if (!error && lMsgValid) {
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: peers list from ") + key());
 
 		// extract peers
@@ -1677,7 +1965,7 @@ void Peer::processPing(std::list<DataStream>::iterator msg, const boost::system:
 		(*msg) >> lTimestamp;
 		eraseInData(msg);
 
-		Message lMessage(Message::PONG, sizeof(uint64_t));
+		Message lMessage(Message::PONG, sizeof(uint64_t), uint160());
 
 		std::list<DataStream>::iterator lMsg = newOutMessage();
 		(*lMsg) << lMessage;
@@ -1732,7 +2020,9 @@ void Peer::processPong(std::list<DataStream>::iterator msg, const boost::system:
 
 void Peer::processGlobalState(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
 	//
-	if (!error) {
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: checksum is INVALID for message from ") + key());
+	if (!error && lMsgValid) {
 		// log
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: raw global state message from ") + key() + " -> " + HexStr(msg->begin(), msg->end()));
 
@@ -1771,7 +2061,9 @@ void Peer::processGlobalState(std::list<DataStream>::iterator msg, const boost::
 
 void Peer::processState(std::list<DataStream>::iterator msg, bool broadcast, const boost::system::error_code& error) {
 	//
-	if (!error) {
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: checksum is INVALID for message from ") + key());
+	if (!error && lMsgValid) {
 		//
 		State lState;
 		lState.deserialize<DataStream>(*msg);
@@ -1783,7 +2075,7 @@ void Peer::processState(std::list<DataStream>::iterator msg, bool broadcast, con
 		if (!peerManager_->updatePeerState(shared_from_this(), lState, lPeerResult)) {
 			// if peer aleady exists
 			if (lPeerResult == IPeer::EXISTS) {
-				Message lMessage(Message::PEER_EXISTS, sizeof(uint64_t));
+				Message lMessage(Message::PEER_EXISTS, sizeof(uint64_t), uint160());
 				std::list<DataStream>::iterator lMsg = newOutMessage();
 
 				(*lMsg) << lMessage;
@@ -1796,7 +2088,7 @@ void Peer::processState(std::list<DataStream>::iterator msg, bool broadcast, con
 						&Peer::peerFinalize, shared_from_this(), lMsg,
 						boost::asio::placeholders::error));
 			} else if (lPeerResult == IPeer::BAN) {
-				Message lMessage(Message::PEER_BANNED, sizeof(uint64_t));
+				Message lMessage(Message::PEER_BANNED, sizeof(uint64_t), uint160());
 				std::list<DataStream>::iterator lMsg = newOutMessage();
 
 				(*lMsg) << lMessage;

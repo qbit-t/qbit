@@ -22,7 +22,7 @@ public:
 	virtual bool exists(const uint256& /*chain*/) { throw qbit::exception("NOT_IMPL", "IValidatorManager::exists - not implemented."); }
 	virtual IValidatorPtr locate(const uint256& /*chain*/) { throw qbit::exception("NOT_IMPL", "IValidatorManager::locate - not implemented."); }
 
-	virtual IValidatorPtr push(const uint256& /*chain*/) { throw qbit::exception("NOT_IMPL", "IValidatorManager::push - not implemented."); }
+	virtual IValidatorPtr push(const uint256& /*chain*/, EntityPtr /*dapp*/) { throw qbit::exception("NOT_IMPL", "IValidatorManager::push - not implemented."); }
 	virtual bool pop(const uint256& /*chain*/) { throw qbit::exception("NOT_IMPL", "IValidatorManager::pop - not implemented."); }
 	virtual std::vector<IValidatorPtr> validators() { throw qbit::exception("NOT_IMPL", "IValidatorManager::validators - not implemented."); }
 

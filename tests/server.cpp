@@ -28,6 +28,7 @@ bool ServerS0::execute() {
 	//peerManager_->addPeer("127.0.0.1:31418");
 
 	validatorManager_->run();
+	shardingManager_->run();
 	httpServer_->run();
 	server_->run();
 
@@ -58,6 +59,7 @@ bool ServerS1::execute() {
 	//peerManager_->addPeer("127.0.0.1:31418");
 
 	validatorManager_->run();
+	shardingManager_->run();
 	httpServer_->run();
 	server_->run();
 
@@ -88,6 +90,7 @@ bool ServerS2::execute() {
 	//peerManager_->addPeer("127.0.0.1:31418");
 
 	validatorManager_->run();
+	shardingManager_->run();
 	httpServer_->run();
 	server_->run();
 
@@ -118,6 +121,7 @@ bool ServerS3::execute() {
 	peerManager_->addPeer("127.0.0.1:31418");
 
 	validatorManager_->run();
+	shardingManager_->run();
 	httpServer_->run();
 	server_->run();
 

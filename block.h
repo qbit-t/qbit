@@ -70,6 +70,10 @@ public:
 
 	uint256 hash();
 
+	inline int32_t version() const { return version_; }
+	inline uint32_t bits() const { return bits_; }
+	inline uint32_t nonce() const { return nonce_; }
+
 	inline uint64_t time() const { return time_; }
 	inline void setTime(uint64_t time) { time_ = time; } 
 
@@ -90,11 +94,15 @@ public:
 class NetworkBlockHeader {
 public:
 	NetworkBlockHeader() {}
-	NetworkBlockHeader(const BlockHeader &header, size_t height) : 
-		header_(header), height_(height) {}
+	NetworkBlockHeader(const BlockHeader &header, uint64_t height) : 
+		header_(header), height_(height), confirms_(0) {}
+
+	NetworkBlockHeader(const BlockHeader &header, uint64_t height, uint64_t confirms) : 
+		header_(header), height_(height), confirms_(confirms) {}
 
 	BlockHeader& blockHeader() { return header_; }
-	size_t height() { return height_; }
+	uint64_t height() { return height_; }
+	uint64_t confirms() { return confirms_; }
 
 	ADD_SERIALIZE_METHODS;
 
@@ -103,15 +111,18 @@ public:
 		if (ser_action.ForRead()) {
 			header_.deserialize(s); // header info
 			s >> height_;
+			confirms_ = ReadCompactSize(s);
 		} else {
 			header_.serialize(s);
 			s << height_;
+			WriteCompactSize(s, confirms_);
 		}
 	}
 
 private:
 	BlockHeader header_;
-	size_t height_;
+	uint64_t height_;
+	uint64_t confirms_;
 };
 
 // forward
@@ -176,6 +187,7 @@ public:
 	static BlockTransactionsPtr instance(const TransactionsContainer& txs) { return std::make_shared<BlockTransactions>(txs); }
 
 	void append(TransactionPtr tx) { transactions_.push_back(tx); }
+	void prepend(TransactionPtr tx) { transactions_.insert(transactions_.begin(), tx); }
 	TransactionsContainer& transactions() { return transactions_; }	
 
 	void transactionsHashes(std::list<uint256>&);

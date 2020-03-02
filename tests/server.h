@@ -37,9 +37,12 @@
 #include "../peermanager.h"
 #include "../consensusmanager.h"
 #include "../validatormanager.h"
+#include "../shardingmanager.h"
 
 #include "../httpserver.h"
 #include "../httpendpoints.h"
+#include "../dapps/buzzer/httpendpoints.h"
+#include "../dapps/buzzer/composer.h"
 
 namespace qbit {
 namespace tests {
@@ -137,9 +140,12 @@ public:
 		storeManager_ = TransactionStoreManager::instance(settings_);
 		peerManager_ = PeerManager::instance(settings_, consensusManager_, mempoolManager_);		
 		validatorManager_ = ValidatorManager::instance(settings_, consensusManager_, mempoolManager_, storeManager_);
-
+		shardingManager_ = ShardingManager::instance(settings_, consensusManager_, 
+											storeManager_, validatorManager_,
+											mempoolManager_);
 		// store
 		std::static_pointer_cast<TransactionStoreManager>(storeManager_)->setWallet(wallet_);
+		std::static_pointer_cast<TransactionStoreManager>(storeManager_)->setShardingManager(shardingManager_);
 		// push main chain to store manager
 		storeManager_->push(MainChain::id());
 
@@ -160,7 +166,10 @@ public:
 		// push main chain
 		consensusManager_->push(MainChain::id());
 		mempoolManager_->push(MainChain::id());
-		validatorManager_->push(MainChain::id());
+		validatorManager_->push(MainChain::id(), nullptr);
+
+		// buzzer
+		buzzerComposer_ = BuzzerComposer::instance(settings_, wallet_);
 
 		//
 		server_ = Server::instance(settings_, peerManager_);
@@ -170,6 +179,11 @@ public:
 		httpRequestHandler_->push(HttpGetKey::instance());
 		httpRequestHandler_->push(HttpGetBalance::instance());
 		httpRequestHandler_->push(HttpSendToAddress::instance());
+		httpRequestHandler_->push(HttpCreateDApp::instance());
+		httpRequestHandler_->push(HttpCreateShard::instance());
+		httpRequestHandler_->push(HttpGetTransaction::instance());
+		httpRequestHandler_->push(HttpCreateBuzzer::instance(buzzerComposer_)); // custom
+		httpRequestHandler_->push(HttpBuzz::instance(buzzerComposer_)); // custom
 		httpConnectionManager_ = HttpConnectionManager::instance(settings_, httpRequestHandler_);
 		httpServer_ = HttpServer::instance(settings_, httpConnectionManager_);		
 
@@ -202,6 +216,8 @@ public:
 
 	bool execute();
 
+	BuzzerComposerPtr buzzerComposer_;
+	IShardingManagerPtr shardingManager_;
 	ITransactionStoreManagerPtr storeManager_;
 	IMemoryPoolManagerPtr mempoolManager_;
 	IPeerManagerPtr peerManager_;
@@ -231,9 +247,12 @@ public:
 		storeManager_ = TransactionStoreManager::instance(settings_);
 		peerManager_ = PeerManager::instance(settings_, consensusManager_, mempoolManager_);		
 		validatorManager_ = ValidatorManager::instance(settings_, consensusManager_, mempoolManager_, storeManager_);
-
+		shardingManager_ = ShardingManager::instance(settings_, consensusManager_, 
+											storeManager_, validatorManager_,
+											mempoolManager_);
 		// store
 		std::static_pointer_cast<TransactionStoreManager>(storeManager_)->setWallet(wallet_);
+		std::static_pointer_cast<TransactionStoreManager>(storeManager_)->setShardingManager(shardingManager_);
 		// push main chain to store manager
 		storeManager_->push(MainChain::id());
 
@@ -254,7 +273,10 @@ public:
 		// push main chain
 		consensusManager_->push(MainChain::id());
 		mempoolManager_->push(MainChain::id());
-		validatorManager_->push(MainChain::id());
+		validatorManager_->push(MainChain::id(), nullptr);
+
+		// buzzer
+		buzzerComposer_ = BuzzerComposer::instance(settings_, wallet_);
 
 		//
 		server_ = Server::instance(settings_, peerManager_);
@@ -264,6 +286,11 @@ public:
 		httpRequestHandler_->push(HttpGetKey::instance());
 		httpRequestHandler_->push(HttpGetBalance::instance());
 		httpRequestHandler_->push(HttpSendToAddress::instance());
+		httpRequestHandler_->push(HttpCreateDApp::instance());
+		httpRequestHandler_->push(HttpCreateShard::instance());
+		httpRequestHandler_->push(HttpGetTransaction::instance());
+		httpRequestHandler_->push(HttpCreateBuzzer::instance(buzzerComposer_)); // custom
+		httpRequestHandler_->push(HttpBuzz::instance(buzzerComposer_)); // custom		
 		httpConnectionManager_ = HttpConnectionManager::instance(settings_, httpRequestHandler_);
 		httpServer_ = HttpServer::instance(settings_, httpConnectionManager_);		
 
@@ -296,6 +323,8 @@ public:
 
 	bool execute();
 
+	BuzzerComposerPtr buzzerComposer_;
+	IShardingManagerPtr shardingManager_;
 	ITransactionStoreManagerPtr storeManager_;
 	IMemoryPoolManagerPtr mempoolManager_;
 	IPeerManagerPtr peerManager_;
@@ -325,9 +354,12 @@ public:
 		storeManager_ = TransactionStoreManager::instance(settings_);
 		peerManager_ = PeerManager::instance(settings_, consensusManager_, mempoolManager_);		
 		validatorManager_ = ValidatorManager::instance(settings_, consensusManager_, mempoolManager_, storeManager_);
-
+		shardingManager_ = ShardingManager::instance(settings_, consensusManager_, 
+											storeManager_, validatorManager_,
+											mempoolManager_);
 		// store
 		std::static_pointer_cast<TransactionStoreManager>(storeManager_)->setWallet(wallet_);
+		std::static_pointer_cast<TransactionStoreManager>(storeManager_)->setShardingManager(shardingManager_);
 		// push main chain to store manager
 		storeManager_->push(MainChain::id());
 
@@ -348,7 +380,10 @@ public:
 		// push main chain
 		consensusManager_->push(MainChain::id());
 		mempoolManager_->push(MainChain::id());
-		validatorManager_->push(MainChain::id());
+		validatorManager_->push(MainChain::id(), nullptr);
+
+		// buzzer
+		buzzerComposer_ = BuzzerComposer::instance(settings_, wallet_);
 
 		//
 		server_ = Server::instance(settings_, peerManager_);
@@ -358,6 +393,11 @@ public:
 		httpRequestHandler_->push(HttpGetKey::instance());
 		httpRequestHandler_->push(HttpGetBalance::instance());
 		httpRequestHandler_->push(HttpSendToAddress::instance());
+		httpRequestHandler_->push(HttpCreateDApp::instance());
+		httpRequestHandler_->push(HttpCreateShard::instance());
+		httpRequestHandler_->push(HttpGetTransaction::instance());
+		httpRequestHandler_->push(HttpCreateBuzzer::instance(buzzerComposer_)); // custom
+		httpRequestHandler_->push(HttpBuzz::instance(buzzerComposer_)); // custom		
 		httpConnectionManager_ = HttpConnectionManager::instance(settings_, httpRequestHandler_);
 		httpServer_ = HttpServer::instance(settings_, httpConnectionManager_);		
 
@@ -390,6 +430,8 @@ public:
 
 	bool execute();
 
+	BuzzerComposerPtr buzzerComposer_;
+	IShardingManagerPtr shardingManager_;
 	ITransactionStoreManagerPtr storeManager_;
 	IMemoryPoolManagerPtr mempoolManager_;
 	IPeerManagerPtr peerManager_;
@@ -419,9 +461,12 @@ public:
 		storeManager_ = TransactionStoreManager::instance(settings_);
 		peerManager_ = PeerManager::instance(settings_, consensusManager_, mempoolManager_);		
 		validatorManager_ = ValidatorManager::instance(settings_, consensusManager_, mempoolManager_, storeManager_);
-
+		shardingManager_ = ShardingManager::instance(settings_, consensusManager_, 
+											storeManager_, validatorManager_,
+											mempoolManager_);
 		// store
 		std::static_pointer_cast<TransactionStoreManager>(storeManager_)->setWallet(wallet_);
+		std::static_pointer_cast<TransactionStoreManager>(storeManager_)->setShardingManager(shardingManager_);
 		// push main chain to store manager
 		storeManager_->push(MainChain::id());
 
@@ -442,7 +487,10 @@ public:
 		// push main chain
 		consensusManager_->push(MainChain::id());
 		mempoolManager_->push(MainChain::id());
-		validatorManager_->push(MainChain::id());
+		validatorManager_->push(MainChain::id(), nullptr);
+
+		// buzzer
+		buzzerComposer_ = BuzzerComposer::instance(settings_, wallet_);
 
 		//
 		server_ = Server::instance(settings_, peerManager_);
@@ -452,6 +500,11 @@ public:
 		httpRequestHandler_->push(HttpGetKey::instance());
 		httpRequestHandler_->push(HttpGetBalance::instance());
 		httpRequestHandler_->push(HttpSendToAddress::instance());
+		httpRequestHandler_->push(HttpCreateDApp::instance());
+		httpRequestHandler_->push(HttpCreateShard::instance());
+		httpRequestHandler_->push(HttpGetTransaction::instance());
+		httpRequestHandler_->push(HttpCreateBuzzer::instance(buzzerComposer_)); // custom
+		httpRequestHandler_->push(HttpBuzz::instance(buzzerComposer_)); // custom		
 		httpConnectionManager_ = HttpConnectionManager::instance(settings_, httpRequestHandler_);
 		httpServer_ = HttpServer::instance(settings_, httpConnectionManager_);		
 
@@ -484,6 +537,8 @@ public:
 
 	bool execute();
 
+	BuzzerComposerPtr buzzerComposer_;
+	IShardingManagerPtr shardingManager_;
 	ITransactionStoreManagerPtr storeManager_;
 	IMemoryPoolManagerPtr mempoolManager_;
 	IPeerManagerPtr peerManager_;

@@ -66,6 +66,9 @@ set(SOURCES
 	./json.cpp
 	./httpendpoints.cpp
 	./blockcontext.cpp
+	./validator.cpp
+	./dapps/buzzer/composer.cpp
+	./dapps/buzzer/httpendpoints.cpp
 )
 
 set(UNITTESTS
@@ -113,6 +116,9 @@ set(UNITTESTS
 	./json.cpp
 	./httpendpoints.cpp
 	./blockcontext.cpp
+	./validator.cpp
+	./dapps/buzzer/composer.cpp
+	./dapps/buzzer/httpendpoints.cpp
 
 	./tests/testsuit.cpp
 	./tests/unittest.cpp

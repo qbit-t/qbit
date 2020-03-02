@@ -1,13 +1,15 @@
 #include "transactionactions.h"
 #include "vm/vm.h"
 #include "log/log.h"
+#include "tinyformat.h"
 
 #include <iostream>
 
 using namespace qbit;
 
 TransactionAction::Result TxCoinBaseVerify::execute(TransactionContextPtr wrapper, ITransactionStorePtr store, IWalletPtr wallet, IEntityStorePtr entityStore) {
-	if (wrapper->tx()->type() == Transaction::COINBASE) {
+	if (wrapper->tx()->type() == Transaction::COINBASE || wrapper->tx()->type() == Transaction::BASE ||
+		wrapper->tx()->type() == Transaction::BLOCKBASE) {
 
 		if (wrapper->tx()->out().size() == 1 && wrapper->tx()->in().size() == 1) {
 
@@ -68,8 +70,8 @@ TransactionAction::Result TxCoinBaseVerify::execute(TransactionContextPtr wrappe
 TransactionAction::Result TxSpendVerify::execute(TransactionContextPtr wrapper, ITransactionStorePtr store, IWalletPtr wallet, IEntityStorePtr entityStore) {
 	//
 	// all transaction types _must_ pass through this checker
-	if (wrapper->tx()->type() == Transaction::SPEND || wrapper->tx()->type() == Transaction::SPEND_PRIVATE || 
-		wrapper->tx()->type() == Transaction::ASSET_TYPE || wrapper->tx()->type() == Transaction::ASSET_EMISSION) {
+	if (true /*wrapper->tx()->type() != Transaction::COINBASE && wrapper->tx()->type() != Transaction::BASE &&
+		wrapper->tx()->type() != Transaction::BLOCKBASE*/) {
 
 		uint32_t lIdx = 0;
 		std::vector<Transaction::In>& lIns = wrapper->tx()->in();
@@ -113,7 +115,15 @@ TransactionAction::Result TxSpendVerify::execute(TransactionContextPtr wrapper, 
 						wrapper->addError(lError);
 						gLog().write(Log::ERROR, std::string("[TxVerify]: ") + lError);
 					} 
-					else if (lVM.getR(qasm::QA7).to<unsigned char>() != 0x01) {
+					else if (lVM.getR(qasm::QA7).to<unsigned char>() != 0x01 && 
+						(
+							wrapper->tx()->type() == Transaction::SPEND || 
+							wrapper->tx()->type() == Transaction::SPEND_PRIVATE ||
+							wrapper->tx()->type() == Transaction::ASSET_TYPE || 
+							wrapper->tx()->type() == Transaction::ASSET_EMISSION ||
+							wrapper->tx()->type() == Transaction::FEE ||
+							lIn.out().asset() != TxAssetType::nullAsset()
+						)) {
 						std::string lError = _getVMStateText(VirtualMachine::INVALID_AMOUNT);
 						wrapper->tx()->setStatus(Transaction::DECLINED);
 						wrapper->addError(lError);
@@ -125,7 +135,15 @@ TransactionAction::Result TxSpendVerify::execute(TransactionContextPtr wrapper, 
 						wrapper->addError(lError);
 						gLog().write(Log::ERROR, std::string("[TxVerify]: ") + lError);
 					}
-					else if (lVM.getR(qasm::QE0).to<unsigned char>() != 0x01) {
+					else if (lVM.getR(qasm::QE0).to<unsigned char>() != 0x01 && 
+						(
+							wrapper->tx()->type() == Transaction::SPEND || 
+							wrapper->tx()->type() == Transaction::SPEND_PRIVATE ||
+							wrapper->tx()->type() == Transaction::ASSET_TYPE || 
+							wrapper->tx()->type() == Transaction::ASSET_EMISSION ||
+							wrapper->tx()->type() == Transaction::FEE ||
+							lIn.out().asset() != TxAssetType::nullAsset()
+						)) {
 						std::string lError = _getVMStateText(VirtualMachine::INVALID_ADDRESS);
 						wrapper->tx()->setStatus(Transaction::DECLINED);
 						wrapper->addError(lError);
@@ -142,7 +160,8 @@ TransactionAction::Result TxSpendVerify::execute(TransactionContextPtr wrapper, 
 						return TransactionAction::ERROR;
 					
 					// extract commit
-					wrapper->commitIn()[lIn.out().asset()].push_back(lVM.getR(qasm::QA1).to<std::vector<unsigned char>>());
+					if (lVM.getR(qasm::QA1).getType() != qasm::QNONE)
+						wrapper->commitIn()[lIn.out().asset()].push_back(lVM.getR(qasm::QA1).to<std::vector<unsigned char>>());
 
 					// push link
 					store->addLink(lInTx->id(), wrapper->tx()->id());
@@ -171,8 +190,8 @@ TransactionAction::Result TxSpendVerify::execute(TransactionContextPtr wrapper, 
 TransactionAction::Result TxSpendOutVerify::execute(TransactionContextPtr wrapper, ITransactionStorePtr store, IWalletPtr wallet, IEntityStorePtr entityStore) {
 	//
 	// all transaction types _must_ pass through this checker
-	if (wrapper->tx()->type() == Transaction::SPEND || wrapper->tx()->type() == Transaction::SPEND_PRIVATE || 
-		wrapper->tx()->type() == Transaction::ASSET_EMISSION) {
+	if (/*wrapper->tx()->type() != Transaction::COINBASE && wrapper->tx()->type() != Transaction::BASE &&
+		wrapper->tx()->type() == Transaction::BLOCKBASE && */ wrapper->tx()->type() != Transaction::ASSET_TYPE) {
 
 		uint32_t lIdx = 0;
 		std::vector<Transaction::Out>& lOuts = wrapper->tx()->out();
@@ -194,15 +213,22 @@ TransactionAction::Result TxSpendOutVerify::execute(TransactionContextPtr wrappe
 			//lVM.dumpState(lS);
 			//std::cout << std::endl << lS.str() << std::endl;			
 
-			if (lVM.state() != VirtualMachine::FINISHED) {
+			if (lVM.state() != VirtualMachine::FINISHED && 
+					!(wrapper->tx()->type() == Transaction::FEE && lVM.state() == VirtualMachine::INVALID_CHAIN)) {
 				std::string lError = _getVMStateText(lVM.state()) + " | " + 
 					qasm::_getCommandText(lVM.lastCommand()) + ":" + qasm::_getAtomText(lVM.lastAtom()); 
 				gLog().write(Log::ERROR, std::string("[TxSpendOutVerify]: ") + lError);
 				wrapper->tx()->setStatus(Transaction::DECLINED);
 				wrapper->addError(lError);
 				return TransactionAction::ERROR; 
-			} 
-			else if (lVM.getR(qasm::QA7).to<unsigned char>() != 0x01) {
+			} else if (lVM.getR(qasm::QA7).to<unsigned char>() != 0x01 &&
+				(
+					wrapper->tx()->type() == Transaction::SPEND || 
+					wrapper->tx()->type() == Transaction::SPEND_PRIVATE ||
+					wrapper->tx()->type() == Transaction::ASSET_EMISSION ||
+					wrapper->tx()->type() == Transaction::FEE ||
+					lOut.asset() != TxAssetType::nullAsset()
+				)) {
 				std::string lError = _getVMStateText(VirtualMachine::INVALID_AMOUNT);
 				wrapper->tx()->setStatus(Transaction::DECLINED);
 				wrapper->addError(lError);
@@ -213,7 +239,8 @@ TransactionAction::Result TxSpendOutVerify::execute(TransactionContextPtr wrappe
 				return TransactionAction::ERROR;
 			
 			// extract commit
-			wrapper->commitOut()[lOut.asset()].push_back(lVM.getR(qasm::QA1).to<std::vector<unsigned char>>());
+			if (lVM.getR(qasm::QA1).getType() != qasm::QNONE)
+				wrapper->commitOut()[lOut.asset()].push_back(lVM.getR(qasm::QA1).to<std::vector<unsigned char>>());
 
 			// extract fee
 			if (lVM.getR(qasm::QD0).to<unsigned short>() == PKey::miner()) {
@@ -230,8 +257,8 @@ TransactionAction::Result TxSpendOutVerify::execute(TransactionContextPtr wrappe
 TransactionAction::Result TxBalanceVerify::execute(TransactionContextPtr wrapper, ITransactionStorePtr store, IWalletPtr wallet, IEntityStorePtr entityStore) {
 	//
 	// all transaction types _must_ pass through this checker
-	if (wrapper->tx()->type() == Transaction::SPEND || wrapper->tx()->type() == Transaction::SPEND_PRIVATE ||
-		wrapper->tx()->type() == Transaction::ASSET_TYPE || wrapper->tx()->type() == Transaction::ASSET_EMISSION) {
+	if (true/*wrapper->tx()->type() != Transaction::COINBASE && wrapper->tx()->type() != Transaction::BASE &&
+		wrapper->tx()->type() != Transaction::BLOCKBASE*/) {
 
 		ContextPtr lContext = Context::instance();
 		for(TransactionContext::_commitMap::iterator lInPtr = wrapper->commitIn().begin(); lInPtr != wrapper->commitIn().end(); lInPtr++) {
@@ -247,7 +274,7 @@ TransactionAction::Result TxBalanceVerify::execute(TransactionContextPtr wrapper
 					return TransactionAction::ERROR;	
 				}
 			} else {
-				std::string lError = _getVMStateText(VirtualMachine::INVALID_AMOUNT);
+				std::string lError = strprintf("%s: for %s", _getVMStateText(VirtualMachine::INVALID_AMOUNT), lInPtr->first.toHex());
 				wrapper->tx()->setStatus(Transaction::DECLINED);
 				wrapper->addError(lError);
 				gLog().write(Log::ERROR, std::string("[TxSpendBalanceVerify]: ") + lError);
@@ -271,7 +298,6 @@ TransactionAction::Result TxBalanceVerify::execute(TransactionContextPtr wrapper
 
 TransactionAction::Result TxAssetTypeVerify::execute(TransactionContextPtr wrapper, ITransactionStorePtr store, IWalletPtr wallet, IEntityStorePtr entityStore) {
 	//
-	// all transaction types _must_ pass through this checker
 	if (wrapper->tx()->type() == Transaction::ASSET_TYPE) {
 
 		TxAssetTypePtr lTx = TransactionHelper::to<TxAssetType>(wrapper->tx());

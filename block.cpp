@@ -53,8 +53,8 @@ std::string Block::toString() {
 void BlockTransactions::transactionsHashes(std::list<uint256>& hashes) {
 	//
 	for (int lIdx = 0; lIdx < transactions_.size(); lIdx++) {
-		if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::INFO, std::string("[transactionsHashes] tx = ") + 
-			strprintf("%s|%s", transactions_[lIdx]->id().toHex(), transactions_[lIdx]->hash().toHex()));
+		//if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[transactionsHashes] tx = ") + 
+		//	strprintf("%s", transactions_[lIdx]->id().toHex()));
 
 		hashes.push_back(transactions_[lIdx]->id()); // hash
 	}

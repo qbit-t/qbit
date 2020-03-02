@@ -6,11 +6,12 @@
 #define QBIT_TXASSETTYPE_H
 
 #include "entity.h"
+#include "tinyformat.h"
 
 namespace qbit {
 
-typedef LimitedString<16>  asset_name_t;
-typedef LimitedString<128> asset_description_t;
+typedef LimitedString<64>  asset_name_t;
+typedef LimitedString<256> asset_description_t;
 
 //
 // Asset type transaction
@@ -19,9 +20,8 @@ typedef LimitedString<128> asset_description_t;
 // out[0] - unlinked out to use as "in" for asset emission
 // out[1] - qbit miner fee 
 // out[2] - qbit fee change
-class TxAssetType : public Entity {
+class TxAssetType: public Entity {
 public:
-	// TODO: replace by original QBIT asset type before run?
 	static inline uint256 qbitAsset() { return uint256S("0f690892c0c5ebc826a3c51321178ef816171bb81570d9c3b7573e102c6de601"); }
 	static inline uint256 nullAsset() { return uint256S("f000000000000000000000000000000000000000000000000000000000000000"); }
 
@@ -88,6 +88,28 @@ public:
 
 	inline Emission emission() { return emission_; }
 	inline void setEmission(Emission emission) { emission_ = emission; }
+
+	inline void properties(std::map<std::string, std::string>& props) {
+		//
+		props["entity"] = entityName();
+		//
+		props["description"] = longName_;
+		props["supply"] = strprintf("%d", supply_);
+		props["scale"] = strprintf("%d", scale_);
+		props["emission"] = (emission_ == LIMITED ? "limited" : (emission_ == UNLIMITED ? "unlimited" : "pegged"));
+	}
+
+	static std::string scaleFormat(amount_t scale) {
+		if (scale == QBIT) return "%.8f";
+		else if (scale == 10000000) return "%.7f";
+		else if (scale == 1000000) return "%.6f";
+		else if (scale == 100000) return "%.5f";
+		else if (scale == 10000) return "%.4f";
+		else if (scale == 1000) return "%.3f";
+		else if (scale == 100) return "%.2f";
+		else if (scale == 10) return "%.1f";
+		return "%.0f";
+	}
 
 	// Ability to make "mining-like" assets:
 	// - 1000 total supply

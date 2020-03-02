@@ -7,6 +7,12 @@
 
 using namespace qbit;
 
+qbit::TransactionActions qbit::gTransactionActions;
+
+void TransactionProcessor::registerTransactionAction(TransactionActionPtr action) {
+	qbit::gTransactionActions.push_back(action);
+}
+
 bool TransactionProcessor::process(TransactionContextPtr tx) {
 	try {
 		TransactionAction::Result lResult = TransactionAction::CONTINUE;
@@ -17,6 +23,12 @@ bool TransactionProcessor::process(TransactionContextPtr tx) {
 
 		if (lResult == TransactionAction::SUCCESS)
 			return true;
+		else {
+			if (!tx->errors().size()) {
+				tx->addError("Transaction processing failed.");
+			}
+		}
+
 		return false;
 	}
 	catch(qbit::exception& ex) {
@@ -32,9 +44,19 @@ bool TransactionProcessor::process(TransactionContextPtr tx) {
 }
 
 TransactionProcessor TransactionProcessor::general(ITransactionStorePtr store, IWalletPtr wallet, IEntityStorePtr entityStore) {
-	return TransactionProcessor(store, wallet, entityStore) << 
+	// compose pipeline
+	TransactionProcessor lProcessor(store, wallet, entityStore);
+	lProcessor << 
 		TxCoinBaseVerify::instance() 	<< 
 		TxSpendVerify::instance() 		<< 
-		TxSpendOutVerify::instance() 	<< TxAssetTypeVerify::instance() <<  // or
-		TxBalanceVerify::instance();
+		TxSpendOutVerify::instance() 	<< TxAssetTypeVerify::instance(); // or
+
+	// push additional actions
+	for (TransactionActions::iterator lAction = gTransactionActions.begin(); lAction != gTransactionActions.end(); lAction++) {
+		lProcessor << *lAction;
+	}
+
+	lProcessor << TxBalanceVerify::instance(); // finish
+
+	return lProcessor;
 }
