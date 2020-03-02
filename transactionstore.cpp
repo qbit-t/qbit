@@ -464,6 +464,14 @@ void TransactionStore::removeBlocks(const uint256& from, const uint256& to, bool
 
 				transactionsIdx_.remove((*lTx)->id());
 
+				// iterate
+				db::DbMultiContainer<uint256 /*tx*/, uint256 /*utxo*/>::Transaction lTxUtxoTransaction = txUtxo_.transaction();
+				for (db::DbMultiContainer<uint256 /*tx*/, uint256 /*utxo*/>::Iterator lTxUtxo = txUtxo_.find((*lTx)->id()); lTxUtxo.valid(); ++lTxUtxo) {
+					lTxUtxoTransaction.remove(lTxUtxo);
+				}
+
+				lTxUtxoTransaction.commit();			
+
 				if ((*lTx)->isEntity() && (*lTx)->entityName() != Entity::emptyName()) {
 					entities_.remove((*lTx)->entityName());
 					
@@ -811,6 +819,7 @@ bool TransactionStore::open() {
 			shards_.open();
 			entityUtxo_.open();
 			shardEntities_.open();
+			txUtxo_.open();
 
 			std::string lLastBlock;
 			if (workingSettings_.read("lastBlock", lLastBlock)) {
@@ -866,10 +875,27 @@ bool TransactionStore::close() {
 	shards_.close();
 	entityUtxo_.close();
 	shardEntities_.close();
+	txUtxo_.close();
+
+	if (extension_) extension_->close();
 
 	opened_ = false;
 
 	return true;
+}
+
+bool TransactionStore::enumUnlinkedOuts(const uint256& tx, std::vector<Transaction::UnlinkedOutPtr>& outs) {
+	//
+	bool lResult = false;
+	for (db::DbMultiContainer<uint256 /*tx*/, uint256 /*utxo*/>::Iterator lTxUtxo = txUtxo_.find(tx); lTxUtxo.valid(); ++lTxUtxo) {
+		Transaction::UnlinkedOut lUtxo;
+		if (utxo_.read(*lTxUtxo, lUtxo)) {
+			outs.push_back(Transaction::UnlinkedOut::instance(lUtxo));
+			lResult = true;
+		}
+	}
+
+	return lResult;
 }
 
 bool TransactionStore::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, TransactionContextPtr ctx) {
@@ -882,6 +908,8 @@ bool TransactionStore::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, Transac
 	if (!isUnlinkedOutUsed(lUtxo) /*&& !findUnlinkedOut(lUtxo)*/) { // sensitive: in rare cases updates may occure
 		// update utxo db
 		utxo_.write(lUtxo, *utxo);
+		txUtxo_.write(utxo->out().tx(), lUtxo);
+
 		// update indexes
 		addressAssetUtxoIdx_.write(utxo->address().id(), utxo->out().asset(), lUtxo, utxo->out().tx());
 		//
@@ -893,6 +921,9 @@ bool TransactionStore::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, Transac
 		if (ctx->tx()->isEntity() && ctx->tx()->entityName() != Entity::emptyName()) {
 			entityUtxo_.write(ctx->tx()->entityName(), lUtxo);
 		}
+
+		// forward
+		if (extension_) extension_->pushUnlinkedOut(utxo, ctx);
 
 		return true;
 	}
@@ -917,6 +948,8 @@ bool TransactionStore::popUnlinkedOut(const uint256& utxo, TransactionContextPtr
 		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[popUnlinkedOut]: POPPED ") +
 			strprintf("utxo = %s, tx = %s, ctx = %s", 
 				utxo.toHex(), lUtxo->out().tx().toHex(), ctx->tx()->id().toHex()));		
+		// forward
+		if (extension_) extension_->popUnlinkedOut(utxo, ctx);
 		return true;
 	} else if (!lUtxo && chain_ != MainChain::id()) {
 		return storeManager_->locate(MainChain::id())->popUnlinkedOut(utxo, ctx);
@@ -1012,10 +1045,17 @@ EntityPtr TransactionStore::locateEntity(const std::string& entity) {
 }
 
 bool TransactionStore::pushEntity(const uint256& id, TransactionContextPtr ctx) {
-	uint256 lId;
+	//
+	// forward entity processing to the extension anyway
+	if (extension_) extension_->pushEntity(id, ctx);
+
+	// filter unnamed entities
 	if (ctx->tx()->isEntity() && ctx->tx()->entityName() == Entity::emptyName()) return true;
+
+	// sanity check: skip if not entity
 	if (!ctx->tx()->isEntity()) return false;
 
+	uint256 lId;
 	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[pushEntity]: try to push entity ") +
 		strprintf("'%s'/%s", ctx->tx()->entityName(), id.toHex()));
 
@@ -1046,20 +1086,22 @@ bool TransactionStore::pushEntity(const uint256& id, TransactionContextPtr ctx) 
 				strprintf("%s for '%s'/%s#", ctx->tx()->in().begin()->out().tx().toHex(), ctx->tx()->entityName(), id.toHex().substr(0, 10)));
 			return false;
 		}
-	} else if (ctx->tx()->type() >= Transaction::CUSTOM_00 && ctx->tx()->in().size()) {
+	} else if (ctx->tx()->type() >= Transaction::CUSTOM_00 && ctx->tx()->in().size() > 1) {
+		//
+		uint256 lShardId = (++(ctx->tx()->in().begin()))->out().tx(); // in[1]
 		// custom entities
 		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[pushEntity]: extracting shard ") +
-			strprintf("%s for '%s'/%s#", ctx->tx()->in().begin()->out().tx().toHex(), ctx->tx()->entityName(), id.toHex().substr(0, 10)));
+			strprintf("%s for '%s'/%s#", lShardId.toHex(), ctx->tx()->entityName(), id.toHex().substr(0, 10)));
 
-		TransactionPtr lShardTx = locateTransaction(ctx->tx()->in().begin()->out().tx());
-		if (lShardTx && lShardTx->type() == Transaction::DAPP) {
+		TransactionPtr lShardTx = locateTransaction(lShardId); // in[1]
+		if (lShardTx && lShardTx->type() == Transaction::SHARD) {
 			//
 			uint32_t lCount = 0;
-			shardEntities_.read(ctx->tx()->in().begin()->out().tx(), lCount);
-			shardEntities_.write(ctx->tx()->in().begin()->out().tx(), ++lCount);
+			shardEntities_.read(lShardId, lCount);
+			shardEntities_.write(lShardId, ++lCount);
 
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[pushEntity]: registering custom entity ") +
-				strprintf("[%d]/'%s'/%s# with shard '%s'", lCount, ctx->tx()->entityName(), id.toHex().substr(0, 10), lShardTx->entityName()));			
+				strprintf("[%d]/'%s'/%s# with shard '%s'", lCount, ctx->tx()->entityName(), id.toHex().substr(0, 10), lShardTx->entityName()));
 		}
 	}
 

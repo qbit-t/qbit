@@ -48,7 +48,9 @@ public:
 	// 1 00 = 1 USD
 	amount_t scale_; 
 
-	inline void serialize(DataStream& s) {
+	ADD_INHERITABLE_SERIALIZE_METHODS;
+
+	template<typename Stream> void serialize(Stream& s) {
 		asset_name_t lName(shortName_);
 		lName.Serialize(s);
 		
@@ -137,7 +139,8 @@ public:
 			OP(QATXOA) 		<<
 			OP(QEQADDR) 	<<
 			OP(QPAT) 		<<
-			OP(QCMPE)		<< REG(QTH1) << CU16(Transaction::ASSET_EMISSION) <<
+			OP(QMOV)		<< REG(QR1) << CU16(Transaction::ASSET_EMISSION) <<
+			OP(QCMPE)		<< REG(QTH1) << REG(QR1) <<
 			OP(QMOV) 		<< REG(QR0)  << REG(QC0) <<	
 			OP(QRET));
 
@@ -170,7 +173,8 @@ public:
 			OP(QATXO)		<<
 			OP(QEQADDR) 	<<
 			OP(QPAT) 		<<
-			OP(QCMPE)		<< REG(QTH1) << CU16(Transaction::ASSET_EMISSION) <<
+			OP(QMOV)		<< REG(QR1) << CU16(Transaction::ASSET_EMISSION) <<
+			OP(QCMPE)		<< REG(QTH1) << REG(QR1) <<
 			OP(QMOV) 		<< REG(QR0)  << REG(QC0) <<	
 			OP(QRET));
 

@@ -37,6 +37,19 @@ public:
 	}
 };
 
+class HttpAttachBuzzer: public IHttpBuzzerCallEnpoint {
+public:
+	HttpAttachBuzzer() {}
+	HttpAttachBuzzer(BuzzerComposerPtr composer) : IHttpBuzzerCallEnpoint(composer) {}
+
+	void process(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
+	std::string method() { return std::string("attachbuzzer"); }
+
+	static IHttpCallEnpointPtr instance(BuzzerComposerPtr composer) {
+		return std::make_shared<HttpAttachBuzzer>(composer);
+	}
+};
+
 class HttpBuzz: public IHttpBuzzerCallEnpoint {
 public:
 	HttpBuzz() {}
@@ -47,6 +60,32 @@ public:
 
 	static IHttpCallEnpointPtr instance(BuzzerComposerPtr composer) {
 		return std::make_shared<HttpBuzz>(composer);
+	}
+};
+
+class HttpBuzzerSubscribe: public IHttpBuzzerCallEnpoint {
+public:
+	HttpBuzzerSubscribe() {}
+	HttpBuzzerSubscribe(BuzzerComposerPtr composer) : IHttpBuzzerCallEnpoint(composer) {}
+
+	void process(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
+	std::string method() { return std::string("buzzersubscribe"); }
+
+	static IHttpCallEnpointPtr instance(BuzzerComposerPtr composer) {
+		return std::make_shared<HttpBuzzerSubscribe>(composer);
+	}
+};
+
+class HttpBuzzerUnsubscribe: public IHttpBuzzerCallEnpoint {
+public:
+	HttpBuzzerUnsubscribe() {}
+	HttpBuzzerUnsubscribe(BuzzerComposerPtr composer) : IHttpBuzzerCallEnpoint(composer) {}
+
+	void process(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
+	std::string method() { return std::string("buzzerunsubscribe"); }
+
+	static IHttpCallEnpointPtr instance(BuzzerComposerPtr composer) {
+		return std::make_shared<HttpBuzzerUnsubscribe>(composer);
 	}
 };
 

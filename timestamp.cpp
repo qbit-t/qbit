@@ -2,6 +2,23 @@
 #include "tinyformat.h"
 #include <ctime>
 
+boost::atomic<uint64_t> qbit::gMedianTime(0);
+boost::atomic<uint64_t> qbit::gMedianMicroseconds(0);
+
+uint64_t qbit::getMedianMicroseconds() {
+	uint64_t lMicroseconds = qbit::getMicroseconds();
+	uint64_t lMedianMicroseconds = (gMedianMicroseconds == 0 ? qbit::getMicroseconds() : gMedianMicroseconds.load(boost::memory_order_relaxed));
+
+	return (lMicroseconds + lMedianMicroseconds)/2;
+}
+
+uint64_t qbit::getMedianTime() {
+	uint64_t lTime = qbit::getTime();
+	uint64_t lMedianTime = (gMedianTime == 0 ? qbit::getTime() : gMedianTime.load(boost::memory_order_relaxed));
+
+	return (lTime + lMedianTime)/2; 
+}
+
 uint64_t qbit::getMicroseconds() {
 #ifdef WIN32
 		FILETIME ft;

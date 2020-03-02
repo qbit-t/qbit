@@ -114,7 +114,18 @@ public:
 			return *this;
 		}
 
+		inline Iterator& operator--() {
+			i_.prev();
+			return *this;
+		}
+
+		inline Iterator& operator--(int) {
+			i_.prev();
+			return *this;
+		}
+
 		inline void next() { i_.next(); }
+		inline void prev() { i_.prev(); }
 
 		inline bool first(key& k) { return i_.first(k); }
 		inline bool first(DataStream& k) { return i_.first(k); }
@@ -213,6 +224,16 @@ public:
 			return *this;
 		}
 
+		inline Iterator& operator--() {
+			i_.prev();
+			return *this;
+		}
+
+		inline Iterator& operator--(int) {
+			i_.prev();
+			return *this;
+		}
+
 		inline value operator* () {
 			value lValue;
 			i_.second(lValue);
@@ -283,6 +304,7 @@ public:
 	//}
 
 	inline Iterator begin() { return MultiContainer::Iterator(Container<MultiKey<key>, value, impl>::begin()); }
+	inline Iterator last() { return MultiContainer::Iterator(Container<MultiKey<key>, value, impl>::last()); }
 
 	inline bool remove(const MultiContainer::Iterator& iter, bool sync = false) {
 		DataStream lKeyStream(SER_DISK, CLIENT_VERSION);
@@ -322,6 +344,16 @@ public:
 
 		inline Iterator& operator++(int) {
 			i_.next();
+			return *this;
+		}
+
+		inline Iterator& operator--() {
+			i_.prev();
+			return *this;
+		}
+
+		inline Iterator& operator--(int) {
+			i_.prev();
 			return *this;
 		}
 
@@ -419,6 +451,7 @@ public:
 	}
 
 	inline Iterator begin() { return TwoKeyContainer::Iterator(Container<TwoKey<key1, key2>, value, impl>::begin()); }
+	inline Iterator last() { return TwoKeyContainer::Iterator(Container<TwoKey<key1, key2>, value, impl>::last()); }
 
 	inline bool remove(const TwoKeyContainer::Iterator& iter, bool sync = false) {
 		DataStream lKeyStream(SER_DISK, CLIENT_VERSION);
@@ -460,6 +493,16 @@ public:
 
 		inline Iterator& operator++(int) {
 			i_.next();
+			return *this;
+		}
+
+		inline Iterator& operator--() {
+			i_.prev();
+			return *this;
+		}
+
+		inline Iterator& operator--(int) {
+			i_.prev();
 			return *this;
 		}
 
@@ -577,6 +620,7 @@ public:
 	}
 
 	inline Iterator begin() { return ThreeKeyContainer::Iterator(Container<ThreeKey<key1, key2, key3>, value, impl>::begin()); }
+	inline Iterator last() { return ThreeKeyContainer::Iterator(Container<ThreeKey<key1, key2, key3>, value, impl>::last()); }
 
 	inline bool remove(const ThreeKeyContainer::Iterator& iter, bool sync = false) {
 		DataStream lKeyStream(SER_DISK, CLIENT_VERSION);
@@ -608,7 +652,18 @@ public:
 			return *this;
 		}
 
+		inline Iterator& operator--() {
+			i_.prev();
+			return *this;
+		}
+
+		inline Iterator& operator--(int) {
+			i_.prev();
+			return *this;
+		}
+
 		inline void next() { i_.next(); }
+		inline void prev() { i_.prev(); }
 
 		inline bool first(key& k) { return i_.first(k); }
 		inline bool first(DataStream& k) { return i_.first(k); }
@@ -678,6 +733,7 @@ public:
 	}
 
 	inline Iterator begin() { return EntityContainer::Iterator(Container<key, value, impl>::begin()); }
+	inline Iterator last() { return EntityContainer::Iterator(Container<key, value, impl>::last()); }
 
 	inline Transaction transaction() { return Transaction(Container<key, value, impl>::transaction()); }
 };

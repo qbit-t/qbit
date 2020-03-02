@@ -20,7 +20,9 @@ public:
 	std::string shortName_;	
 	std::string longName_;
 
-	inline void serialize(DataStream& s) {
+	ADD_INHERITABLE_SERIALIZE_METHODS;
+
+	template<typename Stream> void serialize(Stream& s) {
 		shard_name_t lName(shortName_);
 		lName.Serialize(s);
 		
@@ -101,6 +103,14 @@ public:
 	}
 
 	inline std::string name() { return "shard"; }
+
+	bool isValue(UnlinkedOutPtr utxo) {
+		return (utxo->out().asset() != TxAssetType::nullAsset()); 
+	}
+
+	bool isEntity(UnlinkedOutPtr utxo) {
+		return (utxo->out().asset() == TxAssetType::nullAsset()); 
+	}	
 };
 
 typedef std::shared_ptr<TxShard> TxShardPtr;

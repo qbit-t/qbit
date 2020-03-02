@@ -85,9 +85,26 @@ public:
 											ITransactionStoreManagerPtr storeManager, IValidatorManagerPtr validatorManager,
 											IMemoryPoolManagerPtr mempoolManager) {
 		return std::make_shared<ShardingManager>(settings, consensusManager, storeManager, validatorManager, mempoolManager);
-	}	
+	}
+
+	static void registerStoreExtension(const std::string& dappName, TransactionStoreExtensionCreatorPtr extension) {
+		//
+		gStoreExtensions.insert(std::map<std::string /*dapp name*/, TransactionStoreExtensionCreatorPtr>::value_type(
+			dappName,
+			extension));
+	}
 
 private:
+	TransactionStoreExtensionCreatorPtr locateStoreExtension(const std::string& dappName) {
+		//
+		std::map<std::string /*dapp name*/, TransactionStoreExtensionCreatorPtr>::iterator lExtension = gStoreExtensions.find(dappName);
+		if (lExtension != gStoreExtensions.end()) {
+			return lExtension->second;
+		}
+
+		return nullptr;
+	}
+
 	void controller() {
 		// log
 		gLog().write(Log::INFO, std::string("[sharding]: starting..."));
@@ -140,7 +157,10 @@ private:
 
 							gLog().write(Log::SHARDING, std::string("[touch]: starting shard ") + strprintf("%s", lShard->first.toHex()));
 
-							storeManager_->push(lChain);
+							ITransactionStorePtr lStore = storeManager_->push(lChain);
+							TransactionStoreExtensionCreatorPtr lCreator = locateStoreExtension(lShard->second->entityName());
+							if (lCreator) lStore->setExtension(lCreator->create(settings_, lStore));
+
 							consensusManager_->push(lChain);
 							mempoolManager_->push(lChain);
 							validatorManager_->push(lChain, lDApp);
@@ -177,6 +197,7 @@ private:
 
 	// settings
 	ISettingsPtr settings_;
+	
 	// managers
 	IConsensusManagerPtr consensusManager_;
 	ITransactionStoreManagerPtr storeManager_;
