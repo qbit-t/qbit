@@ -28,6 +28,9 @@
 
 namespace qbit {
 
+class IConsensusManager;
+typedef std::shared_ptr<IConsensusManager> IConsensusManagerPtr;
+
 class IConsensus {
 public:
 	enum ChainState {
@@ -42,6 +45,7 @@ public:
 	IConsensus() {}
 
 	virtual uint256 chain() { throw qbit::exception("NOT_IMPL", "IConsensus::chain - not implemented."); }	
+	virtual bool close() { throw qbit::exception("NOT_IMPL", "IConsensus::close - not implemented."); }	
 
 	virtual size_t maxBlockSize() { throw qbit::exception("NOT_IMPL", "IConsensus::maxBlockSize - not implemented."); }
 	virtual uint64_t currentTime() { throw qbit::exception("NOT_IMPL", "IConsensus::currentTime - not implemented."); }
@@ -72,7 +76,7 @@ public:
 	virtual void setValidatorManager(IValidatorManagerPtr /*validatorManager*/) { throw qbit::exception("NOT_IMPL", "IConsensus::setValidatorManager - not implemented."); }
 
 	virtual bool isChainSynchronized() { throw qbit::exception("NOT_IMPL", "IConsensus::isChainSynchronized - not implemented."); }
-	virtual size_t locateSynchronizedRoot(std::list<IPeerPtr>& /*peers*/, uint256& /*block*/) { throw qbit::exception("NOT_IMPL", "IConsensus::locateSynchronizedRoot - not implemented."); }
+	virtual uint64_t locateSynchronizedRoot(std::list<IPeerPtr>& /*peers*/, uint256& /*block*/) { throw qbit::exception("NOT_IMPL", "IConsensus::locateSynchronizedRoot - not implemented."); }
 
 	virtual ChainState chainState() { throw qbit::exception("NOT_IMPL", "IConsensus::chainState - not implemented."); }
 	virtual bool doSynchronize() { throw qbit::exception("NOT_IMPL", "IConsensus::doSynchrinize - not implemented."); }
@@ -88,12 +92,17 @@ public:
 	virtual size_t maturity() { throw qbit::exception("NOT_IMPL", "IConsensus::maturity - not implemented."); }
 	virtual size_t coinbaseMaturity() { throw qbit::exception("NOT_IMPL", "IConsensus::coinbaseMaturity - not implemented."); }
 
-	virtual bool checkBalance(amount_t /*coinbaseAmount*/, amount_t /*blockFee*/, size_t /*height*/) { throw qbit::exception("NOT_IMPL", "IConsensus::checkCoinbaseAmountAndFee - not implemented."); }
+	virtual amount_t blockReward(uint64_t /*height*/) { throw qbit::exception("NOT_IMPL", "IConsensus::blockReward - not implemented."); }
+	virtual bool checkBalance(amount_t /*coinbaseAmount*/, amount_t /*blockFee*/, uint64_t /*height*/) { throw qbit::exception("NOT_IMPL", "IConsensus::checkCoinbaseAmountAndFee - not implemented."); }
 	virtual bool checkSequenceConsistency(const BlockHeader& /*block*/) { throw qbit::exception("NOT_IMPL", "IConsensus::checkSequenceConsistency - not implemented."); }
 
 	virtual bool processPartialTreeHeaders(SynchronizationJobPtr /*job*/) { throw qbit::exception("NOT_IMPL", "IConsensus::processPartialTreeHeaders - not implemented."); }
 
 	virtual bool isSimpleNetwork() { throw qbit::exception("NOT_IMPL", "IConsensus::isSimpleNetwork - not implemented."); }
+
+	virtual void collectPeers(std::map<uint160, IPeerPtr>& /*peers*/) { throw qbit::exception("NOT_IMPL", "IConsensus::collectPeers - not implemented."); }
+
+	virtual IConsensusManagerPtr consensusManager() { throw qbit::exception("NOT_IMPL", "IConsensus::consensusManager - not implemented."); }
 };
 
 typedef std::shared_ptr<IConsensus> IConsensusPtr;

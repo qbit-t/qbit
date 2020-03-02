@@ -92,10 +92,16 @@ public:
 		timestamp_ = time_;
 	}
 
-	void setState(const State& state) { state_ = state; }
+	void setState(const State& state) { 
+		const_cast<State&>(state).prepare(); 
+		state_ = state;
+		address_ = const_cast<State&>(state).address();
+		addressId_ = const_cast<State&>(state).address().id();
+		roles_ = const_cast<State&>(state).roles();
+	}
 	void setLatency(uint32_t latency) { latencyPrev_ = latency_; latency_ = latency; }
 
-	bool hasRole(State::PeerRoles role) { return (state_.roles() & role) != 0; }
+	bool hasRole(State::PeerRoles role) { return (roles_ & role) != 0; }
 	uint64_t time() { return time_; }	
 	uint64_t timestamp() { return timestamp_; }	
 
@@ -108,7 +114,7 @@ public:
 		}
 	}
 
-	PKey address() { return state_.address(); }
+	PKey address() { return address_; }
 	uint32_t latency() { return latency_; }
 	uint32_t latencyPrev() { return latencyPrev_; }
 	uint32_t quarantine() { return quarantine_; }
@@ -116,7 +122,7 @@ public:
 	bool isOutbound() { return socketType_ == CLIENT; }
 
 	SocketPtr socket() { return socket_; }
-	uint160 addressId() { return state_.address().id(); }
+	uint160 addressId() { return addressId_; }
 
 	void toQuarantine(uint32_t block) { quarantine_ = block; status_ = IPeer::QUARANTINE; }
 	void toBan() { quarantine_ = 0; status_ = IPeer::BANNED; }
@@ -185,6 +191,9 @@ public:
 	void synchronizePendingBlocks(IConsensusPtr, SynchronizationJobPtr /*job*/);
 	void acquireBlock(const NetworkBlockHeader& /*block*/);
 
+	// open requests
+	void acquireBlockHeaderWithCoinbase(const uint256& /*block*/, const uint256& /*chain*/, INetworkBlockHandlerWithCoinBasePtr /*handler*/);
+
 	std::string statusString() {
 		switch(status_) {
 			case IPeer::ACTIVE: return "ACTIVE";
@@ -216,16 +225,19 @@ private:
 	void processGetBlockByHeight(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processGetBlockById(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processGetNetworkBlock(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processGetNetworkBlockHeader(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processGetBlockHeader(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processGetBlockData(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 
 	void processBlockByHeight(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processBlockById(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processNetworkBlock(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processNetworkBlockHeader(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 
 	void processBlockByHeightAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processBlockByIdAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processNetworkBlockAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processNetworkBlockHeaderAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processBlockHeaderAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processBlockAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 
@@ -246,8 +258,8 @@ private:
 		return rawInMessages_.insert(rawInMessages_.end(), lMessage);
 	}
 
-	std::list<DataStream>::iterator newInData() {
-		DataStream lMessage(SER_NETWORK, CLIENT_VERSION);
+	std::list<DataStream>::iterator newInData(const Message& msg) {
+		DataStream lMessage(SER_NETWORK, CLIENT_VERSION, const_cast<Message&>(msg).checkSum());
 		return rawInData_.insert(rawInData_.end(), lMessage);
 	}
 
@@ -293,6 +305,34 @@ private:
 		return nullptr;
 	}
 
+	uint256 addRequest(IReplyHandlerPtr replyHandler) {
+		uint256 lId = Random::generate();
+		boost::unique_lock<boost::mutex> lLock(replyHandlersMutex_);
+		replyHandlers_.insert(std::map<uint256 /*request*/, RequestWrapper>::value_type(lId, RequestWrapper(replyHandler)));
+		return lId;
+	}
+
+	void removeRequest(const uint256& id) {
+		boost::unique_lock<boost::mutex> lLock(replyHandlersMutex_);
+		replyHandlers_.erase(id);
+
+		// cleanup
+		std::map<uint256 /*request*/, RequestWrapper> lCurrentHandlers = replyHandlers_;
+		for (std::map<uint256 /*request*/, RequestWrapper>::iterator lItem = lCurrentHandlers.begin(); lItem != lCurrentHandlers.end(); lItem++) {
+			if (lItem->second.timedout()) {
+				replyHandlers_.erase(lItem->first);
+			}
+		}
+	}
+
+	IReplyHandlerPtr locateRequest(const uint256& id) {
+		boost::unique_lock<boost::mutex> lLock(replyHandlersMutex_);
+		std::map<uint256 /*request*/, RequestWrapper>::iterator lRequest = replyHandlers_.find(id);
+		if (lRequest != replyHandlers_.end()) return lRequest->second.handler();
+
+		return nullptr;
+	}
+
 private:
 	SocketPtr socket_;
 	IPeer::Status status_;
@@ -307,10 +347,17 @@ private:
 	uint64_t time_;
 	uint64_t timestamp_;
 
+	uint160 addressId_;
+	PKey address_;
+	uint32_t roles_;
+
 	std::list<DataStream> rawInMessages_;
 	std::list<DataStream> rawInData_;
 	std::list<DataStream> rawOutMessages_;
 	boost::mutex rawOutMutex_;
+
+	std::map<uint256 /*request*/, RequestWrapper> replyHandlers_;
+	boost::mutex replyHandlersMutex_;
 
 	std::map<uint256, SynchronizationJobPtr> jobs_;
 	boost::mutex jobsMutex_;
@@ -318,6 +365,8 @@ private:
 	IPeerManagerPtr peerManager_;
 	int contextId_ = -1;
 	int postponeTime_ = 0;
+
+	bool waitingForMessage_ = false;
 
 	uint64_t peersPoll_ = 0;
 };

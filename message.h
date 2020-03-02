@@ -11,6 +11,7 @@
 #include "allocator.h"
 #include "streams.h"
 #include "tinyformat.h"
+#include "uint256.h"
 
 #define QBIT_MESSAGE_0 0x1a
 #define QBIT_MESSAGE_1 0x1b
@@ -36,15 +37,18 @@ public:
 		GET_BLOCK_BY_HEIGHT = 0x12,
 		GET_BLOCK_BY_ID = 0x13,
 		GET_NETWORK_BLOCK = 0x14,
+		GET_NETWORK_BLOCK_HEADER = 0x15,
 
 		BLOCK_BY_HEIGHT = 0x20,
 		BLOCK_BY_ID = 0x21,
 		NETWORK_BLOCK = 0x22,
-		BLOCK_BY_HEIGHT_IS_ABSENT = 0x23,
-		BLOCK_BY_ID_IS_ABSENT = 0x24,
-		NETWORK_BLOCK_IS_ABSENT = 0x25,
-		BLOCK_HEADER_IS_ABSENT = 0x26,
-		BLOCK_IS_ABSENT = 0x27,
+		NETWORK_BLOCK_HEADER = 0x23,
+		BLOCK_BY_HEIGHT_IS_ABSENT = 0x24,
+		BLOCK_BY_ID_IS_ABSENT = 0x25,
+		NETWORK_BLOCK_IS_ABSENT = 0x26,
+		BLOCK_HEADER_IS_ABSENT = 0x27,
+		BLOCK_IS_ABSENT = 0x28,
+		NETWORK_BLOCK_HEADER_IS_ABSENT = 0x29,
 
 		GET_PEERS = 0x30,
 		PEER_EXISTS = 0x31,
@@ -54,10 +58,11 @@ public:
 
 public:
 	Message() {}
-	Message(Message::Type type, uint32_t size) {
+	Message(Message::Type type, uint32_t size, const uint160& checksum) {
 		prolog_[0] = QBIT_MESSAGE_0; prolog_[1] = QBIT_MESSAGE_1; prolog_[2] = QBIT_MESSAGE_2; prolog_[3] = QBIT_MESSAGE_3;
 		type_ = type;
 		size_ = size;
+		if (size_ > sizeof(uint160)) checksum_ = checksum;
 	}
 
 	ADD_SERIALIZE_METHODS;
@@ -67,14 +72,16 @@ public:
 		READWRITE(prolog_);
 		READWRITE(type_);
 		READWRITE(size_);
+		READWRITE(checksum_);
 	}
 
 	bool valid() { return (prolog_[0] == QBIT_MESSAGE_0 && prolog_[1] == QBIT_MESSAGE_1 && prolog_[2] == QBIT_MESSAGE_2 && prolog_[3] == QBIT_MESSAGE_3); }
 
 	Message::Type type() { return (Message::Type)type_; }
 	uint32_t dataSize() { return size_; }
+	uint160 checkSum() { return checksum_; }
 
-	static size_t size() { return sizeof(prolog_) + sizeof(type_) + sizeof(size_); }
+	static size_t size() { return sizeof(prolog_) + sizeof(type_) + sizeof(size_) + (sizeof(uint8_t) * 160/8); }
 
 	std::string toString() {
 		std::string lMsg = "";
@@ -104,17 +111,21 @@ public:
 			case BLOCK_HEADER_AND_STATE: lMsg = "BLOCK_HEADER_AND_STATE"; break;
 			case BLOCK_HEADER_IS_ABSENT: lMsg = "BLOCK_HEADER_IS_ABSENT"; break;
 			case BLOCK_IS_ABSENT: lMsg = "BLOCK_IS_ABSENT"; break;
+			case GET_NETWORK_BLOCK_HEADER: lMsg = "GET_NETWORK_BLOCK_HEADER"; break;
+			case NETWORK_BLOCK_HEADER: lMsg = "NETWORK_BLOCK_HEADER"; break;
+			case NETWORK_BLOCK_HEADER_IS_ABSENT: lMsg = "NETWORK_BLOCK_HEADER_IS_ABSENT"; break;
 
 			default: lMsg = "UNKNOWN"; break;
 		}
 
-		return lMsg += "/" + strprintf("%d", size_);
+		return lMsg += "/" + strprintf("%d/%s", size_, checksum_.toHex());
 	}
 
 private:
 	char prolog_[4] = {0};
 	unsigned char type_;
 	uint32_t size_;
+	uint160 checksum_;
 };
 
 } // qbit

@@ -32,6 +32,7 @@ std::string _getLogCategoryText(Log::Category category) {
 		case Log::Category::CONSENSUS:	return "cons  ";
 		case Log::Category::HTTP:		return "http  ";
 		case Log::Category::BALANCE:	return "bal   ";
+		case Log::Category::SHARDING:	return "shard ";
 		case Log::Category::ALL: 		return "*     ";
 	}
 

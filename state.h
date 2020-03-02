@@ -31,7 +31,7 @@ public:
 	class BlockInfo {
 	public:
 		BlockInfo() {}
-		BlockInfo(uint256 chain, uint32_t height, uint256 hash) : chain_(chain), height_(height), hash_(hash) {}
+		BlockInfo(uint256 chain, uint64_t height, uint256 hash) : chain_(chain), height_(height), hash_(hash) {}
 
 		ADD_SERIALIZE_METHODS;
 
@@ -42,13 +42,13 @@ public:
 			READWRITE(hash_);
 		}
 
-		inline uint32_t height() { return height_; }
+		inline uint64_t height() { return height_; }
 		inline uint256 hash() { return hash_; }
 		inline uint256 chain() { return chain_; }
 
 	private:
 		uint256 chain_;
-		uint32_t height_;
+		uint64_t height_;
 		uint256 hash_;
 	};
 
@@ -107,7 +107,7 @@ public:
 		READWRITE(signature_);
 	}
 
-	void addHeader(BlockHeader& header, uint32_t height) {
+	void addHeader(BlockHeader& header, uint64_t height) {
 		BlockInfo lBlock(header.chain(), height, header.hash());
 		infos_.push_back(lBlock);
 	}
@@ -128,7 +128,7 @@ public:
 		return pkey_.verify(lData, signature_);
 	}
 
-	inline uint32_t height() {
+	inline uint64_t height() {
 		if (infos_.size()) return infos_[0].height();
 		return 0;
 	}
@@ -152,23 +152,21 @@ public:
 		return ((roles_ & MINER) != 0) || ((roles_ & VALIDATOR) != 0);
 	}
 
-	bool containsChain(const uint256& chain) {
+	void prepare() {
 		if (!chains_.size()) {
 			for (std::vector<BlockInfo>::iterator lInfo = infos_.begin(); lInfo != infos_.end(); lInfo++) {
 				chains_.insert(std::map<uint256, BlockInfo>::value_type(lInfo->chain(), *lInfo));
 			}
-		}
+		}		
+	}
 
+	bool containsChain(const uint256& chain) {
+		prepare();
 		return chains_.find(chain) != chains_.end();
 	}
 
 	bool locateChain(const uint256& chain, BlockInfo& info) {
-		if (!chains_.size()) {
-			for (std::vector<BlockInfo>::iterator lInfo = infos_.begin(); lInfo != infos_.end(); lInfo++) {
-				chains_.insert(std::map<uint256, BlockInfo>::value_type(lInfo->chain(), *lInfo));
-			}
-		}
-
+		prepare();
 		std::map<uint256, BlockInfo>::iterator lChain = chains_.find(chain);
 		if (lChain != chains_.end())
 		{

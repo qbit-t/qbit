@@ -18,7 +18,29 @@ Each microblog starts with the special entity type - transaction TxBuzzer. Buzze
 To start write micro-posts user need use qbits - tx payment for the each post. Each post - special transaction TxBuzz with attributes:
  - body - micro-blog body in multibyte format
  - in:
-   - tx-buzzer
+   - tx-buzzer (ltxo)
    - qbit-fee
  - out:
-   - 
+   - tx-buzzer (utxo)
+   - miner qbit-fee
+
+To start receiving buzzers user need to make a special tx - TxBuzzerSubscribe. Attributes:
+ - tx-buzzer - original transaction
+ - in:
+   - qbit-fee
+ - out:
+   - miner qbit-fee
+
+## Procesing
+
+Mempool - dynamic. TxValidator - subscription lists -> broadcasting to subscribers.
+ - IMempoolExtention
+
+TransactionStorage - static. Indexing. (TransactionStorageExtention - register withing TransactionStorage and re-process transactions to build appropriate indexes)
+ - ITransactionStoreExtention
+
+BuzzComposer - making buzz, subscribe, unsubscribe, endorse, mistrust transactions
+ - IBuzzComposer - a-la wallet
+
+Peer - we need peer protocol extention to process dapps requests
+ - IPeerExtention

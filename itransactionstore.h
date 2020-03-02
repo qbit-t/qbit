@@ -18,6 +18,9 @@ namespace qbit {
 class IMemoryPool;
 typedef std::shared_ptr<IMemoryPool> IMemoryPoolPtr;
 
+class ITransactionStoreManager;
+typedef std::shared_ptr<ITransactionStoreManager> ITransactionStoreManagerPtr;
+
 class ITransactionStore {
 public:
 	ITransactionStore() {}
@@ -31,7 +34,7 @@ public:
 	virtual TransactionContextPtr locateTransactionContext(const uint256&) { throw qbit::exception("NOT_IMPL", "ITransactionStore::locateTransactionContext - not implemented."); }
 	virtual bool pushTransaction(TransactionContextPtr) { throw qbit::exception("NOT_IMPL", "ITransactionStore::pushTransaction - not implemented."); }
 	virtual BlockContextPtr pushBlock(BlockPtr) { throw qbit::exception("NOT_IMPL", "ITransactionStore::pushBlock - not implemented."); }
-	virtual bool commitBlock(BlockContextPtr, size_t&) { throw qbit::exception("NOT_IMPL", "ITransactionStore::commitBlock - not implemented."); }
+	virtual bool commitBlock(BlockContextPtr, uint64_t&) { throw qbit::exception("NOT_IMPL", "ITransactionStore::commitBlock - not implemented."); }
 
 	virtual void saveBlock(BlockPtr) { throw qbit::exception("NOT_IMPL", "ITransactionStore::saveBlock - not implemented."); }
 	virtual void saveBlockHeader(const BlockHeader& /*header*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::saveBlockHeader - not implemented."); }
@@ -46,10 +49,13 @@ public:
 	virtual void addLink(const uint256& /*from*/, const uint256& /*to*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::addLink - not implemented."); }
 
 	virtual Transaction::UnlinkedOutPtr findUnlinkedOut(const uint256&) { throw qbit::exception("NOT_IMPL", "ITransactionStore::findUnlinkedOut - not implemented."); }
+	virtual Transaction::UnlinkedOutPtr findLinkedOut(const uint256&) { throw qbit::exception("NOT_IMPL", "ITransactionStore::findLinkedOut - not implemented."); }
 	virtual bool isUnlinkedOutUsed(const uint256&) { throw qbit::exception("NOT_IMPL", "ITransactionStore::isUnlinkedOutUsed - not implemented."); }
 	virtual bool isUnlinkedOutExists(const uint256&) { throw qbit::exception("NOT_IMPL", "ITransactionStore::isUnlinkedOutExists - not implemented."); }
+	virtual bool isLinkedOutExists(const uint256&) { throw qbit::exception("NOT_IMPL", "ITransactionStore::isLinkedOutExists - not implemented."); }
 
 	virtual IEntityStorePtr entityStore() { throw qbit::exception("NOT_IMPL", "ITransactionStore::entityStore - not implemented."); }
+	virtual ITransactionStoreManagerPtr storeManager() { throw qbit::exception("NOT_IMPL", "ITransactionStore::storeManager - Not implemented."); }	
 
 	virtual bool resyncHeight() { throw qbit::exception("NOT_IMPL", "ITransactionStore::resyncHeight - not implemented."); }
 
@@ -58,10 +64,10 @@ public:
 	virtual bool processBlocks(const uint256& /*from*/, const uint256& /*to*/, std::list<BlockContextPtr>& /*ctxs*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::processBlocks - not implemented."); }
 	virtual bool setLastBlock(const uint256& /*block*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::setLastBlock - not implemented."); }
 
-	virtual size_t currentHeight(BlockHeader&) { throw qbit::exception("NOT_IMPL", "ITransactionStore::currentHeight - not implemented."); }
+	virtual uint64_t currentHeight(BlockHeader&) { throw qbit::exception("NOT_IMPL", "ITransactionStore::currentHeight - not implemented."); }
 	virtual BlockHeader currentBlockHeader() { throw qbit::exception("NOT_IMPL", "ITransactionStore::currentBlockHeader - not implemented."); }
 
-	virtual BlockPtr block(size_t /*height*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::block - not implemented."); }
+	virtual BlockPtr block(uint64_t /*height*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::block - not implemented."); }
 	virtual BlockPtr block(const uint256& /*id*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::block - not implemented."); }
 	virtual bool blockHeader(const uint256& /*id*/, BlockHeader& /*header*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::blockHeader - not implemented."); }
 
@@ -69,9 +75,10 @@ public:
 	virtual bool enqueueBlock(const NetworkBlockHeader& /*block*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::enqueueBlock - not implemented."); }
 	virtual void dequeueBlock(const uint256& /*block*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::dequeueBlock - not implemented."); }
 
-	virtual bool transactionHeight(const uint256& /*tx*/, size_t& /*height*/, bool& /*coinbase*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::transactionHeight - not implemented."); }
-	virtual bool blockHeight(const uint256& /*block*/, size_t& /*height*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::blockHeight - not implemented."); }
-	virtual bool blockHeaderHeight(const uint256& /*block*/, size_t& /*height*/, BlockHeader& /*header*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::blockHeaderHeight - not implemented."); }
+	virtual bool transactionHeight(const uint256& /*tx*/, uint64_t& /*height*/, uint64_t& /*confirms*/, bool& /*coinbase*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::transactionHeight - not implemented."); }
+	virtual bool transactionInfo(const uint256& /*tx*/, uint256& /*block*/, uint64_t& /*height*/, uint64_t& /*confirms*/, uint32_t& /*index*/, bool& /*coinbase*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::transactionInfo - not implemented."); }
+	virtual bool blockHeight(const uint256& /*block*/, uint64_t& /*height*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::blockHeight - not implemented."); }
+	virtual bool blockHeaderHeight(const uint256& /*block*/, uint64_t& /*height*/, BlockHeader& /*header*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::blockHeaderHeight - not implemented."); }
 
 	virtual bool firstEnqueuedBlock(NetworkBlockHeader& /*block*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::firstEnqueuedBlock - not implemented."); }
 };

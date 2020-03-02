@@ -37,6 +37,19 @@ public:
 
 typedef std::shared_ptr<IValidator> IValidatorPtr;
 
+//
+class ValidatorCreator {
+public:
+	ValidatorCreator() {}
+	virtual IValidatorPtr create(const uint256& /*chain*/, IConsensusPtr /*consensus*/, IMemoryPoolPtr /*mempool*/, ITransactionStorePtr /*store*/) { return nullptr; }
+};
+
+typedef std::shared_ptr<ValidatorCreator> ValidatorCreatorPtr;
+
+//
+typedef std::map<std::string/*dapp name*/, ValidatorCreatorPtr> Validators;
+extern Validators gValidators; // TODO: init on startup
+
 } // qbit
 
 #endif

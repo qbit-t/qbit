@@ -37,8 +37,13 @@ public:
 	inline std::list<std::string>& errors() { return errors_; }
 	inline std::list<Transaction::UnlinkedOutPtr>& usedUtxo() { return usedUtxo_; }
 	inline std::list<Transaction::UnlinkedOutPtr>& newUtxo() { return newUtxo_; }
+	inline std::list<TransactionContextPtr>& linkedTxs() { return linkedTxs_; }
 	inline void addAddress(const PKey& key) { addresses_.push_back(key); }
 	inline void addError(const std::string& error) { errors_.push_back(error); }
+	inline void addLinkedTx(TransactionContextPtr tx) { linkedTxs_.push_back(tx); }
+	inline std::set<uint256>& crossLinks() { return crossLinks_; }
+	inline void pushCrossLink(const uint256& other) { crossLinks_.insert(other); }
+	inline void clearCrossLinks() { crossLinks_.clear(); }
 	
 	// wallet processed unlinked outs (my)
 	inline void addUsedUnlinkedOut(Transaction::UnlinkedOutPtr out) { usedUtxo_.push_back(out); }
@@ -113,6 +118,10 @@ private:
 	bool qbitTx_;
 	// processing context
 	ProcessingContext context_ = TransactionContext::COMMON;
+	// chained/linked txs
+	std::list<TransactionContextPtr> linkedTxs_;
+	// cross-mempool links
+	std::set<uint256 /*from*/> crossLinks_;
 };
 
 } // qbit

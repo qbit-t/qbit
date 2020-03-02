@@ -40,6 +40,8 @@ TransactionPtr TransactionStore::locateTransaction(const uint256& tx) {
 				tx.toHex(), chain_.toHex().substr(0, 10)));
 	}
 
+	// last resort
+	if (chain_ != MainChain::id()) return storeManager_->locate(MainChain::id())->locateTransaction(tx);
 	return nullptr;
 }
 
@@ -50,7 +52,7 @@ TransactionContextPtr TransactionStore::locateTransactionContext(const uint256& 
 	return nullptr;
 }
 
-bool TransactionStore::processBlockTransactions(ITransactionStorePtr store, BlockContextPtr ctx, BlockTransactionsPtr transactions, size_t approxHeight, bool processWallet) {
+bool TransactionStore::processBlockTransactions(ITransactionStorePtr store, IEntityStorePtr entityStore, BlockContextPtr ctx, BlockTransactionsPtr transactions, uint64_t approxHeight, bool processWallet) {
 	//
 	// make context block store and wallet store
 	ITransactionStorePtr lTransactionStore = store;
@@ -80,7 +82,7 @@ bool TransactionStore::processBlockTransactions(ITransactionStorePtr store, Bloc
 	amount_t lCoinBaseAmount = 0;
 	amount_t lFeeAmount = 0;
 	//
-	TransactionProcessor lProcessor = TransactionProcessor::general(lTransactionStore, lWallet, std::static_pointer_cast<IEntityStore>(shared_from_this()));
+	TransactionProcessor lProcessor = TransactionProcessor::general(lTransactionStore, lWallet, entityStore);
 	for(TransactionsContainer::iterator lTx = transactions->transactions().begin(); lTx != transactions->transactions().end(); lTx++) {
 		TransactionContextPtr lCtx = TransactionContext::instance(*lTx, 
 			(processWallet ? TransactionContext::STORE_COMMIT : TransactionContext::STORE_PUSH));
@@ -198,19 +200,32 @@ bool TransactionStore::processBlockTransactions(ITransactionStorePtr store, Bloc
 			}
 		}
 
+		//
+		// commit entity changes
+		TxEntityStorePtr lEntityStore = std::static_pointer_cast<TxEntityStore>(entityStore);
+		for (std::list<TransactionContextPtr>::iterator lAction = lEntityStore->actions().begin(); lAction != lEntityStore->actions().end(); lAction++) {
+			if (!pushEntity((*lAction)->tx()->id(), *lAction)) {
+				lBlockCtx->addError("Block/pushEntity inconsistency" +
+					strprintf(" tx = %s, block = %s", 
+						(*lAction)->tx()->id().toHex(), ctx->block()->hash().toHex()));
+				return false;
+			}
+		}
+
 		return true;
 	}
 
 	return false;
 }
 
-bool TransactionStore::processBlock(BlockContextPtr ctx, size_t& height, bool processWallet) {
+bool TransactionStore::processBlock(BlockContextPtr ctx, uint64_t& height, bool processWallet) {
 	//
-	size_t lHeight = top();
+	uint64_t lHeight = top();
 	BlockTransactionsPtr lTransactions = ctx->block()->blockTransactions();
 	ITransactionStorePtr lTransactionStore = TxBlockStore::instance(std::static_pointer_cast<ITransactionStore>(shared_from_this()));
+	IEntityStorePtr lEntityStore = TxEntityStore::instance(std::static_pointer_cast<IEntityStore>(shared_from_this()), std::static_pointer_cast<ITransactionStore>(shared_from_this()));
 	//
-	if (processBlockTransactions(lTransactionStore, ctx, lTransactions, lHeight+1 /*next*/, processWallet)) {
+	if (processBlockTransactions(lTransactionStore, lEntityStore, ctx, lTransactions, lHeight+1 /*next*/, processWallet)) {
 		//
 		// --- NO CHANGES to the block header or block data ---
 		//
@@ -263,27 +278,41 @@ bool TransactionStore::processBlock(BlockContextPtr ctx, size_t& height, bool pr
 	return false;
 }
 
-bool TransactionStore::transactionHeight(const uint256& tx, size_t& height, bool& coinbase) {
+bool TransactionStore::transactionHeight(const uint256& tx, uint64_t& height, uint64_t& confirms, bool& coinbase) {
+	uint256 lBlock;
+	uint32_t lIndex;
+	return transactionInfo(tx, lBlock, height, confirms, lIndex, coinbase);
+}
+
+bool TransactionStore::transactionInfo(const uint256& tx, uint256& block, uint64_t& height, uint64_t& confirms, uint32_t& index, bool& coinbase) {
 	TxBlockIndex lIndex;
 	if (transactionsIdx_.read(tx, lIndex)) {
 		//
 		boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
-		std::map<uint256, size_t>::iterator lHeight = blockMap_.find(lIndex.block());
+		std::map<uint256, uint64_t>::iterator lHeight = blockMap_.find(lIndex.block());
+
 		if (lHeight != blockMap_.end()) {
 			if (!lIndex.index()) coinbase = true;
 			else coinbase = false;
 			height = lHeight->second;
+			block = lIndex.block();
+			index = lIndex.index();
+
+			std::map<uint64_t, uint256>::reverse_iterator lHead = heightMap_.rbegin();
+			if (lHead != heightMap_.rend() && lHead->first > height) confirms = lHead->first - height;
+			else confirms = 0;
+
 			return true;
 		}
 	}
 
-	return false;
+	return false;	
 }
 
-bool TransactionStore::blockHeight(const uint256& block, size_t& height) {
+bool TransactionStore::blockHeight(const uint256& block, uint64_t& height) {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
-	std::map<uint256, size_t>::iterator lHeight = blockMap_.find(block);
+	std::map<uint256, uint64_t>::iterator lHeight = blockMap_.find(block);
 	if (lHeight != blockMap_.end()) {
 		height = lHeight->second;
 		return true;
@@ -292,10 +321,10 @@ bool TransactionStore::blockHeight(const uint256& block, size_t& height) {
 	return false;
 }
 
-bool TransactionStore::blockHeaderHeight(const uint256& block, size_t& height, BlockHeader& header) {
+bool TransactionStore::blockHeaderHeight(const uint256& block, uint64_t& height, BlockHeader& header) {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
-	std::map<uint256, size_t>::iterator lHeight = blockMap_.find(block);
+	std::map<uint256, uint64_t>::iterator lHeight = blockMap_.find(block);
 	if (lHeight != blockMap_.end()) {
 		height = lHeight->second;
 		return blockHeader(block, header);
@@ -319,10 +348,11 @@ bool TransactionStore::resyncHeight() {
 	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
 	//
 	heightMap_.clear();
+	blockMap_.clear();
 
 	BlockHeader lHeader;
 	uint256 lHash = lastBlock_;
-	size_t lIndex = 0;
+	uint64_t lIndex = 0;
 
 	std::list<uint256> lSeq;
 	while (headers_.read(lHash, lHeader)) {
@@ -330,12 +360,14 @@ bool TransactionStore::resyncHeight() {
 		lHash = lHeader.prev();
 	}
 
-	for (std::list<uint256>::reverse_iterator lIter = lSeq.rbegin(); lIter != lSeq.rend(); lIter++) {
-		heightMap_.insert(std::map<size_t, uint256>::value_type(++lIndex, *lIter));
-		blockMap_.insert(std::map<uint256, size_t>::value_type(*lIter, lIndex));
+	if (lHeader.prev() != BlockHeader().hash()) {
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight]: chain is BROKEN on ") + strprintf("block = %s, chain = %s#", lHeader.hash().toHex(), chain_.toHex().substr(0, 10)));
+		return false;
+	}
 
-		//if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight]: add ") + 
-		//	strprintf("height = %d, block = %s, chain = %s#", lIndex, (*lIter).toHex(), chain_.toHex().substr(0, 10)));
+	for (std::list<uint256>::reverse_iterator lIter = lSeq.rbegin(); lIter != lSeq.rend(); lIter++) {
+		heightMap_.insert(std::map<uint64_t, uint256>::value_type(++lIndex, *lIter));
+		blockMap_.insert(std::map<uint256, uint64_t>::value_type(*lIter, lIndex));
 	}
 
 	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight]: current ") + strprintf("height = %d, block = %s, chain = %s#", lIndex, lastBlock_.toHex(), chain_.toHex().substr(0, 10)));
@@ -343,14 +375,14 @@ bool TransactionStore::resyncHeight() {
 	return true;
 }
 
-size_t TransactionStore::calcHeight(const uint256& from) {
+uint64_t TransactionStore::calcHeight(const uint256& from) {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
 
 	//
 	BlockHeader lHeader;
 	uint256 lHash = from;
-	size_t lIndex = 0;
+	uint64_t lIndex = 0;
 
 	while (headers_.read(lHash, lHeader)) {
 		lIndex++;
@@ -432,8 +464,24 @@ void TransactionStore::removeBlocks(const uint256& from, const uint256& to, bool
 
 				transactionsIdx_.remove((*lTx)->id());
 
-				if ((*lTx)->isEntity() && (*lTx)->entityName() == Entity::emptyName()) {
+				if ((*lTx)->isEntity() && (*lTx)->entityName() != Entity::emptyName()) {
 					entities_.remove((*lTx)->entityName());
+					
+					// iterate
+					db::DbMultiContainer<std::string /*short name*/, uint256 /*utxo*/>::Transaction lEntityUtxoTransaction = entityUtxo_.transaction();
+					for (db::DbMultiContainer<std::string /*short name*/, uint256 /*utxo*/>::Iterator lEntityUtxo = entityUtxo_.find((*lTx)->entityName()); lEntityUtxo.valid(); ++lEntityUtxo) {
+						lEntityUtxoTransaction.remove(lEntityUtxo);
+					}
+
+					lEntityUtxoTransaction.commit();
+
+					db::DbMultiContainer<uint256 /*entity*/, uint256 /*shard*/>::Transaction lShardsTransaction = shards_.transaction();
+					for (db::DbMultiContainer<uint256 /*entity*/, uint256 /*shard*/>::Iterator lShards = shards_.find((*lTx)->id()); lShards.valid(); ++lShards) {
+						shardEntities_.remove(*lShards);
+						lShardsTransaction.remove(lShards);
+					}
+
+					lShardsTransaction.commit();
 				}
 			}
 		}
@@ -447,6 +495,49 @@ void TransactionStore::removeBlocks(const uint256& from, const uint256& to, bool
 		// next
 		lHash = lHeader.prev();
 	}	
+}
+
+//
+//
+bool TransactionStore::collectUtxoByEntityName(const std::string& name, std::vector<Transaction::UnlinkedOutPtr>& result) {
+	//
+	bool lResult = false;
+	std::map<uint32_t, Transaction::UnlinkedOutPtr> lUtxos;
+
+	// iterate
+	for (db::DbMultiContainer<std::string /*short name*/, uint256 /*utxo*/>::Iterator lUtxo = entityUtxo_.find(name); lUtxo.valid(); ++lUtxo) {
+		Transaction::UnlinkedOut lUtxoObj;
+		if (utxo_.read(*lUtxo, lUtxoObj)) {
+			lUtxos[lUtxoObj.out().index()] = Transaction::UnlinkedOut::instance(lUtxoObj);
+			lResult = true;
+		}
+	}
+
+	// ordering
+	for (std::map<uint32_t, Transaction::UnlinkedOutPtr>::iterator lItem = lUtxos.begin(); lItem != lUtxos.end(); lItem++) {
+		result.push_back(lItem->second);
+	}
+
+	return lResult;
+}
+
+bool TransactionStore::entityCountByShards(const std::string& name, std::map<uint32_t, uint256>& result) {
+	//
+	bool lResult = false;
+
+	uint256 lDAppTx;
+	if(entities_.read(name, lDAppTx)) {
+		//
+		for (db::DbMultiContainer<uint256 /*entity*/, uint256 /*shard*/>::Iterator lShard = shards_.find(lDAppTx); lShard.valid(); ++lShard) {
+			//
+			uint32_t lCount = 0;
+			shardEntities_.read(*lShard, lCount);
+			result.insert(std::map<uint32_t, uint256>::value_type(lCount, *lShard));
+			lResult = true;
+		}
+	}
+
+	return lResult;
 }
 
 //
@@ -500,7 +591,8 @@ bool TransactionStore::processBlocks(const uint256& from, const uint256& to, std
 		//
 		// process txs
 		ITransactionStorePtr lTransactionStore = TxBlockStore::instance(std::static_pointer_cast<ITransactionStore>(shared_from_this()));
-		if (processBlockTransactions(lTransactionStore, lBlockCtx, lTransactions, 0 /*just re-sync*/, true /*process wallet*/)) {
+		IEntityStorePtr lEntityStore = TxEntityStore::instance(std::static_pointer_cast<IEntityStore>(shared_from_this()), std::static_pointer_cast<ITransactionStore>(shared_from_this()));	
+		if (processBlockTransactions(lTransactionStore, lEntityStore, lBlockCtx, lTransactions, 0 /*just re-sync*/, true /*process wallet*/)) {
 			//
 			// tx to block|index
 			uint32_t lIndex = 0;
@@ -532,42 +624,43 @@ bool TransactionStore::processBlocks(const uint256& from, const uint256& to, std
 	return true;
 }
 
-size_t TransactionStore::currentHeight(BlockHeader& block) {
+uint64_t TransactionStore::currentHeight(BlockHeader& block) {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
 	if (heightMap_.size()) {
-		std::map<size_t, uint256>::reverse_iterator lHeader = heightMap_.rbegin();
+		std::map<uint64_t, uint256>::reverse_iterator lHeader = heightMap_.rbegin();
 		if (headers_.read(lHeader->second, block)) {
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[currentHeight]: ") + strprintf("%d/%s/%s#", lHeader->first, block.hash().toHex(), chain_.toHex().substr(0, 10)));
 			return lHeader->first;
 		}
 	}
 
+	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[currentHeight]: ") + strprintf("%d/%s/%s#", 0, BlockHeader().hash().toHex(), chain_.toHex().substr(0, 10)));
 	return 0;
 }
 
-size_t TransactionStore::top() {
+uint64_t TransactionStore::top() {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
 	if (heightMap_.size()) {
-		std::map<size_t, uint256>::reverse_iterator lHeader = heightMap_.rbegin();
+		std::map<uint64_t, uint256>::reverse_iterator lHeader = heightMap_.rbegin();
 		return lHeader->first;
 	}
 
 	return 0;
 }
 
-size_t TransactionStore::pushNewHeight(const uint256& block) {
+uint64_t TransactionStore::pushNewHeight(const uint256& block) {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
-	size_t lHeight = 1;
+	uint64_t lHeight = 1;
 	if (heightMap_.size()) {
 		lHeight = heightMap_.rbegin()->first+1;
 	}
 
-	std::pair<std::map<size_t, uint256>::iterator, bool> lNewHeight = 
-		heightMap_.insert(std::map<size_t, uint256>::value_type(lHeight, block));
-	blockMap_.insert(std::map<uint256, size_t>::value_type(block, lHeight));
+	std::pair<std::map<uint64_t, uint256>::iterator, bool> lNewHeight = 
+		heightMap_.insert(std::map<uint64_t, uint256>::value_type(lHeight, block));
+	blockMap_.insert(std::map<uint256, uint64_t>::value_type(block, lHeight));
 
 	return lNewHeight.first->first;
 }
@@ -584,7 +677,7 @@ BlockHeader TransactionStore::currentBlockHeader() {
 	return BlockHeader();
 }
 
-bool TransactionStore::commitBlock(BlockContextPtr ctx, size_t& height) {
+bool TransactionStore::commitBlock(BlockContextPtr ctx, uint64_t& height) {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(storageCommitMutex_);
 	//
@@ -631,7 +724,7 @@ BlockContextPtr TransactionStore::pushBlock(BlockPtr block) {
 
 	//
 	bool lResult;
-	size_t lHeight;
+	uint64_t lHeight;
 	BlockContextPtr lBlockCtx = BlockContext::instance(block);	
 	lResult = processBlock(lBlockCtx, lHeight, true);
 	if (lResult) {
@@ -660,13 +753,13 @@ void TransactionStore::writeLastBlock(const uint256& block) {
 	workingSettings_.write("lastBlock", lHex);
 }
 
-BlockPtr TransactionStore::block(size_t height) {
+BlockPtr TransactionStore::block(uint64_t height) {
 	//
 	BlockHeader lHeader;
 	uint256 lHash;
 	{
 		boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
-		std::map<size_t, uint256>::iterator lHeight = heightMap_.find(height);
+		std::map<uint64_t, uint256>::iterator lHeight = heightMap_.find(height);
 		if (lHeight != heightMap_.end()) {
 			lHash = lHeight->second;
 		} else {
@@ -715,6 +808,9 @@ bool TransactionStore::open() {
 			utxoBlock_.open();
 			transactionsIdx_.open();
 			addressAssetUtxoIdx_.open();
+			shards_.open();
+			entityUtxo_.open();
+			shardEntities_.open();
 
 			std::string lLastBlock;
 			if (workingSettings_.read("lastBlock", lLastBlock)) {
@@ -724,6 +820,19 @@ bool TransactionStore::open() {
 			gLog().write(Log::INFO, std::string("[open]: lastBlock = ") + strprintf("%s/%s#", lastBlock_.toHex(), chain_.toHex().substr(0, 10)));
 
 			resyncHeight();
+
+			// push shards
+			for (db::DbMultiContainer<uint256 /*entity*/, uint256 /*shard*/>::Iterator lShard = shards_.begin(); lShard.valid(); ++lShard) {
+				//
+				uint256 lDAppId;
+				if (lShard.first(lDAppId) && storeManager_) {
+					TransactionPtr lDApp = locateTransaction(lDAppId);
+					if (lDApp) storeManager_->pushChain(*lShard, TransactionHelper::to<Entity>(lDApp));
+					else {
+						gLog().write(Log::INFO, std::string("[open/warning]: DApp tx was not found - ") + strprintf("%s/%s#", lDAppId.toHex(), chain_.toHex().substr(0, 10)));
+					}
+				}
+			}
 
 			opened_ = true;
 		}
@@ -742,6 +851,7 @@ bool TransactionStore::close() {
 
 	settings_.reset();
 	wallet_.reset();
+	storeManager_.reset();
 	
 	workingSettings_.close();
 	headers_.close();
@@ -753,6 +863,9 @@ bool TransactionStore::close() {
 	addressAssetUtxoIdx_.close();
 	blockUtxoIdx_.close();
 	utxoBlock_.close();
+	shards_.close();
+	entityUtxo_.close();
+	shardEntities_.close();
 
 	opened_ = false;
 
@@ -766,7 +879,7 @@ bool TransactionStore::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, Transac
 			utxo->hash().toHex(), utxo->out().tx().toHex(), ctx->tx()->id().toHex()));
 
 	uint256 lUtxo = utxo->hash();
-	if (!isUnlinkedOutUsed(lUtxo) && !findUnlinkedOut(lUtxo)) {
+	if (!isUnlinkedOutUsed(lUtxo) /*&& !findUnlinkedOut(lUtxo)*/) { // sensitive: in rare cases updates may occure
 		// update utxo db
 		utxo_.write(lUtxo, *utxo);
 		// update indexes
@@ -775,6 +888,12 @@ bool TransactionStore::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, Transac
 		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[pushUnlinkedOut]: PUSHED ") +
 			strprintf("utxo = %s, tx = %s, ctx = %s", 
 				lUtxo.toHex(), utxo->out().tx().toHex(), ctx->tx()->id().toHex()));
+
+		// name -> utxo
+		if (ctx->tx()->isEntity() && ctx->tx()->entityName() != Entity::emptyName()) {
+			entityUtxo_.write(ctx->tx()->entityName(), lUtxo);
+		}
+
 		return true;
 	}
 
@@ -799,6 +918,8 @@ bool TransactionStore::popUnlinkedOut(const uint256& utxo, TransactionContextPtr
 			strprintf("utxo = %s, tx = %s, ctx = %s", 
 				utxo.toHex(), lUtxo->out().tx().toHex(), ctx->tx()->id().toHex()));		
 		return true;
+	} else if (!lUtxo && chain_ != MainChain::id()) {
+		return storeManager_->locate(MainChain::id())->popUnlinkedOut(utxo, ctx);
 	}
 
 	return false;
@@ -825,7 +946,7 @@ bool TransactionStore::isUnlinkedOutExists(const uint256& utxo) {
 
 		uint256 lBlock;
 		if (utxoBlock_.read(utxo, lBlock)) {
-			size_t lHeight;
+			uint64_t lHeight;
 			if (!blockHeight(lBlock, lHeight)) 
 				return false;
 			return (lHeight > 0);
@@ -834,6 +955,16 @@ bool TransactionStore::isUnlinkedOutExists(const uint256& utxo) {
 		}
 
 		return false;
+	}
+
+	return false;
+}
+
+bool TransactionStore::isLinkedOutExists(const uint256& utxo) {
+	//
+	Transaction::UnlinkedOut lUtxo;
+	if (ltxo_.read(utxo, lUtxo)) {
+		return true;
 	}
 
 	return false;
@@ -849,12 +980,22 @@ Transaction::UnlinkedOutPtr TransactionStore::findUnlinkedOut(const uint256& utx
 	return nullptr;
 }
 
+Transaction::UnlinkedOutPtr TransactionStore::findLinkedOut(const uint256& utxo) {
+	// 
+	Transaction::UnlinkedOut lUtxo;
+	if (ltxo_.read(utxo, lUtxo)) {
+		return Transaction::UnlinkedOut::instance(lUtxo);
+	}
+
+	return nullptr;
+}
+
 EntityPtr TransactionStore::locateEntity(const uint256& entity) {
 	TxBlockIndex lIndex;
 	if (transactionsIdx_.read(entity, lIndex)) {
 		BlockTransactionsPtr lTxs = transactions_.read(lIndex.block());
 
-		if (lTxs && lTxs->transactions().size() < lIndex.index()) {
+		if (lTxs && lIndex.index() < lTxs->transactions().size()) {
 			// TODO: check?
 			return TransactionHelper::to<Entity>(lTxs->transactions()[lIndex.index()]);
 		}
@@ -863,15 +1004,67 @@ EntityPtr TransactionStore::locateEntity(const uint256& entity) {
 	return nullptr;
 }
 
+EntityPtr TransactionStore::locateEntity(const std::string& entity) {
+	//		
+	uint256 lEntityTx;
+	if (entities_.read(entity, lEntityTx)) return locateEntity(lEntityTx);
+	return nullptr;
+}
+
 bool TransactionStore::pushEntity(const uint256& id, TransactionContextPtr ctx) {
 	uint256 lId;
 	if (ctx->tx()->isEntity() && ctx->tx()->entityName() == Entity::emptyName()) return true;
 	if (!ctx->tx()->isEntity()) return false;
+
+	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[pushEntity]: try to push entity ") +
+		strprintf("'%s'/%s", ctx->tx()->entityName(), id.toHex()));
+
 	if (entities_.read(ctx->tx()->entityName(), lId)) {
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[pushEntity]: entity ALREADY EXISTS - ") +
+			strprintf("'%s'/%s", ctx->tx()->entityName(), id.toHex()));
 		return false;
 	}
 
 	entities_.write(ctx->tx()->entityName(), id);
+
+	if (ctx->tx()->type() == Transaction::SHARD && ctx->tx()->in().size()) {
+		//
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[pushEntity]: extracting DApp ") +
+			strprintf("%s for '%s'/%s#", ctx->tx()->in().begin()->out().tx().toHex(), ctx->tx()->entityName(), id.toHex().substr(0, 10)));
+
+		TransactionPtr lDAppTx = locateTransaction(ctx->tx()->in().begin()->out().tx());
+		if (lDAppTx && lDAppTx->type() == Transaction::DAPP) {
+			//
+			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[pushEntity]: pushing shard ") +
+				strprintf("'%s'/%s# for '%s'", ctx->tx()->entityName(), id.toHex().substr(0, 10), lDAppTx->entityName()));
+
+			shards_.write(lDAppTx->id(), id); // dapp -> shard
+
+			if (storeManager_) storeManager_->pushChain(id, TransactionHelper::to<Entity>(lDAppTx));
+		} else {
+			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[pushEntity]: DApp was NOT FOUND ") +
+				strprintf("%s for '%s'/%s#", ctx->tx()->in().begin()->out().tx().toHex(), ctx->tx()->entityName(), id.toHex().substr(0, 10)));
+			return false;
+		}
+	} else if (ctx->tx()->type() >= Transaction::CUSTOM_00 && ctx->tx()->in().size()) {
+		// custom entities
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[pushEntity]: extracting shard ") +
+			strprintf("%s for '%s'/%s#", ctx->tx()->in().begin()->out().tx().toHex(), ctx->tx()->entityName(), id.toHex().substr(0, 10)));
+
+		TransactionPtr lShardTx = locateTransaction(ctx->tx()->in().begin()->out().tx());
+		if (lShardTx && lShardTx->type() == Transaction::DAPP) {
+			//
+			uint32_t lCount = 0;
+			shardEntities_.read(ctx->tx()->in().begin()->out().tx(), lCount);
+			shardEntities_.write(ctx->tx()->in().begin()->out().tx(), ++lCount);
+
+			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[pushEntity]: registering custom entity ") +
+				strprintf("[%d]/'%s'/%s# with shard '%s'", lCount, ctx->tx()->entityName(), id.toHex().substr(0, 10), lShardTx->entityName()));			
+		}
+	}
+
+	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[pushEntity]: PUSHED entity ") +
+		strprintf("'%s'/%s", ctx->tx()->entityName(), id.toHex()));
 
 	return true;
 }
@@ -973,7 +1166,7 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 			strprintf("%s/%s/%s#", from.toHex(), to.toHex(), chain_.toHex().substr(0, 10)));
 	} else {
 		// WARNING: lastBlock AND to MUST be in current chain - otherwise all indexes will be invalidated
-		size_t lLastHeight, lToHeight;
+		uint64_t lLastHeight, lToHeight;
 		if (!blockHeight(lastBlock_, lLastHeight) || !blockHeight(to, lToHeight)) {
 			//
 			gLog().write(Log::STORE, std::string("[reindex]: partial reindex is NOT POSSIBLE for ") + 

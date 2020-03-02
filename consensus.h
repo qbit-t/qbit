@@ -43,6 +43,17 @@ public:
 		return consensusManager_->currentState();
 	}
 
+	bool close() {
+		settings_.reset();
+		wallet_.reset();
+		store_.reset();
+		consensusManager_.reset();
+	}
+
+	IConsensusManagerPtr consensusManager() {
+		return consensusManager_;
+	}
+
 	//
 	// settings
 	ISettingsPtr settings() { return settings_; }
@@ -69,8 +80,8 @@ public:
 
 	//
 	// mining/emission schedule control
-	virtual bool checkBalance(amount_t coinbaseAmount, amount_t blockFee, size_t height) {
-		// TODO: implement
+	virtual bool checkBalance(amount_t coinbaseAmount, amount_t blockFee, uint64_t height) {
+		// TODO: implement, NOT strict: each level should vary +\- 3-5 blocks 
 		// coinbaseAmount - blockFee should/can be in schedule, for example
 		// 1		- 1000000 block height, coinbase = 1 qbit
 		// 1000001	- 2000000 block height, coinbase = 0.9 qbit
@@ -79,6 +90,19 @@ public:
 		// NOTE: height might be a bit floating, so need flexible borders
 
 		return true;
+	}
+
+	//
+	// calc current reward
+	amount_t blockReward(uint64_t height) {
+		// TODO: implement
+		// 1		- 1000000 block height, coinbase = 1 qbit
+		// 1000001	- 2000000 block height, coinbase = 0.9 qbit
+		// 2000001	- 3000000 block height, coinbase = 0.8 qbit
+		// ...
+		// NOTE: height might be a bit floating, so need flexible borders
+
+		return QBIT;
 	}
 
 	//
@@ -109,6 +133,10 @@ public:
 				directPeerMap_[lPeerId] = peer;
 				pushState(State::instance(peer->state()));
 			}
+
+			if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, 
+				strprintf("[pushPeer]: peer pushed %s/%s/%s#", 
+					lPeerId.toHex(), peer->key(), chain_.toHex().substr(0, 10)));			
 		}
 	}
 
@@ -123,15 +151,13 @@ public:
 			directPeerMap_.erase(lPeerId);
 
 			popState(State::instance(peer->state()));
+
+			if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, 
+				strprintf("[popPeer]: peer popped %s/%s/%s#", 
+					lPeerId.toHex(), peer->key(), chain_.toHex().substr(0, 10)));			
 		}
 	}
 
-	//
-	// push acquired block
-	//bool pushBlock(BlockPtr block) {
-		// TODO: implement
-	//	return false;
-	//}
 
 	//
 	//
@@ -239,11 +265,6 @@ public:
 	//
 	// broadcast block header and state
 	void broadcastBlockHeaderAndState(const NetworkBlockHeader& block, StatePtr state, const uint160& except) {
-		//
-		if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, 
-			strprintf("[broadcastTransaction]: broadcasting block header and state %s/%s#", 
-				const_cast<NetworkBlockHeader&>(block).blockHeader().hash().toHex(), chain_.toHex().substr(0, 10)));
-
 		// prepare
 		std::list<IPeerPtr> lPeers;
 		{
@@ -253,12 +274,19 @@ public:
 			}
 		}
 
+		//
+		if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, 
+			strprintf("[broadcastBlockHeaderAndState]: try broadcasting block header and state %d/%s/%s#", 
+				lPeers.size(), const_cast<NetworkBlockHeader&>(block).blockHeader().hash().toHex(), chain_.toHex().substr(0, 10)));
+
 		// broadcast
-		bool lResult = false;
 		for (std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
 			if (except.isNull() || (except != (*lPeer)->addressId())) {
 				(*lPeer)->broadcastBlockHeaderAndState(block, state);
-				lResult = true; // at least one
+
+			if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, 
+				strprintf("[broadcastBlockHeaderAndState]: block header and state broadcasted to %s/%s/%s#", 
+					(*lPeer)->addressId().toHex(), const_cast<NetworkBlockHeader&>(block).blockHeader().hash().toHex(), chain_.toHex().substr(0, 10)));
 			}
 		}
 	}
@@ -324,6 +352,26 @@ public:
 	}
 
 	//
+	// collect peers
+	void collectPeers(std::map<uint160, IPeerPtr>& peers) {
+		//
+		// prepare
+		std::list<IPeerPtr> lPeers;
+		{
+			boost::unique_lock<boost::mutex> lLock(peersMutex_);
+			for (PeersMap::iterator lItem = directPeerMap_.begin(); lItem != directPeerMap_.end(); lItem++) {
+				lPeers.push_back(lItem->second);
+			}
+		}
+
+		// broadcast
+		for (std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
+			peers[(*lPeer)->addressId()] = (*lPeer);
+		}		
+	}
+
+
+	//
 	// push state
 	bool pushState(StatePtr state) {
 		// prepare
@@ -368,6 +416,11 @@ public:
 
 			// height -> block = peer
 			heightMap_[lInfo.height()][lInfo.hash()].insert(lPeerId);
+
+			// clean-up
+			if (heightMap_.size() > 20) {
+				heightMap_.erase(heightMap_.begin());				
+			}
 
 			gLog().write(Log::CONSENSUS, 
 				strprintf("[pushState]: %d/%s/%s/%s#", lInfo.height(), lInfo.hash().toHex(), lPeerId.toHex(), chain_.toHex().substr(0, 10)));
@@ -436,7 +489,7 @@ public:
 	bool isChainSynchronized() {
 		//
 		BlockHeader lHeader;
-		size_t lHeight = store_->currentHeight(lHeader);
+		uint64_t lHeight = store_->currentHeight(lHeader);
 
 		bool lResult = false;
 		{
@@ -459,18 +512,21 @@ public:
 
 	//
 	// find fully synced root
-	size_t locateSynchronizedRoot(std::list<IPeerPtr>& peers, uint256& block) {
+	uint64_t locateSynchronizedRoot(std::list<IPeerPtr>& peers, uint256& block) {
 		//
-		size_t lResultHeight = 0;
+		uint64_t lResultHeight = 0;
 		//
 		PeersSet lPeers;
 		BlockHeader lHeader;
-		size_t lHeight = store_->currentHeight(lHeader);		
+		uint64_t lHeight = store_->currentHeight(lHeader);		
 		{
 			boost::unique_lock<boost::mutex> lLock(stateMutex_);
 			// reverse traversal of heights of the chain
 			bool lFound = false;
 			for (HeightMap::reverse_iterator lHeightPos = heightMap_.rbegin(); !lFound && lHeightPos != heightMap_.rend(); lHeightPos++) {
+				gLog().write(Log::CONSENSUS, 
+					strprintf("[locateSynchronizedRoot]: try [%d]/%d/%s#", 
+						lHeightPos->first, lHeightPos->second.size(), chain_.toHex().substr(0, 10)));
 				for (StateMap::iterator lState = lHeightPos->second.begin(); lState != lHeightPos->second.end(); lState++) {
 					if (lHeightPos->first > lHeight) {
 						// collect known peers for the synchronized root
@@ -550,12 +606,12 @@ public:
 		if (lProcess) {
 			std::list<IPeerPtr> lPeers;
 			uint256 lBlock;
-			size_t lHeight = locateSynchronizedRoot(lPeers, lBlock); // get peers, height and block
+			uint64_t lHeight = locateSynchronizedRoot(lPeers, lBlock); // get peers, height and block
 			if (lHeight && lPeers.size()) {
-				if (settings_->isFullNode()) {
+				if (settings_->isFullNode() || settings_->isNode()) {
 					// store is empty - full sync
 					BlockHeader lHeader;
-					size_t lOurHeight = store_->currentHeight(lHeader);
+					uint64_t lOurHeight = store_->currentHeight(lHeader);
 					if (!lOurHeight) {
 						//
 						if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[doSynchronize]: starting FULL synchronization ") + 
@@ -587,8 +643,6 @@ public:
 						job_ = SynchronizationJob::instance(lBlock); // block from
 						(*lPeer)->synchronizeLargePartialTree(shared_from_this(), job_);
 					}
-				} else if (settings_->isNode()) {
-
 				} else {
 					gLog().write(Log::CONSENSUS, "[doSynchronize]: synchronization is allowed for NODE or FULLNODE only.");
 					//
@@ -773,7 +827,7 @@ private:
 	typedef uint256 chain_t;
 	typedef uint256 block_t;
 	typedef uint64_t time_t;
-	typedef uint32_t height_t;
+	typedef uint64_t height_t;
 
 	//
 	typedef std::map<peer_t, IPeerPtr> PeersMap;
