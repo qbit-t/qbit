@@ -27,7 +27,9 @@ public:
 	std::string longName_;
 	Sharding sharding_;
 
-	inline void serialize(DataStream& s) {
+	ADD_INHERITABLE_SERIALIZE_METHODS;
+
+	template<typename Stream> void serialize(Stream& s) {
 		dapp_name_t lName(shortName_);
 		lName.Serialize(s);
 		
@@ -89,13 +91,15 @@ public:
 	}
 
 	//
-	Transaction::UnlinkedOutPtr addDAppPublicOut(const SKey& skey, const PKey& pkey) {
+	Transaction::UnlinkedOutPtr addDAppPublicOut(const SKey& skey, const PKey& pkey, Transaction::Type instances) {
 		//
 		Transaction::Out lOut;
 		lOut.setAsset(TxAssetType::nullAsset());
 		lOut.setDestination(ByteCode() <<
-			OP(QPTXO)		<<			
-			OP(QMOV) 		<< REG(QR0) << CU8(0x01) <<	
+			OP(QPTXO)		<<
+			OP(QMOV)		<< REG(QR1) << CU16(instances) <<
+			OP(QCMPE)		<< REG(QTH1) << REG(QR1) <<
+			OP(QMOV) 		<< REG(QR0) << REG(QC0) <<	
 			OP(QRET));
 
 		Transaction::UnlinkedOutPtr lUTXO = Transaction::UnlinkedOut::instance(
@@ -108,6 +112,14 @@ public:
 	}
 
 	inline std::string name() { return "dapp"; }
+
+	bool isValue(UnlinkedOutPtr utxo) {
+		return (utxo->out().asset() != TxAssetType::nullAsset()); 
+	}
+
+	bool isEntity(UnlinkedOutPtr utxo) {
+		return (utxo->out().asset() == TxAssetType::nullAsset()); 
+	}	
 };
 
 typedef std::shared_ptr<TxDApp> TxDAppPtr;

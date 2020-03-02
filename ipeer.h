@@ -8,6 +8,8 @@
 #include "state.h"
 #include "key.h"
 
+#include <boost/atomic.hpp>
+
 namespace qbit {
 	class IConsensus;
 	typedef std::shared_ptr<IConsensus> IConsensusPtr;

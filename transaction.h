@@ -67,6 +67,19 @@ extern TransactionTypes gTxTypes; // TODO: init on startup
 typedef unsigned char version_t;
 
 //
+// common serialization methods (inheritance)
+#define ADD_INHERITABLE_SERIALIZE_METHODS		\
+	inline void serialize(DataStream& s) {		\
+		serialize<DataStream>(s);				\
+	}											\
+	inline void serialize(HashWriter& s) {		\
+		serialize<HashWriter>(s);				\
+	}											\
+	inline void serialize(SizeComputer& s) {	\
+		serialize<SizeComputer>(s);				\
+	}
+
+//
 // generic transaction
 class Transaction {
 public:
@@ -413,6 +426,7 @@ public:
 	virtual bool isValue(UnlinkedOutPtr) { return false; }
 	virtual bool isEntity(UnlinkedOutPtr) { return false; }
 	virtual bool isEntity() { return false; }
+	virtual bool isFeeFee() { return false; }
 	virtual std::string entityName() { throw qbit::exception("NOT_IMPL", "Not implemented."); }
 
 	virtual inline void setChain(const uint256& chain) { chain_ = chain; }

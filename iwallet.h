@@ -82,7 +82,7 @@ public:
 	virtual TransactionContextPtr createTxLimitedAssetEmission(const PKey& /*dest*/, const uint256& /*asset*/) { throw qbit::exception("NOT_IMPL", "Not implemented."); }
 
 	// create dapp tx
-	virtual TransactionContextPtr createTxDApp(const PKey& /*dest*/, const std::string& /*short name*/, const std::string& /*long name*/, TxDApp::Sharding /*sharding*/) { throw qbit::exception("NOT_IMPL", "IWallet::createTxDApp - Not implemented."); }
+	virtual TransactionContextPtr createTxDApp(const PKey& /*dest*/, const std::string& /*short name*/, const std::string& /*long name*/, TxDApp::Sharding /*sharding*/, Transaction::Type /*instances*/) { throw qbit::exception("NOT_IMPL", "IWallet::createTxDApp - Not implemented."); }
 
 	// create dapp tx
 	virtual TransactionContextPtr createTxShard(const PKey& /*dest*/, const std::string& /*dapp name*/, const std::string& /*short name*/, const std::string& /*long name*/) { throw qbit::exception("NOT_IMPL", "IWallet::createTxShard - Not implemented."); }

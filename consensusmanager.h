@@ -9,11 +9,13 @@
 #include "iconsensusmanager.h"
 #include "consensus.h"
 
+#include <boost/atomic.hpp>
+
 namespace qbit {
 
 class ConsensusManager: public IConsensusManager, public std::enable_shared_from_this<ConsensusManager> {
 public:
-	ConsensusManager(ISettingsPtr settings) : settings_(settings) { medianTime_ = 0; }
+	ConsensusManager(ISettingsPtr settings) : settings_(settings) {}
 
 	bool exists(const uint256& chain) {
 		boost::unique_lock<boost::mutex> lLock(consensusesMutex_);
@@ -69,6 +71,7 @@ public:
 		return lConsensuses;
 	}
 
+	/*
 	void setMedianTime(uint64_t time) {
 		//
 		medianTime_ = time;
@@ -78,6 +81,17 @@ public:
 		if (!medianTime_) return qbit::getTime();
 		return medianTime_;
 	}
+
+	void setMedianMicroseconds(uint64_t microseconds) {
+		//
+		medianMicroseconds_ = microseconds;
+	}
+
+	uint64_t medianMicroseconds() {
+		if (!medianMicroseconds_) return qbit::getMicroseconds();
+		return medianMicroseconds_;
+	}
+	*/
 
 	//
 	// collect current state
@@ -417,7 +431,10 @@ private:
 	ITransactionStoreManagerPtr storeManager_;
 	IValidatorManagerPtr validatorManager_;
 
-	uint64_t medianTime_;
+	/*
+	std::atomic<uint64_t> medianTime_;
+	std::atomic<uint64_t> medianMicroseconds_;
+	*/
 
 	typedef uint160 peer_t;
 
