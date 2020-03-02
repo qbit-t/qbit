@@ -254,7 +254,7 @@ bool FindCycle(const uint256& hash, uint8_t edgeBits, uint8_t proofSize, std::se
             for (nu -= min, nv -= min; us[nu] != vs[nv]; nu++, nv++)
                 ;
             int len = nu + nv + 1;
-            printf("% 4d-cycle found at %d%%\n", len, (int)(nonce * 100L / difficulty));
+            //printf("% 4d-cycle found at %d%%\n", len, (int)(nonce * 100L / difficulty));
             if (len == proofSize) {
                 solution(&ctx, us, nu, vs, nv, cycle, edgeMask);
 
