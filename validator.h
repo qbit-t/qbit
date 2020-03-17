@@ -176,6 +176,7 @@ private:
 				try {
 					// get block template
 					BlockPtr lCurrentBlock = Block::instance();
+					lCurrentBlock->bits_ = 0x207fffff;
 
 					// prepare block
 					BlockContextPtr lCurrentBlockContext = mempool_->beginBlock(lCurrentBlock);
@@ -213,6 +214,15 @@ private:
 						lCurrentBlock->cycle_ = v;
 						lStream << v;
 						uint256 cycle_hash = lStream.GetHash();
+
+						bool fNegative;
+    					bool fOverflow;
+						arith_uint256 target;
+						target.SetCompact(lCurrentBlock->bits_, &fNegative, &fOverflow);
+						
+						arith_uint256 cycle_hash_arith = UintToArith256(cycle_hash);
+						if (fNegative || target == 0 || fOverflow || target < cycle_hash_arith) continue;
+						if (result) break;
 					}
 					
 					
