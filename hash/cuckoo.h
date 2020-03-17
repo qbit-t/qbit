@@ -7,6 +7,8 @@
 #include <set>
 
 #define MAXPATHLEN 8192
+#define EDGEBITS 20
+#define PROOFSIZE 42
 
 enum verify_code {
     POW_OK,
