@@ -13,6 +13,7 @@
 #include "entity.h"
 #include "block.h"
 #include "blockcontext.h"
+#include "hash/cuckoo.h"
 
 #include <boost/thread/thread.hpp>
 #include <boost/thread/mutex.hpp>
@@ -195,14 +196,30 @@ private:
 
 					// TODO: mining -----------------------------------------
 					if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[validator/miner]: looking for a block for ") + strprintf("%s#", chain_.toHex().substr(0, 10)) + "...");
-					
+
 					boost::random::uniform_int_distribution<> lDist(3, (consensus_->blockTime())/1000);
 					int lMSeconds = lDist(lGen);
 					uint64_t lStartTime = getTime();
+					int nonce = 0;
 					while(minerRunning_) {
+						std::set<uint32_t> cycle;
+						lCurrentBlock->nonce_ = nonce;
+						bool result = FindCycle(lCurrentBlock->hash(), EDGEBITS /*edge bits*/, PROOFSIZE /* 42 proof size */, cycle);
+						nonce++;
 						if (getTime() - lStartTime >= lMSeconds) break;
-						boost::this_thread::sleep_for(boost::chrono::milliseconds(50));
+						if(cycle.size() == 0) continue;
+						HashWriter lStream(SER_GETHASH, PROTOCOL_VERSION);
+						std::vector<uint32_t> v(cycle.begin(), cycle.end());
+						lCurrentBlock->cycle_ = v;
+						lStream << v;
+						uint256 cycle_hash = lStream.GetHash();
 					}
+					
+					
+					// while(minerRunning_) {
+					// 	if (getTime() - lStartTime >= lMSeconds) break;
+					// 	boost::this_thread::sleep_for(boost::chrono::milliseconds(50));
+					// }
 					// TODO: mining -----------------------------------------
 					
 					if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[validator/miner]: new block found ") + strprintf("%s/%s#", lCurrentBlock->hash().toHex(), chain_.toHex().substr(0, 10)));

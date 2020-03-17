@@ -25,6 +25,8 @@ public:
 	uint32_t bits_;
 	uint32_t nonce_;
 
+	std::vector<uint32_t> cycle_;
+
 	BlockHeader() {
 		setNull();
 	}
@@ -39,6 +41,7 @@ public:
 		s << time_;
 		s << bits_;
 		s << nonce_;
+		s << cycle_;
 	}
 
 	template <typename Stream>
@@ -51,6 +54,7 @@ public:
 		s >> time_;
 		s >> bits_;
 		s >> nonce_;
+		s >> cycle_;
 	}
 
 	void setNull() {
