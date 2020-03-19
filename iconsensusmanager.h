@@ -19,23 +19,17 @@ public:
 	virtual bool exists(const uint256& /*chain*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::exists - not implemented."); }
 	virtual IConsensusPtr locate(const uint256& /*chain*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::locate - not implemented."); }
 
-	virtual void pushPeer(IPeerPtr /*peer*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::pushPeer - not implemented."); }
+	virtual bool pushPeer(IPeerPtr /*peer*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::pushPeer - not implemented."); }
 	virtual void popPeer(IPeerPtr /*peer*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::popPeer - not implemented."); }	
 	virtual StatePtr currentState() { throw qbit::exception("NOT_IMPL", "IConsensusManager::currentState - not implemented."); }
 	virtual size_t quarantineTime() { throw qbit::exception("NOT_IMPL", "IConsensusManager::quarantineTime - not implemented."); }
-
-	//virtual void setMedianTime(uint64_t /*time*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::setMedianTime - not implemented."); }
-	//virtual uint64_t medianTime() { throw qbit::exception("NOT_IMPL", "IConsensusManager::medianTime - not implemented."); }
-
-	//virtual void setMedianMicroseconds(uint64_t /*time*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::setMedianMicroseconds - not implemented."); }
-	//virtual uint64_t medianMicroseconds() { throw qbit::exception("NOT_IMPL", "IConsensusManager::medianMicroseconds - not implemented."); }
 
 	virtual bool pushState(StatePtr /*state*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::pushState - not implemented."); }
 	virtual bool popState(StatePtr /*state*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::popState - not implemented."); }
 	virtual void broadcastState(StatePtr /*state*/, const uint160& /*peer*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::broadcastState - not implemented."); }
 
 	virtual bool add(IConsensusPtr /*consensus*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::add - not implemented."); }
-	virtual void push(const uint256& /*chain*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::push - not implemented."); }
+	virtual IConsensusPtr push(const uint256& /*chain*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::push - not implemented."); }
 	virtual void pop(const uint256& /*chain*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::pop - not implemented."); }
 	virtual std::vector<IConsensusPtr> consensuses() { throw qbit::exception("NOT_IMPL", "IConsensusManager::pools - not implemented."); }
 
@@ -45,6 +39,7 @@ public:
 	virtual void broadcastBlockHeader(const NetworkBlockHeader& /*block*/, const uint160& /*peer*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::broadcastBlockHeader - not implemented."); }
 	virtual void broadcastTransaction(TransactionContextPtr /*ctx*/, const uint160& /*peer*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::broadcastTransaction - not implemented."); }
 	virtual void broadcastBlockHeaderAndState(const NetworkBlockHeader& /*block*/, StatePtr /*state*/, const uint160& /*except*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::broadcastBlockHeaderAndState - not implemented."); }
+	virtual TransactionContextPtr processTransaction(TransactionPtr) { throw qbit::exception("NOT_IMPL", "IConsensusManager::processTransaction - Not implemented."); }
 
 	virtual IValidatorManagerPtr validatorManager() { throw qbit::exception("NOT_IMPL", "IConsensusManager::validatorManager - not implemented."); }
 	virtual ITransactionStoreManagerPtr storeManager() { throw qbit::exception("NOT_IMPL", "IConsensusManager::storeManager - not implemented."); }

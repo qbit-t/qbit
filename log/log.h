@@ -36,13 +36,15 @@ public:
 		CONSENSUS	= (1 <<  9),
 		HTTP		= (1 << 10),
 		BALANCE		= (1 << 11),
-		SHARDING	= (1 << 12),		
+		SHARDING	= (1 << 12),
+		CLIENT		= (1 << 13),
 		ALL			= ~(uint32_t)0
 	};
 
 	Log(const std::string& name) : name_ (name) {}
 
 	void write(Category, const std::string&);
+	void writeClient(Category, const std::string&);
 
 	void enable(Category category) { categories_ |= category; }
 	void disable(Category category) { categories_ &= ~category; }
@@ -68,6 +70,7 @@ private:
 
 extern Log& gLog();
 extern Log& gLog(const std::string&);
+extern Log::Category getLogCategory(const std::string&);
 
 } // qbit
 

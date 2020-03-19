@@ -68,7 +68,22 @@ public:
 	}
 
 	//
-	Transaction::UnlinkedOutPtr addBuzzOut(const SKey& skey, const PKey& pkey) {
+	Transaction::UnlinkedOutPtr addReBuzzOut(const SKey& skey, const PKey& pkey) {
+		//
+		return addBuzzSpecialOut(skey, pkey, TX_REBUZZ);
+	}
+
+	Transaction::UnlinkedOutPtr addBuzzLikeOut(const SKey& skey, const PKey& pkey) {
+		//
+		return addBuzzSpecialOut(skey, pkey, TX_BUZZ_LIKE);
+	}
+
+	Transaction::UnlinkedOutPtr addBuzzReplyOut(const SKey& skey, const PKey& pkey) {
+		//
+		return addBuzzSpecialOut(skey, pkey, TX_BUZZ_REPLY);
+	}
+
+	Transaction::UnlinkedOutPtr addBuzzPinOut(const SKey& skey, const PKey& pkey) {
 		//
 		Transaction::Out lOut;
 		lOut.setAsset(TxAssetType::nullAsset());
@@ -77,30 +92,13 @@ public:
 			OP(QEQADDR) 	<<
 			OP(QPEN) 		<<
 			OP(QPTXO)		<< // use in entity-based pushUnlinkedOut's
-			OP(QMOV) 		<< REG(QR0) << CU8(0x01) <<	
+			OP(QMOV)		<< REG(QR1) << CU16(TX_BUZZ_PIN) <<
+			OP(QCMPE)		<< REG(QTH1) << REG(QR1) <<
+			OP(QMOV) 		<< REG(QR0) << REG(QC0) <<	
 			OP(QRET));
 
 		Transaction::UnlinkedOutPtr lUTXO = Transaction::UnlinkedOut::instance(
 			Transaction::Link(chain(), TxAssetType::nullAsset(), out_.size()), // link
-			pkey
-		);
-
-		out_.push_back(lOut);
-		return lUTXO;
-	}
-
-	//
-	Transaction::UnlinkedOutPtr addBuzzPublicOut(const SKey& skey, const PKey& pkey) {
-		//
-		Transaction::Out lOut;
-		lOut.setAsset(TxAssetType::nullAsset());
-		lOut.setDestination(ByteCode() <<
-			OP(QPTXO)		<<
-			OP(QMOV) 		<< REG(QR0) << CU8(0x01) <<	// TODO: out for reply, out for rebuzz, out for like, out for dislike
-			OP(QRET));
-
-		Transaction::UnlinkedOutPtr lUTXO = Transaction::UnlinkedOut::instance(
-			Transaction::Link(MainChain::id(), TxAssetType::nullAsset(), out_.size()), // link
 			pkey
 		);
 
@@ -146,6 +144,28 @@ public:
 
 	bool isEntity(UnlinkedOutPtr utxo) {
 		return (utxo->out().asset() == TxAssetType::nullAsset()); 
+	}
+
+private:
+	//
+	Transaction::UnlinkedOutPtr addBuzzSpecialOut(const SKey& skey, const PKey& pkey, unsigned short specialOut) {
+		//
+		Transaction::Out lOut;
+		lOut.setAsset(TxAssetType::nullAsset());
+		lOut.setDestination(ByteCode() <<
+			OP(QPTXO)		<< // use in entity-based pushUnlinkedOut's
+			OP(QMOV)		<< REG(QR1) << CU16(specialOut) <<
+			OP(QCMPE)		<< REG(QTH1) << REG(QR1) <<
+			OP(QMOV) 		<< REG(QR0) << REG(QC0) <<	
+			OP(QRET));
+
+		Transaction::UnlinkedOutPtr lUTXO = Transaction::UnlinkedOut::instance(
+			Transaction::Link(MainChain::id(), TxAssetType::nullAsset(), out_.size()), // link
+			pkey
+		);
+
+		out_.push_back(lOut);
+		return lUTXO;
 	}	
 
 private:

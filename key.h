@@ -214,6 +214,10 @@ public:
 		READWRITE(vch_);
 	}	
 
+	friend inline bool operator < (const PKey& a, const PKey& b) {
+		return a.id() < b.id();
+	}
+
 private:
 	unsigned int static length(unsigned char chHeader)
 	{

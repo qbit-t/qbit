@@ -508,7 +508,7 @@ public:
     explicit LimitedString(std::string& _string) : string(_string) {}
 
     template<typename Stream>
-    void Deserialize(Stream& s)
+    void deserialize(Stream& s)
     {
         size_t size = ReadCompactSize(s);
         if (size > Limit) {
@@ -520,7 +520,7 @@ public:
     }
 
     template<typename Stream>
-    void Serialize(Stream& s) const
+    void serialize(Stream& s) const
     {
         WriteCompactSize(s, string.size());
         if (!string.empty())

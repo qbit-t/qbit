@@ -186,6 +186,7 @@ public:
 
 		inline bool pushTransaction(TransactionContextPtr ctx) {
 			txs_[ctx->tx()->id()] = ctx;
+			return true;
 		}
 
 		inline TransactionPtr locateTransaction(const uint256& id) {
@@ -200,6 +201,10 @@ public:
 
 		uint256 chain() { return persistentStore_->chain(); }
 		ITransactionStoreManagerPtr storeManager() { return persistentStore_->storeManager(); }
+
+		bool transactionHeight(const uint256& tx, uint64_t& height, uint64_t& confirms, bool& coinbase) {
+			return persistentStore_->transactionHeight(tx, height, confirms, coinbase);
+		}
 
 	private:
 		ITransactionStorePtr persistentStore_;
@@ -268,6 +273,8 @@ public:
 		inline SKey findKey(const PKey& pkey) { 
 			return persistentWallet_->findKey(pkey); 
 		}
+
+		IMemoryPoolManagerPtr mempoolManager() { return persistentWallet_->mempoolManager(); }
 
 	private:
 		IWalletPtr persistentWallet_;
@@ -393,6 +400,10 @@ public:
 	bool transactionHeight(const uint256& /*tx*/, uint64_t& /*height*/, uint64_t& /*confirms*/, bool& /*coinbase*/);
 	bool transactionInfo(const uint256& /*tx*/, uint256& /*block*/, uint64_t& /*height*/, uint64_t& /*confirms*/, uint32_t& /*index*/, bool& /*coinbase*/);	
 	bool blockHeight(const uint256& /*block*/, uint64_t& /*height*/);
+
+	void selectUtxoByAddress(const PKey& /*address*/, std::vector<Transaction::NetworkUnlinkedOut>& /*utxo*/);	
+	void selectUtxoByAddressAndAsset(const PKey& /*address*/, const uint256& /*asset*/, std::vector<Transaction::NetworkUnlinkedOut>& /*utxo*/);
+	void selectUtxoByTransaction(const uint256& /*tx*/, std::vector<Transaction::NetworkUnlinkedOut>& /*utxo*/);
 
 	static ITransactionStorePtr instance(const uint256& chain, ISettingsPtr settings, ITransactionStoreManagerPtr storeManager) {
 		return std::make_shared<TransactionStore>(chain, settings, storeManager); 

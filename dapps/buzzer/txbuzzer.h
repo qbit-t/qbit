@@ -17,6 +17,12 @@ typedef LimitedString<64> buzzer_name_t;
 #define TX_BUZZ 				Transaction::CUSTOM_01
 #define TX_BUZZER_SUBSCRIBE 	Transaction::CUSTOM_02
 #define TX_BUZZER_UNSUBSCRIBE 	Transaction::CUSTOM_03
+#define TX_BUZZER_ENDORSE 		Transaction::CUSTOM_04
+#define TX_BUZZER_MISTRUST		Transaction::CUSTOM_05
+#define TX_REBUZZ				Transaction::CUSTOM_06
+#define TX_BUZZ_LIKE			Transaction::CUSTOM_07
+#define TX_BUZZ_REPLY			Transaction::CUSTOM_08
+#define TX_BUZZ_PIN				Transaction::CUSTOM_09
 
 #define TX_BUZZER_ALIAS_SIZE 64 
 #define TX_BUZZER_DESCRIPTION_SIZE 256 
@@ -30,14 +36,14 @@ public:
 
 	template<typename Stream> void serialize(Stream& s) {
 		buzzer_name_t lName(name_);
-		lName.Serialize(s);
+		lName.serialize(s);
 		s << alias_;
 		s << description_;
 	}
 	
 	inline void deserialize(DataStream& s) {
 		buzzer_name_t lName(name_);
-		lName.Deserialize(s);
+		lName.deserialize(s);
 		s >> alias_;
 		s >> description_;
 
@@ -109,22 +115,17 @@ public:
 	//
 	Transaction::UnlinkedOutPtr addBuzzerSubscriptionOut(const SKey& skey, const PKey& pkey) {
 		//
-		Transaction::Out lOut;
-		lOut.setAsset(TxAssetType::nullAsset());
-		lOut.setDestination(ByteCode() <<
-			OP(QPTXO)		<< // use in entity-based pushUnlinkedOut's
-			OP(QMOV)		<< REG(QR1) << CU16(TX_BUZZER_SUBSCRIBE) <<
-			OP(QCMPE)		<< REG(QTH1) << REG(QR1) <<
-			OP(QMOV) 		<< REG(QR0) << REG(QC0) <<	
-			OP(QRET));
+		return addBuzzerSpecialOut(skey, pkey, TX_BUZZER_SUBSCRIBE);
+	}
 
-		Transaction::UnlinkedOutPtr lUTXO = Transaction::UnlinkedOut::instance(
-			Transaction::Link(MainChain::id(), TxAssetType::nullAsset(), out_.size()), // link
-			pkey
-		);
+	Transaction::UnlinkedOutPtr addBuzzerEndorseOut(const SKey& skey, const PKey& pkey) {
+		//
+		return addBuzzerSpecialOut(skey, pkey, TX_BUZZER_ENDORSE);
+	}
 
-		out_.push_back(lOut);
-		return lUTXO;
+	Transaction::UnlinkedOutPtr addBuzzerMistrustOut(const SKey& skey, const PKey& pkey) {
+		//
+		return addBuzzerSpecialOut(skey, pkey, TX_BUZZER_MISTRUST);
 	}
 
 	virtual In& addDAppIn(const SKey& skey, UnlinkedOutPtr utxo) {
@@ -210,6 +211,28 @@ public:
 		}
 
 		return false;
+	}
+
+private:
+	//
+	Transaction::UnlinkedOutPtr addBuzzerSpecialOut(const SKey& skey, const PKey& pkey, unsigned short specialOut) {
+		//
+		Transaction::Out lOut;
+		lOut.setAsset(TxAssetType::nullAsset());
+		lOut.setDestination(ByteCode() <<
+			OP(QPTXO)		<< // use in entity-based pushUnlinkedOut's
+			OP(QMOV)		<< REG(QR1) << CU16(specialOut) <<
+			OP(QCMPE)		<< REG(QTH1) << REG(QR1) <<
+			OP(QMOV) 		<< REG(QR0) << REG(QC0) <<	
+			OP(QRET));
+
+		Transaction::UnlinkedOutPtr lUTXO = Transaction::UnlinkedOut::instance(
+			Transaction::Link(MainChain::id(), TxAssetType::nullAsset(), out_.size()), // link
+			pkey
+		);
+
+		out_.push_back(lOut);
+		return lUTXO;
 	}
 
 private:

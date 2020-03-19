@@ -914,6 +914,8 @@ void VirtualMachine::qatxoa() {
 					if (lSKey.valid())
 						wallet_->pushUnlinkedOut(lUTXO, wrapper_); // push own UTXO
 					store_->pushUnlinkedOut(lUTXO, wrapper_); // push public
+					// out address
+					wrapper_->addOutAddress(lPKey);
 				} else {
 					state_ = VirtualMachine::INVALID_OUT;
 				}
@@ -963,6 +965,8 @@ void VirtualMachine::qatxo() {
 					if (lSKey.valid())
 						wallet_->pushUnlinkedOut(lUTXO, wrapper_); // push own UTXO
 					store_->pushUnlinkedOut(lUTXO, wrapper_); // push public
+					// out address
+					wrapper_->addOutAddress(lPKey);					
 				} else {
 					state_ = VirtualMachine::INVALID_OUT;
 				}
@@ -1010,7 +1014,7 @@ void VirtualMachine::qatxop() {
 				lLink.setTx(lHash);
 				lLink.setIndex(lIndex);
 
-				std::vector<PKey>& lInAddresses = wrapper_->addresses();
+				std::set<PKey>& lInAddresses = wrapper_->addresses();
 				if (!lInAddresses.size()) { // no cached in-addresses, doing hard
 					uint32_t lIdx = 0;
 					for (std::vector<Transaction::In>::iterator lInPtr = wrapper_->tx()->in().begin(); lInPtr != wrapper_->tx()->in().end(); lInPtr++, lIdx++) {
@@ -1054,7 +1058,7 @@ void VirtualMachine::qatxop() {
 					SKey lSKey = (wallet_ ? wallet_->findKey(lPKey) : SKey());
 					if (lSKey.valid()) { // potentially our future input
 
-						for (std::vector<PKey>::iterator lPKeyPtr = lInAddresses.begin(); lPKeyPtr != lInAddresses.end(); lPKeyPtr++) {
+						for (std::set<PKey>::iterator lPKeyPtr = lInAddresses.begin(); lPKeyPtr != lInAddresses.end(); lPKeyPtr++) {
 							uint256 lNonce = lSKey.shared(*lPKeyPtr);
 							if (lSKey.context()->rewindRangeProof(&lAmount, lBlindFactor, lNonce, lA1.begin(), lA2.begin(), lA2.size())) {
 								// success
@@ -1074,7 +1078,8 @@ void VirtualMachine::qatxop() {
 
 					// public 
 					store_->pushUnlinkedOut(Transaction::UnlinkedOut::instance(lLink, lPKey), wrapper_); // push public
-
+					// out address
+					wrapper_->addOutAddress(lPKey);
 				} else {
 					state_ = VirtualMachine::INVALID_DESTINATION;
 				}

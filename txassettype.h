@@ -52,10 +52,10 @@ public:
 
 	template<typename Stream> void serialize(Stream& s) {
 		asset_name_t lName(shortName_);
-		lName.Serialize(s);
+		lName.serialize(s);
 		
 		asset_description_t lDescription(longName_);
-		lDescription.Serialize(s);
+		lDescription.serialize(s);
 
 		s << (unsigned char) emission_;
 		s << supply_;
@@ -64,10 +64,10 @@ public:
 	
 	inline void deserialize(DataStream& s) {
 		asset_name_t lName(shortName_);
-		lName.Deserialize(s);
+		lName.deserialize(s);
 
 		asset_description_t lDescription(longName_);
-		lDescription.Deserialize(s);
+		lDescription.deserialize(s);
 
 		unsigned char lEmission;
 		s >> lEmission; emission_ = (Emission)lEmission;

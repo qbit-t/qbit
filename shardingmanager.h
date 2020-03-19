@@ -158,10 +158,11 @@ private:
 							gLog().write(Log::SHARDING, std::string("[touch]: starting shard ") + strprintf("%s", lShard->first.toHex()));
 
 							ITransactionStorePtr lStore = storeManager_->push(lChain);
-							TransactionStoreExtensionCreatorPtr lCreator = locateStoreExtension(lShard->second->entityName());
+							TransactionStoreExtensionCreatorPtr lCreator = locateStoreExtension(lDApp->entityName());
 							if (lCreator) lStore->setExtension(lCreator->create(settings_, lStore));
 
-							consensusManager_->push(lChain);
+							IConsensusPtr lConsensus = consensusManager_->push(lChain);
+							if (lConsensus) lConsensus->setDApp(lDApp->entityName());
 							mempoolManager_->push(lChain);
 							validatorManager_->push(lChain, lDApp);
 

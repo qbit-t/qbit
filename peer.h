@@ -191,8 +191,16 @@ public:
 	void synchronizePendingBlocks(IConsensusPtr, SynchronizationJobPtr /*job*/);
 	void acquireBlock(const NetworkBlockHeader& /*block*/);
 
+	IPeerExtensionPtr extension() { return extension_; }
+	void setExtension(IPeerExtensionPtr extension) { extension_ = extension; }	
+
 	// open requests
 	void acquireBlockHeaderWithCoinbase(const uint256& /*block*/, const uint256& /*chain*/, INetworkBlockHandlerWithCoinBasePtr /*handler*/);
+	void loadTransaction(const uint256& /*chain*/, const uint256& /*tx*/, ILoadTransactionHandlerPtr /*handler*/);
+	void selectUtxoByAddress(const PKey& /*source*/, const uint256& /*chain*/, ISelectUtxoByAddressHandlerPtr /*handler*/);
+	void selectUtxoByAddressAndAsset(const PKey& /*source*/, const uint256& /*chain*/, const uint256& /*asset*/, ISelectUtxoByAddressAndAssetHandlerPtr /*handler*/);
+	void selectUtxoByTransaction(const uint256& /*chain*/, const uint256& /*tx*/, ISelectUtxoByTransactionHandlerPtr /*handler*/);
+	void loadEntity(const std::string& /*entityName*/, ILoadEntityHandlerPtr /*handler*/);
 
 	std::string statusString() {
 		switch(status_) {
@@ -228,11 +236,21 @@ private:
 	void processGetNetworkBlockHeader(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processGetBlockHeader(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processGetBlockData(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processGetTransactionData(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processGetUtxoByAddress(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processGetUtxoByAddressAndAsset(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processGetUtxoByTransaction(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processGetEntity(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 
 	void processBlockByHeight(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processBlockById(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processNetworkBlock(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processNetworkBlockHeader(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processTransactionData(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processUtxoByAddress(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processUtxoByAddressAndAsset(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processUtxoByTransaction(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processEntity(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 
 	void processBlockByHeightAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processBlockByIdAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
@@ -240,6 +258,8 @@ private:
 	void processNetworkBlockHeaderAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processBlockHeaderAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processBlockAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processTransactionAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processEntityAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 
 	// finalize - just remove sent message
 	void messageFinalize(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
@@ -369,6 +389,8 @@ private:
 	bool waitingForMessage_ = false;
 
 	uint64_t peersPoll_ = 0;
+
+	IPeerExtensionPtr extension_;
 };
 
 }

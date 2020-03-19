@@ -15,7 +15,7 @@ class ISettings {
 public:
 	ISettings() {}
 
-	virtual std::string dataPath() { return "~/.qbit"; }
+	virtual std::string dataPath() { return ".qbit"; }
 	virtual size_t keysCache() { return 0; }
 
 	virtual qunit_t maxFeeRate() { return QUNIT * 10; } // 10 qunits per byte
@@ -24,7 +24,7 @@ public:
 	virtual int serverPort() { return 31415; } // main net
 	virtual size_t maxMessageSize() { return 5 * 1024 * 1024; } // max incoming message size
 
-	virtual size_t threadPoolSize() { return 4; } // tread pool size
+	virtual size_t threadPoolSize() { if (!isClient()) return 4; return 1; } // tread pool size
 
 	virtual uint64_t consensusSynchronizationLatency() { return 30; } // latency in seconds
 
@@ -42,6 +42,13 @@ public:
 
 	virtual size_t minDAppNodes() { return 5; }	
 	virtual size_t maxShardsByNode() { return 25; }	
+
+	virtual bool useFirstKeyForChange() { return true; }
+
+	virtual size_t mainChainMaturity() { return 1; } // for reqular tx that will be enough
+	virtual size_t mainChainCoinbaseMaturity() { return 5; } // for coinbase - we need _much_ more, 50 at least
+
+	virtual size_t clientSessionsLimit() { return 500; } // default client sessions for node\full node
 };
 
 typedef std::shared_ptr<ISettings> ISettingsPtr;

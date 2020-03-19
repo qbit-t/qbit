@@ -175,7 +175,7 @@ public:
 		server_ = Server::instance(settings_, peerManager_);
 
 		//
-		httpRequestHandler_ = HttpRequestHandler::instance(settings_, wallet_);
+		httpRequestHandler_ = HttpRequestHandler::instance(settings_, wallet_, peerManager_);
 		httpRequestHandler_->push(HttpGetKey::instance());
 		httpRequestHandler_->push(HttpGetBalance::instance());
 		httpRequestHandler_->push(HttpSendToAddress::instance());
@@ -285,7 +285,7 @@ public:
 		server_ = Server::instance(settings_, peerManager_);
 
 		//
-		httpRequestHandler_ = HttpRequestHandler::instance(settings_, wallet_);
+		httpRequestHandler_ = HttpRequestHandler::instance(settings_, wallet_, peerManager_);
 		httpRequestHandler_->push(HttpGetKey::instance());
 		httpRequestHandler_->push(HttpGetBalance::instance());
 		httpRequestHandler_->push(HttpSendToAddress::instance());
@@ -395,7 +395,7 @@ public:
 		server_ = Server::instance(settings_, peerManager_);
 
 		//
-		httpRequestHandler_ = HttpRequestHandler::instance(settings_, wallet_);
+		httpRequestHandler_ = HttpRequestHandler::instance(settings_, wallet_, peerManager_);
 		httpRequestHandler_->push(HttpGetKey::instance());
 		httpRequestHandler_->push(HttpGetBalance::instance());
 		httpRequestHandler_->push(HttpSendToAddress::instance());
@@ -505,7 +505,7 @@ public:
 		server_ = Server::instance(settings_, peerManager_);
 
 		//
-		httpRequestHandler_ = HttpRequestHandler::instance(settings_, wallet_);
+		httpRequestHandler_ = HttpRequestHandler::instance(settings_, wallet_, peerManager_);
 		httpRequestHandler_->push(HttpGetKey::instance());
 		httpRequestHandler_->push(HttpGetBalance::instance());
 		httpRequestHandler_->push(HttpSendToAddress::instance());

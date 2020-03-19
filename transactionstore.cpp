@@ -1044,6 +1044,80 @@ EntityPtr TransactionStore::locateEntity(const std::string& entity) {
 	return nullptr;
 }
 
+void TransactionStore::selectUtxoByAddress(const PKey& address, std::vector<Transaction::NetworkUnlinkedOut>& utxo) {
+	//
+	db::DbThreeKeyContainer
+		<uint160 /*address*/, 
+			uint256 /*asset*/, 
+			uint256 /*utxo*/, 
+			uint256 /*tx*/>::Iterator lBundle = addressAssetUtxoIdx_.find(address.id());
+
+	for (; lBundle.valid(); ++lBundle) {
+		uint160 lAddress;
+		uint256 lAsset;
+		uint256 lUtxo;
+
+		if (lBundle.first(lAddress, lAsset, lUtxo)) {
+			Transaction::UnlinkedOut lOut;
+			if (utxo_.read(lUtxo, lOut)) {
+				//
+				uint64_t lHeight = 0;
+				uint64_t lConfirms = 0;
+				bool lCoinbase = false;
+
+				transactionHeight(lOut.out().tx(), lHeight, lConfirms, lCoinbase);
+				utxo.push_back(Transaction::NetworkUnlinkedOut(lOut, lConfirms, lCoinbase));
+			}
+		}
+	}
+}
+
+void TransactionStore::selectUtxoByAddressAndAsset(const PKey& address, const uint256& asset, std::vector<Transaction::NetworkUnlinkedOut>& utxo) {
+	//
+	uint160 lId = address.id();
+	db::DbThreeKeyContainer
+		<uint160 /*address*/, 
+			uint256 /*asset*/, 
+			uint256 /*utxo*/, 
+			uint256 /*tx*/>::Iterator lBundle = addressAssetUtxoIdx_.find(lId, asset);
+
+	for (; lBundle.valid(); ++lBundle) {
+		uint160 lAddress;
+		uint256 lAsset;
+		uint256 lUtxo;
+
+		if (lBundle.first(lAddress, lAsset, lUtxo)) {
+			Transaction::UnlinkedOut lOut;
+			if (utxo_.read(lUtxo, lOut)) {
+				//
+				uint64_t lHeight = 0;
+				uint64_t lConfirms = 0;
+				bool lCoinbase = false;
+
+				transactionHeight(lOut.out().tx(), lHeight, lConfirms, lCoinbase);
+				utxo.push_back(Transaction::NetworkUnlinkedOut(lOut, lConfirms, lCoinbase));
+			}
+		}
+	}
+}
+
+void TransactionStore::selectUtxoByTransaction(const uint256& tx, std::vector<Transaction::NetworkUnlinkedOut>& utxo) {
+	//
+	db::DbMultiContainer<uint256 /*tx*/, uint256 /*utxo*/>::Iterator lTxRoot = txUtxo_.find(tx);
+	for (; lTxRoot.valid(); ++lTxRoot) {
+		Transaction::UnlinkedOut lOut;
+		if (utxo_.read(*lTxRoot, lOut)) {
+			//
+			uint64_t lHeight = 0;
+			uint64_t lConfirms = 0;
+			bool lCoinbase = false;
+
+			transactionHeight(lOut.out().tx(), lHeight, lConfirms, lCoinbase);
+			utxo.push_back(Transaction::NetworkUnlinkedOut(lOut, lConfirms, lCoinbase));
+		}
+	}
+}
+
 bool TransactionStore::pushEntity(const uint256& id, TransactionContextPtr ctx) {
 	//
 	// forward entity processing to the extension anyway

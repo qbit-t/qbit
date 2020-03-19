@@ -327,6 +327,45 @@ public:
 		std::vector<unsigned char> commit_;
 	};
 
+	class NetworkUnlinkedOut;
+	typedef std::shared_ptr<Transaction::NetworkUnlinkedOut> NetworkUnlinkedOutPtr;
+
+	class NetworkUnlinkedOut {
+	public:
+		NetworkUnlinkedOut() {}
+		NetworkUnlinkedOut(const UnlinkedOut& utxo, uint64_t confirms, bool coinbase) : 
+			utxo_(utxo), confirms_(confirms), coinbase_(coinbase) {}
+		NetworkUnlinkedOut(const NetworkUnlinkedOut& txo) {
+			utxo_ = const_cast<NetworkUnlinkedOut&>(txo).utxo();
+			confirms_ = const_cast<NetworkUnlinkedOut&>(txo).confirms();
+			coinbase_ = const_cast<NetworkUnlinkedOut&>(txo).coinbase();
+		} 
+
+		inline UnlinkedOut utxo() { return utxo_; }
+		inline void setUtxo(const UnlinkedOut& utxo) { utxo_ = utxo; }
+		inline uint64_t confirms() { return confirms_; }
+		inline bool coinbase() { return coinbase_; }
+
+		ADD_SERIALIZE_METHODS;
+
+		template <typename Stream, typename Operation>
+		inline void serializationOp(Stream& s, Operation ser_action) {
+			READWRITE(utxo_);
+			READWRITE(confirms_);
+			READWRITE(coinbase_);
+		}		
+
+		static NetworkUnlinkedOutPtr instance(const NetworkUnlinkedOut& txo) { return std::make_shared<NetworkUnlinkedOut>(txo); }
+		static NetworkUnlinkedOutPtr instance(const UnlinkedOut& utxo, uint64_t confirms, bool coinbase) { 
+			return std::make_shared<NetworkUnlinkedOut>(utxo, confirms, coinbase); 
+		}
+
+	private:
+		UnlinkedOut utxo_;
+		uint64_t confirms_;
+		bool coinbase_;
+	};
+
 	class Serializer {
 	public:
 

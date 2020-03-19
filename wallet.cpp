@@ -38,9 +38,9 @@ SKey Wallet::firstKey() {
 	if (lKey.valid()) {
 		return *lKey;
 	}
-
-	// TODO: create key silently from seed words and store it
-	return SKey();
+	
+	// try create from scratch
+	return createKey(std::list<std::string>());
 }
 
 SKey Wallet::changeKey() {
@@ -49,9 +49,11 @@ SKey Wallet::changeKey() {
 		return findKey(lChangeKey);
 	}
 
-	// TODO: if (settings_->makeChangeKey()) SKey::makeNewKey(); // from seed words and random nonce as seed word
+	// if use first key specified
+	if (settings_->useFirstKeyForChange()) return firstKey();
 
-	return firstKey();
+	// try create from scratch
+	return createKey(std::list<std::string>());
 }
 
 bool Wallet::open() {
@@ -436,10 +438,9 @@ amount_t Wallet::balance(const uint256& asset) {
 	return lBalance;
 }
 
-std::list<Transaction::UnlinkedOutPtr> Wallet::collectUnlinkedOutsByAsset(const uint256& asset, amount_t amount) {
+void Wallet::collectUnlinkedOutsByAsset(const uint256& asset, amount_t amount, std::list<Transaction::UnlinkedOutPtr>& list) {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
-	std::list<Transaction::UnlinkedOutPtr> lList;
 	std::map<uint256 /*asset*/, std::multimap<amount_t /*amount*/, uint256 /*utxo*/>>::iterator lAsset = assetsCache_.find(asset);
 	amount_t lTotal = 0;
 	if (lAsset != assetsCache_.end()) {
@@ -496,7 +497,7 @@ std::list<Transaction::UnlinkedOutPtr> Wallet::collectUnlinkedOutsByAsset(const 
 				strprintf("%d/%s/%s/%s#", lAmount->first, lUtxo->out().hash().toHex(), lUtxo->out().tx().toHex(), lUtxo->out().chain().toHex().substr(0, 10)));
 
 			lTotal += lAmount->first;
-			lList.push_back(lUtxo);
+			list.push_back(lUtxo);
 
 			if (lTotal >= amount) {
 				break;
@@ -506,12 +507,10 @@ std::list<Transaction::UnlinkedOutPtr> Wallet::collectUnlinkedOutsByAsset(const 
 		}
 	}
 
-	if (lTotal < amount) lList.clear(); // amount is unreachable
+	if (lTotal < amount) list.clear(); // amount is unreachable
 
 	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[collectUnlinkedOutsByAsset]: total amount collected ") + 
 		strprintf("%d", lTotal));
-
-	return lList;
 }
 
 // clean-up assets utxo
@@ -529,9 +528,11 @@ void Wallet::cleanUpData() {
 	// clean up
 	std::string lPath = settings_->dataPath() + "/wallet/utxo";
 	rmpath(lPath.c_str());
-	lPath = settings_->dataPath() + "/wallet/utxo";
+	lPath = settings_->dataPath() + "/wallet/ltxo";
 	rmpath(lPath.c_str());
-	lPath = settings_->dataPath() + "/wallet/utxo";
+	lPath = settings_->dataPath() + "/wallet/assets";
+	rmpath(lPath.c_str());
+	lPath = settings_->dataPath() + "/wallet/asset_entities";
 	rmpath(lPath.c_str());
 
 	// re-open
@@ -643,7 +644,9 @@ bool Wallet::rollback(TransactionContextPtr ctx) {
 // fill inputs
 amount_t Wallet::fillInputs(TxSpendPtr tx, const uint256& asset, amount_t amount) {
 	// collect utxo's
-	std::list<Transaction::UnlinkedOutPtr> lUtxos = collectUnlinkedOutsByAsset(asset, amount);
+	std::list<Transaction::UnlinkedOutPtr> lUtxos;
+	collectUnlinkedOutsByAsset(asset, amount, lUtxos);
+
 	if (!lUtxos.size()) throw qbit::exception("E_AMOUNT", "Insufficient amount.");
 
 	// amount

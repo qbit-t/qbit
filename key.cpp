@@ -8,6 +8,7 @@
 #include "include/secp256k1_schnorrsig.h"
 #include "libsecp256k1-config.h"
 #include "scalar_impl.h"
+#include "seedwords.h"
 
 using namespace qbit;
 
@@ -41,26 +42,30 @@ bool SKey::check(const unsigned char *vch) {
 }
 
 bool SKey::create() {
+	//
+	unsigned char lHash[KEY_BUF_LEN]; // max
+
 	// if seed words specified
-	if (seed_.size()) {
-		unsigned char lHash[KEY_BUF_LEN]; // max
+	if (!seed_.size()) {
+		SeedPhrase lPhrase;
+		std::list<std::string> lWords = lPhrase.generate();
 
-		std::basic_string<unsigned char> lPhrase;
-		for(std::vector<Word>::iterator lItem = seed_.begin(); lItem != seed_.end(); lItem++) {
-			lPhrase += lItem->word();
+		for (std::list<std::string>::iterator lWord = lWords.begin(); lWord != lWords.end(); lWord++) {
+			seed_.push_back(Word(*lWord));
 		}
-
-		CSHA512 lHasher;
-		lHasher.Write(lPhrase.c_str(), lPhrase.length());
-		lHasher.Finalize(lHash);
-
-		memcpy(vch_, lHash, KEY_LEN);
-		valid_ = true;
 	}
-	else // collect seed words
-	{
-		// TODO: add words dictionary and random selection
+
+	std::basic_string<unsigned char> lPhrase;
+	for(std::vector<Word>::iterator lItem = seed_.begin(); lItem != seed_.end(); lItem++) {
+		lPhrase += lItem->word();
 	}
+
+	CSHA512 lHasher;
+	lHasher.Write(lPhrase.c_str(), lPhrase.length());
+	lHasher.Finalize(lHash);
+
+	memcpy(vch_, lHash, KEY_LEN);
+	valid_ = true;
 
 	return valid_;
 }
