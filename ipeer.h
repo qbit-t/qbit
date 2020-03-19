@@ -7,6 +7,7 @@
 
 #include "state.h"
 #include "key.h"
+#include "entity.h"
 
 #include <boost/atomic.hpp>
 
@@ -19,6 +20,7 @@ namespace qbit {
 
 #include "synchronizationjob.h"
 #include "iconsensus.h"
+#include "ipeerextension.h"
 
 #include <boost/asio.hpp>
 using boost::asio::ip::tcp;
@@ -32,6 +34,7 @@ typedef std::shared_ptr<tcp::socket> SocketPtr;
 class IReplyHandler {
 public:
 	IReplyHandler() {}
+	virtual void timeout() {}
 };
 typedef std::shared_ptr<IReplyHandler> IReplyHandlerPtr;
 
@@ -69,6 +72,69 @@ public:
 typedef std::shared_ptr<INetworkBlockHandlerWithCoinBase> INetworkBlockHandlerWithCoinBasePtr;
 
 //
+// load transaction handler
+class ILoadTransactionHandler: public IReplyHandler {
+public:
+	ILoadTransactionHandler() {}
+	virtual void handleReply(TransactionPtr) = 0;
+};
+typedef std::shared_ptr<ILoadTransactionHandler> ILoadTransactionHandlerPtr;
+
+//
+// select utxo by address
+class ISelectUtxoByAddressHandler: public IReplyHandler {
+public:
+	ISelectUtxoByAddressHandler() {}
+	virtual void handleReply(const std::vector<Transaction::NetworkUnlinkedOut>&, const PKey&) = 0;
+};
+typedef std::shared_ptr<ISelectUtxoByAddressHandler> ISelectUtxoByAddressHandlerPtr;
+
+//
+// select utxo by address
+class ISelectUtxoByAddressAndAssetHandler: public IReplyHandler {
+public:
+	ISelectUtxoByAddressAndAssetHandler() {}
+	virtual void handleReply(const std::vector<Transaction::NetworkUnlinkedOut>&, const PKey&, const uint256&) = 0;
+};
+typedef std::shared_ptr<ISelectUtxoByAddressAndAssetHandler> ISelectUtxoByAddressAndAssetHandlerPtr;
+
+//
+// select utxo by address
+class ISelectUtxoByTransactionHandler: public IReplyHandler {
+public:
+	ISelectUtxoByTransactionHandler() {}
+	virtual void handleReply(const std::vector<Transaction::NetworkUnlinkedOut>&, const uint256&) = 0;
+};
+typedef std::shared_ptr<ISelectUtxoByTransactionHandler> ISelectUtxoByTransactionHandlerPtr;
+
+//
+// load entity handler
+class ILoadEntityHandler: public IReplyHandler {
+public:
+	ILoadEntityHandler() {}
+	virtual void handleReply(EntityPtr) = 0;
+};
+typedef std::shared_ptr<ILoadEntityHandler> ILoadEntityHandlerPtr;
+
+//
+// select utxo by entity name
+class ISelectUtxoByEntityNameHandler: public IReplyHandler {
+public:
+	ISelectUtxoByEntityNameHandler() {}
+	virtual void handleReply(const std::vector<Transaction::UnlinkedOutPtr>&, const std::string& /*entity*/) = 0;
+};
+typedef std::shared_ptr<ISelectUtxoByEntityNameHandler> ISelectUtxoByEntityNameHandlerPtr;
+
+//
+// select entity count by shards
+class ISelectEntityCountByShardsHandler: public IReplyHandler {
+public:
+	ISelectEntityCountByShardsHandler() {}
+	virtual void handleReply(const std::map<uint32_t, uint256>&, const std::string& /*dapp*/) = 0;
+};
+typedef std::shared_ptr<ISelectEntityCountByShardsHandler> ISelectEntityCountByShardsHandlerPtr;
+
+//
 // p2p protocol processor
 class IPeer {
 public:
@@ -84,11 +150,16 @@ public:
 	enum UpdatePeerResult {
 		SUCCESSED = 0,
 		EXISTS = 1,
-		BAN = 2
+		BAN = 2,
+		DENIED = 3,
+		SESSIONS_EXCEEDED = 4
 	};	
 
 public:
 	IPeer() {}
+
+	virtual IPeerExtensionPtr extension() { throw qbit::exception("NOT_IMPL", "IPeer::extension - not implemented."); }
+	virtual void setExtension(IPeerExtensionPtr /*extension*/) { throw qbit::exception("NOT_IMPL", "IPeer::setExtension - not implemented."); }
 
 	virtual Status status() { throw qbit::exception("NOT_IMPL", "IPeer::status - not implemented."); }
 	virtual State& state() { throw qbit::exception("NOT_IMPL", "IPeer::state - not implemented."); }
@@ -144,6 +215,11 @@ public:
 	
 	// open requests
 	virtual void acquireBlockHeaderWithCoinbase(const uint256& /*block*/, const uint256& /*chain*/, INetworkBlockHandlerWithCoinBasePtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IPeer::acquireBlockHeaderWithCoinbase - not implemented."); }
+	virtual void loadTransaction(const uint256& /*chain*/, const uint256& /*tx*/, ILoadTransactionHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IPeer::loadTransaction - not implemented."); }
+	virtual void loadEntity(const std::string& /*entityName*/, ILoadEntityHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IPeer::loadEnity - not implemented."); }
+	virtual void selectUtxoByAddress(const PKey& /*source*/, const uint256& /*chain*/, ISelectUtxoByAddressHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IPeer::selectUtxoByAddress - not implemented."); }
+	virtual void selectUtxoByAddressAndAsset(const PKey& /*source*/, const uint256& /*chain*/, const uint256& /*asset*/, ISelectUtxoByAddressAndAssetHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IPeer::selectUtxoByAddressAndAsset - not implemented."); }
+	virtual void selectUtxoByTransaction(const uint256& /*chain*/, const uint256& /*tx*/, ISelectUtxoByTransactionHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IPeer::selectUtxoByTransaction - not implemented."); }
 };
 
 typedef std::shared_ptr<IPeer> IPeerPtr;

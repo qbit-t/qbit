@@ -14,11 +14,12 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
 add_definitions(-DCLIENT_VERSION_MAJOR=0)
 add_definitions(-DCLIENT_VERSION_MINOR=1)
 add_definitions(-DCLIENT_VERSION_REVISION=0)
-add_definitions(-DCLIENT_VERSION_BUILD=1)
+add_definitions(-DCLIENT_VERSION_BUILD=2)
 
 # Daemon
 project(qbitd)
 
+# Sources
 set(SOURCES
 	./secp256k1/src/secp256k1.c
 	key.cpp
@@ -70,7 +71,10 @@ set(SOURCES
 	./dapps/buzzer/composer.cpp
 	./dapps/buzzer/httpendpoints.cpp
 	./dapps/buzzer/transactionstoreextension.cpp
+	./dapps/buzzer/peerextension.cpp
 	./itransactionstoreextension.cpp
+	./seedwords.cpp
+	./message.cpp	
 )
 
 set(UNITTESTS
@@ -122,7 +126,10 @@ set(UNITTESTS
 	./dapps/buzzer/composer.cpp
 	./dapps/buzzer/httpendpoints.cpp
 	./dapps/buzzer/transactionstoreextension.cpp
-	./itransactionstoreextension.cpp	
+	./dapps/buzzer/peerextension.cpp	
+	./itransactionstoreextension.cpp
+	./seedwords.cpp
+	./message.cpp
 
 	./tests/testsuit.cpp
 	./tests/unittest.cpp
@@ -140,6 +147,46 @@ set(UNITTESTS
 	./tests/hash.cpp
 )
 
+set(CLIENT
+	./secp256k1/src/secp256k1.c
+	key.cpp
+	uint256.cpp
+	arith_uint256.cpp
+	utilstrencodings.cpp
+	context.cpp
+	./crypto/ctaes/ctaes.c
+	./crypto/aes.cpp
+	./crypto/ripemd160.cpp
+	./crypto/sha256.cpp
+	./crypto/sha512.cpp
+	./crypto/hmac_sha256.cpp
+	./crypto/hmac_sha512.cpp
+	./hash/blake2/blake2b-ref.c
+	./hash/cuckoo.cpp
+	./base58.cpp
+	./helpers/cleanse.cpp
+	./allocator.cpp
+	./lockedpool.cpp
+	./vm/qasm.cpp
+	./vm/vm.cpp
+	./transaction.cpp
+	./hash.cpp
+	./uint256.cpp
+	./block.cpp
+	./log/log.cpp
+	./db/leveldb.cpp
+	./fs.cpp
+	./timestamp.cpp
+	./mkpath.cpp
+	./peer.cpp
+	./seedwords.cpp
+	./message.cpp
+	./lightwallet.cpp
+	./client/commands.cpp
+	./client/commandshandler.cpp
+	./client/main.cpp
+)
+
 add_definitions(-DHAVE_CONFIG_H)
 add_definitions(-DJM_MALLOC)
 
@@ -149,8 +196,11 @@ add_subdirectory(./leveldb)
 include_directories(./secp256k1/src ./secp256k1 ./secp256k1/include ./leveldb ./boost)
 link_directories(./boost/stage/lib)
 
-add_executable(${PROJECT_NAME} ${SOURCES} ${SECP256K1})
-target_link_libraries(${PROJECT_NAME} jm leveldb boost_system boost_thread boost_chrono) #gmp
+#add_executable(${PROJECT_NAME} ${SOURCES} ${SECP256K1})
+#target_link_libraries(${PROJECT_NAME} jm leveldb boost_system boost_thread boost_chrono) #gmp
+
+add_executable(qbit-cli ${CLIENT} ${SECP256K1})
+target_link_libraries(qbit-cli jm leveldb boost_system boost_thread boost_chrono) #gmp
 
 add_executable(qbit-unit-tests ${UNITTESTS} ${SECP256K1})
 target_link_libraries(qbit-unit-tests jm leveldb boost_system boost_thread boost_chrono) #gmp

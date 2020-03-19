@@ -39,7 +39,7 @@ public:
 		settings_ = std::make_shared<SettingsHttp>();
 		wallet_ = Wallet::instance(settings_);
 
-		requestHandler_ = HttpRequestHandler::instance(settings_, wallet_);
+		requestHandler_ = HttpRequestHandler::instance(settings_, wallet_, nullptr);
 		requestHandler_->push(HttpGetBalance::instance());
 
 		connectionManager_ = HttpConnectionManager::instance(settings_, requestHandler_);

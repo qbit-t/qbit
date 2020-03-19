@@ -15,7 +15,7 @@ typedef LimitedString<256> dapp_description_t;
 //
 class TxDApp: public Entity {
 public:
-	enum Sharding {		
+	enum Sharding {
 		STATIC 	= 0x01,
 		DYNAMIC = 0x02
 	};
@@ -31,20 +31,20 @@ public:
 
 	template<typename Stream> void serialize(Stream& s) {
 		dapp_name_t lName(shortName_);
-		lName.Serialize(s);
+		lName.serialize(s);
 		
 		dapp_description_t lDescription(longName_);
-		lDescription.Serialize(s);
+		lDescription.serialize(s);
 
 		s << (unsigned char) sharding_;
 	}
 	
 	inline void deserialize(DataStream& s) {
 		dapp_name_t lName(shortName_);
-		lName.Deserialize(s);
+		lName.deserialize(s);
 
 		dapp_description_t lDescription(longName_);
-		lDescription.Deserialize(s);
+		lDescription.deserialize(s);
 
 		unsigned char lSharding;
 		s >> lSharding; sharding_ = (Sharding)lSharding;

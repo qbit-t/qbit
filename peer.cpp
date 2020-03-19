@@ -2,6 +2,8 @@
 
 using namespace qbit;
 
+qbit::PeerExtensions qbit::gPeerExtensions;
+
 bool Peer::onQuarantine() {
 	return peerManager_->consensusManager()->currentState()->height() < quarantine_;
 }
@@ -60,7 +62,7 @@ void Peer::internalSendState(StatePtr state, bool global) {
 		lMsg->write(lStateStream.data(), lStateStream.size());
 
 		// log
-		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: sending ") + (global ? "global ": "") + std::string("state to ") + key() + " -> " + HexStr(lMsg->begin(), lMsg->end()));
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: sending ") + (global ? "global ": "") + std::string("state to ") + key() + " -> " + lState->toString());
 
 		// write
 		boost::asio::async_write(*socket_,
@@ -358,6 +360,158 @@ void Peer::acquireBlockHeaderWithCoinbase(const uint256& block, const uint256& c
 	}
 }
 
+void Peer::loadTransaction(const uint256& chain, const uint256& tx, ILoadTransactionHandlerPtr handler) {
+	//
+	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
+	else if (socketStatus_ == CONNECTED) {
+		
+		// new message
+		std::list<DataStream>::iterator lMsg = newOutMessage();
+		DataStream lStateStream(SER_NETWORK, CLIENT_VERSION);
+
+		uint256 lRequestId = addRequest(handler);
+		lStateStream << lRequestId;
+		lStateStream << chain;
+		lStateStream << tx;
+		Message lMessage(Message::GET_TRANSACTION_DATA, lStateStream.size(), Hash160(lStateStream.begin(), lStateStream.end()));
+
+		(*lMsg) << lMessage;
+		lMsg->write(lStateStream.data(), lStateStream.size());
+
+		// log
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: loading transaction ") + tx.toHex() + std::string(" from ") + key());
+
+		// write
+		boost::asio::async_write(*socket_,
+			boost::asio::buffer(lMsg->data(), lMsg->size()),
+			boost::bind(
+				&Peer::messageFinalize, shared_from_this(), lMsg,
+				boost::asio::placeholders::error));
+	}
+}
+
+void Peer::loadEntity(const std::string& name, ILoadEntityHandlerPtr handler) {
+	//
+	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
+	else if (socketStatus_ == CONNECTED) {
+		
+		// new message
+		std::list<DataStream>::iterator lMsg = newOutMessage();
+		DataStream lStateStream(SER_NETWORK, CLIENT_VERSION);
+
+		uint256 lRequestId = addRequest(handler);
+		std::string lName(name);
+		entity_name_t lLimitedName(lName);
+		lStateStream << lRequestId;
+		lStateStream << lLimitedName;
+		Message lMessage(Message::GET_ENTITY, lStateStream.size(), Hash160(lStateStream.begin(), lStateStream.end()));
+
+		(*lMsg) << lMessage;
+		lMsg->write(lStateStream.data(), lStateStream.size());
+
+		// log
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: entity '") + name + std::string("' from ") + key());
+
+		// write
+		boost::asio::async_write(*socket_,
+			boost::asio::buffer(lMsg->data(), lMsg->size()),
+			boost::bind(
+				&Peer::messageFinalize, shared_from_this(), lMsg,
+				boost::asio::placeholders::error));
+	}
+}
+
+void Peer::selectUtxoByAddress(const PKey& source, const uint256& chain, ISelectUtxoByAddressHandlerPtr handler) {
+	//
+	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
+	else if (socketStatus_ == CONNECTED) {
+		
+		// new message
+		std::list<DataStream>::iterator lMsg = newOutMessage();
+		DataStream lStateStream(SER_NETWORK, CLIENT_VERSION);
+
+		uint256 lRequestId = addRequest(handler);
+		lStateStream << lRequestId;
+		lStateStream << source;
+		lStateStream << chain;
+		Message lMessage(Message::GET_UTXO_BY_ADDRESS, lStateStream.size(), Hash160(lStateStream.begin(), lStateStream.end()));
+
+		(*lMsg) << lMessage;
+		lMsg->write(lStateStream.data(), lStateStream.size());
+
+		// log
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: selecting utxos by address ") + const_cast<PKey&>(source).toString() + std::string(" from ") + key());
+
+		// write
+		boost::asio::async_write(*socket_,
+			boost::asio::buffer(lMsg->data(), lMsg->size()),
+			boost::bind(
+				&Peer::messageFinalize, shared_from_this(), lMsg,
+				boost::asio::placeholders::error));
+	}	
+}
+
+void Peer::selectUtxoByAddressAndAsset(const PKey& source, const uint256& chain, const uint256& asset, ISelectUtxoByAddressAndAssetHandlerPtr handler) {
+	//
+	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
+	else if (socketStatus_ == CONNECTED) {
+		
+		// new message
+		std::list<DataStream>::iterator lMsg = newOutMessage();
+		DataStream lStateStream(SER_NETWORK, CLIENT_VERSION);
+
+		uint256 lRequestId = addRequest(handler);
+		lStateStream << lRequestId;
+		lStateStream << source;
+		lStateStream << chain;
+		lStateStream << asset;
+		Message lMessage(Message::GET_UTXO_BY_ADDRESS_AND_ASSET, lStateStream.size(), Hash160(lStateStream.begin(), lStateStream.end()));
+
+		(*lMsg) << lMessage;
+		lMsg->write(lStateStream.data(), lStateStream.size());
+
+		// log
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: selecting utxos by address and asset ") + strprintf("%s/%s", const_cast<PKey&>(source).toString(), asset.toHex()) + std::string(" from ") + key());
+
+		// write
+		boost::asio::async_write(*socket_,
+			boost::asio::buffer(lMsg->data(), lMsg->size()),
+			boost::bind(
+				&Peer::messageFinalize, shared_from_this(), lMsg,
+				boost::asio::placeholders::error));
+	}	
+}
+
+void Peer::selectUtxoByTransaction(const uint256& chain, const uint256& tx, ISelectUtxoByTransactionHandlerPtr handler) {
+	//
+	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
+	else if (socketStatus_ == CONNECTED) {
+		
+		// new message
+		std::list<DataStream>::iterator lMsg = newOutMessage();
+		DataStream lStateStream(SER_NETWORK, CLIENT_VERSION);
+
+		uint256 lRequestId = addRequest(handler);
+		lStateStream << lRequestId;
+		lStateStream << chain;
+		lStateStream << tx;
+		Message lMessage(Message::GET_UTXO_BY_TX, lStateStream.size(), Hash160(lStateStream.begin(), lStateStream.end()));
+
+		(*lMsg) << lMessage;
+		lMsg->write(lStateStream.data(), lStateStream.size());
+
+		// log
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: selecting utxos by transaction ") + strprintf("%s", tx.toHex()) + std::string(" from ") + key());
+
+		// write
+		boost::asio::async_write(*socket_,
+			boost::asio::buffer(lMsg->data(), lMsg->size()),
+			boost::bind(
+				&Peer::messageFinalize, shared_from_this(), lMsg,
+				boost::asio::placeholders::error));
+	}	
+}
+
 void Peer::requestPeers() {	
 	//
 	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
@@ -460,6 +614,17 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 				return;
 			}
 
+			// try proto extension
+			bool lHandled = false;
+			if (extension_) {
+				lHandled = extension_->processMessage(lMessage, lMsg, error);
+			}
+
+			if (lHandled) { // handled in proto extension, just continue
+				eraseInData(lMsg);
+				return;
+			}
+
 			//
 			// WARNING: for short requests, but for long - we _must_ to go to wait until we read and process data
 			//
@@ -473,7 +638,11 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 				lMessage.type() == Message::TRANSACTION ||
 				lMessage.type() == Message::BLOCK_HEADER_AND_STATE ||
 				lMessage.type() == Message::STATE ||
-				lMessage.type() == Message::GLOBAL_STATE;
+				lMessage.type() == Message::GLOBAL_STATE ||
+				lMessage.type() == Message::TRANSACTION_DATA ||
+				lMessage.type() == Message::UTXO_BY_ADDRESS ||
+				lMessage.type() == Message::UTXO_BY_ADDRESS_AND_ASSET ||
+				lMessage.type() == Message::UTXO_BY_TX;
 
 			if (lMessage.type() == Message::STATE) {
 				boost::asio::async_read(*socket_,
@@ -631,12 +800,99 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 					boost::bind(
 						&Peer::processRequestPeers, shared_from_this(), lMsg,
 						boost::asio::placeholders::error));
+			// transactions & utxo
+			} else if (lMessage.type() == Message::GET_TRANSACTION_DATA) {
+				boost::asio::async_read(*socket_,
+					boost::asio::buffer(lMsg->data(), lMessage.dataSize()),
+					boost::bind(
+						&Peer::processGetTransactionData, shared_from_this(), lMsg,
+						boost::asio::placeholders::error));
+			} else if (lMessage.type() == Message::TRANSACTION_DATA) {
+				boost::asio::async_read(*socket_,
+					boost::asio::buffer(lMsg->data(), lMessage.dataSize()),
+					boost::bind(
+						&Peer::processTransactionData, shared_from_this(), lMsg,
+						boost::asio::placeholders::error));
+			} else if (lMessage.type() == Message::TRANSACTION_IS_ABSENT) {
+				boost::asio::async_read(*socket_,
+					boost::asio::buffer(lMsg->data(), lMessage.dataSize()),
+					boost::bind(
+						&Peer::processTransactionAbsent, shared_from_this(), lMsg,
+						boost::asio::placeholders::error));
+
+			} else if (lMessage.type() == Message::GET_UTXO_BY_ADDRESS) {
+				boost::asio::async_read(*socket_,
+					boost::asio::buffer(lMsg->data(), lMessage.dataSize()),
+					boost::bind(
+						&Peer::processGetUtxoByAddress, shared_from_this(), lMsg,
+						boost::asio::placeholders::error));
+			} else if (lMessage.type() == Message::UTXO_BY_ADDRESS) {
+				boost::asio::async_read(*socket_,
+					boost::asio::buffer(lMsg->data(), lMessage.dataSize()),
+					boost::bind(
+						&Peer::processUtxoByAddress, shared_from_this(), lMsg,
+						boost::asio::placeholders::error));
+
+			} else if (lMessage.type() == Message::GET_UTXO_BY_ADDRESS_AND_ASSET) {
+				boost::asio::async_read(*socket_,
+					boost::asio::buffer(lMsg->data(), lMessage.dataSize()),
+					boost::bind(
+						&Peer::processGetUtxoByAddressAndAsset, shared_from_this(), lMsg,
+						boost::asio::placeholders::error));
+			} else if (lMessage.type() == Message::UTXO_BY_ADDRESS_AND_ASSET) {
+				boost::asio::async_read(*socket_,
+					boost::asio::buffer(lMsg->data(), lMessage.dataSize()),
+					boost::bind(
+						&Peer::processUtxoByAddressAndAsset, shared_from_this(), lMsg,
+						boost::asio::placeholders::error));
+
+			} else if (lMessage.type() == Message::GET_UTXO_BY_TX) {
+				boost::asio::async_read(*socket_,
+					boost::asio::buffer(lMsg->data(), lMessage.dataSize()),
+					boost::bind(
+						&Peer::processGetUtxoByTransaction, shared_from_this(), lMsg,
+						boost::asio::placeholders::error));
+			} else if (lMessage.type() == Message::UTXO_BY_TX) {
+				boost::asio::async_read(*socket_,
+					boost::asio::buffer(lMsg->data(), lMessage.dataSize()),
+					boost::bind(
+						&Peer::processUtxoByTransaction, shared_from_this(), lMsg,
+						boost::asio::placeholders::error));
+
+			} else if (lMessage.type() == Message::GET_ENTITY) {
+				boost::asio::async_read(*socket_,
+					boost::asio::buffer(lMsg->data(), lMessage.dataSize()),
+					boost::bind(
+						&Peer::processGetEntity, shared_from_this(), lMsg,
+						boost::asio::placeholders::error));
+			} else if (lMessage.type() == Message::ENTITY) {
+				boost::asio::async_read(*socket_,
+					boost::asio::buffer(lMsg->data(), lMessage.dataSize()),
+					boost::bind(
+						&Peer::processEntity, shared_from_this(), lMsg,
+						boost::asio::placeholders::error));
+			} else if (lMessage.type() == Message::ENTITY_IS_ABSENT) {
+				boost::asio::async_read(*socket_,
+					boost::asio::buffer(lMsg->data(), lMessage.dataSize()),
+					boost::bind(
+						&Peer::processEntityAbsent, shared_from_this(), lMsg,
+						boost::asio::placeholders::error));
+
+			} else if (lMessage.type() == Message::CLIENT_SESSIONS_EXCEEDED) {
+				// postpone peer
+				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: node sessions exceeded, postponing connections for ") + key());
+				peerManager_->postpone(shared_from_this());
+				eraseInData(lMsg);
 			} else if (lMessage.type() == Message::PEER_EXISTS) {
 				// mark peer
+				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: peer already exists ") + key());				
 				peerManager_->postpone(shared_from_this());
+				eraseInData(lMsg);
 			} else if (lMessage.type() == Message::PEER_BANNED) {
 				// mark peer
+				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: peer banned ") + key());				
 				peerManager_->ban(shared_from_this());
+				eraseInData(lMsg);
 			} else {
 				eraseInData(lMsg);
 			}
@@ -673,6 +929,630 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 			// close socket
 			socket_->close();
 		}
+	}
+}
+
+void Peer::processGetTransactionData(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
+	//
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: checksum is INVALID for message from ") + key());
+	if (!error && lMsgValid) {
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing request transacion data from ") + key());
+
+		// extract
+		uint256 lRequestId;
+		uint256 lChain;
+		uint256 lTxId;
+		(*msg) >> lRequestId;
+		(*msg) >> lChain;
+		(*msg) >> lTxId;
+		eraseInData(msg);
+
+		TransactionPtr lTx = nullptr;
+		if (lChain.isNull()) {
+			std::vector<ITransactionStorePtr> lStorages = peerManager_->consensusManager()->storeManager()->storages();
+			for (std::vector<ITransactionStorePtr>::iterator lStore = lStorages.begin(); lStore != lStorages.end(); lStore++) {
+				lTx = (*lStore)->locateTransaction(lTxId);
+				if (lTx) break;
+			}
+		} else {
+			ITransactionStorePtr lStorage = peerManager_->consensusManager()->storeManager()->locate(lChain);
+			lTx = lStorage->locateTransaction(lTxId);
+		}
+
+		if (lTx != nullptr) {
+			// make message, serialize, send back
+			std::list<DataStream>::iterator lMsg = newOutMessage();
+
+			// fill data
+			DataStream lStream(SER_NETWORK, CLIENT_VERSION);
+			lStream << lRequestId;
+			Transaction::Serializer::serialize<DataStream>(lStream, lTx); // tx
+
+			// prepare message
+			Message lMessage(Message::TRANSACTION_DATA, lStream.size(), Hash160(lStream.begin(), lStream.end()));
+			(*lMsg) << lMessage;
+			lMsg->write(lStream.data(), lStream.size());
+
+			// log
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: sending transacion data for tx = ") + strprintf("%s", lTx->id().toHex()) + std::string(" for ") + key());
+
+			// write
+			boost::asio::async_write(*socket_,
+				boost::asio::buffer(lMsg->data(), lMsg->size()),
+				boost::bind(
+					&Peer::messageFinalize, shared_from_this(), lMsg,
+					boost::asio::placeholders::error));
+		} else {
+			// tx is absent
+			// make message, serialize, send back
+			std::list<DataStream>::iterator lMsg = newOutMessage();
+
+			// fill data
+			DataStream lStream(SER_NETWORK, CLIENT_VERSION);
+			lStream << lRequestId;
+			lStream << lTxId; // tx
+
+			// prepare message
+			Message lMessage(Message::TRANSACTION_IS_ABSENT, lStream.size(), Hash160(lStream.begin(), lStream.end()));
+			(*lMsg) << lMessage;
+			lMsg->write(lStream.data(), lStream.size());
+
+			// log
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: transaction is absent ") + strprintf("%s", lTxId.toHex()) + std::string(" -> ") + key());
+
+			// write
+			boost::asio::async_write(*socket_,
+				boost::asio::buffer(lMsg->data(), lMsg->size()),
+				boost::bind(
+					&Peer::messageFinalize, shared_from_this(), lMsg,
+					boost::asio::placeholders::error));
+		}
+
+	} else {
+		// log
+		gLog().write(Log::NET, "[peer/processGetTransactionData/error]: closing session " + key() + " -> " + error.message());
+		//
+		socketStatus_ = ERROR;
+		// try to deactivate peer
+		peerManager_->deactivatePeer(shared_from_this());
+		// close socket
+		socket_->close();
+	}
+}
+
+void Peer::processGetEntity(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
+	//
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: checksum is INVALID for message from ") + key());
+	if (!error && lMsgValid) {
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing request entity from ") + key());
+
+		// extract
+		uint256 lRequestId;
+		std::string lName;
+		entity_name_t lLimitedName(lName);
+
+		(*msg) >> lRequestId;
+		(*msg) >> lLimitedName;
+		eraseInData(msg);
+
+		ITransactionStorePtr lStorage = peerManager_->consensusManager()->storeManager()->locate(MainChain::id());
+		EntityPtr lTx = lStorage->entityStore()->locateEntity(lName);
+
+		if (lTx != nullptr) {
+			// make message, serialize, send back
+			std::list<DataStream>::iterator lMsg = newOutMessage();
+
+			// fill data
+			DataStream lStream(SER_NETWORK, CLIENT_VERSION);
+			lStream << lRequestId;
+			Transaction::Serializer::serialize<DataStream>(lStream, lTx); // tx
+
+			// prepare message
+			Message lMessage(Message::TRANSACTION_DATA, lStream.size(), Hash160(lStream.begin(), lStream.end()));
+			(*lMsg) << lMessage;
+			lMsg->write(lStream.data(), lStream.size());
+
+			// log
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: sending entity ") + strprintf("'%s'/%s", lName, lTx->id().toHex()) + std::string(" for ") + key());
+
+			// write
+			boost::asio::async_write(*socket_,
+				boost::asio::buffer(lMsg->data(), lMsg->size()),
+				boost::bind(
+					&Peer::messageFinalize, shared_from_this(), lMsg,
+					boost::asio::placeholders::error));
+		} else {
+			// tx is absent
+			// make message, serialize, send back
+			std::list<DataStream>::iterator lMsg = newOutMessage();
+
+			// fill data
+			DataStream lStream(SER_NETWORK, CLIENT_VERSION);
+			lStream << lRequestId;
+			lStream << lLimitedName; // tx
+
+			// prepare message
+			Message lMessage(Message::ENTITY_IS_ABSENT, lStream.size(), Hash160(lStream.begin(), lStream.end()));
+			(*lMsg) << lMessage;
+			lMsg->write(lStream.data(), lStream.size());
+
+			// log
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: entity is absent ") + strprintf("'%s'", lName) + std::string(" -> ") + key());
+
+			// write
+			boost::asio::async_write(*socket_,
+				boost::asio::buffer(lMsg->data(), lMsg->size()),
+				boost::bind(
+					&Peer::messageFinalize, shared_from_this(), lMsg,
+					boost::asio::placeholders::error));
+		}
+
+	} else {
+		// log
+		gLog().write(Log::NET, "[peer/processGetTransactionData/error]: closing session " + key() + " -> " + error.message());
+		//
+		socketStatus_ = ERROR;
+		// try to deactivate peer
+		peerManager_->deactivatePeer(shared_from_this());
+		// close socket
+		socket_->close();
+	}
+}
+
+void Peer::processTransactionAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
+	//
+	if (!error) {
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: transaction is absent from ") + key());
+
+		// extract
+		uint256 lRequestId;
+		uint256 lTxId;
+		(*msg) >> lRequestId;
+		(*msg) >> lTxId;
+		eraseInData(msg);
+
+		IReplyHandlerPtr lHandler = locateRequest(lRequestId);
+		if (lHandler) {
+			ReplyHelper::to<ILoadTransactionHandler>(lHandler)->handleReply(nullptr);
+			removeRequest(lRequestId);
+		} else {
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: request was NOT FOUND, ") + strprintf("r = %s", lRequestId.toHex()) + std::string("..."));
+		}
+		
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: transaction is absent ") + strprintf("%s#", lTxId.toHex()));
+
+	} else {
+		// log
+		gLog().write(Log::NET, "[peer/processTransactionAbsent/error]: closing session " + key() + " -> " + error.message());
+		//
+		socketStatus_ = ERROR;
+		// try to deactivate peer
+		peerManager_->deactivatePeer(shared_from_this());
+		// close socket
+		socket_->close();
+	}
+}
+
+void Peer::processTransactionData(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
+	//
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: checksum is INVALID for message from ") + key());
+	if (!error && lMsgValid) {
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing response transaction data from ") + key());
+
+		// extract
+		uint256 lRequestId;
+		TransactionPtr lTx;
+
+		(*msg) >> lRequestId;
+		lTx = Transaction::Deserializer::deserialize<DataStream>(*msg);
+
+		// log
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing transaction ") + strprintf("r = %s, %s", lRequestId.toHex(), lTx->id().toHex()) + std::string("..."));
+
+		IReplyHandlerPtr lHandler = locateRequest(lRequestId);
+		if (lHandler) {
+			ReplyHelper::to<ILoadTransactionHandler>(lHandler)->handleReply(lTx);
+			removeRequest(lRequestId);
+		} else {
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: request was NOT FOUND for transaction ") + strprintf("r = %s, %s", lRequestId.toHex(), lTx->id().toHex()) + std::string("..."));
+		}
+
+		// WARNING: in case of async_read for large data
+		waitForMessage();
+	} else {
+		// log
+		gLog().write(Log::NET, "[peer/processTransactionData/error]: closing session " + key() + " -> " + error.message());
+		//
+		socketStatus_ = ERROR;
+		// try to deactivate peer
+		peerManager_->deactivatePeer(shared_from_this());
+		// close socket
+		socket_->close();
+	}
+}
+
+void Peer::processEntityAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
+	//
+	if (!error) {
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: entity is absent from ") + key());
+
+		// extract
+		uint256 lRequestId;
+		std::string lName;
+		entity_name_t lLimitedName(lName);
+		(*msg) >> lRequestId;
+		(*msg) >> lLimitedName;
+		eraseInData(msg);
+
+		IReplyHandlerPtr lHandler = locateRequest(lRequestId);
+		if (lHandler) {
+			ReplyHelper::to<ILoadEntityHandler>(lHandler)->handleReply(nullptr);
+			removeRequest(lRequestId);
+		} else {
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: request was NOT FOUND, ") + strprintf("r = %s", lRequestId.toHex()) + std::string("..."));
+		}
+		
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: entity is absent - ") + strprintf("'%s'", lName));
+
+	} else {
+		// log
+		gLog().write(Log::NET, "[peer/processTransactionAbsent/error]: closing session " + key() + " -> " + error.message());
+		//
+		socketStatus_ = ERROR;
+		// try to deactivate peer
+		peerManager_->deactivatePeer(shared_from_this());
+		// close socket
+		socket_->close();
+	}
+}
+
+void Peer::processEntity(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
+	//
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: checksum is INVALID for message from ") + key());
+	if (!error && lMsgValid) {
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing response entity from ") + key());
+
+		// extract
+		uint256 lRequestId;
+		TransactionPtr lTx;
+
+		(*msg) >> lRequestId;
+		lTx = Transaction::Deserializer::deserialize<DataStream>(*msg);
+
+		// log
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing entity ") + strprintf("r = %s, %s", lRequestId.toHex(), lTx->id().toHex()) + std::string("..."));
+
+		IReplyHandlerPtr lHandler = locateRequest(lRequestId);
+		if (lHandler) {
+			ReplyHelper::to<ILoadEntityHandler>(lHandler)->handleReply(TransactionHelper::to<Entity>(lTx));
+			removeRequest(lRequestId);
+		} else {
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: request was NOT FOUND for entity ") + strprintf("r = %s, %s", lRequestId.toHex(), lTx->id().toHex()) + std::string("..."));
+		}
+
+		// WARNING: in case of async_read for large data
+		waitForMessage();
+	} else {
+		// log
+		gLog().write(Log::NET, "[peer/processTransactionData/error]: closing session " + key() + " -> " + error.message());
+		//
+		socketStatus_ = ERROR;
+		// try to deactivate peer
+		peerManager_->deactivatePeer(shared_from_this());
+		// close socket
+		socket_->close();
+	}
+}
+
+void Peer::processGetUtxoByAddress(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
+	//
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: checksum is INVALID for message from ") + key());
+	if (!error && lMsgValid) {
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing request for utxo by address from ") + key());
+
+		// extract
+		uint256 lRequestId;
+		PKey lPKey;
+		uint256 lChain;
+		(*msg) >> lRequestId;
+		(*msg) >> lPKey;
+		(*msg) >> lChain;
+		eraseInData(msg);
+
+		// with assets
+		ITransactionStorePtr lStore = peerManager_->consensusManager()->storeManager()->locate(lChain);
+		std::vector<Transaction::NetworkUnlinkedOut> lOuts;
+
+		lStore->selectUtxoByAddress(lPKey, lOuts);
+
+		// make message, serialize, send back
+		std::list<DataStream>::iterator lMsg = newOutMessage();
+
+		// fill data
+		DataStream lStream(SER_NETWORK, CLIENT_VERSION);
+		lStream << lRequestId;
+		lStream << lPKey;
+		lStream << lChain;
+		lStream << lOuts;
+
+		// prepare message
+		Message lMessage(Message::UTXO_BY_ADDRESS, lStream.size(), Hash160(lStream.begin(), lStream.end()));
+		(*lMsg) << lMessage;
+		lMsg->write(lStream.data(), lStream.size());
+
+		// log
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: sending utxo by address ") + strprintf("count = %d, address = %s", lOuts.size(), lPKey.toString()) + std::string(" for ") + key());
+
+		// write
+		boost::asio::async_write(*socket_,
+			boost::asio::buffer(lMsg->data(), lMsg->size()),
+			boost::bind(
+				&Peer::messageFinalize, shared_from_this(), lMsg,
+				boost::asio::placeholders::error));
+	} else {
+		// log
+		gLog().write(Log::NET, "[peer/processGetUtxoByAddress/error]: closing session " + key() + " -> " + error.message());
+		//
+		socketStatus_ = ERROR;
+		// try to deactivate peer
+		peerManager_->deactivatePeer(shared_from_this());
+		// close socket
+		socket_->close();
+	}
+}
+
+void Peer::processGetUtxoByAddressAndAsset(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
+	//
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: checksum is INVALID for message from ") + key());
+	if (!error && lMsgValid) {
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing request for utxo by address and asset from ") + key());
+
+		// extract
+		uint256 lRequestId;
+		PKey lPKey;
+		uint256 lChain;
+		uint256 lAsset;
+		(*msg) >> lRequestId;
+		(*msg) >> lPKey;
+		(*msg) >> lChain;
+		(*msg) >> lAsset;
+		eraseInData(msg);
+
+		// with assets
+		ITransactionStorePtr lStore = peerManager_->consensusManager()->storeManager()->locate(lChain);
+		std::vector<Transaction::NetworkUnlinkedOut> lOuts;
+
+		lStore->selectUtxoByAddressAndAsset(lPKey, lAsset, lOuts);
+
+		// make message, serialize, send back
+		std::list<DataStream>::iterator lMsg = newOutMessage();
+
+		// fill data
+		DataStream lStream(SER_NETWORK, CLIENT_VERSION);
+		lStream << lRequestId;
+		lStream << lPKey;
+		lStream << lChain;
+		lStream << lAsset;
+		lStream << lOuts;
+
+		// prepare message
+		Message lMessage(Message::UTXO_BY_ADDRESS_AND_ASSET, lStream.size(), Hash160(lStream.begin(), lStream.end()));
+		(*lMsg) << lMessage;
+		lMsg->write(lStream.data(), lStream.size());
+
+		// log
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: sending utxo by address and asset ") + strprintf("count = %d, address = %s, asset = %s", lOuts.size(), lPKey.toString(), lAsset.toHex()) + std::string(" for ") + key());
+
+		// write
+		boost::asio::async_write(*socket_,
+			boost::asio::buffer(lMsg->data(), lMsg->size()),
+			boost::bind(
+				&Peer::messageFinalize, shared_from_this(), lMsg,
+				boost::asio::placeholders::error));
+	} else {
+		// log
+		gLog().write(Log::NET, "[peer/processGetUtxoByAddressAndAsset/error]: closing session " + key() + " -> " + error.message());
+		//
+		socketStatus_ = ERROR;
+		// try to deactivate peer
+		peerManager_->deactivatePeer(shared_from_this());
+		// close socket
+		socket_->close();
+	}
+}
+
+void Peer::processGetUtxoByTransaction(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
+	//
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: checksum is INVALID for message from ") + key());
+	if (!error && lMsgValid) {
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing request for utxo by transaction from ") + key());
+
+		// extract
+		uint256 lRequestId;
+		uint256 lChain;
+		uint256 lTx;
+		(*msg) >> lRequestId;
+		(*msg) >> lChain;
+		(*msg) >> lTx;
+		eraseInData(msg);
+
+		// with assets - only mainchain
+		ITransactionStorePtr lStore = peerManager_->consensusManager()->storeManager()->locate(lChain);
+		std::vector<Transaction::NetworkUnlinkedOut> lOuts;
+
+		lStore->selectUtxoByTransaction(lTx, lOuts);
+
+		// make message, serialize, send back
+		std::list<DataStream>::iterator lMsg = newOutMessage();
+
+		// fill data
+		DataStream lStream(SER_NETWORK, CLIENT_VERSION);
+		lStream << lRequestId;
+		lStream << lChain;
+		lStream << lTx;
+		lStream << lOuts;
+
+		// prepare message
+		Message lMessage(Message::UTXO_BY_ADDRESS_AND_ASSET, lStream.size(), Hash160(lStream.begin(), lStream.end()));
+		(*lMsg) << lMessage;
+		lMsg->write(lStream.data(), lStream.size());
+
+		// log
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: sending utxo by transaction ") + strprintf("count = %d, tx = %s", lOuts.size(), lTx.toHex()) + std::string(" for ") + key());
+
+		// write
+		boost::asio::async_write(*socket_,
+			boost::asio::buffer(lMsg->data(), lMsg->size()),
+			boost::bind(
+				&Peer::messageFinalize, shared_from_this(), lMsg,
+				boost::asio::placeholders::error));
+	} else {
+		// log
+		gLog().write(Log::NET, "[peer/processGetUtxoByTransaction/error]: closing session " + key() + " -> " + error.message());
+		//
+		socketStatus_ = ERROR;
+		// try to deactivate peer
+		peerManager_->deactivatePeer(shared_from_this());
+		// close socket
+		socket_->close();
+	}
+}
+
+void Peer::processUtxoByAddress(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
+	//
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: checksum is INVALID for message from ") + key());
+	if (!error && lMsgValid) {
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing response utxo by address from ") + key());
+
+		// extract
+		uint256 lRequestId;
+		PKey lPKey;
+		uint256 lChain;
+		std::vector<Transaction::NetworkUnlinkedOut> lOuts;
+
+		(*msg) >> lRequestId;
+		(*msg) >> lPKey;
+		(*msg) >> lChain;
+		(*msg) >> lOuts;
+
+		// log
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing utxo by address ") + strprintf("r = %s, %d/%s", lRequestId.toHex(), lOuts.size(), lPKey.toString()) + std::string("..."));
+
+		IReplyHandlerPtr lHandler = locateRequest(lRequestId);
+		if (lHandler) {
+			ReplyHelper::to<ISelectUtxoByAddressHandler>(lHandler)->handleReply(lOuts, lPKey);
+			removeRequest(lRequestId);
+		} else {
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: request was NOT FOUND for utxo by address ") + strprintf("r = %s, %s", lRequestId.toHex(), lPKey.toString()) + std::string("..."));
+		}
+
+		// WARNING: in case of async_read for large data
+		waitForMessage();
+	} else {
+		// log
+		gLog().write(Log::NET, "[peer/processUtxoByAddress/error]: closing session " + key() + " -> " + error.message());
+		//
+		socketStatus_ = ERROR;
+		// try to deactivate peer
+		peerManager_->deactivatePeer(shared_from_this());
+		// close socket
+		socket_->close();
+	}
+}
+
+void Peer::processUtxoByAddressAndAsset(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
+	//
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: checksum is INVALID for message from ") + key());
+	if (!error && lMsgValid) {
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing response utxo by address and asset from ") + key());
+
+		// extract
+		uint256 lRequestId;
+		PKey lPKey;
+		uint256 lChain;
+		uint256 lAsset;
+		std::vector<Transaction::NetworkUnlinkedOut> lOuts;
+
+		(*msg) >> lRequestId;
+		(*msg) >> lPKey;
+		(*msg) >> lChain;
+		(*msg) >> lAsset;		
+		(*msg) >> lOuts;
+
+		// log
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing utxo by address and asset ") + strprintf("r = %s, %d/%s/%s", lRequestId.toHex(), lOuts.size(), lPKey.toString(), lAsset.toHex()) + std::string("..."));
+
+		IReplyHandlerPtr lHandler = locateRequest(lRequestId);
+		if (lHandler) {
+			ReplyHelper::to<ISelectUtxoByAddressAndAssetHandler>(lHandler)->handleReply(lOuts, lPKey, lAsset);
+			removeRequest(lRequestId);
+		} else {
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: request was NOT FOUND for utxo by asset ") + strprintf("r = %s, %s", lRequestId.toHex(), lAsset.toHex()) + std::string("..."));
+		}
+
+		// WARNING: in case of async_read for large data
+		waitForMessage();
+	} else {
+		// log
+		gLog().write(Log::NET, "[peer/processUtxoByAddressAndAsset/error]: closing session " + key() + " -> " + error.message());
+		//
+		socketStatus_ = ERROR;
+		// try to deactivate peer
+		peerManager_->deactivatePeer(shared_from_this());
+		// close socket
+		socket_->close();
+	}
+}
+
+void Peer::processUtxoByTransaction(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
+	//
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: checksum is INVALID for message from ") + key());
+	if (!error && lMsgValid) {
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing response utxo by transaction from ") + key());
+
+		// extract
+		uint256 lRequestId;
+		uint256 lChain;
+		uint256 lTx;
+		std::vector<Transaction::NetworkUnlinkedOut> lOuts;
+
+		(*msg) >> lRequestId;
+		(*msg) >> lChain;
+		(*msg) >> lTx;		
+		(*msg) >> lOuts;
+
+		// log
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing utxo by transaction ") + strprintf("r = %s, %d/%s", lRequestId.toHex(), lOuts.size(), lTx.toHex()) + std::string("..."));
+
+		IReplyHandlerPtr lHandler = locateRequest(lRequestId);
+		if (lHandler) {
+			ReplyHelper::to<ISelectUtxoByTransactionHandler>(lHandler)->handleReply(lOuts, lTx);
+			removeRequest(lRequestId);
+		} else {
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: request was NOT FOUND for utxo by tx ") + strprintf("r = %s, %s", lRequestId.toHex(), lTx.toHex()) + std::string("..."));
+		}
+
+		// WARNING: in case of async_read for large data
+		waitForMessage();
+	} else {
+		// log
+		gLog().write(Log::NET, "[peer/processUtxoByTransaction/error]: closing session " + key() + " -> " + error.message());
+		//
+		socketStatus_ = ERROR;
+		// try to deactivate peer
+		peerManager_->deactivatePeer(shared_from_this());
+		// close socket
+		socket_->close();
 	}
 }
 
@@ -1747,24 +2627,34 @@ void Peer::processTransaction(std::list<DataStream>::iterator msg, const boost::
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: process transaction from ") + key() + " -> " + 
 				strprintf("%s/%s#", lTx->id().toHex(), lTx->chain().toHex().substr(0, 10)));
 
-		IMemoryPoolPtr lMempool = peerManager_->consensusManager()->mempoolManager()->locate(lTx->chain());
-		if (lMempool) {
-			//
-			TransactionContextPtr lCtx = lMempool->pushTransaction(lTx);
-			if (!lCtx) {
-				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: transaction is ALREADY exists ") + 
-						strprintf("%s/%s#", lTx->id().toHex(), lTx->chain().toHex().substr(0, 10)));
-			} else if (lCtx->errors().size()) {
-				for (std::list<std::string>::iterator lErr = lCtx->errors().begin(); lErr != lCtx->errors().end(); lErr++) {
-					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: transaction processing ERROR - ") + (*lErr) +
-							strprintf(" -> %s/%s#", lTx->id().toHex(), lTx->chain().toHex().substr(0, 10)));
+		if (peerManager_->settings()->isClient()) {
+			// client-side
+			peerManager_->consensusManager()->processTransaction(lTx);
+		} else {
+			// node-side
+			IMemoryPoolPtr lMempool = peerManager_->consensusManager()->mempoolManager()->locate(lTx->chain());
+			if (lMempool) {
+				//
+				TransactionContextPtr lCtx = lMempool->pushTransaction(lTx);
+				if (!lCtx) {
+					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: transaction is ALREADY exists ") + 
+							strprintf("%s/%s#", lTx->id().toHex(), lTx->chain().toHex().substr(0, 10)));
+				} else if (lCtx->errors().size()) {
+					for (std::list<std::string>::iterator lErr = lCtx->errors().begin(); lErr != lCtx->errors().end(); lErr++) {
+						if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: transaction processing ERROR - ") + (*lErr) +
+								strprintf(" -> %s/%s#", lTx->id().toHex(), lTx->chain().toHex().substr(0, 10)));
+					}
+				} else {
+					// broadcast by nodes and fullnodes
+					peerManager_->consensusManager()->broadcastTransaction(lCtx, addressId());
+
+					// find and broadcast for active clients
+					peerManager_->notifyTransaction(lCtx);
 				}
 			} else {
-				peerManager_->consensusManager()->broadcastTransaction(lCtx, addressId());
+				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: chain is NOT SUPPORTED for ") + 
+						strprintf("%s/%s#", lTx->id().toHex(), lTx->chain().toHex().substr(0, 10)));
 			}
-		} else {
-			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: chain is NOT SUPPORTED for ") + 
-					strprintf("%s/%s#", lTx->id().toHex(), lTx->chain().toHex().substr(0, 10)));
 		}
 
 		// WARNING: in case of async_read for large data
@@ -2094,6 +2984,19 @@ void Peer::processState(std::list<DataStream>::iterator msg, bool broadcast, con
 				(*lMsg) << lMessage;
 
 				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: peer banned ") + key());
+
+				boost::asio::async_write(*socket_,
+					boost::asio::buffer(lMsg->data(), lMsg->size()),
+					boost::bind(
+						&Peer::peerFinalize, shared_from_this(), lMsg,
+						boost::asio::placeholders::error));
+			} else if (lPeerResult == IPeer::SESSIONS_EXCEEDED) {
+				Message lMessage(Message::CLIENT_SESSIONS_EXCEEDED, sizeof(uint64_t), uint160());
+				std::list<DataStream>::iterator lMsg = newOutMessage();
+
+				(*lMsg) << lMessage;
+
+				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: node overloaded ") + key());
 
 				boost::asio::async_write(*socket_,
 					boost::asio::buffer(lMsg->data(), lMsg->size()),

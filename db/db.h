@@ -446,7 +446,7 @@ public:
 		return TwoKeyContainer::Iterator(k1, Container<TwoKey<key1, key2>, value, impl>::find(TwoKey<key1, key2>(k1, key2()))); 
 	}
 
-	inline Iterator find(const key1& k1, const key1& k2) {
+	inline Iterator find(const key1& k1, const key2& k2) {
 		return TwoKeyContainer::Iterator(k1, k2, Container<TwoKey<key1, key2>, value, impl>::find(TwoKey<key1, key2>(k1, k2))); 
 	}
 
@@ -611,11 +611,11 @@ public:
 		return ThreeKeyContainer::Iterator(k1, Container<ThreeKey<key1, key2, key3>, value, impl>::find(ThreeKey<key1, key2, key3>(k1, key2(), key3()))); 
 	}
 
-	inline Iterator find(const key1& k1, const key1& k2) {
+	inline Iterator find(const key1& k1, const key2& k2) {
 		return ThreeKeyContainer::Iterator(k1, k2, Container<ThreeKey<key1, key2, key3>, value, impl>::find(ThreeKey<key1, key2, key3>(k1, k2, key3()))); 
 	}
 
-	inline Iterator find(const key1& k1, const key1& k2, const key1& k3) {
+	inline Iterator find(const key1& k1, const key2& k2, const key3& k3) {
 		return ThreeKeyContainer::Iterator(k1, k2, k3, Container<ThreeKey<key1, key2, key3>, value, impl>::find(ThreeKey<key1, key2, key3>(k1, k2, k3))); 
 	}
 

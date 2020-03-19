@@ -44,9 +44,25 @@ public:
 
 	virtual boost::asio::io_context& getContext(int /*id*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::getContext - not implemented."); }
 	virtual int getContextId() { throw qbit::exception("NOT_IMPL", "IPeerManager::getContextId - not implemented."); }
+
+	// client facade
+	virtual void notifyTransaction(TransactionContextPtr /*ctx*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::notifyTransaction - not implemented."); }
 };
 
 typedef std::shared_ptr<IPeerManager> IPeerManagerPtr;
+
+//
+class PeerExtensionCreator {
+public:
+	PeerExtensionCreator() {}
+	virtual IPeerExtensionPtr create(IPeerPtr /*peer*/, IPeerManagerPtr /*peerManager*/) { return nullptr; }
+};
+
+typedef std::shared_ptr<PeerExtensionCreator> PeerExtensionCreatorPtr;
+
+//
+typedef std::map<std::string/*dapp name*/, PeerExtensionCreatorPtr> PeerExtensions;
+extern PeerExtensions gPeerExtensions; // TODO: init on startup
 
 } // qbit
 

@@ -24,18 +24,18 @@ public:
 
 	template<typename Stream> void serialize(Stream& s) {
 		shard_name_t lName(shortName_);
-		lName.Serialize(s);
+		lName.serialize(s);
 		
 		shard_description_t lDescription(longName_);
-		lDescription.Serialize(s);
+		lDescription.serialize(s);
 	}
 	
 	inline void deserialize(DataStream& s) {
 		shard_name_t lName(shortName_);
-		lName.Deserialize(s);
+		lName.deserialize(s);
 
 		shard_description_t lDescription(longName_);
-		lDescription.Deserialize(s);
+		lDescription.deserialize(s);
 	}
 
 	inline std::string& shortName() { return shortName_; }

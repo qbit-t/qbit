@@ -19,11 +19,23 @@ namespace qbit {
 
 class IWallet {
 public:
+	enum Status {
+		UNKNOWN = 0,
+		OPENED = 1,
+		CACHE_NOT_READY = 2,
+		TX_INFO_NOT_FOUND = 3,
+		FETCHING_UTXO = 4,
+		FETCHING_TXS = 5
+	};
+
+public:
 	IWallet() {}
 
 	virtual bool open() { throw qbit::exception("NOT_IMPL", "IWallet::open - not implemented."); }
 	virtual bool close() { throw qbit::exception("NOT_IMPL", "IWallet::close - not implemented."); }
 	virtual bool isOpened() { throw qbit::exception("NOT_IMPL", "IWallet::isOpened - not implemented."); }
+
+	virtual IWallet::Status status() { throw qbit::exception("NOT_IMPL", "IWallet::Status - not implemented."); }
 
 	virtual void cleanUpData() { throw qbit::exception("NOT_IMPL", "IWallet::cleanUpData - not implemented."); }
 
@@ -46,7 +58,7 @@ public:
 
 	// try to find utxo by asset with amount >=
 	virtual Transaction::UnlinkedOutPtr findUnlinkedOutByAsset(const uint256&, amount_t) { throw qbit::exception("NOT_IMPL", "IWallet::findUnlinkedOutByAsset - not implemented."); }
-	virtual std::list<Transaction::UnlinkedOutPtr> collectUnlinkedOutsByAsset(const uint256&, amount_t) { throw qbit::exception("NOT_IMPL", "IWallet::collectUnlinkedOutsByAsset - not implemented."); }
+	virtual void collectUnlinkedOutsByAsset(const uint256&, amount_t, std::list<Transaction::UnlinkedOutPtr>&) { throw qbit::exception("NOT_IMPL", "IWallet::collectUnlinkedOutsByAsset - not implemented."); }
 
 	// clean-up assets utxo
 	virtual void cleanUp() { throw qbit::exception("NOT_IMPL", "IWallet::cleanUp - not implemented."); }
@@ -108,6 +120,8 @@ public:
 
 	virtual amount_t fillInputs(TxSpendPtr /*tx*/, const uint256& /*asset*/, amount_t /*amount*/) { throw qbit::exception("NOT_IMPL", "IWallet::fillInputs - Not implemented."); }
 	virtual void writePendingTransaction(const uint256& /*id*/, TransactionPtr /*tx*/) { throw qbit::exception("NOT_IMPL", "IWallet::writePendingTransaction - Not implemented."); }
+
+	virtual TransactionContextPtr processTransaction(TransactionPtr) { throw qbit::exception("NOT_IMPL", "IWallet::processTransaction - Not implemented."); }
 };
 
 typedef std::shared_ptr<IWallet> IWalletPtr;

@@ -50,13 +50,16 @@ public:
 		}
 	}
 
-	void push(const uint256& chain) {
+	IConsensusPtr push(const uint256& chain) {
 		//
 		boost::unique_lock<boost::mutex> lLock(consensusesMutex_);
 		if (consensuses_.find(chain) == consensuses_.end()) {
 			IConsensusPtr lConsensus = Consensus::instance(chain, shared_from_this(), settings_, wallet_, storeManager_->locate(chain));
 			consensuses_[chain] = lConsensus;
+			return lConsensus;
 		}
+
+		return nullptr;
 	}
 
 	std::vector<IConsensusPtr> consensuses() {
@@ -70,28 +73,6 @@ public:
 
 		return lConsensuses;
 	}
-
-	/*
-	void setMedianTime(uint64_t time) {
-		//
-		medianTime_ = time;
-	}
-
-	uint64_t medianTime() {
-		if (!medianTime_) return qbit::getTime();
-		return medianTime_;
-	}
-
-	void setMedianMicroseconds(uint64_t microseconds) {
-		//
-		medianMicroseconds_ = microseconds;
-	}
-
-	uint64_t medianMicroseconds() {
-		if (!medianMicroseconds_) return qbit::getMicroseconds();
-		return medianMicroseconds_;
-	}
-	*/
 
 	//
 	// collect current state
@@ -111,7 +92,7 @@ public:
 				BlockHeader lHeader;
 				uint64_t lHeight = lStore->currentHeight(lHeader);
 				if (!lHeight) lHeader.setChain(lStore->chain());
-				lState->addHeader(lHeader, lHeight);
+				lState->addHeader(lHeader, lHeight, lConsensus->second->dApp());
 			}
 		}
 
@@ -124,7 +105,7 @@ public:
 
 	//
 	// use peer for network participation
-	void pushPeer(IPeerPtr peer) {
+	bool pushPeer(IPeerPtr peer) {
 		//
 		std::map<uint256, IConsensusPtr> lConsensuses;
 		{
@@ -163,6 +144,8 @@ public:
 			// update latency
 			latencyMap_.insert(LatencyMap::value_type(peer->latency(), peer));
 		}
+
+		return true;
 	}
 
 	//
@@ -430,11 +413,6 @@ private:
 	IWalletPtr wallet_;
 	ITransactionStoreManagerPtr storeManager_;
 	IValidatorManagerPtr validatorManager_;
-
-	/*
-	std::atomic<uint64_t> medianTime_;
-	std::atomic<uint64_t> medianMicroseconds_;
-	*/
 
 	typedef uint160 peer_t;
 

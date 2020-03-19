@@ -9,6 +9,8 @@
 
 namespace qbit {
 
+typedef LimitedString<64>  entity_name_t;
+
 class Entity : public TxSpend {
 public:
 	inline static std::string emptyName() { return "_e_"; }

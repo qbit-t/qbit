@@ -10,7 +10,8 @@
 
 using namespace qbit;
 
-HttpRequestHandler::HttpRequestHandler(ISettingsPtr settings, IWalletPtr wallet) : settings_(settings), wallet_(wallet) {
+HttpRequestHandler::HttpRequestHandler(ISettingsPtr settings, IWalletPtr wallet, IPeerManagerPtr peerManager): 
+	settings_(settings), wallet_(wallet), peerManager_(peerManager) {
 }
 
 void HttpRequestHandler::handleRequest(const std::string& endpoint, const HttpRequest& request, HttpReply& reply) {

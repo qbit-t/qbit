@@ -24,6 +24,11 @@ public:
 		chain_(chain), consensusManager_(consensusManager), settings_(settings), wallet_(wallet), store_(store) { chainState_ = IConsensus::UNDEFINED; }
 
 	//
+	//
+	void setDApp(const std::string& name) { dApp_ = name; }
+	std::string dApp() { return	dApp_; }
+
+	//
 	// max block size
 	size_t maxBlockSize() { return 1024 * 1024 * 1; }
 
@@ -70,13 +75,17 @@ public:
 
 	//
 	// maturity period (blocks)
-	// TODO: settings
-	virtual size_t maturity() { return 5; }	
+	virtual size_t maturity() {
+		// TODO: select from settings by dApp_ if dapp != "" || dapp_ != "none"
+		return settings_->mainChainMaturity(); 
+	}
 
 	//
 	// coinbase maturity period (blocks)
-	// TODO: settings
-	virtual size_t coinbaseMaturity() { return 5; }	
+	virtual size_t coinbaseMaturity() {
+		// TODO: select from settings by dApp_ if dapp != "" || dapp_ != "none"
+		return settings_->mainChainCoinbaseMaturity(); 
+	}
 
 	//
 	// mining/emission schedule control
@@ -814,6 +823,7 @@ public:
 	}	
 
 private:
+	std::string dApp_;
 	uint256 chain_;
 	ISettingsPtr settings_;
 	IWalletPtr wallet_;

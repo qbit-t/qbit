@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef QBIT_TRANSACTION_STORE_EXTENSION_H
-#define QBIT_TRANSACTION_STORE_EXTENSION_H
+#ifndef QBIT_BUZZER_TRANSACTION_STORE_EXTENSION_H
+#define QBIT_BUZZER_TRANSACTION_STORE_EXTENSION_H
 
 #include "../../transaction.h"
 #include "../../block.h"

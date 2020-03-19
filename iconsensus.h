@@ -103,6 +103,9 @@ public:
 	virtual void collectPeers(std::map<uint160, IPeerPtr>& /*peers*/) { throw qbit::exception("NOT_IMPL", "IConsensus::collectPeers - not implemented."); }
 
 	virtual IConsensusManagerPtr consensusManager() { throw qbit::exception("NOT_IMPL", "IConsensus::consensusManager - not implemented."); }
+
+	virtual void setDApp(const std::string& /*name*/) { throw qbit::exception("NOT_IMPL", "IConsensus::setDApp - not implemented."); }
+	virtual std::string dApp() { throw qbit::exception("NOT_IMPL", "IConsensus::dApp - not implemented."); }
 };
 
 typedef std::shared_ptr<IConsensus> IConsensusPtr;

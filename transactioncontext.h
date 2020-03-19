@@ -33,12 +33,14 @@ public:
 
 	inline TransactionPtr tx() { return tx_; }
 
-	inline std::vector<PKey>& addresses() { return addresses_; }
+	inline std::set<PKey>& addresses() { return addresses_; }
+	inline std::set<PKey>& outAddresses() { return outAddresses_; }
 	inline std::list<std::string>& errors() { return errors_; }
 	inline std::list<Transaction::UnlinkedOutPtr>& usedUtxo() { return usedUtxo_; }
 	inline std::list<Transaction::UnlinkedOutPtr>& newUtxo() { return newUtxo_; }
 	inline std::list<TransactionContextPtr>& linkedTxs() { return linkedTxs_; }
-	inline void addAddress(const PKey& key) { addresses_.push_back(key); }
+	inline void addAddress(const PKey& key) { addresses_.insert(key); }
+	inline void addOutAddress(const PKey& key) { outAddresses_.insert(key); }
 	inline void addError(const std::string& error) { errors_.push_back(error); }
 	inline void addLinkedTx(TransactionContextPtr tx) { linkedTxs_.push_back(tx); }
 	inline std::set<uint256>& crossLinks() { return crossLinks_; }
@@ -95,7 +97,9 @@ public:
 private:
 	TransactionPtr tx_;
 	// in-addresses
-	std::vector<PKey> addresses_;
+	std::set<PKey> addresses_;
+	// out-addresses
+	std::set<PKey> outAddresses_;
 	// errors
 	std::list<std::string> errors_;
 	// commit in group

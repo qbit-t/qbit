@@ -198,6 +198,17 @@ public:
 			return freeUtxo_.find(utxo) != freeUtxo_.end() /*|| usedUtxo_.find(utxo) != usedUtxo_.end()*/;
 		}
 
+		bool transactionHeight(const uint256& tx, uint64_t& height, uint64_t& confirms, bool& coinbase) {
+			if (tx_.find(tx) != tx_.end()) return false;
+
+			if (!pool_->persistentStore()->transactionHeight(tx, height, confirms, coinbase)) {
+				if (pool_->persistentMainStore()) return pool_->persistentStore()->transactionHeight(tx, height, confirms, coinbase);
+				else return false;
+			}
+			
+			return true;
+		}
+
 		static std::shared_ptr<PoolStore> toStore(ITransactionStorePtr store) { return std::static_pointer_cast<PoolStore>(store); }
 
 		uint256 chain() { return pool_->chain(); }

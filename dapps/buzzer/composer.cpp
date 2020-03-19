@@ -85,6 +85,10 @@ TransactionContextPtr BuzzerComposer::createTxBuzzer(const PKey& self, const std
 	lBuzzerTx->addBuzzerOut(lSKey, self);
 	// for subscriptions
 	lBuzzerTx->addBuzzerSubscriptionOut(lSKey, self);
+	// endorse
+	lBuzzerTx->addBuzzerEndorseOut(lSKey, self);
+	// mistrust
+	lBuzzerTx->addBuzzerMistrustOut(lSKey, self);
 
 	// make inputs
 	std::vector<Transaction::UnlinkedOutPtr> lUtxos;
@@ -244,10 +248,14 @@ TransactionContextPtr BuzzerComposer::createTxBuzz(const PKey& self, const std::
 
 				// out[0] - buzzer utxo for new buzz
 				lBuzzTx->addBuzzerIn(lSKey, *(lMyBuzzerUtxos.begin())); // first out
-				// make buzz out (reply\buzz-twister)
-				lBuzzTx->addBuzzOut(lSKey, self); // out[0]
-				// public linkage
-				lBuzzTx->addBuzzPublicOut(lSKey, self); // out[1]
+				// reply out
+				lBuzzTx->addBuzzReplyOut(lSKey, self); // out[0]
+				// re-buzz out
+				lBuzzTx->addReBuzzOut(lSKey, self); // out[1]
+				// like out
+				lBuzzTx->addBuzzLikeOut(lSKey, self); // out[2]
+				// pin out
+				lBuzzTx->addBuzzPinOut(lSKey, self); // out[3]
 
 				// prepare fee tx
 				amount_t lFeeAmount = lCtx->size();

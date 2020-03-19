@@ -70,15 +70,38 @@ TransactionAction::Result TxCoinBaseVerify::execute(TransactionContextPtr wrappe
 TransactionAction::Result TxSpendVerify::execute(TransactionContextPtr wrapper, ITransactionStorePtr store, IWalletPtr wallet, IEntityStorePtr entityStore) {
 	//
 	// all transaction types _must_ pass through this checker
-	if (true /*wrapper->tx()->type() != Transaction::COINBASE && wrapper->tx()->type() != Transaction::BASE &&
-		wrapper->tx()->type() != Transaction::BLOCKBASE*/) {
-
+	{
 		uint32_t lIdx = 0;
 		std::vector<Transaction::In>& lIns = wrapper->tx()->in();
 		for(std::vector<Transaction::In>::iterator lInPtr = lIns.begin(); lInPtr != lIns.end(); lInPtr++, lIdx++) {
-
+			//
+			TransactionPtr lInTx = nullptr;
 			Transaction::In& lIn = (*lInPtr);
-			TransactionPtr lInTx = store->locateTransaction(lIn.out().tx());
+			uint64_t lHeight;
+			uint64_t lConfirms;
+			bool lCoinbase;
+
+			// if 'in' in the storage already (commited to the block) - we check conditions
+			// otherwise we just pass - origin tx is in the mempool and it is not coinbase
+			if (store->transactionHeight(lIn.out().tx(), lHeight, lConfirms, lCoinbase)) {
+				// check maturity
+				if (lCoinbase && lConfirms < wallet->mempoolManager()->locate(lIn.out().chain())->consensus()->coinbaseMaturity()) {
+					std::string lError = strprintf("coinbase tx is not MATURE %d/%s", lConfirms, lIn.out().tx().toHex());
+					gLog().write(Log::ERROR, std::string("[TxSpendVerify]: ") + lError);
+					wrapper->tx()->setStatus(Transaction::DECLINED);
+					wrapper->addError(lError);
+					return TransactionAction::ERROR;
+				} else if (!lCoinbase && lConfirms < wallet->mempoolManager()->locate(lIn.out().chain())->consensus()->maturity()) {
+					std::string lError = strprintf("tx is not MATURE %d/%s", lConfirms, lIn.out().tx().toHex());
+					gLog().write(Log::ERROR, std::string("[TxSpendVerify]: ") + lError);
+					wrapper->tx()->setStatus(Transaction::DECLINED);
+					wrapper->addError(lError);
+					return TransactionAction::ERROR;
+				}
+			}
+
+			lInTx = store->locateTransaction(lIn.out().tx());
+			
 			if (lInTx != nullptr) {
 
 				// sanity
@@ -190,8 +213,7 @@ TransactionAction::Result TxSpendVerify::execute(TransactionContextPtr wrapper, 
 TransactionAction::Result TxSpendOutVerify::execute(TransactionContextPtr wrapper, ITransactionStorePtr store, IWalletPtr wallet, IEntityStorePtr entityStore) {
 	//
 	// all transaction types _must_ pass through this checker
-	if (/*wrapper->tx()->type() != Transaction::COINBASE && wrapper->tx()->type() != Transaction::BASE &&
-		wrapper->tx()->type() == Transaction::BLOCKBASE && */ wrapper->tx()->type() != Transaction::ASSET_TYPE) {
+	if (wrapper->tx()->type() != Transaction::ASSET_TYPE) {
 
 		uint32_t lIdx = 0;
 		std::vector<Transaction::Out>& lOuts = wrapper->tx()->out();
@@ -265,8 +287,7 @@ TransactionAction::Result TxSpendOutVerify::execute(TransactionContextPtr wrappe
 TransactionAction::Result TxBalanceVerify::execute(TransactionContextPtr wrapper, ITransactionStorePtr store, IWalletPtr wallet, IEntityStorePtr entityStore) {
 	//
 	// all transaction types _must_ pass through this checker
-	if (true/*wrapper->tx()->type() != Transaction::COINBASE && wrapper->tx()->type() != Transaction::BASE &&
-		wrapper->tx()->type() != Transaction::BLOCKBASE*/) {
+	{
 
 		ContextPtr lContext = Context::instance();
 		for(TransactionContext::_commitMap::iterator lInPtr = wrapper->commitIn().begin(); lInPtr != wrapper->commitIn().end(); lInPtr++) {

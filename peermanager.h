@@ -17,6 +17,7 @@
 #include <boost/chrono.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
+#include <boost/range/algorithm.hpp>
 
 namespace qbit {
 
@@ -107,6 +108,10 @@ public:
 		return std::make_shared<PeerManager>(settings, consensusManager, mempoolManager); 
 	}
 
+	static IPeerManagerPtr instance(ISettingsPtr settings, IConsensusManagerPtr consensusManager) { 
+		return std::make_shared<PeerManager>(settings, consensusManager, nullptr); 
+	}
+
 	bool updatePeerLatency(IPeerPtr peer, uint32_t latency) {
 		//
 		IPeerPtr lPeer = peer;
@@ -179,7 +184,7 @@ public:
 		// sanity check
 		StatePtr lOwnState = consensusManager()->currentState();
 		if (lOwnState->address().id() == state.address().id()) {
-			gLog().write(Log::NET, std::string("[peerManager]: self connection ") + lOwnState->address().id().toHex() + " / " + state.address().id().toHex());
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: self connection ") + lOwnState->address().id().toHex() + " / " + state.address().id().toHex());
 			ban(peer);
 			peerResult = IPeer::BAN;
 			return false;
@@ -187,6 +192,15 @@ public:
 
 		//
 		IPeerPtr lPeer = peer;
+
+		// check
+		if (state.client() && lOwnState->nodeOrFullNode()) {
+			// WARNING: clients_.size() is relatively thread safe
+			if (clients_.size() > settings_->clientSessionsLimit()) {
+				peerResult = IPeer::SESSIONS_EXCEEDED;
+				return false;
+			}
+		}
 
 		// peer exists
 		if (exists(lPeer->key())) {
@@ -261,6 +275,57 @@ public:
 		return nullptr;
 	}	
 
+	void notifyTransaction(TransactionContextPtr ctx) {
+		//
+		std::set<uint160> lClients;
+		std::map<uint160, std::string> lPeerIdx;
+		{
+			boost::unique_lock<boost::mutex> lLock(peersIdxMutex_);
+			lClients = clients_;
+			lPeerIdx = peerIdx_;
+		}
+
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: try broadcast tx for ") + strprintf("%d addresses", ctx->addresses().size()));
+
+		// traverse addresses for tx
+		std::set<PKey>& lOutAddresses = ctx->outAddresses(); // ref out
+		std::set<PKey>& lInAddresses = ctx->addresses(); // ref in
+		for (std::set<PKey>::iterator lAddress = lOutAddresses.begin(); lAddress != lOutAddresses.end(); lAddress++) {
+			//
+			uint160 lAddressId = lAddress->id();
+			//
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: looking for client ") + strprintf("%s...", lAddressId.toHex()));
+			if (lClients.find(lAddressId) != lClients.end() && lInAddresses.find(*lAddress) == lInAddresses.end()) {
+				//
+				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: found client ") + strprintf("%s", lAddressId.toHex()));
+
+				std::map<uint160, std::string>::iterator lPeerIter = lPeerIdx.find(lAddressId);
+				if (lPeerIter != lPeerIdx.end()) {
+					//
+					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: found client index ") + strprintf("%s", lAddressId.toHex()));
+
+					IPeerPtr lPeer = locate(lPeerIter->second);
+					if (lPeer) {
+						lPeer->broadcastTransaction(ctx); // every direct transaction should be delivered (value)
+					} else {
+						if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: peer NOT found for ") + strprintf("%s", lAddressId.toHex()));
+					}
+				}
+			}	
+		}
+
+		// traverse peers
+		for (std::set<uint160>::iterator lClient = lClients.begin(); lClient != lClients.end(); lClient++) {
+			std::map<uint160, std::string>::iterator lPeerIter = lPeerIdx.find(*lClient);
+			if (lPeerIter != lPeerIdx.end()) {
+				IPeerPtr lPeer = locate(lPeerIter->second);
+				if (lPeer && lPeer->extension()) {
+					lPeer->extension()->processTransaction(ctx); // every direct transaction should be delivered (value)
+				}
+			}
+		}
+	}
+
 	void run() {
 		// open container
 		openPeersContainer();
@@ -307,9 +372,11 @@ public:
 			threads_.push_back(lThread);
 		}
 
-		// wait for all threads in the pool to exit
-		for (std::vector<boost::shared_ptr<boost::thread> >::iterator lThread = threads_.begin(); lThread != threads_.end(); lThread++)
-			(*lThread)->join();
+		if (!settings_->isClient()) {
+			// wait for all threads in the pool to exit
+			for (std::vector<boost::shared_ptr<boost::thread> >::iterator lThread = threads_.begin(); lThread != threads_.end(); lThread++)
+				(*lThread)->join();
+		}
 	}
 
 	void stop() {
@@ -317,19 +384,21 @@ public:
 		for (std::vector<IOContextPtr>::iterator lCtx = contexts_.begin(); lCtx != contexts_.end(); lCtx++)
 			(*lCtx)->stop();
 
-		boost::this_thread::sleep_for(boost::chrono::milliseconds(2000));
+		if (settings_->isClient()) {
+			boost::this_thread::sleep_for(boost::chrono::milliseconds(2000));
 
-		// stop validators
-		gLog().write(Log::INFO, std::string("[peerManager]: stopping validators..."));
-		consensusManager_->validatorManager()->stop();
+			// stop validators
+			gLog().write(Log::INFO, std::string("[peerManager]: stopping validators..."));
+			consensusManager_->validatorManager()->stop();
 
-		// stop storages
-		gLog().write(Log::INFO, std::string("[peerManager]: stopping storages..."));
-		consensusManager_->storeManager()->stop();
+			// stop storages
+			gLog().write(Log::INFO, std::string("[peerManager]: stopping storages..."));
+			consensusManager_->storeManager()->stop();
+		}
 
 		// stop storages
 		gLog().write(Log::INFO, std::string("[peerManager]: closing wallet..."));
-		consensusManager_->wallet()->close();
+		consensusManager_->wallet()->close();		
 	}
 
 	boost::asio::io_context& getContext(int id) {
@@ -356,6 +425,22 @@ public:
 					peers.push_back(*lPeer);
 			}
 		}
+	}
+
+	static void registerPeerExtension(const std::string& dappName, PeerExtensionCreatorPtr extension) {
+		//
+		gPeerExtensions.insert(std::map<std::string /*dapp name*/, PeerExtensionCreatorPtr>::value_type(
+			dappName,
+			extension));
+	}
+
+	PeerExtensionCreatorPtr locateExtensionCreator(const std::string& dappName) {
+		//
+		std::map<std::string /*dapp name*/, PeerExtensionCreatorPtr>::iterator lItem = gPeerExtensions.find(dappName);
+		if (lItem != gPeerExtensions.end())
+			return lItem->second;
+
+		return nullptr;
 	}
 
 private:
@@ -386,7 +471,7 @@ private:
 				gLog().write(Log::ERROR, std::string("[peerManager]: context error -> ") + ex.what());
 			}
 		}
-		gLog().write(Log::NET, std::string("[peerManager]: context stop."));
+		gLog().write(Log::INFO, std::string("[peerManager]: context stop."));
 	}
 
 	void touch(int id, std::shared_ptr<boost::asio::steady_timer> timer, const boost::system::error_code& error) {
@@ -399,7 +484,7 @@ private:
 					lPeerPtr->connect();
 			}
 
-			gLog().write(Log::NET, std::string("[peerManager/touch]: active count = ") + strprintf("%d", active_[id].size()));
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager/touch]: active count = ") + strprintf("%d", active_[id].size()));
 			for (std::set<std::string /*endpoint*/>::iterator lPeer = active_[id].begin(); lPeer != active_[id].end(); lPeer++) {
 				// TODO?
 				peers_[id][*lPeer]->ping();
@@ -421,6 +506,11 @@ public:
 			std::map<uint160, std::string>::iterator lPeerIter = peerIdx_.find(peer->addressId());
 			if (lPeerIter != peerIdx_.end() && lPeerIter->second == peer->key()) {
 				peerIdx_.erase(peer->addressId());
+				if (peer->state().client()) {
+					clients_.erase(peer->addressId());
+					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: removing client ") + strprintf("%s/%s", peer->key(), peer->addressId().toHex()));					
+				}
+
 				lPop = true;
 			}
 		}
@@ -434,13 +524,13 @@ public:
 		}
 
 		// pop from consensus
-		if (lPop) consensusManager_->popPeer(peer);
+		consensusManager_->popPeer(peer);
 
 		// update peers db
 		updatePeer(peer);
 
 		//
-		gLog().write(Log::INFO, std::string("[peerManager]: quarantine peer ") + peer->key());
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::INFO, std::string("[peerManager]: quarantine peer ") + peer->key());
 	}
 
 	void ban(IPeerPtr peer) {
@@ -450,6 +540,11 @@ public:
 			std::map<uint160, std::string>::iterator lPeerIter = peerIdx_.find(peer->addressId());
 			if (lPeerIter != peerIdx_.end() && lPeerIter->second == peer->key()) {
 				peerIdx_.erase(peer->addressId());
+				if (peer->state().client()) {
+					clients_.erase(peer->addressId());
+					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: removing client ") + strprintf("%s/%s", peer->key(), peer->addressId().toHex()));					
+				}
+
 				lPop = true;
 			}
 		}
@@ -464,13 +559,13 @@ public:
 		}
 
 		// pop from consensus
-		if (lPop) consensusManager_->popPeer(peer);
+		consensusManager_->popPeer(peer);
 
 		// update peers db
 		updatePeer(peer);
 
 		//
-		gLog().write(Log::INFO, std::string("[peerManager]: ban peer ") + peer->key());
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::INFO, std::string("[peerManager]: ban peer ") + peer->key());
 	}
 
 	void postpone(IPeerPtr peer) {
@@ -478,13 +573,25 @@ public:
 	}
 
 	bool activate(IPeerPtr peer) {
+		uint160 lAddress = peer->addressId();
 		{
 			boost::unique_lock<boost::mutex> lLock(peersIdxMutex_);
-			uint160 lAddress = peer->addressId();
-			if (peerIdx_.find(lAddress) == peerIdx_.end())
+			if (peerIdx_.find(lAddress) == peerIdx_.end()) {
 				peerIdx_.insert(std::map<uint160, std::string>::value_type(peer->addressId(), peer->key()));
-			else
+				if (peer->state().client()) { 
+					clients_.insert(peer->addressId());
+					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: adding client ") + strprintf("%s/%s", peer->key(), peer->addressId().toHex()));
+					//
+					if (!peer->extension()) {
+						PeerExtensionCreatorPtr lCreator = locateExtensionCreator(peer->state().dApp());
+						if (lCreator) {
+							peer->setExtension(lCreator->create(peer, shared_from_this()));
+						}
+					}
+				}
+			} else {
 				return false;
+			}
 		}
 
 		{
@@ -497,13 +604,16 @@ public:
 		}
 
 		// push to consensus
-		consensusManager_->pushPeer(peer);
+		if (!consensusManager_->pushPeer(peer)) {
+			deactivate(peer);
+			return false;
+		}
 
 		// update peers db
 		updatePeer(peer);
 
 		//
-		gLog().write(Log::INFO, std::string("[peerManager]: activate peer ") + peer->key());
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::INFO, std::string("[peerManager]: activate peer ") + peer->key());
 
 		return true;
 	}
@@ -520,7 +630,7 @@ public:
 		updatePeer(peer);
 
 		//
-		gLog().write(Log::INFO, std::string("[peerManager]: add peer ") + peer->key());
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::INFO, std::string("[peerManager]: add peer ") + peer->key());
 	}
 
 	void pending(IPeerPtr peer) {
@@ -530,6 +640,11 @@ public:
 			std::map<uint160, std::string>::iterator lPeerIter = peerIdx_.find(peer->addressId());
 			if (lPeerIter != peerIdx_.end() && lPeerIter->second == peer->key()) {
 				peerIdx_.erase(peer->addressId());
+				if (peer->state().client()) { 
+					clients_.erase(peer->addressId()); 
+					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: removing client ") + strprintf("%s/%s", peer->key(), peer->addressId().toHex()));
+				}
+
 				lPop = true;
 			}
 		}
@@ -545,24 +660,36 @@ public:
 		}
 
 		// pop from consensus
-		if (lPop) consensusManager_->popPeer(peer);
+		consensusManager_->popPeer(peer);
 
 		// update peers db
 		updatePeer(peer);
 
 		//
-		gLog().write(Log::NET, std::string("[peerManager]: pending state ") + peer->key());
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: pending state ") + peer->key());
 	}
 
 	bool update(IPeerPtr peer) {
 		{
 			boost::unique_lock<boost::mutex> lLock(peersIdxMutex_);
 			uint160 lAddress = peer->addressId();
-			gLog().write(Log::NET, std::string("[peerManager]: updating - ") + strprintf("%s/%s", peer->key(), lAddress.toHex()));
-			if (peerIdx_.find(lAddress) == peerIdx_.end())
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: updating - ") + strprintf("%s/%s", peer->key(), lAddress.toHex()));
+			if (peerIdx_.find(lAddress) == peerIdx_.end()) {
 				peerIdx_.insert(std::map<uint160, std::string>::value_type(peer->addressId(), peer->key()));
-			else
+				if (peer->state().client()) { 
+					clients_.insert(peer->addressId());
+					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: adding client ") + strprintf("%s/%s", peer->key(), peer->addressId().toHex()));
+					//
+					if (!peer->extension()) {
+						PeerExtensionCreatorPtr lCreator = locateExtensionCreator(peer->state().dApp());
+						if (lCreator) {
+							peer->setExtension(lCreator->create(peer, shared_from_this()));
+						}
+					}
+				}
+			} else {
 				return false;
+			}
 		}
 
 		{
@@ -576,13 +703,16 @@ public:
 		}
 
 		// push to consensus
-		consensusManager_->pushPeer(peer);
+		if (!consensusManager_->pushPeer(peer)) {
+			deactivate(peer);
+			return false;
+		}
 
 		// update peers db
 		updatePeer(peer);
 
 		//
-		gLog().write(Log::NET, std::string("[peerManager]: update peer ") + peer->key());
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: update peer ") + peer->key());
 
 		return true;
 	}
@@ -594,6 +724,11 @@ public:
 			std::map<uint160, std::string>::iterator lPeerIter = peerIdx_.find(peer->addressId());
 			if (lPeerIter != peerIdx_.end() && lPeerIter->second == peer->key()) {
 				peerIdx_.erase(peer->addressId());
+				if (peer->state().client()) {
+					clients_.erase(peer->addressId());
+					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: removing client ") + strprintf("%s/%s", peer->key(), peer->addressId().toHex()));					
+				}
+
 				lPop = true;
 			}
 		}
@@ -606,13 +741,13 @@ public:
 			if (peer->isOutbound()) inactive_[peer->contextId()].insert(peer->key());
 		}
 
-		if (lPop) consensusManager_->popPeer(peer);
+		consensusManager_->popPeer(peer);
 
 		// update peers db
 		updatePeer(peer);
 
 		//
-		gLog().write(Log::INFO, std::string("[peerManager]: deactivate peer ") + peer->key());
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::INFO, std::string("[peerManager]: deactivate peer ") + peer->key());
 	}
 
 	void updatePeer(IPeerPtr peer) {
@@ -639,6 +774,7 @@ private:
 
 	boost::mutex peersIdxMutex_;
 	std::map<uint160, std::string> peerIdx_;
+	std::set<uint160> clients_;
 
 	std::vector<TimerPtr> timers_;
 	std::vector<IOContextPtr> contexts_;

@@ -31,6 +31,7 @@ public:
 		TRANSACTION = 0x0006,
 		BLOCK_HEADER = 0x0007,
 		BLOCK_HEADER_AND_STATE = 0x0008,
+		TRANSACTION_DATA = 0x0009,
 		
 		GET_BLOCK_HEADER = 0x0010,
 		GET_BLOCK_DATA = 0x0011,
@@ -38,22 +39,88 @@ public:
 		GET_BLOCK_BY_ID = 0x0013,
 		GET_NETWORK_BLOCK = 0x0014,
 		GET_NETWORK_BLOCK_HEADER = 0x0015,
+		GET_TRANSACTION_DATA = 0x0016,
 
 		BLOCK_BY_HEIGHT = 0x0020,
 		BLOCK_BY_ID = 0x0021,
 		NETWORK_BLOCK = 0x0022,
 		NETWORK_BLOCK_HEADER = 0x0023,
+
 		BLOCK_BY_HEIGHT_IS_ABSENT = 0x0024,
 		BLOCK_BY_ID_IS_ABSENT = 0x0025,
 		NETWORK_BLOCK_IS_ABSENT = 0x0026,
 		BLOCK_HEADER_IS_ABSENT = 0x0027,
 		BLOCK_IS_ABSENT = 0x0028,
 		NETWORK_BLOCK_HEADER_IS_ABSENT = 0x0029,
+		TRANSACTION_IS_ABSENT = 0x002a,
+		ENTITY_IS_ABSENT = 0x002b,
 
-		GET_PEERS = 0x0030,
-		PEER_EXISTS = 0x0031,
-		PEER_BANNED = 0x0032,
-		PEERS = 0x0033
+		GET_PEERS = 0x0040,
+		PEER_EXISTS = 0x0041,
+		PEER_BANNED = 0x0042,
+		PEERS = 0x0043,
+
+		CLIENT_SESSIONS_EXCEEDED = 0x004a,
+
+		GET_UTXO_BY_ADDRESS = 0x0050,
+		GET_UTXO_BY_ADDRESS_AND_ASSET = 0x0051,
+		GET_UTXO_BY_TX = 0x0052,
+		GET_UTXO_BY_ENTITY = 0x0053,
+		GET_ENTITY_COUNT_BY_SHARDS = 0x054,
+		GET_ENTITY = 0x0055,
+
+		UTXO_BY_ADDRESS = 0x0060,
+		UTXO_BY_ADDRESS_AND_ASSET = 0x0061,
+		UTXO_BY_TX = 0x0062,
+		UTXO_BY_ENTITY = 0x0063,
+		ENTITY_COUNT_BY_SHARDS = 0x064,
+		ENTITY = 0x0065,
+
+		CUSTOM_0000 = 0x1000,
+		CUSTOM_0001 = 0x1001,
+		CUSTOM_0002 = 0x1002,
+		CUSTOM_0003 = 0x1003,
+		CUSTOM_0004 = 0x1004,
+		CUSTOM_0005 = 0x1005,
+		CUSTOM_0006 = 0x1006,
+		CUSTOM_0007 = 0x1007,
+		CUSTOM_0008 = 0x1008,
+		CUSTOM_0009 = 0x1009,
+		CUSTOM_0010 = 0x100a,
+		CUSTOM_0011 = 0x100b,
+		CUSTOM_0012 = 0x100c,
+		CUSTOM_0013 = 0x100d,
+		CUSTOM_0014 = 0x100e,
+		CUSTOM_0015 = 0x100f,
+		CUSTOM_0016 = 0x1010,
+		CUSTOM_0017 = 0x1011,
+		CUSTOM_0018 = 0x1012,
+		CUSTOM_0019 = 0x1013,
+		CUSTOM_0020 = 0x1014,
+		CUSTOM_0021 = 0x1015,
+		CUSTOM_0022 = 0x1016,
+		CUSTOM_0023 = 0x1017,
+		CUSTOM_0024 = 0x1018,
+		CUSTOM_0025 = 0x1019,
+		CUSTOM_0026 = 0x101a,
+		CUSTOM_0027 = 0x101b,
+		CUSTOM_0028 = 0x101c,
+		CUSTOM_0029 = 0x101d,
+		CUSTOM_0030 = 0x101e,
+		CUSTOM_0031 = 0x101f		
+	};
+
+public:
+	class CustomType {
+	public:
+		CustomType(Type type, std::string name): type_(type), name_(name) {}
+
+		inline Type type() { return type_; }
+		inline std::string name() { return name_; }
+
+	private:
+		Type type_;
+		std::string name_;
 	};
 
 public:
@@ -82,44 +149,9 @@ public:
 	uint160 checkSum() { return checksum_; }
 
 	static size_t size() { return sizeof(prolog_) + sizeof(type_) + sizeof(size_) + (sizeof(uint8_t) * 160/8); }
+	static void registerMessageType(Message::Type type, const std::string& name);
 
-	std::string toString() {
-		std::string lMsg = "";
-		switch(type_) {
-			case PING: lMsg = "PING"; break;
-			case PONG: lMsg = "PONG"; break;
-			case STATE: lMsg = "STATE"; break;
-			case GLOBAL_STATE: lMsg = "GLOBAL_STATE"; break;
-			case BLOCK: lMsg = "BLOCK"; break;
-			case TRANSACTION: lMsg = "TRANSACTION"; break;
-			case BLOCK_HEADER: lMsg = "BLOCK_HEADER"; break;
-			case GET_BLOCK_HEADER: lMsg = "GET_BLOCK_HEADER"; break;
-			case GET_BLOCK_DATA: lMsg = "GET_BLOCK_DATA"; break;
-			case GET_PEERS: lMsg = "GET_PEERS"; break;
-			case PEER_EXISTS: lMsg = "PEER_EXISTS"; break;
-			case PEER_BANNED: lMsg = "PEER_BANNED"; break;
-			case PEERS: lMsg = "PEERS"; break;
-			case GET_BLOCK_BY_HEIGHT: lMsg = "GET_BLOCK_BY_HEIGHT"; break;
-			case GET_BLOCK_BY_ID: lMsg = "GET_BLOCK_BY_ID"; break;
-			case GET_NETWORK_BLOCK: lMsg = "GET_NETWORK_BLOCK"; break;
-			case BLOCK_BY_HEIGHT: lMsg = "BLOCK_BY_HEIGHT"; break;
-			case BLOCK_BY_ID: lMsg = "BLOCK_BY_ID"; break;
-			case NETWORK_BLOCK: lMsg = "NETWORK_BLOCK"; break;
-			case BLOCK_BY_HEIGHT_IS_ABSENT: lMsg = "BLOCK_BY_HEIGHT_IS_ABSENT"; break;
-			case BLOCK_BY_ID_IS_ABSENT: lMsg = "BLOCK_BY_ID_IS_ABSENT"; break;
-			case NETWORK_BLOCK_IS_ABSENT: lMsg = "NETWORK_BLOCK_IS_ABSENT"; break;
-			case BLOCK_HEADER_AND_STATE: lMsg = "BLOCK_HEADER_AND_STATE"; break;
-			case BLOCK_HEADER_IS_ABSENT: lMsg = "BLOCK_HEADER_IS_ABSENT"; break;
-			case BLOCK_IS_ABSENT: lMsg = "BLOCK_IS_ABSENT"; break;
-			case GET_NETWORK_BLOCK_HEADER: lMsg = "GET_NETWORK_BLOCK_HEADER"; break;
-			case NETWORK_BLOCK_HEADER: lMsg = "NETWORK_BLOCK_HEADER"; break;
-			case NETWORK_BLOCK_HEADER_IS_ABSENT: lMsg = "NETWORK_BLOCK_HEADER_IS_ABSENT"; break;
-
-			default: lMsg = "UNKNOWN"; break;
-		}
-
-		return lMsg += "/" + strprintf("%d/%s", size_, checksum_.toHex());
-	}
+	std::string toString();
 
 private:
 	char prolog_[4] = {0};	// 4
@@ -127,6 +159,10 @@ private:
 	uint32_t size_;			// 4
 	uint160 checksum_;		// 20
 };
+
+//
+typedef std::map<Message::Type /*type*/, std::string /*description*/> MessageTypes;
+extern MessageTypes gMessageTypes; // TODO: init on startup
 
 } // qbit
 

@@ -72,7 +72,7 @@ public:
 	Transaction::UnlinkedOutPtr findUnlinkedOut(const uint256&);
 	Transaction::UnlinkedOutPtr findLinkedOut(const uint256&);
 	Transaction::UnlinkedOutPtr findUnlinkedOutByAsset(const uint256&, amount_t);
-	std::list<Transaction::UnlinkedOutPtr> collectUnlinkedOutsByAsset(const uint256&, amount_t);
+	void collectUnlinkedOutsByAsset(const uint256&, amount_t, std::list<Transaction::UnlinkedOutPtr>&);
 
 	// rollback tx
 	bool rollback(TransactionContextPtr);
