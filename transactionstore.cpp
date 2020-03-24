@@ -96,7 +96,7 @@ bool TransactionStore::processBlockTransactions(ITransactionStorePtr store, IEnt
 				gLog().write(Log::ERROR, std::string("[processBlockTransactions/error]: ") + (*lErr));
 			}
 
-			lBlockCtx->addErrors(lCtx->errors());
+			lBlockCtx->addErrors(lCtx->tx()->id(), lCtx->errors());
 		} else {
 			lTransactionStore->pushTransaction(lCtx);
 
@@ -108,7 +108,7 @@ bool TransactionStore::processBlockTransactions(ITransactionStorePtr store, IEnt
 					lHasErrors = true;
 					if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlockTransactions]: COINBASE already exists ") +
 						strprintf("%s/%s/%s#", lCtx->tx()->id().toHex(), ctx->block()->hash().toHex(), chain_.toHex().substr(0, 10)));
-					lBlockCtx->addError(std::string("COINBASE already exists ") +
+					lBlockCtx->addError(lCtx->tx()->id(), std::string("COINBASE already exists ") +
 						strprintf("%s/%s/%s#", lCtx->tx()->id().toHex(), ctx->block()->hash().toHex(), chain_.toHex().substr(0, 10)));
 				}
 			} else {
@@ -148,7 +148,7 @@ bool TransactionStore::processBlockTransactions(ITransactionStorePtr store, IEnt
 						strprintf("push: utxo = %s, tx = %s, block = %s", 
 							lAction->utxo().toHex(), lAction->ctx()->tx()->id().toHex(), ctx->block()->hash().toHex()));
 
-					lBlockCtx->addError("Block with utxo inconsistency - " +
+					lBlockCtx->addError(lAction->ctx()->tx()->id(), "Block with utxo inconsistency - " +
 						strprintf("pop: utxo = %s, tx = %s, block = %s", 
 							lAction->utxo().toHex(), lAction->ctx()->tx()->id().toHex(), ctx->block()->hash().toHex()));
 					return false;
@@ -159,7 +159,7 @@ bool TransactionStore::processBlockTransactions(ITransactionStorePtr store, IEnt
 						strprintf("pop: utxo = %s, tx = %s, block = %s", 
 							lAction->utxo().toHex(), lAction->ctx()->tx()->id().toHex(), ctx->block()->hash().toHex()));
 
-					lBlockCtx->addError("Block with utxo inconsistency - " +
+					lBlockCtx->addError(lAction->ctx()->tx()->id(), "Block with utxo inconsistency - " +
 						strprintf("pop: utxo = %s, tx = %s, block = %s", 
 							lAction->utxo().toHex(), lAction->ctx()->tx()->id().toHex(), ctx->block()->hash().toHex()));
 					return false;
@@ -179,7 +179,7 @@ bool TransactionStore::processBlockTransactions(ITransactionStorePtr store, IEnt
 						strprintf("push: utxo = %s, tx = %s, block = %s", 
 							lAction->utxo().toHex(), lAction->ctx()->tx()->id().toHex(), ctx->block()->hash().toHex()));
 
-					lBlockCtx->addError("Block/pushWallet with utxo inconsistency - " +
+					lBlockCtx->addError(lAction->ctx()->tx()->id(), "Block/pushWallet with utxo inconsistency - " +
 						strprintf("push: utxo = %s, tx = %s, block = %s", 
 							lAction->utxo().toHex(), lAction->ctx()->tx()->id().toHex(), ctx->block()->hash().toHex()));							
 					return false;					
@@ -192,7 +192,7 @@ bool TransactionStore::processBlockTransactions(ITransactionStorePtr store, IEnt
 						strprintf("pop: utxo = %s, tx = %s, block = %s", 
 							lAction->utxo().toHex(), lAction->ctx()->tx()->id().toHex(), ctx->block()->hash().toHex()));
 
-					lBlockCtx->addError("Block/popWallet with utxo inconsistency - " +
+					lBlockCtx->addError(lAction->ctx()->tx()->id(), "Block/popWallet with utxo inconsistency - " +
 						strprintf("pop: utxo = %s, tx = %s, block = %s", 
 							lAction->utxo().toHex(), lAction->ctx()->tx()->id().toHex(), ctx->block()->hash().toHex()));
 					return false;
@@ -205,7 +205,7 @@ bool TransactionStore::processBlockTransactions(ITransactionStorePtr store, IEnt
 		TxEntityStorePtr lEntityStore = std::static_pointer_cast<TxEntityStore>(entityStore);
 		for (std::list<TransactionContextPtr>::iterator lAction = lEntityStore->actions().begin(); lAction != lEntityStore->actions().end(); lAction++) {
 			if (!pushEntity((*lAction)->tx()->id(), *lAction)) {
-				lBlockCtx->addError("Block/pushEntity inconsistency" +
+				lBlockCtx->addError((*lAction)->tx()->id(), "Block/pushEntity inconsistency" +
 					strprintf(" tx = %s, block = %s", 
 						(*lAction)->tx()->id().toHex(), ctx->block()->hash().toHex()));
 				return false;
@@ -1103,16 +1103,16 @@ void TransactionStore::selectUtxoByAddressAndAsset(const PKey& address, const ui
 
 void TransactionStore::selectUtxoByTransaction(const uint256& tx, std::vector<Transaction::NetworkUnlinkedOut>& utxo) {
 	//
+	uint64_t lHeight = 0;
+	uint64_t lConfirms = 0;
+	bool lCoinbase = false;
+	transactionHeight(tx, lHeight, lConfirms, lCoinbase);
+	//
 	db::DbMultiContainer<uint256 /*tx*/, uint256 /*utxo*/>::Iterator lTxRoot = txUtxo_.find(tx);
 	for (; lTxRoot.valid(); ++lTxRoot) {
 		Transaction::UnlinkedOut lOut;
 		if (utxo_.read(*lTxRoot, lOut)) {
 			//
-			uint64_t lHeight = 0;
-			uint64_t lConfirms = 0;
-			bool lCoinbase = false;
-
-			transactionHeight(lOut.out().tx(), lHeight, lConfirms, lCoinbase);
 			utxo.push_back(Transaction::NetworkUnlinkedOut(lOut, lConfirms, lCoinbase));
 		}
 	}

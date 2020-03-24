@@ -125,8 +125,9 @@ TransactionContextPtr BuzzerComposer::createTxBuzzer(const PKey& self, const std
 	// try to estimate fee
 	qunit_t lRate = wallet_->mempool()->estimateFeeRateByLimit(lCtx, settings_->maxFeeRate());
 
+	std::list<Transaction::UnlinkedOutPtr> lFeeUtxos;
 	amount_t lFee = lRate * lCtx->size();
-	amount_t lFeeAmount = wallet_->fillInputs(lBuzzerTx, TxAssetType::qbitAsset(), lFee);
+	amount_t lFeeAmount = wallet_->fillInputs(lBuzzerTx, TxAssetType::qbitAsset(), lFee, lFeeUtxos);
 	lBuzzerTx->addFeeOut(lSKey, TxAssetType::qbitAsset(), lFee); // to miner
 	if (lFeeAmount > lFee) { // make change
 		lBuzzerTx->addOut(lSChangeKey, lSChangeKey.createPKey()/*change*/, TxAssetType::qbitAsset(), lFeeAmount - lFee);

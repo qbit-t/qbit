@@ -1,6 +1,8 @@
 #include "seedwords.h"
 #include "random.h"
 
+#include <boost/random/random_device.hpp>
+
 using namespace qbit;
 
 #define NWORDS 1626
@@ -1634,15 +1636,16 @@ const char* gEnglish[NWORDS] = {
 	"zoom"
 };
 
-boost::random::mt19937 gGen;
+boost::random_device gRd;
+boost::random::mt19937 gGen(gRd());
 
 std::list<std::string> SeedPhrase::generate() {
 	std::set<std::string> lSet;
 	std::list<std::string> lList;
 
+	boost::random::uniform_int_distribution<> lDistribute(0, NWORDS-1);
 	while(lList.size() < 24) {
 		//
-		boost::random::uniform_int_distribution<> lDistribute(0, NWORDS-1);
 		int lIndex = lDistribute(gGen);
 
 		if (lSet.insert(gEnglish[lIndex]).second) {

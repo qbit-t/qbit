@@ -26,6 +26,7 @@
 #include "../dapps/buzzer/txbuzzersubscribe.h"
 #include "../dapps/buzzer/txbuzzerunsubscribe.h"
 #include "../dapps/buzzer/transactionstoreextension.h"
+#include "../dapps/buzzer/peerextension.h"
 
 #include "../log/log.h"
 
@@ -79,6 +80,12 @@ int main(int argv, char** argc)
 	ValidatorManager::registerValidator("buzzer", BuzzerValidatorCreator::instance());
 	// store extensions
 	ShardingManager::registerStoreExtension("buzzer", BuzzerTransactionStoreExtensionCreator::instance());	
+	// buzzer message types
+	Message::registerMessageType(GET_BUZZER_SUBSCRIPTION, "GET_BUZZER_SUBSCRIPTION");
+	Message::registerMessageType(BUZZER_SUBSCRIPTION, "BUZZER_SUBSCRIPTION");
+	Message::registerMessageType(BUZZER_SUBSCRIPTION_IS_ABSENT, "BUZZER_SUBSCRIPTION_IS_ABSENT");
+	// buzzer peer extention
+	PeerManager::registerPeerExtension("buzzer", BuzzerPeerExtensionCreator::instance());
 
 	// logs
 	if (argv > 1 && std::string(argc[1]) == "-S0") gLog("/tmp/.qbitS0/debug.log"); // setup

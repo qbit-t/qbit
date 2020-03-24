@@ -8,8 +8,14 @@
 #include "../../ipeerextension.h"
 #include "../../ipeermanager.h"
 #include "../../ipeer.h"
+#include "../../message.h"
 
 namespace qbit {
+
+// register message type
+#define GET_BUZZER_SUBSCRIPTION 		Message::CUSTOM_0000
+#define BUZZER_SUBSCRIPTION 			Message::CUSTOM_0001
+#define BUZZER_SUBSCRIPTION_IS_ABSENT 	Message::CUSTOM_0002
 
 //
 class BuzzerPeerExtension: public IPeerExtension, public std::enable_shared_from_this<BuzzerPeerExtension> {
@@ -23,6 +29,14 @@ public:
 		return std::make_shared<BuzzerPeerExtension>(peer, peerManager);
 	}
 
+	//
+	void loadSubscription(const uint256& /*chain*/, const uint256& /*subscriber*/, const uint256& /*publisher*/, ILoadTransactionHandlerPtr /*handler*/);
+
+private:
+	void processGetSubscription(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processSubscription(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processSubscriptionAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+
 public:
 	IPeerPtr peer_;
 	IPeerManagerPtr peerManager_;
@@ -35,6 +49,10 @@ public:
 	IPeerExtensionPtr create(IPeerPtr peer, IPeerManagerPtr peerManager) {
 		return BuzzerPeerExtension::instance(peer, peerManager);
 	}
+
+	static PeerExtensionCreatorPtr instance() {
+		return std::make_shared<BuzzerPeerExtensionCreator>();
+	}	
 };
 
 } // qbit

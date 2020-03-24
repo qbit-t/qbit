@@ -197,10 +197,12 @@ public:
 	// open requests
 	void acquireBlockHeaderWithCoinbase(const uint256& /*block*/, const uint256& /*chain*/, INetworkBlockHandlerWithCoinBasePtr /*handler*/);
 	void loadTransaction(const uint256& /*chain*/, const uint256& /*tx*/, ILoadTransactionHandlerPtr /*handler*/);
+	void loadEntity(const std::string& /*entityName*/, ILoadEntityHandlerPtr /*handler*/);
 	void selectUtxoByAddress(const PKey& /*source*/, const uint256& /*chain*/, ISelectUtxoByAddressHandlerPtr /*handler*/);
 	void selectUtxoByAddressAndAsset(const PKey& /*source*/, const uint256& /*chain*/, const uint256& /*asset*/, ISelectUtxoByAddressAndAssetHandlerPtr /*handler*/);
 	void selectUtxoByTransaction(const uint256& /*chain*/, const uint256& /*tx*/, ISelectUtxoByTransactionHandlerPtr /*handler*/);
-	void loadEntity(const std::string& /*entityName*/, ILoadEntityHandlerPtr /*handler*/);
+	void selectUtxoByEntity(const std::string& /*entityName*/, ISelectUtxoByEntityNameHandlerPtr /*handler*/);
+	void selectEntityCountByShards(const std::string& /*dapp*/, ISelectEntityCountByShardsHandlerPtr /*handler*/);
 
 	std::string statusString() {
 		switch(status_) {
@@ -214,6 +216,9 @@ public:
 
 		return "ESTATUS";
 	}
+
+	// finalize - just remove sent message
+	void messageFinalize(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 
 private:
 	// internal processing
@@ -241,6 +246,8 @@ private:
 	void processGetUtxoByAddressAndAsset(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processGetUtxoByTransaction(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processGetEntity(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processGetUtxoByEntity(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processGetEntityCountByShards(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 
 	void processBlockByHeight(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processBlockById(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
@@ -251,6 +258,8 @@ private:
 	void processUtxoByAddressAndAsset(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processUtxoByTransaction(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processEntity(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processUtxoByEntity(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processEntityCountByShards(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 
 	void processBlockByHeightAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processBlockByIdAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
@@ -261,15 +270,40 @@ private:
 	void processTransactionAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processEntityAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 
-	// finalize - just remove sent message
-	void messageFinalize(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void peerFinalize(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void connected(const boost::system::error_code& error, tcp::resolver::iterator endpoint_iterator);
 	void resolved(const boost::system::error_code& err, tcp::resolver::iterator endpoint_iterator);
 
 	void internalSendState(StatePtr state, bool global);	
 
-private:
+	uint256 addRequest(IReplyHandlerPtr replyHandler) {
+		uint256 lId = Random::generate();
+		boost::unique_lock<boost::mutex> lLock(replyHandlersMutex_);
+		replyHandlers_.insert(std::map<uint256 /*request*/, RequestWrapper>::value_type(lId, RequestWrapper(replyHandler)));
+		return lId;
+	}
+
+	void removeRequest(const uint256& id) {
+		boost::unique_lock<boost::mutex> lLock(replyHandlersMutex_);
+		replyHandlers_.erase(id);
+
+		// cleanup
+		std::map<uint256 /*request*/, RequestWrapper> lCurrentHandlers = replyHandlers_;
+		for (std::map<uint256 /*request*/, RequestWrapper>::iterator lItem = lCurrentHandlers.begin(); lItem != lCurrentHandlers.end(); lItem++) {
+			if (lItem->second.timedout()) {
+				replyHandlers_.erase(lItem->first);
+			}
+		}
+	}
+
+	IReplyHandlerPtr locateRequest(const uint256& id) {
+		boost::unique_lock<boost::mutex> lLock(replyHandlersMutex_);
+		std::map<uint256 /*request*/, RequestWrapper>::iterator lRequest = replyHandlers_.find(id);
+		if (lRequest != replyHandlers_.end()) return lRequest->second.handler();
+
+		return nullptr;
+	}
+
 	// service methods
 	std::list<DataStream>::iterator newInMessage() {
 		DataStream lMessage(SER_NETWORK, CLIENT_VERSION);
@@ -321,34 +355,6 @@ private:
 		boost::unique_lock<boost::mutex> lLock(jobsMutex_);
 		std::map<uint256, SynchronizationJobPtr>::iterator lJob = jobs_.find(chain);
 		if (lJob != jobs_.end()) return lJob->second;
-
-		return nullptr;
-	}
-
-	uint256 addRequest(IReplyHandlerPtr replyHandler) {
-		uint256 lId = Random::generate();
-		boost::unique_lock<boost::mutex> lLock(replyHandlersMutex_);
-		replyHandlers_.insert(std::map<uint256 /*request*/, RequestWrapper>::value_type(lId, RequestWrapper(replyHandler)));
-		return lId;
-	}
-
-	void removeRequest(const uint256& id) {
-		boost::unique_lock<boost::mutex> lLock(replyHandlersMutex_);
-		replyHandlers_.erase(id);
-
-		// cleanup
-		std::map<uint256 /*request*/, RequestWrapper> lCurrentHandlers = replyHandlers_;
-		for (std::map<uint256 /*request*/, RequestWrapper>::iterator lItem = lCurrentHandlers.begin(); lItem != lCurrentHandlers.end(); lItem++) {
-			if (lItem->second.timedout()) {
-				replyHandlers_.erase(lItem->first);
-			}
-		}
-	}
-
-	IReplyHandlerPtr locateRequest(const uint256& id) {
-		boost::unique_lock<boost::mutex> lLock(replyHandlersMutex_);
-		std::map<uint256 /*request*/, RequestWrapper>::iterator lRequest = replyHandlers_.find(id);
-		if (lRequest != replyHandlers_.end()) return lRequest->second.handler();
 
 		return nullptr;
 	}

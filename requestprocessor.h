@@ -124,7 +124,7 @@ public:
 		return false;
 	}
 
-	bool loadEntity(const std::string& entityName, const uint256& tx, ILoadEntityHandlerPtr handler) {
+	bool loadEntity(const std::string& entityName, ILoadEntityHandlerPtr handler) {
 		//
 		std::map<uint32_t, IPeerPtr> lOrder;
 		collectPeersByChain(MainChain::id(), lOrder);
@@ -180,6 +180,34 @@ public:
 		return false;
 	}
 
+	bool selectUtxoByEntity(const std::string& entityName, ISelectUtxoByEntityNameHandlerPtr handler) {
+		//
+		std::map<uint32_t, IPeerPtr> lOrder;
+		collectPeersByChain(MainChain::id(), lOrder);
+
+		if (lOrder.size()) {
+			// use nearest
+			lOrder.begin()->second->selectUtxoByEntity(entityName, handler);
+			return true;
+		}
+
+		return false;
+	}
+
+	bool selectEntityCountByShards(const std::string& dapp, ISelectEntityCountByShardsHandlerPtr handler) {
+		//
+		std::map<uint32_t, IPeerPtr> lOrder;
+		collectPeersByChain(MainChain::id(), lOrder);
+
+		if (lOrder.size()) {
+			// use nearest
+			lOrder.begin()->second->selectEntityCountByShards(dapp, handler);
+			return true;
+		}
+
+		return false;
+	}
+
 	bool broadcastTransaction(TransactionContextPtr ctx) {
 		//
 		std::map<uint32_t, IPeerPtr> lOrder;
@@ -205,7 +233,6 @@ public:
 		return wallet_->processTransaction(tx);
 	}
 
-private:
 	void collectPeersByChain(const uint256& chain, std::map<uint32_t, IPeerPtr>& order) {
 		boost::unique_lock<boost::mutex> lLock(peersMutex_);
 		std::map<uint256 /*chain*/, std::set<uint160>>::iterator lPeers = chainPeers_.find(chain);
