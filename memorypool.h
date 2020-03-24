@@ -275,6 +275,10 @@ public:
 	}
 
 	void removeTransactions(BlockPtr);
+	void removeTransaction(const uint256& tx) {
+		boost::unique_lock<boost::recursive_mutex> lLock(mempoolMutex_);
+		removeTx(tx);
+	}
 
 	uint256 chain() { return chain_; }	
 

@@ -47,6 +47,7 @@ protected:
 	bool unpackTransaction(TransactionPtr tx, const uint256& block, uint64_t height, uint64_t confirms, uint32_t index, bool coinbase, bool mempool, json::Document& reply, HttpReply& httpReply) {
 		// process
 		TransactionPtr lTx = tx;
+		TransactionContextPtr lCtx = TransactionContext::instance(lTx);
 
 		// try to lookup transaction
 		ITransactionStoreManagerPtr lStoreManager = wallet_->storeManager();
@@ -60,6 +61,7 @@ protected:
 			lObject.addString("id", lTx->id().toHex());
 			lObject.addString("chain", lTx->chain().toHex());
 			lObject.addString("type", lTx->name());
+			lObject.addInt("size", lCtx->size());
 			lObject.addInt("version", (int)lTx->version());
 			lObject.addInt64("timelock", lTx->timeLock());
 

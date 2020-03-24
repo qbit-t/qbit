@@ -174,7 +174,13 @@ public:
 	
 				return true;
 			} else if (!lUtxo && persistentStore_->chain() != MainChain::id()) {
-				return persistentStore_->storeManager()->locate(MainChain::id())->findUnlinkedOut(utxo) != nullptr;
+				bool lExists = persistentStore_->storeManager()->locate(MainChain::id())->findUnlinkedOut(utxo) != nullptr;
+				if (lExists) {
+					actions_.push_back(TxBlockAction(TxBlockAction::POP, utxo, ctx));		
+					if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[TxBlockStore::popUnlinkedOut]: POPPED in MAIN ") +
+						strprintf("utxo = %s, tx = ?, ctx = %s", utxo.toHex(), ctx->tx()->id().toHex()));					
+				}
+				return lExists;
 			}
 
 			return false;

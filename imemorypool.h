@@ -52,6 +52,7 @@ public:
 	virtual void commit(BlockContextPtr) { throw qbit::exception("NOT_IMPL", "IMemoryPool::commit - not implemented."); }
 
 	virtual void removeTransactions(BlockPtr) { throw qbit::exception("NOT_IMPL", "IMemoryPool::removeTransactions - not implemented."); }
+	virtual void removeTransaction(const uint256&) { throw qbit::exception("NOT_IMPL", "IMemoryPool::removeTransaction - not implemented."); }
 	virtual void pushConfirmedBlock(const NetworkBlockHeader& /*blockHeader*/) { throw qbit::exception("NOT_IMPL", "IMemoryPool::pushConfirmedBlock - not implemented."); }
 	virtual bool popUnlinkedOut(const uint256& /*utxo*/, TransactionContextPtr /*ctx*/) { throw qbit::exception("NOT_IMPL", "IMemoryPool::popUnlinkedOut - not implemented."); }	
 };

@@ -22,6 +22,7 @@ public:
 
 	virtual void process(const std::vector<std::string>&) { throw qbit::exception("NOT_IMPL", "ICommand::process - not implemented."); }
 	virtual std::set<std::string> name() { throw qbit::exception("NOT_IMPL", "ICommand::name - not implemented."); }
+	virtual void help() { throw qbit::exception("NOT_IMPL", "ICommand::help - not implemented."); }
 	
 	void setWallet(IWalletPtr wallet) { wallet_ = wallet; }
 	void setRequestProcessor(IRequestProcessorPtr requestProcessor) { requestProcessor_ = requestProcessor; }
