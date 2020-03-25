@@ -21,6 +21,7 @@ public:
 
 	virtual bool pushPeer(IPeerPtr /*peer*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::pushPeer - not implemented."); }
 	virtual void popPeer(IPeerPtr /*peer*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::popPeer - not implemented."); }	
+	virtual bool peerExists(const uint160& /*peer*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::peerExists - not implemented."); }
 	virtual StatePtr currentState() { throw qbit::exception("NOT_IMPL", "IConsensusManager::currentState - not implemented."); }
 	virtual size_t quarantineTime() { throw qbit::exception("NOT_IMPL", "IConsensusManager::quarantineTime - not implemented."); }
 

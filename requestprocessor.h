@@ -28,6 +28,13 @@ public:
 	}
 
 	//
+	// client dapp instance
+	void setDAppInstance(const uint256& dAppInstance) { 
+		dAppInstance_ = dAppInstance; 
+		broadcastState(currentState(), uint160());
+	}
+
+	//
 	// use peer for network participation
 	bool pushPeer(IPeerPtr peer) {
 		//
@@ -76,6 +83,11 @@ public:
 
 			latencyMap_.erase(lPeerId);
 		}
+	}
+
+	bool peerExists(const uint160& peer) {
+		boost::unique_lock<boost::mutex> lLock(peersMutex_);
+		return peers_.find(peer) != peers_.end();
 	}	
 
 	//
@@ -220,6 +232,19 @@ public:
 		}
 
 		return false;
+	}
+
+	void broadcastState(StatePtr state, const uint160& /*except*/) {
+		// prepare
+		std::map<uint160 /*peer*/, IPeerPtr> lPeers;
+		{
+			boost::unique_lock<boost::mutex> lLock(peersMutex_);
+			lPeers = peers_;
+		}
+
+		for (std::map<uint160, IPeerPtr>::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
+			lPeer->second->broadcastState(state);
+		}
 	}
 
 	void setWallet(IWalletPtr wallet) { wallet_ = wallet; }

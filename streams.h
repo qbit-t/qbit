@@ -300,7 +300,7 @@ public:
     bool valid() {
         //
         if (size() > sizeof(uint160)) {
-            uint160 lSum = Hash160(begin(), end());
+            uint160 lSum = calculateCheckSum();
             return lSum == checkSum;
         }
 
@@ -326,6 +326,7 @@ public:
     void insert(iterator it, size_type n, const char x) { vch.insert(it, n, x); }
     value_type* data()                               { return vch.data() + nReadPos; }
     const value_type* data() const                   { return vch.data() + nReadPos; }
+    uint160 calculateCheckSum()                      { return Hash160(begin(), end()); }
 
     void insert(iterator it, std::vector<char>::const_iterator first, std::vector<char>::const_iterator last)
     {

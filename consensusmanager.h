@@ -196,6 +196,11 @@ public:
 		}
 	}	
 
+	bool peerExists(const uint160& peer) {
+		boost::unique_lock<boost::mutex> lLock(peersMutex_);
+		return peers_.find(peer) != peers_.end();
+	}
+
 	//
 	// push state
 	bool pushState(StatePtr state) {

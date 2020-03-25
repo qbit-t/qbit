@@ -35,8 +35,9 @@ public:
 		if (lOrder.size()) {
 			// use nearest
 			for (std::map<uint32_t, IPeerPtr>::iterator lPeer = lOrder.begin(); lPeer != lOrder.end(); lPeer++) {
-				if (lPeer->second->extension()) {
-					std::static_pointer_cast<BuzzerPeerExtension>(lPeer->second->extension())->loadSubscription(chain, subscriber, publisher, handler);
+				IPeerExtensionPtr lExtension = lPeer->second->extension("buzzer");
+				if (lExtension) {
+					std::static_pointer_cast<BuzzerPeerExtension>(lExtension)->loadSubscription(chain, subscriber, publisher, handler);
 					return true;
 				}
 			}
