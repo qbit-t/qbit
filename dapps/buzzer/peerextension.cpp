@@ -50,7 +50,7 @@ bool BuzzerPeerExtension::processMessage(Message& message, std::list<DataStream>
 void BuzzerPeerExtension::processGetSubscription(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
 	//
 	bool lMsgValid = (*msg).valid();
-	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: checksum is INVALID for message from ") + peer_->key());
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, strprintf("[peer/buzzer]: checksum %s is INVALID for message from %s -> %s", (*msg).calculateCheckSum().toHex(), peer_->key(), HexStr((*msg).begin(), (*msg).end())));
 	if (!error && lMsgValid) {
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: processing request load subscription from ") + peer_->key());
 
@@ -220,7 +220,7 @@ void BuzzerPeerExtension::loadSubscription(const uint256& chain, const uint256& 
 		lMsg->write(lStateStream.data(), lStateStream.size());
 
 		// log
-		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: loading subscription ") + strprintf("sub = %s, pub = %s", subscriber.toHex(), publisher.toHex()) + std::string(" from ") + peer_->key());
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: loading subscription ") + strprintf("sub = %s, pub = %s from %s -> %s", subscriber.toHex(), publisher.toHex(), peer_->key(), HexStr(lStateStream.begin(), lStateStream.end())));
 
 		// write
 		boost::asio::async_write(*peer_->socket(),

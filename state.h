@@ -264,7 +264,7 @@ public:
 				pkey_.toString(), addressId().toHex(), infos_.size());
 			
 			for (auto& lInfo : infos_)
-				str += "  -> chain(" + strprintf("%d/%s#", lInfo.height(), lInfo.chain().toHex().substr(0, 10)) + ")\n";
+				str += "  -> chain(" + strprintf("%s, %d/%s#", lInfo.dApp().size() ? lInfo.dApp() : "none", lInfo.height(), lInfo.chain().toHex().substr(0, 10)) + ")\n";
 		}
 
 		return str;
