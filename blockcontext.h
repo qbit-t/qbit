@@ -58,16 +58,14 @@ public:
 
 	inline static BlockContextPtr instance(BlockPtr block) { return std::make_shared<BlockContext>(block); }
 
-	inline void addError(const std::string& error) { errors_.push_back(error); }
-	inline void addErrors(const std::list<std::string>& errors) {
-		errors_.insert(errors_.end(), errors.begin(), errors.end());
+	inline void addError(const uint256& tx, const std::string& error) { errors_[tx].push_back(error); }
+	inline void addErrors(const uint256& tx, const std::list<std::string>& errors) {
+		errors_[tx].insert(errors_[tx].begin(), errors.begin(), errors.end());
 	}
+	inline std::map<uint256, std::list<std::string>>& errors() { return errors_; }
 
 	inline void setHeight(uint64_t height) { height_ = height; }
 	inline uint64_t height() { return height_; }
-
-	inline std::list<std::string>& errors() { return errors_; }
-
 	inline void setCoinbaseAmount(amount_t amount) { coinbaseAmount_ = amount; }
 	inline amount_t coinbaseAmount() { return coinbaseAmount_; }
 
@@ -96,7 +94,7 @@ private:
 	amount_t fee_;
 
 	// errors
-	std::list<std::string> errors_;
+	std::map<uint256, std::list<std::string>> errors_;
 };
 
 } // qbit

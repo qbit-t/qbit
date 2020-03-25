@@ -472,6 +472,15 @@ amount_t LightWallet::fillInputs(TxSpendPtr tx, const uint256& asset, amount_t a
 	return lAmount;
 }
 
+void LightWallet::cacheUnlinkedOut(Transaction::UnlinkedOutPtr utxo) {
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
+	uint256 lUtxo = utxo->hash();
+	utxoCache_[lUtxo] = 
+		Transaction::NetworkUnlinkedOut::instance(*utxo, settings_->mainChainMaturity(), false);
+	assetsCache_[utxo->out().asset()].insert(std::multimap<amount_t, uint256>::value_type(utxo->amount(), lUtxo));
+}
+
 // make tx spend...
 TransactionContextPtr LightWallet::makeTxSpend(Transaction::Type type, const uint256& asset, const PKey& dest, amount_t amount, qunit_t feeRateLimit) {
 	// create empty tx
@@ -529,15 +538,11 @@ TransactionContextPtr LightWallet::makeTxSpend(Transaction::Type type, const uin
 	removeUnlinkedOut(lFeeUtxos);
 
 	if (lChangeUtxo) { 
-		boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
-		uint256 lUtxo = lChangeUtxo->hash();
-		utxoCache_[lUtxo] = 
-			Transaction::NetworkUnlinkedOut::instance(*lChangeUtxo, settings_->mainChainMaturity(), false);
-		assetsCache_[lChangeUtxo->out().asset()].insert(std::multimap<amount_t, uint256>::value_type(lChangeUtxo->amount(), lUtxo));
+		cacheUnlinkedOut(lChangeUtxo);
 
 		if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[makeTxSpend]: ") + 
 			strprintf("PUSHED utxo = %s, amount = %d, tx = %s/%s#", 
-				lUtxo.toHex(), lChangeUtxo->amount(), lTx->id().toHex(), lChangeUtxo->out().chain().toHex().substr(0, 10)));
+				lChangeUtxo->hash().toHex(), lChangeUtxo->amount(), lTx->id().toHex(), lChangeUtxo->out().chain().toHex().substr(0, 10)));		
 	}
 
 	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[makeTxSpend]: spend tx created: ") + 
@@ -605,11 +610,9 @@ TransactionContextPtr LightWallet::createTxFee(const PKey& dest, amount_t amount
 
 	// we good
 	removeUnlinkedOut(lUtxos);
-	if (lChangeUtxo) {
-		boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
-		utxoCache_[lChangeUtxo->hash()] = 
-			Transaction::NetworkUnlinkedOut::instance(*lChangeUtxo, settings_->mainChainMaturity(), false);
-		assetsCache_[lChangeUtxo->out().asset()].insert(std::multimap<amount_t, uint256>::value_type(lChangeUtxo->amount(), lChangeUtxo->hash()));
+
+	if (lChangeUtxo) { 
+		cacheUnlinkedOut(lChangeUtxo);
 	}
 
 	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[createTxFee]: fee tx created: ") + 

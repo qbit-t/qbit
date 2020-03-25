@@ -182,6 +182,10 @@ set(CLIENT
 	./seedwords.cpp
 	./message.cpp
 	./lightwallet.cpp
+	./dapps/buzzer/peerextension.cpp
+	./dapps/buzzer/transactionstoreextension.cpp	
+	./client/dapps/buzzer/commands.cpp
+	./client/dapps/buzzer/composer.cpp
 	./client/commands.cpp
 	./client/commandshandler.cpp
 	./client/main.cpp
@@ -190,6 +194,8 @@ set(CLIENT
 add_definitions(-DHAVE_CONFIG_H)
 add_definitions(-DJM_MALLOC)
 
+add_definitions(-DBUZZER_MOD)
+
 add_subdirectory(./jm)
 add_subdirectory(./leveldb)
 
@@ -197,10 +203,10 @@ include_directories(./secp256k1/src ./secp256k1 ./secp256k1/include ./leveldb ./
 link_directories(./boost/stage/lib)
 
 #add_executable(${PROJECT_NAME} ${SOURCES} ${SECP256K1})
-#target_link_libraries(${PROJECT_NAME} jm leveldb boost_system boost_thread boost_chrono) #gmp
+#target_link_libraries(${PROJECT_NAME} jm leveldb boost_system boost_thread boost_chrono boost_random) #gmp
 
 add_executable(qbit-cli ${CLIENT} ${SECP256K1})
-target_link_libraries(qbit-cli jm leveldb boost_system boost_thread boost_chrono) #gmp
+target_link_libraries(qbit-cli jm leveldb boost_system boost_thread boost_chrono boost_random) #gmp
 
 add_executable(qbit-unit-tests ${UNITTESTS} ${SECP256K1})
-target_link_libraries(qbit-unit-tests jm leveldb boost_system boost_thread boost_chrono) #gmp
+target_link_libraries(qbit-unit-tests jm leveldb boost_system boost_thread boost_chrono boost_random) #gmp

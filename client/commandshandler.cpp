@@ -17,6 +17,6 @@ void CommandsHandler::handleCommand(const std::string& name, const std::vector<s
 	if (lCommand != commands_.end()) {
 		lCommand->second->process(args);
 	} else {
-		gLog().writeClient(Log::CLIENT, std::string(": command not found"));
+		throw qbit::exception("E_COMMAND", "command not found");
 	}
 }

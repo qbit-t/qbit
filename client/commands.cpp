@@ -42,88 +42,47 @@ void KeyCommand::process(const std::vector<std::string>& args) {
 	for (std::vector<SKey::Word>::iterator lWord = lKey.seed().begin(); lWord != lKey.seed().end(); lWord++) {
 		std::cout << "\t" << (*lWord).wordA() << std::endl;
 	}
+
+	done_();
 }
 
 void BalanceCommand::process(const std::vector<std::string>& args) {
 	//
+	uint256 lAsset;
 	if (args.size()) {
-		// load asset tx
-		uint256 lAsset; lAsset.setHex(args[0]);
-		requestProcessor_->loadTransaction(MainChain::id(), lAsset, LoadAssetType::instance(shared_from_this()));
-	} else {
-		assetTypeLoaded(nullptr);
+		lAsset.setHex(args[0]);
 	}
 
-}
-
-void BalanceCommand::assetTypeLoaded(TransactionPtr asset) {
-	//
-	amount_t lScale = QBIT;
-	uint256 lAsset = TxAssetType::qbitAsset();
-
-	if (asset) {
-		if (asset->type() == Transaction::ASSET_TYPE) {
-			TxAssetTypePtr lAssetType = TransactionHelper::to<TxAssetType>(asset);
-			lScale = lAssetType->scale();			
-		}
-	}
-
-	double lBalance = ((double)wallet_->balance(lAsset)) / lScale;
-	std::cout << strprintf(TxAssetType::scaleFormat(lScale), lBalance) << std::endl;
+	// prepare
+	IComposerMethodPtr lBalance = LightComposer::Balance::instance(composer_, lAsset, 
+		boost::bind(&BalanceCommand::balance, shared_from_this(), _1, _2));
+	// async process
+	lBalance->process(boost::bind(&BalanceCommand::error, shared_from_this(), _1, _2));
 }
 
 void SendToAddressCommand::process(const std::vector<std::string>& args) {
-	//
-	// copy args
-	args_ = args;
-
 	// process
 	if (args.size() == 3) {
-		// 0 - asset or *
-		// 1 - address
-		// 2 - amount
+		//
+		amount_t lScale = QBIT;
+		// 0
+		uint256 lAsset = TxAssetType::qbitAsset();
+		if (args[0] != "*") lAsset.setHex(args[0]);
 
-		if (args[0] != "*") {
-			uint256 lAsset; lAsset.setHex(args[0]);
-			requestProcessor_->loadTransaction(MainChain::id(), lAsset, LoadAssetType::instance(shared_from_this()));
-		} else {
-			assetTypeLoaded(nullptr);
-		}
+		// 1
+		PKey lAddress;
+		lAddress.fromString(args[1]);
+
+		// 2
+		double lAmount = (double)(boost::lexical_cast<double>(args[2]));
+
+		// prepare
+		IComposerMethodPtr lSendToAddress = LightComposer::SendToAddress::instance(composer_, lAsset, lAddress, lAmount,
+			boost::bind(&SendToAddressCommand::created, shared_from_this(), _1));
+		// async process
+		lSendToAddress->process(boost::bind(&SendToAddressCommand::error, shared_from_this(), _1, _2));
 		
 	} else {
 		gLog().writeClient(Log::CLIENT, std::string(": incorrect number of arguments"));
-	}
-}
-
-void SendToAddressCommand::assetTypeLoaded(TransactionPtr asset) {
-	//
-	amount_t lScale = QBIT;
-	// 0
-	uint256 lAsset = TxAssetType::qbitAsset();
-	if (args_[0] != "*") lAsset.setHex(args_[0]);
-
-	// 1
-	PKey lAddress;
-	lAddress.fromString(args_[1]);
-
-	// 2
-	double lAmount = (double)(boost::lexical_cast<double>(args_[2]));
-
-	if (asset) {
-		if (asset->type() == Transaction::ASSET_TYPE) {
-			TxAssetTypePtr lAssetType = TransactionHelper::to<TxAssetType>(asset);
-			lScale = lAssetType->scale();			
-		}
-	}
-
-	TransactionContextPtr lCtx = wallet_->createTxSpend(lAsset, lAddress, (amount_t)(lAmount * (double)lScale));
-	if (lCtx) {
-		if (requestProcessor_->broadcastTransaction(lCtx)) {
-			std::cout << lCtx->tx()->id().toHex() << std::endl;		
-		} else {
-			gLog().writeClient(Log::CLIENT, std::string(": tx was not broadcasted, wallet re-init..."));
-			wallet_->resetCache();
-			wallet_->prepareCache();
-		}
 	}
 }

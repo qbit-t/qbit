@@ -642,7 +642,7 @@ bool Wallet::rollback(TransactionContextPtr ctx) {
 }
 
 // fill inputs
-amount_t Wallet::fillInputs(TxSpendPtr tx, const uint256& asset, amount_t amount) {
+amount_t Wallet::fillInputs(TxSpendPtr tx, const uint256& asset, amount_t amount, std::list<Transaction::UnlinkedOutPtr>& /*utxos*/) {
 	// collect utxo's
 	std::list<Transaction::UnlinkedOutPtr> lUtxos;
 	collectUnlinkedOutsByAsset(asset, amount, lUtxos);
@@ -672,7 +672,8 @@ TransactionContextPtr Wallet::makeTxSpend(Transaction::Type type, const uint256&
 	// create context
 	TransactionContextPtr lCtx = TransactionContext::instance(lTx);
 	// fill inputs
-	amount_t lAmount = fillInputs(lTx, asset, amount);
+	std::list<Transaction::UnlinkedOutPtr> lUtxos, lFeeUtxos;
+	amount_t lAmount = fillInputs(lTx, asset, amount, lUtxos);
 
 	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[makeTxSpend]: creating spend tx: ") + 
 		strprintf("to = %s, amount = %d, asset = %s#", const_cast<PKey&>(dest).toString(), amount, asset.toHex().substr(0, 10)));
@@ -710,7 +711,7 @@ TransactionContextPtr Wallet::makeTxSpend(Transaction::Type type, const uint256&
 		}
 	} else {
 		// add fee
-		amount_t lFeeAmount = fillInputs(lTx, TxAssetType::qbitAsset(), lFee);
+		amount_t lFeeAmount = fillInputs(lTx, TxAssetType::qbitAsset(), lFee, lFeeUtxos);
 		lTx->addFeeOut(lSKey, TxAssetType::qbitAsset(), lFee); // to miner
 		if (lFeeAmount > lFee) { // make change
 			lTx->addOut(lSChangeKey, lSChangeKey.createPKey()/*change*/, TxAssetType::qbitAsset(), lFeeAmount - lFee);
@@ -778,7 +779,8 @@ TransactionContextPtr Wallet::createTxAssetType(const PKey& dest, const std::str
 	}
 
 	amount_t lFee = lRate * lCtx->size(); 	
-	amount_t lFeeAmount = fillInputs(lAssetTypeTx, TxAssetType::qbitAsset(), lFee);
+	std::list<Transaction::UnlinkedOutPtr> lUtxos;
+	amount_t lFeeAmount = fillInputs(lAssetTypeTx, TxAssetType::qbitAsset(), lFee, lUtxos);
 	lAssetTypeTx->addFeeOut(lSKey, TxAssetType::qbitAsset(), lFee); // to miner
 	if (lFeeAmount > lFee) { // make change
 		lAssetTypeTx->addOut(lSChangeKey, lSChangeKey.createPKey()/*change*/, TxAssetType::qbitAsset(), lFeeAmount - lFee);
@@ -842,8 +844,9 @@ TransactionContextPtr Wallet::createTxLimitedAssetEmission(const PKey& dest, con
 		lRate = mempool()->estimateFeeRateByBlock(lCtx, targetBlock);
 	}
 
-	amount_t lFee = lRate * lCtx->size(); 	
-	amount_t lFeeAmount = fillInputs(lAssetEmissionTx, TxAssetType::qbitAsset(), lFee);
+	amount_t lFee = lRate * lCtx->size(); 
+	std::list<Transaction::UnlinkedOutPtr> lUtxos;
+	amount_t lFeeAmount = fillInputs(lAssetEmissionTx, TxAssetType::qbitAsset(), lFee, lUtxos);
 	lAssetEmissionTx->addFeeOut(lSKey, TxAssetType::qbitAsset(), lFee); // to miner
 	if (lFeeAmount > lFee) { // make change
 		lAssetEmissionTx->addOut(lSChangeKey, lSChangeKey.createPKey()/*change*/, TxAssetType::qbitAsset(), lFeeAmount - lFee);
@@ -905,8 +908,9 @@ TransactionContextPtr Wallet::createTxDApp(const PKey& dest, const std::string& 
 	// try to estimate fee
 	qunit_t lRate = mempool()->estimateFeeRateByLimit(lCtx, settings_->maxFeeRate());
 
-	amount_t lFee = lRate * lCtx->size(); 	
-	amount_t lFeeAmount = fillInputs(lDAppTx, TxAssetType::qbitAsset(), lFee);
+	amount_t lFee = lRate * lCtx->size(); 
+	std::list<Transaction::UnlinkedOutPtr> lUtxos;
+	amount_t lFeeAmount = fillInputs(lDAppTx, TxAssetType::qbitAsset(), lFee, lUtxos);
 	lDAppTx->addFeeOut(lSKey, TxAssetType::qbitAsset(), lFee); // to miner
 	if (lFeeAmount > lFee) { // make change
 		lDAppTx->addOut(lSChangeKey, lSChangeKey.createPKey()/*change*/, TxAssetType::qbitAsset(), lFeeAmount - lFee);
@@ -951,8 +955,9 @@ TransactionContextPtr Wallet::createTxShard(const PKey& dest, const std::string&
 	// try to estimate fee
 	qunit_t lRate = mempool()->estimateFeeRateByLimit(lCtx, settings_->maxFeeRate());
 
-	amount_t lFee = lRate * lCtx->size(); 	
-	amount_t lFeeAmount = fillInputs(lShardTx, TxAssetType::qbitAsset(), lFee);
+	amount_t lFee = lRate * lCtx->size(); 
+	std::list<Transaction::UnlinkedOutPtr> lInputsUtxos;
+	amount_t lFeeAmount = fillInputs(lShardTx, TxAssetType::qbitAsset(), lFee, lInputsUtxos);
 	lShardTx->addFeeOut(lSKey, TxAssetType::qbitAsset(), lFee); // to miner
 	if (lFeeAmount > lFee) { // make change
 		lShardTx->addOut(lSChangeKey, lSChangeKey.createPKey()/*change*/, TxAssetType::qbitAsset(), lFeeAmount - lFee);
@@ -972,7 +977,8 @@ TransactionContextPtr Wallet::createTxFee(const PKey& dest, amount_t amount) {
 	// create context
 	TransactionContextPtr lCtx = TransactionContext::instance(lTx);
 	// fill inputs
-	amount_t lAmount = fillInputs(lTx, TxAssetType::qbitAsset(), amount);
+	std::list<Transaction::UnlinkedOutPtr> lUtxos;
+	amount_t lAmount = fillInputs(lTx, TxAssetType::qbitAsset(), amount, lUtxos);
 
 	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[createTxFee]: creating fee tx: ") + 
 		strprintf("to = %s, amount = %d", const_cast<PKey&>(dest).toString(), amount));
