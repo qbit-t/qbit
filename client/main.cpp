@@ -141,6 +141,7 @@ int main(int argv, char** argc) {
 
 	// buzzer composer
 	BuzzerLightComposerPtr lBuzzerComposer = BuzzerLightComposer::instance(lSettings, lWallet, lRequestProcessor, lBuzzerRequestProcessor);
+	lBuzzerComposer->open();
 
 	// buzzer commands
 	lCommandsHandler->push(CreateBuzzerCommand::instance(lBuzzerComposer, boost::bind(&commandDone)));

@@ -180,8 +180,9 @@ public:
 public:
 	IPeer() {}
 
-	virtual IPeerExtensionPtr extension() { throw qbit::exception("NOT_IMPL", "IPeer::extension - not implemented."); }
-	virtual void setExtension(IPeerExtensionPtr /*extension*/) { throw qbit::exception("NOT_IMPL", "IPeer::setExtension - not implemented."); }
+	virtual std::map<std::string, IPeerExtensionPtr> extensions() { throw qbit::exception("NOT_IMPL", "IPeer::extensions - not implemented."); }
+	virtual IPeerExtensionPtr extension(const std::string&) { throw qbit::exception("NOT_IMPL", "IPeer::extension - not implemented."); }
+	virtual void setExtension(const std::string&, IPeerExtensionPtr /*extension*/) { throw qbit::exception("NOT_IMPL", "IPeer::setExtension - not implemented."); }
 
 	virtual Status status() { throw qbit::exception("NOT_IMPL", "IPeer::status - not implemented."); }
 	virtual State& state() { throw qbit::exception("NOT_IMPL", "IPeer::state - not implemented."); }

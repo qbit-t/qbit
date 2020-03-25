@@ -14,6 +14,7 @@ class IRequestProcessor {
 public:
 	IRequestProcessor() {}
 
+	virtual void setDAppInstance(const uint256& /*instance*/) { throw qbit::exception("NOT_IMPL", "IRequestProcessor::setDAppInstance - not implemented."); }	
 	virtual bool loadTransaction(const uint256& /*chain*/, const uint256& /*tx*/, ILoadTransactionHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IRequestProcessor::loadTransaction - not implemented."); }
 	virtual bool loadEntity(const std::string& /*entityName*/, ILoadEntityHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IRequestProcessor::loadEntity - not implemented."); }
 	virtual bool selectUtxoByAddress(const PKey& /*source*/, const uint256& /*chain*/, ISelectUtxoByAddressHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IRequestProcessor::selectUtxoByAddress - not implemented."); }

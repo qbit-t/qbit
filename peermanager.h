@@ -319,8 +319,11 @@ public:
 			std::map<uint160, std::string>::iterator lPeerIter = lPeerIdx.find(*lClient);
 			if (lPeerIter != lPeerIdx.end()) {
 				IPeerPtr lPeer = locate(lPeerIter->second);
-				if (lPeer && lPeer->extension()) {
-					lPeer->extension()->processTransaction(ctx); // every direct transaction should be delivered (value)
+				if (lPeer) {
+					std::map<std::string, IPeerExtensionPtr> lExtensions = lPeer->extensions();
+					for (std::map<std::string, IPeerExtensionPtr>::iterator lExtension = lExtensions.begin(); lExtension != lExtensions.end(); lExtension++) {
+						lExtension->second->processTransaction(ctx); // every direct transaction should be delivered (value)
+					}
 				}
 			}
 		}
@@ -421,7 +424,7 @@ public:
 			boost::unique_lock<boost::mutex> lLock(contextMutex_[lIdx]);
 			for (std::set<std::string /*endpoint*/>::iterator lPeer = active_[lIdx].begin(); lPeer != active_[lIdx].end(); lPeer++) {
 				PeersMap::iterator lPeerPtr = peers_[lIdx].find(*lPeer);
-				if (lPeerPtr != peers_[lIdx].end() && lPeerPtr->second->isOutbound()) 
+				if (lPeerPtr != peers_[lIdx].end() && lPeerPtr->second->isOutbound() && !lPeerPtr->second->state().client()) 
 					peers.push_back(*lPeer);
 			}
 		}
@@ -582,14 +585,36 @@ public:
 					clients_.insert(peer->addressId());
 					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: adding client ") + strprintf("%s/%s", peer->key(), peer->addressId().toHex()));
 					//
-					if (!peer->extension()) {
+					if (!peer->extension(peer->state().dApp())) {
 						PeerExtensionCreatorPtr lCreator = locateExtensionCreator(peer->state().dApp());
 						if (lCreator) {
-							peer->setExtension(lCreator->create(peer, shared_from_this()));
+							peer->setExtension(peer->state().dApp(), lCreator->create(peer, shared_from_this()));
+						}
+					}
+				} else {
+					//
+					for (std::vector<State::BlockInfo>::iterator lInfo = peer->state().infos().begin(); lInfo != peer->state().infos().end(); lInfo++) {
+						//
+						if (lInfo->dApp().size() && lInfo->dApp() != "none") {
+							if (!peer->extension(lInfo->dApp())) {
+								//
+								if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: adding peer extension ") + strprintf("%s/%s/%s", lInfo->dApp(), peer->key(), peer->addressId().toHex()));
+								PeerExtensionCreatorPtr lCreator = locateExtensionCreator(lInfo->dApp());
+								if (lCreator) {
+									peer->setExtension(lInfo->dApp(), lCreator->create(peer, shared_from_this()));
+								}
+							}
 						}
 					}
 				}
 			} else {
+				IPeerPtr lPeer = locate(peerIdx_[lAddress]);
+				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: peer ALREADY exists ") + 
+						strprintf("new - %s/%s/%s, old - %s/%s/%s", 
+							peer->key(), peer->statusString(), peer->addressId().toHex(), 
+							lPeer->key(), lPeer->statusString(), lPeer->addressId().toHex()));
+					
+				if (!consensusManager_->peerExists(lAddress)) consensusManager_->pushPeer(lPeer);					
 				return false;
 			}
 		}
@@ -680,14 +705,36 @@ public:
 					clients_.insert(peer->addressId());
 					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: adding client ") + strprintf("%s/%s", peer->key(), peer->addressId().toHex()));
 					//
-					if (!peer->extension()) {
+					if (!peer->extension(peer->state().dApp())) {
 						PeerExtensionCreatorPtr lCreator = locateExtensionCreator(peer->state().dApp());
 						if (lCreator) {
-							peer->setExtension(lCreator->create(peer, shared_from_this()));
+							peer->setExtension(peer->state().dApp(), lCreator->create(peer, shared_from_this()));
+						}
+					}
+				} else {
+					//
+					for (std::vector<State::BlockInfo>::iterator lInfo = peer->state().infos().begin(); lInfo != peer->state().infos().end(); lInfo++) {
+						//
+						if (lInfo->dApp().size() && lInfo->dApp() != "none") {
+							if (!peer->extension(lInfo->dApp())) {
+								//
+								if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: adding peer extension ") + strprintf("%s/%s/%s", lInfo->dApp(), peer->key(), peer->addressId().toHex()));
+								PeerExtensionCreatorPtr lCreator = locateExtensionCreator(lInfo->dApp());
+								if (lCreator) {
+									peer->setExtension(lInfo->dApp(), lCreator->create(peer, shared_from_this()));
+								}
+							}
 						}
 					}
 				}
 			} else {
+				IPeerPtr lPeer = locate(peerIdx_[lAddress]);
+				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: peer ALREADY exists ") + 
+						strprintf("new - %s/%s/%s, old - %s/%s/%s", 
+							peer->key(), peer->statusString(), peer->addressId().toHex(), 
+							lPeer->key(), lPeer->statusString(), lPeer->addressId().toHex()));
+
+				if (!consensusManager_->peerExists(lAddress)) consensusManager_->pushPeer(lPeer);
 				return false;
 			}
 		}

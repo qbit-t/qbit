@@ -191,8 +191,18 @@ public:
 	void synchronizePendingBlocks(IConsensusPtr, SynchronizationJobPtr /*job*/);
 	void acquireBlock(const NetworkBlockHeader& /*block*/);
 
-	IPeerExtensionPtr extension() { return extension_; }
-	void setExtension(IPeerExtensionPtr extension) { extension_ = extension; }	
+	IPeerExtensionPtr extension(const std::string& dapp) { 
+		boost::unique_lock<boost::mutex> lLock(extensionsMutex_);
+		return extension_[dapp]; 
+	}
+	void setExtension(const std::string& dapp, IPeerExtensionPtr extension) { 
+		boost::unique_lock<boost::mutex> lLock(extensionsMutex_);
+		extension_[dapp] = extension; 
+	}	
+	std::map<std::string, IPeerExtensionPtr> extensions() { 
+		boost::unique_lock<boost::mutex> lLock(extensionsMutex_);
+		return extension_; 
+	}
 
 	// open requests
 	void acquireBlockHeaderWithCoinbase(const uint256& /*block*/, const uint256& /*chain*/, INetworkBlockHandlerWithCoinBasePtr /*handler*/);
@@ -396,7 +406,8 @@ private:
 
 	uint64_t peersPoll_ = 0;
 
-	IPeerExtensionPtr extension_;
+	boost::mutex extensionsMutex_;
+	std::map<std::string, IPeerExtensionPtr> extension_;
 };
 
 }

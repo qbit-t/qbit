@@ -45,7 +45,7 @@ void BuzzerSubscribeCommand::process(const std::vector<std::string>& args) {
 void BuzzerUnsubscribeCommand::process(const std::vector<std::string>& args) {
 	if (args.size() == 1) {
 		// prepare
-		IComposerMethodPtr lCreateBuzz = BuzzerLightComposer::CreateTxBuzzerSubscribe::instance(composer_, args[0],
+		IComposerMethodPtr lCreateBuzz = BuzzerLightComposer::CreateTxBuzzerUnsubscribe::instance(composer_, args[0],
 			boost::bind(&BuzzerUnsubscribeCommand::created, shared_from_this(), _1));
 		// async process
 		lCreateBuzz->process(boost::bind(&BuzzerUnsubscribeCommand::error, shared_from_this(), _1, _2));

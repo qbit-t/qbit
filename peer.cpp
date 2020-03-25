@@ -678,12 +678,13 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 
 			// try proto extension
 			bool lHandled = false;
-			if (extension_) {
-				lHandled = extension_->processMessage(lMessage, lMsg, error);
+			std::map<std::string, IPeerExtensionPtr> lExtensions = extensions();
+			for (std::map<std::string, IPeerExtensionPtr>::iterator lExtension = lExtensions.begin(); lExtension != lExtensions.end(); lExtension++) {
+				lHandled = lExtension->second->processMessage(lMessage, lMsg, error);
+				if (lHandled) break;
 			}
 
 			if (lHandled) { // handled in proto extension, just continue
-				eraseInData(lMsg);
 				return;
 			}
 
