@@ -107,6 +107,10 @@ public:
 	// use peer for network participation
 	bool pushPeer(IPeerPtr peer) {
 		//
+		// skip peer with client protocol
+		if (peer->state().client()) return true;
+
+		//
 		std::map<uint256, IConsensusPtr> lConsensuses;
 		{
 			boost::unique_lock<boost::mutex> lLock(consensusesMutex_);
@@ -195,6 +199,10 @@ public:
 	//
 	// push state
 	bool pushState(StatePtr state) {
+		//
+		// skip peer with client protocol
+		if (state->client()) return true;
+
 		//
 		std::map<uint256, IConsensusPtr> lConsensuses;
 		{

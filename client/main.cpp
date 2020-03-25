@@ -26,7 +26,27 @@
 #include "commandshandler.h"
 #include "commands.h"
 
+#include "../txbase.h"
+#include "../txblockbase.h"
+
+#if defined (BUZZER_MOD)
+#include "../dapps/buzzer/txbuzzer.h"
+#include "../dapps/buzzer/txbuzz.h"
+#include "../dapps/buzzer/txbuzzersubscribe.h"
+#include "../dapps/buzzer/txbuzzerunsubscribe.h"
+#include "../dapps/buzzer/peerextension.h"
+#include "dapps/buzzer/requestprocessor.h"
+#include "dapps/buzzer/composer.h"
+#include "dapps/buzzer/commands.h"
+#endif
+
 using namespace qbit;
+
+bool gCommandDone = false;
+void commandDone() {
+	//
+	gCommandDone = true;
+}
 
 int main(int argv, char** argc) {
 	//
@@ -68,21 +88,66 @@ int main(int argv, char** argc) {
 	}
 
 	// request processor
-	IRequestProcessorPtr lRequestProcessor = RequestProcessor::instance(lSettings);
+	IRequestProcessorPtr lRequestProcessor = nullptr;
+#if defined (BUZZER_MOD)
+	lRequestProcessor = RequestProcessor::instance(lSettings, "buzzer");
+#else
+	lRequestProcessor = RequestProcessor::instance(lSettings);
+#endif
 
 	// wallet
 	IWalletPtr lWallet = LightWallet::instance(lSettings, lRequestProcessor);
 	std::static_pointer_cast<RequestProcessor>(lRequestProcessor)->setWallet(lWallet);
 	lWallet->open();
 
+	// composer
+	LightComposerPtr lComposer = LightComposer::instance(lSettings, lWallet, lRequestProcessor);
+
 	// peer manager
 	IPeerManagerPtr lPeerManager = PeerManager::instance(lSettings, std::static_pointer_cast<RequestProcessor>(lRequestProcessor)->consensusManager());
 
-	// commands jandler
+	// commands handler
 	CommandsHandlerPtr lCommandsHandler = CommandsHandler::instance(lSettings, lWallet, lRequestProcessor);
-	lCommandsHandler->push(KeyCommand::instance());
-	lCommandsHandler->push(BalanceCommand::instance());
-	lCommandsHandler->push(SendToAddressCommand::instance());
+	lCommandsHandler->push(KeyCommand::instance(boost::bind(&commandDone)));
+	lCommandsHandler->push(BalanceCommand::instance(lComposer, boost::bind(&commandDone)));
+	lCommandsHandler->push(SendToAddressCommand::instance(lComposer, boost::bind(&commandDone)));
+
+	Transaction::registerTransactionType(Transaction::ASSET_TYPE, TxAssetTypeCreator::instance());
+	Transaction::registerTransactionType(Transaction::ASSET_EMISSION, TxAssetEmissionCreator::instance());
+	Transaction::registerTransactionType(Transaction::DAPP, TxDAppCreator::instance());
+	Transaction::registerTransactionType(Transaction::SHARD, TxShardCreator::instance());
+	Transaction::registerTransactionType(Transaction::BASE, TxBaseCreator::instance());
+	Transaction::registerTransactionType(Transaction::BLOCKBASE, TxBlockBaseCreator::instance());
+
+#if defined (BUZZER_MOD)
+	std::cout << "enabling 'buzzer' module" << std::endl;
+
+	// buzzer transactions
+	Transaction::registerTransactionType(TX_BUZZER, TxBuzzerCreator::instance());
+	Transaction::registerTransactionType(TX_BUZZER_SUBSCRIBE, TxBuzzerSubscribeCreator::instance());
+	Transaction::registerTransactionType(TX_BUZZER_UNSUBSCRIBE, TxBuzzerUnsubscribeCreator::instance());
+	Transaction::registerTransactionType(TX_BUZZ, TxBuzzCreator::instance());
+
+	// buzzer message types
+	Message::registerMessageType(GET_BUZZER_SUBSCRIPTION, "GET_BUZZER_SUBSCRIPTION");
+	Message::registerMessageType(BUZZER_SUBSCRIPTION, "BUZZER_SUBSCRIPTION");
+	Message::registerMessageType(BUZZER_SUBSCRIPTION_IS_ABSENT, "BUZZER_SUBSCRIPTION_IS_ABSENT");
+
+	// buzzer peer extention
+	PeerManager::registerPeerExtension("buzzer", BuzzerPeerExtensionCreator::instance());
+
+	// buzzer request processor
+	BuzzerRequestProcessorPtr lBuzzerRequestProcessor = BuzzerRequestProcessor::instance(lRequestProcessor);
+
+	// buzzer composer
+	BuzzerLightComposerPtr lBuzzerComposer = BuzzerLightComposer::instance(lSettings, lWallet, lRequestProcessor, lBuzzerRequestProcessor);
+
+	// buzzer commands
+	lCommandsHandler->push(CreateBuzzerCommand::instance(lBuzzerComposer, boost::bind(&commandDone)));
+	lCommandsHandler->push(CreateBuzzCommand::instance(lBuzzerComposer, boost::bind(&commandDone)));
+	lCommandsHandler->push(BuzzerSubscribeCommand::instance(lBuzzerComposer, boost::bind(&commandDone)));
+	lCommandsHandler->push(BuzzerUnsubscribeCommand::instance(lBuzzerComposer, boost::bind(&commandDone)));
+#endif
 
 	// peers
 	for (std::vector<std::string>::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
@@ -132,7 +197,7 @@ int main(int argv, char** argc) {
 		lCommand = *lRawArgs.begin(); lRawArgs.erase(lRawArgs.begin());
 		for(std::vector<std::string>::iterator lArg = lRawArgs.begin(); lArg != lRawArgs.end(); lArg++) {
 			if (!lCat) lArgs.push_back(*lArg);
-			else *(lArgs.rbegin()) += *lArg;
+			else { *(lArgs.rbegin()) += " "; *(lArgs.rbegin()) += *lArg; }
 
 			if (*(lArg->begin()) == '\"' && *(lArg->rbegin()) == '\"') {
 				lArgs.rbegin()->erase(lArgs.rbegin()->begin());
@@ -147,9 +212,19 @@ int main(int argv, char** argc) {
 		}
 
 		if (lCommand == "quit" || lCommand == "q") { lExit = true; continue; }
+		else if (lCommand == "help" || lCommand == "h") {
+			lCommandsHandler->showHelp();
+			continue;
+		}
 
 		try {
+			gCommandDone = false;
 			lCommandsHandler->handleCommand(lCommand, lArgs);
+
+			// wating for signal
+			while (!gCommandDone) {
+				boost::this_thread::sleep_for(boost::chrono::milliseconds(50));
+			}
 		}
 		catch(qbit::exception& ex) {
 			gLog().writeClient(Log::ERROR, std::string(": ") + ex.code() + " | " + ex.what());

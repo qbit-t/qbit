@@ -34,8 +34,18 @@ public:
 		command->setRequestProcessor(requestProcessor_);
 
 		std::set<std::string> lNames = command->name();
-		for (std::set<std::string>::iterator lName = lNames.begin(); lName != lNames.end(); lName++)
+		for (std::set<std::string>::iterator lName = lNames.begin(); lName != lNames.end(); lName++) {
 			commands_.insert(std::map<std::string /*command*/, ICommandPtr>::value_type(*lName, command));
+		}
+		
+		list_.push_back(command);
+	}
+
+	void showHelp() {
+		//
+		for (std::list<ICommandPtr>::iterator lCommand = list_.begin(); lCommand != list_.end(); lCommand++) {
+			(*lCommand)->help();
+		}	
 	}
 
 private:
@@ -48,6 +58,7 @@ private:
 
 	// Need to be filled BEFORE all processing started
 	std::map<std::string /*method*/, ICommandPtr> commands_;
+	std::list<ICommandPtr> list_;
 };
 
 }

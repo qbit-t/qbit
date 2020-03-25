@@ -191,7 +191,7 @@ public:
 		pendingtxs_.write(id, tx);
 	}
 
-	amount_t fillInputs(TxSpendPtr /*tx*/, const uint256& /*asset*/, amount_t /*amount*/);
+	amount_t fillInputs(TxSpendPtr /*tx*/, const uint256& /*asset*/, amount_t /*amount*/, std::list<Transaction::UnlinkedOutPtr>& /*utxos*/);
 
 private:
 	TransactionContextPtr makeTxSpend(Transaction::Type /*type*/, const uint256& /*asset*/, const PKey& /*dest*/, amount_t /*amount*/, qunit_t /*fee limit*/, int32_t /*targetBlock*/);

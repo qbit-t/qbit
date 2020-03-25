@@ -55,7 +55,7 @@ curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"sendtoaddress","p
 
 curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"gettransaction","params":["<tx_id>"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
 
-curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"createdapp","params":["<owner>", "<short_name>", "<long_name>" "<static|dynamic>"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
+curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"createdapp","params":["<owner>", "<short_name>", "<long_name>", "<tx_dapp_instance>", "<static|dynamic>"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
 
 curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"createshard","params":["<creator>", "<dapp_name>", "<unique_short_name>", "<description>"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
 

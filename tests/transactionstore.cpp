@@ -52,7 +52,7 @@ bool StoreQbitCreateSpend::execute() {
 		store_->commitBlock(lBlockCtx, lHeight);
 
 		if (lBlockCtx->errors().size()) {
-			error_ = *lBlockCtx->errors().begin();
+			error_ = *(lBlockCtx->errors().begin()->second.begin());
 			wallet_->close();
 			store_->close();
 			mempool_->close();
@@ -98,7 +98,7 @@ bool StoreQbitCreateSpend::execute() {
 		store_->commitBlock(lBlockCtx, lHeight);
 
 		if (lBlockCtx->errors().size()) {
-			error_ = *lBlockCtx->errors().begin();
+			error_ = *(lBlockCtx->errors().begin()->second.begin());
 			wallet_->close();
 			store_->close();
 			mempool_->close();

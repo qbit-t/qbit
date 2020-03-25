@@ -384,7 +384,7 @@ public:
 		for (std::vector<IOContextPtr>::iterator lCtx = contexts_.begin(); lCtx != contexts_.end(); lCtx++)
 			(*lCtx)->stop();
 
-		if (settings_->isClient()) {
+		if (!settings_->isClient()) {
 			boost::this_thread::sleep_for(boost::chrono::milliseconds(2000));
 
 			// stop validators

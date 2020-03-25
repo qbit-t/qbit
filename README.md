@@ -66,7 +66,29 @@ Qbit Smart contracts based on the following principles:
 3. ./configure --enable-experimental --enable-module-schnorrsig --enable-module-musig --enable-module-ecdh --enable-module-generator --enable-module-rangeproof --with-bignum=no
 4. cd ..
 5. cd ./boost
-6. ./bootstrap.sh --with-libraries=system,thread,chrono --prefix=../
+6. ./bootstrap.sh --with-libraries=system,thread,chrono,random --prefix=../
 7. ./b2
 8. cd ..
 9. cmake -DCMAKE_BUILD_TYPE=Release
+
+## Requests
+
+curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"getkey","params":[]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
+
+curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"getbalance","params":[]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
+
+curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"sendtoaddress","params":["<from|*>", "<to>", "2.0"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
+
+curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"gettransaction","params":["<tx_id>"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
+
+curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"createdapp","params":["<owner>", "<short_name>", "<long_name>", "<tx_dapp_instance>", "<static|dynamic>"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
+
+curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"createshard","params":["<creator>", "<dapp_name>", "<unique_short_name>", "<description>"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
+
+curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"createbuzzer","params":["<creator|*>", "<buzzer_unique_name>", "<buzzer_alias>", "<description>"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
+
+curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"buzz","params":["<creator|*>", "<buzz_multibyte_body>"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
+
+curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"buzzersubscribe","params":["<creator|*>", "<publisher_name>"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
+
+curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"buzzerunsubscribe","params":["<creator|*>", "<publisher_name>"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
