@@ -176,7 +176,39 @@ private:
 				try {
 					// get block template
 					BlockPtr lCurrentBlock = Block::instance();
+
+					//calculate work required
 					lCurrentBlock->bits_ = 0x207fffff;
+					BlockHeader lPrev, lPPrev;
+					bool fNegative;
+    				bool fOverflow;
+					arith_uint256 target;
+					target.SetCompact(lCurrentBlock->bits_, &fNegative, &fOverflow);
+					if(store_->blockHeader(lCurrentBlock->prev(), lPrev)) {
+						if(store_->blockHeader(lPrev.prev(), lPPrev)) {
+							arith_uint256 prev_target, pprev_target;
+							bool fPNegative;
+    						bool fPOverflow;
+							prev_target.SetCompact(lPrev.bits_, &fPNegative, &fPOverflow);
+							if (fPNegative || prev_target == 0 || fPOverflow)
+							{
+								//failed calculate target
+							}
+							else
+							{
+								pprev_target.SetCompact(lPPrev.bits_, &fPNegative, &fPOverflow);
+								if (fPNegative || pprev_target == 0 || fPOverflow)
+								{
+									//failed calculate target
+								}
+								else
+								{
+									double time_coeff = (double)(lPrev.time_ - lPPrev.time_)/5.0;
+									target = prev_target + pprev_target / time_coeff;
+								}
+							}
+						}
+					}
 
 					// prepare block
 					BlockContextPtr lCurrentBlockContext = mempool_->beginBlock(lCurrentBlock);
@@ -215,10 +247,7 @@ private:
 						lStream << v;
 						uint256 cycle_hash = lStream.GetHash();
 
-						bool fNegative;
-    					bool fOverflow;
-						arith_uint256 target;
-						target.SetCompact(lCurrentBlock->bits_, &fNegative, &fOverflow);
+						
 						
 						arith_uint256 cycle_hash_arith = UintToArith256(cycle_hash);
 						if (fNegative || target == 0 || fOverflow || target < cycle_hash_arith) continue;
