@@ -26,6 +26,9 @@ bool BuzzerLightComposer::open() {
 				DataStream lStream(lBuzzerTxHex, SER_NETWORK, CLIENT_VERSION);
 				TransactionPtr lBuzzer = Transaction::Deserializer::deserialize<DataStream>(lStream);
 				buzzerTx_ = TransactionHelper::to<TxBuzzer>(lBuzzer);
+
+				requestProcessor_->setDAppInstance(buzzerTx_->id());
+				gLog().write(Log::INFO, std::string("[buzzer/wallet/open]: buzzer = ") + buzzerTx_->id().toHex());
 			}
 
 			std::string lBuzzerUtxo;
@@ -441,16 +444,16 @@ void BuzzerLightComposer::CreateTxBuzzerUnsubscribe::process(errorFunction error
 	}
 }
 
-void BuzzerLightComposer::CreateTxBuzzerUnsubscribe::publisherLoaded(TransactionPtr publisher) {
+void BuzzerLightComposer::CreateTxBuzzerUnsubscribe::publisherLoaded(EntityPtr publisher) {
 	//
 	if (!publisher) { error_("E_BUZZER_NOT_FOUND", "Buzzer not found."); return; }
 
 	// composer_->buzzerTx() already checked
-	composer_->buzzerRequestProcessor()->loadSubscription(shardTx_, composer_->buzzerTx()->id(), publisher->id(), 
+	if (!composer_->buzzerRequestProcessor()->loadSubscription(shardTx_, composer_->buzzerTx()->id(), publisher->id(), 
 		LoadTransaction::instance(
 			boost::bind(&BuzzerLightComposer::CreateTxBuzzerUnsubscribe::subscriptionLoaded, shared_from_this(), _1),
 			boost::bind(&BuzzerLightComposer::CreateTxBuzzerUnsubscribe::timeout, shared_from_this()))
-	);
+	)) error_("E_LOAD_SUBSCRIPTION", "Load subscription failed.");
 }
 
 void BuzzerLightComposer::CreateTxBuzzerUnsubscribe::subscriptionLoaded(TransactionPtr subscription) {

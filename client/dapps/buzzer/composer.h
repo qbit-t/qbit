@@ -128,7 +128,7 @@ public:
 		}
 
 		//
-		void publisherLoaded(TransactionPtr);
+		void publisherLoaded(EntityPtr);
 		void subscriptionLoaded(TransactionPtr);
 		void utxoBySubscriptionLoaded(const std::vector<Transaction::NetworkUnlinkedOut>&, const uint256&);
 
@@ -176,6 +176,9 @@ public:
 		Transaction::Serializer::serialize<DataStream>(lStream, buzzerTx_);
 		std::string lBuzzerTxHex = HexStr(lStream.begin(), lStream.end());
 		workingSettings_.write("buzzerTx", lBuzzerTxHex);
+
+		requestProcessor_->setDAppInstance(buzzerTx_->id());
+		
 		return true;
 	}
 
