@@ -162,7 +162,7 @@ private:
 	boost::random::mt19937 lGen;
 
 	//
-	// TODO: rewrite
+	// miner thread
 	void miner() {
 		//
 		while(true) {

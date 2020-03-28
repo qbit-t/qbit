@@ -83,7 +83,8 @@ TransactionAction::Result TxSpendVerify::execute(TransactionContextPtr wrapper, 
 
 			// if 'in' in the storage already (commited to the block) - we check conditions
 			// otherwise we just pass - origin tx is in the mempool and it is not coinbase
-			if (store->transactionHeight(lIn.out().tx(), lHeight, lConfirms, lCoinbase)) {
+			if (!store->synchronizing() && wrapper->tx()->type() != Transaction::FEE && 
+								store->transactionHeight(lIn.out().tx(), lHeight, lConfirms, lCoinbase)) {
 				// check maturity
 				if (lCoinbase && lConfirms < wallet->mempoolManager()->locate(lIn.out().chain())->consensus()->coinbaseMaturity()) {
 					std::string lError = strprintf("coinbase tx is not MATURE %d/%s", lConfirms, lIn.out().tx().toHex());

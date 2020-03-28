@@ -100,6 +100,7 @@ class Container: public impl<key, value> {
 public:
 	class Iterator {
 	public:
+		Iterator() {}
 		Iterator(const typename impl<key, value>::_iterator& i) : i_(i) {}
 
 		virtual inline bool valid() { return i_.valid(); }
@@ -202,6 +203,7 @@ class MultiContainer: public Container<MultiKey<key>, value, impl> {
 public:
 	class Iterator {
 	public:
+		Iterator() {}
 		Iterator(const key& k, const typename Container<MultiKey<key>, value, impl>::Iterator& i) : keyEmpty_(false), key_(k), i_(i) {}
 		Iterator(const typename Container<MultiKey<key>, value, impl>::Iterator& i) : keyEmpty_(true), i_(i) {}
 

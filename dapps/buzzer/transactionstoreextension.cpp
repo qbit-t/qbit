@@ -19,6 +19,7 @@ bool BuzzerTransactionStoreExtension::open() {
 			if (mkpath(std::string(settings_->dataPath() + "/" + store_->chain().toHex() + "/buzzer/indexes").c_str(), 0777)) return false;
 
 			timeline_.open();
+			buzzInfo_.open();
 			subscriptionsIdx_.open();
 
 			opened_ = true;
@@ -156,4 +157,92 @@ TransactionPtr BuzzerTransactionStoreExtension::locateSubscription(const uint256
 	}
 
 	return nullptr;
+}
+
+bool BuzzerTransactionStoreExtension::checkSubscription(const uint256& subscriber, const uint256& publisher) {
+	//
+	db::DbTwoKeyContainer<uint256 /*subscriber*/, uint256 /*publisher*/, uint256 /*tx*/>::Iterator lItem = subscriptionsIdx_.find(subscriber, publisher);
+	return lItem.valid();
+}
+
+bool BuzzerTransactionStoreExtension::readBuzzInfo(const uint256& buzz, BuzzInfo& info) {
+	//
+	return buzzInfo_.read(buzz, info);
+}
+
+void BuzzerTransactionStoreExtension::selectBuzzfeed(uint64_t from, const uint256& subscriber, std::vector<BuzzfeedItem>& feed) {
+	//
+	// positioning
+	db::DbMultiContainer<uint64_t /*timestamp*/, uint256 /*buzz*/>::Iterator lFrom;
+	if (from) lFrom = timeline_.find(from);
+	else lFrom = timeline_.last();
+
+	// main store
+	ITransactionStorePtr lMainStore = store_->storeManager()->locate(MainChain::id());
+
+	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectBuzzfeed]: selecting buzzfeed for ") +
+		strprintf("subscriber = %s, from = %d, chain = %s#", subscriber.toHex(), from, store_->chain().toHex().substr(0, 10)));
+
+	// traverse
+	for (int lCount = 0; lCount < 20 /*settings_->property("buzzer", "buzzFeedLength")*/ && lFrom.valid(); --lFrom, lCount++) {
+		//
+		TransactionPtr lTx = store_->locateTransaction(*lFrom);
+		if (lTx) {
+			TxBuzzPtr lBuzz = TransactionHelper::to<TxBuzz>(lTx);
+			//
+			if (lBuzz->in().size()) {
+				bool lAdd = false;
+				uint256 lRealPublisher = (*lBuzz->in().begin()).out().tx();
+				db::DbTwoKeyContainer<uint256 /*subscriber*/, uint256 /*publisher*/, uint256 /*tx*/>::Iterator lSubscription = subscriptionsIdx_.find(subscriber, lRealPublisher);
+				if (lSubscription.valid()) {
+
+					uint256 lSubscriber;
+					uint256 lPublisher;
+					if (lSubscription.first(lSubscriber, lPublisher) && lSubscriber == subscriber && lPublisher == lRealPublisher) {
+						lAdd = true;
+					} else {
+						if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectBuzzfeed]: subscription NOT VALID for ") +
+							strprintf("s = %s, p = %s, c = %s#", lSubscriber.toHex(), lPublisher.toHex(), store_->chain().toHex().substr(0, 10)));					
+					}
+				} else {
+					if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectBuzzfeed]: subscription NOT found for ") +
+						strprintf("s = %s, p = %s, c = %s#", subscriber.toHex(), lRealPublisher.toHex(), store_->chain().toHex().substr(0, 10)));					
+				}
+
+				if (subscriber == lRealPublisher) lAdd = true;
+
+				if (lAdd) {
+					//
+					BuzzfeedItem lItem;
+					lItem.setBuzzId(*lFrom);
+					lItem.setBuzzChainId(lBuzz->chain());
+					lItem.setTimestamp(lBuzz->timestamp());
+					lItem.setBuzzBody(lBuzz->body());
+
+					TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lRealPublisher);
+					if (lBuzzerTx) {
+						TxBuzzerPtr lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
+						lItem.setBuzzerId(lRealPublisher);
+						lItem.setBuzzerName(lBuzzer->myName());
+						lItem.setBuzzerAlias(lBuzzer->alias());
+					}
+
+
+					// TODO:
+					// TxBuzzerInfo loaded by buzzer_id or using "in"?
+					// and fill setBuzzerInfoId()
+
+					// read info
+					BuzzInfo lInfo;
+					if (buzzInfo_.read(*lFrom, lInfo)) {
+						lItem.setReplies(lInfo.replies_);
+						lItem.setRebuzzes(lInfo.rebuzzes_);
+						lItem.setLikes(lInfo.likes_);
+					}
+
+					feed.push_back(lItem);
+				}
+			}
+		}
+	}	
 }

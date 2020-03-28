@@ -30,17 +30,32 @@
 #include "../txblockbase.h"
 
 #if defined (BUZZER_MOD)
-#include "../dapps/buzzer/txbuzzer.h"
-#include "../dapps/buzzer/txbuzz.h"
-#include "../dapps/buzzer/txbuzzersubscribe.h"
-#include "../dapps/buzzer/txbuzzerunsubscribe.h"
-#include "../dapps/buzzer/peerextension.h"
-#include "dapps/buzzer/requestprocessor.h"
-#include "dapps/buzzer/composer.h"
-#include "dapps/buzzer/commands.h"
+	#include "../dapps/buzzer/txbuzzer.h"
+	#include "../dapps/buzzer/txbuzz.h"
+	#include "../dapps/buzzer/txbuzzersubscribe.h"
+	#include "../dapps/buzzer/txbuzzerunsubscribe.h"
+	#include "../dapps/buzzer/peerextension.h"
+	#include "../dapps/buzzer/buzzfeed.h"
+	#include "dapps/buzzer/requestprocessor.h"
+	#include "dapps/buzzer/composer.h"
+	#include "dapps/buzzer/commands.h"
 #endif
 
 using namespace qbit;
+
+#if defined (BUZZER_MOD)
+
+void buzzfeedLargeUpdated() {
+	//
+}
+
+void buzzfeedItemUpdated(BuzzfeedItemPtr buzz) {
+	//
+	std::cout << std::endl;
+	gLog().writeClient(Log::CLIENT, std::string(": new buzz ") + buzz->buzzId().toHex());
+}
+
+#endif
 
 bool gCommandDone = false;
 void commandDone() {
@@ -132,9 +147,8 @@ int main(int argv, char** argc) {
 	Message::registerMessageType(GET_BUZZER_SUBSCRIPTION, "GET_BUZZER_SUBSCRIPTION");
 	Message::registerMessageType(BUZZER_SUBSCRIPTION, "BUZZER_SUBSCRIPTION");
 	Message::registerMessageType(BUZZER_SUBSCRIPTION_IS_ABSENT, "BUZZER_SUBSCRIPTION_IS_ABSENT");
-
-	// buzzer peer extention
-	PeerManager::registerPeerExtension("buzzer", BuzzerPeerExtensionCreator::instance());
+	Message::registerMessageType(GET_BUZZ_FEED, "GET_BUZZ_FEED");
+	Message::registerMessageType(BUZZ_FEED, "BUZZ_FEED");
 
 	// buzzer request processor
 	BuzzerRequestProcessorPtr lBuzzerRequestProcessor = BuzzerRequestProcessor::instance(lRequestProcessor);
@@ -143,11 +157,19 @@ int main(int argv, char** argc) {
 	BuzzerLightComposerPtr lBuzzerComposer = BuzzerLightComposer::instance(lSettings, lWallet, lRequestProcessor, lBuzzerRequestProcessor);
 	lBuzzerComposer->open();
 
+	// buzzfed
+	BuzzfeedPtr lBuzzfeed = Buzzfeed::instance(boost::bind(&buzzfeedLargeUpdated), boost::bind(&buzzfeedItemUpdated, _1));
+
+	// buzzer peer extention
+	PeerManager::registerPeerExtension("buzzer", BuzzerPeerExtensionCreator::instance(lBuzzfeed));
+
 	// buzzer commands
 	lCommandsHandler->push(CreateBuzzerCommand::instance(lBuzzerComposer, boost::bind(&commandDone)));
 	lCommandsHandler->push(CreateBuzzCommand::instance(lBuzzerComposer, boost::bind(&commandDone)));
 	lCommandsHandler->push(BuzzerSubscribeCommand::instance(lBuzzerComposer, boost::bind(&commandDone)));
 	lCommandsHandler->push(BuzzerUnsubscribeCommand::instance(lBuzzerComposer, boost::bind(&commandDone)));
+	lCommandsHandler->push(LoadBuzzfeedCommand::instance(lBuzzerComposer, lBuzzfeed, boost::bind(&commandDone)));
+	lCommandsHandler->push(BuzzfeedListCommand::instance(lBuzzerComposer, lBuzzfeed, boost::bind(&commandDone)));
 #endif
 
 	// peers

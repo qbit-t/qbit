@@ -24,6 +24,32 @@ public:
 
 public:
 	typedef std::map<uint256, std::list<std::vector<unsigned char>>> _commitMap;
+
+public:
+	class Error {
+	public:
+		Error() {}
+		Error(const std::string& error) {
+			data_.insert(data_.end(), error.begin(), error.end());
+		}
+
+		std::string data() {
+			std::string lResult;
+			lResult.insert(lResult.end(), data_.begin(), data_.end());
+			return lResult;
+		}
+
+		ADD_SERIALIZE_METHODS;
+
+		template <typename Stream, typename Operation>
+		inline void serializationOp(Stream& s, Operation ser_action) {
+			READWRITE(data_);
+		}
+
+	private:
+		std::vector<unsigned char> data_;
+	};
+
 public:
 	explicit TransactionContext() { fee_ = 0; size_ = 0; qbitTx_ = false; }
 	TransactionContext(TransactionPtr tx) : tx_(tx) { fee_ = 0; size_ = 0; qbitTx_ = false; }
@@ -36,6 +62,11 @@ public:
 	inline std::set<PKey>& addresses() { return addresses_; }
 	inline std::set<PKey>& outAddresses() { return outAddresses_; }
 	inline std::list<std::string>& errors() { return errors_; }
+	inline void packErrors(std::vector<Error>& errors) {
+		for (std::list<std::string>::iterator lError = errors_.begin(); lError != errors_.end(); lError++) {
+			errors.push_back(Error(*lError));
+		}
+	}
 	inline std::list<Transaction::UnlinkedOutPtr>& usedUtxo() { return usedUtxo_; }
 	inline std::list<Transaction::UnlinkedOutPtr>& newUtxo() { return newUtxo_; }
 	inline std::list<TransactionContextPtr>& linkedTxs() { return linkedTxs_; }

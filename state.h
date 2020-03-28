@@ -51,7 +51,7 @@ public:
 			} else {
 				dapp_name_t lName(dApp_);
 				lName.serialize(s);
-			}			
+			}
 		}
 
 		inline uint64_t height() { return height_; }
@@ -250,7 +250,7 @@ public:
 	std::vector<BlockInfo>& infos() { return infos_; }
 
 	std::string dApp() { return dApp_; }
-	uint256 aAppInstance() { return dAppInstance_; }
+	uint256 dAppInstance() { return dAppInstance_; }
 
 	std::string toString() {
 		std::string str;

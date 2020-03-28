@@ -24,6 +24,8 @@ public:
 	virtual bool selectEntityCountByShards(const std::string& /*dapp*/, ISelectEntityCountByShardsHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IRequestProcessor::selectEntityCountByShards - not implemented."); }
 	virtual bool broadcastTransaction(TransactionContextPtr /*ctx*/) { throw qbit::exception("NOT_IMPL", "IRequestProcessor::broadcastTransaction - not implemented."); }
 	virtual void collectPeersByChain(const uint256& /*chain*/, std::map<uint32_t, IPeerPtr>& /*order*/) { throw qbit::exception("NOT_IMPL", "IRequestProcessor::collectPeersByChain - not implemented."); }
+	virtual void collectChains(std::vector<uint256>& /*chains*/) { throw qbit::exception("NOT_IMPL", "IRequestProcessor::collectChains - not implemented."); }
+	virtual bool sendTransaction(TransactionContextPtr /*ctx*/, ISentTransactionHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IRequestProcessor::sendTransaction - not implemented."); }
 };
 
 typedef std::shared_ptr<IRequestProcessor> IRequestProcessorPtr;

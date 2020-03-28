@@ -213,6 +213,7 @@ public:
 	void selectUtxoByTransaction(const uint256& /*chain*/, const uint256& /*tx*/, ISelectUtxoByTransactionHandlerPtr /*handler*/);
 	void selectUtxoByEntity(const std::string& /*entityName*/, ISelectUtxoByEntityNameHandlerPtr /*handler*/);
 	void selectEntityCountByShards(const std::string& /*dapp*/, ISelectEntityCountByShardsHandlerPtr /*handler*/);
+	void sendTransaction(TransactionContextPtr /*ctx*/, ISentTransactionHandlerPtr /*handler*/);
 
 	std::string statusString() {
 		switch(status_) {
@@ -258,6 +259,7 @@ private:
 	void processGetEntity(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processGetUtxoByEntity(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processGetEntityCountByShards(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processPushTransaction(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 
 	void processBlockByHeight(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processBlockById(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
@@ -270,6 +272,7 @@ private:
 	void processEntity(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processUtxoByEntity(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processEntityCountByShards(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processTransactionPushed(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 
 	void processBlockByHeightAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processBlockByIdAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error);

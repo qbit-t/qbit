@@ -88,8 +88,8 @@ public:
 			//
 			if (ctx->tx()->isEntity() && ctx->tx()->entityName() == Entity::emptyName()) {
 				// just register it
-				entities_.insert(std::map<uint256, TransactionContextPtr>::value_type(id, ctx));
-				pushEntities_.push_back(ctx);
+				std::pair<std::map<uint256, TransactionContextPtr>::iterator, bool> lResult = entities_.insert(std::map<uint256, TransactionContextPtr>::value_type(id, ctx));
+				if (lResult.second) pushEntities_.push_back(ctx);
 
 				return true;
 			}
@@ -211,6 +211,8 @@ public:
 		bool transactionHeight(const uint256& tx, uint64_t& height, uint64_t& confirms, bool& coinbase) {
 			return persistentStore_->transactionHeight(tx, height, confirms, coinbase);
 		}
+
+		bool synchronizing() { return persistentStore_->synchronizing(); } 
 
 	private:
 		ITransactionStorePtr persistentStore_;
@@ -427,6 +429,10 @@ public:
 
 	ITransactionStoreExtensionPtr extension() { return extension_; }
 
+	bool synchronizing() { return synchronizing_; }
+	void setSynchronizing() { synchronizing_ = true; }
+	void resetSynchronizing() { synchronizing_ = false; }
+
 private:
 	bool processBlockTransactions(ITransactionStorePtr /*tempStore*/, IEntityStorePtr /*tempEntityStore*/, BlockContextPtr /*block*/, BlockTransactionsPtr /*transactions*/, uint64_t /*approxHeight*/, bool /*processWallet*/);
 	bool processBlock(BlockContextPtr, uint64_t& /*new height*/, bool /*processWallet*/);
@@ -435,6 +441,21 @@ private:
 	uint64_t pushNewHeight(const uint256&);
 	uint64_t top();
 	uint64_t calcHeight(const uint256&);
+
+private:
+	class SynchronizingGuard {
+	public:
+		SynchronizingGuard(ITransactionStorePtr store): store_(store) {
+			std::static_pointer_cast<TransactionStore>(store_)->setSynchronizing();
+		}
+
+		~SynchronizingGuard() {
+			std::static_pointer_cast<TransactionStore>(store_)->resetSynchronizing();	
+		}
+
+	private:
+		ITransactionStorePtr store_;
+	};
 
 private:
 	// chain id
@@ -451,6 +472,8 @@ private:
 	uint256 lastBlock_;
 	// store extension
 	ITransactionStoreExtensionPtr extension_;
+	// synchronizing?
+	bool synchronizing_ = false;
 
 	//
 	// main data
