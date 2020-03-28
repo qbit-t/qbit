@@ -200,10 +200,12 @@ private:
 								if (fPNegative || pprev_target == 0 || fPOverflow)
 								{
 									//failed calculate target
+									target = prev_target;
 								}
 								else
 								{
-									double time_coeff = (double)(lPrev.time_ - lPPrev.time_)/5.0;
+									int lMSeconds = (consensus_->blockTime())/1000;
+									double time_coeff = (double)(lPrev.time_ - lPPrev.time_)/(double)lMSeconds;
 									target = prev_target + pprev_target / time_coeff;
 								}
 							}
