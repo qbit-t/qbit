@@ -212,7 +212,9 @@ public:
 		static std::shared_ptr<PoolStore> toStore(ITransactionStorePtr store) { return std::static_pointer_cast<PoolStore>(store); }
 
 		uint256 chain() { return pool_->chain(); }
-		ITransactionStoreManagerPtr storeManager() { return pool_->wallet()->storeManager(); }		
+		ITransactionStoreManagerPtr storeManager() { return pool_->wallet()->storeManager(); }
+
+		bool synchronizing() { return false; } 
 
 	private:
 		IMemoryPoolPtr pool_;

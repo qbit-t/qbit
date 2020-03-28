@@ -64,6 +64,7 @@ public:
 	virtual ITransactionStoreManagerPtr storeManager() { throw qbit::exception("NOT_IMPL", "ITransactionStore::storeManager - Not implemented."); }	
 
 	virtual bool resyncHeight() { throw qbit::exception("NOT_IMPL", "ITransactionStore::resyncHeight - not implemented."); }
+	virtual bool synchronizing() { throw qbit::exception("NOT_IMPL", "ITransactionStore::synchronizing - not implemented."); }
 
 	virtual void erase(const uint256&, const uint256&) { throw qbit::exception("NOT_IMPL", "ITransactionStore::erase - not implemented."); }
 	virtual void remove(const uint256&, const uint256&) { throw qbit::exception("NOT_IMPL", "ITransactionStore::remove - not implemented."); }

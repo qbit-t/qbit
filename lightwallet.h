@@ -73,6 +73,8 @@ public:
 			return nullptr;
 		}
 
+		bool synchronizing() { return false; } 
+
 	};
 	typedef std::shared_ptr<TxBlockStore> TxBlockStorePtr;
 

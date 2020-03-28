@@ -81,6 +81,15 @@ public:
 typedef std::shared_ptr<ILoadTransactionHandler> ILoadTransactionHandlerPtr;
 
 //
+// sent transaction handler
+class ISentTransactionHandler: public IReplyHandler {
+public:
+	ISentTransactionHandler() {}
+	virtual void handleReply(const uint256&, const std::vector<TransactionContext::Error>&) = 0;
+};
+typedef std::shared_ptr<ISentTransactionHandler> ISentTransactionHandlerPtr;
+
+//
 // select utxo by address
 class ISelectUtxoByAddressHandler: public IReplyHandler {
 public:
@@ -257,6 +266,7 @@ public:
 	virtual void selectUtxoByTransaction(const uint256& /*chain*/, const uint256& /*tx*/, ISelectUtxoByTransactionHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IPeer::selectUtxoByTransaction - not implemented."); }
 	virtual void selectUtxoByEntity(const std::string& /*entityName*/, ISelectUtxoByEntityNameHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IPeer::selectUtxoByEntity - not implemented."); }
 	virtual void selectEntityCountByShards(const std::string& /*dapp*/, ISelectEntityCountByShardsHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IPeer::selectEntityCountByShards - not implemented."); }
+	virtual void sendTransaction(TransactionContextPtr /*ctx*/, ISentTransactionHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IPeer::sendTransaction - not implemented."); }
 };
 
 typedef std::shared_ptr<IPeer> IPeerPtr;

@@ -317,7 +317,7 @@ void HttpSendToAddress::process(const std::string& source, const HttpRequest& re
 					// we good
 					if (lCtx) {
 						// find and broadcast for active clients
-						peerManager_->notifyTransaction(lCtx);						
+						peerManager_->notifyTransaction(lCtx);
 					}
 				} else {
 					lCode = "E_TX_EXISTS";

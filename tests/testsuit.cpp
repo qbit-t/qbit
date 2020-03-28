@@ -84,6 +84,8 @@ int main(int argv, char** argc)
 	Message::registerMessageType(GET_BUZZER_SUBSCRIPTION, "GET_BUZZER_SUBSCRIPTION");
 	Message::registerMessageType(BUZZER_SUBSCRIPTION, "BUZZER_SUBSCRIPTION");
 	Message::registerMessageType(BUZZER_SUBSCRIPTION_IS_ABSENT, "BUZZER_SUBSCRIPTION_IS_ABSENT");
+	Message::registerMessageType(GET_BUZZ_FEED, "GET_BUZZ_FEED");
+	Message::registerMessageType(BUZZ_FEED, "BUZZ_FEED");
 	// buzzer peer extention
 	PeerManager::registerPeerExtension("buzzer", BuzzerPeerExtensionCreator::instance());
 

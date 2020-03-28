@@ -421,6 +421,38 @@ void Peer::loadEntity(const std::string& name, ILoadEntityHandlerPtr handler) {
 	}
 }
 
+void Peer::sendTransaction(TransactionContextPtr ctx, ISentTransactionHandlerPtr handler) {
+	//
+	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; } // TODO: connect will skip current call
+	else if (socketStatus_ == CONNECTED) {
+
+		// new message
+		std::list<DataStream>::iterator lMsg = newOutMessage();
+
+		// id
+		uint256 lRequestId = addRequest(handler);
+
+		// push tx
+		DataStream lStateStream(SER_NETWORK, CLIENT_VERSION);
+		lStateStream << lRequestId;		
+		Transaction::Serializer::serialize<DataStream>(lStateStream, ctx->tx());
+
+		Message lMessage(Message::PUSH_TRANSACTION, lStateStream.size(), Hash160(lStateStream.begin(), lStateStream.end()));
+		(*lMsg) << lMessage;
+		lMsg->write(lStateStream.data(), lStateStream.size());
+
+		// log
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: sending transaction to ") + key() + " -> " + HexStr(lMsg->begin(), lMsg->end()));
+
+		// write
+		boost::asio::async_write(*socket_,
+			boost::asio::buffer(lMsg->data(), lMsg->size()),
+			boost::bind(
+				&Peer::messageFinalize, shared_from_this(), lMsg,
+				boost::asio::placeholders::error));
+	}
+}
+
 void Peer::selectUtxoByAddress(const PKey& source, const uint256& chain, ISelectUtxoByAddressHandlerPtr handler) {
 	//
 	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
@@ -707,7 +739,10 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 				lMessage.type() == Message::UTXO_BY_ADDRESS_AND_ASSET ||
 				lMessage.type() == Message::UTXO_BY_TX ||
 				lMessage.type() == Message::UTXO_BY_ENTITY ||
-				lMessage.type() == Message::ENTITY;
+				lMessage.type() == Message::ENTITY ||
+				lMessage.type() == Message::PUSH_TRANSACTION ||
+				lMessage.type() == Message::TRANSACTION_PUSHED ||
+				lMessage.type() == Message::ENTITY_COUNT_BY_SHARDS;
 
 			if (lMessage.type() == Message::STATE) {
 				boost::asio::async_read(*socket_,
@@ -967,6 +1002,19 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 					boost::asio::buffer(lMsg->data(), lMessage.dataSize()),
 					boost::bind(
 						&Peer::processEntityCountByShards, shared_from_this(), lMsg,
+						boost::asio::placeholders::error));
+
+			} else if (lMessage.type() == Message::PUSH_TRANSACTION) {
+				boost::asio::async_read(*socket_,
+					boost::asio::buffer(lMsg->data(), lMessage.dataSize()),
+					boost::bind(
+						&Peer::processPushTransaction, shared_from_this(), lMsg,
+						boost::asio::placeholders::error));
+			} else if (lMessage.type() == Message::TRANSACTION_PUSHED) {
+				boost::asio::async_read(*socket_,
+					boost::asio::buffer(lMsg->data(), lMessage.dataSize()),
+					boost::bind(
+						&Peer::processTransactionPushed, shared_from_this(), lMsg,
 						boost::asio::placeholders::error));
 
 			} else if (lMessage.type() == Message::CLIENT_SESSIONS_EXCEEDED) {
@@ -1848,6 +1896,48 @@ void Peer::processEntityCountByShards(std::list<DataStream>::iterator msg, const
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processEntityCountByShards/error]: closing session " + key() + " -> " + error.message());
+		//
+		socketStatus_ = ERROR;
+		// try to deactivate peer
+		peerManager_->deactivatePeer(shared_from_this());
+		// close socket
+		socket_->close();
+	}
+}
+
+void Peer::processTransactionPushed(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
+	//
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: checksum is INVALID for message from ") + key());
+	if (!error && lMsgValid) {
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing transaction pushed from ") + key());
+
+		// extract
+		uint256 lRequestId;
+		uint256 lTxId;
+		std::vector<TransactionContext::Error> lErrors;
+
+		(*msg) >> lRequestId;
+		(*msg) >> lTxId;
+		(*msg) >> lErrors;
+		eraseInData(msg);
+
+		// log
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing transaction pushed ") + strprintf("r = %s, tx = %s, e = %d", lRequestId.toHex(), lTxId.toHex(), lErrors.size()) + std::string("..."));
+
+		IReplyHandlerPtr lHandler = locateRequest(lRequestId);
+		if (lHandler) {
+			ReplyHelper::to<ISentTransactionHandler>(lHandler)->handleReply(lTxId, lErrors);
+			removeRequest(lRequestId);
+		} else {
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: request was NOT FOUND ") + strprintf("r = %s, tx = %s", lRequestId.toHex(), lTxId.toHex()) + std::string("..."));
+		}
+
+		// WARNING: in case of async_read for large data
+		waitForMessage();
+	} else {
+		// log
+		gLog().write(Log::NET, "[peer/processTransactionPushed/error]: closing session " + key() + " -> " + error.message());
 		//
 		socketStatus_ = ERROR;
 		// try to deactivate peer
@@ -2962,7 +3052,98 @@ void Peer::processTransaction(std::list<DataStream>::iterator msg, const boost::
 		waitForMessage();	
 	} else {
 		// log
-		gLog().write(Log::NET, "[peer/processBlockHeader/error]: closing session " + key() + " -> " + error.message());
+		gLog().write(Log::NET, "[peer/processTransaction/error]: closing session " + key() + " -> " + error.message());
+		//
+		socketStatus_ = ERROR;
+		// try to deactivate peer
+		peerManager_->deactivatePeer(shared_from_this());
+		// close socket
+		socket_->close();
+	}
+}
+
+void Peer::processPushTransaction(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
+	//
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: checksum is INVALID for message from ") + key());
+	if (!error && lMsgValid) {
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: raw send transaction from ") + key() + " -> " + HexStr(msg->begin(), msg->end()));
+
+		uint256 lRequestId;
+		(*msg) >> lRequestId;
+
+		// extract transaction data
+		TransactionPtr lTx = Transaction::Deserializer::deserialize<DataStream>(*msg);
+		eraseInData(msg);
+
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: process send transaction from ") + key() + " -> " + 
+				strprintf("%s/%s#", lTx->id().toHex(), lTx->chain().toHex().substr(0, 10)));
+
+		if (peerManager_->settings()->isClient()) {
+			// client-side
+			peerManager_->consensusManager()->processTransaction(lTx);
+		} else {
+			// node-side
+			std::vector<TransactionContext::Error> lErrors;
+			// ge mempool
+			IMemoryPoolPtr lMempool = peerManager_->consensusManager()->mempoolManager()->locate(lTx->chain());
+			if (lMempool) {
+				//
+				TransactionContextPtr lCtx = lMempool->pushTransaction(lTx);
+				if (!lCtx) {
+					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: transaction is ALREADY exists ") + 
+							strprintf("%s/%s#", lTx->id().toHex(), lTx->chain().toHex().substr(0, 10)));
+				} else if (lCtx->errors().size()) {
+					for (std::list<std::string>::iterator lErr = lCtx->errors().begin(); lErr != lCtx->errors().end(); lErr++) {
+						if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: transaction processing ERROR - ") + (*lErr) +
+								strprintf(" -> %s/%s#", lTx->id().toHex(), lTx->chain().toHex().substr(0, 10)));
+					}
+
+					lCtx->packErrors(lErrors);
+				} else {
+					// broadcast by nodes and fullnodes
+					peerManager_->consensusManager()->broadcastTransaction(lCtx, addressId());
+
+					// find and broadcast for active clients
+					peerManager_->notifyTransaction(lCtx);
+				}
+
+			} else {
+				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: chain is NOT SUPPORTED for ") + 
+						strprintf("%s/%s#", lTx->id().toHex(), lTx->chain().toHex().substr(0, 10)));
+				lErrors.push_back(TransactionContext::Error("chain is NOT SUPPORTED"));
+			}
+
+			// make message, serialize, send back
+			std::list<DataStream>::iterator lMsg = newOutMessage();
+
+			// fill data
+			DataStream lStream(SER_NETWORK, CLIENT_VERSION);
+			lStream << lRequestId;
+			lStream << lTx->id();
+			lStream << lErrors;
+
+			// prepare message
+			Message lMessage(Message::TRANSACTION_PUSHED, lStream.size(), Hash160(lStream.begin(), lStream.end()));
+			(*lMsg) << lMessage;
+			lMsg->write(lStream.data(), lStream.size());
+
+			// log
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: sending transaction pushed result: ") + strprintf("errors = %d, tx = %s", lErrors.size(), lTx->id().toHex()) + std::string(" for ") + key());
+
+			// write
+			boost::asio::async_write(*socket_,
+				boost::asio::buffer(lMsg->data(), lMsg->size()),
+				boost::bind(
+					&Peer::messageFinalize, shared_from_this(), lMsg,
+					boost::asio::placeholders::error));
+		}
+
+		// WARNING: in case of async_read for large data
+		waitForMessage();	
+	} else {
+		// log
+		gLog().write(Log::NET, "[peer/processPushTransaction/error]: closing session " + key() + " -> " + error.message());
 		//
 		socketStatus_ = ERROR;
 		// try to deactivate peer

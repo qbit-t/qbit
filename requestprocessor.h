@@ -220,6 +220,20 @@ public:
 		return false;
 	}
 
+	bool sendTransaction(TransactionContextPtr ctx, ISentTransactionHandlerPtr handler) {
+		//
+		std::map<uint32_t, IPeerPtr> lOrder;
+		collectPeersByChain(ctx->tx()->chain(), lOrder);
+
+		if (lOrder.size()) {
+			// use nearest
+			lOrder.begin()->second->sendTransaction(ctx, handler);
+			return true;
+		}
+
+		return false;
+	}	
+
 	bool broadcastTransaction(TransactionContextPtr ctx) {
 		//
 		std::map<uint32_t, IPeerPtr> lOrder;
@@ -268,6 +282,14 @@ public:
 				if (lLatency != latencyMap_.end() && lPeer != peers_.end())
 					order.insert(std::map<uint32_t, IPeerPtr>::value_type(lLatency->second, lPeer->second));
 			}
+		}
+	}
+
+	void collectChains(std::vector<uint256>& chains) {
+		//
+		boost::unique_lock<boost::mutex> lLock(peersMutex_);
+		for (std::map<uint256 /*chain*/, std::set<uint160>>::iterator lChain = chainPeers_.begin(); lChain != chainPeers_.end(); lChain++) {
+			if (lChain->first != MainChain::id()) chains.push_back(lChain->first);
 		}
 	}
 

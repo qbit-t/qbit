@@ -11,6 +11,7 @@
 #include "../../transactioncontext.h"
 #include "../../itransactionstoreextension.h"
 #include "../../db/containers.h"
+#include "buzzfeed.h"
 
 #include <memory>
 
@@ -18,11 +19,31 @@ namespace qbit {
 
 class BuzzerTransactionStoreExtension: public ITransactionStoreExtension, public std::enable_shared_from_this<BuzzerTransactionStoreExtension> {
 public:
+	class BuzzInfo {
+	public:
+		BuzzInfo() {}
+
+		uint32_t replies_ = 0;
+		uint32_t rebuzzes_ = 0;
+		uint32_t likes_ = 0;
+
+		ADD_SERIALIZE_METHODS;
+
+		template <typename Stream, typename Operation>
+		inline void serializationOp(Stream& s, Operation ser_action) {
+			READWRITE(replies_);
+			READWRITE(rebuzzes_);
+			READWRITE(likes_);
+		}
+	};
+	
+public:
 	BuzzerTransactionStoreExtension(ISettingsPtr settings, ITransactionStorePtr store) : 
 		settings_(settings),
 		store_(store),
 		timeline_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/timeline"), 
-		subscriptionsIdx_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/indexes/subscriptions") {}
+		subscriptionsIdx_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/indexes/subscriptions"),
+		buzzInfo_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/buzz_info") {}
 
 	bool open();
 	bool close();
@@ -32,6 +53,9 @@ public:
 	bool pushEntity(const uint256&, TransactionContextPtr);
 
 	TransactionPtr locateSubscription(const uint256& /*subscriber*/, const uint256& /*publisher*/);
+	void selectBuzzfeed(uint64_t /*from*/, const uint256& /*subscriber*/, std::vector<BuzzfeedItem>& /*feed*/);
+	bool checkSubscription(const uint256& /*subscriber*/, const uint256& /*publisher*/);
+	bool readBuzzInfo(const uint256& /*buzz*/, BuzzInfo& /*info*/);
 
 	static ITransactionStoreExtensionPtr instance(ISettingsPtr settings, ITransactionStorePtr store) {
 		return std::make_shared<BuzzerTransactionStoreExtension>(settings, store);
@@ -48,6 +72,8 @@ private:
 	db::DbMultiContainer<uint64_t /*timestamp*/, uint256 /*buzz*/> timeline_;
 	// subscriber|publisher -> tx
 	db::DbTwoKeyContainer<uint256 /*subscriber*/, uint256 /*publisher*/, uint256 /*tx*/> subscriptionsIdx_;
+	// buzz | info
+	db::DbContainer<uint256 /*buzz*/, BuzzInfo /*buzz info*/> buzzInfo_;
 };
 
 typedef std::shared_ptr<BuzzerTransactionStoreExtension> BuzzerTransactionStoreExtensionPtr;

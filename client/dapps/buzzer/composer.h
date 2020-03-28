@@ -10,6 +10,7 @@
 #include "../../../dapps/buzzer/txbuzz.h"
 #include "../../../dapps/buzzer/txbuzzersubscribe.h"
 #include "../../../dapps/buzzer/txbuzzerunsubscribe.h"
+#include "../../../dapps/buzzer/buzzfeed.h"
 #include "../../../txshard.h"
 #include "../../../db/containers.h"
 #include "requestprocessor.h"
@@ -100,6 +101,7 @@ public:
 		}
 
 		//
+		void publisherLoaded(EntityPtr);
 		void utxoByPublisherLoaded(const std::vector<Transaction::UnlinkedOut>&, const std::string&);
 		void utxoByBuzzerLoaded(const std::vector<Transaction::UnlinkedOut>&, const std::string&);
 
@@ -143,6 +145,33 @@ public:
 		uint256 shardTx_;
 	};	
 
+	class LoadBuzzfeed: public IComposerMethod, public std::enable_shared_from_this<LoadBuzzfeed> {
+	public:
+		LoadBuzzfeed(BuzzerLightComposerPtr composer, const uint256& chain, uint64_t from, buzzfeedLoadedFunction loaded): composer_(composer), chain_(chain), from_(from), loaded_(loaded) {}
+		void process(errorFunction);
+
+		static IComposerMethodPtr instance(BuzzerLightComposerPtr composer, const uint256& chain, uint64_t from, buzzfeedLoadedFunction loaded) {
+			return std::make_shared<LoadBuzzfeed>(composer, chain, from, loaded); 
+		} 
+
+		//
+		void buzzfeedLoaded(const std::vector<BuzzfeedItem>& feed, const uint256& chain) {
+			loaded_(feed, chain);
+		}
+
+		// 
+		void timeout() {
+			error_("E_TIMEOUT", "Timeout expired during buzzfeed load.");
+		}
+
+	private:
+		BuzzerLightComposerPtr composer_;
+		uint256 chain_;
+		uint64_t from_;
+		buzzfeedLoadedFunction loaded_;
+		errorFunction error_;		
+	};
+
 public:
 	BuzzerLightComposer(ISettingsPtr settings, IWalletPtr wallet, IRequestProcessorPtr requestProcessor, BuzzerRequestProcessorPtr buzzerRequestProcessor): 
 		settings_(settings), wallet_(wallet), requestProcessor_(requestProcessor), buzzerRequestProcessor_(buzzerRequestProcessor),
@@ -178,7 +207,7 @@ public:
 		workingSettings_.write("buzzerTx", lBuzzerTxHex);
 
 		requestProcessor_->setDAppInstance(buzzerTx_->id());
-		
+
 		return true;
 	}
 

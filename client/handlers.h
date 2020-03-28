@@ -25,6 +25,8 @@ typedef boost::function<void (TransactionContextPtr)> transactionCreatedFunction
 typedef boost::function<void (double, amount_t)> balanceReadyFunction;
 typedef boost::function<void (const std::string&, const std::string&)> errorFunction;
 
+typedef boost::function<void (const uint256&, const std::vector<TransactionContext::Error>&)> sentTransactionFunction;
+
 // common method
 class IComposerMethod {
 public:
@@ -52,6 +54,29 @@ public:
 
 private:
 	transactionLoadedFunction function_;
+	timeoutFunction timeout_;
+};
+
+// sent transaction
+class SentTransaction: public ISentTransactionHandler, public std::enable_shared_from_this<SentTransaction> {
+public:
+	SentTransaction(sentTransactionFunction function, timeoutFunction timeout): function_(function), timeout_(timeout) {}
+
+	// ILoadEntityHandler
+	void handleReply(const uint256& tx, const std::vector<TransactionContext::Error>& errors) {
+		 function_(tx, errors);
+	}
+	// ISentTransactionHandler
+	void timeout() {
+		timeout_();
+	}
+
+	static ISentTransactionHandlerPtr instance(sentTransactionFunction function, timeoutFunction timeout) { 
+		return std::make_shared<SentTransaction>(function, timeout); 
+	}
+
+private:
+	sentTransactionFunction function_;
 	timeoutFunction timeout_;
 };
 

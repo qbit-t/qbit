@@ -8,6 +8,7 @@
 #include "../../../ipeer.h"
 #include "../../../irequestprocessor.h"
 #include "../../../dapps/buzzer/peerextension.h"
+#include "../../../dapps/buzzer/buzzfeed.h"
 
 #include <boost/atomic.hpp>
 
@@ -38,6 +39,25 @@ public:
 				IPeerExtensionPtr lExtension = lPeer->second->extension("buzzer");
 				if (lExtension) {
 					std::static_pointer_cast<BuzzerPeerExtension>(lExtension)->loadSubscription(chain, subscriber, publisher, handler);
+					return true;
+				}
+			}
+		}
+
+		return false;
+	}
+
+	bool selectBuzzfeed(const uint256& chain, uint64_t from, const uint256& subscriber, ISelectBuzzFeedHandlerPtr handler) {
+		//
+		std::map<uint32_t, IPeerPtr> lOrder;
+		requestProcessor_->collectPeersByChain(chain, lOrder);
+
+		if (lOrder.size()) {
+			// use nearest
+			for (std::map<uint32_t, IPeerPtr>::iterator lPeer = lOrder.begin(); lPeer != lOrder.end(); lPeer++) {
+				IPeerExtensionPtr lExtension = lPeer->second->extension("buzzer");
+				if (lExtension) {
+					std::static_pointer_cast<BuzzerPeerExtension>(lExtension)->selectBuzzfeed(chain, from, subscriber, handler);
 					return true;
 				}
 			}

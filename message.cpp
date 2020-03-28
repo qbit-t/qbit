@@ -56,6 +56,8 @@ std::string Message::toString() {
 		case ENTITY: lMsg = "ENTITY"; break;
 		case ENTITY_IS_ABSENT: lMsg = "ENTITY_IS_ABSENT"; break;
 		case CLIENT_SESSIONS_EXCEEDED: lMsg = "CLIENT_SESSIONS_EXCEEDED"; break;
+		case PUSH_TRANSACTION: lMsg = "PUSH_TRANSACTION"; break;
+		case TRANSACTION_PUSHED: lMsg = "TRANSACTION_PUSHED"; break;
 
 		default:  {
 			lMsg = "UNKNOWN";

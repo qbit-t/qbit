@@ -715,8 +715,6 @@ bool TransactionStore::commitBlock(BlockContextPtr ctx, uint64_t& height) {
 
 BlockContextPtr TransactionStore::pushBlock(BlockPtr block) {
 	//
-	boost::unique_lock<boost::recursive_mutex> lLock(storageCommitMutex_);
-	//
 	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[pushBlock]: PUSHING block ") + 
 		strprintf("%s/%s#", block->hash().toHex(), chain_.toHex().substr(0, 10)));
 
@@ -734,9 +732,13 @@ BlockContextPtr TransactionStore::pushBlock(BlockPtr block) {
 	bool lResult;
 	uint64_t lHeight;
 	BlockContextPtr lBlockCtx = BlockContext::instance(block);	
-	lResult = processBlock(lBlockCtx, lHeight, true);
-	if (lResult) {
-		lBlockCtx->setHeight(lHeight);
+	{
+		//
+		boost::unique_lock<boost::recursive_mutex> lLock(storageCommitMutex_);		
+		lResult = processBlock(lBlockCtx, lHeight, true);
+		if (lResult) {
+			lBlockCtx->setHeight(lHeight);
+		}
 	}
 
 	// remove
@@ -1190,7 +1192,7 @@ void TransactionStore::saveBlock(BlockPtr block) {
 	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[saveBlock]: saving block ") +
 		strprintf("%s/%s#", block->hash().toHex(), chain_.toHex().substr(0, 10)));
 	//
-	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);	
+	// boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);	
 	//
 	// WARNING: should not ever be called from mining circle
 	//
@@ -1232,7 +1234,9 @@ bool TransactionStore::blockHeader(const uint256& id, BlockHeader& header) {
 
 void TransactionStore::reindexFull(const uint256& from, IMemoryPoolPtr pool) {
 	//
-	boost::unique_lock<boost::recursive_mutex> lLock(storageCommitMutex_);	
+	boost::unique_lock<boost::recursive_mutex> lLock(storageCommitMutex_);
+	// synchronizing
+	SynchronizingGuard lGuard(shared_from_this());	
 	//
 	gLog().write(Log::STORE, std::string("[reindexFull]: starting FULL reindex for ") + 
 		strprintf("%s#", chain_.toHex().substr(0, 10)));
@@ -1292,47 +1296,62 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 		}
 	}
 
+	bool lResyncHeight = false;
+	bool lRemoveTransactions = false;
+	std::list<BlockContextPtr> lContexts;
 	{
 		//
 		boost::unique_lock<boost::recursive_mutex> lLock(storageCommitMutex_);
+		// synchronizing
+		SynchronizingGuard lGuard(shared_from_this());
 		// remove old index
 		removeBlocks(lastBlock_, to, false);
 		// remove new index
 		removeBlocks(from, to, false); // in case of wrapped restarts (re-process blocks may occure)
 		// process blocks
-		std::list<BlockContextPtr> lContexts;
 		if (!processBlocks(from, to, lContexts)) {
 			if (lContexts.size()) {
 				std::list<BlockContextPtr>::reverse_iterator lLast = (++lContexts.rbegin()); // prev good
 				if (lLast != lContexts.rend()) {
 					setLastBlock((*lLast)->block()->hash());
 					// build height map
-					resyncHeight();
+					lResyncHeight = true;
 				} else {
 					// shift "to" to prev, try to handle
 					BlockHeader lHeader;
 					if (blockHeader(to, lHeader)) {
 						setLastBlock(lHeader.prev());
 						// build height map
-						resyncHeight();
+						lResyncHeight = true;
 					}
 				}
 			}
 		} else {
 			// clean-up
-			for (std::list<BlockContextPtr>::iterator lBlock = lContexts.begin(); lBlock != lContexts.end(); lBlock++) {
-				pool->removeTransactions((*lBlock)->block());
-			}
-
+			lRemoveTransactions = true;
+			// point to the last block
 			setLastBlock(from);
 			// build height map
-			resyncHeight();
+			lResyncHeight = true;
 		}
-
-		//
-		gLog().write(Log::STORE, std::string("[reindex]: reindex FINISHED for ") + 
-			strprintf("%s#", chain_.toHex().substr(0, 10)));
 	}
+
+	//
+	if (lRemoveTransactions) {
+		// clean-up
+		for (std::list<BlockContextPtr>::iterator lBlock = lContexts.begin(); lBlock != lContexts.end(); lBlock++) {
+			pool->removeTransactions((*lBlock)->block());
+		}		
+	}
+
+	if (lResyncHeight) {
+		// build height map
+		resyncHeight();
+	}
+
+	//
+	gLog().write(Log::STORE, std::string("[reindex]: reindex FINISHED for ") + 
+		strprintf("%s#", chain_.toHex().substr(0, 10)));
 
 	return true;
 }

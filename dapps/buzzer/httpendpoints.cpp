@@ -290,6 +290,12 @@ void HttpBuzz::process(const std::string& source, const HttpRequest& request, co
 							lCode = "E_TX_NOT_BROADCASTED";
 							lMessage = "Transaction is not broadcasted"; 
 						}
+						
+						// we good
+						if (lCtx) {
+							// find and broadcast for active clients
+							peerManager_->notifyTransaction(lCtx);
+						}
 					} else {
 						lCode = "E_TX_EXISTS";
 						lMessage = "Transaction already exists";

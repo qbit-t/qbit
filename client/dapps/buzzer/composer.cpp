@@ -327,27 +327,38 @@ void BuzzerLightComposer::CreateTxBuzzerSubscribe::process(errorFunction error) 
 	TxBuzzerPtr lMyBuzzer = composer_->buzzerTx();
 
 	if (lMyBuzzer) {
-		// extract bound shard
-		if (lMyBuzzer->in().size() > 1) {
-			//
-			Transaction::In& lShardIn = *(++(lMyBuzzer->in().begin())); // second in
-			uint256 lShardTx = lShardIn.out().tx();
-			// set shard/chain
-			buzzerSubscribeTx_->setChain(lShardTx);
-			// set timestamp
-			buzzerSubscribeTx_->setTimestamp(qbit::getMedianMicroseconds());
+		// set timestamp
+		buzzerSubscribeTx_->setTimestamp(qbit::getMedianMicroseconds());
 
-			composer_->requestProcessor()->selectUtxoByEntity(publisher_, 
-				SelectUtxoByEntityName::instance(
-					boost::bind(&BuzzerLightComposer::CreateTxBuzzerSubscribe::utxoByPublisherLoaded, shared_from_this(), _1, _2),
-					boost::bind(&BuzzerLightComposer::CreateTxBuzzerSubscribe::timeout, shared_from_this()))
-			);
-
-		} else {
-			error_("E_BUZZER_TX_INCONSISTENT", "Buzzer tx is inconsistent."); return;
-		}
+		composer_->requestProcessor()->loadEntity(publisher_, 
+			LoadEntity::instance(
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzerSubscribe::publisherLoaded, shared_from_this(), _1),
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzerSubscribe::timeout, shared_from_this()))
+		);
 	} else {
 		error_("E_BUZZER_TX_NOT_FOUND", "Local buzzer was not found."); return;
+	}
+}
+
+void BuzzerLightComposer::CreateTxBuzzerSubscribe::publisherLoaded(EntityPtr publisher) {
+	//
+	if (!publisher) { error_("E_BUZZER_NOT_FOUND", "Buzzer not found."); return; }
+
+	//
+	// extract bound shard
+	if (publisher->in().size() > 1) {
+		//
+		Transaction::In& lShardIn = *(++(publisher->in().begin())); // second in
+		// set shard/chain
+		buzzerSubscribeTx_->setChain(lShardIn.out().tx());
+
+		composer_->requestProcessor()->selectUtxoByEntity(publisher_, 
+			SelectUtxoByEntityName::instance(
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzerSubscribe::utxoByPublisherLoaded, shared_from_this(), _1, _2),
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzerSubscribe::timeout, shared_from_this()))
+		);
+	} else {
+		error_("E_BUZZER_TX_INCONSISTENT", "Buzzer tx is inconsistent."); return;
 	}
 }
 
@@ -419,26 +430,13 @@ void BuzzerLightComposer::CreateTxBuzzerUnsubscribe::process(errorFunction error
 
 	if (lTx) {
 		//
-		TxBuzzerPtr lMyBuzzer = TransactionHelper::to<TxBuzzer>(lTx);
-		// extract bound shard
-		if (lMyBuzzer->in().size() > 1) {
-			//
-			Transaction::In& lShardIn = *(++(lMyBuzzer->in().begin())); // second in
-			shardTx_ = lShardIn.out().tx();
-			// set shard/chain
-			buzzerUnsubscribeTx_->setChain(shardTx_);
-			// set timestamp
-			buzzerUnsubscribeTx_->setTimestamp(qbit::getMedianMicroseconds());
+		buzzerUnsubscribeTx_->setTimestamp(qbit::getMedianMicroseconds());
 
-			composer_->requestProcessor()->loadEntity(publisher_, 
-				LoadEntity::instance(
-					boost::bind(&BuzzerLightComposer::CreateTxBuzzerUnsubscribe::publisherLoaded, shared_from_this(), _1),
-					boost::bind(&BuzzerLightComposer::CreateTxBuzzerUnsubscribe::timeout, shared_from_this()))
-			);
-
-		} else {
-			error_("E_BUZZER_TX_INCONSISTENT", "Buzzer tx is inconsistent."); return;
-		}
+		composer_->requestProcessor()->loadEntity(publisher_, 
+			LoadEntity::instance(
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzerUnsubscribe::publisherLoaded, shared_from_this(), _1),
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzerUnsubscribe::timeout, shared_from_this()))
+		);
 	} else {
 		error_("E_BUZZER_TX_NOT_FOUND", "Local buzzer was not found."); return;
 	}
@@ -448,12 +446,24 @@ void BuzzerLightComposer::CreateTxBuzzerUnsubscribe::publisherLoaded(EntityPtr p
 	//
 	if (!publisher) { error_("E_BUZZER_NOT_FOUND", "Buzzer not found."); return; }
 
-	// composer_->buzzerTx() already checked
-	if (!composer_->buzzerRequestProcessor()->loadSubscription(shardTx_, composer_->buzzerTx()->id(), publisher->id(), 
-		LoadTransaction::instance(
-			boost::bind(&BuzzerLightComposer::CreateTxBuzzerUnsubscribe::subscriptionLoaded, shared_from_this(), _1),
-			boost::bind(&BuzzerLightComposer::CreateTxBuzzerUnsubscribe::timeout, shared_from_this()))
-	)) error_("E_LOAD_SUBSCRIPTION", "Load subscription failed.");
+	//
+	// extract bound shard
+	if (publisher->in().size() > 1) {
+		//
+		Transaction::In& lShardIn = *(++(publisher->in().begin())); // second in
+		shardTx_ = lShardIn.out().tx();
+		// set shard/chain
+		buzzerUnsubscribeTx_->setChain(shardTx_);
+
+		// composer_->buzzerTx() already checked
+		if (!composer_->buzzerRequestProcessor()->loadSubscription(shardTx_, composer_->buzzerTx()->id(), publisher->id(), 
+			LoadTransaction::instance(
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzerUnsubscribe::subscriptionLoaded, shared_from_this(), _1),
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzerUnsubscribe::timeout, shared_from_this()))
+		)) error_("E_LOAD_SUBSCRIPTION", "Load subscription failed.");
+	} else {
+		error_("E_BUZZER_TX_INCONSISTENT", "Buzzer tx is inconsistent."); return;
+	}
 }
 
 void BuzzerLightComposer::CreateTxBuzzerUnsubscribe::subscriptionLoaded(TransactionPtr subscription) {
@@ -485,4 +495,19 @@ void BuzzerLightComposer::CreateTxBuzzerUnsubscribe::utxoBySubscriptionLoaded(co
 	} else {
 		error_("E_BUZZER_SUBSCRIPTION_UTXO_ABSENT", "Buzzer subscription utxo was not found."); return;
 	}
+}
+
+//
+// LoadBuzzfeed
+//
+void BuzzerLightComposer::LoadBuzzfeed::process(errorFunction error) {
+	//
+	error_ = error;
+
+	// 
+	if (!composer_->buzzerRequestProcessor()->selectBuzzfeed(chain_, from_, composer_->buzzerTx()->id(), 
+		SelectBuzzFeed::instance(
+			boost::bind(&BuzzerLightComposer::LoadBuzzfeed::buzzfeedLoaded, shared_from_this(), _1, _2),
+			boost::bind(&BuzzerLightComposer::LoadBuzzfeed::timeout, shared_from_this()))
+	)) error_("E_LOAD_BUZZFEED", "Buzzfeed loading failed.");	
 }
