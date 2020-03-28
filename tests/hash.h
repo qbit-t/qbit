@@ -8,8 +8,7 @@ namespace tests {
 
 class HashTest: public Unit {
 public:
-	HashTest(): Unit("HashTest") {
-	}
+	HashTest(): Unit("HashTest") {}
 
 	bool execute();
 };
