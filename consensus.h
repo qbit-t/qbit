@@ -12,6 +12,7 @@
 #include "ivalidatormanager.h"
 #include "itransactionstoremanager.h"
 #include "log/log.h"
+#include "hash/cuckoo.h"
 
 #include <iterator>
 
@@ -116,8 +117,26 @@ public:
 
 	//
 	// PoW/PoS work sequnce with "block" and "block->prev"
-	virtual bool checkSequenceConsistency(const BlockHeader& /*block*/) {
-		return true;
+	virtual bool checkSequenceConsistency(const BlockHeader& block) {
+		int res = VerifyCycle(block.hash(), EDGEBITS /*edge bits*/, PROOFSIZE /* 42 proof size */, block.cycle_);
+		if(res == verify::POW_OK) {
+			bool fNegative;
+    		bool fOverflow;
+    		arith_uint256 bnTarget;
+
+    		bnTarget.SetCompact(block.bits_, &fNegative, &fOverflow);
+
+    		// Check range
+    		if (fNegative || bnTarget == 0 || fOverflow /*|| bnTarget > UintToArith256(params.powLimit.uHashLimit)*/)
+        		return false;
+
+    		// Check proof of work matches claimed amount
+    		if (UintToArith256(block.hash()) > bnTarget)
+        		return false;
+
+    		return true;
+		}
+		return false;
 	}
 
 	//
