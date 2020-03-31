@@ -718,6 +718,8 @@ BlockContextPtr TransactionStore::pushBlock(BlockPtr block) {
 	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[pushBlock]: PUSHING block ") + 
 		strprintf("%s/%s#", block->hash().toHex(), chain_.toHex().substr(0, 10)));
 
+	boost::unique_lock<boost::recursive_mutex> lLock(storageCommitMutex_);
+
 	BlockHeader lCurrentHeader = currentBlockHeader();
 	if (lCurrentHeader.hash() != block->blockHeader().prev()) {
 		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[pushBlock]: WRONG push sequence: ") + 
@@ -734,7 +736,6 @@ BlockContextPtr TransactionStore::pushBlock(BlockPtr block) {
 	BlockContextPtr lBlockCtx = BlockContext::instance(block);	
 	{
 		//
-		boost::unique_lock<boost::recursive_mutex> lLock(storageCommitMutex_);		
 		lResult = processBlock(lBlockCtx, lHeight, true);
 		if (lResult) {
 			lBlockCtx->setHeight(lHeight);
@@ -889,12 +890,18 @@ bool TransactionStore::close() {
 bool TransactionStore::enumUnlinkedOuts(const uint256& tx, std::vector<Transaction::UnlinkedOutPtr>& outs) {
 	//
 	bool lResult = false;
+	std::map<uint32_t, Transaction::UnlinkedOutPtr> lUtxos;
 	for (db::DbMultiContainer<uint256 /*tx*/, uint256 /*utxo*/>::Iterator lTxUtxo = txUtxo_.find(tx); lTxUtxo.valid(); ++lTxUtxo) {
 		Transaction::UnlinkedOut lUtxo;
 		if (utxo_.read(*lTxUtxo, lUtxo)) {
-			outs.push_back(Transaction::UnlinkedOut::instance(lUtxo));
+			lUtxos[lUtxo.out().index()] = Transaction::UnlinkedOut::instance(lUtxo);
 			lResult = true;
 		}
+	}
+
+	// ordering
+	for (std::map<uint32_t, Transaction::UnlinkedOutPtr>::iterator lItem = lUtxos.begin(); lItem != lUtxos.end(); lItem++) {
+		outs.push_back(lItem->second);
 	}
 
 	return lResult;
@@ -1048,13 +1055,11 @@ EntityPtr TransactionStore::locateEntity(const std::string& entity) {
 
 void TransactionStore::selectUtxoByAddress(const PKey& address, std::vector<Transaction::NetworkUnlinkedOut>& utxo) {
 	//
-	db::DbThreeKeyContainer
-		<uint160 /*address*/, 
-			uint256 /*asset*/, 
-			uint256 /*utxo*/, 
-			uint256 /*tx*/>::Iterator lBundle = addressAssetUtxoIdx_.find(address.id());
-
-	for (; lBundle.valid(); ++lBundle) {
+	for (db::DbThreeKeyContainer
+			<uint160 /*address*/, 
+				uint256 /*asset*/, 
+				uint256 /*utxo*/, 
+				uint256 /*tx*/>::Iterator lBundle = addressAssetUtxoIdx_.find(address.id()); lBundle.valid(); ++lBundle) {
 		uint160 lAddress;
 		uint256 lAsset;
 		uint256 lUtxo;
@@ -1077,13 +1082,11 @@ void TransactionStore::selectUtxoByAddress(const PKey& address, std::vector<Tran
 void TransactionStore::selectUtxoByAddressAndAsset(const PKey& address, const uint256& asset, std::vector<Transaction::NetworkUnlinkedOut>& utxo) {
 	//
 	uint160 lId = address.id();
-	db::DbThreeKeyContainer
-		<uint160 /*address*/, 
-			uint256 /*asset*/, 
-			uint256 /*utxo*/, 
-			uint256 /*tx*/>::Iterator lBundle = addressAssetUtxoIdx_.find(lId, asset);
-
-	for (; lBundle.valid(); ++lBundle) {
+	for (db::DbThreeKeyContainer
+			<uint160 /*address*/, 
+				uint256 /*asset*/, 
+				uint256 /*utxo*/, 
+				uint256 /*tx*/>::Iterator lBundle = addressAssetUtxoIdx_.find(lId, asset); lBundle.valid(); ++lBundle) {
 		uint160 lAddress;
 		uint256 lAsset;
 		uint256 lUtxo;
@@ -1110,13 +1113,19 @@ void TransactionStore::selectUtxoByTransaction(const uint256& tx, std::vector<Tr
 	bool lCoinbase = false;
 	transactionHeight(tx, lHeight, lConfirms, lCoinbase);
 	//
+	std::map<uint32_t, Transaction::NetworkUnlinkedOut> lUtxos;
 	db::DbMultiContainer<uint256 /*tx*/, uint256 /*utxo*/>::Iterator lTxRoot = txUtxo_.find(tx);
 	for (; lTxRoot.valid(); ++lTxRoot) {
 		Transaction::UnlinkedOut lOut;
 		if (utxo_.read(*lTxRoot, lOut)) {
 			//
-			utxo.push_back(Transaction::NetworkUnlinkedOut(lOut, lConfirms, lCoinbase));
+			lUtxos[lOut.out().index()] = Transaction::NetworkUnlinkedOut(lOut, lConfirms, lCoinbase);
 		}
+	}
+
+	// ordering
+	for (std::map<uint32_t, Transaction::NetworkUnlinkedOut>::iterator lItem = lUtxos.begin(); lItem != lUtxos.end(); lItem++) {
+		utxo.push_back(lItem->second);
 	}
 }
 
@@ -1192,7 +1201,7 @@ void TransactionStore::saveBlock(BlockPtr block) {
 	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[saveBlock]: saving block ") +
 		strprintf("%s/%s#", block->hash().toHex(), chain_.toHex().substr(0, 10)));
 	//
-	// boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);	
+	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);	
 	//
 	// WARNING: should not ever be called from mining circle
 	//
@@ -1315,38 +1324,27 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 				if (lLast != lContexts.rend()) {
 					setLastBlock((*lLast)->block()->hash());
 					// build height map
-					lResyncHeight = true;
+					resyncHeight();
 				} else {
 					// shift "to" to prev, try to handle
 					BlockHeader lHeader;
 					if (blockHeader(to, lHeader)) {
 						setLastBlock(lHeader.prev());
 						// build height map
-						lResyncHeight = true;
+						resyncHeight();
 					}
 				}
 			}
 		} else {
 			// clean-up
-			lRemoveTransactions = true;
+			for (std::list<BlockContextPtr>::iterator lBlock = lContexts.begin(); lBlock != lContexts.end(); lBlock++) {
+				pool->removeTransactions((*lBlock)->block());
+			}
 			// point to the last block
 			setLastBlock(from);
 			// build height map
-			lResyncHeight = true;
+			resyncHeight();
 		}
-	}
-
-	//
-	if (lRemoveTransactions) {
-		// clean-up
-		for (std::list<BlockContextPtr>::iterator lBlock = lContexts.begin(); lBlock != lContexts.end(); lBlock++) {
-			pool->removeTransactions((*lBlock)->block());
-		}		
-	}
-
-	if (lResyncHeight) {
-		// build height map
-		resyncHeight();
 	}
 
 	//

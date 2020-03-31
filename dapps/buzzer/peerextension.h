@@ -21,7 +21,7 @@ namespace qbit {
 #define GET_BUZZ_FEED					Message::CUSTOM_0003
 #define BUZZ_FEED						Message::CUSTOM_0004
 #define NEW_BUZZ_NOTIFY					Message::CUSTOM_0005
-#define BUZZ_INFO_NOTIFY				Message::CUSTOM_0006
+#define BUZZ_UPDATE_NOTIFY				Message::CUSTOM_0006
 
 //
 class BuzzerPeerExtension: public IPeerExtension, public std::enable_shared_from_this<BuzzerPeerExtension> {
@@ -35,6 +35,12 @@ public:
 		return std::make_shared<BuzzerPeerExtension>(peer, peerManager, buzzfeed);
 	}
 
+	void release() {
+		peer_.reset();
+		peerManager_.reset();
+		buzzfeed_.reset();
+	}
+
 	//
 	// client-side facade methods
 	bool loadSubscription(const uint256& /*chain*/, const uint256& /*subscriber*/, const uint256& /*publisher*/, ILoadTransactionHandlerPtr /*handler*/);
@@ -43,6 +49,7 @@ public:
 	//
 	// node-to-peer notifications  
 	bool notifyNewBuzz(const BuzzfeedItem& /*buzz*/);
+	bool notifyUpdateBuzz(const BuzzfeedItem::Update& /*update*/);
 
 private:
 	// server-side processing
@@ -53,6 +60,7 @@ private:
 	void processSubscription(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processBuzzfeed(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processNewBuzzNotify(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processBuzzUpdateNotify(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 
 	//
 	void processSubscriptionAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error);

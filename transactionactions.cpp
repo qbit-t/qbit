@@ -178,6 +178,11 @@ TransactionAction::Result TxSpendVerify::execute(TransactionContextPtr wrapper, 
 						wrapper->tx()->setStatus(Transaction::DECLINED);
 						wrapper->addError(lError);
 						gLog().write(Log::ERROR, std::string("[TxVerify]: ") + lError);
+
+						// VM state
+						std::stringstream lS;
+						lVM.dumpState(lS);
+						gLog().write(Log::ERROR, std::string("[TxVerify]: \n") + lS.str());
 					}
 
 					if (wrapper->errors().size())

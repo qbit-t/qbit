@@ -16,6 +16,9 @@
 #include "ipeermanager.h"
 #include "vm/vm.h"
 
+#include <boost/lexical_cast.hpp>
+#include <boost/lexical_cast/try_lexical_convert.hpp>
+
 namespace qbit {
 
 class IHttpCallEnpoint {
@@ -44,6 +47,10 @@ public:
 	}
 
 protected:
+	template<typename to> bool convert(const std::string& data, to& value) {
+		return boost::conversion::try_lexical_convert<to>(data, value);
+	}
+
 	bool unpackTransaction(TransactionPtr tx, const uint256& block, uint64_t height, uint64_t confirms, uint32_t index, bool coinbase, bool mempool, json::Document& reply, HttpReply& httpReply) {
 		// process
 		TransactionPtr lTx = tx;

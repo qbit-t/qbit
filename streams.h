@@ -210,7 +210,7 @@ public:
 class DataStream
 {
 protected:
-    typedef SerializeData vector_type;
+    typedef std::vector<char> vector_type;
     vector_type vch;
     unsigned int nReadPos;
     uint160 checkSum;
@@ -254,10 +254,12 @@ public:
         Init(nTypeIn, nVersionIn);
     }
 
+    /*
     DataStream(const std::vector<char>& vchIn, int nTypeIn, int nVersionIn) : vch(vchIn.begin(), vchIn.end())
     {
         Init(nTypeIn, nVersionIn);
     }
+    */
 
     DataStream(const std::vector<unsigned char>& vchIn, int nTypeIn, int nVersionIn) : vch(vchIn.begin(), vchIn.end())
     {

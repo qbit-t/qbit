@@ -193,6 +193,8 @@ public:
 	virtual IPeerExtensionPtr extension(const std::string&) { throw qbit::exception("NOT_IMPL", "IPeer::extension - not implemented."); }
 	virtual void setExtension(const std::string&, IPeerExtensionPtr /*extension*/) { throw qbit::exception("NOT_IMPL", "IPeer::setExtension - not implemented."); }
 
+	virtual void release() { throw qbit::exception("NOT_IMPL", "IPeer::release - not implemented."); }
+
 	virtual Status status() { throw qbit::exception("NOT_IMPL", "IPeer::status - not implemented."); }
 	virtual State& state() { throw qbit::exception("NOT_IMPL", "IPeer::state - not implemented."); }
 	virtual uint160 addressId() { throw qbit::exception("NOT_IMPL", "IPeer::addressId - not implemented."); }
@@ -208,8 +210,17 @@ public:
 	virtual PKey address() { throw qbit::exception("NOT_IMPL", "IPeer::address - not implemented."); }
 	virtual uint32_t latency() { throw qbit::exception("NOT_IMPL", "IPeer::latency - not implemented."); }
 	virtual uint32_t latencyPrev() { throw qbit::exception("NOT_IMPL", "IPeer::latencyPrev - not implemented."); }
-	virtual uint32_t quarantine() { throw qbit::exception("NOT_IMPL", "IPeer::quarantine - not implemented.");}
+	virtual uint32_t quarantine() { throw qbit::exception("NOT_IMPL", "IPeer::quarantine - not implemented."); }
 	virtual int contextId() { throw qbit::exception("NOT_IMPL", "IPeer::contextId - not implemented."); }
+
+	virtual uint32_t inQueueLength() { throw qbit::exception("NOT_IMPL", "IPeer::inQueueLength - not implemented."); }
+	virtual uint32_t outQueueLength() { throw qbit::exception("NOT_IMPL", "IPeer::outQueueLength - not implemented."); }
+	virtual uint32_t pendingQueueLength() { throw qbit::exception("NOT_IMPL", "IPeer::pendingQueueLength - not implemented."); }
+
+	virtual uint32_t receivedMessagesCount() { throw qbit::exception("NOT_IMPL", "IPeer::receivedMessagesCount - not implemented."); }
+	virtual uint32_t sentMessagesCount() { throw qbit::exception("NOT_IMPL", "IPeer::sentMessagesCount - not implemented."); }
+	virtual uint64_t bytesReceived() { throw qbit::exception("NOT_IMPL", "IPeer::bytesReceived - not implemented."); }
+	virtual uint64_t bytesSent() { throw qbit::exception("NOT_IMPL", "IPeer::bytesSent - not implemented."); }
 
 	virtual uint64_t time() { throw qbit::exception("NOT_IMPL", "IPeer::time - not implemented."); }
 	virtual uint64_t timestamp() { throw qbit::exception("NOT_IMPL", "IPeer::timestamp - not implemented."); }
@@ -242,7 +253,7 @@ public:
 	virtual void synchronizePartialTree(IConsensusPtr, SynchronizationJobPtr /*job*/) { throw qbit::exception("NOT_IMPL", "IPeer::synchronizePartialTree - not implemented."); }
 	virtual void synchronizeLargePartialTree(IConsensusPtr, SynchronizationJobPtr /*job*/) { throw qbit::exception("NOT_IMPL", "IPeer::synchronizeLargePartialTree - not implemented."); }
 	virtual void synchronizePendingBlocks(IConsensusPtr, SynchronizationJobPtr /*job*/) { throw qbit::exception("NOT_IMPL", "IPeer::synchronizePendingBlocks - not implemented."); }
-
+	virtual bool jobExists(const uint256& /*chain*/) { throw qbit::exception("NOT_IMPL", "IPeer::jobExists - not implemented."); }
 	virtual void acquireBlock(const NetworkBlockHeader& /*block*/) { throw qbit::exception("NOT_IMPL", "IPeer::acquireBlock - not implemented."); }
 
 	virtual uint256 addRequest(IReplyHandlerPtr /*replyHandler*/) { throw qbit::exception("NOT_IMPL", "IPeer::addRequest - not implemented."); }

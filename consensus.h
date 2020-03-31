@@ -637,6 +637,15 @@ public:
 			uint64_t lHeight = locateSynchronizedRoot(lPeers, lBlock); // get peers, height and block
 			if (lHeight && lPeers.size()) {
 				if (settings_->isFullNode() || settings_->isNode()) {
+					// sanity
+					for (std::list<IPeerPtr>::iterator lCandidate = lPeers.begin(); lCandidate != lPeers.end(); lCandidate++) {
+						if ((*lCandidate)->jobExists(chain_)) {
+							if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[doSynchronize]: synchronization jon is already RUNNING ") + 
+								strprintf("%d/%s/%s#", lHeight, lBlock.toHex(), chain_.toHex().substr(0, 10)));
+							return false;
+						}
+					}
+
 					// store is empty - full sync
 					BlockHeader lHeader;
 					uint64_t lOurHeight = store_->currentHeight(lHeader);
@@ -645,14 +654,6 @@ public:
 						if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[doSynchronize]: starting FULL synchronization ") + 
 							strprintf("%d/%s/%s#", lHeight, lBlock.toHex(), chain_.toHex().substr(0, 10)));
 						//
-						// TODO: that is tricky to get by height, we need optimized way to get block headers from peer (bundled?)
-						// 
-						/*
-						job_ = SynchronizationJob::instance(lHeight, lBlock); // height from
-						for(std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
-							(*lPeer)->synchronizeFullChain(shared_from_this(), job_);
-						}
-						*/
 						std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); // this node -> get current block thread
 						job_ = SynchronizationJob::instance(lBlock); // block from
 						(*lPeer)->synchronizeLargePartialTree(shared_from_this(), job_);

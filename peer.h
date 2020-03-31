@@ -5,6 +5,10 @@
 #ifndef QBIT_PEER_H
 #define QBIT_PEER_H
 
+//
+// allocator.h _MUST_ be included BEFORE all other
+//
+#include "allocator.h"
 #include "isettings.h"
 #include "log/log.h"
 
@@ -69,6 +73,8 @@ public:
 		socketType_ = SERVER;
 		time_ = getMicroseconds();
 		timestamp_ = time_;
+
+		peerManager->incPeersCount();
 	}
 
 	Peer(int contextId, const std::string endpoint, IPeerManagerPtr peerManager) : 
@@ -80,6 +86,8 @@ public:
 		resolver_.reset(new tcp::resolver(peerManager->getContext(contextId))); 
 		time_ = getMicroseconds();
 		timestamp_ = time_;
+
+		peerManager->incPeersCount();
 	}
 
 	Peer(int contextId, IPeerManagerPtr peerManager) : 
@@ -90,6 +98,33 @@ public:
 		socket_ = std::make_shared<tcp::socket>(peerManager->getContext(contextId_));
 		time_ = getMicroseconds();
 		timestamp_ = time_;
+
+		peerManager->incPeersCount();
+	}
+	~Peer() {
+		release();
+
+		peerManager_->decPeersCount();
+
+		if (gLog().isEnabled(Log::NET)) 
+		gLog().write(Log::NET, std::string("[peer]: peer destroyed ") + key());
+	}
+
+	void release() {
+		//
+		for (std::map<std::string, IPeerExtensionPtr>::iterator lExtension = extension_.begin(); lExtension != extension_.end(); lExtension++) {
+			//
+			lExtension->second->release();
+		}
+
+		extension_.clear();
+
+		if (socket_) {
+			socket_->close();
+		}
+
+		if (gLog().isEnabled(Log::NET)) 
+			gLog().write(Log::NET, std::string("[peer]: peer released ") + key());
 	}
 
 	void setState(const State& state) { 
@@ -282,12 +317,21 @@ private:
 	void processBlockAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processTransactionAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processEntityAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processUnknownMessage(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 
 	void peerFinalize(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void connected(const boost::system::error_code& error, tcp::resolver::iterator endpoint_iterator);
 	void resolved(const boost::system::error_code& err, tcp::resolver::iterator endpoint_iterator);
 
-	void internalSendState(StatePtr state, bool global);	
+	void internalSendState(StatePtr state, bool global);
+
+	bool hasPendingRequests() {
+		return replyHandlers_.size(); 
+	}
+
+	bool hasActiveJobs() {
+		return jobs_.size();
+	}
 
 	uint256 addRequest(IReplyHandlerPtr replyHandler) {
 		uint256 lId = Random::generate();
@@ -321,7 +365,7 @@ private:
 	std::list<DataStream>::iterator newInMessage() {
 		DataStream lMessage(SER_NETWORK, CLIENT_VERSION);
 		lMessage.resize(Message::size());
-
+		receivedMessagesCount_++;
 		return rawInMessages_.insert(rawInMessages_.end(), lMessage);
 	}
 
@@ -343,6 +387,9 @@ private:
 
 	void eraseOutMessage(std::list<DataStream>::iterator msg) {
 		boost::unique_lock<boost::mutex> lLock(rawOutMutex_);
+		sentMessagesCount_++;
+		(*msg).reset();
+		bytesSent_ += (*msg).size();
 		rawOutMessages_.erase(msg);
 	}
 
@@ -354,9 +401,15 @@ private:
 		rawInData_.erase(msg);
 	}
 
-	void addJob(const uint256& chain, SynchronizationJobPtr job) {
+	bool jobExists(const uint256& chain) {
 		boost::unique_lock<boost::mutex> lLock(jobsMutex_);
-		if (jobs_.find(chain) == jobs_.end()) jobs_[chain] = job;
+		return jobs_.find(chain) != jobs_.end();
+	}
+
+	bool addJob(const uint256& chain, SynchronizationJobPtr job) {
+		boost::unique_lock<boost::mutex> lLock(jobsMutex_);
+		if (jobs_.find(chain) == jobs_.end()) { jobs_[chain] = job; return true; }
+		return false;
 	}
 
 	void removeJob(const uint256& chain) {
@@ -372,6 +425,35 @@ private:
 		return nullptr;
 	}
 
+	uint32_t inQueueLength() {
+		return rawInMessages_.size();
+	}
+
+	uint32_t outQueueLength() {
+		boost::unique_lock<boost::mutex> lLock(rawOutMutex_);
+		return rawOutMessages_.size();
+	}
+
+	uint32_t pendingQueueLength() {
+		return rawInData_.size();
+	}
+
+	uint32_t receivedMessagesCount() {
+		return receivedMessagesCount_;
+	}
+
+	uint32_t sentMessagesCount() {
+		return sentMessagesCount_;
+	}
+
+	uint64_t bytesReceived() {
+		return bytesReceived_;
+	}
+
+	uint64_t bytesSent() {
+		return bytesSent_;
+	}
+
 private:
 	SocketPtr socket_;
 	IPeer::Status status_;
@@ -385,6 +467,12 @@ private:
 	SocketType socketType_ = DEFAULT;
 	uint64_t time_;
 	uint64_t timestamp_;
+
+	uint32_t receivedMessagesCount_ = 0;
+	uint32_t sentMessagesCount_ = 0;
+
+	uint64_t bytesReceived_ = 0;
+	uint64_t bytesSent_ = 0;
 
 	uint160 addressId_;
 	PKey address_;
