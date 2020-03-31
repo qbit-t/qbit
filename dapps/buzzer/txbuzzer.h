@@ -27,6 +27,11 @@ typedef LimitedString<64> buzzer_name_t;
 #define TX_BUZZER_ALIAS_SIZE 64 
 #define TX_BUZZER_DESCRIPTION_SIZE 256 
 
+#define TX_BUZZER_MY_OUT 0
+#define TX_BUZZER_SUBSCRIPTION_OUT 1
+#define TX_BUZZER_ENDORSE_OUT 2
+#define TX_BUZZER_MISTRUST_OUT 3
+
 //
 class TxBuzzer: public Entity {
 public:

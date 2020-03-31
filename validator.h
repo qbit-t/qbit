@@ -5,6 +5,7 @@
 #ifndef QBIT_VALIDATOR_H
 #define QBIT_VALIDATOR_H
 
+#include "exception.h"
 #include "iconsensus.h"
 #include "isettings.h"
 #include "imemorypool.h"
@@ -177,6 +178,7 @@ private:
 					// get block template
 					BlockPtr lCurrentBlock = Block::instance();
 
+					/*
 					//calculate work required
 					lCurrentBlock->bits_ = 0x207fffff;
 					BlockHeader lPrev, lPPrev;
@@ -211,6 +213,7 @@ private:
 							}
 						}
 					}
+					*/
 
 					// prepare block
 					BlockContextPtr lCurrentBlockContext = mempool_->beginBlock(lCurrentBlock);
@@ -233,13 +236,16 @@ private:
 					if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[validator/miner]: looking for a block for ") + strprintf("%s#", chain_.toHex().substr(0, 10)) + "...");
 
 					boost::random::uniform_int_distribution<> lDist(3, (consensus_->blockTime())/1000);
-					int lMSeconds = lDist(lGen);
+					int lMSeconds = (consensus_->blockTime())/1000;
+					uint64_t lStartTime = getTime();
+
+					/*
 					uint64_t lStartTime = getTime();
 					int nonce = 0;
 					while(minerRunning_) {
 						std::set<uint32_t> cycle;
 						lCurrentBlock->nonce_ = nonce;
-						bool result = FindCycle(lCurrentBlock->hash(), EDGEBITS /*edge bits*/, PROOFSIZE /* 42 proof size */, cycle);
+						bool result = FindCycle(lCurrentBlock->hash(), EDGEBITS, PROOFSIZE, cycle);
 						nonce++;
 						if (getTime() - lStartTime >= lMSeconds) break;
 						if(cycle.size() == 0) continue;
@@ -255,12 +261,13 @@ private:
 						if (fNegative || target == 0 || fOverflow || target < cycle_hash_arith) continue;
 						if (result) break;
 					}
+					*/
 					
+					while(minerRunning_) {
+						if (getTime() - lStartTime >= lMSeconds) break;
+						boost::this_thread::sleep_for(boost::chrono::milliseconds(50));
+					}
 					
-					// while(minerRunning_) {
-					// 	if (getTime() - lStartTime >= lMSeconds) break;
-					// 	boost::this_thread::sleep_for(boost::chrono::milliseconds(50));
-					// }
 					// TODO: mining -----------------------------------------
 					
 					if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[validator/miner]: new block found ") + strprintf("%s/%s#", lCurrentBlock->hash().toHex(), chain_.toHex().substr(0, 10)));

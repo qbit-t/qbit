@@ -3,6 +3,7 @@
 #include "../../mkpath.h"
 #include "txbuzzer.h"
 #include "txbuzz.h"
+#include "txbuzzlike.h"
 #include "txbuzzersubscribe.h"
 #include "txbuzzerunsubscribe.h"
 
@@ -21,6 +22,7 @@ bool BuzzerTransactionStoreExtension::open() {
 			timeline_.open();
 			buzzInfo_.open();
 			subscriptionsIdx_.open();
+			likesIdx_.open();
 
 			opened_ = true;
 		}
@@ -41,7 +43,9 @@ bool BuzzerTransactionStoreExtension::close() {
 	store_.reset();
 	
 	timeline_.close();
+	buzzInfo_.close();
 	subscriptionsIdx_.close();
+	likesIdx_.close();
 
 	opened_ = false;
 
@@ -106,6 +110,33 @@ bool BuzzerTransactionStoreExtension::pushEntity(const uint256& id, TransactionC
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity/error]: buzzer unsubscription IS NOT consistent"));
 		}
 	} else if (ctx->tx()->type() == TX_BUZZER) {
+		// do nothing
+	} else if (ctx->tx()->type() == TX_BUZZ_LIKE) {
+		// extract buzz_id
+		TxBuzzLikePtr lBuzzLike = TransactionHelper::to<TxBuzzLike>(ctx->tx());
+		//
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: pushing buzz like ") +
+			strprintf("%s/%s#", ctx->tx()->id().toHex(), store_->chain().toHex().substr(0, 10)));
+		//
+		if (lBuzzLike->in().size() >= 1) {
+			// extract buzz | buzzer
+			uint256 lBuzzId = lBuzzLike->in()[0].out().tx(); // in[0] - buzz_id
+			uint256 lBuzzerId = lBuzzLike->in()[1].out().tx(); // in[1] - initiator
+			// check index
+			if (!checkLike(lBuzzId, lBuzzerId)) {
+				// write index
+				likesIdx_.write(lBuzzId, lBuzzerId, lBuzzLike->id());
+
+				// update like count
+				incrementLikes(lBuzzId);
+
+				if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: buzz like PUSHED: ") +
+					strprintf("tx = %s, buzz = %s, liker = %s", ctx->tx()->id().toHex(), lBuzzId.toHex(), lBuzzerId.toHex()));
+			} else {
+				if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity/error]: buzz is ALREADY liked: ") +
+					strprintf("tx = %s, buzz = %s, liker = %s", ctx->tx()->id().toHex(), lBuzzId.toHex(), lBuzzerId.toHex()));
+			}
+		}
 	}
 
 	return true;
@@ -123,9 +154,20 @@ void BuzzerTransactionStoreExtension::removeTransaction(TransactionPtr tx) {
 				if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/removeTransaction]: removing buzz from timeline ") +
 					strprintf("%s/%s#", tx->id().toHex(), store_->chain().toHex().substr(0, 10)));
 				timeline_.remove(lEntry);
+				buzzInfo_.remove(tx->id());
 				break;
 			}
 		}
+
+		db::DbTwoKeyContainer<uint256 /*buzz*/, uint256 /*liker*/, uint256 /*like_tx*/>::Iterator lBuzzPos = likesIdx_.find(lBuzz->id());
+		db::DbTwoKeyContainer<uint256 /*buzz*/, uint256 /*liker*/, uint256 /*like_tx*/>::Transaction lBuzzTransaction = likesIdx_.transaction(); 
+
+		for (; lBuzzPos.valid(); ++lBuzzPos) {
+			lBuzzTransaction.remove(lBuzzPos);
+		}
+
+		lBuzzTransaction.commit();
+
 	} else if (tx->type() == TX_BUZZER_SUBSCRIBE) {
 		//
 		TxBuzzerSubscribePtr lBuzzSubscribe = TransactionHelper::to<TxBuzzerSubscribe>(tx);
@@ -144,6 +186,26 @@ void BuzzerTransactionStoreExtension::removeTransaction(TransactionPtr tx) {
 		}
 	} else if (tx->type() == TX_BUZZER_UNSUBSCRIBE) {
 		// unsubscribe - just stub
+	} else if (tx->type() == TX_BUZZ_LIKE) {
+		// extract buzz_id
+		TxBuzzLikePtr lBuzzLike = TransactionHelper::to<TxBuzzLike>(tx);
+		//
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: removing buzz like ") +
+			strprintf("%s/%s#", tx->id().toHex(), store_->chain().toHex().substr(0, 10)));
+		//
+		if (lBuzzLike->in().size() >= 1) {
+			// extract buzz | buzzer
+			uint256 lBuzzId = lBuzzLike->in()[0].out().tx(); // in[0] - buzz_id
+			uint256 lBuzzerId = lBuzzLike->in()[1].out().tx(); // in[1] - initiator
+			// remove index
+			likesIdx_.remove(lBuzzId, lBuzzerId);
+
+			// update like count
+			decrementLikes(lBuzzId);
+
+			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: buzz like removed ") +
+				strprintf("buzz = %s, liker = %s", lBuzzId.toHex(), lBuzzerId.toHex()));
+		}
 	}
 }
 
@@ -159,9 +221,34 @@ TransactionPtr BuzzerTransactionStoreExtension::locateSubscription(const uint256
 	return nullptr;
 }
 
+void BuzzerTransactionStoreExtension::incrementLikes(const uint256& buzz) {
+	//
+	BuzzInfo lInfo;
+	buzzInfo_.read(buzz, lInfo);
+	lInfo.likes_++;
+	buzzInfo_.write(buzz, lInfo);
+}
+
+void BuzzerTransactionStoreExtension::decrementLikes(const uint256& buzz) {
+	//
+	BuzzInfo lInfo;
+	if (buzzInfo_.read(buzz, lInfo)) {
+		if ((int)lInfo.likes_ - 1 < 0) lInfo.likes_ = 0;
+		else lInfo.likes_--;
+
+		buzzInfo_.write(buzz, lInfo);
+	}
+}
+
 bool BuzzerTransactionStoreExtension::checkSubscription(const uint256& subscriber, const uint256& publisher) {
 	//
 	db::DbTwoKeyContainer<uint256 /*subscriber*/, uint256 /*publisher*/, uint256 /*tx*/>::Iterator lItem = subscriptionsIdx_.find(subscriber, publisher);
+	return lItem.valid();
+}
+
+bool BuzzerTransactionStoreExtension::checkLike(const uint256& buzz, const uint256& liker) {
+	//
+	db::DbTwoKeyContainer<uint256 /*nuzz*/, uint256 /*liker*/, uint256 /*like_tx*/>::Iterator lItem = likesIdx_.find(buzz, liker);
 	return lItem.valid();
 }
 

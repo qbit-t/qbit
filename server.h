@@ -5,6 +5,10 @@
 #ifndef QBIT_SERVER_H
 #define QBIT_SERVER_H
 
+//
+// allocator.h _MUST_ be included BEFORE all other
+//
+#include "allocator.h"
 #include "iconsensus.h"
 #include "isettings.h"
 #include "state.h"

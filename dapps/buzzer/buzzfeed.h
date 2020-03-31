@@ -24,6 +24,53 @@ typedef std::shared_ptr<BuzzfeedItem> BuzzfeedItemPtr;
 // buzzfeed item
 class BuzzfeedItem {
 public:
+	class Update {
+	public:
+		enum Field {
+			NONE = 0,
+			LIKES = 1,
+			REBUZZES = 2,
+			REPLIES = 3
+		};
+	public:
+		Update() { field_ = NONE; count_ = 0; }
+		Update(const uint256& buzzId, Field field, uint32_t count): buzzId_(buzzId_), field_(field), count_(count) {}
+
+		ADD_SERIALIZE_METHODS;
+
+		template <typename Stream, typename Operation>
+		inline void serializationOp(Stream& s, Operation ser_action) {
+			//
+			READWRITE(buzzId_);
+
+			if (ser_action.ForRead()) {
+				short lField;
+				s >> lField;
+				field_ = (Field)lField;
+			} else {
+				short lField = (short)field_;
+				s << lField;			
+			}
+
+			READWRITE(count_);
+		}
+
+		uint256& buzzId() { return buzzId_; }
+		Field field() { return field_; }
+		std::string fieldString() {
+			if (field_ == LIKES) return "LIKES";
+			else if (field_ == REBUZZES) return "REBUZZES";
+			else if (field_ == REPLIES) return "REPLIES";
+			return "NONE";
+		}
+		uint32_t count() { return count_; }
+
+	private:
+		uint256 buzzId_;
+		Field field_;
+		uint32_t count_;
+	};
+public:
 	BuzzfeedItem() {
 		buzzId_.setNull();
 		buzzChainId_.setNull();
@@ -120,6 +167,7 @@ private:
 //
 // buzzfeed callbacks
 typedef boost::function<void (void)> buzzfeedLargeUpdatedFunction;
+typedef boost::function<void (BuzzfeedItemPtr)> buzzfeedItemNewFunction;
 typedef boost::function<void (BuzzfeedItemPtr)> buzzfeedItemUpdatedFunction;
 
 class Buzzfeed;
@@ -129,7 +177,35 @@ typedef std::shared_ptr<Buzzfeed> BuzzfeedPtr;
 // buzzfeed
 class Buzzfeed {
 public:
-	Buzzfeed(buzzfeedLargeUpdatedFunction largeUpdated, buzzfeedItemUpdatedFunction itemUpdated) : largeUpdated_(largeUpdated), itemUpdated_(itemUpdated) {}
+	Buzzfeed(buzzfeedLargeUpdatedFunction largeUpdated, buzzfeedItemNewFunction itemNew, buzzfeedItemUpdatedFunction itemUpdated) : largeUpdated_(largeUpdated), itemNew_(itemNew), itemUpdated_(itemUpdated) {}
+
+	void merge(const BuzzfeedItem::Update& update) {
+		//
+		{
+			boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
+
+			// locate buzz
+			std::map<uint256 /*buzz*/, BuzzfeedItemPtr>::iterator lBuzz = items_.find(const_cast<BuzzfeedItem::Update&>(update).buzzId());
+			if (lBuzz != items_.end()) {
+				switch(const_cast<BuzzfeedItem::Update&>(update).field()) {
+					case BuzzfeedItem::Update::LIKES: 
+						if (lBuzz->second->likes() < const_cast<BuzzfeedItem::Update&>(update).count()) 
+							lBuzz->second->setLikes(const_cast<BuzzfeedItem::Update&>(update).count()); 
+						break;
+					case BuzzfeedItem::Update::REBUZZES: 
+						if (lBuzz->second->rebuzzes() < const_cast<BuzzfeedItem::Update&>(update).count()) 
+							lBuzz->second->setRebuzzes(const_cast<BuzzfeedItem::Update&>(update).count()); 
+						break;
+					case BuzzfeedItem::Update::REPLIES: 
+						if (lBuzz->second->replies() < const_cast<BuzzfeedItem::Update&>(update).count()) 
+							lBuzz->second->setReplies(const_cast<BuzzfeedItem::Update&>(update).count()); 
+						break;
+				}
+
+				itemUpdated_(lBuzz->second);
+			}
+		}
+	}	
 
 	void merge(const BuzzfeedItem& buzz) {
 		//
@@ -153,7 +229,7 @@ public:
 			index_.insert(std::multimap<uint64_t /*timestamp*/, uint256 /*buzz*/>::value_type(lBuzz->timestamp(), lBuzz->buzzId()));
 		}
 
-		itemUpdated_(lBuzz);
+		itemNew_(lBuzz);
 	}	
 
 	void merge(const std::vector<BuzzfeedItem>& chunk, bool notify = false) {
@@ -194,12 +270,21 @@ public:
 		}
 	}
 
-	static BuzzfeedPtr instance(buzzfeedLargeUpdatedFunction largeUpdated, buzzfeedItemUpdatedFunction itemUpdated) {
-		return std::make_shared<Buzzfeed>(largeUpdated, itemUpdated);
+	BuzzfeedItemPtr locateBuzz(const uint256& buzz) {
+		//
+		boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
+		std::map<uint256 /*buzz*/, BuzzfeedItemPtr>::iterator lBuzz = items_.find(buzz);
+		if (lBuzz != items_.end()) return lBuzz->second;
+		return nullptr;
+	}
+
+	static BuzzfeedPtr instance(buzzfeedLargeUpdatedFunction largeUpdated, buzzfeedItemNewFunction itemNew, buzzfeedItemUpdatedFunction itemUpdated) {
+		return std::make_shared<Buzzfeed>(largeUpdated, itemNew, itemUpdated);
 	}
 
 private:
 	buzzfeedLargeUpdatedFunction largeUpdated_;
+	buzzfeedItemNewFunction itemNew_;
 	buzzfeedItemUpdatedFunction itemUpdated_;
 	std::map<uint256 /*buzz*/, BuzzfeedItemPtr> items_;
 	std::multimap<uint64_t /*timestamp*/, uint256 /*buzz*/> index_;

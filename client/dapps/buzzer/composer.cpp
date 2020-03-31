@@ -242,7 +242,7 @@ void BuzzerLightComposer::CreateTxBuzz::process(errorFunction error) {
 			if (!lMyBuzzerUtxos.size()) {
 				composer_->requestProcessor()->selectUtxoByEntity(lMyBuzzer->myName(), 
 					SelectUtxoByEntityName::instance(
-						boost::bind(&BuzzerLightComposer::CreateTxBuzz::utxoByBuzzerLoaded, shared_from_this(), _1, _2),
+						boost::bind(&BuzzerLightComposer::CreateTxBuzz::saveBuzzerUtxo, shared_from_this(), _1, _2),
 						boost::bind(&BuzzerLightComposer::CreateTxBuzz::timeout, shared_from_this()))
 				);
 			} else {
@@ -255,6 +255,13 @@ void BuzzerLightComposer::CreateTxBuzz::process(errorFunction error) {
 	} else {
 		error_("E_BUZZER_TX_NOT_FOUND", "Local buzzer was not found."); return;
 	}
+}
+
+void BuzzerLightComposer::CreateTxBuzz::saveBuzzerUtxo(const std::vector<Transaction::UnlinkedOut>& utxo, const std::string& buzzer) {
+	//
+	TxBuzzerPtr lMyBuzzer = composer_->buzzerTx();
+	composer_->writeBuzzerUtxo(utxo);
+	utxoByBuzzerLoaded(utxo, lMyBuzzer->myName());
 }
 
 void BuzzerLightComposer::CreateTxBuzz::utxoByBuzzerLoaded(const std::vector<Transaction::UnlinkedOut>& utxo, const std::string& buzzer) {
@@ -358,7 +365,7 @@ void BuzzerLightComposer::CreateTxBuzzerSubscribe::publisherLoaded(EntityPtr pub
 				boost::bind(&BuzzerLightComposer::CreateTxBuzzerSubscribe::timeout, shared_from_this()))
 		);
 	} else {
-		error_("E_BUZZER_TX_INCONSISTENT", "Buzzer tx is inconsistent."); return;
+		error_("E_BUZZER_PUBLISHER_INCONSISTENT", "Publisher is inconsistent."); return;
 	}
 }
 
@@ -371,7 +378,7 @@ void BuzzerLightComposer::CreateTxBuzzerSubscribe::utxoByPublisherLoaded(const s
 	if (!lSKey.valid() || !lSChangeKey.valid()) { error_("E_KEY", "Secret key is invalid."); return; }
 
 	if (!utxo.size()) {
-		error_("E_BUZZER_TX_INCONSISTENT", "Buzzer tx is inconsistent."); return;	
+		error_("E_BUZZER_UTXO_INCONSISTENT", "Publisher utxo is inconsistent."); return;	
 	}
 
 	if (utxo.size() > 1) {
@@ -382,12 +389,19 @@ void BuzzerLightComposer::CreateTxBuzzerSubscribe::utxoByPublisherLoaded(const s
 	if (!lMyBuzzerUtxos.size()) {
 		composer_->requestProcessor()->selectUtxoByEntity(composer_->buzzerTx()->myName(), 
 			SelectUtxoByEntityName::instance(
-				boost::bind(&BuzzerLightComposer::CreateTxBuzzerSubscribe::utxoByBuzzerLoaded, shared_from_this(), _1, _2),
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzerSubscribe::saveBuzzerUtxo, shared_from_this(), _1, _2),
 				boost::bind(&BuzzerLightComposer::CreateTxBuzzerSubscribe::timeout, shared_from_this()))
 		);
 	} else {
 		utxoByBuzzerLoaded(lMyBuzzerUtxos, composer_->buzzerTx()->myName());
 	}
+}
+
+void BuzzerLightComposer::CreateTxBuzzerSubscribe::saveBuzzerUtxo(const std::vector<Transaction::UnlinkedOut>& utxo, const std::string& buzzer) {
+	//
+	TxBuzzerPtr lMyBuzzer = composer_->buzzerTx();
+	composer_->writeBuzzerUtxo(utxo);
+	utxoByBuzzerLoaded(utxo, lMyBuzzer->myName());
 }
 
 void BuzzerLightComposer::CreateTxBuzzerSubscribe::utxoByBuzzerLoaded(const std::vector<Transaction::UnlinkedOut>& utxo, const std::string& buzzer) {
@@ -510,4 +524,76 @@ void BuzzerLightComposer::LoadBuzzfeed::process(errorFunction error) {
 			boost::bind(&BuzzerLightComposer::LoadBuzzfeed::buzzfeedLoaded, shared_from_this(), _1, _2),
 			boost::bind(&BuzzerLightComposer::LoadBuzzfeed::timeout, shared_from_this()))
 	)) error_("E_LOAD_BUZZFEED", "Buzzfeed loading failed.");	
+}
+
+//
+// CreateTxBuzzLike
+//
+void BuzzerLightComposer::CreateTxBuzzLike::process(errorFunction error) {
+	//
+	error_ = error;
+	buzzUtxo_.clear();
+
+	// 
+	if (!composer_->requestProcessor()->selectUtxoByTransaction(chain_, buzz_, 
+		SelectUtxoByTransaction::instance(
+			boost::bind(&BuzzerLightComposer::CreateTxBuzzLike::utxoByBuzzLoaded, shared_from_this(), _1, _2),
+			boost::bind(&BuzzerLightComposer::CreateTxBuzzLike::timeout, shared_from_this()))
+	)) { error_("E_LOAD_UTXO_BY_BUZZ", "Buzz loading failed."); return; }
+}
+
+void BuzzerLightComposer::CreateTxBuzzLike::utxoByBuzzLoaded(const std::vector<Transaction::NetworkUnlinkedOut>& utxo, const uint256& tx) {
+	//
+	buzzUtxo_ = utxo;
+
+	//
+	std::vector<Transaction::UnlinkedOut> lMyBuzzerUtxos = composer_->buzzerUtxo();
+	if (!lMyBuzzerUtxos.size()) {
+		composer_->requestProcessor()->selectUtxoByEntity(composer_->buzzerTx()->myName(), 
+			SelectUtxoByEntityName::instance(
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzLike::saveBuzzerUtxo, shared_from_this(), _1, _2),
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzLike::timeout, shared_from_this()))
+		);
+	} else {
+		utxoByBuzzerLoaded(lMyBuzzerUtxos, composer_->buzzerTx()->myName());
+	}
+}
+
+void BuzzerLightComposer::CreateTxBuzzLike::saveBuzzerUtxo(const std::vector<Transaction::UnlinkedOut>& utxo, const std::string& buzzer) {
+	//
+	TxBuzzerPtr lMyBuzzer = composer_->buzzerTx();
+	composer_->writeBuzzerUtxo(utxo);
+	utxoByBuzzerLoaded(utxo, lMyBuzzer->myName());
+}
+
+void BuzzerLightComposer::CreateTxBuzzLike::utxoByBuzzerLoaded(const std::vector<Transaction::UnlinkedOut>& utxo, const std::string& buzzer) {
+	//
+	TxBuzzLikePtr lTx = TransactionHelper::to<TxBuzzLike>(TransactionFactory::create(TX_BUZZ_LIKE));
+	// create context
+	TransactionContextPtr lCtx = TransactionContext::instance(lTx);
+	//
+	lTx->setTimestamp(qbit::getMedianMicroseconds());
+	lTx->setChain(chain_);
+
+	// get buzzer tx (saved/cached)
+	TxBuzzerPtr lMyBuzzer = composer_->buzzerTx();
+	if (lMyBuzzer) {
+		SKey lSKey = composer_->wallet()->firstKey();
+		//
+		if (buzzUtxo_.size() > TX_BUZZ_LIKE_OUT && utxo.size() > TX_BUZZER_MY_OUT) {
+			// add subscription in
+			lTx->addBuzzLikeIn(lSKey, Transaction::UnlinkedOut::instance(buzzUtxo_[TX_BUZZ_LIKE_OUT].utxo()));
+			// add my byzzer in
+			lTx->addMyBuzzerIn(lSKey, Transaction::UnlinkedOut::instance(const_cast<Transaction::UnlinkedOut&>(utxo[TX_BUZZER_MY_OUT])));
+
+			// finalize
+			if (!lTx->finalize(lSKey)) { error_("E_TX_FINALIZE", "Transaction finalization failed."); return; }
+
+			created_(lCtx);
+		} else {
+			error_("E_BUZZ_UTXO_ABSENT", "Buzz utxo was not found."); return;
+		}
+	} else {
+		error_("E_BUZZER_TX_NOT_FOUND", "Local buzzer was not found."); return;
+	}
 }

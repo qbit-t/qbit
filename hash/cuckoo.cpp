@@ -165,6 +165,7 @@ public:
 
     ~CuckooCtx()
     {
+        delete m_hasher;
         free(m_cuckoo);
     }
 };

@@ -29,6 +29,7 @@ public:
 
 	virtual void processTransaction(TransactionContextPtr) { throw qbit::exception("NOT_IMPL", "IPeerExtension::process - not implemented."); }
 	virtual bool processMessage(Message& /*message*/, std::list<DataStream>::iterator /*data*/, const boost::system::error_code& /*error*/) { throw qbit::exception("NOT_IMPL", "IPeerExtension::process - not implemented."); }
+	virtual void release() { throw qbit::exception("NOT_IMPL", "IPeerExtension::release - not implemented."); }
 };
 
 typedef std::shared_ptr<IPeerExtension> IPeerExtensionPtr;

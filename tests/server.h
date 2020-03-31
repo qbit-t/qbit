@@ -176,6 +176,8 @@ public:
 
 		//
 		httpRequestHandler_ = HttpRequestHandler::instance(settings_, wallet_, peerManager_);
+		httpRequestHandler_->push(HttpMallocStats::instance());
+		httpRequestHandler_->push(HttpGetPeerInfo::instance());
 		httpRequestHandler_->push(HttpGetKey::instance());
 		httpRequestHandler_->push(HttpGetBalance::instance());
 		httpRequestHandler_->push(HttpSendToAddress::instance());
@@ -286,6 +288,8 @@ public:
 
 		//
 		httpRequestHandler_ = HttpRequestHandler::instance(settings_, wallet_, peerManager_);
+		httpRequestHandler_->push(HttpMallocStats::instance());
+		httpRequestHandler_->push(HttpGetPeerInfo::instance());
 		httpRequestHandler_->push(HttpGetKey::instance());
 		httpRequestHandler_->push(HttpGetBalance::instance());
 		httpRequestHandler_->push(HttpSendToAddress::instance());
@@ -396,6 +400,8 @@ public:
 
 		//
 		httpRequestHandler_ = HttpRequestHandler::instance(settings_, wallet_, peerManager_);
+		httpRequestHandler_->push(HttpMallocStats::instance());
+		httpRequestHandler_->push(HttpGetPeerInfo::instance());
 		httpRequestHandler_->push(HttpGetKey::instance());
 		httpRequestHandler_->push(HttpGetBalance::instance());
 		httpRequestHandler_->push(HttpSendToAddress::instance());
@@ -506,6 +512,8 @@ public:
 
 		//
 		httpRequestHandler_ = HttpRequestHandler::instance(settings_, wallet_, peerManager_);
+		httpRequestHandler_->push(HttpMallocStats::instance());
+		httpRequestHandler_->push(HttpGetPeerInfo::instance());
 		httpRequestHandler_->push(HttpGetKey::instance());
 		httpRequestHandler_->push(HttpGetBalance::instance());
 		httpRequestHandler_->push(HttpSendToAddress::instance());
