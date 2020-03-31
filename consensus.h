@@ -117,9 +117,9 @@ public:
 
 	//
 	// PoW/PoS work sequnce with "block" and "block->prev"
-	virtual bool checkSequenceConsistency(const BlockHeader& block) {
+	virtual bool checkSequenceConsistency(BlockHeader& block) {
 		int res = VerifyCycle(block.hash(), EDGEBITS /*edge bits*/, PROOFSIZE /* 42 proof size */, block.cycle_);
-		if(res == verify::POW_OK) {
+		if(res == verify_code::POW_OK) {
 			bool fNegative;
     		bool fOverflow;
     		arith_uint256 bnTarget;
