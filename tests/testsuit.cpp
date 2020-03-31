@@ -23,6 +23,7 @@
 #include "../dapps/buzzer/validator.h"
 #include "../dapps/buzzer/txbuzzer.h"
 #include "../dapps/buzzer/txbuzz.h"
+#include "../dapps/buzzer/txbuzzlike.h"
 #include "../dapps/buzzer/txbuzzersubscribe.h"
 #include "../dapps/buzzer/txbuzzerunsubscribe.h"
 #include "../dapps/buzzer/transactionstoreextension.h"
@@ -76,6 +77,7 @@ int main(int argv, char** argc)
 	Transaction::registerTransactionType(TX_BUZZER_SUBSCRIBE, TxBuzzerSubscribeCreator::instance());
 	Transaction::registerTransactionType(TX_BUZZER_UNSUBSCRIBE, TxBuzzerUnsubscribeCreator::instance());
 	Transaction::registerTransactionType(TX_BUZZ, TxBuzzCreator::instance());
+	Transaction::registerTransactionType(TX_BUZZ_LIKE, TxBuzzLikeCreator::instance());
 	// validators
 	ValidatorManager::registerValidator("buzzer", BuzzerValidatorCreator::instance());
 	// store extensions
@@ -86,6 +88,8 @@ int main(int argv, char** argc)
 	Message::registerMessageType(BUZZER_SUBSCRIPTION_IS_ABSENT, "BUZZER_SUBSCRIPTION_IS_ABSENT");
 	Message::registerMessageType(GET_BUZZ_FEED, "GET_BUZZ_FEED");
 	Message::registerMessageType(BUZZ_FEED, "BUZZ_FEED");
+	Message::registerMessageType(NEW_BUZZ_NOTIFY, "NEW_BUZZ_NOTIFY");
+	Message::registerMessageType(BUZZ_UPDATE_NOTIFY, "BUZZ_UPDATE_NOTIFY");
 	// buzzer peer extention
 	PeerManager::registerPeerExtension("buzzer", BuzzerPeerExtensionCreator::instance());
 

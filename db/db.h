@@ -472,9 +472,9 @@ public:
 	class Iterator {
 	public:
 		Iterator(const key1& k1, const key2& k2, const key3& k3, const typename Container<ThreeKey<key1, key2, key3>, value, impl>::Iterator& i) : key1Empty_(false), key2Empty_(false), key3Empty_(false), key1_(k1), key2_(k2), key3_(k3), i_(i) {}
-		Iterator(const key1& k1, const key2& k2, const typename Container<ThreeKey<key1, key2, key3>, value, impl>::Iterator& i) : key1Empty_(false), key2Empty_(false), key1_(k1), key2_(k2), i_(i) {}
-		Iterator(const key1& k1, const typename Container<ThreeKey<key1, key2, key3>, value, impl>::Iterator& i) : key1Empty_(false), key2Empty_(true), key1_(k1), i_(i) {}
-		Iterator(const typename Container<ThreeKey<key1, key2, key3>, value, impl>::Iterator& i) : key1Empty_(true), key2Empty_(true), i_(i) {}
+		Iterator(const key1& k1, const key2& k2, const typename Container<ThreeKey<key1, key2, key3>, value, impl>::Iterator& i) : key1Empty_(false), key2Empty_(false), key3Empty_(true), key1_(k1), key2_(k2), i_(i) {}
+		Iterator(const key1& k1, const typename Container<ThreeKey<key1, key2, key3>, value, impl>::Iterator& i) : key1Empty_(false), key2Empty_(true), key3Empty_(true), key1_(k1), i_(i) {}
+		Iterator(const typename Container<ThreeKey<key1, key2, key3>, value, impl>::Iterator& i) : key1Empty_(true), key2Empty_(true), key3Empty_(true), i_(i) {}
 
 		inline bool valid() {
 			ThreeKey<key1, key2, key3> lKey;

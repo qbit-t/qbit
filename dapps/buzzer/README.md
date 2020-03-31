@@ -47,10 +47,6 @@ Peer - we need peer protocol extention to process dapps requests
 
 ## Requests
 
-curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"createdapp","params":["<owner>", "<short_name>", "<long_name>", "<tx_dapp_instance>", "<static|dynamic>"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
-
-curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"createshard","params":["<creator>", "<dapp_name>", "<unique_short_name>", "<description>"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
-
 curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"createbuzzer","params":["<creator|*>", "<buzzer_unique_name>", "<buzzer_alias>", "<description>"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
 
 curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"buzz","params":["<creator|*>", "<buzz_multibyte_body>"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
@@ -58,3 +54,13 @@ curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"buzz","params":["
 curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"buzzersubscribe","params":["<creator|*>", "<publisher_name>"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
 
 curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"buzzerunsubscribe","params":["<creator|*>", "<publisher_name>"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
+
+## Test
+
+curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"createdapp","params":["76PvbNsTT84VvksyZcAsu2AaRn4W2g7a47fVnC4ZoHwT196K6N", "buzzer", "Buzzer - Decentralized microblogging platform", "4096", "static"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
+
+curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"createshard","params":["76PvbNsTT84VvksyZcAsu2AaRn4W2g7a47fVnC4ZoHwT196K6N", "buzzer", "buzzer#01", "Buzzer shard 01"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
+
+curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"createshard","params":["76PvbNsTT84VvksyZcAsu2AaRn4W2g7a47fVnC4ZoHwT196K6N", "buzzer", "buzzer#02", "Buzzer shard 02"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
+
+curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"createbuzzer","params":["*", "@second", "SND", "Second buzzer"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080

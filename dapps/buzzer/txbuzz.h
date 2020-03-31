@@ -13,6 +13,11 @@ namespace qbit {
 
 typedef LimitedString<64> buzzer_tag_t;
 
+#define TX_BUZZ_REPLY_OUT 0
+#define TX_BUZZ_REBUZZ_OUT 1
+#define TX_BUZZ_LIKE_OUT 2
+#define TX_BUZZ_PIN_OUT 3
+
 //
 class TxBuzz: public Entity {
 public:

@@ -32,6 +32,7 @@
 #if defined (BUZZER_MOD)
 	#include "../dapps/buzzer/txbuzzer.h"
 	#include "../dapps/buzzer/txbuzz.h"
+	#include "../dapps/buzzer/txbuzzlike.h"
 	#include "../dapps/buzzer/txbuzzersubscribe.h"
 	#include "../dapps/buzzer/txbuzzerunsubscribe.h"
 	#include "../dapps/buzzer/peerextension.h"
@@ -49,10 +50,16 @@ void buzzfeedLargeUpdated() {
 	//
 }
 
-void buzzfeedItemUpdated(BuzzfeedItemPtr buzz) {
+void buzzfeedItemNew(BuzzfeedItemPtr buzz) {
 	//
 	std::cout << std::endl;
 	gLog().writeClient(Log::CLIENT, std::string(": new buzz ") + buzz->buzzId().toHex());
+}
+
+void buzzfeedItemUpdated(BuzzfeedItemPtr buzz) {
+	//
+	std::cout << std::endl;
+	gLog().writeClient(Log::CLIENT, std::string(": updated buzz ") + buzz->buzzId().toHex());
 }
 
 #endif
@@ -142,6 +149,7 @@ int main(int argv, char** argc) {
 	Transaction::registerTransactionType(TX_BUZZER_SUBSCRIBE, TxBuzzerSubscribeCreator::instance());
 	Transaction::registerTransactionType(TX_BUZZER_UNSUBSCRIBE, TxBuzzerUnsubscribeCreator::instance());
 	Transaction::registerTransactionType(TX_BUZZ, TxBuzzCreator::instance());
+	Transaction::registerTransactionType(TX_BUZZ_LIKE, TxBuzzLikeCreator::instance());
 
 	// buzzer message types
 	Message::registerMessageType(GET_BUZZER_SUBSCRIPTION, "GET_BUZZER_SUBSCRIPTION");
@@ -149,6 +157,8 @@ int main(int argv, char** argc) {
 	Message::registerMessageType(BUZZER_SUBSCRIPTION_IS_ABSENT, "BUZZER_SUBSCRIPTION_IS_ABSENT");
 	Message::registerMessageType(GET_BUZZ_FEED, "GET_BUZZ_FEED");
 	Message::registerMessageType(BUZZ_FEED, "BUZZ_FEED");
+	Message::registerMessageType(NEW_BUZZ_NOTIFY, "NEW_BUZZ_NOTIFY");
+	Message::registerMessageType(BUZZ_UPDATE_NOTIFY, "BUZZ_UPDATE_NOTIFY");
 
 	// buzzer request processor
 	BuzzerRequestProcessorPtr lBuzzerRequestProcessor = BuzzerRequestProcessor::instance(lRequestProcessor);
@@ -158,7 +168,7 @@ int main(int argv, char** argc) {
 	lBuzzerComposer->open();
 
 	// buzzfed
-	BuzzfeedPtr lBuzzfeed = Buzzfeed::instance(boost::bind(&buzzfeedLargeUpdated), boost::bind(&buzzfeedItemUpdated, _1));
+	BuzzfeedPtr lBuzzfeed = Buzzfeed::instance(boost::bind(&buzzfeedLargeUpdated), boost::bind(&buzzfeedItemNew, _1), boost::bind(&buzzfeedItemUpdated, _1));
 
 	// buzzer peer extention
 	PeerManager::registerPeerExtension("buzzer", BuzzerPeerExtensionCreator::instance(lBuzzfeed));
@@ -170,6 +180,7 @@ int main(int argv, char** argc) {
 	lCommandsHandler->push(BuzzerUnsubscribeCommand::instance(lBuzzerComposer, boost::bind(&commandDone)));
 	lCommandsHandler->push(LoadBuzzfeedCommand::instance(lBuzzerComposer, lBuzzfeed, boost::bind(&commandDone)));
 	lCommandsHandler->push(BuzzfeedListCommand::instance(lBuzzerComposer, lBuzzfeed, boost::bind(&commandDone)));
+	lCommandsHandler->push(BuzzLikeCommand::instance(lBuzzerComposer, lBuzzfeed, boost::bind(&commandDone)));
 #endif
 
 	// peers
