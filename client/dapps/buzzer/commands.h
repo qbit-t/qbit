@@ -41,21 +41,40 @@ public:
 
 	// callbacks
 	void created(TransactionContextPtr ctx) {
-		if (composer_->requestProcessor()->broadcastTransaction(ctx)) {
-			std::cout << ctx->tx()->id().toHex() << std::endl;		
-		} else {
+		//
+		if (!composer_->requestProcessor()->sendTransaction(ctx,
+				SentTransaction::instance(
+					boost::bind(&CreateBuzzerCommand::sent, shared_from_this(), _1, _2),
+					boost::bind(&CreateBuzzerCommand::timeout, shared_from_this())))) {
 			gLog().writeClient(Log::CLIENT, std::string(": tx was not broadcasted, wallet re-init..."));
 			composer_->wallet()->resetCache();
 			composer_->wallet()->prepareCache();
+			done_();
+		}
+	}
+
+	void sent(const uint256& tx, const std::vector<TransactionContext::Error>& errors) {
+		//
+		if (errors.size()) {
+			for (std::vector<TransactionContext::Error>::iterator lError = const_cast<std::vector<TransactionContext::Error>&>(errors).begin(); 
+					lError != const_cast<std::vector<TransactionContext::Error>&>(errors).end(); lError++) {
+				gLog().writeClient(Log::CLIENT, strprintf("[error]: %s", lError->data()));
+			}			
+		} else {
+			std::cout << tx.toHex() << std::endl;
 		}
 
 		done_();
 	}
 
+	void timeout() {
+		error("E_TIMEOUT", "Timeout expired during buzzer creation.");
+	}
+
 	void error(const std::string& code, const std::string& message) {
 		gLog().writeClient(Log::CLIENT, strprintf(": %s | %s", code, message));
 		done_();
-	}	
+	}
 
 private:
 	BuzzerLightComposerPtr composer_;
@@ -100,6 +119,7 @@ public:
 				gLog().writeClient(Log::CLIENT, std::string(": tx was not broadcasted, wallet re-init..."));
 				composer_->wallet()->resetCache();
 				composer_->wallet()->prepareCache();
+				done_();
 			}
 		}
 
@@ -110,6 +130,7 @@ public:
 			gLog().writeClient(Log::CLIENT, std::string(": tx was not broadcasted, wallet re-init..."));
 			composer_->wallet()->resetCache();
 			composer_->wallet()->prepareCache();
+			done_();
 		}
 	}
 
@@ -187,15 +208,34 @@ public:
 
 	// callbacks
 	void created(TransactionContextPtr ctx) {
-		if (composer_->requestProcessor()->broadcastTransaction(ctx)) {
-			std::cout << ctx->tx()->id().toHex() << std::endl;		
-		} else {
+		//
+		if (!composer_->requestProcessor()->sendTransaction(ctx,
+				SentTransaction::instance(
+					boost::bind(&BuzzerSubscribeCommand::sent, shared_from_this(), _1, _2),
+					boost::bind(&BuzzerSubscribeCommand::timeout, shared_from_this())))) {
 			gLog().writeClient(Log::CLIENT, std::string(": tx was not broadcasted, wallet re-init..."));
 			composer_->wallet()->resetCache();
 			composer_->wallet()->prepareCache();
+			done_();
+		}
+	}
+
+	void sent(const uint256& tx, const std::vector<TransactionContext::Error>& errors) {
+		//
+		if (errors.size()) {
+			for (std::vector<TransactionContext::Error>::iterator lError = const_cast<std::vector<TransactionContext::Error>&>(errors).begin(); 
+					lError != const_cast<std::vector<TransactionContext::Error>&>(errors).end(); lError++) {
+				gLog().writeClient(Log::CLIENT, strprintf("[error]: %s", lError->data()));
+			}			
+		} else {
+			std::cout << tx.toHex() << std::endl;
 		}
 
 		done_();
+	}
+
+	void timeout() {
+		error("E_TIMEOUT", "Timeout expired during buzzer subscription.");
 	}
 
 	void error(const std::string& code, const std::string& message) {
@@ -236,21 +276,40 @@ public:
 
 	// callbacks
 	void created(TransactionContextPtr ctx) {
-		if (composer_->requestProcessor()->broadcastTransaction(ctx)) {
-			std::cout << ctx->tx()->id().toHex() << std::endl;		
-		} else {
+		//
+		if (!composer_->requestProcessor()->sendTransaction(ctx,
+				SentTransaction::instance(
+					boost::bind(&BuzzerUnsubscribeCommand::sent, shared_from_this(), _1, _2),
+					boost::bind(&BuzzerUnsubscribeCommand::timeout, shared_from_this())))) {
 			gLog().writeClient(Log::CLIENT, std::string(": tx was not broadcasted, wallet re-init..."));
 			composer_->wallet()->resetCache();
 			composer_->wallet()->prepareCache();
+			done_();
+		}
+	}
+
+	void sent(const uint256& tx, const std::vector<TransactionContext::Error>& errors) {
+		//
+		if (errors.size()) {
+			for (std::vector<TransactionContext::Error>::iterator lError = const_cast<std::vector<TransactionContext::Error>&>(errors).begin(); 
+					lError != const_cast<std::vector<TransactionContext::Error>&>(errors).end(); lError++) {
+				gLog().writeClient(Log::CLIENT, strprintf("[error]: %s", lError->data()));
+			}			
+		} else {
+			std::cout << tx.toHex() << std::endl;
 		}
 
 		done_();
 	}
 
+	void timeout() {
+		error("E_TIMEOUT", "Timeout expired during buzzer unsubscription.");
+	}
+
 	void error(const std::string& code, const std::string& message) {
 		gLog().writeClient(Log::CLIENT, strprintf(": %s | %s", code, message));
 		done_();
-	}	
+	}
 
 private:
 	BuzzerLightComposerPtr composer_;
@@ -333,6 +392,75 @@ private:
 	BuzzerLightComposerPtr composer_;
 	BuzzfeedPtr buzzFeed_;
 	doneFunction done_;
+};
+
+class BuzzLikeCommand;
+typedef std::shared_ptr<BuzzLikeCommand> BuzzLikeCommandPtr;
+
+class BuzzLikeCommand: public ICommand, public std::enable_shared_from_this<BuzzLikeCommand> {
+public:
+	BuzzLikeCommand(BuzzerLightComposerPtr composer, BuzzfeedPtr buzzfeed, doneFunction done): composer_(composer), buzzfeed_(buzzfeed), done_(done) {}
+
+	void process(const std::vector<std::string>&);
+	std::set<std::string> name() {
+		std::set<std::string> lSet;
+		lSet.insert("buzzLike"); 
+		lSet.insert("like"); 
+		return lSet;
+	}
+
+	void help() {
+		std::cout << "buzzLike | like <buzz_id>" << std::endl;
+		std::cout << "\tLike published buzz." << std::endl;
+		std::cout << "\t<buzz_id> - required, publishers buzz - buzz tx." << std::endl;
+		std::cout << "\texample:\n\t\t>like a9756f1d84c0e803bdd6993bfdfaaf6ef19ef24accc6d4006e5a874cda6c7bd1" << std::endl << std::endl;
+	}	
+
+	static ICommandPtr instance(BuzzerLightComposerPtr composer, BuzzfeedPtr buzzFeed, doneFunction done) { 
+		return std::make_shared<BuzzLikeCommand>(composer, buzzFeed, done); 
+	}
+
+	// callbacks
+	void created(TransactionContextPtr ctx) {
+		//
+		if (!composer_->requestProcessor()->sendTransaction(ctx,
+				SentTransaction::instance(
+					boost::bind(&BuzzLikeCommand::sent, shared_from_this(), _1, _2),
+					boost::bind(&BuzzLikeCommand::timeout, shared_from_this())))) {
+			gLog().writeClient(Log::CLIENT, std::string(": tx was not broadcasted, wallet re-init..."));
+			composer_->wallet()->resetCache();
+			composer_->wallet()->prepareCache();
+			done_();
+		}
+	}
+
+	void sent(const uint256& tx, const std::vector<TransactionContext::Error>& errors) {
+		//
+		if (errors.size()) {
+			for (std::vector<TransactionContext::Error>::iterator lError = const_cast<std::vector<TransactionContext::Error>&>(errors).begin(); 
+					lError != const_cast<std::vector<TransactionContext::Error>&>(errors).end(); lError++) {
+				gLog().writeClient(Log::CLIENT, strprintf("[error]: %s", lError->data()));
+			}			
+		} else {
+			std::cout << tx.toHex() << std::endl;
+		}
+
+		done_();
+	}
+
+	void timeout() {
+		error("E_TIMEOUT", "Timeout expired during buzz like action.");
+	}
+
+	void error(const std::string& code, const std::string& message) {
+		gLog().writeClient(Log::CLIENT, strprintf(": %s | %s", code, message));
+		done_();
+	}
+
+private:
+	BuzzerLightComposerPtr composer_;
+	doneFunction done_;
+	BuzzfeedPtr buzzfeed_;
 };
 
 } // qbit

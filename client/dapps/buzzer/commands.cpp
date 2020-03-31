@@ -119,3 +119,24 @@ void BuzzfeedListCommand::process(const std::vector<std::string>& args) {
 
 	done_();
 }
+
+void BuzzLikeCommand::process(const std::vector<std::string>& args) {
+	if (args.size() == 1) {
+		// prepare
+		uint256 lBuzzId;
+		lBuzzId.setHex(args[0]);
+		//
+		BuzzfeedItemPtr lItem = buzzfeed_->locateBuzz(lBuzzId);
+		//
+		if (lItem) {
+			IComposerMethodPtr lCreateBuzz = BuzzerLightComposer::CreateTxBuzzLike::instance(composer_, lItem->buzzChainId(), lItem->buzzId(),
+				boost::bind(&BuzzLikeCommand::created, shared_from_this(), _1));
+			// async process
+			lCreateBuzz->process(boost::bind(&BuzzLikeCommand::error, shared_from_this(), _1, _2));
+		} else {
+			gLog().writeClient(Log::CLIENT, std::string(": buzz was not found in local feed"));
+		}
+	} else {
+		gLog().writeClient(Log::CLIENT, std::string(": incorrect number of arguments"));
+	}
+}

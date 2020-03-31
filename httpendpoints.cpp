@@ -7,10 +7,96 @@
 #include "httpendpoints.h"
 #include "vm/vm.h"
 
-#include <boost/lexical_cast.hpp>
 #include <iostream>
 
 using namespace qbit;
+
+void HttpMallocStats::process(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
+	/* request
+	{
+		"jsonrpc": "1.0",
+		"id": "curltext",
+		"method": "mallocstats",
+		"params": [
+			"<thread_id>" 	-- (string, optional) thread id
+		]
+	}
+	*/
+	/* reply
+	{
+		"result":						
+		{
+			"table": []					-- (string array) details
+		},
+		"error":						-- (object or null) error description
+		{
+			"code": "EFAIL", 
+			"message": "<explanation>" 
+		},
+		"id": "curltext"				-- (string) request id
+	}
+	*/
+
+	// id
+	json::Value lId;
+	if (!(const_cast<json::Document&>(data).find("id", lId) && lId.isString())) {
+		reply = HttpReply::stockReply(HttpReply::bad_request);
+		return;
+	}
+
+	// params
+	json::Value lParams;
+	if (const_cast<json::Document&>(data).find("params", lParams) && lParams.isArray()) {
+		// extract parameters
+		size_t lThreadId = 0; // 0
+		if (lParams.size()) {
+			// param[0]
+			json::Value lP0 = lParams[0];
+			if (lP0.isString()) { 
+				if (!convert<size_t>(lP0.getString(), lThreadId)) {
+					reply = HttpReply::stockReply("E_INCORRECT_VALUE_TYPE", "Incorrect parameter type"); return;	
+				}
+			} else { reply = HttpReply::stockReply(HttpReply::bad_request); return; }
+		}
+
+		char lStats[204800] = {0};
+
+		if (!lThreadId) {
+			_jm_threads_print_stats(lStats);
+		} else {
+			_jm_thread_print_stats(lThreadId, lStats, JM_ARENA_BASIC_STATS, JM_ALLOC_CLASSES);
+		}
+
+		// TODO: implement
+		// _jm_thread_dump_chunk(thread_id, chunk{0}, classIndex, "path");
+
+		std::string lValue(lStats);
+		std::vector<std::string> lParts;
+  		boost::split(lParts, lValue, boost::is_any_of("\n\t"), boost::token_compress_on);		
+
+		// prepare reply
+		json::Document lReply;
+		lReply.loadFromString("{}");
+		
+		json::Value lKeyObject = lReply.addObject("result");
+		json::Value lKeyArrayObject = lKeyObject.addArray("table");
+		for (std::vector<std::string>::iterator lString = lParts.begin(); lString != lParts.end(); lString++) {
+			json::Value lItem = lKeyArrayObject.newArrayItem();
+			lItem.setString(*lString);
+		}
+
+		lReply.addObject("error").toNull();
+		lReply.addString("id", lId.getString());
+
+		// pack
+		pack(reply, lReply);
+		// finalize
+		finalize(reply);
+	} else {
+		reply = HttpReply::stockReply(HttpReply::bad_request);
+		return;
+	}
+}
 
 void HttpGetKey::process(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
 	/* request
@@ -254,8 +340,11 @@ void HttpSendToAddress::process(const std::string& source, const HttpRequest& re
 
 			// param[2]
 			json::Value lP2 = lParams[2];
-			if (lP2.isString()) lValue = (double)(boost::lexical_cast<double>(lP2.getString()));
-			else { reply = HttpReply::stockReply(HttpReply::bad_request); return; }
+			if (lP2.isString()) { 
+				if (!convert<double>(lP2.getString(), lValue)) {
+					reply = HttpReply::stockReply("E_INCORRECT_VALUE_TYPE", "Incorrect parameter type"); return;	
+				}
+			} else { reply = HttpReply::stockReply(HttpReply::bad_request); return; }
 		} else {
 			reply = HttpReply::stockReply("E_PARAMS", "Insufficient or extra parameters"); 
 			return;
@@ -370,24 +459,26 @@ void HttpGetPeerInfo::process(const std::string& source, const HttpRequest& requ
 	*/
 	/* reply
 	{
-		"result": [
-			{
-				"id": "<peer_id>",				-- (string) peer default address id (uint160)
-				"endpoint": "address:port",		-- (string) peer endpoint
-				"outbound": true|false,			-- (bool) is outbound connection
-				"roles": "<peer_roles>",		-- (string) peer roles
-				"status": "<peer_status>",		-- (string) peer status
-				"latency": <latency>,			-- (int) latency, ms
-				"time": "<peer_time>",			-- (string) peer_time, s
-				"chains": [
-					{
-						"id": "<chain_id>",		-- (string) chain id
-						...
-					}
-				]
-			},
-			...
-		],
+		"result": { 
+			"peers": [
+				{
+					"id": "<peer_id>",				-- (string) peer default address id (uint160)
+					"endpoint": "address:port",		-- (string) peer endpoint
+					"outbound": true|false,			-- (bool) is outbound connection
+					"roles": "<peer_roles>",		-- (string) peer roles
+					"status": "<peer_status>",		-- (string) peer status
+					"latency": <latency>,			-- (int) latency, ms
+					"time": "<peer_time>",			-- (string) peer_time, s
+					"chains": [
+						{
+							"id": "<chain_id>",		-- (string) chain id
+							...
+						}
+					]
+				},
+				...
+			],
+		},
 		"error":								-- (object or null) error description
 		{
 			"code": "EFAIL", 
@@ -407,10 +498,79 @@ void HttpGetPeerInfo::process(const std::string& source, const HttpRequest& requ
 	// params
 	json::Value lParams;
 	if (const_cast<json::Document&>(data).find("params", lParams) && lParams.isArray()) {
-
 		// prepare reply
 		json::Document lReply;
 		lReply.loadFromString("{}");
+
+		json::Value lKeyObject = lReply.addObject("result");
+		json::Value lArrayObject = lKeyObject.addArray("peers");
+
+		// peer manager
+		json::Value lPeerManagerObject = lReply.addObject("manager");
+		lPeerManagerObject.addUInt("clients", peerManager_->clients());
+		lPeerManagerObject.addUInt("peers_count", peerManager_->peersCount());		
+
+		// get peers
+		std::list<IPeerPtr> lPeers;
+		peerManager_->allPeers(lPeers);
+
+		for (std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
+			//
+			if ((*lPeer)->status() == IPeer::UNDEFINED) continue;
+
+			json::Value lItem = lArrayObject.newArrayItem();
+			lItem.toObject(); // make object
+
+			if ((*lPeer)->status() == IPeer::BANNED || (*lPeer)->status() == IPeer::POSTPONED) {
+				lItem.addString("endpoint", (*lPeer)->key());
+				lItem.addString("status", (*lPeer)->statusString());
+				lItem.addUInt("in_queue", (*lPeer)->inQueueLength());
+				lItem.addUInt("out_queue", (*lPeer)->outQueueLength());
+				lItem.addUInt("pending_queue", (*lPeer)->pendingQueueLength());
+				lItem.addUInt("received_count", (*lPeer)->receivedMessagesCount());
+				lItem.addUInt64("received_bytes", (*lPeer)->bytesReceived());
+				lItem.addUInt("sent_count", (*lPeer)->sentMessagesCount());
+				lItem.addUInt64("sent_bytes", (*lPeer)->bytesSent());
+				continue;				
+			}
+
+			lItem.addString("id", (*lPeer)->addressId().toHex());
+			lItem.addString("endpoint", (*lPeer)->key());
+			lItem.addString("status", (*lPeer)->statusString());
+			lItem.addUInt64("time", (*lPeer)->time());
+			lItem.addBool("outbound", (*lPeer)->isOutbound() ? true : false);
+			lItem.addUInt("latency", (*lPeer)->latency());
+			lItem.addString("roles", (*lPeer)->state().rolesString());
+			lItem.addString("address", (*lPeer)->state().address().toString());
+
+			lItem.addUInt("in_queue", (*lPeer)->inQueueLength());
+			lItem.addUInt("out_queue", (*lPeer)->outQueueLength());
+			lItem.addUInt("pending_queue", (*lPeer)->pendingQueueLength());
+			lItem.addUInt("received_count", (*lPeer)->receivedMessagesCount());
+			lItem.addUInt64("received_bytes", (*lPeer)->bytesReceived());
+			lItem.addUInt("sent_count", (*lPeer)->sentMessagesCount());
+			lItem.addUInt64("sent_bytes", (*lPeer)->bytesSent());
+
+			if ((*lPeer)->state().client()) {
+				//
+				lItem.addString("dapp", (*lPeer)->state().dApp());
+				lItem.addString("dapp_instance", (*lPeer)->state().dAppInstance().toHex());
+			} else {
+				//
+				json::Value lChainsObject = lItem.addArray("chains");
+				std::vector<State::BlockInfo> lInfos = (*lPeer)->state().infos();
+				for (std::vector<State::BlockInfo>::iterator lInfo = lInfos.begin(); lInfo != lInfos.end(); lInfo++) {
+					//
+					json::Value lChain = lChainsObject.newArrayItem();
+					lChain.toObject(); // make object
+
+					lChain.addString("dapp", lInfo->dApp().size() ? lInfo->dApp() : "none");
+					lChain.addUInt64("height", lInfo->height());
+					lChain.addString("chain", lInfo->chain().toHex());
+				}
+			}
+		}
+
 		//lReply.addString("result", strprintf(QBIT_FORMAT, lBalance));
 		lReply.addObject("error").toNull();
 		lReply.addString("id", lId.getString());
@@ -487,8 +647,13 @@ void HttpCreateDApp::process(const std::string& source, const HttpRequest& reque
 
 			// param[3]
 			json::Value lP3 = lParams[3];
-			if (lP3.isString()) lInstances = (Transaction::Type)boost::lexical_cast<unsigned short>(lP3.getString());
-			else { reply = HttpReply::stockReply(HttpReply::bad_request); return; }
+			if (lP3.isString()) { 
+				unsigned short lValue;
+				if (!convert<unsigned short>(lP3.getString(), lValue)) {
+					reply = HttpReply::stockReply("E_INCORRECT_VALUE_TYPE", "Incorrect parameter type"); return;	
+				}
+				lInstances = (Transaction::Type)lValue;
+			} else { reply = HttpReply::stockReply(HttpReply::bad_request); return; }
 
 			// param[4]
 			if (lParams.size() == 5) {

@@ -8,6 +8,7 @@
 #include "../../handlers.h"
 #include "../../../dapps/buzzer/txbuzzer.h"
 #include "../../../dapps/buzzer/txbuzz.h"
+#include "../../../dapps/buzzer/txbuzzlike.h"
 #include "../../../dapps/buzzer/txbuzzersubscribe.h"
 #include "../../../dapps/buzzer/txbuzzerunsubscribe.h"
 #include "../../../dapps/buzzer/buzzfeed.h"
@@ -75,6 +76,7 @@ public:
 
 		//
 		void utxoByBuzzerLoaded(const std::vector<Transaction::UnlinkedOut>&, const std::string&);
+		void saveBuzzerUtxo(const std::vector<Transaction::UnlinkedOut>&, const std::string&);
 
 	private:
 		BuzzerLightComposerPtr composer_;
@@ -102,6 +104,7 @@ public:
 
 		//
 		void publisherLoaded(EntityPtr);
+		void saveBuzzerUtxo(const std::vector<Transaction::UnlinkedOut>&, const std::string&);		
 		void utxoByPublisherLoaded(const std::vector<Transaction::UnlinkedOut>&, const std::string&);
 		void utxoByBuzzerLoaded(const std::vector<Transaction::UnlinkedOut>&, const std::string&);
 
@@ -172,6 +175,35 @@ public:
 		errorFunction error_;		
 	};
 
+	class CreateTxBuzzLike: public IComposerMethod, public std::enable_shared_from_this<CreateTxBuzzLike> {
+	public:
+		CreateTxBuzzLike(BuzzerLightComposerPtr composer, const uint256& chain, const uint256& buzz, transactionCreatedFunction created): composer_(composer), chain_(chain), buzz_(buzz), created_(created) {}
+		void process(errorFunction);
+
+		static IComposerMethodPtr instance(BuzzerLightComposerPtr composer, const uint256& chain, const uint256& buzz, transactionCreatedFunction created) {
+			return std::make_shared<CreateTxBuzzLike>(composer, chain, buzz, created);
+		} 
+
+		// 
+		void timeout() {
+			error_("E_TIMEOUT", "Timeout expired during buzz like creation.");
+		}
+
+		//
+		void utxoByBuzzLoaded(const std::vector<Transaction::NetworkUnlinkedOut>&, const uint256&);
+		void utxoByBuzzerLoaded(const std::vector<Transaction::UnlinkedOut>&, const std::string&);
+		void saveBuzzerUtxo(const std::vector<Transaction::UnlinkedOut>&, const std::string&);		
+
+	private:
+		BuzzerLightComposerPtr composer_;
+		uint256 chain_;
+		uint256 buzz_;
+		transactionCreatedFunction created_;
+		errorFunction error_;
+
+		std::vector<Transaction::NetworkUnlinkedOut> buzzUtxo_;
+	};	
+
 public:
 	BuzzerLightComposer(ISettingsPtr settings, IWalletPtr wallet, IRequestProcessorPtr requestProcessor, BuzzerRequestProcessorPtr buzzerRequestProcessor): 
 		settings_(settings), wallet_(wallet), requestProcessor_(requestProcessor), buzzerRequestProcessor_(buzzerRequestProcessor),
@@ -205,6 +237,8 @@ public:
 		Transaction::Serializer::serialize<DataStream>(lStream, buzzerTx_);
 		std::string lBuzzerTxHex = HexStr(lStream.begin(), lStream.end());
 		workingSettings_.write("buzzerTx", lBuzzerTxHex);
+		workingSettings_.remove("buzzerUtxo");
+		buzzerUtxo_.clear();
 
 		requestProcessor_->setDAppInstance(buzzerTx_->id());
 

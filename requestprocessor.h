@@ -35,6 +35,10 @@ public:
 	}
 
 	//
+	// dApp
+	std::string dApp() { return dApp_; }
+
+	//
 	// use peer for network participation
 	bool pushPeer(IPeerPtr peer) {
 		//

@@ -16,6 +16,24 @@
 
 namespace qbit {
 
+//
+// system
+//
+class HttpMallocStats: public IHttpCallEnpoint {
+public:
+	HttpMallocStats() {}
+
+	void process(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
+	std::string method() { return std::string("mallocstats"); }
+
+	static IHttpCallEnpointPtr instance() {
+		return std::make_shared<HttpMallocStats>();
+	}
+};
+
+//
+// common
+//
 class HttpGetKey: public IHttpCallEnpoint {
 public:
 	HttpGetKey() {}

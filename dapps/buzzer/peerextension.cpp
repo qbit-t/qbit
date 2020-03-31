@@ -55,6 +55,39 @@ void BuzzerPeerExtension::processTransaction(TransactionContextPtr ctx) {
 				notifyNewBuzz(lItem);
 			}
 		}
+	} else if (ctx->tx()->type() == TX_BUZZ_LIKE) {
+		//
+		// check subscription
+		TransactionPtr lTx = ctx->tx();
+		// get store
+		ITransactionStorePtr lStore = peerManager_->consensusManager()->storeManager()->locate(lTx->chain());
+		// process
+		if (lStore && lStore->extension()) {
+			BuzzerTransactionStoreExtensionPtr lExtension = std::static_pointer_cast<BuzzerTransactionStoreExtension>(lStore->extension());
+
+			// load buzz
+			TransactionPtr lBuzz = lStore->locateTransaction((*lTx->in().begin()).out().tx());
+			if (lBuzz) {
+				TxBuzzPtr lBuzzTx = TransactionHelper::to<TxBuzz>(lBuzz);
+				uint256 lPublisher = (*lBuzzTx->in().begin()).out().tx(); // first in - buzzer
+
+				if (lExtension->checkSubscription(peer_->state().dAppInstance(), lPublisher) ||
+					lExtension->checkSubscription(lPublisher, peer_->state().dAppInstance()) || 
+					peer_->state().dAppInstance() == lPublisher) {
+					// make update
+					BuzzerTransactionStoreExtension::BuzzInfo lInfo;
+					if (lExtension->readBuzzInfo(lBuzz->id(), lInfo)) {
+						// if we have one
+						BuzzfeedItem::Update lItem(lBuzz->id(), BuzzfeedItem::Update::LIKES, ++lInfo.likes_);
+						notifyUpdateBuzz(lItem);
+					} else {
+						// default
+						BuzzfeedItem::Update lItem(lBuzz->id(), BuzzfeedItem::Update::LIKES, 1);
+						notifyUpdateBuzz(lItem);				
+					}
+				}
+			}
+		}
 	}
 }
 
@@ -65,10 +98,13 @@ bool BuzzerPeerExtension::processMessage(Message& message, std::list<DataStream>
 	//
 	// WARNING: for short requests, but for long - we _must_ to go to wait until we read and process data
 	//
+	/*
 	lSkipWaitForMessage = 
 		message.type() == BUZZER_SUBSCRIPTION ||
 		message.type() == BUZZ_FEED ||
-		message.type() == NEW_BUZZ_NOTIFY;
+		message.type() == NEW_BUZZ_NOTIFY ||
+		message.type() == BUZZ_UPDATE_NOTIFY;
+	*/
 	//
 	if (message.type() == GET_BUZZER_SUBSCRIPTION) {
 		boost::asio::async_read(*peer_->socket(),
@@ -106,12 +142,18 @@ bool BuzzerPeerExtension::processMessage(Message& message, std::list<DataStream>
 			boost::bind(
 				&BuzzerPeerExtension::processNewBuzzNotify, shared_from_this(), msg,
 				boost::asio::placeholders::error));
+	} else if (message.type() == BUZZ_UPDATE_NOTIFY) {
+		boost::asio::async_read(*peer_->socket(),
+			boost::asio::buffer(msg->data(), message.dataSize()),
+			boost::bind(
+				&BuzzerPeerExtension::processBuzzUpdateNotify, shared_from_this(), msg,
+				boost::asio::placeholders::error));
 	} else {
 		return false;
 	}
 
-	if (!lSkipWaitForMessage) 
-		peer_->waitForMessage();
+	//if (!lSkipWaitForMessage) 
+	//	peer_->waitForMessage();
 
 	return true;
 }
@@ -192,6 +234,8 @@ void BuzzerPeerExtension::processGetSubscription(std::list<DataStream>::iterator
 					boost::asio::placeholders::error));
 		}
 
+		//
+		peer_->waitForMessage();
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processGetSubscription/error]: closing session " + peer_->key() + " -> " + error.message());
@@ -254,6 +298,8 @@ void BuzzerPeerExtension::processGetBuzzfeed(std::list<DataStream>::iterator msg
 					boost::asio::placeholders::error));
 		}
 
+		//
+		peer_->waitForMessage();
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processGetBuzzfeed/error]: closing session " + peer_->key() + " -> " + error.message());
@@ -284,6 +330,8 @@ void BuzzerPeerExtension::processSubscriptionAbsent(std::list<DataStream>::itera
 		
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: subscription is absent."));
 
+		//
+		peer_->waitForMessage();
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processSubscriptionAbsent/error]: closing session " + peer_->key() + " -> " + error.message());
@@ -403,6 +451,37 @@ void BuzzerPeerExtension::processNewBuzzNotify(std::list<DataStream>::iterator m
 	}
 }
 
+void BuzzerPeerExtension::processBuzzUpdateNotify(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
+	//
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: checksum is INVALID for message from ") + peer_->key());
+	if (!error && lMsgValid) {
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: processing buzz update notification from ") + peer_->key());
+
+		// extract
+		BuzzfeedItem::Update lBuzzUpdate;
+		(*msg) >> lBuzzUpdate;
+		peer_->eraseInData(msg);
+
+		// log
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: processing buzz update notification ") + 
+			strprintf("%s/%s/%d from %s", lBuzzUpdate.buzzId().toHex(), lBuzzUpdate.fieldString(), lBuzzUpdate.count(), peer_->key()));
+
+		// update
+		buzzfeed_->merge(lBuzzUpdate);
+
+		// WARNING: in case of async_read for large data
+		peer_->waitForMessage();
+	} else {
+		// log
+		gLog().write(Log::NET, "[peer/processBuzzfeed/error]: closing session " + peer_->key() + " -> " + error.message());
+		// try to deactivate peer
+		peerManager_->deactivatePeer(peer_);
+		// close socket
+		peer_->close();
+	}
+}
+
 //
 bool BuzzerPeerExtension::loadSubscription(const uint256& chain, const uint256& subscriber, const uint256& publisher, ILoadTransactionHandlerPtr handler) {
 	//
@@ -488,7 +567,41 @@ bool BuzzerPeerExtension::notifyNewBuzz(const BuzzfeedItem& buzz) {
 
 		// log
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: new buzz notification ") + 
-			strprintf("%s/%s# from %s -> %d/%s", const_cast<BuzzfeedItem&>(buzz).buzzId().toHex(), const_cast<BuzzfeedItem&>(buzz).buzzChainId().toHex().substr(0, 10), peer_->key(), lStateStream.size(), HexStr(lStateStream.begin(), lStateStream.end())));
+			strprintf("%s/%s# for %s -> %d/%s", const_cast<BuzzfeedItem&>(buzz).buzzId().toHex(), const_cast<BuzzfeedItem&>(buzz).buzzChainId().toHex().substr(0, 10), peer_->key(), lStateStream.size(), HexStr(lStateStream.begin(), lStateStream.end())));
+
+		// write
+		boost::asio::async_write(*peer_->socket(),
+			boost::asio::buffer(lMsg->data(), lMsg->size()),
+			boost::bind(
+				&Peer::messageFinalize, std::static_pointer_cast<Peer>(peer_), lMsg,
+				boost::asio::placeholders::error));
+
+		return true;
+	}
+
+	return false;
+}
+
+bool BuzzerPeerExtension::notifyUpdateBuzz(const BuzzfeedItem::Update& update) {
+	//
+	if (peer_->status() == IPeer::ACTIVE) {
+		
+		// new message
+		std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
+		DataStream lStateStream(SER_NETWORK, CLIENT_VERSION);
+
+		lStateStream << update;
+		Message lMessage(BUZZ_UPDATE_NOTIFY, lStateStream.size(), Hash160(lStateStream.begin(), lStateStream.end()));
+
+		(*lMsg) << lMessage;
+		lMsg->write(lStateStream.data(), lStateStream.size());
+
+		// log
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: buzz update notification ") + 
+			strprintf("%s/%s/%d for %s -> %d/%s", 
+				const_cast<BuzzfeedItem::Update&>(update).buzzId().toHex(), 
+				const_cast<BuzzfeedItem::Update&>(update).fieldString(),
+				const_cast<BuzzfeedItem::Update&>(update).count(), peer_->key(), lStateStream.size(), HexStr(lStateStream.begin(), lStateStream.end())));
 
 		// write
 		boost::asio::async_write(*peer_->socket(),

@@ -48,6 +48,7 @@ public:
 	virtual IMemoryPoolManagerPtr mempoolManager() { throw qbit::exception("NOT_IMPL", "IConsensusManager::mempoolManager - not implemented."); }
 
 	virtual size_t chainSupportPeersCount(const uint256& /*chain*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::chainSupportPeersCount - not implemented."); }	
+	virtual std::string dApp() { throw qbit::exception("NOT_IMPL", "IConsensusManager::dApp - not implemented."); }	
 
 	// open requests
 	virtual void acquireBlockHeaderWithCoinbase(const uint256& /*block*/, const uint256& /*chain*/, INetworkBlockHandlerWithCoinBasePtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IConsensus::acquireBlockHeaderWithCoinbase - not implemented."); }
