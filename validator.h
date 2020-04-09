@@ -186,7 +186,8 @@ private:
     				bool fOverflow;
 					arith_uint256 target;
 					target.SetCompact(lCurrentBlock->bits_, &fNegative, &fOverflow);
-					if(store_->blockHeader(lCurrentBlock->prev(), lPrev)) {
+					BlockContextPtr lCurrentBlockContext = mempool_->beginBlock(lCurrentBlock);
+					if(store_->blockHeader(lCurrentBlockContext->prev(), lPrev)) {
 						if(store_->blockHeader(lPrev.prev(), lPPrev)) {
 							arith_uint256 prev_target, pprev_target;
 							bool fPNegative;
