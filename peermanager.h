@@ -144,6 +144,7 @@ public:
 			boost::unique_lock<boost::mutex> lLock(contextMutex_[lChannel->first]);
 
 			for (std::map<std::string /*endpoint*/, IPeerPtr>::iterator lPeer = lChannel->second.begin(); lPeer != lChannel->second.end(); lPeer++) {
+				if (lPeer->second->state().client()) continue;
 				lTime += lPeer->second->time() + (getMicroseconds() - lPeer->second->timestamp());
 				lPeers++;
 			}
@@ -671,7 +672,8 @@ public:
 							peer->key(), peer->statusString(), peer->addressId().toHex(), 
 							lPeer->key(), lPeer->statusString(), lPeer->addressId().toHex()));
 
-				if (!consensusManager_->peerExists(lAddress)) consensusManager_->pushPeer(lPeer);					
+				if (!consensusManager_->peerExists(lAddress)) consensusManager_->pushPeer(lPeer);
+				else consensusManager_->pushPeerLatency(lPeer);
 				return false;
 			}
 		}
@@ -822,6 +824,7 @@ public:
 							lPeer->key(), lPeer->statusString(), lPeer->addressId().toHex()));
 
 				if (!consensusManager_->peerExists(lAddress)) consensusManager_->pushPeer(lPeer);
+				else consensusManager_->pushPeerLatency(lPeer);
 				return false;
 			}
 		}

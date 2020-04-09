@@ -77,7 +77,7 @@ public:
 	//
 	// collect current state
 	StatePtr currentState() {
-		StatePtr lState = State::instance(qbit::getTime(), settings_->roles(), wallet_->firstKey().createPKey());
+		StatePtr lState = State::instance(qbit::getTime(), settings_->roles(), wallet_->firstKey()->createPKey());
 
 		//
 		std::map<uint256, IConsensusPtr> lConsensuses;
@@ -132,25 +132,35 @@ public:
 			lConsensus->second->pushPeer(peer);
 		}
 
-		{
-			peer_t lPeerId = peer->addressId();
-			boost::unique_lock<boost::mutex> lLock(latencyMutex_);
-			// locate latency
-			std::pair<LatencyMap::iterator,
-						LatencyMap::iterator> lRange = latencyMap_.equal_range(peer->latencyPrev());
-
-			for (LatencyMap::iterator lTo = lRange.first; lTo != lRange.second; lTo++)
-				if (lPeerId == lTo->second->addressId()) {
-					latencyMap_.erase(lTo);
-					break;
-				}
-
-			// update latency
-			latencyMap_.insert(LatencyMap::value_type(peer->latency(), peer));
-		}
-
+		pushPeerLatency(peer);
+		
 		return true;
 	}
+
+	//
+	// update latency
+	void pushPeerLatency(IPeerPtr peer) {
+		//
+		peer_t lPeerId = peer->addressId();
+		boost::unique_lock<boost::mutex> lLock(latencyMutex_);
+		// locate latency
+		std::pair<LatencyMap::iterator,
+					LatencyMap::iterator> lRange = latencyMap_.equal_range(peer->latencyPrev());
+
+		for (LatencyMap::iterator lTo = lRange.first; lTo != lRange.second; lTo++)
+			if (lPeerId == lTo->second->addressId()) {
+				latencyMap_.erase(lTo);
+				break;
+			}
+
+		// update latency
+		latencyMap_.insert(LatencyMap::value_type(peer->latency(), peer));
+
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[pushPeer]: peer ") + 
+				strprintf("%s, latency = %d", 
+					lPeerId.toHex(), peer->latency()));
+	}
+
 
 	//
 	// remove peer from consensus participation
@@ -262,12 +272,12 @@ public:
 
 	//
 	// main key
-	SKey mainKey() { return wallet_->firstKey(); }	
+	SKeyPtr mainKey() { return wallet_->firstKey(); }	
 
 	//
 	// main key
 	PKey mainPKey() {
-		return mainKey().createPKey();
+		return mainKey()->createPKey();
 	}	
 
 	//

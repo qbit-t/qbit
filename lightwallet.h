@@ -92,10 +92,10 @@ public:
 	}
 
 	// key management
-	SKey createKey(const std::list<std::string>&);
-	SKey findKey(const PKey& pkey);
-	SKey firstKey();
-	SKey changeKey();
+	SKeyPtr createKey(const std::list<std::string>&);
+	SKeyPtr findKey(const PKey& pkey);
+	SKeyPtr firstKey();
+	SKeyPtr changeKey();
 
 	// utxo management
 	bool pushUnlinkedOut(Transaction::UnlinkedOutPtr, TransactionContextPtr);
@@ -191,8 +191,12 @@ private:
 	// wallet status
 	IWallet::Status status_;
 
+	// cached keys
+	std::map<uint160 /*id*/, SKeyPtr> keysCache_;	
+
 	// lock
 	boost::recursive_mutex cacheMutex_;
+	boost::recursive_mutex keyMutex_;
 };
 
 } // qbit

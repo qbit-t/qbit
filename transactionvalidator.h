@@ -15,6 +15,9 @@
 
 namespace qbit {
 
+class TransactionProcessor;
+typedef std::shared_ptr<TransactionProcessor> TransactionProcessorPtr;
+
 class TransactionAction {
 public:
 	enum Result {
@@ -25,25 +28,31 @@ public:
 	};
 public:
 	TransactionAction() {}
+	~TransactionAction() { processor_.reset(); }
+
+	void setTransactionProcessor(TransactionProcessorPtr);
 
 	virtual Result execute(TransactionContextPtr, ITransactionStorePtr, IWalletPtr, IEntityStorePtr) { return Result::ERROR; }
+
+protected:
+	TransactionProcessorPtr processor_;
 };
 
 typedef std::shared_ptr<TransactionAction> TransactionActionPtr;
-
-class TransactionProcessor;
-typedef std::shared_ptr<TransactionProcessor> TransactionProcessorPtr;
 
 //
 typedef std::list<TransactionActionPtr> TransactionActions;
 extern TransactionActions gTransactionActions; // TODO: init on startup
 
-class TransactionProcessor {
+class TransactionProcessor: public std::enable_shared_from_this<TransactionProcessor> {
 public:
 	TransactionProcessor(ITransactionStorePtr store, IWalletPtr wallet, IEntityStorePtr entityStore) : 
 		store_(store), wallet_(wallet), entityStore_(entityStore) {}
 
-	void add(TransactionActionPtr action) { actions_.push_back(action); }
+	void add(TransactionActionPtr action) { 
+		actions_.push_back(action); 
+	}
+
 	bool process(TransactionContextPtr);
 
 	TransactionProcessor& operator << (TransactionActionPtr action)

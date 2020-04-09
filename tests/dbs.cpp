@@ -60,15 +60,15 @@ TransactionPtr DbEntityContainerCreate::createTx0(uint256& utxo) {
 	lSeed0.push_back(std::string("leopard"));
 	lSeed0.push_back(std::string("lobster"));
 
-	SKey lKey0 = wallet_->createKey(lSeed0);
-	PKey lPKey0 = lKey0.createPKey();
+	SKeyPtr lKey0 = wallet_->createKey(lSeed0);
+	PKey lPKey0 = lKey0->createPKey();
 
 	// 1.0
 	// create transaction
 	TxCoinBasePtr lTx = TransactionHelper::to<TxCoinBase>(TransactionFactory::create(Transaction::COINBASE));
 	lTx->addIn();
 	unsigned char* asset0 = (unsigned char*)"01234567890123456789012345678901";
-	Transaction::UnlinkedOutPtr lUTXO = lTx->addOut(lKey0, lPKey0, uint256(asset0), 10);
+	Transaction::UnlinkedOutPtr lUTXO = lTx->addOut(*lKey0, lPKey0, uint256(asset0), 10);
 	lUTXO->out().setTx(lTx->id());
 
 	//std::cout << std::endl << lTx->toString() << std::endl;
@@ -109,21 +109,21 @@ TransactionPtr DbEntityContainerCreate::createTx1(uint256 utxo) {
 	lSeed0.push_back(std::string("leopard"));
 	lSeed0.push_back(std::string("lobster"));
 
-	SKey lKey0 = wallet_->createKey(lSeed0);
-	PKey lPKey0 = lKey0.createPKey();
+	SKeyPtr lKey0 = wallet_->createKey(lSeed0);
+	PKey lPKey0 = lKey0->createPKey();
 
 	// 1.0
 	// create transaction
 	TxSpendPtr lTx = TransactionHelper::to<TxSpend>(TransactionFactory::create(Transaction::SPEND));
 
 	Transaction::UnlinkedOutPtr lUTXO = wallet_->findUnlinkedOut(utxo);
-	lTx->addIn(lKey0, lUTXO);
+	lTx->addIn(*lKey0, lUTXO);
 
 	unsigned char* asset0 = (unsigned char*)"01234567890123456789012345678901";
-	Transaction::UnlinkedOutPtr lUTXO1 = lTx->addOut(lKey0, lPKey0, uint256(asset0), 10);
+	Transaction::UnlinkedOutPtr lUTXO1 = lTx->addOut(*lKey0, lPKey0, uint256(asset0), 10);
 	lUTXO1->out().setTx(lTx->id());
 
-	lTx->finalize(lKey0); // bool
+	lTx->finalize(*lKey0); // bool
 
 	store_->pushTransaction(lTx);
 	store_->pushUnlinkedOut(lUTXO, nullptr);

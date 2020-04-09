@@ -13,7 +13,7 @@ void KeyCommand::process(const std::vector<std::string>& args) {
 		lAddress = args[0];
 	}
 
-	SKey lKey;
+	SKeyPtr lKey;
 	if (lAddress.size()) {
 		PKey lPKey; 
 		if (!lPKey.fromString(lAddress)) {
@@ -21,25 +21,25 @@ void KeyCommand::process(const std::vector<std::string>& args) {
 		}
 
 		lKey = wallet_->findKey(lPKey);
-		if (!lKey.valid()) {
+		if (!lKey || !lKey->valid()) {
 			throw qbit::exception("E_SKEY_NOT_FOUND", "Key was not found."); 
 		}
 	} else {
 		lKey = wallet_->firstKey();
-		if (!lKey.valid()) {
+		if (!lKey->valid()) {
 			throw qbit::exception("E_SKEY_IS_ABSENT", "Key is absent."); 
 		}
 	}
 
-	PKey lPFoundKey = lKey.createPKey();
+	PKey lPFoundKey = lKey->createPKey();
 
 	std::cout << "address = " << lPFoundKey.toString() << std::endl;
 	std::cout << "id      = " << lPFoundKey.id().toHex() << std::endl;
 	std::cout << "pkey    = " << lPFoundKey.toHex() << std::endl;
-	std::cout << "skey    = " << lKey.toHex() << std::endl;
+	std::cout << "skey    = " << lKey->toHex() << std::endl;
 	std::cout << "seed    ->" << std::endl;
 
-	for (std::vector<SKey::Word>::iterator lWord = lKey.seed().begin(); lWord != lKey.seed().end(); lWord++) {
+	for (std::vector<SKey::Word>::iterator lWord = lKey->seed().begin(); lWord != lKey->seed().end(); lWord++) {
 		std::cout << "\t" << (*lWord).wordA() << std::endl;
 	}
 

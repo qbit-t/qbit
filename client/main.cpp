@@ -62,6 +62,20 @@ void buzzfeedItemUpdated(BuzzfeedItemPtr buzz) {
 	gLog().writeClient(Log::CLIENT, std::string(": updated buzz ") + buzz->buzzId().toHex());
 }
 
+void buzzfeedItemsUpdated(const std::vector<BuzzfeedItem::Update>& items) {
+	//
+	std::cout << std::endl;
+	gLog().writeClient(Log::CLIENT, strprintf(": buzz bulk updates count %d", items.size()));
+	for (std::vector<BuzzfeedItem::Update>::const_iterator lUpdate = items.begin(); lUpdate != items.end(); lUpdate++)
+		gLog().writeClient(Log::CLIENT, std::string(": -> buzz ") + lUpdate->buzzId().toHex());
+}
+
+void buzzfeedItemAbsent(const uint256& chain, const uint256& buzz) {
+	//
+	std::cout << std::endl;
+	gLog().writeClient(Log::CLIENT, strprintf(": missing buzz %s/%s#", buzz.toHex(), chain.toHex().substr(0, 10)));
+}
+
 #endif
 
 bool gCommandDone = false;
@@ -78,11 +92,9 @@ int main(int argv, char** argc) {
 		CLIENT_VERSION_REVISION << "." <<
 		CLIENT_VERSION_BUILD << ") | (c) 2020 q-bit.technology | MIT license" << std::endl;
 
-	// setings
+	// home
 	ISettingsPtr lSettings = ClientSettings::instance();
-
-	// logs
-	gLog(lSettings->dataPath() + "/debug.log"); // setup
+	bool lIsLogConfigured = false;
 
 	// command line
 	bool lDebugFound = false;
@@ -93,6 +105,11 @@ int main(int argv, char** argc) {
 			std::vector<std::string> lCategories; 
 			boost::split(lCategories, std::string(argc[++lIdx]), boost::is_any_of(","));
 
+			if (!lIsLogConfigured) { 
+				gLog(lSettings->dataPath() + "/debug.log"); // setup 
+				lIsLogConfigured = true;
+			}
+
 			for (std::vector<std::string>::iterator lCategory = lCategories.begin(); lCategory != lCategories.end(); lCategory++) {
 				gLog().enable(getLogCategory(*lCategory));				
 			}
@@ -100,6 +117,11 @@ int main(int argv, char** argc) {
 			lDebugFound = true;
 		} else if (std::string(argc[lIdx]) == std::string("-peers")) {
 			boost::split(lPeers, std::string(argc[++lIdx]), boost::is_any_of(","));
+		} else if (std::string(argc[lIdx]) == std::string("-home")) {
+			std::string lHome = std::string(argc[++lIdx]);
+			lSettings = ClientSettings::instance(lHome); // re-create
+			gLog(lSettings->dataPath() + "/debug.log"); // setup
+			lIsLogConfigured = true;
 		}
 	}
 
@@ -150,6 +172,7 @@ int main(int argv, char** argc) {
 	Transaction::registerTransactionType(TX_BUZZER_UNSUBSCRIBE, TxBuzzerUnsubscribeCreator::instance());
 	Transaction::registerTransactionType(TX_BUZZ, TxBuzzCreator::instance());
 	Transaction::registerTransactionType(TX_BUZZ_LIKE, TxBuzzLikeCreator::instance());
+	Transaction::registerTransactionType(TX_BUZZ_REPLY, TxBuzzReplyCreator::instance());
 
 	// buzzer message types
 	Message::registerMessageType(GET_BUZZER_SUBSCRIPTION, "GET_BUZZER_SUBSCRIPTION");
@@ -168,7 +191,13 @@ int main(int argv, char** argc) {
 	lBuzzerComposer->open();
 
 	// buzzfed
-	BuzzfeedPtr lBuzzfeed = Buzzfeed::instance(boost::bind(&buzzfeedLargeUpdated), boost::bind(&buzzfeedItemNew, _1), boost::bind(&buzzfeedItemUpdated, _1));
+	BuzzfeedPtr lBuzzfeed = Buzzfeed::instance(
+		boost::bind(&buzzfeedLargeUpdated), 
+		boost::bind(&buzzfeedItemNew, _1), 
+		boost::bind(&buzzfeedItemUpdated, _1),
+		boost::bind(&buzzfeedItemsUpdated, _1),
+		boost::bind(&buzzfeedItemAbsent, _1, _2)
+	);
 
 	// buzzer peer extention
 	PeerManager::registerPeerExtension("buzzer", BuzzerPeerExtensionCreator::instance(lBuzzfeed));
@@ -181,6 +210,7 @@ int main(int argv, char** argc) {
 	lCommandsHandler->push(LoadBuzzfeedCommand::instance(lBuzzerComposer, lBuzzfeed, boost::bind(&commandDone)));
 	lCommandsHandler->push(BuzzfeedListCommand::instance(lBuzzerComposer, lBuzzfeed, boost::bind(&commandDone)));
 	lCommandsHandler->push(BuzzLikeCommand::instance(lBuzzerComposer, lBuzzfeed, boost::bind(&commandDone)));
+	lCommandsHandler->push(CreateBuzzReplyCommand::instance(lBuzzerComposer, lBuzzfeed, boost::bind(&commandDone)));
 #endif
 
 	// peers

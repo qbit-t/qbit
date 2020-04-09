@@ -135,6 +135,52 @@ public:
 typedef std::shared_ptr<ISelectUtxoByEntityNameHandler> ISelectUtxoByEntityNameHandlerPtr;
 
 //
+// select utxo by entities names
+class ISelectUtxoByEntityNamesHandler: public IReplyHandler {
+public:
+	class EntityUtxo {
+	public:
+		EntityUtxo() {}
+		EntityUtxo(const std::string name): name_(name) {}
+		EntityUtxo(const std::string name, const std::vector<Transaction::UnlinkedOut>& utxo): name_(name), utxo_(utxo) {}
+
+		ADD_SERIALIZE_METHODS;
+
+		template <typename Stream, typename Operation>
+		inline void serializationOp(Stream& s, Operation ser_action) {
+			if (ser_action.ForRead()) {
+				std::vector<unsigned char> lName;
+				s >> lName;
+				name_.insert(name_.end(), lName.begin(), lName.end());
+
+				s >> utxo_;
+			} else {
+				std::vector<unsigned char> lName;
+				lName.insert(lName.end(), name_.begin(), name_.end());
+
+				s << lName;
+				s << utxo_;
+			}
+		}
+
+		inline void add(const Transaction::UnlinkedOut& utxo) {
+			utxo_.push_back(utxo);
+		}
+
+		inline std::string& name() { return name_; }
+		inline std::vector<Transaction::UnlinkedOut>& utxo() { return utxo_; }
+
+	private:
+		std::string name_;
+		std::vector<Transaction::UnlinkedOut> utxo_;
+	};
+public:
+	ISelectUtxoByEntityNamesHandler() {}
+	virtual void handleReply(const std::vector<EntityUtxo>&) = 0;
+};
+typedef std::shared_ptr<ISelectUtxoByEntityNamesHandler> ISelectUtxoByEntityNamesHandlerPtr;
+
+//
 // select entity count by shards
 class ISelectEntityCountByShardsHandler: public IReplyHandler {
 public:
@@ -276,6 +322,7 @@ public:
 	virtual void selectUtxoByAddressAndAsset(const PKey& /*source*/, const uint256& /*chain*/, const uint256& /*asset*/, ISelectUtxoByAddressAndAssetHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IPeer::selectUtxoByAddressAndAsset - not implemented."); }
 	virtual void selectUtxoByTransaction(const uint256& /*chain*/, const uint256& /*tx*/, ISelectUtxoByTransactionHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IPeer::selectUtxoByTransaction - not implemented."); }
 	virtual void selectUtxoByEntity(const std::string& /*entityName*/, ISelectUtxoByEntityNameHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IPeer::selectUtxoByEntity - not implemented."); }
+	virtual void selectUtxoByEntityNames(const std::vector<std::string>& /*entityNames*/, ISelectUtxoByEntityNamesHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IPeer::selectUtxoByEntityNames - not implemented."); }
 	virtual void selectEntityCountByShards(const std::string& /*dapp*/, ISelectEntityCountByShardsHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IPeer::selectEntityCountByShards - not implemented."); }
 	virtual void sendTransaction(TransactionContextPtr /*ctx*/, ISentTransactionHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IPeer::sendTransaction - not implemented."); }
 };

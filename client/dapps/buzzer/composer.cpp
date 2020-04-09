@@ -1,8 +1,4 @@
 #include "composer.h"
-#include "../../../dapps/buzzer/txbuzzer.h"
-#include "../../../dapps/buzzer/txbuzz.h"
-#include "../../../dapps/buzzer/txbuzzersubscribe.h"
-#include "../../../dapps/buzzer/txbuzzerunsubscribe.h"
 
 #include "../../../txdapp.h"
 #include "../../../txshard.h"
@@ -103,20 +99,22 @@ void BuzzerLightComposer::CreateTxBuzzer::buzzerEntityLoaded(EntityPtr buzzer) {
 	buzzerTx_->setAlias(alias_);
 	buzzerTx_->setDescription(description_);
 
-	SKey lSChangeKey = composer_->wallet()->changeKey();
-	SKey lSKey = composer_->wallet()->firstKey();
-	if (!lSKey.valid() || !lSChangeKey.valid()) { error_("E_KEY", "Secret key is invalid."); return; }
+	SKeyPtr lSChangeKey = composer_->wallet()->changeKey();
+	SKeyPtr lSKey = composer_->wallet()->firstKey();
+	if (!lSKey->valid() || !lSChangeKey->valid()) { error_("E_KEY", "Secret key is invalid."); return; }
 
-	SKey lFirstKey = composer_->wallet()->firstKey();
-	PKey lSelf = lSKey.createPKey();
+	SKeyPtr lFirstKey = composer_->wallet()->firstKey();
+	PKey lSelf = lSKey->createPKey();
 	// make buzzer out (for buzz creation)
-	buzzerTx_->addBuzzerOut(lSKey, lSelf);
+	buzzerTx_->addBuzzerOut(*lSKey, lSelf); // out[0]
 	// for subscriptions
-	buzzerTx_->addBuzzerSubscriptionOut(lSKey, lSelf);
+	buzzerTx_->addBuzzerSubscriptionOut(*lSKey, lSelf); // out[1]
 	// endorse
-	buzzerTx_->addBuzzerEndorseOut(lSKey, lSelf);
+	buzzerTx_->addBuzzerEndorseOut(*lSKey, lSelf);
 	// mistrust
-	buzzerTx_->addBuzzerMistrustOut(lSKey, lSelf);
+	buzzerTx_->addBuzzerMistrustOut(*lSKey, lSelf);
+	// buzzin
+	buzzerTx_->addBuzzerBuzzOut(*lSKey, lSelf);
 
 	composer_->requestProcessor()->selectUtxoByEntity(composer_->dAppName(), 
 		SelectUtxoByEntityName::instance(
@@ -127,13 +125,13 @@ void BuzzerLightComposer::CreateTxBuzzer::buzzerEntityLoaded(EntityPtr buzzer) {
 
 void BuzzerLightComposer::CreateTxBuzzer::utxoByDAppLoaded(const std::vector<Transaction::UnlinkedOut>& utxo, const std::string& dapp) {
 	//
-	SKey lSChangeKey = composer_->wallet()->changeKey();
-	SKey lSKey = composer_->wallet()->firstKey();
-	if (!lSKey.valid() || !lSChangeKey.valid()) { error_("E_KEY", "Secret key is invalid."); return; }
+	SKeyPtr lSChangeKey = composer_->wallet()->changeKey();
+	SKeyPtr lSKey = composer_->wallet()->firstKey();
+	if (!lSKey->valid() || !lSChangeKey->valid()) { error_("E_KEY", "Secret key is invalid."); return; }
 
 	//
 	if (utxo.size() >= 2)
-		buzzerTx_->addDAppIn(lSKey, Transaction::UnlinkedOut::instance(*(++utxo.begin()))); // second out
+		buzzerTx_->addDAppIn(*lSKey, Transaction::UnlinkedOut::instance(*(++utxo.begin()))); // second out
 	else { error_("E_ENTITY_INCORRECT", "DApp outs is incorrect.");	return; }
 
 	//
@@ -174,13 +172,13 @@ void BuzzerLightComposer::CreateTxBuzzer::shardLoaded(TransactionPtr shard) {
 
 void BuzzerLightComposer::CreateTxBuzzer::utxoByShardLoaded(const std::vector<Transaction::UnlinkedOut>& utxo, const std::string& shardName) {
 	//
-	SKey lSChangeKey = composer_->wallet()->changeKey();
-	SKey lSKey = composer_->wallet()->firstKey();
-	if (!lSKey.valid() || !lSChangeKey.valid()) { error_("E_KEY", "Secret key is invalid."); return; }
+	SKeyPtr lSChangeKey = composer_->wallet()->changeKey();
+	SKeyPtr lSKey = composer_->wallet()->firstKey();
+	if (!lSKey->valid() || !lSChangeKey->valid()) { error_("E_KEY", "Secret key is invalid."); return; }
 
 	//
 	if (utxo.size() >= 1) {
-		buzzerTx_->addShardIn(lSKey, Transaction::UnlinkedOut::instance(*(utxo.begin()))); // first out
+		buzzerTx_->addShardIn(*lSKey, Transaction::UnlinkedOut::instance(*(utxo.begin()))); // first out
 	} else { 
 		error_("E_SHARD_INCORRECT", "Shard outs is incorrect."); return; 
 	}
@@ -192,13 +190,21 @@ void BuzzerLightComposer::CreateTxBuzzer::utxoByShardLoaded(const std::vector<Tr
 	Transaction::UnlinkedOutPtr lChangeUtxo = nullptr;
 	std::list<Transaction::UnlinkedOutPtr> lFeeUtxos;
 	//
-	amount_t lFeeAmount = composer_->wallet()->fillInputs(buzzerTx_, TxAssetType::qbitAsset(), lFee, lFeeUtxos);
-	buzzerTx_->addFeeOut(lSKey, TxAssetType::qbitAsset(), lFee); // to miner
-	if (lFeeAmount > lFee) { // make change
-		lChangeUtxo = buzzerTx_->addOut(lSChangeKey, lSChangeKey.createPKey()/*change*/, TxAssetType::qbitAsset(), lFeeAmount - lFee);
+	try {
+		amount_t lFeeAmount = composer_->wallet()->fillInputs(buzzerTx_, TxAssetType::qbitAsset(), lFee, lFeeUtxos);
+		buzzerTx_->addFeeOut(*lSKey, TxAssetType::qbitAsset(), lFee); // to miner
+		if (lFeeAmount > lFee) { // make change
+			lChangeUtxo = buzzerTx_->addOut(*lSChangeKey, lSChangeKey->createPKey()/*change*/, TxAssetType::qbitAsset(), lFeeAmount - lFee);
+		}
 	}
-
-	if (!buzzerTx_->finalize(lSKey)) { error_("E_TX_FINALIZE", "Transaction finalization failed."); return; }
+	catch(qbit::exception& ex) {
+		error_(ex.code(), ex.what()); return;
+	}
+	catch(std::exception& ex) {
+		error_("E_TX_CREATE", ex.what()); return;
+	}
+	
+	if (!buzzerTx_->finalize(*lSKey)) { error_("E_TX_FINALIZE", "Transaction finalization failed."); return; }
 	if (!composer_->writeBuzzerTx(buzzerTx_)) { error_("E_BUZZER_NOT_OPEN", "Buzzer was not open."); return; }
 
 	// we good
@@ -266,26 +272,55 @@ void BuzzerLightComposer::CreateTxBuzz::saveBuzzerUtxo(const std::vector<Transac
 
 void BuzzerLightComposer::CreateTxBuzz::utxoByBuzzerLoaded(const std::vector<Transaction::UnlinkedOut>& utxo, const std::string& buzzer) {
 	//
-	SKey lSChangeKey = composer_->wallet()->changeKey();
-	SKey lSKey = composer_->wallet()->firstKey();
-	PKey lPKey = lSKey.createPKey();	
+	SKeyPtr lSKey = composer_->wallet()->firstKey();
+	PKey lPKey = lSKey->createPKey();	
 
-	if (!lSKey.valid() || !lSChangeKey.valid()) { error_("E_KEY", "Secret key is invalid."); return; }
+	if (!lSKey->valid()) { error_("E_KEY", "Secret key is invalid."); return; }
 
 	if (!utxo.size()) {
 		error_("E_BUZZER_TX_INCONSISTENT", "Buzzer tx is inconsistent."); return;	
 	}
 
 	// out[0] - buzzer utxo for new buzz
-	buzzTx_->addBuzzerIn(lSKey, Transaction::UnlinkedOut::instance(*(utxo.begin()))); // first out
+	buzzTx_->addBuzzerIn(*lSKey, Transaction::UnlinkedOut::instance(*(utxo.begin()))); // first out
 	// reply out
-	buzzTx_->addBuzzReplyOut(lSKey, lPKey); // out[0]
+	buzzTx_->addBuzzReplyOut(*lSKey, lPKey); // out[0]
 	// re-buzz out
-	buzzTx_->addReBuzzOut(lSKey, lPKey); // out[1]
+	buzzTx_->addReBuzzOut(*lSKey, lPKey); // out[1]
 	// like out
-	buzzTx_->addBuzzLikeOut(lSKey, lPKey); // out[2]
+	buzzTx_->addBuzzLikeOut(*lSKey, lPKey); // out[2]
 	// pin out
-	buzzTx_->addBuzzPinOut(lSKey, lPKey); // out[3]
+	buzzTx_->addBuzzPinOut(*lSKey, lPKey); // out[3]
+
+	// check buzzers list
+	if (!buzzers_.size()) {
+		composer_->requestProcessor()->selectUtxoByEntityNames(buzzers_, 
+			SelectUtxoByEntityNames::instance(
+				boost::bind(&BuzzerLightComposer::CreateTxBuzz::utxoByBuzzersListLoaded, shared_from_this(), _1),
+				boost::bind(&BuzzerLightComposer::CreateTxBuzz::timeout, shared_from_this()))
+		);
+	} else {
+		utxoByBuzzersListLoaded(std::vector<ISelectUtxoByEntityNamesHandler::EntityUtxo>());
+	}
+}
+
+void BuzzerLightComposer::CreateTxBuzz::utxoByBuzzersListLoaded(const std::vector<ISelectUtxoByEntityNamesHandler::EntityUtxo>& entityUtxos) {
+	//
+	SKeyPtr lSKey = composer_->wallet()->firstKey();
+	PKey lPKey = lSKey->createPKey();
+	if (!lSKey->valid()) { error_("E_KEY", "Secret key is invalid."); return; }
+
+	//
+	std::vector<ISelectUtxoByEntityNamesHandler::EntityUtxo>& lEntityUtxos = const_cast<std::vector<ISelectUtxoByEntityNamesHandler::EntityUtxo>&>(entityUtxos);
+	for (std::vector<ISelectUtxoByEntityNamesHandler::EntityUtxo>::iterator lEntity = lEntityUtxos.begin(); lEntity != lEntityUtxos.end(); lEntity++) {
+		//
+		// in[1] - @buzzer.out[TX_BUZZER_BUZZ_OUT] or @buzzer.out[TX_BUZZER_REPLY_OUT]
+		// in[2] - @buzzer.out[TX_BUZZER_BUZZ_OUT] or @buzzer.out[TX_BUZZER_REPLY_OUT]	
+		// ...
+		if (lEntity->utxo().size() > TX_BUZZER_BUZZ_OUT) {
+			buzzTx_->addBuzzerIn(*lSKey, Transaction::UnlinkedOut::instance(lEntity->utxo()[TX_BUZZER_BUZZ_OUT]));
+		}
+	}
 
 	// prepare fee tx
 	amount_t lFeeAmount = ctx_->size();
@@ -305,8 +340,8 @@ void BuzzerLightComposer::CreateTxBuzz::utxoByBuzzerLoaded(const std::vector<Tra
 	std::list<Transaction::UnlinkedOutPtr> lFeeUtxos = lFee->tx()->utxos(TxAssetType::qbitAsset()); // we need only qbits
 	if (lFeeUtxos.size()) {
 		// utxo[0]
-		buzzTx_->addIn(lSKey, *(lFeeUtxos.begin())); // qbit fee that was exact for fee - in
-		buzzTx_->addFeeOut(lSKey, TxAssetType::qbitAsset(), lFeeAmount); // to the miner
+		buzzTx_->addIn(*lSKey, *(lFeeUtxos.begin())); // qbit fee that was exact for fee - in
+		buzzTx_->addFeeOut(*lSKey, TxAssetType::qbitAsset(), lFeeAmount); // to the miner
 	} else {
 		error_("E_FEE_UTXO_ABSENT", "Fee utxo for buzz was not found."); return;
 	}
@@ -314,7 +349,7 @@ void BuzzerLightComposer::CreateTxBuzz::utxoByBuzzerLoaded(const std::vector<Tra
 	// push linked tx, which need to be pushed and broadcasted before this
 	ctx_->addLinkedTx(lFee);
 
-	if (!buzzTx_->finalize(lSKey)) { error_("E_TX_FINALIZE", "Transaction finalization failed."); return; }
+	if (!buzzTx_->finalize(*lSKey)) { error_("E_TX_FINALIZE", "Transaction finalization failed."); return; }
 
 	created_(ctx_);
 }
@@ -371,18 +406,18 @@ void BuzzerLightComposer::CreateTxBuzzerSubscribe::publisherLoaded(EntityPtr pub
 
 void BuzzerLightComposer::CreateTxBuzzerSubscribe::utxoByPublisherLoaded(const std::vector<Transaction::UnlinkedOut>& utxo, const std::string& buzzer) {
 	//
-	SKey lSChangeKey = composer_->wallet()->changeKey();
-	SKey lSKey = composer_->wallet()->firstKey();
-	PKey lPKey = lSKey.createPKey();	
+	SKeyPtr lSChangeKey = composer_->wallet()->changeKey();
+	SKeyPtr lSKey = composer_->wallet()->firstKey();
+	PKey lPKey = lSKey->createPKey();	
 
-	if (!lSKey.valid() || !lSChangeKey.valid()) { error_("E_KEY", "Secret key is invalid."); return; }
+	if (!lSKey->valid() || !lSChangeKey->valid()) { error_("E_KEY", "Secret key is invalid."); return; }
 
 	if (!utxo.size()) {
 		error_("E_BUZZER_UTXO_INCONSISTENT", "Publisher utxo is inconsistent."); return;	
 	}
 
 	if (utxo.size() > 1) {
-		buzzerSubscribeTx_->addPublisherBuzzerIn(lSKey, Transaction::UnlinkedOut::instance(*(++(utxo.begin())))); // second out
+		buzzerSubscribeTx_->addPublisherBuzzerIn(*lSKey, Transaction::UnlinkedOut::instance(*(++(utxo.begin())))); // second out
 	} else { error_("E_PUBLISHER_BUZZER_INCORRECT", "Publisher buzzer outs is incorrect."); return; }
 
 	std::vector<Transaction::UnlinkedOut> lMyBuzzerUtxos = composer_->buzzerUtxo();
@@ -406,24 +441,24 @@ void BuzzerLightComposer::CreateTxBuzzerSubscribe::saveBuzzerUtxo(const std::vec
 
 void BuzzerLightComposer::CreateTxBuzzerSubscribe::utxoByBuzzerLoaded(const std::vector<Transaction::UnlinkedOut>& utxo, const std::string& buzzer) {
 	//
-	SKey lSChangeKey = composer_->wallet()->changeKey();
-	SKey lSKey = composer_->wallet()->firstKey();
-	PKey lPKey = lSKey.createPKey();	
+	SKeyPtr lSChangeKey = composer_->wallet()->changeKey();
+	SKeyPtr lSKey = composer_->wallet()->firstKey();
+	PKey lPKey = lSKey->createPKey();	
 
-	if (!lSKey.valid() || !lSChangeKey.valid()) { error_("E_KEY", "Secret key is invalid."); return; }
+	if (!lSKey->valid() || !lSChangeKey->valid()) { error_("E_KEY", "Secret key is invalid."); return; }
 
 	if (!utxo.size()) {
 		error_("E_BUZZER_TX_INCONSISTENT", "Buzzer tx is inconsistent."); return;	
 	}
 
 	if (utxo.size() > 1) {
-		buzzerSubscribeTx_->addSubscriberBuzzerIn(lSKey, Transaction::UnlinkedOut::instance(*(utxo.begin()))); // first out
+		buzzerSubscribeTx_->addSubscriberBuzzerIn(*lSKey, Transaction::UnlinkedOut::instance(*(utxo.begin()))); // first out
 	} else { error_("E_SUBSCRIBER_BUZZER_INCORRECT", "Subscriber buzzer outs is incorrect."); return; }
 
 	// make buzzer subscription out (for canceling reasons)
-	buzzerSubscribeTx_->addSubscriptionOut(lSKey, lPKey); // out[0]
+	buzzerSubscribeTx_->addSubscriptionOut(*lSKey, lPKey); // out[0]
 
-	if (!buzzerSubscribeTx_->finalize(lSKey)) { error_("E_TX_FINALIZE", "Transaction finalization failed."); return; }
+	if (!buzzerSubscribeTx_->finalize(*lSKey)) { error_("E_TX_FINALIZE", "Transaction finalization failed."); return; }
 
 	created_(ctx_);
 }
@@ -494,16 +529,16 @@ void BuzzerLightComposer::CreateTxBuzzerUnsubscribe::subscriptionLoaded(Transact
 
 void BuzzerLightComposer::CreateTxBuzzerUnsubscribe::utxoBySubscriptionLoaded(const std::vector<Transaction::NetworkUnlinkedOut>& utxo, const uint256& tx) {
 	//
-	SKey lSChangeKey = composer_->wallet()->changeKey();
-	SKey lSKey = composer_->wallet()->firstKey();
-	PKey lPKey = lSKey.createPKey();	
+	SKeyPtr lSChangeKey = composer_->wallet()->changeKey();
+	SKeyPtr lSKey = composer_->wallet()->firstKey();
+	PKey lPKey = lSKey->createPKey();	
 	//
 	if (utxo.size()) {
 		// add subscription in
-		buzzerUnsubscribeTx_->addSubscriptionIn(lSKey, Transaction::UnlinkedOut::instance(const_cast<Transaction::NetworkUnlinkedOut&>(*utxo.begin()).utxo()));
+		buzzerUnsubscribeTx_->addSubscriptionIn(*lSKey, Transaction::UnlinkedOut::instance(const_cast<Transaction::NetworkUnlinkedOut&>(*utxo.begin()).utxo()));
 
 		// finalize
-		if (!buzzerUnsubscribeTx_->finalize(lSKey)) { error_("E_TX_FINALIZE", "Transaction finalization failed."); return; }
+		if (!buzzerUnsubscribeTx_->finalize(*lSKey)) { error_("E_TX_FINALIZE", "Transaction finalization failed."); return; }
 
 		created_(ctx_);
 	} else {
@@ -578,16 +613,16 @@ void BuzzerLightComposer::CreateTxBuzzLike::utxoByBuzzerLoaded(const std::vector
 	// get buzzer tx (saved/cached)
 	TxBuzzerPtr lMyBuzzer = composer_->buzzerTx();
 	if (lMyBuzzer) {
-		SKey lSKey = composer_->wallet()->firstKey();
+		SKeyPtr lSKey = composer_->wallet()->firstKey();
 		//
 		if (buzzUtxo_.size() > TX_BUZZ_LIKE_OUT && utxo.size() > TX_BUZZER_MY_OUT) {
-			// add subscription in
-			lTx->addBuzzLikeIn(lSKey, Transaction::UnlinkedOut::instance(buzzUtxo_[TX_BUZZ_LIKE_OUT].utxo()));
 			// add my byzzer in
-			lTx->addMyBuzzerIn(lSKey, Transaction::UnlinkedOut::instance(const_cast<Transaction::UnlinkedOut&>(utxo[TX_BUZZER_MY_OUT])));
+			lTx->addMyBuzzerIn(*lSKey, Transaction::UnlinkedOut::instance(const_cast<Transaction::UnlinkedOut&>(utxo[TX_BUZZER_MY_OUT])));
+			// add buzz/event in
+			lTx->addBuzzLikeIn(*lSKey, Transaction::UnlinkedOut::instance(buzzUtxo_[TX_BUZZ_LIKE_OUT].utxo()));
 
 			// finalize
-			if (!lTx->finalize(lSKey)) { error_("E_TX_FINALIZE", "Transaction finalization failed."); return; }
+			if (!lTx->finalize(*lSKey)) { error_("E_TX_FINALIZE", "Transaction finalization failed."); return; }
 
 			created_(lCtx);
 		} else {
@@ -596,4 +631,153 @@ void BuzzerLightComposer::CreateTxBuzzLike::utxoByBuzzerLoaded(const std::vector
 	} else {
 		error_("E_BUZZER_TX_NOT_FOUND", "Local buzzer was not found."); return;
 	}
+}
+
+//
+// CreateTxBuzzReply
+//
+void BuzzerLightComposer::CreateTxBuzzReply::process(errorFunction error) {
+	//
+	error_ = error;
+	buzzUtxo_.clear();
+
+	// 
+	if (!composer_->requestProcessor()->selectUtxoByTransaction(chain_, buzz_, 
+		SelectUtxoByTransaction::instance(
+			boost::bind(&BuzzerLightComposer::CreateTxBuzzReply::utxoByBuzzLoaded, shared_from_this(), _1, _2),
+			boost::bind(&BuzzerLightComposer::CreateTxBuzzReply::timeout, shared_from_this()))
+	)) { error_("E_LOAD_UTXO_BY_BUZZ", "Buzz loading failed."); return; }
+}
+
+void BuzzerLightComposer::CreateTxBuzzReply::utxoByBuzzLoaded(const std::vector<Transaction::NetworkUnlinkedOut>& utxo, const uint256& tx) {
+	//
+	buzzUtxo_ = utxo;
+
+	// create empty tx
+	buzzTx_ = TransactionHelper::to<TxBuzzReply>(TransactionFactory::create(TX_BUZZ_REPLY));
+	// create context
+	ctx_ = TransactionContext::instance(buzzTx_);
+	// get buzzer tx (saved/cached)
+	TxBuzzerPtr lMyBuzzer = composer_->buzzerTx();
+
+	if (lMyBuzzer) {
+		// extract bound shard
+		if (lMyBuzzer->in().size() > 1) {
+			// set body
+			buzzTx_->setBody(body_);
+			// set timestamp
+			buzzTx_->setTimestamp(qbit::getMedianMicroseconds());
+
+			std::vector<Transaction::UnlinkedOut> lMyBuzzerUtxos = composer_->buzzerUtxo();
+			if (!lMyBuzzerUtxos.size()) {
+				composer_->requestProcessor()->selectUtxoByEntity(lMyBuzzer->myName(), 
+					SelectUtxoByEntityName::instance(
+						boost::bind(&BuzzerLightComposer::CreateTxBuzzReply::saveBuzzerUtxo, shared_from_this(), _1, _2),
+						boost::bind(&BuzzerLightComposer::CreateTxBuzzReply::timeout, shared_from_this()))
+				);
+			} else {
+				utxoByBuzzerLoaded(lMyBuzzerUtxos, lMyBuzzer->myName());
+			}
+
+		} else {
+			error_("E_BUZZER_TX_INCONSISTENT", "Buzzer tx is inconsistent."); return;	
+		}
+	} else {
+		error_("E_BUZZER_TX_NOT_FOUND", "Local buzzer was not found."); return;
+	}
+}
+
+void BuzzerLightComposer::CreateTxBuzzReply::saveBuzzerUtxo(const std::vector<Transaction::UnlinkedOut>& utxo, const std::string& buzzer) {
+	//
+	TxBuzzerPtr lMyBuzzer = composer_->buzzerTx();
+	composer_->writeBuzzerUtxo(utxo);
+	utxoByBuzzerLoaded(utxo, lMyBuzzer->myName());
+}
+
+void BuzzerLightComposer::CreateTxBuzzReply::utxoByBuzzerLoaded(const std::vector<Transaction::UnlinkedOut>& utxo, const std::string& buzzer) {
+	//
+	SKeyPtr lSKey = composer_->wallet()->firstKey();
+	PKey lPKey = lSKey->createPKey();	
+
+	if (!lSKey->valid()) { error_("E_KEY", "Secret key is invalid."); return; }
+
+	if (!utxo.size() || buzzUtxo_.size() <= TX_BUZZ_REPLY_OUT) {
+		error_("E_BUZZER_TX_INCONSISTENT", "Buzzer tx is inconsistent."); return;	
+	}
+
+	// in[0] - buzzer utxo for new buzz
+	buzzTx_->addBuzzerIn(*lSKey, Transaction::UnlinkedOut::instance(*(utxo.begin()))); // first out
+	// in[1] - buzz reply out
+	buzzTx_->addBuzzIn(*lSKey, Transaction::UnlinkedOut::instance(buzzUtxo_[TX_BUZZ_REPLY_OUT].utxo()));
+	// set shard
+	buzzTx_->setChain(buzzUtxo_[TX_BUZZ_REPLY_OUT].utxo().out().chain());
+	// reply out
+	buzzTx_->addBuzzReplyOut(*lSKey, lPKey); // out[0]
+	// re-buzz out
+	buzzTx_->addReBuzzOut(*lSKey, lPKey); // out[1]
+	// like out
+	buzzTx_->addBuzzLikeOut(*lSKey, lPKey); // out[2]
+	// pin out
+	buzzTx_->addBuzzPinOut(*lSKey, lPKey); // out[3]
+
+	// check buzzers list
+	if (!buzzers_.size()) {
+		composer_->requestProcessor()->selectUtxoByEntityNames(buzzers_, 
+			SelectUtxoByEntityNames::instance(
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzReply::utxoByBuzzersListLoaded, shared_from_this(), _1),
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzReply::timeout, shared_from_this()))
+		);
+	} else {
+		utxoByBuzzersListLoaded(std::vector<ISelectUtxoByEntityNamesHandler::EntityUtxo>());
+	}
+}
+
+void BuzzerLightComposer::CreateTxBuzzReply::utxoByBuzzersListLoaded(const std::vector<ISelectUtxoByEntityNamesHandler::EntityUtxo>& entityUtxos) {
+	//
+	SKeyPtr lSKey = composer_->wallet()->firstKey();
+	PKey lPKey = lSKey->createPKey();
+	if (!lSKey->valid()) { error_("E_KEY", "Secret key is invalid."); return; }
+
+	//
+	std::vector<ISelectUtxoByEntityNamesHandler::EntityUtxo>& lEntityUtxos = const_cast<std::vector<ISelectUtxoByEntityNamesHandler::EntityUtxo>&>(entityUtxos);
+	for (std::vector<ISelectUtxoByEntityNamesHandler::EntityUtxo>::iterator lEntity = lEntityUtxos.begin(); lEntity != lEntityUtxos.end(); lEntity++) {
+		//
+		// in[1] - @buzzer.out[TX_BUZZER_BUZZ_OUT] or @buzzer.out[TX_BUZZER_REPLY_OUT]
+		// in[2] - @buzzer.out[TX_BUZZER_BUZZ_OUT] or @buzzer.out[TX_BUZZER_REPLY_OUT]	
+		// ...
+		if (lEntity->utxo().size() > TX_BUZZER_BUZZ_OUT) {
+			buzzTx_->addBuzzerIn(*lSKey, Transaction::UnlinkedOut::instance(lEntity->utxo()[TX_BUZZER_BUZZ_OUT]));
+		}
+	}
+
+	// prepare fee tx
+	amount_t lFeeAmount = ctx_->size();
+	TransactionContextPtr lFee;
+
+	try {
+		lFee = composer_->wallet()->createTxFee(lPKey, lFeeAmount); // size-only, without ratings
+		if (!lFee) { error_("E_TX_CREATE", "Transaction creation error."); return; }
+	}
+	catch(qbit::exception& ex) {
+		error_(ex.code(), ex.what()); return;
+	}
+	catch(std::exception& ex) {
+		error_("E_TX_CREATE", ex.what()); return;
+	}
+
+	std::list<Transaction::UnlinkedOutPtr> lFeeUtxos = lFee->tx()->utxos(TxAssetType::qbitAsset()); // we need only qbits
+	if (lFeeUtxos.size()) {
+		// utxo[0]
+		buzzTx_->addIn(*lSKey, *(lFeeUtxos.begin())); // qbit fee that was exact for fee - in
+		buzzTx_->addFeeOut(*lSKey, TxAssetType::qbitAsset(), lFeeAmount); // to the miner
+	} else {
+		error_("E_FEE_UTXO_ABSENT", "Fee utxo for buzz was not found."); return;
+	}
+
+	// push linked tx, which need to be pushed and broadcasted before this
+	ctx_->addLinkedTx(lFee);
+
+	if (!buzzTx_->finalize(*lSKey)) { error_("E_TX_FINALIZE", "Transaction finalization failed."); return; }
+
+	created_(ctx_);
 }

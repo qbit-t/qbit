@@ -141,7 +141,9 @@ bool TransactionStore::processBlockTransactions(ITransactionStorePtr store, IEnt
 		//
 		// commit transaction store changes
 		TxBlockStorePtr lBlockStore = std::static_pointer_cast<TxBlockStore>(lTransactionStore);
-		for (std::list<TxBlockAction>::iterator lAction = lBlockStore->actions().begin(); lAction != lBlockStore->actions().end(); lAction++) {
+		std::list<TxBlockAction>::iterator lAction;
+		bool lAbort = false;
+		for (lAction = lBlockStore->actions().begin(); lAction != lBlockStore->actions().end(); lAction++) {
 			if (lAction->action() == TxBlockAction::PUSH) {
 				if (!pushUnlinkedOut(lAction->utxoPtr(), lAction->ctx())) {
 					gLog().write(Log::ERROR, std::string("[processBlockTransactions/push/error]: Block with utxo inconsistency - ") + 
@@ -151,7 +153,8 @@ bool TransactionStore::processBlockTransactions(ITransactionStorePtr store, IEnt
 					lBlockCtx->addError(lAction->ctx()->tx()->id(), "Block with utxo inconsistency - " +
 						strprintf("pop: utxo = %s, tx = %s, block = %s", 
 							lAction->utxo().toHex(), lAction->ctx()->tx()->id().toHex(), ctx->block()->hash().toHex()));
-					return false;
+					lAbort = true;
+					break;
 				}
 			} else if (lAction->action() == TxBlockAction::POP) {
 				if (!popUnlinkedOut(lAction->utxo(), lAction->ctx())) {
@@ -162,53 +165,120 @@ bool TransactionStore::processBlockTransactions(ITransactionStorePtr store, IEnt
 					lBlockCtx->addError(lAction->ctx()->tx()->id(), "Block with utxo inconsistency - " +
 						strprintf("pop: utxo = %s, tx = %s, block = %s", 
 							lAction->utxo().toHex(), lAction->ctx()->tx()->id().toHex(), ctx->block()->hash().toHex()));
-					return false;
+					lAbort = true;
+					break;
 				}
 			}
+		}
+
+		if (lAbort) {
+			// try to undo
+			while ((--lAction) != lBlockStore->actions().end()) {
+				if (lAction->action() == TxBlockAction::PUSH) {
+					revertUtxo(lAction->utxoPtr()->hash());
+				} else if (lAction->action() == TxBlockAction::POP) {
+					revertLtxo(lAction->utxo(), uint256() /*empty*/);
+				}
+			}
+
+			return false;
 		}
 
 		//
 		// commit local wallet changes
 		TxWalletStorePtr lWalletStore = std::static_pointer_cast<TxWalletStore>(lWallet);
-		for (std::list<TxBlockAction>::iterator lAction = lWalletStore->actions().begin(); lAction != lWalletStore->actions().end(); lAction++) {
+		std::list<TxBlockAction>::iterator lWalletAction;
+		for (lWalletAction = lWalletStore->actions().begin(); lWalletAction != lWalletStore->actions().end(); lWalletAction++) {
 			//
-			if ((processWallet || lAction->ctx()->tx()->type() == Transaction::COINBASE) && 
-				lAction->action() == TxBlockAction::PUSH) {
-				if (!wallet_->pushUnlinkedOut(lAction->utxoPtr(), lAction->ctx())) {
+			if ((processWallet || lWalletAction->ctx()->tx()->type() == Transaction::COINBASE) && 
+				lWalletAction->action() == TxBlockAction::PUSH) {
+				if (!wallet_->pushUnlinkedOut(lWalletAction->utxoPtr(), lWalletAction->ctx())) {
 					gLog().write(Log::ERROR, std::string("[processBlockTransactions/wallet/push/error]: Block with utxo inconsistency - ") + 
 						strprintf("push: utxo = %s, tx = %s, block = %s", 
-							lAction->utxo().toHex(), lAction->ctx()->tx()->id().toHex(), ctx->block()->hash().toHex()));
+							lWalletAction->utxo().toHex(), lWalletAction->ctx()->tx()->id().toHex(), ctx->block()->hash().toHex()));
 
-					lBlockCtx->addError(lAction->ctx()->tx()->id(), "Block/pushWallet with utxo inconsistency - " +
+					lBlockCtx->addError(lWalletAction->ctx()->tx()->id(), "Block/pushWallet with utxo inconsistency - " +
 						strprintf("push: utxo = %s, tx = %s, block = %s", 
-							lAction->utxo().toHex(), lAction->ctx()->tx()->id().toHex(), ctx->block()->hash().toHex()));							
-					return false;					
+							lWalletAction->utxo().toHex(), lWalletAction->ctx()->tx()->id().toHex(), ctx->block()->hash().toHex()));							
+					lAbort = true;
+					break;
 				}
 			}
 
-			if (processWallet && lAction->action() == TxBlockAction::POP) {
-				if (!wallet_->popUnlinkedOut(lAction->utxo(), lAction->ctx())) {
+			if (processWallet && lWalletAction->action() == TxBlockAction::POP) {
+				if (!wallet_->popUnlinkedOut(lWalletAction->utxo(), lWalletAction->ctx())) {
 					gLog().write(Log::ERROR, std::string("[processBlockTransactions/wallet/pop/error]: Block with utxo inconsistency - ") + 
 						strprintf("pop: utxo = %s, tx = %s, block = %s", 
-							lAction->utxo().toHex(), lAction->ctx()->tx()->id().toHex(), ctx->block()->hash().toHex()));
+							lWalletAction->utxo().toHex(), lWalletAction->ctx()->tx()->id().toHex(), ctx->block()->hash().toHex()));
 
-					lBlockCtx->addError(lAction->ctx()->tx()->id(), "Block/popWallet with utxo inconsistency - " +
+					lBlockCtx->addError(lWalletAction->ctx()->tx()->id(), "Block/popWallet with utxo inconsistency - " +
 						strprintf("pop: utxo = %s, tx = %s, block = %s", 
-							lAction->utxo().toHex(), lAction->ctx()->tx()->id().toHex(), ctx->block()->hash().toHex()));
-					return false;
+							lWalletAction->utxo().toHex(), lWalletAction->ctx()->tx()->id().toHex(), ctx->block()->hash().toHex()));
+					lAbort = true;
+					break;
 				}
 			}
+		}
+
+		if (lAbort) {
+			// try to undo
+			while ((--lWalletAction) != lWalletStore->actions().end()) {
+				if ((processWallet || lWalletAction->ctx()->tx()->type() == Transaction::COINBASE) && 
+																lWalletAction->action() == TxBlockAction::PUSH) {
+					wallet_->rollback(lWalletAction->ctx());
+				}
+
+				if (processWallet && lWalletAction->action() == TxBlockAction::POP) {
+					wallet_->rollback(lWalletAction->ctx());
+				}
+			}
+
+			return false;
 		}
 
 		//
 		// commit entity changes
 		TxEntityStorePtr lEntityStore = std::static_pointer_cast<TxEntityStore>(entityStore);
-		for (std::list<TransactionContextPtr>::iterator lAction = lEntityStore->actions().begin(); lAction != lEntityStore->actions().end(); lAction++) {
-			if (!pushEntity((*lAction)->tx()->id(), *lAction)) {
-				lBlockCtx->addError((*lAction)->tx()->id(), "Block/pushEntity inconsistency" +
+		std::list<TransactionContextPtr>::iterator lEntityAction;
+		for (lEntityAction = lEntityStore->actions().begin(); lEntityAction != lEntityStore->actions().end(); lEntityAction++) {
+			if (!pushEntity((*lEntityAction)->tx()->id(), *lEntityAction)) {
+				lBlockCtx->addError((*lEntityAction)->tx()->id(), "Block/pushEntity inconsistency" +
 					strprintf(" tx = %s, block = %s", 
-						(*lAction)->tx()->id().toHex(), ctx->block()->hash().toHex()));
-				return false;
+						(*lEntityAction)->tx()->id().toHex(), ctx->block()->hash().toHex()));
+				lAbort = true;
+				break;
+			}
+		}
+
+		if (lAbort) {
+			// try to undo
+			while ((--lEntityAction) != lEntityStore->actions().end()) {
+				//
+				TransactionPtr lTx = (*lEntityAction)->tx();
+				//
+				if (lTx->isEntity() && lTx->entityName() != Entity::emptyName()) {
+					entities_.remove(lTx->entityName());
+					
+					// iterate
+					db::DbMultiContainer<std::string /*short name*/, uint256 /*utxo*/>::Transaction lEntityUtxoTransaction = entityUtxo_.transaction();
+					for (db::DbMultiContainer<std::string /*short name*/, uint256 /*utxo*/>::Iterator lEntityUtxo = entityUtxo_.find(lTx->entityName()); lEntityUtxo.valid(); ++lEntityUtxo) {
+						lEntityUtxoTransaction.remove(lEntityUtxo);
+					}
+
+					lEntityUtxoTransaction.commit();
+
+					db::DbMultiContainer<uint256 /*entity*/, uint256 /*shard*/>::Transaction lShardsTransaction = shards_.transaction();
+					for (db::DbMultiContainer<uint256 /*entity*/, uint256 /*shard*/>::Iterator lShards = shards_.find(lTx->id()); lShards.valid(); ++lShards) {
+						shardEntities_.remove(*lShards);
+						lShardsTransaction.remove(lShards);
+					}
+
+					lShardsTransaction.commit();
+				}
+
+				if (extension_) {
+					extension_->removeTransaction(lTx);
+				}
 			}
 		}
 
@@ -392,6 +462,41 @@ uint64_t TransactionStore::calcHeight(const uint256& from) {
 	return lIndex;
 }
 
+bool TransactionStore::revertUtxo(const uint256& utxo) {
+	//
+	Transaction::UnlinkedOut lUtxoObj;
+	if (utxo_.read(utxo, lUtxoObj)) {
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[revertUtxo]: ") +
+			strprintf("remove utxo = %s, tx = %s/%s#", utxo.toHex(), lUtxoObj.out().tx().toHex(), chain_.toHex().substr(0, 10)));
+
+		utxo_.remove(utxo);
+		utxoBlock_.remove(utxo); // just for push
+		addressAssetUtxoIdx_.remove(lUtxoObj.address().id(), lUtxoObj.out().asset(), utxo);
+
+		return true;
+	}
+
+	return false;
+}
+
+bool TransactionStore::revertLtxo(const uint256& ltxo, const uint256& hash) {
+	//
+	Transaction::UnlinkedOut lUtxoObj;
+	if (ltxo_.read(ltxo, lUtxoObj)) {
+		utxo_.write(ltxo, lUtxoObj);
+		addressAssetUtxoIdx_.write(lUtxoObj.address().id(), lUtxoObj.out().asset(), ltxo, lUtxoObj.out().tx());
+		if (!hash.isEmpty()) utxoBlock_.write(ltxo, hash);
+		ltxo_.remove(ltxo);
+
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[revertLtxo]: ") +
+			strprintf("remove/add ltxo/utxo = %s, tx = %s/%s#", ltxo.toHex(), lUtxoObj.out().tx().toHex(), chain_.toHex().substr(0, 10)));
+
+		return true;
+	}
+
+	return false;
+}
+
 //
 // [..)
 void TransactionStore::removeBlocks(const uint256& from, const uint256& to, bool removeData) {
@@ -431,8 +536,18 @@ void TransactionStore::removeBlocks(const uint256& from, const uint256& to, bool
 					utxoBlock_.remove(lAction.utxo()); // just for push
 					addressAssetUtxoIdx_.remove(lUtxoObj.address().id(), lUtxoObj.out().asset(), lAction.utxo());
 				} else {
-					if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[removeBlocks]: ") +
-						strprintf("utxo was NOT FOUND - %s/%s#", lAction.utxo().toHex(), chain_.toHex().substr(0, 10)));
+					// try main chain 
+					if (chain_ != MainChain::id()) {
+						//
+						ITransactionStorePtr lMainStore = storeManager_->locate(MainChain::id());
+						if (!lMainStore->revertUtxo(lAction.utxo())) {
+							if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[removeBlocks]: ") +
+								strprintf("utxo was NOT FOUND - %s/%s#", lAction.utxo().toHex(), chain_.toHex().substr(0, 10)));
+						}
+					} else {
+						if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[removeBlocks]: ") +
+									strprintf("utxo was NOT FOUND - %s/%s#", lAction.utxo().toHex(), chain_.toHex().substr(0, 10)));						
+					}
 				}
 			} else {
 				Transaction::UnlinkedOut lUtxoObj;
@@ -445,8 +560,18 @@ void TransactionStore::removeBlocks(const uint256& from, const uint256& to, bool
 					if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[removeBlocks]: ") +
 						strprintf("remove/add ltxo/utxo = %s, tx = %s/%s#", lAction.utxo().toHex(), lUtxoObj.out().tx().toHex(), chain_.toHex().substr(0, 10)));
 				} else {
-					if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[removeBlocks]: ") +
-						strprintf("ltxo was NOT FOUND - %s/%s#", lAction.utxo().toHex(), chain_.toHex().substr(0, 10)));
+					// try main chain 
+					if (chain_ != MainChain::id()) {
+						//
+						ITransactionStorePtr lMainStore = storeManager_->locate(MainChain::id());
+						if (!lMainStore->revertLtxo(lAction.utxo(), lHash)) {
+							if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[removeBlocks]: ") +
+								strprintf("ltxo was NOT FOUND - %s/%s#", lAction.utxo().toHex(), chain_.toHex().substr(0, 10)));
+						}
+					} else {
+						if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[removeBlocks]: ") +
+							strprintf("ltxo was NOT FOUND - %s/%s#", lAction.utxo().toHex(), chain_.toHex().substr(0, 10)));
+					}
 				}
 			}
 		}
@@ -458,6 +583,9 @@ void TransactionStore::removeBlocks(const uint256& from, const uint256& to, bool
 		BlockTransactionsPtr lTransactions = transactions_.read(lHash);
 		if (lTransactions) {
 			for(TransactionsContainer::iterator lTx = lTransactions->transactions().begin(); lTx != lTransactions->transactions().end(); lTx++) {
+				//
+				if (extension_) extension_->removeTransaction(*lTx);
+
 				//
 				if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[removeBlocks]: ") +
 					strprintf("removing tx index %s/%s/%s#", (*lTx)->id().toHex(), lHash.toHex(), chain_.toHex().substr(0, 10)));
@@ -1138,7 +1266,7 @@ bool TransactionStore::pushEntity(const uint256& id, TransactionContextPtr ctx) 
 	if (ctx->tx()->isEntity() && ctx->tx()->entityName() == Entity::emptyName()) return true;
 
 	// sanity check: skip if not entity
-	if (!ctx->tx()->isEntity()) return false;
+	if (!ctx->tx()->isEntity()) return true;
 
 	uint256 lId;
 	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[pushEntity]: try to push entity ") +

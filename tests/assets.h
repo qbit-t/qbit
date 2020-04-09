@@ -26,29 +26,29 @@ class TxWalletA: public IWallet {
 public:
 	TxWalletA() {}
 
-	SKey createKey(const std::list<std::string>& seed) {
+	SKeyPtr createKey(const std::list<std::string>& seed) {
 		SKey lSKey(seed);
 		lSKey.create();
 
 		PKey lPKey = lSKey.createPKey();
 		keys_[lPKey.id()] = lSKey;
 
-		return lSKey;
+		return SKey::instance(lSKey);
 	}
 
-	SKey findKey(const PKey& pkey) {
+	SKeyPtr findKey(const PKey& pkey) {
 		if (pkey.valid()) {
 			std::map<uint160, SKey>::iterator lKey = keys_.find(pkey.id());
 			if (lKey != keys_.end()) {
-				return lKey->second;
+				return SKey::instance(lKey->second);
 			}
 		}
 
-		return SKey();
+		return SKey::instance();
 	}
 
-	SKey firstKey() {
-		return keys_.begin()->second;		
+	SKeyPtr firstKey() {
+		return SKey::instance(keys_.begin()->second);		
 	}
 
 	bool pushUnlinkedOut(Transaction::UnlinkedOutPtr out, TransactionContextPtr ctx) {

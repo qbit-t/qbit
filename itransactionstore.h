@@ -60,6 +60,9 @@ public:
 	virtual bool isUnlinkedOutExists(const uint256&) { throw qbit::exception("NOT_IMPL", "ITransactionStore::isUnlinkedOutExists - not implemented."); }
 	virtual bool isLinkedOutExists(const uint256&) { throw qbit::exception("NOT_IMPL", "ITransactionStore::isLinkedOutExists - not implemented."); }
 
+	virtual bool revertLtxo(const uint256&, const uint256&) { throw qbit::exception("NOT_IMPL", "ITransactionStore::revertLtxo - not implemented."); }
+	virtual bool revertUtxo(const uint256&) { throw qbit::exception("NOT_IMPL", "ITransactionStore::revertUtxo - not implemented."); }
+
 	virtual IEntityStorePtr entityStore() { throw qbit::exception("NOT_IMPL", "ITransactionStore::entityStore - not implemented."); }
 	virtual ITransactionStoreManagerPtr storeManager() { throw qbit::exception("NOT_IMPL", "ITransactionStore::storeManager - Not implemented."); }	
 

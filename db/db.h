@@ -39,7 +39,15 @@ public:
 		READWRITE(timestamp_);
 	}
 
-	_key& key() { return key_; } 
+	friend inline bool operator < (const MultiKey<_key>& a, const MultiKey<_key>& b) { 
+		return a.key() < b.key(); 
+	}
+
+	friend inline bool operator > (const MultiKey<_key>& a, const MultiKey<_key>& b) { 
+		return a.key() > b.key(); 
+	}
+
+	const _key& key() const { return key_; } 
 
 private:
 	_key key_;
@@ -60,8 +68,26 @@ public:
 		READWRITE(key2_);
 	}
 
-	_key1& key1() { return key1_; } 
-	_key2& key2() { return key2_; } 
+	const _key1& key1() const { return key1_; } 
+	const _key2& key2() const { return key2_; } 
+
+	friend inline bool operator < (const TwoKey<_key1, _key2>& a, const TwoKey<_key1, _key2>& b) { 
+		if (a.key1() < b.key1()) return true;
+		if (a.key1() > b.key1()) return false;
+		if (a.key2() < b.key2()) return true;
+		if (a.key2() > b.key2()) return false;
+
+		return false;
+	}
+
+	friend inline bool operator > (const TwoKey<_key1, _key2>& a, const TwoKey<_key1, _key2>& b) { 
+		if (a.key1() > b.key1()) return true;
+		if (a.key1() < b.key1()) return false;
+		if (a.key2() > b.key2()) return true;
+		if (a.key2() < b.key2()) return false;
+
+		return false;
+	}
 
 private:
 	_key1 key1_;
@@ -83,9 +109,31 @@ public:
 		READWRITE(key3_);
 	}
 
-	_key1& key1() { return key1_; } 
-	_key2& key2() { return key2_; } 
-	_key3& key3() { return key3_; } 
+	const _key1& key1() const { return key1_; } 
+	const _key2& key2() const { return key2_; } 
+	const _key3& key3() const { return key3_; } 
+
+	friend inline bool operator < (const ThreeKey<_key1, _key2, _key3>& a, const ThreeKey<_key1, _key2, _key3>& b) { 
+		if (a.key1() < b.key1()) return true;				
+		if (a.key1() > b.key1()) return false;
+		if (a.key2() < b.key2()) return true;
+		if (a.key2() > b.key2()) return false;
+		if (a.key3() < b.key3()) return true;
+		if (a.key3() > b.key3()) return false;
+
+		return false;
+	}
+
+	friend inline bool operator > (const ThreeKey<_key1, _key2, _key3>& a, const ThreeKey<_key1, _key2, _key3>& b) { 
+		if (a.key1() > b.key1()) return true;				
+		if (a.key1() < b.key1()) return false;
+		if (a.key2() > b.key2()) return true;
+		if (a.key2() < b.key2()) return false;
+		if (a.key3() > b.key3()) return true;
+		if (a.key3() < b.key3()) return false;
+
+		return false;
+	}
 
 private:
 	_key1 key1_;
@@ -163,7 +211,7 @@ public:
 public:
 	Container(const std::string& name) : name_(name) {}
 
-	inline bool open(uint32_t cache = 0) { return impl<key, value>::open(name_, cache); }
+	inline bool open(bool useTypedComparer = true, uint32_t cache = 0) { return impl<key, value>::open(name_, useTypedComparer, cache); }
 	inline void close() { impl<key, value>::close(); }
 	inline bool opened() { return impl<key, value>::opened(); }
 
@@ -285,7 +333,7 @@ public:
 public:
 	MultiContainer(const std::string& name) : Container<MultiKey<key>, value, impl>(name) {}
 
-	inline bool open(uint32_t cache = 0) { return Container<MultiKey<key>, value, impl>::open(cache); }
+	inline bool open(uint32_t cache = 0) { return Container<MultiKey<key>, value, impl>::open(false /*typed comparer for multikey is not suitable*/, cache); }
 	inline void close() { Container<MultiKey<key>, value, impl>::close(); }
 	inline bool opened() { return Container<MultiKey<key>, value, impl>::opened(); }
 
@@ -300,10 +348,6 @@ public:
 	inline Iterator find(const key& k) {
 		return MultiContainer::Iterator(k, Container<MultiKey<key>, value, impl>::find(MultiKey<key>(k, 0))); 
 	}
-
-	//inline Iterator find(const DataStream& k) {
-	//	return MultiContainer::Iterator(k, Container<MultiKey<key>, value, impl>::find(MultiKey<key>(k, 0)));
-	//}
 
 	inline Iterator begin() { return MultiContainer::Iterator(Container<MultiKey<key>, value, impl>::begin()); }
 	inline Iterator last() { return MultiContainer::Iterator(Container<MultiKey<key>, value, impl>::last()); }
@@ -390,6 +434,8 @@ public:
 		inline bool second(value& v) { return i_.second(v); }
 		inline bool second(DataStream& v) { return i_.second(v); }
 
+		inline void setKey2Empty() { key2Empty_ = true; }		
+
 	private:
 		bool key1Empty_;
 		bool key2Empty_;
@@ -425,7 +471,7 @@ public:
 public:
 	TwoKeyContainer(const std::string& name) : Container<TwoKey<key1, key2>, value, impl>(name) {}
 
-	inline bool open(uint32_t cache = 0) { return Container<TwoKey<key1, key2>, value, impl>::open(cache); }
+	inline bool open(bool useTypedComparer = true, uint32_t cache = 0) { return Container<TwoKey<key1, key2>, value, impl>::open(useTypedComparer, cache); }
 	inline void close() { Container<TwoKey<key1, key2>, value, impl>::close(); }
 	inline bool opened() { return Container<TwoKey<key1, key2>, value, impl>::opened(); }
 
@@ -548,6 +594,9 @@ public:
 		inline bool second(value& v) { return i_.second(v); }
 		inline bool second(DataStream& v) { return i_.second(v); }
 
+		inline void setKey3Empty() { key3Empty_ = true; }
+		inline void setKey2Empty() { key3Empty_ = key2Empty_ = true; }
+
 	private:
 		bool key1Empty_;
 		bool key2Empty_;
@@ -585,7 +634,7 @@ public:
 public:
 	ThreeKeyContainer(const std::string& name) : Container<ThreeKey<key1, key2, key3>, value, impl>(name) {}
 
-	inline bool open(uint32_t cache = 0) { return Container<ThreeKey<key1, key2, key3>, value, impl>::open(cache); }
+	inline bool open(bool useTypedComparer = true, uint32_t cache = 0) { return Container<ThreeKey<key1, key2, key3>, value, impl>::open(useTypedComparer, cache); }
 	inline void close() { Container<ThreeKey<key1, key2, key3>, value, impl>::close(); }
 	inline bool opened() { return Container<ThreeKey<key1, key2, key3>, value, impl>::opened(); }	
 
@@ -707,7 +756,7 @@ public:
 public:
 	EntityContainer(const std::string& name) : Container<key, value, impl>(name) {}
 
-	inline bool open(uint32_t cache = 0) { return Container<key, value, impl>::open(cache); }
+	inline bool open(bool useTypedComparer = true, uint32_t cache = 0) { return Container<key, value, impl>::open(useTypedComparer, cache); }
 	inline void close() { Container<key, value, impl>::close(); }
 	inline bool opened() { return Container<key, value, impl>::opened(); }	
 

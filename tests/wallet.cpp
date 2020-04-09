@@ -179,8 +179,8 @@ bool WalletAssetCreateAndSpend::execute() {
 	//
 	// Create key
 	//
-	SKey lMyKey = wallet_->createKey(seedMy_);
-	PKey lMyPubKey = lMyKey.createPKey();
+	SKeyPtr lMyKey = wallet_->createKey(seedMy_);
+	PKey lMyPubKey = lMyKey->createPKey();
 
 	//
 	// QBIT coinbase

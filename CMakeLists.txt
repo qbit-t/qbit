@@ -72,6 +72,7 @@ set(SOURCES
 	./dapps/buzzer/httpendpoints.cpp
 	./dapps/buzzer/transactionstoreextension.cpp
 	./dapps/buzzer/peerextension.cpp
+	./dapps/buzzer/buzzfeed.cpp
 	./itransactionstoreextension.cpp
 	./seedwords.cpp
 	./message.cpp	
@@ -127,6 +128,7 @@ set(UNITTESTS
 	./dapps/buzzer/httpendpoints.cpp
 	./dapps/buzzer/transactionstoreextension.cpp
 	./dapps/buzzer/peerextension.cpp	
+	./dapps/buzzer/buzzfeed.cpp
 	./itransactionstoreextension.cpp
 	./seedwords.cpp
 	./message.cpp
@@ -182,6 +184,7 @@ set(CLIENT
 	./seedwords.cpp
 	./message.cpp
 	./lightwallet.cpp
+	./dapps/buzzer/buzzfeed.cpp
 	./dapps/buzzer/peerextension.cpp
 	./dapps/buzzer/transactionstoreextension.cpp	
 	./client/dapps/buzzer/commands.cpp

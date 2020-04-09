@@ -29,7 +29,7 @@ public:
 	void help() {
 		std::cout << "createBuzzer <name> \"<alias>\" \"<description>\"" << std::endl;
 		std::cout << "\tCreate a new buzzer." << std::endl;
-		std::cout << "\t<name>         - required, buzzer anem should be prefixed with @ (up to 64 symbols)" << std::endl;
+		std::cout << "\t<name>         - required, buzzer name should be prefixed with @ (up to 64 symbols)" << std::endl;
 		std::cout << "\t<alias>        - required, buzzer alias, should be easy human-readable (up to 64 bytes)" << std::endl;
 		std::cout << "\t<description>  - required, short description of your buzzer (up to 256 bytes)" << std::endl;
 		std::cout << "\texample:\n\t\t>createBuzzer @mybuzzer \"I'm buzzer\" \"Buzzing the world\"" << std::endl << std::endl;
@@ -93,14 +93,16 @@ public:
 		std::set<std::string> lSet;
 		lSet.insert("createBuzz"); 
 		lSet.insert("buzz"); 
+		lSet.insert("bzz"); 
 		return lSet;
 	}
 
 	void help() {
-		std::cout << "createBuzz | buzz \"<message>\"" << std::endl;
+		std::cout << "createBuzz | buzz | bzz \"<message>\" [@buzzer1 @buzzer2 ...]" << std::endl;
 		std::cout << "\tCreate new buzz - a message from your default buzzer. Message will hit all your buzzer subscribers." << std::endl;
 		std::cout << "\t<message> - required, buzz message body; can contains multibyte sequences, i.e. 😀 (up to 512 bytes)" << std::endl;
-		std::cout << "\texample:\n\t\t>buzz \"It's sunny day! 🌞\"" << std::endl << std::endl;
+		std::cout << "\t[@buzzer] - optional, notify/tag buzzers" << std::endl;
+		std::cout << "\texample:\n\t\t>buzz \"It's sunny day! 🌞\" @buddy" << std::endl << std::endl;
 	}	
 
 	static ICommandPtr instance(BuzzerLightComposerPtr composer, doneFunction done) { 
@@ -348,7 +350,9 @@ public:
 	void error(const std::string& code, const std::string& message) {
 		gLog().writeClient(Log::CLIENT, strprintf(": %s | %s", code, message));
 		done_();
-	}	
+	}
+
+	void display(BuzzfeedItemPtr);	
 
 private:
 	BuzzerLightComposerPtr composer_;
@@ -386,7 +390,9 @@ public:
 	void error(const std::string& code, const std::string& message) {
 		gLog().writeClient(Log::CLIENT, strprintf(": %s | %s", code, message));
 		done_();
-	}	
+	}
+
+	void display(BuzzfeedItemPtr);
 
 private:
 	BuzzerLightComposerPtr composer_;
@@ -399,7 +405,7 @@ typedef std::shared_ptr<BuzzLikeCommand> BuzzLikeCommandPtr;
 
 class BuzzLikeCommand: public ICommand, public std::enable_shared_from_this<BuzzLikeCommand> {
 public:
-	BuzzLikeCommand(BuzzerLightComposerPtr composer, BuzzfeedPtr buzzfeed, doneFunction done): composer_(composer), buzzfeed_(buzzfeed), done_(done) {}
+	BuzzLikeCommand(BuzzerLightComposerPtr composer, BuzzfeedPtr buzzFeed, doneFunction done): composer_(composer), buzzFeed_(buzzFeed), done_(done) {}
 
 	void process(const std::vector<std::string>&);
 	std::set<std::string> name() {
@@ -459,8 +465,111 @@ public:
 
 private:
 	BuzzerLightComposerPtr composer_;
+	BuzzfeedPtr buzzFeed_;
 	doneFunction done_;
-	BuzzfeedPtr buzzfeed_;
+};
+
+class CreateBuzzReplyCommand;
+typedef std::shared_ptr<CreateBuzzReplyCommand> CreateBuzzReplyCommandPtr;
+
+class CreateBuzzReplyCommand: public ICommand, public std::enable_shared_from_this<CreateBuzzReplyCommand> {
+public:
+	CreateBuzzReplyCommand(BuzzerLightComposerPtr composer, BuzzfeedPtr buzzFeed, doneFunction done): composer_(composer), buzzFeed_(buzzFeed), done_(done) {}
+
+	void process(const std::vector<std::string>&);
+	std::set<std::string> name() {
+		std::set<std::string> lSet;
+		lSet.insert("createBuzzReply"); 
+		lSet.insert("reply");
+		lSet.insert("rep"); 
+		return lSet;
+	}
+
+	void help() {
+		std::cout << "createBuzzReply | reply | rep <buzz_id> \"<message>\" [@buzzer1 @buzzer2 ...]" << std::endl;
+		std::cout << "\tReply buzz - a reply message from your default buzzer to the given buzz. Message will hit all your buzzer subscribers." << std::endl;
+		std::cout << "\t<buzz_id> - required, buzzer id" << std::endl;
+		std::cout << "\t<message> - required, buzz message body; can contains multibyte sequences, i.e. 😀 (up to 512 bytes)" << std::endl;
+		std::cout << "\t[@buzzer] - optional, notify/tag buzzers" << std::endl;
+		std::cout << "\texample:\n\t\t>reply d1bb559d3a912a0838163c8ea76eb753e5b99e3b24162bb56d2a6426fb3b7f83 \"No, it's a funny day! 🎈\" @buddy" << std::endl << std::endl;
+	}	
+
+	static ICommandPtr instance(BuzzerLightComposerPtr composer, BuzzfeedPtr buzzFeed, doneFunction done) { 
+		return std::make_shared<CreateBuzzReplyCommand>(composer, buzzFeed, done); 
+	}
+
+	// callbacks
+	void created(TransactionContextPtr ctx) {
+		//
+		// push linked and newly created txs; order matters
+		for (std::list<TransactionContextPtr>::iterator lLinkedCtx = ctx->linkedTxs().begin(); lLinkedCtx != ctx->linkedTxs().end(); lLinkedCtx++) {
+			if (!composer_->requestProcessor()->sendTransaction(*lLinkedCtx,
+					SentTransaction::instance(
+						boost::bind(&CreateBuzzReplyCommand::feeSent, shared_from_this(), _1, _2),
+						boost::bind(&CreateBuzzReplyCommand::timeout, shared_from_this())))) {
+				gLog().writeClient(Log::CLIENT, std::string(": tx was not broadcasted, wallet re-init..."));
+				composer_->wallet()->resetCache();
+				composer_->wallet()->prepareCache();
+				done_();
+			}
+		}
+
+		if (!composer_->requestProcessor()->sendTransaction(ctx,
+				SentTransaction::instance(
+					boost::bind(&CreateBuzzReplyCommand::buzzSent, shared_from_this(), _1, _2),
+					boost::bind(&CreateBuzzReplyCommand::timeout, shared_from_this())))) {
+			gLog().writeClient(Log::CLIENT, std::string(": tx was not broadcasted, wallet re-init..."));
+			composer_->wallet()->resetCache();
+			composer_->wallet()->prepareCache();
+			done_();
+		}
+	}
+
+	void timeout() {
+		error("E_TIMEOUT", "Timeout expired during buzz creation.");
+	}
+
+	void error(const std::string& code, const std::string& message) {
+		gLog().writeClient(Log::CLIENT, strprintf(": %s | %s", code, message));
+		done_();
+	}
+
+	void feeSent(const uint256& tx, const std::vector<TransactionContext::Error>& errors) {
+		//
+		if (errors.size()) {
+			for (std::vector<TransactionContext::Error>::iterator lError = const_cast<std::vector<TransactionContext::Error>&>(errors).begin(); 
+					lError != const_cast<std::vector<TransactionContext::Error>&>(errors).end(); lError++) {
+				gLog().writeClient(Log::CLIENT, strprintf("[error]: %s", lError->data()));
+			}			
+		} else {
+			std::cout << " fee: " << tx.toHex() << std::endl;
+		}
+
+		feeSent_ = true;
+		if (feeSent_ && buzzSent_) done_();
+	}
+
+	void buzzSent(const uint256& tx, const std::vector<TransactionContext::Error>& errors) {
+		if (errors.size()) {
+			for (std::vector<TransactionContext::Error>::iterator lError = const_cast<std::vector<TransactionContext::Error>&>(errors).begin(); 
+					lError != const_cast<std::vector<TransactionContext::Error>&>(errors).end(); lError++) {
+				gLog().writeClient(Log::CLIENT, strprintf("[error]: %s", lError->data()));
+			}			
+		} else {
+			std::cout << "buzz: " << tx.toHex() << std::endl;
+		}
+
+		buzzSent_ = true;
+		if (feeSent_ && buzzSent_) done_();
+	}
+
+private:
+	BuzzerLightComposerPtr composer_;
+	BuzzfeedPtr buzzFeed_;
+	doneFunction done_;
+
+	bool feeSent_ = false;
+	bool buzzSent_ = false;
 };
 
 } // qbit

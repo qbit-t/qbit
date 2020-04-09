@@ -9,6 +9,10 @@
 #include "include/secp256k1_rangeproof.h"
 #include "libsecp256k1-config.h"
 
+#include "log/log.h"
+
+#include <boost/thread.hpp>
+
 #include "hash_impl.h"
 #include "num_impl.h"
 #include "field_impl.h"
@@ -17,12 +21,12 @@
 
 using namespace qbit;
 
-Context::Context()
-{
+#include <signal.h>
+
+Context::Context() {
 }
 
-Context::~Context()
-{
+Context::~Context() {
 	if (context_) {
 		secp256k1_context_destroy(context_);
 		secp256k1_context_destroy(none_);
@@ -33,22 +37,28 @@ Context::~Context()
 	}
 }
 
-secp256k1_context* Context::noneContext()
-{
+secp256k1_context* Context::noneContext() {
 	initialize();
 	return none_;
 }
 
-secp256k1_context* Context::signatureContext()
-{
+secp256k1_context* Context::signatureContext() {
 	initialize();
 	return context_;
 }
 
-ContextPtr Context::instance() { return std::make_shared<Context>(); } 
+ContextPtr Context::instance() { 
+	//
+	static boost::thread_specific_ptr<ContextPtr> tContext;
+	if (!tContext.get()) {
+		tContext.reset(new ContextPtr(new Context()));
+		return ContextPtr(*tContext.get()); 
+	}
 
-secp256k1_scratch_space* Context::signatureScratch() 
-{
+	return ContextPtr(*tContext.get());
+} 
+
+secp256k1_scratch_space* Context::signatureScratch() {
 	if (!scratch_) scratch_ = secp256k1_scratch_space_create(context_, 1024 * 1024 * 1024); // magic digits
 	return scratch_; 
 }
@@ -57,6 +67,7 @@ void Context::initialize()
 {
 	if (!context_)
 	{
+		gLog().write(Log::INFO, std::string("[Context]: initialized"));
 		none_ = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
 		context_ = secp256k1_context_create(SECP256K1_CONTEXT_VERIFY | SECP256K1_CONTEXT_SIGN);
 	}
