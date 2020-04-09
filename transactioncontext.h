@@ -67,6 +67,14 @@ public:
 			errors.push_back(Error(*lError));
 		}
 	}
+	inline bool errorsContains(const std::string& err) {
+		for (std::list<std::string>::iterator lError = errors_.begin(); lError != errors_.end(); lError++) {
+			if ((*lError).find(err) != std::string::npos)
+				return true;
+		}
+
+		return false;
+	}
 	inline std::list<Transaction::UnlinkedOutPtr>& usedUtxo() { return usedUtxo_; }
 	inline std::list<Transaction::UnlinkedOutPtr>& newUtxo() { return newUtxo_; }
 	inline std::list<TransactionContextPtr>& linkedTxs() { return linkedTxs_; }

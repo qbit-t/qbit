@@ -4,7 +4,8 @@
 
 using namespace qbit;
 
-SKey LightWallet::createKey(const std::list<std::string>& seed) {
+SKeyPtr LightWallet::createKey(const std::list<std::string>& seed) {
+	//
 	SKey lSKey(seed);
 	lSKey.create();
 
@@ -16,31 +17,60 @@ SKey LightWallet::createKey(const std::list<std::string>& seed) {
 			throw qbit::exception("WRITE_FAILED", "Write failed."); 
 		}
 
-	return lSKey;
+	SKeyPtr lSKeyPtr = SKey::instance(lSKey);
+	{
+		boost::unique_lock<boost::recursive_mutex> lLock(keyMutex_);
+		keysCache_[lPKey.id()] = lSKeyPtr;
+	}
+
+	return lSKeyPtr;
 }
 
-SKey LightWallet::findKey(const PKey& pkey) {
+SKeyPtr LightWallet::findKey(const PKey& pkey) {
 	if (pkey.valid()) {
+		//
+		boost::unique_lock<boost::recursive_mutex> lLock(keyMutex_);
+		std::map<uint160 /*id*/, SKeyPtr>::iterator lSKeyIter = keysCache_.find(pkey.id());
+		if (lSKeyIter != keysCache_.end())
+			return lSKeyIter->second;
+
 		SKey lSKey;
 		if (keys_.read(pkey.id(), lSKey)) {
-			return lSKey;
+			SKeyPtr lSKeyPtr = SKey::instance(lSKey);
+			keysCache_[pkey.id()] = lSKeyPtr;
+
+			return lSKeyPtr;
 		}
 	}
 
-	return SKey();
+	return nullptr;
 }
 
-SKey LightWallet::firstKey() {
+SKeyPtr LightWallet::firstKey() {
+	//
+	{
+		boost::unique_lock<boost::recursive_mutex> lLock(keyMutex_);
+		std::map<uint160 /*id*/, SKeyPtr>::iterator lSKeyIter = keysCache_.begin();
+		if (lSKeyIter != keysCache_.end()) return lSKeyIter->second;
+	}
+
 	db::DbContainer<uint160 /*id*/, SKey>::Iterator lKey = keys_.begin();
 	if (lKey.valid()) {
-		return *lKey;
-	}
-	
+		SKeyPtr lSKeyPtr = SKey::instance(*lKey);
+		uint160 lId;
+		if (lKey.first(lId)) {
+			boost::unique_lock<boost::recursive_mutex> lLock(keyMutex_);
+			keysCache_[lId] = lSKeyPtr;
+			return lSKeyPtr;
+		}
+	}	
+
 	// try create from scratch
 	return createKey(std::list<std::string>());
 }
 
-SKey LightWallet::changeKey() {
+SKeyPtr LightWallet::changeKey() {
+	//
 	return firstKey();
 }
 
@@ -182,7 +212,7 @@ bool LightWallet::prepareCache() {
 	status_ = IWallet::FETCHING_UTXO;
 
 	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[prepareCache]: selecting utxo..."));
-	if (!requestProcessor_->selectUtxoByAddress(firstKey().createPKey(), MainChain::id(), shared_from_this())) {
+	if (!requestProcessor_->selectUtxoByAddress(firstKey()->createPKey(), MainChain::id(), shared_from_this())) {
 		status_ = IWallet::CACHE_NOT_READY;
 		//
 		if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[prepareCache]: utxo cache is NOT ready, retry..."));
@@ -385,7 +415,7 @@ void LightWallet::collectUnlinkedOutsByAsset(const uint256& asset, amount_t amou
 			}
 
 			// extra check
-			{
+			if (lAsset->second.size() > 1) {
 				//
 				if (!lUtxo->coinbase() && lUtxo->confirms() < settings_->mainChainMaturity()) {
 					gLog().write(Log::WALLET, std::string("[collectUnlinkedOutsByAsset]: transaction is NOT MATURE ") + 
@@ -462,9 +492,9 @@ amount_t LightWallet::fillInputs(TxSpendPtr tx, const uint256& asset, amount_t a
 	// fill ins 
 	for (std::list<Transaction::UnlinkedOutPtr>::iterator lUtxo = utxos.begin(); lUtxo != utxos.end(); lUtxo++) {
 		// locate skey
-		SKey lSKey = findKey((*lUtxo)->address());
-		if (lSKey.valid()) { 
-			tx->addIn(lSKey, *lUtxo);
+		SKeyPtr lSKey = findKey((*lUtxo)->address());
+		if (lSKey && lSKey->valid()) { 
+			tx->addIn(*lSKey, *lUtxo);
 			lAmount += (*lUtxo)->amount();
 		}
 	}	
@@ -495,14 +525,14 @@ TransactionContextPtr LightWallet::makeTxSpend(Transaction::Type type, const uin
 		strprintf("to = %s, amount = %d, asset = %s#", const_cast<PKey&>(dest).toString(), amount, asset.toHex().substr(0, 10)));
 
 	// fill output
-	SKey lSChangeKey = changeKey();
-	SKey lSKey = firstKey();
-	if (!lSKey.valid() || !lSChangeKey.valid()) throw qbit::exception("E_KEY", "Secret key is invalid.");
-	lTx->addOut(lSKey, dest, asset, amount);
+	SKeyPtr lSChangeKey = changeKey();
+	SKeyPtr lSKey = firstKey();
+	if (!lSKey->valid() || !lSChangeKey->valid()) throw qbit::exception("E_KEY", "Secret key is invalid.");
+	lTx->addOut(*lSKey, dest, asset, amount);
 
 	// make change
 	if (asset != TxAssetType::qbitAsset() && lAmount > amount) {
-		lTx->addOut(lSChangeKey, lSChangeKey.createPKey()/*change*/, asset, lAmount - amount);			
+		lTx->addOut(*lSChangeKey, lSChangeKey->createPKey()/*change*/, asset, lAmount - amount);			
 	}
 
 	// change
@@ -514,10 +544,10 @@ TransactionContextPtr LightWallet::makeTxSpend(Transaction::Type type, const uin
 	if (asset == TxAssetType::qbitAsset()) { // if qbit sending
 		// try to check amount
 		if (lAmount >= amount + lFee) {
-			lTx->addFeeOut(lSKey, asset, lFee); // to miner
+			lTx->addFeeOut(*lSKey, asset, lFee); // to miner
 
 			if (lAmount > amount + lFee) { // make change
-				lChangeUtxo = lTx->addOut(lSChangeKey, lSChangeKey.createPKey()/*change*/, asset, lAmount - (amount + lFee));
+				lChangeUtxo = lTx->addOut(*lSChangeKey, lSChangeKey->createPKey()/*change*/, asset, lAmount - (amount + lFee));
 			}
 		} else { // rare cases
 			return makeTxSpend(type, asset, dest, amount + lFee, feeRateLimit);
@@ -525,13 +555,13 @@ TransactionContextPtr LightWallet::makeTxSpend(Transaction::Type type, const uin
 	} else {
 		// add fee
 		amount_t lFeeAmount = fillInputs(lTx, TxAssetType::qbitAsset(), lFee, lFeeUtxos);
-		lTx->addFeeOut(lSKey, TxAssetType::qbitAsset(), lFee); // to miner
+		lTx->addFeeOut(*lSKey, TxAssetType::qbitAsset(), lFee); // to miner
 		if (lFeeAmount > lFee) { // make change
-			lChangeUtxo = lTx->addOut(lSChangeKey, lSChangeKey.createPKey()/*change*/, TxAssetType::qbitAsset(), lFeeAmount - lFee);
+			lChangeUtxo = lTx->addOut(*lSChangeKey, lSChangeKey->createPKey()/*change*/, TxAssetType::qbitAsset(), lFeeAmount - lFee);
 		}
 	}
 
-	if (!lTx->finalize(lSKey)) throw qbit::exception("E_TX_FINALIZE", "Transaction finalization failed.");
+	if (!lTx->finalize(*lSKey)) throw qbit::exception("E_TX_FINALIZE", "Transaction finalization failed.");
 
 	// we good
 	removeUnlinkedOut(lUtxos);
@@ -584,10 +614,10 @@ TransactionContextPtr LightWallet::createTxFee(const PKey& dest, amount_t amount
 		strprintf("to = %s, amount = %d", const_cast<PKey&>(dest).toString(), amount));
 
 	// fill output
-	SKey lSChangeKey = changeKey();
-	SKey lSKey = firstKey();
-	if (!lSKey.valid() || !lSChangeKey.valid()) throw qbit::exception("E_KEY", "Secret key is invalid.");
-	lTx->addExternalOut(lSKey, dest, TxAssetType::qbitAsset(), amount); // out[0] - use to pay fee in shards
+	SKeyPtr lSChangeKey = changeKey();
+	SKeyPtr lSKey = firstKey();
+	if (!lSKey->valid() || !lSChangeKey->valid()) throw qbit::exception("E_KEY", "Secret key is invalid.");
+	lTx->addExternalOut(*lSKey, dest, TxAssetType::qbitAsset(), amount); // out[0] - use to pay fee in shards
 
 	amount_t lRate = settings_->maxFeeRate();
 	amount_t lFee = (lRate * lCtx->size()) / 2; // half fee 
@@ -597,16 +627,16 @@ TransactionContextPtr LightWallet::createTxFee(const PKey& dest, amount_t amount
 
 	// try to check amount
 	if (lAmount >= amount + lFee) {
-		lTx->addFeeOut(lSKey, TxAssetType::qbitAsset(), lFee); // to miner
+		lTx->addFeeOut(*lSKey, TxAssetType::qbitAsset(), lFee); // to miner
 
 		if (lAmount > amount + lFee) { // make change
-			lChangeUtxo = lTx->addOut(lSChangeKey, lSChangeKey.createPKey()/*change*/, TxAssetType::qbitAsset(), lAmount - (amount + lFee));
+			lChangeUtxo = lTx->addOut(*lSChangeKey, lSChangeKey->createPKey()/*change*/, TxAssetType::qbitAsset(), lAmount - (amount + lFee));
 		}
 	} else { // rare cases
 		return createTxFee(dest, amount + lFee);
 	}
 
-	if (!lTx->finalize(lSKey)) throw qbit::exception("E_TX_FINALIZE", "Transaction finalization failed.");
+	if (!lTx->finalize(*lSKey)) throw qbit::exception("E_TX_FINALIZE", "Transaction finalization failed.");
 
 	// we good
 	removeUnlinkedOut(lUtxos);

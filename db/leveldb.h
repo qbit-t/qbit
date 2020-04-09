@@ -5,6 +5,11 @@
 #ifndef QBIT_LEVELDB_H
 #define QBIT_LEVELDB_H
 
+//
+// allocator.h _MUST_ be included BEFORE all other
+//
+#include "../allocator.h"
+
 #include "leveldb/db.h"
 #include "leveldb/cache.h"
 #include "leveldb/filter_policy.h"
@@ -12,6 +17,7 @@
 #include "leveldb/status.h"
 #include "leveldb/options.h"
 #include "leveldb/write_batch.h"
+#include "leveldb/comparator.h"
 #include "helpers/memenv/memenv.h"
 
 #include "db.h"
@@ -30,6 +36,31 @@ public:
 class LevelDBLogger: public leveldb::Logger {
 public:
 	void Logv(const char * format, va_list ap);
+};
+
+template<typename key, typename value>
+class LevelDBComparator: public leveldb::Comparator {
+public:
+	int Compare(const leveldb::Slice& left, const leveldb::Slice& right) const {
+		//
+		key lLeftKey;
+		DataStream lLeftStream(SER_DISK, CLIENT_VERSION);
+		lLeftStream.insert(lLeftStream.end(), left.data(), left.data() + left.size());
+		lLeftStream >> lLeftKey;
+
+		key lRightKey;
+		DataStream lRightStream(SER_DISK, CLIENT_VERSION);
+		lRightStream.insert(lRightStream.end(), right.data(), right.data() + right.size());
+		lRightStream >> lRightKey;
+
+		if (lLeftKey < lRightKey) return -1;
+		if (lLeftKey > lRightKey) return 1;
+		return 0;
+	}
+
+	const char* Name() const { return "BacisComparator"; }
+	void FindShortestSeparator(std::string*, const leveldb::Slice&) const {}
+	void FindShortSuccessor(std::string*) const {}
 };
 
 template<typename key, typename value>
@@ -156,7 +187,7 @@ public:
 	LevelDBContainer() {}
 	~LevelDBContainer() {}
 
-	bool open(const std::string& name, uint32_t cache = 0) { 
+	bool open(const std::string& name, bool useTypedComparer = true, uint32_t cache = 0) { 
 		if (db_ == nullptr) {
 			name_ = name;
 
@@ -169,6 +200,7 @@ public:
 			options_.compression = leveldb::kNoCompression;
 			options_.info_log = new LevelDBLogger();
 			options_.create_if_missing = true;
+			if (useTypedComparer) options_.comparator = &defaultComparator;
 
 			gLog().write(Log::DB, std::string("[leveldb]: Opening container ") + name_);
 
@@ -347,6 +379,7 @@ private:
 	std::string name_;
 
 private:
+	LevelDBComparator<key, value> defaultComparator;
 	std::shared_ptr<leveldb::DB> db_ {nullptr};
 	leveldb::Options options_;
 };

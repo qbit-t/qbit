@@ -64,3 +64,5 @@ curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"createshard","par
 curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"createshard","params":["76PvbNsTT84VvksyZcAsu2AaRn4W2g7a47fVnC4ZoHwT196K6N", "buzzer", "buzzer#02", "Buzzer shard 02"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
 
 curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"createbuzzer","params":["*", "@second", "SND", "Second buzzer"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
+
+./qbit-cli -peers 127.0.0.1:31415 -debug info,warn,error,wallet,store,net,bal,client

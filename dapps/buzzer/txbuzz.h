@@ -13,13 +13,15 @@ namespace qbit {
 
 typedef LimitedString<64> buzzer_tag_t;
 
+#define TX_BUZZ_MY_IN 0
+
 #define TX_BUZZ_REPLY_OUT 0
 #define TX_BUZZ_REBUZZ_OUT 1
 #define TX_BUZZ_LIKE_OUT 2
 #define TX_BUZZ_PIN_OUT 3
 
 //
-class TxBuzz: public Entity {
+class TxBuzz: public TxEvent {
 public:
 	TxBuzz() { type_ = TX_BUZZ; }
 
@@ -63,7 +65,6 @@ public:
 		props["body"] = lBody;
 	}
 
-	virtual std::string entityName() { return Entity::emptyName(); }
 	virtual inline void setChain(const uint256& chain) { chain_ = chain; } // override default entity behavior 
 
 	inline void parseBody() {
@@ -111,10 +112,15 @@ public:
 		return lUTXO;
 	}
 
+	//
+	// in[0] - mybuzzer.out[TX_BUZZER_MY_OUT] - my buzzer with signature
+	// in[1] - @buzzer.out[TX_BUZZER_BUZZ_OUT] or @buzzer.out[TX_BUZZER_REPLY_OUT]
+	// in[2] - @buzzer.out[TX_BUZZER_BUZZ_OUT] or @buzzer.out[TX_BUZZER_REPLY_OUT]	
+	// ...
 	virtual In& addBuzzerIn(const SKey& skey, UnlinkedOutPtr utxo) {
 		Transaction::In lIn;
 		lIn.out().setNull();
-		lIn.out().setChain(MainChain::id());
+		lIn.out().setChain(utxo->out().chain());
 		lIn.out().setAsset(utxo->out().asset());
 		lIn.out().setTx(utxo->out().tx());
 		lIn.out().setIndex(utxo->out().index());
@@ -141,7 +147,7 @@ public:
 		return in_[in_.size()-1];
 	}
 
-	inline std::string name() { return "buzz"; }
+	virtual std::string name() { return "buzz"; }
 
 	bool isValue(UnlinkedOutPtr utxo) {
 		return (utxo->out().asset() != TxAssetType::nullAsset()); 
@@ -151,7 +157,7 @@ public:
 		return (utxo->out().asset() == TxAssetType::nullAsset()); 
 	}
 
-private:
+protected:
 	//
 	Transaction::UnlinkedOutPtr addBuzzSpecialOut(const SKey& skey, const PKey& pkey, unsigned short specialOut) {
 		//

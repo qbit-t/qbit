@@ -157,6 +157,7 @@ public:
 		}
 
 		inline bool popUnlinkedOut(const uint256& utxo, TransactionContextPtr ctx) {
+			//
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[TxBlockStore::popUnlinkedOut]: try to pop ") +
 				strprintf("utxo = %s, tx = ?, ctx = %s", utxo.toHex(), ctx->tx()->hash().toHex()));
 
@@ -278,7 +279,7 @@ public:
 
 		inline std::list<TxBlockAction>& actions() { return actions_; } 
 
-		inline SKey findKey(const PKey& pkey) { 
+		inline SKeyPtr findKey(const PKey& pkey) { 
 			return persistentWallet_->findKey(pkey); 
 		}
 
@@ -382,6 +383,9 @@ public:
 	bool isUnlinkedOutExists(const uint256&);
 	bool isLinkedOutExists(const uint256&);
 	bool enumUnlinkedOuts(const uint256& /*tx*/, std::vector<Transaction::UnlinkedOutPtr>& /*outs*/);
+
+	bool revertLtxo(const uint256&, const uint256&);
+	bool revertUtxo(const uint256&);
 
 	bool enqueueBlock(const NetworkBlockHeader& /*block*/);
 	void dequeueBlock(const uint256& /*block*/);

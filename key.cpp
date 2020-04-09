@@ -106,18 +106,20 @@ bool SKey::sign(const uint256& hash /*data chunk hash*/, uint512& signature /*re
 }
 
 PKey SKey::createPKey() {
-	PKey lPKey;
-	size_t lPKeyLen = 65;
+	//
+	if (!pkey_.valid()) {
+		//
+		size_t lPKeyLen = PKEY_LEN;
 
-	secp256k1_pubkey pubkey;
-	ContextPtr lContext = getContext();
-	if (!secp256k1_ec_pubkey_create(lContext->signatureContext(), &pubkey, vch_)) return PKey();
-	if (secp256k1_ec_pubkey_serialize(lContext->signatureContext(), (unsigned char*)lPKey.begin(), &lPKeyLen, &pubkey, SECP256K1_EC_COMPRESSED)) {
-		lPKey.setPackedSize(lPKeyLen);
-		return lPKey;
+		secp256k1_pubkey pubkey;
+		ContextPtr lContext = getContext();
+		if (!secp256k1_ec_pubkey_create(lContext->signatureContext(), &pubkey, vch_)) return PKey();
+		if (secp256k1_ec_pubkey_serialize(lContext->signatureContext(), (unsigned char*)pkey_.begin(), &lPKeyLen, &pubkey, SECP256K1_EC_COMPRESSED)) {
+			pkey_.setPackedSize(lPKeyLen);
+		}
 	}
 
-	return PKey(getContext());
+	return pkey_;
 }
 
 uint256 SKey::shared(const PKey& other) {

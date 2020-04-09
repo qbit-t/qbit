@@ -25,7 +25,7 @@ void Peer::ping() {
 		(*lMsg) << lMessage;
 		(*lMsg) << lTimestamp;
 
-		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: ping to ") + key() + " -> " + HexStr(lMsg->begin(), lMsg->end()));
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: ping ") + key() + " -> " + HexStr(lMsg->begin(), lMsg->end()));
 
 		boost::asio::async_write(*socket_,
 			boost::asio::buffer(lMsg->data(), lMsg->size()),
@@ -56,7 +56,7 @@ void Peer::internalSendState(StatePtr state, bool global) {
 			lState->serialize<DataStream>(lStateStream);
 		}
 		*/
-		lState->serialize<DataStream>(lStateStream, peerManager_->consensusManager()->mainKey());
+		lState->serialize<DataStream>(lStateStream, *(peerManager_->consensusManager()->mainKey()));
 
 		Message lMessage((global ? Message::GLOBAL_STATE : Message::STATE), lStateStream.size(), Hash160(lStateStream.begin(), lStateStream.end()));
 		(*lMsg) << lMessage;
@@ -576,6 +576,52 @@ void Peer::selectUtxoByEntity(const std::string& name, ISelectUtxoByEntityNameHa
 	}
 }
 
+void Peer::selectUtxoByEntityNames(const std::vector<std::string>& entityNames, ISelectUtxoByEntityNamesHandlerPtr handler) {
+	//
+	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
+	else if (socketStatus_ == CONNECTED) {
+		
+		// new message
+		std::list<DataStream>::iterator lMsg = newOutMessage();
+		DataStream lStateStream(SER_NETWORK, CLIENT_VERSION);
+
+		// pack req
+		uint256 lRequestId = addRequest(handler);
+		lStateStream << lRequestId;
+
+		// pack names
+		std::string lNamesString;
+		std::vector<std::vector<unsigned char>> lNames; lNames.resize(entityNames.size());
+		std::vector<std::string>& lEntityNames = const_cast<std::vector<std::string>&>(entityNames);
+		int lIdx = 0;
+		for (std::vector<std::string>::iterator lName = lEntityNames.begin(); lName != lEntityNames.end(); lName++, lIdx++) {
+			lNames[lIdx].insert(lNames[lIdx].end(), lName->begin(), lName->end());
+
+			if (gLog().isEnabled(Log::NET)) {
+				if (lNamesString.size()) lNamesString += ",";
+				lNamesString += *lName;
+			}
+		}
+		lStateStream << lNames;
+
+		// make message
+		Message lMessage(Message::GET_UTXO_BY_ENTITY_NAMES, lStateStream.size(), Hash160(lStateStream.begin(), lStateStream.end()));
+
+		(*lMsg) << lMessage;
+		lMsg->write(lStateStream.data(), lStateStream.size());
+
+		// log
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: selecting utxo by entity names '") + lNamesString + std::string("' from ") + key());
+
+		// write
+		boost::asio::async_write(*socket_,
+			boost::asio::buffer(lMsg->data(), lMsg->size()),
+			boost::bind(
+				&Peer::messageFinalize, shared_from_this(), lMsg,
+				boost::asio::placeholders::error));
+	}
+}
+
 void Peer::selectEntityCountByShards(const std::string& name, ISelectEntityCountByShardsHandlerPtr handler) {
 	//
 	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
@@ -688,9 +734,6 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 		// log
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: message from ") + key() + " -> " + lMessage.toString() + (lMessage.valid()?" - valid":" - invalid"));
 
-		//
-		bool lSkipWaitForMessage = false;
-
 		// process
 		if (lMessage.valid() && lMessage.dataSize() < peerManager_->settings()->maxMessageSize()) {
 			// new data entry
@@ -721,32 +764,6 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 			if (lHandled) { // handled in proto extension, just continue
 				return;
 			}
-
-			//
-			// WARNING: for short requests, but for long - we _must_ to go to wait until we read and process data
-			//
-			/*
-			lSkipWaitForMessage = 
-				lMessage.type() == Message::BLOCK_HEADER || 
-				lMessage.type() == Message::BLOCK_BY_HEIGHT || 
-				lMessage.type() == Message::BLOCK_BY_ID || 
-				lMessage.type() == Message::BLOCK ||
-				lMessage.type() == Message::NETWORK_BLOCK ||
-				lMessage.type() == Message::NETWORK_BLOCK_HEADER ||
-				lMessage.type() == Message::TRANSACTION ||
-				lMessage.type() == Message::BLOCK_HEADER_AND_STATE ||
-				lMessage.type() == Message::STATE ||
-				lMessage.type() == Message::GLOBAL_STATE ||
-				lMessage.type() == Message::TRANSACTION_DATA ||
-				lMessage.type() == Message::UTXO_BY_ADDRESS ||
-				lMessage.type() == Message::UTXO_BY_ADDRESS_AND_ASSET ||
-				lMessage.type() == Message::UTXO_BY_TX ||
-				lMessage.type() == Message::UTXO_BY_ENTITY ||
-				lMessage.type() == Message::ENTITY ||
-				lMessage.type() == Message::PUSH_TRANSACTION ||
-				lMessage.type() == Message::TRANSACTION_PUSHED ||
-				lMessage.type() == Message::ENTITY_COUNT_BY_SHARDS;
-			*/
 
 			if (lMessage.type() == Message::STATE) {
 				boost::asio::async_read(*socket_,
@@ -1021,6 +1038,19 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 						&Peer::processTransactionPushed, shared_from_this(), lMsg,
 						boost::asio::placeholders::error));
 
+			} else if (lMessage.type() == Message::GET_UTXO_BY_ENTITY_NAMES) {
+				boost::asio::async_read(*socket_,
+					boost::asio::buffer(lMsg->data(), lMessage.dataSize()),
+					boost::bind(
+						&Peer::processGetUtxoByEntityNames, shared_from_this(), lMsg,
+						boost::asio::placeholders::error));
+			} else if (lMessage.type() == Message::UTXO_BY_ENTITY_NAMES) {
+				boost::asio::async_read(*socket_,
+					boost::asio::buffer(lMsg->data(), lMessage.dataSize()),
+					boost::bind(
+						&Peer::processUtxoByEntityNames, shared_from_this(), lMsg,
+						boost::asio::placeholders::error));
+
 			} else if (lMessage.type() == Message::CLIENT_SESSIONS_EXCEEDED) {
 				// postpone peer
 				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: node sessions exceeded, postponing connections for ") + key());
@@ -1062,9 +1092,6 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 			return;
 		}
 		
-		//if (!lSkipWaitForMessage) 
-		//	waitForMessage();
-
 	} else {
 		// log
 		if (key() != "EKEY") {
@@ -1308,6 +1335,79 @@ void Peer::processGetUtxoByEntity(std::list<DataStream>::iterator msg, const boo
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processGetUtxoByEntity/error]: closing session " + key() + " -> " + error.message());
+		//
+		socketStatus_ = ERROR;
+		// try to deactivate peer
+		peerManager_->deactivatePeer(shared_from_this());
+		// close socket
+		socket_->close();
+	}
+}
+
+void Peer::processGetUtxoByEntityNames(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
+	//
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: checksum is INVALID for message from ") + key());
+	if (!error && lMsgValid) {
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing request utxo by entity names from ") + key());
+
+		// extract
+		uint256 lRequestId;
+		std::vector<std::vector<unsigned char>> lNames;
+
+		(*msg) >> lRequestId;
+		(*msg) >> lNames;
+		eraseInData(msg);
+
+		// collect
+		std::string lEntityNames;
+		std::vector<ISelectUtxoByEntityNamesHandler::EntityUtxo> lEntityUtxos;
+		for (std::vector<std::vector<unsigned char>>::iterator lName = lNames.begin(); lName != lNames.end(); lName++) {
+			//
+			std::string lEntity;
+			lEntity.insert(lEntity.end(), lName->begin(), lName->end());
+
+			if (gLog().isEnabled(Log::NET)) {
+				if (lEntityNames.size()) lEntityNames += ",";
+				lEntityNames += lEntity;
+			}
+
+			std::vector<Transaction::UnlinkedOutPtr> lUtxos;
+			ISelectUtxoByEntityNamesHandler::EntityUtxo lEntityUtxo(lEntity);
+
+			ITransactionStorePtr lStorage = peerManager_->consensusManager()->storeManager()->locate(MainChain::id());
+			lStorage->entityStore()->collectUtxoByEntityName(lEntity, lUtxos);
+			for (std::vector<Transaction::UnlinkedOutPtr>::iterator lItem = lUtxos.begin(); lItem != lUtxos.end(); lItem++) {
+				lEntityUtxo.add(*(*lItem));
+			}
+		}
+
+		// make message, serialize, send back
+		std::list<DataStream>::iterator lMsg = newOutMessage();
+		// fill data
+		DataStream lStream(SER_NETWORK, CLIENT_VERSION);
+		lStream << lRequestId;
+		lStream << lEntityUtxos;
+
+		// prepare message
+		Message lMessage(Message::UTXO_BY_ENTITY_NAMES, lStream.size(), Hash160(lStream.begin(), lStream.end()));
+		(*lMsg) << lMessage;
+		lMsg->write(lStream.data(), lStream.size());
+
+		// log
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: sending utxo by entity names ") + strprintf("'%s'/%d", lEntityNames, lEntityUtxos.size()) + std::string(" for ") + key());
+
+		// write
+		boost::asio::async_write(*socket_,
+			boost::asio::buffer(lMsg->data(), lMsg->size()),
+			boost::bind(
+				&Peer::messageFinalize, shared_from_this(), lMsg,
+				boost::asio::placeholders::error));
+		//
+		waitForMessage();
+	} else {
+		// log
+		gLog().write(Log::NET, "[peer/processGetUtxoByEntityNames/error]: closing session " + key() + " -> " + error.message());
 		//
 		socketStatus_ = ERROR;
 		// try to deactivate peer
@@ -1884,6 +1984,46 @@ void Peer::processUtxoByEntity(std::list<DataStream>::iterator msg, const boost:
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processUtxoByEntity/error]: closing session " + key() + " -> " + error.message());
+		//
+		socketStatus_ = ERROR;
+		// try to deactivate peer
+		peerManager_->deactivatePeer(shared_from_this());
+		// close socket
+		socket_->close();
+	}
+}
+
+void Peer::processUtxoByEntityNames(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
+	//
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: checksum is INVALID for message from ") + key());
+	if (!error && lMsgValid) {
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing response utxo by entity names from ") + key());
+
+		// extract
+		uint256 lRequestId;
+		std::vector<ISelectUtxoByEntityNamesHandler::EntityUtxo> lEntityUtxos;
+
+		(*msg) >> lRequestId;
+		(*msg) >> lEntityUtxos;
+		eraseInData(msg);
+
+		// log
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing utxo by entity names ") + strprintf("r = %s, s = %d", lRequestId.toHex(), lEntityUtxos.size()) + std::string("..."));
+
+		IReplyHandlerPtr lHandler = locateRequest(lRequestId);
+		if (lHandler) {
+			ReplyHelper::to<ISelectUtxoByEntityNamesHandler>(lHandler)->handleReply(lEntityUtxos);
+			removeRequest(lRequestId);
+		} else {
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: request was NOT FOUND for utxo by entity ") + strprintf("r = %s", lRequestId.toHex()) + std::string("..."));
+		}
+
+		// WARNING: in case of async_read for large data
+		waitForMessage();
+	} else {
+		// log
+		gLog().write(Log::NET, "[peer/processUtxoByEntityNames/error]: closing session " + key() + " -> " + error.message());
 		//
 		socketStatus_ = ERROR;
 		// try to deactivate peer
@@ -3263,7 +3403,7 @@ void Peer::broadcastBlockHeaderAndState(const NetworkBlockHeader& blockHeader, S
 
 		if (state->addressId() == peerManager_->consensusManager()->mainPKey().id()) {
 			// own state
-			state->serialize<DataStream>(lStateStream, peerManager_->consensusManager()->mainKey());
+			state->serialize<DataStream>(lStateStream, *(peerManager_->consensusManager()->mainKey()));
 		} else {
 			// impossible
 			state->serialize<DataStream>(lStateStream);
@@ -3449,7 +3589,7 @@ void Peer::processPong(std::list<DataStream>::iterator msg, const boost::system:
 
 		// update and median time
 		peerManager_->updatePeerLatency(shared_from_this(), (uint32_t)(getMicroseconds() - lTimestamp));
-		peerManager_->updateMedianTime();
+		if (!state().client()) peerManager_->updateMedianTime();
 
 		//
 		waitForMessage();
@@ -3487,6 +3627,11 @@ void Peer::processGlobalState(std::list<DataStream>::iterator msg, const boost::
 			if (lState.valid()) {
 				StatePtr lStatePtr = State::instance(lState);
 				peerManager_->consensusManager()->pushState(lStatePtr);
+
+				if (lState.client()) {
+					// update state
+					setState(lState);
+				}
 			} else {
 				peerManager_->ban(shared_from_this());
 			}

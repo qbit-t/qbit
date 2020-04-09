@@ -9,8 +9,11 @@
 
 namespace qbit {
 
+#define TX_BUZZ_LIKE_IN 1
+#define TX_BUZZ_MY_BUZZER_IN 0
+
 //
-class TxBuzzLike: public Entity {
+class TxBuzzLike: public TxEvent {
 public:
 	TxBuzzLike() { type_ = TX_BUZZ_LIKE; }
 
@@ -24,16 +27,16 @@ public:
 		s >> timestamp_;
 	}
 
-	virtual std::string entityName() { return Entity::emptyName(); }
 	virtual inline void setChain(const uint256& chain) { chain_ = chain; } // override default entity behavior 
 	inline void setTimestamp(uint64_t timestamp) { timestamp_ = timestamp; }
+	inline uint64_t timestamp() { return timestamp_; }
 
 	virtual bool isFeeFee() { return true; }
 
 	virtual In& addBuzzLikeIn(const SKey& skey, UnlinkedOutPtr utxo) {
 		Transaction::In lIn;
 		lIn.out().setNull();
-		lIn.out().setChain(chain());
+		lIn.out().setChain(utxo->out().chain());
 		lIn.out().setAsset(utxo->out().asset());
 		lIn.out().setTx(utxo->out().tx());
 		lIn.out().setIndex(utxo->out().index());
@@ -63,7 +66,7 @@ public:
 	virtual In& addMyBuzzerIn(const SKey& skey, UnlinkedOutPtr utxo) {
 		Transaction::In lIn;
 		lIn.out().setNull();
-		lIn.out().setChain(chain());
+		lIn.out().setChain(utxo->out().chain());
 		lIn.out().setAsset(utxo->out().asset());
 		lIn.out().setTx(utxo->out().tx());
 		lIn.out().setIndex(utxo->out().index());

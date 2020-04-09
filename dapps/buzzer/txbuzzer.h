@@ -13,24 +13,53 @@ namespace qbit {
 
 typedef LimitedString<64> buzzer_name_t;
 
-#define TX_BUZZER 				Transaction::CUSTOM_00
-#define TX_BUZZ 				Transaction::CUSTOM_01
-#define TX_BUZZER_SUBSCRIBE 	Transaction::CUSTOM_02
-#define TX_BUZZER_UNSUBSCRIBE 	Transaction::CUSTOM_03
-#define TX_BUZZER_ENDORSE 		Transaction::CUSTOM_04
-#define TX_BUZZER_MISTRUST		Transaction::CUSTOM_05
-#define TX_REBUZZ				Transaction::CUSTOM_06
-#define TX_BUZZ_LIKE			Transaction::CUSTOM_07
-#define TX_BUZZ_REPLY			Transaction::CUSTOM_08
-#define TX_BUZZ_PIN				Transaction::CUSTOM_09
+#define TX_BUZZER 				Transaction::CUSTOM_00 // main chain: entity, fees
+#define TX_BUZZ 				Transaction::CUSTOM_01 // shard: fees
+#define TX_BUZZER_SUBSCRIBE 	Transaction::CUSTOM_02 // shard: fee-free
+#define TX_BUZZER_UNSUBSCRIBE 	Transaction::CUSTOM_03 // shard: fee-free 
+#define TX_BUZZER_ENDORSE 		Transaction::CUSTOM_04 // ?
+#define TX_BUZZER_MISTRUST		Transaction::CUSTOM_05 // ?
+#define TX_REBUZZ				Transaction::CUSTOM_06 // shard: fees
+#define TX_BUZZ_LIKE			Transaction::CUSTOM_07 // shard: fee-free
+#define TX_BUZZ_REPLY			Transaction::CUSTOM_08 // shard: fees
+#define TX_BUZZ_PIN				Transaction::CUSTOM_09 // shard: fee-free
 
 #define TX_BUZZER_ALIAS_SIZE 64 
 #define TX_BUZZER_DESCRIPTION_SIZE 256 
+
+#define TX_BUZZER_SHARD_IN 0
 
 #define TX_BUZZER_MY_OUT 0
 #define TX_BUZZER_SUBSCRIPTION_OUT 1
 #define TX_BUZZER_ENDORSE_OUT 2
 #define TX_BUZZER_MISTRUST_OUT 3
+#define TX_BUZZER_REPLY_OUT 4
+#define TX_BUZZER_BUZZ_OUT 5
+
+//
+class TxEvent: public Entity {
+public:
+	TxEvent() { type_ = Transaction::UNDEFINED; }
+
+	virtual std::string entityName() { return Entity::emptyName(); }
+	virtual uint64_t timestamp() { throw qbit::exception("NOT_IMPL", "TxEvent::timestamp - Not implemented."); }
+
+	inline bool extractSpecialType(Transaction::Out& out, unsigned short& type) {
+		//
+		VirtualMachine lVM(out.destination());
+		lVM.execute();
+
+		// special out
+		if (lVM.getR(qasm::QR1).getType() != qasm::QNONE) {		
+			type = lVM.getR(qasm::QR1).to<unsigned short>();
+			return true;
+		}
+
+		return false;
+	}	
+};
+
+typedef std::shared_ptr<TxEvent> TxEventPtr;
 
 //
 class TxBuzzer: public Entity {
@@ -133,10 +162,20 @@ public:
 		return addBuzzerSpecialOut(skey, pkey, TX_BUZZER_MISTRUST);
 	}
 
+	Transaction::UnlinkedOutPtr addBuzzerReplyOut(const SKey& skey, const PKey& pkey) {
+		//
+		return addBuzzerSpecialOut(skey, pkey, TX_BUZZ_REPLY);
+	}
+
+	Transaction::UnlinkedOutPtr addBuzzerBuzzOut(const SKey& skey, const PKey& pkey) {
+		//
+		return addBuzzerSpecialOut(skey, pkey, TX_BUZZ);
+	}
+
 	virtual In& addDAppIn(const SKey& skey, UnlinkedOutPtr utxo) {
 		Transaction::In lIn;
 		lIn.out().setNull();
-		lIn.out().setChain(MainChain::id());
+		lIn.out().setChain(utxo->out().chain());
 		lIn.out().setAsset(utxo->out().asset());
 		lIn.out().setTx(utxo->out().tx());
 		lIn.out().setIndex(utxo->out().index());
@@ -166,7 +205,7 @@ public:
 	virtual In& addShardIn(const SKey& skey, UnlinkedOutPtr utxo) {
 		Transaction::In lIn;
 		lIn.out().setNull();
-		lIn.out().setChain(MainChain::id());
+		lIn.out().setChain(utxo->out().chain());
 		lIn.out().setAsset(utxo->out().asset());
 		lIn.out().setTx(utxo->out().tx());
 		lIn.out().setIndex(utxo->out().index());

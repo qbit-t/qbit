@@ -58,6 +58,8 @@ std::string Message::toString() {
 		case CLIENT_SESSIONS_EXCEEDED: lMsg = "CLIENT_SESSIONS_EXCEEDED"; break;
 		case PUSH_TRANSACTION: lMsg = "PUSH_TRANSACTION"; break;
 		case TRANSACTION_PUSHED: lMsg = "TRANSACTION_PUSHED"; break;
+		case GET_UTXO_BY_ENTITY_NAMES: lMsg = "GET_UTXO_BY_ENTITY_NAMES"; break;
+		case UTXO_BY_ENTITY_NAMES: lMsg = "UTXO_BY_ENTITY_NAMES"; break;
 
 		default:  {
 			lMsg = "UNKNOWN";

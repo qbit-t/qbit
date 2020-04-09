@@ -68,7 +68,7 @@ public:
 
 	virtual bool broadcastTransaction(TransactionContextPtr /*ctx*/, const uint160& /*except*/) { throw qbit::exception("NOT_IMPL", "IConsensus::broadcastTransaction - not implemented."); }
 
-	virtual SKey mainKey() { throw qbit::exception("NOT_IMPL", "IConsensus::mainKey - not implemented."); }
+	virtual SKeyPtr mainKey() { throw qbit::exception("NOT_IMPL", "IConsensus::mainKey - not implemented."); }
 
 	virtual size_t blockTime() { throw qbit::exception("NOT_IMPL", "IConsensus::blockTime - not implemented."); }
 

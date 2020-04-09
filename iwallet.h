@@ -40,10 +40,10 @@ public:
 	virtual void cleanUpData() { throw qbit::exception("NOT_IMPL", "IWallet::cleanUpData - not implemented."); }
 
 	// key menagement
-	virtual SKey createKey(const std::list<std::string>&) { throw qbit::exception("NOT_IMPL", "IWallet::createKey - not implemented."); }
-	virtual SKey findKey(const PKey&) { throw qbit::exception("NOT_IMPL", "IWallet::findKey - not implemented."); }
-	virtual SKey firstKey() { throw qbit::exception("NOT_IMPL", "IWallet::firstKey - not implemented."); }
-	virtual SKey changeKey() { throw qbit::exception("NOT_IMPL", "IWallet::changeKey - not implemented."); }
+	virtual SKeyPtr createKey(const std::list<std::string>&) { throw qbit::exception("NOT_IMPL", "IWallet::createKey - not implemented."); }
+	virtual SKeyPtr findKey(const PKey&) { throw qbit::exception("NOT_IMPL", "IWallet::findKey - not implemented."); }
+	virtual SKeyPtr firstKey() { throw qbit::exception("NOT_IMPL", "IWallet::firstKey - not implemented."); }
+	virtual SKeyPtr changeKey() { throw qbit::exception("NOT_IMPL", "IWallet::changeKey - not implemented."); }
 
 	// new utxo and tx context to process deeply
 	virtual bool pushUnlinkedOut(Transaction::UnlinkedOutPtr, TransactionContextPtr) { throw qbit::exception("NOT_IMPL", "IWallet::pushUnlinkedOut - not implemented."); }

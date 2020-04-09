@@ -11,6 +11,10 @@
 #include "../../message.h"
 
 #include "buzzfeed.h"
+#include "txbuzzer.h"
+#include "txbuzz.h"
+
+#include "transactionstoreextension.h"
 
 namespace qbit {
 
@@ -49,7 +53,7 @@ public:
 	//
 	// node-to-peer notifications  
 	bool notifyNewBuzz(const BuzzfeedItem& /*buzz*/);
-	bool notifyUpdateBuzz(const BuzzfeedItem::Update& /*update*/);
+	bool notifyUpdateBuzz(const std::vector<BuzzfeedItem::Update>& /*update*/);
 
 private:
 	// server-side processing
@@ -64,6 +68,9 @@ private:
 
 	//
 	void processSubscriptionAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+
+private:
+	void prepareBuzzfeedItem(BuzzfeedItem&, TxBuzzPtr, TxBuzzerPtr, BuzzerTransactionStoreExtensionPtr);
 
 public:
 	IPeerPtr peer_;

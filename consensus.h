@@ -799,7 +799,7 @@ public:
 
 	//
 	// main key
-	SKey mainKey() {
+	SKeyPtr mainKey() {
 		return wallet_->firstKey();
 	}
 

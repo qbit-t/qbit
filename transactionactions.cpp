@@ -102,6 +102,17 @@ TransactionAction::Result TxSpendVerify::execute(TransactionContextPtr wrapper, 
 			}
 
 			lInTx = store->locateTransaction(lIn.out().tx());
+			if (!lInTx) { 
+				// get linked store
+				ITransactionStorePtr lStore = store->storeManager()->locate(lIn.out().chain());
+				lInTx = lStore->locateTransaction(lIn.out().tx());
+
+				// try to look on mempools
+				if (!lInTx) {
+					IMemoryPoolPtr lPool = wallet->mempoolManager()->locate(lIn.out().chain());
+					lInTx = lPool->locateTransaction(lIn.out().tx());
+				}
+			}
 			
 			if (lInTx != nullptr) {
 

@@ -20,6 +20,7 @@ typedef boost::function<void (TransactionPtr)> transactionLoadedFunction;
 typedef boost::function<void (const std::vector<Transaction::UnlinkedOut>&, const std::string&)> utxoByEntityNameSelectedFunction;
 typedef boost::function<void (const std::vector<Transaction::NetworkUnlinkedOut>&, const uint256&)> utxoByTransactionSelectedFunction;
 typedef boost::function<void (const std::map<uint32_t, uint256>&, const std::string&)> entityCountByShardsSelectedFunction;
+typedef boost::function<void (const std::vector<ISelectUtxoByEntityNamesHandler::EntityUtxo>&)> utxoByEntityNamesSelectedFunction;
 
 typedef boost::function<void (TransactionContextPtr)> transactionCreatedFunction;
 typedef boost::function<void (double, amount_t)> balanceReadyFunction;
@@ -146,6 +147,29 @@ public:
 
 private:
 	utxoByEntityNameSelectedFunction function_;
+	timeoutFunction timeout_;
+};
+
+// select utxo by entity names 
+class SelectUtxoByEntityNames: public ISelectUtxoByEntityNamesHandler, public std::enable_shared_from_this<SelectUtxoByEntityNames> {
+public:
+	SelectUtxoByEntityNames(utxoByEntityNamesSelectedFunction function, timeoutFunction timeout): function_(function), timeout_(timeout) {}
+
+	// ILoadEntityHandler
+	void handleReply(const std::vector<ISelectUtxoByEntityNamesHandler::EntityUtxo>& entityUtxos) {
+		function_(entityUtxos);
+	}
+	// IReplyHandler
+	void timeout() {
+		timeout_();
+	}
+
+	static ISelectUtxoByEntityNamesHandlerPtr instance(utxoByEntityNamesSelectedFunction function, timeoutFunction timeout) { 
+		return std::make_shared<SelectUtxoByEntityNames>(function, timeout); 
+	}
+
+private:
+	utxoByEntityNamesSelectedFunction function_;
 	timeoutFunction timeout_;
 };
 

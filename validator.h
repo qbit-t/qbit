@@ -236,7 +236,7 @@ private:
 					if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[validator/miner]: looking for a block for ") + strprintf("%s#", chain_.toHex().substr(0, 10)) + "...");
 
 					boost::random::uniform_int_distribution<> lDist(3, (consensus_->blockTime())/1000);
-					int lMSeconds = (consensus_->blockTime())/1000;
+					int lMSeconds = lDist(lGen); //(consensus_->blockTime())/1000;
 					uint64_t lStartTime = getTime();
 
 					/*
@@ -362,7 +362,7 @@ private:
 				if (*lTx == nullptr) continue;
 				if (mempool_->isTransactionExists((*lTx)->id())) {
 					TransactionContextPtr lCtx = TransactionContext::instance(*lTx);
-					consensus_->broadcastTransaction(lCtx, mempool_->wallet()->firstKey().createPKey().id());
+					consensus_->broadcastTransaction(lCtx, mempool_->wallet()->firstKey()->createPKey().id());
 				} else {
 					//
 					if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, 
@@ -370,6 +370,9 @@ private:
 					mempool_->wallet()->removePendingTransaction((*lTx)->id());
 				}
 			}
+
+			// try to reprocess tx candidates in pool
+			mempool_->processCandidates();
 		}
 
 		timer_->expires_at(timer_->expiry() + boost::asio::chrono::milliseconds(500));

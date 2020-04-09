@@ -12,11 +12,12 @@ namespace qbit {
 
 class ClientSettings: public ISettings {
 public:
-	ClientSettings() {
+	ClientSettings(): ClientSettings(".qbit-cli") {}
+	ClientSettings(const std::string& dir) {
 #if defined(__linux__)
 		char lName[0x100] = {0};
 		getlogin_r(lName, sizeof(lName));
-		path_ = "/home/" + std::string(lName) + "/.qbit-cli";
+		path_ = "/home/" + std::string(lName) + "/" + dir;
 #endif
 	}
 
@@ -24,6 +25,7 @@ public:
 	uint32_t roles() { return State::PeerRoles::CLIENT; }
 
 	static ISettingsPtr instance() { return std::make_shared<ClientSettings>(); }
+	static ISettingsPtr instance(const std::string& dir) { return std::make_shared<ClientSettings>(dir); }
 
 private:
 	std::string path_;

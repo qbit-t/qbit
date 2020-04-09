@@ -33,7 +33,7 @@ public:
 	virtual In& addSubscriptionIn(const SKey& skey, UnlinkedOutPtr utxo) {
 		Transaction::In lIn;
 		lIn.out().setNull();
-		lIn.out().setChain(chain());
+		lIn.out().setChain(utxo->out().chain());
 		lIn.out().setAsset(utxo->out().asset());
 		lIn.out().setTx(utxo->out().tx());
 		lIn.out().setIndex(utxo->out().index());

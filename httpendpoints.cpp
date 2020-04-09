@@ -18,7 +18,9 @@ void HttpMallocStats::process(const std::string& source, const HttpRequest& requ
 		"id": "curltext",
 		"method": "mallocstats",
 		"params": [
-			"<thread_id>" 	-- (string, optional) thread id
+			"<thread_id>", 		-- (string, optional) thread id
+			"<class_index>", 	-- (string, optional) class to dump
+			"<path>" 			-- (string, required if class provided) path to dump to
 		]
 	}
 	*/
@@ -48,50 +50,94 @@ void HttpMallocStats::process(const std::string& source, const HttpRequest& requ
 	json::Value lParams;
 	if (const_cast<json::Document&>(data).find("params", lParams) && lParams.isArray()) {
 		// extract parameters
-		size_t lThreadId = 0; // 0
-		if (lParams.size()) {
+		if (lParams.size() <= 1) {
 			// param[0]
+			size_t lThreadId = 0; // 0
+			if (lParams.size() == 1) {
+				json::Value lP0 = lParams[0];
+				if (lP0.isString()) { 
+					if (!convert<size_t>(lP0.getString(), lThreadId)) {
+						reply = HttpReply::stockReply("E_INCORRECT_VALUE_TYPE", "Incorrect parameter type"); return;	
+					}
+				} else { reply = HttpReply::stockReply(HttpReply::bad_request); return; }
+			}
+
+			char lStats[204800] = {0};
+
+			if (!lThreadId) {
+				_jm_threads_print_stats(lStats);
+			} else {
+				_jm_thread_print_stats(lThreadId, lStats, 
+						JM_ARENA_BASIC_STATS /*| 
+						JM_ARENA_CHUNK_STATS | 
+						JM_ARENA_DIRTY_BLOCKS_STATS | 
+						JM_ARENA_FREEE_BLOCKS_STATS*/, JM_ALLOC_CLASSES);
+			}
+
+			std::string lValue(lStats);
+			std::vector<std::string> lParts;
+	  		boost::split(lParts, lValue, boost::is_any_of("\n\t"), boost::token_compress_on);		
+
+			// prepare reply
+			json::Document lReply;
+			lReply.loadFromString("{}");
+			
+			json::Value lKeyObject = lReply.addObject("result");
+			json::Value lKeyArrayObject = lKeyObject.addArray("table");
+			for (std::vector<std::string>::iterator lString = lParts.begin(); lString != lParts.end(); lString++) {
+				json::Value lItem = lKeyArrayObject.newArrayItem();
+				lItem.setString(*lString);
+			}
+
+			lReply.addObject("error").toNull();
+			lReply.addString("id", lId.getString());
+
+			// pack
+			pack(reply, lReply);
+			// finalize
+			finalize(reply);
+		} else {
+			// param[0]
+			size_t lThreadId = 0; // 0
 			json::Value lP0 = lParams[0];
 			if (lP0.isString()) { 
 				if (!convert<size_t>(lP0.getString(), lThreadId)) {
 					reply = HttpReply::stockReply("E_INCORRECT_VALUE_TYPE", "Incorrect parameter type"); return;	
 				}
 			} else { reply = HttpReply::stockReply(HttpReply::bad_request); return; }
+
+			// param[1]
+			int lClassIndex = 0; // 1
+			json::Value lP1 = lParams[1];
+			if (lP0.isString()) { 
+				if (!convert<int>(lP1.getString(), lClassIndex)) {
+					reply = HttpReply::stockReply("E_INCORRECT_VALUE_TYPE", "Incorrect parameter type"); return;	
+				}
+			} else { reply = HttpReply::stockReply(HttpReply::bad_request); return; }
+
+			// param[2]
+			std::string lPath; // 2
+			json::Value lP2 = lParams[2];
+			if (lP2.isString()) { 
+				lPath = lP2.getString();
+			} else { reply = HttpReply::stockReply(HttpReply::bad_request); return; }
+
+			//
+			_jm_thread_dump_chunk(lThreadId, 0, lClassIndex, (char*)lPath.c_str());
+
+			// prepare reply
+			json::Document lReply;
+			lReply.loadFromString("{}");
+			lReply.addString("result", "ok");
+			lReply.addObject("error").toNull();
+			lReply.addString("id", lId.getString());
+
+			// pack
+			pack(reply, lReply);
+			// finalize
+			finalize(reply);
 		}
 
-		char lStats[204800] = {0};
-
-		if (!lThreadId) {
-			_jm_threads_print_stats(lStats);
-		} else {
-			_jm_thread_print_stats(lThreadId, lStats, JM_ARENA_BASIC_STATS, JM_ALLOC_CLASSES);
-		}
-
-		// TODO: implement
-		// _jm_thread_dump_chunk(thread_id, chunk{0}, classIndex, "path");
-
-		std::string lValue(lStats);
-		std::vector<std::string> lParts;
-  		boost::split(lParts, lValue, boost::is_any_of("\n\t"), boost::token_compress_on);		
-
-		// prepare reply
-		json::Document lReply;
-		lReply.loadFromString("{}");
-		
-		json::Value lKeyObject = lReply.addObject("result");
-		json::Value lKeyArrayObject = lKeyObject.addArray("table");
-		for (std::vector<std::string>::iterator lString = lParts.begin(); lString != lParts.end(); lString++) {
-			json::Value lItem = lKeyArrayObject.newArrayItem();
-			lItem.setString(*lString);
-		}
-
-		lReply.addObject("error").toNull();
-		lReply.addString("id", lId.getString());
-
-		// pack
-		pack(reply, lReply);
-		// finalize
-		finalize(reply);
 	} else {
 		reply = HttpReply::stockReply(HttpReply::bad_request);
 		return;
@@ -147,7 +193,7 @@ void HttpGetKey::process(const std::string& source, const HttpRequest& request, 
 		}
 
 		// process
-		SKey lKey;
+		SKeyPtr lKey;
 		if (lAddress.size()) {
 			PKey lPKey; 
 			if (!lPKey.fromString(lAddress)) {
@@ -156,19 +202,19 @@ void HttpGetKey::process(const std::string& source, const HttpRequest& request, 
 			}
 
 			lKey = wallet_->findKey(lPKey);
-			if (!lKey.valid()) {
+			if (!lKey || !lKey->valid()) {
 				reply = HttpReply::stockReply("E_SKEY_NOT_FOUND", "Key was not found"); 
 				return;
 			}
 		} else {
 			lKey = wallet_->firstKey();
-			if (!lKey.valid()) {
+			if (!lKey->valid()) {
 				reply = HttpReply::stockReply("E_SKEY_IS_ABSENT", "Key is absent"); 
 				return;
 			}
 		}
 
-		PKey lPFoundKey = lKey.createPKey();
+		PKey lPFoundKey = lKey->createPKey();
 
 		// prepare reply
 		json::Document lReply;
@@ -177,10 +223,10 @@ void HttpGetKey::process(const std::string& source, const HttpRequest& request, 
 		json::Value lKeyObject = lReply.addObject("result");
 		lKeyObject.addString("address", lPFoundKey.toString());
 		lKeyObject.addString("pkey", lPFoundKey.toHex());
-		lKeyObject.addString("skey", lKey.toHex());
+		lKeyObject.addString("skey", lKey->toHex());
 
 		json::Value lKeyArrayObject = lKeyObject.addArray("seed");
-		for (std::vector<SKey::Word>::iterator lWord = lKey.seed().begin(); lWord != lKey.seed().end(); lWord++) {
+		for (std::vector<SKey::Word>::iterator lWord = lKey->seed().begin(); lWord != lKey->seed().end(); lWord++) {
 			json::Value lItem = lKeyArrayObject.newArrayItem();
 			lItem.setString((*lWord).wordA());
 		}
@@ -398,7 +444,7 @@ void HttpSendToAddress::process(const std::string& source, const HttpRequest& re
 						lCode = "E_TX_MEMORYPOOL";
 						lMessage = *lCtx->errors().begin(); 
 						lCtx = nullptr;
-					} else if (!lMempool->consensus()->broadcastTransaction(lCtx, wallet_->firstKey().createPKey().id())) {
+					} else if (!lMempool->consensus()->broadcastTransaction(lCtx, wallet_->firstKey()->createPKey().id())) {
 						lCode = "E_TX_NOT_BROADCASTED";
 						lMessage = "Transaction is not broadcasted"; 
 					}
@@ -696,7 +742,7 @@ void HttpCreateDApp::process(const std::string& source, const HttpRequest& reque
 						lCode = "E_TX_MEMORYPOOL";
 						lMessage = *lCtx->errors().begin(); 
 						lCtx = nullptr;
-					} else if (!lMempool->consensus()->broadcastTransaction(lCtx, wallet_->firstKey().createPKey().id())) {
+					} else if (!lMempool->consensus()->broadcastTransaction(lCtx, wallet_->firstKey()->createPKey().id())) {
 						lCode = "E_TX_NOT_BROADCASTED";
 						lMessage = "Transaction is not broadcasted"; 
 					}
@@ -837,7 +883,7 @@ void HttpCreateShard::process(const std::string& source, const HttpRequest& requ
 						lCode = "E_TX_MEMORYPOOL";
 						lMessage = *lCtx->errors().begin(); 
 						lCtx = nullptr;
-					} else if (!lMempool->consensus()->broadcastTransaction(lCtx, wallet_->firstKey().createPKey().id())) {
+					} else if (!lMempool->consensus()->broadcastTransaction(lCtx, wallet_->firstKey()->createPKey().id())) {
 						lCode = "E_TX_NOT_BROADCASTED";
 						lMessage = "Transaction is not broadcasted"; 
 					}
