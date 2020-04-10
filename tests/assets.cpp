@@ -8,14 +8,14 @@ using namespace qbit::tests;
 uint256 TxAssetVerify::create_qbitTx(BlockPtr block) {
 	// 0
 	// make pair (pubkey, key)
-	SKey lKey0 = wallet_->createKey(seedMy_);
-	PKey lPKey0 = lKey0.createPKey();
+	SKeyPtr lKey0 = wallet_->createKey(seedMy_);
+	PKey lPKey0 = lKey0->createPKey();
 
 	// 1.0
 	// create transaction
 	TxCoinBasePtr lTx = TransactionHelper::to<TxCoinBase>(TransactionFactory::create(Transaction::COINBASE));
 	lTx->addIn();
-	Transaction::UnlinkedOutPtr lUTXO = lTx->addOut(lKey0, lPKey0, TxAssetType::qbitAsset(), 10);
+	Transaction::UnlinkedOutPtr lUTXO = lTx->addOut(*lKey0, lPKey0, TxAssetType::qbitAsset(), 10);
 	// id() = hash()
 	lUTXO->out().setTx(lTx->id());
 
@@ -31,8 +31,8 @@ uint256 TxAssetVerify::create_qbitTx(BlockPtr block) {
 TransactionPtr TxAssetVerify::create_assetTypeTx(uint256 utxo, BlockPtr block) {
 
 	// mine
-	SKey lKey0 = wallet_->createKey(seedMy_); // just re-init
-	PKey lPKey0 = lKey0.createPKey();
+	SKeyPtr lKey0 = wallet_->createKey(seedMy_); // just re-init
+	PKey lPKey0 = lKey0->createPKey();
 
 	// 1
 	// create transaction
@@ -46,23 +46,23 @@ TransactionPtr TxAssetVerify::create_assetTypeTx(uint256 utxo, BlockPtr block) {
 
 	// 2
 	// add emission out
-	Transaction::UnlinkedOutPtr lUTXO0 = lAssetTypeTx->addLimitedOut(lKey0, lPKey0, 100); // full
+	Transaction::UnlinkedOutPtr lUTXO0 = lAssetTypeTx->addLimitedOut(*lKey0, lPKey0, 100); // full
 
 	// 3
 	// find qbit UTXO for fee
 	Transaction::UnlinkedOutPtr lUTXO = wallet_->findUnlinkedOut(utxo);
-	lAssetTypeTx->addIn(lKey0, lUTXO);
+	lAssetTypeTx->addIn(*lKey0, lUTXO);
 
 	// 4
 	// add qbit change
-	Transaction::UnlinkedOutPtr lUTXO1 = lAssetTypeTx->addOut(lKey0, lPKey0 /*change*/, TxAssetType::qbitAsset(), 9);
+	Transaction::UnlinkedOutPtr lUTXO1 = lAssetTypeTx->addOut(*lKey0, lPKey0 /*change*/, TxAssetType::qbitAsset(), 9);
 
 	// 5
 	// add qbit fee
-	Transaction::UnlinkedOutPtr lUTXO2 = lAssetTypeTx->addFeeOut(lKey0, TxAssetType::qbitAsset(), 1); // to miner
+	Transaction::UnlinkedOutPtr lUTXO2 = lAssetTypeTx->addFeeOut(*lKey0, TxAssetType::qbitAsset(), 1); // to miner
 
 	// 6 finalize&check
-	if (!lAssetTypeTx->finalize(lKey0)) {
+	if (!lAssetTypeTx->finalize(*lKey0)) {
 		error_ = "AssetType finalization failed";
 		return nullptr;
 	}
@@ -239,14 +239,14 @@ bool TxAssetVerify::execute() {
 uint256 TxAssetEmissionVerify::create_qbitTx(BlockPtr block) {
 	// 0
 	// make pair (pubkey, key)
-	SKey lKey0 = wallet_->createKey(seedMy_);
-	PKey lPKey0 = lKey0.createPKey();
+	SKeyPtr lKey0 = wallet_->createKey(seedMy_);
+	PKey lPKey0 = lKey0->createPKey();
 
 	// 1.0
 	// create transaction
 	TxCoinBasePtr lTx = TransactionHelper::to<TxCoinBase>(TransactionFactory::create(Transaction::COINBASE));
 	lTx->addIn();
-	Transaction::UnlinkedOutPtr lUTXO = lTx->addOut(lKey0, lPKey0, TxAssetType::qbitAsset(), 10);
+	Transaction::UnlinkedOutPtr lUTXO = lTx->addOut(*lKey0, lPKey0, TxAssetType::qbitAsset(), 10);
 	// id() = hash()
 	lUTXO->out().setTx(lTx->id());
 
@@ -262,8 +262,8 @@ uint256 TxAssetEmissionVerify::create_qbitTx(BlockPtr block) {
 TransactionPtr TxAssetEmissionVerify::create_assetTypeTx(uint256 utxo, BlockPtr block, uint256& limitedOut, uint256& feeOut) {
 
 	// mine
-	SKey lKey0 = wallet_->createKey(seedMy_); // just re-init
-	PKey lPKey0 = lKey0.createPKey();
+	SKeyPtr lKey0 = wallet_->createKey(seedMy_); // just re-init
+	PKey lPKey0 = lKey0->createPKey();
 
 	// 1
 	// create transaction
@@ -277,23 +277,23 @@ TransactionPtr TxAssetEmissionVerify::create_assetTypeTx(uint256 utxo, BlockPtr 
 
 	// 2
 	// add emission out
-	Transaction::UnlinkedOutPtr lUTXO0 = lAssetTypeTx->addLimitedOut(lKey0, lPKey0, 100); // full
+	Transaction::UnlinkedOutPtr lUTXO0 = lAssetTypeTx->addLimitedOut(*lKey0, lPKey0, 100); // full
 
 	// 3
 	// find qbit UTXO for fee
 	Transaction::UnlinkedOutPtr lUTXO = wallet_->findUnlinkedOut(utxo);
-	lAssetTypeTx->addIn(lKey0, lUTXO);
+	lAssetTypeTx->addIn(*lKey0, lUTXO);
 
 	// 4
 	// add qbit change
-	Transaction::UnlinkedOutPtr lUTXO1 = lAssetTypeTx->addOut(lKey0, lPKey0 /*change*/, TxAssetType::qbitAsset(), 9);
+	Transaction::UnlinkedOutPtr lUTXO1 = lAssetTypeTx->addOut(*lKey0, lPKey0 /*change*/, TxAssetType::qbitAsset(), 9);
 
 	// 5
 	// add qbit fee
-	Transaction::UnlinkedOutPtr lUTXO2 = lAssetTypeTx->addFeeOut(lKey0, TxAssetType::qbitAsset(), 1); // to miner
+	Transaction::UnlinkedOutPtr lUTXO2 = lAssetTypeTx->addFeeOut(*lKey0, TxAssetType::qbitAsset(), 1); // to miner
 
 	// 6 finalize&check
-	if (!lAssetTypeTx->finalize(lKey0)) {
+	if (!lAssetTypeTx->finalize(*lKey0)) {
 		error_ = "AssetType finalization failed";
 		return nullptr;
 	}
@@ -318,8 +318,8 @@ TransactionPtr TxAssetEmissionVerify::create_assetTypeTx(uint256 utxo, BlockPtr 
 TransactionPtr TxAssetEmissionVerify::create_assetEmissionTx(uint256 qbit_utxo, uint256 assetType_utxo, BlockPtr block) {
 
 	// mine
-	SKey lKey0 = wallet_->createKey(seedMy_); // just re-init
-	PKey lPKey0 = lKey0.createPKey();
+	SKeyPtr lKey0 = wallet_->createKey(seedMy_); // just re-init
+	PKey lPKey0 = lKey0->createPKey();
 
 	// 1
 	// create transaction
@@ -333,23 +333,23 @@ TransactionPtr TxAssetEmissionVerify::create_assetEmissionTx(uint256 qbit_utxo, 
 
 	Transaction::UnlinkedOutPtr lQbitUTXO = wallet_->findUnlinkedOut(qbit_utxo);	
 	
-	lAssetEmissionTx->addIn(lKey0, lQbitUTXO); // fee-in
-	lAssetEmissionTx->addLimitedIn(lKey0, lAssetTypeUTXO); // asset-type
+	lAssetEmissionTx->addIn(*lKey0, lQbitUTXO); // fee-in
+	lAssetEmissionTx->addLimitedIn(*lKey0, lAssetTypeUTXO); // asset-type
 
 	// 2
 	// add emission
-	Transaction::UnlinkedOutPtr lUTXO0 = lAssetEmissionTx->addOut(lKey0, lPKey0, lAssetTypeUTXO->out().asset(), 100); // full
+	Transaction::UnlinkedOutPtr lUTXO0 = lAssetEmissionTx->addOut(*lKey0, lPKey0, lAssetTypeUTXO->out().asset(), 100); // full
 
 	// 4
 	// add qbit change
-	Transaction::UnlinkedOutPtr lUTXO1 = lAssetEmissionTx->addOut(lKey0, lPKey0 /*change*/, TxAssetType::qbitAsset(), 8);
+	Transaction::UnlinkedOutPtr lUTXO1 = lAssetEmissionTx->addOut(*lKey0, lPKey0 /*change*/, TxAssetType::qbitAsset(), 8);
 
 	// 5
 	// add qbit fee
-	Transaction::UnlinkedOutPtr lUTXO2 = lAssetEmissionTx->addFeeOut(lKey0, TxAssetType::qbitAsset(), 1); // to miner
+	Transaction::UnlinkedOutPtr lUTXO2 = lAssetEmissionTx->addFeeOut(*lKey0, TxAssetType::qbitAsset(), 1); // to miner
 
 	// 6 finalize&check
-	if (!lAssetEmissionTx->finalize(lKey0)) {
+	if (!lAssetEmissionTx->finalize(*lKey0)) {
 		error_ = "AssetEmission finalization failed";
 		return nullptr;
 	}
@@ -479,8 +479,8 @@ bool TxAssetEmissionSpend::execute() {
 	wallet_ = std::make_shared<TxWalletA>(); 
 	entityStore_ = std::make_shared<EntityStoreA>();
 	
-	SKey lKey0 = wallet_->createKey(seedMy_); // init my key
-	PKey lPKey0 = lKey0.createPKey();
+	SKeyPtr lKey0 = wallet_->createKey(seedMy_); // init my key
+	PKey lPKey0 = lKey0->createPKey();
 	store_->pushBlock(lBlock2); // extract block for verification
 
 	SKey lKey1(seedBob_); // init bob key
@@ -499,14 +499,14 @@ bool TxAssetEmissionSpend::execute() {
 		return false;
 	}
 
-	lTxSpend->addIn(lKey0, lUTXO);
-	lTxSpend->addIn(lKey0, lFee);
+	lTxSpend->addIn(*lKey0, lUTXO);
+	lTxSpend->addIn(*lKey0, lFee);
 
-	lTxSpend->addOut(lKey0, lPKey1 /*to receiver*/, lTx1->id(), 100);
-	lTxSpend->addOut(lKey0, lPKey0 /*change*/, TxAssetType::qbitAsset(), lFee->amount() - 1);
-	lTxSpend->addFeeOut(lKey0, TxAssetType::qbitAsset(), 1); // to miner
+	lTxSpend->addOut(*lKey0, lPKey1 /*to receiver*/, lTx1->id(), 100);
+	lTxSpend->addOut(*lKey0, lPKey0 /*change*/, TxAssetType::qbitAsset(), lFee->amount() - 1);
+	lTxSpend->addFeeOut(*lKey0, TxAssetType::qbitAsset(), 1); // to miner
 
-	lTxSpend->finalize(lKey0);
+	lTxSpend->finalize(*lKey0);
 
 	lBlock2->append(lTxSpend);
 

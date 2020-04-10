@@ -23,6 +23,11 @@ JET_MALLOC_DEF void* _jm_malloc
 	size_t size
 #endif
 );
+JET_MALLOC_DEF void* malloc // for direct linkage
+(
+	size_t size
+);
+
 JET_MALLOC_DEF void* _jm_realloc
 (
 #if defined(JM_ALLOCATION_INFO)
@@ -31,6 +36,11 @@ JET_MALLOC_DEF void* _jm_realloc
 	void* address, size_t size
 #endif
 );
+JET_MALLOC_DEF void* realloc // for direct linkage
+(
+	void* address, size_t size
+);
+
 JET_MALLOC_DEF void* _jm_calloc
 (
 #if defined(JM_ALLOCATION_INFO)
@@ -39,8 +49,14 @@ JET_MALLOC_DEF void* _jm_calloc
 	size_t num, size_t size
 #endif
 );
-JET_MALLOC_DEF void  _jm_free(void* address);
-JET_MALLOC_DEF void  _jm_free_direct(void* address);
+JET_MALLOC_DEF void* calloc // for direct linkage
+(
+	size_t num, size_t size
+);
+
+JET_MALLOC_DEF void free(void* address); // for direct linkage
+JET_MALLOC_DEF void _jm_free(void* address);
+JET_MALLOC_DEF void _jm_free_direct(void* address);
 
 JET_MALLOC_DEF void* _jm_aligned_malloc
 (

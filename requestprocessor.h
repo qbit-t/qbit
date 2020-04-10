@@ -22,7 +22,7 @@ public:
 	//
 	// current state
 	StatePtr currentState() {
-		StatePtr lState = State::instance(qbit::getTime(), settings_->roles(), wallet_->firstKey().createPKey(), dApp_, dAppInstance_);
+		StatePtr lState = State::instance(qbit::getTime(), settings_->roles(), wallet_->firstKey()->createPKey(), dApp_, dAppInstance_);
 		// TODO: device_id
 		return lState;
 	}
@@ -60,13 +60,26 @@ public:
 
 			if (lAdded) peers_.insert(std::map<uint160 /*peer*/, IPeerPtr>::value_type(lAddress, peer));
 			else return false;
-
-			// update latency
-			latencyMap_.insert(LatencyMap::value_type(lAddress, peer->latency()));
 		}
 
+		pushPeerLatency(peer);
 		return true;
 	}
+
+	//
+	// update latency
+	void pushPeerLatency(IPeerPtr peer) {
+		// push
+		uint160 lAddress = peer->addressId();
+		boost::unique_lock<boost::mutex> lLock(peersMutex_);
+		// update latency
+		latencyMap_.erase(lAddress);
+		latencyMap_.insert(LatencyMap::value_type(lAddress, peer->latency()));
+
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[pushPeer]: peer ") + 
+				strprintf("%s, latency = %d", 
+					lAddress.toHex(), peer->latency()));
+	}	
 
 	//
 	// remove peer
@@ -84,7 +97,6 @@ public:
 			}
 
 			peers_.erase(lAddress);
-
 			latencyMap_.erase(lPeerId);
 		}
 	}
@@ -108,12 +120,12 @@ public:
 
 	//
 	// main key
-	SKey mainKey() { return wallet_->firstKey(); }	
+	SKeyPtr mainKey() { return wallet_->firstKey(); }	
 
 	//
 	// main key
 	PKey mainPKey() {
-		return mainKey().createPKey();
+		return mainKey()->createPKey();
 	}	
 
 	//
@@ -204,6 +216,20 @@ public:
 		if (lOrder.size()) {
 			// use nearest
 			lOrder.begin()->second->selectUtxoByEntity(entityName, handler);
+			return true;
+		}
+
+		return false;
+	}
+
+	bool selectUtxoByEntityNames(const std::vector<std::string>& entityNames, ISelectUtxoByEntityNamesHandlerPtr handler) {
+		//
+		std::map<uint32_t, IPeerPtr> lOrder;
+		collectPeersByChain(MainChain::id(), lOrder);
+
+		if (lOrder.size()) {
+			// use nearest
+			lOrder.begin()->second->selectUtxoByEntityNames(entityNames, handler);
 			return true;
 		}
 

@@ -241,7 +241,7 @@ private:
 													lRewardTx->tx()->id().toHex(), chain_.toHex().substr(0, 10), *lRewardTx->errors().begin()));
 											}
 
-											if (!lRewardPool->consensus()->broadcastTransaction(lRewardTx, mempool_->wallet()->firstKey().createPKey().id())) {
+											if (!lRewardPool->consensus()->broadcastTransaction(lRewardTx, mempool_->wallet()->firstKey()->createPKey().id())) {
 												gLog().write(Log::WARNING, std::string("[buzzer/miner/warning]: ") + strprintf("BLOCKBASE transaction broadcast failed %s/%s#", 
 													lRewardTx->tx()->id().toHex(), chain_.toHex().substr(0, 10)));
 											}
@@ -332,7 +332,7 @@ private:
 			for (std::list<TransactionPtr>::iterator lTx = lPendingTxs.begin(); lTx != lPendingTxs.end(); lTx++) {
 				if (mempool_->isTransactionExists((*lTx)->id())) {
 					TransactionContextPtr lCtx = TransactionContext::instance(*lTx);
-					consensus_->broadcastTransaction(lCtx, mempool_->wallet()->firstKey().createPKey().id());
+					consensus_->broadcastTransaction(lCtx, mempool_->wallet()->firstKey()->createPKey().id());
 				} else {
 					//
 					if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, 
@@ -341,6 +341,8 @@ private:
 				}
 			}
 
+			// try to reprocess tx candidates in pool
+			mempool_->processCandidates();			
 		}
 
 		timer_->expires_at(timer_->expiry() + boost::asio::chrono::milliseconds(500));

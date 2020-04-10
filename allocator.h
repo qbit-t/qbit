@@ -11,7 +11,7 @@
 #include "jm/include/jet_malloc.h"
 
 namespace std {
-void _jm_free(void* address);
+	void _jm_free(void* address);
 }
 
 #define malloc(a) jm_malloc(a)

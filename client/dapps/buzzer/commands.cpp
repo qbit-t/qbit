@@ -19,13 +19,16 @@ void CreateBuzzerCommand::process(const std::vector<std::string>& args) {
 }
 
 void CreateBuzzCommand::process(const std::vector<std::string>& args) {
-	if (args.size() == 1) {
+	if (args.size() >= 1) {
 		// reset
 		feeSent_ = false;
 		buzzSent_ = false;
 
+		std::vector<std::string> lBuzzers;
+		if (args.size() > 1) lBuzzers.insert(lBuzzers.end(), ++args.begin(), args.end());
+
 		// prepare
-		IComposerMethodPtr lCreateBuzz = BuzzerLightComposer::CreateTxBuzz::instance(composer_, args[0],
+		IComposerMethodPtr lCreateBuzz = BuzzerLightComposer::CreateTxBuzz::instance(composer_, args[0], lBuzzers,
 			boost::bind(&CreateBuzzCommand::created, shared_from_this(), _1));
 		// async process
 		lCreateBuzz->process(boost::bind(&CreateBuzzCommand::error, shared_from_this(), _1, _2));
@@ -82,6 +85,18 @@ void LoadBuzzfeedCommand::process(const std::vector<std::string>& args) {
 	}
 }
 
+void LoadBuzzfeedCommand::display(BuzzfeedItemPtr item) {
+	//
+	std::list<BuzzfeedItemPtr> lFeed;
+	item->feed(lFeed);
+
+	for (std::list<BuzzfeedItemPtr>::iterator lBuzz = lFeed.begin(); lBuzz != lFeed.end(); lBuzz++) {
+		std::cout << (*lBuzz)->toString() << std::endl << std::endl;
+
+		display(*lBuzz);
+	}
+}
+
 void LoadBuzzfeedCommand::buzzfeedLoaded(const std::vector<BuzzfeedItem>& feed, const uint256& chain) {
 	//
 	loaded_.insert(chain);
@@ -99,23 +114,28 @@ void LoadBuzzfeedCommand::buzzfeedLoaded(const std::vector<BuzzfeedItem>& feed, 
 		buzzFeed_->feed(lFeed);
 		// display
 		std::cout << std::endl;
-		for (std::list<BuzzfeedItemPtr>::iterator lBuzz = lFeed.begin(); lBuzz != lFeed.end(); lBuzz++) {
-			std::cout << (*lBuzz)->toString() << std::endl << std::endl;
-		}
+		display(buzzFeed_->toItem());
 
 		done_();
 	}
 }
 
-void BuzzfeedListCommand::process(const std::vector<std::string>& args) {
+void BuzzfeedListCommand::display(BuzzfeedItemPtr item) {
 	//
 	std::list<BuzzfeedItemPtr> lFeed;
-	buzzFeed_->feed(lFeed);
-	// display
-	std::cout << std::endl;
+	item->feed(lFeed);
+
 	for (std::list<BuzzfeedItemPtr>::iterator lBuzz = lFeed.begin(); lBuzz != lFeed.end(); lBuzz++) {
 		std::cout << (*lBuzz)->toString() << std::endl << std::endl;
+
+		display(*lBuzz);
 	}
+}
+
+void BuzzfeedListCommand::process(const std::vector<std::string>& args) {
+	// display
+	std::cout << std::endl;
+	display(buzzFeed_->toItem());
 
 	done_();
 }
@@ -126,7 +146,7 @@ void BuzzLikeCommand::process(const std::vector<std::string>& args) {
 		uint256 lBuzzId;
 		lBuzzId.setHex(args[0]);
 		//
-		BuzzfeedItemPtr lItem = buzzfeed_->locateBuzz(lBuzzId);
+		BuzzfeedItemPtr lItem = buzzFeed_->locateBuzz(lBuzzId);
 		//
 		if (lItem) {
 			IComposerMethodPtr lCreateBuzz = BuzzerLightComposer::CreateTxBuzzLike::instance(composer_, lItem->buzzChainId(), lItem->buzzId(),
@@ -135,8 +155,41 @@ void BuzzLikeCommand::process(const std::vector<std::string>& args) {
 			lCreateBuzz->process(boost::bind(&BuzzLikeCommand::error, shared_from_this(), _1, _2));
 		} else {
 			gLog().writeClient(Log::CLIENT, std::string(": buzz was not found in local feed"));
+			done_();
 		}
 	} else {
 		gLog().writeClient(Log::CLIENT, std::string(": incorrect number of arguments"));
+		done_();
+	}
+}
+
+void CreateBuzzReplyCommand::process(const std::vector<std::string>& args) {
+	if (args.size() >= 2) {
+		// reset
+		feeSent_ = false;
+		buzzSent_ = false;
+
+		// prepare
+		uint256 lBuzzId;
+		lBuzzId.setHex(args[0]);
+
+		std::vector<std::string> lBuzzers;
+		if (args.size() >= 3) lBuzzers.insert(lBuzzers.end(), ++(++args.begin()), args.end());
+
+		//
+		BuzzfeedItemPtr lItem = buzzFeed_->locateBuzz(lBuzzId);
+		//
+		if (lItem) {
+			IComposerMethodPtr lCreateBuzz = BuzzerLightComposer::CreateTxBuzzReply::instance(composer_, lItem->buzzChainId(), lItem->buzzId(), args[1], lBuzzers,
+				boost::bind(&CreateBuzzReplyCommand::created, shared_from_this(), _1));
+			// async process
+			lCreateBuzz->process(boost::bind(&CreateBuzzReplyCommand::error, shared_from_this(), _1, _2));
+		} else {
+			gLog().writeClient(Log::CLIENT, std::string(": buzz was not found in local feed"));
+			done_();
+		}
+	} else {
+		gLog().writeClient(Log::CLIENT, std::string(": incorrect number of arguments"));
+		done_();
 	}
 }

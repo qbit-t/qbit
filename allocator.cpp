@@ -43,7 +43,7 @@ void operator delete[](void* ptr, const std::nothrow_t&) throw()
 }
 
 void std::_jm_free(void* address) {
-	_jm_free_direct(address);
+	jm_free(address);
 }
 
 #endif

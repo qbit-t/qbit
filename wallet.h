@@ -61,10 +61,10 @@ public:
 	void setEntityStore(IEntityStorePtr entityStore) { entityStore_ = entityStore; }
 
 	// key management
-	SKey createKey(const std::list<std::string>&);
-	SKey findKey(const PKey& pkey);
-	SKey firstKey();
-	SKey changeKey();
+	SKeyPtr createKey(const std::list<std::string>&);
+	SKeyPtr findKey(const PKey& pkey);
+	SKeyPtr firstKey();
+	SKeyPtr changeKey();
 
 	// utxo management
 	bool pushUnlinkedOut(Transaction::UnlinkedOutPtr, TransactionContextPtr);
@@ -271,8 +271,12 @@ private:
 	// use utxo cache (in case of slow db functionality)
 	bool useUtxoCache_;
 
+	// cached keys
+	std::map<uint160 /*id*/, SKeyPtr> keysCache_;
+
 	// lock
 	boost::recursive_mutex cacheMutex_;
+	boost::recursive_mutex keyMutex_;
 };
 
 } // qbit
