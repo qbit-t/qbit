@@ -1,16 +1,46 @@
 #include "peerextension.h"
-#include "transactionstoreextension.h"
 #include "../../peer.h"
 #include "../../log/log.h"
 
 #include "txbuzzer.h"
 #include "txbuzz.h"
+#include "txbuzzreply.h"
+#include "txbuzzlike.h"
 
 using namespace qbit;
 
+void BuzzerPeerExtension::prepareBuzzfeedItem(BuzzfeedItem& item, TxBuzzPtr buzz, TxBuzzerPtr buzzer, BuzzerTransactionStoreExtensionPtr extension) {
+	//
+	item.setType(buzz->type());
+	item.setBuzzId(buzz->id());
+	item.setBuzzChainId(buzz->chain());
+	item.setTimestamp(buzz->timestamp());
+	item.setBuzzBody(buzz->body());
+
+	if (buzzer) {
+		item.setBuzzerId(buzzer->id());
+		item.setBuzzerName(buzzer->myName());
+		item.setBuzzerAlias(buzzer->alias());
+	}
+
+	// TODO:
+	// TxBuzzerInfo loaded by buzzer_id or using "in"?
+	// and fill setBuzzerInfoId()
+
+	// read info
+	BuzzerTransactionStoreExtension::BuzzInfo lInfo;
+	if (extension->readBuzzInfo(buzz->id(), lInfo)) {
+		item.setReplies(lInfo.replies_);
+		item.setRebuzzes(lInfo.rebuzzes_);
+		item.setLikes(lInfo.likes_);
+	}
+}
+
 void BuzzerPeerExtension::processTransaction(TransactionContextPtr ctx) {
 	//
-	if (ctx->tx()->type() == TX_BUZZ) {
+	if (ctx->tx()->type() == TX_BUZZ ||
+		ctx->tx()->type() == TX_REBUZZ ||
+		ctx->tx()->type() == TX_BUZZ_REPLY) {
 		// check subscription
 		TransactionPtr lTx = ctx->tx();
 		// get store
@@ -22,37 +52,147 @@ void BuzzerPeerExtension::processTransaction(TransactionContextPtr ctx) {
 
 		if (lStore && lStore->extension()) {
 			BuzzerTransactionStoreExtensionPtr lExtension = std::static_pointer_cast<BuzzerTransactionStoreExtension>(lStore->extension());
+			// 
+			// subscriber (peer) has direct publisher
+			// -> new item
 			if (lExtension->checkSubscription(peer_->state().dAppInstance(), lPublisher) || 
-				peer_->state().dAppInstance() == lPublisher) {
+												peer_->state().dAppInstance() == lPublisher) {
 				//
 				TxBuzzPtr lBuzz = TransactionHelper::to<TxBuzz>(lTx);
+
 				BuzzfeedItem lItem;
-				lItem.setBuzzId(lBuzz->id());
-				lItem.setBuzzChainId(lBuzz->chain());
-				lItem.setTimestamp(lBuzz->timestamp());
-				lItem.setBuzzBody(lBuzz->body());
+				TxBuzzerPtr lBuzzer = nullptr;
 
 				TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lPublisher);
-				if (lBuzzerTx) {
-					TxBuzzerPtr lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
-					lItem.setBuzzerId(lPublisher);
-					lItem.setBuzzerName(lBuzzer->myName());
-					lItem.setBuzzerAlias(lBuzzer->alias());
-				}
+				if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
 
-				// TODO:
-				// TxBuzzerInfo loaded by buzzer_id or using "in"?
-				// and fill setBuzzerInfoId()
+				prepareBuzzfeedItem(lItem, lBuzz, lBuzzer, lExtension);
 
-				// read info
-				BuzzerTransactionStoreExtension::BuzzInfo lInfo;
-				if (lExtension->readBuzzInfo(lBuzz->id(), lInfo)) {
-					lItem.setReplies(lInfo.replies_);
-					lItem.setRebuzzes(lInfo.rebuzzes_);
-					lItem.setLikes(lInfo.likes_);
+				//
+				if (ctx->tx()->type() == TX_REBUZZ || ctx->tx()->type() == TX_BUZZ_REPLY) {
+					// NOTE: should be in the same chain
+					uint256 lOriginalId = lBuzz->in()[TX_BUZZ_REPLY_BUZZ_IN].out().tx();
+					lItem.setOriginalBuzzId(lOriginalId);
 				}
 
 				notifyNewBuzz(lItem);
+
+			} else {
+				//
+				TxBuzzPtr lBuzz = TransactionHelper::to<TxBuzz>(lTx);
+				std::vector<Transaction::In>& lIns = lBuzz->in(); 
+				std::vector<Transaction::In>::iterator lInPtr = lIns.begin(); lInPtr++; // buzzer pointer
+				for(; lInPtr != lIns.end(); lInPtr++) {
+					//
+					Transaction::In& lIn = (*lInPtr);
+					ITransactionStorePtr lLocalStore = peerManager_->consensusManager()->storeManager()->locate(lIn.out().chain());
+					TransactionPtr lInTx = lLocalStore->locateTransaction(lIn.out().tx());
+
+					if (lInTx != nullptr) {
+						//
+						// next level - parents
+						if (lInTx->type() == TX_BUZZER) {
+							// direct parent
+							// mentions - when subscriber (peer) was mentioned (replied/rebuzzed direcly)
+							// -> new item
+							if (peer_->state().dAppInstance() == lInTx->id()) {
+								//
+								TxBuzzPtr lBuzz = TransactionHelper::to<TxBuzz>(lTx);
+
+								BuzzfeedItem lItem;
+								TxBuzzerPtr lBuzzer = nullptr;
+
+								TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lPublisher);
+								if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
+
+								prepareBuzzfeedItem(lItem, lBuzz, lBuzzer, lExtension);
+
+								//
+								if (ctx->tx()->type() == TX_REBUZZ || ctx->tx()->type() == TX_BUZZ_REPLY) {
+									// NOTE: should be in the same chain
+									uint256 lOriginalId = lBuzz->in()[TX_BUZZ_REPLY_BUZZ_IN].out().tx();
+									lItem.setOriginalBuzzId(lOriginalId);
+								}
+
+								notifyNewBuzz(lItem);
+							}
+						} else if (/*lInTx->type() == TX_BUZZ ||*/ lInTx->type() == TX_REBUZZ || lInTx->type() == TX_BUZZ_REPLY) {
+							//
+							std::vector<BuzzfeedItem::Update> lUpdates;
+							lPublisher = (*lInTx->in().begin()).out().tx(); // allways first
+
+							// check
+							// if subscriber (peer) has subscription on this new publisher
+							if (lExtension->checkSubscription(peer_->state().dAppInstance(), lPublisher) || 
+																	peer_->state().dAppInstance() == lPublisher) {
+
+								uint256 lReTxId = lInTx->in()[TX_BUZZ_REPLY_BUZZ_IN].out().tx();
+								uint256 lReChainId = lInTx->in()[TX_BUZZ_REPLY_BUZZ_IN].out().chain();
+
+								BuzzerTransactionStoreExtension::BuzzInfo lInfo;
+								if (lExtension->readBuzzInfo(lReTxId, lInfo)) {
+									if (ctx->tx()->type() == TX_BUZZ_REPLY) {
+										BuzzfeedItem::Update lItem(lReTxId, BuzzfeedItem::Update::REPLIES, ++lInfo.replies_);
+										lUpdates.push_back(lItem);
+									} else if (ctx->tx()->type() == TX_REBUZZ) {
+											BuzzfeedItem::Update lItem(lReTxId, BuzzfeedItem::Update::REBUZZES, ++lInfo.rebuzzes_);
+											lUpdates.push_back(lItem);
+									}
+								}
+							}
+
+							if (lInTx->type() == TX_BUZZ_REPLY) {
+								//
+								uint256 lReTxId = lInTx->in()[TX_BUZZ_REPLY_BUZZ_IN].out().tx();
+								uint256 lReChainId = lInTx->in()[TX_BUZZ_REPLY_BUZZ_IN].out().chain();
+								//
+								while (true) {
+									//
+									lLocalStore = peerManager_->consensusManager()->storeManager()->locate(lReChainId);
+									TransactionPtr lReTx = lLocalStore->locateTransaction(lReTxId);
+
+									if (lReTx->type() == TX_BUZZ_REPLY || lReTx->type() == TX_REBUZZ ||
+											lReTx->type() == TX_BUZZ) {
+										// make update
+										BuzzerTransactionStoreExtension::BuzzInfo lInfo;
+										if (lExtension->readBuzzInfo(lReTxId, lInfo)) {
+											// if we have one
+											if (ctx->tx()->type() == TX_BUZZ_REPLY) {
+												BuzzfeedItem::Update lItem(lReTxId, BuzzfeedItem::Update::REPLIES, ++lInfo.replies_);
+												lUpdates.push_back(lItem);
+											} else {
+												BuzzfeedItem::Update lItem(lReTxId, BuzzfeedItem::Update::REBUZZES, ++lInfo.rebuzzes_);
+												lUpdates.push_back(lItem);
+											}
+										} else {
+											// default
+											if (ctx->tx()->type() == TX_BUZZ_REPLY) {
+												BuzzfeedItem::Update lItem(lReTxId, BuzzfeedItem::Update::REPLIES, 1);
+												lUpdates.push_back(lItem); 
+											} else {
+												BuzzfeedItem::Update lItem(lReTxId, BuzzfeedItem::Update::REBUZZES, 1);
+												lUpdates.push_back(lItem); 
+											}
+										}
+
+										if (lReTx->type() == TX_BUZZ || lReTx->type() == TX_REBUZZ) { 
+											break; // search done
+										}
+
+										if (lReTx->in().size() > TX_BUZZ_REPLY_BUZZ_IN) { // move up-next
+											lReTxId = lReTx->in()[TX_BUZZ_REPLY_BUZZ_IN].out().tx();
+											lReChainId = lReTx->in()[TX_BUZZ_REPLY_BUZZ_IN].out().chain();
+										}
+									} else break; // search done
+								}
+							}
+
+							if (lUpdates.size()) {
+								notifyUpdateBuzz(lUpdates);
+							}
+						}
+					}
+				}
 			}
 		}
 	} else if (ctx->tx()->type() == TX_BUZZ_LIKE) {
@@ -66,10 +206,10 @@ void BuzzerPeerExtension::processTransaction(TransactionContextPtr ctx) {
 			BuzzerTransactionStoreExtensionPtr lExtension = std::static_pointer_cast<BuzzerTransactionStoreExtension>(lStore->extension());
 
 			// load buzz
-			TransactionPtr lBuzz = lStore->locateTransaction((*lTx->in().begin()).out().tx());
+			TransactionPtr lBuzz = lStore->locateTransaction(lTx->in()[TX_BUZZ_LIKE_IN].out().tx());
 			if (lBuzz) {
 				TxBuzzPtr lBuzzTx = TransactionHelper::to<TxBuzz>(lBuzz);
-				uint256 lPublisher = (*lBuzzTx->in().begin()).out().tx(); // first in - buzzer
+				uint256 lPublisher = lBuzzTx->in()[TX_BUZZ_MY_IN].out().tx(); // buzzer
 
 				if (lExtension->checkSubscription(peer_->state().dAppInstance(), lPublisher) ||
 					lExtension->checkSubscription(lPublisher, peer_->state().dAppInstance()) || 
@@ -79,11 +219,13 @@ void BuzzerPeerExtension::processTransaction(TransactionContextPtr ctx) {
 					if (lExtension->readBuzzInfo(lBuzz->id(), lInfo)) {
 						// if we have one
 						BuzzfeedItem::Update lItem(lBuzz->id(), BuzzfeedItem::Update::LIKES, ++lInfo.likes_);
-						notifyUpdateBuzz(lItem);
+						std::vector<BuzzfeedItem::Update> lUpdates; lUpdates.push_back(lItem);
+						notifyUpdateBuzz(lUpdates);
 					} else {
 						// default
 						BuzzfeedItem::Update lItem(lBuzz->id(), BuzzfeedItem::Update::LIKES, 1);
-						notifyUpdateBuzz(lItem);				
+						std::vector<BuzzfeedItem::Update> lUpdates; lUpdates.push_back(lItem);
+						notifyUpdateBuzz(lUpdates);
 					}
 				}
 			}
@@ -92,19 +234,6 @@ void BuzzerPeerExtension::processTransaction(TransactionContextPtr ctx) {
 }
 
 bool BuzzerPeerExtension::processMessage(Message& message, std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
-	//
-	bool lSkipWaitForMessage = false;
-
-	//
-	// WARNING: for short requests, but for long - we _must_ to go to wait until we read and process data
-	//
-	/*
-	lSkipWaitForMessage = 
-		message.type() == BUZZER_SUBSCRIPTION ||
-		message.type() == BUZZ_FEED ||
-		message.type() == NEW_BUZZ_NOTIFY ||
-		message.type() == BUZZ_UPDATE_NOTIFY;
-	*/
 	//
 	if (message.type() == GET_BUZZER_SUBSCRIPTION) {
 		boost::asio::async_read(*peer_->socket(),
@@ -151,9 +280,6 @@ bool BuzzerPeerExtension::processMessage(Message& message, std::list<DataStream>
 	} else {
 		return false;
 	}
-
-	//if (!lSkipWaitForMessage) 
-	//	peer_->waitForMessage();
 
 	return true;
 }
@@ -459,16 +585,20 @@ void BuzzerPeerExtension::processBuzzUpdateNotify(std::list<DataStream>::iterato
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: processing buzz update notification from ") + peer_->key());
 
 		// extract
-		BuzzfeedItem::Update lBuzzUpdate;
-		(*msg) >> lBuzzUpdate;
+		std::vector<BuzzfeedItem::Update> lBuzzUpdates;
+		(*msg) >> lBuzzUpdates;
 		peer_->eraseInData(msg);
 
 		// log
-		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: processing buzz update notification ") + 
-			strprintf("%s/%s/%d from %s", lBuzzUpdate.buzzId().toHex(), lBuzzUpdate.fieldString(), lBuzzUpdate.count(), peer_->key()));
+		if (gLog().isEnabled(Log::NET)) {
+			for (std::vector<BuzzfeedItem::Update>::iterator lUpdate = lBuzzUpdates.begin(); lUpdate != lBuzzUpdates.end(); lUpdate++) {
+				gLog().write(Log::NET, std::string("[peer/buzzer]: processing buzz update notification ") + 
+				strprintf("%s/%s/%d from %s", lUpdate->buzzId().toHex(), lUpdate->fieldString(), lUpdate->count(), peer_->key()));
+			}
+		}
 
 		// update
-		buzzfeed_->merge(lBuzzUpdate);
+		buzzfeed_->merge(lBuzzUpdates);
 
 		// WARNING: in case of async_read for large data
 		peer_->waitForMessage();
@@ -582,7 +712,7 @@ bool BuzzerPeerExtension::notifyNewBuzz(const BuzzfeedItem& buzz) {
 	return false;
 }
 
-bool BuzzerPeerExtension::notifyUpdateBuzz(const BuzzfeedItem::Update& update) {
+bool BuzzerPeerExtension::notifyUpdateBuzz(const std::vector<BuzzfeedItem::Update>& updates) {
 	//
 	if (peer_->status() == IPeer::ACTIVE) {
 		
@@ -590,18 +720,25 @@ bool BuzzerPeerExtension::notifyUpdateBuzz(const BuzzfeedItem::Update& update) {
 		std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
 		DataStream lStateStream(SER_NETWORK, CLIENT_VERSION);
 
-		lStateStream << update;
+		lStateStream << updates;
 		Message lMessage(BUZZ_UPDATE_NOTIFY, lStateStream.size(), Hash160(lStateStream.begin(), lStateStream.end()));
 
 		(*lMsg) << lMessage;
 		lMsg->write(lStateStream.data(), lStateStream.size());
 
 		// log
-		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: buzz update notification ") + 
-			strprintf("%s/%s/%d for %s -> %d/%s", 
-				const_cast<BuzzfeedItem::Update&>(update).buzzId().toHex(), 
-				const_cast<BuzzfeedItem::Update&>(update).fieldString(),
-				const_cast<BuzzfeedItem::Update&>(update).count(), peer_->key(), lStateStream.size(), HexStr(lStateStream.begin(), lStateStream.end())));
+		if (gLog().isEnabled(Log::NET)) {
+			for (std::vector<BuzzfeedItem::Update>::const_iterator lUpdate = updates.begin(); lUpdate != updates.end(); lUpdate++) {
+				gLog().write(Log::NET, std::string("[peer/buzzer]: buzz update notification ") + 
+					strprintf("%s/%s/%d for %s -> %d/%s", 
+						const_cast<BuzzfeedItem::Update&>(*lUpdate).buzzId().toHex(), 
+						const_cast<BuzzfeedItem::Update&>(*lUpdate).fieldString(),
+						const_cast<BuzzfeedItem::Update&>(*lUpdate).count(), peer_->key(), lStateStream.size(), HexStr(lStateStream.begin(), lStateStream.end())));
+			}
+
+			gLog().write(Log::NET, std::string("[peer/buzzer]: buzz update notification size ") + 
+				strprintf("%d/%s", lStateStream.size(), HexStr(lStateStream.begin(), lStateStream.end())));
+		}
 
 		// write
 		boost::asio::async_write(*peer_->socket(),

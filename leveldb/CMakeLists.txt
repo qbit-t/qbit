@@ -35,7 +35,7 @@ check_include_file("unistd.h" HAVE_UNISTD_H)
 include(CheckLibraryExists)
 check_library_exists(crc32c crc32c_value "" HAVE_CRC32C)
 check_library_exists(snappy snappy_compress "" HAVE_SNAPPY)
-check_library_exists(tcmalloc malloc "" HAVE_TCMALLOC)
+# check_library_exists(tcmalloc malloc "" HAVE_TCMALLOC)
 
 include(CheckCXXSymbolExists)
 # Using check_cxx_symbol_exists() instead of check_c_symbol_exists() because
@@ -278,6 +278,9 @@ if(HAVE_TCMALLOC)
   target_link_libraries(leveldb tcmalloc)
 endif(HAVE_TCMALLOC)
 
+link_directories(../)
+target_link_libraries(leveldb jm)
+
 # Needed by port_stdcxx.h
 find_package(Threads REQUIRED)
 target_link_libraries(leveldb Threads::Threads)
@@ -320,11 +323,11 @@ if(LEVELDB_INSTALL)
       "${PROJECT_BINARY_DIR}/leveldbConfigVersion.cmake"
       COMPATIBILITY SameMajorVersion
   )
-  install(
-    EXPORT leveldbTargets
-    NAMESPACE leveldb::
-    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/leveldb"
-  )
+#  install(
+#    EXPORT leveldbTargets
+#    NAMESPACE leveldb::
+#    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/leveldb"
+#  )
   install(
     FILES
       "${PROJECT_SOURCE_DIR}/cmake/leveldbConfig.cmake"

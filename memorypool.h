@@ -184,22 +184,33 @@ public:
 			return std::make_shared<PoolStore>(pool); 
 		}
 
-		std::multimap<uint256 /*from*/, uint256 /*to*/>& forward() { return forward_; }
-		std::multimap<uint256 /*to*/, uint256 /*from*/>& reverse() { return reverse_; }
+		std::multimap<uint256 /*from*/, uint256 /*to*/> forward() { 
+			boost::unique_lock<boost::recursive_mutex> lLock(storeMutex_);
+			return forward_; 
+		}
+		std::multimap<uint256 /*to*/, uint256 /*from*/> reverse() { 
+			boost::unique_lock<boost::recursive_mutex> lLock(storeMutex_);
+			return reverse_; 
+		}
 
 		void cleanUp(TransactionContextPtr);
 		void remove(TransactionContextPtr);
 
 		bool isUnlinkedOutUsed(const uint256& utxo) {
+			boost::unique_lock<boost::recursive_mutex> lLock(storeMutex_);
 			return usedUtxo_.find(utxo) != usedUtxo_.end();
 		}
 
 		bool isUnlinkedOutExists(const uint256& utxo) {
+			boost::unique_lock<boost::recursive_mutex> lLock(storeMutex_);
 			return freeUtxo_.find(utxo) != freeUtxo_.end() /*|| usedUtxo_.find(utxo) != usedUtxo_.end()*/;
 		}
 
 		bool transactionHeight(const uint256& tx, uint64_t& height, uint64_t& confirms, bool& coinbase) {
-			if (tx_.find(tx) != tx_.end()) return false;
+			{
+				boost::unique_lock<boost::recursive_mutex> lLock(storeMutex_);
+				if (tx_.find(tx) != tx_.end()) return false;
+			}
 
 			if (!pool_->persistentStore()->transactionHeight(tx, height, confirms, coinbase)) {
 				if (pool_->persistentMainStore()) return pool_->persistentStore()->transactionHeight(tx, height, confirms, coinbase);
@@ -216,11 +227,46 @@ public:
 
 		bool synchronizing() { return false; } 
 
+		bool tryPushTransaction(TransactionContextPtr ctx) {
+			//
+			boost::unique_lock<boost::recursive_mutex> lLock(storeMutex_);
+			if (candidateTx_.find(ctx->tx()->id()) == candidateTx_.end()) {
+				candidateTx_[ctx->tx()->id()] = ctx;
+				return true;
+			}
+
+			return false;
+		}
+
+		void removeCandidate(TransactionContextPtr ctx) {
+			//
+			boost::unique_lock<boost::recursive_mutex> lLock(storeMutex_);
+			candidateTx_.erase(ctx->tx()->id());
+			postponedTx_.erase(ctx->tx()->id());
+		}
+
+		void postponeCandidate(TransactionContextPtr ctx) {
+			//
+			boost::unique_lock<boost::recursive_mutex> lLock(storeMutex_);
+			postponedTx_[ctx->tx()->id()] = ctx;
+			candidateTx_.erase(ctx->tx()->id());
+		}
+
+		void candidates(std::list<TransactionContextPtr>& candidates) {
+			//
+			boost::unique_lock<boost::recursive_mutex> lLock(storeMutex_);
+			for (std::map<uint256 /*id*/, TransactionContextPtr /*tx*/>::iterator lTx = postponedTx_.begin(); lTx != postponedTx_.end(); lTx++) {
+				candidates.push_back(lTx->second);
+			}
+		}
+
 	private:
 		IMemoryPoolPtr pool_;
 
 		// tx tree
 		std::map<uint256 /*id*/, TransactionContextPtr /*tx*/> tx_;
+		std::map<uint256 /*id*/, TransactionContextPtr /*tx*/> candidateTx_;
+		std::map<uint256 /*id*/, TransactionContextPtr /*tx*/> postponedTx_;
 		std::multimap<uint256 /*from*/, uint256 /*to*/> forward_;
 		std::multimap<uint256 /*to*/, uint256 /*from*/> reverse_;
 
@@ -228,7 +274,10 @@ public:
 		std::map<uint256 /*utxo*/, bool> usedUtxo_;
 		// free utxo
 		std::map<uint256 /*utxo*/, Transaction::UnlinkedOutPtr> freeUtxo_;
+		//
+		boost::recursive_mutex storeMutex_;		
 	};
+
 	typedef std::shared_ptr<PoolStore> PoolStorePtr;
 
 public:
@@ -348,8 +397,11 @@ public:
 		confirmedBlocks_.erase(id);
 	}
 
+	void processCandidates();
+
 private:
 	inline qunit_t getTop() {
+		boost::unique_lock<boost::recursive_mutex> lLock(mempoolMutex_);
 		std::multimap<qunit_t /*fee rate*/, uint256 /*tx*/>::reverse_iterator lBegin = map_.rbegin();
 		if (lBegin != map_.rend()) {
 			return lBegin->first; 
@@ -384,11 +436,15 @@ private:
 	IEntityStorePtr entityStore_;
 	uint256 chain_;
 
+	// local copy
+	std::multimap<uint256 /*from*/, uint256 /*to*/> forward_;
+	std::multimap<uint256 /*to*/, uint256 /*from*/> reverse_;
+
 	// weighted map
 	std::multimap<qunit_t /*fee rate*/, uint256 /*tx*/> map_;
 	// qbit txs
 	std::map<uint256, TransactionContextPtr> qbitTxs_;
-	//
+	// lock
 	boost::recursive_mutex mempoolMutex_;
 };
 

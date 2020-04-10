@@ -112,7 +112,7 @@ void HttpCreateBuzzer::process(const std::string& source, const HttpRequest& req
 						lCode = "E_TX_MEMORYPOOL";
 						lMessage = *lCtx->errors().begin(); 
 						lCtx = nullptr;
-					} else if (!lMempool->consensus()->broadcastTransaction(lCtx, wallet_->firstKey().createPKey().id())) {
+					} else if (!lMempool->consensus()->broadcastTransaction(lCtx, wallet_->firstKey()->createPKey().id())) {
 						lCode = "E_TX_NOT_BROADCASTED";
 						lMessage = "Transaction is not broadcasted"; 
 					}
@@ -250,7 +250,7 @@ void HttpBuzz::process(const std::string& source, const HttpRequest& request, co
 							lMessage = *((*lLinkedCtx)->errors().begin()); 
 							lCtx = nullptr;
 							break;
-						} else if (!lMempool->consensus()->broadcastTransaction((*lLinkedCtx), wallet_->firstKey().createPKey().id())) {
+						} else if (!lMempool->consensus()->broadcastTransaction((*lLinkedCtx), wallet_->firstKey()->createPKey().id())) {
 							lCode = "E_TX_NOT_BROADCASTED";
 							lMessage = "Transaction is not broadcasted"; 
 						}
@@ -286,7 +286,7 @@ void HttpBuzz::process(const std::string& source, const HttpRequest& request, co
 							lCode = "E_TX_MEMORYPOOL";
 							lMessage = *lCtx->errors().begin(); 
 							lCtx = nullptr;
-						} else if (!lBuzzMempool->consensus()->broadcastTransaction(lCtx, wallet_->firstKey().createPKey().id())) {
+						} else if (!lBuzzMempool->consensus()->broadcastTransaction(lCtx, wallet_->firstKey()->createPKey().id())) {
 							lCode = "E_TX_NOT_BROADCASTED";
 							lMessage = "Transaction is not broadcasted"; 
 						}
@@ -513,7 +513,7 @@ void HttpBuzzerSubscribe::process(const std::string& source, const HttpRequest& 
 						lCode = "E_TX_MEMORYPOOL";
 						lMessage = *lCtx->errors().begin(); 
 						lCtx = nullptr;
-					} else if (!lMempool->consensus()->broadcastTransaction(lCtx, wallet_->firstKey().createPKey().id())) {
+					} else if (!lMempool->consensus()->broadcastTransaction(lCtx, wallet_->firstKey()->createPKey().id())) {
 						lCode = "E_TX_NOT_BROADCASTED";
 						lMessage = "Transaction is not broadcasted"; 
 					}
@@ -648,7 +648,7 @@ void HttpBuzzerUnsubscribe::process(const std::string& source, const HttpRequest
 						lCode = "E_TX_MEMORYPOOL";
 						lMessage = *lCtx->errors().begin(); 
 						lCtx = nullptr;
-					} else if (!lMempool->consensus()->broadcastTransaction(lCtx, wallet_->firstKey().createPKey().id())) {
+					} else if (!lMempool->consensus()->broadcastTransaction(lCtx, wallet_->firstKey()->createPKey().id())) {
 						lCode = "E_TX_NOT_BROADCASTED";
 						lMessage = "Transaction is not broadcasted"; 
 					}

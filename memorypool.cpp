@@ -10,6 +10,8 @@
 using namespace qbit;
 
 void MemoryPool::PoolStore::addLink(const uint256& from, const uint256& to) {
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(storeMutex_);
 	// add
 	bool lFound = false;
 	std::pair<std::multimap<uint256 /*from*/, uint256 /*to*/>::iterator,
@@ -31,6 +33,8 @@ void MemoryPool::PoolStore::addLink(const uint256& from, const uint256& to) {
 }
 
 bool MemoryPool::PoolStore::pushTransaction(TransactionContextPtr ctx) {
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(storeMutex_);
 	// extract ins and check possible double linking and check pure qbit tx
 	for (std::vector<Transaction::In>::iterator lIn = ctx->tx()->in().begin(); lIn != ctx->tx()->in().end(); lIn++) {
 		uint256 lInHash = (*lIn).out().hash();
@@ -51,12 +55,19 @@ bool MemoryPool::PoolStore::pushTransaction(TransactionContextPtr ctx) {
 		else ctx->resetQbitTx(); // reset it
 	}
 
+	// remove from candidates
+	candidateTx_.erase(ctx->tx()->id());
+	// remove from postponed candidates
+	postponedTx_.erase(ctx->tx()->id());
+	// push to actual
 	tx_[ctx->tx()->id()] = ctx;
 
 	return true;
 }
 
 void MemoryPool::PoolStore::cleanUp(TransactionContextPtr ctx) {
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(storeMutex_);
 	//
 	for (std::vector<Transaction::In>::iterator lIn = ctx->tx()->in().begin(); lIn != ctx->tx()->in().end(); lIn++) {
 		uint256 lInHash = (*lIn).out().hash();
@@ -65,6 +76,8 @@ void MemoryPool::PoolStore::cleanUp(TransactionContextPtr ctx) {
 }
 
 void MemoryPool::PoolStore::remove(TransactionContextPtr ctx) {
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(storeMutex_);
 	//
 	for (std::vector<Transaction::In>::iterator lIn = ctx->tx()->in().begin(); lIn != ctx->tx()->in().end(); lIn++) {
 		uint256 lInHash = (*lIn).out().hash();
@@ -80,10 +93,20 @@ void MemoryPool::PoolStore::remove(TransactionContextPtr ctx) {
 bool MemoryPool::PoolStore::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, TransactionContextPtr ctx) {
 	//
 	uint256 lHash = utxo->out().hash();
+	if (gLog().isEnabled(Log::POOL)) gLog().write(Log::STORE, std::string("[PoolStore::pushUnlinkedOut]: try to push ") +
+		strprintf("utxo = %s, tx = %s, ctx = %s", 
+			lHash.toHex(), utxo->out().tx().toHex(), ctx->tx()->id().toHex()));
+
+	boost::unique_lock<boost::recursive_mutex> lLock(storeMutex_);
+	//
 	if (freeUtxo_.find(lHash) == freeUtxo_.end() && 
 		(!pool_->persistentStore()->isUnlinkedOutUsed(lHash) || 
 			(pool_->persistentMainStore() && !pool_->persistentMainStore()->isUnlinkedOutUsed(lHash)))) {
 		freeUtxo_.insert(std::map<uint256 /*utxo*/, Transaction::UnlinkedOutPtr>::value_type(lHash, utxo));
+
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[PoolStore::pushUnlinkedOut]: PUSHED ") +
+			strprintf("utxo = %s, tx = %s, ctx = %s", 
+				lHash.toHex(), utxo->out().tx().toHex(), ctx->tx()->id().toHex()));
 
 		return true;
 	}
@@ -93,28 +116,45 @@ bool MemoryPool::PoolStore::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, Tr
 
 bool MemoryPool::PoolStore::popUnlinkedOut(const uint256& utxo, TransactionContextPtr ctx) {
 	//
-	std::map<uint256 /*utxo*/, Transaction::UnlinkedOutPtr>::iterator lFreeUtxo = freeUtxo_.find(utxo);
-	if (lFreeUtxo != freeUtxo_.end()) {
+	if (gLog().isEnabled(Log::POOL)) gLog().write(Log::STORE, std::string("[PoolStore::popUnlinkedOut]: try to pop ") +
+		strprintf("utxo = %s, tx = ?, ctx = %s", utxo.toHex(), ctx->tx()->hash().toHex()));
+
+	//
+	bool lExists = false;
+	Transaction::UnlinkedOutPtr lFreeUtxoPtr;
+	{
+		boost::unique_lock<boost::recursive_mutex> lLock(storeMutex_);
+		std::map<uint256 /*utxo*/, Transaction::UnlinkedOutPtr>::iterator lFreeUtxo = freeUtxo_.find(utxo);
+		lExists = lFreeUtxo != freeUtxo_.end();
+		if (lExists) { lFreeUtxoPtr = lFreeUtxo->second; freeUtxo_.erase(lFreeUtxo); }
+	}
+
+	if (lExists) {
 		// case for mem-pool tx's only
 		// usedUtxo_.insert(std::map<uint256, bool>::value_type(utxo, true));
 
 		// add/update link: from -> to
-		addLink(lFreeUtxo->second->out().tx(), ctx->tx()->id());
+		addLink(lFreeUtxoPtr->out().tx(), ctx->tx()->id());
 		// in case of cross-links
-		ctx->pushCrossLink(lFreeUtxo->second->out().tx());
+		ctx->pushCrossLink(lFreeUtxoPtr->out().tx());
 
-		freeUtxo_.erase(lFreeUtxo);
+		{
+			boost::unique_lock<boost::recursive_mutex> lLock(storeMutex_);
 
-		if (usedUtxo_.find(utxo) == usedUtxo_.end()) {
-			usedUtxo_.insert(std::map<uint256, bool>::value_type(utxo, true));
-		} else {
-			if (ctx->tx()->isValue(lFreeUtxo->second)) {
-				ctx->addError("E_OUT_USED|Output is already used.");
-				return false;
+			if (usedUtxo_.find(utxo) == usedUtxo_.end()) {
+				usedUtxo_.insert(std::map<uint256, bool>::value_type(utxo, true));
+			} else {
+				if (ctx->tx()->isValue(lFreeUtxoPtr)) {
+					ctx->addError("E_OUT_USED|Output is already used.");
+					return false;
+				}
 			}
-		}
 
-		return true;
+			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[PoolStore::popUnlinkedOut]: POPPED ") +
+				strprintf("utxo = %s, tx = ?, ctx = %s", utxo.toHex(), ctx->tx()->id().toHex()));					
+
+			return true;
+		}
 	}
 
 	// just check for existence
@@ -137,6 +177,9 @@ bool MemoryPool::PoolStore::popUnlinkedOut(const uint256& utxo, TransactionConte
 			}
 			ctx->clearCrossLinks(); // processed
 
+			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[PoolStore::popUnlinkedOut]: POPPED in MAIN ") +
+				strprintf("utxo = %s, tx = ?, ctx = %s", utxo.toHex(), ctx->tx()->id().toHex()));					
+
 			return true;
 		}
 	}
@@ -145,8 +188,11 @@ bool MemoryPool::PoolStore::popUnlinkedOut(const uint256& utxo, TransactionConte
 }
 
 TransactionPtr MemoryPool::PoolStore::locateTransaction(const uint256& hash) {
-	std::map<uint256 /*id*/, TransactionContextPtr /*tx*/>::iterator lTx = tx_.find(hash);
-	if (lTx != tx_.end()) return lTx->second->tx();
+	{
+		boost::unique_lock<boost::recursive_mutex> lLock(storeMutex_);
+		std::map<uint256 /*id*/, TransactionContextPtr /*tx*/>::iterator lTx = tx_.find(hash);
+		if (lTx != tx_.end()) return lTx->second->tx();
+	}
 
 	TransactionContextPtr lCtx = pool_->wallet()->mempoolManager()->locateTransactionContext(hash);
 	if (lCtx) return lCtx->tx();
@@ -157,6 +203,7 @@ TransactionPtr MemoryPool::PoolStore::locateTransaction(const uint256& hash) {
 }
 
 TransactionContextPtr MemoryPool::PoolStore::locateTransactionContext(const uint256& hash) {
+	boost::unique_lock<boost::recursive_mutex> lLock(storeMutex_);
 	std::map<uint256 /*id*/, TransactionContextPtr /*tx*/>::iterator lTx = tx_.find(hash);
 	if (lTx != tx_.end()) return lTx->second;
 
@@ -169,19 +216,16 @@ TransactionContextPtr MemoryPool::PoolStore::locateTransactionContext(const uint
 
 bool MemoryPool::popUnlinkedOut(const uint256& utxo, TransactionContextPtr ctx) {
 	//
-	boost::unique_lock<boost::recursive_mutex> lLock(mempoolMutex_);
 	return poolStore_->popUnlinkedOut(utxo, ctx);
 }
 
 bool MemoryPool::isUnlinkedOutUsed(const uint256& utxo) {
 	//
-	boost::unique_lock<boost::recursive_mutex> lLock(mempoolMutex_);
 	return poolStore_->isUnlinkedOutUsed(utxo);
 }
 
 bool MemoryPool::isUnlinkedOutExists(const uint256& utxo) {
 	//
-	boost::unique_lock<boost::recursive_mutex> lLock(mempoolMutex_);
 	return poolStore_->isUnlinkedOutExists(utxo);
 }
 
@@ -193,6 +237,35 @@ TransactionContextPtr MemoryPool::pushTransaction(TransactionPtr tx) {
 	return nullptr;
 }
 
+void MemoryPool::processCandidates() {
+	//
+	PoolStorePtr lPool = PoolStore::toStore(poolStore_);
+	//
+	std::list<TransactionContextPtr> lCandidates;
+	lPool->candidates(lCandidates);
+
+	if (lCandidates.size()) {
+		if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[processCandidates]: re-processing tx candidates..."));
+
+		for (std::list<TransactionContextPtr>::iterator lCandidate = lCandidates.begin(); lCandidate != lCandidates.end(); lCandidate++) {
+			//
+			if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[processCandidates]: re-process transaction ") + 
+					strprintf("%s/%s#", (*lCandidate)->tx()->id().toHex(), (*lCandidate)->tx()->chain().toHex().substr(0, 10)));
+			// clean-up
+			(*lCandidate)->errors().clear();
+			// try to push
+			pushTransaction(*lCandidate);
+			// check
+			if ((*lCandidate)->errors().size()) {
+				for (std::list<std::string>::iterator lErr = (*lCandidate)->errors().begin(); lErr != (*lCandidate)->errors().end(); lErr++) {
+					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[processCandidates]: transaction re-processing ERROR - ") + (*lErr) +
+							strprintf(" -> %s/%s#", (*lCandidate)->tx()->id().toHex(), (*lCandidate)->tx()->chain().toHex().substr(0, 10)));
+				}
+			}
+		}
+	}
+}
+
 bool MemoryPool::pushTransaction(TransactionContextPtr ctx) {
 	//
 	if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[pushTransaction]: ") + 
@@ -200,7 +273,14 @@ bool MemoryPool::pushTransaction(TransactionContextPtr ctx) {
 			ctx->tx()->hash().toHex(), ctx->tx()->chain().toHex().substr(0, 10)));
 	//
 	{
-		boost::unique_lock<boost::recursive_mutex> lLock(mempoolMutex_);
+		// prelimiary check and store
+		PoolStorePtr lPool = PoolStore::toStore(poolStore_);
+		if (!lPool->tryPushTransaction(ctx)) {
+			if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[pushTransaction]: ") + 
+				strprintf("transaction is ALREADY PROCESSING: %s/%s#",
+					ctx->tx()->hash().toHex(), ctx->tx()->chain().toHex().substr(0, 10)));
+			return false; // already exists
+		}
 
 		// 0. set context
 		ctx->setContext(TransactionContext::MEMPOOL_COMMIT);
@@ -216,53 +296,59 @@ bool MemoryPool::pushTransaction(TransactionContextPtr ctx) {
 		// 2. check using processor
 		IEntityStorePtr lEntityStore = PoolEntityStore::instance(shared_from_this());
 		TransactionProcessor lProcessor = TransactionProcessor::general(poolStore_, wallet_, lEntityStore);
-		if (!lProcessor.process(ctx))
+		if (!lProcessor.process(ctx)) {
+			// if tx has references to the missing tx (not yet arrived)
+			if (ctx->errorsContains("UNKNOWN_REFTX")) {
+				lPool->postponeCandidate(ctx);
+			} else {
+				lPool->removeCandidate(ctx);
+			}
+
 			return true; // check ctx->errors() for details
+		}
 
 		// 3. push transaction to the pool store
 		if (!poolStore_->pushTransaction(ctx))
 			return true; // check ctx->errors() for details
 
-		// 4. add tx to pool map
-		if (!ctx->errors().size()) {
-			if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[pushTransaction]: ") + 
-				strprintf("transaction PUSHED: rate = %d/%s/%s#",
-					ctx->feeRate(), ctx->tx()->hash().toHex(), ctx->tx()->chain().toHex().substr(0, 10)));
-			map_.insert(std::multimap<qunit_t /*fee rate*/, uint256 /*tx*/>::value_type(ctx->feeRate(), ctx->tx()->id()));
-		} else {
-			if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[pushTransaction]: ") + 
-				strprintf("transaction NOT PUSHED: rate = %d/%s/%s#",
-					ctx->feeRate(), ctx->tx()->hash().toHex(), ctx->tx()->chain().toHex().substr(0, 10)));			
-		}
+		{
+			boost::unique_lock<boost::recursive_mutex> lLock(mempoolMutex_);
+			// 4. add tx to pool map
+			if (!ctx->errors().size()) {
+				if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[pushTransaction]: ") + 
+					strprintf("transaction PUSHED: rate = %d/%s/%s#",
+						ctx->feeRate(), ctx->tx()->hash().toHex(), ctx->tx()->chain().toHex().substr(0, 10)));
+				map_.insert(std::multimap<qunit_t /*fee rate*/, uint256 /*tx*/>::value_type(ctx->feeRate(), ctx->tx()->id()));
+			} else {
+				if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[pushTransaction]: ") + 
+					strprintf("transaction NOT PUSHED: rate = %d/%s/%s#",
+						ctx->feeRate(), ctx->tx()->hash().toHex(), ctx->tx()->chain().toHex().substr(0, 10)));			
+			}
 
-		// 5. check if "qbit"
-		if (ctx->qbitTx()) qbitTxs_[ctx->tx()->id()] = ctx;
+			// 5. check if "qbit"
+			if (ctx->qbitTx()) qbitTxs_[ctx->tx()->id()] = ctx;
+		}
 	}
 
 	return true;
 }
 
 bool MemoryPool::isTransactionExists(const uint256& tx) {
-	boost::unique_lock<boost::recursive_mutex> lLock(mempoolMutex_);
 	return poolStore_->locateTransactionContext(tx) != nullptr;
 }
 
 TransactionPtr MemoryPool::locateTransaction(const uint256& tx) {
-	boost::unique_lock<boost::recursive_mutex> lLock(mempoolMutex_);
 	TransactionContextPtr lCtx = poolStore_->locateTransactionContext(tx);
 	if (lCtx) return lCtx->tx();
 	return nullptr;
 }	
 
 TransactionContextPtr MemoryPool::locateTransactionContext(const uint256& tx) {
-	boost::unique_lock<boost::recursive_mutex> lLock(mempoolMutex_);
 	TransactionContextPtr lCtx = poolStore_->locateTransactionContext(tx);
 	return lCtx;
 }	
 
 qunit_t MemoryPool::estimateFeeRateByLimit(TransactionContextPtr ctx, qunit_t feeRateLimit) {
-	//
-	boost::unique_lock<boost::recursive_mutex> lLock(mempoolMutex_);
 	//
 	// 1. try top
 	qunit_t lRate = getTop();
@@ -274,8 +360,6 @@ qunit_t MemoryPool::estimateFeeRateByLimit(TransactionContextPtr ctx, qunit_t fe
 }
 
 qunit_t MemoryPool::estimateFeeRateByBlock(TransactionContextPtr ctx, uint32_t targetBlock) {
-	//
-	boost::unique_lock<boost::recursive_mutex> lLock(mempoolMutex_);
 	//
 	// 1. get top rate
 	qunit_t lRate = getTop();
@@ -301,12 +385,12 @@ qunit_t MemoryPool::estimateFeeRateByBlock(TransactionContextPtr ctx, uint32_t t
 }
 
 bool MemoryPool::traverseLeft(TransactionContextPtr root, TxTree& tree) {
-	PoolStorePtr lPool = PoolStore::toStore(poolStore_);
+	//
 	uint256 lId = root->tx()->id();
 	TransactionContextPtr lRoot = root;
 
 	std::pair<std::multimap<uint256 /*from*/, uint256 /*to*/>::iterator,
-				std::multimap<uint256 /*from*/, uint256 /*to*/>::iterator> lRange = lPool->reverse().equal_range(lId);
+				std::multimap<uint256 /*from*/, uint256 /*to*/>::iterator> lRange = reverse_.equal_range(lId);
 	if (lRange.first == lRange.second) {
 		if (!(persistentStore_->locateTransactionContext(lId) || 
 					(persistentMainStore_ && persistentMainStore_->locateTransactionContext(lId))))
@@ -335,12 +419,12 @@ bool MemoryPool::traverseLeft(TransactionContextPtr root, TxTree& tree) {
 }
 
 bool MemoryPool::traverseRight(TransactionContextPtr root, TxTree& tree) {
-	PoolStorePtr lPool = PoolStore::toStore(poolStore_);
+	//
 	uint256 lId = root->tx()->id();
 	TransactionContextPtr lRoot = root;
 
 	std::pair<std::multimap<uint256 /*from*/, uint256 /*to*/>::iterator,
-				std::multimap<uint256 /*from*/, uint256 /*to*/>::iterator> lRange = lPool->forward().equal_range(lId);
+				std::multimap<uint256 /*from*/, uint256 /*to*/>::iterator> lRange = forward_.equal_range(lId);
 
 	for (std::multimap<uint256 /*from*/, uint256 /*to*/>::iterator lTo = lRange.first; lTo != lRange.second; lTo++) {
 		TransactionContextPtr lTx = poolStore_->locateTransactionContext(lTo->second); // TODO: duplicates?
@@ -404,6 +488,12 @@ BlockContextPtr MemoryPool::beginBlock(BlockPtr block) {
 	//
 	// transactions tree to commit
 	TxTree lTree;
+
+	//
+	// local copy
+	PoolStorePtr lPool = PoolStore::toStore(poolStore_);
+	forward_ = lPool->forward();
+	reverse_ = lPool->reverse();
 
 	//
 	// traverse
@@ -613,7 +703,7 @@ BlockContextPtr MemoryPool::beginBlock(BlockPtr block) {
 	lCtx->block()->setPrev(persistentStore_->currentBlockHeader().hash());
 
 	// set origin
-	lCtx->block()->setOrigin(consensus_->mainKey().createPKey().id());
+	lCtx->block()->setOrigin(consensus_->mainKey()->createPKey().id());
 
 	return lCtx;
 }
@@ -629,7 +719,6 @@ void MemoryPool::commit(BlockContextPtr ctx) {
 
 void MemoryPool::removeTransactions(BlockPtr block) {
 	//
-	boost::unique_lock<boost::recursive_mutex> lLock(mempoolMutex_);
 	if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[removeTransactions]: cleaning up mempool for ") + 
 		strprintf("%s/%s#", block->blockHeader().hash().toHex(), chain_.toHex().substr(0, 10)));	
 	//

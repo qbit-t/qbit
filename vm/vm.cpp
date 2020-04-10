@@ -771,10 +771,10 @@ void VirtualMachine::qchecka() {
 	Register& lA1 = registers_[qasm::QA1]; // commitment
 	Register& lA2 = registers_[qasm::QA2]; // blinding key
 
-	Context lContext;
+	ContextPtr lContext = Context::instance();
 	qbit::vector<unsigned char> lCommitment;
 
-	if (!lContext.createCommitment(lCommitment, lA2.to<uint256>(), lA0.to<uint64_t>())) {
+	if (!lContext->createCommitment(lCommitment, lA2.to<uint256>(), lA0.to<uint64_t>())) {
 		state_ = VirtualMachine::INVALID_AMOUNT; // general failure
 		return;
 	}
@@ -910,8 +910,8 @@ void VirtualMachine::qatxoa() {
 						lA1.to<std::vector<unsigned char> >() // commit
 					);
 
-					SKey lSKey = wallet_->findKey(lPKey);
-					if (lSKey.valid())
+					SKeyPtr lSKey = wallet_->findKey(lPKey);
+					if (lSKey && lSKey->valid())
 						wallet_->pushUnlinkedOut(lUTXO, wrapper_); // push own UTXO
 					store_->pushUnlinkedOut(lUTXO, wrapper_); // push public
 					// out address
@@ -961,8 +961,8 @@ void VirtualMachine::qatxo() {
 						lPKey
 					);
 
-					SKey lSKey = wallet_->findKey(lPKey);
-					if (lSKey.valid())
+					SKeyPtr lSKey = wallet_->findKey(lPKey);
+					if (lSKey && lSKey->valid())
 						wallet_->pushUnlinkedOut(lUTXO, wrapper_); // push own UTXO
 					store_->pushUnlinkedOut(lUTXO, wrapper_); // push public
 					// out address
@@ -1055,12 +1055,12 @@ void VirtualMachine::qatxop() {
 					uint64_t lAmount = 0x00;
 					uint256 lBlindFactor;
 
-					SKey lSKey = (wallet_ ? wallet_->findKey(lPKey) : SKey());
-					if (lSKey.valid()) { // potentially our future input
+					SKeyPtr lSKey = (wallet_ ? wallet_->findKey(lPKey) : nullptr);
+					if (lSKey && lSKey->valid()) { // potentially our future input
 
 						for (std::set<PKey>::iterator lPKeyPtr = lInAddresses.begin(); lPKeyPtr != lInAddresses.end(); lPKeyPtr++) {
-							uint256 lNonce = lSKey.shared(*lPKeyPtr);
-							if (lSKey.context()->rewindRangeProof(&lAmount, lBlindFactor, lNonce, lA1.begin(), lA2.begin(), lA2.size())) {
+							uint256 lNonce = lSKey->shared(*lPKeyPtr);
+							if (lSKey->context()->rewindRangeProof(&lAmount, lBlindFactor, lNonce, lA1.begin(), lA2.begin(), lA2.size())) {
 								// success
 								Transaction::UnlinkedOutPtr lUTXO = Transaction::UnlinkedOut::instance(
 									lLink, // link
@@ -1116,8 +1116,8 @@ void VirtualMachine::qdtxo() {
 
 			PKey lPKey(context_);
 			lPKey.set<unsigned char*>(lS0.begin(), lS0.end());			
-			SKey lSKey = (wallet_ ? wallet_->findKey(lPKey) : SKey());
-			if (lSKey.valid()) {
+			SKeyPtr lSKey = (wallet_ ? wallet_->findKey(lPKey) : nullptr);
+			if (lSKey && lSKey->valid()) {
 				if (wallet_->popUnlinkedOut(lHash, wrapper_)) {
 					registers_[qasm::QP0].set((unsigned char)0x01); // wallet_ successfully popped
 				} else {
@@ -1162,8 +1162,8 @@ void VirtualMachine::qdetxo() {
 
 			PKey lPKey(context_);
 			lPKey.set<unsigned char*>(lS0.begin(), lS0.end());			
-			SKey lSKey = (wallet_ ? wallet_->findKey(lPKey) : SKey());
-			if (lSKey.valid()) {
+			SKeyPtr lSKey = (wallet_ ? wallet_->findKey(lPKey) : nullptr);
+			if (lSKey && lSKey->valid()) {
 				if (wallet_->popUnlinkedOut(lHash, wrapper_)) {
 					registers_[qasm::QP0].set((unsigned char)0x01); // wallet_ successfully popped
 				} else {

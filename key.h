@@ -26,105 +26,6 @@ namespace qbit {
 #define KEY_BUF_LEN 128
 #define WORD_LEN 64
 
-// forward
-class PKey;
-
-class SKey {
-public:
-	class Word {
-	public:
-		Word() {}
-		Word(const std::string& word) { 
-			if (word.size() < WORD_LEN) memcpy(word_, word.c_str(), word.size()); 
-			else memcpy(word_, word.c_str(), WORD_LEN-1);
-		}
-
-		template<typename Stream>
-		void serialize(Stream& s) const
-		{
-			s.write((char*)word_, sizeof(word_));
-		}
-
-		template<typename Stream>
-		void deserialize(Stream& s)
-		{
-			s.read((char*)word_, sizeof(word_));
-		}
-
-		std::basic_string<unsigned char> word() { return std::basic_string<unsigned char>(word_); }
-		std::basic_string<char> wordA() { return std::basic_string<char>((char*)word_); }
-
-	private:
-		unsigned char word_[WORD_LEN] = {0};
-	};
-public:
-	SKey() { valid_ = false; }
-	SKey(ContextPtr);
-	SKey(ContextPtr, const std::list<std::string>&);
-	SKey(const std::list<std::string>&);
-
-	const unsigned char* begin() const { return vch_; }
-	const unsigned char* end() const { return vch_ + size(); }
-	unsigned int size() const { return (valid_ ? KEY_LEN : 0); }
-
-	const unsigned char& operator[](unsigned int pos) const { return vch_[pos]; }
-
-	bool create();
-	PKey createPKey();
-
-	std::string toString();
-	std::string toHex() { return HexStr(begin(), end()); }	
-
-	template <typename T> void set(const T pbegin, const T pend)
-	{
-		if (pend - pbegin != KEY_LEN) {
-			valid_ = false;
-			return;
-		}
-		if (check(&pbegin[0])) {
-			memcpy(vch_, (unsigned char*)&pbegin[0], KEY_LEN);
-			valid_ = true;
-		} else {
-			valid_ = false;
-		}
-	}
-
-	bool valid() { return valid_; }
-
-	bool sign(const uint256& hash /*data chunk hash*/, std::vector<unsigned char>& signature /*resulting signature*/);
-	bool sign(const uint256& hash /*data chunk hash*/, uint512& signature /*resulting signature*/);
-
-	uint256 shared(const PKey& other);
-
-	inline ContextPtr context() { return getContext(); }
-
-	ADD_SERIALIZE_METHODS;
-
-	template <typename Stream, typename Operation>
-	inline void serializationOp(Stream& s, Operation ser_action) {
-		READWRITE(valid_);
-		READWRITE(vch_);
-		READWRITE(seed_);
-
-		if (!ser_action.ForRead()) {
-			if (vch_[0] != 0 && vch_[KEY_LEN-1] != 0)
-				valid_ = true;
-		}
-	}
-
-	std::vector<Word>& seed() { return seed_; }
-
-private:
-	bool check(const unsigned char *vch);
-	inline ContextPtr getContext() { if (!context_) context_ = Context::instance(); return context_; }
-
-private:
-	ContextPtr context_;
-	std::vector<Word> seed_;
-	unsigned char vch_[KEY_LEN] = {0};
-	bool valid_;
-};
-
 #define PKEY_LEN 65
 
 //
@@ -137,6 +38,10 @@ public:
 	PKey() {}
 	PKey(ContextPtr context) { context_ = context; }
 	PKey(const std::string& str) { fromString(str); }
+
+	~PKey() {
+		if (context_) context_.reset();
+	}
 
 	template <typename T> PKey(const T pbegin, const T pend)
 	{
@@ -233,6 +138,119 @@ private:
 	ContextPtr context_;
 	unsigned char vch_[PKEY_LEN] = {0};
 	unsigned int size_;
+};
+
+class SKey;
+typedef std::shared_ptr<SKey> SKeyPtr;
+
+class SKey {
+public:
+	class Word {
+	public:
+		Word() {}
+		Word(const std::string& word) { 
+			if (word.size() < WORD_LEN) memcpy(word_, word.c_str(), word.size()); 
+			else memcpy(word_, word.c_str(), WORD_LEN-1);
+		}
+
+		template<typename Stream>
+		void serialize(Stream& s) const
+		{
+			s.write((char*)word_, sizeof(word_));
+		}
+
+		template<typename Stream>
+		void deserialize(Stream& s)
+		{
+			s.read((char*)word_, sizeof(word_));
+		}
+
+		std::basic_string<unsigned char> word() { return std::basic_string<unsigned char>(word_); }
+		std::basic_string<char> wordA() { return std::basic_string<char>((char*)word_); }
+
+	private:
+		unsigned char word_[WORD_LEN] = {0};
+	};
+public:
+	SKey() { valid_ = false; }
+	SKey(ContextPtr);
+	SKey(ContextPtr, const std::list<std::string>&);
+	SKey(const std::list<std::string>&);
+
+	~SKey() {
+		if (context_) context_.reset();
+	}
+
+	const unsigned char* begin() const { return vch_; }
+	const unsigned char* end() const { return vch_ + size(); }
+	unsigned int size() const { return (valid_ ? KEY_LEN : 0); }
+
+	const unsigned char& operator[](unsigned int pos) const { return vch_[pos]; }
+
+	bool create();
+	PKey createPKey();
+
+	std::string toString();
+	std::string toHex() { return HexStr(begin(), end()); }
+
+	static SKeyPtr instance() {
+		return std::make_shared<SKey>();
+	}
+
+	static SKeyPtr instance(const SKey& key) {
+		return std::make_shared<SKey>(key);
+	}
+
+	template <typename T> void set(const T pbegin, const T pend)
+	{
+		if (pend - pbegin != KEY_LEN) {
+			valid_ = false;
+			return;
+		}
+		if (check(&pbegin[0])) {
+			memcpy(vch_, (unsigned char*)&pbegin[0], KEY_LEN);
+			valid_ = true;
+		} else {
+			valid_ = false;
+		}
+	}
+
+	bool valid() { return valid_; }
+
+	bool sign(const uint256& hash /*data chunk hash*/, std::vector<unsigned char>& signature /*resulting signature*/);
+	bool sign(const uint256& hash /*data chunk hash*/, uint512& signature /*resulting signature*/);
+
+	uint256 shared(const PKey& other);
+
+	inline ContextPtr context() { return getContext(); }
+
+	ADD_SERIALIZE_METHODS;
+
+	template <typename Stream, typename Operation>
+	inline void serializationOp(Stream& s, Operation ser_action) {
+		READWRITE(valid_);
+		READWRITE(vch_);
+		READWRITE(seed_);
+
+		if (!ser_action.ForRead()) {
+			if (vch_[0] != 0 && vch_[KEY_LEN-1] != 0)
+				valid_ = true;
+		}
+	}
+
+	std::vector<Word>& seed() { return seed_; }
+
+private:
+	bool check(const unsigned char *vch);
+	inline ContextPtr getContext() { if (!context_) context_ = Context::instance(); return context_; }
+
+private:
+	ContextPtr context_;
+	std::vector<Word> seed_;
+	unsigned char vch_[KEY_LEN] = {0};
+	bool valid_;
+
+	PKey pkey_;
 };
 
 } // qbit

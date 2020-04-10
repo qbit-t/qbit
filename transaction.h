@@ -84,6 +84,7 @@ typedef unsigned char version_t;
 class Transaction {
 public:
 	enum Type {
+		UNDEFINED				= 0x0000,
 		// value transfer
 		COINBASE 				= 0x0001,	// QBIT coinbase transaction
 		SPEND					= 0x0002,	// Spend transaction: any asset

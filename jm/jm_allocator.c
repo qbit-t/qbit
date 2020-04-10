@@ -7,6 +7,10 @@
 #include <stdlib.h>
 #include <memory.h>
 
+#if defined(__linux__)
+	#include <signal.h>
+#endif
+
 //
 // prediction optimization
 //
@@ -16,6 +20,19 @@
 #else
 	#define likely(x)   (x)
 	#define unlikely(x) (x)
+#endif
+
+//
+// local predefines for "malloc"-style linking enabled
+//
+#if defined(JM_ALLOCATION_INFO)
+	#define jm_malloc(size) _jm_malloc(size, __FILE__, __FUNCTION__, __LINE__)
+	#define jm_realloc(address, size) _jm_realloc(address, size, __FILE__, __FUNCTION__, __LINE__)
+	#define jm_calloc(num, size) _jm_calloc(num, size, __FILE__, __FUNCTION__, __LINE__)
+#else
+	#define jm_malloc(size) _jm_malloc(size)
+	#define jm_realloc(address, size) _jm_realloc(address, size)
+	#define jm_calloc(num, size) _jm_calloc(num, size)
 #endif
 
 //
@@ -833,6 +850,13 @@ JM_INLINE struct _jm_chunk* _jm_arena_pop_chunk(struct _jm_arena* arena, size_t 
 		}
 	}
 
+#if defined(__linux__)
+	//
+	//if ((lClassIndex == 5 || lClassIndex == 7) && arena->chunks_count[lClassIndex] > 50) {
+	//	raise(SIGINT);
+	//}
+#endif
+
 	lChunk = arena->current_chunks[lClassIndex];
 
 	if (unlikely(!lChunk /*|| !lChunk->free_blocks_count*/)) // no free chunks in list
@@ -984,6 +1008,14 @@ JET_MALLOC_DEF void* _jm_malloc
 	return (unsigned char*)lBlock + sizeof(struct _jm_data_block);
 }
 
+JET_MALLOC_DEF void* malloc
+(
+	size_t size
+)
+{
+	return jm_malloc(size);
+}
+
 JET_MALLOC_DEF void* _jm_aligned_malloc
 (
 #if defined(JM_ALLOCATION_INFO)	
@@ -1057,6 +1089,11 @@ JET_MALLOC_DEF void _jm_aligned_free(void* address)
 	_jm_free(++lAddress);
 }
 
+JET_MALLOC_DEF void free(void* address)
+{
+	_jm_free(address);
+}
+
 JET_MALLOC_DEF void* _jm_realloc
 (
 #if defined(JM_ALLOCATION_INFO)	
@@ -1114,6 +1151,14 @@ JET_MALLOC_DEF void* _jm_realloc
 	return lNewAddress;
 }
 
+JET_MALLOC_DEF void* realloc
+(
+	void* address, size_t size
+)
+{
+	return jm_realloc(address, size);
+}
+
 JET_MALLOC_DEF void* _jm_calloc
 (
 #if defined(JM_ALLOCATION_INFO)	
@@ -1133,6 +1178,14 @@ JET_MALLOC_DEF void* _jm_calloc
 	);
 	memset(lAddress, 0, num * size);
 	return lAddress;
+}
+
+JET_MALLOC_DEF void* calloc
+(
+	size_t num, size_t size
+)
+{
+	return jm_calloc(num, size);
 }
 
 //

@@ -9,6 +9,7 @@
 #include "../../../dapps/buzzer/txbuzzer.h"
 #include "../../../dapps/buzzer/txbuzz.h"
 #include "../../../dapps/buzzer/txbuzzlike.h"
+#include "../../../dapps/buzzer/txbuzzreply.h"
 #include "../../../dapps/buzzer/txbuzzersubscribe.h"
 #include "../../../dapps/buzzer/txbuzzerunsubscribe.h"
 #include "../../../dapps/buzzer/buzzfeed.h"
@@ -63,10 +64,15 @@ public:
 	class CreateTxBuzz: public IComposerMethod, public std::enable_shared_from_this<CreateTxBuzz> {
 	public:
 		CreateTxBuzz(BuzzerLightComposerPtr composer, const std::string& body, transactionCreatedFunction created): composer_(composer), body_(body), created_(created) {}
+		CreateTxBuzz(BuzzerLightComposerPtr composer, const std::string& body, const std::vector<std::string>& buzzers, transactionCreatedFunction created): composer_(composer), body_(body), buzzers_(buzzers), created_(created) {}
 		void process(errorFunction);
 
 		static IComposerMethodPtr instance(BuzzerLightComposerPtr composer, const std::string& body, transactionCreatedFunction created) {
 			return std::make_shared<CreateTxBuzz>(composer, body, created); 
+		} 
+
+		static IComposerMethodPtr instance(BuzzerLightComposerPtr composer, const std::string& body, const std::vector<std::string>& buzzers, transactionCreatedFunction created) {
+			return std::make_shared<CreateTxBuzz>(composer, body, buzzers, created); 
 		} 
 
 		// 
@@ -78,11 +84,15 @@ public:
 		void utxoByBuzzerLoaded(const std::vector<Transaction::UnlinkedOut>&, const std::string&);
 		void saveBuzzerUtxo(const std::vector<Transaction::UnlinkedOut>&, const std::string&);
 
+		//
+		void utxoByBuzzersListLoaded(const std::vector<ISelectUtxoByEntityNamesHandler::EntityUtxo>&);
+
 	private:
 		BuzzerLightComposerPtr composer_;
 		std::string body_;
+		std::vector<std::string> buzzers_;
 		transactionCreatedFunction created_;
-		errorFunction error_;		
+		errorFunction error_;
 
 		TxBuzzPtr buzzTx_;
 		TransactionContextPtr ctx_;
@@ -203,6 +213,47 @@ public:
 
 		std::vector<Transaction::NetworkUnlinkedOut> buzzUtxo_;
 	};	
+
+	class CreateTxBuzzReply: public IComposerMethod, public std::enable_shared_from_this<CreateTxBuzzReply> {
+	public:
+		CreateTxBuzzReply(BuzzerLightComposerPtr composer, const uint256& chain, const uint256& buzz, const std::string& body, transactionCreatedFunction created): composer_(composer), chain_(chain), buzz_(buzz), body_(body), created_(created) {}
+		CreateTxBuzzReply(BuzzerLightComposerPtr composer, const uint256& chain, const uint256& buzz, const std::string& body, const std::vector<std::string>& buzzers, transactionCreatedFunction created): composer_(composer), chain_(chain), buzz_(buzz), body_(body), buzzers_(buzzers), created_(created) {}
+		void process(errorFunction);
+
+		static IComposerMethodPtr instance(BuzzerLightComposerPtr composer, const uint256& chain, const uint256& buzz, const std::string& body, transactionCreatedFunction created) {
+			return std::make_shared<CreateTxBuzzReply>(composer, chain, buzz, body, created); 
+		} 
+
+		static IComposerMethodPtr instance(BuzzerLightComposerPtr composer, const uint256& chain, const uint256& buzz, const std::string& body, const std::vector<std::string>& buzzers, transactionCreatedFunction created) {
+			return std::make_shared<CreateTxBuzzReply>(composer, chain, buzz, body, buzzers, created); 
+		} 
+
+		// 
+		void timeout() {
+			error_("E_TIMEOUT", "Timeout expired during buzz reply creation.");
+		}
+
+		//
+		void utxoByBuzzLoaded(const std::vector<Transaction::NetworkUnlinkedOut>&, const uint256&);
+		void utxoByBuzzerLoaded(const std::vector<Transaction::UnlinkedOut>&, const std::string&);
+		void saveBuzzerUtxo(const std::vector<Transaction::UnlinkedOut>&, const std::string&);
+
+		//
+		void utxoByBuzzersListLoaded(const std::vector<ISelectUtxoByEntityNamesHandler::EntityUtxo>&);
+
+	private:
+		BuzzerLightComposerPtr composer_;
+		uint256 chain_;
+		uint256 buzz_;
+		std::string body_;
+		std::vector<std::string> buzzers_;
+		transactionCreatedFunction created_;
+		errorFunction error_;
+
+		TxBuzzReplyPtr buzzTx_;
+		TransactionContextPtr ctx_;
+		std::vector<Transaction::NetworkUnlinkedOut> buzzUtxo_;		
+	};
 
 public:
 	BuzzerLightComposer(ISettingsPtr settings, IWalletPtr wallet, IRequestProcessorPtr requestProcessor, BuzzerRequestProcessorPtr buzzerRequestProcessor): 

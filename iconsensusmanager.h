@@ -19,6 +19,7 @@ public:
 	virtual bool exists(const uint256& /*chain*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::exists - not implemented."); }
 	virtual IConsensusPtr locate(const uint256& /*chain*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::locate - not implemented."); }
 
+	virtual void pushPeerLatency(IPeerPtr /*peer*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::pushPeerLatency - not implemented."); }
 	virtual bool pushPeer(IPeerPtr /*peer*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::pushPeer - not implemented."); }
 	virtual void popPeer(IPeerPtr /*peer*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::popPeer - not implemented."); }	
 	virtual bool peerExists(const uint160& /*peer*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::peerExists - not implemented."); }
@@ -34,7 +35,7 @@ public:
 	virtual void pop(const uint256& /*chain*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::pop - not implemented."); }
 	virtual std::vector<IConsensusPtr> consensuses() { throw qbit::exception("NOT_IMPL", "IConsensusManager::pools - not implemented."); }
 
-	virtual SKey mainKey() { throw qbit::exception("NOT_IMPL", "IConsensusManager::mainKey - not implemented."); }
+	virtual SKeyPtr mainKey() { throw qbit::exception("NOT_IMPL", "IConsensusManager::mainKey - not implemented."); }
 	virtual PKey mainPKey() { throw qbit::exception("NOT_IMPL", "IConsensusManager::mainPKey - not implemented."); }
 	virtual IValidator::BlockCheckResult pushBlockHeader(const NetworkBlockHeader& /*block*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::pushBlockHeader - not implemented."); }
 	virtual void broadcastBlockHeader(const NetworkBlockHeader& /*block*/, const uint160& /*peer*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::broadcastBlockHeader - not implemented."); }

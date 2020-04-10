@@ -32,14 +32,14 @@ uint256 TxVerify::createTx0() {
 	lSeed0.push_back(std::string("leopard"));
 	lSeed0.push_back(std::string("lobster"));
 
-	SKey lKey0 = wallet_->createKey(lSeed0);
-	PKey lPKey0 = lKey0.createPKey();
+	SKeyPtr lKey0 = wallet_->createKey(lSeed0);
+	PKey lPKey0 = lKey0->createPKey();
 
 	// 1.0
 	// create transaction
 	TxCoinBasePtr lTx = TransactionHelper::to<TxCoinBase>(TransactionFactory::create(Transaction::COINBASE));
 	lTx->addIn();
-	Transaction::UnlinkedOutPtr lUTXO = lTx->addOut(lKey0, lPKey0, TxAssetType::qbitAsset(), 10);
+	Transaction::UnlinkedOutPtr lUTXO = lTx->addOut(*lKey0, lPKey0, TxAssetType::qbitAsset(), 10);
 	lUTXO->out().setTx(lTx->id());
 
 	//std::cout << std::endl << lTx->toString() << std::endl;
@@ -80,23 +80,23 @@ TransactionPtr TxVerify::createTx1(uint256 utxo) {
 	lSeed0.push_back(std::string("leopard"));
 	lSeed0.push_back(std::string("lobster"));
 
-	SKey lKey0 = wallet_->createKey(lSeed0);
-	PKey lPKey0 = lKey0.createPKey();
+	SKeyPtr lKey0 = wallet_->createKey(lSeed0);
+	PKey lPKey0 = lKey0->createPKey();
 
 	// 1.0
 	// create transaction
 	TxSpendPtr lTx = TransactionHelper::to<TxSpend>(TransactionFactory::create(Transaction::SPEND));
 
 	Transaction::UnlinkedOutPtr lUTXO = wallet_->findUnlinkedOut(utxo);
-	lTx->addIn(lKey0, lUTXO);
+	lTx->addIn(*lKey0, lUTXO);
 
-	Transaction::UnlinkedOutPtr lUTXO1 = lTx->addOut(lKey0, lPKey0, TxAssetType::qbitAsset(), 9);
+	Transaction::UnlinkedOutPtr lUTXO1 = lTx->addOut(*lKey0, lPKey0, TxAssetType::qbitAsset(), 9);
 	lUTXO1->out().setTx(lTx->id());
 
-	Transaction::UnlinkedOutPtr lUTXO2 = lTx->addFeeOut(lKey0, TxAssetType::qbitAsset(), 1); // to miner
+	Transaction::UnlinkedOutPtr lUTXO2 = lTx->addFeeOut(*lKey0, TxAssetType::qbitAsset(), 1); // to miner
 	lUTXO2->out().setTx(lTx->id());	
 
-	lTx->finalize(lKey0); // bool
+	lTx->finalize(*lKey0); // bool
 
 	store_->pushTransaction(TransactionContext::instance(lTx));
 	store_->pushUnlinkedOut(lUTXO1, nullptr);
@@ -187,14 +187,14 @@ uint256 TxVerifyPrivate::createTx0() {
 	lSeed0.push_back(std::string("leopard"));
 	lSeed0.push_back(std::string("lobster"));
 
-	SKey lKey0 = wallet_->createKey(lSeed0);
-	PKey lPKey0 = lKey0.createPKey();
+	SKeyPtr lKey0 = wallet_->createKey(lSeed0);
+	PKey lPKey0 = lKey0->createPKey();
 
 	// 1.0
 	// create transaction
 	TxCoinBasePtr lTx = TransactionHelper::to<TxCoinBase>(TransactionFactory::create(Transaction::COINBASE));
 	lTx->addIn();
-	Transaction::UnlinkedOutPtr lUTXO = lTx->addOut(lKey0, lPKey0, TxAssetType::qbitAsset(), 10);
+	Transaction::UnlinkedOutPtr lUTXO = lTx->addOut(*lKey0, lPKey0, TxAssetType::qbitAsset(), 10);
 	lUTXO->out().setTx(lTx->id());
 
 	//std::cout << std::endl << lTx->toString() << std::endl;
@@ -235,23 +235,23 @@ TransactionPtr TxVerifyPrivate::createTx1(uint256 utxo) {
 	lSeed0.push_back(std::string("leopard"));
 	lSeed0.push_back(std::string("lobster"));
 
-	SKey lKey0 = wallet_->createKey(lSeed0);
-	PKey lPKey0 = lKey0.createPKey();
+	SKeyPtr lKey0 = wallet_->createKey(lSeed0);
+	PKey lPKey0 = lKey0->createPKey();
 
 	// 1.0
 	// create transaction
 	TxSpendPtr lTx = TransactionHelper::to<TxSpend>(TransactionFactory::create(Transaction::SPEND_PRIVATE));
 
 	Transaction::UnlinkedOutPtr lUTXO = wallet_->findUnlinkedOut(utxo);
-	lTx->addIn(lKey0, lUTXO);
+	lTx->addIn(*lKey0, lUTXO);
 
-	Transaction::UnlinkedOutPtr lUTXO1 = lTx->addOut(lKey0, lPKey0, TxAssetType::qbitAsset(), 9);
+	Transaction::UnlinkedOutPtr lUTXO1 = lTx->addOut(*lKey0, lPKey0, TxAssetType::qbitAsset(), 9);
 	lUTXO1->out().setTx(lTx->id());
 
-	Transaction::UnlinkedOutPtr lUTXO2 = lTx->addFeeOut(lKey0, TxAssetType::qbitAsset(), 1); // to miner
+	Transaction::UnlinkedOutPtr lUTXO2 = lTx->addFeeOut(*lKey0, TxAssetType::qbitAsset(), 1); // to miner
 	lUTXO2->out().setTx(lTx->id());	
 
-	if (!lTx->finalize(lKey0)) { // bool
+	if (!lTx->finalize(*lKey0)) { // bool
 		error_ = "Tx finalization failed";
 		return nullptr;
 	}
@@ -349,14 +349,14 @@ uint256 TxVerifyFee::createTx0(BlockPtr block) {
 	lSeed0.push_back(std::string("language"));
 	lSeed0.push_back(std::string("leopard"));
 	lSeed0.push_back(std::string("lobster"));
-	SKey lKey0 = wallet_->createKey(lSeed0);
-	PKey lPKey0 = lKey0.createPKey();
+	SKeyPtr lKey0 = wallet_->createKey(lSeed0);
+	PKey lPKey0 = lKey0->createPKey();
 
 	// 1.0
 	// create transaction
 	TxCoinBasePtr lTx = TransactionHelper::to<TxCoinBase>(TransactionFactory::create(Transaction::COINBASE));
 	lTx->addIn();
-	Transaction::UnlinkedOutPtr lUTXO = lTx->addOut(lKey0, lPKey0, TxAssetType::qbitAsset(), 10);
+	Transaction::UnlinkedOutPtr lUTXO = lTx->addOut(*lKey0, lPKey0, TxAssetType::qbitAsset(), 10);
 	lUTXO->out().setTx(lTx->id());
 
 	store_->pushTransaction(TransactionContext::instance(lTx));
@@ -396,8 +396,8 @@ TransactionPtr TxVerifyFee::createTx1(uint256 utxo, BlockPtr block) {
 	lSeed0.push_back(std::string("language"));
 	lSeed0.push_back(std::string("leopard"));
 	lSeed0.push_back(std::string("lobster"));
-	SKey lKey0 = wallet_->createKey(lSeed0);
-	PKey lPKey0 = lKey0.createPKey();
+	SKeyPtr lKey0 = wallet_->createKey(lSeed0);
+	PKey lPKey0 = lKey0->createPKey();
 
 	// receiver address
 	std::list<std::string> lSeed1;
@@ -425,23 +425,23 @@ TransactionPtr TxVerifyFee::createTx1(uint256 utxo, BlockPtr block) {
 	lSeed1.push_back(std::string("language"));
 	lSeed1.push_back(std::string("leopard"));
 	lSeed1.push_back(std::string("cannabis"));
-	SKey lKey1 = wallet_->createKey(lSeed1);
-	PKey lPKey1 = lKey1.createPKey();
+	SKeyPtr lKey1 = wallet_->createKey(lSeed1);
+	PKey lPKey1 = lKey1->createPKey();
 
 	// 1.0
 	// create transaction
 	TxSpendPtr lTx = TransactionHelper::to<TxSpend>(TransactionFactory::create(Transaction::SPEND));
 
 	Transaction::UnlinkedOutPtr lUTXO = wallet_->findUnlinkedOut(utxo);
-	lTx->addIn(lKey0, lUTXO);
+	lTx->addIn(*lKey0, lUTXO);
 
-	Transaction::UnlinkedOutPtr lUTXO1 = lTx->addOut(lKey0, lPKey1 /*to receiver*/, TxAssetType::qbitAsset(), 9);
+	Transaction::UnlinkedOutPtr lUTXO1 = lTx->addOut(*lKey0, lPKey1 /*to receiver*/, TxAssetType::qbitAsset(), 9);
 	lUTXO1->out().setTx(lTx->id());
 
-	Transaction::UnlinkedOutPtr lUTXO2 = lTx->addFeeOut(lKey0, TxAssetType::qbitAsset(), 1); // to miner
+	Transaction::UnlinkedOutPtr lUTXO2 = lTx->addFeeOut(*lKey0, TxAssetType::qbitAsset(), 1); // to miner
 	lUTXO2->out().setTx(lTx->id());
 
-	lTx->finalize(lKey0); // bool
+	lTx->finalize(*lKey0); // bool
 
 	store_->pushTransaction(TransactionContext::instance(lTx));
 
@@ -636,14 +636,14 @@ uint256 TxVerifyPrivateFee::createTx0(BlockPtr block) {
 	lSeed0.push_back(std::string("language"));
 	lSeed0.push_back(std::string("leopard"));
 	lSeed0.push_back(std::string("lobster"));
-	SKey lKey0 = wallet_->createKey(lSeed0);
-	PKey lPKey0 = lKey0.createPKey();
+	SKeyPtr lKey0 = wallet_->createKey(lSeed0);
+	PKey lPKey0 = lKey0->createPKey();
 
 	// 1.0
 	// create transaction
 	TxCoinBasePtr lTx = TransactionHelper::to<TxCoinBase>(TransactionFactory::create(Transaction::COINBASE));
 	lTx->addIn();
-	Transaction::UnlinkedOutPtr lUTXO = lTx->addOut(lKey0, lPKey0, TxAssetType::qbitAsset(), 10);
+	Transaction::UnlinkedOutPtr lUTXO = lTx->addOut(*lKey0, lPKey0, TxAssetType::qbitAsset(), 10);
 	lUTXO->out().setTx(lTx->id());
 
 	store_->pushTransaction(TransactionContext::instance(lTx));
@@ -683,8 +683,8 @@ TransactionPtr TxVerifyPrivateFee::createTx1(uint256 utxo, BlockPtr block) {
 	lSeed0.push_back(std::string("language"));
 	lSeed0.push_back(std::string("leopard"));
 	lSeed0.push_back(std::string("lobster"));
-	SKey lKey0 = wallet_->createKey(lSeed0);
-	PKey lPKey0 = lKey0.createPKey();
+	SKeyPtr lKey0 = wallet_->createKey(lSeed0);
+	PKey lPKey0 = lKey0->createPKey();
 
 	// receiver address
 	std::list<std::string> lSeed1;
@@ -723,18 +723,18 @@ TransactionPtr TxVerifyPrivateFee::createTx1(uint256 utxo, BlockPtr block) {
 	TxSpendPrivatePtr lTx = TransactionHelper::to<TxSpendPrivate>(TransactionFactory::create(Transaction::SPEND_PRIVATE));
 
 	Transaction::UnlinkedOutPtr lUTXO = wallet_->findUnlinkedOut(utxo);
-	lTx->addIn(lKey0, lUTXO);
+	lTx->addIn(*lKey0, lUTXO);
 
-	Transaction::UnlinkedOutPtr lUTXO1 = lTx->addOut(lKey0, lPKey1 /*to receiver*/, TxAssetType::qbitAsset(), 5);
+	Transaction::UnlinkedOutPtr lUTXO1 = lTx->addOut(*lKey0, lPKey1 /*to receiver*/, TxAssetType::qbitAsset(), 5);
 	lUTXO1->out().setTx(lTx->id());
 
-	Transaction::UnlinkedOutPtr lUTXO2 = lTx->addOut(lKey0, lPKey0 /*to self*/, TxAssetType::qbitAsset(), 4);
+	Transaction::UnlinkedOutPtr lUTXO2 = lTx->addOut(*lKey0, lPKey0 /*to self*/, TxAssetType::qbitAsset(), 4);
 	lUTXO2->out().setTx(lTx->id());
 
-	Transaction::UnlinkedOutPtr lUTXO3 = lTx->addFeeOut(lKey0, TxAssetType::qbitAsset(), 1); // to miner
+	Transaction::UnlinkedOutPtr lUTXO3 = lTx->addFeeOut(*lKey0, TxAssetType::qbitAsset(), 1); // to miner
 	lUTXO3->out().setTx(lTx->id());
 
-	lTx->finalize(lKey0); // bool
+	lTx->finalize(*lKey0); // bool
 
 	store_->pushTransaction(TransactionContext::instance(lTx));
 

@@ -56,8 +56,8 @@ bool MemoryPoolQbitCreateSpend::execute() {
 	lBobKey.create();
 	PKey lBob = lBobKey.createPKey();
 
-	SKey lMyKey = wallet_->firstKey();
-	PKey lMy = lMyKey.createPKey();
+	SKeyPtr lMyKey = wallet_->firstKey();
+	PKey lMy = lMyKey->createPKey();
 
 	// 1.2 create tx
 	lCtx = wallet_->createTxSpend(TxAssetType::qbitAsset(), lBob, 1000);
