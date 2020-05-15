@@ -144,6 +144,8 @@ int main(int argv, char** argc)
 		lSuit << new MemoryPoolQbitCreateSpend();
 		lSuit << new StoreQbitCreateSpend();
 		lSuit << new PowTest();
+		lSuit << new PowTestOne();
+		lSuit << new PowTestTwo();
 		//lSuit << new CuckooHash();
 	}
 

@@ -13,6 +13,18 @@ public:
 	bool execute();
 };
 
+class PowTestOne: public Unit {
+public:
+	PowTestOne() : Unit("PowTestOne") {}
+	bool execute();
+};
+
+class PowTestTwo: public Unit {
+public:
+	PowTestTwo() : Unit("PowTestTwo") {}
+	bool execute();
+};
+
 }
 }
 
