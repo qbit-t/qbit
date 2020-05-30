@@ -180,40 +180,13 @@ private:
 
 					/*
 					//calculate work required
-					lCurrentBlock->bits_ = 0x207fffff;
 					BlockHeader lPrev, lPPrev;
 					bool fNegative;
     				bool fOverflow;
 					arith_uint256 target;
-					target.SetCompact(lCurrentBlock->bits_, &fNegative, &fOverflow);
 					BlockContextPtr lCurrentBlockContext = mempool_->beginBlock(lCurrentBlock);
-					if(store_->blockHeader(lCurrentBlockContext->prev(), lPrev)) {
-						if(store_->blockHeader(lPrev.prev(), lPPrev)) {
-							arith_uint256 prev_target, pprev_target;
-							bool fPNegative;
-    						bool fPOverflow;
-							prev_target.SetCompact(lPrev.bits_, &fPNegative, &fPOverflow);
-							if (fPNegative || prev_target == 0 || fPOverflow)
-							{
-								//failed calculate target
-							}
-							else
-							{
-								pprev_target.SetCompact(lPPrev.bits_, &fPNegative, &fPOverflow);
-								if (fPNegative || pprev_target == 0 || fPOverflow)
-								{
-									//failed calculate target
-									target = prev_target;
-								}
-								else
-								{
-									int lMSeconds = (consensus_->blockTime())/1000;
-									double time_coeff = (double)(lPrev.time_ - lPPrev.time_)/(double)lMSeconds;
-									target = prev_target + pprev_target / time_coeff;
-								}
-							}
-						}
-					}
+					lCurrentBock->bits_ = GetNextWorkRequired(store_, lCurrentBlock);
+					target.SetCompact(lCurrentBlock->bits_, &fNegative, &fOverflow);
 					*/
 
 					// prepare block

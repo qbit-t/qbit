@@ -12,6 +12,7 @@
 #include "transactionstore.h"
 #include "server.h"
 #include "httpserver.h"
+#include "pow.h"
 
 #include "../txassettype.h"
 #include "../txassetemission.h"
@@ -207,8 +208,11 @@ int main(int argv, char** argc)
 		lSuit << new WalletQbitCreateSpendRollback();
 		lSuit << new WalletAssetCreateAndSpend();
 		lSuit << new MemoryPoolQbitCreateSpend();
-		lSuit << new StoreQbitCreateSpend();
 		*/
+		lSuit << new StoreQbitCreateSpend();
+		lSuit << new PowTest();
+		lSuit << new PowTestOne();
+		lSuit << new PowTestTwo();
 		//lSuit << new CuckooHash();
 	}
 
