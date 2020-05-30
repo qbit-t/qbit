@@ -130,6 +130,12 @@ public:
 	}
 	amount_t balance(const uint256&);
 
+	amount_t pendingBalance(const uint256&);
+
+	inline amount_t pendingBalance() {
+		return pendingBalance(TxAssetType::qbitAsset());
+	}
+
 	void resetCache() {
 		boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
 		assetsCache_.clear();
@@ -159,6 +165,7 @@ public:
 
 	// create tx fee
 	TransactionContextPtr createTxFee(const PKey& /*dest*/, amount_t /*amount*/);	
+	TransactionContextPtr createTxFeeLockedChange(const PKey& /*dest*/, amount_t /*amount*/, amount_t /*locked*/, uint64_t /*height*/);
 
 	amount_t fillInputs(TxSpendPtr /*tx*/, const uint256& /*asset*/, amount_t /*amount*/, std::list<Transaction::UnlinkedOutPtr>& /*utxos*/);
 	void removeUnlinkedOut(std::list<Transaction::UnlinkedOutPtr>&);

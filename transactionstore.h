@@ -87,6 +87,13 @@ public:
 		bool pushEntity(const uint256& id, TransactionContextPtr ctx) {
 			//
 			if (ctx->tx()->isEntity() && ctx->tx()->entityName() == Entity::emptyName()) {
+				//
+				if (!persistentEntityStore_->isAllowed(ctx)) {
+					if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[TxEntityStore::pushEntity]: entity IS NOT ALLOWED - ") +
+						strprintf("%s/%s#", id.toHex(), ctx->tx()->chain().toHex().substr(0, 10)));
+					return false;
+				}
+				
 				// just register it
 				std::pair<std::map<uint256, TransactionContextPtr>::iterator, bool> lResult = entities_.insert(std::map<uint256, TransactionContextPtr>::value_type(id, ctx));
 				if (lResult.second) pushEntities_.push_back(ctx);
@@ -215,6 +222,10 @@ public:
 
 		bool synchronizing() { return persistentStore_->synchronizing(); } 
 
+		uint64_t currentHeight(BlockHeader& block) {
+			return persistentStore_->currentHeight(block);
+		}		
+
 	private:
 		ITransactionStorePtr persistentStore_;
 		std::list<TxBlockAction> actions_;
@@ -333,7 +344,9 @@ public:
 		shards_(settings_->dataPath() + "/" + chain.toHex() + "/indexes/shards"),
 		entityUtxo_(settings_->dataPath() + "/" + chain.toHex() + "/indexes/entity_utxo"),
 		shardEntities_(settings_->dataPath() + "/" + chain.toHex() + "/indexes/shard_entities"),
-		txUtxo_(settings_->dataPath() + "/" + chain.toHex() + "/indexes/tx_utxo")
+		txUtxo_(settings_->dataPath() + "/" + chain.toHex() + "/indexes/tx_utxo"),
+		airDropAddressesTx_(settings_->dataPath() + "/" + chain.toHex() + "/indexes/airdrop_addresses"),
+		airDropPeers_(settings_->dataPath() + "/" + chain.toHex() + "/indexes/airdrop_peers")
 	{}
 
 	// stub
@@ -345,6 +358,13 @@ public:
 	EntityPtr locateEntity(const uint256&);
 	EntityPtr locateEntity(const std::string&);
 	bool pushEntity(const uint256&, TransactionContextPtr);
+	bool isAllowed(TransactionContextPtr ctx) {
+		//
+		// NOTICE: in case of synchronization extra checks is turned off, because isAllowed is strictly designed
+		// to process in realtime flow (in sycnronized state)
+		if (extension_ && !synchronizing_) return extension_->isAllowed(ctx);
+		return true; 
+	}
 
 	//
 	// ITransactionStore implementation
@@ -370,6 +390,8 @@ public:
 
 	bool collectUtxoByEntityName(const std::string& /*name*/, std::vector<Transaction::UnlinkedOutPtr>& /*result*/);
 	bool entityCountByShards(const std::string& /*name*/, std::map<uint32_t, uint256>& /*result*/);
+	bool entityCountByDApp(const std::string& /*name*/, std::map<uint256, uint32_t>& /*result*/);
+	bool entityCount(uint32_t& /*result*/);
 
 	// store management
 	bool open();
@@ -416,6 +438,7 @@ public:
 	void selectUtxoByAddress(const PKey& /*address*/, std::vector<Transaction::NetworkUnlinkedOut>& /*utxo*/);	
 	void selectUtxoByAddressAndAsset(const PKey& /*address*/, const uint256& /*asset*/, std::vector<Transaction::NetworkUnlinkedOut>& /*utxo*/);
 	void selectUtxoByTransaction(const uint256& /*tx*/, std::vector<Transaction::NetworkUnlinkedOut>& /*utxo*/);
+	void selectEntityNames(const std::string& /*name*/, std::vector<EntityName>& /*names*/);
 
 	static ITransactionStorePtr instance(const uint256& chain, ISettingsPtr settings, ITransactionStoreManagerPtr storeManager) {
 		return std::make_shared<TransactionStore>(chain, settings, storeManager); 
@@ -436,6 +459,10 @@ public:
 	bool synchronizing() { return synchronizing_; }
 	void setSynchronizing() { synchronizing_ = true; }
 	void resetSynchronizing() { synchronizing_ = false; }
+
+	// airdrop
+	bool airdropped(const uint160& /*address*/, const uint160& /*peer*/);
+	void pushAirdropped(const uint160& /*address*/, const uint160& /*peer*/, const uint256& /*tx*/);
 
 private:
 	bool processBlockTransactions(ITransactionStorePtr /*tempStore*/, IEntityStorePtr /*tempEntityStore*/, BlockContextPtr /*block*/, BlockTransactionsPtr /*transactions*/, uint64_t /*approxHeight*/, bool /*processWallet*/);
@@ -475,7 +502,7 @@ private:
 	// last block
 	uint256 lastBlock_;
 	// store extension
-	ITransactionStoreExtensionPtr extension_;
+	ITransactionStoreExtensionPtr extension_ = nullptr;
 	// synchronizing?
 	bool synchronizing_ = false;
 
@@ -516,6 +543,13 @@ private:
 	db::DbContainer<uint256 /*shard*/, uint32_t /*entities_count*/> shardEntities_;
 	// tx | utxo
 	db::DbMultiContainer<uint256 /*tx*/, uint256 /*utxo*/> txUtxo_;
+
+	//
+	// airdrop
+	//
+
+	db::DbContainer<uint160 /*address_id*/, uint256 /*tx*/> airDropAddressesTx_;
+	db::DbTwoKeyContainer<uint160 /*peer_key_id*/, uint160 /*address_id*/, uint256 /*tx*/> airDropPeers_;
 
 	//
 	boost::recursive_mutex storageCommitMutex_;

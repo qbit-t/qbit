@@ -67,7 +67,7 @@ public:
 
 	void run() {
 		if (!controller_) {
-			timer_ = TimerPtr(new boost::asio::steady_timer(context_, boost::asio::chrono::seconds(15))); // first tick - 15 secs
+			timer_ = TimerPtr(new boost::asio::steady_timer(context_, boost::asio::chrono::seconds(10))); // first tick - 15 secs
 			timer_->async_wait(boost::bind(&ShardingManager::touch, shared_from_this(), boost::asio::placeholders::error));			
 
 			controller_ = boost::shared_ptr<boost::thread>(
@@ -144,10 +144,13 @@ private:
 						// DApp can contains several shards (or sub-chains); minumumDAppNodes - number of nodes, that supports given shard
 						// if this number less than minumumDAppNodes - setup shard
 						// or this node is full node
-						if (settings_->isFullNode() || (settings_->isNode() && consensusManager_->chainSupportPeersCount(lShard->first) < settings_->minDAppNodes() && 
-																		lActiveShardsCount < settings_->maxShardsByNode())) {
+						TxDAppPtr lDApp = TransactionHelper::to<TxDApp>(lShard->second);
+						if (settings_->isFullNode() || (
+								settings_->isNode() && (
+									lDApp->sharding() == TxDApp::Sharding::STATIC || (
+										consensusManager_->chainSupportPeersCount(lShard->first) < settings_->minDAppNodes() && 
+										lActiveShardsCount < settings_->maxShardsByNode())))) {
 							uint256 lChain = lShard->first;
-							EntityPtr lDApp = lShard->second;
 							//
 							{
 								boost::unique_lock<boost::recursive_mutex> lLock(shardsMutex_);
@@ -161,7 +164,7 @@ private:
 							TransactionStoreExtensionCreatorPtr lCreator = locateStoreExtension(lDApp->entityName());
 							if (lCreator) lStore->setExtension(lCreator->create(settings_, lStore));
 
-							IConsensusPtr lConsensus = consensusManager_->push(lChain);
+							IConsensusPtr lConsensus = consensusManager_->push(lChain, lDApp);
 							if (lConsensus) lConsensus->setDApp(lDApp->entityName());
 							mempoolManager_->push(lChain);
 							validatorManager_->push(lChain, lDApp);

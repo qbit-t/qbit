@@ -59,7 +59,8 @@ public:
 			}
 
 			double lBalance = ((double)composer_->wallet()->balance(lAsset)) / lScale;
-			balance_(lBalance, lScale);
+			double lPendingBalance = ((double)composer_->wallet()->pendingBalance(lAsset)) / lScale;
+			balance_(lBalance, lPendingBalance - lBalance, lScale);
 		}
 
 	private:

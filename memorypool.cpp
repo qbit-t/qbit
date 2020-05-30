@@ -282,6 +282,16 @@ bool MemoryPool::pushTransaction(TransactionContextPtr ctx) {
 			return false; // already exists
 		}
 
+		// check tx extra allowance
+		if (!persistentStore_->isAllowed(ctx)) {
+			if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[pushTransaction]: ") + 
+				strprintf("transaction DECLINED: %s/%s#",
+					ctx->tx()->hash().toHex(), ctx->tx()->chain().toHex().substr(0, 10)));
+
+			ctx->addError("Transaction was DECLINED by store extension rules");
+			return true; // declined
+		}
+
 		// 0. set context
 		ctx->setContext(TransactionContext::MEMPOOL_COMMIT);
 
@@ -384,7 +394,7 @@ qunit_t MemoryPool::estimateFeeRateByBlock(TransactionContextPtr ctx, uint32_t t
 	return lRate;
 }
 
-bool MemoryPool::traverseLeft(TransactionContextPtr root, TxTree& tree) {
+bool MemoryPool::traverseLeft(TransactionContextPtr root, TxTree& tree, bool& hasExternalOuts) {
 	//
 	uint256 lId = root->tx()->id();
 	TransactionContextPtr lRoot = root;
@@ -393,8 +403,10 @@ bool MemoryPool::traverseLeft(TransactionContextPtr root, TxTree& tree) {
 				std::multimap<uint256 /*from*/, uint256 /*to*/>::iterator> lRange = reverse_.equal_range(lId);
 	if (lRange.first == lRange.second) {
 		if (!(persistentStore_->locateTransactionContext(lId) || 
-					(persistentMainStore_ && persistentMainStore_->locateTransactionContext(lId))))
-		return false;
+					(persistentMainStore_ && persistentMainStore_->locateTransactionContext(lId)))) {
+			hasExternalOuts = root->tx()->hasOuterIns();
+			return false;
+		}
 	}
 
 	for (std::multimap<uint256 /*from*/, uint256 /*to*/>::iterator lTo = lRange.first; lTo != lRange.second; lTo++) {
@@ -404,13 +416,14 @@ bool MemoryPool::traverseLeft(TransactionContextPtr root, TxTree& tree) {
 			if (lPriority < 1000) { // sanity recursion deep
 				if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[traverseLeft]: add tx ") + 
 						strprintf("%d/%s/%s#", lPriority, lTx->tx()->id().toHex(), chain_.toHex().substr(0, 10)));
-				if (!traverseLeft(lTx, tree)) // back-traverse from the upper level
+				if (!traverseLeft(lTx, tree, hasExternalOuts)) // back-traverse from the upper level
 					return false;
 			} else {
 				return false; // too deep
 			}
 		} else if (!(persistentStore_->locateTransactionContext(lTo->second) || 
 					(persistentMainStore_ && persistentMainStore_->locateTransactionContext(lTo->second)))) {
+			hasExternalOuts = root->tx()->hasOuterIns();
 			return false;
 		}
 	}
@@ -482,10 +495,6 @@ BlockContextPtr MemoryPool::beginBlock(BlockPtr block) {
 	BlockContextPtr lCtx = BlockContext::instance(block);
 
 	//
-	// current size
-	size_t lSize = 0;
-
-	//
 	// transactions tree to commit
 	TxTree lTree;
 
@@ -538,7 +547,7 @@ BlockContextPtr MemoryPool::beginBlock(BlockPtr block) {
 									if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[fillBlock]: approving blockbase transaction - ") + 
 											strprintf("%s/%s#", lBlockBaseTx->id().toHex(), lBlockInfo.base()->chain().toHex().substr(0, 10)));
 								} else {
-									if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[fillBlock]: amounts/addresses are NOT EQUALS - ") + 
+									if (gLog().isEnabled(Log::ERROR)) gLog().write(Log::ERROR, std::string("[fillBlock]: amounts/addresses are NOT EQUALS - ") + 
 											strprintf("base(%d/%s), blockbase(%d/%s)", lBaseAmount, lBaseKey.id().toHex(), lBlockBaseAmount, lBlockBaseKey.id().toHex()));
 									// remove request
 									removeConfirmedBlock(lBlockHash);
@@ -548,7 +557,7 @@ BlockContextPtr MemoryPool::beginBlock(BlockPtr block) {
 									continue;
 								}
 							} else {
-								if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[fillBlock]: amount for blockbase tx IN UNDEFINED - ") + 
+								if (gLog().isEnabled(Log::ERROR)) gLog().write(Log::ERROR, std::string("[fillBlock]: amount for blockbase tx IN UNDEFINED - ") + 
 										strprintf("%s/%s#", lBlockBaseTx->id().toHex(), lBlockInfo.base()->chain().toHex().substr(0, 10)));
 								// remove request
 								removeConfirmedBlock(lBlockHash);
@@ -558,7 +567,7 @@ BlockContextPtr MemoryPool::beginBlock(BlockPtr block) {
 								continue;
 							}
 						} else {
-							if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[fillBlock]: amount for base tx IN UNDEFINED - ") + 
+							if (gLog().isEnabled(Log::ERROR)) gLog().write(Log::ERROR, std::string("[fillBlock]: amount for base tx IN UNDEFINED - ") + 
 									strprintf("%s/%s/%s#", lBlockInfo.base()->id().toHex(), lBlockHash.toHex(), lBlockInfo.base()->chain().toHex().substr(0, 10)));
 							// remove request
 							removeConfirmedBlock(lBlockHash);
@@ -570,7 +579,7 @@ BlockContextPtr MemoryPool::beginBlock(BlockPtr block) {
 					}
 
 				} else {
-					if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[fillBlock]: corresponding block is NOT MATURE for ") + 
+					if (gLog().isEnabled(Log::WARNING)) gLog().write(Log::WARNING, std::string("[fillBlock]: corresponding block is NOT MATURE for ") + 
 							strprintf("tx = %s, %d/%s/%s#", lTx->tx()->id().toHex(), lBlockInfo.blockHeader().confirms(), lBlockHash.toHex(), lBlockInfo.blockHeader().blockHeader().chain().toHex().substr(0, 10)));
 					// remove request
 					removeConfirmedBlock(lBlockHash);
@@ -595,7 +604,7 @@ BlockContextPtr MemoryPool::beginBlock(BlockPtr block) {
 				if (lCurrentTime > lBlockBaseTx->blockHeader().time() && 
 					((lCurrentTime - lBlockBaseTx->blockHeader().time()) / (consensus_->blockTime() / 1000)) > consensus_->coinbaseMaturity()) {
 					//
-					if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[fillBlock]: remove ORPHAN transaction ") + 
+					if (gLog().isEnabled(Log::WARNING)) gLog().write(Log::WARNING, std::string("[fillBlock]: remove ORPHAN transaction ") + 
 							strprintf("%s, %s/%s#", lTx->tx()->id().toHex(), lBlockHash.toHex(), lBlockBaseTx->blockHeader().chain().toHex().substr(0, 10)));
 					// remove from pool
 					removeTx(lEntry->second);
@@ -632,16 +641,17 @@ BlockContextPtr MemoryPool::beginBlock(BlockPtr block) {
 				strprintf("%d/%s/%s#", lPriority, lTx->tx()->id().toHex(), chain_.toHex().substr(0, 10)));
 
 		// traverse left
-		if (!traverseLeft(lTx, lPartialTree)) {
-			if (lTx->tx()->hasOuterIns()) {
-				if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[fillBlock]: transaction has outer inputs, POSTPONING tx ") + 
+		bool lHasExternalOuts;
+		if (!traverseLeft(lTx, lPartialTree, lHasExternalOuts)) {
+			if (lTx->tx()->hasOuterIns() || lHasExternalOuts) {
+				if (gLog().isEnabled(Log::WARNING)) gLog().write(Log::WARNING, std::string("[fillBlock]: transaction has outer inputs, POSTPONING tx ") + 
 						strprintf("%s/%s#", lTx->tx()->id().toHex(), chain_.toHex().substr(0, 10)));
 				lEntry++; 
 				continue;
 			}
 
 			if (lTx->tx()->type() != Transaction::BLOCKBASE) {
-				gLog().write(Log::POOL, std::string("[fillBlock]: partial tree has broken for -> \n") + lTx->tx()->toString());
+				gLog().write(Log::ERROR, std::string("[fillBlock]: partial tree has broken for -> \n") + lTx->tx()->toString());
 				removeTx(lEntry->second);
 				map_.erase(std::next(lEntry).base()); // remove from pool if there is no such tx
 				continue;
@@ -650,7 +660,7 @@ BlockContextPtr MemoryPool::beginBlock(BlockPtr block) {
 
 		// traverse right
 		if (!traverseRight(lTx, lPartialTree)) {
-			gLog().write(Log::POOL, std::string("[fillBlock]: partial tree too deep for -> \n") + lTx->tx()->toString());
+			gLog().write(Log::ERROR, std::string("[fillBlock]: partial tree too deep for -> \n") + lTx->tx()->toString());
 			removeTx(lEntry->second);
 			map_.erase(std::next(lEntry).base()); // remove from pool if there is no such tx
 			continue;
@@ -659,12 +669,9 @@ BlockContextPtr MemoryPool::beginBlock(BlockPtr block) {
 		// merge trees
 		lTree.merge(lPartialTree);
 
-		// calc size
-		lSize += lTree.size();
-
-		if (lSize > consensus_->maxBlockSize()) { // sanity, it should be Ok, even if lLimitReached == true
+		if (lTree.size() > consensus_->maxBlockSize()) { // sanity, it should be Ok, even if lLimitReached == true
 			if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[fillBlock]: block limit reached by size ") +
-				strprintf("%d/%d/%s#", lSize, consensus_->maxBlockSize(), chain_.toHex().substr(0, 10)));
+				strprintf("%d/%d/%s#", lTree.size(), consensus_->maxBlockSize(), chain_.toHex().substr(0, 10)));
 			break; 
 		}
 
@@ -674,19 +681,30 @@ BlockContextPtr MemoryPool::beginBlock(BlockPtr block) {
 	//
 	amount_t lFee = 0;
 	//
+	uint32_t lSize = 0;
+	//
 	std::set<uint256> lCheck;
 	//
 	// we have appropriate index - fill the block
 	for (std::multimap<int /*priority*/, TransactionContextPtr>::iterator lItem = lTree.queue().begin(); lItem != lTree.queue().end(); lItem++) {
-		if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[fillBlock]: push tx ") + 
-				strprintf("%d/%s/%s#", lItem->first, lItem->second->tx()->id().toHex(), chain_.toHex().substr(0, 10)));
-
-		if (!lCheck.insert(lItem->second->tx()->id()).second) {
-			if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[fillBlock]: try push DOUBLED tx ") + 
+		// 
+		lSize += lItem->second->size(); // size is cached in tx context, double check
+		if (lSize > consensus_->maxBlockSize()) {
+			if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[fillBlock]: block limit reached by size ") +
+				strprintf("%d/%d/%s#", lSize, consensus_->maxBlockSize(), chain_.toHex().substr(0, 10)));
+			break;
+		} else {
+			//
+			if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[fillBlock]: push tx ") + 
 					strprintf("%d/%s/%s#", lItem->first, lItem->second->tx()->id().toHex(), chain_.toHex().substr(0, 10)));
-		} else { 
-			lFee += lItem->second->fee(); 
-			lCtx->block()->append(lItem->second->tx()); // push to the block
+
+			if (!lCheck.insert(lItem->second->tx()->id()).second) {
+				if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[fillBlock]: try push DOUBLED tx ") + 
+						strprintf("%d/%s/%s#", lItem->first, lItem->second->tx()->id().toHex(), chain_.toHex().substr(0, 10)));
+			} else { 
+				lFee += lItem->second->fee(); 
+				lCtx->block()->append(lItem->second->tx()); // push to the block
+			}
 		}
 	}
 

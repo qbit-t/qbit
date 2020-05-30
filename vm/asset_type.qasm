@@ -16,6 +16,7 @@
 #	th1 - transaction type
 #	th2 - transaction input number
 #	th3 - transaction output number
+#	th4 - current chain height
 # -> amount
 #	a0 - a7
 #	a0 - set, if a0 was _empty_

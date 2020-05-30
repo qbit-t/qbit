@@ -67,19 +67,41 @@ public:
 	};
 
 public:
+	class DAppInstance {
+	public:
+		DAppInstance() {}
+		DAppInstance(const std::string& name, const uint256& instance) : name_(name), instance_(instance) {}
+
+		ADD_SERIALIZE_METHODS;
+
+		template <typename Stream, typename Operation>
+		inline void serializationOp(Stream& s, Operation ser_action) {
+			//
+			if (ser_action.ForRead()) {
+				dapp_name_t lName(name_);
+				lName.deserialize(s);
+			} else {
+				dapp_name_t lName(name_);
+				lName.serialize(s);
+			}
+
+			READWRITE(instance_);
+		}
+
+		inline const std::string& name() const { return name_; }
+		inline const uint256& instance() const { return instance_; }
+
+	private:
+		std::string name_;
+		uint256 instance_;
+	};
+
+public:
 	State() {}
 	State(uint64_t time, uint32_t roles, PKey pkey) {
 		time_ = time;
 		roles_ = roles;
 		pkey_ = pkey;
-	}
-
-	State(uint64_t time, uint32_t roles, PKey pkey, const std::string& dApp, const uint256& dAppInstance) {
-		time_ = time;
-		roles_ = roles;
-		pkey_ = pkey;
-		dApp_ = dApp;
-		dAppInstance_ = dAppInstance;
 	}
 
 	template <typename Stream>
@@ -89,8 +111,6 @@ public:
 		s << roles_;
 
 		if (client()) {
-			dapp_name_t lName(dApp_);
-			lName.serialize(s);
 			s << dAppInstance_;
 		} else {
 			s << infos_;
@@ -101,12 +121,10 @@ public:
 		s << pkey_;
 
 		// prepare blob
-		DataStream lStream(SER_NETWORK, CLIENT_VERSION);
+		DataStream lStream(SER_NETWORK, PROTOCOL_VERSION);
 		lStream << time_;
 		lStream << roles_;
 		if (client()) {
-			dapp_name_t lName(dApp_);
-			lName.serialize(lStream);
 			lStream << dAppInstance_;
 		} else {
 			lStream << infos_;
@@ -127,8 +145,6 @@ public:
 		s << time_;
 		s << roles_;
 		if (client()) {
-			dapp_name_t lName(dApp_);
-			lName.serialize(s);
 			s << dAppInstance_;
 		} else {
 			s << infos_;
@@ -144,14 +160,6 @@ public:
 		READWRITE(time_);
 		READWRITE(roles_);
 		if (client()) {
-			if (ser_action.ForRead()) {
-				dapp_name_t lName(dApp_);
-				lName.deserialize(s);
-			} else {
-				dapp_name_t lName(dApp_);
-				lName.serialize(s);
-			}
-
 			READWRITE(dAppInstance_);
 		} else {
 			READWRITE(infos_);
@@ -171,13 +179,11 @@ public:
 	uint32_t roles() { return roles_; }
 
 	inline bool valid() {
-		DataStream lStream(SER_NETWORK, CLIENT_VERSION);
+		DataStream lStream(SER_NETWORK, PROTOCOL_VERSION);
 
 		lStream << time_;
 		lStream << roles_;
 		if (client()) {
-			dapp_name_t lName(dApp_);
-			lName.serialize(lStream);
 			lStream << dAppInstance_;
 		} else {
 			lStream << infos_;
@@ -192,7 +198,7 @@ public:
 		return 0;
 	}
 
-	static StatePtr instance(uint64_t time, uint32_t roles, PKey pkey, const std::string& dApp, const uint256& dAppInstance) { return std::make_shared<State>(time, roles, pkey, dApp, dAppInstance); }
+	//static StatePtr instance(uint64_t time, uint32_t roles, PKey pkey, const std::string& dApp, const uint256& dAppInstance) { return std::make_shared<State>(time, roles, pkey, dApp, dAppInstance); }
 	static StatePtr instance(uint64_t time, uint32_t roles, PKey pkey) { return std::make_shared<State>(time, roles, pkey); }
 	static StatePtr instance(const State& state) { return std::make_shared<State>(state); }
 
@@ -221,7 +227,13 @@ public:
 			for (std::vector<BlockInfo>::iterator lInfo = infos_.begin(); lInfo != infos_.end(); lInfo++) {
 				chains_.insert(std::map<uint256, BlockInfo>::value_type(lInfo->chain(), *lInfo));
 			}
-		}		
+		}
+
+		if (!dApps_.size() && dAppInstance_.size()) {
+			for (std::vector<DAppInstance>::iterator lInstance = dAppInstance_.begin(); lInstance != dAppInstance_.end(); lInstance++) {
+				dApps_.insert(lInstance->name());
+			}			
+		}
 	}
 
 	bool containsChain(const uint256& chain) {
@@ -249,15 +261,55 @@ public:
 
 	std::vector<BlockInfo>& infos() { return infos_; }
 
-	std::string dApp() { return dApp_; }
-	uint256 dAppInstance() { return dAppInstance_; }
+	// NOTICE: that is normal, because user conection should handle very little dapps in one time (i.e. buzzer, decos)
+	inline bool containsDApp(const std::string& name) {
+		for (std::vector<DAppInstance>::iterator lItem = dAppInstance_.begin(); lItem != dAppInstance_.end(); lItem++) {
+			if (lItem->name() == name) return true;
+		}
+
+		return false;
+	}
+
+	void addDAppInstance(const DAppInstance& instance) {
+		//
+		if (dApps_.find(instance.name()) == dApps_.end()) {
+			dApps_.insert(instance.name());
+			dAppInstance_.push_back(instance);
+		}
+	}
+
+	const std::vector<DAppInstance>& dApps() const {
+		return dAppInstance_;
+	}
+
+	std::string dAppInstancesToString() {
+		std::string lResult;
+		for (std::vector<DAppInstance>::iterator lItem = dAppInstance_.begin(); lItem != dAppInstance_.end(); lItem++) {
+			//
+			if (lResult.size()) lResult += ",";
+			lResult += (*lItem).instance().toHex();
+		}
+
+		return lResult;
+	}
+
+	std::string dAppsToString() {
+		std::string lResult;
+		for (std::vector<DAppInstance>::iterator lItem = dAppInstance_.begin(); lItem != dAppInstance_.end(); lItem++) {
+			//
+			if (lResult.size()) lResult += ",";
+			lResult += (*lItem).name();
+		}
+
+		return lResult;
+	}
 
 	std::string toString() {
 		std::string str;
 		if (client()) {
 			str += strprintf("state(time=%u, roles=%s, pkey=%s, id=%s, dapp=%s/%s)",
 				time_, rolesString(),
-				pkey_.toString(), addressId().toHex(), dApp_, dAppInstance_.toHex());
+				pkey_.toString(), addressId().toHex(), dAppsToString(), dAppInstancesToString());
 		} else {
 			str += strprintf("state(time=%u, roles=%s, pkey=%s, id=%s, chains=%d)\n",
 				time_, rolesString(),
@@ -282,14 +334,14 @@ private:
 	uint64_t time_;
 	uint32_t roles_ {0};
 	std::vector<BlockInfo> infos_; // for node & full node
-	std::string dApp_; // for client only
-	uint256 dAppInstance_; // for client only
+	std::vector<DAppInstance> dAppInstance_; // for client only
 	std::string device_; // for client only: client's device id for notificaion purposes
 	PKey pkey_;
 	uint512 signature_;
 
 	// in-memory
 	std::map<uint256, BlockInfo> chains_;
+	std::set<std::string> dApps_;
 };
 
 }

@@ -125,12 +125,22 @@ public:
 
 	inline size_t size() {
 		if (!size_) {
-			SizeComputer lStream(CLIENT_VERSION);
+			SizeComputer lStream(PROTOCOL_VERSION);
 			Transaction::Serializer::serialize<SizeComputer>(lStream, tx_);
 			size_ = lStream.size();
 		}
 
 		return size_;
+	}
+
+	// locate tx
+	TransactionContextPtr locateByType(unsigned short tx) {
+		//
+		for (std::list<TransactionContextPtr>::iterator lLinkedCtx = linkedTxs().begin(); lLinkedCtx != linkedTxs().end(); lLinkedCtx++) {
+			if ((*lLinkedCtx)->tx()->type() == tx) return *lLinkedCtx;
+		}
+
+		return nullptr;
 	}
 
 private:

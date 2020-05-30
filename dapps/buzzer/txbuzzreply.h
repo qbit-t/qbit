@@ -27,22 +27,7 @@ public:
 		lIn.out().setTx(utxo->out().tx());
 		lIn.out().setIndex(utxo->out().index());
 
-		qbit::vector<unsigned char> lSource;
-		lIn.out().serialize(lSource);
-		
-		uint256 lHash = Hash(lSource.begin(), lSource.end());
-		uint512 lSig;
-
-		if (!const_cast<SKey&>(skey).sign(lHash, lSig)) {
-			throw qbit::exception("INVALID_SIGNATURE", "Signature creation failed.");
-		}
-
-		PKey lPKey = const_cast<SKey&>(skey).createPKey(); // pkey is allways the same
 		lIn.setOwnership(ByteCode() <<
-			OP(QMOV) 		<< REG(QS0) << CVAR(lPKey.get()) << 
-			OP(QMOV) 		<< REG(QS1) << CU512(lSig) <<
-			OP(QLHASH256) 	<< REG(QS2) <<
-			OP(QCHECKSIG)	<<
 			OP(QDETXO)); // entity/check/push
 
 		in_.push_back(lIn);

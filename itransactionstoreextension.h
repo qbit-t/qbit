@@ -31,6 +31,8 @@ public:
 
 	virtual bool pushEntity(const uint256&, TransactionContextPtr) { throw qbit::exception("NOT_IMPL", "ITransactionStoreExtension::pushEntity - not implemented."); }
 	virtual void removeTransaction(TransactionPtr) { throw qbit::exception("NOT_IMPL", "ITransactionStoreExtension::removeTransaction - not implemented."); }
+
+	virtual bool isAllowed(TransactionContextPtr) { throw qbit::exception("NOT_IMPL", "ITransactionStoreExtension::isAllowed - not implemented."); }
 };
 
 typedef std::shared_ptr<ITransactionStoreExtension> ITransactionStoreExtensionPtr;

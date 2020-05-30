@@ -116,28 +116,74 @@ public:
 		VALIDATOR 				= 0x0040, 	// Validator - block emitter, tx checker and QBIT reward receiver. Validators can be created only (first releases): genesis block issuer
 		GATEKEEPER				= 0x0041, 	// Gatekeeper - controls exchange\atomic exchange between DLTs, control and provide partial keys and sigs for multi-sig processing
 
-		// custom tx types
-		CUSTOM_00 				= 0x1000, 	// Custom tx types (for dapp developing), CUSTOM + 1 - first custom tx type
-		CUSTOM_01 				= 0x1001,
-		CUSTOM_02 				= 0x1002,
-		CUSTOM_03 				= 0x1003,
-		CUSTOM_04 				= 0x1004,
-		CUSTOM_05 				= 0x1005,
-		CUSTOM_06 				= 0x1006,
-		CUSTOM_07 				= 0x1007,
-		CUSTOM_08 				= 0x1008,
-		CUSTOM_09 				= 0x1009,
-		CUSTOM_10 				= 0x100a,
-		CUSTOM_11 				= 0x100b,
-		CUSTOM_12 				= 0x100c,
-		CUSTOM_13 				= 0x100d,
-		CUSTOM_14 				= 0x100e,
-		CUSTOM_15 				= 0x100f,
-		CUSTOM_16 				= 0x1010,
-		CUSTOM_17 				= 0x1011,
-		CUSTOM_18 				= 0x1012,
-		CUSTOM_19 				= 0x1013,
-		CUSTOM_20 				= 0x1014
+		// custom tx types for dapps, CUSTOM + 1 - first custom tx type
+		CUSTOM_00 				= 0x1000, 	//
+		CUSTOM_01 				= 0x1001,	//
+		CUSTOM_02 				= 0x1002,	//
+		CUSTOM_03 				= 0x1003,	//
+		CUSTOM_04 				= 0x1004,	//
+		CUSTOM_05 				= 0x1005,	//
+		CUSTOM_06 				= 0x1006,	//
+		CUSTOM_07 				= 0x1007,	//
+		CUSTOM_08 				= 0x1008,	//
+		CUSTOM_09 				= 0x1009,	//
+		CUSTOM_10 				= 0x100a,	//
+		CUSTOM_11 				= 0x100b,	//
+		CUSTOM_12 				= 0x100c,	//
+		CUSTOM_13 				= 0x100d,	//
+		CUSTOM_14 				= 0x100e,	//
+		CUSTOM_15 				= 0x100f,	//
+
+		CUSTOM_16 				= 0x1010,	//
+		CUSTOM_17 				= 0x1011,	//
+		CUSTOM_18 				= 0x1012,	//
+		CUSTOM_19 				= 0x1013,	//
+		CUSTOM_20 				= 0x1014,	//
+		CUSTOM_21 				= 0x1015,	//
+		CUSTOM_22 				= 0x1016,	//
+		CUSTOM_23 				= 0x1017,	//
+		CUSTOM_24 				= 0x1018,	//
+		CUSTOM_25 				= 0x1019,	//
+		CUSTOM_26 				= 0x101a,	//
+		CUSTOM_27 				= 0x101b,	//
+		CUSTOM_28 				= 0x101c,	//
+		CUSTOM_29 				= 0x101d,	//
+		CUSTOM_30 				= 0x101e,	//
+		CUSTOM_31 				= 0x101f,	//
+
+		CUSTOM_32 				= 0x1020,	//
+		CUSTOM_33 				= 0x1021,	//
+		CUSTOM_34 				= 0x1022,	//
+		CUSTOM_35 				= 0x1023,	//
+		CUSTOM_36 				= 0x1024,	//
+		CUSTOM_37 				= 0x1025,	//
+		CUSTOM_38 				= 0x1026,	//
+		CUSTOM_39 				= 0x1027,	//
+		CUSTOM_40 				= 0x1028,	//
+		CUSTOM_41 				= 0x1029,	//
+		CUSTOM_42 				= 0x102a,	//
+		CUSTOM_43 				= 0x102b,	//
+		CUSTOM_44 				= 0x102c,	//
+		CUSTOM_45 				= 0x102d,	//
+		CUSTOM_46 				= 0x102e,	//
+		CUSTOM_47 				= 0x102f,	//
+
+		CUSTOM_48 				= 0x1030,	//
+		CUSTOM_49 				= 0x1031,	//
+		CUSTOM_50 				= 0x1032,	//
+		CUSTOM_51 				= 0x1033,	//
+		CUSTOM_52 				= 0x1034,	//
+		CUSTOM_53 				= 0x1035,	//
+		CUSTOM_54 				= 0x1036,	//
+		CUSTOM_55 				= 0x1037,	//
+		CUSTOM_56 				= 0x1038,	//
+		CUSTOM_57 				= 0x1039,	//
+		CUSTOM_58 				= 0x103a,	//
+		CUSTOM_59 				= 0x103b,	//
+		CUSTOM_60 				= 0x103c,	//
+		CUSTOM_61 				= 0x103d,	//
+		CUSTOM_62 				= 0x103e,	//
+		CUSTOM_63 				= 0x103f	//
 	};
 
 	// use to register tx type functor
@@ -188,10 +234,10 @@ public:
 			result.insert(result.end(), (unsigned char*)(&index_), (unsigned char*)(&index_) + sizeof(index_));
 		}
 
-		uint256& chain() { return chain_; }
-		uint256& asset() { return asset_; }
-		uint256& tx() { return tx_; }
-		uint32_t index() { return index_; }
+		const uint256& chain() const { return chain_; }
+		const uint256& asset() const { return asset_; }
+		const uint256& tx() const { return tx_; }
+		uint32_t index() const { return index_; }
 
 		void setChain(const uint256& chain) { chain_ = chain; }
 		void setAsset(const uint256& asset) { asset_ = asset; }
@@ -275,19 +321,28 @@ public:
 		UnlinkedOut(const UnlinkedOut& utxo) {
 			out_ = const_cast<UnlinkedOut&>(utxo).out();
 			address_ = const_cast<UnlinkedOut&>(utxo).address();
-			amount_ = const_cast<UnlinkedOut&>(utxo).amount();
-			blind_ = const_cast<UnlinkedOut&>(utxo).blind();
-			nonce_ = const_cast<UnlinkedOut&>(utxo).nonce();
-			commit_ = const_cast<UnlinkedOut&>(utxo).commit();
+			amount_ = utxo.amount();
+			blind_ = utxo.blind();
+			nonce_ = utxo.nonce();
+			commit_ = utxo.commit();
+			lock_ = utxo.lock();
 		} 
 		UnlinkedOut(const Link& o) : 
 			out_(o) {}
+		UnlinkedOut(const Link& o, uint64_t lock) : 
+			out_(o), lock_(lock) {}
 		UnlinkedOut(const Link& o, const PKey& address) : 
 			out_(o), address_(address) {}
+		UnlinkedOut(const Link& o, const PKey& address, uint64_t lock) : 
+			out_(o), address_(address), lock_(lock) {}
 		UnlinkedOut(const Link& o, const PKey& address, amount_t a, const uint256& b, const std::vector<unsigned char>& c) : 
 			out_(o), address_(address), amount_(a), blind_(b), commit_(c) {}
+		UnlinkedOut(const Link& o, const PKey& address, amount_t a, const uint256& b, const std::vector<unsigned char>& c, uint64_t lock) : 
+			out_(o), address_(address), amount_(a), blind_(b), commit_(c), lock_(lock) {}
 		UnlinkedOut(const Link& o, const PKey& address, amount_t a, const uint256& b, const std::vector<unsigned char>& c, const uint256& n) : 
 			UnlinkedOut(o, address, a, b, c) { nonce_ = n; }
+		UnlinkedOut(const Link& o, const PKey& address, amount_t a, const uint256& b, const std::vector<unsigned char>& c, const uint256& n, uint64_t lock) : 
+			UnlinkedOut(o, address, a, b, c) { nonce_ = n; lock_ = lock; }
 
 		ADD_SERIALIZE_METHODS;
 
@@ -299,25 +354,33 @@ public:
 			READWRITE(blind_);
 			READWRITE(nonce_);
 			READWRITE(commit_);
+			READWRITE(lock_);
 		}
 
 		Link& out() { return out_; }
-		amount_t amount() { return amount_; }
-		uint256& blind() { return blind_; }
-		uint256& nonce() { return nonce_; }
+		amount_t amount() const { return amount_; }
+		const uint256& blind() const { return blind_; }
+		const uint256& nonce() const { return nonce_; }
 		PKey& address() { return address_; }
-		std::vector<unsigned char>& commit() { return commit_; }
+		const std::vector<unsigned char>& commit() const { return commit_; }
+		uint64_t lock() const { return lock_; }
 
 		uint256 hash() { return out_.hash(); }
 
 		static UnlinkedOutPtr instance() { return std::make_shared<UnlinkedOut>(); }
 		static UnlinkedOutPtr instance(const UnlinkedOut& utxo) { return std::make_shared<UnlinkedOut>(utxo); }
 		static UnlinkedOutPtr instance(const Link& o) { return std::make_shared<UnlinkedOut>(o); }
+		static UnlinkedOutPtr instance(const Link& o, uint64_t lock) { return std::make_shared<UnlinkedOut>(o, lock); }
 		static UnlinkedOutPtr instance(const Link& o, const PKey& address) { return std::make_shared<UnlinkedOut>(o, address); }
+		static UnlinkedOutPtr instance(const Link& o, const PKey& address, uint64_t lock) { return std::make_shared<UnlinkedOut>(o, address, lock); }
 		static UnlinkedOutPtr instance(const Link& o, const PKey& address, amount_t a, const uint256& b, const std::vector<unsigned char>& c) 
 		{ return std::make_shared<UnlinkedOut>(o, address, a, b, c); }
+		static UnlinkedOutPtr instance(const Link& o, const PKey& address, amount_t a, const uint256& b, const std::vector<unsigned char>& c, uint64_t lock) 
+		{ return std::make_shared<UnlinkedOut>(o, address, a, b, c, lock); }
 		static UnlinkedOutPtr instance(const Link& o, const PKey& address, amount_t a, const uint256& b, const std::vector<unsigned char>& c, const uint256& n) 
 		{ return std::make_shared<UnlinkedOut>(o, address, a, b, c, n); }
+		static UnlinkedOutPtr instance(const Link& o, const PKey& address, amount_t a, const uint256& b, const std::vector<unsigned char>& c, const uint256& n, uint64_t lock) 
+		{ return std::make_shared<UnlinkedOut>(o, address, a, b, c, n, lock); }
 
 	private:
 		Link out_; // one of previous out
@@ -326,6 +389,7 @@ public:
 		uint256 blind_;
 		uint256 nonce_;
 		std::vector<unsigned char> commit_;
+		uint64_t lock_ = 0;
 	};
 
 	class NetworkUnlinkedOut;
@@ -467,6 +531,9 @@ public:
 	virtual bool isEntity(UnlinkedOutPtr) { return false; }
 	virtual bool isEntity() { return false; }
 	virtual bool isFeeFee() { return false; }
+	
+	virtual bool isContinuousData() { return false; }
+	
 	virtual std::string entityName() { throw qbit::exception("NOT_IMPL", "Not implemented."); }
 
 	virtual inline void setChain(const uint256& chain) { chain_ = chain; }
@@ -657,6 +724,53 @@ public:
 			amount, // amount
 			lBlind, // blinding key
 			lCommitment // commit
+		);
+
+		// fill up for finalization
+		assetOut_[asset].push_back(lUTXO);
+
+		out_.push_back(lOut);
+		return lUTXO;
+	}
+
+	//
+	// skey - our secret key
+	// pkey - destination address
+	// asset - asset type hash
+	virtual Transaction::UnlinkedOutPtr addLockedOut(const SKey& skey, const PKey& pkey, const uint256& asset, amount_t amount, uint64_t height) {
+		qbit::vector<unsigned char> lCommitment;
+
+		uint256 lBlind = const_cast<SKey&>(skey).shared(pkey);
+		Math::mul(lBlind, lBlind, Random::generate());
+
+		if (!const_cast<SKey&>(skey).context()->createCommitment(lCommitment, lBlind, amount)) {
+			throw qbit::exception("INVALID_COMMITMENT", "Commitment creation failed.");
+		}
+
+		Transaction::Out lOut;
+		lOut.setAsset(asset);
+		lOut.setDestination(ByteCode() 		<<
+							OP(QMOV) 		<< REG(QD0) << CVAR(const_cast<PKey&>(pkey).get()) << 
+							OP(QMOV) 		<< REG(QA0) << CU64(amount) <<
+							OP(QMOV) 		<< REG(QA1) << CVAR(lCommitment) <<	
+							OP(QMOV) 		<< REG(QA2) << CU256(lBlind) <<	
+							OP(QCHECKA) 	<<
+							// NOTE: QR1 and CHECKH _should_ be called prior to any ATXO instructions
+							OP(QMOV) 		<< REG(QR1) << CU64(height) <<	
+							OP(QCHECKH) 	<< REG(QR1) <<	// check height: height < th4, set c0 & c1
+							OP(QATXOA) 		<<				// make utxo (push)
+							OP(QJMPT) 		<< TO(1000) <<	// if true - return (goto), false - continue
+							OP(QEQADDR) 	<<
+							OP(QMOV) 		<< REG(QR0) << CU8(0x01) <<	
+			LAB(1000) <<	OP(QRET));
+
+		Transaction::UnlinkedOutPtr lUTXO = Transaction::UnlinkedOut::instance(
+			Transaction::Link(chain(), asset, out_.size()), // link
+			pkey,
+			amount, // amount
+			lBlind, // blinding key
+			lCommitment, // commit
+			height
 		);
 
 		// fill up for finalization

@@ -11,10 +11,10 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
 
 # Version
-add_definitions(-DCLIENT_VERSION_MAJOR=0)
-add_definitions(-DCLIENT_VERSION_MINOR=1)
-add_definitions(-DCLIENT_VERSION_REVISION=0)
-add_definitions(-DCLIENT_VERSION_BUILD=2)
+add_definitions(-DQBIT_VERSION_MAJOR=0)
+add_definitions(-DQBIT_VERSION_MINOR=1)
+add_definitions(-DQBIT_VERSION_REVISION=0)
+add_definitions(-DQBIT_VERSION_BUILD=2)
 
 # Daemon
 project(qbitd)
@@ -68,11 +68,15 @@ set(SOURCES
 	./httpendpoints.cpp
 	./blockcontext.cpp
 	./validator.cpp
+	./consensusmanager.cpp
+	./dapps/buzzer/buzzer.cpp
 	./dapps/buzzer/composer.cpp
 	./dapps/buzzer/httpendpoints.cpp
 	./dapps/buzzer/transactionstoreextension.cpp
+	./dapps/buzzer/transactionactions.cpp
 	./dapps/buzzer/peerextension.cpp
 	./dapps/buzzer/buzzfeed.cpp
+	./dapps/buzzer/eventsfeed.cpp
 	./itransactionstoreextension.cpp
 	./seedwords.cpp
 	./message.cpp	
@@ -124,11 +128,15 @@ set(UNITTESTS
 	./httpendpoints.cpp
 	./blockcontext.cpp
 	./validator.cpp
+	./consensusmanager.cpp
+	./dapps/buzzer/buzzer.cpp
 	./dapps/buzzer/composer.cpp
 	./dapps/buzzer/httpendpoints.cpp
 	./dapps/buzzer/transactionstoreextension.cpp
+	./dapps/buzzer/transactionactions.cpp	
 	./dapps/buzzer/peerextension.cpp	
 	./dapps/buzzer/buzzfeed.cpp
+	./dapps/buzzer/eventsfeed.cpp	
 	./itransactionstoreextension.cpp
 	./seedwords.cpp
 	./message.cpp
@@ -184,11 +192,16 @@ set(CLIENT
 	./seedwords.cpp
 	./message.cpp
 	./lightwallet.cpp
+	./dapps/buzzer/buzzer.cpp
 	./dapps/buzzer/buzzfeed.cpp
+	./dapps/buzzer/eventsfeed.cpp	
 	./dapps/buzzer/peerextension.cpp
-	./dapps/buzzer/transactionstoreextension.cpp	
+	./dapps/buzzer/transactionstoreextension.cpp
+	./dapps/buzzer/transactionactions.cpp	
 	./client/dapps/buzzer/commands.cpp
 	./client/dapps/buzzer/composer.cpp
+	./client/dapps/cubix/commands.cpp
+	./client/dapps/cubix/composer.cpp
 	./client/commands.cpp
 	./client/commandshandler.cpp
 	./client/main.cpp
@@ -198,6 +211,7 @@ add_definitions(-DHAVE_CONFIG_H)
 add_definitions(-DJM_MALLOC)
 
 add_definitions(-DBUZZER_MOD)
+add_definitions(-DCUBIX_MOD)
 
 add_subdirectory(./jm)
 add_subdirectory(./leveldb)
@@ -206,10 +220,10 @@ include_directories(./secp256k1/src ./secp256k1 ./secp256k1/include ./leveldb ./
 link_directories(./boost/stage/lib)
 
 #add_executable(${PROJECT_NAME} ${SOURCES} ${SECP256K1})
-#target_link_libraries(${PROJECT_NAME} jm leveldb boost_system boost_thread boost_chrono boost_random) #gmp
+#target_link_libraries(${PROJECT_NAME} jm leveldb boost_system boost_thread boost_chrono boost_random boost_filesystem jpeg png) #gmp
 
 add_executable(qbit-cli ${CLIENT} ${SECP256K1})
-target_link_libraries(qbit-cli jm leveldb boost_system boost_thread boost_chrono boost_random) #gmp
+target_link_libraries(qbit-cli jm leveldb boost_system boost_thread boost_chrono boost_random boost_filesystem jpeg png) #gmp
 
 add_executable(qbit-unit-tests ${UNITTESTS} ${SECP256K1})
-target_link_libraries(qbit-unit-tests jm leveldb boost_system boost_thread boost_chrono boost_random) #gmp
+target_link_libraries(qbit-unit-tests jm leveldb boost_system boost_thread boost_chrono boost_random boost_filesystem jpeg png) #gmp

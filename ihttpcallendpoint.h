@@ -213,7 +213,7 @@ protected:
 			}
 
 			// raw
-			DataStream lStream(SER_NETWORK, CLIENT_VERSION);
+			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION);
 			Transaction::Serializer::serialize<DataStream>(lStream, lTx);
 			lObject.addString("raw", HexStr(lStream.begin(), lStream.end()));
 		}

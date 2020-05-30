@@ -8,6 +8,7 @@
 #include "state.h"
 #include "key.h"
 #include "entity.h"
+#include "ientitystore.h"
 
 #include <boost/atomic.hpp>
 
@@ -28,6 +29,7 @@ using boost::asio::ip::tcp;
 namespace qbit {
 
 typedef std::shared_ptr<tcp::socket> SocketPtr;
+typedef std::shared_ptr<boost::asio::io_service::strand> StrandPtr;
 
 //
 // basic handler
@@ -79,6 +81,15 @@ public:
 	virtual void handleReply(TransactionPtr) = 0;
 };
 typedef std::shared_ptr<ILoadTransactionHandler> ILoadTransactionHandlerPtr;
+
+//
+// load transactions handler
+class ILoadTransactionsHandler: public IReplyHandler {
+public:
+	ILoadTransactionsHandler() {}
+	virtual void handleReply(const std::vector<TransactionPtr>&) = 0;
+};
+typedef std::shared_ptr<ILoadTransactionsHandler> ILoadTransactionsHandlerPtr;
 
 //
 // sent transaction handler
@@ -135,6 +146,15 @@ public:
 typedef std::shared_ptr<ISelectUtxoByEntityNameHandler> ISelectUtxoByEntityNameHandlerPtr;
 
 //
+// select entity names
+class ISelectEntityNamesHandler: public IReplyHandler {
+public:
+	ISelectEntityNamesHandler() {}
+	virtual void handleReply(const std::vector<IEntityStore::EntityName>&) = 0;
+};
+typedef std::shared_ptr<ISelectEntityNamesHandler> ISelectEntityNamesHandlerPtr;
+
+//
 // select utxo by entities names
 class ISelectUtxoByEntityNamesHandler: public IReplyHandler {
 public:
@@ -181,7 +201,7 @@ public:
 typedef std::shared_ptr<ISelectUtxoByEntityNamesHandler> ISelectUtxoByEntityNamesHandlerPtr;
 
 //
-// select entity count by shards
+// select entity count by shards (for entities, registered in main chain)
 class ISelectEntityCountByShardsHandler: public IReplyHandler {
 public:
 	class EntitiesCount {
@@ -212,6 +232,37 @@ public:
 typedef std::shared_ptr<ISelectEntityCountByShardsHandler> ISelectEntityCountByShardsHandlerPtr;
 
 //
+// select entity count by dapp (for entities in dapp binded shards)
+class ISelectEntityCountByDAppHandler: public IReplyHandler {
+public:
+	class EntitiesCount {
+	public:
+		EntitiesCount() {}
+		EntitiesCount(const uint256& shard, uint32_t count) : shard_(shard), count_(count) {}
+
+		ADD_SERIALIZE_METHODS;
+
+		template <typename Stream, typename Operation>
+		inline void serializationOp(Stream& s, Operation ser_action) {
+			READWRITE(shard_);
+			READWRITE(count_);
+		}
+
+		inline uint256& shard() { return shard_; }
+		inline uint32_t count() { return count_; }
+
+	private:
+		uint256 shard_;
+		uint32_t count_;
+	};
+
+public:
+	ISelectEntityCountByDAppHandler() {}
+	virtual void handleReply(const std::map<uint256, uint32_t>&, const std::string& /*dapp*/) = 0;
+};
+typedef std::shared_ptr<ISelectEntityCountByDAppHandler> ISelectEntityCountByDAppHandlerPtr;
+
+//
 // p2p protocol processor
 class IPeer {
 public:
@@ -230,7 +281,13 @@ public:
 		BAN = 2,
 		DENIED = 3,
 		SESSIONS_EXCEEDED = 4
-	};	
+	};
+
+	enum Type {
+		LOCAL = 0,
+		EXPLICIT = 1,
+		IMPLICIT = 2
+	};
 
 public:
 	IPeer() {}
@@ -241,6 +298,9 @@ public:
 
 	virtual void release() { throw qbit::exception("NOT_IMPL", "IPeer::release - not implemented."); }
 
+	virtual Type type() { throw qbit::exception("NOT_IMPL", "IPeer::type - not implemented."); }
+	virtual void setType(Type) { throw qbit::exception("NOT_IMPL", "IPeer::setType - not implemented."); }
+
 	virtual Status status() { throw qbit::exception("NOT_IMPL", "IPeer::status - not implemented."); }
 	virtual State& state() { throw qbit::exception("NOT_IMPL", "IPeer::state - not implemented."); }
 	virtual uint160 addressId() { throw qbit::exception("NOT_IMPL", "IPeer::addressId - not implemented."); }
@@ -249,6 +309,8 @@ public:
 	virtual void close() { throw qbit::exception("NOT_IMPL", "IPeer::close - not implemented."); }
 
 	virtual std::string statusString() { throw qbit::exception("NOT_IMPL", "IPeer::statusString - not implemented."); }
+
+	virtual void requestState() { throw qbit::exception("NOT_IMPL", "IPeer::requestState - not implemented."); }
 
 	virtual void setState(const State& /*state*/) { throw qbit::exception("NOT_IMPL", "IPeer::setState - not implemented."); }
 	virtual void setLatency(uint32_t /*latency*/) { throw qbit::exception("NOT_IMPL", "IPeer::setLatency - not implemented."); }
@@ -284,8 +346,12 @@ public:
 
 	virtual SocketPtr socket() { throw qbit::exception("NOT_IMPL", "IPeer::socket - not implemented."); }
 	virtual std::string key() { throw qbit::exception("NOT_IMPL", "IPeer::key - not implemented."); }
+	virtual StrandPtr strand() { throw qbit::exception("NOT_IMPL", "IPeer::strand - not implemented."); }	
+	virtual void sendMessageAsync(std::list<DataStream>::iterator /*msg*/) { throw qbit::exception("NOT_IMPL", "IPeer::sendMessageAsync - not implemented."); }
+	virtual void sendMessage(std::list<DataStream>::iterator /*msg*/) { throw qbit::exception("NOT_IMPL", "IPeer::sendMessage - not implemented."); }
 
 	virtual void waitForMessage() { throw qbit::exception("NOT_IMPL", "IPeer::waitForMessage - not implemented."); }
+	virtual void processed() { throw qbit::exception("NOT_IMPL", "IPeer::processed - not implemented."); }
 	virtual void ping() { throw qbit::exception("NOT_IMPL", "IPeer::ping - not implemented."); }
 	virtual void connect() { throw qbit::exception("NOT_IMPL", "IPeer::connect - not implemented."); }
 	virtual void requestPeers() { throw qbit::exception("NOT_IMPL", "IPeer::requestPeers - not implemented."); }
@@ -317,6 +383,7 @@ public:
 	// open requests
 	virtual void acquireBlockHeaderWithCoinbase(const uint256& /*block*/, const uint256& /*chain*/, INetworkBlockHandlerWithCoinBasePtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IPeer::acquireBlockHeaderWithCoinbase - not implemented."); }
 	virtual void loadTransaction(const uint256& /*chain*/, const uint256& /*tx*/, ILoadTransactionHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IPeer::loadTransaction - not implemented."); }
+	virtual void loadTransactions(const uint256& /*chain*/, const std::vector<uint256>& /*txs*/, ILoadTransactionsHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IPeer::loadTransactions - not implemented."); }
 	virtual void loadEntity(const std::string& /*entityName*/, ILoadEntityHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IPeer::loadEnity - not implemented."); }
 	virtual void selectUtxoByAddress(const PKey& /*source*/, const uint256& /*chain*/, ISelectUtxoByAddressHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IPeer::selectUtxoByAddress - not implemented."); }
 	virtual void selectUtxoByAddressAndAsset(const PKey& /*source*/, const uint256& /*chain*/, const uint256& /*asset*/, ISelectUtxoByAddressAndAssetHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IPeer::selectUtxoByAddressAndAsset - not implemented."); }
@@ -324,7 +391,11 @@ public:
 	virtual void selectUtxoByEntity(const std::string& /*entityName*/, ISelectUtxoByEntityNameHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IPeer::selectUtxoByEntity - not implemented."); }
 	virtual void selectUtxoByEntityNames(const std::vector<std::string>& /*entityNames*/, ISelectUtxoByEntityNamesHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IPeer::selectUtxoByEntityNames - not implemented."); }
 	virtual void selectEntityCountByShards(const std::string& /*dapp*/, ISelectEntityCountByShardsHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IPeer::selectEntityCountByShards - not implemented."); }
+	virtual void selectEntityCountByDApp(const std::string& /*dapp*/, ISelectEntityCountByDAppHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IPeer::selectEntityCountByDApp - not implemented."); }
 	virtual void sendTransaction(TransactionContextPtr /*ctx*/, ISentTransactionHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IPeer::sendTransaction - not implemented."); }
+	virtual void selectEntityNames(const std::string& /*pattern*/, ISelectEntityNamesHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IPeer::selectEntityNames - not implemented."); }
+	virtual void tryAskForQbits() { throw qbit::exception("NOT_IMPL", "IPeer::tryAskForQbits - not implemented."); }
+	virtual void tryAskForQbits(const PKey& /*key*/) { throw qbit::exception("NOT_IMPL", "IPeer::tryAskForQbits - not implemented."); }
 };
 
 typedef std::shared_ptr<IPeer> IPeerPtr;

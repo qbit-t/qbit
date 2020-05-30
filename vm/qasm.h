@@ -62,7 +62,9 @@ enum _command {
 	QJMPF		= 0x32, // one operand
 	QJMPL		= 0x33,
 	QJMPG		= 0x34,
-	QJMPE		= 0x35
+	QJMPE		= 0x35,
+
+	QCHECKH		= 0x36 // c00, c01 as a result
 };
 
 enum _atom {
@@ -165,7 +167,8 @@ enum _register {
 
 	QP0		= 0x42,
 
-	QE0		= 0x43
+	QE0		= 0x43,
+	QC1		= 0x44
 };
 
 extern int LAB_LEN;

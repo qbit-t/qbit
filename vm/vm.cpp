@@ -80,11 +80,11 @@ void VirtualMachine::qmov() {
 	// mov r0, 0x10
 	// mov r0, r1
 
-	lastAtom_ = nextAtom();
+	lastAtom_ = nextAtom(); // 1st operand
 	if (lastAtom_ == qasm::QREG) {
 		qasm::_register lLReg = qasm::REG::extract(code_, pos_);
 
-		if (lLReg == qasm::QS2 || lLReg == qasm::QS7 || lLReg == qasm::QC0 || 
+		if (lLReg == qasm::QS2 || lLReg == qasm::QS7 || lLReg == qasm::QC0 || lLReg == qasm::QC1 || 
 			lLReg == qasm::QA7 || lLReg == qasm::QP0 || lLReg == qasm::QE0 ||
 			(lLReg >= qasm::QTH0 && lLReg <= qasm::QTH15)) 
 		{
@@ -97,7 +97,7 @@ void VirtualMachine::qmov() {
 			return;
 		}
 
-		lastAtom_ = nextAtom();
+		lastAtom_ = nextAtom(); // 2nd operand
 		switch (lastAtom_) {
 			case qasm::QUI8: registers_[lLReg].set(qasm::CU8::extract(code_, pos_)); break;
 			case qasm::QUI16: registers_[lLReg].set(qasm::CU16::extract(code_, pos_)); break;
@@ -830,6 +830,9 @@ void VirtualMachine::qptxo() {
 	Register& lTH1 	= registers_[qasm::QTH1]; // tx type
 	Register& lTH3 	= registers_[qasm::QTH3]; // current out number
 
+	Register& lC1 	= registers_[qasm::QC1]; // timelock check result
+	Register& lR1 	= registers_[qasm::QR1]; // timelock 
+
 	if (lTH1.getType() != qasm::QNONE && lTH3.getType() != qasm::QNONE) {
 		//
 		uint32_t lIndex = lTH3.to<uint32_t>();
@@ -847,8 +850,14 @@ void VirtualMachine::qptxo() {
 			lLink.setTx(wrapper_->tx()->id());
 			lLink.setIndex(lIndex);
 
+			uint64_t lTimelock = 0;
+			if (lC1.getType() != qasm::QNONE && lR1.getType() != qasm::QNONE) {
+				lTimelock = lR1.to<uint64_t>();
+			}
+
 			Transaction::UnlinkedOutPtr lUTXO = Transaction::UnlinkedOut::instance(
-				lLink // link
+				lLink, // link
+				lTimelock
 			);
 
 			store_->pushUnlinkedOut(lUTXO, wrapper_); // push public
@@ -879,6 +888,8 @@ void VirtualMachine::qatxoa() {
 	Register& lA7 	= registers_[qasm::QA7]; // check amount result
 	Register& lTH1 	= registers_[qasm::QTH1]; // tx type
 	Register& lTH3 	= registers_[qasm::QTH3]; // current out number
+	Register& lC1 	= registers_[qasm::QC1]; // timelock check result
+	Register& lR1 	= registers_[qasm::QR1]; // timelock 	
 
 	if (lA7.to<unsigned char>() == 0x01 && lP0.getType() == qasm::QNONE) { // amount checked by checka AND there was not spend 
 
@@ -902,12 +913,18 @@ void VirtualMachine::qatxoa() {
 					lLink.setTx(wrapper_->tx()->id());
 					lLink.setIndex(lIndex);
 
+					uint64_t lTimelock = 0;
+					if (lC1.getType() != qasm::QNONE && lR1.getType() != qasm::QNONE) {
+						lTimelock = lR1.to<uint64_t>();
+					}
+
 					Transaction::UnlinkedOutPtr lUTXO = Transaction::UnlinkedOut::instance(
 						lLink, // link
 						lPKey,
 						lA0.to<uint64_t>(), // amount
 						lA2.to<uint256>(), // blinding key
-						lA1.to<std::vector<unsigned char> >() // commit
+						lA1.to<std::vector<unsigned char> >(), // commit
+						lTimelock
 					);
 
 					SKeyPtr lSKey = wallet_->findKey(lPKey);
@@ -939,6 +956,8 @@ void VirtualMachine::qatxo() {
 	Register& lD0 	= registers_[qasm::QD0]; // PKey.get()
 	Register& lP0 	= registers_[qasm::QP0]; // dtxo -> p0 undefined 
 	Register& lTH3 	= registers_[qasm::QTH3]; // current out number
+	Register& lC1 	= registers_[qasm::QC1]; // timelock check result
+	Register& lR1 	= registers_[qasm::QR1]; // timelock 
 
 	if (lP0.getType() == qasm::QNONE) { // amount checked by checka AND there was not spend 
 
@@ -956,9 +975,15 @@ void VirtualMachine::qatxo() {
 					lLink.setTx(wrapper_->tx()->id());
 					lLink.setIndex(lIndex);
 
+					uint64_t lTimelock = 0;
+					if (lC1.getType() != qasm::QNONE && lR1.getType() != qasm::QNONE) {
+						lTimelock = lR1.to<uint64_t>();
+					}
+
 					Transaction::UnlinkedOutPtr lUTXO = Transaction::UnlinkedOut::instance(
 						lLink, // link
-						lPKey
+						lPKey,
+						lTimelock
 					);
 
 					SKeyPtr lSKey = wallet_->findKey(lPKey);
@@ -993,6 +1018,8 @@ void VirtualMachine::qatxop() {
 	Register& lA2 	= registers_[qasm::QA2]; // proof
 	Register& lA7 	= registers_[qasm::QA7]; // checkp amount result
 	Register& lTH3 	= registers_[qasm::QTH3]; // current out number
+	Register& lC1 	= registers_[qasm::QC1]; // timelock check result
+	Register& lR1 	= registers_[qasm::QR1]; // timelock 
 
 	// for incoming transactions only
 	if (lA7.to<unsigned char>() == 0x01 && lP0.getType() == qasm::QNONE) { // amount checked by checkp AND there was not spend 
@@ -1055,6 +1082,11 @@ void VirtualMachine::qatxop() {
 					uint64_t lAmount = 0x00;
 					uint256 lBlindFactor;
 
+					uint64_t lTimelock = 0;
+					if (lC1.getType() != qasm::QNONE && lR1.getType() != qasm::QNONE) {
+						lTimelock = lR1.to<uint64_t>();
+					}
+					
 					SKeyPtr lSKey = (wallet_ ? wallet_->findKey(lPKey) : nullptr);
 					if (lSKey && lSKey->valid()) { // potentially our future input
 
@@ -1068,7 +1100,8 @@ void VirtualMachine::qatxop() {
 									lAmount, // amount
 									lBlindFactor, // blinding key
 									lA1.to<std::vector<unsigned char> >(), // commit
-									lNonce
+									lNonce,
+									lTimelock
 								);
 
 								wallet_->pushUnlinkedOut(lUTXO, wrapper_); // push UTXO
@@ -1077,7 +1110,7 @@ void VirtualMachine::qatxop() {
 					}
 
 					// public 
-					store_->pushUnlinkedOut(Transaction::UnlinkedOut::instance(lLink, lPKey), wrapper_); // push public
+					store_->pushUnlinkedOut(Transaction::UnlinkedOut::instance(lLink, lPKey, lTimelock), wrapper_); // push public
 					// out address
 					wrapper_->addOutAddress(lPKey);
 				} else {
@@ -1243,6 +1276,37 @@ void VirtualMachine::qpen() {
 void VirtualMachine::qpen(DisassemblyLine& line) {
 }
 
+void VirtualMachine::qcheckh() {
+	// one operands instruction
+	Register& lTH4 = registers_[qasm::QTH4]; // current height
+	if (lTH4.getType() == qasm::QNONE) {
+		state_ = VirtualMachine::ILLEGAL_OPERAND_TYPE;
+		return;
+	}
+
+	lastAtom_ = nextAtom(); // operand
+	if (lastAtom_ == qasm::QREG) { // register
+		qasm::_register lRReg = qasm::REG::extract(code_, pos_);
+		registers_[qasm::QC0].set((char)lTH4.less(registers_[lRReg]));
+		registers_[qasm::QC1].set(registers_[qasm::QC0]);
+	} else if (lastAtom_ == qasm::QUI64) { // constant
+		registers_[qasm::QC0].set((char)(lTH4.to<uint64_t>() < qasm::CU64::extract(code_, pos_)));
+		registers_[qasm::QC1].set(registers_[qasm::QC0]);
+	} else {
+		state_ = VirtualMachine::ILLEGAL_OPERAND_TYPE;
+	}
+}
+
+void VirtualMachine::qcheckh(DisassemblyLine& line) {
+	//
+	lastAtom_ = nextAtom();
+	if (lastAtom_ == qasm::QREG) {
+		line.addParam(qasm::_getRegisterText(qasm::REG::extract(code_, pos_)));
+	} else if (lastAtom_ == qasm::QUI64) {
+		line.addParam(qasm::CU64::extract(code_, pos_));
+	}
+}
+
 VirtualMachine::State VirtualMachine::execute()
 {
 	state_ = VirtualMachine::RUNNING;
@@ -1285,6 +1349,7 @@ VirtualMachine::State VirtualMachine::execute()
 				case qasm::QPEN: qpen(); break;
 				case qasm::QPTXO: qptxo(); break;
 				case qasm::QTIFMC: qtifmc(); break;
+				case qasm::QCHECKH: qcheckh(); break;
 				default:
 					state_ = VirtualMachine::ILLEGAL_COMMAND;
 				break;
@@ -1344,6 +1409,7 @@ void VirtualMachine::disassemble(std::list<DisassemblyLine>& disassembly) {
 				case qasm::QPEN: qpen(lLine); break;
 				case qasm::QPTXO: qptxo(lLine); break;
 				case qasm::QTIFMC: qtifmc(lLine); break;
+				case qasm::QCHECKH: qcheckh(lLine); break;
 			}
 
 		} else if (lastAtom_ == qasm::QLAB) {

@@ -543,3 +543,49 @@ bool DbContainerRemove::execute() {
 
 	return true;
 }
+
+bool DbContainerHash::execute() {
+
+	try {
+		rmpath("/tmp/db_test_hash");
+
+		db::DbContainer<std::string, std::string> lContainer("/tmp/db_test_hash");
+		lContainer.open();
+
+		db::DbContainer<std::string, std::string>::Transaction lTransaction = lContainer.transaction();
+
+		std::string lS0 = "#abyss";
+		std::string lS1 = "#automobile";
+		std::string lS2 = "#aurum";
+		std::string lS3 = "#brasil";
+		std::string lS4 = "#squirell";
+		std::string lS5 = "#aurus";
+		std::string lS6 = "#zoom";
+
+		lTransaction.write(lS0, lS0);
+		lTransaction.write(lS1, lS1);
+		lTransaction.write(lS2, lS2);
+		lTransaction.write(lS3, lS3);
+		lTransaction.write(lS4, lS4);
+		lTransaction.write(lS5, lS5);
+		lTransaction.write(lS6, lS6);
+
+		if(!lTransaction.commit()) { error_ = "Commit failed"; return false; }
+		
+		int lCount = 0;
+		std::string lS = "#au";
+		db::DbContainer<std::string, std::string>::Iterator lIter = lContainer.find(lS);
+		for (; lIter.valid(); lIter++) {
+			if ((*lIter).find(lS) != std::string::npos) lCount++;
+		}
+
+		if (lCount != 3) { error_ = "Incorrect number of entries"; return false; }		
+
+	}
+	catch(const std::exception& ex) {
+		error_ = ex.what();
+		return false;
+	}
+
+	return true;
+}

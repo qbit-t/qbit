@@ -59,9 +59,15 @@ curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"buzzerunsubscribe
 
 curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"createdapp","params":["76PvbNsTT84VvksyZcAsu2AaRn4W2g7a47fVnC4ZoHwT196K6N", "buzzer", "Buzzer - Decentralized microblogging platform", "4096", "static"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
 
+curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"createshard","params":["76PvbNsTT84VvksyZcAsu2AaRn4W2g7a47fVnC4ZoHwT196K6N", "buzzer", "buzzer#00", "Buzzer shard 00"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
+
 curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"createshard","params":["76PvbNsTT84VvksyZcAsu2AaRn4W2g7a47fVnC4ZoHwT196K6N", "buzzer", "buzzer#01", "Buzzer shard 01"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
 
-curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"createshard","params":["76PvbNsTT84VvksyZcAsu2AaRn4W2g7a47fVnC4ZoHwT196K6N", "buzzer", "buzzer#02", "Buzzer shard 02"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
+curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"createdapp","params":["76PvbNsTT84VvksyZcAsu2AaRn4W2g7a47fVnC4ZoHwT196K6N", "cubix", "Cubix - decentralized media storage", "0", "dynamic"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
+
+curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"createshard","params":["76PvbNsTT84VvksyZcAsu2AaRn4W2g7a47fVnC4ZoHwT196K6N", "cubix", "cubix#00", "Cubix shard 00"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
+
+curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"createshard","params":["76PvbNsTT84VvksyZcAsu2AaRn4W2g7a47fVnC4ZoHwT196K6N", "cubix", "cubix#01", "Cubix shard 01"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
 
 curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"createbuzzer","params":["*", "@second", "SND", "Second buzzer"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
 

@@ -114,7 +114,7 @@ public:
 	const _key3& key3() const { return key3_; } 
 
 	friend inline bool operator < (const ThreeKey<_key1, _key2, _key3>& a, const ThreeKey<_key1, _key2, _key3>& b) { 
-		if (a.key1() < b.key1()) return true;				
+		if (a.key1() < b.key1()) return true;
 		if (a.key1() > b.key1()) return false;
 		if (a.key2() < b.key2()) return true;
 		if (a.key2() > b.key2()) return false;
@@ -125,7 +125,7 @@ public:
 	}
 
 	friend inline bool operator > (const ThreeKey<_key1, _key2, _key3>& a, const ThreeKey<_key1, _key2, _key3>& b) { 
-		if (a.key1() > b.key1()) return true;				
+		if (a.key1() > b.key1()) return true;
 		if (a.key1() < b.key1()) return false;
 		if (a.key2() > b.key2()) return true;
 		if (a.key2() < b.key2()) return false;
@@ -139,6 +139,60 @@ private:
 	_key1 key1_;
 	_key2 key2_;
 	_key3 key3_;
+};
+
+template<typename _key1, typename _key2, typename _key3, typename _key4>
+class FourKey {
+public:
+	FourKey() {}
+	FourKey(const _key1& k1, const _key2& k2, const _key3& k3, const _key4& k4) : key1_(k1), key2_(k2), key3_(k3), key4_(k4) {}
+
+	ADD_SERIALIZE_METHODS;
+
+	template <typename Stream, typename Operation>
+	inline void serializationOp(Stream& s, Operation ser_action) {
+		READWRITE(key1_);
+		READWRITE(key2_);
+		READWRITE(key3_);
+		READWRITE(key4_);
+	}
+
+	const _key1& key1() const { return key1_; } 
+	const _key2& key2() const { return key2_; } 
+	const _key3& key3() const { return key3_; } 
+	const _key4& key4() const { return key4_; } 
+
+	friend inline bool operator < (const FourKey<_key1, _key2, _key3, _key4>& a, const FourKey<_key1, _key2, _key3, _key4>& b) { 
+		if (a.key1() < b.key1()) return true;
+		if (a.key1() > b.key1()) return false;
+		if (a.key2() < b.key2()) return true;
+		if (a.key2() > b.key2()) return false;
+		if (a.key3() < b.key3()) return true;
+		if (a.key3() > b.key3()) return false;
+		if (a.key4() < b.key4()) return true;
+		if (a.key4() > b.key4()) return false;
+
+		return false;
+	}
+
+	friend inline bool operator > (const FourKey<_key1, _key2, _key3, _key4>& a, const FourKey<_key1, _key2, _key3, _key4>& b) { 
+		if (a.key1() > b.key1()) return true;
+		if (a.key1() < b.key1()) return false;
+		if (a.key2() > b.key2()) return true;
+		if (a.key2() < b.key2()) return false;
+		if (a.key3() > b.key3()) return true;
+		if (a.key3() < b.key3()) return false;
+		if (a.key4() > b.key4()) return true;
+		if (a.key4() < b.key4()) return false;
+
+		return false;
+	}
+
+private:
+	_key1 key1_;
+	_key2 key2_;
+	_key3 key3_;
+	_key4 key4_;
 };
 
 //
@@ -233,7 +287,7 @@ public:
 	inline bool remove(const DataStream& k, bool sync = false) { return impl<key, value>::remove(k, sync); }
 
 	inline bool remove(const Iterator& iter, bool sync = false) {
-		DataStream lKeyStream(SER_DISK, CLIENT_VERSION);
+		DataStream lKeyStream(SER_DISK, PROTOCOL_VERSION);
 		const_cast<Iterator&>(iter).first(lKeyStream);
 		return remove(lKeyStream, sync);
 	}
@@ -319,7 +373,7 @@ public:
 		inline void remove(const DataStream& k) { t_.remove(k); }
 
 		inline void remove(const MultiContainer::Iterator& iter) {
-			DataStream lKeyStream(SER_DISK, CLIENT_VERSION);
+			DataStream lKeyStream(SER_DISK, PROTOCOL_VERSION);
 			const_cast<MultiContainer::Iterator&>(iter).first(lKeyStream);
 			remove(lKeyStream);
 		}
@@ -353,7 +407,7 @@ public:
 	inline Iterator last() { return MultiContainer::Iterator(Container<MultiKey<key>, value, impl>::last()); }
 
 	inline bool remove(const MultiContainer::Iterator& iter, bool sync = false) {
-		DataStream lKeyStream(SER_DISK, CLIENT_VERSION);
+		DataStream lKeyStream(SER_DISK, PROTOCOL_VERSION);
 		const_cast<MultiContainer::Iterator&>(iter).first(lKeyStream);
 		return Container<MultiKey<key>, value, impl>::remove(lKeyStream, sync);
 	}
@@ -368,6 +422,7 @@ class TwoKeyContainer: public Container<TwoKey<key1, key2>, value, impl> {
 public:
 	class Iterator {
 	public:
+		Iterator() {}
 		Iterator(const key1& k1, const key2& k2, const typename Container<TwoKey<key1, key2>, value, impl>::Iterator& i) : key1Empty_(false), key2Empty_(false), key1_(k1), key2_(k2), i_(i) {}
 		Iterator(const key1& k1, const typename Container<TwoKey<key1, key2>, value, impl>::Iterator& i) : key1Empty_(false), key2Empty_(true), key1_(k1), i_(i) {}
 		Iterator(const typename Container<TwoKey<key1, key2>, value, impl>::Iterator& i) : key1Empty_(true), key2Empty_(true), i_(i) {}
@@ -434,7 +489,8 @@ public:
 		inline bool second(value& v) { return i_.second(v); }
 		inline bool second(DataStream& v) { return i_.second(v); }
 
-		inline void setKey2Empty() { key2Empty_ = true; }		
+		inline void setKey2Empty() { key2Empty_ = true; }
+		inline void setKey1Empty() { key2Empty_ = key1Empty_ = true; }
 
 	private:
 		bool key1Empty_;
@@ -457,7 +513,7 @@ public:
 		inline void remove(const DataStream& k) { t_.remove(k); }
 
 		inline void remove(const TwoKeyContainer::Iterator& iter) {
-			DataStream lKeyStream(SER_DISK, CLIENT_VERSION);
+			DataStream lKeyStream(SER_DISK, PROTOCOL_VERSION);
 			const_cast<TwoKeyContainer::Iterator&>(iter).first(lKeyStream);
 			remove(lKeyStream);
 		}
@@ -502,7 +558,7 @@ public:
 	inline Iterator last() { return TwoKeyContainer::Iterator(Container<TwoKey<key1, key2>, value, impl>::last()); }
 
 	inline bool remove(const TwoKeyContainer::Iterator& iter, bool sync = false) {
-		DataStream lKeyStream(SER_DISK, CLIENT_VERSION);
+		DataStream lKeyStream(SER_DISK, PROTOCOL_VERSION);
 		const_cast<TwoKeyContainer::Iterator&>(iter).first(lKeyStream);
 		return Container<TwoKey<key1, key2>, value, impl>::remove(lKeyStream, sync);
 	}
@@ -517,6 +573,7 @@ class ThreeKeyContainer: public Container<ThreeKey<key1, key2, key3>, value, imp
 public:
 	class Iterator {
 	public:
+		Iterator() {}
 		Iterator(const key1& k1, const key2& k2, const key3& k3, const typename Container<ThreeKey<key1, key2, key3>, value, impl>::Iterator& i) : key1Empty_(false), key2Empty_(false), key3Empty_(false), key1_(k1), key2_(k2), key3_(k3), i_(i) {}
 		Iterator(const key1& k1, const key2& k2, const typename Container<ThreeKey<key1, key2, key3>, value, impl>::Iterator& i) : key1Empty_(false), key2Empty_(false), key3Empty_(true), key1_(k1), key2_(k2), i_(i) {}
 		Iterator(const key1& k1, const typename Container<ThreeKey<key1, key2, key3>, value, impl>::Iterator& i) : key1Empty_(false), key2Empty_(true), key3Empty_(true), key1_(k1), i_(i) {}
@@ -596,6 +653,7 @@ public:
 
 		inline void setKey3Empty() { key3Empty_ = true; }
 		inline void setKey2Empty() { key3Empty_ = key2Empty_ = true; }
+		inline void setKey1Empty() { key3Empty_ = key2Empty_ = key1Empty_ = true; }		
 
 	private:
 		bool key1Empty_;
@@ -620,7 +678,7 @@ public:
 		inline void remove(const DataStream& k) { t_.remove(k); }
 
 		inline void remove(const ThreeKeyContainer::Iterator& iter) {
-			DataStream lKeyStream(SER_DISK, CLIENT_VERSION);
+			DataStream lKeyStream(SER_DISK, PROTOCOL_VERSION);
 			const_cast<ThreeKeyContainer::Iterator&>(iter).first(lKeyStream);
 			remove(lKeyStream);
 		}
@@ -674,12 +732,210 @@ public:
 	inline Iterator last() { return ThreeKeyContainer::Iterator(Container<ThreeKey<key1, key2, key3>, value, impl>::last()); }
 
 	inline bool remove(const ThreeKeyContainer::Iterator& iter, bool sync = false) {
-		DataStream lKeyStream(SER_DISK, CLIENT_VERSION);
+		DataStream lKeyStream(SER_DISK, PROTOCOL_VERSION);
 		const_cast<ThreeKeyContainer::Iterator&>(iter).first(lKeyStream);
 		return Container<ThreeKey<key1, key2, key3>, value, impl>::remove(lKeyStream, sync);
 	}
 
 	inline Transaction transaction() { return Transaction(Container<ThreeKey<key1, key2, key3>, value, impl>::transaction()); }	
+};
+
+//
+// Tree-key container
+template<typename key1, typename key2, typename key3, typename key4, typename value, template<typename, typename> typename impl >
+class FourKeyContainer: public Container<FourKey<key1, key2, key3, key4>, value, impl> {
+public:
+	class Iterator {
+	public:
+		Iterator() {}
+		Iterator(const key1& k1, const key2& k2, const key3& k3, const key4& k4, const typename Container<FourKey<key1, key2, key3, key4>, value, impl>::Iterator& i) : key1Empty_(false), key2Empty_(false), key3Empty_(false), key4Empty_(false), key1_(k1), key2_(k2), key3_(k3), key4_(k4), i_(i) {}
+		Iterator(const key1& k1, const key2& k2, const key3& k3, const typename Container<FourKey<key1, key2, key3, key3>, value, impl>::Iterator& i) : key1Empty_(false), key2Empty_(false), key3Empty_(false), key4Empty_(true), key1_(k1), key2_(k2), key3_(k3), i_(i) {}
+		Iterator(const key1& k1, const key2& k2, const typename Container<FourKey<key1, key2, key3, key3>, value, impl>::Iterator& i) : key1Empty_(false), key2Empty_(false), key3Empty_(true), key4Empty_(true), key1_(k1), key2_(k2), i_(i) {}
+		Iterator(const key1& k1, const typename Container<FourKey<key1, key2, key3, key3>, value, impl>::Iterator& i) : key1Empty_(false), key2Empty_(true), key3Empty_(true), key4Empty_(true), key1_(k1), i_(i) {}
+		Iterator(const typename Container<FourKey<key1, key2, key3, key3>, value, impl>::Iterator& i) : key1Empty_(true), key2Empty_(true), key3Empty_(true), key4Empty_(true), i_(i) {}
+
+		inline bool valid() {
+			FourKey<key1, key2, key3, key4> lKey;
+			if (i_.valid() && i_.first(lKey) && 
+					(!key1Empty_ && lKey.key1() == key1_ || key1Empty_) && 
+					(!key2Empty_ && lKey.key2() == key2_ || key2Empty_) &&
+					(!key3Empty_ && lKey.key3() == key3_ || key3Empty_) &&
+					(!key4Empty_ && lKey.key4() == key4_ || key4Empty_)) {
+				return true;
+			}
+
+			return false;
+		}
+
+		inline Iterator& operator++() {
+			i_.next();
+			return *this;
+		}
+
+		inline Iterator& operator++(int) {
+			i_.next();
+			return *this;
+		}
+
+		inline Iterator& operator--() {
+			i_.prev();
+			return *this;
+		}
+
+		inline Iterator& operator--(int) {
+			i_.prev();
+			return *this;
+		}
+
+		inline value operator* () {
+			value lValue;
+			i_.second(lValue);
+			return lValue; 
+		}
+
+		inline bool first(key1& k1, key2& k2, key3& k3, key4& k4) {
+			FourKey<key1, key2, key3, key4> lKey;
+			bool lResult = i_.first(lKey);
+			k1 = lKey.key1();
+			k2 = lKey.key2();
+			k3 = lKey.key3();
+			k4 = lKey.key4();
+			return lResult; 
+		}
+
+		inline bool first(key1& k1, key2& k2, key3& k3) {
+			ThreeKey<key1, key2, key3> lKey;
+			bool lResult = i_.first(lKey);
+			k1 = lKey.key1();
+			k2 = lKey.key2();
+			k3 = lKey.key3();
+			return lResult; 
+		}
+
+		inline bool first(key1& k1, key2& k2) {
+			ThreeKey<key1, key2, key3> lKey;
+			bool lResult = i_.first(lKey);
+			k1 = lKey.key1();
+			k2 = lKey.key2();
+			return lResult; 
+		}
+
+		inline bool first(key1& k1) {
+			ThreeKey<key1, key2, key3> lKey;
+			bool lResult = i_.first(lKey);
+			k1 = lKey.key1();
+			return lResult; 
+		}
+
+		inline bool first(FourKey<key1, key2, key3, key4>& k) {
+			bool lResult = i_.first(k);
+			return lResult; 
+		}
+
+		inline bool first(DataStream& k) { return i_.first(k); }
+
+		inline bool second(value& v) { return i_.second(v); }
+		inline bool second(DataStream& v) { return i_.second(v); }
+
+		inline void setKey4Empty() { key4Empty_ = true; }
+		inline void setKey3Empty() { key4Empty_ = key3Empty_ = true; }
+		inline void setKey2Empty() { key4Empty_ = key3Empty_ = key2Empty_ = true; }
+		inline void setKey1Empty() { key4Empty_ = key3Empty_ = key2Empty_ = key1Empty_ = true; }
+
+	private:
+		bool key1Empty_;
+		bool key2Empty_;
+		bool key3Empty_;
+		bool key4Empty_;
+		key1 key1_;
+		key2 key2_;
+		key3 key3_;
+		key4 key4_;
+		typename Container<FourKey<key1, key2, key3, key4>, value, impl>::Iterator i_;
+	};
+
+	class Transaction {
+	public:
+		Transaction(const typename Container<FourKey<key1, key2, key3, key4>, value, impl>::Transaction& t) : t_(t) {}
+
+		inline void write(const key1& k1, const key2& k2, const key3& k3, const key4& k4, const value& v) { t_.write(FourKey<key1, key2, key3, key4>(k1, k2, k3, k4), v); }
+		inline void write(const FourKey<key1, key2, key3, key4>& k, const value& v) { t_.write(k, v); }
+		inline void write(const DataStream& k, const DataStream& v) { t_.write(k, v); }
+
+		inline void remove(const key1& k1, const key2& k2, const key3& k3, const key4& k4) { t_.remove(FourKey<key1, key2, key3, key4>(k1, k2, k3, k4)); }
+		inline void remove(const FourKey<key1, key2, key3, key4>& k) { t_.remove(k); }
+		inline void remove(const DataStream& k) { t_.remove(k); }
+
+		inline void remove(const FourKeyContainer::Iterator& iter) {
+			DataStream lKeyStream(SER_DISK, PROTOCOL_VERSION);
+			const_cast<FourKeyContainer::Iterator&>(iter).first(lKeyStream);
+			remove(lKeyStream);
+		}
+
+		inline bool commit(bool sync = false) { return t_.commit(sync); }
+
+	private:
+		typename Container<FourKey<key1, key2, key3, key4>, value, impl>::Transaction t_;
+	};	
+
+public:
+	FourKeyContainer(const std::string& name) : Container<FourKey<key1, key2, key3, key4>, value, impl>(name) {}
+
+	inline bool open(bool useTypedComparer = true, uint32_t cache = 0) { return Container<FourKey<key1, key2, key3, key4>, value, impl>::open(useTypedComparer, cache); }
+	inline void close() { Container<FourKey<key1, key2, key3, key4>, value, impl>::close(); }
+	inline bool opened() { return Container<FourKey<key1, key2, key3, key4>, value, impl>::opened(); }	
+
+	bool write(const key1& k1, const value& v, bool sync = false) {
+		FourKey<key1, key2, key3, key4> lKey(k1, key2(), key3(), key4());
+		return Container<FourKey<key1, key2, key3, key4>, value, impl>::write(lKey, v, sync);
+	}
+
+	bool write(const key1& k1, const key2& k2, const value& v, bool sync = false) {
+		FourKey<key1, key2, key3, key4> lKey(k1, k2, key3(), key4());
+		return Container<FourKey<key1, key2, key3, key4>, value, impl>::write(lKey, v, sync);
+	}
+
+	bool write(const key1& k1, const key2& k2, const key3& k3, const value& v, bool sync = false) {
+		FourKey<key1, key2, key3, key4> lKey(k1, k2, k3, key4());
+		return Container<FourKey<key1, key2, key3, key4>, value, impl>::write(lKey, v, sync);
+	}
+
+	bool write(const key1& k1, const key2& k2, const key3& k3, const key4& k4, const value& v, bool sync = false) {
+		FourKey<key1, key2, key3, key4> lKey(k1, k2, k3, k4);
+		return Container<FourKey<key1, key2, key3, key4>, value, impl>::write(lKey, v, sync);
+	}
+
+	bool remove(const key1& k1, const key2& k2, const key3& k3, const key4& k4, bool sync = false) {
+		FourKey<key1, key2, key3, key4> lKey(k1, k2, k3, k4);
+		return Container<FourKey<key1, key2, key3, key4>, value, impl>::remove(lKey, sync);
+	}
+
+	inline Iterator find(const key1& k1) {
+		return FourKeyContainer::Iterator(k1, Container<FourKey<key1, key2, key3, key4>, value, impl>::find(FourKey<key1, key2, key3, key4>(k1, key2(), key3(), key4()))); 
+	}
+
+	inline Iterator find(const key1& k1, const key2& k2) {
+		return FourKeyContainer::Iterator(k1, k2, Container<FourKey<key1, key2, key3, key4>, value, impl>::find(FourKey<key1, key2, key3, key4>(k1, k2, key3(), key4())));
+	}
+
+	inline Iterator find(const key1& k1, const key2& k2, const key3& k3) {
+		return FourKeyContainer::Iterator(k1, k2, k3, Container<FourKey<key1, key2, key3, key4>, value, impl>::find(FourKey<key1, key2, key3, key4>(k1, k2, k3, key4())));
+	}
+
+	inline Iterator find(const key1& k1, const key2& k2, const key3& k3, const key4& k4) {
+		return FourKeyContainer::Iterator(k1, k2, k3, k4, Container<FourKey<key1, key2, key3, key4>, value, impl>::find(FourKey<key1, key2, key3, key4>(k1, k2, k3, k4)));
+	}
+
+	inline Iterator begin() { return FourKeyContainer::Iterator(Container<FourKey<key1, key2, key3, key4>, value, impl>::begin()); }
+	inline Iterator last() { return FourKeyContainer::Iterator(Container<FourKey<key1, key2, key3, key4>, value, impl>::last()); }
+
+	inline bool remove(const FourKeyContainer::Iterator& iter, bool sync = false) {
+		DataStream lKeyStream(SER_DISK, PROTOCOL_VERSION);
+		const_cast<FourKeyContainer::Iterator&>(iter).first(lKeyStream);
+		return Container<FourKey<key1, key2, key3, key4>, value, impl>::remove(lKeyStream, sync);
+	}
+
+	inline Transaction transaction() { return Transaction(Container<FourKey<key1, key2, key3, key4>, value, impl>::transaction()); }
 };
 
 //
@@ -720,7 +976,7 @@ public:
 		inline bool first(DataStream& k) { return i_.first(k); }
 
 		inline std::shared_ptr<value> operator* () {
-			DataStream lValueStream(SER_DISK, CLIENT_VERSION);
+			DataStream lValueStream(SER_DISK, PROTOCOL_VERSION);
 			if (i_.second(lValueStream)) {
 				return value::Deserializer::deserialize(lValueStream);
 			}
@@ -737,10 +993,10 @@ public:
 		Transaction(const typename Container<key, value, impl>::Transaction& t) : t_(t) {}
 
 		inline void write(const key& k, std::shared_ptr<value> v) {
-			DataStream lKeyStream(SER_DISK, CLIENT_VERSION);
+			DataStream lKeyStream(SER_DISK, PROTOCOL_VERSION);
 			lKeyStream << k;
 
-			DataStream lValueStream(SER_DISK, CLIENT_VERSION);
+			DataStream lValueStream(SER_DISK, PROTOCOL_VERSION);
 			value::Serializer::serialize(lValueStream, v);
 
 			t_.write(lKeyStream, lValueStream);
@@ -761,20 +1017,20 @@ public:
 	inline bool opened() { return Container<key, value, impl>::opened(); }	
 
 	bool write(const key& k, std::shared_ptr<value> v, bool sync = false) {
-		DataStream lKeyStream(SER_DISK, CLIENT_VERSION);
+		DataStream lKeyStream(SER_DISK, PROTOCOL_VERSION);
 		lKeyStream << k;
 
-		DataStream lValueStream(SER_DISK, CLIENT_VERSION);
+		DataStream lValueStream(SER_DISK, PROTOCOL_VERSION);
 		value::Serializer::serialize(lValueStream, v);
 
 		return Container<key, value, impl>::write(lKeyStream, lValueStream, sync);
 	}
 
 	std::shared_ptr<value> read(const key& k) {
-		DataStream lKeyStream(SER_DISK, CLIENT_VERSION);
+		DataStream lKeyStream(SER_DISK, PROTOCOL_VERSION);
 		lKeyStream << k;
 
-		DataStream lValueStream(SER_DISK, CLIENT_VERSION);
+		DataStream lValueStream(SER_DISK, PROTOCOL_VERSION);
 		
 		if (Container<key, value, impl>::read(lKeyStream, lValueStream)) {
 			return value::Deserializer::deserialize(lValueStream);

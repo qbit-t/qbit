@@ -115,7 +115,8 @@ bool qbit::TxSpend::finalize(const SKey& skey) {
 	for (_assetMap::iterator lIter = assetOut_.begin(); lIter != assetOut_.end(); lIter++) {
 		std::list<Transaction::UnlinkedOutPtr> lOutList = lIter->second;
 		for (std::list<Transaction::UnlinkedOutPtr>::iterator lOUtxo = lOutList.begin(); lOUtxo != lOutList.end(); lOUtxo++) {
-			if ((*lOUtxo)->out().asset() == TxAssetType::nullAsset()) (*lOUtxo)->out().setAsset(hash());
+			if ((*lOUtxo)->out().asset() == TxAssetType::nullAsset() && type() == Transaction::ASSET_TYPE) 
+				(*lOUtxo)->out().setAsset(hash());
 			(*lOUtxo)->out().setTx(hash());
 		}
 	}

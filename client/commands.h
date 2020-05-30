@@ -65,8 +65,10 @@ public:
 	}
 
 	// callbacks
-	void balance(double amount, amount_t scale) {
-		std::cout << strprintf(TxAssetType::scaleFormat(scale), amount) << std::endl;
+	void balance(double amount, double pending, amount_t scale) {
+		std::cout << 
+			strprintf(TxAssetType::scaleFormat(scale), amount) << "/" <<
+			strprintf(TxAssetType::scaleFormat(scale), pending) << std::endl;
 		done_();
 	}
 
@@ -120,6 +122,93 @@ public:
 		}
 
 		done_();
+	}
+
+	void error(const std::string& code, const std::string& message) {
+		gLog().writeClient(Log::CLIENT, strprintf(": %s | %s", code, message));
+		done_();
+	}	
+
+private:
+	LightComposerPtr composer_;
+	doneFunction done_;
+};
+
+class SearchEntityNamesCommand;
+typedef std::shared_ptr<SearchEntityNamesCommand> SearchEntityNamesCommandPtr;
+
+class SearchEntityNamesCommand: public ICommand, public std::enable_shared_from_this<SearchEntityNamesCommand> {
+public:
+	SearchEntityNamesCommand(LightComposerPtr composer, doneFunction done): composer_(composer), done_(done) {}
+
+	void process(const std::vector<std::string>&);
+	std::set<std::string> name() {
+		std::set<std::string> lSet;
+		lSet.insert("searchEntityNames"); 
+		lSet.insert("searchEntity"); 
+		lSet.insert("se"); 
+		return lSet;
+	}
+
+	void help() {
+		std::cout << "searchEntityNames | searchEntity | se <name_part>" << std::endl;
+		std::cout << "\tSearch entity names (up to 5) by given pattern." << std::endl;
+		std::cout << "\t<name_part> - required, asset name starting with the givent part" << std::endl;
+		std::cout << "\texample:\n\t\t>se @my_entity" << std::endl << std::endl;
+	}	
+
+	static ICommandPtr instance(LightComposerPtr composer, doneFunction done) { 
+		return std::make_shared<SearchEntityNamesCommand>(composer, done); 
+	}
+
+	// callbacks
+	void assetNamesLoaded(const std::vector<IEntityStore::EntityName>& names) {
+		//
+		for (std::vector<IEntityStore::EntityName>::const_iterator lName = names.begin(); lName != names.end(); lName++) {
+			std::cout << (*lName).data() << std::endl;
+		}
+
+		done_();
+	}
+
+	void timeout() {
+		error("E_TIMEOUT", "Timeout expired during entity names loading.");
+	}
+
+	void error(const std::string& code, const std::string& message) {
+		gLog().writeClient(Log::CLIENT, strprintf(": %s | %s", code, message));
+		done_();
+	}	
+
+private:
+	LightComposerPtr composer_;
+	doneFunction done_;
+};
+
+class AskForQbitsCommand;
+typedef std::shared_ptr<AskForQbitsCommand> AskForQbitsCommandPtr;
+
+class AskForQbitsCommand: public ICommand, public std::enable_shared_from_this<AskForQbitsCommand> {
+public:
+	AskForQbitsCommand(LightComposerPtr composer, doneFunction done): composer_(composer), done_(done) {}
+
+	void process(const std::vector<std::string>&);
+	std::set<std::string> name() {
+		std::set<std::string> lSet;
+		lSet.insert("askForQbits"); 
+		lSet.insert("askq"); 
+		lSet.insert("aq"); 
+		return lSet;
+	}
+
+	void help() {
+		std::cout << "askForQbits | askq | aq" << std::endl;
+		std::cout << "\tTry to ack some qbits from network." << std::endl;
+		std::cout << "\texample:\n\t\t>aq" << std::endl << std::endl;
+	}	
+
+	static ICommandPtr instance(LightComposerPtr composer, doneFunction done) { 
+		return std::make_shared<AskForQbitsCommand>(composer, done); 
 	}
 
 	void error(const std::string& code, const std::string& message) {

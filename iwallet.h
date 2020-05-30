@@ -102,9 +102,16 @@ public:
 	// create fee tx
 	virtual TransactionContextPtr createTxFee(const PKey& /*dest*/, amount_t /*amount*/) { throw qbit::exception("NOT_IMPL", "IWallet::createTxFee - Not implemented."); }
 
+	// create fee with locked out tx
+	virtual TransactionContextPtr createTxFeeLockedChange(const PKey& /*dest*/, amount_t /*amount*/, amount_t /*locked*/, uint64_t /*height*/) { throw qbit::exception("NOT_IMPL", "IWallet::createTxFeeLockedChange - Not implemented."); }
+
 	// wallet balance
 	virtual amount_t balance() { return 0; } // qbit balance
 	virtual amount_t balance(const uint256& asset) { return 0; }
+
+	virtual amount_t pendingBalance() { return 0; } // qbit balance
+	virtual amount_t pendingBalance(const uint256& asset) { return 0; }
+
 	virtual void resetCache() { throw qbit::exception("NOT_IMPL", "IWallet::resetCache - not implemented."); }
 	virtual bool prepareCache() { throw qbit::exception("NOT_IMPL", "IWallet::prepareCache - not implemented."); }
 

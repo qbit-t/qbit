@@ -34,7 +34,7 @@ class ConsensusA: public IConsensus {
 public:
 	ConsensusA() {}
 
-	size_t maxBlockSize() { return 1024 * 1024 * 8; }
+	uint32_t maxBlockSize() { return 1024 * 1024 * 8; }
 	uint64_t currentTime() { return getTime(); }
 
 	void pushPeer(IPeerPtr /*peer*/) { }

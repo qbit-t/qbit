@@ -21,7 +21,7 @@ path-constant ICU_PATH : /usr ;
 # options. If left empty, all libraries will be built.
 # Options specified on the command line completely
 # override this variable.
-libraries =  --with-system --with-thread --with-chrono --with-random ;
+libraries =  --with-system --with-thread --with-chrono --with-random --with-filesystem ;
 
 # These settings are equivalent to corresponding command-line
 # options.

@@ -18,4 +18,8 @@ boost/bin.v2/
 boost/stage/
 b2
 bjam
+*.list
+01.*
+001.*
+001-*
 

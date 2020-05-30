@@ -26,7 +26,7 @@ public:
 	std::string shortName_;	
 	std::string longName_;
 	Sharding sharding_;
-
+	
 	ADD_INHERITABLE_SERIALIZE_METHODS;
 
 	template<typename Stream> void serialize(Stream& s) {

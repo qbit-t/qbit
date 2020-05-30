@@ -63,8 +63,8 @@ public:
 	const unsigned char* end() const { return vch_ + size(); }
 	const unsigned char& operator[](unsigned int pos) const { return vch_[pos]; }
 
-	std::string toString();
-	std::string toString(unsigned int len);
+	std::string toString() const;
+	std::string toString(unsigned int len) const;
 	std::string toHex() { return HexStr(begin(), end()); }
 
 	bool fromString(const std::string&);
@@ -190,7 +190,7 @@ public:
 	bool create();
 	PKey createPKey();
 
-	std::string toString();
+	std::string toString() const;
 	std::string toHex() { return HexStr(begin(), end()); }
 
 	static SKeyPtr instance() {

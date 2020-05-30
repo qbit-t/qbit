@@ -31,7 +31,7 @@ public:
 
 	//
 	// max block size
-	size_t maxBlockSize() { return 1024 * 1024 * 1; }
+	virtual uint32_t maxBlockSize() { return 1024 * 1024 * 1; }
 
 	//
 	// current time (adjusted? averaged?)
@@ -67,23 +67,23 @@ public:
 	//
 	// block time for main chain, ms
 	// TODO: settings
-	virtual size_t blockTime() { return 5000; }
+	virtual uint32_t blockTime() { return 5000; }
 
 	//
 	// block count (100 blocks)
 	// TODO: settings
-	virtual size_t quarantineTime() { return 100; }
+	virtual uint32_t quarantineTime() { return 100; }
 
 	//
 	// maturity period (blocks)
-	virtual size_t maturity() {
+	virtual uint32_t maturity() {
 		// TODO: select from settings by dApp_ if dapp != "" || dapp_ != "none"
 		return settings_->mainChainMaturity(); 
 	}
 
 	//
 	// coinbase maturity period (blocks)
-	virtual size_t coinbaseMaturity() {
+	virtual uint32_t coinbaseMaturity() {
 		// TODO: select from settings by dApp_ if dapp != "" || dapp_ != "none"
 		return settings_->mainChainCoinbaseMaturity(); 
 	}
@@ -117,8 +117,9 @@ public:
 
 	//
 	// PoW/PoS work sequnce with "block" and "block->prev"
-	virtual bool checkSequenceConsistency(BlockHeader& block) {
-		int res = VerifyCycle(block.hash(), EDGEBITS /*edge bits*/, PROOFSIZE /* 42 proof size */, block.cycle_);
+	virtual bool checkSequenceConsistency(const BlockHeader& block) {
+		/*
+		int res = VerifyCycle(const_cast<BlockHeader&>(block).hash(), EDGEBITS, PROOFSIZE, block.cycle_);
 		if(res == verify_code::POW_OK) {
 			bool fNegative;
     		bool fOverflow;
@@ -127,27 +128,31 @@ public:
     		bnTarget.SetCompact(block.bits_, &fNegative, &fOverflow);
 
     		// Check range
-    		if (fNegative || bnTarget == 0 || fOverflow /*|| bnTarget > UintToArith256(params.powLimit.uHashLimit)*/)
+    		if (fNegative || bnTarget == 0 || fOverflow) // || bnTarget > UintToArith256(params.powLimit.uHashLimit)
         		return false;
 
     		// Check proof of work matches claimed amount
-    		if (UintToArith256(block.hash()) > bnTarget)
+    		if (UintToArith256(const_cast<BlockHeader&>(block).hash()) > bnTarget)
         		return false;
 
     		return true;
 		}
+
 		return false;
+		*/
+		
+		return true;
 	}
 
 	//
 	// minimum network size
 	// TODO: settings
-	virtual size_t simpleNetworkSize() { return 5; }
+	virtual uint32_t simpleNetworkSize() { return 5; }
 
 	//
 	// mini-tree for sync
 	// TODO: settings
-	virtual size_t partialTreeThreshold() { return 5; }
+	virtual uint32_t partialTreeThreshold() { return 5; }
 
 	//
 	// use peer for network participation
@@ -315,6 +320,41 @@ public:
 			if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, 
 				strprintf("[broadcastBlockHeaderAndState]: block header and state broadcasted to %s/%s/%s#", 
 					(*lPeer)->addressId().toHex(), const_cast<NetworkBlockHeader&>(block).blockHeader().hash().toHex(), chain_.toHex().substr(0, 10)));
+			}
+		}
+
+		//
+		// NOTICE: current state collected and sent to the clients only in case if main chain has changes - lower traffic without losing the information
+		if (const_cast<NetworkBlockHeader&>(block).blockHeader().chain() == MainChain::id()) {
+			consensusManager_->broadcastStateToClients(state);
+		}
+	}
+
+	//
+	// broadcast airdrop request
+	void broadcastAirdropRequest(const PKey& key, const uint160& except) {
+		// prepare
+		std::list<IPeerPtr> lPeers;
+		{
+			boost::unique_lock<boost::mutex> lLock(peersMutex_);
+			for (PeersMap::iterator lItem = directPeerMap_.begin(); lItem != directPeerMap_.end(); lItem++) {
+				lPeers.push_back(lItem->second);
+			}
+		}
+
+		//
+		if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, 
+			strprintf("[broadcastAirdropRequest]: try broadcasting airdrop request %d/%s/%s#", 
+				lPeers.size(), key.toString(), chain_.toHex().substr(0, 10)));
+
+		// broadcast
+		for (std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
+			if (except.isNull() || (except != (*lPeer)->addressId())) {
+				(*lPeer)->tryAskForQbits(key);
+
+			if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, 
+				strprintf("[broadcastAirdropRequest]: airdrop request broadcasted to %s for %s/%s#", 
+					(*lPeer)->addressId().toHex(), key.toString(), chain_.toHex().substr(0, 10)));
 			}
 		}
 	}
@@ -842,7 +882,7 @@ public:
 		return "ESTATE";
 	}	
 
-private:
+protected:
 	std::string dApp_;
 	uint256 chain_;
 	ISettingsPtr settings_;

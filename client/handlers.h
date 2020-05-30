@@ -15,18 +15,27 @@ namespace qbit {
 //
 typedef boost::function<void (void)> timeoutFunction;
 typedef boost::function<void (void)> doneFunction;
+typedef boost::function<void (TransactionPtr)> entityCreatedFunction;
+typedef boost::function<void (TransactionPtr)> doneWithResultFunction;
 typedef boost::function<void (EntityPtr)> entityLoadedFunction;
 typedef boost::function<void (TransactionPtr)> transactionLoadedFunction;
+typedef boost::function<void (const std::vector<TransactionPtr>&)> transactionsLoadedFunction;
 typedef boost::function<void (const std::vector<Transaction::UnlinkedOut>&, const std::string&)> utxoByEntityNameSelectedFunction;
 typedef boost::function<void (const std::vector<Transaction::NetworkUnlinkedOut>&, const uint256&)> utxoByTransactionSelectedFunction;
 typedef boost::function<void (const std::map<uint32_t, uint256>&, const std::string&)> entityCountByShardsSelectedFunction;
+typedef boost::function<void (const std::map<uint256, uint32_t>&, const std::string&)> entityCountByDAppSelectedFunction;
 typedef boost::function<void (const std::vector<ISelectUtxoByEntityNamesHandler::EntityUtxo>&)> utxoByEntityNamesSelectedFunction;
+typedef boost::function<void (const std::vector<IEntityStore::EntityName>&)> entityNamesSelectedFunction;
 
 typedef boost::function<void (TransactionContextPtr)> transactionCreatedFunction;
-typedef boost::function<void (double, amount_t)> balanceReadyFunction;
+typedef boost::function<void (TransactionContextPtr, Transaction::UnlinkedOutPtr)> transactionCreatedWithUTXOFunction;
+typedef boost::function<void (TransactionContextPtr, Transaction::UnlinkedOutPtr)> transactionCreatedWithOutFunction;
+typedef boost::function<void (double, double, amount_t)> balanceReadyFunction;
 typedef boost::function<void (const std::string&, const std::string&)> errorFunction;
 
 typedef boost::function<void (const uint256&, const std::vector<TransactionContext::Error>&)> sentTransactionFunction;
+
+typedef boost::function<void (const uint256&)> instanceChangedFunction;
 
 // common method
 class IComposerMethod {
@@ -55,6 +64,29 @@ public:
 
 private:
 	transactionLoadedFunction function_;
+	timeoutFunction timeout_;
+};
+
+// load transactions
+class LoadTransactions: public ILoadTransactionsHandler, public std::enable_shared_from_this<LoadTransactions> {
+public:
+	LoadTransactions(transactionsLoadedFunction function, timeoutFunction timeout): function_(function), timeout_(timeout) {}
+
+	// ILoadTransactionsHandler
+	void handleReply(const std::vector<TransactionPtr>& txs) {
+		 function_(txs);
+	}
+	// IReplyHandler
+	void timeout() {
+		timeout_();
+	}
+
+	static ILoadTransactionsHandlerPtr instance(transactionsLoadedFunction function, timeoutFunction timeout) { 
+		return std::make_shared<LoadTransactions>(function, timeout); 
+	}
+
+private:
+	transactionsLoadedFunction function_;
 	timeoutFunction timeout_;
 };
 
@@ -193,6 +225,52 @@ public:
 
 private:
 	entityCountByShardsSelectedFunction function_;
+	timeoutFunction timeout_;
+};
+
+// select entity count by dapp
+class SelectEntityCountByDApp: public ISelectEntityCountByDAppHandler, public std::enable_shared_from_this<SelectEntityCountByDApp> {
+public:
+	SelectEntityCountByDApp(entityCountByDAppSelectedFunction function, timeoutFunction timeout): function_(function), timeout_(timeout) {}
+
+	// ISelectEntityCountByShardsHandler
+	void handleReply(const std::map<uint256, uint32_t>& info, const std::string& dapp) {
+		function_(info, dapp);
+	}
+	// IReplyHandler
+	void timeout() {
+		timeout_();		
+	}
+
+	static ISelectEntityCountByDAppHandlerPtr instance(entityCountByDAppSelectedFunction function, timeoutFunction timeout) { 
+		return std::make_shared<SelectEntityCountByDApp>(function, timeout); 
+	}
+
+private:
+	entityCountByDAppSelectedFunction function_;
+	timeoutFunction timeout_;
+};
+
+// select entity names
+class SelectEntityNames: public ISelectEntityNamesHandler, public std::enable_shared_from_this<SelectEntityNames> {
+public:
+	SelectEntityNames(entityNamesSelectedFunction function, timeoutFunction timeout): function_(function), timeout_(timeout) {}
+
+	// ISelectEntityCountByShardsHandler
+	void handleReply(const std::vector<IEntityStore::EntityName>& names) {
+		function_(names);
+	}
+	// IReplyHandler
+	void timeout() {
+		timeout_();		
+	}
+
+	static ISelectEntityNamesHandlerPtr instance(entityNamesSelectedFunction function, timeoutFunction timeout) { 
+		return std::make_shared<SelectEntityNames>(function, timeout); 
+	}
+
+private:
+	entityNamesSelectedFunction function_;
 	timeoutFunction timeout_;
 };
 

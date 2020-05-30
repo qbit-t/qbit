@@ -359,6 +359,7 @@ protected:
 	inline void qpen();
 	inline void qptxo();
 	inline void qtifmc();
+	inline void qcheckh();
 
 	// disasm
 	inline void qmov(DisassemblyLine&);
@@ -391,6 +392,7 @@ protected:
 	inline void qpen(DisassemblyLine&);
 	inline void qptxo(DisassemblyLine&);
 	inline void qtifmc(DisassemblyLine&);
+	inline void qcheckh(DisassemblyLine&);	
 
 	inline qasm::_atom nextAtom() { return (qasm::_atom)code_[pos_++]; }
 

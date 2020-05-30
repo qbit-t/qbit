@@ -6,6 +6,7 @@
 #include "../../tinyformat.h"
 #include "httpendpoints.h"
 #include "../../vm/vm.h"
+#include "txbuzzer.h"
 
 #include <boost/lexical_cast.hpp>
 #include <iostream>
@@ -85,6 +86,7 @@ void HttpCreateBuzzer::process(const std::string& source, const HttpRequest& req
 		// process
 		std::string lCode, lMessage;
 		TransactionContextPtr lCtx = nullptr;
+		TransactionContextPtr lInfoCtx = nullptr;
 		try {
 			// create tx
 			if (lAddress.valid())
@@ -116,6 +118,46 @@ void HttpCreateBuzzer::process(const std::string& source, const HttpRequest& req
 						lCode = "E_TX_NOT_BROADCASTED";
 						lMessage = "Transaction is not broadcasted"; 
 					}
+
+					// push linked and newly created txs; order matters
+					for (std::list<TransactionContextPtr>::iterator lLinkedCtx = lCtx->linkedTxs().begin(); lLinkedCtx != lCtx->linkedTxs().end(); lLinkedCtx++) {
+						//
+						if ((*lLinkedCtx)->tx()->type() == TX_BUZZER_INFO) lInfoCtx = *lLinkedCtx;
+						//
+						IMemoryPoolPtr lMempool = wallet_->mempoolManager()->locate((*lLinkedCtx)->tx()->chain());
+						if (lMempool) {
+							//
+							if (lMempool->pushTransaction(*lLinkedCtx)) {
+								// check for errors
+								if ((*lLinkedCtx)->errors().size()) {
+									// unpack
+									if (!unpackTransaction((*lLinkedCtx)->tx(), uint256(), 0, 0, 0, false, false, lReply, reply)) return;
+									// rollback transaction
+									wallet_->rollback((*lLinkedCtx));
+									// error
+									lCode = "E_TX_MEMORYPOOL";
+									lMessage = *((*lLinkedCtx)->errors().begin()); 
+									lCtx = nullptr;
+									break;
+								} else if (!lMempool->consensus()->broadcastTransaction((*lLinkedCtx), wallet_->firstKey()->createPKey().id())) {
+									lCode = "E_TX_NOT_BROADCASTED";
+									lMessage = "Transaction is not broadcasted"; 
+								}
+							} else {
+								lCode = "E_TX_EXISTS";
+								lMessage = "Transaction already exists";
+								// unpack
+								if (!unpackTransaction((*lLinkedCtx)->tx(), uint256(), 0, 0, 0, false, false, lReply, reply)) return;
+								// rollback transaction
+								wallet_->rollback(*lLinkedCtx);
+								// reset
+								lCtx = nullptr;
+							}
+						} else {
+							reply = HttpReply::stockReply("E_MEMPOOL", "Corresponding memory pool was not found"); 
+							return;
+						}
+					}
 				} else {
 					lCode = "E_TX_EXISTS";
 					lMessage = "Transaction already exists";
@@ -130,14 +172,18 @@ void HttpCreateBuzzer::process(const std::string& source, const HttpRequest& req
 				reply = HttpReply::stockReply("E_MEMPOOL", "Corresponding memory pool was not found"); 
 				return;
 			}
-
 		}
 		catch(qbit::exception& ex) {
 			reply = HttpReply::stockReply(ex.code(), ex.what()); 
 			return;
 		}
 
-		if (lCtx != nullptr) lReply.addString("result", lCtx->tx()->hash().toHex());
+		if (lCtx != nullptr && lInfoCtx != nullptr) { 
+			json::Value lResult = lReply.addObject("result");
+			lResult.addString("buzzer", lCtx->tx()->hash().toHex());
+			lResult.addString("info", lInfoCtx->tx()->hash().toHex());
+		}
+
 		if (!lCode.size() && !lMessage.size()) lReply.addObject("error").toNull();
 		else {
 			json::Value lError = lReply.addObject("error");
