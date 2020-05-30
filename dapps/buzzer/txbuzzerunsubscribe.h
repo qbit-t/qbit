@@ -10,7 +10,7 @@
 namespace qbit {
 
 //
-class TxBuzzerUnsubscribe: public Entity {
+class TxBuzzerUnsubscribe: public TxEvent {
 public:
 	TxBuzzerUnsubscribe() { type_ = TX_BUZZER_UNSUBSCRIBE; }
 

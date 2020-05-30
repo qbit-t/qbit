@@ -290,9 +290,8 @@ private:
 						} else {
 							if (lCurrentBlockContext->errors().size()) {
 								for (std::map<uint256, std::list<std::string>>::iterator lErrors = lCurrentBlockContext->errors().begin(); lErrors != lCurrentBlockContext->errors().end(); lErrors++) {
-									if (gLog().isEnabled(Log::VALIDATOR)) {
-										for (std::list<std::string>::iterator lError = lErrors->second.begin(); lError != lErrors->second.end(); lError++)
-											gLog().write(Log::ERROR, std::string("[miner/error]: ") + (*lError));
+									for (std::list<std::string>::iterator lError = lErrors->second.begin(); lError != lErrors->second.end(); lError++) {
+										gLog().write(Log::ERROR, std::string("[miner/error]: ") + (*lError));
 									}
 
 									// drop from mempool

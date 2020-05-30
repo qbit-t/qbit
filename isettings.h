@@ -22,7 +22,7 @@ public:
 	virtual PKey changeKey() { return PKey(); } // for change output
 
 	virtual int serverPort() { return 31415; } // main net
-	virtual size_t maxMessageSize() { return 5 * 1024 * 1024; } // max incoming message size
+	virtual size_t maxMessageSize() { return 12 * 1024 * 1024; } // max incoming message size
 
 	virtual size_t threadPoolSize() { if (!isClient()) return 4; return 1; } // tread pool size
 
@@ -49,6 +49,10 @@ public:
 	virtual size_t mainChainCoinbaseMaturity() { return 5; } // for coinbase - we need _much_ more, 50 at least
 
 	virtual size_t clientSessionsLimit() { return 500; } // default client sessions for node\full node
+
+	virtual size_t mainChainBlockTime() { return 5000; } // ms
+
+	virtual bool supportAirdrop() { return false; }
 };
 
 typedef std::shared_ptr<ISettings> ISettingsPtr;

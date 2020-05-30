@@ -55,7 +55,7 @@ void BalanceCommand::process(const std::vector<std::string>& args) {
 
 	// prepare
 	IComposerMethodPtr lBalance = LightComposer::Balance::instance(composer_, lAsset, 
-		boost::bind(&BalanceCommand::balance, shared_from_this(), _1, _2));
+		boost::bind(&BalanceCommand::balance, shared_from_this(), _1, _2, _3));
 	// async process
 	lBalance->process(boost::bind(&BalanceCommand::error, shared_from_this(), _1, _2));
 }
@@ -85,4 +85,26 @@ void SendToAddressCommand::process(const std::vector<std::string>& args) {
 	} else {
 		gLog().writeClient(Log::CLIENT, std::string(": incorrect number of arguments"));
 	}
+}
+
+void SearchEntityNamesCommand::process(const std::vector<std::string>& args) {
+	// process
+	if (args.size() == 1) {
+		//
+		composer_->requestProcessor()->selectEntityNames(args[0], 
+			SelectEntityNames::instance(
+				boost::bind(&SearchEntityNamesCommand::assetNamesLoaded, shared_from_this(), _1),
+				boost::bind(&SearchEntityNamesCommand::timeout, shared_from_this()))
+		);		
+	} else {
+		gLog().writeClient(Log::CLIENT, std::string(": incorrect number of arguments"));
+	}
+}
+
+void AskForQbitsCommand::process(const std::vector<std::string>& args) {
+	// process
+	if (!composer_->requestProcessor()->askForQbits())
+		error("E_ASK_FOR_QBITS", "There is no peers able to process your request.");
+
+	done_();
 }

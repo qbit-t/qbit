@@ -60,6 +60,12 @@ std::string Message::toString() {
 		case TRANSACTION_PUSHED: lMsg = "TRANSACTION_PUSHED"; break;
 		case GET_UTXO_BY_ENTITY_NAMES: lMsg = "GET_UTXO_BY_ENTITY_NAMES"; break;
 		case UTXO_BY_ENTITY_NAMES: lMsg = "UTXO_BY_ENTITY_NAMES"; break;
+		case GET_STATE: lMsg = "GET_STATE"; break;
+		case GET_ENTITY_COUNT_BY_DAPP: lMsg = "GET_ENTITY_COUNT_BY_DAPP"; break;
+		case ENTITY_COUNT_BY_DAPP: lMsg = "ENTITY_COUNT_BY_DAPP"; break;
+		case GET_TRANSACTIONS_DATA: lMsg = "GET_TRANSACTIONS_DATA"; break;
+		case GET_ENTITY_NAMES: lMsg = "GET_ENTITY_NAMES"; break;
+		case ENTITY_NAMES: lMsg = "ENTITY_NAMES"; break;
 
 		default:  {
 			lMsg = "UNKNOWN";
@@ -70,5 +76,8 @@ std::string Message::toString() {
 		break;
 	}
 
-	return lMsg += "/" + strprintf("%d/%s", size_, checksum_.toHex());
+	return lMsg += "/" + strprintf("%d/%d[%d:%d:%d]/%s", size_, version_, 
+			UNPACK_MAJOR(version_), 
+			UNPACK_MINOR(version_), 
+			UNPACK_REVISION(version_), checksum_.toHex());
 }

@@ -63,6 +63,8 @@ public:
 	uint32_t roles() { return State::PeerRoles::FULLNODE|State::PeerRoles::MINER; } // default role
 
 	int httpServerPort() { return 8080; }
+
+	bool supportAirdrop() { return true; }
 };
 
 class SettingsS1: public ISettings {
@@ -153,6 +155,7 @@ public:
 		std::static_pointer_cast<ConsensusManager>(consensusManager_)->setStoreManager(storeManager_);
 		std::static_pointer_cast<ConsensusManager>(consensusManager_)->setValidatorManager(validatorManager_);
 		std::static_pointer_cast<ConsensusManager>(consensusManager_)->setWallet(wallet_);
+		std::static_pointer_cast<ConsensusManager>(consensusManager_)->setPeerManager(peerManager_);
 		// mempool
 		std::static_pointer_cast<MemoryPoolManager>(mempoolManager_)->setStoreManager(storeManager_);
 		std::static_pointer_cast<MemoryPoolManager>(mempoolManager_)->setConsensusManager(consensusManager_);
@@ -164,7 +167,7 @@ public:
 		std::static_pointer_cast<Wallet>(wallet_)->setEntityStore(storeManager_->locate(MainChain::id())->entityStore());
 
 		// push main chain
-		consensusManager_->push(MainChain::id());
+		consensusManager_->push(MainChain::id(), nullptr);
 		mempoolManager_->push(MainChain::id());
 		validatorManager_->push(MainChain::id(), nullptr);
 
@@ -265,6 +268,7 @@ public:
 		std::static_pointer_cast<ConsensusManager>(consensusManager_)->setStoreManager(storeManager_);
 		std::static_pointer_cast<ConsensusManager>(consensusManager_)->setValidatorManager(validatorManager_);
 		std::static_pointer_cast<ConsensusManager>(consensusManager_)->setWallet(wallet_);
+		std::static_pointer_cast<ConsensusManager>(consensusManager_)->setPeerManager(peerManager_);
 		// mempool
 		std::static_pointer_cast<MemoryPoolManager>(mempoolManager_)->setStoreManager(storeManager_);
 		std::static_pointer_cast<MemoryPoolManager>(mempoolManager_)->setConsensusManager(consensusManager_);
@@ -276,7 +280,7 @@ public:
 		std::static_pointer_cast<Wallet>(wallet_)->setEntityStore(storeManager_->locate(MainChain::id())->entityStore());
 
 		// push main chain
-		consensusManager_->push(MainChain::id());
+		consensusManager_->push(MainChain::id(), nullptr);
 		mempoolManager_->push(MainChain::id());
 		validatorManager_->push(MainChain::id(), nullptr);
 
@@ -377,6 +381,7 @@ public:
 		std::static_pointer_cast<ConsensusManager>(consensusManager_)->setStoreManager(storeManager_);
 		std::static_pointer_cast<ConsensusManager>(consensusManager_)->setValidatorManager(validatorManager_);
 		std::static_pointer_cast<ConsensusManager>(consensusManager_)->setWallet(wallet_);
+		std::static_pointer_cast<ConsensusManager>(consensusManager_)->setPeerManager(peerManager_);
 		// mempool
 		std::static_pointer_cast<MemoryPoolManager>(mempoolManager_)->setStoreManager(storeManager_);
 		std::static_pointer_cast<MemoryPoolManager>(mempoolManager_)->setConsensusManager(consensusManager_);
@@ -388,7 +393,7 @@ public:
 		std::static_pointer_cast<Wallet>(wallet_)->setEntityStore(storeManager_->locate(MainChain::id())->entityStore());
 
 		// push main chain
-		consensusManager_->push(MainChain::id());
+		consensusManager_->push(MainChain::id(), nullptr);
 		mempoolManager_->push(MainChain::id());
 		validatorManager_->push(MainChain::id(), nullptr);
 
@@ -489,6 +494,7 @@ public:
 		std::static_pointer_cast<ConsensusManager>(consensusManager_)->setStoreManager(storeManager_);
 		std::static_pointer_cast<ConsensusManager>(consensusManager_)->setValidatorManager(validatorManager_);
 		std::static_pointer_cast<ConsensusManager>(consensusManager_)->setWallet(wallet_);
+		std::static_pointer_cast<ConsensusManager>(consensusManager_)->setPeerManager(peerManager_);
 		// mempool
 		std::static_pointer_cast<MemoryPoolManager>(mempoolManager_)->setStoreManager(storeManager_);
 		std::static_pointer_cast<MemoryPoolManager>(mempoolManager_)->setConsensusManager(consensusManager_);
@@ -500,7 +506,7 @@ public:
 		std::static_pointer_cast<Wallet>(wallet_)->setEntityStore(storeManager_->locate(MainChain::id())->entityStore());
 
 		// push main chain
-		consensusManager_->push(MainChain::id());
+		consensusManager_->push(MainChain::id(), nullptr);
 		mempoolManager_->push(MainChain::id());
 		validatorManager_->push(MainChain::id(), nullptr);
 

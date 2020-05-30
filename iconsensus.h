@@ -47,11 +47,11 @@ public:
 	virtual uint256 chain() { throw qbit::exception("NOT_IMPL", "IConsensus::chain - not implemented."); }	
 	virtual bool close() { throw qbit::exception("NOT_IMPL", "IConsensus::close - not implemented."); }	
 
-	virtual size_t maxBlockSize() { throw qbit::exception("NOT_IMPL", "IConsensus::maxBlockSize - not implemented."); }
+	virtual uint32_t maxBlockSize() { throw qbit::exception("NOT_IMPL", "IConsensus::maxBlockSize - not implemented."); }
 	virtual uint64_t currentTime() { throw qbit::exception("NOT_IMPL", "IConsensus::currentTime - not implemented."); }
 	virtual StatePtr currentState() { throw qbit::exception("NOT_IMPL", "IConsensus::currentState - not implemented."); }
-	virtual size_t quarantineTime() { throw qbit::exception("NOT_IMPL", "IConsensus::quarantineTime - not implemented."); }
-	virtual size_t partialTreeThreshold() { throw qbit::exception("NOT_IMPL", "IConsensus::partialTreeThreshold - not implemented."); }
+	virtual uint32_t quarantineTime() { throw qbit::exception("NOT_IMPL", "IConsensus::quarantineTime - not implemented."); }
+	virtual uint32_t partialTreeThreshold() { throw qbit::exception("NOT_IMPL", "IConsensus::partialTreeThreshold - not implemented."); }
 
 	virtual void pushPeer(IPeerPtr /*peer*/) { throw qbit::exception("NOT_IMPL", "IConsensus::pushPeer - not implemented."); }
 	virtual void popPeer(IPeerPtr /*peer*/) { throw qbit::exception("NOT_IMPL", "IConsensus::popPeer - not implemented."); }
@@ -59,6 +59,7 @@ public:
 	virtual bool pushState(StatePtr /*state*/) { throw qbit::exception("NOT_IMPL", "IConsensus::pushState - not implemented."); }
 	virtual bool popState(StatePtr /*state*/) { throw qbit::exception("NOT_IMPL", "IConsensus::popState - not implemented."); }
 	virtual void broadcastState(StatePtr /*state*/, const uint160& /*except*/) { throw qbit::exception("NOT_IMPL", "IConsensus::broadcastState - not implemented."); }
+	virtual void broadcastAirdropRequest(const PKey& /*key*/, const uint160& /*except*/) { throw qbit::exception("NOT_IMPL", "IConsensus::broadcastAirdropRequest - not implemented."); }
 
 	//virtual bool pushBlock(BlockPtr /*block*/) { throw qbit::exception("NOT_IMPL", "IConsensus::pushBlock - not implemented."); }
 	virtual IValidator::BlockCheckResult pushBlockHeader(const NetworkBlockHeader& /*block*/, IValidatorPtr /*validator*/) { throw qbit::exception("NOT_IMPL", "IConsensus::pushBlockHeader - not implemented."); }
@@ -70,7 +71,7 @@ public:
 
 	virtual SKeyPtr mainKey() { throw qbit::exception("NOT_IMPL", "IConsensus::mainKey - not implemented."); }
 
-	virtual size_t blockTime() { throw qbit::exception("NOT_IMPL", "IConsensus::blockTime - not implemented."); }
+	virtual uint32_t blockTime() { throw qbit::exception("NOT_IMPL", "IConsensus::blockTime - not implemented."); }
 
 	virtual ISettingsPtr settings() { throw qbit::exception("NOT_IMPL", "IConsensus::settings - not implemented."); }
 	virtual void setValidatorManager(IValidatorManagerPtr /*validatorManager*/) { throw qbit::exception("NOT_IMPL", "IConsensus::setValidatorManager - not implemented."); }
@@ -89,8 +90,8 @@ public:
 	virtual ITransactionStorePtr store() { throw qbit::exception("NOT_IMPL", "IConsensus::store - not implemented."); }
 
 	virtual std::string chainStateString() { throw qbit::exception("NOT_IMPL", "IConsensus::chainStateString - not implemented."); }
-	virtual size_t maturity() { throw qbit::exception("NOT_IMPL", "IConsensus::maturity - not implemented."); }
-	virtual size_t coinbaseMaturity() { throw qbit::exception("NOT_IMPL", "IConsensus::coinbaseMaturity - not implemented."); }
+	virtual uint32_t maturity() { throw qbit::exception("NOT_IMPL", "IConsensus::maturity - not implemented."); }
+	virtual uint32_t coinbaseMaturity() { throw qbit::exception("NOT_IMPL", "IConsensus::coinbaseMaturity - not implemented."); }
 
 	virtual amount_t blockReward(uint64_t /*height*/) { throw qbit::exception("NOT_IMPL", "IConsensus::blockReward - not implemented."); }
 	virtual bool checkBalance(amount_t /*coinbaseAmount*/, amount_t /*blockFee*/, uint64_t /*height*/) { throw qbit::exception("NOT_IMPL", "IConsensus::checkCoinbaseAmountAndFee - not implemented."); }

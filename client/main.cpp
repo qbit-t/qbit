@@ -33,19 +33,38 @@
 	#include "../dapps/buzzer/txbuzzer.h"
 	#include "../dapps/buzzer/txbuzz.h"
 	#include "../dapps/buzzer/txbuzzlike.h"
+	#include "../dapps/buzzer/txbuzzreply.h"
+	#include "../dapps/buzzer/txrebuzz.h"
+	#include "../dapps/buzzer/txrebuzznotify.h"
 	#include "../dapps/buzzer/txbuzzersubscribe.h"
 	#include "../dapps/buzzer/txbuzzerunsubscribe.h"
+	#include "../dapps/buzzer/txbuzzerendorse.h"
+	#include "../dapps/buzzer/txbuzzermistrust.h"
 	#include "../dapps/buzzer/peerextension.h"
+	#include "../dapps/buzzer/buzzer.h"
 	#include "../dapps/buzzer/buzzfeed.h"
+	#include "../dapps/buzzer/eventsfeed.h"
 	#include "dapps/buzzer/requestprocessor.h"
 	#include "dapps/buzzer/composer.h"
 	#include "dapps/buzzer/commands.h"
 #endif
 
+#if defined (CUBIX_MOD)
+	#include "../dapps/cubix/cubix.h"
+	#include "../dapps/cubix/txmediaheader.h"
+	#include "../dapps/cubix/txmediadata.h"
+	#include "../dapps/cubix/txmediasummary.h"
+	#include "../dapps/cubix/peerextension.h"
+	#include "dapps/cubix/composer.h"
+	#include "dapps/cubix/commands.h"
+#endif
+
 using namespace qbit;
 
 #if defined (BUZZER_MOD)
-
+//
+// buzzfeed
+//
 void buzzfeedLargeUpdated() {
 	//
 }
@@ -76,6 +95,39 @@ void buzzfeedItemAbsent(const uint256& chain, const uint256& buzz) {
 	gLog().writeClient(Log::CLIENT, strprintf(": missing buzz %s/%s#", buzz.toHex(), chain.toHex().substr(0, 10)));
 }
 
+//
+// eventsfeed
+//
+void eventsfeedLargeUpdated() {
+	//
+}
+
+void eventsfeedItemNew(EventsfeedItemPtr buzz) {
+	//
+	std::cout << std::endl;
+	gLog().writeClient(Log::CLIENT, std::string(": new event for ") + buzz->buzzId().toHex());
+}
+
+void eventsfeedItemUpdated(EventsfeedItemPtr buzz) {
+	//
+	std::cout << std::endl;
+	gLog().writeClient(Log::CLIENT, std::string(": updated event for ") + buzz->buzzId().toHex());
+}
+
+void eventsfeedItemsUpdated(const std::vector<EventsfeedItem>& items) {
+	//
+	std::cout << std::endl;
+	gLog().writeClient(Log::CLIENT, strprintf(": events bulk updates count %d", items.size()));
+	for (std::vector<EventsfeedItem>::const_iterator lUpdate = items.begin(); lUpdate != items.end(); lUpdate++)
+		gLog().writeClient(Log::CLIENT, std::string(": -> event for ") + lUpdate->buzzId().toHex());
+}
+
+void trustScoreUpdated(amount_t edorsements, amount_t mistrusts) {
+	//
+	std::cout << std::endl;
+	gLog().writeClient(Log::CLIENT, strprintf(": ts = %d / %d", edorsements, mistrusts));
+}
+
 #endif
 
 bool gCommandDone = false;
@@ -84,13 +136,22 @@ void commandDone() {
 	gCommandDone = true;
 }
 
+void commandDone(TransactionPtr) {
+	//
+	gCommandDone = true;
+}
+
 int main(int argv, char** argc) {
 	//
+
+	uint32_t _QBIT_VERSION = 
+			((((QBIT_VERSION_MAJOR << 16) + QBIT_VERSION_MINOR) << 8) + QBIT_VERSION_REVISION);
+
 	std::cout << std::endl << "qbit-cli (" << 
-		CLIENT_VERSION_MAJOR << "." <<
-		CLIENT_VERSION_MINOR << "." <<
-		CLIENT_VERSION_REVISION << "." <<
-		CLIENT_VERSION_BUILD << ") | (c) 2020 q-bit.technology | MIT license" << std::endl;
+		QBIT_VERSION_MAJOR << "." <<
+		QBIT_VERSION_MINOR << "." <<
+		QBIT_VERSION_REVISION << "." <<
+		QBIT_VERSION_BUILD << ") | (c) 2020 q-bit.technology | MIT license" << std::endl;
 
 	// home
 	ISettingsPtr lSettings = ClientSettings::instance();
@@ -133,11 +194,7 @@ int main(int argv, char** argc) {
 
 	// request processor
 	IRequestProcessorPtr lRequestProcessor = nullptr;
-#if defined (BUZZER_MOD)
-	lRequestProcessor = RequestProcessor::instance(lSettings, "buzzer");
-#else
 	lRequestProcessor = RequestProcessor::instance(lSettings);
-#endif
 
 	// wallet
 	IWalletPtr lWallet = LightWallet::instance(lSettings, lRequestProcessor);
@@ -155,6 +212,8 @@ int main(int argv, char** argc) {
 	lCommandsHandler->push(KeyCommand::instance(boost::bind(&commandDone)));
 	lCommandsHandler->push(BalanceCommand::instance(lComposer, boost::bind(&commandDone)));
 	lCommandsHandler->push(SendToAddressCommand::instance(lComposer, boost::bind(&commandDone)));
+	lCommandsHandler->push(SearchEntityNamesCommand::instance(lComposer, boost::bind(&commandDone)));
+	lCommandsHandler->push(AskForQbitsCommand::instance(lComposer, boost::bind(&commandDone)));
 
 	Transaction::registerTransactionType(Transaction::ASSET_TYPE, TxAssetTypeCreator::instance());
 	Transaction::registerTransactionType(Transaction::ASSET_EMISSION, TxAssetEmissionCreator::instance());
@@ -173,6 +232,11 @@ int main(int argv, char** argc) {
 	Transaction::registerTransactionType(TX_BUZZ, TxBuzzCreator::instance());
 	Transaction::registerTransactionType(TX_BUZZ_LIKE, TxBuzzLikeCreator::instance());
 	Transaction::registerTransactionType(TX_BUZZ_REPLY, TxBuzzReplyCreator::instance());
+	Transaction::registerTransactionType(TX_REBUZZ, TxReBuzzCreator::instance());
+	Transaction::registerTransactionType(TX_BUZZ_REBUZZ_NOTIFY, TxReBuzzNotifyCreator::instance());
+	Transaction::registerTransactionType(TX_BUZZER_ENDORSE, TxBuzzerEndorseCreator::instance());
+	Transaction::registerTransactionType(TX_BUZZER_MISTRUST, TxBuzzerMistrustCreator::instance());
+	Transaction::registerTransactionType(TX_BUZZER_INFO, TxBuzzerInfoCreator::instance());
 
 	// buzzer message types
 	Message::registerMessageType(GET_BUZZER_SUBSCRIPTION, "GET_BUZZER_SUBSCRIPTION");
@@ -182,35 +246,198 @@ int main(int argv, char** argc) {
 	Message::registerMessageType(BUZZ_FEED, "BUZZ_FEED");
 	Message::registerMessageType(NEW_BUZZ_NOTIFY, "NEW_BUZZ_NOTIFY");
 	Message::registerMessageType(BUZZ_UPDATE_NOTIFY, "BUZZ_UPDATE_NOTIFY");
+	Message::registerMessageType(GET_BUZZES, "GET_BUZZES");
+	Message::registerMessageType(GET_EVENTS_FEED, "GET_EVENTS_FEED");
+	Message::registerMessageType(EVENTS_FEED, "EVENTS_FEED");
+	Message::registerMessageType(NEW_EVENT_NOTIFY, "NEW_EVENT_NOTIFY");
+	Message::registerMessageType(EVENT_UPDATE_NOTIFY, "EVENT_UPDATE_NOTIFY");
+	Message::registerMessageType(GET_BUZZER_TRUST_SCORE, "GET_BUZZER_TRUST_SCORE");
+	Message::registerMessageType(BUZZER_TRUST_SCORE, "BUZZER_TRUST_SCORE"); 
+	Message::registerMessageType(BUZZER_TRUST_SCORE_UPDATE, "BUZZER_TRUST_SCORE_UPDATE");
+	Message::registerMessageType(GET_BUZZER_MISTRUST_TX, "GET_BUZZER_MISTRUST_TX");
+	Message::registerMessageType(BUZZER_MISTRUST_TX, "BUZZER_MISTRUST_TX");
+	Message::registerMessageType(GET_BUZZER_ENDORSE_TX, "GET_BUZZER_ENDORSE_TX");
+	Message::registerMessageType(BUZZER_ENDORSE_TX, "BUZZER_ENDORSE_TX");
+	Message::registerMessageType(GET_BUZZ_FEED_BY_BUZZ, "GET_BUZZ_FEED_BY_BUZZ");
+	Message::registerMessageType(BUZZ_FEED_BY_BUZZ, "BUZZ_FEED_BY_BUZZ");
+	Message::registerMessageType(GET_BUZZ_FEED_BY_BUZZER, "GET_BUZZ_FEED_BY_BUZZER");
+	Message::registerMessageType(BUZZ_FEED_BY_BUZZER, "BUZZ_FEED_BY_BUZZER");
+	Message::registerMessageType(GET_MISTRUSTS_FEED_BY_BUZZER, "GET_MISTRUSTS_FEED_BY_BUZZER");
+	Message::registerMessageType(MISTRUSTS_FEED_BY_BUZZER, "MISTRUSTS_FEED_BY_BUZZER");
+	Message::registerMessageType(GET_ENDORSEMENTS_FEED_BY_BUZZER, "GET_ENDORSEMENTS_FEED_BY_BUZZER");
+	Message::registerMessageType(ENDORSEMENTS_FEED_BY_BUZZER, "ENDORSEMENTS_FEED_BY_BUZZER");
+	Message::registerMessageType(GET_BUZZER_SUBSCRIPTIONS, "GET_BUZZER_SUBSCRIPTIONS");
+	Message::registerMessageType(BUZZER_SUBSCRIPTIONS, "BUZZER_SUBSCRIPTIONS");
+	Message::registerMessageType(GET_BUZZER_FOLLOWERS, "GET_BUZZER_FOLLOWERS");
+	Message::registerMessageType(BUZZER_FOLLOWERS, "BUZZER_FOLLOWERS");
+	Message::registerMessageType(GET_BUZZ_FEED_GLOBAL, "GET_BUZZ_FEED_GLOBAL");
+	Message::registerMessageType(BUZZ_FEED_GLOBAL, "BUZZ_FEED_GLOBAL");
+	Message::registerMessageType(GET_BUZZ_FEED_BY_TAG, "GET_BUZZ_FEED_BY_TAG");
+	Message::registerMessageType(BUZZ_FEED_BY_TAG, "BUZZ_FEED_BY_TAG");
+	Message::registerMessageType(GET_HASH_TAGS, "GET_HASH_TAGS");
+	Message::registerMessageType(HASH_TAGS, "HASH_TAGS");
+
+	// buzzer
+	BuzzerPtr lBuzzer = Buzzer::instance(lRequestProcessor, boost::bind(&trustScoreUpdated, _1, _2));
 
 	// buzzer request processor
 	BuzzerRequestProcessorPtr lBuzzerRequestProcessor = BuzzerRequestProcessor::instance(lRequestProcessor);
 
 	// buzzer composer
-	BuzzerLightComposerPtr lBuzzerComposer = BuzzerLightComposer::instance(lSettings, lWallet, lRequestProcessor, lBuzzerRequestProcessor);
-	lBuzzerComposer->open();
+	BuzzerLightComposerPtr lBuzzerComposer = BuzzerLightComposer::instance(lSettings, lBuzzer, lWallet, lRequestProcessor, lBuzzerRequestProcessor);
 
-	// buzzfed
-	BuzzfeedPtr lBuzzfeed = Buzzfeed::instance(
+	// buzzfeed
+	BuzzfeedPtr lBuzzfeed = Buzzfeed::instance(lBuzzer,
+		boost::bind(&BuzzerLightComposer::verifyPublisherStrict, lBuzzerComposer, _1),
 		boost::bind(&buzzfeedLargeUpdated), 
 		boost::bind(&buzzfeedItemNew, _1), 
 		boost::bind(&buzzfeedItemUpdated, _1),
 		boost::bind(&buzzfeedItemsUpdated, _1),
-		boost::bind(&buzzfeedItemAbsent, _1, _2)
+		boost::bind(&buzzfeedItemAbsent, _1, _2),
+		BuzzfeedItem::Merge::UNION
 	);
 
+	lBuzzfeed->prepare();
+	lBuzzer->setBuzzfeed(lBuzzfeed); // main feed
+
+	// global buzzfeed
+	BuzzfeedPtr lGlobalBuzzfeed = Buzzfeed::instance(lBuzzer,
+		boost::bind(&BuzzerLightComposer::verifyPublisherStrict, lBuzzerComposer, _1),
+		boost::bind(&buzzfeedLargeUpdated), 
+		boost::bind(&buzzfeedItemNew, _1), 
+		boost::bind(&buzzfeedItemUpdated, _1),
+		boost::bind(&buzzfeedItemsUpdated, _1),
+		boost::bind(&buzzfeedItemAbsent, _1, _2),
+		BuzzfeedItem::Merge::INTERSECT
+	);
+
+	lGlobalBuzzfeed->prepare();
+
+	// buzzfeed for contexted selects
+	BuzzfeedPtr lContextBuzzfeed = Buzzfeed::instance(lBuzzer,
+		boost::bind(&BuzzerLightComposer::verifyPublisherStrict, lBuzzerComposer, _1),
+		boost::bind(&buzzfeedLargeUpdated), 
+		boost::bind(&buzzfeedItemNew, _1), 
+		boost::bind(&buzzfeedItemUpdated, _1),
+		boost::bind(&buzzfeedItemsUpdated, _1),
+		boost::bind(&buzzfeedItemAbsent, _1, _2),
+		BuzzfeedItem::Merge::INTERSECT
+	);
+
+	lContextBuzzfeed->prepare();
+
+	// eventsfeed
+	EventsfeedPtr lEventsfeed = Eventsfeed::instance(lBuzzer,
+		boost::bind(&BuzzerLightComposer::verifyEventPublisher, lBuzzerComposer, _1),
+		boost::bind(&eventsfeedLargeUpdated), 
+		boost::bind(&eventsfeedItemNew, _1), 
+		boost::bind(&eventsfeedItemUpdated, _1),
+		boost::bind(&eventsfeedItemsUpdated, _1),
+		EventsfeedItem::Merge::UNION
+	);
+
+	lEventsfeed->prepare();
+
+	// eventsfeed for contexted selects
+	EventsfeedPtr lContextEventsfeed = Eventsfeed::instance(lBuzzer,
+		boost::bind(&BuzzerLightComposer::verifyEventPublisher, lBuzzerComposer, _1),
+		boost::bind(&eventsfeedLargeUpdated), 
+		boost::bind(&eventsfeedItemNew, _1), 
+		boost::bind(&eventsfeedItemUpdated, _1),
+		boost::bind(&eventsfeedItemsUpdated, _1),
+		EventsfeedItem::Merge::INTERSECT
+	);
+
+	lContextEventsfeed->prepare();
+
 	// buzzer peer extention
-	PeerManager::registerPeerExtension("buzzer", BuzzerPeerExtensionCreator::instance(lBuzzfeed));
+	PeerManager::registerPeerExtension("buzzer", BuzzerPeerExtensionCreator::instance(lBuzzer, lBuzzfeed, lEventsfeed));
 
 	// buzzer commands
-	lCommandsHandler->push(CreateBuzzerCommand::instance(lBuzzerComposer, boost::bind(&commandDone)));
-	lCommandsHandler->push(CreateBuzzCommand::instance(lBuzzerComposer, boost::bind(&commandDone)));
+	CreateBuzzerCommandPtr lBuzzerCommand = std::static_pointer_cast<CreateBuzzerCommand>(
+		CreateBuzzerCommand::instance(lBuzzerComposer, boost::bind(&commandDone)));
+	lCommandsHandler->push(lBuzzerCommand);
+
+	CreateBuzzCommandPtr lBuzzCommand = std::static_pointer_cast<CreateBuzzCommand>(
+		CreateBuzzCommand::instance(lBuzzerComposer, boost::bind(&commandDone)));
+	lCommandsHandler->push(lBuzzCommand);
+
+	CreateBuzzReplyCommandPtr lBuzzReplyCommand = std::static_pointer_cast<CreateBuzzReplyCommand>(
+		CreateBuzzReplyCommand::instance(lBuzzerComposer, lBuzzfeed, boost::bind(&commandDone)));
+	lCommandsHandler->push(lBuzzReplyCommand);
+
+	CreateReBuzzCommandPtr lRebuzzCommand = std::static_pointer_cast<CreateReBuzzCommand>(
+		CreateReBuzzCommand::instance(lBuzzerComposer, lBuzzfeed, boost::bind(&commandDone)));
+	lCommandsHandler->push(lRebuzzCommand);
+
+
 	lCommandsHandler->push(BuzzerSubscribeCommand::instance(lBuzzerComposer, boost::bind(&commandDone)));
 	lCommandsHandler->push(BuzzerUnsubscribeCommand::instance(lBuzzerComposer, boost::bind(&commandDone)));
 	lCommandsHandler->push(LoadBuzzfeedCommand::instance(lBuzzerComposer, lBuzzfeed, boost::bind(&commandDone)));
 	lCommandsHandler->push(BuzzfeedListCommand::instance(lBuzzerComposer, lBuzzfeed, boost::bind(&commandDone)));
 	lCommandsHandler->push(BuzzLikeCommand::instance(lBuzzerComposer, lBuzzfeed, boost::bind(&commandDone)));
-	lCommandsHandler->push(CreateBuzzReplyCommand::instance(lBuzzerComposer, lBuzzfeed, boost::bind(&commandDone)));
+	lCommandsHandler->push(LoadEventsfeedCommand::instance(lBuzzerComposer, lEventsfeed, boost::bind(&commandDone)));
+	lCommandsHandler->push(EventsfeedListCommand::instance(lBuzzerComposer, lEventsfeed, boost::bind(&commandDone)));
+	lCommandsHandler->push(LoadBuzzerTrustScoreCommand::instance(lBuzzerComposer, boost::bind(&commandDone)));
+	lCommandsHandler->push(BuzzerEndorseCommand::instance(lBuzzerComposer, boost::bind(&commandDone)));
+	lCommandsHandler->push(BuzzerMistrustCommand::instance(lBuzzerComposer, boost::bind(&commandDone)));
+	lCommandsHandler->push(LoadHashTagsCommand::instance(lBuzzerComposer, boost::bind(&commandDone)));
+	lCommandsHandler->push(LoadBuzzesGlobalCommand::instance(lBuzzerComposer, lGlobalBuzzfeed, boost::bind(&commandDone)));
+	lCommandsHandler->push(LoadBuzzfeedByTagCommand::instance(lBuzzerComposer, lContextBuzzfeed, boost::bind(&commandDone)));
+	lCommandsHandler->push(LoadBuzzfeedByBuzzCommand::instance(lBuzzerComposer, lContextBuzzfeed, boost::bind(&commandDone)));
+	lCommandsHandler->push(LoadBuzzfeedByBuzzerCommand::instance(lBuzzerComposer, lContextBuzzfeed, boost::bind(&commandDone)));	
+	lCommandsHandler->push(LoadMistrustsByBuzzerCommand::instance(lBuzzerComposer, lContextEventsfeed, boost::bind(&commandDone)));
+	lCommandsHandler->push(LoadEndorsementsByBuzzerCommand::instance(lBuzzerComposer, lContextEventsfeed, boost::bind(&commandDone)));
+	lCommandsHandler->push(LoadSubscriptionsByBuzzerCommand::instance(lBuzzerComposer, lContextEventsfeed, boost::bind(&commandDone)));
+	lCommandsHandler->push(LoadFollowersByBuzzerCommand::instance(lBuzzerComposer, lContextEventsfeed, boost::bind(&commandDone)));
+#endif
+
+#if defined (CUBIX_MOD)
+	std::cout << "enabling 'cubix' module" << std::endl;
+
+	// buzzer transactions
+	Transaction::registerTransactionType(TX_CUBIX_MEDIA_HEADER, cubix::TxMediaHeaderCreator::instance());
+	Transaction::registerTransactionType(TX_CUBIX_MEDIA_DATA, cubix::TxMediaDataCreator::instance());
+	Transaction::registerTransactionType(TX_CUBIX_MEDIA_SUMMARY, cubix::TxMediaSummaryCreator::instance());
+
+	// cubix composer
+	cubix::CubixLightComposerPtr lCubixComposer = cubix::CubixLightComposer::instance(lSettings, lWallet, lRequestProcessor);
+
+	// peer extention
+	PeerManager::registerPeerExtension("cubix", cubix::DefaultPeerExtensionCreator::instance());	
+
+	// cubix commands
+	lCommandsHandler->push(cubix::UploadMediaCommand::instance(lCubixComposer, boost::bind(&commandDone, _1)));
+	lCommandsHandler->push(cubix::DownloadMediaCommand::instance(lCubixComposer, boost::bind(&commandDone, _1)));
+
+	// dapp instance - shared
+	lBuzzerComposer->setInstanceChangedCallback(boost::bind(&cubix::CubixLightComposer::setDAppSharedInstance, lCubixComposer, _1));
+
+	// link uploads for buzzer info
+	lBuzzerCommand->setUploadAvatar(
+		cubix::UploadMediaCommand::instance(lCubixComposer, boost::bind(&CreateBuzzerCommand::avatarUploaded, lBuzzerCommand, _1))
+	);
+	lBuzzerCommand->setUploadHeader(
+		cubix::UploadMediaCommand::instance(lCubixComposer, boost::bind(&CreateBuzzerCommand::headerUploaded, lBuzzerCommand, _1))
+	);
+
+	lBuzzCommand->setUploadMedia(
+		cubix::UploadMediaCommand::instance(lCubixComposer, boost::bind(&CreateBuzzCommand::mediaUploaded, lBuzzCommand, _1))
+	);
+
+	lBuzzReplyCommand->setUploadMedia(
+		cubix::UploadMediaCommand::instance(lCubixComposer, boost::bind(&CreateBuzzReplyCommand::mediaUploaded, lBuzzReplyCommand, _1))
+	);
+
+	lRebuzzCommand->setUploadMedia(
+		cubix::UploadMediaCommand::instance(lCubixComposer, boost::bind(&CreateReBuzzCommand::mediaUploaded, lRebuzzCommand, _1))
+	);
+#endif
+
+#if defined (BUZZER_MOD)
+	// prepare composers
+	lCubixComposer->open();
+	lBuzzerComposer->open();
 #endif
 
 	// peers

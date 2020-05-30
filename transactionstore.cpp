@@ -369,8 +369,9 @@ bool TransactionStore::transactionInfo(const uint256& tx, uint256& block, uint64
 			index = lIndex.index();
 
 			std::map<uint64_t, uint256>::reverse_iterator lHead = heightMap_.rbegin();
-			if (lHead != heightMap_.rend() && lHead->first > height) confirms = lHead->first - height;
-			else confirms = 0;
+			if (lHead != heightMap_.rend() && lHead->first >= height) { 
+				confirms = (lHead->first - height) + 1; 
+			} else confirms = 0;
 
 			return true;
 		}
@@ -676,6 +677,36 @@ bool TransactionStore::entityCountByShards(const std::string& name, std::map<uin
 	return lResult;
 }
 
+bool TransactionStore::entityCountByDApp(const std::string& name, std::map<uint256, uint32_t>& result) {
+	//
+	bool lResult = true;
+
+	uint256 lDAppTx;
+	if(entities_.read(name, lDAppTx)) {
+		//
+		for (db::DbMultiContainer<uint256 /*entity*/, uint256 /*shard*/>::Iterator lShard = shards_.find(lDAppTx); lShard.valid(); ++lShard) {
+			//
+			uint32_t lCount = 0;
+			ITransactionStorePtr lStore = storeManager()->locate(*lShard);
+			if (lStore) {
+				//
+				if (lStore->entityStore()->entityCount(lCount)) {
+					result[*lShard] = lCount;
+				} else {
+					result[*lShard] = 0;
+				}
+			}
+		}
+	}
+
+	return lResult;
+}
+
+bool TransactionStore::entityCount(uint32_t& result) {
+	//
+	return shardEntities_.read(chain_, result);
+}
+
 //
 // interval [..)
 void TransactionStore::remove(const uint256& from, const uint256& to) {
@@ -952,6 +983,11 @@ bool TransactionStore::open() {
 			shardEntities_.open();
 			txUtxo_.open();
 
+			if (settings_->supportAirdrop()) {
+				airDropAddressesTx_.open();
+				airDropPeers_.open();
+			}
+
 			std::string lLastBlock;
 			if (workingSettings_.read("lastBlock", lLastBlock)) {
 				lastBlock_.setHex(lLastBlock);
@@ -989,10 +1025,9 @@ bool TransactionStore::close() {
 	//
 	gLog().write(Log::INFO, std::string("[close]: closing storage for ") + strprintf("%s#...", chain_.toHex().substr(0, 10)));
 
-	settings_.reset();
 	wallet_.reset();
 	storeManager_.reset();
-	
+
 	workingSettings_.close();
 	headers_.close();
 	transactions_.close();
@@ -1008,8 +1043,14 @@ bool TransactionStore::close() {
 	shardEntities_.close();
 	txUtxo_.close();
 
+	if (settings_->supportAirdrop()) {
+		airDropAddressesTx_.close();
+		airDropPeers_.close();
+	}
+
 	if (extension_) extension_->close();
 
+	settings_.reset();
 	opened_ = false;
 
 	return true;
@@ -1257,6 +1298,16 @@ void TransactionStore::selectUtxoByTransaction(const uint256& tx, std::vector<Tr
 	}
 }
 
+void TransactionStore::selectEntityNames(const std::string& name, std::vector<IEntityStore::EntityName>& names) {
+	//
+	db::DbContainer<std::string /*short name*/, uint256 /*tx*/>::Iterator lFrom = entities_.find(name);
+	for (int lCount = 0; lFrom.valid() && names.size() < 5 && lCount < 100; ++lFrom, ++lCount) {
+		std::string lName;
+		if (lFrom.first(lName) && lName.find(name) != std::string::npos) 
+			names.push_back(IEntityStore::EntityName(lName));
+	}
+}
+
 bool TransactionStore::pushEntity(const uint256& id, TransactionContextPtr ctx) {
 	//
 	// forward entity processing to the extension anyway
@@ -1279,6 +1330,12 @@ bool TransactionStore::pushEntity(const uint256& id, TransactionContextPtr ctx) 
 	}
 
 	entities_.write(ctx->tx()->entityName(), id);
+	// coint own entities
+	if (chain_ != MainChain::id()) {
+		uint32_t lCount = 0;
+		shardEntities_.read(chain_, lCount);
+		shardEntities_.write(chain_, ++lCount);
+	}
 
 	if (ctx->tx()->type() == Transaction::SHARD && ctx->tx()->in().size()) {
 		//
@@ -1509,4 +1566,59 @@ bool TransactionStore::firstEnqueuedBlock(NetworkBlockHeader& block) {
 	}
 
 	return false;	
+}
+
+bool TransactionStore::airdropped(const uint160& address, const uint160& peer) {
+	//
+	if (settings_->supportAirdrop()) {
+		//
+		gLog().write(Log::STORE, std::string("[airdropped]: try to check ") + 
+			strprintf("address_id = %s, peer_id = %s", address.toHex(), peer.toHex()));
+		//
+		uint256 lTx;
+		if (airDropAddressesTx_.read(address, lTx)) {
+			//
+			gLog().write(Log::STORE, std::string("[airdropped]: already AIRDROPPED to ") + 
+				strprintf("address_id = %s, peer_id = %s", address.toHex(), peer.toHex()));
+			return true;
+		} else {
+			//
+			db::DbTwoKeyContainer<
+				uint160 /*peer_key_id*/, 
+				uint160 /*address_id*/, 
+				uint256 /*tx*/>::Iterator lFrom = airDropPeers_.find(peer);
+			//
+			lFrom.setKey2Empty();
+			//
+			bool lAirdropped = false;
+			for (int lCount = 0; lFrom.valid(); ++lFrom) {
+				//
+				uint160 lPeer;
+				uint160 lAddress;
+				if (lFrom.first(lPeer, lAddress)) {
+					//
+					if (address == lAddress) { lAirdropped = true; break; }
+				}
+
+				if (++lCount > 1 /*2 different addresses from 1 peer*/) { lAirdropped = true; break; }
+			}
+
+			if (lAirdropped) {
+				//
+				gLog().write(Log::STORE, std::string("[airdropped]: already AIRDROPPED to ") + 
+					strprintf("address_id = %s, peer_id = %s", address.toHex(), peer.toHex()));
+				return true;
+			}
+
+			return false;
+		}
+	}
+
+	return true;
+}
+
+void TransactionStore::pushAirdropped(const uint160& address, const uint160& peer, const uint256& tx) {
+	//
+	airDropAddressesTx_.write(address, tx);
+	airDropPeers_.write(peer, address, tx);
 }

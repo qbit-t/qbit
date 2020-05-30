@@ -27,9 +27,14 @@ class IPeerExtension {
 public:
 	IPeerExtension() {}
 
-	virtual void processTransaction(TransactionContextPtr) { throw qbit::exception("NOT_IMPL", "IPeerExtension::process - not implemented."); }
-	virtual bool processMessage(Message& /*message*/, std::list<DataStream>::iterator /*data*/, const boost::system::error_code& /*error*/) { throw qbit::exception("NOT_IMPL", "IPeerExtension::process - not implemented."); }
+	virtual void processTransaction(TransactionContextPtr) { throw qbit::exception("NOT_IMPL", "IPeerExtension::processTransaction - not implemented."); }
+	virtual bool processMessage(Message& /*message*/, std::list<DataStream>::iterator /*data*/, const boost::system::error_code& /*error*/) { throw qbit::exception("NOT_IMPL", "IPeerExtension::processMessage - not implemented."); }
 	virtual void release() { throw qbit::exception("NOT_IMPL", "IPeerExtension::release - not implemented."); }
+
+	void setDApp(const State::DAppInstance& app) { dapp_ = app; }
+
+protected:
+	State::DAppInstance dapp_;
 };
 
 typedef std::shared_ptr<IPeerExtension> IPeerExtensionPtr;

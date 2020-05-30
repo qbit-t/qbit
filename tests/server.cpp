@@ -22,9 +22,9 @@ bool ServerS0::execute() {
 
 	wallet_->createKey(seed_);
 
-	peerManager_->addPeer("127.0.0.1:31415");
-	peerManager_->addPeer("127.0.0.1:31416");
-	peerManager_->addPeer("127.0.0.1:31417");
+	peerManager_->addPeerExplicit("127.0.0.1:31415");
+	peerManager_->addPeerExplicit("127.0.0.1:31416");
+	peerManager_->addPeerExplicit("127.0.0.1:31417");
 	//peerManager_->addPeer("127.0.0.1:31418");
 
 	validatorManager_->run();
@@ -53,9 +53,9 @@ bool ServerS1::execute() {
 
 	wallet_->createKey(seed_);
 
-	peerManager_->addPeer("127.0.0.1:31415");
-	peerManager_->addPeer("127.0.0.1:31416");
-	peerManager_->addPeer("127.0.0.1:31417");
+	peerManager_->addPeerExplicit("127.0.0.1:31415");
+	peerManager_->addPeerExplicit("127.0.0.1:31416");
+	peerManager_->addPeerExplicit("127.0.0.1:31417");
 	//peerManager_->addPeer("127.0.0.1:31418");
 
 	validatorManager_->run();
@@ -84,9 +84,9 @@ bool ServerS2::execute() {
 
 	wallet_->createKey(seed_);
 
-	peerManager_->addPeer("127.0.0.1:31415");
-	peerManager_->addPeer("127.0.0.1:31416");
-	peerManager_->addPeer("127.0.0.1:31417");
+	peerManager_->addPeerExplicit("127.0.0.1:31415");
+	peerManager_->addPeerExplicit("127.0.0.1:31416");
+	peerManager_->addPeerExplicit("127.0.0.1:31417");
 	//peerManager_->addPeer("127.0.0.1:31418");
 
 	validatorManager_->run();
@@ -115,10 +115,10 @@ bool ServerS3::execute() {
 
 	wallet_->createKey(seed_);
 
-	peerManager_->addPeer("127.0.0.1:31415");
-	peerManager_->addPeer("127.0.0.1:31416");
-	peerManager_->addPeer("127.0.0.1:31417");
-	peerManager_->addPeer("127.0.0.1:31418");
+	peerManager_->addPeerExplicit("127.0.0.1:31415");
+	peerManager_->addPeerExplicit("127.0.0.1:31416");
+	peerManager_->addPeerExplicit("127.0.0.1:31417");
+	peerManager_->addPeerExplicit("127.0.0.1:31418");
 
 	validatorManager_->run();
 	shardingManager_->run();

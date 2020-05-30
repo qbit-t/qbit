@@ -99,6 +99,14 @@ public:
 	bool execute();
 };
 
+class DbContainerHash: public Unit {
+public:
+	DbContainerHash(): Unit("DbContainerHash") {}
+
+	bool execute();
+};
+
+
 
 } // tests
 } // qbit

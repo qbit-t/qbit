@@ -38,6 +38,8 @@ public:
 	// create buzzer tx
 	TransactionContextPtr createTxBuzzer(const PKey& /*self*/, const std::string& /*buzzer*/, const std::string& /*alias*/, const std::string& /*description*/);
 	TransactionContextPtr createTxBuzzer(const std::string& /*buzzer*/, const std::string& /*alias*/, const std::string& /*description*/);
+	TransactionContextPtr createTxBuzzerInfo(const PKey& /*self*/, const std::string& /*alias*/, const std::string& /*description*/);
+	TransactionContextPtr createTxBuzzerInfo(const std::string& /*alias*/, const std::string& /*description*/);
 	// create buzz tx
 	TransactionContextPtr createTxBuzz(const PKey& /*self*/, const std::string& /*body*/);
 	TransactionContextPtr createTxBuzz(const std::string& /*body*/);
@@ -58,6 +60,10 @@ private:
 	IWalletPtr wallet_;
 	// buzzer tx
 	uint256 buzzerTx_;
+	// buzzer_info 
+	uint256 buzzerInfoTx_;
+	// buzzer_info chain
+	uint256 buzzerInfoChain_;
 
 	// persistent settings
 	db::DbContainer<std::string /*name*/, std::string /*data*/> workingSettings_;	

@@ -9,6 +9,7 @@
 #include "isettings.h"
 #include "state.h"
 #include "ivalidatormanager.h"
+#include "entity.h"
 
 namespace qbit {
 
@@ -31,7 +32,7 @@ public:
 	virtual void broadcastState(StatePtr /*state*/, const uint160& /*peer*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::broadcastState - not implemented."); }
 
 	virtual bool add(IConsensusPtr /*consensus*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::add - not implemented."); }
-	virtual IConsensusPtr push(const uint256& /*chain*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::push - not implemented."); }
+	virtual IConsensusPtr push(const uint256& /*chain*/, EntityPtr /*dapp*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::push - not implemented."); }
 	virtual void pop(const uint256& /*chain*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::pop - not implemented."); }
 	virtual std::vector<IConsensusPtr> consensuses() { throw qbit::exception("NOT_IMPL", "IConsensusManager::pools - not implemented."); }
 
@@ -48,14 +49,29 @@ public:
 	virtual IWalletPtr wallet() { throw qbit::exception("NOT_IMPL", "IConsensusManager::wallet - not implemented."); }
 	virtual IMemoryPoolManagerPtr mempoolManager() { throw qbit::exception("NOT_IMPL", "IConsensusManager::mempoolManager - not implemented."); }
 
-	virtual size_t chainSupportPeersCount(const uint256& /*chain*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::chainSupportPeersCount - not implemented."); }	
-	virtual std::string dApp() { throw qbit::exception("NOT_IMPL", "IConsensusManager::dApp - not implemented."); }	
+	virtual size_t chainSupportPeersCount(const uint256& /*chain*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::chainSupportPeersCount - not implemented."); }
+	virtual const std::vector<State::DAppInstance>& dApps() const {	throw qbit::exception("NOT_IMPL", "IConsensusManager::dApps - not implemented."); }
 
 	// open requests
 	virtual void acquireBlockHeaderWithCoinbase(const uint256& /*block*/, const uint256& /*chain*/, INetworkBlockHandlerWithCoinBasePtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IConsensus::acquireBlockHeaderWithCoinbase - not implemented."); }
+	virtual void broadcastStateToClients(StatePtr /*state*/) { throw qbit::exception("NOT_IMPL", "IConsensus::broadcastStateToClients - not implemented."); }
+	virtual void broadcastAirdropRequest(const PKey& /*key*/, const uint160& /*except*/) { throw qbit::exception("NOT_IMPL", "IConsensus::broadcastAirdropRequest - not implemented."); }
 };
 
 typedef std::shared_ptr<IConsensusManager> IConsensusManagerPtr;
+
+//
+class ConsensusCreator {
+public:
+	ConsensusCreator() {}
+	virtual IConsensusPtr create(const uint256& /*chain*/, IConsensusManagerPtr /*consensusManager*/, ISettingsPtr /*settings*/, IWalletPtr /*wallet*/, ITransactionStorePtr /*store*/) { return nullptr; }
+};
+
+typedef std::shared_ptr<ConsensusCreator> ConsensusCreatorPtr;
+
+//
+typedef std::map<std::string/*dapp name*/, ConsensusCreatorPtr> Consensuses;
+extern Consensuses gConsensuses; // TODO: init on startup
 
 } // qbit
 

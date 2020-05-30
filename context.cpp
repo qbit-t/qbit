@@ -65,9 +65,7 @@ secp256k1_scratch_space* Context::signatureScratch() {
 
 void Context::initialize()
 {
-	if (!context_)
-	{
-		gLog().write(Log::INFO, std::string("[Context]: initialized"));
+	if (!context_) {
 		none_ = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
 		context_ = secp256k1_context_create(SECP256K1_CONTEXT_VERIFY | SECP256K1_CONTEXT_SIGN);
 	}

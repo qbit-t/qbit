@@ -17,6 +17,10 @@ class ConsensusManager: public IConsensusManager, public std::enable_shared_from
 public:
 	ConsensusManager(ISettingsPtr settings) : settings_(settings) {}
 
+	static void registerConsensus(const std::string& name, ConsensusCreatorPtr creator) {
+		gConsensuses[name] = creator;
+	}
+
 	bool exists(const uint256& chain) {
 		boost::unique_lock<boost::mutex> lLock(consensusesMutex_);
 		return consensuses_.find(chain) != consensuses_.end();
@@ -50,13 +54,23 @@ public:
 		}
 	}
 
-	IConsensusPtr push(const uint256& chain) {
+	IConsensusPtr push(const uint256& chain, EntityPtr dapp) {
 		//
 		boost::unique_lock<boost::mutex> lLock(consensusesMutex_);
 		if (consensuses_.find(chain) == consensuses_.end()) {
-			IConsensusPtr lConsensus = Consensus::instance(chain, shared_from_this(), settings_, wallet_, storeManager_->locate(chain));
-			consensuses_[chain] = lConsensus;
-			return lConsensus;
+
+			if (dapp) {
+				Consensuses::iterator lCreator = gConsensuses.find(dapp->entityName());
+				if (lCreator != gConsensuses.end()) {
+					IConsensusPtr lConsensus = lCreator->second->create(chain, shared_from_this(), settings_, wallet_, storeManager_->locate(chain));
+					consensuses_[chain] = lConsensus;
+					return lConsensus;
+				}
+			} else {
+				IConsensusPtr lConsensus = Consensus::instance(chain, shared_from_this(), settings_, wallet_, storeManager_->locate(chain));
+				consensuses_[chain] = lConsensus;
+				return lConsensus;
+			}
 		}
 
 		return nullptr;
@@ -309,6 +323,27 @@ public:
 	}
 
 	//
+	// broadcast airdrop request
+	void broadcastAirdropRequest(const PKey& key, const uint160& except) {
+		IConsensusPtr lConsensus = nullptr;
+		{
+			boost::unique_lock<boost::mutex> lLock(consensusesMutex_);
+			std::map<uint256, IConsensusPtr>::iterator lConsensusPtr = consensuses_.find(MainChain::id());
+			if (lConsensusPtr != consensuses_.end()) lConsensus = lConsensusPtr->second;
+		}
+
+		if (lConsensus)
+			lConsensus->broadcastAirdropRequest(key, except);
+	}
+
+	//
+	// b-cast state to clients only
+	void broadcastStateToClients(StatePtr state) {
+		//
+		peerManager_->broadcastState(state);
+	}
+
+	//
 	// broadcast transaction
 	void broadcastTransaction(TransactionContextPtr ctx, const uint160& except) {
 		IConsensusPtr lConsensus = nullptr;
@@ -365,6 +400,9 @@ public:
 		for (std::map<uint160, IPeerPtr>::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
 			if (except.isNull() || (except != lPeer->second->addressId())) lPeer->second->broadcastState(state);
 		}
+
+		// re-broadcast to clients
+		peerManager_->broadcastState(state);
 	}
 
 	//
@@ -404,6 +442,7 @@ public:
 	void setWallet(IWalletPtr wallet) { wallet_ = wallet; }
 	void setStoreManager(ITransactionStoreManagerPtr storeManager) { storeManager_ = storeManager; }
 	void setValidatorManager(IValidatorManagerPtr validatorManager) { validatorManager_ = validatorManager; }
+	void setPeerManager(IPeerManagerPtr peerManager) { peerManager_ = peerManager; }
 
 	IValidatorManagerPtr validatorManager() { return validatorManager_; }	
 	ITransactionStoreManagerPtr storeManager() { return storeManager_; }
@@ -436,6 +475,7 @@ private:
 	IWalletPtr wallet_;
 	ITransactionStoreManagerPtr storeManager_;
 	IValidatorManagerPtr validatorManager_;
+	IPeerManagerPtr peerManager_;
 
 	typedef uint160 peer_t;
 

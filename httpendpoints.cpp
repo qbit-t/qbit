@@ -302,12 +302,18 @@ void HttpGetBalance::process(const std::string& source, const HttpRequest& reque
 
 		// process
 		double lBalance = 0.0;
+		double lPendingBalance = 0.0;
 		IMemoryPoolPtr lMempool = wallet_->mempoolManager()->locate(MainChain::id()); // main chain only
 		IConsensus::ChainState lState = lMempool->consensus()->chainState();
 
 		if (lState == IConsensus::SYNCHRONIZED) {
-			if (!lAsset.isNull()) lBalance = ((double)wallet_->balance(lAsset)) / lScale;
-			else lBalance = ((double)wallet_->balance()) / lScale;
+			if (!lAsset.isNull()) { 
+				lBalance = ((double)wallet_->balance(lAsset)) / lScale;
+				lPendingBalance = ((double)wallet_->pendingBalance(lAsset)) / lScale;
+			} else { 
+				lBalance = ((double)wallet_->balance()) / lScale;
+				lPendingBalance = ((double)wallet_->pendingBalance()) / lScale;
+			}
 		} else if (lState == IConsensus::SYNCHRONIZING) {
 			reply = HttpReply::stockReply("E_NODE_SYNCHRONIZING", "Synchronization is in progress..."); 
 			return;
@@ -319,7 +325,11 @@ void HttpGetBalance::process(const std::string& source, const HttpRequest& reque
 		// prepare reply
 		json::Document lReply;
 		lReply.loadFromString("{}");
-		lReply.addString("result", strprintf(TxAssetType::scaleFormat(lScale), lBalance));
+
+		json::Value lKeyObject = lReply.addObject("result");
+		lKeyObject.addString("available", strprintf(TxAssetType::scaleFormat(lScale), lBalance));
+		lKeyObject.addString("pending", strprintf(TxAssetType::scaleFormat(lScale), lPendingBalance-lBalance));
+
 		lReply.addObject("error").toNull();
 		lReply.addString("id", lId.getString());
 
@@ -599,8 +609,13 @@ void HttpGetPeerInfo::process(const std::string& source, const HttpRequest& requ
 
 			if ((*lPeer)->state().client()) {
 				//
-				lItem.addString("dapp", (*lPeer)->state().dApp());
-				lItem.addString("dapp_instance", (*lPeer)->state().dAppInstance().toHex());
+				json::Value lDAppsArray = lItem.addArray("dapps");
+				for(std::vector<State::DAppInstance>::const_iterator lInstance = (*lPeer)->state().dApps().begin(); 
+														lInstance != (*lPeer)->state().dApps().end(); lInstance++) {
+					json::Value lDApp = lDAppsArray.newArrayItem();
+					lDApp.addString("name", lInstance->name());
+					lDApp.addString("instance", lInstance->instance().toHex());
+				}
 			} else {
 				//
 				json::Value lChainsObject = lItem.addArray("chains");

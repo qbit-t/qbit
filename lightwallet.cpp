@@ -357,7 +357,7 @@ void LightWallet::removeUnlinkedOut(std::list<Transaction::UnlinkedOutPtr>& utxo
 	}
 }
 
-amount_t LightWallet::balance(const uint256& asset) {
+amount_t LightWallet::pendingBalance(const uint256& asset) {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
 	//
@@ -396,6 +396,79 @@ amount_t LightWallet::balance(const uint256& asset) {
 	return lBalance;
 }
 
+amount_t LightWallet::balance(const uint256& asset) {
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
+	//
+	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[balance]: ") + strprintf("computing balance for %s", asset.toHex()));
+	//
+	amount_t lBalance = 0;
+	std::map<uint256 /*asset*/, std::multimap<amount_t /*amount*/, uint256 /*utxo*/>>::iterator lAsset = assetsCache_.find(asset);
+	if (lAsset != assetsCache_.end()) {
+		for (std::multimap<amount_t /*amount*/, uint256 /*utxo*/>::iterator lAmount = lAsset->second.begin(); 
+			lAmount != lAsset->second.end();) {
+
+			if (lAmount->first == 0) // amount is zero
+				continue;
+
+			Transaction::NetworkUnlinkedOutPtr lUtxo = findNetworkUnlinkedOut(lAmount->second);
+
+			if (lUtxo == nullptr) {
+				//
+				if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[balance]: ") + 
+							strprintf("utxo NOT FOUND %s/%s", lAmount->second.toHex(), asset.toHex()));
+				// delete from store
+				utxo_.remove(lAmount->second);
+				utxoCache_.erase(lAmount->second);
+				lAsset->second.erase(lAmount);
+				lAmount++;
+			} else {
+				//
+				if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[balance]: ") + 
+							strprintf("utxo FOUND %d/%s/%s", lAmount->first, lAmount->second.toHex(), asset.toHex()));
+
+				// extra check
+				/*if (lAsset->second.size() > 1)*/ {
+					//
+					if (!lUtxo->coinbase() && lUtxo->confirms() < settings_->mainChainMaturity()) {
+						if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[balance]: transaction is NOT MATURE ") + 
+							strprintf("%d/%d/%s/%s#", lUtxo->confirms(), settings_->mainChainMaturity(), 
+								lUtxo->utxo().out().tx().toHex(), lUtxo->utxo().out().chain().toHex().substr(0, 10)));
+						lAmount++;
+						continue; // skip UTXO
+					} else if (lUtxo->coinbase() && lUtxo->confirms() < settings_->mainChainCoinbaseMaturity()) {
+						if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[balance]: COINBASE transaction is NOT MATURE ") + 
+							strprintf("%d/%d/%s/%s#", lUtxo->confirms(), settings_->mainChainCoinbaseMaturity(), 
+								lUtxo->utxo().out().tx().toHex(), lUtxo->utxo().out().chain().toHex().substr(0, 10)));
+						lAmount++;
+						continue; // skip UTXO
+					} else if (lUtxo->utxo().lock()) {
+						uint64_t lHeight = requestProcessor_->locateHeight(MainChain::id()); // only main chain can contain value transactions
+
+						if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[balance]: check lock ") + 
+							strprintf("%d/%d/%s/%s#", lUtxo->utxo().lock(), lHeight, 
+								lUtxo->utxo().out().tx().toHex(), lUtxo->utxo().out().chain().toHex().substr(0, 10)));
+
+						if (lUtxo->utxo().lock() > lHeight) {
+							if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[balance]: timelock is not REACHED ") + 
+								strprintf("%d/%d/%s/%s#", lUtxo->utxo().lock(), lHeight, 
+									lUtxo->utxo().out().tx().toHex(), lUtxo->utxo().out().chain().toHex().substr(0, 10)));
+							lAmount++;
+							continue; // skip UTXO
+						}
+					}
+				}
+
+				lBalance += lAmount->first;
+				lAmount++;
+			}
+		}
+	}
+
+	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[balance]: ") + strprintf("wallet balance for %s = %d", asset.toHex(), lBalance));
+	return lBalance;
+}
+
 void LightWallet::collectUnlinkedOutsByAsset(const uint256& asset, amount_t amount, std::list<Transaction::UnlinkedOutPtr>& list) {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
@@ -415,20 +488,29 @@ void LightWallet::collectUnlinkedOutsByAsset(const uint256& asset, amount_t amou
 			}
 
 			// extra check
-			if (lAsset->second.size() > 1) {
+			/*if (lAsset->second.size() > 1)*/ {
 				//
 				if (!lUtxo->coinbase() && lUtxo->confirms() < settings_->mainChainMaturity()) {
-					gLog().write(Log::WALLET, std::string("[collectUnlinkedOutsByAsset]: transaction is NOT MATURE ") + 
+					if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[collectUnlinkedOutsByAsset]: transaction is NOT MATURE ") + 
 						strprintf("%d/%d/%s/%s#", lUtxo->confirms(), settings_->mainChainMaturity(), 
 							lUtxo->utxo().out().tx().toHex(), lUtxo->utxo().out().chain().toHex().substr(0, 10)));
 					lAmount++;
 					continue; // skip UTXO
 				} else if (lUtxo->coinbase() && lUtxo->confirms() < settings_->mainChainCoinbaseMaturity()) {
-					gLog().write(Log::WALLET, std::string("[collectUnlinkedOutsByAsset]: COINBASE transaction is NOT MATURE ") + 
+					if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[collectUnlinkedOutsByAsset]: COINBASE transaction is NOT MATURE ") + 
 						strprintf("%d/%d/%s/%s#", lUtxo->confirms(), settings_->mainChainCoinbaseMaturity(), 
 							lUtxo->utxo().out().tx().toHex(), lUtxo->utxo().out().chain().toHex().substr(0, 10)));
 					lAmount++;
 					continue; // skip UTXO
+				} else if (lUtxo->utxo().lock()) {
+					uint64_t lHeight = requestProcessor_->locateHeight(MainChain::id()); // only main chain can contain value transactions
+					if (lUtxo->utxo().lock() > lHeight) {
+						if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[collectUnlinkedOutsByAsset]: timelock is not REACHED ") + 
+							strprintf("%d/%d/%s/%s#", lUtxo->utxo().lock(), lHeight, 
+								lUtxo->utxo().out().tx().toHex(), lUtxo->utxo().out().chain().toHex().substr(0, 10)));
+						lAmount++;
+						continue; // skip UTXO
+					}
 				}
 			}
 
@@ -647,6 +729,63 @@ TransactionContextPtr LightWallet::createTxFee(const PKey& dest, amount_t amount
 
 	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[createTxFee]: fee tx created: ") + 
 		strprintf("to = %s, amount = %d/%d", const_cast<PKey&>(dest).toString(), amount, lAmount));
+
+	return lCtx;
+}
+
+TransactionContextPtr LightWallet::createTxFeeLockedChange(const PKey& dest, amount_t amount, amount_t locked, uint64_t height) {
+	// create empty tx
+	TxFeePtr lTx = TransactionHelper::to<TxFee>(TransactionFactory::create(Transaction::FEE)); // TxSendPrivate -> TxSend
+	// create context
+	TransactionContextPtr lCtx = TransactionContext::instance(lTx);
+	// fill inputs
+	std::list<Transaction::UnlinkedOutPtr> lUtxos;	
+	amount_t lAmount = fillInputs(lTx, TxAssetType::qbitAsset(), amount + locked, lUtxos);
+
+	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[createTxFeeLockedChange]: creating fee tx: ") + 
+		strprintf("to = %s, amount = %d", const_cast<PKey&>(dest).toString(), amount + locked));
+
+	// fill output
+	SKeyPtr lSChangeKey = changeKey();
+	SKeyPtr lSKey = firstKey();
+	if (!lSKey->valid() || !lSChangeKey->valid()) throw qbit::exception("E_KEY", "Secret key is invalid.");
+	lTx->addExternalOut(*lSKey, dest, TxAssetType::qbitAsset(), amount); // out[0] - use to pay fee in shards
+
+	Transaction::UnlinkedOutPtr lLockedUtxo =
+		lTx->addLockedOut(*lSKey, dest, TxAssetType::qbitAsset(), locked, height); // out[1] - locked
+
+	amount_t lRate = settings_->maxFeeRate();
+	amount_t lFee = (lRate * lCtx->size()) / 2; // half fee 
+
+	// change
+	Transaction::UnlinkedOutPtr lChangeUtxo = nullptr;
+
+	// try to check amount
+	if (lAmount >= amount + locked + lFee) {
+		lTx->addFeeOut(*lSKey, TxAssetType::qbitAsset(), lFee); // to miner
+
+		if (lAmount > amount + locked + lFee) { // make change
+			lChangeUtxo = lTx->addOut(*lSChangeKey, lSChangeKey->createPKey()/*change*/, TxAssetType::qbitAsset(), lAmount - (amount + locked + lFee));
+		}
+	} else { // rare cases
+		return createTxFeeLockedChange(dest, amount + lFee, locked, height);
+	}
+
+	if (!lTx->finalize(*lSKey)) throw qbit::exception("E_TX_FINALIZE", "Transaction finalization failed.");
+
+	// we good
+	removeUnlinkedOut(lUtxos);
+
+	if (lChangeUtxo) { 
+		cacheUnlinkedOut(lChangeUtxo);
+	}
+
+	if (lLockedUtxo) { 
+		cacheUnlinkedOut(lLockedUtxo);
+	}
+
+	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[createTxFeeLockedChange]: fee tx created: ") + 
+		strprintf("to = %s, amount = [%d/%d]%d", const_cast<PKey&>(dest).toString(), amount, locked, lAmount));
 
 	return lCtx;
 }

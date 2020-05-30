@@ -16,33 +16,63 @@ namespace qbit {
 
 class RequestProcessor: public IConsensusManager, public IRequestProcessor, public std::enable_shared_from_this<RequestProcessor> {
 public:
-	RequestProcessor(ISettingsPtr settings) : settings_(settings) { dApp_ = "none"; }
-	RequestProcessor(ISettingsPtr settings, const std::string& dApp) : settings_(settings), dApp_(dApp) {}
+	RequestProcessor(ISettingsPtr settings) : settings_(settings) {}
 
 	//
 	// current state
 	StatePtr currentState() {
-		StatePtr lState = State::instance(qbit::getTime(), settings_->roles(), wallet_->firstKey()->createPKey(), dApp_, dAppInstance_);
+		//
+		StatePtr lState = State::instance(qbit::getTime(), settings_->roles(), wallet_->firstKey()->createPKey());
+		for (std::vector<State::DAppInstance>::iterator lInstance = dapps_.begin(); lInstance != dapps_.end(); lInstance++) {
+			lState->addDAppInstance(*lInstance);
+		}
+
 		// TODO: device_id
 		return lState;
 	}
 
 	//
 	// client dapp instance
-	void setDAppInstance(const uint256& dAppInstance) { 
-		dAppInstance_ = dAppInstance; 
+	void addDAppInstance(const State::DAppInstance& instance, bool notify = true) { 
+		//
+		for (std::vector<State::DAppInstance>::iterator lInstance = dapps_.begin(); lInstance != dapps_.end(); lInstance++) {
+			if (instance.name() == lInstance->name()) return;
+		}
+
+		dapps_.push_back(instance);
+		if (notify) broadcastState(currentState(), uint160());
+	}
+
+	//
+	// client dapp instance
+	void addDAppInstance(const std::vector<State::DAppInstance>& instance) { 
+		//
+		for (std::vector<State::DAppInstance>::const_iterator lInstance = instance.begin(); lInstance != instance.end(); lInstance++) {
+			addDAppInstance(*lInstance, false);	
+		}
+
 		broadcastState(currentState(), uint160());
 	}
 
 	//
-	// dApp
-	std::string dApp() { return dApp_; }
+	// client dapp instance
+	void clearDApps() {
+		dapps_.resize(0);
+	}
+
+	//
+	// instances supported
+	const std::vector<State::DAppInstance>& dApps() const {
+		return dapps_;
+	}
 
 	//
 	// use peer for network participation
 	bool pushPeer(IPeerPtr peer) {
 		//
 		uint160 lAddress = peer->addressId();
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[pushPeer]: try to push peer ") + 
+				strprintf("%s", lAddress.toHex()));
 		{
 			// push
 			boost::unique_lock<boost::mutex> lLock(peersMutex_);
@@ -51,15 +81,40 @@ public:
 			std::vector<State::BlockInfo> lInfos = peer->state().infos();
 			for (std::vector<State::BlockInfo>::iterator lInfo = lInfos.begin(); lInfo != lInfos.end(); lInfo++) {
 				std::set<uint160> lPeers = chainPeers_[(*lInfo).chain()];
-				if (!lPeers.size())
-					if (!dApp_.size() || (*lInfo).dApp() == dApp_ || (*lInfo).chain() == MainChain::id())  {
-						chainPeers_[(*lInfo).chain()].insert(lAddress);
-						lAdded = true;
+				//
+				// if peer collection by chain is less than 3 - take this peer
+				std::map<uint160 /*peer*/, IPeerPtr>::iterator lExisting = peers_.find(lAddress);
+				if (lPeers.size() < 3 /*settings: normal, average, paranoid*/ || lExisting != peers_.end()) {
+					bool lCorrect = false;
+					for (std::vector<State::DAppInstance>::iterator lInstance = dapps_.begin(); lInstance != dapps_.end(); lInstance++) {
+						if ((*lInfo).dApp() == lInstance->name()) { 
+							lCorrect = true;
+							break; 
+						}
 					}
-			}			
 
-			if (lAdded) peers_.insert(std::map<uint160 /*peer*/, IPeerPtr>::value_type(lAddress, peer));
-			else return false;
+					if (!dapps_.size() || lCorrect || (*lInfo).chain() == MainChain::id())  {
+						// if exists - no changes
+						chainPeers_[(*lInfo).chain()].insert(lAddress);
+						//
+						if ((*lInfo).dApp().size()) { 
+							dappPeers_[(*lInfo).dApp()].insert(lAddress);
+							dappChains_[(*lInfo).dApp()].insert((*lInfo).chain());
+						}
+
+						lAdded = true;
+
+						if (lExisting != peers_.end()) peers_.erase(lExisting);
+					}
+				}
+			}
+
+			// if exist - no changes
+			if (lAdded) { 
+				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[pushPeer]: peer pushed ") + 
+						strprintf("%s", lAddress.toHex()));
+				peers_.insert(std::map<uint160 /*peer*/, IPeerPtr>::value_type(lAddress, peer));
+			} else return false;
 		}
 
 		pushPeerLatency(peer);
@@ -86,6 +141,9 @@ public:
 	void popPeer(IPeerPtr peer) {
 		//
 		peer_t lPeerId = peer->addressId();
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[popPeer]: popping peer ") + 
+				strprintf("%s", lPeerId.toHex()));
+
 		{
 			// pop
 			boost::unique_lock<boost::mutex> lLock(peersMutex_);
@@ -93,6 +151,11 @@ public:
 			std::vector<State::BlockInfo> lInfos = peer->state().infos();
 			for (std::vector<State::BlockInfo>::iterator lInfo = lInfos.begin(); lInfo != lInfos.end(); lInfo++) {
 				chainPeers_[(*lInfo).chain()].erase(lAddress);
+				if ((*lInfo).dApp().size()) { 
+					dappPeers_[(*lInfo).dApp()].erase(lPeerId);
+					if (!dappPeers_[(*lInfo).dApp()].size()) dappPeers_.erase((*lInfo).dApp());
+				}
+
 				if (!chainPeers_[(*lInfo).chain()].size()) chainPeers_.erase((*lInfo).chain()); 
 			}
 
@@ -134,13 +197,20 @@ public:
 		return std::make_shared<RequestProcessor>(settings);
 	}
 
-	static IRequestProcessorPtr instance(ISettingsPtr settings, const std::string& dApp) {
-		return std::make_shared<RequestProcessor>(settings, dApp);
-	}
+	void requestState() {
+		//
+		std::map<uint160, IPeerPtr> lPeers;
+		collectPeers(lPeers);
+
+		for (std::map<uint160, IPeerPtr>::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
+			//
+			lPeer->second->requestState();
+		}
+	}	
 
 	bool loadTransaction(const uint256& chain, const uint256& tx, ILoadTransactionHandlerPtr handler) {
 		//
-		std::map<uint32_t, IPeerPtr> lOrder;
+		std::map<IRequestProcessor::KeyOrder, IPeerPtr> lOrder;
 		collectPeersByChain(chain, lOrder);
 
 		if (lOrder.size()) {
@@ -152,9 +222,23 @@ public:
 		return false;
 	}
 
+	bool loadTransactions(const uint256& chain, const std::vector<uint256>& txs, ILoadTransactionsHandlerPtr handler) {
+		//
+		std::map<IRequestProcessor::KeyOrder, IPeerPtr> lOrder;
+		collectPeersByChain(chain, lOrder);
+
+		if (lOrder.size()) {
+			// use nearest
+			lOrder.begin()->second->loadTransactions(chain, txs, handler);
+			return true;
+		}
+
+		return false;
+	}
+
 	bool loadEntity(const std::string& entityName, ILoadEntityHandlerPtr handler) {
 		//
-		std::map<uint32_t, IPeerPtr> lOrder;
+		std::map<IRequestProcessor::KeyOrder, IPeerPtr> lOrder;
 		collectPeersByChain(MainChain::id(), lOrder);
 
 		if (lOrder.size()) {
@@ -168,7 +252,7 @@ public:
 
 	bool selectUtxoByAddress(const PKey& source, const uint256& chain, ISelectUtxoByAddressHandlerPtr handler) {
 		//
-		std::map<uint32_t, IPeerPtr> lOrder;
+		std::map<IRequestProcessor::KeyOrder, IPeerPtr> lOrder;
 		collectPeersByChain(chain, lOrder);
 
 		if (lOrder.size()) {
@@ -182,7 +266,7 @@ public:
 
 	bool selectUtxoByAddressAndAsset(const PKey& source, const uint256& chain, const uint256& asset, ISelectUtxoByAddressAndAssetHandlerPtr handler) {
 		//
-		std::map<uint32_t, IPeerPtr> lOrder;
+		std::map<IRequestProcessor::KeyOrder, IPeerPtr> lOrder;
 		collectPeersByChain(chain, lOrder);
 
 		if (lOrder.size()) {
@@ -196,7 +280,7 @@ public:
 
 	bool selectUtxoByTransaction(const uint256& chain, const uint256& tx, ISelectUtxoByTransactionHandlerPtr handler) {
 		//
-		std::map<uint32_t, IPeerPtr> lOrder;
+		std::map<IRequestProcessor::KeyOrder, IPeerPtr> lOrder;
 		collectPeersByChain(chain, lOrder);
 
 		if (lOrder.size()) {
@@ -210,7 +294,7 @@ public:
 
 	bool selectUtxoByEntity(const std::string& entityName, ISelectUtxoByEntityNameHandlerPtr handler) {
 		//
-		std::map<uint32_t, IPeerPtr> lOrder;
+		std::map<IRequestProcessor::KeyOrder, IPeerPtr> lOrder;
 		collectPeersByChain(MainChain::id(), lOrder);
 
 		if (lOrder.size()) {
@@ -224,7 +308,7 @@ public:
 
 	bool selectUtxoByEntityNames(const std::vector<std::string>& entityNames, ISelectUtxoByEntityNamesHandlerPtr handler) {
 		//
-		std::map<uint32_t, IPeerPtr> lOrder;
+		std::map<IRequestProcessor::KeyOrder, IPeerPtr> lOrder;
 		collectPeersByChain(MainChain::id(), lOrder);
 
 		if (lOrder.size()) {
@@ -238,7 +322,7 @@ public:
 
 	bool selectEntityCountByShards(const std::string& dapp, ISelectEntityCountByShardsHandlerPtr handler) {
 		//
-		std::map<uint32_t, IPeerPtr> lOrder;
+		std::map<IRequestProcessor::KeyOrder, IPeerPtr> lOrder;
 		collectPeersByChain(MainChain::id(), lOrder);
 
 		if (lOrder.size()) {
@@ -250,23 +334,97 @@ public:
 		return false;
 	}
 
-	bool sendTransaction(TransactionContextPtr ctx, ISentTransactionHandlerPtr handler) {
+	bool selectEntityNames(const std::string& pattern, ISelectEntityNamesHandlerPtr handler) {
 		//
-		std::map<uint32_t, IPeerPtr> lOrder;
+		std::map<IRequestProcessor::KeyOrder, IPeerPtr> lOrder;
+		collectPeersByChain(MainChain::id(), lOrder);
+
+		if (lOrder.size()) {
+			// use nearest
+			lOrder.begin()->second->selectEntityNames(pattern, handler);
+			return true;
+		}
+
+		return false;
+	}
+
+	bool askForQbits() {
+		//
+		std::map<IRequestProcessor::KeyOrder, IPeerPtr> lOrder;
+		collectPeersByChain(MainChain::id(), lOrder);
+
+		for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::iterator lPeer = lOrder.begin(); lPeer != lOrder.end(); lPeer++) {
+			lPeer->second->tryAskForQbits();
+		}
+
+		if (lOrder.size()) return true;
+		return false;
+	}
+
+	bool selectEntityCountByDApp(const std::string& dapp, ISelectEntityCountByDAppHandlerPtr handler, int& destinations) {
+		//
+		std::map<uint256, std::map<uint32_t, IPeerPtr>> lOrder;
+		collectPeersByDApp(dapp, lOrder);
+
+		destinations = 0;
+		//
+		if (lOrder.size()) {
+			// use nearest
+			std::list<IPeerPtr> lDests;
+			for (std::map<uint256, std::map<uint32_t, IPeerPtr>>::iterator lItem = lOrder.begin(); lItem != lOrder.end(); lItem++) {
+				//
+				if (!lDests.size() || (lDests.size() && (*lDests.rbegin())->addressId() != lItem->second.begin()->second->addressId())) {
+					lDests.push_back(lItem->second.begin()->second);
+				}
+			}
+
+			destinations = lDests.size();
+			for (std::list<IPeerPtr>::iterator lPeer = lDests.begin(); lPeer != lDests.end(); lPeer++)
+				(*lPeer)->selectEntityCountByDApp(dapp, handler);
+			return true;
+		}
+
+		return false;
+	}
+
+	IPeerPtr sendTransaction(TransactionContextPtr ctx, ISentTransactionHandlerPtr handler) {
+		//
+		std::map<IRequestProcessor::KeyOrder, IPeerPtr> lOrder;
 		collectPeersByChain(ctx->tx()->chain(), lOrder);
 
 		if (lOrder.size()) {
 			// use nearest
 			lOrder.begin()->second->sendTransaction(ctx, handler);
-			return true;
+			return lOrder.begin()->second;
 		}
 
-		return false;
+		return nullptr;
 	}	
+
+	IPeerPtr sendTransaction(const uint256& destination, TransactionContextPtr ctx, ISentTransactionHandlerPtr handler) {
+		//
+		std::map<IRequestProcessor::KeyOrder, IPeerPtr> lOrder;
+		collectPeersByChain(destination, lOrder);
+
+		if (lOrder.size()) {
+			// use nearest
+			lOrder.begin()->second->sendTransaction(ctx, handler);
+			return lOrder.begin()->second;
+		}
+
+		return nullptr;
+	}
+
+	void sendTransaction(IPeerPtr peer, TransactionContextPtr ctx, ISentTransactionHandlerPtr handler) {
+		//
+		if (peer) {
+			peer->sendTransaction(ctx, handler);
+		}
+	}
 
 	bool broadcastTransaction(TransactionContextPtr ctx) {
 		//
-		std::map<uint32_t, IPeerPtr> lOrder;
+		std::map<IRequestProcessor::KeyOrder, IPeerPtr> lOrder;
 		collectPeersByChain(ctx->tx()->chain(), lOrder);
 
 		if (lOrder.size()) {
@@ -302,30 +460,94 @@ public:
 		return wallet_->processTransaction(tx);
 	}
 
-	void collectPeersByChain(const uint256& chain, std::map<uint32_t, IPeerPtr>& order) {
+	void collectPeers(std::map<uint160, IPeerPtr>& peers) {
+		//
+		boost::unique_lock<boost::mutex> lLock(peersMutex_);
+		for (std::map<uint256 /*chain*/, std::set<uint160>>::iterator lPeers = chainPeers_.begin(); lPeers != chainPeers_.end(); lPeers++) {
+			for (std::set<uint160>::iterator lAddress = lPeers->second.begin(); lAddress != lPeers->second.end(); lAddress++) {
+				std::map<uint160 /*peer*/, IPeerPtr>::iterator lPeer = peers_.find(*lAddress);
+				if (lPeer != peers_.end()) peers[lPeer->first] = lPeer->second;
+			}
+		}
+	}
+
+	//
+	// TODO: maybe we need to take in account chain height for the given peer?
+	// probably nearest node has to be fully synchronized
+	void collectPeersByChain(const uint256& chain, std::map<IRequestProcessor::KeyOrder, IPeerPtr>& order) {
+		//
 		boost::unique_lock<boost::mutex> lLock(peersMutex_);
 		std::map<uint256 /*chain*/, std::set<uint160>>::iterator lPeers = chainPeers_.find(chain);
 		if (lPeers != chainPeers_.end()) {
 			for (std::set<uint160>::iterator lAddress = lPeers->second.begin(); lAddress != lPeers->second.end(); lAddress++) {
 				std::map<uint160 /*peer*/, IPeerPtr>::iterator lPeer = peers_.find(*lAddress);
 				LatencyMap::iterator lLatency = latencyMap_.find(*lAddress);
-				if (lLatency != latencyMap_.end() && lPeer != peers_.end())
-					order.insert(std::map<uint32_t, IPeerPtr>::value_type(lLatency->second, lPeer->second));
+				if (lLatency != latencyMap_.end() && lPeer != peers_.end()) {
+					//
+					State::BlockInfo lInfo;
+					if (lPeer->second->state().locateChain(chain, lInfo)) {
+						order.insert(std::map<IRequestProcessor::KeyOrder, IPeerPtr>::value_type(
+							IRequestProcessor::KeyOrder(lInfo.height(), lLatency->second), lPeer->second));
+					}
+				}
 			}
 		}
 	}
 
-	void collectChains(std::vector<uint256>& chains) {
+	void collectPeersByDApp(const std::string& dapp, std::map<uint256, std::map<uint32_t, IPeerPtr>>& order) {
 		//
 		boost::unique_lock<boost::mutex> lLock(peersMutex_);
-		for (std::map<uint256 /*chain*/, std::set<uint160>>::iterator lChain = chainPeers_.begin(); lChain != chainPeers_.end(); lChain++) {
-			if (lChain->first != MainChain::id()) chains.push_back(lChain->first);
+		std::map<std::string /*dapp*/, std::set<uint160>>::iterator lDApp = dappPeers_.find(dapp);
+
+		if (lDApp != dappPeers_.end()) {
+			for (std::set<uint160>::iterator lPeerAddress = lDApp->second.begin(); lPeerAddress != lDApp->second.end(); lPeerAddress++) {
+				//
+				std::map<uint160 /*peer*/, IPeerPtr>::iterator lPeer = peers_.find(*lPeerAddress);
+				if (lPeer != peers_.end()) {
+					for (std::vector<State::BlockInfo>::iterator lInfo = lPeer->second->state().infos().begin(); lInfo != lPeer->second->state().infos().end(); lInfo++) {
+						if (lInfo->dApp() == dapp) { 
+							order[lInfo->chain()].insert(std::map<uint32_t, IPeerPtr>::value_type(lPeer->second->latency(), lPeer->second));
+						}
+					}
+				}
+			}
 		}
 	}
 
+	void collectChains(const std::string& dApp, std::vector<uint256>& chains) {
+		//
+		boost::unique_lock<boost::mutex> lLock(peersMutex_);
+		std::map<std::string /*dapp*/, std::set<uint256>>::iterator lDApp = dappChains_.find(dApp);
+		if (lDApp != dappChains_.end()) {
+			chains.insert(chains.end(), lDApp->second.begin(), lDApp->second.end());
+		}
+	}
+
+	uint64_t locateHeight(const uint256& chain) {
+		//
+		boost::unique_lock<boost::mutex> lLock(peersMutex_);
+		std::set<uint64_t /*height*/> lOrder;
+		std::map<uint256 /*chain*/, std::set<uint160>>::iterator lPeers = chainPeers_.find(chain);
+		if (lPeers != chainPeers_.end()) {
+			for (std::set<uint160>::iterator lAddress = lPeers->second.begin(); lAddress != lPeers->second.end(); lAddress++) {
+				std::map<uint160 /*peer*/, IPeerPtr>::iterator lPeer = peers_.find(*lAddress);
+				//
+				if (lPeer != peers_.end()) {
+					State::BlockInfo lInfo;
+					if (lPeer->second->state().locateChain(chain, lInfo)) {
+						lOrder.insert(lInfo.height());
+					}
+				}
+			}
+		}
+
+		if (lOrder.size()) return *(lOrder.rbegin());
+
+		return 0;
+	}
+
 private:
-	std::string dApp_;
-	uint256 dAppInstance_;
+	std::vector<State::DAppInstance> dapps_;
 
 	boost::mutex peersMutex_;
 
@@ -339,6 +561,8 @@ private:
 
 	std::map<uint160 /*peer*/, IPeerPtr> peers_;
 	std::map<uint256 /*chain*/, std::set<uint160>> chainPeers_;
+	std::map<std::string /*dapp*/, std::set<uint160>> dappPeers_;
+	std::map<std::string /*dapp*/, std::set<uint256>> dappChains_;
 };
 
 } // qbit

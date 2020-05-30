@@ -420,7 +420,7 @@ bool TxAssetEmissionVerify::execute() {
 	//
 	// re-create and re-check
 
-	DataStream lStream(SER_NETWORK, CLIENT_VERSION);
+	DataStream lStream(SER_NETWORK, PROTOCOL_VERSION);
 	Block::Serializer::serialize<DataStream>(lStream, lBlock);	
 
 	BlockPtr lBlock2 = Block::Deserializer::deserialize<DataStream>(lStream);
@@ -470,7 +470,7 @@ bool TxAssetEmissionSpend::execute() {
 	//
 	// re-create and re-check
 
-	DataStream lStream(SER_NETWORK, CLIENT_VERSION);
+	DataStream lStream(SER_NETWORK, PROTOCOL_VERSION);
 	Block::Serializer::serialize<DataStream>(lStream, lBlock);	
 
 	BlockPtr lBlock2 = Block::Deserializer::deserialize<DataStream>(lStream);

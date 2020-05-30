@@ -43,6 +43,12 @@ public:
 	DbThreeKeyContainer(const std::string& name) : ThreeKeyContainer<key1, key2, key3, value, LevelDBContainer>(name) {}
 };
 
+template<typename key1, typename key2, typename key3, typename key4, typename value>
+class DbFourKeyContainer: public FourKeyContainer<key1, key2, key3, key4, value, LevelDBContainer> {
+public: 
+	DbFourKeyContainer(const std::string& name) : FourKeyContainer<key1, key2, key3, key4, value, LevelDBContainer>(name) {}
+};
+
 } // db
 } // qbit
 

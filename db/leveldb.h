@@ -44,12 +44,12 @@ public:
 	int Compare(const leveldb::Slice& left, const leveldb::Slice& right) const {
 		//
 		key lLeftKey;
-		DataStream lLeftStream(SER_DISK, CLIENT_VERSION);
+		DataStream lLeftStream(SER_DISK, PROTOCOL_VERSION);
 		lLeftStream.insert(lLeftStream.end(), left.data(), left.data() + left.size());
 		lLeftStream >> lLeftKey;
 
 		key lRightKey;
-		DataStream lRightStream(SER_DISK, CLIENT_VERSION);
+		DataStream lRightStream(SER_DISK, PROTOCOL_VERSION);
 		lRightStream.insert(lRightStream.end(), right.data(), right.data() + right.size());
 		lRightStream >> lRightKey;
 
@@ -78,7 +78,7 @@ public:
 		void prev() { iterator_->Prev(); }
 
 		bool first(key& k) {
-			DataStream lKeyStream(SER_DISK, CLIENT_VERSION);
+			DataStream lKeyStream(SER_DISK, PROTOCOL_VERSION);
 			if(first(lKeyStream)) {
 				lKeyStream >> k;
 				return true;
@@ -100,7 +100,7 @@ public:
 		}
 
 		bool second(value& v) {
-			DataStream lValueStream(SER_DISK, CLIENT_VERSION);
+			DataStream lValueStream(SER_DISK, PROTOCOL_VERSION);
 			if(second(lValueStream)) {
 				lValueStream >> v;
 				return true;
@@ -138,10 +138,10 @@ public:
 		}
 
 		void write(const key& k, const value& v) {
-			DataStream lKeyStream(SER_DISK, CLIENT_VERSION);
+			DataStream lKeyStream(SER_DISK, PROTOCOL_VERSION);
 			lKeyStream << k;
 
-			DataStream lValueStream(SER_DISK, CLIENT_VERSION);
+			DataStream lValueStream(SER_DISK, PROTOCOL_VERSION);
 			lValueStream << v;
 
 			write(lKeyStream, lValueStream);
@@ -153,7 +153,7 @@ public:
 		}
 
 		void remove(const key& k) {
-			DataStream lKeyStream(SER_DISK, CLIENT_VERSION);
+			DataStream lKeyStream(SER_DISK, PROTOCOL_VERSION);
 			lKeyStream << k;
 
 			remove(lKeyStream);
@@ -280,7 +280,7 @@ public:
 	}
 
 	_iterator find(const key& k) {
-		DataStream lKeyStream(SER_DISK, CLIENT_VERSION);
+		DataStream lKeyStream(SER_DISK, PROTOCOL_VERSION);
 		lKeyStream << k;
 
 		return find(lKeyStream);
@@ -304,10 +304,10 @@ public:
 	}
 
 	bool write(const key& k, const value& v, bool sync = false) {
-		DataStream lKeyStream(SER_DISK, CLIENT_VERSION);
+		DataStream lKeyStream(SER_DISK, PROTOCOL_VERSION);
 		lKeyStream << k;
 
-		DataStream lValueStream(SER_DISK, CLIENT_VERSION);
+		DataStream lValueStream(SER_DISK, PROTOCOL_VERSION);
 		lValueStream << v;
 
 		return write(lKeyStream, lValueStream, sync);
@@ -334,10 +334,10 @@ public:
 	}
 
 	bool read(const key& k, value& v) {
-		DataStream lKeyStream(SER_DISK, CLIENT_VERSION);
+		DataStream lKeyStream(SER_DISK, PROTOCOL_VERSION);
 		lKeyStream << k;
 
-		DataStream lValueStream(SER_DISK, CLIENT_VERSION);
+		DataStream lValueStream(SER_DISK, PROTOCOL_VERSION);
 		if(read(lKeyStream, lValueStream)) {
 			lValueStream >> v;
 			return true;
@@ -363,7 +363,7 @@ public:
 	}
 
 	bool remove(const key& k, bool sync = false) {
-		DataStream lKeyStream(SER_DISK, CLIENT_VERSION);
+		DataStream lKeyStream(SER_DISK, PROTOCOL_VERSION);
 		lKeyStream << k;
 
 		return remove(lKeyStream, sync);

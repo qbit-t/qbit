@@ -23,7 +23,7 @@ namespace qbit {
 class Server;
 typedef std::shared_ptr<Server> ServerPtr;
 
-class Server {
+class Server: public std::enable_shared_from_this<Server> {
 public:
 	Server(ISettingsPtr settings, IPeerManagerPtr peerManager) : 
 		Server(settings, peerManager, settings->serverPort()) {
@@ -31,9 +31,7 @@ public:
 
 	Server(ISettingsPtr settings, IPeerManagerPtr peerManager, int port) : 
 		settings_(settings), peerManager_(peerManager),
-		signals_(peerManager_->getContext(0)),
-		endpoint4_(tcp::v4(), port),
-		acceptor4_(peerManager_->getContext(0), endpoint4_) {
+		signals_(peerManager_->getContext(0)), port_(port) {
 		//
 		signals_.add(SIGINT);
 		signals_.add(SIGTERM);
@@ -41,8 +39,6 @@ public:
 		signals_.add(SIGQUIT);
 #endif
 		signals_.async_wait(boost::bind(&Server::stop, this));
-
-		accept4();
 	}
 
 	static ServerPtr instance(ISettingsPtr settings, IPeerManagerPtr peerManager) { 
@@ -55,6 +51,10 @@ public:
 
 	void run() {
 		gLog().write(Log::NET, "[server]: starting...");
+		timer_.reset(new boost::asio::steady_timer(
+				peerManager_->getContext(0), 
+				boost::asio::chrono::seconds(20))); // time to warm-up (validator & sharding managers)
+		timer_->async_wait(boost::bind(&Server::startEndpoint, shared_from_this()));			
 		peerManager_->run();
 	}
 
@@ -63,12 +63,19 @@ public:
 		peerManager_->stop();
 	}
 
-private:
+private:	
+	void startEndpoint() {
+		gLog().write(Log::NET, "[server]: starting endpoint...");
+		endpoint4_.reset(new tcp::endpoint(tcp::v4(), port_));
+		acceptor4_.reset(new tcp::acceptor(peerManager_->getContext(0), (tcp::endpoint&)(*endpoint4_)));
+		accept4();
+	}
+
 	void accept4() {
 		gLog().write(Log::NET, "[server]: accepting...");
 
 		IPeerPtr lPeer(new Peer(peerManager_->getContextId(), peerManager_));
-		acceptor4_.async_accept(*lPeer->socket(),
+		acceptor4_->async_accept(*lPeer->socket(),
 			boost::bind(
 				&Server::processAccept4, this, lPeer,
 				boost::asio::placeholders::error));
@@ -86,12 +93,18 @@ private:
 	}
 
 private:
+	typedef std::shared_ptr<boost::asio::steady_timer> TimerPtr;
+	typedef std::shared_ptr<tcp::endpoint> EndpointPtr;
+	typedef std::shared_ptr<tcp::acceptor> AcceptorPtr;
+
 	ISettingsPtr settings_;
 	IPeerManagerPtr peerManager_;
+	TimerPtr timer_;
 
+	int port_;
 	boost::asio::signal_set signals_;
-	tcp::endpoint endpoint4_;
-	tcp::acceptor acceptor4_;
+	EndpointPtr endpoint4_;
+	AcceptorPtr acceptor4_;
 };
 
 }

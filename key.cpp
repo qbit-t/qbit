@@ -70,7 +70,7 @@ bool SKey::create() {
 	return valid_;
 }
 
-std::string SKey::toString() {
+std::string SKey::toString() const {
 	std::vector<unsigned char> vch; vch.assign((unsigned char*)vch_, ((unsigned char*)vch_) + KEY_LEN);
 	return EncodeBase58Check(vch);
 }
@@ -135,12 +135,12 @@ uint256 SKey::shared(const PKey& other) {
 
 //
 // PKey
-std::string PKey::toString() {
+std::string PKey::toString() const {
 	std::vector<unsigned char> vch; vch.assign((unsigned char*)vch_, ((unsigned char*)vch_) + size());
 	return EncodeBase58Check(vch);
 }
 
-std::string PKey::toString(unsigned int len) {
+std::string PKey::toString(unsigned int len) const {
 	std::vector<unsigned char> vch; vch.assign((unsigned char*)vch_, ((unsigned char*)vch_) + len);
 	return EncodeBase58Check(vch);
 }

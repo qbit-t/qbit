@@ -5,6 +5,7 @@
 #ifndef QBIT_TXBUZZER_H
 #define QBIT_TXBUZZER_H
 
+#include "../../amount.h"
 #include "../../entity.h"
 #include "../../txassettype.h"
 #include "../../vm/vm.h"
@@ -23,11 +24,13 @@ typedef LimitedString<64> buzzer_name_t;
 #define TX_BUZZ_LIKE			Transaction::CUSTOM_07 // shard: fee-free
 #define TX_BUZZ_REPLY			Transaction::CUSTOM_08 // shard: fees
 #define TX_BUZZ_PIN				Transaction::CUSTOM_09 // shard: fee-free
+#define TX_BUZZ_REBUZZ_NOTIFY	Transaction::CUSTOM_10 // shard: fee-free, action
+#define TX_BUZZER_INFO			Transaction::CUSTOM_11 //
 
 #define TX_BUZZER_ALIAS_SIZE 64 
 #define TX_BUZZER_DESCRIPTION_SIZE 256 
 
-#define TX_BUZZER_SHARD_IN 0
+#define TX_BUZZER_SHARD_IN 1
 
 #define TX_BUZZER_MY_OUT 0
 #define TX_BUZZER_SUBSCRIPTION_OUT 1
@@ -37,12 +40,20 @@ typedef LimitedString<64> buzzer_name_t;
 #define TX_BUZZER_BUZZ_OUT 5
 
 //
+// Endorse/mistrust model parameters
+#define BUZZER_TRUST_SCORE_BASE QBIT
+#define BUZZER_ENDORSE_LIKE		1000 
+#define BUZZER_ENDORSE_REBUZZ	10000
+#define BUZZER_MIN_EM_STEP		10000000
+
+//
 class TxEvent: public Entity {
 public:
 	TxEvent() { type_ = Transaction::UNDEFINED; }
 
 	virtual std::string entityName() { return Entity::emptyName(); }
 	virtual uint64_t timestamp() { throw qbit::exception("NOT_IMPL", "TxEvent::timestamp - Not implemented."); }
+	virtual uint64_t score() { throw qbit::exception("NOT_IMPL", "TxEvent::score - Not implemented."); }
 
 	inline bool extractSpecialType(Transaction::Out& out, unsigned short& type) {
 		//
@@ -58,8 +69,28 @@ public:
 		return false;
 	}	
 };
-
 typedef std::shared_ptr<TxEvent> TxEventPtr;
+
+class BuzzerMediaPointer {
+public:
+	BuzzerMediaPointer() { chain_.setNull(); tx_.setNull(); }
+	BuzzerMediaPointer(const uint256& chain, const uint256& tx) : chain_(chain), tx_(tx) {}
+
+	const uint256& chain() const { return chain_; }
+	const uint256& tx() const { return tx_; }
+
+	ADD_SERIALIZE_METHODS;
+
+	template <typename Stream, typename Operation>
+	inline void serializationOp(Stream& s, Operation ser_action) {
+		READWRITE(chain_);
+		READWRITE(tx_);
+	}
+
+private:
+	uint256 chain_;
+	uint256 tx_;
+};
 
 //
 class TxBuzzer: public Entity {
@@ -71,57 +102,20 @@ public:
 	template<typename Stream> void serialize(Stream& s) {
 		buzzer_name_t lName(name_);
 		lName.serialize(s);
-		s << alias_;
-		s << description_;
 	}
 	
 	inline void deserialize(DataStream& s) {
 		buzzer_name_t lName(name_);
 		lName.deserialize(s);
-		s >> alias_;
-		s >> description_;
-
-		if (alias_.size() > TX_BUZZER_ALIAS_SIZE) alias_.resize(TX_BUZZER_ALIAS_SIZE);
-		if (description_.size() > TX_BUZZER_DESCRIPTION_SIZE) description_.resize(TX_BUZZER_DESCRIPTION_SIZE);
 	}
 
 	inline std::string& myName() { return name_; }
 	inline void setMyName(const std::string& name) { name_ = name; }
 	virtual std::string entityName() { return name_; }
 
-	inline std::vector<unsigned char>& description() { return description_; }
-	inline void setDescription(const std::vector<unsigned char>& description) {
-		if (description.size() <= TX_BUZZER_DESCRIPTION_SIZE) 
-			description_ = description;
-		else throw qbit::exception("E_SIZE", "Description size is incorrect.");
-	}
-	inline void setDescription(const std::string& description) {
-		if (description.size() <= TX_BUZZER_DESCRIPTION_SIZE) 
-			description_.insert(description_.end(), description.begin(), description.end()); 
-		else throw qbit::exception("E_SIZE", "Description size is incorrect.");
-	}
-
-	inline std::vector<unsigned char>& alias() { return alias_; }
-	inline void setAlias(const std::vector<unsigned char>& alias) {
-		if (alias.size() <= TX_BUZZER_ALIAS_SIZE) 
-			alias_ = alias;
-		else throw qbit::exception("E_SIZE", "Alias size is incorrect.");
-	}
-	inline void setAlias(const std::string& alias) {
-		if (alias.size() <= TX_BUZZER_ALIAS_SIZE) 
-			alias_.insert(alias_.end(), alias.begin(), alias.end()); 
-		else throw qbit::exception("E_SIZE", "Alias size is incorrect.");
-	}
-
 	inline void properties(std::map<std::string, std::string>& props) {
 		//
 		props["entity"] = entityName();
-		//
-		std::string lAlias; lAlias.insert(lAlias.end(), alias_.begin(), alias_.end());
-		props["alias"] = lAlias;
-
-		std::string lDescription; lDescription.insert(lDescription.end(), description_.begin(), description_.end());
-		props["description"] = lDescription;
 	}
 
 	//
@@ -141,6 +135,9 @@ public:
 			Transaction::Link(MainChain::id(), TxAssetType::nullAsset(), out_.size()), // link
 			pkey
 		);
+
+		// fill up for finalization
+		assetOut_[TxAssetType::nullAsset()].push_back(lUTXO);
 
 		out_.push_back(lOut);
 		return lUTXO;
@@ -281,8 +278,6 @@ private:
 
 private:
 	std::string name_;
-	std::vector<unsigned char> alias_;
-	std::vector<unsigned char> description_;
 };
 
 typedef std::shared_ptr<TxBuzzer> TxBuzzerPtr;

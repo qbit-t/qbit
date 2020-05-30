@@ -142,13 +142,13 @@ class ConsensusAA: public IConsensus {
 public:
 	ConsensusAA() {}
 
-	size_t maxBlockSize() { return 1024 * 1024 * 8; }
+	uint32_t maxBlockSize() { return 1024 * 1024 * 8; }
 	uint64_t currentTime() { return getTime(); }
 
 	void pushPeer(IPeerPtr /*peer*/) { }
 	void popPeer(IPeerPtr /*peer*/) { }
-	size_t maturity() { return 0; }	
-	size_t coinbaseMaturity() { return 0; }	
+	uint32_t maturity() { return 0; }	
+	uint32_t coinbaseMaturity() { return 0; }	
 };	
 
 

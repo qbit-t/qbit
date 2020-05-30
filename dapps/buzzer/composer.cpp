@@ -1,6 +1,7 @@
 #include "composer.h"
 #include "txbuzzer.h"
 #include "txbuzz.h"
+#include "txbuzzerinfo.h"
 #include "txbuzzersubscribe.h"
 #include "txbuzzerunsubscribe.h"
 #include "transactionstoreextension.h"
@@ -22,6 +23,16 @@ bool BuzzerComposer::open() {
 			std::string lBuzzerTx;
 			if (workingSettings_.read("buzzerTx", lBuzzerTx)) {
 				buzzerTx_.setHex(lBuzzerTx);
+			}
+
+			std::string lBuzzerInfoTx;
+			if (workingSettings_.read("buzzerInfoTx", lBuzzerInfoTx)) {
+				buzzerInfoTx_.setHex(lBuzzerInfoTx);
+			}
+
+			std::string lBuzzerInfoChain;
+			if (workingSettings_.read("buzzerInfoChain", lBuzzerInfoChain)) {
+				buzzerInfoChain_.setHex(lBuzzerInfoChain);
 			}
 
 			opened_ = true;
@@ -74,21 +85,21 @@ TransactionContextPtr BuzzerComposer::createTxBuzzer(const PKey& self, const std
 
 	//
 	lBuzzerTx->setMyName(lBuzzerName);
-	lBuzzerTx->setAlias(alias);
-	lBuzzerTx->setDescription(description);
 
 	SKeyPtr lSChangeKey = wallet_->changeKey();
 	SKeyPtr lSKey = wallet_->firstKey();
 	if (!lSKey->valid() || !lSChangeKey->valid()) throw qbit::exception("E_KEY", "Secret key is invalid.");
 
 	// make buzzer out (for buzz creation)
-	lBuzzerTx->addBuzzerOut(*lSKey, self);
+	Transaction::UnlinkedOutPtr lMyBuzzerOut = lBuzzerTx->addBuzzerOut(*lSKey, self);
 	// for subscriptions
 	lBuzzerTx->addBuzzerSubscriptionOut(*lSKey, self);
 	// endorse
 	lBuzzerTx->addBuzzerEndorseOut(*lSKey, self);
 	// mistrust
 	lBuzzerTx->addBuzzerMistrustOut(*lSKey, self);
+	// buzzin
+	lBuzzerTx->addBuzzerBuzzOut(*lSKey, self);
 
 	// make inputs
 	std::vector<Transaction::UnlinkedOutPtr> lUtxos;
@@ -129,8 +140,10 @@ TransactionContextPtr BuzzerComposer::createTxBuzzer(const PKey& self, const std
 	amount_t lFee = lRate * lCtx->size();
 	amount_t lFeeAmount = wallet_->fillInputs(lBuzzerTx, TxAssetType::qbitAsset(), lFee, lFeeUtxos);
 	lBuzzerTx->addFeeOut(*lSKey, TxAssetType::qbitAsset(), lFee); // to miner
+
+	Transaction::UnlinkedOutPtr lFeeOut;
 	if (lFeeAmount > lFee) { // make change
-		lBuzzerTx->addOut(*lSChangeKey, lSChangeKey->createPKey()/*change*/, TxAssetType::qbitAsset(), lFeeAmount - lFee);
+		lFeeOut = lBuzzerTx->addOut(*lSChangeKey, lSChangeKey->createPKey()/*change*/, TxAssetType::qbitAsset(), lFeeAmount - lFee);
 	}
 
 	if (!lBuzzerTx->finalize(*lSKey)) throw qbit::exception("E_TX_FINALIZE", "Transaction finalization failed.");
@@ -145,6 +158,42 @@ TransactionContextPtr BuzzerComposer::createTxBuzzer(const PKey& self, const std
 	std::string lBuzzerTxHex = lBuzzerTx->id().toHex();
 	workingSettings_.write("buzzerTx", lBuzzerTxHex);
 	buzzerTx_ = lBuzzerTx->id();
+
+	//
+	// compose buzze info
+	//
+	TxBuzzerInfoPtr lBuzzerInfoTx = TransactionHelper::to<TxBuzzerInfo>(TransactionFactory::create(TX_BUZZER_INFO));
+	TransactionContextPtr lInfoCtx = TransactionContext::instance(lBuzzerInfoTx);
+	//
+	Transaction::In& lShardIn = *(++(lBuzzerTx->in().begin())); // second in
+	uint256 lShardTx = lShardIn.out().tx();
+	// set name
+	lBuzzerInfoTx->setMyName(lBuzzerTx->myName());
+	// set shard/chain
+	lBuzzerInfoTx->setChain(lShardTx);
+	// set alias
+	lBuzzerInfoTx->setAlias(alias);
+	// set desc
+	lBuzzerInfoTx->setDescription(description);
+	// sign
+	lBuzzerInfoTx->makeSignature(*lSKey);
+	// out[0] - buzzer utxo for new buzz
+	lBuzzerInfoTx->addMyBuzzerIn(*lSKey, lMyBuzzerOut); // first out
+	//
+	lCtx->addLinkedTx(lInfoCtx);
+
+	if (!lBuzzerInfoTx->finalize(*lSKey)) throw qbit::exception("E_TX_FINALIZE", "Transaction finalization failed.");
+
+	// write to pending transactions
+	wallet_->writePendingTransaction(lBuzzerInfoTx->id(), lBuzzerInfoTx);
+
+	// save our buzzer info
+	std::string lBuzzerInfoTxHex = lBuzzerInfoTx->id().toHex();
+	std::string lBuzzerInfoChainHex = lBuzzerInfoTx->chain().toHex();
+	workingSettings_.write("buzzerInfoTx", lBuzzerInfoTxHex);
+	workingSettings_.write("buzzerInfoChain", lBuzzerInfoChainHex);
+	buzzerInfoTx_ = lBuzzerInfoTx->id();
+	buzzerInfoChain_ = lBuzzerInfoTx->chain();
 	
 	return lCtx;
 }
@@ -174,6 +223,87 @@ uint256 BuzzerComposer::attachBuzzer(const std::string& buzzer) {
 	}
 
 	return uint256();
+}
+
+TransactionContextPtr BuzzerComposer::createTxBuzzerInfo(const std::string& alias, const std::string& description) {
+	//
+	SKeyPtr lSKey = wallet_->firstKey();
+	PKey lPKey = lSKey->createPKey();
+	return createTxBuzzerInfo(lPKey, alias, description);	
+}
+
+TransactionContextPtr BuzzerComposer::createTxBuzzerInfo(const PKey& self, const std::string& alias, const std::string& description) {
+	//	
+	// create empty tx
+	TxBuzzerInfoPtr lBuzzerInfoTx = TransactionHelper::to<TxBuzzerInfo>(TransactionFactory::create(TX_BUZZER_INFO));
+	// create context
+	TransactionContextPtr lCtx = TransactionContext::instance(lBuzzerInfoTx);
+	// dapp entity - check
+	EntityPtr lDApp = wallet_->entityStore()->locateEntity(dAppName()); 
+	if (!lDApp) throw qbit::exception("E_ENTITY", "Invalid entity.");
+
+	// load buzzer tx
+	if (!open()) throw qbit::exception("E_BUZZER_NOT_OPEN", "Buzzer was not open.");
+
+	TransactionPtr lTx = wallet_->persistentStore()->locateTransaction(buzzerTx_);
+
+	if (lTx) {
+		//
+		TxBuzzerPtr lMyBuzzer = TransactionHelper::to<TxBuzzer>(lTx);
+		// extract bound shard
+		if (lMyBuzzer->in().size() > 1) {
+			//
+			SKeyPtr lSChangeKey = wallet_->changeKey();
+			SKeyPtr lSKey = wallet_->firstKey();
+			if (!lSKey->valid() || !lSChangeKey->valid()) throw qbit::exception("E_KEY", "Secret key is invalid.");
+
+			//
+			Transaction::In& lShardIn = *(++(lMyBuzzer->in().begin())); // second in
+			uint256 lShardTx = lShardIn.out().tx();
+			// set name
+			lBuzzerInfoTx->setMyName(lMyBuzzer->myName());
+			// set shard/chain
+			lBuzzerInfoTx->setChain(lShardTx);
+			// set alias
+			lBuzzerInfoTx->setAlias(alias);
+			// set desc
+			lBuzzerInfoTx->setDescription(description);
+			// sign
+			lBuzzerInfoTx->makeSignature(*lSKey);
+			//
+			std::vector<Transaction::UnlinkedOutPtr> lMyBuzzerUtxos;
+			if (wallet_->entityStore()->collectUtxoByEntityName(lMyBuzzer->myName(), lMyBuzzerUtxos)) {
+				// out[0] - buzzer utxo for new buzz
+				lBuzzerInfoTx->addMyBuzzerIn(*lSKey, *(lMyBuzzerUtxos.begin())); // first out
+
+				if (!lBuzzerInfoTx->finalize(*lSKey)) throw qbit::exception("E_TX_FINALIZE", "Transaction finalization failed.");
+
+				// write to pending transactions
+				wallet_->writePendingTransaction(lBuzzerInfoTx->id(), lBuzzerInfoTx);
+
+				// save our buzzer info
+				std::string lBuzzerInfoTxHex = lBuzzerInfoTx->id().toHex();
+				std::string lBuzzerInfoChainHex = lBuzzerInfoTx->chain().toHex();
+				workingSettings_.write("buzzerInfoTx", lBuzzerInfoTxHex);
+				workingSettings_.write("buzzerInfoChain", lBuzzerInfoChainHex);
+				buzzerInfoTx_ = lBuzzerInfoTx->id();
+				buzzerInfoChain_ = lBuzzerInfoTx->chain();
+
+				// we good
+				return lCtx;
+
+			} else {
+				throw qbit::exception("E_BUZZER_UTXO_ABSENT", "Buzzer utxo was not found.");
+			}
+
+		} else {
+			throw qbit::exception("E_BUZZER_TX_INCONSISTENT", "Buzzer tx is inconsistent.");	
+		}
+	} else {
+		throw qbit::exception("E_BUZZER_TX_NOT_FOUND", "Local buzzer was not found.");
+	}
+	
+	return nullptr;
 }
 
 TransactionContextPtr BuzzerComposer::createTxBuzz(const std::string& body) {
@@ -230,25 +360,27 @@ TransactionContextPtr BuzzerComposer::createTxBuzz(const PKey& self, const std::
 		// extract bound shard
 		if (lMyBuzzer->in().size() > 1) {
 			//
+			SKeyPtr lSChangeKey = wallet_->changeKey();
+			SKeyPtr lSKey = wallet_->firstKey();
+			if (!lSKey->valid() || !lSChangeKey->valid()) throw qbit::exception("E_KEY", "Secret key is invalid.");
+
+			//
 			Transaction::In& lShardIn = *(++(lMyBuzzer->in().begin())); // second in
 			uint256 lShardTx = lShardIn.out().tx();
-			// set shard/chain
-			lBuzzTx->setChain(lShardTx);
-			// set body
-			lBuzzTx->setBody(body);
 			// set timestamp
 			lBuzzTx->setTimestamp(qbit::getMedianMicroseconds());
+			// set shard/chain
+			lBuzzTx->setChain(lShardTx);
+			lBuzzTx->setBuzzerInfo(buzzerInfoTx_);
+			lBuzzTx->setBuzzerInfoChain(buzzerInfoChain_);
+			// set body
+			lBuzzTx->setBody(body, *lSKey);
 
 			//
 			std::vector<Transaction::UnlinkedOutPtr> lMyBuzzerUtxos;
 			if (wallet_->entityStore()->collectUtxoByEntityName(lMyBuzzer->myName(), lMyBuzzerUtxos)) {
-				//
-				SKeyPtr lSChangeKey = wallet_->changeKey();
-				SKeyPtr lSKey = wallet_->firstKey();
-				if (!lSKey->valid() || !lSChangeKey->valid()) throw qbit::exception("E_KEY", "Secret key is invalid.");
-
 				// out[0] - buzzer utxo for new buzz
-				lBuzzTx->addBuzzerIn(*lSKey, *(lMyBuzzerUtxos.begin())); // first out
+				lBuzzTx->addMyBuzzerIn(*lSKey, *(lMyBuzzerUtxos.begin())); // first out
 
 				// TODO: buzzers array a-la in lightcomposer -> ins[1..n]
 

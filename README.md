@@ -61,12 +61,17 @@ Qbit Smart contracts based on the following principles:
 
 ## How to build
 
+Prerequisites:
+1. sudo apt-get install libjpeg-dev
+2. sudo apt-get install libpng-dev
+
+Builf:
 1. cd ./secp256k1
 2. ./autogen.sh
 3. ./configure --enable-experimental --enable-module-schnorrsig --enable-module-musig --enable-module-ecdh --enable-module-generator --enable-module-rangeproof --with-bignum=no
 4. cd ..
 5. cd ./boost
-6. ./bootstrap.sh --with-libraries=system,thread,chrono,random --prefix=../
+6. ./bootstrap.sh --with-libraries=system,thread,chrono,random,filesystem,gil --prefix=../
 7. ./b2
 8. cd ..
 9. cmake -DCMAKE_BUILD_TYPE=Release
@@ -77,10 +82,14 @@ curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"getkey","params":
 
 curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"getbalance","params":[]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
 
-curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"sendtoaddress","params":["<from|*>", "<to>", "2.0"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
+curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"sendtoaddress","params":["<from|*>", "<to>", "<amount>"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
 
 curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"gettransaction","params":["<tx_id>"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
 
 curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"createdapp","params":["<owner>", "<short_name>", "<long_name>", "<tx_dapp_instance>", "<static|dynamic>"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
 
 curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"createshard","params":["<creator>", "<dapp_name>", "<unique_short_name>", "<description>"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
+
+curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"getpeerinfo","params":[]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
+
+curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"mallocstats","params":["[thread_id]", "[alloc_class]", "[path_to_dump]"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080

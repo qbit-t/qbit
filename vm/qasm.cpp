@@ -2,7 +2,7 @@
 
 using namespace qbit;
 
-unsigned char qasm::MAX_REG = 0x43;
+unsigned char qasm::MAX_REG = 0x44;
 unsigned int qasm::INCORRECT_LABLE = 0xffff;
 int qasm::LAB_LEN = 3;
 
@@ -54,6 +54,7 @@ std::string qasm::_getCommandText(_command cmd) {
 		case QPEN:			return "pen";
 		case QPTXO:			return "ptxo";
 		case QTIFMC:		return "tifmc";
+		case QCHECKH:		return "checkh";
 	}
 
 	return "EOP";
@@ -159,6 +160,7 @@ std::string qasm::_getRegisterText(_register reg) {
 		case QP0:	return "p00";
 
 		case QE0: 	return "e00";
+		case QC1: 	return "c01";
 	}
 
 	return "EREG";

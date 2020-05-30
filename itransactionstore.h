@@ -98,6 +98,12 @@ public:
 	virtual void selectUtxoByAddress(const PKey& /*address*/, std::vector<Transaction::NetworkUnlinkedOut>& /*utxo*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::selectUtxoByAddress - not implemented."); }
 	virtual void selectUtxoByAddressAndAsset(const PKey& /*address*/, const uint256& /*asset*/, std::vector<Transaction::NetworkUnlinkedOut>& /*utxo*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::selectUtxoByAddressAndAsset - not implemented."); }
 	virtual void selectUtxoByTransaction(const uint256& /*tx*/, std::vector<Transaction::NetworkUnlinkedOut>& /*utxo*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::selectUtxoByTransaction - not implemeted."); }
+	
+	virtual bool isAllowed(TransactionContextPtr) { throw qbit::exception("NOT_IMPL", "ITransactionStore::isAllowed - not implemeted."); }
+
+	//
+	virtual bool airdropped(const uint160& /*address*/, const uint160& /*peer*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::airdropped - not implemeted."); }
+	virtual void pushAirdropped(const uint160& /*address*/, const uint160& /*peer*/, const uint256& /*tx*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::pushAirdropped - not implemeted."); }
 };
 
 typedef std::shared_ptr<ITransactionStore> ITransactionStorePtr;

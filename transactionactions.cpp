@@ -19,11 +19,15 @@ TransactionAction::Result TxCoinBaseVerify::execute(TransactionContextPtr wrappe
 			qasm::ByteCode lVerify;
 			lVerify << wrapper->tx()->in()[0].ownership() << wrapper->tx()->out()[0].destination();
 
+			BlockHeader lCurrentBlock;
+			uint64_t lCurrentHeight = store->currentHeight(lCurrentBlock);
+
 			VirtualMachine lVM(lVerify);
 			lVM.getR(qasm::QTH0).set(wrapper->tx()->id()); // tx hash
 			lVM.getR(qasm::QTH1).set((unsigned short)wrapper->tx()->type()); // tx type - 2b
 			lVM.getR(qasm::QTH2).set(0); // input number
 			lVM.getR(qasm::QTH3).set(0); // output number
+			lVM.getR(qasm::QTH4).set(lCurrentHeight); // current height
 			lVM.setTransaction(wrapper);
 			lVM.setWallet(wallet);
 			lVM.setTransactionStore(store);
@@ -73,6 +77,17 @@ TransactionAction::Result TxSpendVerify::execute(TransactionContextPtr wrapper, 
 	{
 		uint32_t lIdx = 0;
 		std::vector<Transaction::In>& lIns = wrapper->tx()->in();
+		if (!lIns.size()) {
+			std::string lError = "tx should contain at least one input";
+			gLog().write(Log::ERROR, std::string("[TxSpendVerify]: ") + lError);
+			wrapper->tx()->setStatus(Transaction::DECLINED);
+			wrapper->addError(lError);
+			return TransactionAction::ERROR;
+		}
+
+		BlockHeader lCurrentBlock;
+		uint64_t lCurrentHeight = store->currentHeight(lCurrentBlock);
+
 		for(std::vector<Transaction::In>::iterator lInPtr = lIns.begin(); lInPtr != lIns.end(); lInPtr++, lIdx++) {
 			//
 			TransactionPtr lInTx = nullptr;
@@ -84,7 +99,9 @@ TransactionAction::Result TxSpendVerify::execute(TransactionContextPtr wrapper, 
 			// if 'in' in the storage already (commited to the block) - we check conditions
 			// otherwise we just pass - origin tx is in the mempool and it is not coinbase
 			if (!store->synchronizing() && wrapper->tx()->type() != Transaction::FEE && 
-								store->transactionHeight(lIn.out().tx(), lHeight, lConfirms, lCoinbase)) {
+								store->transactionHeight(lIn.out().tx(), lHeight, lConfirms, lCoinbase) &&
+								// in case of large cross-block data (like media files & etc)
+								!wrapper->tx()->isContinuousData()) {
 				// check maturity
 				if (lCoinbase && lConfirms < wallet->mempoolManager()->locate(lIn.out().chain())->consensus()->coinbaseMaturity()) {
 					std::string lError = strprintf("coinbase tx is not MATURE %d/%s", lConfirms, lIn.out().tx().toHex());
@@ -125,6 +142,7 @@ TransactionAction::Result TxSpendVerify::execute(TransactionContextPtr wrapper, 
 					lVM.getR(qasm::QTH0).set(wrapper->tx()->id());
 					lVM.getR(qasm::QTH1).set((unsigned short)wrapper->tx()->type()); // tx type - 2b
 					lVM.getR(qasm::QTH2).set(lIdx); // input number
+					lVM.getR(qasm::QTH4).set(lCurrentHeight); // current height
 					lVM.setTransaction(wrapper);
 					lVM.setWallet(wallet);
 					lVM.setTransactionStore(store);
@@ -139,16 +157,19 @@ TransactionAction::Result TxSpendVerify::execute(TransactionContextPtr wrapper, 
 					if (lVM.state() != VirtualMachine::FINISHED) {
 						std::string lError = _getVMStateText(lVM.state()) + " | " + 
 							qasm::_getCommandText(lVM.lastCommand()) + ":" + qasm::_getAtomText(lVM.lastAtom()); 
-						gLog().write(Log::ERROR, std::string("[TxVerify]: ") + lError);
+						gLog().write(Log::ERROR, std::string("[TxSpendVerify]: ") + lError);
 						wrapper->tx()->setStatus(Transaction::DECLINED);
 						wrapper->addError(lError);
 						return TransactionAction::ERROR; 
 					} 
-					else if (lVM.getR(qasm::QS7).to<unsigned char>() != 0x01) {
+					else if (
+								lVM.getR(qasm::QE0).getType() != qasm::QNONE && 
+								lVM.getR(qasm::QS7).to<unsigned char>() != 0x01
+							) {
 						std::string lError = _getVMStateText(VirtualMachine::INVALID_SIGNATURE);
 						wrapper->tx()->setStatus(Transaction::DECLINED);
 						wrapper->addError(lError);
-						gLog().write(Log::ERROR, std::string("[TxVerify]: ") + lError);
+						gLog().write(Log::ERROR, std::string("[TxSpendVerify]: ") + lError);
 					} 
 					else if (lVM.getR(qasm::QA7).to<unsigned char>() != 0x01 && 
 						(
@@ -162,13 +183,13 @@ TransactionAction::Result TxSpendVerify::execute(TransactionContextPtr wrapper, 
 						std::string lError = _getVMStateText(VirtualMachine::INVALID_AMOUNT);
 						wrapper->tx()->setStatus(Transaction::DECLINED);
 						wrapper->addError(lError);
-						gLog().write(Log::ERROR, std::string("[TxVerify]: ") + lError);
+						gLog().write(Log::ERROR, std::string("[TxSpendVerify]: ") + lError);
 					} 
 					else if (lVM.getR(qasm::QP0).to<unsigned char>() != 0x01) {
 						std::string lError = _getVMStateText(VirtualMachine::INVALID_UTXO);
 						wrapper->tx()->setStatus(Transaction::DECLINED);
 						wrapper->addError(lError);
-						gLog().write(Log::ERROR, std::string("[TxVerify]: ") + lError);
+						gLog().write(Log::ERROR, std::string("[TxSpendVerify]: ") + lError);
 					}
 					else if (lVM.getR(qasm::QE0).to<unsigned char>() != 0x01 && 
 						(
@@ -182,18 +203,13 @@ TransactionAction::Result TxSpendVerify::execute(TransactionContextPtr wrapper, 
 						std::string lError = _getVMStateText(VirtualMachine::INVALID_ADDRESS);
 						wrapper->tx()->setStatus(Transaction::DECLINED);
 						wrapper->addError(lError);
-						gLog().write(Log::ERROR, std::string("[TxVerify]: ") + lError);
+						gLog().write(Log::ERROR, std::string("[TxSpendVerify]: ") + lError);
 					}
 					else if (lVM.getR(qasm::QR0).to<unsigned char>() != 0x01) {
 						std::string lError = _getVMStateText(VirtualMachine::INVALID_RESULT);
 						wrapper->tx()->setStatus(Transaction::DECLINED);
 						wrapper->addError(lError);
-						gLog().write(Log::ERROR, std::string("[TxVerify]: ") + lError);
-
-						// VM state
-						std::stringstream lS;
-						lVM.dumpState(lS);
-						gLog().write(Log::ERROR, std::string("[TxVerify]: \n") + lS.str());
+						gLog().write(Log::ERROR, std::string("[TxSpendVerify]: ") + lError);
 					}
 
 					if (wrapper->errors().size())
@@ -232,6 +248,9 @@ TransactionAction::Result TxSpendOutVerify::execute(TransactionContextPtr wrappe
 	// all transaction types _must_ pass through this checker
 	if (wrapper->tx()->type() != Transaction::ASSET_TYPE) {
 
+		BlockHeader lCurrentBlock;
+		uint64_t lCurrentHeight = store->currentHeight(lCurrentBlock);
+
 		uint32_t lIdx = 0;
 		std::vector<Transaction::Out>& lOuts = wrapper->tx()->out();
 		for(std::vector<Transaction::Out>::iterator lOutPtr = lOuts.begin(); lOutPtr != lOuts.end(); lOutPtr++, lIdx++) {
@@ -241,6 +260,7 @@ TransactionAction::Result TxSpendOutVerify::execute(TransactionContextPtr wrappe
 			lVM.getR(qasm::QTH0).set(wrapper->tx()->id());
 			lVM.getR(qasm::QTH1).set((unsigned short)wrapper->tx()->type()); // tx type - 2b
 			lVM.getR(qasm::QTH3).set(lIdx); // out number
+			lVM.getR(qasm::QTH4).set(lCurrentHeight); // current height	
 			lVM.setTransaction(wrapper);
 			lVM.setWallet(wallet);
 			lVM.setTransactionStore(store);

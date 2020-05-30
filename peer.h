@@ -67,23 +67,13 @@ public:
 		quarantine_ = 0; latencyPrev_ = latency_ = 1000000; time_ = getMicroseconds(); timestamp_ = time_;
 	}
 
-	Peer(SocketPtr socket, const State& state, IPeerManagerPtr peerManager) : 
-		socket_(socket), status_(IPeer::UNDEFINED), state_(state), latency_(1000000), latencyPrev_(1000000), quarantine_(0), peerManager_(peerManager) {
-		socketStatus_ = CONNECTED;
-		socketType_ = SERVER;
-		time_ = getMicroseconds();
-		timestamp_ = time_;
-
-		peerManager->incPeersCount();
-	}
-
 	Peer(int contextId, const std::string endpoint, IPeerManagerPtr peerManager) : 
 		socket_(nullptr), status_(IPeer::UNDEFINED), latency_(1000000), latencyPrev_(1000000), quarantine_(0), peerManager_(peerManager) {
 		contextId_ = contextId;
 		endpoint_ = endpoint;
 		socketType_ = CLIENT;
-
 		resolver_.reset(new tcp::resolver(peerManager->getContext(contextId))); 
+		strand_.reset(new boost::asio::io_service::strand(peerManager->getContext(contextId)));
 		time_ = getMicroseconds();
 		timestamp_ = time_;
 
@@ -96,6 +86,7 @@ public:
 		socketStatus_ = CONNECTED;
 		socketType_ = SERVER;
 		socket_ = std::make_shared<tcp::socket>(peerManager->getContext(contextId_));
+		strand_.reset(new boost::asio::io_service::strand(peerManager->getContext(contextId_)));
 		time_ = getMicroseconds();
 		timestamp_ = time_;
 
@@ -107,7 +98,7 @@ public:
 		peerManager_->decPeersCount();
 
 		if (gLog().isEnabled(Log::NET)) 
-		gLog().write(Log::NET, std::string("[peer]: peer destroyed ") + key());
+			gLog().write(Log::NET, std::string("[peer]: peer destroyed ") + key());
 	}
 
 	void release() {
@@ -128,12 +119,33 @@ public:
 	}
 
 	void setState(const State& state) { 
+		//
 		const_cast<State&>(state).prepare(); 
 		state_ = state;
 		address_ = const_cast<State&>(state).address();
 		addressId_ = const_cast<State&>(state).address().id();
 		roles_ = const_cast<State&>(state).roles();
+
+		// refresh dapp info
+		if (state_.client()) {
+			for (std::vector<State::DAppInstance>::const_iterator 
+					lInstance = state_.dApps().begin();
+					lInstance != state_.dApps().end(); lInstance++) {
+				//
+				std::map<std::string, IPeerExtensionPtr>::iterator lExtension = extension_.find(lInstance->name());
+				if (lExtension != extension_.end()) {
+					lExtension->second->setDApp(*lInstance);
+				} else { // create if new one found
+					//
+					PeerExtensionCreatorPtr lCreator = peerManager_->locateExtensionCreator(lInstance->name());
+					if (lCreator) {
+						setExtension(lInstance->name(), lCreator->create(*lInstance, shared_from_this(), peerManager_));
+					}
+				}
+			}
+		}
 	}
+
 	void setLatency(uint32_t latency) { latencyPrev_ = latency_; latency_ = latency; }
 
 	bool hasRole(State::PeerRoles role) { return (roles_ & role) != 0; }
@@ -210,9 +222,31 @@ public:
 		return "";
 	}
 
+	inline uint160 keyId() {
+		//
+		std::string lAddress;
+		if (socket_ != nullptr) {
+			if (socketType_ == CLIENT) {
+				boost::system::error_code lEndpoint; socket_->remote_endpoint(lEndpoint);
+				if (!lEndpoint)
+					lAddress = socket_->remote_endpoint().address().to_string();
+			} else {
+				boost::system::error_code lLocalEndpoint; socket_->local_endpoint(lLocalEndpoint);
+				boost::system::error_code lRemoteEndpoint; socket_->remote_endpoint(lRemoteEndpoint);
+				if (!lLocalEndpoint && !lRemoteEndpoint)
+					lAddress = socket_->remote_endpoint().address().to_string();
+			}
+
+			return Hash160(lAddress.begin(), lAddress.end());
+		}
+
+		return uint160();		
+	}
+
 	void connect();
 	void ping();
 	void sendState() { internalSendState(peerManager_->consensusManager()->currentState(), false /*global_state*/); }
+	void requestState();
 	void broadcastState(StatePtr state) { internalSendState(state, true /*global_state*/); }
 	void requestPeers();
 	void waitForMessage();
@@ -239,9 +273,13 @@ public:
 		return extension_; 
 	}
 
+	IPeer::Type type() { return type_; }
+	void setType(IPeer::Type type) { type_ = type; }
+
 	// open requests
 	void acquireBlockHeaderWithCoinbase(const uint256& /*block*/, const uint256& /*chain*/, INetworkBlockHandlerWithCoinBasePtr /*handler*/);
 	void loadTransaction(const uint256& /*chain*/, const uint256& /*tx*/, ILoadTransactionHandlerPtr /*handler*/);
+	void loadTransactions(const uint256& /*chain*/, const std::vector<uint256>& /*txs*/, ILoadTransactionsHandlerPtr /*handler*/);
 	void loadEntity(const std::string& /*entityName*/, ILoadEntityHandlerPtr /*handler*/);
 	void selectUtxoByAddress(const PKey& /*source*/, const uint256& /*chain*/, ISelectUtxoByAddressHandlerPtr /*handler*/);
 	void selectUtxoByAddressAndAsset(const PKey& /*source*/, const uint256& /*chain*/, const uint256& /*asset*/, ISelectUtxoByAddressAndAssetHandlerPtr /*handler*/);
@@ -249,7 +287,11 @@ public:
 	void selectUtxoByEntity(const std::string& /*entityName*/, ISelectUtxoByEntityNameHandlerPtr /*handler*/);
 	void selectUtxoByEntityNames(const std::vector<std::string>& /*entityNames*/, ISelectUtxoByEntityNamesHandlerPtr /*handler*/);
 	void selectEntityCountByShards(const std::string& /*dapp*/, ISelectEntityCountByShardsHandlerPtr /*handler*/);
+	void selectEntityCountByDApp(const std::string& /*dapp*/, ISelectEntityCountByDAppHandlerPtr /*handler*/);
 	void sendTransaction(TransactionContextPtr /*ctx*/, ISentTransactionHandlerPtr /*handler*/);
+	void selectEntityNames(const std::string& /*pattern*/, ISelectEntityNamesHandlerPtr /*handler*/);
+	void tryAskForQbits();
+	void tryAskForQbits(const PKey& /*key*/);
 
 	std::string statusString() {
 		switch(status_) {
@@ -264,8 +306,38 @@ public:
 		return "ESTATUS";
 	}
 
-	// finalize - just remove sent message
-	void messageFinalize(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processed() {
+		//
+		waitForMessage();
+	}
+	// error processing
+	void processError(const std::string& context, const boost::system::error_code& error);	
+	void sendMessageAsync(std::list<DataStream>::iterator msg);
+	void sendMessage(std::list<DataStream>::iterator msg);
+	void processPendingMessagesQueue();
+	StrandPtr strand() { return strand_; }
+
+private:
+	class OutMessage {
+	public:
+		enum Type {
+			QUEUED = 0,
+			POSTPONED = 1
+		};
+	public:
+		OutMessage() {}
+		OutMessage(std::list<DataStream>::iterator msg, OutMessage::Type type) : msg_(msg), type_(type) {}
+
+		std::list<DataStream>::iterator	msg() { return msg_; }
+		Type type() { return type_; }
+		void toQueued() { type_ = QUEUED; }
+
+	private:
+		std::list<DataStream>::iterator msg_;
+		Type type_;
+	};
+
+	void messageSentAsync(std::list<OutMessage>::iterator msg, const boost::system::error_code& error);
 
 private:
 	// internal processing
@@ -274,7 +346,7 @@ private:
 	void processGlobalState(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processPing(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processPong(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
-	void processSent(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	//void processSent(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processRequestPeers(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processPeers(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processBlockHeader(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
@@ -289,28 +361,37 @@ private:
 	void processGetBlockHeader(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processGetBlockData(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processGetTransactionData(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processGetTransactionsData(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processGetUtxoByAddress(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processGetUtxoByAddressAndAsset(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processGetUtxoByTransaction(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processGetEntity(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processGetUtxoByEntity(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processGetEntityCountByShards(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processGetEntityCountByDApp(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processPushTransaction(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processGetUtxoByEntityNames(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processGetState(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processGetEntityNames(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	
+	void processAskForQbits(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 
 	void processBlockByHeight(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processBlockById(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processNetworkBlock(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processNetworkBlockHeader(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processTransactionData(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processTransactionsData(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processUtxoByAddress(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processUtxoByAddressAndAsset(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processUtxoByTransaction(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processEntity(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processUtxoByEntity(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processEntityCountByShards(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processEntityCountByDApp(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processTransactionPushed(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processUtxoByEntityNames(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processEntityNames(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 
 	void processBlockByHeightAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processBlockByIdAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
@@ -322,7 +403,7 @@ private:
 	void processEntityAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processUnknownMessage(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 
-	void peerFinalize(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	//void peerFinalize(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void connected(const boost::system::error_code& error, tcp::resolver::iterator endpoint_iterator);
 	void resolved(const boost::system::error_code& err, tcp::resolver::iterator endpoint_iterator);
 
@@ -366,20 +447,20 @@ private:
 
 	// service methods
 	std::list<DataStream>::iterator newInMessage() {
-		DataStream lMessage(SER_NETWORK, CLIENT_VERSION);
+		DataStream lMessage(SER_NETWORK, PROTOCOL_VERSION);
 		lMessage.resize(Message::size());
 		receivedMessagesCount_++;
 		return rawInMessages_.insert(rawInMessages_.end(), lMessage);
 	}
 
 	std::list<DataStream>::iterator newInData(const Message& msg) {
-		DataStream lMessage(SER_NETWORK, CLIENT_VERSION, const_cast<Message&>(msg).checkSum());
+		DataStream lMessage(SER_NETWORK, PROTOCOL_VERSION, const_cast<Message&>(msg).checkSum());
 		return rawInData_.insert(rawInData_.end(), lMessage);
 	}
 
 	std::list<DataStream>::iterator newOutMessage() {
 		boost::unique_lock<boost::mutex> lLock(rawOutMutex_);
-		DataStream lMessage(SER_NETWORK, CLIENT_VERSION);
+		DataStream lMessage(SER_NETWORK, PROTOCOL_VERSION);
 		return rawOutMessages_.insert(rawOutMessages_.end(), lMessage);
 	}
 
@@ -388,12 +469,18 @@ private:
 		return rawOutMessages_.end();
 	}
 
-	void eraseOutMessage(std::list<DataStream>::iterator msg) {
+	bool eraseOutMessage(std::list<OutMessage>::iterator msg) {
 		boost::unique_lock<boost::mutex> lLock(rawOutMutex_);
-		sentMessagesCount_++;
-		(*msg).reset();
-		bytesSent_ += (*msg).size();
-		rawOutMessages_.erase(msg);
+		if (outQueue_.size()) {
+			sentMessagesCount_++;
+			msg->msg()->reset();
+			bytesSent_ += msg->msg()->size();
+			rawOutMessages_.erase(msg->msg());
+			outQueue_.erase(msg);
+			return true;
+		}
+
+		return false;
 	}
 
 	void eraseInMessage(std::list<DataStream>::iterator msg) {
@@ -401,6 +488,12 @@ private:
 	}
 
 	void eraseInData(std::list<DataStream>::iterator msg) {
+		{
+			// all data was read, unlock reading
+			boost::unique_lock<boost::recursive_mutex> lLock(readMutex_);
+			reading_ = false;
+		}
+
 		rawInData_.erase(msg);
 	}
 
@@ -459,6 +552,7 @@ private:
 
 private:
 	SocketPtr socket_;
+	StrandPtr strand_;
 	IPeer::Status status_;
 	State state_;
 	uint32_t latency_;
@@ -484,6 +578,7 @@ private:
 	std::list<DataStream> rawInMessages_;
 	std::list<DataStream> rawInData_;
 	std::list<DataStream> rawOutMessages_;
+	std::list<OutMessage> outQueue_;
 	boost::mutex rawOutMutex_;
 
 	std::map<uint256 /*request*/, RequestWrapper> replyHandlers_;
@@ -497,8 +592,14 @@ private:
 	int postponeTime_ = 0;
 
 	bool waitingForMessage_ = false;
+	bool reading_ = false;
 
 	uint64_t peersPoll_ = 0;
+
+	IPeer::Type type_ = IPeer::Type::IMPLICIT;
+
+	// lock
+	boost::recursive_mutex readMutex_;
 
 	boost::mutex extensionsMutex_;
 	std::map<std::string, IPeerExtensionPtr> extension_;

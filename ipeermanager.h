@@ -19,7 +19,7 @@ typedef std::shared_ptr<IPeerManager> IPeerManagerPtr;
 class PeerExtensionCreator {
 public:
 	PeerExtensionCreator() {}
-	virtual IPeerExtensionPtr create(IPeerPtr /*peer*/, IPeerManagerPtr /*peerManager*/) { return nullptr; }
+	virtual IPeerExtensionPtr create(const State::DAppInstance& /*dapp*/, IPeerPtr /*peer*/, IPeerManagerPtr /*peerManager*/) { return nullptr; }
 };
 typedef std::shared_ptr<PeerExtensionCreator> PeerExtensionCreatorPtr;
 
@@ -44,6 +44,7 @@ public:
 	virtual void updateMedianTime() { throw qbit::exception("NOT_IMPL", "IPeerManager::updateMedianTime - not implemented."); }
 
 	virtual IPeerPtr addPeer(const std::string& /*endpoint*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::addPeer - not implemented."); }
+	virtual IPeerPtr addPeerExplicit(const std::string& /*endpoint*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::addPeerExplicit - not implemented."); }
 	virtual void deactivatePeer(IPeerPtr /*peer*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::deactivatePeer - not implemented."); }
 	virtual void removePeer(IPeerPtr /*peer*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::removePeer - not implemented."); }
 
@@ -68,6 +69,7 @@ public:
 
 	// client facade
 	virtual void notifyTransaction(TransactionContextPtr /*ctx*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::notifyTransaction - not implemented."); }
+	virtual void broadcastState(StatePtr /*state*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::broadcastStateToClients - not implemented."); }
 };
 
 //

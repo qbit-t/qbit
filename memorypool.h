@@ -76,7 +76,9 @@ public:
 				queue_.insert(std::multimap<int /*priority*/, TransactionContextPtr>::value_type(lPriority, candidate));
 			}
 
-			txs_.insert(std::map<uint256 /*tx*/, TxInfo>::value_type(candidate->tx()->id(), TxInfo(lPriority, candidate)));
+			std::pair<std::map<uint256 /*tx*/, TxInfo>::iterator, bool> lResult =
+				txs_.insert(std::map<uint256 /*tx*/, TxInfo>::value_type(candidate->tx()->id(), TxInfo(lPriority, candidate)));
+			if (lResult.second) size_ += candidate->size();
 
 			return lPriority;
 		}
@@ -86,6 +88,7 @@ public:
 			if (!txs_.size()) {
 				txs_.insert(const_cast<TxTree&>(other).transactions().begin(), const_cast<TxTree&>(other).transactions().end());
 				queue_.insert(const_cast<TxTree&>(other).queue().begin(), const_cast<TxTree&>(other).queue().end());
+				size_ = other.size();
 			} else {
 				//
 				int lNeutralPriority = 0;
@@ -100,12 +103,14 @@ public:
 					std::map<uint256 /*tx*/, TxInfo>::iterator lOurInfo = txs_.find(lInfo->first);
 					if (lOurInfo == txs_.end()) {
 						//
+						std::pair<std::map<uint256 /*tx*/, TxInfo>::iterator, bool> lResult =
 						txs_.insert(std::map<uint256 /*tx*/, TxInfo>::value_type(
 							lInfo->first, 
 							TxInfo(lInfo->second.priority() + lNeutralPriority, lInfo->second.ctx())));
 						queue_.insert(std::multimap<int /*priority*/, TransactionContextPtr>::value_type(
 							lInfo->second.priority() + lNeutralPriority, 
 							lInfo->second.ctx()));
+						if (lResult.second) size_ += lInfo->second.ctx()->size();
 					} else if ((lOurInfo->second.priority() < 0 && lOurInfo->second.priority() > lNeutralPriority + lInfo->second.priority()) ||
 								(lOurInfo->second.priority() > 0 && lOurInfo->second.priority() < lNeutralPriority + lInfo->second.priority())) {
 						//
@@ -116,12 +121,14 @@ public:
 							if (lItem->second->tx()->id() == lInfo->second.ctx()->tx()->id()) { queue_.erase(lItem); break; }
 						}
 
+						std::pair<std::map<uint256 /*tx*/, TxInfo>::iterator, bool> lResult =
 						txs_.insert(std::map<uint256 /*tx*/, TxInfo>::value_type(
 							lInfo->second.ctx()->tx()->id(), 
 							TxInfo(lInfo->second.priority() + lNeutralPriority, lInfo->second.ctx())));
 						queue_.insert(std::multimap<int /*priority*/, TransactionContextPtr>::value_type(
 							lInfo->second.priority() + lNeutralPriority, 
 							lInfo->second.ctx()));
+						if (lResult.second) size_ += lInfo->second.ctx()->size();
 					}
 				}
 			}
@@ -131,10 +138,10 @@ public:
 		inline std::multimap<int /*priority*/, TransactionContextPtr>& queue() { return queue_; }
 		inline uint256 neutral() { return neutral_; }
 
-		inline size_t size() { return size_; }
+		inline uint32_t size() const { return size_; }
 
 	private:
-		size_t size_;
+		uint32_t size_;
 		std::map<uint256 /*tx*/, TxInfo> txs_;
 		std::multimap<int /*priority*/, TransactionContextPtr> queue_;
 		uint256 neutral_;
@@ -258,6 +265,10 @@ public:
 			for (std::map<uint256 /*id*/, TransactionContextPtr /*tx*/>::iterator lTx = postponedTx_.begin(); lTx != postponedTx_.end(); lTx++) {
 				candidates.push_back(lTx->second);
 			}
+		}
+
+		uint64_t currentHeight(BlockHeader& block) {
+			return pool_->persistentStore()->currentHeight(block);
 		}
 
 	private:
@@ -410,7 +421,7 @@ private:
 		return QUNIT;
 	}
 
-	bool traverseLeft(TransactionContextPtr, TxTree&);
+	bool traverseLeft(TransactionContextPtr, TxTree&, bool&);
 	bool traverseRight(TransactionContextPtr, TxTree&);
 
 	void processLocalBlockBaseTx(const uint256& /*block*/, const uint256& /*chain*/);
