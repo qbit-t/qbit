@@ -80,6 +80,7 @@ set(SOURCES
 	./itransactionstoreextension.cpp
 	./seedwords.cpp
 	./message.cpp	
+	./pow.cpp
 )
 
 set(UNITTESTS
@@ -89,6 +90,7 @@ set(UNITTESTS
 	arith_uint256.cpp
 	utilstrencodings.cpp
 	context.cpp
+	pow.cpp
 	./crypto/ctaes/ctaes.c
 	./crypto/aes.cpp
 	./crypto/ripemd160.cpp
@@ -155,6 +157,7 @@ set(UNITTESTS
 	./tests/server.cpp
 	./tests/httpserver.cpp
 	./tests/hash.cpp
+	./tests/pow.cpp
 )
 
 set(CLIENT
@@ -192,6 +195,7 @@ set(CLIENT
 	./seedwords.cpp
 	./message.cpp
 	./lightwallet.cpp
+	./pow.cpp
 	./dapps/buzzer/buzzer.cpp
 	./dapps/buzzer/buzzfeed.cpp
 	./dapps/buzzer/eventsfeed.cpp	
