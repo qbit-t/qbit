@@ -126,20 +126,26 @@ Buzzer::VerificationResult BuzzerLightComposer::verifyPublisherLazy(BuzzfeedItem
 		bool lFound = subscriptions_.read(item->buzzerId(), lPKey);
 		if (!lFound) {
 			//
-			TxBuzzerInfoPtr lBuzzerInfo = buzzer_->locateBuzzerInfo(item->buzzerId());
+			TxBuzzerInfoPtr lBuzzerInfo = buzzer_->locateBuzzerInfo(item->buzzerInfoId());
 			if (lBuzzerInfo && lBuzzerInfo->extractAddress(lPKey)) lFound = true;
 		}
 
 		if (lFound) {
 			//
 			if (item->type() == TX_REBUZZ) {
-				return (Buzzer::VerificationResult) TxReBuzz::verifySignature(lPKey, item->type(), item->timestamp(), item->score(),
+				if (TxReBuzz::verifySignature(lPKey, item->type(), item->timestamp(), item->score(),
 					item->buzzerInfoId(), item->buzzBody(), item->buzzMedia(), 
-					item->originalBuzzId(), item->originalBuzzChainId(), item->signature());
+					item->originalBuzzId(), item->originalBuzzChainId(), item->signature()))
+					return Buzzer::VerificationResult::SUCCESS;
+				else
+					return Buzzer::VerificationResult::INVALID;
 			}
 
-			return (Buzzer::VerificationResult) TxBuzz::verifySignature(lPKey, item->type(), item->timestamp(), item->score(),
-				item->buzzerInfoId(), item->buzzBody(), item->buzzMedia(), item->signature());
+			if (TxBuzz::verifySignature(lPKey, item->type(), item->timestamp(), item->score(),
+					item->buzzerInfoId(), item->buzzBody(), item->buzzMedia(), item->signature()))
+				return Buzzer::VerificationResult::SUCCESS;
+			else
+				return Buzzer::VerificationResult::INVALID;
 		}
 	}
 

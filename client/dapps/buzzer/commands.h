@@ -1315,6 +1315,8 @@ public:
 	// callbacks
 	void trustScoreLoaded(amount_t endorsements, amount_t mistrusts) {
 		//
+		if (composer_->buzzer()) composer_->buzzer()->updateTrustScore(endorsements, mistrusts);
+		//
 		double lScore = (double)endorsements / (double)mistrusts;
 		std::cout << 
 			strprintf(TxAssetType::scaleFormat(QBIT), lScore) << std::endl;
