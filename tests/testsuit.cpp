@@ -52,8 +52,8 @@
 using namespace qbit;
 using namespace qbit::tests;
 
-int main(int argv, char** argc)
-{
+int main(int argv, char** argc) {
+	//
 	std::cout << std::endl << "q-bit.technology | unit tests v0.1" << std::endl << std::endl;
 	TestSuit lSuit;
 

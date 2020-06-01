@@ -57,7 +57,7 @@ public:
 	class HashTag {
 	public:
 		HashTag() {}
-		HashTag(const uint160& hash, const std::string& tag) {}
+		HashTag(const uint160& hash, const std::string& tag) : hash_(hash), tag_(tag) {}
 
 		ADD_SERIALIZE_METHODS;
 

@@ -440,12 +440,12 @@ void LoadBuzzfeedByBuzzerCommand::process(const std::vector<std::string>& args) 
 	pendingChainInfosLoaded_ = 0;
 	buzzFeed_->clear();
 
-	uint256 lBuzzerId;
+	std::string lBuzzer;
 	// args - from
 	from_ = 0; // most recent
 	if (args.size() >= 1) {
 		//
-		lBuzzerId.setHex(args[0]);
+		lBuzzer = args[0];
 
 		//
 		if (args.size() > 1 && args[1] == "more") {
@@ -471,7 +471,7 @@ void LoadBuzzfeedByBuzzerCommand::process(const std::vector<std::string>& args) 
 			composer_, 
 			*lChain, 
 			from_,
-			lBuzzerId,
+			lBuzzer,
 			2 /*to be sure that the feed is not doctored*/,
 			boost::bind(&LoadBuzzfeedByBuzzerCommand::buzzfeedLoaded, shared_from_this(), _1, _2, _3));
 		// async process

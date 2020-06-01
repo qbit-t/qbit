@@ -280,11 +280,11 @@ public:
 
 	class LoadBuzzesByBuzzer: public IComposerMethod, public std::enable_shared_from_this<LoadBuzzesByBuzzer> {
 	public:
-		LoadBuzzesByBuzzer(BuzzerLightComposerPtr composer, const uint256& chain, uint64_t from, const uint256& buzzer, int requests, buzzfeedLoadedRequestFunction loaded): 
+		LoadBuzzesByBuzzer(BuzzerLightComposerPtr composer, const uint256& chain, uint64_t from, const std::string& buzzer, int requests, buzzfeedLoadedRequestFunction loaded): 
 			composer_(composer), chain_(chain), from_(from), buzzer_(buzzer), requests_(requests), loaded_(loaded) {}
 		void process(errorFunction);
 
-		static IComposerMethodPtr instance(BuzzerLightComposerPtr composer, const uint256& chain, uint64_t from, const uint256& buzzer, int requests, buzzfeedLoadedRequestFunction loaded) {
+		static IComposerMethodPtr instance(BuzzerLightComposerPtr composer, const uint256& chain, uint64_t from, const std::string& buzzer, int requests, buzzfeedLoadedRequestFunction loaded) {
 			return std::make_shared<LoadBuzzesByBuzzer>(composer, chain, from, buzzer, requests, loaded); 
 		} 
 
@@ -298,11 +298,13 @@ public:
 			error_("E_TIMEOUT", "Timeout expired during buzzfeed load.");
 		}
 
+		void publisherLoaded(EntityPtr);
+
 	private:
 		BuzzerLightComposerPtr composer_;
 		uint256 chain_;
 		uint64_t from_;
-		uint256 buzzer_;
+		std::string buzzer_;
 		buzzfeedLoadedRequestFunction loaded_;
 		errorFunction error_;
 		int count_;

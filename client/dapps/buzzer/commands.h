@@ -466,9 +466,9 @@ public:
 	}
 
 	void help() {
-		std::cout << "buzzFeedByBuzzer | feedByByzzer | rfeed <buzzer_id> [more]" << std::endl;
+		std::cout << "buzzFeedByBuzzer | feedByByzzer | rfeed <@buzzer> [more]" << std::endl;
 		std::cout << "\tLoad buzzfeed by given buzzer. Limited to last 30 events." << std::endl;
-		std::cout << "\t<buzzer_id>	- required, buzz id to fetch thread" << std::endl;
+		std::cout << "\t<@buzzer>	- required, buzzer to fetch thread" << std::endl;
 		std::cout << "\t[more]		- optional, flag to feed more from last buzzfeed item" << std::endl;
 		std::cout << "\texample:\n\t\t>rfeed" << std::endl << std::endl;
 	}	

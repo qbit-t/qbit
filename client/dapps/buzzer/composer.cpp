@@ -831,8 +831,21 @@ void BuzzerLightComposer::LoadBuzzesByBuzzer::process(errorFunction error) {
 	//
 	error_ = error;
 
-	// 
-	if (!(count_ = composer_->buzzerRequestProcessor()->selectBuzzfeedByBuzz(chain_, from_, buzzer_, requests_,
+	if (!composer_->requestProcessor()->loadEntity(buzzer_, 
+		LoadEntity::instance(
+			boost::bind(&BuzzerLightComposer::LoadBuzzesByBuzzer::publisherLoaded, shared_from_this(), _1),
+			boost::bind(&BuzzerLightComposer::LoadBuzzesByBuzzer::timeout, shared_from_this()))
+	)) error_("E_LOAD_BUZZER", "Buzzer loading failed.");
+}
+
+void BuzzerLightComposer::LoadBuzzesByBuzzer::publisherLoaded(EntityPtr publisher) {
+	//
+	if (!publisher) {
+		error_("E_PUBLISHER_NOT_FOUND", "Buzzer was not found.");
+		return;
+	}
+
+	if (!(count_ = composer_->buzzerRequestProcessor()->selectBuzzfeedByBuzzer(chain_, from_, publisher->id(), requests_,
 		SelectBuzzFeedByEntity::instance(
 			boost::bind(&BuzzerLightComposer::LoadBuzzesByBuzzer::buzzfeedLoaded, shared_from_this(), _1, _2, _3),
 			boost::bind(&BuzzerLightComposer::LoadBuzzesByBuzzer::timeout, shared_from_this()))

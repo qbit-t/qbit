@@ -1586,7 +1586,7 @@ void BuzzerPeerExtension::processGetHashTags(std::list<DataStream>::iterator msg
 			lStream << lFeed;
 
 			// prepare message
-			Message lMessage(BUZZ_FEED, lStream.size(), Hash160(lStream.begin(), lStream.end()));
+			Message lMessage(HASH_TAGS, lStream.size(), Hash160(lStream.begin(), lStream.end()));
 			(*lMsg) << lMessage;
 			lMsg->write(lStream.data(), lStream.size());
 

@@ -1301,7 +1301,7 @@ void TransactionStore::selectUtxoByTransaction(const uint256& tx, std::vector<Tr
 void TransactionStore::selectEntityNames(const std::string& name, std::vector<IEntityStore::EntityName>& names) {
 	//
 	db::DbContainer<std::string /*short name*/, uint256 /*tx*/>::Iterator lFrom = entities_.find(name);
-	for (int lCount = 0; lFrom.valid() && names.size() < 5 && lCount < 100; ++lFrom, ++lCount) {
+	for (int lCount = 0; lFrom.valid() && names.size() < 6 && lCount < 100; ++lFrom, ++lCount) {
 		std::string lName;
 		if (lFrom.first(lName) && lName.find(name) != std::string::npos) 
 			names.push_back(IEntityStore::EntityName(lName));

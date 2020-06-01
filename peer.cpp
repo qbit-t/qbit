@@ -83,6 +83,8 @@ void Peer::processError(const std::string& context, const boost::system::error_c
 	// log
 	if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, strprintf("[peer/%s/error]: closing session ", context) + key() + " -> " + error.message());
 	//
+	if (context != "messageSentAsync") reading_ = false;
+	//
 	socketStatus_ = ERROR;		
 	// try to deactivate peer
 	peerManager_->deactivatePeer(shared_from_this());
@@ -1295,6 +1297,8 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 					strprintf(" -> Message size >= %d or invalid, ", peerManager_->settings()->maxMessageSize()) + statusString());
 				//
 				socketStatus_ = ERROR;
+				//
+				reading_ = false;
 				// try to deactivate peer
 				peerManager_->deactivatePeer(shared_from_this());
 				// close socket
@@ -1310,6 +1314,8 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 			gLog().write(Log::NET, "[peer/processMessage/error]: closing session " + key() + " -> " + error.message() + ", " + statusString());
 			//
 			socketStatus_ = ERROR;
+			//
+			reading_ = false;
 			// try to deactivate peer
 			peerManager_->deactivatePeer(shared_from_this());
 			// close socket
@@ -3915,7 +3921,7 @@ void Peer::connected(const boost::system::error_code& error, tcp::resolver::iter
 		requestPeers();
 
 		// go to read
-		waitForMessage();
+		processed();
 	} else if (endpoint_iterator != tcp::resolver::iterator()) {
 		socket_->close();
 		

@@ -365,6 +365,10 @@ void BuzzerTransactionStoreExtension::processEvent(const uint256& id, Transactio
 
 			// NOTICE: clean-up in selects
 			for (std::map<uint160, std::string>::iterator lTag = lTags.begin(); lTag != lTags.end(); lTag++) {
+				//
+				if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: write hash tag ") +
+					strprintf("%s/%s", boost::algorithm::to_lower_copy(lTag->second), lTag->second));
+
 				hashTagTimeline_.write(
 					lTag->first,
 					lEvent->timestamp()/BUZZFEED_TIMEFRAME,
@@ -1650,9 +1654,14 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedByBuzz(uint64_t from, const 
 		uint64_t /*timestamp*/, 
 		uint256 /*rebuzz|reply*/, 
 		uint256 /*publisher*/>::Iterator lFrom = replies_.find(buzz, from);
+	db::DbThreeKeyContainer<
+		uint256 /*buzz|rebuzz|reply*/, 
+		uint64_t /*timestamp*/, 
+		uint256 /*rebuzz|reply*/, 
+		uint256 /*publisher*/>::Transaction lTransaction = replies_.transaction();
 
 	//
-	lFrom.setKey3Empty();
+	lFrom.setKey2Empty();
 
 	ITransactionStorePtr lMainStore = store_->storeManager()->locate(MainChain::id());
 	std::multimap<uint64_t, uint256> lRawBuzzfeed;
@@ -1660,9 +1669,24 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedByBuzz(uint64_t from, const 
 	//
 	for (int lCount = 0; lCount < 30 /*TODO: settings?*/ && lFrom.valid(); ++lFrom, ++lCount) {
 		//
+		uint256 lId; 
+		uint64_t lTimestamp; 
+		uint256 lEventId;
+
+		//
+		if (!lFrom.first(lId, lTimestamp, lEventId)) {
+			lTransaction.remove(lFrom);
+			continue;
+		}
+
+		//
 		int lContext = 0;
 		TxBuzzerPtr lBuzzer = nullptr;
-		TransactionPtr lTx = store_->locateTransaction(*lFrom);
+		TransactionPtr lTx = store_->locateTransaction(lEventId);
+		if (!lTx) {
+			lTransaction.remove(lFrom);
+			continue;
+		}
 		//
 		if (lTx->type() == TX_BUZZ_REPLY) {
 			//
@@ -1676,6 +1700,8 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedByBuzz(uint64_t from, const 
 			makeBuzzfeedItem(lContext, lBuzzer, lTx, lMainStore, lRawBuzzfeed, lBuzzItems);
 		} 
 	}
+
+	lTransaction.commit();
 
 	for (std::multimap<uint64_t, uint256>::iterator lItem = lRawBuzzfeed.begin(); lItem != lRawBuzzfeed.end(); lItem++) {
 		//
@@ -1708,6 +1734,8 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedByBuzzer(uint64_t from, cons
 
 	db::DbTwoKeyContainer<uint256 /*publisher*/, uint64_t /*timestamp*/, uint256 /*tx*/>::Iterator lFrom = 
 			timeline_.find(buzzer, lTimeFrom < lPublisherTime ? lTimeFrom : lPublisherTime);
+	db::DbTwoKeyContainer<uint256 /*publisher*/, uint64_t /*timestamp*/, uint256 /*tx*/>::Transaction lTransaction = 
+			timeline_.transaction();
 	lFrom.setKey2Empty();
 
 	for (int lCount = 0; lCount < 30 /*TODO: settings?*/ && lFrom.valid(); --lFrom, ++lCount) {
@@ -1715,6 +1743,10 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedByBuzzer(uint64_t from, cons
 		int lContext = 0;
 		TxBuzzerPtr lBuzzer = nullptr;
 		TransactionPtr lTx = store_->locateTransaction(*lFrom);
+		if (!lTx) {
+			lTransaction.remove(lFrom);
+			continue;
+		}
 		//
 		if (lTx->type() == TX_BUZZ || lTx->type() == TX_REBUZZ || lTx->type() == TX_BUZZ_REPLY) {
 			//
@@ -1775,6 +1807,8 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedByBuzzer(uint64_t from, cons
 			}
 		}
 	}
+
+	lTransaction.commit();
 
 	for (std::multimap<uint64_t, uint256>::iterator lItem = lRawBuzzfeed.begin(); lItem != lRawBuzzfeed.end(); lItem++) {
 		//
@@ -1913,7 +1947,7 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedByTag(const std::string& tag
 	std::multimap<uint64_t, uint256> lRawBuzzfeed;
 	std::map<uint256, BuzzfeedItemPtr> lBuzzItems;
 
-	std::string lTag = boost::algorithm::to_upper_copy(tag);
+	std::string lTag = boost::algorithm::to_lower_copy(tag);
 	uint160 lHash = Hash160(lTag.begin(), lTag.end());
 
 	db::DbFourKeyContainer<
@@ -1975,11 +2009,18 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedByTag(const std::string& tag
 
 void BuzzerTransactionStoreExtension::selectHashTags(const std::string& tag, std::vector<Buzzer::HashTag>& feed) {
 	//
+	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectHashTags]: selecting hash tags for ") +
+		strprintf("tag = %s, chain = %s#", tag, store_->chain().toHex().substr(0, 10)));
+	//
 	db::DbContainer<std::string, std::string>::Iterator lFrom = hashTags_.find(tag);
-	for (int lCount = 0; lFrom.valid() && feed.size() < 5 && lCount < 100; ++lFrom, ++lCount) {
+	for (int lCount = 0; lFrom.valid() && feed.size() < 6 && lCount < 100; ++lFrom, ++lCount) {
 		std::string lTag;
-		if (lFrom.first(lTag) && lTag.find(tag) != std::string::npos) 
+		if (lFrom.first(lTag) && lTag.find(tag) != std::string::npos) {
 			feed.push_back(Buzzer::HashTag(Hash160(lTag.begin(), lTag.end()), *lFrom));
+
+			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectHashTags]: add hash tag ") +
+				strprintf("tag = %s, chain = %s#", *lFrom, store_->chain().toHex().substr(0, 10)));
+		}
 	}
 }
 
@@ -2052,6 +2093,8 @@ void BuzzerTransactionStoreExtension::selectBuzzfeed(uint64_t from, const uint25
 		// 2.1. locating most recent action made by publisher
 		db::DbTwoKeyContainer<uint256 /*publisher*/, uint64_t /*timestamp*/, uint256 /*tx*/>::Iterator lFrom = 
 				timeline_.find(lPublisher->second, lTimeFrom < lPublisher->first ? lTimeFrom : lPublisher->first);
+		db::DbTwoKeyContainer<uint256 /*publisher*/, uint64_t /*timestamp*/, uint256 /*tx*/>::Transaction lTransaction = 
+				timeline_.transaction();
 		// 2.1. resetting timestamp to ensure appropriate backtracing
 		lFrom.setKey2Empty();
 		// 2.3. stepping down up to max 10 events 
@@ -2060,6 +2103,11 @@ void BuzzerTransactionStoreExtension::selectBuzzfeed(uint64_t from, const uint25
 			int lContext = 0;
 			TxBuzzerPtr lBuzzer = nullptr;
 			TransactionPtr lTx = store_->locateTransaction(*lFrom);
+			if (!lTx) { 
+				lTransaction.remove(lFrom);
+				continue;
+			}
+
 			//
 			if (lTx->type() == TX_BUZZ || lTx->type() == TX_REBUZZ || lTx->type() == TX_BUZZ_REPLY) {
 				//
@@ -2120,6 +2168,9 @@ void BuzzerTransactionStoreExtension::selectBuzzfeed(uint64_t from, const uint25
 				}
 			}
 		}
+
+		// 2.4
+		lTransaction.commit();
 	}
 
 	// 3. fill reply
