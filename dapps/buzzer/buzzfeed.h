@@ -23,7 +23,7 @@ namespace qbit {
 
 //
 // buzzfeed timeframe for trust score madjustements
-#define BUZZFEED_TIMEFRAME 5*60*1000000 // 5 min
+#define BUZZFEED_TIMEFRAME (5*60*1000000) // 5 min
 
 //
 // forward
@@ -409,6 +409,10 @@ public:
 		return "N";
 	}
 
+	std::string scoreString() {
+		return strprintf("%d/%d", order().timeframe(), score_);
+	}
+
 	std::string toString() {
 		//
 		std::string lBuzzerName = strprintf("<%s>", buzzerId_.toHex());
@@ -418,43 +422,47 @@ public:
 		if (!lBuzzerAlias.size()) lBuzzerAlias = "?";
 
 		if (type_ == TX_REBUZZ) {
-			return strprintf("%s\n%s | %s | %s (%s)\n%s\n%s\n[%d/%d/%d]\n -> %s",
+			return strprintf("%s\n%s | %s | %s (%s) - (%s)\n%s\n%s\n[%d/%d/%d]\n -> %s",
 				buzzId_.toHex(),
 				lBuzzerAlias,
 				lBuzzerName,
 				formatISO8601DateTime(timestamp_ / 1000000),
 				typeString(),
+				scoreString(),
 				buzzBodyString().size() ? buzzBodyString() : "[...]", items_.size() ? items_.begin()->second->toRebuzzString() : "[---]",
 				replies_, rebuzzes_, likes_,
 				originalBuzzId_.isNull() ? "?" : originalBuzzId_.toHex());
 		} else if (type_ == TX_BUZZ_LIKE) {
-			return strprintf("%s liked\n%s\n%s | %s | %s (%s)\n%s\n[%d/%d/%d]\n -> %s",
+			return strprintf("%s liked\n%s\n%s | %s | %s (%s) - (%s)\n%s\n[%d/%d/%d]\n -> %s",
 				infosToString(),
 				buzzId_.toHex(),
 				lBuzzerAlias,
 				lBuzzerName,
 				formatISO8601DateTime(timestamp_ / 1000000),
 				typeString(),
+				scoreString(),
 				buzzBodyString(),
 				replies_, rebuzzes_, likes_,
 				originalBuzzId_.isNull() ? "?" : originalBuzzId_.toHex());
 		} else if (type_ == TX_BUZZER_MISTRUST || type_ == TX_BUZZER_ENDORSE) {
 			//		
-			return strprintf("%s\n%s | %s | %s (%s)\n%s",
+			return strprintf("%s\n%s | %s | %s (%s) - (%s)\n%s",
 				buzzId_.toHex(),
 				lBuzzerAlias,
 				lBuzzerName,
 				formatISO8601DateTime(timestamp_ / 1000000),
 				typeString(),
+				scoreString(),
 				infosToString());
 		}
 
-		return strprintf("%s\n%s | %s | %s (%s)\n%s\n[%d/%d/%d]\n -> %s",
+		return strprintf("%s\n%s | %s | %s (%s) - (%s)\n%s\n[%d/%d/%d]\n -> %s",
 			buzzId_.toHex(),
 			lBuzzerAlias,
 			lBuzzerName,
 			formatISO8601DateTime(timestamp_ / 1000000),
 			typeString(),
+			scoreString(),
 			buzzBodyString(),
 			replies_, rebuzzes_, likes_,
 			originalBuzzId_.isNull() ? "?" : originalBuzzId_.toHex());
@@ -468,7 +476,7 @@ public:
 
 		if (!lBuzzerAlias.size()) lBuzzerAlias = "?";
 
-		return strprintf("\t%s\n\t%s | %s | %s (%s)\n\t%s\n",
+		return strprintf("\t%s\n\t%s | %s | %s (%s) - (%s)\n\t%s\n",
 			buzzId_.toHex(),
 			lBuzzerAlias,
 			lBuzzerName,

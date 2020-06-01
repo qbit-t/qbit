@@ -302,7 +302,7 @@ int main(int argv, char** argc) {
 
 	// global buzzfeed
 	BuzzfeedPtr lGlobalBuzzfeed = Buzzfeed::instance(lBuzzer,
-		boost::bind(&BuzzerLightComposer::verifyPublisherStrict, lBuzzerComposer, _1),
+		boost::bind(&BuzzerLightComposer::verifyPublisherLazy, lBuzzerComposer, _1),
 		boost::bind(&buzzfeedLargeUpdated), 
 		boost::bind(&buzzfeedItemNew, _1), 
 		boost::bind(&buzzfeedItemUpdated, _1),
@@ -315,7 +315,7 @@ int main(int argv, char** argc) {
 
 	// buzzfeed for contexted selects
 	BuzzfeedPtr lContextBuzzfeed = Buzzfeed::instance(lBuzzer,
-		boost::bind(&BuzzerLightComposer::verifyPublisherStrict, lBuzzerComposer, _1),
+		boost::bind(&BuzzerLightComposer::verifyPublisherLazy, lBuzzerComposer, _1),
 		boost::bind(&buzzfeedLargeUpdated), 
 		boost::bind(&buzzfeedItemNew, _1), 
 		boost::bind(&buzzfeedItemUpdated, _1),
@@ -369,7 +369,6 @@ int main(int argv, char** argc) {
 	CreateReBuzzCommandPtr lRebuzzCommand = std::static_pointer_cast<CreateReBuzzCommand>(
 		CreateReBuzzCommand::instance(lBuzzerComposer, lBuzzfeed, boost::bind(&commandDone)));
 	lCommandsHandler->push(lRebuzzCommand);
-
 
 	lCommandsHandler->push(BuzzerSubscribeCommand::instance(lBuzzerComposer, boost::bind(&commandDone)));
 	lCommandsHandler->push(BuzzerUnsubscribeCommand::instance(lBuzzerComposer, boost::bind(&commandDone)));

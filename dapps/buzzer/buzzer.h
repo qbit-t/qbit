@@ -112,8 +112,9 @@ public:
 		//
 		if (buzzerChainId.isNull()) return;
 		boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
-		if (buzzerInfos_.find(buzzerId) == buzzerInfos_.end()) 
+		if (buzzerInfos_.find(buzzerInfoId) == buzzerInfos_.end()) {
 			pendingInfos_[buzzerInfoId] = Buzzer::Info(buzzerChainId, buzzerId);
+		}
 	}
 
 	TxBuzzerInfoPtr locateBuzzerInfo(const uint256& buzzerInfoId) {

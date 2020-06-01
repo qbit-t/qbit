@@ -596,9 +596,8 @@ bool BuzzerPeerExtension::processEndorse(TransactionContextPtr ctx) {
 			// in[1] - publisher/initiator
 			uint256 lBuzzer = lTx->in()[TX_BUZZER_ENDORSE_BUZZER_IN].out().tx(); 
 
-			bool lSubscription = false;
-			if ((lSubscription = lExtension->checkSubscription(dapp_.instance(), lEndoser)) || 
-																		lBuzzer == dapp_.instance()) {
+			if (lExtension->checkSubscription(dapp_.instance(), lEndoser) || 
+																	lBuzzer == dapp_.instance()) {
 				//
 				BuzzerTransactionStoreExtension::BuzzerInfo lScore;
 				lExtension->readBuzzerStat(lBuzzer, lScore);
@@ -617,10 +616,10 @@ bool BuzzerPeerExtension::processEndorse(TransactionContextPtr ctx) {
 						}
 					} else {
 						lScore.incrementEndorsements(lEndorse->amount());
-						notifyUpdateTrustScore(lScore);					
+						notifyUpdateTrustScore(lScore);
 					}
 
-					if (!lSubscription) {
+					if (lBuzzer == dapp_.instance()) {
 						// make update
 						EventsfeedItem lItem;
 						lItem.setType(TX_BUZZER_ENDORSE);
@@ -707,8 +706,7 @@ bool BuzzerPeerExtension::processMistrust(TransactionContextPtr ctx) {
 			// in[1] - publisher/initiator
 			uint256 lBuzzer = lTx->in()[TX_BUZZER_MISTRUST_BUZZER_IN].out().tx(); 
 
-			bool lSubscription = false;
-			if ((lSubscription = lExtension->checkSubscription(dapp_.instance(), lMistruster)) || 
+			if (lExtension->checkSubscription(dapp_.instance(), lMistruster) || 
 																		lBuzzer == dapp_.instance()) {
 				//
 				BuzzerTransactionStoreExtension::BuzzerInfo lScore;
@@ -728,10 +726,10 @@ bool BuzzerPeerExtension::processMistrust(TransactionContextPtr ctx) {
 						}
 					} else {
 						lScore.incrementMistrusts(lMistrust->amount());
-						notifyUpdateTrustScore(lScore);					
+						notifyUpdateTrustScore(lScore);
 					}
 
-					if (!lSubscription) {
+					if (lBuzzer == dapp_.instance()) {
 						// make update
 						EventsfeedItem lItem;
 						lItem.setType(TX_BUZZER_MISTRUST);
