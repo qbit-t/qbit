@@ -313,18 +313,33 @@ int main(int argv, char** argc) {
 
 	lGlobalBuzzfeed->prepare();
 
-	// buzzfeed for contexted selects
-	BuzzfeedPtr lContextBuzzfeed = Buzzfeed::instance(lBuzzer,
+	// buzzfeed for buzzer
+	BuzzfeedPtr lBuzzerBuzzfeed = Buzzfeed::instance(lBuzzer,
 		boost::bind(&BuzzerLightComposer::verifyPublisherLazy, lBuzzerComposer, _1),
 		boost::bind(&buzzfeedLargeUpdated), 
 		boost::bind(&buzzfeedItemNew, _1), 
 		boost::bind(&buzzfeedItemUpdated, _1),
 		boost::bind(&buzzfeedItemsUpdated, _1),
 		boost::bind(&buzzfeedItemAbsent, _1, _2),
-		BuzzfeedItem::Merge::INTERSECT
+		BuzzfeedItem::Merge::UNION
 	);
 
-	lContextBuzzfeed->prepare();
+	lBuzzerBuzzfeed->prepare();
+
+	// buzzfeed for buzz threads
+	BuzzfeedPtr lBuzzesBuzzfeed = Buzzfeed::instance(lBuzzer,
+		boost::bind(&BuzzerLightComposer::verifyPublisherLazy, lBuzzerComposer, _1),
+		boost::bind(&buzzfeedLargeUpdated), 
+		boost::bind(&buzzfeedItemNew, _1), 
+		boost::bind(&buzzfeedItemUpdated, _1),
+		boost::bind(&buzzfeedItemsUpdated, _1),
+		boost::bind(&buzzfeedItemAbsent, _1, _2),
+		BuzzfeedItem::Merge::INTERSECT,
+		BuzzfeedItem::Order::FORWARD,
+		BuzzfeedItem::Key::TIMESTAMP
+	);
+
+	lBuzzesBuzzfeed->prepare();
 
 	// eventsfeed
 	EventsfeedPtr lEventsfeed = Eventsfeed::instance(lBuzzer,
@@ -370,6 +385,10 @@ int main(int argv, char** argc) {
 		CreateReBuzzCommand::instance(lBuzzerComposer, lBuzzfeed, boost::bind(&commandDone)));
 	lCommandsHandler->push(lRebuzzCommand);
 
+	LoadBuzzerTrustScoreCommandPtr lScoreCommand = std::static_pointer_cast<LoadBuzzerTrustScoreCommand>(
+		LoadBuzzerTrustScoreCommand::instance(lBuzzerComposer, boost::bind(&commandDone)));
+	lCommandsHandler->push(lScoreCommand);
+
 	lCommandsHandler->push(BuzzerSubscribeCommand::instance(lBuzzerComposer, boost::bind(&commandDone)));
 	lCommandsHandler->push(BuzzerUnsubscribeCommand::instance(lBuzzerComposer, boost::bind(&commandDone)));
 	lCommandsHandler->push(LoadBuzzfeedCommand::instance(lBuzzerComposer, lBuzzfeed, boost::bind(&commandDone)));
@@ -377,14 +396,13 @@ int main(int argv, char** argc) {
 	lCommandsHandler->push(BuzzLikeCommand::instance(lBuzzerComposer, lBuzzfeed, boost::bind(&commandDone)));
 	lCommandsHandler->push(LoadEventsfeedCommand::instance(lBuzzerComposer, lEventsfeed, boost::bind(&commandDone)));
 	lCommandsHandler->push(EventsfeedListCommand::instance(lBuzzerComposer, lEventsfeed, boost::bind(&commandDone)));
-	lCommandsHandler->push(LoadBuzzerTrustScoreCommand::instance(lBuzzerComposer, boost::bind(&commandDone)));
 	lCommandsHandler->push(BuzzerEndorseCommand::instance(lBuzzerComposer, boost::bind(&commandDone)));
 	lCommandsHandler->push(BuzzerMistrustCommand::instance(lBuzzerComposer, boost::bind(&commandDone)));
 	lCommandsHandler->push(LoadHashTagsCommand::instance(lBuzzerComposer, boost::bind(&commandDone)));
 	lCommandsHandler->push(LoadBuzzesGlobalCommand::instance(lBuzzerComposer, lGlobalBuzzfeed, boost::bind(&commandDone)));
-	lCommandsHandler->push(LoadBuzzfeedByTagCommand::instance(lBuzzerComposer, lContextBuzzfeed, boost::bind(&commandDone)));
-	lCommandsHandler->push(LoadBuzzfeedByBuzzCommand::instance(lBuzzerComposer, lContextBuzzfeed, boost::bind(&commandDone)));
-	lCommandsHandler->push(LoadBuzzfeedByBuzzerCommand::instance(lBuzzerComposer, lContextBuzzfeed, boost::bind(&commandDone)));	
+	lCommandsHandler->push(LoadBuzzfeedByTagCommand::instance(lBuzzerComposer, lGlobalBuzzfeed, boost::bind(&commandDone)));
+	lCommandsHandler->push(LoadBuzzfeedByBuzzCommand::instance(lBuzzerComposer, lBuzzesBuzzfeed, boost::bind(&commandDone)));
+	lCommandsHandler->push(LoadBuzzfeedByBuzzerCommand::instance(lBuzzerComposer, lBuzzerBuzzfeed, boost::bind(&commandDone)));	
 	lCommandsHandler->push(LoadMistrustsByBuzzerCommand::instance(lBuzzerComposer, lContextEventsfeed, boost::bind(&commandDone)));
 	lCommandsHandler->push(LoadEndorsementsByBuzzerCommand::instance(lBuzzerComposer, lContextEventsfeed, boost::bind(&commandDone)));
 	lCommandsHandler->push(LoadSubscriptionsByBuzzerCommand::instance(lBuzzerComposer, lContextEventsfeed, boost::bind(&commandDone)));
@@ -466,6 +484,10 @@ int main(int argv, char** argc) {
 		} else if (lWallet->status() == IWallet::OPENED && lOpeningWallet) {
 			std::cout << "]" << std::endl << std::flush;
 			lOpeningWallet = false;
+
+			// load trust score
+			lScoreCommand->process(std::vector<std::string>());
+			boost::this_thread::sleep_for(boost::chrono::milliseconds(500)); // just stub to wait for
 		}
 
 		//

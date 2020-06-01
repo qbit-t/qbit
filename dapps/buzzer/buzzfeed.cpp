@@ -65,6 +65,9 @@ void BuzzfeedItem::merge(const BuzzfeedItem& buzz, bool checkSize, bool notify) 
 
 		// check result
 		lBuzz->setSignatureVerification(lResult);
+		// settings
+		lBuzz->key_ = key_;
+		lBuzz->sortOrder_ = sortOrder_;
 
 		// push buzz
 		std::map<uint256 /*buzz*/, BuzzfeedItemPtr>::iterator lExisting = items_.find(lBuzz->buzzId());
@@ -248,17 +251,32 @@ void BuzzfeedItem::feed(std::list<BuzzfeedItemPtr>& feed) {
 
 	//
 	Guard lLock(this);
-	for (std::multimap<OrderKey /*order*/, uint256 /*buzz*/>::reverse_iterator lItem = index_.rbegin(); 
-											lItem != index_.rend(); lItem++) {
-		//
-		std::map<uint256 /*buzz*/, BuzzfeedItemPtr>::iterator lBuzz = items_.find(lItem->second);
-		// if exists and VALID (signature chacked)
-		if (lBuzz != items_.end())
-			if (lBuzz->second->valid()) 
-				feed.push_back(lBuzz->second);
-			else
-				std::cout << "[FEED-ERROR]: " << lBuzz->second->toString() << "\n";
+	if (sortOrder_ == Order::REVERSE) {
+		for (std::multimap<OrderKey /*order*/, uint256 /*buzz*/>::reverse_iterator lItem = index_.rbegin(); 
+												lItem != index_.rend(); lItem++) {
+			//
+			std::map<uint256 /*buzz*/, BuzzfeedItemPtr>::iterator lBuzz = items_.find(lItem->second);
+			// if exists and VALID (signature chacked)
+			if (lBuzz != items_.end())
+				if (lBuzz->second->valid()) 
+					feed.push_back(lBuzz->second);
+				else
+					std::cout << "[FEED-ERROR]: " << lBuzz->second->toString() << "\n";
 
+		}
+	} else {
+		for (std::multimap<OrderKey /*order*/, uint256 /*buzz*/>::iterator lItem = index_.begin(); 
+												lItem != index_.end(); lItem++) {
+			//
+			std::map<uint256 /*buzz*/, BuzzfeedItemPtr>::iterator lBuzz = items_.find(lItem->second);
+			// if exists and VALID (signature chacked)
+			if (lBuzz != items_.end())
+				if (lBuzz->second->valid()) 
+					feed.push_back(lBuzz->second);
+				else
+					std::cout << "[FEED-ERROR]: " << lBuzz->second->toString() << "\n";
+
+		}		
 	}
 }
 

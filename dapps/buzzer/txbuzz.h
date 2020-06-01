@@ -145,13 +145,18 @@ public:
 		// extract #tags
 		unsigned char lChar;
 		std::vector<unsigned char>::iterator lIt = body_.begin();
-		while((lIt = std::find(lIt, body_.end(), '#')) != body_.end()) {
+		while(lIt != body_.end() && (lIt = std::find(lIt, body_.end(), '#')) != body_.end()) {
 			std::vector<unsigned char> lTag;
 			std::string lStringTag;
 			do {
 				lTag.push_back(::tolower(*lIt)); 
 				lStringTag.push_back(*lIt); lIt++;
-			} while(lIt != body_.end() || *lIt != ' ');
+			} while(lIt != body_.end() && 
+						(
+							(*lIt >= 'a' && *lIt <= 'z') || 
+							(*lIt >= 'A' && *lIt <= 'Z') ||
+							(*lIt >= '0' && *lIt <= '9')
+						));
 
 			tags[Hash160(lTag.begin(), lTag.end())] = lStringTag;
 		}

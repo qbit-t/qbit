@@ -40,7 +40,8 @@ void UploadMediaCommand::process(const std::vector<std::string>& args) {
 		// try file
 		boost::filesystem::path lPath(file_);
 		if (!boost::filesystem::exists(lPath)) {
-			gLog().writeClient(Log::CLIENT, std::string(": file does not exists"));	
+			gLog().writeClient(Log::CLIENT, std::string(": file does not exists"));
+			done_(nullptr);
 			return;
 		}
 
@@ -54,6 +55,7 @@ void UploadMediaCommand::process(const std::vector<std::string>& args) {
 		lCreateSummary->process(boost::bind(&UploadMediaCommand::error, shared_from_this(), _1, _2));
 	} else {
 		gLog().writeClient(Log::CLIENT, std::string(": incorrect number of arguments"));
+		done_(nullptr);
 	}
 }
 
@@ -117,7 +119,8 @@ void UploadMediaCommand::startSendData() {
 		//
 		mediaType_ = TxMediaHeader::IMAGE_PNG;
 	} else {
-		gLog().writeClient(Log::CLIENT, std::string(": media type is not supported"));	
+		gLog().writeClient(Log::CLIENT, std::string(": media type is not supported"));
+		done_(nullptr);	
 		return;		
 	}
 
@@ -284,6 +287,7 @@ void DownloadMediaCommand::process(const std::vector<std::string>& args) {
 
 		if (lParts.size() < 2) {
 			gLog().writeClient(Log::CLIENT, std::string(": <file> is not supported yet"));
+			done_(nullptr);
 			return;	
 		}
 
@@ -300,6 +304,7 @@ void DownloadMediaCommand::process(const std::vector<std::string>& args) {
 		boost::filesystem::path lPath(localFile_);
 		if (boost::filesystem::exists(lPath)) {
 			gLog().writeClient(Log::CLIENT, std::string(": file already exists"));	
+			done_(nullptr);
 			return;
 		}
 

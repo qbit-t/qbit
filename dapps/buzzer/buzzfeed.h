@@ -57,16 +57,32 @@ public:
 		INTERSECT
 	};
 
+	enum Order {
+		//
+		FORWARD,
+		//
+		REVERSE
+	};
+
+	enum Key {
+		//
+		TIMESTAMP,
+		//
+		TIMEFRAME_SCORE
+	};
+
 public:
 	class OrderKey {
 	public:
-		OrderKey(uint64_t timeframe, uint64_t score): timeframe_(timeframe), score_(score) {}
+		OrderKey(Key key, uint64_t timeframe, uint64_t score): key_(key), timeframe_(timeframe), score_(score) {}
 
 		friend bool operator < (const OrderKey& a, const OrderKey& b) {
 			if (a.timeframe() < b.timeframe()) return true;
 			if (a.timeframe() > b.timeframe()) return false;
-			if (a.score() < b.score()) return true;
-			if (a.score() > b.score()) return false;
+			if (a.key() == TIMEFRAME_SCORE) {
+				if (a.score() < b.score()) return true;
+				if (a.score() > b.score()) return false;
+			}
 
 			return false;
 		}
@@ -77,8 +93,10 @@ public:
 
 		uint64_t timeframe() const { return timeframe_; }
 		uint64_t score() const { return score_; }
+		Key key() const { return key_; }
 
 	private:
+		Key key_;
 		uint64_t timeframe_;
 		uint64_t score_;
 	};
@@ -240,7 +258,7 @@ public:
 		uint64_t lOrder;
 		if (order_) lOrder = order_; 
 		else lOrder = timestamp_; 
-		return OrderKey(lOrder/BUZZFEED_TIMEFRAME, score_);
+		return OrderKey(key_, (key_ == TIMEFRAME_SCORE ? lOrder/BUZZFEED_TIMEFRAME : lOrder), score_);
 	}
 
 	uint64_t actualOrder() {
@@ -648,6 +666,12 @@ protected:
 	Merge merge_ = Merge::UNION;
 	std::set<uint256> chains_;
 
+	// sort order
+	Order sortOrder_ = Order::REVERSE;
+
+	// key structure
+	Key key_ = Key::TIMEFRAME_SCORE;
+
 	// cache for aggregates
 	std::set<uint256> repliesSet_;
 	std::set<uint256> rebuzzesSet_;
@@ -684,6 +708,24 @@ public:
 								buzzfeedItemNewFunction itemNew, 
 								buzzfeedItemUpdatedFunction itemUpdated,
 								buzzfeedItemsUpdatedFunction itemsUpdated,
+								buzzfeedItemAbsentFunction itemAbsent, Merge merge, Order order, Key key) : 
+		buzzer_(buzzer),
+		largeUpdated_(largeUpdated), 
+		itemNew_(itemNew), 
+		itemUpdated_(itemUpdated),
+		itemsUpdated_(itemsUpdated),
+		itemAbsent_(itemAbsent) {
+		verifyPublisher_ = verifyPublisher;
+		merge_ = merge;
+		sortOrder_ = order;
+		key_ = key;
+	}
+
+	Buzzfeed(BuzzerPtr buzzer, buzzfeedItemVerifyFunction verifyPublisher,
+								buzzfeedLargeUpdatedFunction largeUpdated, 
+								buzzfeedItemNewFunction itemNew, 
+								buzzfeedItemUpdatedFunction itemUpdated,
+								buzzfeedItemsUpdatedFunction itemsUpdated,
 								buzzfeedItemAbsentFunction itemAbsent, Merge merge) : 
 		buzzer_(buzzer),
 		largeUpdated_(largeUpdated), 
@@ -706,6 +748,8 @@ public:
 		buzzerInfo_ = buzzfeed->buzzerInfo_;
 		buzzerInfoResolve_ = buzzfeed->buzzerInfoResolve_;
 		merge_ = buzzfeed->merge_;
+		sortOrder_ = buzzfeed->sortOrder_;
+		key_ = buzzfeed->key_;
 	}
 
 	BuzzfeedItemPtr toItem() {
@@ -725,6 +769,16 @@ public:
 
 	void unlock() {
 		mutex_.unlock();
+	}
+
+	static BuzzfeedPtr instance(BuzzerPtr buzzer, buzzfeedItemVerifyFunction verifyPublisher,
+			buzzfeedLargeUpdatedFunction largeUpdated, 
+			buzzfeedItemNewFunction itemNew, 
+			buzzfeedItemUpdatedFunction itemUpdated,
+			buzzfeedItemsUpdatedFunction itemsUpdated,
+			buzzfeedItemAbsentFunction itemAbsent, Merge merge, Order order, Key key) {
+		return std::make_shared<Buzzfeed>(buzzer, verifyPublisher,
+					largeUpdated, itemNew, itemUpdated, itemsUpdated, itemAbsent, merge, order, key);
 	}
 
 	static BuzzfeedPtr instance(BuzzerPtr buzzer, buzzfeedItemVerifyFunction verifyPublisher,
