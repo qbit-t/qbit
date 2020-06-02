@@ -3769,7 +3769,9 @@ void Peer::processGlobalState(std::list<DataStream>::iterator msg, const boost::
 			if (lState.valid()) {
 				StatePtr lStatePtr = State::instance(lState);
 				peerManager_->consensusManager()->pushState(lStatePtr);
+				setState(lState);
 
+				/*
 				if (peerManager_->settings()->isClient()) {
 					// update state
 					setState(lState);
@@ -3779,6 +3781,7 @@ void Peer::processGlobalState(std::list<DataStream>::iterator msg, const boost::
 					// update state
 					setState(lState);
 				}
+				*/
 			} else {
 				peerManager_->ban(shared_from_this());
 			}

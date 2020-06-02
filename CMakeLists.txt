@@ -46,7 +46,6 @@ set(SOURCES
 	./transaction.cpp
 	./hash.cpp
 	./uint256.cpp
-	./arith_uint256.cpp
 	./transactionvalidator.cpp
 	./block.cpp
 	./log/log.cpp
@@ -223,8 +222,8 @@ add_subdirectory(./leveldb)
 include_directories(./secp256k1/src ./secp256k1 ./secp256k1/include ./leveldb ./boost)
 link_directories(./boost/stage/lib)
 
-#add_executable(${PROJECT_NAME} ${SOURCES} ${SECP256K1})
-#target_link_libraries(${PROJECT_NAME} jm leveldb boost_system boost_thread boost_chrono boost_random boost_filesystem jpeg png) #gmp
+add_executable(${PROJECT_NAME} ${SOURCES} ${SECP256K1})
+target_link_libraries(${PROJECT_NAME} jm leveldb boost_system boost_thread boost_chrono boost_random boost_filesystem jpeg png) #gmp
 
 add_executable(qbit-cli ${CLIENT} ${SECP256K1})
 target_link_libraries(qbit-cli jm leveldb boost_system boost_thread boost_chrono boost_random boost_filesystem jpeg png) #gmp

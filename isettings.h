@@ -35,6 +35,10 @@ public:
 	virtual bool isFullNode() { uint32_t lRoles(roles()); return (lRoles & State::PeerRoles::FULLNODE) != 0; }
 	virtual bool isClient() { uint32_t lRoles(roles()); return (lRoles & State::PeerRoles::CLIENT) != 0; }
 
+	virtual void addMinerRole() {}
+	virtual void addNodeRole() {}
+	virtual void addFullNodeRole() {}
+
 	virtual int httpServerPort() { return 8080; }
 	virtual size_t httpThreadPoolSize() { return 2; } // tread pool size
 
@@ -53,6 +57,11 @@ public:
 	virtual size_t mainChainBlockTime() { return 5000; } // ms
 
 	virtual bool supportAirdrop() { return false; }
+
+	virtual void setServerPort(int) {}
+	virtual void setThreadPoolSize(size_t) {}
+	virtual void setHttpServerPort(int) {}
+	virtual void setSupportAirdrop() {}
 };
 
 typedef std::shared_ptr<ISettings> ISettingsPtr;
