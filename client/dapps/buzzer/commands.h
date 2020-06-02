@@ -708,9 +708,9 @@ public:
 	}
 
 	void help() {
-		std::cout << "mistrustsByBuzzer | bmfeed <buzzer_id> [more]" << std::endl;
+		std::cout << "mistrustsByBuzzer | bmfeed <buzzer_id> or <@buzzer> [more]" << std::endl;
 		std::cout << "\tLoad mistrusts by buzzer. Limited to last 30 events." << std::endl;
-		std::cout << "\t<buzzer_id>	- required, buzz id to fetch thread" << std::endl;
+		std::cout << "\t<buzzer_id>	- required, buzz id to fetch thread or @buzzer name" << std::endl;
 		std::cout << "\t[more]		- optional, flag to feed more from last item" << std::endl;
 		std::cout << "\texample:\n\t\t>bmfeed" << std::endl << std::endl;
 	}	
@@ -748,9 +748,9 @@ public:
 	}
 
 	void help() {
-		std::cout << "endorsementsByBuzzer | befeed <buzzer_id> [more]" << std::endl;
+		std::cout << "endorsementsByBuzzer | befeed <buzzer_id> or <@buzzer> [more]" << std::endl;
 		std::cout << "\tLoad endorsements by buzzer. Limited to last 30 events." << std::endl;
-		std::cout << "\t<buzzer_id>	- required, buzz id to fetch thread" << std::endl;
+		std::cout << "\t<buzzer_id>	- required, buzz id to fetch thread or @buzzer name" << std::endl;
 		std::cout << "\t[more]		- optional, flag to feed more from last item" << std::endl;
 		std::cout << "\texample:\n\t\t>befeed" << std::endl << std::endl;
 	}	
@@ -788,11 +788,11 @@ public:
 	}
 
 	void help() {
-		std::cout << "subscriptionsByBuzzer | bsubs <buzzer_id> [more]" << std::endl;
+		std::cout << "subscriptionsByBuzzer | bsubs <buzzer_id> or <@buzzer> [more]" << std::endl;
 		std::cout << "\tLoad subscriptions by buzzer. Limited to last 30 events." << std::endl;
-		std::cout << "\t<buzzer_id>	- required, buzz id to fetch thread" << std::endl;
+		std::cout << "\t<buzzer_id>	- required, buzz id to fetch thread or <@buzzer> name" << std::endl;
 		std::cout << "\t[more]		- optional, flag to feed more from last item" << std::endl;
-		std::cout << "\texample:\n\t\t>bsubs" << std::endl << std::endl;
+		std::cout << "\texample:\n\t\t>bsubs @me" << std::endl << std::endl;
 	}	
 
 	static ICommandPtr instance(BuzzerLightComposerPtr composer, EventsfeedPtr eventsFeed, doneFunction done) { 
@@ -828,11 +828,11 @@ public:
 	}
 
 	void help() {
-		std::cout << "followersByBuzzer | bflws <buzzer_id> [more]" << std::endl;
+		std::cout << "followersByBuzzer | bflws <buzzer_id> or <@buzzer> [more]" << std::endl;
 		std::cout << "\tLoad followers by buzzer. Limited to last 30 events." << std::endl;
-		std::cout << "\t<buzzer_id>	- required, buzz id to fetch thread" << std::endl;
+		std::cout << "\t<buzzer_id>	- required, buzz id to fetch thread or <@buzzer> name" << std::endl;
 		std::cout << "\t[more]		- optional, flag to feed more from last item" << std::endl;
-		std::cout << "\texample:\n\t\t>bflws" << std::endl << std::endl;
+		std::cout << "\texample:\n\t\t>bflws @me" << std::endl << std::endl;
 	}	
 
 	static ICommandPtr instance(BuzzerLightComposerPtr composer, EventsfeedPtr eventsFeed, doneFunction done) { 

@@ -31,10 +31,6 @@ void BuzzerPeerExtension::prepareBuzzfeedItem(BuzzfeedItem& item, TxBuzzPtr buzz
 		item.setBuzzerId(buzzer->id());
 	}
 
-	// TODO:
-	// TxEventInfo loaded by buzzer_id or using "in"?
-	// and fill setEventInfoId()
-
 	// read info
 	BuzzerTransactionStoreExtension::BuzzInfo lInfo;
 	if (extension->readBuzzInfo(buzz->id(), lInfo)) {
@@ -46,7 +42,7 @@ void BuzzerPeerExtension::prepareBuzzfeedItem(BuzzfeedItem& item, TxBuzzPtr buzz
 
 void BuzzerPeerExtension::prepareEventsfeedItem(EventsfeedItem& item, TxBuzzPtr buzz, TxBuzzerPtr buzzer, 
 		const uint256& eventChainId, const uint256& eventId, uint64_t eventTimestamp, 
-		const uint256& buzzerInfoChain, const uint256& buzzerInfo) {
+		const uint256& buzzerInfoChain, const uint256& buzzerInfo, uint64_t score, const uint512& signature) {
 	//
 	if (buzz) {
 		item.setType(buzz->type());
@@ -62,12 +58,12 @@ void BuzzerPeerExtension::prepareEventsfeedItem(EventsfeedItem& item, TxBuzzPtr 
 	}
 
 	if (buzzer) {
-		EventsfeedItem::EventInfo lInfo(eventTimestamp, buzzer->id(), buzzerInfoChain, buzzerInfo);
+		EventsfeedItem::EventInfo lInfo(eventTimestamp, buzzer->id(), buzzerInfoChain, buzzerInfo, score);
 
 		if (buzz && (buzz->type() == TX_BUZZ || buzz->type() == TX_BUZZ_REPLY || buzz->type() == TX_REBUZZ)) {
-			lInfo.setEvent(eventChainId, eventId, buzz->body(), buzz->mediaPointers(), buzz->signature());
+			lInfo.setEvent(eventChainId, eventId, buzz->body(), buzz->mediaPointers(), signature);
 		} else {
-			lInfo.setEvent(eventChainId, eventId, buzz->signature());
+			lInfo.setEvent(eventChainId, eventId, signature);
 		}
 
 		item.addEventInfo(lInfo);
@@ -411,7 +407,8 @@ bool BuzzerPeerExtension::processEventCommon(TransactionContextPtr ctx) {
 				TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lOriginalPublisher);
 				if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
 
-				prepareEventsfeedItem(lItem, lBuzz, lBuzzer, lTx->chain(), lTx->id(), lBuzz->timestamp(), lBuzz->buzzerInfoChain(), lBuzz->buzzerInfo());
+				prepareEventsfeedItem(lItem, lBuzz, lBuzzer, lTx->chain(), lTx->id(), 
+					lBuzz->timestamp(), lBuzz->buzzerInfoChain(), lBuzz->buzzerInfo(), lBuzz->score(), lBuzz->signature());
 				lItem.setBuzzId(lReBuzz->buzzId());
 				lItem.setBuzzChainId(lReBuzz->buzzChainId());
 				notifyNewEvent(lItem);
@@ -444,7 +441,8 @@ bool BuzzerPeerExtension::processEventCommon(TransactionContextPtr ctx) {
 						if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
 
 						// TODO: need to somehow identify that is the mention
-						prepareEventsfeedItem(lItem, lBuzz, lBuzzer, lBuzz->chain(), lBuzz->id(), lBuzz->timestamp(), lBuzz->buzzerInfoChain(), lBuzz->buzzerInfo()); // just mention in re-buzz/buzz/reply, for example
+						prepareEventsfeedItem(lItem, lBuzz, lBuzzer, lBuzz->chain(), lBuzz->id(), 
+							lBuzz->timestamp(), lBuzz->buzzerInfoChain(), lBuzz->buzzerInfo(), lBuzz->score(), lBuzz->signature()); // just mention in re-buzz/buzz/reply, for example
 
 						if (ctx->tx()->type() == TX_REBUZZ) {
 							TxReBuzzPtr lReBuzz = TransactionHelper::to<TxReBuzz>(lTx);
@@ -469,7 +467,8 @@ bool BuzzerPeerExtension::processEventCommon(TransactionContextPtr ctx) {
 						TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lOriginalPublisher);
 						if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
 
-						prepareEventsfeedItem(lItem, lBuzz, lBuzzer, lBuzz->chain(), lBuzz->id(), lBuzz->timestamp(), lBuzz->buzzerInfoChain(), lBuzz->buzzerInfo());
+						prepareEventsfeedItem(lItem, lBuzz, lBuzzer, lBuzz->chain(), lBuzz->id(), 
+							lBuzz->timestamp(), lBuzz->buzzerInfoChain(), lBuzz->buzzerInfo(), lBuzz->score(), lBuzz->signature());
 						notifyNewEvent(lItem);
 						break;
 					}
@@ -496,7 +495,8 @@ bool BuzzerPeerExtension::processEventCommon(TransactionContextPtr ctx) {
 									TxBuzzerPtr lBuzzer = nullptr;
 									TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lOriginalPublisher);
 									if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
-									prepareEventsfeedItem(lItem, lBuzz, lBuzzer, lBuzz->chain(), lBuzz->id(), lBuzz->timestamp(), lBuzz->buzzerInfoChain(), lBuzz->buzzerInfo());
+									prepareEventsfeedItem(lItem, lBuzz, lBuzzer, lBuzz->chain(), lBuzz->id(), 
+										lBuzz->timestamp(), lBuzz->buzzerInfoChain(), lBuzz->buzzerInfo(), lBuzz->score(), lBuzz->signature());
 
 									if (lReTx->type() != TX_REBUZZ) {
 										TxBuzzPtr lInnerBuzz = TransactionHelper::to<TxBuzz>(lReTx);
@@ -559,7 +559,8 @@ bool BuzzerPeerExtension::processEventLike(TransactionContextPtr ctx) {
 					TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lOriginalPublisher);
 					if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
 					//
-					prepareEventsfeedItem(lItem, lBuzzTx, lBuzzer, lTx->chain(), lTx->id(), lLikeTx->timestamp(), lLikeTx->buzzerInfoChain(), lLikeTx->buzzerInfo());
+					prepareEventsfeedItem(lItem, lBuzzTx, lBuzzer, lTx->chain(), lTx->id(), 
+						lLikeTx->timestamp(), lLikeTx->buzzerInfoChain(), lLikeTx->buzzerInfo(), lLikeTx->score(), lLikeTx->signature());
 					lItem.setType(TX_BUZZ_LIKE);
 					notifyNewEvent(lItem);
 				}
@@ -628,8 +629,9 @@ bool BuzzerPeerExtension::processEndorse(TransactionContextPtr ctx) {
 						lItem.setBuzzChainId(lEndorse->chain());
 						lItem.setValue(lEndorse->amount());
 						lItem.setSignature(lEndorse->signature());
+						lItem.setPublisher(lBuzzer);
 
-						EventsfeedItem::EventInfo lInfo(lEndorse->timestamp(), lEndoser, lEndorse->buzzerInfoChain(), lEndorse->buzzerInfo());
+						EventsfeedItem::EventInfo lInfo(lEndorse->timestamp(), lEndoser, lEndorse->buzzerInfoChain(), lEndorse->buzzerInfo(), lEndorse->score());
 						lInfo.setEvent(lEndorse->chain(), lEndorse->id(), lEndorse->signature());
 						lItem.addEventInfo(lInfo);
 
@@ -738,8 +740,9 @@ bool BuzzerPeerExtension::processMistrust(TransactionContextPtr ctx) {
 						lItem.setBuzzChainId(lMistrust->chain());
 						lItem.setValue(lMistrust->amount());
 						lItem.setSignature(lMistrust->signature());
+						lItem.setPublisher(lBuzzer);
 
-						EventsfeedItem::EventInfo lInfo(lMistrust->timestamp(), lMistruster, lMistrust->buzzerInfoChain(), lMistrust->buzzerInfo());
+						EventsfeedItem::EventInfo lInfo(lMistrust->timestamp(), lMistruster, lMistrust->buzzerInfoChain(), lMistrust->buzzerInfo(), lMistrust->score());
 						lInfo.setEvent(lMistrust->chain(), lMistrust->id(), lMistrust->signature());
 						lItem.addEventInfo(lInfo);
 
@@ -822,8 +825,9 @@ bool BuzzerPeerExtension::processEventSubscribe(TransactionContextPtr ctx) {
 				lItem.setBuzzId(lSubscribeTx->id());
 				lItem.setBuzzChainId(lSubscribeTx->chain());
 				lItem.setSignature(lSubscribeTx->signature());
+				lItem.setPublisher(lPublisher);
 
-				EventsfeedItem::EventInfo lInfo(lSubscribeTx->timestamp(), lBuzzer->id(), lSubscribeTx->buzzerInfoChain(), lSubscribeTx->buzzerInfo());
+				EventsfeedItem::EventInfo lInfo(lSubscribeTx->timestamp(), lBuzzer->id(), lSubscribeTx->buzzerInfoChain(), lSubscribeTx->buzzerInfo(), lSubscribeTx->score());
 				lInfo.setEvent(lSubscribeTx->chain(), lSubscribeTx->id(), lSubscribeTx->signature());
 				lItem.addEventInfo(lInfo);
 				notifyNewEvent(lItem);

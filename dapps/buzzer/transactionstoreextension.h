@@ -16,6 +16,7 @@
 #include "eventsfeed.h"
 #include "txbuzzer.h"
 #include "txbuzz.h"
+#include "txbuzzerendorse.h"
 
 #include <memory>
 
@@ -215,11 +216,11 @@ private:
 	bool makeBuzzfeedItem(int&, TxBuzzerPtr, TransactionPtr, ITransactionStorePtr, std::multimap<uint64_t, uint256>&, std::map<uint256, BuzzfeedItemPtr>&);
 	void makeBuzzfeedLikeItem(TransactionPtr, ITransactionStorePtr, std::multimap<uint64_t, uint256>&, std::map<uint256, BuzzfeedItemPtr>&);
 
-	void prepareEventsfeedItem(EventsfeedItem&, TxBuzzPtr, TxBuzzerPtr, const uint256&, const uint256&, uint64_t, const uint256&, const uint256&);
+	void prepareEventsfeedItem(EventsfeedItem&, TxBuzzPtr, TxBuzzerPtr, const uint256&, const uint256&, uint64_t, const uint256&, const uint256&, uint64_t, const uint512&);
 	void makeEventsfeedItem(TxBuzzerPtr, TransactionPtr, ITransactionStorePtr, std::multimap<uint64_t, EventsfeedItem::Key>&, std::map<EventsfeedItem::Key, EventsfeedItemPtr>&);
 	void makeEventsfeedLikeItem(TransactionPtr, ITransactionStorePtr, std::multimap<uint64_t, EventsfeedItem::Key>&, std::map<EventsfeedItem::Key, EventsfeedItemPtr>&);
 
-	template<typename _event> void makeEventsfeedTrustScoreItem(EventsfeedItemPtr item, TransactionPtr tx, unsigned short type, const uint256& buzzer) {
+	template<typename _event> void makeEventsfeedTrustScoreItem(EventsfeedItemPtr item, TransactionPtr tx, unsigned short type, const uint256& buzzer, uint64_t score) {
 		//
 		std::shared_ptr<_event> lEvent = TransactionHelper::to<_event>(tx);
 
@@ -229,8 +230,9 @@ private:
 		item->setBuzzChainId(lEvent->chain());
 		item->setValue(lEvent->amount());
 		item->setSignature(lEvent->signature());
+		item->setPublisher(tx->in()[TX_BUZZER_ENDORSE_BUZZER_IN].out().tx());
 
-		EventsfeedItem::EventInfo lInfo(lEvent->timestamp(), buzzer, lEvent->buzzerInfoChain(), lEvent->buzzerInfo());
+		EventsfeedItem::EventInfo lInfo(lEvent->timestamp(), buzzer, lEvent->buzzerInfoChain(), lEvent->buzzerInfo(), score);
 		lInfo.setEvent(lEvent->chain(), lEvent->id(), lEvent->signature());
 		item->addEventInfo(lInfo);
 	}

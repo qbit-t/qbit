@@ -51,12 +51,13 @@ public:
 
 	virtual bool isFeeFee() { return true; }
 
-	inline void makeSignature(const SKey& skey) {
+	inline void makeSignature(const SKey& skey, const uint256& publisher) {
 		//
 		DataStream lSource(SER_NETWORK, PROTOCOL_VERSION);
 		lSource << timestamp_;
 		lSource << score_;
 		lSource << buzzerInfo_;
+		lSource << publisher;
 		
 		uint256 lHash = Hash(lSource.begin(), lSource.end());
 		if (!const_cast<SKey&>(skey).sign(lHash, signature_)) {
@@ -65,12 +66,13 @@ public:
 	}
 
 	inline static bool verifySignature(const PKey& pkey, unsigned short type, uint64_t timestamp, uint64_t score,
-		const uint256& buzzerInfo, const uint512& signature) {
+		const uint256& buzzerInfo, const uint256& publisher, const uint512& signature) {
 		//
 		DataStream lSource(SER_NETWORK, PROTOCOL_VERSION);
 		lSource << timestamp;
 		lSource << score;
 		lSource << buzzerInfo;
+		lSource << publisher;
 
 		uint256 lHash = Hash(lSource.begin(), lSource.end());
 		return const_cast<PKey&>(pkey).verify(lHash, signature);
