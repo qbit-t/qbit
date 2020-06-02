@@ -183,6 +183,7 @@ public:
 		transactionCreatedFunction created_;
 		errorFunction error_;		
 
+		EntityPtr publisherTx_;
 		TxBuzzerSubscribePtr buzzerSubscribeTx_;
 		TransactionContextPtr ctx_;
 	};	
@@ -455,27 +456,35 @@ public:
 	public:
 		LoadMistrustsByBuzzer(BuzzerLightComposerPtr composer, const uint256& chain, const uint256& from, const uint256& buzzer, int requests, eventsfeedLoadedRequestFunction loaded): 
 			composer_(composer), chain_(chain), from_(from), buzzer_(buzzer), requests_(requests), loaded_(loaded) {}
+		LoadMistrustsByBuzzer(BuzzerLightComposerPtr composer, const uint256& chain, const uint256& from, const std::string& buzzer, int requests, eventsfeedLoadedRequestFunction loaded): 
+			composer_(composer), chain_(chain), from_(from), buzzerName_(buzzer), requests_(requests), loaded_(loaded) {}
+
 		void process(errorFunction);
 
 		static IComposerMethodPtr instance(BuzzerLightComposerPtr composer, const uint256& chain, const uint256& from, const uint256& buzzer, int requests, eventsfeedLoadedRequestFunction loaded) {
 			return std::make_shared<LoadMistrustsByBuzzer>(composer, chain, from, buzzer, requests, loaded); 
+		} 
+		static IComposerMethodPtr instance(BuzzerLightComposerPtr composer, const uint256& chain, const uint256& from, const std::string& buzzer, int requests, eventsfeedLoadedRequestFunction loaded) {
+			return std::make_shared<LoadMistrustsByBuzzer>(composer, chain, from, buzzer, requests, loaded);
 		} 
 
 		//
 		void eventsfeedLoaded(const std::vector<EventsfeedItem>& feed, const uint256& chain, const uint256& entity) {
 			loaded_(feed, chain, count_);
 		}
-
 		// 
 		void timeout() {
 			error_("E_TIMEOUT", "Timeout expired during eventsfeed load.");
 		}
+		//
+		void publisherLoaded(EntityPtr);
 
 	private:
 		BuzzerLightComposerPtr composer_;
 		uint256 chain_;
 		uint256 from_;
-		uint256 buzzer_;		
+		uint256 buzzer_;
+		std::string buzzerName_;
 		eventsfeedLoadedRequestFunction loaded_;
 		errorFunction error_;
 		int count_;
@@ -486,9 +495,15 @@ public:
 	public:
 		LoadEndorsementsByBuzzer(BuzzerLightComposerPtr composer, const uint256& chain, const uint256& from, const uint256& buzzer, int requests, eventsfeedLoadedRequestFunction loaded): 
 			composer_(composer), chain_(chain), from_(from), buzzer_(buzzer), requests_(requests), loaded_(loaded) {}
+		LoadEndorsementsByBuzzer(BuzzerLightComposerPtr composer, const uint256& chain, const uint256& from, const std::string& buzzer, int requests, eventsfeedLoadedRequestFunction loaded): 
+			composer_(composer), chain_(chain), from_(from), buzzerName_(buzzer), requests_(requests), loaded_(loaded) {}
+
 		void process(errorFunction);
 
 		static IComposerMethodPtr instance(BuzzerLightComposerPtr composer, const uint256& chain, const uint256& from, const uint256& buzzer, int requests, eventsfeedLoadedRequestFunction loaded) {
+			return std::make_shared<LoadEndorsementsByBuzzer>(composer, chain, from, buzzer, requests, loaded); 
+		} 
+		static IComposerMethodPtr instance(BuzzerLightComposerPtr composer, const uint256& chain, const uint256& from, const std::string& buzzer, int requests, eventsfeedLoadedRequestFunction loaded) {
 			return std::make_shared<LoadEndorsementsByBuzzer>(composer, chain, from, buzzer, requests, loaded); 
 		} 
 
@@ -496,17 +511,19 @@ public:
 		void eventsfeedLoaded(const std::vector<EventsfeedItem>& feed, const uint256& chain, const uint256& entity) {
 			loaded_(feed, chain, count_);
 		}
-
 		// 
 		void timeout() {
 			error_("E_TIMEOUT", "Timeout expired during eventsfeed load.");
 		}
+		//
+		void publisherLoaded(EntityPtr);
 
 	private:
 		BuzzerLightComposerPtr composer_;
 		uint256 chain_;
 		uint256 from_;
 		uint256 buzzer_;
+		std::string buzzerName_;
 		eventsfeedLoadedRequestFunction loaded_;
 		errorFunction error_;
 		int count_;
@@ -517,9 +534,15 @@ public:
 	public:
 		LoadSubscriptionsByBuzzer(BuzzerLightComposerPtr composer, const uint256& chain, const uint256& from, const uint256& buzzer, int requests, eventsfeedLoadedRequestFunction loaded): 
 			composer_(composer), chain_(chain), from_(from), buzzer_(buzzer), requests_(requests), loaded_(loaded) {}
+		LoadSubscriptionsByBuzzer(BuzzerLightComposerPtr composer, const uint256& chain, const uint256& from, const std::string& buzzer, int requests, eventsfeedLoadedRequestFunction loaded): 
+			composer_(composer), chain_(chain), from_(from), buzzerName_(buzzer), requests_(requests), loaded_(loaded) {}
+
 		void process(errorFunction);
 
 		static IComposerMethodPtr instance(BuzzerLightComposerPtr composer, const uint256& chain, const uint256& from, const uint256& buzzer, int requests, eventsfeedLoadedRequestFunction loaded) {
+			return std::make_shared<LoadSubscriptionsByBuzzer>(composer, chain, from, buzzer, requests, loaded); 
+		} 
+		static IComposerMethodPtr instance(BuzzerLightComposerPtr composer, const uint256& chain, const uint256& from, const std::string& buzzer, int requests, eventsfeedLoadedRequestFunction loaded) {
 			return std::make_shared<LoadSubscriptionsByBuzzer>(composer, chain, from, buzzer, requests, loaded); 
 		} 
 
@@ -527,17 +550,19 @@ public:
 		void eventsfeedLoaded(const std::vector<EventsfeedItem>& feed, const uint256& chain, const uint256& entity) {
 			loaded_(feed, chain, count_);
 		}
-
 		// 
 		void timeout() {
 			error_("E_TIMEOUT", "Timeout expired during eventsfeed load.");
 		}
+		//
+		void publisherLoaded(EntityPtr);
 
 	private:
 		BuzzerLightComposerPtr composer_;
 		uint256 chain_;
 		uint256 from_;
 		uint256 buzzer_;
+		std::string buzzerName_;
 		eventsfeedLoadedRequestFunction loaded_;
 		errorFunction error_;
 		int count_;
@@ -548,9 +573,15 @@ public:
 	public:
 		LoadFollowersByBuzzer(BuzzerLightComposerPtr composer, const uint256& chain, const uint256& from, const uint256& buzzer, int requests, eventsfeedLoadedRequestFunction loaded): 
 			composer_(composer), chain_(chain), from_(from), buzzer_(buzzer), requests_(requests), loaded_(loaded) {}
+		LoadFollowersByBuzzer(BuzzerLightComposerPtr composer, const uint256& chain, const uint256& from, const std::string& buzzer, int requests, eventsfeedLoadedRequestFunction loaded): 
+			composer_(composer), chain_(chain), from_(from), buzzerName_(buzzer), requests_(requests), loaded_(loaded) {}
+
 		void process(errorFunction);
 
 		static IComposerMethodPtr instance(BuzzerLightComposerPtr composer, const uint256& chain, const uint256& from, const uint256& buzzer, int requests, eventsfeedLoadedRequestFunction loaded) {
+			return std::make_shared<LoadFollowersByBuzzer>(composer, chain, from, buzzer, requests, loaded); 
+		} 
+		static IComposerMethodPtr instance(BuzzerLightComposerPtr composer, const uint256& chain, const uint256& from, const std::string& buzzer, int requests, eventsfeedLoadedRequestFunction loaded) {
 			return std::make_shared<LoadFollowersByBuzzer>(composer, chain, from, buzzer, requests, loaded); 
 		} 
 
@@ -558,17 +589,19 @@ public:
 		void eventsfeedLoaded(const std::vector<EventsfeedItem>& feed, const uint256& chain, const uint256& entity) {
 			loaded_(feed, chain, count_);
 		}
-
 		// 
 		void timeout() {
 			error_("E_TIMEOUT", "Timeout expired during eventsfeed load.");
 		}
+		//
+		void publisherLoaded(EntityPtr);
 
 	private:
 		BuzzerLightComposerPtr composer_;
 		uint256 chain_;
 		uint256 from_;
 		uint256 buzzer_;
+		std::string buzzerName_;
 		eventsfeedLoadedRequestFunction loaded_;
 		errorFunction error_;
 		int count_;

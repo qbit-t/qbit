@@ -385,7 +385,7 @@ public:
 				// just first one for now
 				buzzerInfoResolve_(lItem->buzzerInfoChainId(), lItem->buzzerId(), lItem->buzzerInfoId());
 				break;
-			}			
+			}
 		}
 	}
 
@@ -500,6 +500,7 @@ public:
 			lBuzzerName,
 			formatISO8601DateTime(timestamp_ / 1000000),
 			typeString(),
+			scoreString(),
 			buzzBodyString());
 	}
 
@@ -527,6 +528,11 @@ public:
 
 		Buzzer::VerificationResult lResult = verifyPublisher_(shared_from_this());
 		return (lResult == Buzzer::VerificationResult::SUCCESS);
+	}
+
+
+	virtual void setVerifyPublisher(buzzfeedItemVerifyFunction verify) {
+		verifyPublisher_ = verify;
 	}
 
 	virtual void setSignatureVerification(Buzzer::VerificationResult result) {
@@ -678,7 +684,7 @@ protected:
 	std::set<uint256> likesSet_;
 
 	// check result
-	Buzzer::VerificationResult checkResult_ = Buzzer::VerificationResult::INVALID;
+	Buzzer::VerificationResult checkResult_ = Buzzer::VerificationResult::POSTPONED;
 
 	// threads
 	std::map<uint256 /*buzz*/, BuzzfeedItemPtr> items_;

@@ -1122,8 +1122,9 @@ void BuzzerTransactionStoreExtension::selectMistrusts(const uint256& from, const
 			lItem->setBuzzChainId(lMistrust->chain());
 			lItem->setValue(lMistrust->amount());
 			lItem->setSignature(lMistrust->signature());
+			lItem->setPublisher(lBuzzer);
 
-			EventsfeedItem::EventInfo lInfo(lMistrust->timestamp(), lMistruster, lMistrust->buzzerInfoChain(), lMistrust->buzzerInfo());
+			EventsfeedItem::EventInfo lInfo(lMistrust->timestamp(), lMistruster, lMistrust->buzzerInfoChain(), lMistrust->buzzerInfo(), lMistrust->score());
 			lInfo.setEvent(lMistrust->chain(), lMistrust->id(), lMistrust->signature());
 			lItem->addEventInfo(lInfo);
 
@@ -1188,12 +1189,14 @@ void BuzzerTransactionStoreExtension::selectEndorsements(const uint256& from, co
 
 			EventsfeedItemPtr lItem = EventsfeedItem::instance();
 			lItem->setType(TX_BUZZER_ENDORSE);
+			lItem->setTimestamp(lEndorse->timestamp());
 			lItem->setBuzzId(lEndorse->id());
 			lItem->setBuzzChainId(lEndorse->chain());
 			lItem->setValue(lEndorse->amount());
 			lItem->setSignature(lEndorse->signature());
+			lItem->setPublisher(lBuzzer);
 
-			EventsfeedItem::EventInfo lInfo(lEndorse->timestamp(), lEndorser, lEndorse->buzzerInfoChain(), lEndorse->buzzerInfo());
+			EventsfeedItem::EventInfo lInfo(lEndorse->timestamp(), lEndorser, lEndorse->buzzerInfoChain(), lEndorse->buzzerInfo(), lEndorse->score());
 			lInfo.setEvent(lEndorse->chain(), lEndorse->id(), lEndorse->signature());
 			lItem->addEventInfo(lInfo);
 
@@ -1264,16 +1267,24 @@ void BuzzerTransactionStoreExtension::selectSubscriptions(const uint256& from, c
 			lPublisher = lSubscribe->in()[0].out().tx(); // in[0] - publisher
 			lSubscriber = lSubscribe->in()[1].out().tx(); // in[1] - subscriber
 
-			TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lPublisher);
+			TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lSubscriber);
+			TransactionPtr lPublisherTx = lMainStore->locateTransaction(lPublisher);
 
 			ITransactionStorePtr lStore = store_->storeManager()->locate(lBuzzerTx->in()[TX_BUZZER_SHARD_IN].out().tx());
 			if (!lStore) continue;
 
+			ITransactionStorePtr lPublisherStore = store_->storeManager()->locate(lPublisherTx->in()[TX_BUZZER_SHARD_IN].out().tx());
+			if (!lPublisherStore) continue;
+
 			if (!lStore->extension()) continue;
 			BuzzerTransactionStoreExtensionPtr lExtension = std::static_pointer_cast<BuzzerTransactionStoreExtension>(lStore->extension());
 
-			TxBuzzerInfoPtr lBuzzerInfo = lExtension->readBuzzerInfo(lPublisher);
-			if (lBuzzerInfo) {
+			if (!lPublisherStore->extension()) continue;
+			BuzzerTransactionStoreExtensionPtr lPublisherExtension = std::static_pointer_cast<BuzzerTransactionStoreExtension>(lPublisherStore->extension());
+
+			TxBuzzerInfoPtr lBuzzerInfo = lExtension->readBuzzerInfo(lSubscriber);
+			TxBuzzerInfoPtr lPublisherInfo = lPublisherExtension->readBuzzerInfo(lPublisher);
+			if (lBuzzerInfo && lPublisherInfo) {
 				//
 				EventsfeedItemPtr lItem = EventsfeedItem::instance();
 				lItem->setType(TX_BUZZER_SUBSCRIBE);
@@ -1281,8 +1292,11 @@ void BuzzerTransactionStoreExtension::selectSubscriptions(const uint256& from, c
 				lItem->setBuzzId(lSubscribe->id());
 				lItem->setBuzzChainId(lSubscribe->chain());
 				lItem->setSignature(lSubscribe->signature());
+				lItem->setPublisher(lPublisher);
+				lItem->setPublisherInfo(lPublisherInfo->id());
+				lItem->setPublisherInfoChain(lPublisherInfo->chain());
 
-				EventsfeedItem::EventInfo lInfo(lSubscribe->timestamp(), lPublisher, lBuzzerInfo->chain(), lBuzzerInfo->id());
+				EventsfeedItem::EventInfo lInfo(lSubscribe->timestamp(), lSubscriber, lBuzzerInfo->chain(), lBuzzerInfo->id(), lSubscribe->score());
 				lInfo.setEvent(lSubscribe->chain(), lSubscribe->id(), lSubscribe->signature());
 				lItem->addEventInfo(lInfo);
 
@@ -1365,8 +1379,9 @@ void BuzzerTransactionStoreExtension::selectFollowers(const uint256& from, const
 				lItem->setBuzzId(lSubscribe->id());
 				lItem->setBuzzChainId(lSubscribe->chain());
 				lItem->setSignature(lSubscribe->signature());
+				lItem->setPublisher(lPublisher);
 
-				EventsfeedItem::EventInfo lInfo(lSubscribe->timestamp(), lSubscriber, lBuzzerInfo->chain(), lBuzzerInfo->id());
+				EventsfeedItem::EventInfo lInfo(lSubscribe->timestamp(), lSubscriber, lBuzzerInfo->chain(), lBuzzerInfo->id(), lSubscribe->score());
 				lInfo.setEvent(lSubscribe->chain(), lSubscribe->id(), lSubscribe->signature());
 				lItem->addEventInfo(lInfo);
 
@@ -1452,10 +1467,11 @@ void BuzzerTransactionStoreExtension::selectEventsfeed(uint64_t from, const uint
 					makeEventsfeedLikeItem(lTx, lMainStore, lRawBuzzfeed, lBuzzItems);
 				} else if (*lFromEvent == TX_BUZZER_MISTRUST) {
 					//
-					uint256 lMistruster = lTx->in()[TX_BUZZER_MISTRUST_MY_IN].out().tx(); 
+					uint256 lMistruster = lTx->in()[TX_BUZZER_MISTRUST_MY_IN].out().tx();
+					TxBuzzerMistrustPtr lMistrust = TransactionHelper::to<TxBuzzerMistrust>(lTx);
 					//
 					EventsfeedItemPtr lItem = EventsfeedItem::instance();
-					makeEventsfeedTrustScoreItem<TxBuzzerMistrust>(lItem, lTx, *lFromEvent, lMistruster);
+					makeEventsfeedTrustScoreItem<TxBuzzerMistrust>(lItem, lTx, *lFromEvent, lMistruster, lMistrust->score());
 					//
 					lRawBuzzfeed.insert(std::multimap<uint64_t, EventsfeedItem::Key>::value_type(lItem->timestamp(), lItem->key()));
 					lBuzzItems.insert(std::map<EventsfeedItem::Key, EventsfeedItemPtr>::value_type(lItem->key(), lItem));
@@ -1463,9 +1479,10 @@ void BuzzerTransactionStoreExtension::selectEventsfeed(uint64_t from, const uint
 				} else if (*lFromEvent == TX_BUZZER_ENDORSE) {
 					//
 					uint256 lEndorser = lTx->in()[TX_BUZZER_ENDORSE_MY_IN].out().tx(); 
+					TxBuzzerEndorsePtr lEndorse = TransactionHelper::to<TxBuzzerEndorse>(lTx);
 					//
 					EventsfeedItemPtr lItem = EventsfeedItem::instance();
-					makeEventsfeedTrustScoreItem<TxBuzzerEndorse>(lItem, lTx, *lFromEvent, lEndorser);
+					makeEventsfeedTrustScoreItem<TxBuzzerEndorse>(lItem, lTx, *lFromEvent, lEndorser, lEndorse->score());
 					//
 					lRawBuzzfeed.insert(std::multimap<uint64_t, EventsfeedItem::Key>::value_type(lItem->timestamp(), lItem->key()));
 					lBuzzItems.insert(std::map<EventsfeedItem::Key, EventsfeedItemPtr>::value_type(lItem->key(), lItem));
@@ -1485,8 +1502,9 @@ void BuzzerTransactionStoreExtension::selectEventsfeed(uint64_t from, const uint
 					lItem->setBuzzId(lSubscribeTx->id());
 					lItem->setBuzzChainId(lSubscribeTx->chain());
 					lItem->setSignature(lSubscribeTx->signature());
+					lItem->setPublisher(lPublisher);
 
-					EventsfeedItem::EventInfo lInfo(lSubscribeTx->timestamp(), lBuzzer->id(), lSubscribeTx->buzzerInfoChain(), lSubscribeTx->buzzerInfo());
+					EventsfeedItem::EventInfo lInfo(lSubscribeTx->timestamp(), lBuzzer->id(), lSubscribeTx->buzzerInfoChain(), lSubscribeTx->buzzerInfo(), lSubscribeTx->score());
 					lInfo.setEvent(lSubscribeTx->chain(), lSubscribeTx->id(), lSubscribeTx->signature());
 					lItem->addEventInfo(lInfo);					
 					//
@@ -1523,7 +1541,8 @@ void BuzzerTransactionStoreExtension::makeEventsfeedItem(TxBuzzerPtr buzzer, Tra
 		//
 		if (tx->type() == TX_BUZZ || tx->type() == TX_BUZZ_REPLY) {
 			//
-			prepareEventsfeedItem(*lItem, lBuzz, buzzer, lBuzz->chain(), lBuzz->id(), lBuzz->timestamp(), lBuzz->buzzerInfoChain(), lBuzz->buzzerInfo());
+			prepareEventsfeedItem(*lItem, lBuzz, buzzer, lBuzz->chain(), lBuzz->id(), 
+				lBuzz->timestamp(), lBuzz->buzzerInfoChain(), lBuzz->buzzerInfo(), lBuzz->score(), lBuzz->signature());
 		} else if (tx->type() == TX_REBUZZ) {
 			//
 			TxReBuzzPtr lRebuzz = TransactionHelper::to<TxReBuzz>(lBuzz);
@@ -1546,11 +1565,12 @@ void BuzzerTransactionStoreExtension::makeEventsfeedItem(TxBuzzerPtr buzzer, Tra
 				lAdd = false;
 				lItem = lExistingItem->second;
 				//if (lItem->timestamp() < lBuzz->timestamp()) lItem->setTimestamp(lBuzz->timestamp());
-				EventsfeedItem::EventInfo lInfo = EventsfeedItem::EventInfo(lRebuzz->timestamp(), buzzer->id(), lRebuzz->buzzerInfoChain(), lRebuzz->buzzerInfo());
+				EventsfeedItem::EventInfo lInfo = EventsfeedItem::EventInfo(lRebuzz->timestamp(), buzzer->id(), lRebuzz->buzzerInfoChain(), lRebuzz->buzzerInfo(), lRebuzz->score());
 				lInfo.setEvent(lBuzz->chain(), lBuzz->id(), lBuzz->body(), lBuzz->mediaPointers(), lBuzz->signature());
 				lItem->addEventInfo(lInfo);
 			} else {
-				prepareEventsfeedItem(*lItem, lBuzz, buzzer, lBuzz->chain(), lBuzz->id(), lBuzz->timestamp(), lBuzz->buzzerInfoChain(), lBuzz->buzzerInfo());
+				prepareEventsfeedItem(*lItem, lBuzz, buzzer, lBuzz->chain(), lBuzz->id(), 
+					lBuzz->timestamp(), lBuzz->buzzerInfoChain(), lBuzz->buzzerInfo(), lBuzz->score(), lBuzz->signature());
 				lItem->setBuzzId(lBuzzId);
 				lItem->setBuzzChainId(lBuzzChainId);
 			}
@@ -1599,12 +1619,13 @@ void BuzzerTransactionStoreExtension::makeEventsfeedLikeItem(TransactionPtr tx, 
 			lAdd = false;
 			lItem = lExistingItem->second;
 			//if (lItem->timestamp() < lLike->timestamp()) lItem->setTimestamp(lLike->timestamp());
-			EventsfeedItem::EventInfo lInfo = EventsfeedItem::EventInfo(lLike->timestamp(), lPublisher->id(), lLike->buzzerInfoChain(), lLike->buzzerInfo());
+			EventsfeedItem::EventInfo lInfo = EventsfeedItem::EventInfo(lLike->timestamp(), lPublisher->id(), lLike->buzzerInfoChain(), lLike->buzzerInfo(), lLike->score());
 			lInfo.setEvent(lLike->chain(), lLike->id(), lLike->signature());
 			lItem->addEventInfo(lInfo);
 		} else {
 			TxBuzzPtr lBuzz = TransactionHelper::to<TxBuzz>(lBuzzTx);
-			prepareEventsfeedItem(*lItem, lBuzz, lPublisher, lLike->chain(), lLike->id(), lLike->timestamp(), lLike->buzzerInfoChain(), lLike->buzzerInfo());
+			prepareEventsfeedItem(*lItem, lBuzz, lPublisher, lLike->chain(), lLike->id(), 
+				lLike->timestamp(), lLike->buzzerInfoChain(), lLike->buzzerInfo(), lLike->score(), lLike->signature());
 			lItem->setType(TX_BUZZ_LIKE);
 		}
 
@@ -1618,12 +1639,14 @@ void BuzzerTransactionStoreExtension::makeEventsfeedLikeItem(TransactionPtr tx, 
 
 
 void BuzzerTransactionStoreExtension::prepareEventsfeedItem(EventsfeedItem& item, TxBuzzPtr buzz, TxBuzzerPtr buzzer, 
-		const uint256& eventChainId, const uint256& eventId, uint64_t eventTimestamp, const uint256& buzzerInfoChain, const uint256& buzzerInfo) {
+		const uint256& eventChainId, const uint256& eventId, uint64_t eventTimestamp, 
+		const uint256& buzzerInfoChain, const uint256& buzzerInfo, uint64_t score, const uint512& signature) {
 	//
 	item.setType(buzz->type());
 	item.setTimestamp(buzz->timestamp());
 	item.setBuzzId(buzz->id());
 	item.setBuzzChainId(buzz->chain());
+	item.setScore(buzz->score());
 
 	if (buzz->type() != TX_REBUZZ) {
 		item.setBuzzBody(buzz->body());
@@ -1632,12 +1655,12 @@ void BuzzerTransactionStoreExtension::prepareEventsfeedItem(EventsfeedItem& item
 	}
 
 	if (buzzer) {
-		EventsfeedItem::EventInfo lInfo(eventTimestamp, buzzer->id(), buzzerInfoChain, buzzerInfo);
+		EventsfeedItem::EventInfo lInfo(eventTimestamp, buzzer->id(), buzzerInfoChain, buzzerInfo, score);
 
 		if (buzz->type() == TX_BUZZ || buzz->type() == TX_BUZZ_REPLY || buzz->type() == TX_REBUZZ) {
-			lInfo.setEvent(eventChainId, eventId, buzz->body(), buzz->mediaPointers(), buzz->signature());
+			lInfo.setEvent(eventChainId, eventId, buzz->body(), buzz->mediaPointers(), signature);
 		} else {
-			lInfo.setEvent(eventChainId, eventId, buzz->signature());			
+			lInfo.setEvent(eventChainId, eventId, signature);			
 		}
 
 		item.addEventInfo(lInfo);

@@ -85,7 +85,7 @@ Buzzer::VerificationResult BuzzerLightComposer::verifyPublisherLazy(BuzzfeedItem
 			bool lFound = subscriptions_.read(lInfo->buzzerId(), lPKey);
 			if (!lFound) {
 				//
-				TxBuzzerInfoPtr lBuzzerInfo = buzzer_->locateBuzzerInfo(lInfo->buzzerId());
+				TxBuzzerInfoPtr lBuzzerInfo = buzzer_->locateBuzzerInfo(lInfo->buzzerInfoId());
 				if (lBuzzerInfo && lBuzzerInfo->extractAddress(lPKey)) lFound = true;
 			}
 
@@ -108,7 +108,7 @@ Buzzer::VerificationResult BuzzerLightComposer::verifyPublisherLazy(BuzzfeedItem
 		bool lFound = subscriptions_.read(item->buzzerId(), lPKey);
 		if (!lFound) {
 			//
-			TxBuzzerInfoPtr lBuzzerInfo = buzzer_->locateBuzzerInfo(item->buzzerId());
+			TxBuzzerInfoPtr lBuzzerInfo = buzzer_->locateBuzzerInfo(item->buzzerInfoId());
 			if (lBuzzerInfo && lBuzzerInfo->extractAddress(lPKey)) lFound = true;
 		}
 
@@ -193,9 +193,110 @@ Buzzer::VerificationResult BuzzerLightComposer::verifyPublisherStrict(BuzzfeedIt
 	return Buzzer::VerificationResult::INVALID;
 }
 
-Buzzer::VerificationResult BuzzerLightComposer::verifyEventPublisher(EventsfeedItemPtr) {
+Buzzer::VerificationResult BuzzerLightComposer::verifyEventPublisher(EventsfeedItemPtr item) {
 	//
-	return Buzzer::VerificationResult::SUCCESS;
+	//
+	PKey lPKey;
+	//
+	if (item->type() == TX_BUZZ_LIKE) {
+		//
+		bool lResult = false;
+
+		// check events
+		for (std::vector<EventsfeedItem::EventInfo>::const_iterator lInfo = item->buzzers().begin(); lInfo != item->buzzers().end(); lInfo++) {
+			//
+			bool lFound = subscriptions_.read(lInfo->buzzerId(), lPKey);
+			if (!lFound) {
+				//
+				TxBuzzerInfoPtr lBuzzerInfo = buzzer_->locateBuzzerInfo(lInfo->buzzerInfoId());
+				if (lBuzzerInfo && lBuzzerInfo->extractAddress(lPKey)) lFound = true;
+			}
+
+			if (lFound) {
+				lResult = TxBuzzLike::verifySignature(lPKey, item->type(), lInfo->timestamp(), lInfo->score(),
+					lInfo->buzzerInfoId(), item->buzzId(), lInfo->signature());
+			} else {
+				return Buzzer::VerificationResult::POSTPONED;
+			}
+		}
+
+		return (lResult == true ? Buzzer::VerificationResult::SUCCESS : Buzzer::VerificationResult::INVALID);
+
+	} else if (item->type() == TX_BUZZER_ENDORSE || item->type() == TX_BUZZER_MISTRUST) {
+		//
+		bool lResult = false;
+		EventsfeedItem::EventInfo lInfo = *(item->buzzers().begin());
+		//
+		bool lFound = subscriptions_.read(lInfo.buzzerId(), lPKey);
+		if (!lFound) {
+			//
+			TxBuzzerInfoPtr lBuzzerInfo = buzzer_->locateBuzzerInfo(lInfo.buzzerInfoId());
+			if (lBuzzerInfo && lBuzzerInfo->extractAddress(lPKey)) lFound = true;
+		}
+
+		if (lFound) {
+			//std::cout << strprintf("%d, %d, %s, %d, %s", lInfo.timestamp(), lInfo.score(),
+			//	lInfo.buzzerInfoId().toHex(), item->value(), lInfo.buzzerId().toHex()) << "\n";
+			lResult = TxBuzzerEndorse::verifySignature(lPKey, item->type(), lInfo.timestamp(), lInfo.score(),
+				lInfo.buzzerInfoId(), item->value(), item->publisher(), lInfo.signature());
+		} else {
+			return Buzzer::VerificationResult::POSTPONED;
+		}
+
+		return (lResult == true ? Buzzer::VerificationResult::SUCCESS : Buzzer::VerificationResult::INVALID);
+
+	} else if (item->type() == TX_BUZZER_SUBSCRIBE) {
+		//
+		bool lResult = false;
+		EventsfeedItem::EventInfo lInfo = *(item->buzzers().begin());
+		//
+		bool lFound = subscriptions_.read(lInfo.buzzerId(), lPKey);
+		if (!lFound) {
+			//
+			TxBuzzerInfoPtr lBuzzerInfo = buzzer_->locateBuzzerInfo(lInfo.buzzerInfoId());
+			if (lBuzzerInfo && lBuzzerInfo->extractAddress(lPKey)) lFound = true;
+		}
+
+		if (lFound) {
+			lResult = TxBuzzerSubscribe::verifySignature(lPKey, item->type(), lInfo.timestamp(), lInfo.score(),
+				lInfo.buzzerInfoId(), item->publisher(), lInfo.signature());
+		} else {
+			return Buzzer::VerificationResult::POSTPONED;
+		}
+
+		return (lResult == true ? Buzzer::VerificationResult::SUCCESS : Buzzer::VerificationResult::INVALID);
+	} else {
+		//
+		bool lResult = false;
+		EventsfeedItem::EventInfo lInfo = *(item->buzzers().begin());
+		//
+		bool lFound = subscriptions_.read(lInfo.buzzerId(), lPKey);
+		if (!lFound) {
+			//
+			TxBuzzerInfoPtr lBuzzerInfo = buzzer_->locateBuzzerInfo(lInfo.buzzerInfoId());
+			if (lBuzzerInfo && lBuzzerInfo->extractAddress(lPKey)) lFound = true;
+		}
+
+		if (lFound) {
+			//
+			if (item->type() == TX_REBUZZ) {
+				if (TxReBuzz::verifySignature(lPKey, item->type(), lInfo.timestamp(), lInfo.score(),
+					lInfo.buzzerInfoId(), lInfo.buzzBody(), lInfo.buzzMedia(), 
+					item->buzzId(), item->buzzChainId(), lInfo.signature()))
+					return Buzzer::VerificationResult::SUCCESS;
+				else
+					return Buzzer::VerificationResult::INVALID;
+			}
+
+			if (TxBuzz::verifySignature(lPKey, item->type(), lInfo.timestamp(), lInfo.score(),
+					lInfo.buzzerInfoId(), lInfo.buzzBody(), lInfo.buzzMedia(), lInfo.signature()))
+				return Buzzer::VerificationResult::SUCCESS;
+			else
+				return Buzzer::VerificationResult::INVALID;
+		}
+	}
+
+	return Buzzer::VerificationResult::POSTPONED;
 }
 
 //
@@ -593,6 +694,7 @@ void BuzzerLightComposer::CreateTxBuzz::utxoByBuzzersListLoaded(const std::vecto
 void BuzzerLightComposer::CreateTxBuzzerSubscribe::process(errorFunction error) {
 	//
 	error_ = error;
+	publisherTx_ = nullptr;
 
 	// create empty tx
 	buzzerSubscribeTx_ = TransactionHelper::to<TxBuzzerSubscribe>(TransactionFactory::create(TX_BUZZER_SUBSCRIBE));
@@ -618,6 +720,9 @@ void BuzzerLightComposer::CreateTxBuzzerSubscribe::process(errorFunction error) 
 void BuzzerLightComposer::CreateTxBuzzerSubscribe::publisherLoaded(EntityPtr publisher) {
 	//
 	if (!publisher) { error_("E_BUZZER_NOT_FOUND", "Buzzer not found."); return; }
+
+	//
+	publisherTx_ = publisher;
 
 	//
 	// extract bound shard
@@ -699,7 +804,7 @@ void BuzzerLightComposer::CreateTxBuzzerSubscribe::utxoByBuzzerLoaded(const std:
 	} else { error_("E_SUBSCRIBER_BUZZER_INCORRECT", "Subscriber buzzer outs is incorrect."); return; }
 
 	// make extra signature
-	buzzerSubscribeTx_->makeSignature(*lSKey);
+	buzzerSubscribeTx_->makeSignature(*lSKey, publisherTx_->id());
 
 	// make buzzer subscription out (for canceling reasons)
 	buzzerSubscribeTx_->addSubscriptionOut(*lSKey, lPKey); // out[0]
@@ -933,12 +1038,34 @@ void BuzzerLightComposer::LoadMistrustsByBuzzer::process(errorFunction error) {
 	//
 	error_ = error;
 
-	// 
-	if (!(count_ = composer_->buzzerRequestProcessor()->selectMistrustsByBuzzer(chain_, from_, buzzer_, requests_,
+	//
+	if (!buzzer_.isNull()) { 
+		if (!(count_ = composer_->buzzerRequestProcessor()->selectMistrustsByBuzzer(chain_, from_, buzzer_, requests_,
+			SelectEventsFeedByEntity::instance(
+				boost::bind(&BuzzerLightComposer::LoadMistrustsByBuzzer::eventsfeedLoaded, shared_from_this(), _1, _2, _3),
+				boost::bind(&BuzzerLightComposer::LoadMistrustsByBuzzer::timeout, shared_from_this()))
+		))) error_("E_LOAD_EVENTSFEED", "Endorsements by buzzer loading failed.");
+	} else {
+		if (!composer_->requestProcessor()->loadEntity(buzzerName_, 
+			LoadEntity::instance(
+				boost::bind(&BuzzerLightComposer::LoadMistrustsByBuzzer::publisherLoaded, shared_from_this(), _1),
+				boost::bind(&BuzzerLightComposer::LoadMistrustsByBuzzer::timeout, shared_from_this()))
+		)) error_("E_LOAD_BUZZER", "Buzzer loading failed.");
+	}
+}
+
+void BuzzerLightComposer::LoadMistrustsByBuzzer::publisherLoaded(EntityPtr publisher) {
+	//
+	if (!publisher) {
+		error_("E_PUBLISHER_NOT_FOUND", "Buzzer was not found.");
+		return;
+	}
+
+	if (!(count_ = composer_->buzzerRequestProcessor()->selectMistrustsByBuzzer(chain_, from_, publisher->id(), requests_,
 		SelectEventsFeedByEntity::instance(
 			boost::bind(&BuzzerLightComposer::LoadMistrustsByBuzzer::eventsfeedLoaded, shared_from_this(), _1, _2, _3),
 			boost::bind(&BuzzerLightComposer::LoadMistrustsByBuzzer::timeout, shared_from_this()))
-	))) error_("E_LOAD_EVENTSFEED", "Mistrusts by buzzer loading failed.");
+	))) error_("E_LOAD_EVENTSFEED", "Endorsements by buzzer loading failed.");
 }
 
 //
@@ -948,12 +1075,34 @@ void BuzzerLightComposer::LoadSubscriptionsByBuzzer::process(errorFunction error
 	//
 	error_ = error;
 
-	// 
-	if (!(count_ = composer_->buzzerRequestProcessor()->selectSubscriptionsByBuzzer(chain_, from_, buzzer_, requests_,
+	//
+	if (!buzzer_.isNull()) { 
+		if (!(count_ = composer_->buzzerRequestProcessor()->selectSubscriptionsByBuzzer(chain_, from_, buzzer_, requests_,
+			SelectEventsFeedByEntity::instance(
+				boost::bind(&BuzzerLightComposer::LoadSubscriptionsByBuzzer::eventsfeedLoaded, shared_from_this(), _1, _2, _3),
+				boost::bind(&BuzzerLightComposer::LoadSubscriptionsByBuzzer::timeout, shared_from_this()))
+		))) error_("E_LOAD_EVENTSFEED", "Subscriptions by buzzer loading failed.");
+	} else {
+		if (!composer_->requestProcessor()->loadEntity(buzzerName_, 
+			LoadEntity::instance(
+				boost::bind(&BuzzerLightComposer::LoadSubscriptionsByBuzzer::publisherLoaded, shared_from_this(), _1),
+				boost::bind(&BuzzerLightComposer::LoadSubscriptionsByBuzzer::timeout, shared_from_this()))
+		)) error_("E_LOAD_BUZZER", "Buzzer loading failed.");
+	}
+}
+
+void BuzzerLightComposer::LoadSubscriptionsByBuzzer::publisherLoaded(EntityPtr publisher) {
+	//
+	if (!publisher) {
+		error_("E_PUBLISHER_NOT_FOUND", "Buzzer was not found.");
+		return;
+	}
+
+	if (!(count_ = composer_->buzzerRequestProcessor()->selectSubscriptionsByBuzzer(chain_, from_, publisher->id(), requests_,
 		SelectEventsFeedByEntity::instance(
 			boost::bind(&BuzzerLightComposer::LoadSubscriptionsByBuzzer::eventsfeedLoaded, shared_from_this(), _1, _2, _3),
 			boost::bind(&BuzzerLightComposer::LoadSubscriptionsByBuzzer::timeout, shared_from_this()))
-	))) error_("E_LOAD_EVENTSFEED", "Subscriptions by buzzer loading failed.");
+	))) error_("E_LOAD_EVENTSFEED", "Endorsements by buzzer loading failed.");
 }
 
 //
@@ -964,11 +1113,33 @@ void BuzzerLightComposer::LoadFollowersByBuzzer::process(errorFunction error) {
 	error_ = error;
 
 	// 
-	if (!(count_ = composer_->buzzerRequestProcessor()->selectFollowersByBuzzer(chain_, from_, buzzer_, requests_,
+	if (!buzzer_.isNull()) { 
+		if (!(count_ = composer_->buzzerRequestProcessor()->selectFollowersByBuzzer(chain_, from_, buzzer_, requests_,
+			SelectEventsFeedByEntity::instance(
+				boost::bind(&BuzzerLightComposer::LoadFollowersByBuzzer::eventsfeedLoaded, shared_from_this(), _1, _2, _3),
+				boost::bind(&BuzzerLightComposer::LoadFollowersByBuzzer::timeout, shared_from_this()))
+		))) error_("E_LOAD_EVENTSFEED", "Followers by buzzer loading failed.");
+	} else {
+		if (!composer_->requestProcessor()->loadEntity(buzzerName_, 
+			LoadEntity::instance(
+				boost::bind(&BuzzerLightComposer::LoadFollowersByBuzzer::publisherLoaded, shared_from_this(), _1),
+				boost::bind(&BuzzerLightComposer::LoadFollowersByBuzzer::timeout, shared_from_this()))
+		)) error_("E_LOAD_BUZZER", "Buzzer loading failed.");
+	}
+}
+
+void BuzzerLightComposer::LoadFollowersByBuzzer::publisherLoaded(EntityPtr publisher) {
+	//
+	if (!publisher) {
+		error_("E_PUBLISHER_NOT_FOUND", "Buzzer was not found.");
+		return;
+	}
+
+	if (!(count_ = composer_->buzzerRequestProcessor()->selectFollowersByBuzzer(chain_, from_, publisher->id(), requests_,
 		SelectEventsFeedByEntity::instance(
 			boost::bind(&BuzzerLightComposer::LoadFollowersByBuzzer::eventsfeedLoaded, shared_from_this(), _1, _2, _3),
 			boost::bind(&BuzzerLightComposer::LoadFollowersByBuzzer::timeout, shared_from_this()))
-	))) error_("E_LOAD_EVENTSFEED", "Followers by buzzer loading failed.");
+	))) error_("E_LOAD_EVENTSFEED", "Endorsements by buzzer loading failed.");
 }
 
 //
@@ -978,8 +1149,30 @@ void BuzzerLightComposer::LoadEndorsementsByBuzzer::process(errorFunction error)
 	//
 	error_ = error;
 
-	// 
-	if (!(count_ = composer_->buzzerRequestProcessor()->selectEndorsementsByBuzzer(chain_, from_, buzzer_, requests_,
+	//
+	if (!buzzer_.isNull()) { 
+		if (!(count_ = composer_->buzzerRequestProcessor()->selectEndorsementsByBuzzer(chain_, from_, buzzer_, requests_,
+			SelectEventsFeedByEntity::instance(
+				boost::bind(&BuzzerLightComposer::LoadEndorsementsByBuzzer::eventsfeedLoaded, shared_from_this(), _1, _2, _3),
+				boost::bind(&BuzzerLightComposer::LoadEndorsementsByBuzzer::timeout, shared_from_this()))
+		))) error_("E_LOAD_EVENTSFEED", "Endorsements by buzzer loading failed.");
+	} else {
+		if (!composer_->requestProcessor()->loadEntity(buzzerName_, 
+			LoadEntity::instance(
+				boost::bind(&BuzzerLightComposer::LoadEndorsementsByBuzzer::publisherLoaded, shared_from_this(), _1),
+				boost::bind(&BuzzerLightComposer::LoadEndorsementsByBuzzer::timeout, shared_from_this()))
+		)) error_("E_LOAD_BUZZER", "Buzzer loading failed.");
+	}
+}
+
+void BuzzerLightComposer::LoadEndorsementsByBuzzer::publisherLoaded(EntityPtr publisher) {
+	//
+	if (!publisher) {
+		error_("E_PUBLISHER_NOT_FOUND", "Buzzer was not found.");
+		return;
+	}
+
+	if (!(count_ = composer_->buzzerRequestProcessor()->selectEndorsementsByBuzzer(chain_, from_, publisher->id(), requests_,
 		SelectEventsFeedByEntity::instance(
 			boost::bind(&BuzzerLightComposer::LoadEndorsementsByBuzzer::eventsfeedLoaded, shared_from_this(), _1, _2, _3),
 			boost::bind(&BuzzerLightComposer::LoadEndorsementsByBuzzer::timeout, shared_from_this()))

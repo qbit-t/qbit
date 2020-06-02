@@ -344,6 +344,7 @@ int main(int argv, char** argc) {
 	// eventsfeed
 	EventsfeedPtr lEventsfeed = Eventsfeed::instance(lBuzzer,
 		boost::bind(&BuzzerLightComposer::verifyEventPublisher, lBuzzerComposer, _1),
+		boost::bind(&BuzzerLightComposer::verifyPublisherStrict, lBuzzerComposer, _1),
 		boost::bind(&eventsfeedLargeUpdated), 
 		boost::bind(&eventsfeedItemNew, _1), 
 		boost::bind(&eventsfeedItemUpdated, _1),
@@ -356,6 +357,7 @@ int main(int argv, char** argc) {
 	// eventsfeed for contexted selects
 	EventsfeedPtr lContextEventsfeed = Eventsfeed::instance(lBuzzer,
 		boost::bind(&BuzzerLightComposer::verifyEventPublisher, lBuzzerComposer, _1),
+		boost::bind(&BuzzerLightComposer::verifyPublisherLazy, lBuzzerComposer, _1),
 		boost::bind(&eventsfeedLargeUpdated), 
 		boost::bind(&eventsfeedItemNew, _1), 
 		boost::bind(&eventsfeedItemUpdated, _1),

@@ -10,6 +10,7 @@ void EventsfeedItem::merge(const EventsfeedItem& buzz, bool checkSize, bool noti
 	lBuzz->buzzerInfo_ = buzzerInfo_;
 	// verifier
 	lBuzz->verifyPublisher_ = verifyPublisher_;
+	lBuzz->verifySource_ = verifySource_;
 	lBuzz->resolve();
 
 	// verify signature
@@ -39,7 +40,7 @@ void EventsfeedItem::merge(const EventsfeedItem& buzz, bool checkSize, bool noti
 			updateTimestamp(lInfo->buzzerId(), lInfo->timestamp());
 		}
 
-		if (lBuzz->type() == TX_REBUZZ /*&& !lBuzz->buzzBody().size()*/) {
+		if (lBuzz->type() == TX_REBUZZ || lBuzz->type() == TX_BUZZ_LIKE /*&& !lBuzz->buzzBody().size()*/) {
 			// 
 			pendings_[lBuzz->buzzId()].insert(lBuzz->key());
 		}
@@ -70,9 +71,15 @@ void EventsfeedItem::merge(const std::vector<BuzzfeedItem>& buzzes) {
 			for (std::set<Key>::iterator lEventKey = lBuzzPtr->second.begin(); lEventKey != lBuzzPtr->second.end(); lEventKey++) {
 				std::map<Key /*buzz*/, EventsfeedItemPtr>::iterator lEvent = items_.find(*lEventKey);
 				if (lEvent != items_.end()) {
-					lEvent->second->setBuzzBody(lBuzz->buzzBody());
-					lEvent->second->setBuzzMedia(lBuzz->buzzMedia());
-					lEvent->second->setSignature(lBuzz->signature());
+					BuzzfeedItemPtr lItem = BuzzfeedItem::instance(*lBuzz);
+					lItem->setVerifyPublisher(verifySource_);
+					if (lItem->valid()) {
+						lEvent->second->setBuzzBody(lBuzz->buzzBody());
+						lEvent->second->setBuzzMedia(lBuzz->buzzMedia());
+						lEvent->second->setSignature(lBuzz->signature());
+					} else {
+						std::cout << "[MERGE-ERROR]: " << lItem->toString() << "\n";
+					}
 				}
 			}
 

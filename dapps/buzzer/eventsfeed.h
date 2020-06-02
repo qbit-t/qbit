@@ -81,8 +81,8 @@ public:
 			buzzerInfoId_.setNull();
 			buzzerInfoChainId_.setNull();
 		}
-		EventInfo(uint64_t timestamp, const uint256& buzzerId, const uint256& buzzerInfoChainId, const uint256& buzzerInfoId): 
-			timestamp_(timestamp), buzzerId_(buzzerId), buzzerInfoChainId_(buzzerInfoChainId), buzzerInfoId_(buzzerInfoId) {
+		EventInfo(uint64_t timestamp, const uint256& buzzerId, const uint256& buzzerInfoChainId, const uint256& buzzerInfoId, uint64_t score): 
+			timestamp_(timestamp), buzzerId_(buzzerId), buzzerInfoChainId_(buzzerInfoChainId), buzzerInfoId_(buzzerInfoId), score_(score) {
 			eventId_.setNull();
 			eventChainId_.setNull();
 		}
@@ -90,6 +90,8 @@ public:
 		const uint256& buzzerId() const { return buzzerId_; }
 		const uint256& buzzerInfoId() const { return buzzerInfoId_; }
 		const uint256& buzzerInfoChainId() const { return buzzerInfoChainId_; }
+		const uint512& signature() const { return signature_; }
+		uint64_t score() const { return score_; }
 
 		void setEvent(const uint256& chain, const uint256& event, const uint512& signature) {
 			eventId_ = event;
@@ -112,11 +114,15 @@ public:
 
 		uint64_t timestamp() const { return timestamp_; }
 
+		const std::vector<BuzzerMediaPointer>& buzzMedia() const { return media_; }
+		const std::vector<unsigned char>& buzzBody() const { return body_; }
+
 		ADD_SERIALIZE_METHODS;
 
 		template <typename Stream, typename Operation>
 		inline void serializationOp(Stream& s, Operation ser_action) {
 			READWRITE(timestamp_);
+			READWRITE(score_);
 			READWRITE(eventId_);
 			READWRITE(eventChainId_);
 			READWRITE(buzzerId_);
@@ -129,6 +135,7 @@ public:
 
 	private:
 		uint64_t timestamp_;
+		uint64_t score_;
 		uint256 eventId_;
 		uint256 eventChainId_;
 		uint256 buzzerId_;
@@ -154,11 +161,12 @@ public:
 		READWRITE(type_);
 		READWRITE(mention_);
 		READWRITE(timestamp_);
+		//READWRITE(score_);
 		READWRITE(buzzId_);
 		READWRITE(buzzChainId_);
-		READWRITE(buzzBody_);
-		READWRITE(buzzMedia_);
-		READWRITE(signature_);
+		//READWRITE(buzzBody_);
+		//READWRITE(buzzMedia_);
+		//READWRITE(signature_);
 		READWRITE(buzzers_);
 
 		if (ser_action.ForRead()) {
@@ -169,8 +177,17 @@ public:
 			}
 		}
 
+		if (type_ == TX_BUZZER_ENDORSE || type_ == TX_BUZZER_MISTRUST || type_ == TX_BUZZER_SUBSCRIBE) {
+			READWRITE(publisher_);
+		}
+
 		if (type_ == TX_BUZZER_ENDORSE || type_ == TX_BUZZER_MISTRUST) {
-			READWRITE(value_);				
+			READWRITE(value_);
+		}
+
+		if (type_ == TX_BUZZER_SUBSCRIBE) {
+			READWRITE(publisherInfo_);
+			READWRITE(publisherInfoChain_);
 		}
 	}
 
@@ -219,11 +236,39 @@ public:
 	const uint256& buzzChainId() const { return buzzChainId_; }
 	void setBuzzChainId(const uint256& id) { buzzChainId_ = id; }
 
+	const uint256& publisher() const { return publisher_; }
+	void setPublisher(const uint256& id) { publisher_ = id; }
+
+	const uint256& publisherInfo() const { return publisherInfo_; }
+	void setPublisherInfo(const uint256& id) { publisherInfo_ = id; }
+
+	const uint256& publisherInfoChain() const { return publisherInfoChain_; }
+	void setPublisherInfoChain(const uint256& id) { publisherInfoChain_ = id; }
+
 	uint64_t timestamp() const { return timestamp_; }
 	void setTimestamp(uint64_t timestamp) { timestamp_ = timestamp; }
 
+	uint64_t score() const { return score_; }
+	void setScore(uint64_t score) { score_ = score; }	
+
 	const std::vector<unsigned char>& buzzBody() const { return buzzBody_; }
-	std::string buzzBodyString() const { std::string lBody; lBody.insert(lBody.end(), buzzBody_.begin(), buzzBody_.end()); return lBody; }
+	std::string buzzBodyString() const {
+		//
+		if (buzzBody_.size()) {
+			std::string lBody; 
+			lBody.insert(lBody.end(), buzzBody_.begin(), buzzBody_.end()); 
+			return lBody;
+		} else {
+			//
+			if (!buzzers_.size()) return "?";
+			EventInfo lInfo = *buzzers_.begin();
+			//
+			std::string lBody; 
+			lBody.insert(lBody.end(), lInfo.buzzBody().begin(), lInfo.buzzBody().end()); 
+			return lBody;
+		}
+	}
+
 	void setBuzzBody(const std::vector<unsigned char>& body) { buzzBody_ = body; }
 
 	const uint512& signature() const { return signature_; }
@@ -283,16 +328,21 @@ public:
 
 		std::string lBuzzerName = strprintf("<%s>", lInfo.buzzerId().toHex());
 		std::string lBuzzerAlias;
-		buzzerInfo(lInfo, lBuzzerName, lBuzzerAlias);
+
+		if (type_ == TX_BUZZER_SUBSCRIBE && !publisherInfo_.isNull()) {
+			buzzerInfo_(publisherInfo_, lBuzzerName, lBuzzerAlias);
+		} else {
+			buzzerInfo(lInfo, lBuzzerName, lBuzzerAlias);
+		}
 
 		if (!lBuzzerAlias.size()) lBuzzerAlias = "?";
 
 		if (type_ == TX_BUZZER_ENDORSE || type_ == TX_BUZZER_MISTRUST) {
-			return strprintf("%s (%s) %s on %s", lBuzzerAlias, lBuzzerName, typeString(), 
+			return strprintf("%s (%s) %s on %s", lBuzzerAlias, lBuzzerName, typeFeedString(), 
 				strprintf(TxAssetType::scaleFormat(QBIT), (double)value_ / (double)QBIT));
 		}
 
-		return strprintf("%s (%s)", lBuzzerAlias, lBuzzerName);	
+		return strprintf("%s (%s) %s", lBuzzerAlias, lBuzzerName, typeFeedString());	
 	}
 
 	std::string typeString() {
@@ -303,6 +353,20 @@ public:
 		else if (type_ == TX_BUZZER_SUBSCRIBE) return "started reading you";
 		else if (type_ == TX_BUZZER_ENDORSE) return "endorsed you";
 		else if (type_ == TX_BUZZER_MISTRUST) return "mistrusted you";
+		return "N";
+	}
+
+	std::string typeFeedString() {
+		if (type_ == TX_BUZZ) return "mentioned";
+		else if (type_ == TX_REBUZZ) { if (mention_) return "mentioned"; return "rebuzzed buzz"; }
+		else if (type_ == TX_BUZZ_REPLY) return "replied to buzz";
+		else if (type_ == TX_BUZZ_LIKE) return "liked buzz";
+		else if (type_ == TX_BUZZER_SUBSCRIBE) { 
+			if (!publisherInfo_.isNull()) return "following"; 
+			return "follows"; 
+		}
+		else if (type_ == TX_BUZZER_ENDORSE) return "endorsed";
+		else if (type_ == TX_BUZZER_MISTRUST) return "mistrusted";
 		return "N";
 	}
 
@@ -338,8 +402,10 @@ public:
 		for (std::vector<EventInfo>::const_iterator lBuzzer = buzzers_.begin(); lBuzzer != buzzers_.end(); lBuzzer++) {
 			// just first one for now
 			buzzerInfoResolve_(lBuzzer->buzzerInfoChainId(), lBuzzer->buzzerId(), lBuzzer->buzzerInfoId());
-			break;
 		}
+
+		if (!publisherInfo_.isNull())
+			buzzerInfoResolve_(publisherInfoChain_, publisher_, publisherInfo_);
 	}
 
 	void buzzerInfo(const EventInfo& info, std::string& name, std::string& alias) {
@@ -441,8 +507,12 @@ protected:
 protected:
 	unsigned short type_;
 	uint64_t timestamp_;
+	uint64_t score_;
 	uint256 buzzId_;
 	uint256 buzzChainId_;
+	uint256 publisher_;
+	uint256 publisherInfo_;
+	uint256 publisherInfoChain_;
 	std::vector<unsigned char> buzzBody_;
 	std::vector<BuzzerMediaPointer> buzzMedia_;
 	uint512 signature_;
@@ -471,6 +541,7 @@ protected:
 	buzzerInfoFunction buzzerInfo_;
 	buzzerInfoResolveFunction buzzerInfoResolve_;
 	eventsfeedItemVerifyFunction verifyPublisher_;
+	buzzfeedItemVerifyFunction verifySource_;
 };
 
 //
@@ -487,7 +558,7 @@ typedef std::shared_ptr<Eventsfeed> EventsfeedPtr;
 // eventsfeed
 class Eventsfeed: public EventsfeedItem {
 public:
-	Eventsfeed(BuzzerPtr buzzer, eventsfeedItemVerifyFunction verifyPublisher, 
+	Eventsfeed(BuzzerPtr buzzer, eventsfeedItemVerifyFunction verifyPublisher, buzzfeedItemVerifyFunction verifySource,
 								eventsfeedLargeUpdatedFunction largeUpdated, 
 								eventsfeedItemNewFunction itemNew, 
 								eventsfeedItemUpdatedFunction itemUpdated,
@@ -498,6 +569,7 @@ public:
 		itemUpdated_(itemUpdated),
 		itemsUpdated_(itemsUpdated) {
 		verifyPublisher_ = verifyPublisher;
+		verifySource_ = verifySource;
 		merge_ = merge;
 	}
 
@@ -508,6 +580,7 @@ public:
 		itemUpdated_ = eventsfeed->itemUpdated_;
 		itemsUpdated_ = eventsfeed->itemsUpdated_;
 		verifyPublisher_ = eventsfeed->verifyPublisher_;
+		verifySource_ = eventsfeed->verifySource_;
 		merge_ = eventsfeed->merge_;
 	}
 
@@ -534,12 +607,14 @@ public:
 		return std::make_shared<Eventsfeed>(eventsfeed);
 	}
 
-	static EventsfeedPtr instance(BuzzerPtr buzzer, eventsfeedItemVerifyFunction verifyPublisher,
+	static EventsfeedPtr instance(BuzzerPtr buzzer, eventsfeedItemVerifyFunction verifyPublisher, 
+			buzzfeedItemVerifyFunction verifySource,
 			eventsfeedLargeUpdatedFunction largeUpdated, 
 			eventsfeedItemNewFunction itemNew, 
 			eventsfeedItemUpdatedFunction itemUpdated,
 			eventsfeedItemsUpdatedFunction itemsUpdated, Merge merge) {
-		return std::make_shared<Eventsfeed>(buzzer, verifyPublisher, largeUpdated, itemNew, itemUpdated, itemsUpdated, merge);
+		return std::make_shared<Eventsfeed>(buzzer, verifyPublisher, verifySource, largeUpdated, 
+																itemNew, itemUpdated, itemsUpdated, merge);
 	}
 
 protected:

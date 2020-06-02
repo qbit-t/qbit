@@ -170,7 +170,7 @@ private:
 
 private:
 	void prepareBuzzfeedItem(BuzzfeedItem&, TxBuzzPtr, TxBuzzerPtr, BuzzerTransactionStoreExtensionPtr);
-	void prepareEventsfeedItem(EventsfeedItem&, TxBuzzPtr, TxBuzzerPtr, const uint256&, const uint256&, uint64_t, const uint256&, const uint256&);
+	void prepareEventsfeedItem(EventsfeedItem&, TxBuzzPtr, TxBuzzerPtr, const uint256&, const uint256&, uint64_t, const uint256&, const uint256&, uint64_t, const uint512&);
 
 	bool processBuzzCommon(TransactionContextPtr ctx);
 	bool processBuzzLike(TransactionContextPtr ctx);

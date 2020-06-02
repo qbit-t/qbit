@@ -382,6 +382,7 @@ void LoadBuzzesGlobalCommand::process(const std::vector<std::string>& args) {
 	pengindChainInfos_.clear();
 	localBuzzFeed_->clear();
 	pendingChainInfosLoaded_ = 0;
+	buzzFeed_->clear();
 
 	// args - from
 	uint64_t lTimeframeFrom = 0;
@@ -741,10 +742,12 @@ void LoadEndorsementsByBuzzerCommand::process(const std::vector<std::string>& ar
 	uint256 lFrom; lFrom.setNull();
 	EventsfeedItemPtr lLast = nullptr;
 	uint256 lBuzzerId;
+	std::string lBuzzer;
 
 	if (args.size() >= 1) {
 		//
-		lBuzzerId.setHex(args[0]);
+		if (*args[0].begin() == '@') lBuzzer = args[0];
+		else lBuzzerId.setHex(args[0]);
 
 		//
 		if (args.size() > 1 && args[1] == "more") {
@@ -767,13 +770,24 @@ void LoadEndorsementsByBuzzerCommand::process(const std::vector<std::string>& ar
 	// spead requests
 	for (std::vector<uint256>::iterator lChain = chains_.begin(); lChain != chains_.end(); lChain++) {
 		//
-		IComposerMethodPtr lCommand = BuzzerLightComposer::LoadEndorsementsByBuzzer::instance(
-			composer_, 
-			*lChain, 
-			lFrom, 
-			lBuzzerId, 
-			2,
-			boost::bind(&LoadEndorsementsByBuzzerCommand::eventsfeedLoaded, shared_from_this(), _1, _2, _3));
+		IComposerMethodPtr lCommand;
+		if (!lBuzzerId.isNull())
+			lCommand = BuzzerLightComposer::LoadEndorsementsByBuzzer::instance(
+				composer_, 
+				*lChain, 
+				lFrom, 
+				lBuzzerId, 
+				2,
+				boost::bind(&LoadEndorsementsByBuzzerCommand::eventsfeedLoaded, shared_from_this(), _1, _2, _3));
+		else
+			lCommand = BuzzerLightComposer::LoadEndorsementsByBuzzer::instance(
+				composer_, 
+				*lChain, 
+				lFrom, 
+				lBuzzer, 
+				2,
+				boost::bind(&LoadEndorsementsByBuzzerCommand::eventsfeedLoaded, shared_from_this(), _1, _2, _3));
+
 		// async process
 		lCommand->process(boost::bind(&LoadEndorsementsByBuzzerCommand::error, shared_from_this(), _1, _2));
 	}
@@ -798,10 +812,12 @@ void LoadMistrustsByBuzzerCommand::process(const std::vector<std::string>& args)
 	uint256 lFrom; lFrom.setNull();
 	EventsfeedItemPtr lLast = nullptr;
 	uint256 lBuzzerId;
+	std::string lBuzzer;
 
 	if (args.size() >= 1) {
 		//
-		lBuzzerId.setHex(args[0]);
+		if (*args[0].begin() == '@') lBuzzer = args[0];
+		else lBuzzerId.setHex(args[0]);
 
 		//
 		if (args.size() > 1 && args[1] == "more") {
@@ -824,13 +840,24 @@ void LoadMistrustsByBuzzerCommand::process(const std::vector<std::string>& args)
 	// spead requests
 	for (std::vector<uint256>::iterator lChain = chains_.begin(); lChain != chains_.end(); lChain++) {
 		//
-		IComposerMethodPtr lCommand = BuzzerLightComposer::LoadMistrustsByBuzzer::instance(
-			composer_, 
-			*lChain, 
-			lFrom, 
-			lBuzzerId,
-			2,
-			boost::bind(&LoadMistrustsByBuzzerCommand::eventsfeedLoaded, shared_from_this(), _1, _2, _3));
+		IComposerMethodPtr lCommand;
+		if (!lBuzzerId.isNull())
+			 lCommand = BuzzerLightComposer::LoadMistrustsByBuzzer::instance(
+				composer_, 
+				*lChain, 
+				lFrom, 
+				lBuzzerId,
+				2,
+				boost::bind(&LoadMistrustsByBuzzerCommand::eventsfeedLoaded, shared_from_this(), _1, _2, _3));
+		else
+			 lCommand = BuzzerLightComposer::LoadMistrustsByBuzzer::instance(
+				composer_, 
+				*lChain, 
+				lFrom, 
+				lBuzzer,
+				2,
+				boost::bind(&LoadMistrustsByBuzzerCommand::eventsfeedLoaded, shared_from_this(), _1, _2, _3));
+
 		// async process
 		lCommand->process(boost::bind(&LoadMistrustsByBuzzerCommand::error, shared_from_this(), _1, _2));
 	}
@@ -855,10 +882,12 @@ void LoadSubscriptionsByBuzzerCommand::process(const std::vector<std::string>& a
 	uint256 lFrom; lFrom.setNull();
 	EventsfeedItemPtr lLast = nullptr;
 	uint256 lBuzzerId;
+	std::string lBuzzer;
 
 	if (args.size() >= 1) {
 		//
-		lBuzzerId.setHex(args[0]);
+		if (*args[0].begin() == '@') lBuzzer = args[0];
+		else lBuzzerId.setHex(args[0]);
 
 		//
 		if (args.size() > 1 && args[1] == "more") {
@@ -883,13 +912,24 @@ void LoadSubscriptionsByBuzzerCommand::process(const std::vector<std::string>& a
 	// spead requests
 	for (std::vector<uint256>::iterator lChain = chains_.begin(); lChain != chains_.end(); lChain++) {
 		//
-		IComposerMethodPtr lCommand = BuzzerLightComposer::LoadSubscriptionsByBuzzer::instance(
-			composer_, 
-			*lChain, 
-			lFrom, 
-			lBuzzerId,
-			2,
-			boost::bind(&LoadSubscriptionsByBuzzerCommand::eventsfeedLoaded, shared_from_this(), _1, _2, _3));
+		IComposerMethodPtr lCommand;
+		if (!lBuzzerId.isNull())
+			lCommand = BuzzerLightComposer::LoadSubscriptionsByBuzzer::instance(
+				composer_, 
+				*lChain, 
+				lFrom, 
+				lBuzzerId,
+				2,
+				boost::bind(&LoadSubscriptionsByBuzzerCommand::eventsfeedLoaded, shared_from_this(), _1, _2, _3));
+		else
+			lCommand = BuzzerLightComposer::LoadSubscriptionsByBuzzer::instance(
+				composer_, 
+				*lChain, 
+				lFrom, 
+				lBuzzer,
+				2,
+				boost::bind(&LoadSubscriptionsByBuzzerCommand::eventsfeedLoaded, shared_from_this(), _1, _2, _3));
+
 		// async process
 		lCommand->process(boost::bind(&LoadSubscriptionsByBuzzerCommand::error, shared_from_this(), _1, _2));
 	}
@@ -914,10 +954,12 @@ void LoadFollowersByBuzzerCommand::process(const std::vector<std::string>& args)
 	uint256 lFrom; lFrom.setNull();
 	EventsfeedItemPtr lLast = nullptr;
 	uint256 lBuzzerId;
+	std::string lBuzzer;
 
 	if (args.size() >= 1) {
 		//
-		lBuzzerId.setHex(args[0]);
+		if (*args[0].begin() == '@') lBuzzer = args[0];
+		else lBuzzerId.setHex(args[0]);
 
 		//
 		if (args.size() > 1 && args[1] == "more") {
@@ -942,13 +984,24 @@ void LoadFollowersByBuzzerCommand::process(const std::vector<std::string>& args)
 	// spead requests
 	for (std::vector<uint256>::iterator lChain = chains_.begin(); lChain != chains_.end(); lChain++) {
 		//
-		IComposerMethodPtr lCommand = BuzzerLightComposer::LoadFollowersByBuzzer::instance(
-			composer_, 
-			*lChain, 
-			lFrom, 
-			lBuzzerId,
-			2,
-			boost::bind(&LoadFollowersByBuzzerCommand::eventsfeedLoaded, shared_from_this(), _1, _2, _3));
+		IComposerMethodPtr lCommand;
+		if (!lBuzzerId.isNull())
+			lCommand = BuzzerLightComposer::LoadFollowersByBuzzer::instance(
+				composer_, 
+				*lChain, 
+				lFrom, 
+				lBuzzerId,
+				2,
+				boost::bind(&LoadFollowersByBuzzerCommand::eventsfeedLoaded, shared_from_this(), _1, _2, _3));
+		else
+			lCommand = BuzzerLightComposer::LoadFollowersByBuzzer::instance(
+				composer_, 
+				*lChain, 
+				lFrom, 
+				lBuzzer,
+				2,
+				boost::bind(&LoadFollowersByBuzzerCommand::eventsfeedLoaded, shared_from_this(), _1, _2, _3));
+
 		// async process
 		lCommand->process(boost::bind(&LoadFollowersByBuzzerCommand::error, shared_from_this(), _1, _2));
 	}
