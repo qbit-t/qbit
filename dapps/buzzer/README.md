@@ -57,6 +57,18 @@ curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"buzzerunsubscribe
 
 ## Test
 
+### Start nodes
+
+./qbitd -home .qbit-0 -peers 127.0.0.1:31415,127.0.0.1:31416,127.0.0.1:31417 -port 31415 -threadpool 2 -http 8080 -console -airdrop -roles fullnode,miner -debug info,warn,error,wallet,store,net,bal,pool,cons,http,val,shard
+
+./qbitd -home .qbit-1 -peers 127.0.0.1:31415,127.0.0.1:31416,127.0.0.1:31417 -port 31416 -threadpool 2 -http 8081 -console -roles fullnode -debug info,warn,error,wallet,store,net,bal,pool,cons,http,val,shard
+
+./qbitd -home .qbit-2 -peers 127.0.0.1:31415,127.0.0.1:31416,127.0.0.1:31417 -port 31417 -threadpool 2 -http 8082 -console -roles fullnode -debug info,warn,error,wallet,store,net,bal,pool,cons,http,val,shard
+
+./qbitd -home .qbit-3 -peers 127.0.0.1:31415,127.0.0.1:31416,127.0.0.1:31417,127.0.0.1:31418 -port 31418 -threadpool 2 -http 8083 -console -roles fullnode,miner -debug info,warn,error,wallet,store,net,bal,pool,cons,http,val,shard
+
+### Prepare buzzer and cubix dapps
+
 curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"createdapp","params":["76PvbNsTT84VvksyZcAsu2AaRn4W2g7a47fVnC4ZoHwT196K6N", "buzzer", "Buzzer - Decentralized microblogging platform", "4096", "static"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
 
 curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"createshard","params":["76PvbNsTT84VvksyZcAsu2AaRn4W2g7a47fVnC4ZoHwT196K6N", "buzzer", "buzzer#00", "Buzzer shard 00"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
@@ -69,16 +81,15 @@ curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"createshard","par
 
 curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"createshard","params":["76PvbNsTT84VvksyZcAsu2AaRn4W2g7a47fVnC4ZoHwT196K6N", "cubix", "cubix#01", "Cubix shard 01"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
 
-curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"createbuzzer","params":["*", "@second", "SND", "Second buzzer"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
+### Create node-bound buzzer
+
+curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"createbuzzer","params":["*", "@second", "2-ND", "Second-2"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
+
+
+### Start clients
 
 ./qbit-cli -peers 127.0.0.1:31415 -debug info,warn,error,wallet,store,net,bal,client
 
-./qbitd -home .qbit-0 -peers 127.0.0.1:31415,127.0.0.1:31416,127.0.0.1:31417 -port 31415 -threadpool 2 -http 8080 -console -airdrop -roles fullnode,miner -debug info,warn,error,wallet,store,net,bal,pool,cons,http,val,shard
+./qbit-cli -home .qbit-cli-1 -peers 127.0.0.1:31415 -debug info,warn,error,wallet,store,net,bal,client
 
-./qbitd -home .qbit-1 -peers 127.0.0.1:31415,127.0.0.1:31416,127.0.0.1:31417 -port 31416 -threadpool 2 -http 8081 -console -roles fullnode -debug info,warn,error,wallet,store,net,bal,pool,cons,http,val,shard
-
-./qbitd -home .qbit-2 -peers 127.0.0.1:31415,127.0.0.1:31416,127.0.0.1:31417 -port 31417 -threadpool 2 -http 8082 -console -roles fullnode -debug info,warn,error,wallet,store,net,bal,pool,cons,http,val,shard
-
-./qbitd -home .qbit-3 -peers 127.0.0.1:31415,127.0.0.1:31416,127.0.0.1:31417,127.0.0.1:31418 -port 31418 -threadpool 2 -http 8083 -console -roles fullnode,miner -debug info,warn,error,wallet,store,net,bal,pool,cons,http,val,shard
-
-
+./qbit-cli -home .qbit-cli-2 -peers 127.0.0.1:31415 -debug info,warn,error,wallet,store,net,bal,client
