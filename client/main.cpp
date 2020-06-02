@@ -143,7 +143,6 @@ void commandDone(TransactionPtr) {
 
 int main(int argv, char** argc) {
 	//
-
 	uint32_t _QBIT_VERSION = 
 			((((QBIT_VERSION_MAJOR << 16) + QBIT_VERSION_MINOR) << 8) + QBIT_VERSION_REVISION);
 
