@@ -32,7 +32,7 @@ public:
 	virtual bool existsBanned(const std::string& /*endpoint*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::existsBanned - not implemented."); }
 	virtual bool existsPostponed(const std::string& /*endpoint*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::existsPostponed - not implemented."); }
 
-	virtual bool updatePeerState(IPeerPtr /*peer*/, State& /*state*/, IPeer::UpdatePeerResult& /*peerResult*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::updatePeerState - not implemented."); }
+	virtual bool updatePeerState(IPeerPtr /*peer*/, StatePtr /*state*/, IPeer::UpdatePeerResult& /*peerResult*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::updatePeerState - not implemented."); }
 	virtual bool updatePeerLatency(IPeerPtr /*peer*/, uint32_t /*latency*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::updatePeerLatency - not implemented."); }
 
 	virtual void postpone(IPeerPtr /*peer*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::postpone - not implemented."); }
@@ -40,6 +40,7 @@ public:
 
 	virtual void run() { throw qbit::exception("NOT_IMPL", "IPeerManager::run - not implemented."); }
 	virtual void stop() { throw qbit::exception("NOT_IMPL", "IPeerManager::stop - not implemented."); }
+	virtual void poll() { throw qbit::exception("NOT_IMPL", "IPeerManager::poll - not implemented."); }
 
 	virtual void updateMedianTime() { throw qbit::exception("NOT_IMPL", "IPeerManager::updateMedianTime - not implemented."); }
 

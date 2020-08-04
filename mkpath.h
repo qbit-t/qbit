@@ -9,6 +9,8 @@
 //
 #include "allocator.h"
 
+#include <sys/types.h>
+
 int mkpath(const char *path, mode_t mode);
 int rmpath(const char *path);
 

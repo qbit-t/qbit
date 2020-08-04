@@ -18,11 +18,16 @@ void Peer::sendMessageAsync(std::list<DataStream>::iterator msg) {
 		if (lSkip) return;
 	}
 
-	boost::asio::async_write(*socket_,
-		boost::asio::buffer(lMsg->msg()->data(), lMsg->msg()->size()),
-		strand_->wrap(boost::bind(
-			&Peer::messageSentAsync, shared_from_this(), lMsg,
-			boost::asio::placeholders::error)));
+	{
+		boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
+		if (socketStatus_ == CONNECTED) {
+			boost::asio::async_write(*socket_,
+				boost::asio::buffer(lMsg->msg()->data(), lMsg->msg()->size()),
+				strand_->wrap(boost::bind(
+					&Peer::messageSentAsync, shared_from_this(), lMsg,
+					boost::asio::placeholders::error)));
+		}
+	}
 }
 
 void Peer::sendMessage(std::list<DataStream>::iterator msg) {
@@ -51,11 +56,25 @@ void Peer::processPendingMessagesQueue() {
 	}
 
 	if (lFound) {
-		boost::asio::async_write(*socket_,
-			boost::asio::buffer(lMsg->msg()->data(), lMsg->msg()->size()),
-			strand_->wrap(boost::bind(
-				&Peer::messageSentAsync, shared_from_this(), lMsg,
-				boost::asio::placeholders::error)));
+		bool lProcessed = false;
+		{
+			boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
+			if (socketStatus_ == CONNECTED) {
+				boost::asio::async_write(*socket_,
+					boost::asio::buffer(lMsg->msg()->data(), lMsg->msg()->size()),
+					strand_->wrap(boost::bind(
+						&Peer::messageSentAsync, shared_from_this(), lMsg,
+						boost::asio::placeholders::error)));
+				//
+				lProcessed = true;
+			}
+		}
+
+		if (!lProcessed) {
+			boost::unique_lock<boost::mutex> lLock(rawOutMutex_);
+			outQueue_.clear();
+			rawOutMessages_.clear();
+		}
 	}
 	else 
 		waitForMessage();
@@ -83,13 +102,21 @@ void Peer::processError(const std::string& context, const boost::system::error_c
 	// log
 	if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, strprintf("[peer/%s/error]: closing session ", context) + key() + " -> " + error.message());
 	//
-	if (context != "messageSentAsync") reading_ = false;
+	if (context != "messageSentAsync") { 
+		boost::unique_lock<boost::recursive_mutex> lLock(readMutex_);
+		reading_ = false;
+	}
+
 	//
-	socketStatus_ = ERROR;		
-	// try to deactivate peer
-	peerManager_->deactivatePeer(shared_from_this());
-	// close socket
-	socket_->close();
+	{
+		boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
+		//
+		socketStatus_ = ERROR;		
+		// try to deactivate peer
+		peerManager_->deactivatePeer(shared_from_this());
+		// close socket
+		socket_->close();
+	}
 }
 
 //
@@ -830,23 +857,25 @@ void Peer::requestPeers() {
 
 void Peer::waitForMessage() {
 	//
-	boost::unique_lock<boost::recursive_mutex> lLock(readMutex_);
+	{
+		boost::unique_lock<boost::recursive_mutex> lLock(readMutex_);
 
-	//
-	if (waitingForMessage_) {
-		// log
-		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, strprintf("[peer]: %s ALREADY waiting for message, skip...", key()));
-		return;
+		//
+		if (waitingForMessage_) {
+			// log
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, strprintf("[peer]: %s ALREADY waiting for message, skip...", key()));
+			return;
+		}
+
+		if (reading_) {
+			// log
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, strprintf("[peer]: %s ALREADY reading message, skip...", key()));
+			return;
+		}
+
+		// mark
+		waitingForMessage_ = true;
 	}
-
-	if (reading_) {
-		// log
-		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, strprintf("[peer]: %s ALREADY reading message, skip...", key()));
-		return;
-	}
-
-	// mark
-	waitingForMessage_ = true;
 
 	// log
 	if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, strprintf("[peer]: %s - waiting for message...", key()));
@@ -854,11 +883,15 @@ void Peer::waitForMessage() {
 	// new message entry
 	std::list<DataStream>::iterator lMsg = newInMessage();
 
-	boost::asio::async_read(*socket_,
-		boost::asio::buffer(lMsg->data(), Message::size()),
-		strand_->wrap(boost::bind(
-			&Peer::processMessage, shared_from_this(), lMsg,
-			boost::asio::placeholders::error)));
+	{
+		boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
+		if (socketStatus_ == CONNECTED)
+			boost::asio::async_read(*socket_,
+				boost::asio::buffer(lMsg->data(), Message::size()),
+				strand_->wrap(boost::bind(
+					&Peer::processMessage, shared_from_this(), lMsg,
+					boost::asio::placeholders::error)));
+	}
 }
 
 void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
@@ -869,6 +902,23 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 		waitingForMessage_ = false;
 		// going to read
 		reading_ = true;
+	}
+
+	{
+		//
+		boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
+
+		//
+		if (socketStatus_ != CONNECTED) {
+			//
+			gLog().write(Log::NET, "[peer/processMessage/error]: session is invalid, cancel reading...");
+			//
+			socketStatus_ = ERROR;
+			//
+			reading_ = false;
+			//
+			return;
+		}
 	}
 
 	//
@@ -904,6 +954,8 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 				// log
 				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: peer ") + key() + std::string(" is BANNED."));
 				eraseInData(lMsg);
+				//
+				boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
 				//
 				socketStatus_ = ERROR;
 				// close socket
@@ -1296,13 +1348,21 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 				gLog().write(Log::NET, "[peer/processMessage/error]: closing session " + key() + 
 					strprintf(" -> Message size >= %d or invalid, ", peerManager_->settings()->maxMessageSize()) + statusString());
 				//
-				socketStatus_ = ERROR;
+				{
+					boost::unique_lock<boost::recursive_mutex> lLock(readMutex_);
+					reading_ = false;
+				}
+
 				//
-				reading_ = false;
-				// try to deactivate peer
-				peerManager_->deactivatePeer(shared_from_this());
-				// close socket
-				socket_->close();
+				{
+					boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
+					//
+					socketStatus_ = ERROR;
+					// try to deactivate peer
+					peerManager_->deactivatePeer(shared_from_this());
+					// close socket
+					socket_->close();
+				}
 			}
 
 			return;
@@ -1313,13 +1373,21 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 		if (key() != "EKEY") {
 			gLog().write(Log::NET, "[peer/processMessage/error]: closing session " + key() + " -> " + error.message() + ", " + statusString());
 			//
-			socketStatus_ = ERROR;
+			{
+				boost::unique_lock<boost::recursive_mutex> lLock(readMutex_);
+				reading_ = false;
+			}
+
 			//
-			reading_ = false;
-			// try to deactivate peer
-			peerManager_->deactivatePeer(shared_from_this());
-			// close socket
-			socket_->close();
+			{
+				boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
+				//
+				socketStatus_ = ERROR;
+				// try to deactivate peer
+				peerManager_->deactivatePeer(shared_from_this());
+				// close socket
+				socket_->close();
+			}
 		}
 	}
 }
@@ -1497,7 +1565,8 @@ void Peer::processAskForQbits(std::list<DataStream>::iterator msg, const boost::
 			// 1. check if address already has some qbits
 			ITransactionStorePtr lStorage = peerManager_->consensusManager()->storeManager()->locate(MainChain::id());
 			if (lStorage) {
-				if (!lStorage->airdropped(lAddress.id(), keyId())) {
+				// TODO: UNCOMMENT!!!
+				if (/*!lStorage->airdropped(lAddress.id(), keyId())*/ true) {
 					//
 					// 2. make airdrop tx
 					try {
@@ -1543,6 +1612,9 @@ void Peer::processAskForQbits(std::list<DataStream>::iterator msg, const boost::
 						if (gLog().isEnabled(Log::ERROR)) 
 							gLog().write(Log::ERROR, strprintf("[peer]: airdrop tx creation failed: %s - %s", ex.code(), ex.what()));
 					}
+				} else {
+					if (gLog().isEnabled(Log::ERROR)) 
+						gLog().write(Log::ERROR, strprintf("[peer]: already aidropped for: %s - %s", lAddress.id().toHex(), keyId().toHex()));
 				}
 			}
 
@@ -2471,7 +2543,7 @@ void Peer::processEntityNames(std::list<DataStream>::iterator msg, const boost::
 
 		IReplyHandlerPtr lHandler = locateRequest(lRequestId);
 		if (lHandler) {
-			ReplyHelper::to<ISelectEntityNamesHandler>(lHandler)->handleReply(lNames);
+			ReplyHelper::to<ISelectEntityNamesHandler>(lHandler)->handleReply(lName, lNames);
 			removeRequest(lRequestId);
 		} else {
 			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: request was NOT FOUND for entity names ") + strprintf("r = %s, e = '%s'", lRequestId.toHex(), lName) + std::string("..."));
@@ -3354,8 +3426,8 @@ void Peer::processBlockHeaderAndState(std::list<DataStream>::iterator msg, const
 			
 			StatePtr lStatePtr = State::instance(lState);
 			IPeer::UpdatePeerResult lPeerResult;
-			if (!peerManager_->updatePeerState(shared_from_this(), lState, lPeerResult)) {
-				setState(lState);
+			if (!peerManager_->updatePeerState(shared_from_this(), lStatePtr, lPeerResult)) {
+				setState(lStatePtr);
 				peerManager_->consensusManager()->pushPeer(shared_from_this());
 			}
 			peerManager_->consensusManager()->pushState(lStatePtr);
@@ -3365,9 +3437,9 @@ void Peer::processBlockHeaderAndState(std::list<DataStream>::iterator msg, const
 			switch(lResult) {
 				case IValidator::SUCCESS: {
 					if (!peerManager_->settings()->isMiner()) {
-						StatePtr lState = peerManager_->consensusManager()->currentState();
-						if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: notifying state changes ") + key() + " -> " + lState->toString());
-						peerManager_->consensusManager()->broadcastState(lState, peerManager_->consensusManager()->mainPKey().id());
+						StatePtr lLocalState = peerManager_->consensusManager()->currentState();
+						if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: notifying state changes ") + key() + " -> " + lLocalState->toString());
+						peerManager_->consensusManager()->broadcastState(lLocalState, peerManager_->consensusManager()->mainPKey().id());
 					}	
 				}
 				case IValidator::BROKEN_CHAIN: {
@@ -3375,8 +3447,8 @@ void Peer::processBlockHeaderAndState(std::list<DataStream>::iterator msg, const
 						if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing state from ") + key() + " -> " + lState.toString());
 						StatePtr lStatePtr = State::instance(lState);
 						IPeer::UpdatePeerResult lPeerResult;
-						if (!peerManager_->updatePeerState(shared_from_this(), lState, lPeerResult)) {
-							setState(lState);
+						if (!peerManager_->updatePeerState(shared_from_this(), lStatePtr, lPeerResult)) {
+							setState(lStatePtr);
 							peerManager_->consensusManager()->pushPeer(shared_from_this());
 						}
 						peerManager_->consensusManager()->pushState(lStatePtr);
@@ -3737,7 +3809,7 @@ void Peer::processPong(std::list<DataStream>::iterator msg, const boost::system:
 
 		// update and median time
 		peerManager_->updatePeerLatency(shared_from_this(), (uint32_t)(getMicroseconds() - lTimestamp));
-		if (!state().client()) peerManager_->updateMedianTime();
+		if (!state()->client()) peerManager_->updateMedianTime();
 
 	} else {
 		processError("processPong", error);
@@ -3769,7 +3841,7 @@ void Peer::processGlobalState(std::list<DataStream>::iterator msg, const boost::
 			if (lState.valid()) {
 				StatePtr lStatePtr = State::instance(lState);
 				peerManager_->consensusManager()->pushState(lStatePtr);
-				setState(lState);
+				setState(lStatePtr);
 
 				/*
 				if (peerManager_->settings()->isClient()) {
@@ -3807,7 +3879,7 @@ void Peer::processState(std::list<DataStream>::iterator msg, bool broadcast, con
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing state from ") + key() + " -> " + lState.toString());
 
 		IPeer::UpdatePeerResult lPeerResult;
-		if (!peerManager_->updatePeerState(shared_from_this(), lState, lPeerResult)) {
+		if (!peerManager_->updatePeerState(shared_from_this(), State::instance(lState), lPeerResult)) {
 			// if peer aleady exists
 			if (lPeerResult == IPeer::EXISTS) {
 				Message lMessage(Message::PEER_EXISTS, sizeof(uint64_t), uint160());
@@ -3840,11 +3912,15 @@ void Peer::processState(std::list<DataStream>::iterator msg, bool broadcast, con
 				// log
 				gLog().write(Log::NET, "[peer]: closing session " + key() + " -> " + error.message());
 				//
-				socketStatus_ = ERROR;
-				// try to deactivate peer
-				peerManager_->deactivatePeer(shared_from_this());
-				// close socket
-				socket_->close();
+				{
+					boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
+					//
+					socketStatus_ = ERROR;
+					// try to deactivate peer
+					peerManager_->deactivatePeer(shared_from_this());
+					// close socket
+					socket_->close();
+				}
 			}
 		} else if (broadcast) {
 			// send state only for inbound peers
@@ -3862,30 +3938,35 @@ void Peer::connect() {
 		return;
 	}
 
-	if (socketType_ == CLIENT && (socketStatus_ == CLOSED || socketStatus_ == ERROR) && peerManager_) {
-		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: connecting ") + key());
+	//
+	{
+		boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
+		if (socketType_ == CLIENT && (socketStatus_ == CLOSED || socketStatus_ == ERROR) && peerManager_) {
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: connecting ") + key());
 
-		// change status
-		socketStatus_ = CONNECTING;
+			// change status
+			socketStatus_ = CONNECTING;
 
-		// make socket
-		socket_.reset(new boost::asio::ip::tcp::socket(peerManager_->getContext(contextId_)));
+			// make socket
+			socket_.reset(new boost::asio::ip::tcp::socket(peerManager_->getContext(contextId_)));
+			strand_.reset(new boost::asio::io_service::strand(peerManager_->getContext(contextId_)));
 
-		std::vector<std::string> lParts;
-		boost::split(lParts, endpoint_, boost::is_any_of(":"), boost::token_compress_on);
+			std::vector<std::string> lParts;
+			boost::split(lParts, endpoint_, boost::is_any_of(":"), boost::token_compress_on);
 
-		if (lParts.size() == 2) {
-			resolver_->async_resolve(tcp::resolver::query(lParts[0], lParts[1]),
-				strand_->wrap(boost::bind(&Peer::resolved, shared_from_this(),
-					boost::asio::placeholders::error,
-					boost::asio::placeholders::iterator)));			
+			if (lParts.size() == 2) {
+				resolver_->async_resolve(tcp::resolver::query(lParts[0], lParts[1]),
+					strand_->wrap(boost::bind(&Peer::resolved, shared_from_this(),
+						boost::asio::placeholders::error,
+						boost::asio::placeholders::iterator)));			
+			}
 		}
 	}
 }
 
 void Peer::resolved(const boost::system::error_code& error, tcp::resolver::iterator endpoint_iterator) {
 	//
-	if (!error) {
+	if (!error && socket_ != nullptr) {
 		tcp::endpoint lEndpoint = *endpoint_iterator;
 		socket_->async_connect(lEndpoint,
 			strand_->wrap(boost::bind(&Peer::connected, shared_from_this(),

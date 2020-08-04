@@ -65,6 +65,7 @@
 	#include "dapps/buzzer/txrebuzz.h"
 	#include "dapps/buzzer/txrebuzznotify.h"
 	#include "dapps/buzzer/txbuzzlike.h"
+	#include "dapps/buzzer/txbuzzreward.h"
 	#include "dapps/buzzer/txbuzzerendorse.h"
 	#include "dapps/buzzer/txbuzzermistrust.h"
 	#include "dapps/buzzer/txbuzzersubscribe.h"
@@ -148,6 +149,110 @@ public:
 	Node(ISettingsPtr settings) {
 		settings_ = settings;
 
+		// pre-launch
+		// tx types
+		Transaction::registerTransactionType(Transaction::ASSET_TYPE, TxAssetTypeCreator::instance());
+		Transaction::registerTransactionType(Transaction::ASSET_EMISSION, TxAssetEmissionCreator::instance());
+		Transaction::registerTransactionType(Transaction::DAPP, TxDAppCreator::instance());
+		Transaction::registerTransactionType(Transaction::SHARD, TxShardCreator::instance());
+		Transaction::registerTransactionType(Transaction::BASE, TxBaseCreator::instance());
+		Transaction::registerTransactionType(Transaction::BLOCKBASE, TxBlockBaseCreator::instance());
+
+#if defined (BUZZER_MOD)
+		Transaction::registerTransactionType(TX_BUZZER, TxBuzzerCreator::instance());
+		Transaction::registerTransactionType(TX_BUZZER_SUBSCRIBE, TxBuzzerSubscribeCreator::instance());
+		Transaction::registerTransactionType(TX_BUZZER_UNSUBSCRIBE, TxBuzzerUnsubscribeCreator::instance());
+		Transaction::registerTransactionType(TX_BUZZ, TxBuzzCreator::instance());
+		Transaction::registerTransactionType(TX_BUZZ_LIKE, TxBuzzLikeCreator::instance());
+		Transaction::registerTransactionType(TX_BUZZ_REPLY, TxBuzzReplyCreator::instance());
+		Transaction::registerTransactionType(TX_REBUZZ, TxReBuzzCreator::instance());
+		Transaction::registerTransactionType(TX_BUZZ_REBUZZ_NOTIFY, TxReBuzzNotifyCreator::instance());
+		Transaction::registerTransactionType(TX_BUZZER_ENDORSE, TxBuzzerEndorseCreator::instance());
+		Transaction::registerTransactionType(TX_BUZZER_MISTRUST, TxBuzzerMistrustCreator::instance());
+		Transaction::registerTransactionType(TX_BUZZER_INFO, TxBuzzerInfoCreator::instance());
+		Transaction::registerTransactionType(TX_BUZZ_REWARD, TxBuzzRewardCreator::instance());
+#endif
+#if defined (CUBIX_MOD)		
+		Transaction::registerTransactionType(TX_CUBIX_MEDIA_HEADER, cubix::TxMediaHeaderCreator::instance());
+		Transaction::registerTransactionType(TX_CUBIX_MEDIA_DATA, cubix::TxMediaDataCreator::instance());
+		Transaction::registerTransactionType(TX_CUBIX_MEDIA_SUMMARY, cubix::TxMediaSummaryCreator::instance());
+#endif
+
+		// tx verification actions
+		TransactionProcessor::registerTransactionAction(TxBuzzerTimelockOutsVerify::instance());
+
+		// validators
+#if defined (BUZZER_MOD)		
+		ValidatorManager::registerValidator("buzzer", BuzzerValidatorCreator::instance());
+#endif
+
+#if defined (CUBIX_MOD)		
+		ValidatorManager::registerValidator("cubix", cubix::MiningValidatorCreator::instance());
+#endif
+
+		// consensuses
+#if defined (BUZZER_MOD)		
+		ConsensusManager::registerConsensus("buzzer", BuzzerConsensusCreator::instance());
+#endif
+#if defined (CUBIX_MOD)		
+		ConsensusManager::registerConsensus("cubix", cubix::DefaultConsensusCreator::instance());
+#endif
+
+		// store extensions
+#if defined (BUZZER_MOD)		
+		ShardingManager::registerStoreExtension("buzzer", BuzzerTransactionStoreExtensionCreator::instance());	
+#endif
+
+		// buzzer message types
+#if defined (BUZZER_MOD)		
+		Message::registerMessageType(GET_BUZZER_SUBSCRIPTION, "GET_BUZZER_SUBSCRIPTION");
+		Message::registerMessageType(BUZZER_SUBSCRIPTION, "BUZZER_SUBSCRIPTION");
+		Message::registerMessageType(BUZZER_SUBSCRIPTION_IS_ABSENT, "BUZZER_SUBSCRIPTION_IS_ABSENT");
+		Message::registerMessageType(GET_BUZZ_FEED, "GET_BUZZ_FEED");
+		Message::registerMessageType(BUZZ_FEED, "BUZZ_FEED");
+		Message::registerMessageType(NEW_BUZZ_NOTIFY, "NEW_BUZZ_NOTIFY");
+		Message::registerMessageType(BUZZ_UPDATE_NOTIFY, "BUZZ_UPDATE_NOTIFY");
+		Message::registerMessageType(GET_BUZZES, "GET_BUZZES");
+		Message::registerMessageType(GET_EVENTS_FEED, "GET_EVENTS_FEED");
+		Message::registerMessageType(EVENTS_FEED, "EVENTS_FEED");
+		Message::registerMessageType(NEW_EVENT_NOTIFY, "NEW_EVENT_NOTIFY");
+		Message::registerMessageType(EVENT_UPDATE_NOTIFY, "EVENT_UPDATE_NOTIFY");	
+		Message::registerMessageType(GET_BUZZER_TRUST_SCORE, "GET_BUZZER_TRUST_SCORE");
+		Message::registerMessageType(BUZZER_TRUST_SCORE, "BUZZER_TRUST_SCORE"); 
+		Message::registerMessageType(BUZZER_TRUST_SCORE_UPDATE, "BUZZER_TRUST_SCORE_UPDATE");
+		Message::registerMessageType(GET_BUZZER_MISTRUST_TX, "GET_BUZZER_MISTRUST_TX");
+		Message::registerMessageType(BUZZER_MISTRUST_TX, "BUZZER_MISTRUST_TX");
+		Message::registerMessageType(GET_BUZZER_ENDORSE_TX, "GET_BUZZER_ENDORSE_TX");
+		Message::registerMessageType(BUZZER_ENDORSE_TX, "BUZZER_ENDORSE_TX");
+		Message::registerMessageType(GET_BUZZ_FEED_BY_BUZZ, "GET_BUZZ_FEED_BY_BUZZ");
+		Message::registerMessageType(BUZZ_FEED_BY_BUZZ, "BUZZ_FEED_BY_BUZZ");
+		Message::registerMessageType(GET_BUZZ_FEED_BY_BUZZER, "GET_BUZZ_FEED_BY_BUZZER");
+		Message::registerMessageType(BUZZ_FEED_BY_BUZZER, "BUZZ_FEED_BY_BUZZER");
+		Message::registerMessageType(GET_MISTRUSTS_FEED_BY_BUZZER, "GET_MISTRUSTS_FEED_BY_BUZZER");
+		Message::registerMessageType(MISTRUSTS_FEED_BY_BUZZER, "MISTRUSTS_FEED_BY_BUZZER");
+		Message::registerMessageType(GET_ENDORSEMENTS_FEED_BY_BUZZER, "GET_ENDORSEMENTS_FEED_BY_BUZZER");
+		Message::registerMessageType(ENDORSEMENTS_FEED_BY_BUZZER, "ENDORSEMENTS_FEED_BY_BUZZER");
+		Message::registerMessageType(GET_BUZZER_SUBSCRIPTIONS, "GET_BUZZER_SUBSCRIPTIONS");
+		Message::registerMessageType(BUZZER_SUBSCRIPTIONS, "BUZZER_SUBSCRIPTIONS");
+		Message::registerMessageType(GET_BUZZER_FOLLOWERS, "GET_BUZZER_FOLLOWERS");
+		Message::registerMessageType(BUZZER_FOLLOWERS, "BUZZER_FOLLOWERS");
+		Message::registerMessageType(GET_BUZZ_FEED_GLOBAL, "GET_BUZZ_FEED_GLOBAL");
+		Message::registerMessageType(BUZZ_FEED_GLOBAL, "BUZZ_FEED_GLOBAL");
+		Message::registerMessageType(GET_BUZZ_FEED_BY_TAG, "GET_BUZZ_FEED_BY_TAG");
+		Message::registerMessageType(BUZZ_FEED_BY_TAG, "BUZZ_FEED_BY_TAG");
+		Message::registerMessageType(GET_HASH_TAGS, "GET_HASH_TAGS");
+		Message::registerMessageType(HASH_TAGS, "HASH_TAGS");
+#endif
+
+		// buzzer peer extention
+#if defined (BUZZER_MOD)		
+		PeerManager::registerPeerExtension("buzzer", BuzzerPeerExtensionCreator::instance());
+#endif
+		// cubix
+#if defined (CUBIX_MOD)		
+		PeerManager::registerPeerExtension("cubix", cubix::DefaultPeerExtensionCreator::instance());
+#endif
+		
 		// main working configuration
 		wallet_ = Wallet::instance(settings_);
 		consensusManager_ = ConsensusManager::instance(settings_);
@@ -353,7 +458,7 @@ int main(int argv, char** argc) {
 	}
 
 	// prepare wallet
-	if (!lNode->wallet()->open()) {
+	if (!lNode->wallet()->open("")) {
 		std::cout << "node: wallet open failed." << std::endl;
 		return -1;
 	}

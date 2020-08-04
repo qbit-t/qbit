@@ -34,6 +34,7 @@ std::string _getLogCategoryText(Log::Category category) {
 		case Log::Category::BALANCE:	return "bal   ";
 		case Log::Category::SHARDING:	return "shard ";
 		case Log::Category::CLIENT:		return "client";
+		case Log::Category::DEBUG:		return "debug ";
 		case Log::Category::ALL: 		return "*     ";
 	}
 
@@ -57,23 +58,33 @@ Log::Category qbit::getLogCategory(const std::string& category) {
 	else if (category == "bal")		return Log::Category::BALANCE;
 	else if (category == "shard")	return Log::Category::SHARDING;
 	else if (category == "client")	return Log::Category::CLIENT;
+
+	else if (category == "debug")	return Log::Category::DEBUG;
 	return Log::Category::ALL;
 }
 
 void qbit::Log::write(Log::Category category, const std::string& str) {
 	if (isEnabled(category)) {
+		//
 		if (open()) {
+			boost::unique_lock<boost::mutex> lLock(mutex_);
+
 			uint64_t lMicroSeconds = getMicroseconds();
 			std::string lMessage = 
 				strprintf("[%d][%s.%06d][%s]%s", boost::this_thread::get_id(), 
 					formatISO8601DateTime(lMicroSeconds / 1000000), lMicroSeconds % 1000000, _getLogCategoryText(category), str);
 
+			if (echoFunction_) echoFunction_(category, lMessage);
+
 			if (lMessage.at(lMessage.length()-1) != '\n') lMessage += "\n";
 			if (console_) std::cout << lMessage;
 
-			{
-				boost::unique_lock<boost::mutex> lLock(mutex_);
+			if (file_) {
 				fwrite(lMessage.data(), 1, lMessage.size(), out_);
+			}
+		} else {
+			if (echoFunction_) {
+				echoFunction_(category, str);
 			}
 		}
 	}
@@ -82,6 +93,8 @@ void qbit::Log::write(Log::Category category, const std::string& str) {
 void qbit::Log::writeClient(Log::Category category, const std::string& str) {
 	if (isEnabled(category)) {
 		if (open()) {
+			boost::unique_lock<boost::mutex> lLock(mutex_);
+
 			uint64_t lMicroSeconds = getMicroseconds();
 			std::string lMessage = 
 				strprintf("[%d][%s.%06d][%s]%s", boost::this_thread::get_id(), 
@@ -90,12 +103,17 @@ void qbit::Log::writeClient(Log::Category category, const std::string& str) {
 			std::string lConsoleMessage = 
 				strprintf("[%d]%s", _getLogCategoryText(category), str);
 
+			if (echoFunction_) echoFunction_(category, lMessage);	
+
 			if (lMessage.at(lMessage.length()-1) != '\n') { lMessage += "\n"; lConsoleMessage += "\n"; }
 			std::cout << lConsoleMessage;
 
-			{
-				boost::unique_lock<boost::mutex> lLock(mutex_);
+			if (file_) {
 				fwrite(lMessage.data(), 1, lMessage.size(), out_);
+			}
+		} else {
+			if (echoFunction_) {
+				echoFunction_(category, str);
 			}
 		}
 	}

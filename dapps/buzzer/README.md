@@ -75,7 +75,7 @@ curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"getkey","params":
 
 2. Replace ADDRESS_NODE_0 by "address" and run
 
-curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"createdapp","params":["<ADDRESS_NODE_0>", "buzzer", "Buzzer - Decentralized microblogging platform", "4096", "static"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
+curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"createdapp","params":["ADDRESS_NODE_0", "buzzer", "Buzzer - Decentralized microblogging platform", "4096", "static"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
 
 curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"createshard","params":["ADDRESS_NODE_0", "buzzer", "buzzer#00", "Buzzer shard 00"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
 

@@ -115,6 +115,9 @@ public:
 	inline ProcessingContext context() { return context_; }
 	inline void setContext(ProcessingContext context) { context_ = context; }
 
+	inline void incrementReprocessed() { reprocessed_++; }
+	inline bool reprocessTimedout() { reprocessed_ >= 30; /* approx 3 block */}
+
 	// estimated rate (feeIn/out maybe excluded)
 	inline qunit_t feeRate() {
 		size_t lSize = size();
@@ -175,6 +178,8 @@ private:
 	std::list<TransactionContextPtr> linkedTxs_;
 	// cross-mempool links
 	std::set<uint256 /*from*/> crossLinks_;
+	// re-process count
+	int reprocessed_ = 0;
 };
 
 } // qbit

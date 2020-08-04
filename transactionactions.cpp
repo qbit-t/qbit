@@ -210,6 +210,10 @@ TransactionAction::Result TxSpendVerify::execute(TransactionContextPtr wrapper, 
 						wrapper->tx()->setStatus(Transaction::DECLINED);
 						wrapper->addError(lError);
 						gLog().write(Log::ERROR, std::string("[TxSpendVerify]: ") + lError);
+
+						std::stringstream lS;
+						lVM.dumpState(lS);
+						gLog().write(Log::ERROR, "[State]: " + lS.str());
 					}
 
 					if (wrapper->errors().size())

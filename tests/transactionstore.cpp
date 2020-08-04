@@ -9,7 +9,7 @@ bool StoreQbitCreateSpend::execute() {
 	rmpath(settings_->dataPath().c_str());
 
 	// prepare wallet
-	if (!wallet_->open()) {
+	if (!wallet_->open("")) {
 		error_  = "Wallet open failed.";
 		return false;
 	}

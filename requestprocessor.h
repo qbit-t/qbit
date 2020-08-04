@@ -14,9 +14,16 @@
 
 namespace qbit {
 
+//
+typedef boost::function<void (IPeerPtr /*peer*/, bool /*update*/, int /*count*/)> peerPushedFunction;
+typedef boost::function<void (IPeerPtr /*peer*/, int /*count*/)> peerPoppedFunction;
+
+//
 class RequestProcessor: public IConsensusManager, public IRequestProcessor, public std::enable_shared_from_this<RequestProcessor> {
 public:
 	RequestProcessor(ISettingsPtr settings) : settings_(settings) {}
+	RequestProcessor(ISettingsPtr settings, peerPushedFunction peerPushed, peerPoppedFunction peerPopped) : 
+		settings_(settings), peerPushed_(peerPushed), peerPopped_(peerPopped) {}
 
 	//
 	// current state
@@ -30,6 +37,9 @@ public:
 		// TODO: device_id
 		return lState;
 	}
+
+	//
+	size_t quarantineTime() { return 100; /* settings? */ }		
 
 	//
 	// client dapp instance
@@ -73,18 +83,24 @@ public:
 		uint160 lAddress = peer->addressId();
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[pushPeer]: try to push peer ") + 
 				strprintf("%s", lAddress.toHex()));
+
+		bool lAdded = false;
+		bool lExists = false;
+		int lSize = 0;
 		{
 			// push
-			boost::unique_lock<boost::mutex> lLock(peersMutex_);
+			boost::unique_lock<boost::recursive_mutex> lLock(peersMutex_);
 
-			bool lAdded = false;
-			std::vector<State::BlockInfo> lInfos = peer->state().infos();
+			std::map<uint160 /*peer*/, IPeerPtr>::iterator lExisting = peers_.find(lAddress);
+			lExists = lExisting != peers_.end(); // exists before update and merge
+
+			std::vector<State::BlockInfo> lInfos = peer->state()->infos();
 			for (std::vector<State::BlockInfo>::iterator lInfo = lInfos.begin(); lInfo != lInfos.end(); lInfo++) {
 				std::set<uint160> lPeers = chainPeers_[(*lInfo).chain()];
 				//
 				// if peer collection by chain is less than 3 - take this peer
-				std::map<uint160 /*peer*/, IPeerPtr>::iterator lExisting = peers_.find(lAddress);
-				if (lPeers.size() < 3 /*settings: normal, average, paranoid*/ || lExisting != peers_.end()) {
+				lExisting = peers_.find(lAddress);
+				if (lPeers.size() < 3 /*settings: normal, average, paranoid*/ || lExists) {
 					bool lCorrect = false;
 					for (std::vector<State::DAppInstance>::iterator lInstance = dapps_.begin(); lInstance != dapps_.end(); lInstance++) {
 						if ((*lInfo).dApp() == lInstance->name()) { 
@@ -109,13 +125,21 @@ public:
 				}
 			}
 
+			lSize = peers_.size();
+
 			// if exist - no changes
 			if (lAdded) { 
 				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[pushPeer]: peer pushed ") + 
 						strprintf("%s", lAddress.toHex()));
 				peers_.insert(std::map<uint160 /*peer*/, IPeerPtr>::value_type(lAddress, peer));
-			} else return false;
+				lSize = peers_.size();
+			} else {
+				return false;
+			}
 		}
+
+		//
+		if (peerPushed_) peerPushed_(peer, lExists, lSize);
 
 		pushPeerLatency(peer);
 		return true;
@@ -126,7 +150,7 @@ public:
 	void pushPeerLatency(IPeerPtr peer) {
 		// push
 		uint160 lAddress = peer->addressId();
-		boost::unique_lock<boost::mutex> lLock(peersMutex_);
+		boost::unique_lock<boost::recursive_mutex> lLock(peersMutex_);
 		// update latency
 		latencyMap_.erase(lAddress);
 		latencyMap_.insert(LatencyMap::value_type(lAddress, peer->latency()));
@@ -144,11 +168,12 @@ public:
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[popPeer]: popping peer ") + 
 				strprintf("%s", lPeerId.toHex()));
 
+		int lSize = 0;
 		{
 			// pop
-			boost::unique_lock<boost::mutex> lLock(peersMutex_);
+			boost::unique_lock<boost::recursive_mutex> lLock(peersMutex_);
 			uint160 lAddress = peer->addressId();
-			std::vector<State::BlockInfo> lInfos = peer->state().infos();
+			std::vector<State::BlockInfo> lInfos = peer->state()->infos();
 			for (std::vector<State::BlockInfo>::iterator lInfo = lInfos.begin(); lInfo != lInfos.end(); lInfo++) {
 				chainPeers_[(*lInfo).chain()].erase(lAddress);
 				if ((*lInfo).dApp().size()) { 
@@ -161,11 +186,14 @@ public:
 
 			peers_.erase(lAddress);
 			latencyMap_.erase(lPeerId);
+			lSize = peers_.size();
 		}
+
+		if (peerPopped_) peerPopped_(peer, lSize);
 	}
 
 	bool peerExists(const uint160& peer) {
-		boost::unique_lock<boost::mutex> lLock(peersMutex_);
+		boost::unique_lock<boost::recursive_mutex> lLock(peersMutex_);
 		return peers_.find(peer) != peers_.end();
 	}	
 
@@ -195,6 +223,9 @@ public:
 	// make instance
 	static IRequestProcessorPtr instance(ISettingsPtr settings) {
 		return std::make_shared<RequestProcessor>(settings);
+	}
+	static IRequestProcessorPtr instance(ISettingsPtr settings, peerPushedFunction peerPushed, peerPoppedFunction peerPopped) {
+		return std::make_shared<RequestProcessor>(settings, peerPushed, peerPopped);
 	}
 
 	void requestState() {
@@ -440,7 +471,7 @@ public:
 		// prepare
 		std::map<uint160 /*peer*/, IPeerPtr> lPeers;
 		{
-			boost::unique_lock<boost::mutex> lLock(peersMutex_);
+			boost::unique_lock<boost::recursive_mutex> lLock(peersMutex_);
 			lPeers = peers_;
 		}
 
@@ -462,7 +493,7 @@ public:
 
 	void collectPeers(std::map<uint160, IPeerPtr>& peers) {
 		//
-		boost::unique_lock<boost::mutex> lLock(peersMutex_);
+		boost::unique_lock<boost::recursive_mutex> lLock(peersMutex_);
 		for (std::map<uint256 /*chain*/, std::set<uint160>>::iterator lPeers = chainPeers_.begin(); lPeers != chainPeers_.end(); lPeers++) {
 			for (std::set<uint160>::iterator lAddress = lPeers->second.begin(); lAddress != lPeers->second.end(); lAddress++) {
 				std::map<uint160 /*peer*/, IPeerPtr>::iterator lPeer = peers_.find(*lAddress);
@@ -476,7 +507,7 @@ public:
 	// probably nearest node has to be fully synchronized
 	void collectPeersByChain(const uint256& chain, std::map<IRequestProcessor::KeyOrder, IPeerPtr>& order) {
 		//
-		boost::unique_lock<boost::mutex> lLock(peersMutex_);
+		boost::unique_lock<boost::recursive_mutex> lLock(peersMutex_);
 		std::map<uint256 /*chain*/, std::set<uint160>>::iterator lPeers = chainPeers_.find(chain);
 		if (lPeers != chainPeers_.end()) {
 			for (std::set<uint160>::iterator lAddress = lPeers->second.begin(); lAddress != lPeers->second.end(); lAddress++) {
@@ -485,7 +516,7 @@ public:
 				if (lLatency != latencyMap_.end() && lPeer != peers_.end()) {
 					//
 					State::BlockInfo lInfo;
-					if (lPeer->second->state().locateChain(chain, lInfo)) {
+					if (lPeer->second->state()->locateChain(chain, lInfo)) {
 						order.insert(std::map<IRequestProcessor::KeyOrder, IPeerPtr>::value_type(
 							IRequestProcessor::KeyOrder(lInfo.height(), lLatency->second), lPeer->second));
 					}
@@ -496,7 +527,7 @@ public:
 
 	void collectPeersByDApp(const std::string& dapp, std::map<uint256, std::map<uint32_t, IPeerPtr>>& order) {
 		//
-		boost::unique_lock<boost::mutex> lLock(peersMutex_);
+		boost::unique_lock<boost::recursive_mutex> lLock(peersMutex_);
 		std::map<std::string /*dapp*/, std::set<uint160>>::iterator lDApp = dappPeers_.find(dapp);
 
 		if (lDApp != dappPeers_.end()) {
@@ -504,7 +535,7 @@ public:
 				//
 				std::map<uint160 /*peer*/, IPeerPtr>::iterator lPeer = peers_.find(*lPeerAddress);
 				if (lPeer != peers_.end()) {
-					for (std::vector<State::BlockInfo>::iterator lInfo = lPeer->second->state().infos().begin(); lInfo != lPeer->second->state().infos().end(); lInfo++) {
+					for (std::vector<State::BlockInfo>::iterator lInfo = lPeer->second->state()->infos().begin(); lInfo != lPeer->second->state()->infos().end(); lInfo++) {
 						if (lInfo->dApp() == dapp) { 
 							order[lInfo->chain()].insert(std::map<uint32_t, IPeerPtr>::value_type(lPeer->second->latency(), lPeer->second));
 						}
@@ -516,7 +547,7 @@ public:
 
 	void collectChains(const std::string& dApp, std::vector<uint256>& chains) {
 		//
-		boost::unique_lock<boost::mutex> lLock(peersMutex_);
+		boost::unique_lock<boost::recursive_mutex> lLock(peersMutex_);
 		std::map<std::string /*dapp*/, std::set<uint256>>::iterator lDApp = dappChains_.find(dApp);
 		if (lDApp != dappChains_.end()) {
 			chains.insert(chains.end(), lDApp->second.begin(), lDApp->second.end());
@@ -525,7 +556,7 @@ public:
 
 	uint64_t locateHeight(const uint256& chain) {
 		//
-		boost::unique_lock<boost::mutex> lLock(peersMutex_);
+		boost::unique_lock<boost::recursive_mutex> lLock(peersMutex_);
 		std::set<uint64_t /*height*/> lOrder;
 		std::map<uint256 /*chain*/, std::set<uint160>>::iterator lPeers = chainPeers_.find(chain);
 		if (lPeers != chainPeers_.end()) {
@@ -534,7 +565,7 @@ public:
 				//
 				if (lPeer != peers_.end()) {
 					State::BlockInfo lInfo;
-					if (lPeer->second->state().locateChain(chain, lInfo)) {
+					if (lPeer->second->state()->locateChain(chain, lInfo)) {
 						lOrder.insert(lInfo.height());
 					}
 				}
@@ -546,13 +577,23 @@ public:
 		return 0;
 	}
 
+	IPeerPtr locatePeer(const uint160& peer) {
+		//
+		boost::unique_lock<boost::recursive_mutex> lLock(peersMutex_);
+		std::map<uint160 /*peer*/, IPeerPtr>::iterator lPeer = peers_.find(peer);
+		if (lPeer != peers_.end()) return lPeer->second;
+		return nullptr;
+	}
+
 private:
 	std::vector<State::DAppInstance> dapps_;
 
-	boost::mutex peersMutex_;
+	boost::recursive_mutex peersMutex_;
 
 	ISettingsPtr settings_;
 	IWalletPtr wallet_;
+	peerPushedFunction peerPushed_;
+	peerPoppedFunction peerPopped_;
 
 	typedef uint160 peer_t;
 

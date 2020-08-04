@@ -27,6 +27,12 @@ typedef std::shared_ptr<Buzzer> BuzzerPtr;
 class BuzzfeedItem;
 typedef std::shared_ptr<BuzzfeedItem> BuzzfeedItemPtr;
 
+class BuzzerRequestProcessor;
+typedef std::shared_ptr<BuzzerRequestProcessor> BuzzerRequestProcessorPtr;
+
+//
+typedef boost::function<void (const uint256&)> buzzerInfoReadyFunction;
+
 //
 // buzzer callbacks
 typedef boost::function<void (amount_t, amount_t)> buzzerTrustScoreUpdatedFunction;
@@ -76,45 +82,91 @@ public:
 	};
 
 public:
-	Buzzer(IRequestProcessorPtr requestProcessor, buzzerTrustScoreUpdatedFunction trustScoreUpdated) : 
-		requestProcessor_(requestProcessor), trustScoreUpdated_(trustScoreUpdated) {}
+	Buzzer(IRequestProcessorPtr requestProcessor, BuzzerRequestProcessorPtr buzzerRequestProcessor, buzzerTrustScoreUpdatedFunction trustScoreUpdated) : 
+		requestProcessor_(requestProcessor), buzzerRequestProcessor_(buzzerRequestProcessor), trustScoreUpdated_(trustScoreUpdated) {}
+
+	void updateTrustScore(amount_t endorsements, amount_t mistrusts, uint32_t subscriptions, uint32_t followers, const ProcessingError& err) {
+		if (err.success()) {
+			following_ = subscriptions;
+			followers_ = followers;
+
+			updateTrustScore(endorsements, mistrusts);
+		}
+	}
 
 	void updateTrustScore(amount_t endorsements, amount_t mistrusts) {
+		// NOTICE: raw ts - is not correct, in terms of blockchain
+		// endorsements_ = endorsements;
+		// mistrusts_ = mistrusts;
+
+		trustScoreUpdated_(endorsements, mistrusts);
+	}
+
+	void setTrustScore(amount_t endorsements, amount_t mistrusts) {
 		//
 		endorsements_ = endorsements;
 		mistrusts_ = mistrusts;
-
-		trustScoreUpdated_(endorsements_, mistrusts_);
 	}
 
 	void setBuzzfeed(BuzzfeedItemPtr buzzfeed) {
 		buzzfeed_ = buzzfeed;
 	}
 
+	void registerUpdate(BuzzfeedItemPtr buzzfeed) {
+		boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
+		updates_.insert(buzzfeed);
+	}
+
+	void removeUpdate(BuzzfeedItemPtr buzzfeed) {
+		boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
+		updates_.erase(buzzfeed);
+	}
+
+	void registerSubscription(const uint512& subscription, BuzzfeedItemPtr buzzfeed) {
+		boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
+		subscriptions_[subscription] = buzzfeed;
+	}
+
+	void removeSubscription(const uint512& subscription) {
+		boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
+		subscriptions_.erase(subscription);
+	}
+
+	bool processSubscriptions(const BuzzfeedItem& item, const uint160& peer);
+
 	BuzzfeedItemPtr buzzfeed() { return buzzfeed_; }
+
+	template<typename _update>
+	void broadcastUpdate(const _update& updates);
 
 	amount_t endorsements() { return endorsements_; }
 	amount_t mistrusts() { return mistrusts_; }
+
+	uint32_t following() { return following_; }
+	uint32_t followers() { return followers_; }
 
 	amount_t score() {
 		if (endorsements_ >= mistrusts_) return endorsements_ - mistrusts_;
 		return 0;
 	}
 
-	static BuzzerPtr instance(IRequestProcessorPtr requestProcessor, buzzerTrustScoreUpdatedFunction trustScoreUpdated) {
-		return std::make_shared<Buzzer>(requestProcessor, trustScoreUpdated);
-	}
+	static BuzzerPtr instance(IRequestProcessorPtr requestProcessor, BuzzerRequestProcessorPtr buzzerRequestProcessor, buzzerTrustScoreUpdatedFunction trustScoreUpdated);
 
 	std::map<uint256 /*info tx*/, Buzzer::Info>& pendingInfos() { return pendingInfos_; }
 	void collectPengingInfos(std::map<uint256 /*chain*/, std::set<uint256>/*items*/>& items);
 
-	void enqueueBuzzerInfoResolve(const uint256& buzzerChainId, const uint256& buzzerId, const uint256& buzzerInfoId) {
+	bool enqueueBuzzerInfoResolve(const uint256& buzzerChainId, const uint256& buzzerId, const uint256& buzzerInfoId, buzzerInfoReadyFunction readyFunction) {
 		//
-		if (buzzerChainId.isNull()) return;
+		if (buzzerChainId.isNull()) return true;
+		
 		boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
 		if (buzzerInfos_.find(buzzerInfoId) == buzzerInfos_.end()) {
 			pendingInfos_[buzzerInfoId] = Buzzer::Info(buzzerChainId, buzzerId);
+			pendingNotifications_[buzzerInfoId].push_back(readyFunction);
+			return false;
 		}
+
+		return true;
 	}
 
 	TxBuzzerInfoPtr locateBuzzerInfo(const uint256& buzzerInfoId) {
@@ -138,6 +190,7 @@ public:
 	}
 
 	void resolveBuzzerInfos();
+	void resolvePendingItems();
 
 	void pushBuzzerInfo(TxBuzzerInfoPtr info) {
 		//
@@ -145,25 +198,67 @@ public:
 		buzzerInfos_[info->id()] = info;
 		pendingInfos_.erase(info->id());
 		loadingPendingInfos_.erase(info->id());
+
+		std::map<
+			uint256 /*info tx*/, 
+			std::list<buzzerInfoReadyFunction>>::iterator lItem = pendingNotifications_.find(info->id());
+		if (lItem != pendingNotifications_.end()) {
+			//
+			for (std::list<buzzerInfoReadyFunction>::iterator lFunction = lItem->second.begin(); lFunction != lItem->second.end(); lFunction++) {
+				//
+				(*lFunction)(info->id());
+			}
+		}
+	}
+
+	bool locateAvatarMedia(const uint256& info, BuzzerMediaPointer& pointer) {
+		boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
+		std::map<uint256 /*info tx*/, TxBuzzerInfoPtr>::iterator lInfo = buzzerInfos_.find(info);
+		if (lInfo != buzzerInfos_.end()) {
+			//
+			pointer.set(lInfo->second->avatar());
+			return true;
+		}
+
+		return false;
+	}
+
+	bool locateHeaderMedia(const uint256& info, BuzzerMediaPointer& pointer) {
+		boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
+		std::map<uint256 /*info tx*/, TxBuzzerInfoPtr>::iterator lInfo = buzzerInfos_.find(info);
+		if (lInfo != buzzerInfos_.end()) {
+			//
+			pointer.set(lInfo->second->header());
+			return true;
+		}
+
+		return false;
 	}
 
 private:
 	void buzzerInfoLoaded(TransactionPtr);
+	void pendingItemsLoaded(const std::vector<BuzzfeedItem>&, const uint256&);
 	void timeout() {}
 
 private:
 	IRequestProcessorPtr requestProcessor_;
+	BuzzerRequestProcessorPtr buzzerRequestProcessor_;
 	buzzerTrustScoreUpdatedFunction trustScoreUpdated_;
 
 	amount_t endorsements_ = 0;
 	amount_t mistrusts_ = 0;
+	uint32_t following_ = 0;
+	uint32_t followers_ = 0;
 
 	BuzzfeedItemPtr buzzfeed_;
+	std::set<BuzzfeedItemPtr> updates_;
 
 	// shared buzzer infos
 	std::map<uint256 /*info tx*/, TxBuzzerInfoPtr> buzzerInfos_;
 	std::map<uint256 /*info tx*/, Buzzer::Info> pendingInfos_;
-	std::set<uint256> loadingPendingInfos_;	
+	std::map<uint256 /*info tx*/, std::list<buzzerInfoReadyFunction>> pendingNotifications_;
+	std::set<uint256> loadingPendingInfos_;
+	std::map<uint512 /*signature-key*/, BuzzfeedItemPtr> subscriptions_;
 	boost::recursive_mutex mutex_;
 };
 

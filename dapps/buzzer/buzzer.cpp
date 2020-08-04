@@ -1,4 +1,5 @@
-#include "buzzer.h"
+#include "buzzfeed.h"
+#include "../../client/dapps/buzzer/buzzerrequestprocessor.h"
 
 using namespace qbit;
 
@@ -44,3 +45,66 @@ void Buzzer::collectPengingInfos(std::map<uint256 /*chain*/, std::set<uint256>/*
 		items[lItem->second.chain()].insert(lItem->first);
 	}
 }
+
+template<>
+void Buzzer::broadcastUpdate<std::vector<BuzzfeedItemUpdate>>(const std::vector<BuzzfeedItemUpdate>& updates) {
+	std::set<BuzzfeedItemPtr> lUpdates;		
+	{
+		boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
+		lUpdates.insert(updates_.begin(), updates_.end());
+	}
+
+	for (std::set<BuzzfeedItemPtr>::iterator lItem = lUpdates.begin(); lItem != lUpdates.end(); lItem++) {
+		//
+		(*lItem)->merge(updates);
+	}
+}
+
+bool Buzzer::processSubscriptions(const BuzzfeedItem& item, const uint160& peer) {
+	//
+	if (item.source() == BuzzfeedItem::Source::BUZZ_SUBSCRIPTION) {
+		boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
+		std::map<uint512 /*signature-key*/, BuzzfeedItemPtr>::iterator lSubscription = subscriptions_.find(item.subscriptionSignature());
+		//
+		if (lSubscription != subscriptions_.end()) {
+			lSubscription->second->push(item, peer);
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void Buzzer::resolvePendingItems() {
+	//
+	// if we have postponed items, request missing
+	std::map<uint256 /*chain*/, std::set<uint256>/*items*/> lPending;
+	//
+	buzzfeed()->collectPendingItems(lPending);
+
+	if (lPending.size()) {
+		//
+		for (std::map<uint256 /*chain*/, std::set<uint256>/*items*/>::iterator lChain = lPending.begin(); lChain != lPending.end(); lChain++) {
+			//
+			std::vector<uint256> lBuzzes(lChain->second.begin(), lChain->second.end());
+			buzzerRequestProcessor_->selectBuzzes(lChain->first, lBuzzes, 
+				SelectBuzzFeed::instance(
+					boost::bind(&Buzzer::pendingItemsLoaded, shared_from_this(), _1, _2),
+					boost::bind(&Buzzer::timeout, shared_from_this()))
+			);
+		}
+	}	
+}
+
+void Buzzer::pendingItemsLoaded(const std::vector<BuzzfeedItem>& feed, const uint256& chain) {
+	// merge and notify
+	buzzfeed()->merge(feed, true);
+
+	// force
+	buzzfeed()->buzzer()->resolveBuzzerInfos();
+}
+
+BuzzerPtr Buzzer::instance(IRequestProcessorPtr requestProcessor, BuzzerRequestProcessorPtr buzzerRequestProcessor, buzzerTrustScoreUpdatedFunction trustScoreUpdated) {
+	return std::make_shared<Buzzer>(requestProcessor, buzzerRequestProcessor, trustScoreUpdated);
+}
+

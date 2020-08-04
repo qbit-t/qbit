@@ -150,7 +150,7 @@ typedef std::shared_ptr<ISelectUtxoByEntityNameHandler> ISelectUtxoByEntityNameH
 class ISelectEntityNamesHandler: public IReplyHandler {
 public:
 	ISelectEntityNamesHandler() {}
-	virtual void handleReply(const std::vector<IEntityStore::EntityName>&) = 0;
+	virtual void handleReply(const std::string&, const std::vector<IEntityStore::EntityName>&) = 0;
 };
 typedef std::shared_ptr<ISelectEntityNamesHandler> ISelectEntityNamesHandlerPtr;
 
@@ -302,7 +302,7 @@ public:
 	virtual void setType(Type) { throw qbit::exception("NOT_IMPL", "IPeer::setType - not implemented."); }
 
 	virtual Status status() { throw qbit::exception("NOT_IMPL", "IPeer::status - not implemented."); }
-	virtual State& state() { throw qbit::exception("NOT_IMPL", "IPeer::state - not implemented."); }
+	virtual StatePtr state() { throw qbit::exception("NOT_IMPL", "IPeer::state - not implemented."); }
 	virtual uint160 addressId() { throw qbit::exception("NOT_IMPL", "IPeer::addressId - not implemented."); }
 	virtual bool hasRole(State::PeerRoles /*role*/) { throw qbit::exception("NOT_IMPL", "IPeer::hasRole - not implemented."); }
 
@@ -312,7 +312,7 @@ public:
 
 	virtual void requestState() { throw qbit::exception("NOT_IMPL", "IPeer::requestState - not implemented."); }
 
-	virtual void setState(const State& /*state*/) { throw qbit::exception("NOT_IMPL", "IPeer::setState - not implemented."); }
+	virtual void setState(StatePtr /*state*/) { throw qbit::exception("NOT_IMPL", "IPeer::setState - not implemented."); }
 	virtual void setLatency(uint32_t /*latency*/) { throw qbit::exception("NOT_IMPL", "IPeer::setLatency - not implemented."); }
 
 	virtual PKey address() { throw qbit::exception("NOT_IMPL", "IPeer::address - not implemented."); }

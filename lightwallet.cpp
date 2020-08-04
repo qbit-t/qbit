@@ -12,12 +12,16 @@ SKeyPtr LightWallet::createKey(const std::list<std::string>& seed) {
 	PKey lPKey = lSKey.createPKey();
 
 	keys_.open(settings_->keysCache());
-	if (!keys_.read(lPKey.id(), lSKey))
+	if (!keys_.read(lPKey.id(), lSKey)) {
+		//
+		if (secret_.size()) lSKey.encrypt(secret_);
 		if (!keys_.write(lPKey.id(), lSKey)) { 
 			throw qbit::exception("WRITE_FAILED", "Write failed."); 
 		}
+	}
 
 	SKeyPtr lSKeyPtr = SKey::instance(lSKey);
+	if (lSKeyPtr->encrypted()) lSKeyPtr->decrypt(secret_);
 	{
 		boost::unique_lock<boost::recursive_mutex> lLock(keyMutex_);
 		keysCache_[lPKey.id()] = lSKeyPtr;
@@ -37,6 +41,7 @@ SKeyPtr LightWallet::findKey(const PKey& pkey) {
 		SKey lSKey;
 		if (keys_.read(pkey.id(), lSKey)) {
 			SKeyPtr lSKeyPtr = SKey::instance(lSKey);
+			if (lSKeyPtr->encrypted()) lSKeyPtr->decrypt(secret_);
 			keysCache_[pkey.id()] = lSKeyPtr;
 
 			return lSKeyPtr;
@@ -57,6 +62,8 @@ SKeyPtr LightWallet::firstKey() {
 	db::DbContainer<uint160 /*id*/, SKey>::Iterator lKey = keys_.begin();
 	if (lKey.valid()) {
 		SKeyPtr lSKeyPtr = SKey::instance(*lKey);
+		if (lSKeyPtr->encrypted()) lSKeyPtr->decrypt(secret_);
+
 		uint160 lId;
 		if (lKey.first(lId)) {
 			boost::unique_lock<boost::recursive_mutex> lLock(keyMutex_);
@@ -74,13 +81,14 @@ SKeyPtr LightWallet::changeKey() {
 	return firstKey();
 }
 
-bool LightWallet::open() {
+bool LightWallet::open(const std::string& secret) {
 	if (!opened_) {
 		try {
 			if (mkpath(std::string(settings_->dataPath() + "/wallet").c_str(), 0777)) return false;
 
 			keys_.open();
 			utxo_.open();
+			secret_ = secret;
 
 			opened_ = true;
 		}
@@ -209,6 +217,9 @@ void LightWallet::handleReply(const std::vector<Transaction::NetworkUnlinkedOut>
 
 bool LightWallet::prepareCache() {
 	//
+	resetCache();
+
+	//
 	status_ = IWallet::FETCHING_UTXO;
 
 	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[prepareCache]: selecting utxo..."));
@@ -248,6 +259,8 @@ bool LightWallet::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, TransactionC
 		if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[pushUnlinkedOut]: pushed ") + 
 			strprintf("utxo = %s, tx = %s, ctx = %s/%s#", 
 				utxo->hash().toHex(), utxo->out().tx().toHex(), ctx->tx()->id().toHex(), utxo->out().chain().toHex().substr(0, 10)));
+		// notify
+		if (walletReceiveTransaction_) walletReceiveTransaction_(utxo, ctx->tx());
 	} else {
 		{
 			boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
@@ -259,6 +272,8 @@ bool LightWallet::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, TransactionC
 		if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[pushUnlinkedOut]: ") + 
 			strprintf("PUSHED utxo = %s, tx = %s, ctx = %s/%s#", 
 				utxo->hash().toHex(), utxo->out().tx().toHex(), ctx->tx()->id().toHex(), utxo->out().chain().toHex().substr(0, 10)));
+		// notify
+		if (walletReceiveTransaction_) walletReceiveTransaction_(utxo, ctx->tx());
 	}
 
 	return true;

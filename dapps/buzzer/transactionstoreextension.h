@@ -31,6 +31,7 @@ public:
 		uint32_t replies_ = 0;
 		uint32_t rebuzzes_ = 0;
 		uint32_t likes_ = 0;
+		uint64_t rewards_ = 0;
 
 		ADD_SERIALIZE_METHODS;
 
@@ -39,11 +40,10 @@ public:
 			READWRITE(replies_);
 			READWRITE(rebuzzes_);
 			READWRITE(likes_);
+			READWRITE(rewards_);
 		}
 	};
 
-	// TODO: rename to BuzzerStats
-	// add my_subscribers, my_subscriptions aggregates
 	class BuzzerInfo {
 	public:
 		BuzzerInfo() {}
@@ -114,7 +114,7 @@ public:
 		}
 
 	private:
-		uint64_t endorsements_ = BUZZER_TRUST_SCORE_BASE; // initial
+		uint64_t endorsements_ = BUZZER_TRUST_SCORE_BASE + BUZZER_TRUST_SCORE_BASE / 2; // initial
 		uint64_t mistrusts_ = BUZZER_TRUST_SCORE_BASE; // initial
 		uint32_t subscriptions_ = 0;
 		uint32_t followers_ = 0;
@@ -128,6 +128,7 @@ public:
 		timeline_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/timeline"), 
 		globalTimeline_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/global_timeline"), 
 		hashTagTimeline_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/hashed_timeline"), 
+		hashTagUpdates_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/hash_tag_updates"), 
 		hashTags_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/hash_tags"), 
 		events_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/events"), 
 		subscriptionsIdx_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/indexes/subscriptions"),
@@ -153,9 +154,9 @@ public:
 	bool isAllowed(TransactionContextPtr);
 
 	TransactionPtr locateSubscription(const uint256& /*subscriber*/, const uint256& /*publisher*/);
-	void selectBuzzfeed(uint64_t /*from*/, const uint256& /*subscriber*/, std::vector<BuzzfeedItem>& /*feed*/);
-	void selectBuzzfeedGlobal(uint64_t /*timeframeFrom*/, uint64_t /*scoreFrom*/, const uint160& /*publisherTs*/, std::vector<BuzzfeedItem>& /*feed*/);
-	void selectBuzzfeedByTag(const std::string& /*tag*/, uint64_t /*timeframeFrom*/, uint64_t /*scoreFrom*/, const uint160& /*publisherTs*/, std::vector<BuzzfeedItem>& /*feed*/);
+	void selectBuzzfeed(const std::vector<BuzzfeedPublisherFrom>& /*from*/, const uint256& /*subscriber*/, std::vector<BuzzfeedItem>& /*feed*/);
+	void selectBuzzfeedGlobal(uint64_t /*timeframeFrom*/, uint64_t /*scoreFrom*/, uint64_t /*timestampFrom*/, const uint256& /*publisher*/, std::vector<BuzzfeedItem>& /*feed*/);
+	void selectBuzzfeedByTag(const std::string& /*tag*/, uint64_t /*timeframeFrom*/, uint64_t /*scoreFrom*/, uint64_t /*timestampFrom*/, const uint256& /*publisher*/, std::vector<BuzzfeedItem>& /*feed*/);
 	void selectBuzzfeedByBuzz(uint64_t /*from*/, const uint256& /*buzz*/, std::vector<BuzzfeedItem>& /*feed*/);
 	void selectBuzzfeedByBuzzer(uint64_t /*from*/, const uint256& /*buzzer*/, std::vector<BuzzfeedItem>& /*feed*/);
 	void selectEventsfeed(uint64_t /*from*/, const uint256& /*buzzer*/, std::vector<EventsfeedItem>& /*feed*/);
@@ -186,6 +187,7 @@ private:
 	void processSubscribe(const uint256&, TransactionContextPtr);
 	void processUnsubscribe(const uint256&, TransactionContextPtr);
 	void processLike(const uint256&, TransactionContextPtr);
+	void processReward(const uint256&, TransactionContextPtr);
 	void processEndorse(const uint256&, TransactionContextPtr);
 	void processMistrust(const uint256&, TransactionContextPtr);
 
@@ -204,6 +206,9 @@ private:
 	void incrementEndorsements(const uint256&, amount_t);
 	void decrementEndorsements(const uint256&, amount_t);
 
+	void incrementRewards(const uint256&, amount_t);
+	void decrementRewards(const uint256&, amount_t);
+
 	void incrementSubscriptions(const uint256&);
 	void decrementSubscriptions(const uint256&);
 
@@ -213,12 +218,15 @@ private:
 	void updateBuzzerInfo(const uint256&, const uint256&);
 
 	void prepareBuzzfeedItem(BuzzfeedItem&, TxBuzzPtr, TxBuzzerPtr);
-	bool makeBuzzfeedItem(int&, TxBuzzerPtr, TransactionPtr, ITransactionStorePtr, std::multimap<uint64_t, uint256>&, std::map<uint256, BuzzfeedItemPtr>&);
-	void makeBuzzfeedLikeItem(TransactionPtr, ITransactionStorePtr, std::multimap<uint64_t, uint256>&, std::map<uint256, BuzzfeedItemPtr>&);
+	bool makeBuzzfeedItem(int&, TxBuzzerPtr, TransactionPtr, ITransactionStorePtr, std::multimap<uint64_t, BuzzfeedItem::Key>&, std::map<BuzzfeedItem::Key, BuzzfeedItemPtr>&, bool expand = true);
+	void makeBuzzfeedLikeItem(TransactionPtr, ITransactionStorePtr, std::multimap<uint64_t, BuzzfeedItem::Key>&, std::map<BuzzfeedItem::Key, BuzzfeedItemPtr>&, const uint256&);
+	void makeBuzzfeedRewardItem(TransactionPtr, ITransactionStorePtr, std::multimap<uint64_t, BuzzfeedItem::Key>&, std::map<BuzzfeedItem::Key, BuzzfeedItemPtr>&, const uint256&);
+	void makeBuzzfeedRebuzzItem(TransactionPtr, ITransactionStorePtr, std::multimap<uint64_t, BuzzfeedItem::Key>&, std::map<BuzzfeedItem::Key, BuzzfeedItemPtr>&, const uint256&);
 
 	void prepareEventsfeedItem(EventsfeedItem&, TxBuzzPtr, TxBuzzerPtr, const uint256&, const uint256&, uint64_t, const uint256&, const uint256&, uint64_t, const uint512&);
 	void makeEventsfeedItem(TxBuzzerPtr, TransactionPtr, ITransactionStorePtr, std::multimap<uint64_t, EventsfeedItem::Key>&, std::map<EventsfeedItem::Key, EventsfeedItemPtr>&);
 	void makeEventsfeedLikeItem(TransactionPtr, ITransactionStorePtr, std::multimap<uint64_t, EventsfeedItem::Key>&, std::map<EventsfeedItem::Key, EventsfeedItemPtr>&);
+	void makeEventsfeedRewardItem(EventsfeedItemPtr item, TransactionPtr tx, const uint256& buzz, const uint256& buzzChain, const uint256& buzzer);
 
 	template<typename _event> void makeEventsfeedTrustScoreItem(EventsfeedItemPtr item, TransactionPtr tx, unsigned short type, const uint256& buzzer, uint64_t score) {
 		//
@@ -283,12 +291,7 @@ private:
 		}
 	}
 
-	uint160 createPublisherTs(uint64_t timestamp, const uint256& publisher) {
-		DataStream lPublisherTsStream(SER_NETWORK, PROTOCOL_VERSION); 
-		lPublisherTsStream << timestamp;
-		lPublisherTsStream << publisher;
-		return Hash160(lPublisherTsStream.begin(), lPublisherTsStream.end());
-	}
+	void hashTagUpdate(const uint160&, const db::FiveKey<uint160, uint64_t, uint64_t, uint64_t, uint256>&);
 
 private:
 	ISettingsPtr settings_;
@@ -303,20 +306,30 @@ private:
 
 	// global timeline: timeframe | score | publisher -> tx
 	// NOTICE: this index is not absolute unique, but very close
-	db::DbThreeKeyContainer<
+	db::DbFourKeyContainer<
 		uint64_t /*timeframe*/, 
 		uint64_t /*score*/, 
-		uint160 /*timestamp+publisher*/, 
+		uint64_t /*timestamp*/,
+		uint256 /*publisher*/, 
 		uint256 /*buzz/reply/rebuzz/like/...*/> globalTimeline_;
 
 	// hash-tag indexed timeline: hash | timeframe | score | publisher -> tx
 	// NOTICE: this index is not absolute unique, but very close
-	db::DbFourKeyContainer<
+	db::DbFiveKeyContainer<
 		uint160 /*hash*/, 
 		uint64_t /*timeframe*/, 
 		uint64_t /*score*/, 
-		uint160 /*timestamp+publisher*/, 
+		uint64_t /*timestamp*/,
+		uint256 /*publisher*/, 
 		uint256 /*buzz/reply/rebuzz/like/...*/> hashTagTimeline_;
+
+	// last tag-key
+	db::DbContainer<uint160 /*hash*/, db::FiveKey<
+		uint160 /*hash*/, 
+		uint64_t /*timeframe*/, 
+		uint64_t /*score*/, 
+		uint64_t /*timestamp*/,
+		uint256 /*publisher*/>> hashTagUpdates_;
 
 	// tags map
 	db::DbContainer<std::string, std::string> hashTags_;

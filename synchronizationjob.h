@@ -22,6 +22,9 @@ namespace qbit {
 class SynchronizationJob;
 typedef std::shared_ptr<SynchronizationJob> SynchronizationJobPtr;
 
+class IPeer;
+typedef std::shared_ptr<IPeer> IPeerPtr;
+
 class SynchronizationJob {
 public:
 	SynchronizationJob(const uint256& block) : height_(0), block_(block), nextBlock_(block) {}

@@ -21,6 +21,10 @@
 #include <boost/bind.hpp>
 #include <boost/asio.hpp>
 
+#include <boost/random/mersenne_twister.hpp>
+#include <boost/random/uniform_int_distribution.hpp>
+#include <boost/random/random_device.hpp>
+
 using boost::asio::ip::tcp;
 
 namespace qbit {
@@ -65,6 +69,7 @@ public:
 public:
 	Peer() : status_(IPeer::UNDEFINED) { 
 		quarantine_ = 0; latencyPrev_ = latency_ = 1000000; time_ = getMicroseconds(); timestamp_ = time_;
+		gen_ = boost::random::mt19937(rd_());
 	}
 
 	Peer(int contextId, const std::string endpoint, IPeerManagerPtr peerManager) : 
@@ -78,6 +83,8 @@ public:
 		timestamp_ = time_;
 
 		peerManager->incPeersCount();
+
+		gen_ = boost::random::mt19937(rd_());
 	}
 
 	Peer(int contextId, IPeerManagerPtr peerManager) : 
@@ -91,6 +98,8 @@ public:
 		timestamp_ = time_;
 
 		peerManager->incPeersCount();
+
+		gen_ = boost::random::mt19937(rd_());
 	}
 	~Peer() {
 		release();
@@ -103,34 +112,46 @@ public:
 
 	void release() {
 		//
-		for (std::map<std::string, IPeerExtensionPtr>::iterator lExtension = extension_.begin(); lExtension != extension_.end(); lExtension++) {
-			//
-			lExtension->second->release();
+		{
+			boost::unique_lock<boost::mutex> lLock(extensionsMutex_);
+			for (std::map<std::string, IPeerExtensionPtr>::iterator lExtension = extension_.begin(); lExtension != extension_.end(); lExtension++) {
+				//
+				lExtension->second->release();
+			}
+
+			extension_.clear();
 		}
 
-		extension_.clear();
+		{
+			boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
+			if (socket_) {
+				socketStatus_ = CLOSED;
+				socket_->close();
+			}
+		}
 
-		if (socket_) {
-			socket_->close();
+		{
+			boost::unique_lock<boost::recursive_mutex> lLock(readMutex_);
+			state_.reset();
 		}
 
 		if (gLog().isEnabled(Log::NET)) 
 			gLog().write(Log::NET, std::string("[peer]: peer released ") + key());
 	}
 
-	void setState(const State& state) { 
+	void setState(StatePtr state) { 
 		//
-		const_cast<State&>(state).prepare(); 
+		boost::unique_lock<boost::recursive_mutex> lLock(readMutex_);
 		state_ = state;
-		address_ = const_cast<State&>(state).address();
-		addressId_ = const_cast<State&>(state).address().id();
-		roles_ = const_cast<State&>(state).roles();
+		address_ = state_->address();
+		addressId_ = state_->address().id();
+		roles_ = state->roles();
 
 		// refresh dapp info
-		if (state_.client()) {
+		if (state_->client()) {
 			for (std::vector<State::DAppInstance>::const_iterator 
-					lInstance = state_.dApps().begin();
-					lInstance != state_.dApps().end(); lInstance++) {
+					lInstance = state_->dApps().begin();
+					lInstance != state_->dApps().end(); lInstance++) {
 				//
 				std::map<std::string, IPeerExtensionPtr>::iterator lExtension = extension_.find(lInstance->name());
 				if (lExtension != extension_.end()) {
@@ -153,7 +174,11 @@ public:
 	uint64_t timestamp() { return timestamp_; }	
 
 	IPeer::Status status() { return status_; }
-	State& state() { return state_; }
+	StatePtr state() { 
+		boost::unique_lock<boost::recursive_mutex> lLock(readMutex_);
+		if (!state_) { PKey lPKey; state_ = State::instance(0, 0, lPKey); }
+		return state_; 
+	}
 	void close() {
 		if (socket_) {
 			socket_->close();
@@ -161,7 +186,7 @@ public:
 		}
 	}
 
-	PKey address() { return address_; }
+	PKey address() { boost::unique_lock<boost::recursive_mutex> lLock(readMutex_); return address_; }
 	uint32_t latency() { return latency_; }
 	uint32_t latencyPrev() { return latencyPrev_; }
 	uint32_t quarantine() { return quarantine_; }
@@ -169,7 +194,7 @@ public:
 	bool isOutbound() { return socketType_ == CLIENT; }
 
 	SocketPtr socket() { return socket_; }
-	uint160 addressId() { return addressId_; }
+	uint160 addressId() { boost::unique_lock<boost::recursive_mutex> lLock(readMutex_); return addressId_; }
 
 	void toQuarantine(uint32_t block) { quarantine_ = block; status_ = IPeer::QUARANTINE; }
 	void toBan() { quarantine_ = 0; status_ = IPeer::BANNED; }
@@ -418,7 +443,10 @@ private:
 	}
 
 	uint256 addRequest(IReplyHandlerPtr replyHandler) {
-		uint256 lId = Random::generate();
+		//
+		boost::random::uniform_int_distribution<> lDistribute(1, 1024*1024);
+		uint256 lId = Random::generate(lDistribute(gen_));
+		//
 		boost::unique_lock<boost::mutex> lLock(replyHandlersMutex_);
 		replyHandlers_.insert(std::map<uint256 /*request*/, RequestWrapper>::value_type(lId, RequestWrapper(replyHandler)));
 		return lId;
@@ -447,6 +475,7 @@ private:
 
 	// service methods
 	std::list<DataStream>::iterator newInMessage() {
+		boost::unique_lock<boost::mutex> lLock(rawInMutex_);
 		DataStream lMessage(SER_NETWORK, PROTOCOL_VERSION);
 		lMessage.resize(Message::size());
 		receivedMessagesCount_++;
@@ -484,7 +513,8 @@ private:
 	}
 
 	void eraseInMessage(std::list<DataStream>::iterator msg) {
-		rawInMessages_.erase(msg);
+		boost::unique_lock<boost::mutex> lLock(rawInMutex_);
+		if (rawInMessages_.size() && msg != rawInMessages_.end()) rawInMessages_.erase(msg);
 	}
 
 	void eraseInData(std::list<DataStream>::iterator msg) {
@@ -522,6 +552,7 @@ private:
 	}
 
 	uint32_t inQueueLength() {
+		boost::unique_lock<boost::mutex> lLock(rawInMutex_);
 		return rawInMessages_.size();
 	}
 
@@ -554,7 +585,7 @@ private:
 	SocketPtr socket_;
 	StrandPtr strand_;
 	IPeer::Status status_;
-	State state_;
+	StatePtr state_;
 	uint32_t latency_;
 	uint32_t latencyPrev_;
 	uint32_t quarantine_;
@@ -580,6 +611,8 @@ private:
 	std::list<DataStream> rawOutMessages_;
 	std::list<OutMessage> outQueue_;
 	boost::mutex rawOutMutex_;
+	boost::mutex rawInMutex_;
+	boost::recursive_mutex socketMutex_;
 
 	std::map<uint256 /*request*/, RequestWrapper> replyHandlers_;
 	boost::mutex replyHandlersMutex_;
@@ -603,6 +636,10 @@ private:
 
 	boost::mutex extensionsMutex_;
 	std::map<std::string, IPeerExtensionPtr> extension_;
+
+	//
+	boost::random_device rd_;
+	boost::random::mt19937 gen_;	
 };
 
 }

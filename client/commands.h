@@ -15,6 +15,7 @@ namespace qbit {
 class KeyCommand: public ICommand, public std::enable_shared_from_this<KeyCommand> {
 public:
 	KeyCommand(doneFunction done): done_(done) {}
+	virtual ~KeyCommand() {}
 
 	void process(const std::vector<std::string>&);
 	std::set<std::string> name() {
@@ -43,7 +44,7 @@ typedef std::shared_ptr<BalanceCommand> BalanceCommandPtr;
 
 class BalanceCommand: public ICommand, public std::enable_shared_from_this<BalanceCommand> {
 public:
-	BalanceCommand(LightComposerPtr composer, doneFunction done): composer_(composer), done_(done) {}
+	BalanceCommand(LightComposerPtr composer, doneBalanceWithErrorFunction done): composer_(composer), done_(done) {}
 
 	void process(const std::vector<std::string>&);
 	std::set<std::string> name() {
@@ -60,7 +61,7 @@ public:
 		std::cout << "\t[asset] - optional, asset in hex to show balance for" << std::endl << std::endl;
 	}
 
-	static ICommandPtr instance(LightComposerPtr composer, doneFunction done) { 
+	static ICommandPtr instance(LightComposerPtr composer, doneBalanceWithErrorFunction done) { 
 		return std::make_shared<BalanceCommand>(composer, done); 
 	}
 
@@ -69,17 +70,17 @@ public:
 		std::cout << 
 			strprintf(TxAssetType::scaleFormat(scale), amount) << "/" <<
 			strprintf(TxAssetType::scaleFormat(scale), pending) << std::endl;
-		done_();
+		done_(amount, pending, scale, ProcessingError());
 	}
 
 	void error(const std::string& code, const std::string& message) {
 		gLog().writeClient(Log::CLIENT, strprintf(": %s | %s", code, message));
-		done_();
+		done_(0, 0, 0, ProcessingError(code, message));
 	}
 
 private:
 	LightComposerPtr composer_;
-	doneFunction done_;
+	doneBalanceWithErrorFunction done_;
 };
 
 class SendToAddressCommand;
@@ -139,7 +140,7 @@ typedef std::shared_ptr<SearchEntityNamesCommand> SearchEntityNamesCommandPtr;
 
 class SearchEntityNamesCommand: public ICommand, public std::enable_shared_from_this<SearchEntityNamesCommand> {
 public:
-	SearchEntityNamesCommand(LightComposerPtr composer, doneFunction done): composer_(composer), done_(done) {}
+	SearchEntityNamesCommand(LightComposerPtr composer, doneEntityNamesSelectedFunction done): composer_(composer), done_(done) {}
 
 	void process(const std::vector<std::string>&);
 	std::set<std::string> name() {
@@ -157,18 +158,18 @@ public:
 		std::cout << "\texample:\n\t\t>se @my_entity" << std::endl << std::endl;
 	}	
 
-	static ICommandPtr instance(LightComposerPtr composer, doneFunction done) { 
+	static ICommandPtr instance(LightComposerPtr composer, doneEntityNamesSelectedFunction done) { 
 		return std::make_shared<SearchEntityNamesCommand>(composer, done); 
 	}
 
 	// callbacks
-	void assetNamesLoaded(const std::vector<IEntityStore::EntityName>& names) {
+	void assetNamesLoaded(const std::string& name, const std::vector<IEntityStore::EntityName>& names) {
 		//
 		for (std::vector<IEntityStore::EntityName>::const_iterator lName = names.begin(); lName != names.end(); lName++) {
 			std::cout << (*lName).data() << std::endl;
 		}
 
-		done_();
+		done_(name, names, ProcessingError());
 	}
 
 	void timeout() {
@@ -177,12 +178,12 @@ public:
 
 	void error(const std::string& code, const std::string& message) {
 		gLog().writeClient(Log::CLIENT, strprintf(": %s | %s", code, message));
-		done_();
+		done_(std::string(), std::vector<IEntityStore::EntityName>(), ProcessingError(code, message));
 	}	
 
 private:
 	LightComposerPtr composer_;
-	doneFunction done_;
+	doneEntityNamesSelectedFunction done_;
 };
 
 class AskForQbitsCommand;
@@ -190,7 +191,7 @@ typedef std::shared_ptr<AskForQbitsCommand> AskForQbitsCommandPtr;
 
 class AskForQbitsCommand: public ICommand, public std::enable_shared_from_this<AskForQbitsCommand> {
 public:
-	AskForQbitsCommand(LightComposerPtr composer, doneFunction done): composer_(composer), done_(done) {}
+	AskForQbitsCommand(LightComposerPtr composer, doneWithErrorFunction done): composer_(composer), done_(done) {}
 
 	void process(const std::vector<std::string>&);
 	std::set<std::string> name() {
@@ -207,18 +208,64 @@ public:
 		std::cout << "\texample:\n\t\t>aq" << std::endl << std::endl;
 	}	
 
-	static ICommandPtr instance(LightComposerPtr composer, doneFunction done) { 
+	static ICommandPtr instance(LightComposerPtr composer, doneWithErrorFunction done) { 
 		return std::make_shared<AskForQbitsCommand>(composer, done); 
 	}
 
 	void error(const std::string& code, const std::string& message) {
 		gLog().writeClient(Log::CLIENT, strprintf(": %s | %s", code, message));
-		done_();
+		done_(ProcessingError(code, message));
 	}	
 
 private:
 	LightComposerPtr composer_;
-	doneFunction done_;
+	doneWithErrorFunction done_;
+};
+
+class LoadTransactionCommand;
+typedef std::shared_ptr<LoadTransactionCommand> LoadTransactionCommandPtr;
+
+class LoadTransactionCommand: public ICommand, public std::enable_shared_from_this<LoadTransactionCommand> {
+public:
+	LoadTransactionCommand(LightComposerPtr composer, doneTransactionWithErrorFunction done): composer_(composer), done_(done) {}
+
+	void process(const std::vector<std::string>&);
+
+	std::set<std::string> name() {
+		std::set<std::string> lSet;
+		lSet.insert("loadTransaction"); 
+		lSet.insert("load"); 
+		lSet.insert("l"); 
+		return lSet;
+	}
+
+	void help() {
+		std::cout << "loadTransaction | load | l" << std::endl;
+		std::cout << "\tLoad transaction (id/chain). Notice, chain can be null or 0000000000000000000000000000000000000000000000000000000000000000." << std::endl;
+		std::cout << "\texample:\n\t\t>load 9fd54b0286d8f9a288043d2dd46a33b0c8dda069aa2b4e1d03b03caadf8edad4/39437951b36111564ee3c416701b91092c1fd4fd9a446c76be3383e69a38698e" << std::endl << std::endl;
+	}
+
+	void transactionLoaded(TransactionPtr tx) {
+		done_(tx, ProcessingError());
+	}
+
+	// 
+	void timeout() {
+		error("E_TIMEOUT", "Timeout expired during load transaction.");
+	}
+
+	static ICommandPtr instance(LightComposerPtr composer, doneTransactionWithErrorFunction done) { 
+		return std::make_shared<LoadTransactionCommand>(composer, done); 
+	}
+
+	void error(const std::string& code, const std::string& message) {
+		gLog().writeClient(Log::CLIENT, strprintf(": %s | %s", code, message));
+		done_(nullptr, ProcessingError(code, message));
+	}	
+
+private:
+	LightComposerPtr composer_;
+	doneTransactionWithErrorFunction done_;
 };
 
 } // qbit

@@ -15,7 +15,7 @@ bool ServerS0::execute() {
 	}
 
 	// prepare wallet
-	if (!wallet_->open()) {
+	if (!wallet_->open("")) {
 		error_  = "Wallet open failed.";
 		return false;
 	}
@@ -46,7 +46,7 @@ bool ServerS1::execute() {
 	}
 
 	// prepare wallet
-	if (!wallet_->open()) {
+	if (!wallet_->open("")) {
 		error_  = "Wallet open failed.";
 		return false;
 	}
@@ -77,7 +77,7 @@ bool ServerS2::execute() {
 	}
 
 	// prepare wallet
-	if (!wallet_->open()) {
+	if (!wallet_->open("")) {
 		error_  = "Wallet open failed.";
 		return false;
 	}
@@ -108,7 +108,7 @@ bool ServerS3::execute() {
 	}
 
 	// prepare wallet
-	if (!wallet_->open()) {
+	if (!wallet_->open("")) {
 		error_  = "Wallet open failed.";
 		return false;
 	}

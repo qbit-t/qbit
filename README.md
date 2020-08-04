@@ -2,24 +2,24 @@
 
 Qbit is a multi-asset privacy oriented platform based on PoW/DPoS consensus with UTXO principles. Qbit focuses are:
 
-- Entity-based governance
-- Various kinds of typed transactions
-- Schnorr signatures/multi-signatures by default
-- Support of different signature schemes
-- Out-of-the-box privacy transactions for the value transfer
-- Scalable architecture
-- Atomic swaps support
-- Ultra-fast transaction processing
-- Multichain support with sharding principles (including different parametrized consensuses for each shard) 
-- Smart contract support
-- Fast virtual machine (QVM) with asm-based machine codes
-- Cuckatoo PoW algorithm and corresponding consensus with 51% attack resistance (first stage - around 3-6 months)
-- Local-to-Global DPoS consensus (second stage)
-- Full Bitcoin protocol support to archieve atomic swaps and trustless peer-to-peer orders processing
-- Flexible integration infrastructure to support alts- and side- chains (gate-keepers)
-- DApp making infrastructure
-- Built-in support of the "open digital organization" principles
-- Built-in support of DEX DApp infrastructure (as one of "oen digital organization" types) (CADEX will be the first implementation)
+	- Entity-based governance
+	- Various kinds of typed transactions
+	- Schnorr signatures/multi-signatures by default
+	- Support of different signature schemes
+	- Out-of-the-box privacy transactions for the value transfer
+	- Scalable architecture
+	- Atomic swaps support
+	- Ultra-fast transaction processing
+	- Multichain support with sharding principles (including different parametrized consensuses for each shard) 
+	- Smart contract support
+	- Fast virtual machine (QVM) with asm-based machine codes
+	- Cuckatoo PoW algorithm and corresponding consensus with 51% attack resistance (first stage - around 3-6 months)
+	- Local-to-Global DPoS consensus (second stage)
+	- Full Bitcoin protocol support to archieve atomic swaps and trustless peer-to-peer orders processing
+	- Flexible integration infrastructure to support alts- and side- chains (gate-keepers)
+	- DApp making infrastructure
+	- Built-in support of the "open digital organization" principles
+	- Built-in support of DEX DApp infrastructure (as one of "open digital organization" types) (CADEX will be the first implementation)
 
 ## Basics, motivation and exchange
 
@@ -71,7 +71,7 @@ Builf:
 3. ./configure --enable-experimental --enable-module-schnorrsig --enable-module-musig --enable-module-ecdh --enable-module-generator --enable-module-rangeproof --with-bignum=no
 4. cd ..
 5. cd ./boost
-6. ./bootstrap.sh --with-libraries=system,thread,chrono,random,filesystem,gil --prefix=../
+6. ./bootstrap.sh --with-libraries=system,thread,chrono,random,filesystem --prefix=../
 7. ./b2
 8. cd ..
 9. cmake -DCMAKE_BUILD_TYPE=Release
