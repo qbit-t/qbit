@@ -14,11 +14,16 @@
 
 #include <boost/atomic.hpp>
 #include <boost/thread/mutex.hpp>
+#include <boost/function.hpp>
 
 #include "../fs.h"
 #include "../timestamp.h"
 
+#include "../tinyformat.h"
+
 namespace qbit {
+
+typedef boost::function<void (uint32_t, const std::string&)> logEchoFunction;
 
 class Log {
 public:
@@ -38,6 +43,7 @@ public:
 		BALANCE		= (1 << 11),
 		SHARDING	= (1 << 12),
 		CLIENT		= (1 << 13),
+		DEBUG		= (1 << 14),
 		ALL			= ~(uint32_t)0
 	};
 
@@ -54,6 +60,13 @@ public:
 	void enableConsole() { console_ = true; }
 	void disableConsole() { console_ = false; }
 
+	void enableFile() { file_ = true; }
+	void disableFile() { file_ = false; }
+
+	void setEcho(logEchoFunction echo) {
+		echoFunction_ = echo;
+	}
+
 private:
 	std::string timestamp();
 	bool open();
@@ -64,6 +77,8 @@ private:
 	std::atomic_bool startedNewLine_ {true};
 	std::atomic<uint32_t> categories_ {0};
 	bool console_ = false;
+	bool file_ = true;
+	logEchoFunction echoFunction_;
 	
 	std::string name_;
 };

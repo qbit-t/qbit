@@ -253,13 +253,21 @@ void MemoryPool::processCandidates() {
 					strprintf("%s/%s#", (*lCandidate)->tx()->id().toHex(), (*lCandidate)->tx()->chain().toHex().substr(0, 10)));
 			// clean-up
 			(*lCandidate)->errors().clear();
+			//
+			(*lCandidate)->incrementReprocessed();
 			// try to push
 			pushTransaction(*lCandidate);
 			// check
 			if ((*lCandidate)->errors().size()) {
 				for (std::list<std::string>::iterator lErr = (*lCandidate)->errors().begin(); lErr != (*lCandidate)->errors().end(); lErr++) {
-					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[processCandidates]: transaction re-processing ERROR - ") + (*lErr) +
+					if (gLog().isEnabled(Log::ERROR)) gLog().write(Log::ERROR, std::string("[processCandidates/error]: transaction re-processing ERROR - ") + (*lErr) +
 							strprintf(" -> %s/%s#", (*lCandidate)->tx()->id().toHex(), (*lCandidate)->tx()->chain().toHex().substr(0, 10)));
+				}
+
+				if ((*lCandidate)->reprocessTimedout()) {
+					if (gLog().isEnabled(Log::ERROR)) gLog().write(Log::ERROR, std::string("[processCandidates]: transaction re-processing SKIPPED due to wait timeout") +
+							strprintf(" -> %s/%s#", (*lCandidate)->tx()->id().toHex(), (*lCandidate)->tx()->chain().toHex().substr(0, 10)));					
+					lPool->removeCandidate(*lCandidate);
 				}
 			}
 		}

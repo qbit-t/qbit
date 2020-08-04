@@ -158,13 +158,13 @@ public:
 	// use peer for network participation
 	void pushPeer(IPeerPtr peer) {
 		//
-		if (peer->state().containsChain(chain_)) {
+		if (peer->state()->containsChain(chain_)) {
 			//
 			peer_t lPeerId = peer->addressId();
 			boost::unique_lock<boost::mutex> lLock(peersMutex_);
 			if (directPeerMap_.find(lPeerId) == directPeerMap_.end()) {
 				directPeerMap_[lPeerId] = peer;
-				pushState(State::instance(peer->state()));
+				pushState(peer->state());
 			}
 
 			if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, 
@@ -177,20 +177,19 @@ public:
 	// remove peer from consensus participation
 	void popPeer(IPeerPtr peer) {
 		//
-		if (peer->state().containsChain(chain_)) {
+		if (peer->state()->containsChain(chain_)) {
 			//
 			peer_t lPeerId = peer->addressId();
 			boost::unique_lock<boost::mutex> lLock(peersMutex_);
 			directPeerMap_.erase(lPeerId);
 
-			popState(State::instance(peer->state()));
+			popState(peer->state());
 
 			if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, 
 				strprintf("[popPeer]: peer popped %s/%s/%s#", 
-					lPeerId.toHex(), peer->key(), chain_.toHex().substr(0, 10)));			
+					lPeerId.toHex(), peer->key(), chain_.toHex().substr(0, 10)));
 		}
 	}
-
 
 	//
 	//
@@ -438,7 +437,6 @@ public:
 		}		
 	}
 
-
 	//
 	// push state
 	bool pushState(StatePtr state) {
@@ -460,7 +458,8 @@ public:
 				if (state->equals(lState->second)) return false; // already upated
 
 				// clean-up
-				peerSet_.erase(lPeerId);
+				//peerSet_.erase(lPeerId);
+				peerStateMap_.erase(lPeerId);
 
 				HeightMap::iterator lStateMap = heightMap_.find(lInfo.height());
 				if (lStateMap != heightMap_.end()) {
@@ -520,6 +519,7 @@ public:
 			if (lState != peerStateMap_.end()) {
 				// clean-up
 				peerSet_.erase(lPeerId);
+				peerStateMap_.erase(lPeerId);
 
 				HeightMap::iterator lStateMap = heightMap_.find(lInfo.height());
 				if (lStateMap != heightMap_.end()) {
@@ -665,7 +665,7 @@ public:
 		bool lProcess = false; 
 		{
 			boost::unique_lock<boost::mutex> lLock(transitionMutex_);
-			if (chainState_ == IConsensus::UNDEFINED || chainState_ == IConsensus::NOT_SYNCHRONIZED) {
+			if ((chainState_ == IConsensus::UNDEFINED || chainState_ == IConsensus::NOT_SYNCHRONIZED) && !store_->synchronizing()) {
 				chainState_ = IConsensus::SYNCHRONIZING;
 				lProcess = true;
 			}

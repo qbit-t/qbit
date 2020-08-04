@@ -12,6 +12,10 @@
 #include <stdio.h>
 #include <unistd.h>
 
+#if !defined(JM_MALLOC)
+#include <malloc.h>
+#endif
+
 typedef struct stat Stat;
 
 static int do_mkdir(const char *path, mode_t mode)

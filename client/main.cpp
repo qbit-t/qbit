@@ -33,6 +33,7 @@
 	#include "../dapps/buzzer/txbuzzer.h"
 	#include "../dapps/buzzer/txbuzz.h"
 	#include "../dapps/buzzer/txbuzzlike.h"
+	#include "../dapps/buzzer/txbuzzreward.h"
 	#include "../dapps/buzzer/txbuzzreply.h"
 	#include "../dapps/buzzer/txrebuzz.h"
 	#include "../dapps/buzzer/txrebuzznotify.h"
@@ -44,9 +45,9 @@
 	#include "../dapps/buzzer/buzzer.h"
 	#include "../dapps/buzzer/buzzfeed.h"
 	#include "../dapps/buzzer/eventsfeed.h"
-	#include "dapps/buzzer/requestprocessor.h"
-	#include "dapps/buzzer/composer.h"
-	#include "dapps/buzzer/commands.h"
+	#include "dapps/buzzer/buzzerrequestprocessor.h"
+	#include "dapps/buzzer/buzzercomposer.h"
+	#include "dapps/buzzer/buzzercommands.h"
 #endif
 
 #if defined (CUBIX_MOD)
@@ -55,11 +56,13 @@
 	#include "../dapps/cubix/txmediadata.h"
 	#include "../dapps/cubix/txmediasummary.h"
 	#include "../dapps/cubix/peerextension.h"
-	#include "dapps/cubix/composer.h"
-	#include "dapps/cubix/commands.h"
+	#include "dapps/cubix/cubixcomposer.h"
+	#include "dapps/cubix/cubixcommands.h"
 #endif
 
 using namespace qbit;
+
+bool gCommandDone = false;
 
 #if defined (BUZZER_MOD)
 //
@@ -81,11 +84,11 @@ void buzzfeedItemUpdated(BuzzfeedItemPtr buzz) {
 	gLog().writeClient(Log::CLIENT, std::string(": updated buzz ") + buzz->buzzId().toHex());
 }
 
-void buzzfeedItemsUpdated(const std::vector<BuzzfeedItem::Update>& items) {
+void buzzfeedItemsUpdated(const std::vector<BuzzfeedItemUpdate>& items) {
 	//
 	std::cout << std::endl;
 	gLog().writeClient(Log::CLIENT, strprintf(": buzz bulk updates count %d", items.size()));
-	for (std::vector<BuzzfeedItem::Update>::const_iterator lUpdate = items.begin(); lUpdate != items.end(); lUpdate++)
+	for (std::vector<BuzzfeedItemUpdate>::const_iterator lUpdate = items.begin(); lUpdate != items.end(); lUpdate++)
 		gLog().writeClient(Log::CLIENT, std::string(": -> buzz ") + lUpdate->buzzId().toHex());
 }
 
@@ -126,11 +129,29 @@ void trustScoreUpdated(amount_t edorsements, amount_t mistrusts) {
 	//
 	std::cout << std::endl;
 	gLog().writeClient(Log::CLIENT, strprintf(": ts = %d / %d", edorsements, mistrusts));
+	
+	gCommandDone = true;
 }
 
 #endif
 
-bool gCommandDone = false;
+#if defined (CUBIX_MOD)
+
+void cubixDownloadProgress(uint64_t, uint64_t) {
+
+}
+
+void cubixUploadProgress(const std::string&, uint64_t, uint64_t) {
+
+}
+
+void cubixDownloadDone(TransactionPtr, const std::string&, const std::string&, unsigned short, const ProcessingError& /*error*/) {
+	//
+	gCommandDone = true;
+}
+
+#endif
+
 void commandDone() {
 	//
 	gCommandDone = true;
@@ -139,6 +160,41 @@ void commandDone() {
 void commandDone(TransactionPtr) {
 	//
 	gCommandDone = true;
+}
+
+void commandDone(const ProcessingError& /*error*/) {
+	//
+	gCommandDone = true;
+}
+
+void commandDone(TransactionPtr /*tx*/, const ProcessingError& /*error*/) {
+	//
+	gCommandDone = true;
+}
+
+void commandDone(amount_t, amount_t, const ProcessingError& /*error*/) {
+	//
+	gCommandDone = true;
+}
+
+void commandDone(double, double, amount_t, const ProcessingError& /*error*/) {
+	//
+	gCommandDone = true;
+}
+
+void commandDone(TransactionPtr, TransactionPtr, const ProcessingError& /*error*/) {
+	//
+	gCommandDone = true;
+}
+
+void commandDone(const std::string&, const std::vector<IEntityStore::EntityName>&, const ProcessingError& /*error*/) {
+	//
+	gCommandDone = true;
+}
+
+void commandDone(const std::string&, const std::vector<Buzzer::HashTag>&, const ProcessingError&) {
+	//
+	gCommandDone = true;	
 }
 
 int main(int argv, char** argc) {
@@ -171,7 +227,7 @@ int main(int argv, char** argc) {
 			}
 
 			for (std::vector<std::string>::iterator lCategory = lCategories.begin(); lCategory != lCategories.end(); lCategory++) {
-				gLog().enable(getLogCategory(*lCategory));				
+				gLog().enable(getLogCategory(*lCategory));
 			}
 
 			lDebugFound = true;
@@ -198,7 +254,7 @@ int main(int argv, char** argc) {
 	// wallet
 	IWalletPtr lWallet = LightWallet::instance(lSettings, lRequestProcessor);
 	std::static_pointer_cast<RequestProcessor>(lRequestProcessor)->setWallet(lWallet);
-	lWallet->open();
+	lWallet->open(""); // secret missing
 
 	// composer
 	LightComposerPtr lComposer = LightComposer::instance(lSettings, lWallet, lRequestProcessor);
@@ -236,6 +292,7 @@ int main(int argv, char** argc) {
 	Transaction::registerTransactionType(TX_BUZZER_ENDORSE, TxBuzzerEndorseCreator::instance());
 	Transaction::registerTransactionType(TX_BUZZER_MISTRUST, TxBuzzerMistrustCreator::instance());
 	Transaction::registerTransactionType(TX_BUZZER_INFO, TxBuzzerInfoCreator::instance());
+	Transaction::registerTransactionType(TX_BUZZ_REWARD, TxBuzzRewardCreator::instance());
 
 	// buzzer message types
 	Message::registerMessageType(GET_BUZZER_SUBSCRIPTION, "GET_BUZZER_SUBSCRIPTION");
@@ -275,12 +332,18 @@ int main(int argv, char** argc) {
 	Message::registerMessageType(BUZZ_FEED_BY_TAG, "BUZZ_FEED_BY_TAG");
 	Message::registerMessageType(GET_HASH_TAGS, "GET_HASH_TAGS");
 	Message::registerMessageType(HASH_TAGS, "HASH_TAGS");
-
-	// buzzer
-	BuzzerPtr lBuzzer = Buzzer::instance(lRequestProcessor, boost::bind(&trustScoreUpdated, _1, _2));
+	Message::registerMessageType(BUZZ_SUBSCRIBE, "BUZZ_SUBSCRIBE");
+	Message::registerMessageType(BUZZ_UNSUBSCRIBE, "BUZZ_UNSUBSCRIBE");
+	Message::registerMessageType(GET_BUZZER_AND_INFO, "GET_BUZZER_AND_INFO");
+	Message::registerMessageType(BUZZER_AND_INFO, "BUZZER_AND_INFO");
+	Message::registerMessageType(BUZZER_AND_INFO_ABSENT, "BUZZER_AND_INFO_ABSENT");
 
 	// buzzer request processor
 	BuzzerRequestProcessorPtr lBuzzerRequestProcessor = BuzzerRequestProcessor::instance(lRequestProcessor);
+
+	// buzzer
+	BuzzerPtr lBuzzer = Buzzer::instance(lRequestProcessor, lBuzzerRequestProcessor, boost::bind(&trustScoreUpdated, _1, _2));
+
 
 	// buzzer composer
 	BuzzerLightComposerPtr lBuzzerComposer = BuzzerLightComposer::instance(lSettings, lBuzzer, lWallet, lRequestProcessor, lBuzzerRequestProcessor);
@@ -288,6 +351,7 @@ int main(int argv, char** argc) {
 	// buzzfeed
 	BuzzfeedPtr lBuzzfeed = Buzzfeed::instance(lBuzzer,
 		boost::bind(&BuzzerLightComposer::verifyPublisherStrict, lBuzzerComposer, _1),
+		boost::bind(&BuzzerLightComposer::verifyPublisherLazy, lBuzzerComposer, _1), // for bounded buzzes
 		boost::bind(&buzzfeedLargeUpdated), 
 		boost::bind(&buzzfeedItemNew, _1), 
 		boost::bind(&buzzfeedItemUpdated, _1),
@@ -298,6 +362,7 @@ int main(int argv, char** argc) {
 
 	lBuzzfeed->prepare();
 	lBuzzer->setBuzzfeed(lBuzzfeed); // main feed
+	lBuzzer->registerUpdate(lBuzzfeed);
 
 	// global buzzfeed
 	BuzzfeedPtr lGlobalBuzzfeed = Buzzfeed::instance(lBuzzer,
@@ -311,6 +376,7 @@ int main(int argv, char** argc) {
 	);
 
 	lGlobalBuzzfeed->prepare();
+	lBuzzer->registerUpdate(lGlobalBuzzfeed);
 
 	// buzzfeed for buzzer
 	BuzzfeedPtr lBuzzerBuzzfeed = Buzzfeed::instance(lBuzzer,
@@ -324,6 +390,7 @@ int main(int argv, char** argc) {
 	);
 
 	lBuzzerBuzzfeed->prepare();
+	lBuzzer->registerUpdate(lBuzzerBuzzfeed);
 
 	// buzzfeed for buzz threads
 	BuzzfeedPtr lBuzzesBuzzfeed = Buzzfeed::instance(lBuzzer,
@@ -335,10 +402,11 @@ int main(int argv, char** argc) {
 		boost::bind(&buzzfeedItemAbsent, _1, _2),
 		BuzzfeedItem::Merge::INTERSECT,
 		BuzzfeedItem::Order::FORWARD,
-		BuzzfeedItem::Key::TIMESTAMP
+		BuzzfeedItem::Group::TIMESTAMP
 	);
 
 	lBuzzesBuzzfeed->prepare();
+	lBuzzer->registerUpdate(lBuzzesBuzzfeed);
 
 	// eventsfeed
 	EventsfeedPtr lEventsfeed = Eventsfeed::instance(lBuzzer,
@@ -387,7 +455,7 @@ int main(int argv, char** argc) {
 	lCommandsHandler->push(lRebuzzCommand);
 
 	LoadBuzzerTrustScoreCommandPtr lScoreCommand = std::static_pointer_cast<LoadBuzzerTrustScoreCommand>(
-		LoadBuzzerTrustScoreCommand::instance(lBuzzerComposer, boost::bind(&commandDone)));
+		LoadBuzzerTrustScoreCommand::instance(lBuzzerComposer, boost::bind(&Buzzer::updateTrustScore, lBuzzer, _1, _2, _3, _4, _5)));
 	lCommandsHandler->push(lScoreCommand);
 
 	lCommandsHandler->push(BuzzerSubscribeCommand::instance(lBuzzerComposer, boost::bind(&commandDone)));
@@ -395,6 +463,7 @@ int main(int argv, char** argc) {
 	lCommandsHandler->push(LoadBuzzfeedCommand::instance(lBuzzerComposer, lBuzzfeed, boost::bind(&commandDone)));
 	lCommandsHandler->push(BuzzfeedListCommand::instance(lBuzzerComposer, lBuzzfeed, boost::bind(&commandDone)));
 	lCommandsHandler->push(BuzzLikeCommand::instance(lBuzzerComposer, lBuzzfeed, boost::bind(&commandDone)));
+	lCommandsHandler->push(BuzzRewardCommand::instance(lBuzzerComposer, lBuzzfeed, boost::bind(&commandDone)));
 	lCommandsHandler->push(LoadEventsfeedCommand::instance(lBuzzerComposer, lEventsfeed, boost::bind(&commandDone)));
 	lCommandsHandler->push(EventsfeedListCommand::instance(lBuzzerComposer, lEventsfeed, boost::bind(&commandDone)));
 	lCommandsHandler->push(BuzzerEndorseCommand::instance(lBuzzerComposer, boost::bind(&commandDone)));
@@ -425,30 +494,30 @@ int main(int argv, char** argc) {
 	PeerManager::registerPeerExtension("cubix", cubix::DefaultPeerExtensionCreator::instance());	
 
 	// cubix commands
-	lCommandsHandler->push(cubix::UploadMediaCommand::instance(lCubixComposer, boost::bind(&commandDone, _1)));
-	lCommandsHandler->push(cubix::DownloadMediaCommand::instance(lCubixComposer, boost::bind(&commandDone, _1)));
+	lCommandsHandler->push(cubix::UploadMediaCommand::instance(lCubixComposer, boost::bind(&cubixUploadProgress, _1, _2, _3), boost::bind(&commandDone, _1, _2)));
+	lCommandsHandler->push(cubix::DownloadMediaCommand::instance(lCubixComposer, boost::bind(&cubixDownloadProgress, _1, _2), boost::bind(&cubixDownloadDone, _1, _2, _3, _4, _5)));
 
 	// dapp instance - shared
 	lBuzzerComposer->setInstanceChangedCallback(boost::bind(&cubix::CubixLightComposer::setDAppSharedInstance, lCubixComposer, _1));
 
 	// link uploads for buzzer info
 	lBuzzerCommand->setUploadAvatar(
-		cubix::UploadMediaCommand::instance(lCubixComposer, boost::bind(&CreateBuzzerCommand::avatarUploaded, lBuzzerCommand, _1))
+		cubix::UploadMediaCommand::instance(lCubixComposer, boost::bind(&cubixUploadProgress, _1, _2, _3), boost::bind(&CreateBuzzerCommand::avatarUploaded, lBuzzerCommand, _1, _2))
 	);
 	lBuzzerCommand->setUploadHeader(
-		cubix::UploadMediaCommand::instance(lCubixComposer, boost::bind(&CreateBuzzerCommand::headerUploaded, lBuzzerCommand, _1))
+		cubix::UploadMediaCommand::instance(lCubixComposer, boost::bind(&cubixUploadProgress, _1, _2, _3), boost::bind(&CreateBuzzerCommand::headerUploaded, lBuzzerCommand, _1, _2))
 	);
 
 	lBuzzCommand->setUploadMedia(
-		cubix::UploadMediaCommand::instance(lCubixComposer, boost::bind(&CreateBuzzCommand::mediaUploaded, lBuzzCommand, _1))
+		cubix::UploadMediaCommand::instance(lCubixComposer, boost::bind(&cubixUploadProgress, _1, _2, _3), boost::bind(&CreateBuzzCommand::mediaUploaded, lBuzzCommand, _1, _2))
 	);
 
 	lBuzzReplyCommand->setUploadMedia(
-		cubix::UploadMediaCommand::instance(lCubixComposer, boost::bind(&CreateBuzzReplyCommand::mediaUploaded, lBuzzReplyCommand, _1))
+		cubix::UploadMediaCommand::instance(lCubixComposer, boost::bind(&cubixUploadProgress, _1, _2, _3), boost::bind(&CreateBuzzReplyCommand::mediaUploaded, lBuzzReplyCommand, _1, _2))
 	);
 
 	lRebuzzCommand->setUploadMedia(
-		cubix::UploadMediaCommand::instance(lCubixComposer, boost::bind(&CreateReBuzzCommand::mediaUploaded, lRebuzzCommand, _1))
+		cubix::UploadMediaCommand::instance(lCubixComposer, boost::bind(&cubixUploadProgress, _1, _2, _3), boost::bind(&CreateReBuzzCommand::mediaUploaded, lRebuzzCommand, _1, _2))
 	);
 #endif
 

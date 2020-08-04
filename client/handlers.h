@@ -13,8 +13,39 @@
 namespace qbit {
 
 //
+class ProcessingError {
+public:
+	ProcessingError() {}
+	ProcessingError(const std::string& error, const std::string& message):
+		errorCode_(error), errorMessage_(message) {}
+
+	bool success() const {
+		return !errorCode_.size();
+	}
+
+	const std::string& error() const { return errorCode_; }
+	const std::string& message() const { return errorMessage_; }
+
+private:
+	std::string errorCode_;
+	std::string errorMessage_;
+};
+
+//
 typedef boost::function<void (void)> timeoutFunction;
 typedef boost::function<void (void)> doneFunction;
+
+//
+typedef boost::function<void (const ProcessingError& /*error*/)> doneWithErrorFunction;
+typedef boost::function<void (double, double, amount_t, const ProcessingError& /*error*/)> doneBalanceWithErrorFunction;
+typedef boost::function<void (TransactionPtr, const ProcessingError& /*error*/)> doneTransactionWithErrorFunction;
+typedef boost::function<void (TransactionPtr, TransactionPtr, const ProcessingError& /*error*/)> doneTransactionsWithErrorFunction;
+typedef boost::function<void (amount_t, amount_t, uint32_t, uint32_t, const ProcessingError& /*error*/)> doneTrustScoreWithErrorFunction;
+typedef boost::function<void (uint64_t, uint64_t)> progressFunction;
+typedef boost::function<void (const std::string&, uint64_t, uint64_t)> progressUploadFunction;
+typedef boost::function<void (const std::string&, const std::vector<IEntityStore::EntityName>&, const ProcessingError& /*error*/)> doneEntityNamesSelectedFunction;
+
+//
 typedef boost::function<void (TransactionPtr)> entityCreatedFunction;
 typedef boost::function<void (TransactionPtr)> doneWithResultFunction;
 typedef boost::function<void (EntityPtr)> entityLoadedFunction;
@@ -25,7 +56,7 @@ typedef boost::function<void (const std::vector<Transaction::NetworkUnlinkedOut>
 typedef boost::function<void (const std::map<uint32_t, uint256>&, const std::string&)> entityCountByShardsSelectedFunction;
 typedef boost::function<void (const std::map<uint256, uint32_t>&, const std::string&)> entityCountByDAppSelectedFunction;
 typedef boost::function<void (const std::vector<ISelectUtxoByEntityNamesHandler::EntityUtxo>&)> utxoByEntityNamesSelectedFunction;
-typedef boost::function<void (const std::vector<IEntityStore::EntityName>&)> entityNamesSelectedFunction;
+typedef boost::function<void (const std::string&, const std::vector<IEntityStore::EntityName>&)> entityNamesSelectedFunction;
 
 typedef boost::function<void (TransactionContextPtr)> transactionCreatedFunction;
 typedef boost::function<void (TransactionContextPtr, Transaction::UnlinkedOutPtr)> transactionCreatedWithUTXOFunction;
@@ -257,8 +288,8 @@ public:
 	SelectEntityNames(entityNamesSelectedFunction function, timeoutFunction timeout): function_(function), timeout_(timeout) {}
 
 	// ISelectEntityCountByShardsHandler
-	void handleReply(const std::vector<IEntityStore::EntityName>& names) {
-		function_(names);
+	void handleReply(const std::string& name, const std::vector<IEntityStore::EntityName>& names) {
+		function_(name, names);
 	}
 	// IReplyHandler
 	void timeout() {

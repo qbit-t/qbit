@@ -22,8 +22,12 @@
 namespace qbit {
 
 //
-// buzzfeed timeframe for trust score madjustements
+// buzzfeed timeframe for trust score adjustements
 #define BUZZFEED_TIMEFRAME (5*60*1000000) // 5 min
+
+//
+// number of confirmations from different peers for realtime feed
+#define BUZZ_PEERS_CONFIRMATIONS 2 // default
 
 //
 // forward
@@ -33,21 +37,115 @@ typedef std::shared_ptr<BuzzfeedItem> BuzzfeedItemPtr;
 //
 // resolver functions
 typedef boost::function<void (const uint256& /*buzzerInfoId*/, std::string& /*name*/, std::string& /*alias*/)> buzzerInfoFunction;
-typedef boost::function<void (const uint256& /*buzzerChainId*/, const uint256& /*buzzerId*/, const uint256& /*buzzerInfoId*/)> buzzerInfoResolveFunction;
+typedef boost::function<bool (const uint256& /*buzzerChainId*/, const uint256& /*buzzerId*/, const uint256& /*buzzerInfoId*/, buzzerInfoReadyFunction /*readyFunction*/)> buzzerInfoResolveFunction;
 
 //
 // buzzfeed callbacks
 typedef boost::function<void (void)> buzzfeedLargeUpdatedFunction;
 typedef boost::function<void (BuzzfeedItemPtr)> buzzfeedItemNewFunction;
+typedef boost::function<void (BuzzfeedItemPtr)> buzzfeedItemReadyFunction;
 typedef boost::function<void (BuzzfeedItemPtr)> buzzfeedItemUpdatedFunction;
 typedef boost::function<void (const uint256&, const uint256&)> buzzfeedItemAbsentFunction;
 typedef boost::function<Buzzer::VerificationResult (BuzzfeedItemPtr)> buzzfeedItemVerifyFunction;
 typedef boost::function<void (BuzzfeedItemPtr)> buzzerInfoLoadedFunction;
+typedef boost::function<Buzzer::VerificationResult (const uint256&, uint64_t, const uint512&)> verifyUpdateForMyThreadFunction;
+
+//
+// buzzfeed item update
+class BuzzfeedItemUpdate {
+public:
+	enum Field {
+		NONE = 0,
+		LIKES = 1,
+		REBUZZES = 2,
+		REPLIES = 3,
+		REWARDS = 4,
+		LINKS = 5
+	};
+public:
+	BuzzfeedItemUpdate() { field_ = NONE; count_ = 0; }
+	BuzzfeedItemUpdate(const uint256& buzzId, const uint256& eventId, Field field, uint64_t count):
+		buzzId_(buzzId), eventId_(eventId), field_(field), count_(count) {}
+
+	ADD_SERIALIZE_METHODS;
+
+	template <typename Stream, typename Operation>
+	inline void serializationOp(Stream& s, Operation ser_action) {
+		//
+		READWRITE(buzzId_);
+		READWRITE(eventId_);
+
+		if (ser_action.ForRead()) {
+			short lField;
+			s >> lField;
+			field_ = (Field)lField;
+		} else {
+			short lField = (short)field_;
+			s << lField;
+		}
+
+		READWRITE(count_);
+	}
+
+	const uint256& buzzId() const { return buzzId_; }
+	const uint256& eventId() const { return eventId_; }
+	Field field() const { return field_; }
+	std::string fieldString() const {
+		if (field_ == LIKES) return "LIKES";
+		else if (field_ == REBUZZES) return "REBUZZES";
+		else if (field_ == REPLIES) return "REPLIES";
+		else if (field_ == REWARDS) return "REWARDS";
+		else if (field_ == LINKS) return "LINKS";
+		return "NONE";
+	}
+	uint64_t count() const { return count_; }
+
+private:
+	uint256 buzzId_;
+	uint256 eventId_;
+	Field field_;
+	uint64_t count_ = 0;
+};
+
+class BuzzfeedPublisherFrom {
+public:
+	BuzzfeedPublisherFrom() { publisher_.setNull(); from_ = 0; }
+	BuzzfeedPublisherFrom(const uint256& publisher, uint64_t from):
+		publisher_(publisher), from_(from) {}
+
+	ADD_SERIALIZE_METHODS;
+
+	template <typename Stream, typename Operation>
+	inline void serializationOp(Stream& s, Operation ser_action) {
+		//
+		READWRITE(publisher_);
+		READWRITE(from_);
+	}
+
+	const uint256& publisher() const { return publisher_; }
+	uint64_t from() const { return from_; }
+
+private:
+	uint256 publisher_;
+	uint64_t from_ = 0;
+};
+
+//
+typedef boost::function<void (const std::vector<BuzzfeedItemUpdate>&)> buzzfeedItemsUpdatedFunction;
 
 //
 // buzzfeed item
-class BuzzfeedItem: public std::enable_shared_from_this<BuzzfeedItem> {
+class BuzzfeedItem:	public std::enable_shared_from_this<BuzzfeedItem> {
 public:
+	enum Source {
+		//
+		// BUZZFEED - naturally picked up by the persistent subscriptions and interlinked buzzes
+		BUZZFEED,
+		//
+		// BUZZ_SUBSCRIPTION - picked up by dynamic subscription (only for realtime feeds) 
+		BUZZ_SUBSCRIPTION
+	};
+
 	enum Merge {
 		//
 		// UNION - unite feeds, which comes from different nodes
@@ -64,24 +162,83 @@ public:
 		REVERSE
 	};
 
-	enum Key {
+	enum Group {
 		//
 		TIMESTAMP,
 		//
 		TIMEFRAME_SCORE
 	};
 
+	enum Expand {
+		//
+		FULL,
+		//
+		SMART
+	};
+
+public:
+	class Key {
+	public:
+		Key(const uint256& id, unsigned short type): id_(id), type_(type) {}
+
+		friend bool operator < (const Key& a, const Key& b) {
+			if (a.id() < b.id()) return true;
+			if (a.id() > b.id()) return false;
+			if (a.type() < b.type()) return true;
+			if (a.type() > b.type()) return false;
+
+			return false;
+		}
+
+		friend bool operator == (const Key& a, const Key& b) {
+			return (a.id() == b.id() && a.type() == b.type());
+		}
+
+		const uint256& id() const { return id_; }
+		unsigned short type() const { return type_; }
+
+		std::string toString() const {
+			return strprintf("%s|%s", id_.toHex(), typeToString());
+		}
+
+		std::string typeToString() const {
+			if (type_ == TX_BUZZ) return "BUZZ";
+			else if (type_ == TX_BUZZ_REPLY) return "REPLY";
+			else if (type_ == TX_REBUZZ) return "REBUZZ";
+			else if (type_ == TX_BUZZ_LIKE) return "LIKE";
+			else if (type_ == TX_BUZZ_REWARD) return "REWARD";
+			else if (type_ == TX_BUZZER_MISTRUST) return "MISTRUST";
+			else if (type_ == TX_BUZZER_ENDORSE) return "ENDORSE";
+			return "NONE";
+		}		
+
+	private:
+		uint256 id_;
+		unsigned short type_;
+	};
+
 public:
 	class OrderKey {
 	public:
-		OrderKey(Key key, uint64_t timeframe, uint64_t score): key_(key), timeframe_(timeframe), score_(score) {}
+		OrderKey(Group key, uint64_t timestamp):
+			key_(key), timestamp_(timestamp) {}
+
+		OrderKey(Group key, uint64_t timeframe, uint64_t score, uint64_t timestamp):
+			key_(key), timeframe_(timeframe), score_(score), timestamp_(timestamp) {}
 
 		friend bool operator < (const OrderKey& a, const OrderKey& b) {
-			if (a.timeframe() < b.timeframe()) return true;
-			if (a.timeframe() > b.timeframe()) return false;
-			if (a.key() == TIMEFRAME_SCORE) {
+			if (a.key() == TIMEFRAME_SCORE || b.key() == TIMEFRAME_SCORE) {
+				if (a.timeframe() < b.timeframe()) return true;
+				if (a.timeframe() > b.timeframe()) return false;
+
 				if (a.score() < b.score()) return true;
 				if (a.score() > b.score()) return false;
+
+				if (a.timestamp() < b.timestamp()) return true;
+				if (a.timestamp() > b.timestamp()) return false;
+			} else {
+				if (a.timestamp() < b.timestamp()) return true;
+				if (a.timestamp() > b.timestamp()) return false;
 			}
 
 			return false;
@@ -93,12 +250,18 @@ public:
 
 		uint64_t timeframe() const { return timeframe_; }
 		uint64_t score() const { return score_; }
-		Key key() const { return key_; }
+		uint64_t timestamp() const { return timestamp_; }
+		Group key() const { return key_; }
+		std::string keyString() const {
+			if (key_ == TIMESTAMP) return "TIMESTAMP";
+			return "TIMEFRAME_SCORE";
+		}
 
 	private:
-		Key key_;
-		uint64_t timeframe_;
-		uint64_t score_;
+		Group key_ = TIMESTAMP;
+		uint64_t timeframe_ = 0;
+		uint64_t score_ = 0;
+		uint64_t timestamp_ = 0;
 	};
 
 public:
@@ -111,8 +274,15 @@ public:
 			eventChainId_(eventChainId), eventId_(eventId), signature_(signature) {
 		}
 
+		ItemInfo(uint64_t timestamp, uint64_t score, uint64_t amount, const uint256& buzzerId, const uint256& buzzerInfoChainId, 
+			const uint256& buzzerInfoId, const uint256& eventChainId, const uint256& eventId, const uint512& signature): 
+			timestamp_(timestamp), score_(score), amount_(amount), buzzerId_(buzzerId), buzzerInfoChainId_(buzzerInfoChainId), buzzerInfoId_(buzzerInfoId),
+			eventChainId_(eventChainId), eventId_(eventId), signature_(signature) {
+		}
+
 		uint64_t timestamp() const { return timestamp_; }
 		uint64_t score() const { return score_; }
+		uint64_t amount() const { return amount_; }
 		const uint256& eventId() const { return eventId_; } 
 		const uint256& eventChainId() const { return eventChainId_; } 
 		const uint256& buzzerId() const { return buzzerId_; }
@@ -131,73 +301,26 @@ public:
 			READWRITE(buzzerId_);
 			READWRITE(buzzerInfoId_);
 			READWRITE(buzzerInfoChainId_);
+			READWRITE(amount_);
 			READWRITE(signature_);
 		}
 
-	private:
-		uint64_t timestamp_;
-		uint64_t score_;
+	protected:
+		uint64_t timestamp_ = 0;
+		uint64_t score_ = 0;
 		uint256 eventId_;
 		uint256 eventChainId_;
 		uint256 buzzerId_;
 		uint256 buzzerInfoId_;
 		uint256 buzzerInfoChainId_;
+		uint64_t amount_ = 0;
 		uint512 signature_;	
 	};
 
-	class Update {
-	public:
-		enum Field {
-			NONE = 0,
-			LIKES = 1,
-			REBUZZES = 2,
-			REPLIES = 3
-		};
-	public:
-		Update() { field_ = NONE; count_ = 0; }
-		Update(const uint256& buzzId, const uint256& eventId, Field field, uint32_t count): 
-			buzzId_(buzzId), eventId_(eventId), field_(field), count_(count) {}
-
-		ADD_SERIALIZE_METHODS;
-
-		template <typename Stream, typename Operation>
-		inline void serializationOp(Stream& s, Operation ser_action) {
-			//
-			READWRITE(buzzId_);
-			READWRITE(eventId_);
-
-			if (ser_action.ForRead()) {
-				short lField;
-				s >> lField;
-				field_ = (Field)lField;
-			} else {
-				short lField = (short)field_;
-				s << lField;			
-			}
-
-			READWRITE(count_);
-		}
-
-		const uint256& buzzId() const { return buzzId_; }
-		const uint256& eventId() const { return eventId_; }
-		Field field() const { return field_; }
-		std::string fieldString() const {
-			if (field_ == LIKES) return "LIKES";
-			else if (field_ == REBUZZES) return "REBUZZES";
-			else if (field_ == REPLIES) return "REPLIES";
-			return "NONE";
-		}
-		uint32_t count() const { return count_; }
-
-	private:
-		uint256 buzzId_;
-		uint256 eventId_;
-		Field field_;
-		uint32_t count_;
-	};
 public:
 	BuzzfeedItem() {
 		type_ = Transaction::UNDEFINED;
+		source_ = Source::BUZZFEED;
 		buzzId_.setNull();
 		buzzChainId_.setNull();
 		buzzerInfoId_.setNull();
@@ -205,13 +328,20 @@ public:
 		timestamp_ = 0;
 		order_ = 0;
 		buzzerId_.setNull();
-		buzzerInfoId_.setNull();
 		replies_ = 0;
 		rebuzzes_ = 0;
 		likes_ = 0;
-		originalBuzzChainId_ = 0;
-		originalBuzzId_ = 0;
+		rewards_ = 0;
+		value_ = 0;
+		score_ = 0;
+		originalBuzzChainId_.setNull();
+		originalBuzzId_.setNull();
 		signature_.setNull();
+		subscriptionSignature_.setNull();
+		rootBuzzId_.setNull();
+	}
+	~BuzzfeedItem() {
+		wrapped_.reset();
 	}
 
 	ADD_SERIALIZE_METHODS;
@@ -219,6 +349,7 @@ public:
 	template <typename Stream, typename Operation>
 	inline void serializationOp(Stream& s, Operation ser_action) {
 		READWRITE(type_);
+		READWRITE(source_);
 		READWRITE(buzzId_);
 		READWRITE(buzzChainId_);
 		READWRITE(timestamp_);
@@ -234,6 +365,7 @@ public:
 			READWRITE(replies_);
 			READWRITE(rebuzzes_);
 			READWRITE(likes_);
+			READWRITE(rewards_);
 		}
 
 		READWRITE(order_);
@@ -243,25 +375,37 @@ public:
 			READWRITE(originalBuzzId_);
 		}
 
-		if (type_ == TX_BUZZ_LIKE || type_ == TX_BUZZER_MISTRUST || type_ == TX_BUZZER_ENDORSE)
+		if (type_ == TX_REBUZZ || type_ == TX_BUZZ_LIKE || type_ == TX_BUZZ_REWARD || 
+			type_ == TX_BUZZER_MISTRUST || type_ == TX_BUZZER_ENDORSE)
 			READWRITE(infos_);
 
 		if (type_ == TX_BUZZER_MISTRUST || type_ == TX_BUZZER_ENDORSE) {
 			READWRITE(value_);
 		}
 
+		if (source_ != Source::BUZZFEED)
+			READWRITE(subscriptionSignature_);
+
 		READWRITE(properties_);
+
+		loaded();
 	}
+
+	virtual void loaded() {}
+
+	Key key() const { return Key(buzzId_, type_); }
 
 	OrderKey order() const {
 		//
 		uint64_t lOrder;
 		if (order_) lOrder = order_; 
 		else lOrder = timestamp_; 
-		return OrderKey(key_, (key_ == TIMEFRAME_SCORE ? lOrder/BUZZFEED_TIMEFRAME : lOrder), score_);
+
+		if (type_ == TX_BUZZ_REPLY) return OrderKey(TIMESTAMP, lOrder);
+		return OrderKey(key_, (key_ == TIMEFRAME_SCORE ? lOrder/BUZZFEED_TIMEFRAME : lOrder), score_, lOrder);
 	}
 
-	uint64_t actualOrder() {
+	uint64_t actualOrder() const {
 		if (order_) return order_;
 		return timestamp_;
 	}
@@ -271,11 +415,17 @@ public:
 	unsigned short type() const { return type_; }
 	void setType(unsigned short type) { type_ = type; }
 
-	uint64_t value() { return value_; }
+	unsigned char source() const { return source_; }
+	void setSource(unsigned char source) { source_ = source; }
+
+	uint64_t value() const { return value_; }
 	void setValue(uint64_t value) { value_ = value; }
 
 	const uint256& buzzId() const { return buzzId_; }
 	void setBuzzId(const uint256& id) { buzzId_ = id; }
+
+	bool threaded() { return threaded_; }
+	void resetThreaded() { threaded_ = false;; }
 
 	const uint256& originalBuzzChainId() const { return originalBuzzChainId_; }
 	void setOriginalBuzzChainId(const uint256& id) { originalBuzzChainId_ = id; }
@@ -283,30 +433,55 @@ public:
 	const uint256& originalBuzzId() const { return originalBuzzId_; }
 	void setOriginalBuzzId(const uint256& id) { originalBuzzId_ = id; }
 
-	void addItemInfo(const ItemInfo& info) {
-		if (info_.insert(info.buzzerId()).second)
+	bool addItemInfo(const ItemInfo& info) {
+		if (info_.insert(info.buzzerId()).second) {
 			infos_.push_back(info);
+
+			addExtraInfo(info);
+			return true;
+		}
+
+		return false;
 	}
+
+	virtual void addExtraInfo(const ItemInfo&) {}
 
 	const std::vector<ItemInfo>& infos() const { return infos_; }
 
-	void mergeInfos(const std::vector<ItemInfo>& infos) {
+	bool mergeInfos(const std::vector<ItemInfo>& infos) {
 		//
 		if (infos_.size() && !info_.size()) {
 			for (std::vector<ItemInfo>::iterator lInfo = infos_.begin(); lInfo != infos_.end(); lInfo++) {
 				info_.insert(lInfo->buzzerId());
+				// updateTimestamp(lInfo->buzzerId(), lInfo->timestamp());
 			}
+
+			infosUpdated();
+			return true;
 		}
 
 		//
-		if (infos_.size() > 50) { infosCount_++; return; }
+		if (infos_.size() > 50) {
+			infosCount_++;
+			infosUpdated();
+			return true;
+		}
+
+		bool lResult = false;
 		for (std::vector<ItemInfo>::const_iterator lBuzzer = infos.begin(); lBuzzer != infos.end(); lBuzzer++) {
 			//
-			addItemInfo(*lBuzzer);
-
+			if (addItemInfo(*lBuzzer)) lResult = true;
 			if (lBuzzer->timestamp() > order_) order_ = lBuzzer->timestamp();
+
+			// updateTimestamp(lBuzzer->buzzerId(), lBuzzer->timestamp());
 		}
+
+		infosUpdated();
+
+		return lResult;
 	}
+
+	virtual void infosUpdated() {}
 
 	const uint256& buzzChainId() const { return buzzChainId_; }
 	void setBuzzChainId(const uint256& id) { buzzChainId_ = id; }
@@ -331,6 +506,7 @@ public:
 	void setBuzzBody(const std::vector<unsigned char>& body) { buzzBody_ = body; }
 
 	const std::vector<BuzzerMediaPointer>& buzzMedia() const { return buzzMedia_; } 
+
 	void setBuzzMedia(const std::vector<BuzzerMediaPointer>& media) {
 		buzzMedia_.insert(buzzMedia_.end(), media.begin(), media.end());
 	}
@@ -338,14 +514,37 @@ public:
 	const uint512& signature() const { return signature_; }
 	void setSignature(const uint512& signature) { signature_ = signature; }
 
+	const uint512& subscriptionSignature() const { return subscriptionSignature_; }
+	void setSubscriptionSignature(const uint512& subscriptionSignature) { subscriptionSignature_ = subscriptionSignature; }
+
 	uint32_t replies() const { return replies_; }
-	void setReplies(uint32_t v) { replies_ = v; }
+	bool setReplies(uint32_t v) { if (replies_ != v) { replies_ = v; return true; } return false; }
 
 	uint32_t rebuzzes() const { return rebuzzes_; }
-	void setRebuzzes(uint32_t v) { rebuzzes_ = v; }
+	bool setRebuzzes(uint32_t v) { if (rebuzzes_ != v) { rebuzzes_ = v; return true; } return false; }
 
 	uint32_t likes() const { return likes_; }
-	void setLikes(uint32_t v) { likes_ = v; }
+	bool setLikes(uint32_t v) { if (likes_ != v) { likes_ = v; return true; } return false; }
+
+	uint64_t rewards() const { return rewards_; }
+	bool setRewards(uint64_t v) { if (rewards_ != v) { rewards_ = v; return true; } return false; }
+
+	size_t confirmations() { return confirmed_.size(); }
+	size_t addConfirmation(const uint160& peer) {
+		confirmed_.insert(peer);
+		return confirmed_.size();
+	}
+
+	void setNonce(uint64_t nonce) { nonce_ = nonce; }
+	void setRootBuzzId(const uint256& root) { rootBuzzId_ = root; }
+
+	virtual void likesChanged() {}
+	virtual void rebuzzesChanged() {}
+	virtual void repliesChanged() {}
+	virtual void rewardsChanged() {}
+
+	void setParent(BuzzfeedItemPtr parent) { parent_ = parent; }
+	void setRoot(BuzzfeedItemPtr root) { root_ = root; }
 
 	void buzzerInfo(std::string& name, std::string& alias) {
 		buzzerInfo_(buzzerInfoId_, name, alias); 
@@ -363,29 +562,80 @@ public:
 		return std::make_shared<BuzzfeedItem>();
 	}
 
-	void merge(const BuzzfeedItem::Update&);
-	void merge(const std::vector<BuzzfeedItem::Update>&);
-	void merge(const BuzzfeedItem&, bool checkSize = true, bool notify = true);
+	void merge(const BuzzfeedItemUpdate&);
+	void merge(const std::vector<BuzzfeedItemUpdate>&);
+	bool merge(const BuzzfeedItem&, bool checkSize = true, bool notify = true);
 	void merge(const std::vector<BuzzfeedItem>&, bool notify = false);
-	void mergeAppend(const std::list<BuzzfeedItemPtr>&);
+	bool mergeAppend(const std::vector<BuzzfeedItemPtr>&);
+	void push(const BuzzfeedItem&, const uint160&);
 
-	void feed(std::list<BuzzfeedItemPtr>&);
-	BuzzfeedItemPtr locateBuzz(const uint256&);
+	virtual void feed(std::vector<BuzzfeedItemPtr>&, bool expanded = false);
+	virtual int locateIndex(BuzzfeedItemPtr);
+	virtual BuzzfeedItemPtr locateBuzz(const Key& key) {
+		if (root_) root_->locateBuzz(key);
+	}
+	virtual BuzzfeedItemPtr locateBuzz(const uint256&);
+
+	void setSortOrder(Order sortOrder) { sortOrder_  = sortOrder; }
+	void setGroupKey(Group key) { key_ = key; }
 
 	void setResolver(buzzerInfoResolveFunction buzzerInfoResolve, buzzerInfoFunction buzzerInfo) {
 		buzzerInfoResolve_ = buzzerInfoResolve;
 		buzzerInfo_ = buzzerInfo;
 	}
 
-	void resolve() {
-		buzzerInfoResolve_(buzzerInfoChainId_, buzzerId_, buzzerInfoId_);
+	std::string& buzzerName() {
+		//
+		if (!buzzerName_.length()) resolveBuzzerName();
+		return buzzerName_;
+	}
 
-		if (type_ == TX_BUZZ_LIKE || type_ == TX_BUZZER_MISTRUST || type_ == TX_BUZZER_ENDORSE) {
+	std::string& buzzerAlias() {
+		//
+		if (!buzzerAlias_.length()) resolveBuzzerName();
+		return buzzerAlias_;
+	}
+
+	void resolveBuzzerName() {
+		buzzerName_ = strprintf("<%s>", buzzerId_.toHex());
+		buzzerInfo(buzzerName_, buzzerAlias_);
+
+		if (!buzzerAlias_.size()) buzzerAlias_ = "?";
+	}
+
+	bool resolve() {
+		if (!buzzerInfoResolve_(
+				buzzerInfoChainId_, 
+				buzzerId_, 
+				buzzerInfoId_,
+				boost::bind(&BuzzfeedItem::buzzerInfoReady, shared_from_this(), _1))) {
+			//
+			return false;
+		}
+
+		bool lResolved = true;
+		if (type_ == TX_REBUZZ || type_ == TX_BUZZ_LIKE || type_ == TX_BUZZ_REWARD || type_ == TX_BUZZER_MISTRUST || type_ == TX_BUZZER_ENDORSE) {
 			for (std::vector<ItemInfo>::const_iterator lItem = infos_.begin(); lItem != infos_.end(); lItem++) {
-				// just first one for now
-				buzzerInfoResolve_(lItem->buzzerInfoChainId(), lItem->buzzerId(), lItem->buzzerInfoId());
-				break;
+				if (!buzzerInfoResolve_(
+						lItem->buzzerInfoChainId(), 
+						lItem->buzzerId(), 
+						lItem->buzzerInfoId(),
+						boost::bind(&BuzzfeedItem::buzzerInfoReady, shared_from_this(), _1))) {
+					//
+					lResolved = false;
+				}
 			}
+		}
+
+		return lResolved;
+	}
+
+	void buzzerInfoReady(const uint256& /*info*/) {
+		//
+		if (fed()) {
+			insertNewItem(shared_from_this());
+			//
+			itemNew(shared_from_this());
 		}
 	}
 
@@ -393,7 +643,7 @@ public:
 		//
 		if (!infos_.size()) return "?";
 		
-		ItemInfo lInfo = *infos_.begin();
+		ItemInfo& lInfo = *infos_.begin();
 
 		std::string lBuzzerName = strprintf("<%s>", lInfo.buzzerId().toHex());
 		std::string lBuzzerAlias;
@@ -422,6 +672,7 @@ public:
 		else if (type_ == TX_REBUZZ) return "rb";
 		else if (type_ == TX_BUZZ_REPLY) return "re";
 		else if (type_ == TX_BUZZ_LIKE) return "lk";
+		else if (type_ == TX_BUZZ_REWARD) return "dn";
 		else if (type_ == TX_BUZZER_MISTRUST) return "mt";
 		else if (type_ == TX_BUZZER_ENDORSE) return "es";
 		return "N";
@@ -440,18 +691,30 @@ public:
 		if (!lBuzzerAlias.size()) lBuzzerAlias = "?";
 
 		if (type_ == TX_REBUZZ) {
-			return strprintf("%s\n%s | %s | %s (%s) - (%s)\n%s\n%s\n[%d/%d/%d]\n -> %s",
+			if (infos_.size())
+				return strprintf("%s rebuzzed\n%s\n%s | %s | %s (%s) - (%s)\n%s\n[%d/%d/%d/%d]\n -> %s",
+					infosToString(),
+					buzzId_.toHex(),
+					lBuzzerAlias,
+					lBuzzerName,
+					formatISO8601DateTime(timestamp_ / 1000000),
+					typeString(),
+					scoreString(),
+					buzzBodyString(),
+					replies_, rebuzzes_, likes_, rewards_,
+					originalBuzzId_.isNull() ? "?" : originalBuzzId_.toHex());
+			return strprintf("%s\n%s | %s | %s (%s) - (%s)\n%s\n%s\n[%d/%d/%d/%d]\n -> %s",
 				buzzId_.toHex(),
 				lBuzzerAlias,
 				lBuzzerName,
 				formatISO8601DateTime(timestamp_ / 1000000),
 				typeString(),
 				scoreString(),
-				buzzBodyString().size() ? buzzBodyString() : "[...]", items_.size() ? items_.begin()->second->toRebuzzString() : "[---]",
-				replies_, rebuzzes_, likes_,
+				buzzBodyString().size() ? buzzBodyString() : "[...]", wrapped_ ? wrapped_->toRebuzzString() : "\t[---]",
+				replies_, rebuzzes_, likes_, rewards_,
 				originalBuzzId_.isNull() ? "?" : originalBuzzId_.toHex());
 		} else if (type_ == TX_BUZZ_LIKE) {
-			return strprintf("%s liked\n%s\n%s | %s | %s (%s) - (%s)\n%s\n[%d/%d/%d]\n -> %s",
+			return strprintf("%s liked\n%s\n%s | %s | %s (%s) - (%s)\n%s\n[%d/%d/%d/%d]\n -> %s",
 				infosToString(),
 				buzzId_.toHex(),
 				lBuzzerAlias,
@@ -460,7 +723,19 @@ public:
 				typeString(),
 				scoreString(),
 				buzzBodyString(),
-				replies_, rebuzzes_, likes_,
+				replies_, rebuzzes_, likes_, rewards_,
+				originalBuzzId_.isNull() ? "?" : originalBuzzId_.toHex());
+		} else if (type_ == TX_BUZZ_REWARD) {
+			return strprintf("%s donated\n%s\n%s | %s | %s (%s) - (%s)\n%s\n[%d/%d/%d/%d]\n -> %s",
+				infosToString(),
+				buzzId_.toHex(),
+				lBuzzerAlias,
+				lBuzzerName,
+				formatISO8601DateTime(timestamp_ / 1000000),
+				typeString(),
+				scoreString(),
+				buzzBodyString(),
+				replies_, rebuzzes_, likes_, rewards_,
 				originalBuzzId_.isNull() ? "?" : originalBuzzId_.toHex());
 		} else if (type_ == TX_BUZZER_MISTRUST || type_ == TX_BUZZER_ENDORSE) {
 			//		
@@ -474,7 +749,7 @@ public:
 				infosToString());
 		}
 
-		return strprintf("%s\n%s | %s | %s (%s) - (%s)\n%s\n[%d/%d/%d]\n -> %s",
+		return strprintf("%s\n%s | %s | %s (%s) - (%s)\n%s\n[%d/%d/%d/%d]\n -> %s",
 			buzzId_.toHex(),
 			lBuzzerAlias,
 			lBuzzerName,
@@ -482,7 +757,7 @@ public:
 			typeString(),
 			scoreString(),
 			buzzBodyString(),
-			replies_, rebuzzes_, likes_,
+			replies_, rebuzzes_, likes_, rewards_,
 			originalBuzzId_.isNull() ? "?" : originalBuzzId_.toHex());
 	}
 
@@ -504,21 +779,61 @@ public:
 			buzzBodyString());
 	}
 
-	virtual void lock() {}
-	virtual void unlock() {}
+	virtual void lock() {
+		if (root_) { root_->lock(); }
+	}
+
+	virtual void unlock() {
+		if (root_) { root_->unlock(); }
+	}
+
+	virtual BuzzerPtr buzzer() {
+		if (root_) return root_->buzzer();
+		return nullptr;
+	}
+
+	virtual void insertNewItem(BuzzfeedItemPtr item) {
+		if (root_) root_->insertNewItem(item);
+	}
+
+	virtual bool fed() {
+		if (root_) return root_->fed();
+
+		return pulled_;
+	}
 
 	virtual uint64_t locateLastTimestamp();
+	virtual void locateLastTimestamp(std::set<uint64_t>&);
+	virtual void locateLastTimestamp(std::map<uint256 /*chain*/, std::vector<BuzzfeedPublisherFrom>>&);
 	virtual void collectPendingItems(std::map<uint256 /*chain*/, std::set<uint256>/*items*/>&);
-	virtual void crossMerge();
+	virtual void crossMerge(bool notify = false);
+	virtual void wrap(BuzzfeedItemPtr item) { wrapped_ = item; }
+	virtual BuzzfeedItemPtr wrapped() { return wrapped_; }
+	virtual BuzzfeedItemPtr root() { return root_; }
+	void wasSuspicious() { wasSuspicious_ = true; }
+	virtual bool isRoot() { return false; }
 
-	virtual void clear() {
-		chains_.clear();
-		items_.clear();
-		index_.clear();
-		orphans_.clear();
-		lastTimestamps_.clear();
-		pendings_.clear();		
-	}
+	bool hasPrevLink() { return hasPrevLink_; }
+	void setHasPrevLink(bool value) { hasPrevLink_ = value; }
+
+	bool hasNextLink() { return hasNextLink_; }
+	void setHasNextLink(bool value) { hasNextLink_ = value; }
+
+	bool pulled() { return pulled_; }
+	void setPulled() { pulled_ = true; }
+	void resetPulled() { pulled_ = false; }
+
+	bool isOnChain() { return onChain_; }
+	void notOnChain() { onChain_ = false; }
+	void setOnChain() { onChain_ = true; }
+
+	bool isDynamic() { return dynamic_; }
+	void setDynamic() { dynamic_ = true; }
+
+	virtual void clear();
+
+	size_t count() const { return items_.size(); }	
+	BuzzfeedItemPtr firstChild();
 
 	Buzzer::VerificationResult signatureVerification() { return checkResult_; }
 
@@ -526,7 +841,9 @@ public:
 		if (checkResult_ == Buzzer::VerificationResult::SUCCESS) return true;
 		else if (checkResult_ == Buzzer::VerificationResult::INVALID) return false;
 
-		Buzzer::VerificationResult lResult = verifyPublisher_(shared_from_this());
+		Buzzer::VerificationResult lResult;
+		if (wasSuspicious_ && verifyPublisherLazy_) lResult = verifyPublisherLazy_(shared_from_this());
+		else lResult = verifyPublisher_(shared_from_this());
 		return (lResult == Buzzer::VerificationResult::SUCCESS);
 	}
 
@@ -543,8 +860,8 @@ public:
 	virtual BuzzfeedItemPtr last() {
 		Guard lLock(this);
 		if (index_.size()) {
-			std::multimap<OrderKey /*order*/, uint256 /*buzz*/>::iterator lItem = index_.begin();
-			std::map<uint256 /*buzz*/, BuzzfeedItemPtr>::iterator lBuzz = items_.find(lItem->second);
+			std::multimap<OrderKey /*order*/, Key /*buzz*/>::iterator lItem = index_.begin();
+			std::map<Key /*buzz*/, BuzzfeedItemPtr>::iterator lBuzz = items_.find(lItem->second);
 			if (lBuzz != items_.end())
 				return lBuzz->second;
 		}
@@ -554,7 +871,7 @@ public:
 
 	uint64_t actualScore() {
 		//
-		if (type_ == TX_BUZZ_LIKE || type_ == TX_BUZZER_MISTRUST || type_ == TX_BUZZER_ENDORSE) {
+		if ((type_ == TX_REBUZZ && infos_.size()) || type_ == TX_BUZZ_LIKE || type_ == TX_BUZZ_REWARD || type_ == TX_BUZZER_MISTRUST || type_ == TX_BUZZER_ENDORSE) {
 			std::vector<ItemInfo>::const_iterator lItem = infos_.begin();
 			return lItem->score();
 		}
@@ -564,7 +881,7 @@ public:
 
 	uint64_t actualTimestamp() {
 		//
-		if (type_ == TX_BUZZ_LIKE || type_ == TX_BUZZER_MISTRUST || type_ == TX_BUZZER_ENDORSE) {
+		if ((type_ == TX_REBUZZ && infos_.size()) || type_ == TX_BUZZ_LIKE || type_ == TX_BUZZ_REWARD || type_ == TX_BUZZER_MISTRUST || type_ == TX_BUZZER_ENDORSE) {
 			std::vector<ItemInfo>::const_iterator lItem = infos_.begin();
 			return lItem->timestamp();
 		}
@@ -572,54 +889,53 @@ public:
 		return timestamp_;
 	}
 
-	uint160 createPublisherTimestamp() {
-		DataStream lPublisherTsStream(SER_NETWORK, PROTOCOL_VERSION); 
-
-		if (type_ == TX_BUZZ_LIKE || type_ == TX_BUZZER_MISTRUST || type_ == TX_BUZZER_ENDORSE) {
+	uint256 actualPublisher() {
+		//
+		if ((type_ == TX_REBUZZ && infos_.size()) || type_ == TX_BUZZ_LIKE || type_ == TX_BUZZ_REWARD || type_ == TX_BUZZER_MISTRUST || type_ == TX_BUZZER_ENDORSE) {
 			std::vector<ItemInfo>::const_iterator lItem = infos_.begin();
-			lPublisherTsStream << lItem->timestamp();
-			lPublisherTsStream << lItem->buzzerId();
-		} else {
-			lPublisherTsStream << timestamp_;
-			lPublisherTsStream << buzzerId_;
+			return lItem->buzzerId();
 		}
 
-		return Hash160(lPublisherTsStream.begin(), lPublisherTsStream.end());
+		return buzzerId_;
+	}
+
+	uint64_t actualTimeframe() {
+		//
+		uint64_t lOrder;
+		if (order_) lOrder = order_; 
+		else lOrder = timestamp_; 
+		return lOrder/BUZZFEED_TIMEFRAME;
+	}
+
+	void setupCallbacks(BuzzfeedItemPtr item) {
+		//		
+		buzzerInfo_ = item->buzzerInfo_;
+		buzzerInfoResolve_ = item->buzzerInfoResolve_;
+		verifyPublisher_ = item->verifyPublisher_;
+		verifyPublisherLazy_ = item->verifyPublisherLazy_;
+		verifyUpdateForMyThread_ = item->verifyUpdateForMyThread_;
+
+		//
+		largeUpdated_ = item->largeUpdated_;
+		itemNew_ = item->itemNew_;
+		itemUpdated_ = item->itemUpdated_;
+		itemsUpdated_ = item->itemsUpdated_;
+		itemAbsent_ = item->itemAbsent_;
 	}
 
 protected:
-	//virtual bool verifyPublisher(BuzzfeedItemPtr) { return true; }
-	virtual void itemUpdated(BuzzfeedItemPtr) {}
-	virtual void itemNew(BuzzfeedItemPtr) {}
-	virtual void itemsUpdated(const std::vector<BuzzfeedItem::Update>&) {}
-	virtual void largeUpdated() {}
-	virtual void itemAbsent(const uint256&, const uint256&) {}
+	virtual void itemUpdated(BuzzfeedItemPtr item) { itemUpdated_(item); }
+	virtual void itemNew(BuzzfeedItemPtr item) { itemNew_(item); }
+	virtual void itemsUpdated(const std::vector<BuzzfeedItemUpdate>& items) { itemsUpdated_(items); }
+	virtual void largeUpdated() { largeUpdated_(); }
+	virtual void itemAbsent(const uint256& chain, const uint256& id) { itemAbsent_(chain, id); }
 
-	void removeIndex(BuzzfeedItemPtr item) {
-		// clean-up
-		std::pair<std::multimap<OrderKey /*order*/, uint256 /*buzz*/>::iterator,
-					std::multimap<OrderKey /*order*/, uint256 /*buzz*/>::iterator> lRange = index_.equal_range(item->order());
-		for (std::multimap<OrderKey /*order*/, uint256 /*buzz*/>::iterator lExist = lRange.first; lExist != lRange.second; lExist++) {
-			if (lExist->second == item->buzzId()) {
-				index_.erase(lExist);
-				break;
-			}
-		}
-	}
-
-	void insertIndex(BuzzfeedItemPtr item) {
-		index_.insert(std::multimap<OrderKey /*order*/, uint256 /*buzz*/>::value_type(item->order(), item->buzzId()));
-	}
-
-	void updateTimestamp(const uint256& publisher, uint64_t timestamp) {
-		//
-		std::map<uint256 /*publisher*/, uint64_t>::iterator lTimestamp = lastTimestamps_.find(publisher);
-		if (lTimestamp != lastTimestamps_.end()) {
-			if (lTimestamp->second > timestamp) lTimestamp->second = timestamp;
-		} else {
-			lastTimestamps_[publisher] = timestamp;
-		}
-	}
+	bool mergeInternal(BuzzfeedItemPtr, bool checkSize = true, bool notify = true, bool suspicious = false);
+	void removeIndex(BuzzfeedItemPtr item);
+	void insertIndex(BuzzfeedItemPtr item);
+	void updateTimestamp(const uint256& publisher, const uint256& chain, uint64_t timestamp);
+	bool locateIndex(BuzzfeedItemPtr, int&, uint256&, bool expanded = false);
+	BuzzfeedItemPtr locateBuzzInternal(const uint256&);
 
 protected:
 	class Guard {
@@ -638,6 +954,7 @@ protected:
 
 protected:
 	unsigned short type_;
+	unsigned char source_;
 	uint256 buzzId_;
 	uint256 buzzChainId_;
 	uint64_t timestamp_;
@@ -651,6 +968,8 @@ protected:
 	uint32_t replies_;
 	uint32_t rebuzzes_;
 	uint32_t likes_;
+	uint64_t rewards_;
+	uint512 subscriptionSignature_;
 	std::vector<unsigned char> properties_; // extra properties for the future use
 
 	// ordering
@@ -668,6 +987,10 @@ protected:
 	// endorse/mistrust
 	uint64_t value_ = 0;
 
+	// buzzer name/alias resolve
+	std::string buzzerName_;
+	std::string buzzerAlias_;
+
 	// merge strategy
 	Merge merge_ = Merge::UNION;
 	std::set<uint256> chains_;
@@ -676,7 +999,13 @@ protected:
 	Order sortOrder_ = Order::REVERSE;
 
 	// key structure
-	Key key_ = Key::TIMEFRAME_SCORE;
+	Group key_ = Group::TIMEFRAME_SCORE;
+
+	// expand threads to feed
+	Expand expand_ = Expand::SMART;
+
+	//
+	bool threaded_ = false;
 
 	// cache for aggregates
 	std::set<uint256> repliesSet_;
@@ -687,21 +1016,51 @@ protected:
 	Buzzer::VerificationResult checkResult_ = Buzzer::VerificationResult::POSTPONED;
 
 	// threads
-	std::map<uint256 /*buzz*/, BuzzfeedItemPtr> items_;
-	std::multimap<OrderKey /*order*/, uint256 /*buzz*/> index_;
-	std::map<uint256 /*buzz*/, std::set<uint256>> orphans_;
-	std::map<uint256 /*publisher*/, uint64_t> lastTimestamps_;
-	std::map<uint256 /*originalBuzz*/, std::map<uint256, BuzzfeedItemPtr>> pendings_;
+	std::map<Key /*buzz*/, BuzzfeedItemPtr> items_;
+	std::map<uint256 /*buzz*/, BuzzfeedItemPtr> originalItems_;
+	std::multimap<OrderKey /*order*/, Key /*buzz*/> index_;
+	std::map<uint256 /*buzz*/, std::set<Key>> orphans_;
+	std::map<uint256 /*publisher*/, std::map<uint256 /*chain*/, uint64_t>> lastTimestamps_;
+	std::map<uint256 /*originalBuzz*/, std::map<Key, BuzzfeedItemPtr>> pendings_;
+	std::map<Key /*buzz*/, BuzzfeedItemPtr> suspicious_;
+	std::map<Key /*buzz*/, BuzzfeedItemPtr> unconfirmed_;
+	std::set<uint160> confirmed_; // current buzz
+	bool wasSuspicious_ = false;
+	bool onChain_ = true;
+	bool dynamic_ = false;
 
 	// resolver
 	buzzerInfoFunction buzzerInfo_;
 	buzzerInfoResolveFunction buzzerInfoResolve_;
 	buzzfeedItemVerifyFunction verifyPublisher_;
+	buzzfeedItemVerifyFunction verifyPublisherLazy_;
+	verifyUpdateForMyThreadFunction verifyUpdateForMyThread_;
+
+	// notifications
+	buzzfeedLargeUpdatedFunction largeUpdated_;
+	buzzfeedItemNewFunction itemNew_;
+	buzzfeedItemUpdatedFunction itemUpdated_;
+	buzzfeedItemsUpdatedFunction itemsUpdated_;
+	buzzfeedItemAbsentFunction itemAbsent_;
+
+	// parent
+	BuzzfeedItemPtr parent_ = nullptr;
+	BuzzfeedItemPtr root_ = nullptr;
+
+	// wrapped item
+	BuzzfeedItemPtr wrapped_ = nullptr; // for rebuzz-comment
+
+	// nonce & buzzid for buzz threads realtime updates
+	uint64_t nonce_ = 0;
+	uint256 rootBuzzId_;
+
+	// linkage info
+	bool hasPrevLink_ = false;
+	bool hasNextLink_ = false;
+	bool pulled_ = false;
 };
 
 //
-typedef boost::function<void (const std::vector<BuzzfeedItem::Update>&)> buzzfeedItemsUpdatedFunction;
-
 class Buzzfeed;
 typedef std::shared_ptr<Buzzfeed> BuzzfeedPtr;
 
@@ -709,38 +1068,91 @@ typedef std::shared_ptr<Buzzfeed> BuzzfeedPtr;
 // buzzfeed
 class Buzzfeed: public BuzzfeedItem {
 public:
-	Buzzfeed(BuzzerPtr buzzer, buzzfeedItemVerifyFunction verifyPublisher,
+	Buzzfeed(BuzzerPtr buzzer,	buzzfeedItemVerifyFunction verifyPublisher,
 								buzzfeedLargeUpdatedFunction largeUpdated, 
 								buzzfeedItemNewFunction itemNew, 
 								buzzfeedItemUpdatedFunction itemUpdated,
 								buzzfeedItemsUpdatedFunction itemsUpdated,
-								buzzfeedItemAbsentFunction itemAbsent, Merge merge, Order order, Key key) : 
-		buzzer_(buzzer),
-		largeUpdated_(largeUpdated), 
-		itemNew_(itemNew), 
-		itemUpdated_(itemUpdated),
-		itemsUpdated_(itemsUpdated),
-		itemAbsent_(itemAbsent) {
+								buzzfeedItemAbsentFunction itemAbsent, 
+								Merge merge, Order order, Group key) : 
+		buzzer_(buzzer) {
+		largeUpdated_ = largeUpdated;
+		itemNew_ = itemNew;
+		itemUpdated_ = itemUpdated;
+		itemsUpdated_ = itemsUpdated;
+		itemAbsent_ = itemAbsent;
 		verifyPublisher_ = verifyPublisher;
 		merge_ = merge;
 		sortOrder_ = order;
 		key_ = key;
 	}
 
-	Buzzfeed(BuzzerPtr buzzer, buzzfeedItemVerifyFunction verifyPublisher,
+	Buzzfeed(BuzzerPtr buzzer,	buzzfeedItemVerifyFunction verifyPublisher, 
+								buzzfeedItemVerifyFunction verifyPublisherLazy,
 								buzzfeedLargeUpdatedFunction largeUpdated, 
 								buzzfeedItemNewFunction itemNew, 
 								buzzfeedItemUpdatedFunction itemUpdated,
 								buzzfeedItemsUpdatedFunction itemsUpdated,
-								buzzfeedItemAbsentFunction itemAbsent, Merge merge) : 
-		buzzer_(buzzer),
-		largeUpdated_(largeUpdated), 
-		itemNew_(itemNew), 
-		itemUpdated_(itemUpdated),
-		itemsUpdated_(itemsUpdated),
-		itemAbsent_(itemAbsent) {
+								buzzfeedItemAbsentFunction itemAbsent, 
+								Merge merge, Order order, Group key) : 
+		Buzzfeed (buzzer, verifyPublisher, largeUpdated, itemNew, itemUpdated, itemsUpdated, itemAbsent, merge, order, key) {
+		verifyPublisherLazy_ = verifyPublisherLazy;
+	}
+
+	Buzzfeed(BuzzerPtr buzzer,	buzzfeedItemVerifyFunction verifyPublisher,
+								buzzfeedItemVerifyFunction verifyPublisherLazy, 
+								verifyUpdateForMyThreadFunction verifyUpdateForMyThread,
+								buzzfeedLargeUpdatedFunction largeUpdated, 
+								buzzfeedItemNewFunction itemNew, 
+								buzzfeedItemUpdatedFunction itemUpdated,
+								buzzfeedItemsUpdatedFunction itemsUpdated,
+								buzzfeedItemAbsentFunction itemAbsent, 
+								Merge merge, Order order, Group key, Expand expand) :
+		Buzzfeed (buzzer, verifyPublisher, verifyPublisherLazy, largeUpdated, itemNew, itemUpdated, itemsUpdated, itemAbsent, merge, order, key) {
+		verifyUpdateForMyThread_ = verifyUpdateForMyThread;
+		expand_ = expand;
+	}
+
+	Buzzfeed(BuzzerPtr buzzer,	buzzfeedItemVerifyFunction verifyPublisher,
+								buzzfeedLargeUpdatedFunction largeUpdated, 
+								buzzfeedItemNewFunction itemNew, 
+								buzzfeedItemUpdatedFunction itemUpdated,
+								buzzfeedItemsUpdatedFunction itemsUpdated,
+								buzzfeedItemAbsentFunction itemAbsent, 
+								Merge merge) : 
+		buzzer_(buzzer) {
+		largeUpdated_ = largeUpdated; 
+		itemNew_ = itemNew; 
+		itemUpdated_ = itemUpdated;
+		itemsUpdated_ = itemsUpdated;
+		itemAbsent_ = itemAbsent;
 		verifyPublisher_ = verifyPublisher;
 		merge_ = merge;
+	}
+
+	Buzzfeed(BuzzerPtr buzzer,	buzzfeedItemVerifyFunction verifyPublisher, 
+								buzzfeedItemVerifyFunction verifyPublisherLazy,
+								buzzfeedLargeUpdatedFunction largeUpdated, 
+								buzzfeedItemNewFunction itemNew, 
+								buzzfeedItemUpdatedFunction itemUpdated,
+								buzzfeedItemsUpdatedFunction itemsUpdated,
+								buzzfeedItemAbsentFunction itemAbsent, 
+								Merge merge) : 
+		Buzzfeed (buzzer, verifyPublisher, largeUpdated, itemNew, itemUpdated, itemsUpdated, itemAbsent, merge) {
+		verifyPublisherLazy_ = verifyPublisherLazy;
+	}
+
+	Buzzfeed(BuzzerPtr buzzer,	buzzfeedItemVerifyFunction verifyPublisher,
+								buzzfeedItemVerifyFunction verifyPublisherLazy,
+								verifyUpdateForMyThreadFunction verifyUpdateForMyThread,
+								buzzfeedLargeUpdatedFunction largeUpdated, 
+								buzzfeedItemNewFunction itemNew, 
+								buzzfeedItemUpdatedFunction itemUpdated,
+								buzzfeedItemsUpdatedFunction itemsUpdated,
+								buzzfeedItemAbsentFunction itemAbsent, 
+								Merge merge) :
+		Buzzfeed (buzzer, verifyPublisher, verifyPublisherLazy, largeUpdated, itemNew, itemUpdated, itemsUpdated, itemAbsent, merge) {
+		verifyUpdateForMyThread_ = verifyUpdateForMyThread;
 	}
 
 	Buzzfeed(BuzzfeedPtr buzzfeed) {
@@ -751,11 +1163,14 @@ public:
 		itemsUpdated_ = buzzfeed->itemsUpdated_;
 		itemAbsent_ = buzzfeed->itemAbsent_;
 		verifyPublisher_ = buzzfeed->verifyPublisher_;
+		verifyPublisherLazy_ = buzzfeed->verifyPublisherLazy_;
+		verifyUpdateForMyThread_ = buzzfeed->verifyUpdateForMyThread_;
 		buzzerInfo_ = buzzfeed->buzzerInfo_;
 		buzzerInfoResolve_ = buzzfeed->buzzerInfoResolve_;
 		merge_ = buzzfeed->merge_;
 		sortOrder_ = buzzfeed->sortOrder_;
 		key_ = buzzfeed->key_;
+		expand_ = buzzfeed->expand_;
 	}
 
 	BuzzfeedItemPtr toItem() {
@@ -764,10 +1179,11 @@ public:
 
 	void prepare() {
 		buzzerInfo_ = boost::bind(&Buzzer::locateBuzzerInfo, buzzer_, _1, _2, _3);
-		buzzerInfoResolve_ = boost::bind(&Buzzer::enqueueBuzzerInfoResolve, buzzer_, _1, _2, _3);
+		buzzerInfoResolve_ = boost::bind(&Buzzer::enqueueBuzzerInfoResolve, buzzer_, _1, _2, _3, _4);
 	}
 
 	BuzzerPtr buzzer() { return buzzer_; }
+	bool isRoot() { return true; }
 
 	void lock() {
 		mutex_.lock();
@@ -777,14 +1193,52 @@ public:
 		mutex_.unlock();
 	}
 
+	bool fed() { return fed_; }
+
+	BuzzfeedItemPtr root() { return shared_from_this(); }
+
+	void collectLastItemsByChains(std::map<uint256, BuzzfeedItemPtr>&);
+
+	void feed(std::vector<BuzzfeedItemPtr>&, bool expanded = false);
+	int locateIndex(BuzzfeedItemPtr);
+	void insertNewItem(BuzzfeedItemPtr);
+	BuzzfeedItemPtr locateBuzz(const Key&);
+	BuzzfeedItemPtr locateBuzz(const uint256& id) { return BuzzfeedItem::locateBuzz(id); }
+	void clear();
+
 	static BuzzfeedPtr instance(BuzzerPtr buzzer, buzzfeedItemVerifyFunction verifyPublisher,
 			buzzfeedLargeUpdatedFunction largeUpdated, 
 			buzzfeedItemNewFunction itemNew, 
 			buzzfeedItemUpdatedFunction itemUpdated,
 			buzzfeedItemsUpdatedFunction itemsUpdated,
-			buzzfeedItemAbsentFunction itemAbsent, Merge merge, Order order, Key key) {
+			buzzfeedItemAbsentFunction itemAbsent, Merge merge, Order order, Group key) {
 		return std::make_shared<Buzzfeed>(buzzer, verifyPublisher,
 					largeUpdated, itemNew, itemUpdated, itemsUpdated, itemAbsent, merge, order, key);
+	}
+
+	static BuzzfeedPtr instance(BuzzerPtr buzzer, 
+			buzzfeedItemVerifyFunction verifyPublisher, 
+			buzzfeedItemVerifyFunction verifyPublisherLazy,
+			buzzfeedLargeUpdatedFunction largeUpdated, 
+			buzzfeedItemNewFunction itemNew, 
+			buzzfeedItemUpdatedFunction itemUpdated,
+			buzzfeedItemsUpdatedFunction itemsUpdated,
+			buzzfeedItemAbsentFunction itemAbsent, Merge merge, Order order, Group key) {
+		return std::make_shared<Buzzfeed>(buzzer, verifyPublisher, verifyPublisherLazy,
+					largeUpdated, itemNew, itemUpdated, itemsUpdated, itemAbsent, merge, order, key);
+	}
+
+	static BuzzfeedPtr instance(BuzzerPtr buzzer, 
+			buzzfeedItemVerifyFunction verifyPublisher,
+			buzzfeedItemVerifyFunction verifyPublisherLazy, 
+			verifyUpdateForMyThreadFunction verifyUpdateForMyThread,
+			buzzfeedLargeUpdatedFunction largeUpdated, 
+			buzzfeedItemNewFunction itemNew, 
+			buzzfeedItemUpdatedFunction itemUpdated,
+			buzzfeedItemsUpdatedFunction itemsUpdated,
+			buzzfeedItemAbsentFunction itemAbsent, Merge merge, Order order, Group key, Expand expand) {
+		return std::make_shared<Buzzfeed>(buzzer, verifyPublisher, verifyPublisherLazy, verifyUpdateForMyThread,
+					largeUpdated, itemNew, itemUpdated, itemsUpdated, itemAbsent, merge, order, key, expand);
 	}
 
 	static BuzzfeedPtr instance(BuzzerPtr buzzer, buzzfeedItemVerifyFunction verifyPublisher,
@@ -797,27 +1251,47 @@ public:
 					largeUpdated, itemNew, itemUpdated, itemsUpdated, itemAbsent, merge);
 	}
 
+	static BuzzfeedPtr instance(BuzzerPtr buzzer, 
+			buzzfeedItemVerifyFunction verifyPublisher,
+			buzzfeedItemVerifyFunction verifyPublisherLazy,
+			buzzfeedLargeUpdatedFunction largeUpdated, 
+			buzzfeedItemNewFunction itemNew, 
+			buzzfeedItemUpdatedFunction itemUpdated,
+			buzzfeedItemsUpdatedFunction itemsUpdated,
+			buzzfeedItemAbsentFunction itemAbsent, Merge merge) {
+		return std::make_shared<Buzzfeed>(buzzer, verifyPublisher, verifyPublisherLazy,
+					largeUpdated, itemNew, itemUpdated, itemsUpdated, itemAbsent, merge);
+	}
+
+	static BuzzfeedPtr instance(BuzzerPtr buzzer, 
+			buzzfeedItemVerifyFunction verifyPublisher,
+			buzzfeedItemVerifyFunction verifyPublisherLazy,
+			verifyUpdateForMyThreadFunction verifyUpdateForMyThread,
+			buzzfeedLargeUpdatedFunction largeUpdated, 
+			buzzfeedItemNewFunction itemNew, 
+			buzzfeedItemUpdatedFunction itemUpdated,
+			buzzfeedItemsUpdatedFunction itemsUpdated,
+			buzzfeedItemAbsentFunction itemAbsent, Merge merge) {
+		return std::make_shared<Buzzfeed>(buzzer, verifyPublisher, verifyPublisherLazy, verifyUpdateForMyThread,
+					largeUpdated, itemNew, itemUpdated, itemsUpdated, itemAbsent, merge);
+	}
+
 	static BuzzfeedPtr instance(BuzzfeedPtr buzzFeed) {
 		return std::make_shared<Buzzfeed>(buzzFeed);
 	}
 
 protected:
-	virtual void itemUpdated(BuzzfeedItemPtr item) { itemUpdated_(item); }
-	virtual void itemNew(BuzzfeedItemPtr item) { itemNew_(item); }
-	virtual void itemsUpdated(const std::vector<BuzzfeedItem::Update>& items) { itemsUpdated_(items); }
-	virtual void largeUpdated() { largeUpdated_(); }
-	virtual void itemAbsent(const uint256& chain, const uint256& id) { itemAbsent_(chain, id); }
-
-protected:
 	BuzzerPtr buzzer_;
-	buzzfeedLargeUpdatedFunction largeUpdated_;
-	buzzfeedItemNewFunction itemNew_;
-	buzzfeedItemUpdatedFunction itemUpdated_;
-	buzzfeedItemsUpdatedFunction itemsUpdated_;
-	buzzfeedItemAbsentFunction itemAbsent_;
-
 	boost::recursive_mutex mutex_;
+
+	std::vector<BuzzfeedItemPtr> list_;
+	std::map<BuzzfeedItem::Key, int> index_;
+	bool fed_ = false;
 };
+
+//
+// buzzfeed ready
+typedef boost::function<void (BuzzfeedPtr /*base feed*/, BuzzfeedPtr /*part feed*/)> buzzfeedReadyFunction;
 
 //
 // select buzzfeed handler
@@ -903,6 +1377,7 @@ typedef std::shared_ptr<ISelectHashTagsHandler> ISelectHashTagsHandlerPtr;
 // special callbacks
 typedef boost::function<void (const std::vector<Buzzer::HashTag>&, const uint256&)> hashTagsLoadedFunction;
 typedef boost::function<void (const std::vector<Buzzer::HashTag>&, const uint256&, int)> hashTagsLoadedRequestFunction;
+typedef boost::function<void (const std::string&, const std::vector<Buzzer::HashTag>&, const ProcessingError&)> hashTagsLoadedWithErrorFunction;
 
 // load transaction
 class SelectHashTags: public ISelectHashTagsHandler, public std::enable_shared_from_this<SelectHashTags> {

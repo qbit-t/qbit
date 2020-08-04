@@ -63,7 +63,7 @@ void HttpMallocStats::process(const std::string& source, const HttpRequest& requ
 			}
 
 			char lStats[204800] = {0};
-
+#if defined(JM_MALLOC)
 			if (!lThreadId) {
 				_jm_threads_print_stats(lStats);
 			} else {
@@ -73,6 +73,7 @@ void HttpMallocStats::process(const std::string& source, const HttpRequest& requ
 						JM_ARENA_DIRTY_BLOCKS_STATS | 
 						JM_ARENA_FREEE_BLOCKS_STATS*/, JM_ALLOC_CLASSES);
 			}
+#endif
 
 			std::string lValue(lStats);
 			std::vector<std::string> lParts;
@@ -123,7 +124,9 @@ void HttpMallocStats::process(const std::string& source, const HttpRequest& requ
 			} else { reply = HttpReply::stockReply(HttpReply::bad_request); return; }
 
 			//
+#if defined(JM_MALLOC)
 			_jm_thread_dump_chunk(lThreadId, 0, lClassIndex, (char*)lPath.c_str());
+#endif
 
 			// prepare reply
 			json::Document lReply;
@@ -596,8 +599,8 @@ void HttpGetPeerInfo::process(const std::string& source, const HttpRequest& requ
 			lItem.addUInt64("time", (*lPeer)->time());
 			lItem.addBool("outbound", (*lPeer)->isOutbound() ? true : false);
 			lItem.addUInt("latency", (*lPeer)->latency());
-			lItem.addString("roles", (*lPeer)->state().rolesString());
-			lItem.addString("address", (*lPeer)->state().address().toString());
+			lItem.addString("roles", (*lPeer)->state()->rolesString());
+			lItem.addString("address", (*lPeer)->state()->address().toString());
 
 			lItem.addUInt("in_queue", (*lPeer)->inQueueLength());
 			lItem.addUInt("out_queue", (*lPeer)->outQueueLength());
@@ -607,11 +610,11 @@ void HttpGetPeerInfo::process(const std::string& source, const HttpRequest& requ
 			lItem.addUInt("sent_count", (*lPeer)->sentMessagesCount());
 			lItem.addUInt64("sent_bytes", (*lPeer)->bytesSent());
 
-			if ((*lPeer)->state().client()) {
+			if ((*lPeer)->state()->client()) {
 				//
 				json::Value lDAppsArray = lItem.addArray("dapps");
-				for(std::vector<State::DAppInstance>::const_iterator lInstance = (*lPeer)->state().dApps().begin(); 
-														lInstance != (*lPeer)->state().dApps().end(); lInstance++) {
+				for(std::vector<State::DAppInstance>::const_iterator lInstance = (*lPeer)->state()->dApps().begin(); 
+														lInstance != (*lPeer)->state()->dApps().end(); lInstance++) {
 					json::Value lDApp = lDAppsArray.newArrayItem();
 					lDApp.addString("name", lInstance->name());
 					lDApp.addString("instance", lInstance->instance().toHex());
@@ -619,7 +622,7 @@ void HttpGetPeerInfo::process(const std::string& source, const HttpRequest& requ
 			} else {
 				//
 				json::Value lChainsObject = lItem.addArray("chains");
-				std::vector<State::BlockInfo> lInfos = (*lPeer)->state().infos();
+				std::vector<State::BlockInfo> lInfos = (*lPeer)->state()->infos();
 				for (std::vector<State::BlockInfo>::iterator lInfo = lInfos.begin(); lInfo != lInfos.end(); lInfo++) {
 					//
 					json::Value lChain = lChainsObject.newArrayItem();

@@ -38,14 +38,17 @@ public:
 		Transaction::Out lOut;
 		lOut.setAsset(TxAssetType::nullAsset());
 		lOut.setDestination(ByteCode() <<
-			OP(QMOV) 		<< REG(QD0) << CVAR(const_cast<PKey&>(pkey).get()) << 
-			OP(QEQADDR) 	<<
-			OP(QPEN) 		<<
-			OP(QPTXO)		<< // use in entity-based pushUnlinkedOut's
-			OP(QMOV)		<< REG(QR1) << CU16(TX_CUBIX_MEDIA_DATA) <<
-			OP(QCMPE)		<< REG(QTH1) << REG(QR1) <<
-			OP(QMOV) 		<< REG(QR0) << REG(QC0) <<	
-			OP(QRET));
+							OP(QMOV) 		<< REG(QD0) << CVAR(const_cast<PKey&>(pkey).get()) << 
+							OP(QEQADDR) 	<<
+							OP(QPEN) 		<<
+							OP(QPTXO)		<< // use in entity-based pushUnlinkedOut's
+							OP(QMOV)		<< REG(QR1) << CU16(TX_CUBIX_MEDIA_DATA) <<
+							OP(QCMPE)		<< REG(QTH1) << REG(QR1) <<
+							OP(QJMPT) 		<< TO(1000) <<
+						 	OP(QMOV)		<< REG(QR1) << CU16(TX_CUBIX_MEDIA_HEADER) <<
+						 	OP(QCMPE)		<< REG(QTH1) << REG(QR1) <<
+			LAB(1000) <<	OP(QMOV) 		<< REG(QR0) << REG(QC0) <<	
+							OP(QRET));
 
 		Transaction::UnlinkedOutPtr lUTXO = Transaction::UnlinkedOut::instance(
 			Transaction::Link(chain(), TxAssetType::nullAsset(), out_.size()), // link

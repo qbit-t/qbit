@@ -462,38 +462,7 @@ public:
 	class Deserializer {
 	public:
 		template<typename Stream>
-		static inline TransactionPtr deserialize(Stream& s) {
-			unsigned short lTxType = 0x0000;
-			s >> lTxType;
-			Transaction::Type lType = (Transaction::Type)lTxType;
-
-			TransactionPtr lTx = nullptr;
-			switch(lType) {
-				case Transaction::COINBASE: lTx = std::make_shared<TxCoinBase>(); break;
-				case Transaction::SPEND: lTx = std::make_shared<TxSpend>(); break;
-				case Transaction::SPEND_PRIVATE: lTx = std::make_shared<TxSpendPrivate>(); break;
-				case Transaction::FEE: lTx = std::make_shared<TxFee>(); break;
-				default: {
-					TransactionTypes::iterator lTypeIterator = gTxTypes.find(lType);
-					if (lTypeIterator != gTxTypes.end()) {
-						lTx = lTypeIterator->second->create();
-					}
-				}
-				break;			
-			}
-
-			if (lTx != nullptr) {
-				s >> lTx->version_;
-				s >> lTx->timeLock_;
-				s >> lTx->chain_;
-				s >> lTx->in();
-				s >> lTx->out();
-
-				lTx->deserialize(s);
-			}
-
-			return lTx;
-		}
+		static inline TransactionPtr deserialize(Stream& s);
 	};	
 
 	Transaction() { status_ = Status::CREATED; id_.setNull(); timeLock_ = 0; chain_ = MainChain::id(); version_ = 0; }
@@ -585,11 +554,6 @@ protected:
 	// has outer ins
 	int hasOuterIns_ = -1;
 };
-
-//
-// DataStream specialization
-template void Transaction::Serializer::serialize<DataStream>(DataStream&, TransactionPtr);
-template TransactionPtr Transaction::Deserializer::deserialize<DataStream>(DataStream&);
 
 //
 // Coinbase transaction
@@ -969,16 +933,56 @@ public:
 };
 
 //
+template<typename Stream>
+inline TransactionPtr Transaction::Deserializer::deserialize(Stream& s) {
+	unsigned short lTxType = 0x0000;
+	s >> lTxType;
+	Transaction::Type lType = (Transaction::Type)lTxType;
+
+	TransactionPtr lTx = nullptr;
+	switch(lType) {
+		case Transaction::COINBASE: lTx = TransactionPtr(static_cast<Transaction*>(new TxCoinBase())); break;
+		case Transaction::SPEND: lTx = TransactionPtr(static_cast<Transaction*>(new TxSpend())); break;
+		case Transaction::SPEND_PRIVATE: lTx = TransactionPtr(static_cast<Transaction*>(new TxSpendPrivate())); break;
+		case Transaction::FEE: lTx = TransactionPtr(static_cast<Transaction*>(new TxFee())); break;
+		default: {
+			TransactionTypes::iterator lTypeIterator = gTxTypes.find(lType);
+			if (lTypeIterator != gTxTypes.end()) {
+				lTx = lTypeIterator->second->create();
+			}
+		}
+		break;			
+	}
+
+	if (lTx != nullptr) {
+		s >> lTx->version_;
+		s >> lTx->timeLock_;
+		s >> lTx->chain_;
+		s >> lTx->in();
+		s >> lTx->out();
+
+		lTx->deserialize(s);
+	}
+
+	return lTx;
+}
+
+//
+// DataStream specialization
+template void Transaction::Serializer::serialize<DataStream>(DataStream&, TransactionPtr);
+template TransactionPtr Transaction::Deserializer::deserialize<DataStream>(DataStream&);
+
+//
 // Tx Factory
 //
 class TransactionFactory {
 public:
 	static TransactionPtr create(Transaction::Type txType) {
 		switch(txType) {
-			case Transaction::COINBASE: return std::make_shared<TxCoinBase>();
-			case Transaction::SPEND: return std::make_shared<TxSpend>();
-			case Transaction::SPEND_PRIVATE: return std::make_shared<TxSpendPrivate>();
-			case Transaction::FEE: return std::make_shared<TxFee>();
+		    case Transaction::COINBASE: return TransactionPtr(static_cast<Transaction*>(new TxCoinBase()));
+		    case Transaction::SPEND: return TransactionPtr(static_cast<Transaction*>(new TxSpend()));
+		    case Transaction::SPEND_PRIVATE: return TransactionPtr(static_cast<Transaction*>(new TxSpendPrivate()));
+		    case Transaction::FEE: return TransactionPtr(static_cast<Transaction*>(new TxFee()));
 
 			default: {
 				TransactionTypes::iterator lType = gTxTypes.find(txType);

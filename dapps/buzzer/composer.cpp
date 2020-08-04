@@ -372,6 +372,7 @@ TransactionContextPtr BuzzerComposer::createTxBuzz(const PKey& self, const std::
 			// set shard/chain
 			lBuzzTx->setChain(lShardTx);
 			lBuzzTx->setBuzzerInfo(buzzerInfoTx_);
+			lBuzzTx->setScore(0);
 			lBuzzTx->setBuzzerInfoChain(buzzerInfoChain_);
 			// set body
 			lBuzzTx->setBody(body, *lSKey);
@@ -390,8 +391,10 @@ TransactionContextPtr BuzzerComposer::createTxBuzz(const PKey& self, const std::
 				lBuzzTx->addReBuzzOut(*lSKey, self); // out[1]
 				// like out
 				lBuzzTx->addBuzzLikeOut(*lSKey, self); // out[2]
+				// like out
+				lBuzzTx->addBuzzRewardOut(*lSKey, self); // out[3]
 				// pin out
-				lBuzzTx->addBuzzPinOut(*lSKey, self); // out[3]
+				lBuzzTx->addBuzzPinOut(*lSKey, self); // out[4]
 
 				// prepare fee tx
 				amount_t lFeeAmount = lCtx->size();

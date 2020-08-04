@@ -106,7 +106,7 @@ public:
 	void dumpUnlinkedOutByAsset(const uint256&, std::stringstream&);
 
 	// wallet management
-	bool open();
+	bool open(const std::string&);
 	bool close();
 	bool isOpened() { return opened_; }
 

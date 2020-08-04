@@ -17,7 +17,8 @@ typedef LimitedString<64> buzzer_tag_t;
 
 #define TX_BUZZ_REPLY_OUT 0
 #define TX_BUZZ_LIKE_OUT 1
-#define TX_BUZZ_PIN_OUT 2
+#define TX_BUZZ_REWARD_OUT 2
+#define TX_BUZZ_PIN_OUT 3
 
 //
 class TxBuzz: public TxEvent {
@@ -128,8 +129,11 @@ public:
 		props["buzzer_info"] = buzzerInfo_.toHex();
 		props["buzzer_info_chain"] = buzzerInfoChain_.toHex();
 
-		std::string lBody; lBody.insert(lBody.end(), body_.begin(), body_.end());
-		props["body"] = lBody;
+		if (body_.size()) {
+			std::string lBody; lBody.insert(lBody.end(), body_.begin(), body_.end());
+			props["body"] = lBody;
+		}
+
 		props["signature"] = strprintf("%s", signature_.toHex());
 
 		int lCount = 0;
@@ -165,7 +169,7 @@ public:
 	//
 	Transaction::UnlinkedOutPtr addReBuzzOut(const SKey& skey, const PKey& pkey) {
 		//
-		return Transaction::UnlinkedOutPtr(); // this out is not needed // addBuzzSpecialOut(skey, pkey, TX_REBUZZ);
+		return Transaction::UnlinkedOutPtr(); // this out is not needed
 	}
 
 	Transaction::UnlinkedOutPtr addBuzzLikeOut(const SKey& skey, const PKey& pkey) {
@@ -178,8 +182,15 @@ public:
 		return addBuzzSpecialOut(skey, pkey, TX_BUZZ_REPLY);
 	}
 
+	Transaction::UnlinkedOutPtr addBuzzRewardOut(const SKey& skey, const PKey& pkey) {
+		//
+		return addBuzzSpecialOut(skey, pkey, TX_BUZZ_REWARD);
+	}
+
 	Transaction::UnlinkedOutPtr addBuzzPinOut(const SKey& skey, const PKey& pkey) {
 		//
+		// TODO: implement buzz_pin transaction
+		/*
 		Transaction::Out lOut;
 		lOut.setAsset(TxAssetType::nullAsset());
 		lOut.setDestination(ByteCode() <<
@@ -199,6 +210,9 @@ public:
 
 		out_.push_back(lOut);
 		return lUTXO;
+		*/
+
+		return nullptr;
 	}
 
 	//

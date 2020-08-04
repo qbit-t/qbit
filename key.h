@@ -216,6 +216,18 @@ public:
 	}
 
 	bool valid() { return valid_; }
+	bool encrypted() { return encrypted_; }
+
+	bool equal(const uint256& key) {
+		return !memcmp(vch_, key.begin(), key.size());
+	}
+
+	void setEncryptedKey(const std::vector<unsigned char>& key) {
+		encryptedKey_.clear();
+		encryptedKey_.insert(encryptedKey_.end(), key.begin(), key.end());
+	}
+	void encrypt(const std::string&);
+	void decrypt(const std::string&);
 
 	bool sign(const uint256& hash /*data chunk hash*/, std::vector<unsigned char>& signature /*resulting signature*/);
 	bool sign(const uint256& hash /*data chunk hash*/, uint512& signature /*resulting signature*/);
@@ -228,13 +240,30 @@ public:
 
 	template <typename Stream, typename Operation>
 	inline void serializationOp(Stream& s, Operation ser_action) {
-		READWRITE(valid_);
-		READWRITE(vch_);
-		READWRITE(seed_);
-
+		//
 		if (!ser_action.ForRead()) {
+			READWRITE(valid_);
+			READWRITE(encrypted_);
+			//
+			if (encrypted_) {
+				READWRITE(encryptedKey_);
+			} else {
+				READWRITE(vch_);
+				READWRITE(seed_);
+			}
+
 			if (vch_[0] != 0 && vch_[KEY_LEN-1] != 0)
 				valid_ = true;
+		} else {
+			READWRITE(valid_);
+			READWRITE(encrypted_);
+			//
+			if (encrypted_) {
+				READWRITE(encryptedKey_);
+			} else {
+				READWRITE(vch_);
+				READWRITE(seed_);
+			}			
 		}
 	}
 
@@ -248,7 +277,9 @@ private:
 	ContextPtr context_;
 	std::vector<Word> seed_;
 	unsigned char vch_[KEY_LEN] = {0};
-	bool valid_;
+	std::vector<unsigned char> encryptedKey_;
+	bool encrypted_ = false;
+	bool valid_ = false;
 
 	PKey pkey_;
 };

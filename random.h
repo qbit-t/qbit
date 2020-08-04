@@ -35,6 +35,23 @@ public:
 		return Hash(lSrc.begin(), lSrc.end());
 	}
 
+	static uint256 generate(uint32_t nonce) {
+		uint64_t lS0 = getMicroseconds();
+		uint64_t lS1 = getMicroseconds(); if (lS0 == lS1) lS1++;
+		uint64_t lS2 = getMicroseconds(); if (lS1 == lS2) lS2++;
+		uint64_t lS3 = getMicroseconds(); if (lS2 == lS3) lS3++;
+
+		std::vector<unsigned char> lSrc; lSrc.resize(4*sizeof(uint64_t)+sizeof(uint32_t));
+		unsigned char* lPtr = &lSrc[0];
+		memcpy(lPtr, &lS0, sizeof(uint64_t)); lPtr += sizeof(uint64_t);
+		memcpy(lPtr, &lS1, sizeof(uint64_t)); lPtr += sizeof(uint64_t);
+		memcpy(lPtr, &lS2, sizeof(uint64_t)); lPtr += sizeof(uint64_t);
+		memcpy(lPtr, &lS3, sizeof(uint64_t)); lPtr += sizeof(uint64_t);
+		memcpy(lPtr, &nonce, sizeof(uint32_t));
+
+		return Hash(lSrc.begin(), lSrc.end());
+	}
+
 	static uint256 generate(const SKey& key) {
 		uint64_t lS0 = getMicroseconds();
 		uint64_t lS1 = getMicroseconds(); if (lS0 == lS1) lS1++;

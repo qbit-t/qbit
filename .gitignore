@@ -22,4 +22,8 @@ bjam
 01.*
 001.*
 001-*
+build-buzzer*
+*autosave
+toolchain*
+boost_*
 
