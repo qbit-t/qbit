@@ -22,12 +22,12 @@ public:
 	}
 
 	bool exists(const uint256& chain) {
-		boost::unique_lock<boost::mutex> lLock(consensusesMutex_);
+		boost::unique_lock<boost::recursive_mutex> lLock(consensusesMutex_);
 		return consensuses_.find(chain) != consensuses_.end();
 	}
  
 	IConsensusPtr locate(const uint256& chain) {
-		boost::unique_lock<boost::mutex> lLock(consensusesMutex_);
+		boost::unique_lock<boost::recursive_mutex> lLock(consensusesMutex_);
 		std::map<uint256, IConsensusPtr>::iterator lConsensus = consensuses_.find(chain);
 		if (lConsensus != consensuses_.end()) return lConsensus->second;
 		return nullptr;
@@ -35,7 +35,7 @@ public:
 
 	bool add(IConsensusPtr consensus) {
 		//
-		boost::unique_lock<boost::mutex> lLock(consensusesMutex_);
+		boost::unique_lock<boost::recursive_mutex> lLock(consensusesMutex_);
 		if (consensuses_.find(consensus->chain()) == consensuses_.end()) {
 			consensuses_[consensus->chain()] = consensus;
 			return true;
@@ -46,7 +46,7 @@ public:
 
 	void pop(const uint256& chain) {
 		//
-		boost::unique_lock<boost::mutex> lLock(consensusesMutex_);
+		boost::unique_lock<boost::recursive_mutex> lLock(consensusesMutex_);
 		std::map<uint256, IConsensusPtr>::iterator lConsensus = consensuses_.find(chain);
 		if (lConsensus != consensuses_.end()) {
 			lConsensus->second->close();
@@ -56,7 +56,7 @@ public:
 
 	IConsensusPtr push(const uint256& chain, EntityPtr dapp) {
 		//
-		boost::unique_lock<boost::mutex> lLock(consensusesMutex_);
+		boost::unique_lock<boost::recursive_mutex> lLock(consensusesMutex_);
 		if (consensuses_.find(chain) == consensuses_.end()) {
 
 			if (dapp) {
@@ -78,7 +78,7 @@ public:
 
 	std::vector<IConsensusPtr> consensuses() {
 		//
-		boost::unique_lock<boost::mutex> lLock(consensusesMutex_);
+		boost::unique_lock<boost::recursive_mutex> lLock(consensusesMutex_);
 		std::vector<IConsensusPtr> lConsensuses;
 
 		for (std::map<uint256, IConsensusPtr>::iterator lConsensus = consensuses_.begin(); lConsensus != consensuses_.end(); lConsensus++) {
@@ -96,7 +96,7 @@ public:
 		//
 		std::map<uint256, IConsensusPtr> lConsensuses;
 		{
-			boost::unique_lock<boost::mutex> lLock(consensusesMutex_);
+			boost::unique_lock<boost::recursive_mutex> lLock(consensusesMutex_);
 			lConsensuses = consensuses_; // copy
 		}
 
@@ -110,6 +110,24 @@ public:
 			}
 		}
 
+		/*
+		{
+			boost::unique_lock<boost::recursive_mutex> lLock(consensusesMutex_);
+			for (std::map<uint256, IConsensusPtr>::iterator lConsensus = consensuses_.begin(); lConsensus != consensuses_.end(); lConsensus++) {
+				ITransactionStorePtr lStore = storeManager_->locate(lConsensus->first);
+				if (lStore) {
+					BlockHeader lHeader;
+					uint64_t lHeight = lStore->currentHeight(lHeader);
+					if (!lHeight) lHeader.setChain(lStore->chain());
+					lState->addHeader(lHeader, lHeight, lConsensus->second->dApp());
+				}
+			}
+		}
+		*/
+
+		//
+		lState->prepare();
+
 		return lState;
 	}
 
@@ -122,12 +140,12 @@ public:
 	bool pushPeer(IPeerPtr peer) {
 		//
 		// skip peer with client protocol
-		if (peer->state().client()) return true;
+		if (peer->state()->client()) return true;
 
 		//
 		std::map<uint256, IConsensusPtr> lConsensuses;
 		{
-			boost::unique_lock<boost::mutex> lLock(consensusesMutex_);
+			boost::unique_lock<boost::recursive_mutex> lLock(consensusesMutex_);
 			lConsensuses = consensuses_; // copy
 		}
 
@@ -136,7 +154,7 @@ public:
 			boost::unique_lock<boost::mutex> lLock(peersMutex_);
 			uint160 lAddress = peer->addressId();
 			peers_.insert(std::map<uint160 /*peer*/, IPeerPtr>::value_type(lAddress, peer));
-			std::vector<State::BlockInfo> lInfos = peer->state().infos();
+			std::vector<State::BlockInfo> lInfos = peer->state()->infos();
 			for (std::vector<State::BlockInfo>::iterator lInfo = lInfos.begin(); lInfo != lInfos.end(); lInfo++) {
 				chainPeers_[(*lInfo).chain()].insert(lAddress);
 			}
@@ -185,7 +203,7 @@ public:
 		//
 		std::map<uint256, IConsensusPtr> lConsensuses;
 		{
-			boost::unique_lock<boost::mutex> lLock(consensusesMutex_);
+			boost::unique_lock<boost::recursive_mutex> lLock(consensusesMutex_);
 			lConsensuses = consensuses_; // copy
 		}
 
@@ -193,7 +211,7 @@ public:
 			// pop
 			boost::unique_lock<boost::mutex> lLock(peersMutex_);
 			uint160 lAddress = peer->addressId();
-			std::vector<State::BlockInfo> lInfos = peer->state().infos();
+			std::vector<State::BlockInfo> lInfos = peer->state()->infos();
 			for (std::vector<State::BlockInfo>::iterator lInfo = lInfos.begin(); lInfo != lInfos.end(); lInfo++) {
 				chainPeers_[(*lInfo).chain()].erase(lAddress);
 				if (!chainPeers_[(*lInfo).chain()].size()) chainPeers_.erase((*lInfo).chain()); 
@@ -235,7 +253,7 @@ public:
 		//
 		std::map<uint256, IConsensusPtr> lConsensuses;
 		{
-			boost::unique_lock<boost::mutex> lLock(consensusesMutex_);
+			boost::unique_lock<boost::recursive_mutex> lLock(consensusesMutex_);
 			lConsensuses = consensuses_; // copy
 		}
 
@@ -253,6 +271,25 @@ public:
 			lConsensus->second->pushState(state);
 		}
 
+		/*
+		{
+			// push
+			boost::unique_lock<boost::mutex> lLock(peersMutex_);
+			uint160 lAddress = state->addressId();
+			std::vector<State::BlockInfo> lInfos = state->infos();
+			for (std::vector<State::BlockInfo>::iterator lInfo = lInfos.begin(); lInfo != lInfos.end(); lInfo++) {
+				chainPeers_[(*lInfo).chain()].insert(lAddress);
+			}
+		}
+
+		{
+			boost::unique_lock<boost::recursive_mutex> lLock(consensusesMutex_);
+			for (std::map<uint256, IConsensusPtr>::iterator lConsensus = consensuses_.begin(); lConsensus != consensuses_.end(); lConsensus++) {
+				lConsensus->second->pushState(state);
+			}
+		}
+		*/
+
 		return true;
 	}
 
@@ -262,7 +299,7 @@ public:
 		//
 		std::map<uint256, IConsensusPtr> lConsensuses;
 		{
-			boost::unique_lock<boost::mutex> lLock(consensusesMutex_);
+			boost::unique_lock<boost::recursive_mutex> lLock(consensusesMutex_);
 			lConsensuses = consensuses_; // copy
 		}
 
@@ -299,7 +336,7 @@ public:
 	void broadcastBlockHeader(const NetworkBlockHeader& blockHeader, const uint160& except) {
 		IConsensusPtr lConsensus = nullptr;
 		{
-			boost::unique_lock<boost::mutex> lLock(consensusesMutex_);
+			boost::unique_lock<boost::recursive_mutex> lLock(consensusesMutex_);
 			std::map<uint256, IConsensusPtr>::iterator lConsensusPtr = consensuses_.find(const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().chain());
 			if (lConsensusPtr != consensuses_.end()) lConsensus = lConsensusPtr->second;
 		}
@@ -313,7 +350,7 @@ public:
 	void broadcastBlockHeaderAndState(const NetworkBlockHeader& blockHeader, StatePtr state, const uint160& except) {
 		IConsensusPtr lConsensus = nullptr;
 		{
-			boost::unique_lock<boost::mutex> lLock(consensusesMutex_);
+			boost::unique_lock<boost::recursive_mutex> lLock(consensusesMutex_);
 			std::map<uint256, IConsensusPtr>::iterator lConsensusPtr = consensuses_.find(const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().chain());
 			if (lConsensusPtr != consensuses_.end()) lConsensus = lConsensusPtr->second;
 		}
@@ -327,7 +364,7 @@ public:
 	void broadcastAirdropRequest(const PKey& key, const uint160& except) {
 		IConsensusPtr lConsensus = nullptr;
 		{
-			boost::unique_lock<boost::mutex> lLock(consensusesMutex_);
+			boost::unique_lock<boost::recursive_mutex> lLock(consensusesMutex_);
 			std::map<uint256, IConsensusPtr>::iterator lConsensusPtr = consensuses_.find(MainChain::id());
 			if (lConsensusPtr != consensuses_.end()) lConsensus = lConsensusPtr->second;
 		}
@@ -348,7 +385,7 @@ public:
 	void broadcastTransaction(TransactionContextPtr ctx, const uint160& except) {
 		IConsensusPtr lConsensus = nullptr;
 		{
-			boost::unique_lock<boost::mutex> lLock(consensusesMutex_);
+			boost::unique_lock<boost::recursive_mutex> lLock(consensusesMutex_);
 			std::map<uint256, IConsensusPtr>::iterator lConsensusPtr = consensuses_.find(ctx->tx()->chain());
 			if (lConsensusPtr != consensuses_.end()) lConsensus = lConsensusPtr->second;
 		}
@@ -372,13 +409,26 @@ public:
 		//
 		IConsensusPtr lConsensus = nullptr;
 		{
-			boost::unique_lock<boost::mutex> lLock(consensusesMutex_);
+			boost::unique_lock<boost::recursive_mutex> lLock(consensusesMutex_);
 			std::map<uint256, IConsensusPtr>::iterator lConsensusPtr = consensuses_.find(const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().chain());
 			if (lConsensusPtr != consensuses_.end()) lConsensus = lConsensusPtr->second;
 		}
 
 		if (lConsensus)
 			return lConsensus->pushBlockHeader(blockHeader, validatorManager_->locate(const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().chain()));
+		return IValidator::VALIDATOR_ABSENT;
+
+		/*
+		{
+			boost::unique_lock<boost::recursive_mutex> lLock(consensusesMutex_);
+
+			std::map<uint256, IConsensusPtr>::iterator lConsensusPtr = consensuses_.find(const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().chain());
+			if (lConsensusPtr != consensuses_.end()) {
+				return lConsensusPtr->second->pushBlockHeader(blockHeader, validatorManager_->locate(const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().chain()));
+			}
+		}
+		*/
+
 		return IValidator::VALIDATOR_ABSENT;
 	}
 
@@ -388,7 +438,7 @@ public:
 		// prepare
 		std::map<uint256, IConsensusPtr> lConsensuses;
 		{
-			boost::unique_lock<boost::mutex> lLock(consensusesMutex_);
+			boost::unique_lock<boost::recursive_mutex> lLock(consensusesMutex_);
 			lConsensuses = consensuses_; // copy
 		}
 
@@ -451,7 +501,7 @@ public:
 
 private:
 	bool enqueueBlockHeader(const NetworkBlockHeader& blockHeader) {
-		boost::unique_lock<boost::mutex> lLock(consensusesMutex_);
+		boost::unique_lock<boost::recursive_mutex> lLock(consensusesMutex_);
 		uint256 lHash = const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().hash();
 		for(std::list<uint256>::iterator lBlock = incomingBlockQueue_.begin(); lBlock != incomingBlockQueue_.end(); lBlock++) {
 			if (lHash == *lBlock) return false;
@@ -463,7 +513,7 @@ private:
 	}
 
 private:
-	boost::mutex consensusesMutex_;
+	boost::recursive_mutex consensusesMutex_;
 	boost::mutex peersMutex_;
 	boost::mutex latencyMutex_;
 	boost::mutex incomingBlockQueueMutex_;

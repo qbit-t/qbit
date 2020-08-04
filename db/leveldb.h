@@ -18,7 +18,6 @@
 #include "leveldb/options.h"
 #include "leveldb/write_batch.h"
 #include "leveldb/comparator.h"
-#include "helpers/memenv/memenv.h"
 
 #include "db.h"
 #include "../log/log.h"
@@ -33,11 +32,14 @@ public:
 	explicit exception(const std::string& msg) : std::runtime_error(msg) {}
 };
 
+#ifndef MOBILE_PLATFORM
 class LevelDBLogger: public leveldb::Logger {
 public:
 	void Logv(const char * format, va_list ap);
 };
+#endif
 
+#ifndef MOBILE_PLATFORM
 template<typename key, typename value>
 class LevelDBComparator: public leveldb::Comparator {
 public:
@@ -62,6 +64,7 @@ public:
 	void FindShortestSeparator(std::string*, const leveldb::Slice&) const {}
 	void FindShortSuccessor(std::string*) const {}
 };
+#endif
 
 template<typename key, typename value>
 class LevelDBContainer {
@@ -128,7 +131,7 @@ public:
 	class _transaction {
 	public:
 		_transaction() {}
-		explicit _transaction(std::shared_ptr<leveldb::DB> db, const std::string name) : db_(db) {}
+		explicit _transaction(std::shared_ptr<leveldb::DB> db, const std::string& name) : db_(db), name_(name) {}
 
 		void write(const DataStream& k, const DataStream& v) {
 			leveldb::Slice lKey(k.data(), k.size());
@@ -198,10 +201,12 @@ public:
 
 			options_.filter_policy = leveldb::NewBloomFilterPolicy(10);
 			options_.compression = leveldb::kNoCompression;
-			options_.info_log = new LevelDBLogger();
 			options_.create_if_missing = true;
-			if (useTypedComparer) options_.comparator = &defaultComparator;
 
+#ifndef MOBILE_PLATFORM
+			options_.info_log = new LevelDBLogger();
+			if (useTypedComparer) options_.comparator = &defaultComparator;
+#endif
 			gLog().write(Log::DB, std::string("[leveldb]: Opening container ") + name_);
 
 			leveldb::DB* lDB;
@@ -379,7 +384,9 @@ private:
 	std::string name_;
 
 private:
+#ifndef MOBILE_PLATFORM
 	LevelDBComparator<key, value> defaultComparator;
+#endif
 	std::shared_ptr<leveldb::DB> db_ {nullptr};
 	leveldb::Options options_;
 };

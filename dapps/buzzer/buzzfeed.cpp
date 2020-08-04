@@ -1,166 +1,452 @@
 #include "buzzfeed.h"
+#include "buzzfeedview.h"
+#include "../../log/log.h"
 
 using namespace qbit;
 
-void BuzzfeedItem::merge(const BuzzfeedItem::Update& update) {
+void BuzzfeedItem::merge(const BuzzfeedItemUpdate& update) {
 	//
-	{
-		Guard lLock(this);
-
-		// locate buzz
-		std::map<uint256 /*buzz*/, BuzzfeedItemPtr>::iterator lBuzz = items_.find(update.buzzId());
-		if (lBuzz != items_.end()) {
-			switch(update.field()) {
-				case BuzzfeedItem::Update::LIKES: 
-					if (lBuzz->second->likes() <= update.count()) 
-						lBuzz->second->setLikes(update.count());
-					//else
-					//	lBuzz->second->setLikes(lBuzz->second->likes()+1);
-					break;
-				case BuzzfeedItem::Update::REBUZZES: 
-					if (lBuzz->second->rebuzzes() <= update.count()) 
-						lBuzz->second->setRebuzzes(update.count()); 
-					//else
-					//	lBuzz->second->setRebuzzes(lBuzz->second->rebuzzes()+1); // default
-					break;
-				case BuzzfeedItem::Update::REPLIES: 
-					if (lBuzz->second->replies() <= update.count()) 
-						lBuzz->second->setReplies(update.count()); 
-					//else
-					//	lBuzz->second->setReplies(lBuzz->second->replies()+1); // default
-					break;
-			}
-
-			itemUpdated(lBuzz->second);
-		}
+	switch(update.field()) {
+		case BuzzfeedItemUpdate::LIKES: 
+			if (likes() <= update.count())
+				setLikes(update.count());
+			likesChanged();
+			break;
+		case BuzzfeedItemUpdate::REBUZZES: 
+			if (rebuzzes() <= update.count())
+				setRebuzzes(update.count());
+			rebuzzesChanged();
+			break;
+		case BuzzfeedItemUpdate::REPLIES: 
+			if (replies() <= update.count())
+				setReplies(update.count());
+			repliesChanged();
+			break;
+		case BuzzfeedItemUpdate::REWARDS: 
+			if (rewards() <= update.count())
+				setRewards(update.count());
+			rewardsChanged();
+			break;
 	}
 }
 
-void BuzzfeedItem::merge(const std::vector<BuzzfeedItem::Update>& updates) {
+void BuzzfeedItem::merge(const std::vector<BuzzfeedItemUpdate>& updates) {
 	//
 	Guard lLock(this);
 
-	for (std::vector<BuzzfeedItem::Update>::const_iterator lUpdate = updates.begin(); lUpdate != updates.end(); lUpdate++) {
-		merge(*lUpdate);
+	for (std::vector<BuzzfeedItemUpdate>::const_iterator lUpdate = updates.begin(); lUpdate != updates.end(); lUpdate++) {
+		// locate buzz
+		BuzzfeedItemPtr lBuzz = locateBuzz(Key(lUpdate->buzzId(), TX_BUZZ));
+		if (lBuzz) lBuzz->merge(*lUpdate);
+
+		lBuzz = locateBuzz(Key(lUpdate->buzzId(), TX_REBUZZ));
+		if (lBuzz) lBuzz->merge(*lUpdate);
+
+		lBuzz = locateBuzz(Key(lUpdate->buzzId(), TX_BUZZ_REPLY));
+		if (lBuzz) lBuzz->merge(*lUpdate);
+
+		lBuzz = locateBuzz(Key(lUpdate->buzzId(), TX_BUZZ_LIKE));
+		if (lBuzz) lBuzz->merge(*lUpdate);
+
+		lBuzz = locateBuzz(Key(lUpdate->buzzId(), TX_BUZZ_REWARD));
+		if (lBuzz) lBuzz->merge(*lUpdate);
 	}
 
 	itemsUpdated(updates);
 }
 
-void BuzzfeedItem::merge(const BuzzfeedItem& buzz, bool checkSize, bool notify) {
+bool BuzzfeedItem::merge(const BuzzfeedItem& buzz, bool checkSize, bool notify) {
 	//
 	BuzzfeedItemPtr lBuzz = BuzzfeedItem::instance(buzz);
-	// set resolver
-	lBuzz->buzzerInfoResolve_ = buzzerInfoResolve_;
-	lBuzz->buzzerInfo_ = buzzerInfo_;
-	// verifier
-	lBuzz->verifyPublisher_ = verifyPublisher_;
-	lBuzz->resolve();
+	return mergeInternal(lBuzz, checkSize, notify, false);
+}
+
+void BuzzfeedItem::removeIndex(BuzzfeedItemPtr item) {
+	// clean-up
+	std::pair<std::multimap<OrderKey /*order*/, Key /*buzz*/>::iterator,
+				std::multimap<OrderKey /*order*/, Key /*buzz*/>::iterator> lRange = index_.equal_range(item->order());
+	for (std::multimap<OrderKey /*order*/, Key /*buzz*/>::iterator lExist = lRange.first; lExist != lRange.second; lExist++) {
+		if (lExist->second == item->key()) {
+			index_.erase(lExist);
+			break;
+		}
+	}
+}
+
+void BuzzfeedItem::updateTimestamp(const uint256& publisher, const uint256& chain, uint64_t timestamp) {
+	//
+	std::map<uint256 /*publisher*/, std::map<uint256 /*chain*/, uint64_t>>::iterator lTimestamp = lastTimestamps_.find(publisher);
+	if (lTimestamp != lastTimestamps_.end()) {
+		//
+		std::map<uint256 /*publisher*/, uint64_t>::iterator lPubChain = lTimestamp->second.find(chain);
+		//
+		if (lPubChain != lTimestamp->second.end() && lPubChain->second > timestamp) {
+			lPubChain->second = timestamp;
+		} else {
+			lTimestamp->second[chain] = timestamp;
+		}
+	} else {
+		lastTimestamps_[publisher][chain] = timestamp;
+	}
+}
+
+void BuzzfeedItem::insertIndex(BuzzfeedItemPtr item) {
+	index_.insert(std::multimap<OrderKey /*order*/, Key /*buzz*/>::value_type(item->order(), item->key()));
+}
+
+void BuzzfeedItem::push(const BuzzfeedItem& buzz, const uint160& peer) {
+	// put into unconfirmed
+	Guard lLock(this);
+	std::map<Key /*buzz*/, BuzzfeedItemPtr>::iterator lItem = unconfirmed_.find(buzz.key());
+	if (lItem == unconfirmed_.end()) { // absent
+		//
+		bool lAdd = true;
+		// check for signature if source is !BUZZFEED
+		if (buzz.source() == Source::BUZZ_SUBSCRIPTION && buzz.type() == TX_BUZZ_REPLY) {
+			//
+			if (verifyUpdateForMyThread_)
+				lAdd = verifyUpdateForMyThread_(rootBuzzId_, nonce_, buzz.subscriptionSignature());
+		}
+
+		if (lAdd) {
+			BuzzfeedItemPtr lBuzz = BuzzfeedItem::instance(buzz);
+			lBuzz->setNonce(nonce_);
+			lBuzz->setRootBuzzId(rootBuzzId_);
+			lBuzz->addConfirmation(peer);
+			lBuzz->notOnChain(); // only for the dynamic updates
+			lBuzz->setDynamic(); // dynamic
+			//
+			unconfirmed_[buzz.key()] = lBuzz;
+		} else {
+			BuzzfeedItemPtr lBuzz = BuzzfeedItem::instance(buzz);
+			std::cout << "[PUSH-ERROR]: signature is wrong, buzz = " << rootBuzzId_.toHex() << ", nonce = " << nonce_ << "\n";
+			if (gLog().isEnabled(Log::CLIENT))
+				gLog().write(Log::CLIENT, strprintf("[PUSH-ERROR]: signature is wrong, buzz = %s, nonce = %d", rootBuzzId_.toHex(), nonce_));
+		}
+	} else {
+		if (lItem->second->addConfirmation(peer) >= BUZZ_PEERS_CONFIRMATIONS) {
+			//
+			BuzzfeedItemPtr lBuzz = lItem->second;
+			// remove from unconfirmed
+			unconfirmed_.erase(lItem);
+			// merge finally
+			mergeInternal(lBuzz, true, true, false /*probably*/);
+
+			// cross-merge in case of pending items
+			crossMerge(true);
+			// resolve info
+			if (buzzer()) buzzer()->resolveBuzzerInfos();
+			else {
+				std::cout << "[PUSH-ERROR]: Buzzer not found" << "\n";
+				if (gLog().isEnabled(Log::CLIENT)) 
+					gLog().write(Log::CLIENT, "[PUSH-ERROR]: Buzzer not found");
+			}
+		}
+	}
+}
+
+bool BuzzfeedItem::mergeInternal(BuzzfeedItemPtr buzz, bool checkSize, bool notify, bool suspicious) {
+	//
+	BuzzfeedItemPtr lBuzz = buzz;
+
+	// callbacks
+	lBuzz->setupCallbacks(shared_from_this());
+	lBuzz->setRoot(root());
+	lBuzz->setHasNextLink(false);
+	lBuzz->setHasPrevLink(false);
+	lBuzz->resetPulled();
+	lBuzz->resetThreaded();
+
+	// merge result
+	bool lItemAdded = false;
 
 	// verify signature
-	Buzzer::VerificationResult lResult = verifyPublisher_(lBuzz);
-	if (lResult == Buzzer::VerificationResult::SUCCESS || lResult == Buzzer::VerificationResult::POSTPONED) {
-		//
-		Guard lLock(this);
+	Buzzer::VerificationResult lResult;
+	if (suspicious && verifyPublisherLazy_) lResult = verifyPublisherLazy_(lBuzz);
+	else lResult = verifyPublisher_(lBuzz);
 
+	// supposedly strict
+	if (lResult == Buzzer::VerificationResult::INVALID) {
+		// try pendings
+		std::map<uint256 /*originalBuzz*/, std::map<Key, BuzzfeedItemPtr>>::iterator lPenging = pendings_.find(lBuzz->buzzId());
+		if (lPenging != pendings_.end()) { // awaiting for resolve, already pushed to pendings
+			// try lazy verification
+			lResult = verifyPublisherLazy_(lBuzz);
+		}
+	}
+
+	if (lResult == Buzzer::VerificationResult::SUCCESS || lResult == Buzzer::VerificationResult::POSTPONED) {
 		// check result
 		lBuzz->setSignatureVerification(lResult);
 		// settings
 		lBuzz->key_ = key_;
 		lBuzz->sortOrder_ = sortOrder_;
+		lBuzz->expand_ = expand_;
+		lBuzz->rootBuzzId_ = rootBuzzId_;
+
+		// new item?
+		bool lNewItem = true;
 
 		// push buzz
-		std::map<uint256 /*buzz*/, BuzzfeedItemPtr>::iterator lExisting = items_.find(lBuzz->buzzId());
+		bool lChanged = false;
+		std::map<Key /*buzz*/, BuzzfeedItemPtr>::iterator lExisting = items_.find(lBuzz->key());
 		if (lExisting != items_.end()) {
-			lExisting->second->setReplies(lBuzz->replies());
-			lExisting->second->setRebuzzes(lBuzz->rebuzzes());
-			lExisting->second->setLikes(lBuzz->likes());
-
-			if (lExisting->second->type() == TX_BUZZ_LIKE && lBuzz->type() == TX_BUZZ_LIKE) {
-				//
-				lExisting->second->mergeInfos(lBuzz->infos());
+			//
+			if (type_ != TX_BUZZER_MISTRUST && type_ != TX_BUZZER_ENDORSE) {
+				lChanged |= lExisting->second->setReplies(lBuzz->replies());
+				lChanged |= lExisting->second->setRebuzzes(lBuzz->rebuzzes());
+				lChanged |= lExisting->second->setLikes(lBuzz->likes());
+				lChanged |= lExisting->second->setRewards(lBuzz->rewards());
 			}
 
-			lBuzz = lExisting->second; // reset 
+			updateTimestamp(buzz->buzzerId(), buzz->buzzChainId(), buzz->timestamp());
+
+			if ((lExisting->second->type() == TX_BUZZ_LIKE && lBuzz->type() == TX_BUZZ_LIKE) ||
+				(lExisting->second->type() == TX_BUZZ_REWARD && lBuzz->type() == TX_BUZZ_REWARD) ||
+				(lExisting->second->type() == TX_REBUZZ && lBuzz->type() == TX_REBUZZ)) {
+				//
+				lChanged |= lExisting->second->mergeInfos(lBuzz->infos());
+			}
+
+			if (notify && lChanged)
+				itemUpdated(lExisting->second);
+
+			return true;
 		}
 
-		removeIndex(lBuzz);
-
 		// orphans
-		std::map<uint256 /*buzz*/, std::set<uint256>>::iterator lRoot = orphans_.find(lBuzz->buzzId());
+		std::map<uint256 /*buzz*/, std::set<Key>>::iterator lRoot = orphans_.find(lBuzz->buzzId());
 		if (lRoot != orphans_.end()) {
-			for (std::set<uint256>::iterator lId = lRoot->second.begin(); lId != lRoot->second.end(); lId++) {
+			for (std::set<Key>::iterator lId = lRoot->second.begin(); lId != lRoot->second.end(); lId++) {
 				//
-				BuzzfeedItemPtr lChild = items_[*lId];
-				if (lChild) {
+				std::map<Key /*buzz*/, BuzzfeedItemPtr>::iterator lChildItem = items_.find(*lId);
+				if (lChildItem != items_.end()) {
+					BuzzfeedItemPtr lChild = lChildItem->second;
 					removeIndex(lChild);
-					items_.erase(lChild->buzzId());
+					originalItems_.erase(lChild->buzzId());
 
-					lBuzz->merge(*lChild, notify);
+					items_.erase(lChildItem);
+
+					lBuzz->setSortOrder(Order::FORWARD);
+					/*lItemAdded |=*/ lBuzz->mergeInternal(lChild, checkSize, notify);
 				}
 			}
 
 			orphans_.erase(lRoot);
 		}
 
+		//
+		bool lAdd = true;
+
 		// pending
-		std::map<uint256 /*originalBuzz*/, std::map<uint256, BuzzfeedItemPtr>>::iterator lPenging = pendings_.find(lBuzz->buzzId());
+		std::map<uint256 /*originalBuzz*/, std::map<Key, BuzzfeedItemPtr>>::iterator lPenging = pendings_.find(lBuzz->buzzId());
 		if (lPenging != pendings_.end()) {
-			for (std::map<uint256, BuzzfeedItemPtr>::iterator lItem = lPenging->second.begin(); lItem != lPenging->second.end(); lItem++) {
-				lItem->second->merge(*lBuzz, notify);
+			for (std::map<Key, BuzzfeedItemPtr>::iterator lItem = lPenging->second.begin(); lItem != lPenging->second.end(); lItem++) {
+				if (lItem->second->type() == TX_REBUZZ) {
+					//
+					lItem->second->wrap(lBuzz);
+					lAdd = false;
+				} else {
+					lItem->second->setSortOrder(Order::FORWARD);
+					lItemAdded |= lItem->second->mergeInternal(lBuzz, checkSize, notify);
+					lAdd = false;
+				}
 			}
 
 			pendings_.erase(lPenging);
 		}
 
 		// force load...
-		bool lAdd = true;
-		if (buzz.type() == TX_BUZZ_REPLY) {
+		if (buzz->type() == TX_BUZZ_REPLY) {
 			//
-			std::map<uint256 /*buzz*/, BuzzfeedItemPtr>::iterator lParent = items_.find(buzz.originalBuzzId());
-			if (lParent == items_.end()) {
-				if (buzzId_ != buzz.originalBuzzId()) {
-					// mark orphan
-					orphans_[buzz.originalBuzzId()].insert(lBuzz->buzzId());
-					// notify
-					itemAbsent(buzz.originalBuzzChainId(), buzz.originalBuzzId());
+			if (buzzId_ != buzz->originalBuzzId()) {
+				//
+				std::map<Key /*buzz*/, BuzzfeedItemPtr>::iterator lParent = items_.find(Key(buzz->originalBuzzId(), TX_BUZZ));
+				if (lParent == items_.end()) lParent = items_.find(Key(buzz->originalBuzzId(), TX_REBUZZ));
+				else if (lParent == items_.end()) lParent = items_.find(Key(buzz->originalBuzzId(), TX_BUZZ_REPLY));
+
+				// merge deep
+				if (lParent == items_.end()) {
+					//
+					BuzzfeedItemPtr lDeepParent = locateBuzzInternal(buzz->originalBuzzId());
+					if (lDeepParent) {
+						lDeepParent->setSortOrder(Order::FORWARD);
+						lItemAdded |= lDeepParent->mergeInternal(lBuzz, checkSize, notify, false /*current*/);
+					}
 				}
-			} else {
-				removeIndex(lParent->second);
-				lParent->second->merge(*lBuzz, notify);
-				insertIndex(lParent->second);
-				lAdd = false;
+
+				if (!lItemAdded) {
+					if (lParent == items_.end()) {
+						//
+						lParent = suspicious_.find(Key(buzz->originalBuzzId(), TX_BUZZ));
+						if (lParent == suspicious_.end()) lParent = suspicious_.find(Key(buzz->originalBuzzId(), TX_REBUZZ));
+						else if (lParent == suspicious_.end()) lParent = suspicious_.find(Key(buzz->originalBuzzId(), TX_BUZZ_REPLY));
+
+						//
+						if (lParent == suspicious_.end()) {
+							if (isRoot() /*buzzId_ != buzz->originalBuzzId()*/) {
+								// mark orphan
+								orphans_[buzz->originalBuzzId()].insert(lBuzz->key());
+								// notify
+								itemAbsent(buzz->originalBuzzChainId(), buzz->originalBuzzId());
+								//
+								// if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT,
+								//	strprintf("[WARNING]: parent is absent for %s", lBuzz->toString()));
+							}
+							//else {
+							//	lAdd = false;
+							//}
+						} else {
+							//
+							BuzzfeedItemPtr lParentItem = lParent->second;
+							lParentItem->wasSuspicious();
+
+							bool lCandidateAdded = mergeInternal(lParentItem, checkSize, notify, true /*suspicious*/);
+							if (lCandidateAdded) {
+								//
+								lItemAdded |= lCandidateAdded;
+								lParentItem->setSortOrder(Order::FORWARD);
+								lItemAdded |= lParentItem->mergeInternal(lBuzz, checkSize, notify, false /*current*/);
+
+								suspicious_.erase(lParent); // remove from suspicious
+
+								lAdd = false;
+							}
+						}
+					} else {
+						// NOTICE: for static feed it will be annoing behaior - rearrangement of items when you reading
+						// removeIndex(lParent->second);
+						lParent->second->setSortOrder(Order::FORWARD);
+						lItemAdded = lParent->second->mergeInternal(lBuzz, checkSize, notify);
+
+						// NOTICE: for static feed it will be annoing behaior - rearrangement of items when you reading
+						// insertIndex(lParent->second);
+						lAdd = false;
+					}
+				}
 			}
-		} else if (buzz.type() == TX_REBUZZ) {
+		} else if (buzz->type() == TX_REBUZZ) {
 			// move to pending items
-			pendings_[buzz.originalBuzzId()][buzz.buzzId()] = lBuzz; // "parent" or aggregator
+			if (!buzz->originalBuzzId().isNull()) {
+				BuzzfeedItemPtr lRef = locateBuzz(buzz->originalBuzzId());
+				if (lRef) {
+					lBuzz->wrap(lRef);
+				} else {
+					pendings_[buzz->originalBuzzId()][buzz->key()] = lBuzz; //
+				}
+			}
 		}
 
-		//
-		if (buzzId_ == buzz.originalBuzzId()) {
-			//
-			if (order_ < buzz.timestamp()) order_ = buzz.timestamp();
+		// NOTICE: for static feed it will be annoing behavior - rearrangement of items when you reading
+		/*
+		if (buzzId_ == buzz->originalBuzzId()) {
+			if (order_ < buzz->timestamp()) order_ = buzz->timestamp();
 		}
+		*/
 
-		if (lAdd) {
-			items_.insert(std::map<uint256 /*buzz*/, BuzzfeedItemPtr>::value_type(lBuzz->buzzId(), lBuzz));
-			index_.insert(std::multimap<OrderKey /*order*/, uint256 /*buzz*/>::value_type(lBuzz->order(), lBuzz->buzzId()));
+		if (lAdd && !lItemAdded) {
+			if (lNewItem) {
+				if (items_.insert(std::map<Key /*buzz*/, BuzzfeedItemPtr>::value_type(lBuzz->key(), lBuzz)).second) {
+					originalItems_.insert(std::map<uint256 /*buzz*/, BuzzfeedItemPtr>::value_type(lBuzz->buzzId(), lBuzz));
+					index_.insert(std::multimap<OrderKey /*order*/, Key /*buzz*/>::value_type(lBuzz->order(), lBuzz->key()));
 
-			updateTimestamp(buzz.buzzerId(), buzz.timestamp());
+					lItemAdded = true;
+				}
+			}
+
+			updateTimestamp(buzz->buzzerId(), buzz->buzzChainId(), buzz->timestamp());
 
 			if (checkSize && items_.size() > 300 /*setup*/ && lResult == Buzzer::VerificationResult::SUCCESS) {
-				//
-				std::multimap<OrderKey /*order*/, uint256 /*buzz*/>::iterator lFirst = index_.begin();
+				// TODO: consider to limit feed, but is that really needed?
+				/*
+				std::multimap<OrderKey, Key>::iterator lFirst = index_.begin();
+				items_[lFirst->second]->clear(); // remove links
 				items_.erase(lFirst->second);
+				originalItems_.erase(lFirst->second.id());
 				index_.erase(lFirst);
+				*/
+			}
+
+			if (lBuzz->resolve()) {
+				if (notify) {
+					if (lNewItem) {
+						//
+						std::vector<BuzzfeedItemUpdate> lUpdated;
+						// configuring
+						if (lBuzz->type() == TX_BUZZ_REPLY && buzzId_ != rootBuzzId_) {
+							// interlink by default
+							setHasNextLink(true);
+							lBuzz->setHasPrevLink(true);
+
+							// locate neighbours
+							std::pair<
+									std::multimap<OrderKey /*order*/, Key /*buzz*/>::iterator,
+									std::multimap<OrderKey /*order*/, Key /*buzz*/>::iterator> lRange = index_.equal_range(lBuzz->order());
+
+							for (std::multimap<OrderKey /*order*/, Key /*buzz*/>::iterator lSibling = lRange.first; lSibling != lRange.second; lSibling++) {
+								if (lSibling->second == lBuzz->key()) {
+									//
+									// previous sibling
+									std::multimap<OrderKey /*order*/, Key /*buzz*/>::iterator lPrev = lSibling;
+									std::multimap<OrderKey /*order*/, Key /*buzz*/>::iterator lNext = lSibling;
+									if ((--lPrev) != index_.end()) {
+										BuzzfeedItemPtr lSiblingItem = items_[lPrev->second];
+										if (lSiblingItem) {
+											lSiblingItem->setHasNextLink(true);
+											lUpdated.push_back(BuzzfeedItemUpdate(lSiblingItem->buzzId(),
+																				  uint256(), BuzzfeedItemUpdate::Field::REPLIES, 0));
+										}
+									}
+
+									// next sibling
+									if ((++lNext) != index_.end()) {
+										BuzzfeedItemPtr lSiblingItem = items_[lNext->second];
+										if (lSiblingItem) {
+											lSiblingItem->setHasPrevLink(true);
+											lBuzz->setHasNextLink(true);
+											lUpdated.push_back(BuzzfeedItemUpdate(lSiblingItem->buzzId(),
+																				  uint256(), BuzzfeedItemUpdate::Field::REPLIES, 0));
+										}
+									}
+
+									break;
+								}
+							}
+						}
+
+						// set pulled
+						lBuzz->setPulled();
+
+						// adjust buzzfeed index
+						insertNewItem(lBuzz);
+
+						// notify
+						itemNew(lBuzz);
+
+						// update neighbors
+						if (lUpdated.size()) itemsUpdated(lUpdated);
+					}
+				}
 			}
 		}
 
-		if (notify) itemNew(lBuzz);
+		return lItemAdded;
 	} else {
 		std::cout << "[ERROR]: " << lBuzz->toString() << "\n";
+		if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[ERROR]: %s", lBuzz->toString()));
+
+		//
+		std::map<uint256 /*buzz*/, std::set<Key>>::iterator lRoot = orphans_.find(lBuzz->buzzId());
+		if (lRoot != orphans_.end()) {
+			lBuzz->wasSuspicious();
+			lItemAdded |= mergeInternal(lBuzz, checkSize, notify, true /*suspicious*/);
+		} else {
+			suspicious_[lBuzz->key()] = lBuzz;
+		}
 	}
-}	
+
+	return lItemAdded;
+}
 
 void BuzzfeedItem::merge(const std::vector<BuzzfeedItem>& chunk, bool notify) {
 	//
@@ -174,17 +460,17 @@ void BuzzfeedItem::merge(const std::vector<BuzzfeedItem>& chunk, bool notify) {
 			lChainExists = !(chains_.insert((lChain = chunk.begin()->buzzChainId())).second); // one chunk = one chain
 		}
 
-		std::map<uint256, std::vector<BuzzfeedItem>::iterator> lFeed;
+		std::map<Key, std::vector<BuzzfeedItem>::iterator> lFeed;
 		for (std::vector<BuzzfeedItem>::iterator lItem = const_cast<std::vector<BuzzfeedItem>&>(chunk).begin(); 
 												lItem != const_cast<std::vector<BuzzfeedItem>&>(chunk).end(); lItem++) {
 			// preserve for backtrace
-			if (merge_ == Merge::INTERSECT) lFeed[lItem->buzzId()] = lItem;
+			if (merge_ == Merge::INTERSECT) lFeed[lItem->key()] = lItem;
 
 			// process merge
 			bool lMerge = true;
 			if (lChainExists) {
 				//
-				std::map<uint256 /*buzz*/, BuzzfeedItemPtr>::iterator lExisting = items_.find(lItem->buzzId());
+				std::map<Key /*buzz*/, BuzzfeedItemPtr>::iterator lExisting = items_.find(lItem->key());
 				if (lExisting == items_.end()) {
 					if (merge_ == Merge::UNION) {
 						lMerge = true;
@@ -201,22 +487,23 @@ void BuzzfeedItem::merge(const std::vector<BuzzfeedItem>& chunk, bool notify) {
 		// backtracing
 		if (merge_ == Merge::INTERSECT && lFeed.size()) {
 			//
-			std::map<uint256, BuzzfeedItemPtr> lToRemove;
-			for (std::map<uint256 /*buzz*/, BuzzfeedItemPtr>::iterator lItem = items_.begin(); lItem != items_.end(); lItem++) {
+			std::map<Key, BuzzfeedItemPtr> lToRemove;
+			for (std::map<Key /*buzz*/, BuzzfeedItemPtr>::iterator lItem = items_.begin(); lItem != items_.end(); lItem++) {
 				if (lItem->second->buzzChainId() == lChain) {
 					//
-					if (lFeed.find(lItem->second->buzzId()) == lFeed.end()) {
+					if (lFeed.find(lItem->second->key()) == lFeed.end()) {
 						// missing
-						lToRemove[lItem->second->buzzId()] = lItem->second;
+						lToRemove[lItem->second->key()] = lItem->second;
 					}
 				}
 			}
 
 			// erase items
-			for (std::map<uint256 /*buzz*/, BuzzfeedItemPtr>::iterator lRemove = lToRemove.begin(); lRemove != lToRemove.end(); lRemove++) {
+			for (std::map<Key /*buzz*/, BuzzfeedItemPtr>::iterator lRemove = lToRemove.begin(); lRemove != lToRemove.end(); lRemove++) {
 				//
 				removeIndex(lRemove->second);
-				items_.erase(lRemove->second->buzzId());
+				items_.erase(lRemove->second->key());
+				originalItems_.erase(lRemove->second->buzzId());
 			}
 		}
 	}
@@ -224,98 +511,486 @@ void BuzzfeedItem::merge(const std::vector<BuzzfeedItem>& chunk, bool notify) {
 	if (notify) largeUpdated();
 }
 
-void BuzzfeedItem::mergeAppend(const std::list<BuzzfeedItemPtr>& items) {
+bool BuzzfeedItem::mergeAppend(const std::vector<BuzzfeedItemPtr>& items) {
 	//
-	for (std::list<BuzzfeedItemPtr>::const_iterator lItem = items.begin(); lItem != items.end(); lItem++) {
+	Guard lLock(this);
+	//
+	bool lItemsAdded = false;
+	for (std::vector<BuzzfeedItemPtr>::const_iterator lItem = items.begin(); lItem != items.end(); lItem++) {
 		//
-		std::map<uint256 /*buzz*/, BuzzfeedItemPtr>::iterator lExisting = items_.find((*lItem)->buzzId());
-		if (lExisting == items_.end()) {
-			items_.insert(std::map<uint256 /*buzz*/, BuzzfeedItemPtr>::value_type((*lItem)->buzzId(), *lItem));
-			index_.insert(std::multimap<OrderKey /*order*/, uint256 /*buzz*/>::value_type((*lItem)->order(), (*lItem)->buzzId()));
+		lItemsAdded |= merge(*(*lItem), true, false);
+	}
 
-			updateTimestamp((*lItem)->buzzerId(), (*lItem)->timestamp());
+	return lItemsAdded;
+}
 
-			if (items_.size() > 300 /*setup*/) {
+void BuzzfeedItem::clear() {
+	//
+	{
+		Guard lLock(this);
+		//
+		for (std::map<Key /*buzz*/, BuzzfeedItemPtr>::iterator lItem = items_.begin(); lItem != items_.end(); lItem++) {
+			//
+			lItem->second->clear();
+		}
+
+		for (std::map<uint256 /*buzz*/, BuzzfeedItemPtr>::iterator lItem = originalItems_.begin(); lItem != originalItems_.end(); lItem++) {
+			//
+			lItem->second->clear();
+		}
+
+		chains_.clear();
+		items_.clear();
+		originalItems_.clear();
+		index_.clear();
+		orphans_.clear();
+		lastTimestamps_.clear();
+		pendings_.clear();
+		suspicious_.clear();
+		unconfirmed_.clear();
+
+		wrapped_.reset();
+		parent_.reset();
+	}
+
+	root_.reset();
+}
+
+BuzzfeedItemPtr BuzzfeedItem::firstChild() {
+	//
+	Guard lLock(this);
+	if (sortOrder_ == Order::REVERSE) {
+		//
+		std::multimap<OrderKey /*order*/, Key /*buzz*/>::reverse_iterator lItem = index_.rbegin();
+		if (lItem != index_.rend()) {
+			//
+			std::map<Key /*buzz*/, BuzzfeedItemPtr>::iterator lBuzz = items_.find(lItem->second);
+			if (lBuzz != items_.end()) {
+				if (lBuzz->second->valid()) {
+					return lBuzz->second;
+				}
+			}
+		}
+	} else {
+		//
+		std::multimap<OrderKey /*order*/, Key /*buzz*/>::iterator lItem = index_.begin();
+		if (lItem != index_.end()) {
+			//
+			std::map<Key /*buzz*/, BuzzfeedItemPtr>::iterator lBuzz = items_.find(lItem->second);
+			if (lBuzz != items_.end()) {
+				if (lBuzz->second->valid()) {
+					return lBuzz->second;
+				}
+			}
+		}
+	}
+
+	return nullptr;
+}
+
+void BuzzfeedItem::feed(std::vector<BuzzfeedItemPtr>& feed, bool expanded) {
+	//
+	Guard lLock(this);
+	if (sortOrder_ == Order::REVERSE) {
+		//
+		if (expand_ == Expand::FULL || (!expanded || (expanded && index_.size() < 5 /**/))) {
+			for (std::multimap<OrderKey /*order*/, Key /*buzz*/>::reverse_iterator lItem = index_.rbegin(); 
+													lItem != index_.rend(); lItem++) {
 				//
-				std::multimap<OrderKey /*order*/, uint256 /*buzz*/>::iterator lFirst = index_.begin();
-				items_.erase(lFirst->second);
-				index_.erase(lFirst);
+				std::map<Key /*buzz*/, BuzzfeedItemPtr>::iterator lBuzz = items_.find(lItem->second);
+				// if exists and VALID (signature checked)
+				if (lBuzz != items_.end()) {
+					if (lBuzz->second->valid()) {
+						//
+						if (!buzzId_.isEmpty() && lBuzz->second->originalBuzzId() == buzzId_ && buzzId_ != rootBuzzId_) {
+							setHasNextLink(true);
+							lBuzz->second->setHasPrevLink(true);
+						}
+						//
+						std::vector<BuzzfeedItemPtr>::reverse_iterator lLastItem = feed.rbegin();
+						if (lLastItem != feed.rend()) {
+							if (!buzzId_.isEmpty() && (((*lLastItem)->originalBuzzId() == buzzId_ && buzzId_ != rootBuzzId_) ||
+									(lBuzz->second->hasPrevLink() && (*lLastItem)->hasPrevLink()))) {
+								(*lLastItem)->setHasNextLink(true);
+							}
+						}
+
+						// push
+						feed.push_back(lBuzz->second);
+						lBuzz->second->setPulled();
+
+						// expand
+						lBuzz->second->feed(feed, true);
+					} else {
+						std::cout << "[FEED-ERROR]: " << lBuzz->second->toString() << "\n";
+						if (gLog().isEnabled(Log::CLIENT))
+							gLog().write(Log::CLIENT, strprintf("[FEED-ERROR]: %s", lBuzz->second->toString()));
+					}
+				}
+			}
+		} else {
+			//
+			for (std::multimap<OrderKey /*order*/, Key /*buzz*/>::reverse_iterator lItem = index_.rbegin(); 
+													lItem != index_.rend(); lItem++) {
+				//
+				std::map<Key /*buzz*/, BuzzfeedItemPtr>::iterator lBuzz = items_.find(lItem->second);
+				// if exists and VALID (signature checked)
+				if (lBuzz != items_.end()) {
+					if (lBuzz->second->valid()) {
+						// push
+						bool lAdd = true;
+						std::vector<BuzzfeedItemPtr>::reverse_iterator lLastItem = feed.rbegin();
+						if (lLastItem != feed.rend()) {
+							if ((*lLastItem)->buzzerId() == lBuzz->second->buzzerId()) {
+								lAdd = false;
+							}
+						}
+
+						if (lAdd) {
+							//
+							if (!buzzId_.isEmpty() && lBuzz->second->originalBuzzId() == buzzId_ && buzzId_ != rootBuzzId_) {
+								setHasNextLink(true);
+								lBuzz->second->setHasPrevLink(true);
+							}
+							//
+							if (lLastItem != feed.rend()) {
+								if (!buzzId_.isEmpty() && (((*lLastItem)->originalBuzzId() == buzzId_ && buzzId_ != rootBuzzId_) ||
+										(lBuzz->second->hasPrevLink() && (*lLastItem)->hasPrevLink()))) {
+									(*lLastItem)->setHasNextLink(true);
+								}
+							}
+
+							// add
+							feed.push_back(lBuzz->second);
+							lBuzz->second->setPulled();
+							// ... and expand
+							lBuzz->second->feed(feed, true);
+						} else {
+							threaded_ = true;
+						}
+					} else {
+						std::cout << "[FEED-ERROR]: " << lBuzz->second->toString() << "\n";
+						if (gLog().isEnabled(Log::CLIENT))
+							gLog().write(Log::CLIENT, strprintf("[FEED-ERROR]: %s", lBuzz->second->toString()));
+					}
+				}
+			}			
+		}
+	} else {
+		// FORWARD
+		if (expand_ == Expand::FULL || (!expanded || (expanded && index_.size() < 5 /**/))) {
+			for (std::multimap<OrderKey /*order*/, Key /*buzz*/>::iterator lItem = index_.begin(); 
+													lItem != index_.end(); lItem++) {
+				//
+				std::map<Key /*buzz*/, BuzzfeedItemPtr>::iterator lBuzz = items_.find(lItem->second);
+				// if exists and VALID (signature checked)
+				if (lBuzz != items_.end()) {
+					if (lBuzz->second->valid()) {
+						//
+						if (!buzzId_.isEmpty() && lBuzz->second->originalBuzzId() == buzzId_ && buzzId_ != rootBuzzId_) {
+							setHasNextLink(true);
+							lBuzz->second->setHasPrevLink(true);
+						}
+						//
+						std::vector<BuzzfeedItemPtr>::reverse_iterator lLastItem = feed.rbegin();
+						if (lLastItem != feed.rend()) {
+							if (!buzzId_.isEmpty() && (((*lLastItem)->originalBuzzId() == buzzId_ && buzzId_ != rootBuzzId_) ||
+									(lBuzz->second->hasPrevLink() && (*lLastItem)->hasPrevLink()))) {
+								(*lLastItem)->setHasNextLink(true);
+							}
+						}
+
+						// push
+						feed.push_back(lBuzz->second);
+						lBuzz->second->setPulled();
+						// expand
+						lBuzz->second->feed(feed, true);
+					} else {
+						std::cout << "[FEED-ERROR]: " << lBuzz->second->toString() << "\n";
+						if (gLog().isEnabled(Log::CLIENT))
+							gLog().write(Log::CLIENT, strprintf("[FEED-ERROR]: %s", lBuzz->second->toString()));
+					}
+				}
+			}
+		} else {
+			for (std::multimap<OrderKey /*order*/, Key /*buzz*/>::iterator lItem = index_.begin(); 
+													lItem != index_.end(); lItem++) {
+				//
+				std::map<Key /*buzz*/, BuzzfeedItemPtr>::iterator lBuzz = items_.find(lItem->second);
+				// if exists and VALID (signature checked)
+				if (lBuzz != items_.end()) {
+					if (lBuzz->second->valid()) {
+						// push
+						bool lReplace = false;
+						std::vector<BuzzfeedItemPtr>::reverse_iterator lLastItem = feed.rbegin();
+						if (lLastItem != feed.rend()) {
+							if ((*lLastItem)->buzzerId() == lBuzz->second->buzzerId()) {
+								lReplace = true;
+							}
+						}
+
+						if (lReplace) {
+							// replace
+							feed[feed.size()-1]->resetPulled();
+							feed[feed.size()-1] = lBuzz->second;
+
+							//
+							if (!buzzId_.isEmpty() && lBuzz->second->originalBuzzId() == buzzId_ && buzzId_ != rootBuzzId_) {
+								setHasNextLink(true);
+								lBuzz->second->setHasPrevLink(true);
+							}
+							//
+							if (lLastItem != feed.rend() && ++lLastItem != feed.rend()) {
+								if (!buzzId_.isEmpty() && (((*lLastItem)->originalBuzzId() == buzzId_ && buzzId_ != rootBuzzId_) ||
+										(lBuzz->second->hasPrevLink() && (*lLastItem)->hasPrevLink()))) {
+									(*lLastItem)->setHasNextLink(true);
+								}
+							}
+
+							// ... and expand
+							lBuzz->second->feed(feed, true);
+							//
+							threaded_ = true;
+						} else {
+							//
+							if (lBuzz->second->originalBuzzId() == buzzId_ && buzzId_ != rootBuzzId_) {
+								setHasNextLink(true);
+								lBuzz->second->setHasPrevLink(true);
+							}
+							//
+							if (lLastItem != feed.rend()) {
+								if (!buzzId_.isEmpty() && (((*lLastItem)->originalBuzzId() == buzzId_ && buzzId_ != rootBuzzId_) ||
+										(lBuzz->second->hasPrevLink() && (*lLastItem)->hasPrevLink()))) {
+									(*lLastItem)->setHasNextLink(true);
+								}
+							}
+
+							// add
+							feed.push_back(lBuzz->second);
+							lBuzz->second->setPulled();
+
+							// ... and expand
+							lBuzz->second->feed(feed, true);
+						}
+					} else {
+						std::cout << "[FEED-ERROR]: " << lBuzz->second->toString() << "\n";
+						if (gLog().isEnabled(Log::CLIENT))
+							gLog().write(Log::CLIENT, strprintf("[FEED-ERROR]: %s", lBuzz->second->toString()));
+					}
+				}
 			}
 		}
 	}
 }
 
-void BuzzfeedItem::feed(std::list<BuzzfeedItemPtr>& feed) {
+bool BuzzfeedItem::locateIndex(BuzzfeedItemPtr item, int& index, uint256& lastBuzerId, bool expanded) {
 	//
-	if (type_ == TX_REBUZZ) return;
-
-	//
-	Guard lLock(this);
 	if (sortOrder_ == Order::REVERSE) {
-		for (std::multimap<OrderKey /*order*/, uint256 /*buzz*/>::reverse_iterator lItem = index_.rbegin(); 
-												lItem != index_.rend(); lItem++) {
-			//
-			std::map<uint256 /*buzz*/, BuzzfeedItemPtr>::iterator lBuzz = items_.find(lItem->second);
-			// if exists and VALID (signature chacked)
-			if (lBuzz != items_.end())
-				if (lBuzz->second->valid()) 
-					feed.push_back(lBuzz->second);
-				else
-					std::cout << "[FEED-ERROR]: " << lBuzz->second->toString() << "\n";
+		//
+		if (expand_ == Expand::FULL || (!expanded || (expanded && index_.size() < 5 /**/))) {
+			for (std::multimap<OrderKey /*order*/, Key /*buzz*/>::reverse_iterator lItem = index_.rbegin();
+													lItem != index_.rend(); lItem++, index++) {
+				//
+				std::map<Key /*buzz*/, BuzzfeedItemPtr>::iterator lBuzz = items_.find(lItem->second);
+				if (lBuzz != items_.end() && item->key() == lBuzz->second->key()) {
+					//
+					//index++;
+					return true;
+				}
 
+				// expand
+				if (lBuzz->second->locateIndex(item, index, lastBuzerId, true)) {
+					index++; // +level
+					return true;
+				}
+			}
+		} else {
+			//
+			for (std::multimap<OrderKey /*order*/, Key /*buzz*/>::reverse_iterator lItem = index_.rbegin();
+													lItem != index_.rend(); lItem++) {
+				//
+				std::map<Key /*buzz*/, BuzzfeedItemPtr>::iterator lBuzz = items_.find(lItem->second);
+				if (lBuzz != items_.end() && item->key() == lBuzz->second->key()) {
+					//
+					//index++;
+					return true;
+				}
+
+				// push
+				bool lAdd = true;
+				if (lastBuzerId == lBuzz->second->buzzerId()) {
+					lAdd = false;
+				} else {
+					lastBuzerId = lBuzz->second->buzzerId();
+				}
+
+				if (lAdd || lBuzz->second->pulled()) {
+					//
+					index++;
+					// ... and expand
+					if (lBuzz->second->locateIndex(item, index, lastBuzerId, true)) {
+						index++; // +level
+						return true;
+					}
+				}
+			}
 		}
 	} else {
-		for (std::multimap<OrderKey /*order*/, uint256 /*buzz*/>::iterator lItem = index_.begin(); 
-												lItem != index_.end(); lItem++) {
-			//
-			std::map<uint256 /*buzz*/, BuzzfeedItemPtr>::iterator lBuzz = items_.find(lItem->second);
-			// if exists and VALID (signature chacked)
-			if (lBuzz != items_.end())
-				if (lBuzz->second->valid()) 
-					feed.push_back(lBuzz->second);
-				else
-					std::cout << "[FEED-ERROR]: " << lBuzz->second->toString() << "\n";
+		// FORWARD
+		if (expand_ == Expand::FULL || (!expanded || (expanded && index_.size() < 5 /**/))) {
+			for (std::multimap<OrderKey /*order*/, Key /*buzz*/>::iterator lItem = index_.begin();
+													lItem != index_.end(); lItem++, index++) {
+				//
+				std::map<Key /*buzz*/, BuzzfeedItemPtr>::iterator lBuzz = items_.find(lItem->second);
+				if (lBuzz != items_.end() && item->key() == lBuzz->second->key()) {
+					//
+					//index++;
+					return true;
+				}
 
-		}		
+				// expand
+				if (lBuzz->second->locateIndex(item, index, lastBuzerId, true)) {
+					index++; // +level
+					return true;
+				}
+			}
+		} else {
+			for (std::multimap<OrderKey /*order*/, Key /*buzz*/>::iterator lItem = index_.begin();
+													lItem != index_.end(); lItem++) {
+				//
+				std::map<Key /*buzz*/, BuzzfeedItemPtr>::iterator lBuzz = items_.find(lItem->second);
+				if (lBuzz != items_.end() && item->key() == lBuzz->second->key()) {
+					//
+					//index++;
+					return true;
+				}
+
+				if (lastBuzerId != lBuzz->second->buzzerId() || lBuzz->second->pulled()) {
+					index++;
+				}
+
+				//
+				lastBuzerId = lBuzz->second->buzzerId();
+				// ... and expand
+				if (lBuzz->second->locateIndex(item, index, lastBuzerId, true)) {
+					index++; // +level
+					return true;
+				}
+			}
+		}
 	}
+
+	return false;
+}
+
+int BuzzfeedItem::locateIndex(BuzzfeedItemPtr item) {
+	//
+	Guard lLock(this);
+
+	uint256 lLastBuzerId;
+	int lIndex = 0;
+
+	if (locateIndex(item, lIndex, lLastBuzerId, false)) return lIndex;
+	return -1;
 }
 
 BuzzfeedItemPtr BuzzfeedItem::locateBuzz(const uint256& buzz) {
 	//
 	Guard lLock(this);
-	std::map<uint256 /*buzz*/, BuzzfeedItemPtr>::iterator lBuzz = items_.find(buzz);
-	if (lBuzz != items_.end()) return lBuzz->second;
+	return locateBuzzInternal(buzz);
+}
+
+BuzzfeedItemPtr BuzzfeedItem::locateBuzzInternal(const uint256& buzz) {
+	//
+	std::map<uint256 /*buzz*/, BuzzfeedItemPtr>::iterator lBuzz = originalItems_.find(buzz);
+	if (lBuzz != originalItems_.end()) return lBuzz->second;
+
+	//
+	for (std::map<Key /*buzz*/, BuzzfeedItemPtr>::iterator lItem = items_.begin(); 
+														lItem != items_.end(); lItem++) {
+		if (lItem->second) {
+			BuzzfeedItemPtr lBuzzItem = lItem->second->locateBuzzInternal(buzz);
+			if (lBuzzItem) return lBuzzItem;
+		}
+	}
+
 	return nullptr;
+}
+
+void BuzzfeedItem::locateLastTimestamp(std::map<uint256 /*chain*/, std::vector<BuzzfeedPublisherFrom>>& timestamps) {
+	//
+	Guard lLock(this);
+	for (std::map<uint256 /*publisher*/, std::map<uint256 /*chain*/, uint64_t>>::iterator lTimestamp = lastTimestamps_.begin(); lTimestamp != lastTimestamps_.end(); lTimestamp++) {
+		//
+		for (std::map<uint256 /*chain*/, uint64_t>::iterator lPubChain = lTimestamp->second.begin(); lPubChain != lTimestamp->second.end(); lPubChain++) {
+			timestamps[lPubChain->first].push_back(BuzzfeedPublisherFrom(lTimestamp->first, lPubChain->second));
+
+			//if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT,
+			//	strprintf("[locateLastTimestamp]: %s/%s#, ts = %d", lTimestamp->first.toHex(), lPubChain->first.toHex().substr(0, 10), lPubChain->second));
+		}
+	}
+
+	for (std::map<Key /*buzz*/, BuzzfeedItemPtr>::iterator lItem = items_.begin();
+														lItem != items_.end(); lItem++) {
+		lItem->second->locateLastTimestamp(timestamps);
+	}
 }
 
 uint64_t BuzzfeedItem::locateLastTimestamp() {
 	//
 	Guard lLock(this);
-	std::set<uint64_t> lTimes;
-	for (std::map<uint256 /*publisher*/, uint64_t>::iterator lTimestamp = lastTimestamps_.begin(); lTimestamp != lastTimestamps_.end(); lTimestamp++) {
-		lTimes.insert(lTimestamp->second);
+	std::set<uint64_t> lOrder;
+	for (std::map<uint256 /*publisher*/, std::map<uint256 /*chain*/, uint64_t>>::iterator lTimestamp = lastTimestamps_.begin(); lTimestamp != lastTimestamps_.end(); lTimestamp++) {
+		for (std::map<uint256 /*chain*/, uint64_t>::iterator lPubChain = lTimestamp->second.begin(); lPubChain != lTimestamp->second.end(); lPubChain++) {
+			lOrder.insert(lPubChain->second);
+		}
 	}
 
-	return lTimes.size() ? *lTimes.rbegin() : 0;
+	for (std::map<Key /*buzz*/, BuzzfeedItemPtr>::iterator lItem = items_.begin();
+														lItem != items_.end(); lItem++) {
+		lItem->second->locateLastTimestamp(lOrder);
+	}
+
+	return lOrder.size() ? *lOrder.rbegin() : 0;
+}
+
+void BuzzfeedItem::locateLastTimestamp(std::set<uint64_t>& set) {
+	//
+	Guard lLock(this);
+	for (std::map<uint256 /*publisher*/, std::map<uint256 /*chain*/, uint64_t>>::iterator lTimestamp = lastTimestamps_.begin(); lTimestamp != lastTimestamps_.end(); lTimestamp++) {
+		for (std::map<uint256 /*chain*/, uint64_t>::iterator lPubChain = lTimestamp->second.begin(); lPubChain != lTimestamp->second.end(); lPubChain++)
+			set.insert(lPubChain->second);
+	}
+
+	for (std::map<Key /*buzz*/, BuzzfeedItemPtr>::iterator lItem = items_.begin();
+														lItem != items_.end(); lItem++) {
+		lItem->second->locateLastTimestamp(set);
+	}
 }
 
 void BuzzfeedItem::collectPendingItems(std::map<uint256 /*chain*/, std::set<uint256>/*items*/>& items) {
 	//
-	for (std::map<uint256 /*originalBuzz*/, std::map<uint256, BuzzfeedItemPtr>>::iterator lPending = pendings_.begin(); lPending != pendings_.end(); lPending++) {
-		for (std::map<uint256, BuzzfeedItemPtr>::iterator lItem = lPending->second.begin(); lItem != lPending->second.end(); lItem++)
-			items[lItem->second->originalBuzzChainId()].insert(lItem->second->originalBuzzId());
+	Guard lLock(this);
+	for (std::map<uint256 /*originalBuzz*/, std::map<Key, BuzzfeedItemPtr>>::iterator lPending = pendings_.begin(); lPending != pendings_.end(); lPending++) {
+		for (std::map<Key, BuzzfeedItemPtr>::iterator lItem = lPending->second.begin(); lItem != lPending->second.end(); lItem++)
+			if (!lItem->second->originalBuzzId().isNull()) items[lItem->second->originalBuzzChainId()].insert(lItem->second->originalBuzzId());
 	}
 }
 
-void BuzzfeedItem::crossMerge() {
+void BuzzfeedItem::crossMerge(bool notify) {
 	//
-	std::map<uint256 /*originalBuzz*/, std::map<uint256, BuzzfeedItemPtr>> lPendings = pendings_;
-	for (std::map<uint256 /*originalBuzz*/, std::map<uint256, BuzzfeedItemPtr>>::iterator lPending = lPendings.begin(); lPending != lPendings.end(); lPending++) {
+	Guard lLock(this);
+	std::map<uint256 /*originalBuzz*/, std::map<Key, BuzzfeedItemPtr>> lPendings = pendings_;
+	for (std::map<uint256 /*originalBuzz*/, std::map<Key, BuzzfeedItemPtr>>::iterator lPending = lPendings.begin(); lPending != lPendings.end(); lPending++) {
 		//
-		std::map<uint256 /*buzz*/, BuzzfeedItemPtr>::iterator lParent = items_.find(lPending->first);
+		std::map<Key /*buzz*/, BuzzfeedItemPtr>::iterator lParent = items_.find(Key(lPending->first, TX_REBUZZ));
 		if (lParent != items_.end()) {
-			for (std::map<uint256, BuzzfeedItemPtr>::iterator lItem = lPending->second.begin(); lItem != lPending->second.end(); lItem++) {
-				lItem->second->merge(*(lParent->second), true/*?*/);
+			for (std::map<Key, BuzzfeedItemPtr>::iterator lItem = lPending->second.begin(); lItem != lPending->second.end(); lItem++) {
+				if (lItem->second->type() == TX_REBUZZ) {
+					lItem->second->wrap(lParent->second);
+				} else {
+					lItem->second->merge(*(lParent->second), true, notify);
+				}
 			}
 
 			pendings_.erase(lPending->first);
@@ -323,3 +998,91 @@ void BuzzfeedItem::crossMerge() {
 	}
 }
 
+//
+// Buzzfeed
+//
+
+void Buzzfeed::feed(std::vector<BuzzfeedItemPtr>& list, bool /*expanded*/) {
+	//
+	Guard lLock(this);
+	list_.clear();
+	index_.clear();
+	BuzzfeedItem::feed(list_);
+
+	// build index
+	for (size_t lItem = 0; lItem < list_.size(); lItem++) {
+		index_[list_[lItem]->key()] = lItem;
+	}
+
+	//
+	list.insert(list.end(), list_.begin(), list_.end());
+
+	//
+	fed_ = true;
+}
+
+int Buzzfeed::locateIndex(BuzzfeedItemPtr item) {
+	//
+	Guard lLock(this);
+	std::map<BuzzfeedItem::Key, int>::iterator lItem = index_.find(item->key());
+	if (lItem != index_.end()) return lItem->second;
+	return -1;
+}
+
+void Buzzfeed::insertNewItem(BuzzfeedItemPtr item) {
+	//
+	// NOTICE: already locked
+	//
+	int lIndex = BuzzfeedItem::locateIndex(item);
+	if (lIndex != -1 && list_.begin() != list_.end()) {
+		//
+		if (index_.find(item->key()) == index_.end()) {
+			list_.insert(list_.begin() + lIndex, item);
+			index_[item->key()] = lIndex;
+
+			//
+			if (lIndex-1 >= 0 && list_[lIndex-1]->hasNextLink()) {
+				item->setHasPrevLink(true);
+			}
+
+			if (lIndex+1 < (int)list_.size() && list_[lIndex+1]->hasPrevLink()) {
+				item->setHasNextLink(true);
+			}
+		}
+	} else if (!list_.size() && fed_) {
+		// push first
+		list_.push_back(item);
+		index_[item->key()] = 0;
+	}
+}
+
+BuzzfeedItemPtr Buzzfeed::locateBuzz(const Key& key) {
+	//
+	Guard lLock(this);
+	//
+	std::map<qbit::BuzzfeedItem::Key, int>::iterator lEntry = index_.find(key);
+	if (lEntry != index_.end() && (size_t)lEntry->second < list_.size()) {
+		return list_[lEntry->second];
+	}
+
+	return nullptr;
+}
+
+void Buzzfeed::clear() {
+	//
+	Guard lLock(this);
+	list_.clear();
+	index_.clear();
+
+	BuzzfeedItem::clear();
+
+	fed_ = false;
+}
+
+void Buzzfeed::collectLastItemsByChains(std::map<uint256, BuzzfeedItemPtr>& items) {
+	//
+	for (std::vector<BuzzfeedItemPtr>::reverse_iterator lItem = list_.rbegin(); lItem != list_.rend(); lItem++) {
+		//
+		items.insert(std::map<uint256, BuzzfeedItemPtr>::value_type((*lItem)->buzzChainId(), *lItem));
+	}
+}

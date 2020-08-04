@@ -93,11 +93,11 @@ void SearchEntityNamesCommand::process(const std::vector<std::string>& args) {
 		//
 		composer_->requestProcessor()->selectEntityNames(args[0], 
 			SelectEntityNames::instance(
-				boost::bind(&SearchEntityNamesCommand::assetNamesLoaded, shared_from_this(), _1),
+				boost::bind(&SearchEntityNamesCommand::assetNamesLoaded, shared_from_this(), _1, _2),
 				boost::bind(&SearchEntityNamesCommand::timeout, shared_from_this()))
 		);		
 	} else {
-		gLog().writeClient(Log::CLIENT, std::string(": incorrect number of arguments"));
+		error("E_INCORRECT_AGRS", "Incorrect number of arguments.");
 	}
 }
 
@@ -106,5 +106,36 @@ void AskForQbitsCommand::process(const std::vector<std::string>& args) {
 	if (!composer_->requestProcessor()->askForQbits())
 		error("E_ASK_FOR_QBITS", "There is no peers able to process your request.");
 
-	done_();
+	done_(ProcessingError());
+}
+
+
+void LoadTransactionCommand::process(const std::vector<std::string>& args) {
+	//
+	// process
+	if (args.size() == 1) {
+		//
+		uint256 lTx;
+		uint256 lChain;
+
+		//
+		std::vector<std::string> lParts;
+		boost::split(lParts, args[0], boost::is_any_of("/"));
+
+		if (lParts.size() < 2) {
+			error("E_LOAD_TRANSACTION", "Transaction info is incorrect");
+			return;	
+		}
+
+		lTx.setHex(lParts[0]);
+		lChain.setHex(lParts[1]);
+
+		if (!composer_->requestProcessor()->loadTransaction(lChain, lTx, 
+				LoadTransaction::instance(
+					boost::bind(&LoadTransactionCommand::transactionLoaded, shared_from_this(), _1),
+					boost::bind(&LoadTransactionCommand::timeout, shared_from_this()))
+			))	error("E_TRANSACTION_NOT_LOADED", "Transaction is not loaded.");
+	} else {
+		error("E_INCORRECT_AGRS", "Incorrect number of arguments.");
+	}
 }

@@ -86,7 +86,7 @@ SKeyPtr Wallet::changeKey() {
 	return createKey(std::list<std::string>());
 }
 
-bool Wallet::open() {
+bool Wallet::open(const std::string& /*secret*/) {
 	if (!opened_) {
 		try {
 			if (mkpath(std::string(settings_->dataPath() + "/wallet").c_str(), 0777)) return false;

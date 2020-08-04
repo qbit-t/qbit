@@ -275,6 +275,7 @@ public:
 	void writeToStream(std::vector<unsigned char>&);
 	void writeToStringPlain(std::string&);
 	void writeToStreamPlain(std::vector<unsigned char>&);
+	void saveToFile(const std::string& dest);
 	Value operator[](const std::string& name);
 	Value addObject(const std::string&);
 	Value addArray(const std::string&);

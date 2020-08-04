@@ -10,6 +10,11 @@
 #include "../../txassettype.h"
 #include "../../vm/vm.h"
 
+#if defined (CLIENT_PLATFORM)
+    #include <QString>
+    #include <QObject>
+#endif
+
 namespace qbit {
 
 typedef LimitedString<64> buzzer_name_t;
@@ -26,6 +31,7 @@ typedef LimitedString<64> buzzer_name_t;
 #define TX_BUZZ_PIN				Transaction::CUSTOM_09 // shard: fee-free
 #define TX_BUZZ_REBUZZ_NOTIFY	Transaction::CUSTOM_10 // shard: fee-free, action
 #define TX_BUZZER_INFO			Transaction::CUSTOM_11 //
+#define TX_BUZZ_REWARD			Transaction::CUSTOM_12 //
 
 #define TX_BUZZER_ALIAS_SIZE 64 
 #define TX_BUZZER_DESCRIPTION_SIZE 256 
@@ -76,8 +82,20 @@ public:
 	BuzzerMediaPointer() { chain_.setNull(); tx_.setNull(); }
 	BuzzerMediaPointer(const uint256& chain, const uint256& tx) : chain_(chain), tx_(tx) {}
 
+	void set(const BuzzerMediaPointer& other) {
+		chain_ = other.chain();
+		tx_ = other.tx();
+	}
+
 	const uint256& chain() const { return chain_; }
 	const uint256& tx() const { return tx_; }
+
+	std::string url() const {
+		return strprintf("%s/%s", tx_.toHex(), chain_.toHex());
+	}
+
+	void setChain(const uint256& chain) { chain_ = chain; }
+	void setTx(const uint256& tx) { tx_ = tx; }
 
 	ADD_SERIALIZE_METHODS;
 
@@ -87,9 +105,9 @@ public:
 		READWRITE(tx_);
 	}
 
-private:
-	uint256 chain_;
-	uint256 tx_;
+protected:
+	mutable uint256 chain_;
+	mutable uint256 tx_;
 };
 
 //

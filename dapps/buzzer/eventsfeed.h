@@ -117,6 +117,13 @@ public:
 		const std::vector<BuzzerMediaPointer>& buzzMedia() const { return media_; }
 		const std::vector<unsigned char>& buzzBody() const { return body_; }
 
+		std::string buzzBodyString() const {
+			//
+			std::string lBody;
+			lBody.insert(lBody.end(), body_.begin(), body_.end());
+			return lBody;
+		}
+
 		ADD_SERIALIZE_METHODS;
 
 		template <typename Stream, typename Operation>
@@ -133,7 +140,7 @@ public:
 			READWRITE(signature_);
 		}
 
-	private:
+	protected:
 		uint64_t timestamp_;
 		uint64_t score_;
 		uint256 eventId_;
@@ -181,7 +188,7 @@ public:
 			READWRITE(publisher_);
 		}
 
-		if (type_ == TX_BUZZER_ENDORSE || type_ == TX_BUZZER_MISTRUST) {
+		if (type_ == TX_BUZZER_ENDORSE || type_ == TX_BUZZER_MISTRUST || type_ == TX_BUZZ_REWARD) {
 			READWRITE(value_);
 		}
 
@@ -291,9 +298,10 @@ public:
 	void merge(const EventsfeedItem&, bool checkSize = true, bool notify = true);
 	void merge(const std::vector<EventsfeedItem>&, bool notify = false);
 	void mergeUpdate(const std::vector<EventsfeedItem>&);
-	void mergeAppend(const std::list<EventsfeedItemPtr>&);	
+	bool mergeAppend(const std::vector<EventsfeedItemPtr>&);
 
-	void feed(std::list<EventsfeedItemPtr>&);
+	void feed(std::vector<EventsfeedItemPtr>&);
+	int locateIndex(EventsfeedItemPtr);
 
 	std::string buzzersToString() {
 		//
@@ -319,6 +327,34 @@ public:
 
 		return strprintf("%s (%s) %s", lBuzzerAlias, lBuzzerName, typeString());
 	}
+
+	/*
+	std::string& publisherName() {
+		//
+		if (!publisherName_.length()) resolvePublisherName();
+		return publisherName_;
+	}
+
+	std::string& publisherAlias() {
+		//
+		if (!publisherAlias_.length()) resolvePublisherName();
+		return publisherAlias_;
+	}
+
+	void resolvePublisherName() {
+		publisherName_ = strprintf("<%s>", publisher_.toHex());
+
+		EventInfo lInfo = *buzzers_.begin();
+
+		if (type_ == TX_BUZZER_SUBSCRIBE && !publisherInfo_.isNull()) {
+			buzzerInfo_(publisherInfo_, publisherName_, publisherAlias_);
+		} else {
+			buzzerInfo(lInfo, publisherName_, publisherAlias_);
+		}
+
+		if (!publisherAlias_.size()) publisherAlias_ = "?";
+	}
+	*/
 
 	std::string buzzerFeedInfoString() {
 		//
@@ -350,6 +386,7 @@ public:
 		else if (type_ == TX_REBUZZ) { if (mention_) return "mentioned you"; return "rebuzzed your buzz"; }
 		else if (type_ == TX_BUZZ_REPLY) return "replied to your buzz";
 		else if (type_ == TX_BUZZ_LIKE) return "liked your buzz";
+		else if (type_ == TX_BUZZ_REWARD) return "donated you";
 		else if (type_ == TX_BUZZER_SUBSCRIBE) return "started reading you";
 		else if (type_ == TX_BUZZER_ENDORSE) return "endorsed you";
 		else if (type_ == TX_BUZZER_MISTRUST) return "mistrusted you";
@@ -361,6 +398,7 @@ public:
 		else if (type_ == TX_REBUZZ) { if (mention_) return "mentioned"; return "rebuzzed buzz"; }
 		else if (type_ == TX_BUZZ_REPLY) return "replied to buzz";
 		else if (type_ == TX_BUZZ_LIKE) return "liked buzz";
+		else if (type_ == TX_BUZZ_REWARD) return "donated";
 		else if (type_ == TX_BUZZER_SUBSCRIBE) { 
 			if (!publisherInfo_.isNull()) return "following"; 
 			return "follows"; 
@@ -397,15 +435,38 @@ public:
 		buzzerInfo_ = buzzerInfo;
 	}
 
-	void resolve() {
+	bool resolve() {
 		//
+		if (!buzzerInfoResolve_) return false;
+		//
+		bool lResolved = true;
 		for (std::vector<EventInfo>::const_iterator lBuzzer = buzzers_.begin(); lBuzzer != buzzers_.end(); lBuzzer++) {
 			// just first one for now
-			buzzerInfoResolve_(lBuzzer->buzzerInfoChainId(), lBuzzer->buzzerId(), lBuzzer->buzzerInfoId());
+			if (!buzzerInfoResolve_(
+					lBuzzer->buzzerInfoChainId(), 
+					lBuzzer->buzzerId(), 
+					lBuzzer->buzzerInfoId(),
+					boost::bind(&EventsfeedItem::buzzerInfoReady, shared_from_this(), _1))) {
+				lResolved = false;
+			}
 		}
 
 		if (!publisherInfo_.isNull())
-			buzzerInfoResolve_(publisherInfoChain_, publisher_, publisherInfo_);
+			if (!buzzerInfoResolve_(
+					publisherInfoChain_, 
+					publisher_, 
+					publisherInfo_,
+					boost::bind(&EventsfeedItem::buzzerInfoReady, shared_from_this(), _1))) {
+				//
+				return false;
+			}
+
+		return lResolved;
+	}
+
+	void buzzerInfoReady(const uint256& info) {
+		//
+		itemNew(shared_from_this());
 	}
 
 	void buzzerInfo(const EventInfo& info, std::string& name, std::string& alias) {
@@ -413,6 +474,9 @@ public:
 	}
 
 	virtual void clear() {
+		//
+		if (gLog().isEnabled(Log::CLIENT))
+			gLog().write(Log::CLIENT, strprintf("[CLEAR]: %d", index_.size()));
 		items_.clear();
 		index_.clear();
 		lastTimestamps_.clear();
@@ -524,6 +588,12 @@ protected:
 	char mention_ = 0;
 	amount_t value_ = 0;
 
+	/*
+	// buzzer name/alias resolve
+	std::string publisherName_;
+	std::string publisherAlias_;
+	*/
+
 	// merge strategy
 	Merge merge_ = Merge::UNION;
 	std::set<uint256> chains_;
@@ -581,6 +651,8 @@ public:
 		itemsUpdated_ = eventsfeed->itemsUpdated_;
 		verifyPublisher_ = eventsfeed->verifyPublisher_;
 		verifySource_ = eventsfeed->verifySource_;
+		buzzerInfo_ = eventsfeed->buzzerInfo_;
+		buzzerInfoResolve_ = eventsfeed->buzzerInfoResolve_;
 		merge_ = eventsfeed->merge_;
 	}
 
@@ -590,7 +662,7 @@ public:
 
 	void prepare() {
 		buzzerInfo_ = boost::bind(&Buzzer::locateBuzzerInfo, buzzer_, _1, _2, _3);
-		buzzerInfoResolve_ = boost::bind(&Buzzer::enqueueBuzzerInfoResolve, buzzer_, _1, _2, _3);		
+		buzzerInfoResolve_ = boost::bind(&Buzzer::enqueueBuzzerInfoResolve, buzzer_, _1, _2, _3, _4);		
 	}
 
 	BuzzerPtr buzzer() { return buzzer_; }
@@ -632,6 +704,10 @@ private:
 
 	boost::recursive_mutex mutex_;
 };
+
+//
+// eventsfeed ready
+typedef boost::function<void (EventsfeedPtr /*base feed*/, EventsfeedPtr /*part feed*/)> eventsfeedReadyFunction;
 
 //
 // select eventsfeed handler

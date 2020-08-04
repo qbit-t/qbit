@@ -105,6 +105,10 @@ public:
 	// 
 	TransactionContextPtr processTransaction(TransactionPtr);
 
+	void setWalletReceiveTransactionFunction(walletReceiveTransactionFunction walletReceiveTransaction) {
+		walletReceiveTransaction_ = walletReceiveTransaction;
+	}
+
 	//
 	// handlers
 	//
@@ -151,7 +155,7 @@ public:
 	void cleanUpData(); 
 
 	// wallet management
-	bool open();
+	bool open(const std::string& /*secret*/);
 	bool close();
 	bool isOpened() { return opened_; }
 
@@ -194,6 +198,7 @@ private:
 
 	// flag
 	bool opened_;
+	std::string secret_;
 
 	// wallet status
 	IWallet::Status status_;
@@ -204,6 +209,9 @@ private:
 	// lock
 	boost::recursive_mutex cacheMutex_;
 	boost::recursive_mutex keyMutex_;
+
+	//
+	walletReceiveTransactionFunction walletReceiveTransaction_;
 };
 
 } // qbit

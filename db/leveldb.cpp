@@ -1,5 +1,6 @@
 #include "leveldb.h"
 
+#ifndef MOBILE_PLATFORM
 void qbit::db::LevelDBLogger::Logv(const char * format, va_list ap) {
 	if (!gLog().isEnabled(Log::DB)) {
 		return;
@@ -55,3 +56,4 @@ void qbit::db::LevelDBLogger::Logv(const char * format, va_list ap) {
 		break;
 	}
 }
+#endif

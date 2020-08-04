@@ -66,6 +66,10 @@ public:
 		return in_[in_.size()-1];
 	}
 
+	bool simpleRebuzz() {
+		return !body_.size() && !media_.size();
+	}
+
 	virtual void setBody(const std::string& body, const SKey& skey) {
 		//
 		std::vector<unsigned char> lBody;

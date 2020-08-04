@@ -9,7 +9,7 @@ bool WalletQbitCreateSpend::execute() {
 	rmpath(settings_->dataPath().c_str());
 
 	// prepare wallet
-	if (!wallet_->open()) {
+	if (!wallet_->open("")) {
 		error_  = "Wallet open failed.";
 		return false;
 	}
@@ -83,7 +83,7 @@ bool WalletQbitCreateSpendRollback::execute() {
 	rmpath(settings_->dataPath().c_str());
 
 	// prepare wallet
-	if (!wallet_->open()) {
+	if (!wallet_->open("")) {
 		error_  = "Wallet open failed.";
 		return false;
 	}
@@ -170,7 +170,7 @@ bool WalletAssetCreateAndSpend::execute() {
 	rmpath(settings_->dataPath().c_str());
 
 	// prepare wallet
-	if (!wallet_->open()) {
+	if (!wallet_->open("")) {
 		error_  = "Wallet open failed.";
 		wallet_.reset();
 		return false;

@@ -15,9 +15,11 @@ public:
 	ClientSettings(): ClientSettings(".qbit-cli") {}
 	ClientSettings(const std::string& dir) {
 #if defined(__linux__)
+#ifndef MOBILE_PLATFORM
 		char lName[0x100] = {0};
 		getlogin_r(lName, sizeof(lName));
 		path_ = "/home/" + std::string(lName) + "/" + dir;
+#endif
 #endif
 	}
 

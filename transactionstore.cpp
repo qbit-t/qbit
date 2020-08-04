@@ -405,6 +405,7 @@ bool TransactionStore::blockHeaderHeight(const uint256& block, uint64_t& height,
 }
 
 bool TransactionStore::setLastBlock(const uint256& block) {
+	//
 	BlockHeader lHeader;
 	if (headers_.read(block, lHeader)) {
 		writeLastBlock(block);
@@ -834,6 +835,8 @@ uint64_t TransactionStore::pushNewHeight(const uint256& block) {
 
 BlockHeader TransactionStore::currentBlockHeader() {
 	//
+	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
+
 	uint256 lHash = lastBlock_;
 
 	BlockHeader lHeader;
@@ -916,8 +919,10 @@ BlockContextPtr TransactionStore::pushBlock(BlockPtr block) {
 }
 
 void TransactionStore::writeLastBlock(const uint256& block) {
+	//
 	if (!opened_) return;
 
+	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
 	lastBlock_ = block;
 	std::string lHex = block.toHex();
 	workingSettings_.write("lastBlock", lHex);
@@ -1001,6 +1006,8 @@ bool TransactionStore::open() {
 			for (db::DbMultiContainer<uint256 /*entity*/, uint256 /*shard*/>::Iterator lShard = shards_.begin(); lShard.valid(); ++lShard) {
 				//
 				uint256 lDAppId;
+				gLog().write(Log::INFO, std::string("[open]: try to open shard ") + strprintf("%s/%s#", (*lShard).toHex(), chain_.toHex().substr(0, 10)));
+
 				if (lShard.first(lDAppId) && storeManager_) {
 					TransactionPtr lDApp = locateTransaction(lDAppId);
 					if (lDApp) storeManager_->pushChain(*lShard, TransactionHelper::to<Entity>(lDApp));
@@ -1428,6 +1435,12 @@ bool TransactionStore::blockHeader(const uint256& id, BlockHeader& header) {
 
 void TransactionStore::reindexFull(const uint256& from, IMemoryPoolPtr pool) {
 	//
+	if (synchronizing()) {
+		gLog().write(Log::STORE, std::string("[reindexFull]: already SYNCHRONIZING ") + 
+			strprintf("%s/%s#", from.toHex(), chain_.toHex().substr(0, 10)));
+		return;
+	}	
+	//
 	boost::unique_lock<boost::recursive_mutex> lLock(storageCommitMutex_);
 	// synchronizing
 	SynchronizingGuard lGuard(shared_from_this());	
@@ -1469,6 +1482,12 @@ void TransactionStore::reindexFull(const uint256& from, IMemoryPoolPtr pool) {
 }
 
 bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPoolPtr pool) {
+	//
+	if (synchronizing()) {
+		gLog().write(Log::STORE, std::string("[reindex]: already SYNCHRONIZING ") + 
+			strprintf("%s/%s/%s#", from.toHex(), to.toHex(), chain_.toHex().substr(0, 10)));
+		return false;
+	}
 	//
 	gLog().write(Log::STORE, std::string("[reindex]: STARTING reindex for ") + 
 		strprintf("%s#", chain_.toHex().substr(0, 10)));

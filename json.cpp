@@ -270,6 +270,10 @@ void Value::clone(Document& other) {
 // Document
 //
 
+#if defined(QT_ENVIRONMENT)
+	#include <QFile>
+#endif
+
 bool Document::loadFromString(const std::string& source) {
 	return !(document_.Parse<0, rapidjson::UTF8<> >(source).HasParseError());
 }
@@ -279,7 +283,35 @@ bool Document::loadFromStream(const std::vector<unsigned char>& source) {
 }
 
 bool Document::loadFromFile(const std::string& source) {
+#if defined(QT_ENVIRONMENT)
+	QFile lFile(QString(source.c_str()));
+	if (!lFile.open(QIODevice::ReadOnly | QIODevice::Text)) return false;
+
+	QByteArray lData = lFile.readAll();
+	QString lText(lData);
+
+	lFile.close();
+
+	if(document_.Parse(lText.toStdString()).HasParseError()) {
+		throw exception("E_JSON_PARSE_ERROR", std::string("[JsonDocument/LoadFromFile/Error]: ") + Error::getError(document_.GetParseError()));
+	}
+
+#endif
 	return true;
+}
+
+void Document::saveToFile(const std::string& dest) {
+#if defined(QT_ENVIRONMENT)
+	QFile lFile(QString(dest.c_str()));
+	if (!lFile.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) return;
+
+	// get source
+	std::string lStream;
+	writeToString(lStream);
+
+	lFile.write(lStream.c_str(), lStream.length());
+	lFile.close();
+#endif
 }
 
 bool Document::hasErrors() {

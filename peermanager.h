@@ -144,7 +144,7 @@ public:
 			boost::unique_lock<boost::mutex> lLock(contextMutex_[lChannel->first]);
 
 			for (std::map<std::string /*endpoint*/, IPeerPtr>::iterator lPeer = lChannel->second.begin(); lPeer != lChannel->second.end(); lPeer++) {
-				if (lPeer->second->state().client()) continue;
+				if (lPeer->second->state()->client()) continue;
 				lTime += lPeer->second->time() + (getMicroseconds() - lPeer->second->timestamp());
 				lPeers++;
 			}
@@ -198,14 +198,14 @@ public:
 		}
 	}
 
-	bool updatePeerState(IPeerPtr peer, State& state, IPeer::UpdatePeerResult& peerResult) {
+	bool updatePeerState(IPeerPtr peer, StatePtr state, IPeer::UpdatePeerResult& peerResult) {
 		// forward
 		peerResult = IPeer::SUCCESSED;
 
 		// sanity check
 		StatePtr lOwnState = consensusManager()->currentState();
-		if (lOwnState->address().id() == state.address().id()) {
-			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: self connection ") + lOwnState->address().id().toHex() + " / " + state.address().id().toHex());
+		if (lOwnState->address().id() == state->address().id()) {
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: self connection ") + lOwnState->address().id().toHex() + " / " + state->address().id().toHex());
 			ban(peer);
 			peerResult = IPeer::BAN;
 			return false;
@@ -215,7 +215,7 @@ public:
 		IPeerPtr lPeer = peer;
 
 		// check
-		if (state.client() && lOwnState->nodeOrFullNode()) {
+		if (state->client() && lOwnState->nodeOrFullNode()) {
 			// WARNING: clients_.size() is relatively thread safe
 			if (clients_.size() > settings_->clientSessionsLimit()) {
 				peerResult = IPeer::SESSIONS_EXCEEDED;
@@ -229,13 +229,13 @@ public:
 			if (lPeer->status() == IPeer::BANNED) return false;
 
 			// sanity for new key
-			if (lPeer->status() != IPeer::UNDEFINED && lPeer->address().id() != state.address().id()) {
+			if (lPeer->status() != IPeer::UNDEFINED && lPeer->address().id() != state->address().id()) {
 				quarantine(lPeer);
 				return false;
 			}
 
 			// check new state
-			if (state.valid()) {
+			if (state->valid()) {
 				lPeer->setState(state);
 
 				// check for quarantine
@@ -252,7 +252,7 @@ public:
 			}
 		// peer is new - inbound only
 		} else {
-			if (state.valid()) {
+			if (state->valid()) {
 				lPeer->setState(state);
 				bool lResult = activate(lPeer);
 				if (!lResult) peerResult = IPeer::EXISTS;
@@ -398,6 +398,21 @@ public:
 		}
 	}
 
+	void poll() {
+		//
+		for (std::vector<IOContextPtr>::iterator lCtx = contexts_.begin(); lCtx != contexts_.end(); lCtx++)	{
+			//
+			ulong lEvents = 0;
+			int lCount = 0;
+			do {
+				(*lCtx)->reset();
+				//run all ready handlers
+				lEvents = (*lCtx)->poll();
+
+			} while(lEvents > 0 && lCount++ < 10); // up to 10 events
+		}
+	}
+
 	void run() {
 		// open container
 		openPeersContainer();
@@ -412,7 +427,7 @@ public:
 				// make peer
 				IPeerPtr lPeer = addPeer(lKey);
 				if (lPeer) {
-					lPeer->setState(lPersistentState.state());
+					lPeer->setState(State::instance(lPersistentState.state()));
 
 					// process status
 					switch(lPersistentState.status()) {
@@ -437,6 +452,7 @@ public:
 			timers_.push_back(lTimer);
 		}
 
+//#ifndef MOBILE_PLATFORM
 		// create a pool of threads to run all of the io_contexts
 		gLog().write(Log::INFO, std::string("[peerManager]: starting contexts..."));
 		for (std::vector<IOContextPtr>::iterator lCtx = contexts_.begin(); lCtx != contexts_.end(); lCtx++)	{
@@ -445,6 +461,7 @@ public:
 					boost::bind(&PeerManager::processor, shared_from_this(), *lCtx)));
 			threads_.push_back(lThread);
 		}
+//#endif
 
 		if (!settings_->isClient()) {
 			// wait for all threads in the pool to exit
@@ -495,7 +512,7 @@ public:
 			boost::unique_lock<boost::mutex> lLock(contextMutex_[lIdx]);
 			for (std::set<std::string /*endpoint*/>::iterator lPeer = active_[lIdx].begin(); lPeer != active_[lIdx].end(); lPeer++) {
 				PeersMap::iterator lPeerPtr = peers_[lIdx].find(*lPeer);
-				if (lPeerPtr != peers_[lIdx].end() && lPeerPtr->second->isOutbound() && !lPeerPtr->second->state().client()) 
+				if (lPeerPtr != peers_[lIdx].end() && lPeerPtr->second->isOutbound() && !lPeerPtr->second->state()->client()) 
 					peers.push_back(*lPeer);
 			}
 
@@ -596,7 +613,7 @@ public:
 			std::map<uint160, std::string>::iterator lPeerIter = peerIdx_.find(peer->addressId());
 			if (lPeerIter != peerIdx_.end() && lPeerIter->second == peer->key()) {
 				peerIdx_.erase(peer->addressId());
-				if (peer->state().client()) {
+				if (peer->state()->client()) {
 					clients_.erase(peer->addressId());
 					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: removing client ") + strprintf("%s/%s", peer->key(), peer->addressId().toHex()));					
 				}
@@ -606,7 +623,7 @@ public:
 		}
 
 		{
-			if (peer->state().client()) {
+			if (peer->state()->client()) {
 				removePeer(peer);
 			} else {
 				boost::unique_lock<boost::mutex> lLock(contextMutex_[peer->contextId()]);
@@ -634,7 +651,7 @@ public:
 			std::map<uint160, std::string>::iterator lPeerIter = peerIdx_.find(peer->addressId());
 			if (lPeerIter != peerIdx_.end() && lPeerIter->second == peer->key()) {
 				peerIdx_.erase(peer->addressId());
-				if (peer->state().client()) {
+				if (peer->state()->client()) {
 					clients_.erase(peer->addressId());
 					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: removing client ") + strprintf("%s/%s", peer->key(), peer->addressId().toHex()));					
 				}
@@ -644,7 +661,7 @@ public:
 		}
 
 		{
-			if (peer->state().client()) {
+			if (peer->state()->client()) {
 				removePeer(peer);
 			} else {
 				boost::unique_lock<boost::mutex> lLock(contextMutex_[peer->contextId()]);
@@ -676,7 +693,7 @@ public:
 			boost::unique_lock<boost::mutex> lLock(peersIdxMutex_);
 			std::map<uint160, std::string>::iterator lPeerIndex = peerIdx_.find(lAddress);
 			//
-			if (lPeerIndex == peerIdx_.end() || (peer->state().client() && lPeerIndex->second != peer->key())) {
+			if (lPeerIndex == peerIdx_.end() || (peer->state()->client() && lPeerIndex->second != peer->key())) {
 				if (lPeerIndex != peerIdx_.end()) {
 					IPeerPtr lPrevPeer = locate(lPeerIndex->second);
 					if (lPrevPeer) removePeer(lPrevPeer);
@@ -689,12 +706,12 @@ public:
 				}
 				//
 				peerIdx_.insert(std::map<uint160, std::string>::value_type(peer->addressId(), peer->key()));
-				if (peer->state().client()) { 
+				if (peer->state()->client()) { 
 					clients_.insert(peer->addressId());
 					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: adding client ") + strprintf("%s/%s", peer->key(), peer->addressId().toHex()));
 					//
 					for (std::vector<State::DAppInstance>::const_iterator 
-							lInstance = peer->state().dApps().begin(); lInstance != peer->state().dApps().end(); lInstance++) {
+							lInstance = peer->state()->dApps().begin(); lInstance != peer->state()->dApps().end(); lInstance++) {
 						//
 						if (!peer->extension(lInstance->name())) {
 							PeerExtensionCreatorPtr lCreator = locateExtensionCreator(lInstance->name());
@@ -705,7 +722,7 @@ public:
 					}
 				} else {
 					//
-					for (std::vector<State::BlockInfo>::iterator lInfo = peer->state().infos().begin(); lInfo != peer->state().infos().end(); lInfo++) {
+					for (std::vector<State::BlockInfo>::iterator lInfo = peer->state()->infos().begin(); lInfo != peer->state()->infos().end(); lInfo++) {
 						//
 						if (lInfo->dApp().size() && lInfo->dApp() != "none") {
 							if (!peer->extension(lInfo->dApp())) {
@@ -788,7 +805,7 @@ public:
 			std::map<uint160, std::string>::iterator lPeerIter = peerIdx_.find(peer->addressId());
 			if (lPeerIter != peerIdx_.end() && lPeerIter->second == peer->key()) {
 				peerIdx_.erase(peer->addressId());
-				if (peer->state().client()) { 
+				if (peer->state()->client()) { 
 					clients_.erase(peer->addressId()); 
 					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: removing client ") + strprintf("%s/%s", peer->key(), peer->addressId().toHex()));
 				}
@@ -798,7 +815,7 @@ public:
 		}
 
 		{
-			if (peer->state().client()) {
+			if (peer->state()->client()) {
 				removePeer(peer);
 			} else {
 				boost::unique_lock<boost::mutex> lLock(contextMutex_[peer->contextId()]);
@@ -833,7 +850,7 @@ public:
 			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: updating - ") + strprintf("%s/%s", peer->key(), lAddress.toHex()));
 			std::map<uint160, std::string>::iterator lPeerIndex = peerIdx_.find(lAddress);
 			//
-			if (lPeerIndex == peerIdx_.end() || (peer->state().client() && lPeerIndex->second != peer->key())) {
+			if (lPeerIndex == peerIdx_.end() || (peer->state()->client() && lPeerIndex->second != peer->key())) {
 				if (lPeerIndex != peerIdx_.end()) {
 					IPeerPtr lPrevPeer = locate(lPeerIndex->second);
 					if (lPrevPeer) removePeer(lPrevPeer);
@@ -846,13 +863,13 @@ public:
 				}
 				//
 				peerIdx_.insert(std::map<uint160, std::string>::value_type(peer->addressId(), peer->key()));
-				if (peer->state().client()) { 
+				if (peer->state()->client()) { 
 					clients_.insert(peer->addressId());
 					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: adding client ") + strprintf("%s/%s", peer->key(), peer->addressId().toHex()));
 
 					//
 					for (std::vector<State::DAppInstance>::const_iterator 
-							lInstance = peer->state().dApps().begin(); lInstance != peer->state().dApps().end(); lInstance++) {
+							lInstance = peer->state()->dApps().begin(); lInstance != peer->state()->dApps().end(); lInstance++) {
 						//
 						if (!peer->extension(lInstance->name())) {
 							PeerExtensionCreatorPtr lCreator = locateExtensionCreator(lInstance->name());
@@ -863,7 +880,7 @@ public:
 					}
 				} else {
 					//
-					for (std::vector<State::BlockInfo>::iterator lInfo = peer->state().infos().begin(); lInfo != peer->state().infos().end(); lInfo++) {
+					for (std::vector<State::BlockInfo>::iterator lInfo = peer->state()->infos().begin(); lInfo != peer->state()->infos().end(); lInfo++) {
 						//
 						if (lInfo->dApp().size() && lInfo->dApp() != "none") {
 							if (!peer->extension(lInfo->dApp())) {
@@ -924,7 +941,7 @@ public:
 			std::map<uint160, std::string>::iterator lPeerIter = peerIdx_.find(peer->addressId());
 			if (lPeerIter != peerIdx_.end() && lPeerIter->second == peer->key()) {
 				peerIdx_.erase(peer->addressId());
-				if (peer->state().client()) {
+				if (peer->state()->client()) {
 					clients_.erase(peer->addressId());
 					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: removing client ") + strprintf("%s/%s", peer->key(), peer->addressId().toHex()));					
 				}
@@ -934,7 +951,7 @@ public:
 		}
 
 		{
-			if (peer->state().client()) {
+			if (peer->state()->client()) {
 				removePeer(peer);
 			} else {
 				boost::unique_lock<boost::mutex> lLock(contextMutex_[peer->contextId()]);
@@ -956,7 +973,7 @@ public:
 
 	void updatePeer(IPeerPtr peer) {
 		if (peer->isOutbound()) {
-			peersContainer_.write(peer->key(), Peer::PersistentState(peer->state(), peer->status()));
+			peersContainer_.write(peer->key(), Peer::PersistentState(*peer->state(), peer->status()));
 		}
 	}
 

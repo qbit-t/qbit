@@ -76,6 +76,13 @@ namespace qbit {
 #define GET_HASH_TAGS					Message::CUSTOM_0039
 #define HASH_TAGS						Message::CUSTOM_0040
 
+#define BUZZ_SUBSCRIBE					Message::CUSTOM_0041
+#define BUZZ_UNSUBSCRIBE				Message::CUSTOM_0042
+
+#define GET_BUZZER_AND_INFO				Message::CUSTOM_0043
+#define BUZZER_AND_INFO					Message::CUSTOM_0045
+#define BUZZER_AND_INFO_ABSENT			Message::CUSTOM_0046
+
 //
 class BuzzerPeerExtension: public IPeerExtension, public std::enable_shared_from_this<BuzzerPeerExtension> {
 public:
@@ -100,9 +107,9 @@ public:
 	//
 	// client-side facade methods
 	bool loadSubscription(const uint256& /*chain*/, const uint256& /*subscriber*/, const uint256& /*publisher*/, ILoadTransactionHandlerPtr /*handler*/);
-	bool selectBuzzfeed(const uint256& /*chain*/, uint64_t /*from*/, const uint256& /*subscriber*/, ISelectBuzzFeedHandlerPtr /*handler*/);
-	bool selectBuzzfeedGlobal(const uint256& /*chain*/, uint64_t /*timeframeFrom*/, uint64_t /*scoreFrom*/, const uint160& /*publisherTs*/, ISelectBuzzFeedHandlerPtr /*handler*/);
-	bool selectBuzzfeedByTag(const uint256& /*chain*/, const std::string& /*tag*/, uint64_t /*timeframeFrom*/, uint64_t /*scoreFrom*/, const uint160& /*publisherTs*/, ISelectBuzzFeedHandlerPtr /*handler*/);
+	bool selectBuzzfeed(const uint256& /*chain*/, const std::vector<BuzzfeedPublisherFrom>& /*from*/, const uint256& /*subscriber*/, ISelectBuzzFeedHandlerPtr /*handler*/);
+	bool selectBuzzfeedGlobal(const uint256& /*chain*/, uint64_t /*timeframeFrom*/, uint64_t /*scoreFrom*/, uint64_t /*timestampFrom*/, const uint256& /*publisherTs*/, ISelectBuzzFeedHandlerPtr /*handler*/);
+	bool selectBuzzfeedByTag(const uint256& /*chain*/, const std::string& /*tag*/, uint64_t /*timeframeFrom*/, uint64_t /*scoreFrom*/, uint64_t /*timestampFrom*/, const uint256& /*publisher*/, ISelectBuzzFeedHandlerPtr /*handler*/);
 	bool selectBuzzfeedByBuzz(const uint256& /*chain*/, uint64_t /*from*/, const uint256& /*buzz*/, ISelectBuzzFeedByEntityHandlerPtr /*handler*/);
 	bool selectBuzzfeedByBuzzer(const uint256& /*chain*/, uint64_t /*from*/, const uint256& /*buzzer*/, ISelectBuzzFeedByEntityHandlerPtr /*handler*/);
 	bool selectMistrustsByBuzzer(const uint256& /*chain*/, const uint256& /*from*/, const uint256& /*buzzer*/, ISelectEventsFeedByEntityHandlerPtr /*handler*/);
@@ -116,11 +123,14 @@ public:
 	bool selectBuzzerEndorse(const uint256& /*chain*/, const uint256& /*actor*/, const uint256& /*buzzer*/, ILoadEndorseMistrustHandlerPtr /*handler*/);
 	bool selectBuzzerMistrust(const uint256& /*chain*/, const uint256& /*actor*/, const uint256& /*buzzer*/, ILoadEndorseMistrustHandlerPtr /*handler*/);
 	bool selectHashTags(const uint256& /*chain*/, const std::string& /*tag*/, ISelectHashTagsHandlerPtr /*handler*/);
+	bool subscribeBuzzThread(const uint256& /*chain*/, const uint256& /*buzzId*/, const uint512& /*signature*/);
+	bool unsubscribeBuzzThread(const uint256& /*chain*/, const uint256& /*buzzId*/);
+	bool loadBuzzerAndInfo(const std::string& /*buzzer*/, ILoadBuzzerAndInfoHandlerPtr /*handler*/);
 
 	//
 	// node-to-peer notifications  
 	bool notifyNewBuzz(const BuzzfeedItem& /*buzz*/);
-	bool notifyUpdateBuzz(const std::vector<BuzzfeedItem::Update>& /*update*/);
+	bool notifyUpdateBuzz(const std::vector<BuzzfeedItemUpdate>& /*update*/);
 	bool notifyNewEvent(const EventsfeedItem& /*buzz*/, bool tryForward = false);
 	bool notifyUpdateTrustScore(const BuzzerTransactionStoreExtension::BuzzerInfo& /*score*/);
 
@@ -142,6 +152,9 @@ private:
 	void processGetBuzzerEndorseTx(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processGetBuzzerMistrustTx(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processGetHashTags(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processSubscribeBuzzThread(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processUnsubscribeBuzzThread(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processGetBuzzerAndInfo(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 
 	// client-side answer processing
 	void processSubscription(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
@@ -164,6 +177,8 @@ private:
 	void processBuzzerEndorseTx(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processBuzzerMistrustTx(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processHashTags(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processBuzzerAndInfo(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processBuzzerAndInfoAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 
 	//
 	void processSubscriptionAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
@@ -174,13 +189,18 @@ private:
 
 	bool processBuzzCommon(TransactionContextPtr ctx);
 	bool processBuzzLike(TransactionContextPtr ctx);
+	bool processBuzzReward(TransactionContextPtr ctx);
+	bool processRebuzz(TransactionContextPtr ctx);
 
 	bool processEventCommon(TransactionContextPtr ctx);
 	bool processEventLike(TransactionContextPtr ctx);
+	bool processEventReward(TransactionContextPtr ctx);
 	bool processEventSubscribe(TransactionContextPtr ctx);
 
 	bool processEndorse(TransactionContextPtr ctx);
 	bool processMistrust(TransactionContextPtr ctx);
+
+	bool haveBuzzSubscription(TransactionPtr ctx, uint512& signature);
 
 public:
 	IPeerPtr peer_;
@@ -198,13 +218,16 @@ public:
 
 	// buzzfeed items pending updates
 	uint64_t lastBuzzfeedItemTimestamp_ = 0;
-	std::vector<BuzzfeedItem::Update> lastBuzzfeedItems_;
+	std::vector<BuzzfeedItemUpdate> lastBuzzfeedItems_;
 	bool pendingBuzzfeedItems_ = false;
 
 	// trust score pending updates
 	uint64_t lastScoreTimestamp_ = 0;
 	BuzzerTransactionStoreExtension::BuzzerInfo lastScore_;
 	bool pendingScore_ = false;
+
+	// buzz threads subscriptions
+	std::map<uint256 /*buzz_id*/, uint512 /*signature*/> buzzSubscriptions_; 
 
 	boost::recursive_mutex notificationMutex_;
 };

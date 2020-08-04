@@ -195,16 +195,18 @@ set(CLIENT
 	./message.cpp
 	./lightwallet.cpp
 	./pow.cpp
+	./json.cpp
 	./dapps/buzzer/buzzer.cpp
 	./dapps/buzzer/buzzfeed.cpp
 	./dapps/buzzer/eventsfeed.cpp	
 	./dapps/buzzer/peerextension.cpp
 	./dapps/buzzer/transactionstoreextension.cpp
 	./dapps/buzzer/transactionactions.cpp	
-	./client/dapps/buzzer/commands.cpp
-	./client/dapps/buzzer/composer.cpp
-	./client/dapps/cubix/commands.cpp
-	./client/dapps/cubix/composer.cpp
+	./client/dapps/buzzer/buzzercommands.cpp
+	./client/dapps/buzzer/buzzercomposer.cpp
+	./client/dapps/cubix/cubixcommands.cpp
+	./client/dapps/cubix/cubixcomposer.cpp
+	./client/dapps/cubix/exif.cpp
 	./client/commands.cpp
 	./client/commandshandler.cpp
 	./client/main.cpp
@@ -228,5 +230,5 @@ target_link_libraries(${PROJECT_NAME} jm leveldb boost_system boost_thread boost
 add_executable(qbit-cli ${CLIENT} ${SECP256K1})
 target_link_libraries(qbit-cli jm leveldb boost_system boost_thread boost_chrono boost_random boost_filesystem jpeg png) #gmp
 
-add_executable(qbit-unit-tests ${UNITTESTS} ${SECP256K1})
-target_link_libraries(qbit-unit-tests jm leveldb boost_system boost_thread boost_chrono boost_random boost_filesystem jpeg png) #gmp
+#add_executable(qbit-unit-tests ${UNITTESTS} ${SECP256K1})
+#target_link_libraries(qbit-unit-tests jm leveldb boost_system boost_thread boost_chrono boost_random boost_filesystem jpeg png) #gmp

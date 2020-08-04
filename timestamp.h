@@ -45,6 +45,7 @@ extern uint64_t getTime();
  */
 extern std::string formatISO8601DateTime(int64_t);
 extern std::string formatISO8601Date(int64_t);
+extern std::string formatLocalDateTime(int64_t);
 
 }
 

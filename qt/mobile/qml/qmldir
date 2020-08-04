@@ -1,0 +1,17 @@
+// qmldir
+CommonFooterBar 1.0 commonfooterbar.qml
+QRScanner 1.0 qrscanner.qml
+YesNoDialog 1.0 yesnodialog.qml
+InfoDialog 1.0 infodialog.qml
+QRCode 1.0 qrcode.qml
+AddAddressDialog 1.0 addaddressdialog.qml
+ConfirmActionDialog 1.0 confirmactiondialog.qml
+SetupToolBar 1.0 setuptoolbar.qml
+BuzzerInfo 1.0 buzzerinfo.qml
+BuzzerToolBar 1.0 buzzertoolbar.qml
+Buzzfeed 1.0 buzzfeed.qml
+BuzzfeedGlobal 1.0 buzzfeedglobal.qml
+BuzzItem 1.0 buzzitem.qml
+BuzzEndorseMistrustItem 1.0 buzzendorseitem.qml
+QuarkCamera 1.0 camera.qml
+BuzzerItem 1.0 buzzitembuzzer.qml

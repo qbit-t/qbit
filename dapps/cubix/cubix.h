@@ -10,6 +10,8 @@
 #include "../../txassettype.h"
 #include "../../vm/vm.h"
 
+#include <boost/function.hpp>
+
 
 /*
 JPEG:	To use JPEG files, include the file gil/extension/io/jpeg_io.hpp. 
@@ -37,13 +39,22 @@ namespace cubix {
 typedef LimitedString<TX_CUBIX_MEDIA_NAME_SIZE> cubix_media_name_t;
 typedef LimitedString<TX_CUBIX_MEDIA_DESCRIPTION_SIZE> cubix_media_description_t;
 
-#define CUBIX_MIN_FEE 5000
-#define CUBIX_MAX_DATA_CHUNK 1024*200
+#define CUBIX_MIN_FEE 1000
+#define CUBIX_FEE_RATE 20
+
+#if defined (MOBILE_PLATFORM)
+    #define CUBIX_MAX_DATA_CHUNK 1024*200
+#else
+    #define CUBIX_MAX_DATA_CHUNK 1024*200
+#endif
+
 #define CUBIX_PREVIEW_WIDTH 540
 
 #define TX_CUBIX_MEDIA_HEADER	Transaction::CUSTOM_50 //
 #define TX_CUBIX_MEDIA_SUMMARY	Transaction::CUSTOM_51 //
 #define TX_CUBIX_MEDIA_DATA		Transaction::CUSTOM_52 //
+
+typedef boost::function<void (TransactionPtr, const std::string& /*previewFile*/, const std::string& /*originalFile*/, unsigned short /*orientation*/, const ProcessingError& /*error*/)> doneDownloadWithErrorFunction;
 
 } // cubix
 } // qbit

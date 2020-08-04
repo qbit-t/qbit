@@ -5,9 +5,10 @@
 #ifndef ALLOCATOR_H
 #define ALLOCATOR_H
 
+#include <new>
+
 #if defined(JM_MALLOC)
 
-#include <new>
 #include "jm/include/jet_malloc.h"
 
 namespace std {

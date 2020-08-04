@@ -7,6 +7,7 @@
 
 #include "block.h"
 #include "tinyformat.h"
+#include "log/log.h"
 
 #include <atomic>
 
@@ -200,7 +201,11 @@ public:
 
 	//static StatePtr instance(uint64_t time, uint32_t roles, PKey pkey, const std::string& dApp, const uint256& dAppInstance) { return std::make_shared<State>(time, roles, pkey, dApp, dAppInstance); }
 	static StatePtr instance(uint64_t time, uint32_t roles, PKey pkey) { return std::make_shared<State>(time, roles, pkey); }
-	static StatePtr instance(const State& state) { return std::make_shared<State>(state); }
+	static StatePtr instance(const State& state) { 
+		StatePtr lState = std::make_shared<State>(state);
+		lState->prepare();
+		return lState;
+	}
 
 	std::string rolesString() {
 		std::string lRoles = "";
@@ -223,6 +228,7 @@ public:
 	}
 
 	void prepare() {
+		//
 		if (!chains_.size()) {
 			for (std::vector<BlockInfo>::iterator lInfo = infos_.begin(); lInfo != infos_.end(); lInfo++) {
 				chains_.insert(std::map<uint256, BlockInfo>::value_type(lInfo->chain(), *lInfo));
@@ -232,7 +238,7 @@ public:
 		if (!dApps_.size() && dAppInstance_.size()) {
 			for (std::vector<DAppInstance>::iterator lInstance = dAppInstance_.begin(); lInstance != dAppInstance_.end(); lInstance++) {
 				dApps_.insert(lInstance->name());
-			}			
+			}
 		}
 	}
 

@@ -10,6 +10,8 @@
 namespace qbit {
 namespace cubix {
 
+#define TX_CUBIX_MEDIA_HEADER_VERSION_1 1 // + orientation
+
 //
 class TxMediaHeader: public Entity {
 public:
@@ -21,7 +23,7 @@ public:
 	};
 
 public:
-	TxMediaHeader() { type_ = TX_CUBIX_MEDIA_HEADER; }
+	TxMediaHeader() { type_ = TX_CUBIX_MEDIA_HEADER; version_ = TX_CUBIX_MEDIA_HEADER_VERSION_1; }
 
 	ADD_INHERITABLE_SERIALIZE_METHODS;
 
@@ -34,6 +36,9 @@ public:
 		s << description_;
 		s << data_;
 		s << signature_;
+
+		if (version_ == TX_CUBIX_MEDIA_HEADER_VERSION_1)
+			s << orientation_;
 	}
 	
 	virtual void deserialize(DataStream& s) {
@@ -47,6 +52,9 @@ public:
 		s >> signature_;
 
 		if (description_.size() > TX_CUBIX_MEDIA_DESCRIPTION_SIZE) description_.resize(TX_CUBIX_MEDIA_DESCRIPTION_SIZE);
+
+		if (version_ == TX_CUBIX_MEDIA_HEADER_VERSION_1)
+			s >> orientation_;
 	}
 
 	inline Type mediaType() { return (Type)mediaType_; }
@@ -57,6 +65,9 @@ public:
 
 	inline uint64_t size() { return size_; }
 	inline void setSize(uint64_t size) { size_ = size; }
+
+	inline unsigned short orientation() { return orientation_; }
+	inline void setOrientation(unsigned short orientation) { orientation_ = orientation; }
 
 	inline std::vector<unsigned char>& description() { return description_; }
 	inline void setDescription(const std::vector<unsigned char>& description) {
@@ -157,6 +168,7 @@ public:
 		props["timestamp"] = strprintf("%d", timestamp_);
 		props["data"] = HexStr(data_.begin(), data_.end());
 		props["size"] = strprintf("%d", size_);
+		props["orientation"] = strprintf("%d", orientation_);
 		props["name"] = mediaName_;
 
 		std::string lDescription; lDescription.insert(lDescription.end(), description_.begin(), description_.end());
@@ -189,6 +201,11 @@ public:
 		return "UNKNOWN";
 	}
 
+	static void mediaExtensions(std::list<std::string>& list) {
+		list.push_back(".png");
+		list.push_back(".jpeg");
+	}
+
 	virtual inline void setChain(const uint256& chain) { chain_ = chain; } // override default entity behavior
 
 	virtual bool isContinuousData() { return true; } 
@@ -208,6 +225,7 @@ public:
 	}
 
 protected:
+	// version 0
 	unsigned short mediaType_ = Type::UNKNOWN;
 	uint64_t timestamp_;
 	std::string mediaName_;
@@ -215,6 +233,10 @@ protected:
 	std::vector<unsigned char> data_;
 	uint64_t size_ = 0;
 	uint512 signature_;
+
+	// version 1
+	unsigned short orientation_ = 0;
+
 };
 
 typedef std::shared_ptr<TxMediaHeader> TxMediaHeaderPtr;

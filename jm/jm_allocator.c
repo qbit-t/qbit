@@ -850,13 +850,6 @@ JM_INLINE struct _jm_chunk* _jm_arena_pop_chunk(struct _jm_arena* arena, size_t 
 		}
 	}
 
-#if defined(__linux__)
-	//
-	//if ((lClassIndex == 5 || lClassIndex == 7) && arena->chunks_count[lClassIndex] > 50) {
-	//	raise(SIGINT);
-	//}
-#endif
-
 	lChunk = arena->current_chunks[lClassIndex];
 
 	if (unlikely(!lChunk /*|| !lChunk->free_blocks_count*/)) // no free chunks in list

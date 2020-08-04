@@ -63,3 +63,14 @@ std::string qbit::formatISO8601Date(int64_t nTime) {
 #endif
 	return strprintf("%04i-%02i-%02i", ts.tm_year + 1900, ts.tm_mon + 1, ts.tm_mday);
 }
+
+std::string qbit::formatLocalDateTime(int64_t nTime) {
+	struct tm ts;
+	time_t time_val = nTime;
+#ifdef _MSC_VER
+	localtime_s(&ts, &time_val);
+#else
+	localtime_r(&time_val, &ts);
+#endif
+	return strprintf("%02i:%02i %02i/%02i/%04i", ts.tm_hour, ts.tm_min, ts.tm_mday, ts.tm_mon + 1, ts.tm_year + 1900);
+}

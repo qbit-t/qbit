@@ -10,6 +10,9 @@
 #include "scalar_impl.h"
 #include "seedwords.h"
 
+#include "crypto/aes.h"
+#include "crypto/sha256.h"
+
 using namespace qbit;
 
 SKey::SKey(ContextPtr context) {
@@ -131,6 +134,48 @@ uint256 SKey::shared(const PKey& other) {
 			return lShared;
 
 	return uint256();
+}
+
+void SKey::encrypt(const std::string& secret) {
+	// prepare secret
+	std::string lSecret = secret;
+	unsigned char lHash[32] = {0};
+    unsigned char lMix[AES_BLOCKSIZE] = {0};	
+	CHash256().Write(reinterpret_cast<const unsigned char*>(lSecret.c_str()), lSecret.size()).Finalize(lHash);
+	memcpy(lMix, lHash+15, AES_BLOCKSIZE);
+
+	// make cypher
+	std::vector<unsigned char> lCypher; lCypher.resize(KEY_LEN + AES_BLOCKSIZE, 0);
+	AES256CBCEncrypt lEncrypt(lHash, lMix, true);
+	unsigned lLen = lEncrypt.Encrypt(reinterpret_cast<const unsigned char*>(vch_), KEY_LEN, &lCypher[0]);
+	lCypher.resize(lLen);
+
+	// set
+	encryptedKey_.clear();
+	encryptedKey_.insert(encryptedKey_.end(), lCypher.begin(), lCypher.end());
+	encrypted_ = true;
+}
+
+void SKey::decrypt(const std::string& secret) {
+	//
+	std::vector<unsigned char> lCypher(encryptedKey_.begin(), encryptedKey_.end());
+
+	// prepare secret
+	std::string lSecret = secret;
+	unsigned char lHash[32] = {0};
+	unsigned char lMix[AES_BLOCKSIZE] = {0};
+	CHash256().Write(reinterpret_cast<const unsigned char*>(lSecret.c_str()), lSecret.size()).Finalize(lHash);
+	memcpy(lMix, lHash+15, AES_BLOCKSIZE);
+
+	// decrypt
+	std::vector<unsigned char> lKey;
+	lKey.resize(lCypher.size() + 1, 0);
+	AES256CBCDecrypt lDecrypt(lHash, lMix, true);
+	unsigned lLen = lDecrypt.Decrypt(reinterpret_cast<unsigned char*>(&lCypher[0]), lCypher.size(), &lKey[0]);
+	lKey.resize(lLen);
+
+	//
+	set<std::vector<unsigned char>::iterator>(lKey.begin(), lKey.end());
 }
 
 //

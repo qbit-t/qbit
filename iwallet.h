@@ -15,7 +15,11 @@
 #include "imemorypoolmanager.h"
 #include "txdapp.h"
 
+#include <boost/function.hpp>
+
 namespace qbit {
+
+typedef boost::function<void (Transaction::UnlinkedOutPtr, TransactionPtr)> walletReceiveTransactionFunction;
 
 class IWallet {
 public:
@@ -31,7 +35,7 @@ public:
 public:
 	IWallet() {}
 
-	virtual bool open() { throw qbit::exception("NOT_IMPL", "IWallet::open - not implemented."); }
+	virtual bool open(const std::string& /*secret*/) { throw qbit::exception("NOT_IMPL", "IWallet::open - not implemented."); }
 	virtual bool close() { throw qbit::exception("NOT_IMPL", "IWallet::close - not implemented."); }
 	virtual bool isOpened() { throw qbit::exception("NOT_IMPL", "IWallet::isOpened - not implemented."); }
 
@@ -50,6 +54,9 @@ public:
 	virtual bool popUnlinkedOut(const uint256&, TransactionContextPtr) { throw qbit::exception("NOT_IMPL", "IWallet::popUnlinkedOut - not implemented."); }
 	virtual bool isUnlinkedOutExists(const uint256&) { throw qbit::exception("NOT_IMPL", "IWallet::isUnlinkedOutExists - not implemented."); }
 	virtual bool isUnlinkedOutUsed(const uint256&) { throw qbit::exception("NOT_IMPL", "IWallet::isUnlinkedOutExists - not implemented."); }
+
+	// notify
+	virtual void setWalletReceiveTransactionFunction(walletReceiveTransactionFunction /*walletReceiveTransaction*/) { throw qbit::exception("NOT_IMPL", "IWallet::setWalletReceiveTransactionFunction - not implemented."); }
 
 	// try to locate utxo
 	virtual Transaction::UnlinkedOutPtr findUnlinkedOut(const uint256&) { throw qbit::exception("NOT_IMPL", "IWallet::findUnlinkedOut - not implemented."); }

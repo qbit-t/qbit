@@ -11,7 +11,6 @@ void EventsfeedItem::merge(const EventsfeedItem& buzz, bool checkSize, bool noti
 	// verifier
 	lBuzz->verifyPublisher_ = verifyPublisher_;
 	lBuzz->verifySource_ = verifySource_;
-	lBuzz->resolve();
 
 	// verify signature
 	Buzzer::VerificationResult lResult = verifyPublisher_(lBuzz);
@@ -29,32 +28,59 @@ void EventsfeedItem::merge(const EventsfeedItem& buzz, bool checkSize, bool noti
 
 			lExisting->second->setOrder(lBuzz->timestamp());
 			lExisting->second->buzzerInfoMerge(lBuzz->buzzers());
-			lBuzz = lExisting->second; // reset 
+
+			index_.insert(std::multimap<uint64_t /*order*/, Key /*buzz*/>::value_type(lBuzz->order(), lBuzz->key()));
+			//
+			if (gLog().isEnabled(Log::CLIENT))
+				gLog().write(Log::CLIENT, strprintf("[PUSHING-1]: %d", index_.size()));
+			for (std::vector<EventInfo>::const_iterator lInfo = lBuzz->buzzers().begin(); lInfo != lBuzz->buzzers().end(); lInfo++) {
+				updateTimestamp(lInfo->buzzerId(), lInfo->timestamp());
+			}
+
+			// TODO: updates notification
+			if (lExisting->second->resolve()) {
+				// if all buzz infos are already resolved - just notify
+				if (notify)
+					itemNew(lExisting->second);
+			}
+
+			return;
 		} else {
 			items_.insert(std::map<Key /*buzz*/, EventsfeedItemPtr>::value_type(lBuzz->key(), lBuzz));
+
+			//
+			if (gLog().isEnabled(Log::CLIENT))
+				gLog().write(Log::CLIENT, strprintf("[PUSHED]: %s", lBuzz->toString()));
 		}
 
 		index_.insert(std::multimap<uint64_t /*order*/, Key /*buzz*/>::value_type(lBuzz->order(), lBuzz->key()));
-
+		//
+		if (gLog().isEnabled(Log::CLIENT))
+			gLog().write(Log::CLIENT, strprintf("[PUSHING-0]: %d", index_.size()));
 		for (std::vector<EventInfo>::const_iterator lInfo = lBuzz->buzzers().begin(); lInfo != lBuzz->buzzers().end(); lInfo++) {
 			updateTimestamp(lInfo->buzzerId(), lInfo->timestamp());
 		}
 
-		if (lBuzz->type() == TX_REBUZZ || lBuzz->type() == TX_BUZZ_LIKE /*&& !lBuzz->buzzBody().size()*/) {
+		if (lBuzz->type() == TX_REBUZZ || lBuzz->type() == TX_BUZZ_LIKE || lBuzz->type() == TX_BUZZ_REWARD) {
 			// 
 			pendings_[lBuzz->buzzId()].insert(lBuzz->key());
 		}
 
 		if (checkSize && items_.size() > 300 /*setup*/) {
-			//
-			std::multimap<uint64_t /*order*/, Key /*buzz*/>::iterator lFirst = index_.begin();
-			items_.erase(lFirst->second);
-			index_.erase(lFirst);
+			// TODO: do we need to remove?
+			//std::multimap<uint64_t /*order*/, Key /*buzz*/>::iterator lFirst = index_.begin();
+			//items_.erase(lFirst->second);
+			//index_.erase(lFirst);
 		}
 
-		if (notify) itemNew(lBuzz);
+		if (lBuzz->resolve()) {
+			// if all buzz infos are already resolved - just notify
+			if (notify)
+				itemNew(lBuzz);
+		}
 	} else {
-		std::cout << "[ERROR]: " << lBuzz->toString() << "\n";
+		std::cout << "[EVENTS-ERROR]: " << lBuzz->toString() << "\n";
+		if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[EVENTS-ERROR]: %s", lBuzz->toString()));
 	}
 }	
 
@@ -79,6 +105,8 @@ void EventsfeedItem::merge(const std::vector<BuzzfeedItem>& buzzes) {
 						lEvent->second->setSignature(lBuzz->signature());
 					} else {
 						std::cout << "[MERGE-ERROR]: " << lItem->toString() << "\n";
+						if (gLog().isEnabled(Log::CLIENT))
+							gLog().write(Log::CLIENT, strprintf("[MERGE-ERROR]: %s", lItem->toString()));
 					}
 				}
 			}
@@ -160,14 +188,15 @@ void EventsfeedItem::merge(const std::vector<EventsfeedItem>& chunk, bool notify
 	if (notify) largeUpdated();
 }
 
-void EventsfeedItem::mergeAppend(const std::list<EventsfeedItemPtr>& items) {
+bool EventsfeedItem::mergeAppend(const std::vector<EventsfeedItemPtr>& items) {
 	//
-	for (std::list<EventsfeedItemPtr>::const_iterator lItem = items.begin(); lItem != items.end(); lItem++) {
+	bool lAdded = false;
+	for (std::vector<EventsfeedItemPtr>::const_iterator lItem = items.begin(); lItem != items.end(); lItem++) {
 		//
 		std::map<Key /*buzz*/, EventsfeedItemPtr>::iterator lExisting = items_.find((*lItem)->key());
 		if (lExisting == items_.end()) {
 			//
-			items_.insert(std::map<Key /*buzz*/, EventsfeedItemPtr>::value_type((*lItem)->key(), (*lItem)));
+			lAdded |= items_.insert(std::map<Key /*buzz*/, EventsfeedItemPtr>::value_type((*lItem)->key(), (*lItem))).second;
 			index_.insert(std::multimap<uint64_t /*order*/, Key /*buzz*/>::value_type((*lItem)->order(), (*lItem)->key()));
 
 			for (std::vector<EventInfo>::const_iterator lInfo = (*lItem)->buzzers().begin(); lInfo != (*lItem)->buzzers().end(); lInfo++) {
@@ -175,31 +204,53 @@ void EventsfeedItem::mergeAppend(const std::list<EventsfeedItemPtr>& items) {
 			}
 
 			if (items_.size() > 300 /*setup*/) {
-				//
-				std::multimap<uint64_t /*order*/, Key /*buzz*/>::iterator lFirst = index_.begin();
-				items_.erase(lFirst->second);
-				index_.erase(lFirst);
+				// TODO: do we need to remove?
+				// std::multimap<uint64_t /*order*/, Key /*buzz*/>::iterator lFirst = index_.begin();
+				// items_.erase(lFirst->second);
+				// index_.erase(lFirst);
 			}
 		}
 	}
+
+	return lAdded;
 }
 
-void EventsfeedItem::feed(std::list<EventsfeedItemPtr>& feed) {
-	//
-	if (type_ == TX_REBUZZ) return;
-
+void EventsfeedItem::feed(std::vector<EventsfeedItemPtr>& feed) {
 	//
 	Guard lLock(this);
 	for (std::multimap<uint64_t /*order*/, Key /*buzz*/>::reverse_iterator lItem = index_.rbegin(); 
 											lItem != index_.rend(); lItem++) {
 		//
 		std::map<Key /*buzz*/, EventsfeedItemPtr>::iterator lBuzz = items_.find(lItem->second);
-		if (lBuzz != items_.end())
-			if (lBuzz->second->valid()) 
+		if (lBuzz != items_.end()) {
+			if (lBuzz->second->valid()) {
 				feed.push_back(lBuzz->second);
-			else
+			} else {
 				std::cout << "[FEED-ERROR]: " << lBuzz->second->toString() << "\n";
+				if (gLog().isEnabled(Log::CLIENT))
+					gLog().write(Log::CLIENT, strprintf("[FEED-ERROR]: %s", lBuzz->second->toString()));
+			}
+		}
 	}
+}
+
+int EventsfeedItem::locateIndex(EventsfeedItemPtr item) {
+	//
+	Guard lLock(this);
+	//
+	int lIndex = 0;
+	bool lFound = false;
+	for (std::multimap<uint64_t /*order*/, Key /*buzz*/>::reverse_iterator lItem = index_.rbegin();
+											lItem != index_.rend(); lItem++, lIndex++) {
+		//
+		std::map<Key /*buzz*/, EventsfeedItemPtr>::iterator lBuzz = items_.find(lItem->second);
+		if (lBuzz != items_.end() && lBuzz->second->key() == item->key()) {
+			lFound = true;
+			break;
+		}
+	}
+
+	return lFound ? lIndex : -1;
 }
 
 uint64_t EventsfeedItem::locateLastTimestamp() {
