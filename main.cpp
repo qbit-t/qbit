@@ -90,6 +90,11 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/lexical_cast/try_lexical_convert.hpp>
 
+#include <ctime>
+#include <iostream>
+#include <syslog.h>
+#include <unistd.h>
+
 namespace qbit {
 
 class NodeSettings: public ISettings {
@@ -362,6 +367,7 @@ int main(int argv, char** argc) {
 	bool lIsLogConfigured = false;
 
 	// command line
+	bool lDaemon = false;
 	bool lDebugFound = false;
 	std::vector<std::string> lPeers;
 	for (int lIdx = 1; lIdx < argv; lIdx++) {
@@ -419,6 +425,10 @@ int main(int argv, char** argc) {
 		} else if (std::string(argc[lIdx]) == std::string("-console")) {
 			//
 			gLog().enableConsole();
+		} else if (std::string(argc[lIdx]) == std::string("-daemon")) {
+			//
+			lDaemon = true;
+			std::cout << "qbitd: starting in daemon mode..." << std::endl;
 		} else if (std::string(argc[lIdx]) == std::string("-airdrop")) {
 			//
 			lSettings->setSupportAirdrop();
@@ -438,6 +448,63 @@ int main(int argv, char** argc) {
 				}
 			}
 		}
+	}
+
+	//
+	//
+	if (lDaemon) {
+		// Fork the process and have the parent exit. If the process was started
+		// from a shell, this returns control to the user. Forking a new process is
+		// also a prerequisite for the subsequent call to setsid().
+		if (pid_t pid = fork()) {
+			if (pid > 0) {
+				// We're in the parent process and need to exit.
+				exit(0);
+			} else {
+				syslog(LOG_ERR | LOG_USER, "First fork failed: %m");
+				return 1;
+			}
+		}
+
+		// Make the process a new session leader. This detaches it from the
+		// terminal.
+		setsid();
+
+		// A process inherits its working directory from its parent. This could be
+		// on a mounted filesystem, which means that the running daemon would
+		// prevent this filesystem from being unmounted. Changing to the root
+		// directory avoids this problem.
+		chdir("/");
+
+		// The file mode creation mask is also inherited from the parent process.
+		// We don't want to restrict the permissions on files created by the
+		// daemon, so the mask is cleared.
+		umask(0);
+
+		// A second fork ensures the process cannot acquire a controlling terminal.
+		if (pid_t pid = fork()) {
+			if (pid > 0) {
+				exit(0);
+			} else {
+				syslog(LOG_ERR | LOG_USER, "Second fork failed: %m");
+				return 1;
+			}
+		}
+
+		// Close the standard streams. This decouples the daemon from the terminal
+		// that started it.
+		close(0);
+		close(1);
+		close(2);
+
+		// We don't want the daemon to have any standard input.
+		if (open("/dev/null", O_RDONLY) < 0) {
+			syslog(LOG_ERR | LOG_USER, "Unable to open /dev/null: %m");
+			return 1;
+		}
+
+		// The io_service can now be used normally.
+		syslog(LOG_INFO | LOG_USER, "Daemon started");
 	}
 
 	if (!lDebugFound) {
