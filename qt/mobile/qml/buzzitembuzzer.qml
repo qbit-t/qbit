@@ -166,16 +166,75 @@ Item {
 	// header info
 	//
 
-	Image {
-		id: headerImage
+	onWidthChanged: {
+		//headerImage.adjust();
+	}
 
+	Rectangle {
+		id: headerContainer
 		x: 0
 		y: 0
 		width: parent.width
-		fillMode: Image.PreserveAspectCrop
-		height: 200
-		//fillMode: Image.PreserveAspectCrop
-		autoTransform: true
+		height: 250
+		color: "transparent"
+		clip: true
+
+		Image {
+			id: headerImage
+
+			width: parent.width
+
+			onStatusChanged: {
+				//
+				if (status == Image.Ready) {
+					//
+					if (is54()) {
+						sourceClipRect = Qt.rect(getX(), getY(), getWidth(), parent.height);
+					} else {
+						fillMode = Image.PreserveAspectCrop;
+						height = parent.height;
+					}
+				}
+			}
+
+			function is54() {
+				// 5:4 ratio
+				var lCoeff = parseFloat(sourceSize.width) / parseFloat(sourceSize.height);
+				return sourceSize.width > sourceSize.height &&
+						lCoeff - 1.3333 < 0.001 &&
+						lCoeff - 1.3333 >= 0.0;
+			}
+
+			function getX() {
+				if (is54()) {
+					var lDelta = (sourceSize.width - parent.width) / 2;
+					return lDelta;
+				}
+
+				return 0;
+			}
+
+			function getY() {
+				if (is54() /*&&
+						parent.height < height*/) {
+					return sourceSize.height / 2 - height / 2;
+				}
+
+				return 0;
+			}
+
+			function getWidth() {
+				if (is54()) {
+					var lDelta = (sourceSize.width - parent.width);
+					console.log("[getWidth]: " + (sourceSize.width - lDelta));
+					return sourceSize.width - lDelta;
+				}
+
+				return sourceSize.width;
+			}
+
+			autoTransform: true
+		}
 	}
 
 	QuarkRoundState {
@@ -271,8 +330,24 @@ Item {
 				buzzerUnsubscribeCommand.process(buzzer_);
 			}
 
-			text = !buzzerClient.subscriptionExists(buzzerId_) ? buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.subscribe") :
-																buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.unsubscribe");
+			checkSubscriptionState.start();
+		}
+
+		Timer {
+			id: checkSubscriptionState
+			interval: 500
+			repeat: false
+			running: false
+
+			onTriggered: {
+				var lText = subscribeControl.text;
+				subscribeControl.text = !buzzerClient.subscriptionExists(buzzerId_) ?
+							buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.subscribe") :
+							buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.unsubscribe");
+				if (lText !== subscribeControl.text) {
+					checkSubscriptionState.start();
+				}
+			}
 		}
 	}
 
