@@ -463,7 +463,7 @@ Item {
 		height: agoControl.height + spaceRightMenu_
 
 		onClicked: {
-			if (buzzerId_ === buzzerClient.getCurrentBuzzerId()) return; // no actions
+			//
 			if (headerMenu.visible) headerMenu.close();
 			else { headerMenu.prepare(); headerMenu.open(); }
 		}
@@ -904,7 +904,7 @@ Item {
 	QuarkPopupMenu {
 		id: headerMenu
 		x: parent.width - width - spaceRight_
-		y: menuControl.y + menuControl.height
+		y: menuControl.y + menuControl.height + spaceItems_
 		width: 150
 		visible: false
 
@@ -922,6 +922,8 @@ Item {
 				buzzerEndorseCommand.process(buzzerName_);
 			} else if (key === "mistrust") {
 				buzzerMistrustCommand.process(buzzerName_);
+			} else if (key === "copytx") {
+				clipboard.setText(buzzId_);
 			}
 		}
 
@@ -929,27 +931,35 @@ Item {
 			//
 			menuModel.clear();
 
-			menuModel.append({
-				key: "endorse",
-				keySymbol: Fonts.endorseSym,
-				name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.endorse")});
-
-			menuModel.append({
-				key: "mistrust",
-				keySymbol: Fonts.mistrustSym,
-				name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.mistrust")});
-
-			if (!buzzerClient.subscriptionExists(buzzerId_)) {
+			//
+			if (buzzerId_ !== buzzerClient.getCurrentBuzzerId()) {
 				menuModel.append({
-					key: "subscribe",
-					keySymbol: Fonts.subscribeSym,
-					name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.subscribe")});
-			} else {
+					key: "endorse",
+					keySymbol: Fonts.endorseSym,
+					name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.endorse")});
+
 				menuModel.append({
-					key: "unsubscribe",
-					keySymbol: Fonts.unsubscribeSym,
-					name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.unsubscribe")});
+					key: "mistrust",
+					keySymbol: Fonts.mistrustSym,
+					name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.mistrust")});
+
+				if (!buzzerClient.subscriptionExists(buzzerId_)) {
+					menuModel.append({
+						key: "subscribe",
+						keySymbol: Fonts.subscribeSym,
+						name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.subscribe")});
+				} else {
+					menuModel.append({
+						key: "unsubscribe",
+						keySymbol: Fonts.unsubscribeSym,
+						name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.unsubscribe")});
+				}
 			}
+
+			menuModel.append({
+				key: "copytx",
+				keySymbol: Fonts.clipboardSym,
+				name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.copytransaction")});
 		}
 	}
 

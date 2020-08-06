@@ -64,8 +64,12 @@ Qbit Smart contracts based on the following principles:
 Prerequisites:
 1. sudo apt-get install libjpeg-dev
 2. sudo apt-get install libpng-dev
+3. [optionally] sudo apt-get install autoconf
+4. [optionally] sudo apt-get install libtool
+5. [optionally] sudo apt-get update && sudo apt-get install build-essential
+6. [optionally] sudo apt-get install cmake
 
-Builf:
+Build:
 1. cd ./secp256k1
 2. ./autogen.sh
 3. ./configure --enable-experimental --enable-module-schnorrsig --enable-module-musig --enable-module-ecdh --enable-module-generator --enable-module-rangeproof --with-bignum=no
@@ -75,6 +79,7 @@ Builf:
 7. ./b2
 8. cd ..
 9. cmake -DCMAKE_BUILD_TYPE=Release
+10. make
 
 ## Requests
 

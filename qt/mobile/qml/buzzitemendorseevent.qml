@@ -433,7 +433,7 @@ Item {
 	QuarkPopupMenu {
 		id: headerMenu
 		x: parent.width - width - spaceRight_
-		y: menuControl.y + menuControl.height
+		y: menuControl.y + menuControl.height + spaceItems_
 		width: 150
 		visible: false
 

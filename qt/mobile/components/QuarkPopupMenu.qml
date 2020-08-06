@@ -49,8 +49,8 @@ QuarkPopup
 				target: background
 				property: "color"
 				value: listDelegate.highlighted ?
-						   buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.highlight"):
-						   buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.background");
+						   buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.highlight"):
+						   buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.background");
 			}
 
 			contentItem: Rectangle {
@@ -66,7 +66,7 @@ QuarkPopup
 					y: parent.height / 2 - height / 2
 					verticalAlignment: Text.AlignVCenter
 					Material.background: "transparent"
-					Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+					Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
 					visible: true
 					symbol: keySymbol
 				}
@@ -81,6 +81,7 @@ QuarkPopup
 					elide: Text.ElideRight
 					verticalAlignment: Text.AlignVCenter
 					Material.background: "transparent"
+					Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
 					visible: true
 				}
 			}
