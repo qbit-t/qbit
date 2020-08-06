@@ -327,6 +327,9 @@ int Client::open(QString secret) {
 	peerManager_->addPeerExplicit("192.168.1.108:31415");
 	peerManager_->addPeerExplicit("192.168.1.49:31415");
 
+	peerManager_->addPeerExplicit("178.79.128.112:31415");
+	peerManager_->addPeerExplicit("85.90.245.180:31416");
+
 	//
 	peerManager_->run();
 
