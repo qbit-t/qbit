@@ -115,6 +115,7 @@ Rectangle
 
         border.color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Box.border");
         color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Box.background");
+		clip: true
 
 		QuarkTextInput
 		{

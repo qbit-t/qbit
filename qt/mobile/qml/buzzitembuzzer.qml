@@ -241,7 +241,7 @@ Item {
 		id: imageFrame
 		x: avatarImage.x - 3
 		y: avatarImage.y - 3
-		penWidth: 3
+		penWidth: 4
 		size: avatarImage.displayWidth + 6
 		color: getColor()
 		background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
@@ -560,7 +560,7 @@ Item {
 		id: descriptionText
 		x: spaceLeft_
 		y: mistrustSymbol.y + mistrustSymbol.height + spaceTop_
-		width: parent.width
+		width: parent.width - (spaceLeft_ + spaceRight_)
 		text: description_
 		wrapMode: Text.Wrap
 		textFormat: Text.RichText
@@ -707,7 +707,7 @@ Item {
 	QuarkPopupMenu {
 		id: headerMenu
 		x: parent.width - width - spaceRight_
-		y: menuControl.y + menuControl.height
+		y: menuControl.y + menuControl.height + spaceItems_
 		width: 150
 		visible: false
 

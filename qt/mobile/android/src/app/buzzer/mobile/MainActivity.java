@@ -11,6 +11,16 @@ import android.Manifest;
 import android.app.Activity;
 import android.os.Build;
 import android.os.Bundle;
+import android.net.Uri;
+import java.util.Date;
+import java.text.SimpleDateFormat;
+import java.io.OutputStream;
+//import android.support.media.ExifInterface;
+import java.io.InputStream;
+import androidx.exifinterface.media.ExifInterface;
+import android.provider.MediaStore;
+import android.provider.MediaStore.Images;
+import android.graphics.Bitmap;
 import android.view.View;
 import android.graphics.Color;
 import android.security.keystore.KeyGenParameterSpec;
@@ -376,9 +386,38 @@ public class MainActivity extends QtActivity
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 		if (requestCode == 101) {
 			if (data != null) {
-				String lFilePath = FileUtils.getPath(this, data.getData());
-				Log.i("buzzer", "PATH = " + lFilePath);
-				fileSelected(lFilePath);
+				if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+					String lFilePath = FileUtils.getPath(this, data.getData());
+					Log.i("buzzer", "PATH = " + lFilePath);
+					fileSelected(lFilePath);
+				} else {
+				    Uri uri = data.getData();
+					try {
+						String format = new SimpleDateFormat("yyyyMMddHHmmss",
+						       java.util.Locale.getDefault()).format(new Date());
+
+						InputStream inputStream = getContentResolver().openInputStream(uri);
+						ExifInterface exif = new ExifInterface(inputStream);
+
+						Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), uri);
+						File file = new File(getExternalFilesDir(null), format + ".jpg");
+						OutputStream stream = new FileOutputStream(file);
+
+						bitmap.compress(Bitmap.CompressFormat.JPEG, 90, stream);
+						stream.flush();
+						stream.close();
+
+						ExifInterface newExif = new ExifInterface(file.getAbsolutePath());
+						newExif.setAttribute(ExifInterface.TAG_ORIENTATION, exif.getAttribute(ExifInterface.TAG_ORIENTATION));
+						newExif.saveAttributes();
+
+						Log.i("buzzer", "PATH = " + file.getAbsolutePath());
+						fileSelected(file.getAbsolutePath());
+
+					} catch (IOException e) {
+					    e.printStackTrace();
+					}
+				}
 			}
 		}
 

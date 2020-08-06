@@ -286,7 +286,7 @@ void BuzzfeedListModel::feed(qbit::BuzzfeedPtr local, bool more) {
 		// make index
 		for (int lItem = 0; lItem < list_.size(); lItem++) {
 			index_[list_[lItem]->key()] = lItem;
-			qInfo() << "Initial: " << QString::fromStdString(list_[lItem]->key().toString()) << QString::fromStdString(list_[lItem]->buzzBodyString());
+			//qInfo() << "Initial: " << QString::fromStdString(list_[lItem]->key().toString()) << QString::fromStdString(list_[lItem]->buzzBodyString());
 		}
 
 		//
@@ -332,7 +332,7 @@ void BuzzfeedListModel::feed(qbit::BuzzfeedPtr local, bool more) {
 			for (int lItem = 0; lItem < (int)list_.size(); lItem++) {
 				index_[list_[lItem]->key()] = lItem;
 
-				qInfo() << "More: " << QString::fromStdString(list_[lItem]->key().toString()) << QString::fromStdString(list_[lItem]->buzzBodyString());
+				//qInfo() << "More: " << QString::fromStdString(list_[lItem]->key().toString()) << QString::fromStdString(list_[lItem]->buzzBodyString());
 			}
 
 			qInfo() << "new.count = " << list_.size();
