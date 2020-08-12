@@ -310,6 +310,12 @@ std::string Application::getLogCategories()
 #endif
 }
 
+bool Application::getTestNet()
+{
+	qbit::json::Value lValue = appConfig_["testNet"];
+	return lValue.getBool();
+}
+
 QString Application::getColor(QString theme, QString selector, QString key)
 {
 	qbit::json::Value lThemes = appConfig_["themes"];

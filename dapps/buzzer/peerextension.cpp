@@ -3413,9 +3413,11 @@ void BuzzerPeerExtension::processNewEventNotify(std::list<DataStream>::iterator 
 			strprintf("%d from %s", lEvents.size(), peer_->key()));
 
 		// update
-		eventsfeed_->mergeUpdate(lEvents);
+		eventsfeed_->mergeUpdate(lEvents, peer_->addressId());
+		// try to process pending items (in case of rebuzz)
+		buzzer_->resolvePendingEventsItems();
 		// resolve info
-		buzzer_->resolveBuzzerInfos(); // push or postpone for display?
+		buzzer_->resolveBuzzerInfos(); //
 
 		// WARNING: in case of async_read for large data
 		peer_->processed();

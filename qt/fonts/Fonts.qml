@@ -22,6 +22,12 @@ Item
 		source: "fa-light-300.ttf";
 	}
 
+	/*readonly*/ property FontLoader fontAwesomeSolid: FontLoader
+	{
+		// source: "Font Awesome 5 Light-300.ttf";
+		source: "fa-solid-900.ttf";
+	}
+
 	/*
 	readonly property FontLoader fontAwesomeSolid: FontLoader
 	{
@@ -39,6 +45,7 @@ Item
 	*/
 
 	readonly property string icons: fonts.fontAwesomeLight.name;
+	//readonly property string iconsSolid: fonts.fontAwesomeSolid.name;
 	//readonly property string iconsLight: fonts.fontAwesomeLight.name;
 	//readonly property string iconsFree: fonts.fontAwesomeRegularFree.name;
 

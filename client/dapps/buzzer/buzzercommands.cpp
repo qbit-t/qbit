@@ -513,6 +513,8 @@ void LoadBuzzfeedByBuzzerCommand::process(const std::vector<std::string>& args) 
 			lFrom = lFromChain->second;
 
 		//
+		if (!lFrom.size()) continue;
+		//
 		IComposerMethodPtr lCommand = BuzzerLightComposer::LoadBuzzesByBuzzer::instance(
 			composer_, 
 			*lChain, 
@@ -824,7 +826,7 @@ void LoadEndorsementsByBuzzerCommand::process(const std::vector<std::string>& ar
 		if (args.size() > 1 && args[1] == "more") {
 			//
 			lLast = eventsFeed_->last();
-			if (lLast) fromBuzzer_ = lLast->buzzer();
+			if (lLast) fromBuzzer_ = lLast->buzzerId();
 		}
 	}
 
@@ -894,7 +896,7 @@ void LoadMistrustsByBuzzerCommand::process(const std::vector<std::string>& args)
 		if (args.size() > 1 && args[1] == "more") {
 			//
 			lLast = eventsFeed_->last();
-			if (lLast) fromBuzzer_ = lLast->buzzer();
+			if (lLast) fromBuzzer_ = lLast->buzzerId();
 		}
 	}
 
@@ -964,7 +966,7 @@ void LoadSubscriptionsByBuzzerCommand::process(const std::vector<std::string>& a
 		if (args.size() > 1 && args[1] == "more") {
 			//
 			lLast = eventsFeed_->last();
-			if (lLast) fromBuzzer_ = lLast->buzzer();
+			if (lLast) fromBuzzer_ = lLast->buzzerId();
 		}
 	} else {
 		lBuzzerId = composer_->buzzerId();
@@ -1036,7 +1038,7 @@ void LoadFollowersByBuzzerCommand::process(const std::vector<std::string>& args)
 		if (args.size() > 1 && args[1] == "more") {
 			//
 			lLast = eventsFeed_->last();
-			if (lLast) fromBuzzer_ = lLast->buzzer();
+			if (lLast) fromBuzzer_ = lLast->buzzerId();
 		}
 	} else {
 		lBuzzerId = composer_->buzzerId();

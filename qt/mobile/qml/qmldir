@@ -15,3 +15,4 @@ BuzzItem 1.0 buzzitem.qml
 BuzzEndorseMistrustItem 1.0 buzzendorseitem.qml
 QuarkCamera 1.0 camera.qml
 BuzzerItem 1.0 buzzitembuzzer.qml
+Eventsfeed 1.0 eventsfeed.qml

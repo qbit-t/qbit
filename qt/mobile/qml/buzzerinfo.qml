@@ -594,7 +594,7 @@ Item
 			progressBar.arcEnd = 0;
 
 			//
-			controller.showError(message);
+			controller.showError(message, true);
 		}
 	}
 }

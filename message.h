@@ -18,7 +18,14 @@
 #define QBIT_MESSAGE_2 0x1c
 #define QBIT_MESSAGE_3 0x1d
 
+#define QBIT_TEST_MESSAGE_0 0x0a
+#define QBIT_TEST_MESSAGE_1 0x0b
+#define QBIT_TEST_MESSAGE_2 0x0c
+#define QBIT_TEST_MESSAGE_3 0x0d
+
 namespace qbit {
+
+extern bool gTestNet;
 
 class Message {
 public:
@@ -172,7 +179,8 @@ public:
 public:
 	Message() {}
 	Message(Message::Type type, uint32_t size, const uint160& checksum) {
-		prolog_[0] = QBIT_MESSAGE_0; prolog_[1] = QBIT_MESSAGE_1; prolog_[2] = QBIT_MESSAGE_2; prolog_[3] = QBIT_MESSAGE_3;
+		if (!gTestNet) { prolog_[0] = QBIT_MESSAGE_0; prolog_[1] = QBIT_MESSAGE_1; prolog_[2] = QBIT_MESSAGE_2; prolog_[3] = QBIT_MESSAGE_3; }
+		else { prolog_[0] = QBIT_TEST_MESSAGE_0; prolog_[1] = QBIT_TEST_MESSAGE_1; prolog_[2] = QBIT_TEST_MESSAGE_2; prolog_[3] = QBIT_TEST_MESSAGE_3; }
 		version_ = QBIT_VERSION;
 		type_ = type;
 		size_ = size;
@@ -191,7 +199,11 @@ public:
 	}
 
 	bool valid() { 
-		return (prolog_[0] == QBIT_MESSAGE_0 && prolog_[1] == QBIT_MESSAGE_1 && prolog_[2] == QBIT_MESSAGE_2 && prolog_[3] == QBIT_MESSAGE_3) &&
+		if (!gTestNet)
+			return (prolog_[0] == QBIT_MESSAGE_0 && prolog_[1] == QBIT_MESSAGE_1 && prolog_[2] == QBIT_MESSAGE_2 && prolog_[3] == QBIT_MESSAGE_3) &&
+				UNPACK_MAJOR(version_) == QBIT_VERSION_MAJOR && UNPACK_MINOR(version_) == QBIT_VERSION_MINOR &&
+				UNPACK_REVISION(version_) == QBIT_VERSION_REVISION;
+		return (prolog_[0] == QBIT_TEST_MESSAGE_0 && prolog_[1] == QBIT_TEST_MESSAGE_1 && prolog_[2] == QBIT_TEST_MESSAGE_2 && prolog_[3] == QBIT_TEST_MESSAGE_3) &&
 			UNPACK_MAJOR(version_) == QBIT_VERSION_MAJOR && UNPACK_MINOR(version_) == QBIT_VERSION_MINOR &&
 			UNPACK_REVISION(version_) == QBIT_VERSION_REVISION;
 	}

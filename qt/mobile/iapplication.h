@@ -19,6 +19,7 @@ public:
 	virtual int execute() = 0;
 
 	virtual std::string getLogCategories() = 0;
+	virtual bool getTestNet() = 0;
 };
 
 extern buzzer::IApplication* gApplication;

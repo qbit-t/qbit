@@ -225,6 +225,7 @@ public:
 	Q_INVOKABLE void pickImageFromGallery();
 
 	std::string getLogCategories();
+	bool getTestNet();
 
     void emit_fingertipAuthSuccessed(QString);
     void emit_fingertipAuthFailed();

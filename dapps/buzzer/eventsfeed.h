@@ -207,7 +207,7 @@ public:
 	void setMention() { mention_ = 1; }
 	bool isMentioned() { return mention_ == 1; }
 
-	Key key() { return Key(buzzId_, type_); }
+	Key key() const { return Key(buzzId_, type_); }
 
 	void addEventInfo(const EventInfo& info) {
 		if (buzzer_.insert(info.buzzerId()).second)
@@ -295,13 +295,21 @@ public:
 	}
 
 	void merge(const std::vector<BuzzfeedItem>&);
+	void push(const EventsfeedItem&, const uint160&);
 	void merge(const EventsfeedItem&, bool checkSize = true, bool notify = true);
+	void mergeInternal(EventsfeedItemPtr, bool checkSize = true, bool notify = true);
 	void merge(const std::vector<EventsfeedItem>&, bool notify = false);
-	void mergeUpdate(const std::vector<EventsfeedItem>&);
+	void mergeUpdate(const std::vector<EventsfeedItem>&, const uint160&);
 	bool mergeAppend(const std::vector<EventsfeedItemPtr>&);
 
 	void feed(std::vector<EventsfeedItemPtr>&);
 	int locateIndex(EventsfeedItemPtr);
+
+	size_t confirmations() { return confirmed_.size(); }
+	size_t addConfirmation(const uint160& peer) {
+		confirmed_.insert(peer);
+		return confirmed_.size();
+	}
 
 	std::string buzzersToString() {
 		//
@@ -383,7 +391,7 @@ public:
 
 	std::string typeString() {
 		if (type_ == TX_BUZZ) return "mentioned you";
-		else if (type_ == TX_REBUZZ) { if (mention_) return "mentioned you"; return "rebuzzed your buzz"; }
+		else if (type_ == TX_REBUZZ || type_ == TX_REBUZZ_REPLY) { if (mention_) return "mentioned you"; return "rebuzzed your buzz"; }
 		else if (type_ == TX_BUZZ_REPLY) return "replied to your buzz";
 		else if (type_ == TX_BUZZ_LIKE) return "liked your buzz";
 		else if (type_ == TX_BUZZ_REWARD) return "donated you";
@@ -395,7 +403,7 @@ public:
 
 	std::string typeFeedString() {
 		if (type_ == TX_BUZZ) return "mentioned";
-		else if (type_ == TX_REBUZZ) { if (mention_) return "mentioned"; return "rebuzzed buzz"; }
+		else if (type_ == TX_REBUZZ || type_ == TX_REBUZZ_REPLY) { if (mention_) return "mentioned"; return "rebuzzed buzz"; }
 		else if (type_ == TX_BUZZ_REPLY) return "replied to buzz";
 		else if (type_ == TX_BUZZ_LIKE) return "liked buzz";
 		else if (type_ == TX_BUZZ_REWARD) return "donated";
@@ -464,7 +472,7 @@ public:
 		return lResolved;
 	}
 
-	void buzzerInfoReady(const uint256& info) {
+	void buzzerInfoReady(const uint256& /*info*/) {
 		//
 		itemNew(shared_from_this());
 	}
@@ -496,7 +504,7 @@ public:
 		return nullptr;
 	}
 
-	uint256 buzzer() const {
+	uint256 buzzerId() const {
 		//
 		if (buzzers_.size()) {
 			std::vector<EventInfo>::const_iterator lItem = buzzers_.begin();
@@ -504,7 +512,11 @@ public:
 		}
 
 		return uint256();
-	}	
+	}
+
+	virtual BuzzerPtr buzzer() {
+		return nullptr;
+	}
 
 	Buzzer::VerificationResult signatureVerification() { return checkResult_; }
 
@@ -581,6 +593,9 @@ protected:
 	std::vector<BuzzerMediaPointer> buzzMedia_;
 	uint512 signature_;
 	std::vector<EventInfo> buzzers_;
+
+	std::map<Key /*buzz*/, EventsfeedItemPtr> unconfirmed_;
+	std::set<uint160> confirmed_; // current buzz
 
 	uint64_t order_ = 0;
 	std::set<uint256> buzzer_;

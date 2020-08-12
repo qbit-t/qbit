@@ -27,6 +27,9 @@ typedef std::shared_ptr<Buzzer> BuzzerPtr;
 class BuzzfeedItem;
 typedef std::shared_ptr<BuzzfeedItem> BuzzfeedItemPtr;
 
+class EventsfeedItem;
+typedef std::shared_ptr<EventsfeedItem> EventsfeedItemPtr;
+
 class BuzzerRequestProcessor;
 typedef std::shared_ptr<BuzzerRequestProcessor> BuzzerRequestProcessorPtr;
 
@@ -112,6 +115,10 @@ public:
 		buzzfeed_ = buzzfeed;
 	}
 
+	void setEventsfeed(EventsfeedItemPtr eventsfeed) {
+		eventsfeed_ = eventsfeed;
+	}
+
 	void registerUpdate(BuzzfeedItemPtr buzzfeed) {
 		boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
 		updates_.insert(buzzfeed);
@@ -135,6 +142,7 @@ public:
 	bool processSubscriptions(const BuzzfeedItem& item, const uint160& peer);
 
 	BuzzfeedItemPtr buzzfeed() { return buzzfeed_; }
+	EventsfeedItemPtr eventsfeed() { return eventsfeed_; }
 
 	template<typename _update>
 	void broadcastUpdate(const _update& updates);
@@ -191,6 +199,7 @@ public:
 
 	void resolveBuzzerInfos();
 	void resolvePendingItems();
+	void resolvePendingEventsItems();
 
 	void pushBuzzerInfo(TxBuzzerInfoPtr info) {
 		//
@@ -238,6 +247,7 @@ public:
 private:
 	void buzzerInfoLoaded(TransactionPtr);
 	void pendingItemsLoaded(const std::vector<BuzzfeedItem>&, const uint256&);
+	void pendingEventItemsLoaded(const std::vector<BuzzfeedItem>&, const uint256&);
 	void timeout() {}
 
 private:
@@ -251,6 +261,7 @@ private:
 	uint32_t followers_ = 0;
 
 	BuzzfeedItemPtr buzzfeed_;
+	EventsfeedItemPtr eventsfeed_;
 	std::set<BuzzfeedItemPtr> updates_;
 
 	// shared buzzer infos

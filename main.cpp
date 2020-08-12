@@ -425,6 +425,9 @@ int main(int argv, char** argc) {
 		} else if (std::string(argc[lIdx]) == std::string("-console")) {
 			//
 			gLog().enableConsole();
+		} else if (std::string(argc[lIdx]) == std::string("-testnet")) {
+			//
+			qbit::gTestNet = true;
 		} else if (std::string(argc[lIdx]) == std::string("-daemon")) {
 			//
 			lDaemon = true;

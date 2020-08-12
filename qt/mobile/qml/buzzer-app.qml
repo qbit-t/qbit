@@ -124,7 +124,7 @@ ApplicationWindow
         lastErrorCodeDialog = 0;
     }
 
-    function showError(error)
+	function showError(error, force)
     {
         var lComponent;
         var lPage;
@@ -142,7 +142,7 @@ ApplicationWindow
                 lPage.show(error, errorDialogAccepted);
             }
         }
-		else if (lastErrorMessageDialog !== error)
+		else if (lastErrorMessageDialog !== error || force)
         {
 			lastErrorMessageDialog = error;
 			lComponent = Qt.createComponent("errordialog.qml");

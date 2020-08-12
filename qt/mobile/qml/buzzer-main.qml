@@ -187,7 +187,14 @@ QuarkPage
 			height: navigatorBar.y - (headerBar.y + headerBar.height)
 			controller: buzzermain_.controller
 		}
-		Item {}
+		Eventsfeed {
+			id: eventsfeedPersonal
+			x: 0
+			y: headerBar.y + headerBar.height
+			width: buzzermain_.width
+			height: navigatorBar.y - (headerBar.y + headerBar.height)
+			controller: buzzermain_.controller
+		}
 		Item {}
 		Item {}
 	}
