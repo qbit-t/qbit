@@ -133,7 +133,7 @@ ApplicationWindow
 
         if (typeof(error) !== "string")
         {
-            if (error.code !== lastErrorCodeDialog)
+			if (error.code !== lastErrorCodeDialog || force)
             {
                 lastErrorCodeDialog = error.code;
 
