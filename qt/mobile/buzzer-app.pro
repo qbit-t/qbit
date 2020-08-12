@@ -5,7 +5,7 @@ else: QT += qml quick quickcontrols2 multimedia
 
 CONFIG += c++11
 
-VERSION = 0.1.0.4
+VERSION = 0.1.0.5
 DEFINES += VERSION_STRING=\\\"$${VERSION}\\\"
 DEFINES += QT_ENVIRONMENT
 DEFINES += BUZZER_MOD
@@ -18,7 +18,7 @@ DEFINES += CLIENT_PLATFORM
 DEFINES += QBIT_VERSION_MAJOR=0
 DEFINES += QBIT_VERSION_MINOR=1
 DEFINES += QBIT_VERSION_REVISION=0
-DEFINES += QBIT_VERSION_BUILD=4
+DEFINES += QBIT_VERSION_BUILD=5
 
 DEFINES += BUZZER_MOD
 DEFINES += CUBIX_MOD
@@ -194,6 +194,8 @@ ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android
 contains(ANDROID_TARGET_ARCH,armeabi-v7a) {
     INCLUDEPATH += $$PWD/boost/boost_1_73_0
 
+    #QMAKE_CXXFLAGS += -fPIC
+
     DEFINES += OS_ANDROID
 	DEFINES += MOBILE_PLATFORM_32
 
@@ -212,10 +214,11 @@ contains(ANDROID_TARGET_ARCH,armeabi-v7a) {
     LIBS += -L../mobile/libjpeg/android/obj/local/armeabi-v7a/ -ljpeg
     LIBS += -L../mobile/libpng/android/obj/local/armeabi-v7a/ -lpng
 
-    ANDROID_EXTRA_LIBS = \
-	    $$PWD/leveldb/android/obj/local/armeabi-v7a/libleveldb.so \
-		$$PWD/bin/android/arm/libcrypto_1_1.so \
-		$$PWD/bin/android/arm/libssl_1_1.so
+    # BUG: https://bugreports.qt.io/browse/QTBUG-81866
+	# ANDROID_EXTRA_LIBS = \
+	#    $$PWD/leveldb/android/obj/local/armeabi-v7a/libleveldb.so \
+	#	$$PWD/bin/android/arm/libcrypto_1_1.so \
+	#	$$PWD/bin/android/arm/libssl_1_1.so
 }
 
 contains(ANDROID_TARGET_ARCH,arm64-v8a) {
@@ -239,10 +242,11 @@ contains(ANDROID_TARGET_ARCH,arm64-v8a) {
     LIBS += -L../mobile/libjpeg/android/obj/local/arm64-v8a/ -ljpeg
     LIBS += -L../mobile/libpng/android/obj/local/arm64-v8a/ -lpng
 
-    ANDROID_EXTRA_LIBS = \
-	    $$PWD/leveldb/android/obj/local/arm64-v8a/libleveldb.so \
-		$$PWD/bin/android/arm64/libcrypto_1_1.so \
-		$$PWD/bin/android/arm64/libssl_1_1.so
+    # BUG: https://bugreports.qt.io/browse/QTBUG-81866
+	# ANDROID_EXTRA_LIBS = \
+	#    $$PWD/leveldb/android/obj/local/arm64-v8a/libleveldb.so \
+	#	$$PWD/bin/android/arm64/libcrypto_1_1.so \
+	#	$$PWD/bin/android/arm64/libssl_1_1.so
 }
 
 android {
