@@ -169,6 +169,7 @@ public:
 		
 		boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
 		if (buzzerInfos_.find(buzzerInfoId) == buzzerInfos_.end()) {
+			//
 			pendingInfos_[buzzerInfoId] = Buzzer::Info(buzzerChainId, buzzerId);
 			pendingNotifications_[buzzerInfoId].push_back(readyFunction);
 			return false;
