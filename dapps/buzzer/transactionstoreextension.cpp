@@ -1735,33 +1735,43 @@ void BuzzerTransactionStoreExtension::makeEventsfeedItem(TxBuzzerPtr buzzer, Tra
 		} else if (tx->type() == TX_REBUZZ) {
 			//
 			TxReBuzzPtr lRebuzz = TransactionHelper::to<TxReBuzz>(lBuzz);
-			uint256 lBuzzId = lRebuzz->buzzId();
-			uint256 lBuzzChainId = lRebuzz->buzzChainId();
 
-			EventsfeedItem::Key lKey(lBuzzId /*original*/, TX_REBUZZ /*this action*/);
+			// simple rebuzz
+			if (lRebuzz->simpleRebuzz()) {
+				uint256 lBuzzId = lRebuzz->buzzId();
+				uint256 lBuzzChainId = lRebuzz->buzzChainId();
 
-			std::map<EventsfeedItem::Key, EventsfeedItemPtr>::iterator lExistingItem = buzzes.find(lKey);
-			if (lExistingItem != buzzes.end()) {
-				std::pair<std::multimap<uint64_t, EventsfeedItem::Key>::iterator,
-							std::multimap<uint64_t, EventsfeedItem::Key>::iterator> lRange = rawBuzzfeed.equal_range(lExistingItem->second->timestamp());
-				for (std::multimap<uint64_t, EventsfeedItem::Key>::iterator lTimestamp = lRange.first; lTimestamp != lRange.second; lTimestamp++) {
-					if (lTimestamp->second == lKey) {
-						rawBuzzfeed.erase(lTimestamp);
-						break;
+				EventsfeedItem::Key lKey(lBuzzId /*original*/, TX_REBUZZ /*this action*/);
+
+				std::map<EventsfeedItem::Key, EventsfeedItemPtr>::iterator lExistingItem = buzzes.find(lKey);
+				if (lExistingItem != buzzes.end()) {
+					std::pair<std::multimap<uint64_t, EventsfeedItem::Key>::iterator,
+								std::multimap<uint64_t, EventsfeedItem::Key>::iterator> lRange = rawBuzzfeed.equal_range(lExistingItem->second->timestamp());
+					for (std::multimap<uint64_t, EventsfeedItem::Key>::iterator lTimestamp = lRange.first; lTimestamp != lRange.second; lTimestamp++) {
+						if (lTimestamp->second == lKey) {
+							rawBuzzfeed.erase(lTimestamp);
+							break;
+						}
 					}
-				}
 
-				lAdd = false;
-				lItem = lExistingItem->second;
-				//if (lItem->timestamp() < lBuzz->timestamp()) lItem->setTimestamp(lBuzz->timestamp());
-				EventsfeedItem::EventInfo lInfo = EventsfeedItem::EventInfo(lRebuzz->timestamp(), buzzer->id(), lRebuzz->buzzerInfoChain(), lRebuzz->buzzerInfo(), lRebuzz->score());
-				lInfo.setEvent(lBuzz->chain(), lBuzz->id(), lBuzz->body(), lBuzz->mediaPointers(), lBuzz->signature());
-				lItem->addEventInfo(lInfo);
+					lAdd = false;
+					lItem = lExistingItem->second;
+					//if (lItem->timestamp() < lBuzz->timestamp()) lItem->setTimestamp(lBuzz->timestamp());
+					EventsfeedItem::EventInfo lInfo = EventsfeedItem::EventInfo(lRebuzz->timestamp(), buzzer->id(), lRebuzz->buzzerInfoChain(), lRebuzz->buzzerInfo(), lRebuzz->score());
+					lInfo.setEvent(lBuzz->chain(), lBuzz->id(), lBuzz->body(), lBuzz->mediaPointers(), lBuzz->signature());
+					lItem->addEventInfo(lInfo);
+				} else {
+					prepareEventsfeedItem(*lItem, lBuzz, buzzer, lBuzz->chain(), lBuzz->id(), 
+						lBuzz->timestamp(), lBuzz->buzzerInfoChain(), lBuzz->buzzerInfo(), lBuzz->score(), lBuzz->signature());
+					lItem->setBuzzId(lBuzzId);
+					lItem->setBuzzChainId(lBuzzChainId);
+				}
 			} else {
+				// rebuzz with comments
 				prepareEventsfeedItem(*lItem, lBuzz, buzzer, lBuzz->chain(), lBuzz->id(), 
 					lBuzz->timestamp(), lBuzz->buzzerInfoChain(), lBuzz->buzzerInfo(), lBuzz->score(), lBuzz->signature());
-				lItem->setBuzzId(lBuzzId);
-				lItem->setBuzzChainId(lBuzzChainId);
+
+				lItem->setType(TX_REBUZZ_REPLY); // special case
 			}
 		}
 

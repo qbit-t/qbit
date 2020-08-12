@@ -159,6 +159,7 @@ public:
 
 	Q_INVOKABLE QVariant getGlobalBuzzfeedList() { return QVariant::fromValue(globalBuzzfeedList_); }
 	Q_INVOKABLE QVariant getBuzzfeedList() { return QVariant::fromValue(buzzfeedList_); }
+	Q_INVOKABLE QVariant getEventsfeedList() { return QVariant::fromValue(eventsfeedList_); }
 	//Q_INVOKABLE QVariant getBuzzerBuzzfeedList() { return QVariant::fromValue(buzzerBuzzfeedList_); }
 	//Q_INVOKABLE QVariant getBuzzesBuzzfeedList() {return QVariant::fromValue(buzzesBuzzfeedList_); }
 	Q_INVOKABLE QVariant createBuzzesBuzzfeedList() {
@@ -247,11 +248,13 @@ public:
 
 	Q_INVOKABLE unsigned short tx_BUZZ_TYPE() { return qbit::Transaction::TX_BUZZ; }
 	Q_INVOKABLE unsigned short tx_REBUZZ_TYPE() { return qbit::Transaction::TX_REBUZZ; }
+	Q_INVOKABLE unsigned short tx_REBUZZ_REPLY_TYPE() { return qbit::Transaction::TX_REBUZZ_REPLY; }
 	Q_INVOKABLE unsigned short tx_BUZZ_REPLY_TYPE() { return qbit::Transaction::TX_BUZZ_REPLY; }
 	Q_INVOKABLE unsigned short tx_BUZZ_LIKE_TYPE() { return qbit::Transaction::TX_BUZZ_LIKE; }
 	Q_INVOKABLE unsigned short tx_BUZZ_REWARD_TYPE() { return qbit::Transaction::TX_BUZZ_REWARD; }
 	Q_INVOKABLE unsigned short tx_BUZZER_MISTRUST_TYPE() { return qbit::Transaction::TX_BUZZER_MISTRUST; }
 	Q_INVOKABLE unsigned short tx_BUZZER_ENDORSE_TYPE() { return qbit::Transaction::TX_BUZZER_ENDORSE; }
+	Q_INVOKABLE unsigned short tx_BUZZER_SUBSCRIBE_TYPE() { return qbit::Transaction::TX_BUZZER_SUBSCRIBE; }
 
 	Q_INVOKABLE int getBuzzBodyMaxSize() { return TX_BUZZ_BODY_SIZE; }
 

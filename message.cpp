@@ -2,6 +2,8 @@
 
 using namespace qbit;
 
+bool qbit::gTestNet = false;
+
 qbit::MessageTypes qbit::gMessageTypes;
 
 void Message::registerMessageType(Message::Type type, const std::string& name) {
