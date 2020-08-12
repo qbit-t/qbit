@@ -32,6 +32,7 @@ typedef LimitedString<64> buzzer_name_t;
 #define TX_BUZZ_REBUZZ_NOTIFY	Transaction::CUSTOM_10 // shard: fee-free, action
 #define TX_BUZZER_INFO			Transaction::CUSTOM_11 //
 #define TX_BUZZ_REWARD			Transaction::CUSTOM_12 //
+#define TX_REBUZZ_REPLY			Transaction::CUSTOM_13 // dummy
 
 #define TX_BUZZER_ALIAS_SIZE 64 
 #define TX_BUZZER_DESCRIPTION_SIZE 256 

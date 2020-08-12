@@ -96,12 +96,41 @@ void Buzzer::resolvePendingItems() {
 	}	
 }
 
+void Buzzer::resolvePendingEventsItems() {
+	//
+	// if we have postponed items, request missing
+	std::map<uint256 /*chain*/, std::set<uint256>/*items*/> lPending;
+	//
+	eventsfeed()->collectPendingItems(lPending);
+
+	if (lPending.size()) {
+		//
+		for (std::map<uint256 /*chain*/, std::set<uint256>/*items*/>::iterator lChain = lPending.begin(); lChain != lPending.end(); lChain++) {
+			//
+			std::vector<uint256> lBuzzes(lChain->second.begin(), lChain->second.end());
+			buzzerRequestProcessor_->selectBuzzes(lChain->first, lBuzzes, 
+				SelectBuzzFeed::instance(
+					boost::bind(&Buzzer::pendingEventItemsLoaded, shared_from_this(), _1, _2),
+					boost::bind(&Buzzer::timeout, shared_from_this()))
+			);
+		}
+	}	
+}
+
 void Buzzer::pendingItemsLoaded(const std::vector<BuzzfeedItem>& feed, const uint256& chain) {
 	// merge and notify
 	buzzfeed()->merge(feed, true);
 
 	// force
-	buzzfeed()->buzzer()->resolveBuzzerInfos();
+	resolveBuzzerInfos();
+}
+
+void Buzzer::pendingEventItemsLoaded(const std::vector<BuzzfeedItem>& feed, const uint256& chain) {
+	// merge and notify
+	eventsfeed()->merge(feed);
+
+	// force
+	resolveBuzzerInfos();
 }
 
 BuzzerPtr Buzzer::instance(IRequestProcessorPtr requestProcessor, BuzzerRequestProcessorPtr buzzerRequestProcessor, buzzerTrustScoreUpdatedFunction trustScoreUpdated) {

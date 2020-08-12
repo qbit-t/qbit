@@ -322,6 +322,7 @@ Item {
 
 		text: !buzzerClient.subscriptionExists(buzzerId_) ? buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.subscribe") :
 															buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.unsubscribe")
+		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
 
 		onClicked: {
 			if (!buzzerClient.subscriptionExists(buzzerId_)) {

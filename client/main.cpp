@@ -233,6 +233,8 @@ int main(int argv, char** argc) {
 			lDebugFound = true;
 		} else if (std::string(argc[lIdx]) == std::string("-peers")) {
 			boost::split(lPeers, std::string(argc[++lIdx]), boost::is_any_of(","));
+		} else if (std::string(argc[lIdx]) == std::string("-testnet")) {
+			qbit::gTestNet = true;
 		} else if (std::string(argc[lIdx]) == std::string("-home")) {
 			std::string lHome = std::string(argc[++lIdx]);
 			lSettings = ClientSettings::instance(lHome); // re-create
@@ -420,6 +422,7 @@ int main(int argv, char** argc) {
 	);
 
 	lEventsfeed->prepare();
+	lBuzzer->setEventsfeed(lEventsfeed); // main events feed
 
 	// eventsfeed for contexted selects
 	EventsfeedPtr lContextEventsfeed = Eventsfeed::instance(lBuzzer,

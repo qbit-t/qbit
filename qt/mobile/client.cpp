@@ -103,6 +103,9 @@ int Client::open(QString secret) {
 		qbit::gLog().enable(qbit::getLogCategory(*lCategory));
 	}
 
+	// setup testnet
+	qbit::gTestNet = application_->getTestNet();
+
 #ifdef QT_DEBUG
 	// intercept qbit log - only in debug mode
 	qbit::gLog().setEcho(boost::bind(&Client::echoLog, this, _1, _2));
@@ -227,6 +230,7 @@ int Client::open(QString secret) {
 
 	// events feed
 	eventsfeedList_ = new EventsfeedListModelPersonal();
+	buzzer_->setEventsfeed(eventsfeedList_->eventsfeed());
 
 	// buzzer peer extention
 	PeerManager::registerPeerExtension(
@@ -321,14 +325,15 @@ int Client::open(QString secret) {
 
 	//
 	peerManager_->addPeerExplicit("192.168.1.109:31415");
+	peerManager_->addPeerExplicit("192.168.1.108:31415");
+	peerManager_->addPeerExplicit("192.168.1.107:31415");
 	peerManager_->addPeerExplicit("192.168.1.106:31415");
 	peerManager_->addPeerExplicit("192.168.1.105:31415");
 	peerManager_->addPeerExplicit("192.168.1.104:31415");
-	peerManager_->addPeerExplicit("192.168.1.108:31415");
 	peerManager_->addPeerExplicit("192.168.1.49:31415");
 
-	peerManager_->addPeerExplicit("178.79.128.112:31415");
-	peerManager_->addPeerExplicit("85.90.245.180:31416");
+	//peerManager_->addPeerExplicit("178.79.128.112:31415");
+	//peerManager_->addPeerExplicit("85.90.245.180:31416");
 
 	//
 	peerManager_->run();
