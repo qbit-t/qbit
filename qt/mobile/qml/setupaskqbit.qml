@@ -66,7 +66,8 @@ QuarkPage
 	QuarkToolButton {
 		id: askButton
 		x: parent.width / 2 - width / 2
-		y: welcomeText.y + welcomeText.height + 30
+		y: welcomeText.y + welcomeText.height +
+		   ((parent.height - (welcomeText.y + welcomeText.height + nextButton.height)) / 2 - height / 2) - 15
 		width: parent.width - 140
 		height: parent.width - 140
 		visible: true
@@ -153,7 +154,7 @@ QuarkPage
 	QuarkRoundProgress {
 		id: progressBar
 		x: parent.width / 2 - (askButton.width + 20) / 2
-		y: welcomeText.y + welcomeText.height + 30 - 10
+		y: askButton.y - 10
 		size: parent.width - 140 + 20
 		colorCircle: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.accentUltra");
 		colorBackground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.accentUltra");
