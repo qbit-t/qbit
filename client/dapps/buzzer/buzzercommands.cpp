@@ -728,7 +728,7 @@ void LoadBuzzfeedCommand::processPengingInfos() {
 		for (std::map<uint256 /*chain*/, std::set<uint256>/*items*/>::iterator lChain = pengindChainInfos_.begin(); lChain != pengindChainInfos_.end(); lChain++) {
 			//
 			std::vector<uint256> lInfos(lChain->second.begin(), lChain->second.end());
-			if (!composer_->requestProcessor()->loadTransactions(lChain->first, lInfos, 
+			if (!composer_->requestProcessor()->loadTransactions(lChain->first, lInfos,
 				LoadTransactions::instance(
 					boost::bind(&LoadBuzzfeedCommand::buzzerInfoLoaded, shared_from_this(), _1),
 					boost::bind(&LoadBuzzfeedCommand::timeout, shared_from_this()))

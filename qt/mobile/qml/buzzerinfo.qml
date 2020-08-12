@@ -475,11 +475,32 @@ Item
 		}
 
 		onClicked: {
-			//
-			waitTimer.start();
-
 			// create buzzer
 			if (buzzerinfo_.action === "CREATE") {
+				//
+				if (buzzerClient.name === "" || buzzerClient.name[0] !== '@') {
+					controller.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZER_NAME_INCORRECT"), true);
+					return;
+				}
+
+				if (buzzerClient.alias === "") {
+					controller.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZER_ALIAS_INCORREC"), true);
+					return;
+				}
+
+				if (buzzerClient.avatar === "") {
+					controller.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZER_AVATAR_ABSENT"), true);
+					return;
+				}
+
+				if (buzzerClient.header === "") {
+					controller.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZER_HEADER_ABSENT"), true);
+					return;
+				}
+
+				//
+				waitTimer.start();
+
 				createBuzzerCommand.name = buzzerClient.name;
 				createBuzzerCommand.alias = buzzerClient.alias;
 				createBuzzerCommand.description = buzzerClient.description;
@@ -495,7 +516,7 @@ Item
 		}
 
 		function getEnabled() {
-			return buzzerClient.avatar !== "" && buzzerClient.header !== "" && buzzerClient.name !== "" && buzzerClient.alias !== "";
+			return true; //buzzerClient.avatar !== "" && buzzerClient.header !== "" && buzzerClient.name !== "" && buzzerClient.alias !== "";
 		}
 	}
 
@@ -594,7 +615,7 @@ Item
 			progressBar.arcEnd = 0;
 
 			//
-			controller.showError(message);
+			controller.showError(message, true);
 		}
 	}
 }
