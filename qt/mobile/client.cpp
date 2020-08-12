@@ -320,12 +320,12 @@ int Client::open(QString secret) {
 	qRegisterMetaType<qbit::EventsfeedItemProxy>("qbit::EventsfeedItemProxy");
 
 	//
-	peerManager_->addPeerExplicit("192.168.1.109:31415");
-	peerManager_->addPeerExplicit("192.168.1.106:31415");
-	peerManager_->addPeerExplicit("192.168.1.105:31415");
-	peerManager_->addPeerExplicit("192.168.1.104:31415");
-	peerManager_->addPeerExplicit("192.168.1.108:31415");
-	peerManager_->addPeerExplicit("192.168.1.49:31415");
+	//peerManager_->addPeerExplicit("192.168.1.109:31415");
+	//peerManager_->addPeerExplicit("192.168.1.106:31415");
+	//peerManager_->addPeerExplicit("192.168.1.105:31415");
+	//peerManager_->addPeerExplicit("192.168.1.104:31415");
+	//peerManager_->addPeerExplicit("192.168.1.108:31415");
+	//peerManager_->addPeerExplicit("192.168.1.49:31415");
 
 	peerManager_->addPeerExplicit("178.79.128.112:31415");
 	peerManager_->addPeerExplicit("85.90.245.180:31416");
