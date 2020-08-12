@@ -52,7 +52,7 @@ echo "Bootstrapping..."
 ./bootstrap.sh #--with-toolset=clang
 
 echo "Building..."
-./b2 -j4 \
+./b2 cxxflags=-fPIC -j4 \
     --with-atomic \
     --with-chrono \
     --with-container \
