@@ -25,11 +25,9 @@ QuarkPage
 
 		//
 		if (!buzzerApp.isReadStoragePermissionGranted()) {
-			//controller.showError("You do not be able to load any media to the Buzzer.");
 		}
 
 		if (!buzzerApp.isWriteStoragePermissionGranted()) {
-			//controller.showError("You do not be able to share any media from Buzzer.");
 		}
 	}
 

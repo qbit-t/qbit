@@ -756,11 +756,19 @@ QuarkPage {
 
 	function createReply(buzzId) {
 		//
+		var lText = buzzerClient.getPlainText(buzzText.textDocument);
+		if (lText.length === 0) {
+			handleError("E_BUZZ_IS_EMPTY", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZ_IS_EMPTY"));
+			sending = false;
+			return;
+		}
+
+		//
 		createProgressBar.indeterminate = true;
 		createProgressBar.visible = true;
 
 		//
-		replyCommand.buzzBody = buzzerClient.getPlainText(buzzText.textDocument);
+		replyCommand.buzzBody = lText;
 		var lBuzzers = buzzerClient.extractBuzzers(replyCommand.buzzBody);
 
 		for (var lIdx = 0; lIdx < lBuzzers.length; lIdx++) {
@@ -776,9 +784,9 @@ QuarkPage {
 		if (code === "E_CHAINS_ABSENT") return;
 		if (message === "UNKNOWN_REFTX" || code === "E_TX_NOT_SENT") {
 			buzzerClient.resync();
-			controller.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.UNKNOWN_REFTX"));
+			controller.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.UNKNOWN_REFTX"), true);
 		} else {
-			controller.showError(message);
+			controller.showError(message, true);
 		}
 	}
 }

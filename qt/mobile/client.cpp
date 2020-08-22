@@ -106,10 +106,10 @@ int Client::open(QString secret) {
 	// setup testnet
 	qbit::gTestNet = application_->getTestNet();
 
-#ifdef QT_DEBUG
 	// intercept qbit log - only in debug mode
-	qbit::gLog().setEcho(boost::bind(&Client::echoLog, this, _1, _2));
-#endif
+	if (application_->getDebug())
+		qbit::gLog().setEcho(boost::bind(&Client::echoLog, this, _1, _2));
+
 	// rebind qapplication message handler to intercept qInfo(), qError() output messages
 	buzzer::gLogger.reset(new buzzer::Logger());
 
@@ -133,7 +133,7 @@ int Client::open(QString secret) {
 	wallet_->setWalletReceiveTransactionFunction(boost::bind(&Client::transactionReceived, this, _1, _2));
 
 	std::static_pointer_cast<RequestProcessor>(requestProcessor_)->setWallet(wallet_);
-	wallet_->open(secret.toStdString()); // secret
+	wallet_->open(secret.toStdString()); // secret - pin or keystore inlocked pin
 
 	// composer
 	composer_ = LightComposer::instance(settings_->shared(), wallet_, requestProcessor_);
@@ -324,6 +324,7 @@ int Client::open(QString secret) {
 	qRegisterMetaType<qbit::EventsfeedItemProxy>("qbit::EventsfeedItemProxy");
 
 	//
+	/*
 	peerManager_->addPeerExplicit("192.168.1.109:31415");
 	peerManager_->addPeerExplicit("192.168.1.108:31415");
 	peerManager_->addPeerExplicit("192.168.1.107:31415");
@@ -331,9 +332,10 @@ int Client::open(QString secret) {
 	peerManager_->addPeerExplicit("192.168.1.105:31415");
 	peerManager_->addPeerExplicit("192.168.1.104:31415");
 	peerManager_->addPeerExplicit("192.168.1.49:31415");
+	*/
 
-	//peerManager_->addPeerExplicit("178.79.128.112:31415");
-	//peerManager_->addPeerExplicit("85.90.245.180:31416");
+	peerManager_->addPeerExplicit("178.79.128.112:31415");
+	peerManager_->addPeerExplicit("85.90.245.180:31416");
 
 	//
 	peerManager_->run();

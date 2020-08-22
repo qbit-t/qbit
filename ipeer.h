@@ -383,6 +383,7 @@ public:
 	// open requests
 	virtual void acquireBlockHeaderWithCoinbase(const uint256& /*block*/, const uint256& /*chain*/, INetworkBlockHandlerWithCoinBasePtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IPeer::acquireBlockHeaderWithCoinbase - not implemented."); }
 	virtual void loadTransaction(const uint256& /*chain*/, const uint256& /*tx*/, ILoadTransactionHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IPeer::loadTransaction - not implemented."); }
+	virtual void loadTransaction(const uint256& /*chain*/, const uint256& /*tx*/, bool /*tryMempool*/, ILoadTransactionHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IPeer::loadTransaction - not implemented."); }
 	virtual void loadTransactions(const uint256& /*chain*/, const std::vector<uint256>& /*txs*/, ILoadTransactionsHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IPeer::loadTransactions - not implemented."); }
 	virtual void loadEntity(const std::string& /*entityName*/, ILoadEntityHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IPeer::loadEnity - not implemented."); }
 	virtual void selectUtxoByAddress(const PKey& /*source*/, const uint256& /*chain*/, ISelectUtxoByAddressHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IPeer::selectUtxoByAddress - not implemented."); }

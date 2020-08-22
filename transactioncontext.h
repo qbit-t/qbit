@@ -115,8 +115,8 @@ public:
 	inline ProcessingContext context() { return context_; }
 	inline void setContext(ProcessingContext context) { context_ = context; }
 
-	inline void incrementReprocessed() { reprocessed_++; }
-	inline bool reprocessTimedout() { reprocessed_ >= 30; /* approx 3 block */}
+	inline int incrementReprocessed() { return ++reprocessed_; }
+	inline bool reprocessTimedout() { return reprocessed_ >= 30; /* approx 3 block */}
 
 	// estimated rate (feeIn/out maybe excluded)
 	inline qunit_t feeRate() {

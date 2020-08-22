@@ -97,6 +97,17 @@ public:
 		}
 	}
 
+	void updateTrustScoreFull(amount_t endorsements, amount_t mistrusts, uint32_t subscriptions, uint32_t followers, const ProcessingError& err) {
+		if (err.success()) {
+			following_ = subscriptions;
+			followers_ = followers;
+			endorsements_ = endorsements;
+			mistrusts_ = mistrusts;
+
+			updateTrustScore(endorsements, mistrusts);
+		}
+	}
+
 	void updateTrustScore(amount_t endorsements, amount_t mistrusts) {
 		// NOTICE: raw ts - is not correct, in terms of blockchain
 		// endorsements_ = endorsements;

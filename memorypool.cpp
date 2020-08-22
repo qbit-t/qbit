@@ -254,14 +254,14 @@ void MemoryPool::processCandidates() {
 			// clean-up
 			(*lCandidate)->errors().clear();
 			//
-			(*lCandidate)->incrementReprocessed();
+			int lReporocessed = (*lCandidate)->incrementReprocessed();
 			// try to push
 			pushTransaction(*lCandidate);
 			// check
 			if ((*lCandidate)->errors().size()) {
 				for (std::list<std::string>::iterator lErr = (*lCandidate)->errors().begin(); lErr != (*lCandidate)->errors().end(); lErr++) {
 					if (gLog().isEnabled(Log::ERROR)) gLog().write(Log::ERROR, std::string("[processCandidates/error]: transaction re-processing ERROR - ") + (*lErr) +
-							strprintf(" -> %s/%s#", (*lCandidate)->tx()->id().toHex(), (*lCandidate)->tx()->chain().toHex().substr(0, 10)));
+							strprintf(" -> %d/%s/%s#", lReporocessed, (*lCandidate)->tx()->id().toHex(), (*lCandidate)->tx()->chain().toHex().substr(0, 10)));
 				}
 
 				if ((*lCandidate)->reprocessTimedout()) {
@@ -312,8 +312,7 @@ bool MemoryPool::pushTransaction(TransactionContextPtr ctx) {
 		}
 
 		// 2. check using processor
-		IEntityStorePtr lEntityStore = PoolEntityStore::instance(shared_from_this());
-		TransactionProcessor lProcessor = TransactionProcessor::general(poolStore_, wallet_, lEntityStore);
+		TransactionProcessor lProcessor = TransactionProcessor::general(poolStore_, wallet_, poolEntityStore_);
 		if (!lProcessor.process(ctx)) {
 			// if tx has references to the missing tx (not yet arrived)
 			if (ctx->errorsContains("UNKNOWN_REFTX")) {
@@ -749,6 +748,7 @@ void MemoryPool::removeTransactions(BlockPtr block) {
 		strprintf("%s/%s#", block->blockHeader().hash().toHex(), chain_.toHex().substr(0, 10)));	
 	//
 	PoolStorePtr lPoolStore = PoolStore::toStore(poolStore_);
+	PoolEntityStorePtr lPoolEntityStore = PoolEntityStore::toStore(poolEntityStore_);
 	for (TransactionsContainer::iterator lTx = block->transactions().begin(); lTx != block->transactions().end(); lTx++) {
 		//
 		if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[removeTransactions]: try to remove tx ") + 
@@ -758,7 +758,9 @@ void MemoryPool::removeTransactions(BlockPtr block) {
 		if (lCtx) {
 			if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[removeTransactions]: remove tx ") + 
 				strprintf("%s/%s/%s#", lCtx->tx()->hash().toHex(), block->blockHeader().hash().toHex(), chain_.toHex().substr(0, 10)));	
+			
 			lPoolStore->remove(lCtx);
+			lPoolEntityStore->removeEntity(lCtx->tx()->id());
 		}
 	}
 }

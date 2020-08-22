@@ -423,7 +423,7 @@ void Application::setWakeLock(int lock)
                 {
                     jint lLevelAndFlags = QAndroidJniObject::getStaticField<jint>("android/os/PowerManager","SCREEN_DIM_WAKE_LOCK");
 
-                    QAndroidJniObject lTag = QAndroidJniObject::fromString("GRAVIEX-TAG");
+					QAndroidJniObject lTag = QAndroidJniObject::fromString("BUZZER-TAG");
 
                     wakeLock_ = lPowerMgr.callObjectMethod("newWakeLock", "(ILjava/lang/String;)Landroid/os/PowerManager$WakeLock;", lLevelAndFlags, lTag.object<jstring>());
                 }

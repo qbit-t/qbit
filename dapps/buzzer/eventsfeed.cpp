@@ -10,6 +10,9 @@ void EventsfeedItem::push(const EventsfeedItem& buzz, const uint160& peer) {
 		//
 		EventsfeedItemPtr lBuzz = EventsfeedItem::instance(buzz);
 		lBuzz->addConfirmation(peer);
+		unconfirmed_[buzz.key()] = lBuzz;
+		if (gLog().isEnabled(Log::CLIENT))
+			gLog().write(Log::CLIENT, "[PUSH-0]");
 	} else {
 		if (lItem->second->addConfirmation(peer) >= BUZZ_PEERS_CONFIRMATIONS) {
 			//
@@ -18,6 +21,9 @@ void EventsfeedItem::push(const EventsfeedItem& buzz, const uint160& peer) {
 			unconfirmed_.erase(lItem);
 			// merge finally
 			mergeInternal(lBuzz, true, true);
+
+			if (gLog().isEnabled(Log::CLIENT))
+				gLog().write(Log::CLIENT, "[PUSH-1]");
 
 			// resolve info
 			if (buzzer()) { 
@@ -47,6 +53,8 @@ void EventsfeedItem::mergeInternal(EventsfeedItemPtr buzz, bool checkSize, bool 
 	// verifier
 	lBuzz->verifyPublisher_ = verifyPublisher_;
 	lBuzz->verifySource_ = verifySource_;
+	// parent
+	lBuzz->parent_ = parent();
 
 	// verify signature
 	Buzzer::VerificationResult lResult = verifyPublisher_(lBuzz);
@@ -66,9 +74,6 @@ void EventsfeedItem::mergeInternal(EventsfeedItemPtr buzz, bool checkSize, bool 
 			lExisting->second->buzzerInfoMerge(lBuzz->buzzers());
 
 			index_.insert(std::multimap<uint64_t /*order*/, Key /*buzz*/>::value_type(lBuzz->order(), lBuzz->key()));
-			//
-			//if (gLog().isEnabled(Log::CLIENT))
-			//	gLog().write(Log::CLIENT, strprintf("[PUSHING-1]: %d", index_.size()));
 			for (std::vector<EventInfo>::const_iterator lInfo = lBuzz->buzzers().begin(); lInfo != lBuzz->buzzers().end(); lInfo++) {
 				updateTimestamp(lInfo->buzzerId(), lInfo->timestamp());
 			}
@@ -83,16 +88,9 @@ void EventsfeedItem::mergeInternal(EventsfeedItemPtr buzz, bool checkSize, bool 
 			return;
 		} else {
 			items_.insert(std::map<Key /*buzz*/, EventsfeedItemPtr>::value_type(lBuzz->key(), lBuzz));
-
-			//
-			//if (gLog().isEnabled(Log::CLIENT))
-			//	gLog().write(Log::CLIENT, strprintf("[PUSHED]: %s", lBuzz->toString()));
 		}
 
 		index_.insert(std::multimap<uint64_t /*order*/, Key /*buzz*/>::value_type(lBuzz->order(), lBuzz->key()));
-		//
-		//if (gLog().isEnabled(Log::CLIENT))
-		//	gLog().write(Log::CLIENT, strprintf("[PUSHING-0]: %d", index_.size()));
 		for (std::vector<EventInfo>::const_iterator lInfo = lBuzz->buzzers().begin(); lInfo != lBuzz->buzzers().end(); lInfo++) {
 			updateTimestamp(lInfo->buzzerId(), lInfo->timestamp());
 		}
@@ -137,6 +135,7 @@ void EventsfeedItem::merge(const std::vector<BuzzfeedItem>& buzzes) {
 					BuzzfeedItemPtr lItem = BuzzfeedItem::instance(*lBuzz);
 					lItem->setVerifyPublisher(verifySource_);
 					if (lItem->valid()) {
+						lEvent->second->setTimestamp(lBuzz->timestamp());
 						lEvent->second->setScore(lBuzz->score());
 						lEvent->second->setPublisher(lBuzz->buzzerId());
 						lEvent->second->setPublisherInfo(lBuzz->buzzerInfoId());

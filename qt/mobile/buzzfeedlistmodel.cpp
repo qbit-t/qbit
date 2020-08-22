@@ -21,6 +21,15 @@ int BuzzfeedListModel::rowCount(const QModelIndex& parent) const {
 	return list_.size();
 }
 
+int BuzzfeedListModel::childrenCount(int index) const {
+	if (index < 0 || index >= (int)list_.size()) {
+		return 0;
+	}
+
+	qbit::BuzzfeedItemPtr lItem = list_[index];
+	return lItem->count();
+}
+
 bool BuzzfeedListModel::hasPrevLink(int index) const {
 	if (index < 0 || index >= (int)list_.size()) {
 		return false;
@@ -141,7 +150,7 @@ QVariant BuzzfeedListModel::data(const QModelIndex& index, int role) const {
 
 		return QVariant::fromValue(lInfos);
 	} else if (role == ChildrenCountRole) {
-		return QVariant::fromValue(lItem->count());
+		return QVariant::fromValue((uint32_t)lItem->count());
 	} else if (role == FirstChildIdRole) {
 		if (lItem->count()) {
 			qbit::BuzzfeedItemPtr lChild = lItem->firstChild();
@@ -437,7 +446,16 @@ bool BuzzfeedListModel::buzzfeedItemUpdatedProcess(qbit::BuzzfeedItemPtr item, u
 		if (lIndex >= 0 && lIndex < list_.size()) {
 			qInfo() << "BuzzfeedListModel::buzzfeedItemUpdatedProcess -> update" << lIndex;
 			QModelIndex lModelIndex = createIndex(lIndex, lIndex);
-			emit dataChanged(lModelIndex, lModelIndex, QVector<int>() << HasParentRole << HasNextSiblingRole << HasPrevSiblingRole << ChildrenCountRole << FirstChildIdRole << NextSiblingIdRole << PrevSiblingIdRole << HasPrevLinkRole << HasNextLinkRole);
+			emit dataChanged(lModelIndex, lModelIndex, QVector<int>()
+					<< HasParentRole
+					<< HasNextSiblingRole
+					<< HasPrevSiblingRole
+					<< ChildrenCountRole
+					<< FirstChildIdRole
+					<< NextSiblingIdRole
+					<< PrevSiblingIdRole
+					<< HasPrevLinkRole
+					<< HasNextLinkRole);
 
 			return true;
 		}

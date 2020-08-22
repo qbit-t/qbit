@@ -170,13 +170,13 @@ QuarkToolBar
 	{
 		id: logo
 		fillMode: Image.PreserveAspectFit
-		width: 25
+		width: 20
 		x: parent.width / 2 - logo.width / 2
 		y: extraOffset
 		Layout.alignment: Qt.AlignCenter
 		mipmap: true
 		//source: "../images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "buzzer.logo")
-		source: "../images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "lightning.logo")
+		source: "../images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "lightning-bar.logo")
 	}
 
 	MouseArea

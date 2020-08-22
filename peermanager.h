@@ -402,7 +402,7 @@ public:
 		//
 		for (std::vector<IOContextPtr>::iterator lCtx = contexts_.begin(); lCtx != contexts_.end(); lCtx++)	{
 			//
-			ulong lEvents = 0;
+			long lEvents = 0;
 			int lCount = 0;
 			do {
 				(*lCtx)->reset();
@@ -419,23 +419,25 @@ public:
 
 		// load peers
 		gLog().write(Log::INFO, std::string("[peerManager]: loading peers..."));
-		for (db::DbContainer<std::string /*endpoint*/, Peer::PersistentState>::Iterator lState = peersContainer_.begin(); lState.valid(); ++lState) {
-			// process state
-			std::string lKey;
-			Peer::PersistentState lPersistentState;
-			if (lState.first(lKey) && lState.second(lPersistentState)) {
-				// make peer
-				IPeerPtr lPeer = addPeer(lKey);
-				if (lPeer) {
-					lPeer->setState(State::instance(lPersistentState.state()));
+		if (!gLightDaemon) {
+			for (db::DbContainer<std::string /*endpoint*/, Peer::PersistentState>::Iterator lState = peersContainer_.begin(); lState.valid(); ++lState) {
+				// process state
+				std::string lKey;
+				Peer::PersistentState lPersistentState;
+				if (lState.first(lKey) && lState.second(lPersistentState)) {
+					// make peer
+					IPeerPtr lPeer = addPeer(lKey);
+					if (lPeer) {
+						lPeer->setState(State::instance(lPersistentState.state()));
 
-					// process status
-					switch(lPersistentState.status()) {
-						case IPeer::ACTIVE: activate(lPeer); break;
-						case IPeer::QUARANTINE: quarantine(lPeer); break; // quarantine starts from beginning
-						case IPeer::BANNED: ban(lPeer); break;
-						case IPeer::PENDING_STATE: pending(lPeer); break;
-						case IPeer::POSTPONED: postpone(lPeer); break;
+						// process status
+						switch(lPersistentState.status()) {
+							case IPeer::ACTIVE: activate(lPeer); break;
+							case IPeer::QUARANTINE: quarantine(lPeer); break; // quarantine starts from beginning
+							case IPeer::BANNED: ban(lPeer); break;
+							case IPeer::PENDING_STATE: pending(lPeer); break;
+							case IPeer::POSTPONED: postpone(lPeer); break;
+						}
 					}
 				}
 			}
@@ -553,7 +555,7 @@ public:
 private:
 	void openPeersContainer() {
 		// open container
-		if (!peersContainer_.opened()) {
+		if (!gLightDaemon && !peersContainer_.opened()) {
 			try {
 				mkpath(std::string(settings_->dataPath() + "/peers").c_str(), 0777);
 
@@ -972,7 +974,7 @@ public:
 	}
 
 	void updatePeer(IPeerPtr peer) {
-		if (peer->isOutbound()) {
+		if (!gLightDaemon && peer->isOutbound()) {
 			peersContainer_.write(peer->key(), Peer::PersistentState(*peer->state(), peer->status()));
 		}
 	}

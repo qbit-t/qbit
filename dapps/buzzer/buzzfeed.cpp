@@ -378,6 +378,10 @@ bool BuzzfeedItem::mergeInternal(BuzzfeedItemPtr buzz, bool checkSize, bool noti
 							setHasNextLink(true);
 							lBuzz->setHasPrevLink(true);
 
+							// self-update
+							lUpdated.push_back(BuzzfeedItemUpdate(buzzId(),
+																  uint256(), BuzzfeedItemUpdate::Field::REPLIES, 0));
+
 							// locate neighbours
 							std::pair<
 									std::multimap<OrderKey /*order*/, Key /*buzz*/>::iterator,
@@ -1047,6 +1051,10 @@ void Buzzfeed::insertNewItem(BuzzfeedItemPtr item) {
 
 			if (lIndex+1 < (int)list_.size() && list_[lIndex+1]->hasPrevLink()) {
 				item->setHasNextLink(true);
+			}
+
+			if (lIndex-1 >= 0 && list_[lIndex-1]->originalBuzzId() == item->originalBuzzId() && list_[lIndex-1]->hasPrevLink()) {
+				list_[lIndex-1]->setHasNextLink(true);
 			}
 		}
 	} else if (!list_.size() && fed_) {

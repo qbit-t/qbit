@@ -1347,6 +1347,11 @@ public:
 		lArgs.push_back(subscribeCommand_->chain().toStdString());
 		lArgs.push_back(subscribeCommand_->buzzId().toStdString());
 
+		QStringList lPeers = subscribeCommand_->peers();
+		for (QStringList::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
+			lArgs.push_back((*lPeer).toStdString());
+		}
+
 		command_->process(lArgs);
 	}
 

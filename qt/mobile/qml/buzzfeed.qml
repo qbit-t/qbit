@@ -226,24 +226,21 @@ Item
 		id: createBuzz
 		x: parent.width - (width + 15)
 		y: parent.height - (height + 15)
-		width: 65
+		width: 55
 		height: width
 		visible: true
 		// symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 		Layout.alignment: Qt.AlignHCenter
 		radius: width / 2
+		clip: true
 
 		enabled: true
 
 		Image {
 			id: buzzImage
-			x: parent.width / 2 - width / 2 + 2
-			y: parent.height / 2 - height / 2 + 2
-			width: createBuzz.width -35
-			height: createBuzz.height - 35
-			source: "../images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "lightning-light.logo")
+			anchors.fill: parent
+			source: "../images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "buzzer.round")
 			fillMode: Image.PreserveAspectFit
-			//mipmap: true
 		}
 
 		onClicked: {

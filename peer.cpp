@@ -4,6 +4,8 @@ using namespace qbit;
 
 qbit::PeerExtensions qbit::gPeerExtensions;
 
+bool qbit::gLightDaemon = false;
+
 bool Peer::onQuarantine() {
 	return peerManager_->consensusManager()->currentState()->height() < quarantine_;
 }
@@ -494,6 +496,10 @@ void Peer::acquireBlockHeaderWithCoinbase(const uint256& block, const uint256& c
 }
 
 void Peer::loadTransaction(const uint256& chain, const uint256& tx, ILoadTransactionHandlerPtr handler) {
+	loadTransaction(chain, tx, false, handler);
+}
+
+void Peer::loadTransaction(const uint256& chain, const uint256& tx, bool tryMempool, ILoadTransactionHandlerPtr handler) {
 	//
 	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
 	else if (socketStatus_ == CONNECTED) {
@@ -506,6 +512,7 @@ void Peer::loadTransaction(const uint256& chain, const uint256& tx, ILoadTransac
 		lStateStream << lRequestId;
 		lStateStream << chain;
 		lStateStream << tx;
+		lStateStream << tryMempool;
 		Message lMessage(Message::GET_TRANSACTION_DATA, lStateStream.size(), Hash160(lStateStream.begin(), lStateStream.end()));
 
 		(*lMsg) << lMessage;
@@ -1410,11 +1417,14 @@ void Peer::processGetTransactionData(std::list<DataStream>::iterator msg, const 
 		uint256 lRequestId;
 		uint256 lChain;
 		uint256 lTxId;
+		bool lTryMempool = false;
 		(*msg) >> lRequestId;
 		(*msg) >> lChain;
 		(*msg) >> lTxId;
+		(*msg) >> lTryMempool;
 		eraseInData(msg);
 
+		// try storages
 		TransactionPtr lTx = nullptr;
 		if (lChain.isNull()) {
 			std::vector<ITransactionStorePtr> lStorages = peerManager_->consensusManager()->storeManager()->storages();
@@ -1425,6 +1435,18 @@ void Peer::processGetTransactionData(std::list<DataStream>::iterator msg, const 
 		} else {
 			ITransactionStorePtr lStorage = peerManager_->consensusManager()->storeManager()->locate(lChain);
 			lTx = lStorage->locateTransaction(lTxId);
+		}
+
+		// try mempool
+		if (!lTx && lTryMempool) {
+			IMemoryPoolManagerPtr lMempoolManager = peerManager_->consensusManager()->mempoolManager();
+			std::vector<IMemoryPoolPtr> lMempools = lMempoolManager->pools();
+			for (std::vector<IMemoryPoolPtr>::iterator lPool = lMempools.begin(); lPool != lMempools.end(); lPool++) {
+				lTx = (*lPool)->locateTransaction(lTxId);
+				if (lTx) {
+					break;
+				}
+			}
 		}
 
 		if (lTx != nullptr) {
@@ -1648,6 +1670,12 @@ void Peer::processGetEntity(std::list<DataStream>::iterator msg, const boost::sy
 
 		ITransactionStorePtr lStorage = peerManager_->consensusManager()->storeManager()->locate(MainChain::id());
 		EntityPtr lTx = lStorage->entityStore()->locateEntity(lName);
+
+		if (!lTx) {
+			// try mempool
+			IMemoryPoolPtr lMempool = peerManager_->consensusManager()->mempoolManager()->locate(MainChain::id());
+			lTx = lMempool->locateEntity(lName);
+		}
 
 		if (lTx != nullptr) {
 			// make message, serialize, send back
