@@ -156,19 +156,63 @@ public:
 		}
 
 		EntityPtr locateEntity(const std::string& name) {
+			//
 			return pool_->entityStore()->locateEntity(name);
 		}
 
+		EntityPtr locatePoolEntity(const std::string& name) {
+			//
+			boost::unique_lock<boost::recursive_mutex> lLock(storeMutex_);
+			std::map<std::string /*name*/, TransactionContextPtr /*tx*/>::iterator lEntity = entityMap_.find(name);
+			if (lEntity != entityMap_.end()) {
+				return TransactionHelper::to<Entity>(lEntity->second->tx());
+			}
+
+			return nullptr;
+		}
+
 		bool pushEntity(const uint256& entity, TransactionContextPtr ctx) {
+			//
+			{
+				boost::unique_lock<boost::recursive_mutex> lLock(storeMutex_);
+				if (ctx->tx()->isEntity() && ctx->tx()->entityName() != Entity::emptyName()) {
+					entityMap_.insert(std::map<std::string /*name*/, TransactionContextPtr /*tx*/>::
+						value_type(ctx->tx()->entityName(), ctx));
+					entityNameMap_.insert(std::map<uint256 /*tx*/, std::string/*name*/>::
+						value_type(ctx->tx()->id(), ctx->tx()->entityName()));
+				}
+			}
+
+			//
 			return pool_->entityStore()->locateEntity(entity) == nullptr;
 		}
 
 		inline static IEntityStorePtr instance(IMemoryPoolPtr pool) {
 			return std::make_shared<PoolEntityStore>(pool); 
-		}		
+		}
+
+		void removeEntity(const uint256& tx) {
+			//
+			boost::unique_lock<boost::recursive_mutex> lLock(storeMutex_);
+			std::map<uint256 /*tx*/, std::string/*name*/>::iterator lName = entityNameMap_.find(tx);
+			if (lName != entityNameMap_.end()) {
+				//
+				std::map<std::string /*name*/, TransactionContextPtr /*tx*/>::iterator lEntity = entityMap_.find(lName->second);
+				if (lEntity != entityMap_.end()) {
+					entityMap_.erase(lEntity);
+				}
+
+				entityNameMap_.erase(lName);
+			}
+		}
+
+		static std::shared_ptr<PoolEntityStore> toStore(IEntityStorePtr store) { return std::static_pointer_cast<PoolEntityStore>(store); }		
 
 	private:
 		IMemoryPoolPtr pool_;
+		std::map<std::string /*name*/, TransactionContextPtr /*tx*/> entityMap_;
+		std::map<uint256 /*tx*/, std::string/*name*/> entityNameMap_;
+		boost::recursive_mutex storeMutex_;
 	};
 
 	class PoolStore: public ITransactionStore {
@@ -286,10 +330,11 @@ public:
 		// free utxo
 		std::map<uint256 /*utxo*/, Transaction::UnlinkedOutPtr> freeUtxo_;
 		//
-		boost::recursive_mutex storeMutex_;		
+		boost::recursive_mutex storeMutex_;
 	};
 
 	typedef std::shared_ptr<PoolStore> PoolStorePtr;
+	typedef std::shared_ptr<PoolEntityStore> PoolEntityStorePtr;
 
 public:
 	class ConfirmedBlockInfo {
@@ -312,7 +357,8 @@ public:
 		entityStore_ = entityStore;
 		chain_ = chain;
 
-		poolStore_ = PoolStore::instance(std::shared_ptr<IMemoryPool>(this)); 
+		poolStore_ = PoolStore::instance(std::shared_ptr<IMemoryPool>(this));
+		poolEntityStore_ = PoolEntityStore::instance(std::shared_ptr<IMemoryPool>(this));
 	}
 
 	qunit_t estimateFeeRateByLimit(TransactionContextPtr /* ctx */, qunit_t /* max qunit\byte */);
@@ -410,6 +456,12 @@ public:
 
 	void processCandidates();
 
+	EntityPtr locateEntity(const std::string& name) {
+		//
+		PoolEntityStorePtr lPoolEntityStore = PoolEntityStore::toStore(poolEntityStore_);
+		return lPoolEntityStore->locatePoolEntity(name);
+	}
+
 private:
 	inline qunit_t getTop() {
 		boost::unique_lock<boost::recursive_mutex> lLock(mempoolMutex_);
@@ -446,6 +498,7 @@ private:
 	IWalletPtr wallet_;
 	IEntityStorePtr entityStore_;
 	uint256 chain_;
+	IEntityStorePtr poolEntityStore_;
 
 	// local copy
 	std::multimap<uint256 /*from*/, uint256 /*to*/> forward_;

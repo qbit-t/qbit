@@ -27,7 +27,7 @@ Label
 
     property string units: "";
 
-	property string sign;
+	property string sign: "";
 
 	property bool compact: false;
 
@@ -76,7 +76,7 @@ Label
         var lText = "";
 
 		if (useSign) {
-			if (sign === undefined) {
+			if (sign === "") {
 				if (number < zeroNumber) lText = "-"; else lText = "+";
 			} else {
 				lText += sign;
@@ -112,9 +112,13 @@ Label
 
                 if (useSign)
                 {
-                    if (lParts[0][0] !== '-' && number < zeroNumber) lSignificant = "-";
-                    else lSignificant = "+";
-                }
+					if (sign === "") {
+						if (lParts[0][0] !== '-' && number < zeroNumber) lSignificant = "-";
+						else lSignificant = "+";
+					} else {
+						lSignificant += sign;
+					}
+				}
 
                 lSignificant += lParts[0] + "."; // +|-000.
                 significant.text = lSignificant;

@@ -56,6 +56,8 @@ Item {
 	property var parentLink_: false
 	property var self_: self
 	property var rootId_
+	property bool mistrusted_: false
+	property bool endorsed_: false
 
 	property var controller_: controller
 	property var buzzfeedModel_: buzzfeedModel
@@ -282,6 +284,18 @@ Item {
 		}
 	}
 
+	QuarkSymbolLabel {
+		id: endorseSymbol
+		x: avatarImage.x + avatarImage.displayWidth / 2 - width / 2
+		y: avatarImage.y + avatarImage.displayHeight + spaceItems_
+		symbol: endorsed_ ? Fonts.endorseSym : Fonts.mistrustSym
+		font.pointSize: 14
+		color: endorsed_ ? buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.endorsed") :
+						   buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.mistrusted");
+
+		visible: endorsed_ || mistrusted_
+	}
+
 	//
 	// header
 	//
@@ -501,6 +515,7 @@ Item {
 		id: buzzerEndorseCommand
 
 		onProcessed: {
+			endorsed_ = true;
 		}
 		onError: {
 			if (code === "E_CHAINS_ABSENT") return;
@@ -517,6 +532,7 @@ Item {
 		id: buzzerMistrustCommand
 
 		onProcessed: {
+			mistrusted_ = true;
 		}
 		onError: {
 			if (code === "E_CHAINS_ABSENT") return;

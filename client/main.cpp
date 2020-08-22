@@ -458,7 +458,7 @@ int main(int argv, char** argc) {
 	lCommandsHandler->push(lRebuzzCommand);
 
 	LoadBuzzerTrustScoreCommandPtr lScoreCommand = std::static_pointer_cast<LoadBuzzerTrustScoreCommand>(
-		LoadBuzzerTrustScoreCommand::instance(lBuzzerComposer, boost::bind(&Buzzer::updateTrustScore, lBuzzer, _1, _2, _3, _4, _5)));
+		LoadBuzzerTrustScoreCommand::instance(lBuzzerComposer, boost::bind(&Buzzer::updateTrustScoreFull, lBuzzer, _1, _2, _3, _4, _5)));
 	lCommandsHandler->push(lScoreCommand);
 
 	lCommandsHandler->push(BuzzerSubscribeCommand::instance(lBuzzerComposer, boost::bind(&commandDone)));

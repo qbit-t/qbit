@@ -49,6 +49,7 @@ Item {
 	readonly property int spaceRight_: 15
 	readonly property int spaceBottom_: 12
 	readonly property int spaceAvatarBuzz_: 10
+	readonly property int spaceAction_: 45
 	readonly property int spaceItems_: 5
 	readonly property int spaceMedia_: 10
 	readonly property int spaceMediaIndicator_: 15
@@ -120,7 +121,7 @@ Item {
 
 	QuarkSymbolLabel {
 		id: actionLabel
-		x: spaceLeft_
+		x: spaceAction_ / 2 - width / 2
 		y: spaceTop_
 		symbol: Fonts.userAliasSym
 		font.pointSize: 22
@@ -182,7 +183,7 @@ Item {
 	Image {
 		id: avatarImage
 
-		x: spaceLeft_ + actionLabel.width + spaceAvatarBuzz_
+		x: spaceAction_
 		y: spaceTop_
 		width: avatarImage.displayWidth
 		height: avatarImage.displayHeight

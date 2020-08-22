@@ -425,7 +425,7 @@ public:
 	void setBuzzId(const uint256& id) { buzzId_ = id; }
 
 	bool threaded() { return threaded_; }
-	void resetThreaded() { threaded_ = false;; }
+	void resetThreaded() { threaded_ = false; }
 
 	const uint256& originalBuzzChainId() const { return originalBuzzChainId_; }
 	void setOriginalBuzzChainId(const uint256& id) { originalBuzzChainId_ = id; }

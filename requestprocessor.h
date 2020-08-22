@@ -241,12 +241,17 @@ public:
 
 	bool loadTransaction(const uint256& chain, const uint256& tx, ILoadTransactionHandlerPtr handler) {
 		//
+		return loadTransaction(chain, tx, false, handler);
+	}
+
+	bool loadTransaction(const uint256& chain, const uint256& tx, bool tryMempool, ILoadTransactionHandlerPtr handler) {
+		//
 		std::map<IRequestProcessor::KeyOrder, IPeerPtr> lOrder;
 		collectPeersByChain(chain, lOrder);
 
 		if (lOrder.size()) {
 			// use nearest
-			lOrder.begin()->second->loadTransaction(chain, tx, handler);
+			lOrder.begin()->second->loadTransaction(chain, tx, tryMempool, handler);
 			return true;
 		}
 

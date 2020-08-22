@@ -168,16 +168,39 @@ Item
 				var lComponent = null;
 				var lPage = null;
 
-				lComponent = Qt.createComponent("qrc:/qml/buzzfeedthread.qml");
-				if (lComponent.status === Component.Error) {
-					showError(lComponent.errorString());
-				} else {
-					lPage = lComponent.createObject(controller);
-					lPage.controller = controller;
-					addPage(lPage);
+				if (type === buzzerClient.tx_BUZZER_SUBSCRIBE_TYPE() ||
+					type === buzzerClient.tx_BUZZER_ENDORSE_TYPE() ||
+					type === buzzerClient.tx_BUZZER_MISTRUST_TYPE()) {
+					lComponent = Qt.createComponent("qrc:/qml/buzzfeedbuzzer.qml");
+					if (lComponent.status === Component.Error) {
+						showError(lComponent.errorString());
+					} else {
+						lPage = lComponent.createObject(controller);
+						lPage.controller = controller;
+						addPage(lPage);
 
-					lPage.start(buzzChainId, buzzId);
+						lPage.start(getBuzzerName());
+					}
+				} else {
+					lComponent = Qt.createComponent("qrc:/qml/buzzfeedthread.qml");
+					if (lComponent.status === Component.Error) {
+						showError(lComponent.errorString());
+					} else {
+						lPage = lComponent.createObject(controller);
+						lPage.controller = controller;
+						addPage(lPage);
+
+						lPage.start(buzzChainId, buzzId);
+					}
 				}
+			}
+
+			function getBuzzerName() {
+				if (eventInfos.length > 0) {
+					return buzzerClient.getBuzzerName(eventInfos[0].buzzerInfoId);
+				}
+
+				return buzzerClient.getBuzzerName(publisherInfoId);
 			}
 
 			onWidthChanged: {
@@ -198,6 +221,9 @@ Item
 						type === buzzerClient.tx_BUZZER_ENDORSE_TYPE() ||
 						type === buzzerClient.tx_BUZZER_MISTRUST_TYPE()) {
 					lSource = "qrc:/qml/eventdonateendorsemistrustitem.qml";
+				} else if (type === buzzerClient.tx_BUZZ_REPLY_TYPE() ||
+						type === buzzerClient.tx_REBUZZ_REPLY_TYPE()) {
+					lSource = "qrc:/qml/eventreplyrebuzzitem.qml";
 				}
 
 				var lComponent = Qt.createComponent(lSource);

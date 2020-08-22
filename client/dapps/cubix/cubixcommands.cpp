@@ -473,7 +473,7 @@ void DownloadMediaCommand::process(const std::vector<std::string>& args) {
 			}
 		}
 
-		if (!composer_->requestProcessor()->loadTransaction(chain_, headerTx_, 
+		if (!composer_->requestProcessor()->loadTransaction(chain_, headerTx_, true /*try mempool*/,
 				LoadTransaction::instance(
 					boost::bind(&DownloadMediaCommand::headerLoaded, shared_from_this(), _1),
 					boost::bind(&DownloadMediaCommand::timeout, shared_from_this()))
@@ -554,7 +554,7 @@ void DownloadMediaCommand::headerLoaded(TransactionPtr tx) {
 
 				//
 				nextDataTx_ = header_->in()[0].out().tx();
-				if (!composer_->requestProcessor()->loadTransaction(chain_, nextDataTx_, 
+				if (!composer_->requestProcessor()->loadTransaction(chain_, nextDataTx_, true /*try mempool*/,
 						LoadTransaction::instance(
 							boost::bind(&DownloadMediaCommand::dataLoaded, shared_from_this(), _1),
 							boost::bind(&DownloadMediaCommand::timeout, shared_from_this()))
@@ -602,7 +602,7 @@ void DownloadMediaCommand::dataLoaded(TransactionPtr tx) {
 
 			//
 			nextDataTx_ = lData->in()[0].out().tx();
-			if (!composer_->requestProcessor()->loadTransaction(chain_, nextDataTx_, 
+			if (!composer_->requestProcessor()->loadTransaction(chain_, nextDataTx_, true /*try mempool*/, 
 					LoadTransaction::instance(
 						boost::bind(&DownloadMediaCommand::dataLoaded, shared_from_this(), _1),
 						boost::bind(&DownloadMediaCommand::timeout, shared_from_this()))

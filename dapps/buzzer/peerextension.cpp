@@ -108,6 +108,7 @@ bool BuzzerPeerExtension::processBuzzCommon(TransactionContextPtr ctx) {
 		ITransactionStorePtr lMainStore = peerManager_->consensusManager()->storeManager()->locate(MainChain::id());
 		// publisher
 		uint256 lPublisher = (*lTx->in().begin()).out().tx(); // allways first
+		uint256 lOriginalPublisher = lPublisher;
 
 		if (lStore && lStore->extension()) {
 			BuzzerTransactionStoreExtensionPtr lExtension = std::static_pointer_cast<BuzzerTransactionStoreExtension>(lStore->extension());
@@ -256,6 +257,7 @@ bool BuzzerPeerExtension::processBuzzCommon(TransactionContextPtr ctx) {
 						// if subscriber (peer) has subscription on this new publisher
 						if (lExtension->checkSubscription(dapp_.instance(), lPublisher) || 
 																dapp_.instance() == lPublisher ||
+																dapp_.instance() == lOriginalPublisher ||
 																lHasDynamicSubscription) {
 
 							uint256 lReTxId = lInTx->id();
@@ -310,7 +312,9 @@ bool BuzzerPeerExtension::processBuzzCommon(TransactionContextPtr ctx) {
 									lPublisher = (*lInTx->in().begin()).out().tx();
 									// make update
 									if (lExtension->checkSubscription(dapp_.instance(), lPublisher) || 
-																			dapp_.instance() == lPublisher || lHasDynamicSubscription) {
+																			dapp_.instance() == lPublisher || 
+																			dapp_.instance() == lOriginalPublisher || 
+																			lHasDynamicSubscription) {
 										BuzzerTransactionStoreExtension::BuzzInfo lInfo;
 										lExtension->readBuzzInfo(lReTxId, lInfo);
 										// if we have one
@@ -3377,12 +3381,14 @@ void BuzzerPeerExtension::processNewBuzzNotify(std::list<DataStream>::iterator m
 		else if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, std::string("[peer/buzzer]: processing new buzz notification ") + 
 			strprintf("%s/%s# from %s", lBuzz.buzzId().toHex(), lBuzz.buzzChainId().toHex().substr(0, 10), peer_->key()));
 
-		// update subscriptions
-		buzzer_->processSubscriptions(lBuzz, peer_->addressId());
-		// update (if necessary) current buzzfeed
-		buzzer_->buzzfeed()->push(lBuzz, peer_->addressId());
-		// try to process pending items (in case of rebuzz)
-		buzzer_->resolvePendingItems();
+		if (buzzer_->buzzfeed()) {
+			// update subscriptions
+			buzzer_->processSubscriptions(lBuzz, peer_->addressId());
+			// update (if necessary) current buzzfeed
+			buzzer_->buzzfeed()->push(lBuzz, peer_->addressId());
+			// try to process pending items (in case of rebuzz)
+			buzzer_->resolvePendingItems();
+		}
 
 		// WARNING: in case of async_read for large data
 		peer_->processed();
@@ -3409,7 +3415,9 @@ void BuzzerPeerExtension::processNewEventNotify(std::list<DataStream>::iterator 
 		peer_->eraseInData(msg);
 
 		// log
-		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: processing new event notifications ") + 
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: processing new event notifications ") +
+			strprintf("%d from %s", lEvents.size(), peer_->key()));
+		else if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, std::string("[peer/buzzer]: processing new event notifications ") +
 			strprintf("%d from %s", lEvents.size(), peer_->key()));
 
 		// update

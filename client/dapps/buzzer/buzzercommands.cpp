@@ -25,7 +25,7 @@ void CreateBuzzerCommand::process(const std::vector<std::string>& args) {
 		// async process
 		lCommander->process(boost::bind(&CreateBuzzerCommand::error, shared_from_this(), _1, _2));
 	} else {
-		error("E_INCORRECT_AGRS", "Incorrect number of arguments");
+		error("E_INCORRECT_AGRS", "0-Incorrect number of arguments");
 		return;
 	}
 }
@@ -184,7 +184,7 @@ void CreateBuzzCommand::process(const std::vector<std::string>& args) {
 			createBuzz();
 		}
 	} else {
-		error("E_INCORRECT_AGRS", "Incorrect number of arguments.");
+		error("E_INCORRECT_AGRS", "1-Incorrect number of arguments.");
 	}
 }
 
@@ -237,7 +237,7 @@ void BuzzerSubscribeCommand::process(const std::vector<std::string>& args) {
 		// async process
 		lCommand->process(boost::bind(&BuzzerSubscribeCommand::error, shared_from_this(), _1, _2));
 	} else {
-		error("E_INCORRECT_AGRS", "Incorrect number of arguments.");
+		error("E_INCORRECT_AGRS", "2-Incorrect number of arguments.");
 	}
 }
 
@@ -252,7 +252,7 @@ void BuzzerUnsubscribeCommand::process(const std::vector<std::string>& args) {
 		// async process
 		lCommand->process(boost::bind(&BuzzerUnsubscribeCommand::error, shared_from_this(), _1, _2));
 	} else {
-		error("E_INCORRECT_AGRS", "Incorrect number of arguments.");
+		error("E_INCORRECT_AGRS", "3-Incorrect number of arguments.");
 	}
 }
 
@@ -274,7 +274,7 @@ void LoadHashTagsCommand::process(const std::vector<std::string>& args) {
 	if (args.size() == 1) {
 		tag_ = args[0];
 	} else {
-		error("E_INCORRECT_AGRS", "Incorrect number of arguments.");
+		error("E_INCORRECT_AGRS", "4-Incorrect number of arguments.");
 	}
 
 	// collect all sources
@@ -513,7 +513,7 @@ void LoadBuzzfeedByBuzzerCommand::process(const std::vector<std::string>& args) 
 			lFrom = lFromChain->second;
 
 		//
-		if (!lFrom.size()) continue;
+		//if (!lFrom.size()) continue;
 		//
 		IComposerMethodPtr lCommand = BuzzerLightComposer::LoadBuzzesByBuzzer::instance(
 			composer_, 
@@ -1447,7 +1447,7 @@ void BuzzLikeCommand::process(const std::vector<std::string>& args) {
 			return;
 		}
 	} else {
-		error("E_INCORRECT_AGRS", "Incorrect number of arguments");
+		error("E_INCORRECT_AGRS", "5-Incorrect number of arguments");
 		return;
 	}
 }
@@ -1494,7 +1494,7 @@ void BuzzRewardCommand::process(const std::vector<std::string>& args) {
 			return;
 		}
 	} else {
-		error("E_INCORRECT_AGRS", "Incorrect number of arguments");
+		error("E_INCORRECT_AGRS", "6-Incorrect number of arguments");
 		return;
 	}
 }
@@ -1530,7 +1530,7 @@ void CreateBuzzReplyCommand::process(const std::vector<std::string>& args) {
 			createBuzz();
 		}
 	} else {
-		error("E_INCORRECT_AGRS", "Incorrect number of arguments.");
+		error("E_INCORRECT_AGRS", "7-Incorrect number of arguments.");
 	}
 }
 
@@ -1611,7 +1611,7 @@ void CreateReBuzzCommand::process(const std::vector<std::string>& args) {
 		}
 
 	} else {
-		error("E_INCORRECT_AGRS", "Incorrect number of arguments");
+		error("E_INCORRECT_AGRS", "8-Incorrect number of arguments");
 	}
 }
 
@@ -1708,7 +1708,7 @@ void BuzzerEndorseCommand::process(const std::vector<std::string>& args) {
 		// async process
 		lCommand->process(boost::bind(&BuzzerEndorseCommand::error, shared_from_this(), _1, _2));
 	} else {
-		error("E_INCORRECT_AGRS", "Incorrect number of arguments");
+		error("E_INCORRECT_AGRS", "9-Incorrect number of arguments");
 	}
 }
 
@@ -1731,7 +1731,7 @@ void BuzzerMistrustCommand::process(const std::vector<std::string>& args) {
 		// async process
 		lCommand->process(boost::bind(&BuzzerMistrustCommand::error, shared_from_this(), _1, _2));
 	} else {
-		error("E_INCORRECT_AGRS", "Incorrect number of arguments");
+		error("E_INCORRECT_AGRS", "10-Incorrect number of arguments");
 	}
 }
 
@@ -1774,7 +1774,7 @@ void BuzzSubscribeCommand::process(const std::vector<std::string>& args) {
 		done_(ProcessingError());
 
 	} else {
-		error("E_INCORRECT_AGRS", "Incorrect number of arguments");
+		error("E_INCORRECT_AGRS", "11-Incorrect number of arguments");
 	}
 }
 
@@ -1805,7 +1805,7 @@ void BuzzUnsubscribeCommand::process(const std::vector<std::string>& args) {
 		done_(ProcessingError());
 
 	} else {
-		error("E_INCORRECT_AGRS", "Incorrect number of arguments");
+		error("E_INCORRECT_AGRS", "12-Incorrect number of arguments");
 	}
 }
 
@@ -1825,7 +1825,7 @@ void LoadBuzzerInfoCommand::process(const std::vector<std::string>& args) {
 		// async process
 		lCommand->process(boost::bind(&LoadBuzzerInfoCommand::error, shared_from_this(), _1, _2));
 	} else {
-		error("E_INCORRECT_AGRS", "Incorrect number of arguments");
+		error("E_INCORRECT_AGRS", "13-Incorrect number of arguments");
 		return;
 	}
 }

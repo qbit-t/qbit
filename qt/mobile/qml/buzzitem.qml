@@ -62,6 +62,8 @@ Item {
 	property bool hasNextLink_: hasNextLink
 	property bool dynamic_: dynamic
 	property bool onChain_: onChain
+	property bool mistrusted_: false
+	property bool endorsed_: false
 
 	property var controller_: controller
 	property var buzzfeedModel_: buzzfeedModel
@@ -74,6 +76,7 @@ Item {
 	readonly property int spaceAvatarBuzz_: 10
 	readonly property int spaceItems_: 5
 	readonly property int spaceMedia_: 10
+	readonly property int spaceSingleMedia_: 8
 	readonly property int spaceMediaIndicator_: 15
 	readonly property int spaceHeader_: 5
 	readonly property int spaceRightMenu_: 15
@@ -115,6 +118,14 @@ Item {
 	function calculateHeight() {
 		calculatedHeight = calculateHeightInternal();
 		return calculatedHeight;
+	}
+
+	onThreaded_Changed: {
+		calculateHeight();
+	}
+
+	onReplies_Changed: {
+		calculateHeight();
 	}
 
 	//
@@ -336,11 +347,23 @@ Item {
 		}
 	}
 
+	QuarkSymbolLabel {
+		id: endorseSymbol
+		x: avatarImage.x + avatarImage.displayWidth / 2 - width / 2
+		y: avatarImage.y + avatarImage.displayHeight + spaceItems_
+		symbol: endorsed_ ? Fonts.endorseSym : Fonts.mistrustSym
+		font.pointSize: 14
+		color: endorsed_ ? buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.endorsed") :
+						   buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.mistrusted");
+
+		visible: endorsed_ || mistrusted_
+	}
+
 	QuarkVLine {
 		id: childrenLine
 
 		x1: avatarImage.x + avatarImage.width / 2
-		y1: avatarImage.y + avatarImage.height + spaceLine_
+		y1: avatarImage.y + avatarImage.height + spaceLine_ + (endorseSymbol.visible ? (endorseSymbol.height + spaceItems_ + 2) : 0)
 		x2: x1
 		y2: bottomLine.y - (threaded_ || threadedControl.showMore() ? spaceThreaded_ : 0)
 		penWidth: 2
@@ -701,20 +724,20 @@ Item {
 		function innerHeightChanged(value) {
 			bodyControl.height = (buzzBody_.length > 0 ? buzzText.height : 0) + value +
 										(buzzBody_.length > 0 ? spaceMedia_ : spaceItems_) +
-										(buzzMedia_.length > 1 ? spaceMediaIndicator_ : 0);
+										(buzzMedia_.length > 1 ? spaceMediaIndicator_ : spaceSingleMedia_);
 			buzzitem_.calculateHeight();
 		}
 
 		function getY() {
 			return (buzzBody_.length > 0 ? buzzText.height : 0) +
 					(buzzBody_.length > 0 ? spaceMedia_ : spaceItems_) +
-					(buzzMedia_.length > 1 ? spaceMediaIndicator_ : 0);
+					(buzzMedia_.length > 1 ? spaceMediaIndicator_ : spaceSingleMedia_);
 		}
 
 		function getNextY() {
 			return (buzzBody_.length > 0 ? buzzText.height : 0) +
 					(buzzBody_.length > 0 ? spaceMedia_ : spaceItems_) +
-					(buzzMedia_.length > 1 ? spaceMediaIndicator_ : 0) +
+					(buzzMedia_.length > 1 ? spaceMediaIndicator_ : spaceSingleMedia_) +
 					(wrappedItem_ ? wrappedItem_.y + wrappedItem_.calculatedHeight + spaceItems_ : 0);
 		}
 
@@ -723,7 +746,7 @@ Item {
 					(buzzMediaItem_ ? buzzMediaItem_.calculatedHeight : 0) +
 					(urlInfoItem_ ? urlInfoItem_.calculatedHeight : 0) +
 					(buzzBody_.length > 0 ? spaceMedia_ : spaceItems_) +
-					(buzzMedia_.length > 1 ? spaceMediaIndicator_ : 0) +
+					(buzzMedia_.length > 1 ? spaceMediaIndicator_ : spaceSingleMedia_) +
 					(wrappedItem_ ? wrappedItem_.calculatedHeight + spaceItems_: 0);
 		}
 	}
@@ -864,20 +887,29 @@ Item {
 
 		function showMore() {
 			//
-			if (childrenCount_ === 0 && replies_ > 0) {
-				return true;
+			if (dynamic_) return false;
+
+			if (replies_ > 0) {
+				if (buzzfeedModel_ && buzzfeedModel_.childrenCount(index) === 0)
+					return true;
 			}
 
 			return false;
 		}
 
 		function getHeight() {
-			if (threaded_ || showMore()) return height;
+			if (threaded_ || showMore()) {
+				return height;
+			}
+
 			return 0;
 		}
 
 		function getSpacing() {
-			if (threaded_ || showMore()) return spaceBottom_;
+			if (threaded_ || showMore()) {
+				return spaceBottom_;
+			}
+
 			return 0;
 		}
 	}
@@ -1069,6 +1101,7 @@ Item {
 		id: buzzerEndorseCommand
 
 		onProcessed: {
+			endorsed_ = true;
 		}
 		onError: {
 			if (code === "E_CHAINS_ABSENT") return;
@@ -1085,6 +1118,7 @@ Item {
 		id: buzzerMistrustCommand
 
 		onProcessed: {
+			mistrusted_ = true;
 		}
 		onError: {
 			if (code === "E_CHAINS_ABSENT") return;

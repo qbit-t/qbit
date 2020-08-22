@@ -304,6 +304,7 @@ public:
 	// open requests
 	void acquireBlockHeaderWithCoinbase(const uint256& /*block*/, const uint256& /*chain*/, INetworkBlockHandlerWithCoinBasePtr /*handler*/);
 	void loadTransaction(const uint256& /*chain*/, const uint256& /*tx*/, ILoadTransactionHandlerPtr /*handler*/);
+	void loadTransaction(const uint256& /*chain*/, const uint256& /*tx*/, bool /*tryMempool*/, ILoadTransactionHandlerPtr /*handler*/);
 	void loadTransactions(const uint256& /*chain*/, const std::vector<uint256>& /*txs*/, ILoadTransactionsHandlerPtr /*handler*/);
 	void loadEntity(const std::string& /*entityName*/, ILoadEntityHandlerPtr /*handler*/);
 	void selectUtxoByAddress(const PKey& /*source*/, const uint256& /*chain*/, ISelectUtxoByAddressHandlerPtr /*handler*/);

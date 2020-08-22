@@ -294,6 +294,8 @@ void BuzzerTransactionStoreExtension::processEndorse(const uint256& id, Transact
 															lEvent->timestamp(), lEndoser, lEvent->id());
 			// mark last updates
 			publisherUpdates(lEndoser, lEvent->timestamp());
+			subscriberUpdates(lBuzzer, lEvent->timestamp());
+
 			// events
 			events_.write(lBuzzer, lEvent->timestamp(), lEvent->id(), lEvent->type());
 
@@ -349,6 +351,8 @@ void BuzzerTransactionStoreExtension::processMistrust(const uint256& id, Transac
 												lEvent->timestamp(), lMistruster, lEvent->id());
 			// mark last updates
 			publisherUpdates(lMistruster, lEvent->timestamp());
+			subscriberUpdates(lBuzzer, lEvent->timestamp());
+
 			// events
 			events_.write(lBuzzer, lEvent->timestamp(), lEvent->id(), lEvent->type());
 
@@ -605,6 +609,8 @@ void BuzzerTransactionStoreExtension::processSubscribe(const uint256& id, Transa
 		subscriptionsIdx_.write(lSubscriber, lPublisher, lBuzzSubscribe->id());
 		publishersIdx_.write(lPublisher, lSubscriber, lBuzzSubscribe->id());
 		events_.write(lPublisher, lBuzzSubscribe->timestamp(), lBuzzSubscribe->id(), lBuzzSubscribe->type());
+		publisherUpdates(lSubscriber, lBuzzSubscribe->timestamp());
+		subscriberUpdates(lPublisher, lBuzzSubscribe->timestamp());
 		incrementSubscriptions(lSubscriber);
 		incrementFollowers(lPublisher);
 
@@ -1698,6 +1704,9 @@ void BuzzerTransactionStoreExtension::selectEventsfeed(uint64_t from, const uint
 					//
 					lRawBuzzfeed.insert(std::multimap<uint64_t, EventsfeedItem::Key>::value_type(lItem->timestamp(), lItem->key()));
 					lBuzzItems.insert(std::map<EventsfeedItem::Key, EventsfeedItemPtr>::value_type(lItem->key(), lItem));
+					//
+					if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectEventsfeed]: ") +
+						strprintf("add subscribe = %s, %s, %s#", lPublisher.toHex(), lSubscriber.toHex(), store_->chain().toHex().substr(0, 10)));		
 				}
 			}
 		} 
@@ -1714,7 +1723,11 @@ void BuzzerTransactionStoreExtension::selectEventsfeed(uint64_t from, const uint
 		} else {
 			break;
 		}
-	}	
+	}
+
+	//
+	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectEventsfeed]: ") +
+		strprintf("items count = %d, %s#", feed.size(), store_->chain().toHex().substr(0, 10)));		
 }
 
 void BuzzerTransactionStoreExtension::makeEventsfeedItem(TxBuzzerPtr buzzer, TransactionPtr tx, ITransactionStorePtr mainStore, std::multimap<uint64_t, EventsfeedItem::Key>& rawBuzzfeed, std::map<EventsfeedItem::Key, EventsfeedItemPtr>& buzzes) {
@@ -1735,12 +1748,11 @@ void BuzzerTransactionStoreExtension::makeEventsfeedItem(TxBuzzerPtr buzzer, Tra
 		} else if (tx->type() == TX_REBUZZ) {
 			//
 			TxReBuzzPtr lRebuzz = TransactionHelper::to<TxReBuzz>(lBuzz);
+			uint256 lBuzzId = lRebuzz->buzzId();
+			uint256 lBuzzChainId = lRebuzz->buzzChainId();
 
 			// simple rebuzz
 			if (lRebuzz->simpleRebuzz()) {
-				uint256 lBuzzId = lRebuzz->buzzId();
-				uint256 lBuzzChainId = lRebuzz->buzzChainId();
-
 				EventsfeedItem::Key lKey(lBuzzId /*original*/, TX_REBUZZ /*this action*/);
 
 				std::map<EventsfeedItem::Key, EventsfeedItemPtr>::iterator lExistingItem = buzzes.find(lKey);
@@ -1772,6 +1784,8 @@ void BuzzerTransactionStoreExtension::makeEventsfeedItem(TxBuzzerPtr buzzer, Tra
 					lBuzz->timestamp(), lBuzz->buzzerInfoChain(), lBuzz->buzzerInfo(), lBuzz->score(), lBuzz->signature());
 
 				lItem->setType(TX_REBUZZ_REPLY); // special case
+				lItem->setBuzzId(lBuzzId);
+				lItem->setBuzzChainId(lBuzzChainId);
 			}
 		}
 

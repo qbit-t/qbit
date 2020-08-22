@@ -434,6 +434,7 @@ public:
 
 	virtual void lock() {}
 	virtual void unlock() {}
+	virtual EventsfeedItemPtr parent() { return parent_; }
 
 	virtual uint64_t locateLastTimestamp();
 	virtual void collectPendingItems(std::map<uint256 /*chain*/, std::set<uint256>/*items*/>&);
@@ -459,7 +460,7 @@ public:
 			}
 		}
 
-		if (!publisherInfo_.isNull())
+		if (!publisherInfo_.isNull()) {
 			if (!buzzerInfoResolve_(
 					publisherInfoChain_, 
 					publisher_, 
@@ -468,6 +469,7 @@ public:
 				//
 				return false;
 			}
+		}
 
 		return lResolved;
 	}
@@ -482,9 +484,6 @@ public:
 	}
 
 	virtual void clear() {
-		//
-		if (gLog().isEnabled(Log::CLIENT))
-			gLog().write(Log::CLIENT, strprintf("[CLEAR]: %d", index_.size()));
 		items_.clear();
 		index_.clear();
 		lastTimestamps_.clear();
@@ -534,10 +533,12 @@ public:
 	}
 
 protected:
-	virtual void itemUpdated(EventsfeedItemPtr) {}
-	virtual void itemNew(EventsfeedItemPtr) {}
-	virtual void itemsUpdated(const std::vector<EventsfeedItem>&) {}
-	virtual void largeUpdated() {}
+	virtual void itemUpdated(EventsfeedItemPtr item) { if (parent_) parent_->itemUpdated(item); }
+	virtual void itemNew(EventsfeedItemPtr item) {
+		if (parent_) parent_->itemNew(item);
+	}
+	virtual void itemsUpdated(const std::vector<EventsfeedItem>& items) { if (parent_) parent_->itemsUpdated(items); }
+	virtual void largeUpdated() { if (parent_) parent_->largeUpdated(); }
 
 	void removeIndex(EventsfeedItemPtr item) {
 		// clean-up
@@ -627,6 +628,9 @@ protected:
 	buzzerInfoResolveFunction buzzerInfoResolve_;
 	eventsfeedItemVerifyFunction verifyPublisher_;
 	buzzfeedItemVerifyFunction verifySource_;
+
+	// parent
+	EventsfeedItemPtr parent_;
 };
 
 //
@@ -674,6 +678,8 @@ public:
 	EventsfeedItemPtr toItem() {
 		return std::static_pointer_cast<EventsfeedItem>(shared_from_this());
 	}
+
+	EventsfeedItemPtr parent() { return toItem(); }
 
 	void prepare() {
 		buzzerInfo_ = boost::bind(&Buzzer::locateBuzzerInfo, buzzer_, _1, _2, _3);

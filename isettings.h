@@ -11,6 +11,8 @@
 
 namespace qbit {
 
+extern bool gLightDaemon;
+
 class ISettings {
 public:
 	ISettings() {}
