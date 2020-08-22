@@ -48,6 +48,7 @@ public:
 
 	virtual void requestState() { throw qbit::exception("NOT_IMPL", "IRequestProcessor::requestState - not implemented."); }	
 	virtual bool loadTransaction(const uint256& /*chain*/, const uint256& /*tx*/, ILoadTransactionHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IRequestProcessor::loadTransaction - not implemented."); }
+	virtual bool loadTransaction(const uint256& /*chain*/, const uint256& /*tx*/, bool /*tryMempool*/, ILoadTransactionHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IRequestProcessor::loadTransaction - not implemented."); }
 	virtual bool loadTransactions(const uint256& /*chain*/, const std::vector<uint256>& /*txs*/, ILoadTransactionsHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IRequestProcessor::loadTransactions - not implemented."); }
 	virtual bool loadEntity(const std::string& /*entityName*/, ILoadEntityHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IRequestProcessor::loadEntity - not implemented."); }
 	virtual bool selectUtxoByAddress(const PKey& /*source*/, const uint256& /*chain*/, ISelectUtxoByAddressHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IRequestProcessor::selectUtxoByAddress - not implemented."); }

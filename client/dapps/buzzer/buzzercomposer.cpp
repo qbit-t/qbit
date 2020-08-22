@@ -5,10 +5,173 @@
 #include "../../../mkpath.h"
 #include "../../../timestamp.h"
 
+#include <iostream>
+#include <iterator>
+#include <fstream>
+
 using namespace qbit;
 
+void BuzzerLightComposer::writeWorkingSetings() {
+	// try file
+	std::string lName = settings_->dataPath() + "/wallet/buzzer/settings.bin";
+	boost::filesystem::path lPath(lName);
+	if (boost::filesystem::exists(lPath)) {
+		boost::filesystem::remove(lPath);
+	}
+
+	//
+	std::ofstream lFile = std::ofstream(lName, std::ios::binary);
+	for (std::map<std::string /*name*/, std::string /*data*/>::iterator lItem = cachedWorkingSettings_.begin(); 
+																		lItem != cachedWorkingSettings_.end(); lItem++) {
+		//
+		lFile.write((char*)lItem->first.c_str(), lItem->first.length());
+		lFile.write("|", 1);
+		lFile.write((char*)lItem->second.c_str(), lItem->second.length());
+		lFile.write("\n", 1);
+	}
+
+	lFile.close();
+}
+
+void BuzzerLightComposer::checkWorkingSettings() {
+	//
+	if (!gLightDaemon) return;
+
+	// try file
+	std::string lName = settings_->dataPath() + "/wallet/buzzer/settings.bin";
+	boost::filesystem::path lPath(lName);
+
+	// exists?
+	if (!boost::filesystem::exists(lPath)) {
+		return;
+	}
+
+	time_t lTime = boost::filesystem::last_write_time(lPath);
+	if (lTime != workingSettingsTime_) {
+		//
+		workingSettingsTime_ = lTime;
+		cachedWorkingSettings_.clear();
+		//
+		std::ifstream lFile = std::ifstream(lName);
+		std::string lLine;
+		while(std::getline(lFile, lLine)) {
+			std::vector<std::string> lValues;
+			boost::split(lValues, lLine, boost::is_any_of("|"));
+
+			if (lValues.size() == 2) {
+				cachedWorkingSettings_.insert(std::map<std::string /*name*/, std::string /*data*/>::
+					value_type(lValues[0], lValues[1]));
+			}
+		}
+
+		// retrace
+		std::map<std::string /*name*/, std::string /*data*/>::iterator lItem;
+		if ((lItem = cachedWorkingSettings_.find("buzzerTx")) != cachedWorkingSettings_.end()) {
+			std::string lBuzzerTx = lItem->second;
+			std::vector<unsigned char> lBuzzerTxHex = ParseHex(lBuzzerTx);
+
+			DataStream lStream(lBuzzerTxHex, SER_NETWORK, PROTOCOL_VERSION);
+			TransactionPtr lBuzzer = Transaction::Deserializer::deserialize<DataStream>(lStream);
+			buzzerTx_ = TransactionHelper::to<TxBuzzer>(lBuzzer);
+
+			requestProcessor_->clearDApps();
+			requestProcessor_->addDAppInstance(State::DAppInstance("buzzer", buzzerTx_->id()));
+			instanceChanged_(buzzerTx_->id());
+		}
+		
+		if ((lItem = cachedWorkingSettings_.find("buzzerInfoTx")) != cachedWorkingSettings_.end()) {
+			std::string lBuzzerInfoTx = lItem->second;
+			std::vector<unsigned char> lBuzzerTxHex = ParseHex(lBuzzerInfoTx);
+
+			DataStream lStream(lBuzzerTxHex, SER_NETWORK, PROTOCOL_VERSION);
+			TransactionPtr lBuzzerInfo = Transaction::Deserializer::deserialize<DataStream>(lStream);
+			buzzerInfoTx_ = TransactionHelper::to<TxBuzzerInfo>(lBuzzerInfo);
+
+			buzzer_->pushBuzzerInfo(buzzerInfoTx_);
+		}
+		
+		if ((lItem = cachedWorkingSettings_.find("buzzerUtxo")) != cachedWorkingSettings_.end()) {
+			std::string lBuzzerUtxo = lItem->second;
+			std::vector<unsigned char> lBuzzerUtxoHex = ParseHex(lBuzzerUtxo);
+
+			DataStream lStream(lBuzzerUtxoHex, SER_NETWORK, PROTOCOL_VERSION);
+			lStream >> buzzerUtxo_;
+		}
+	}
+}
+
+void BuzzerLightComposer::writeSubscription(const uint256& publisher, const PKey& key) {
+	// try file
+	std::string lName = settings_->dataPath() + "/wallet/buzzer/subscriptions.bin";
+	//
+	std::ofstream lFile = std::ofstream(lName, std::ios::app);
+	//
+	std::string lPublisher = publisher.toHex();
+	std::string lKey = key.toString();
+	lFile.write((char*)lPublisher.c_str(), lPublisher.length());
+	lFile.write("|", 1);
+	lFile.write((char*)lKey.c_str(), lKey.length());
+	lFile.write("\n", 1);
+
+	lFile.close();	
+}
+
+void BuzzerLightComposer::checkSubscriptions() {
+	//
+	if (!gLightDaemon) return;
+
+	// try file
+	std::string lName = settings_->dataPath() + "/wallet/buzzer/subscriptions.bin";
+	boost::filesystem::path lPath(lName);
+
+	// exists?
+	if (!boost::filesystem::exists(lPath)) {
+		return;
+	}
+
+	time_t lTime = boost::filesystem::last_write_time(lPath);
+	if (lTime != subscriptionTime_) {
+		//
+		subscriptionTime_ = lTime;
+		cachedSubscriptions_.clear();
+		//
+		std::ifstream lFile = std::ifstream(lName);
+		std::string lLine;
+		while(std::getline(lFile, lLine)) {
+			std::vector<std::string> lValues;
+			boost::split(lValues, lLine, boost::is_any_of("|"));
+
+			if (lValues.size() == 2) {
+				uint256 lPublisher; lPublisher.setHex(lValues[0]);
+				cachedSubscriptions_[lPublisher] = PKey(lValues[1]);
+			}
+		}
+	}
+}
+
+bool BuzzerLightComposer::getSubscription(const uint256& id, PKey& key) {
+	//
+	if (gLightDaemon) {
+		checkSubscriptions();
+
+		std::map<uint256 /*publisher*/, PKey /*pubkey*/>::iterator lItem;
+		if ((lItem = cachedSubscriptions_.find(id)) != cachedSubscriptions_.end()) {
+			key = lItem->second;
+			return true;
+		}
+
+		return false;
+	}
+
+	return subscriptions_.read(id, key);
+}
+
 bool BuzzerLightComposer::open() {
-	if (!opened_) {
+	//
+	if (!gLightDaemon) {
+		//
+		if (opened_) return true;
+		//
 		try {
 			if (mkpath(std::string(settings_->dataPath() + "/wallet/buzzer").c_str(), 0777)) return false;
 
@@ -18,6 +181,9 @@ bool BuzzerLightComposer::open() {
 
 			std::string lBuzzerTx;
 			if (workingSettings_.read("buzzerTx", lBuzzerTx)) {
+				//
+				cachedWorkingSettings_["buzzerTx"] = lBuzzerTx;
+				//
 				std::vector<unsigned char> lBuzzerTxHex = ParseHex(lBuzzerTx);
 
 				DataStream lStream(lBuzzerTxHex, SER_NETWORK, PROTOCOL_VERSION);
@@ -32,6 +198,9 @@ bool BuzzerLightComposer::open() {
 
 			std::string lBuzzerInfoTx;
 			if (workingSettings_.read("buzzerInfoTx", lBuzzerInfoTx)) {
+				//
+				cachedWorkingSettings_["buzzerInfoTx"] = lBuzzerInfoTx;
+				//
 				std::vector<unsigned char> lBuzzerTxHex = ParseHex(lBuzzerInfoTx);
 
 				DataStream lStream(lBuzzerTxHex, SER_NETWORK, PROTOCOL_VERSION);
@@ -45,18 +214,26 @@ bool BuzzerLightComposer::open() {
 
 			std::string lBuzzerUtxo;
 			if (workingSettings_.read("buzzerUtxo", lBuzzerUtxo)) {
+				//
+				cachedWorkingSettings_["buzzerUtxo"] = lBuzzerUtxo;
+				//
 				std::vector<unsigned char> lBuzzerUtxoHex = ParseHex(lBuzzerUtxo);
 
 				DataStream lStream(lBuzzerUtxoHex, SER_NETWORK, PROTOCOL_VERSION);
 				lStream >> buzzerUtxo_;
 			}
-
+			//
 			opened_ = true;
-		}
-		catch(const std::exception& ex) {
+			//
+			writeWorkingSetings();
+		} catch(const qbit::db::exception& ex) {
+			//
 			gLog().write(Log::ERROR, std::string("[buzzer/wallet/open/error]: ") + ex.what());
+			//
 			return false;
 		}
+	} else {
+		checkWorkingSettings();
 	}
 
 	return true;
@@ -111,7 +288,7 @@ Buzzer::VerificationResult BuzzerLightComposer::verifyPublisherLazy(BuzzfeedItem
 		bool lResult = false;
 		for (std::vector<BuzzfeedItem::ItemInfo>::const_iterator lInfo = item->infos().begin(); lInfo != item->infos().end(); lInfo++) {
 			//
-			bool lFound = subscriptions_.read(lInfo->buzzerId(), lPKey);
+			bool lFound = getSubscription(lInfo->buzzerId(), lPKey);
 			if (!lFound) {
 				//
 				TxBuzzerInfoPtr lBuzzerInfo = buzzer_->locateBuzzerInfo(lInfo->buzzerInfoId());
@@ -132,7 +309,7 @@ Buzzer::VerificationResult BuzzerLightComposer::verifyPublisherLazy(BuzzfeedItem
 		bool lResult = false;
 		for (std::vector<BuzzfeedItem::ItemInfo>::const_iterator lInfo = item->infos().begin(); lInfo != item->infos().end(); lInfo++) {
 			//
-			bool lFound = subscriptions_.read(lInfo->buzzerId(), lPKey);
+			bool lFound = getSubscription(lInfo->buzzerId(), lPKey);
 			if (!lFound) {
 				//
 				TxBuzzerInfoPtr lBuzzerInfo = buzzer_->locateBuzzerInfo(lInfo->buzzerInfoId());
@@ -154,7 +331,7 @@ Buzzer::VerificationResult BuzzerLightComposer::verifyPublisherLazy(BuzzfeedItem
 		bool lResult = false;
 		BuzzfeedItem::ItemInfo lInfo = *(item->infos().begin());
 		//
-		bool lFound = subscriptions_.read(item->buzzerId(), lPKey);
+		bool lFound = getSubscription(item->buzzerId(), lPKey);
 		if (!lFound) {
 			//
 			TxBuzzerInfoPtr lBuzzerInfo = buzzer_->locateBuzzerInfo(item->buzzerInfoId());
@@ -172,7 +349,7 @@ Buzzer::VerificationResult BuzzerLightComposer::verifyPublisherLazy(BuzzfeedItem
 
 	} else {
 		//
-		bool lFound = subscriptions_.read(item->buzzerId(), lPKey);
+		bool lFound = getSubscription(item->buzzerId(), lPKey);
 		if (!lFound) {
 			//
 			TxBuzzerInfoPtr lBuzzerInfo = buzzer_->locateBuzzerInfo(item->buzzerInfoId());
@@ -186,7 +363,7 @@ Buzzer::VerificationResult BuzzerLightComposer::verifyPublisherLazy(BuzzfeedItem
 					bool lResult = false;
 					for (std::vector<BuzzfeedItem::ItemInfo>::const_iterator lInfo = item->infos().begin(); lInfo != item->infos().end(); lInfo++) {
 						//
-						bool lFound = subscriptions_.read(lInfo->buzzerId(), lPKey);
+						bool lFound = getSubscription(lInfo->buzzerId(), lPKey);
 						if (!lFound) {
 							//
 							TxBuzzerInfoPtr lBuzzerInfo = buzzer_->locateBuzzerInfo(lInfo->buzzerInfoId());
@@ -232,7 +409,7 @@ Buzzer::VerificationResult BuzzerLightComposer::verifyPublisherStrict(BuzzfeedIt
 	if (item->type() == TX_BUZZ_LIKE) {
 		bool lResult = false;
 		for (std::vector<BuzzfeedItem::ItemInfo>::const_iterator lInfo = item->infos().begin(); lInfo != item->infos().end(); lInfo++) {
-			if (subscriptions_.read(lInfo->buzzerId(), lPKey)) {
+			if (getSubscription(lInfo->buzzerId(), lPKey)) {
 				lResult = TxBuzzLike::verifySignature(lPKey, item->type(), lInfo->timestamp(), lInfo->score(),
 					lInfo->buzzerInfoId(), item->buzzId(), lInfo->signature());
 				if (!lResult) break;
@@ -245,7 +422,7 @@ Buzzer::VerificationResult BuzzerLightComposer::verifyPublisherStrict(BuzzfeedIt
 		//
 		bool lResult = false;
 		for (std::vector<BuzzfeedItem::ItemInfo>::const_iterator lInfo = item->infos().begin(); lInfo != item->infos().end(); lInfo++) {
-			if (subscriptions_.read(lInfo->buzzerId(), lPKey)) {
+			if (getSubscription(lInfo->buzzerId(), lPKey)) {
 				lResult = TxBuzzReward::verifySignature(lPKey, item->type(), lInfo->timestamp(), lInfo->score(), 
 					lInfo->amount(), lInfo->buzzerInfoId(), item->buzzId(), lInfo->signature());
 				if (!lResult) break;
@@ -260,7 +437,7 @@ Buzzer::VerificationResult BuzzerLightComposer::verifyPublisherStrict(BuzzfeedIt
 			if (item->infos().size() /*item->originalBuzzId().isNull()*/) {
 				bool lResult = false;
 				for (std::vector<BuzzfeedItem::ItemInfo>::const_iterator lInfo = item->infos().begin(); lInfo != item->infos().end(); lInfo++) {
-					if (subscriptions_.read(lInfo->buzzerId(), lPKey)) {
+					if (getSubscription(lInfo->buzzerId(), lPKey)) {
 						lResult = TxReBuzz::verifySignature(lPKey, item->type(), lInfo->timestamp(), lInfo->score(),
 										lInfo->buzzerInfoId(), std::vector<unsigned char>(), std::vector<BuzzerMediaPointer>(), 
 										item->buzzId(), item->buzzChainId(), lInfo->signature());
@@ -270,14 +447,14 @@ Buzzer::VerificationResult BuzzerLightComposer::verifyPublisherStrict(BuzzfeedIt
 
 				return (lResult == true ? Buzzer::VerificationResult::SUCCESS : Buzzer::VerificationResult::INVALID);				
 			} else {
-				if (subscriptions_.read(item->buzzerId(), lPKey))
+				if (getSubscription(item->buzzerId(), lPKey))
 					if (TxReBuzz::verifySignature(lPKey, item->type(), item->timestamp(), item->score(),
 						item->buzzerInfoId(), item->buzzBody(), item->buzzMedia(), item->originalBuzzId(),
 						item->originalBuzzChainId(), item->signature())) {
 						return Buzzer::VerificationResult::SUCCESS;
 					}
 			}
-		} else if (subscriptions_.read(item->buzzerId(), lPKey)) {
+		} else if (getSubscription(item->buzzerId(), lPKey)) {
 			if (item->type() == TX_BUZZER_ENDORSE || item->type() == TX_BUZZER_MISTRUST) {
 				//
 				bool lResult = false;
@@ -308,7 +485,7 @@ Buzzer::VerificationResult BuzzerLightComposer::verifyEventPublisher(EventsfeedI
 		// check events
 		for (std::vector<EventsfeedItem::EventInfo>::const_iterator lInfo = item->buzzers().begin(); lInfo != item->buzzers().end(); lInfo++) {
 			//
-			bool lFound = subscriptions_.read(lInfo->buzzerId(), lPKey);
+			bool lFound = getSubscription(lInfo->buzzerId(), lPKey);
 			if (!lFound) {
 				//
 				TxBuzzerInfoPtr lBuzzerInfo = buzzer_->locateBuzzerInfo(lInfo->buzzerInfoId());
@@ -332,7 +509,7 @@ Buzzer::VerificationResult BuzzerLightComposer::verifyEventPublisher(EventsfeedI
 		// check events
 		for (std::vector<EventsfeedItem::EventInfo>::const_iterator lInfo = item->buzzers().begin(); lInfo != item->buzzers().end(); lInfo++) {
 			//
-			bool lFound = subscriptions_.read(lInfo->buzzerId(), lPKey);
+			bool lFound = getSubscription(lInfo->buzzerId(), lPKey);
 			if (!lFound) {
 				//
 				TxBuzzerInfoPtr lBuzzerInfo = buzzer_->locateBuzzerInfo(lInfo->buzzerInfoId());
@@ -354,7 +531,7 @@ Buzzer::VerificationResult BuzzerLightComposer::verifyEventPublisher(EventsfeedI
 		bool lResult = false;
 		EventsfeedItem::EventInfo lInfo = *(item->buzzers().begin());
 		//
-		bool lFound = subscriptions_.read(lInfo.buzzerId(), lPKey);
+		bool lFound = getSubscription(lInfo.buzzerId(), lPKey);
 		if (!lFound) {
 			//
 			TxBuzzerInfoPtr lBuzzerInfo = buzzer_->locateBuzzerInfo(lInfo.buzzerInfoId());
@@ -377,7 +554,7 @@ Buzzer::VerificationResult BuzzerLightComposer::verifyEventPublisher(EventsfeedI
 		bool lResult = false;
 		EventsfeedItem::EventInfo lInfo = *(item->buzzers().begin());
 		//
-		bool lFound = subscriptions_.read(lInfo.buzzerId(), lPKey);
+		bool lFound = getSubscription(lInfo.buzzerId(), lPKey);
 		if (!lFound) {
 			//
 			TxBuzzerInfoPtr lBuzzerInfo = buzzer_->locateBuzzerInfo(lInfo.buzzerInfoId());
@@ -397,7 +574,7 @@ Buzzer::VerificationResult BuzzerLightComposer::verifyEventPublisher(EventsfeedI
 		bool lResult = false;
 		EventsfeedItem::EventInfo lInfo = *(item->buzzers().begin());
 		//
-		bool lFound = subscriptions_.read(lInfo.buzzerId(), lPKey);
+		bool lFound = getSubscription(lInfo.buzzerId(), lPKey);
 		if (!lFound) {
 			//
 			TxBuzzerInfoPtr lBuzzerInfo = buzzer_->locateBuzzerInfo(lInfo.buzzerInfoId());

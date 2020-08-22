@@ -20,6 +20,7 @@ public:
 
 	virtual std::string getLogCategories() = 0;
 	virtual bool getTestNet() = 0;
+	virtual bool getDebug() = 0;
 };
 
 extern buzzer::IApplication* gApplication;

@@ -159,7 +159,7 @@ Item
 	readonly property string chatsSym: "\uf4b6";
 
 	readonly property string replySym: "\uf075";
-	readonly property string rebuzzSym: "\uf079";
+	readonly property string rebuzzSym: "\uf364"; //f079
 	readonly property string rebuzzWithCommantSym: "\uf044";
 	readonly property string likeSym: "\uf004";
 	readonly property string tipSym: "\uf51e";

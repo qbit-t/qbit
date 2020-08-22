@@ -41,6 +41,7 @@ public:
 	virtual void setMainStore(ITransactionStorePtr /*store*/) { throw qbit::exception("NOT_IMPL", "IMemoryPool::setMainStore - not implemented."); }
 
 	virtual IEntityStorePtr entityStore() { throw qbit::exception("NOT_IMPL", "IMemoryPool::entityStore - not implemented."); }
+	virtual EntityPtr locateEntity(const std::string&) { throw qbit::exception("NOT_IMPL", "IMemoryPool::locateEntity - not implemented."); }
 	virtual ITransactionStorePtr persistentMainStore() { throw qbit::exception("NOT_IMPL", "IMemoryPool::persistentMainStore - not implemented."); }
 	virtual ITransactionStorePtr persistentStore() { throw qbit::exception("NOT_IMPL", "IMemoryPool::persistentStore - not implemented."); }
 	virtual TransactionContextPtr pushTransaction(TransactionPtr) { throw qbit::exception("NOT_IMPL", "IMemoryPool::pushTransaction - not implemented."); }

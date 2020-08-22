@@ -504,7 +504,7 @@ Item {
 	QuarkSymbolLabel {
 		id: mistrustSymbol
 		x: spaceLeft_
-		y: endorseSymbol.y + endorseSymbol.height + spaceItems_
+		y: endorseSymbol.y + endorseSymbol.height + spaceItems_ + 5
 		symbol: Fonts.mistrustSym
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.0")
 	}
@@ -522,7 +522,7 @@ Item {
 
 	QuarkSymbolLabel {
 		id: expandMistrustsSymbol
-		x: mistrustsNumber.x + mistrustsNumber.width + spaceItems_
+		x: mistrustsNumber.x + mistrustsNumber.width + spaceItems_ + 5
 		y: mistrustSymbol.y
 		symbol: Fonts.externalLinkSym
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")

@@ -1,7 +1,7 @@
 TEMPLATE = subdirs
 
 android {
-    SUBDIRS += buzzer-app.pro
+    SUBDIRS += buzzer-app.pro buzzer-daemon.pro
 }
 
 ios {

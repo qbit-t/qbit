@@ -7,7 +7,8 @@ boost::atomic<uint64_t> qbit::gMedianMicroseconds(0);
 
 uint64_t qbit::getMedianMicroseconds() {
 	uint64_t lMicroseconds = qbit::getMicroseconds();
-	uint64_t lMedianMicroseconds = (gMedianMicroseconds == 0 ? qbit::getMicroseconds() : gMedianMicroseconds.load(boost::memory_order_relaxed));
+	uint64_t lMedianMicroseconds = gMedianMicroseconds.load(boost::memory_order_relaxed); 
+	if (!lMedianMicroseconds) lMedianMicroseconds = qbit::getMicroseconds();
 
 	return (lMicroseconds + lMedianMicroseconds)/2;
 }
@@ -32,7 +33,9 @@ uint64_t qbit::getMicroseconds() {
 #elif defined(__linux__)
 		struct timespec now;
 		clock_gettime(CLOCK_REALTIME, &now);
-		return now.tv_sec * 1000000 + now.tv_nsec/1000;
+		uint64_t lMicroseconds = ((uint64_t)now.tv_sec) * 1000000;
+		lMicroseconds += ((uint64_t)now.tv_nsec)/1000;
+		return lMicroseconds;
 #endif
 		return 0;
 }

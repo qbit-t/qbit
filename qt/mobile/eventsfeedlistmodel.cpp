@@ -82,6 +82,9 @@ QVariant EventsfeedListModel::data(const QModelIndex& index, int role) const {
 		return QVariant::fromValue(new qbit::QEventsfeedItem(lItem));
 	} else if (role == MentionRole) {
 		return lItem->isMentioned();
+	} else if (role == LastUrlRole) {
+		Client* lClient = static_cast<Client*>(gApplication->getClient());
+		return lClient->extractLastUrl(QString::fromStdString(lItem->buzzBodyString()));
 	}
 
 	return QVariant();
@@ -105,6 +108,7 @@ QHash<int, QByteArray> EventsfeedListModel::roleNames() const {
 	lRoles[PublisherInfoChainIdRole] = "publisherInfoChainId";
 	lRoles[BuzzBodyRole] = "buzzBody";
 	lRoles[BuzzMediaRole] = "buzzMedia";
+	lRoles[LastUrlRole] = "lastUrl";
 	lRoles[EventInfosRoles] = "eventInfos";
 	lRoles[MentionRole] = "mention";
 	lRoles[ValueRole] = "value";

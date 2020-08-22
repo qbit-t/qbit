@@ -49,6 +49,7 @@ Item {
 	readonly property int spaceRight_: 15
 	readonly property int spaceBottom_: 12
 	readonly property int spaceAvatarBuzz_: 10
+	readonly property int spaceAction_: 45
 	readonly property int spaceItems_: 5
 	readonly property int spaceMedia_: 10
 	readonly property int spaceMediaIndicator_: 15
@@ -120,7 +121,7 @@ Item {
 
 	QuarkSymbolLabel {
 		id: actionLabel
-		x: spaceLeft_
+		x: spaceAction_ / 2 - width / 2
 		y: spaceTop_
 		symbol: type_ === buzzerClient.tx_BUZZ_LIKE_TYPE() ? Fonts.heartSym : Fonts.rebuzzSym
 		font.pointSize: 22
@@ -184,7 +185,7 @@ Item {
 	Image {
 		id: avatarImage
 
-		x: spaceLeft_ + actionLabel.width + spaceAvatarBuzz_
+		x: spaceAction_
 		y: spaceTop_
 		width: avatarImage.displayWidth
 		height: avatarImage.displayHeight
@@ -319,8 +320,17 @@ Item {
 		id: agoControl
 		x: menuControl.x - width - spaceItems_ * 2
 		y: avatarImage.y
-		text: ago_
+		text: getAgo()
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
+
+		function getAgo() {
+			//
+			if (eventInfos_.length > 0) {
+				return buzzerClient.timestampAgo(eventInfos_[0].timestamp);
+			}
+
+			return buzzerClient.getBuzzerName(timestamp_);
+		}
 	}
 
 	QuarkSymbolLabel {
@@ -406,8 +416,6 @@ Item {
 				wrappedItem_.y = 0;
 				wrappedItem_.width = bodyControl.width;
 				wrappedItem_.controller_ = eventLikeRebuzzItem_.controller_;
-
-				//console.log("[WRAPPED]: wrapped_.buzzerId = " + wrapped_.buzzerId + ", wrapped_.buzzerInfoId = " + wrapped_.buzzerInfoId);
 
 				wrappedItem_.timestamp_ = timestamp_;
 				wrappedItem_.score_ = score_;

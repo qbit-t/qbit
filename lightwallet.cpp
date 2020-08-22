@@ -11,12 +11,14 @@ SKeyPtr LightWallet::createKey(const std::list<std::string>& seed) {
 
 	PKey lPKey = lSKey.createPKey();
 
-	keys_.open(settings_->keysCache());
-	if (!keys_.read(lPKey.id(), lSKey)) {
-		//
-		if (secret_.size()) lSKey.encrypt(secret_);
-		if (!keys_.write(lPKey.id(), lSKey)) { 
-			throw qbit::exception("WRITE_FAILED", "Write failed."); 
+	if (opened_) {
+		keys_.open(settings_->keysCache());
+		if (!keys_.read(lPKey.id(), lSKey)) {
+			//
+			if (secret_.size()) lSKey.encrypt(secret_);
+			if (!keys_.write(lPKey.id(), lSKey)) {
+				throw qbit::exception("WRITE_FAILED", "Write failed.");
+			}
 		}
 	}
 
@@ -59,18 +61,20 @@ SKeyPtr LightWallet::firstKey() {
 		if (lSKeyIter != keysCache_.end()) return lSKeyIter->second;
 	}
 
-	db::DbContainer<uint160 /*id*/, SKey>::Iterator lKey = keys_.begin();
-	if (lKey.valid()) {
-		SKeyPtr lSKeyPtr = SKey::instance(*lKey);
-		if (lSKeyPtr->encrypted()) lSKeyPtr->decrypt(secret_);
+	if (opened_) {
+		db::DbContainer<uint160 /*id*/, SKey>::Iterator lKey = keys_.begin();
+		if (lKey.valid()) {
+			SKeyPtr lSKeyPtr = SKey::instance(*lKey);
+			if (lSKeyPtr->encrypted()) lSKeyPtr->decrypt(secret_);
 
-		uint160 lId;
-		if (lKey.first(lId)) {
-			boost::unique_lock<boost::recursive_mutex> lLock(keyMutex_);
-			keysCache_[lId] = lSKeyPtr;
-			return lSKeyPtr;
+			uint160 lId;
+			if (lKey.first(lId)) {
+				boost::unique_lock<boost::recursive_mutex> lLock(keyMutex_);
+				keysCache_[lId] = lSKeyPtr;
+				return lSKeyPtr;
+			}
 		}
-	}	
+	}
 
 	// try create from scratch
 	return createKey(std::list<std::string>());
@@ -82,7 +86,7 @@ SKeyPtr LightWallet::changeKey() {
 }
 
 bool LightWallet::open(const std::string& secret) {
-	if (!opened_) {
+	if (!opened_ && !gLightDaemon) {
 		try {
 			if (mkpath(std::string(settings_->dataPath() + "/wallet").c_str(), 0777)) return false;
 
@@ -91,6 +95,10 @@ bool LightWallet::open(const std::string& secret) {
 			secret_ = secret;
 
 			opened_ = true;
+		}
+		catch(const qbit::db::exception& ex) {
+			gLog().write(Log::ERROR, std::string("[wallet/open]: ") + ex.what());
+			return false;
 		}
 		catch(const std::exception& ex) {
 			gLog().write(Log::ERROR, std::string("[wallet/open]: ") + ex.what());
@@ -107,8 +115,10 @@ bool LightWallet::close() {
 	settings_.reset();
 	requestProcessor_.reset();
 
-	keys_.close();
-	utxo_.close();
+	if (opened_) {
+		keys_.close();
+		utxo_.close();
+	}
 
 	return true;
 }
@@ -220,17 +230,21 @@ bool LightWallet::prepareCache() {
 	resetCache();
 
 	//
-	status_ = IWallet::FETCHING_UTXO;
-
-	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[prepareCache]: selecting utxo..."));
-	if (!requestProcessor_->selectUtxoByAddress(firstKey()->createPKey(), MainChain::id(), shared_from_this())) {
-		status_ = IWallet::CACHE_NOT_READY;
+	if (opened_) {
 		//
-		if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[prepareCache]: utxo cache is NOT ready, retry..."));
-		return false;
+		status_ = IWallet::FETCHING_UTXO;
+
+		if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[prepareCache]: selecting utxo..."));
+		if (!requestProcessor_->selectUtxoByAddress(firstKey()->createPKey(), MainChain::id(), shared_from_this())) {
+			status_ = IWallet::CACHE_NOT_READY;
+			//
+			if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[prepareCache]: utxo cache is NOT ready, retry..."));
+			return false;
+		}
+
+		if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[prepareCache]: fetching utxo..."));
 	}
 
-	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[prepareCache]: fetching utxo..."));
 	return true;
 }
 
@@ -254,7 +268,7 @@ bool LightWallet::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, TransactionC
 		}
 
 		lItem->second->setUtxo(*utxo);
-		utxo_.write(lUtxoId, *lItem->second);
+		if (opened_) utxo_.write(lUtxoId, *lItem->second);
 
 		if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[pushUnlinkedOut]: pushed ") + 
 			strprintf("utxo = %s, tx = %s, ctx = %s/%s#", 
@@ -311,7 +325,7 @@ bool LightWallet::popUnlinkedOut(const uint256& hash, TransactionContextPtr ctx)
 			}
 		}
 
-		utxo_.remove(hash);
+		if (opened_) utxo_.remove(hash);
 		utxoCache_.erase(hash);
 
 		return true;
@@ -366,7 +380,7 @@ void LightWallet::removeUnlinkedOut(std::list<Transaction::UnlinkedOutPtr>& utxo
 		uint256 lId = (*lUtxo)->hash();
 
 		utxoCache_.erase(lId);
-		utxo_.remove(lId);
+		if (opened_) utxo_.remove(lId);
 
 		removeFromAssetsCache(*lUtxo);
 	}
@@ -433,7 +447,7 @@ amount_t LightWallet::balance(const uint256& asset) {
 				if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[balance]: ") + 
 							strprintf("utxo NOT FOUND %s/%s", lAmount->second.toHex(), asset.toHex()));
 				// delete from store
-				utxo_.remove(lAmount->second);
+				if (opened_) utxo_.remove(lAmount->second);
 				utxoCache_.erase(lAmount->second);
 				lAsset->second.erase(lAmount);
 				lAmount++;
@@ -496,7 +510,7 @@ void LightWallet::collectUnlinkedOutsByAsset(const uint256& asset, amount_t amou
 			Transaction::NetworkUnlinkedOutPtr lUtxo = findNetworkUnlinkedOut(lAmount->second);
 			if (lUtxo == nullptr) {
 				// delete from store
-				utxo_.remove(lAmount->second);
+				if (opened_) utxo_.remove(lAmount->second);
 				utxoCache_.erase(lAmount->second);
 				lAsset->second.erase(std::next(lAmount).base());
 				continue;
@@ -555,6 +569,9 @@ void LightWallet::cleanUp() {
 }
 
 void LightWallet::cleanUpData() {
+	//
+	if (!opened_) return;
+
 	utxo_.close();
 
 	// clean up

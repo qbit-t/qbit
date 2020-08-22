@@ -133,26 +133,19 @@ QuarkPage {
 			}
 		}
 
-		QuarkToolButton {
+		QuarkRoundButton {
 			id: sendButton
-			Material.background: "transparent"
-			visible: true
-			labelYOffset: 2
-			labelXOffset: -3
-			symbolColor: !sending ?
-							 buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground") :
-							 buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
-			Layout.alignment: Qt.AlignHCenter
-			symbol: Fonts.sendSym
+			x: parent.width - width - 12
+			y: topOffset + parent.height / 2 - height / 2
+			text: buzz_ ? buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.editor.buzz") :
+						  rebuzz_ ? buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.editor.rebuzz") :
+									buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.editor.reply")
 
-			x: parent.width - width - 8
-			y: topOffset
+			textColor: !sending ?
+						 buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground") :
+						 buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 
-			onClicked: {
-				//sendButton.enabled = false;
-				//addFromGalleryButton.enabled = false;
-				//addPhotoButton.enabled = false;
-
+			onClick: {
 				if (!sending) {
 					sending = true;
 
@@ -888,6 +881,8 @@ QuarkPage {
 			controller.popPage();
 		}
 		onError: {
+			createProgressBar.visible = false;
+			sending = false;
 			handleError(code, message);
 		}
 
@@ -906,6 +901,8 @@ QuarkPage {
 			controller.popPage();
 		}
 		onError: {
+			createProgressBar.visible = false;
+			sending = false;
 			handleError(code, message);
 		}
 
@@ -917,13 +914,15 @@ QuarkPage {
 	BuzzerCommands.ReplyCommand {
 		id: replyCommand
 		uploadCommand: uploadBuzzMedia
-		model: buzzfeedModel_
+		model: buzzfeedModel_ // TODO: implement property buzzChainId (with buzzfeedModel in parallel)
 
 		onProcessed: {
 			createProgressBar.value = 1.0;
 			controller.popPage();
 		}
 		onError: {
+			createProgressBar.visible = false;
+			sending = false;
 			handleError(code, message);
 		}
 
@@ -934,13 +933,23 @@ QuarkPage {
 
 	function createBuzz() {
 		//
+		var lText = buzzerClient.getPlainText(buzzText.textDocument);
+		if (lText.length === 0) lText = buzzText.preeditText;
+
+		if (lText.length === 0 && mediaModel.count === 0) {
+			handleError("E_BUZZ_IS_EMPTY", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZ_IS_EMPTY"));
+			sending = false;
+			return;
+		}
+
+		//
 		createProgressBar.indeterminate = true;
 		createProgressBar.visible = true;
 
 		//
-		buzzCommand.buzzBody = buzzerClient.getPlainText(buzzText.textDocument);
+		buzzCommand.buzzBody = lText;
+		//
 		var lBuzzers = buzzerClient.extractBuzzers(buzzCommand.buzzBody);
-
 		for (var lIdx = 0; lIdx < lBuzzers.length; lIdx++) {
 			buzzCommand.addBuzzer(lBuzzers[lIdx]);
 		}
@@ -954,11 +963,15 @@ QuarkPage {
 
 	function createRebuzz(buzzId) {
 		//
+		var lText = buzzerClient.getPlainText(buzzText.textDocument);
+		if (lText.length === 0) lText = buzzText.preeditText;
+
+		//
 		createProgressBar.indeterminate = true;
 		createProgressBar.visible = true;
 
 		//
-		rebuzzCommand.buzzBody = buzzerClient.getPlainText(buzzText.textDocument);
+		rebuzzCommand.buzzBody = lText;
 		var lBuzzers = buzzerClient.extractBuzzers(rebuzzCommand.buzzBody);
 
 		for (var lIdx = 0; lIdx < lBuzzers.length; lIdx++) {
@@ -976,11 +989,22 @@ QuarkPage {
 
 	function createReply(buzzId) {
 		//
+		var lText = buzzerClient.getPlainText(buzzText.textDocument);
+		if (lText.length === 0) lText = buzzText.preeditText;
+
+		if (lText.length === 0 && mediaModel.count === 0) {
+			handleError("E_BUZZ_IS_EMPTY", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZ_IS_EMPTY"));
+			sending = false;
+			return;
+		}
+
+		//
 		createProgressBar.indeterminate = true;
 		createProgressBar.visible = true;
 
 		//
-		replyCommand.buzzBody = buzzerClient.getPlainText(buzzText.textDocument);
+		replyCommand.buzzBody = lText;
+		//
 		var lBuzzers = buzzerClient.extractBuzzers(replyCommand.buzzBody);
 
 		for (var lIdx = 0; lIdx < lBuzzers.length; lIdx++) {
@@ -1000,9 +1024,9 @@ QuarkPage {
 		if (code === "E_CHAINS_ABSENT") return;
 		if (message === "UNKNOWN_REFTX" || code === "E_TX_NOT_SENT") {
 			buzzerClient.resync();
-			controller.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.UNKNOWN_REFTX"));
+			controller.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.UNKNOWN_REFTX"), true);
 		} else {
-			controller.showError(message);
+			controller.showError(message, true);
 		}
 	}
 }

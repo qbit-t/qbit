@@ -29,6 +29,13 @@ QuarkPage
 		if (buzzerClient.cacheReady) {
 			loadTrustScoreCommand.process();
 		}
+
+		// NOTICE: start notificator service for the first time
+		var lValue = buzzerClient.getProperty("Client.runService");
+		if (lValue !== "true") {
+			buzzerApp.startNotificator();
+			buzzerClient.setProperty("Client.runService", "true");
+		}
 	}
 
 	function closePage() {

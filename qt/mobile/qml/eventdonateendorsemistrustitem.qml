@@ -49,6 +49,7 @@ Item {
 	readonly property int spaceRight_: 15
 	readonly property int spaceBottom_: 12
 	readonly property int spaceAvatarBuzz_: 10
+	readonly property int spaceAction_: 45
 	readonly property int spaceItems_: 5
 	readonly property int spaceMedia_: 10
 	readonly property int spaceMediaIndicator_: 15
@@ -120,11 +121,10 @@ Item {
 
 	QuarkSymbolLabel {
 		id: actionLabel
-		x: spaceLeft_
-		y: spaeTop_
-		font.family: Fonts.iconsSolid
+		x: spaceAction_ / 2 - width / 2
+		y: spaceTop_
 		symbol: getSymbol()
-		font.pointSize: 28
+		font.pointSize: 22
 		color: getColor()
 
 		function getSymbol() {
@@ -153,9 +153,9 @@ Item {
 
 	QuarkRoundState {
 		id: imageFrame
-		x: avatarImage.x - 2
-		y: avatarImage.y - 2
-		size: avatarImage.displayWidth + 4
+		x: avatarImage.x - 1
+		y: avatarImage.y - 1
+		size: avatarImage.displayWidth + 2
 		color: getColor()
 		background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
 
@@ -202,14 +202,14 @@ Item {
 	Image {
 		id: avatarImage
 
-		x: spaceLeft_ + actionLabel.width + spaceAvatarBuzz_
+		x: spaceAction_
 		y: spaceTop_
 		width: avatarImage.displayWidth
 		height: avatarImage.displayHeight
 		fillMode: Image.PreserveAspectCrop
 
 		property bool rounded: true
-		property int displayWidth: 20
+		property int displayWidth: 30
 		property int displayHeight: displayWidth
 
 		autoTransform: true
@@ -299,13 +299,12 @@ Item {
 
 	QuarkLabel {
 		id: buzzerInfoControl
-		x: buzzerNameControl.x + buzzerNameControl.width + spaceItems_
-		y: avatarImage.y
-		width: (parent.width - agoControl.x) - (buzzerNameControl.x + buzzerNameControl.width + spaceItems_)
+		x: buzzerAliasControl.x
+		y: buzzerAliasControl.y + buzzerAliasControl.height + 3
+		width: parent.width - (x + spaceRight_)
 		elide: Text.ElideRight
-
+		font.pointSize: 14
 		text: getText()
-		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
 
 		function getText() {
 			var lInfo;
@@ -315,35 +314,29 @@ Item {
 			if (type_ === buzzerClient.tx_BUZZ_REWARD_TYPE()) {
 				if (eventInfos_.length > 1) {
 					lInfo = eventInfos_[0];
-					lString = buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.event.subscribe.many");
-					lResult = lString.replace("{alias}", buzzerClient.resolveBuzzerAlias(lInfo.buzzerInfoId));
-					return lResult.replace("{count}", eventInfos_.length);
+					lString = buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.event.reward.many");
+					return lString.replace("{count}", eventInfos_.length);
 				} else if (eventInfos_.length === 1) {
-					lInfo = eventInfos_[0];
-					lString = buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.event.subscribe.one");
-					return lString.replace("{alias}", buzzerClient.resolveBuzzerAlias(lInfo.buzzerInfoId));
+					lString = buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.event.reward.one");
+					return lString;
 				}
 			} else if (type_ === buzzerClient.tx_BUZZER_MISTRUST_TYPE()) {
 				if (eventInfos_.length > 1) {
 					lInfo = eventInfos_[0];
-					lString = buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.event.subscribe.many");
-					lResult = lString.replace("{alias}", buzzerClient.resolveBuzzerAlias(lInfo.buzzerInfoId));
-					return lResult.replace("{count}", eventInfos_.length);
+					lString = buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.event.mistrust.many");
+					return lString.replace("{count}", eventInfos_.length);
 				} else if (eventInfos_.length === 1) {
-					lInfo = eventInfos_[0];
-					lString = buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.event.subscribe.one");
-					return lString.replace("{alias}", buzzerClient.resolveBuzzerAlias(lInfo.buzzerInfoId));
+					lString = buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.event.mistrust.one");
+					return lString;
 				}
 			} else if (type_ === buzzerClient.tx_BUZZER_ENDORSE_TYPE()) {
 				if (eventInfos_.length > 1) {
 					lInfo = eventInfos_[0];
-					lString = buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.event.subscribe.many");
-					lResult = lString.replace("{alias}", buzzerClient.resolveBuzzerAlias(lInfo.buzzerInfoId));
-					return lResult.replace("{count}", eventInfos_.length);
+					lString = buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.event.endorse.many");
+					return lString.replace("{count}", eventInfos_.length);
 				} else if (eventInfos_.length === 1) {
-					lInfo = eventInfos_[0];
-					lString = buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.event.subscribe.one");
-					return lString.replace("{alias}", buzzerClient.resolveBuzzerAlias(lInfo.buzzerInfoId));
+					lString = buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.event.endorse.one");
+					return lString;
 				}
 			}
 
@@ -397,9 +390,9 @@ Item {
 		font.pointSize: 24
 		fillTo: 1
 		useSign: true
-		sign: type_ === buzzerClient.tx_BUZZER_ENDORSE_TYPE() ? "+" : "-"
-		x: buzzerAliasControl.x + spaceLeft_
-		y: buzzerAliasControl.y + buzzerAliasControl.height + spaceTop_
+		sign: getSign()
+		x: buzzerAliasControl.x //avatarImage.x
+		y: avatarImage.y + avatarImage.height + spaceTop_
 		number: value_ / buzzerClient.getTrustScoreBase()
 		visible: type_ === buzzerClient.tx_BUZZER_ENDORSE_TYPE() || type_ === buzzerClient.tx_BUZZER_MISTRUST_TYPE()
 
@@ -411,17 +404,21 @@ Item {
 							type_ === buzzerClient.tx_BUZZER_ENDORSE_TYPE() ? "Buzzer.endorsed" : "Buzzer.mistrusted")
 		unitsColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.endorsed",
 							type_ === buzzerClient.tx_BUZZER_ENDORSE_TYPE() ? "Buzzer.endorsed" : "Buzzer.mistrusted")
+
+		function getSign() {
+			if (type_ === buzzerClient.tx_BUZZER_ENDORSE_TYPE()) { console.log("[getSign]: +"); return "+"; }
+			return "-";
+		}
 	}
 
 	QuarkLabel {
 		id: valueDonateControl
-		x: buzzerAliasControl.x + spaceLeft_
-		y: buzzerAliasControl.y + buzzerAliasControl.height + spaceTop_
+		x: buzzerAliasControl.x //avatarImage.x
+		y: avatarImage.y + avatarImage.height + spaceTop_
 		font.pointSize: 24
 		visible: type_ === buzzerClient.tx_BUZZ_REWARD_TYPE()
-		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector,
-							type_ === buzzerClient.tx_BUZZER_ENDORSE_TYPE() ? "Buzzer.endorsed" : "Buzzer.mistrusted")
-		text: "+" + value_ + " " + qBIT
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link")
+		text: "" + value_ + " qBIT"
 	}
 
 	//
@@ -431,9 +428,13 @@ Item {
 	QuarkHLine {
 		id: bottomLine
 		x1: 0
-		y1: valueControl.y + valueControl.height + spaceBottom_
+		y1: (valueTrustControl.visible ?
+				(valueTrustControl.y + valueTrustControl.height) :
+				(valueDonateControl.y + valueDonateControl.height)) + spaceBottom_
 		x2: parent.width
-		y2: valueControl.y + valueControl.height + spaceBottom_
+		y2: (valueTrustControl.visible ?
+				(valueTrustControl.y + valueTrustControl.height) :
+				(valueDonateControl.y + valueDonateControl.height)) + spaceBottom_
 		penWidth: 1
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
 		visible: true
@@ -481,7 +482,7 @@ Item {
 				keySymbol: Fonts.mistrustSym,
 				name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.mistrust")});
 
-			if (!buzzerClient.subscriptionExists(buzzerId_)) {
+			if (!buzzerClient.subscriptionExists(getBuzzerId())) {
 				menuModel.append({
 					key: "subscribe",
 					keySymbol: Fonts.subscribeSym,
@@ -492,6 +493,15 @@ Item {
 					keySymbol: Fonts.unsubscribeSym,
 					name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.unsubscribe")});
 			}
+		}
+
+		function getBuzzerId() {
+			//
+			if (eventInfos_.length > 0) {
+				return eventInfos_[0].buzzerId;
+			}
+
+			return publisherId_;
 		}
 	}
 

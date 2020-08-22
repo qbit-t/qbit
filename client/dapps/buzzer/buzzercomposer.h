@@ -23,6 +23,7 @@
 #include "../../../dapps/buzzer/eventsfeed.h"
 #include "../../../dapps/buzzer/handlers.h"
 #include "../../../txshard.h"
+#include "../../../lightwallet.h"
 #include "../../../db/containers.h"
 #include "buzzerrequestprocessor.h"
 
@@ -884,6 +885,9 @@ public:
 	void addSubscription(const uint256& publisher, const PKey& key) {
 		//
 		subscriptions_.write(publisher, key);
+
+		// share
+		writeSubscription(publisher, key);
 	}
 
 	void removeSubscription(const uint256& publisher) {
@@ -925,12 +929,19 @@ public:
 		std::string lBuzzerTxHex = HexStr(lStream.begin(), lStream.end());
 		workingSettings_.write("buzzerTx", lBuzzerTxHex);
 		workingSettings_.remove("buzzerUtxo");
+		// 
+		cachedWorkingSettings_.erase("buzzerTx");
+		cachedWorkingSettings_["buzzerTx"] = lBuzzerTxHex;
+		cachedWorkingSettings_.erase("buzzerUtxo");
+		//
 		buzzerUtxo_.clear();
 
 		requestProcessor_->clearDApps();
 		requestProcessor_->addDAppInstance(State::DAppInstance("buzzer", buzzerTx_->id()));
 
 		instanceChanged_(buzzerTx_->id());
+
+		writeWorkingSetings();
 
 		return true;
 	}
@@ -947,7 +958,13 @@ public:
 		std::string lBuzzerTxHex = HexStr(lStream.begin(), lStream.end());
 		workingSettings_.write("buzzerInfoTx", lBuzzerTxHex);
 
+		//
+		cachedWorkingSettings_.erase("buzzerInfoTx");
+		cachedWorkingSettings_["buzzerInfoTx"] = lBuzzerTxHex;
+
 		buzzer_->pushBuzzerInfo(buzzerInfoTx_);
+
+		writeWorkingSetings();
 
 		return true;
 	}
@@ -963,6 +980,13 @@ public:
 		lStream << buzzerUtxo_;
 		std::string lBuzzerUtxoHex = HexStr(lStream.begin(), lStream.end());
 		workingSettings_.write("buzzerUtxo", lBuzzerUtxoHex);
+
+		//
+		cachedWorkingSettings_.erase("buzzerUtxo");
+		cachedWorkingSettings_["buzzerUtxo"] = lBuzzerUtxoHex;
+
+		writeWorkingSetings();
+
 		return true;
 	}
 
@@ -996,6 +1020,14 @@ public:
 		instanceChanged_ = function;
 	}
 
+	void writeWorkingSetings();
+	void checkWorkingSettings();
+
+	void writeSubscription(const uint256&, const PKey&);
+	void checkSubscriptions();
+
+	bool getSubscription(const uint256&, PKey&);
+
 private:
 	// various settings, command line args & config file
 	ISettingsPtr settings_;
@@ -1023,7 +1055,13 @@ private:
 	db::DbContainer<uint256 /*publisher*/, PKey /*pubkey*/> subscriptions_;
 
 	// flag
-	bool opened_;
+	bool opened_ = false;
+
+	// daemon mode
+	std::map<std::string /*name*/, std::string /*data*/> cachedWorkingSettings_;
+	std::map<uint256 /*publisher*/, PKey /*pubkey*/> cachedSubscriptions_;
+	uint64_t workingSettingsTime_ = 0;
+	uint64_t subscriptionTime_ = 0;
 };
 
 } // qbit

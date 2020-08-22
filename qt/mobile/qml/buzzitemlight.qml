@@ -147,9 +147,9 @@ Item {
 
 		QuarkRoundState {
 			id: imageFrame
-			x: avatarImage.x - 2
-			y: avatarImage.y - 2
-			size: avatarImage.displayWidth + 4
+			x: avatarImage.x - 1
+			y: avatarImage.y - 1
+			size: avatarImage.displayWidth + 2
 			color: getColor()
 			background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
 
@@ -370,7 +370,7 @@ Item {
 						bodyControl.height = bodyControl.getHeight();
 						buzzitemlight_.calculateHeight();
 					}
-				} else if (lastUrl_.length) {
+				} else if (lastUrl_ && lastUrl_.length) {
 					//
 					if (!urlInfoItem_) {
 						lSource = "qrc:/qml/buzzitemurl.qml";
