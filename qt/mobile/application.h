@@ -224,6 +224,8 @@ public:
 
 	Q_INVOKABLE void pickImageFromGallery();
 
+	Q_INVOKABLE void commitCurrentInput();
+
 	std::string getLogCategories();
 	bool getTestNet();
 

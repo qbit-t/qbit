@@ -149,6 +149,8 @@ QuarkPage {
 				if (!sending) {
 					sending = true;
 
+					buzzerApp.commitCurrentInput();
+
 					if (rebuzz_) buzzeditor_.createRebuzz(buzzItem_.buzzId);
 					else if (reply_) buzzeditor_.createReply(buzzItem_.buzzId);
 					else if (buzz_) buzzeditor_.createBuzz();

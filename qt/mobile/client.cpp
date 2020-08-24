@@ -392,6 +392,9 @@ QString Client::decorateBuzzBody(const QString& body) {
 		lResult.replace(lMatch.capturedStart(), lMatch.capturedLength(), lUrlPatternDest);
 	}
 
+	if (lResult.size() && lResult[lResult.size()-1] == 0x0a) lResult[lResult.size()-1] = 0x20;
+	lResult.replace(QRegExp("\n"), QString("<br>"));
+
 	return lResult;
 }
 

@@ -138,6 +138,10 @@ int Application::execute()
     return app_.exec();
 }
 
+void Application::commitCurrentInput() {
+	app_.inputMethod()->reset();
+}
+
 void Application::suspendClient() {
 
 }
