@@ -230,7 +230,7 @@ public:
 	}
 
 	Q_INVOKABLE QString getPlainText(QQuickTextDocument* textDocument) {
-		return textDocument->textDocument()->toPlainText();
+		return textDocument->textDocument()->toPlainText(); // toRawText
 	}
 
 	Q_INVOKABLE QStringList extractBuzzers(QString text) {
