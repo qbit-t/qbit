@@ -723,20 +723,20 @@ Item {
 
 		function innerHeightChanged(value) {
 			bodyControl.height = (buzzBody_.length > 0 ? buzzText.height : 0) + value +
-										(buzzBody_.length > 0 ? spaceMedia_ : spaceItems_) +
+										(buzzBody_.length > 0 && buzzMedia_.length > 0 ? spaceMedia_ : spaceItems_) +
 										(buzzMedia_.length > 1 ? spaceMediaIndicator_ : spaceSingleMedia_);
 			buzzitem_.calculateHeight();
 		}
 
 		function getY() {
 			return (buzzBody_.length > 0 ? buzzText.height : 0) +
-					(buzzBody_.length > 0 ? spaceMedia_ : spaceItems_) +
+					(buzzBody_.length > 0 && buzzMedia_.length > 0 ? spaceMedia_ : spaceItems_) +
 					(buzzMedia_.length > 1 ? spaceMediaIndicator_ : spaceSingleMedia_);
 		}
 
 		function getNextY() {
 			return (buzzBody_.length > 0 ? buzzText.height : 0) +
-					(buzzBody_.length > 0 ? spaceMedia_ : spaceItems_) +
+					(buzzBody_.length > 0 && buzzMedia_.length > 0 ? spaceMedia_ : spaceItems_) +
 					(buzzMedia_.length > 1 ? spaceMediaIndicator_ : spaceSingleMedia_) +
 					(wrappedItem_ ? wrappedItem_.y + wrappedItem_.calculatedHeight + spaceItems_ : 0);
 		}
@@ -745,7 +745,7 @@ Item {
 			return (buzzBody_.length > 0 ? buzzText.height : 0) +
 					(buzzMediaItem_ ? buzzMediaItem_.calculatedHeight : 0) +
 					(urlInfoItem_ ? urlInfoItem_.calculatedHeight : 0) +
-					(buzzBody_.length > 0 ? spaceMedia_ : spaceItems_) +
+					(buzzBody_.length > 0 && buzzMedia_.length > 0 ? spaceMedia_ : spaceItems_) +
 					(buzzMedia_.length > 1 ? spaceMediaIndicator_ : spaceSingleMedia_) +
 					(wrappedItem_ ? wrappedItem_.calculatedHeight + spaceItems_: 0);
 		}
