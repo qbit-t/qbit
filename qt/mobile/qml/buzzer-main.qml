@@ -72,6 +72,10 @@ QuarkPage
 		function onBuzzerDAppReadyChanged() {
 			loadTrustScoreCommand.process();
 		}
+
+		function onNewEvents() {
+			newEventsDot.visible = true;
+		}
 	}
 
 	BuzzerCommands.LoadBuzzerTrustScoreCommand {
@@ -123,9 +127,21 @@ QuarkPage
 		}
 		TabButton {
 			QuarkSymbolLabel {
+				id: eventsSymbol
 				x: parent.width / 2 - width / 2
 				y: parent.height / 2 - height / 2
 				symbol: Fonts.bellSym
+			}
+
+			Rectangle {
+				id: newEventsDot
+				x: eventsSymbol.x + eventsSymbol.width + 3
+				y: eventsSymbol.y - 3
+				width: 6
+				height: 6
+				radius: 3
+				color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Market.tabActive");
+				visible: false
 			}
 		}
 		TabButton {
@@ -144,6 +160,12 @@ QuarkPage
 		}
 
 		onCurrentIndexChanged: {
+			//
+			if (currentIndex == 2 /*events*/) {
+				//
+				newEventsDot.visible = false;
+			}
+
 			if (currentIndex == 1 /*global*/) {
 				headerBar.showBottomLine = false;
 				buzzfeedGlobal.start();

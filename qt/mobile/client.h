@@ -293,6 +293,21 @@ public:
 
 	//QVariant q_globalBuzzfeedList() { return QVariant::fromValue(globalBuzzfeedList_); }
 
+public slots:
+	// events feed updated
+	void eventsfeedUpdated(unsigned long long timestamp) {
+		//
+		QString lLastTimestamp = getProperty("Client.lastTimestamp");
+		if (lLastTimestamp.length()) {
+			if (lLastTimestamp.toULongLong() < timestamp) {
+				emit newEvents();
+				setProperty("Client.lastTimestamp", QString::number(timestamp));
+			}
+		} else {
+			emit newEvents();
+		}
+	}
+
 public:
 	// Wallet
 	Q_INVOKABLE QString firstPKey();
@@ -307,7 +322,7 @@ private:
 	}
 
 	//
-	void transactionReceived(qbit::Transaction::UnlinkedOutPtr utxo, qbit::TransactionPtr tx) {
+	void transactionReceived(qbit::Transaction::UnlinkedOutPtr /*utxo*/, qbit::TransactionPtr tx) {
 		//
 		emit walletTransactionReceived(QString::fromStdString(tx->chain().toHex()), QString::fromStdString(tx->id().toHex()));
 	}
@@ -385,6 +400,8 @@ signals:
 	void networkUnavailable();
 
 	void walletTransactionReceived(QString chain, QString tx);
+
+	void newEvents();
 
 private:
     QString name_;
