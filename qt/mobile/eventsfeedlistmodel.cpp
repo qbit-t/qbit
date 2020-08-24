@@ -158,6 +158,9 @@ void EventsfeedListModel::feed(qbit::EventsfeedPtr local, bool more) {
 
 		//
 		emit countChanged();
+		if (list_.size()) {
+			emit eventsfeedUpdated(list_[8]->timestamp());
+		}
 	} else if (!noMoreData_) {
 		//
 		qInfo() << "==== MORE =====";
@@ -255,6 +258,7 @@ void EventsfeedListModel::eventsfeedItemNewSlot(const qbit::EventsfeedItemProxy&
 			endInsertRows();
 
 			emit countChanged();
+			emit eventsfeedUpdated(lEventsfeedItem->timestamp());
 		} else {
 			qInfo() << "EventsfeedListModel::eventsfeedItemNewSlot -> update" << lIndex;
 			QModelIndex lModelIndex = createIndex(lIndex, lIndex);

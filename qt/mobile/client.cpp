@@ -231,6 +231,9 @@ int Client::open(QString secret) {
 	// events feed
 	eventsfeedList_ = new EventsfeedListModelPersonal();
 	buzzer_->setEventsfeed(eventsfeedList_->eventsfeed());
+	// get event feed updates
+	connect(eventsfeedList_, SIGNAL(eventsfeedUpdated(unsigned long long)),
+								this, SLOT(eventsfeedUpdated(unsigned long long)));
 
 	// buzzer peer extention
 	PeerManager::registerPeerExtension(
