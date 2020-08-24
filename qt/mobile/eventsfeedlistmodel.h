@@ -83,6 +83,7 @@ signals:
 	void countChanged();
 	void noMoreDataChanged();
 	void eventsfeedItemNewSignal(const qbit::EventsfeedItemProxy& buzz);
+	void eventsfeedUpdated(unsigned long long);
 
 protected:
 	QHash<int, QByteArray> roleNames() const;
