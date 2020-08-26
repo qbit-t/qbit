@@ -542,20 +542,8 @@ int main(int argc, char** argv) {
 		QBIT_VERSION_REVISION << "." <<
 		QBIT_VERSION_BUILD << ") | (c) 2020 q-bit.technology | MIT license";
 
-	// [LOG-0]
-	// gLog().write(Log::CLIENT, strprintf("%s", lVer.str()));
-
-	// [LOG-1]
-	// gLog().write(Log::CLIENT, "[1]");
-
-	// [LOG-2]
-	// gLog().write(Log::CLIENT, "[2]");
-
 	// setup testnet
 	qbit::gTestNet = getTestNet();
-
-	// [LOG-3]
-	// gLog().write(Log::CLIENT, "[3]");
 
 	// request processor
 	IRequestProcessorPtr lRequestProcessor = nullptr;
@@ -565,9 +553,6 @@ int main(int argc, char** argv) {
 	IWalletPtr lWallet = LightWallet::instance(lSettings->shared(), lRequestProcessor);
 	std::static_pointer_cast<RequestProcessor>(lRequestProcessor)->setWallet(lWallet);
 	lWallet->open(""); // secret missing - notification service should not have access to the encrypted keys
-
-	// [LOG-4]
-	// gLog().write(Log::CLIENT, "[4]");
 
 	// composer
 	LightComposerPtr lComposer = LightComposer::instance(lSettings->shared(), lWallet, lRequestProcessor);
