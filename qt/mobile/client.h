@@ -300,11 +300,13 @@ public slots:
 		QString lLastTimestamp = getProperty("Client.lastTimestamp");
 		if (lLastTimestamp.length()) {
 			if (lLastTimestamp.toULongLong() < timestamp) {
+				//qInfo() << "[eventsfeedUpdated]" << lLastTimestamp.toULongLong() << timestamp;
 				emit newEvents();
 				setProperty("Client.lastTimestamp", QString::number(timestamp));
 			}
 		} else {
 			emit newEvents();
+			setProperty("Client.lastTimestamp", QString::number(timestamp));
 		}
 	}
 

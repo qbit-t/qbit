@@ -228,6 +228,7 @@ public:
 
 	std::string getLogCategories();
 	bool getTestNet();
+	std::string getPeers();
 
     void emit_fingertipAuthSuccessed(QString);
     void emit_fingertipAuthFailed();

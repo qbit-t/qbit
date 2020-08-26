@@ -337,8 +337,17 @@ int Client::open(QString secret) {
 	peerManager_->addPeerExplicit("192.168.1.49:31415");
 	*/
 
+	/*
 	peerManager_->addPeerExplicit("178.79.128.112:31415");
 	peerManager_->addPeerExplicit("85.90.245.180:31416");
+	*/
+
+	// peers
+	std::vector<std::string> lPeers;
+	boost::split(lPeers, std::string(application_->getPeers()), boost::is_any_of(","));
+	for (std::vector<std::string>::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
+		peerManager_->addPeer(*lPeer);
+	}
 
 	//
 	peerManager_->run();
@@ -366,6 +375,9 @@ QString Client::extractLastUrl(const QString& body) {
 }
 
 QString Client::decorateBuzzBody(const QString& body) {
+	//
+	// already decorated
+	if (body.indexOf("<a") != -1) return body;
 	//
 	QString lPattern = QString("<a href='\\1' style='text-decoration:none;color:") +
 			gApplication->getColor(theme(), themeSelector(), "Material.link.rgb") +
