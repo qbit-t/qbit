@@ -282,7 +282,7 @@ bool BuzzerPeerExtension::processBuzzCommon(TransactionContextPtr ctx) {
 							BuzzfeedItem lItem;
 							TxBuzzerPtr lBuzzer = nullptr;
 
-							TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lPublisher);
+							TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lOriginalPublisher);
 							if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
 
 							prepareBuzzfeedItem(lItem, lBuzz, lBuzzer, lExtension);
@@ -335,7 +335,7 @@ bool BuzzerPeerExtension::processBuzzCommon(TransactionContextPtr ctx) {
 										BuzzfeedItem lItem;
 										TxBuzzerPtr lBuzzer = nullptr;
 
-										TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lPublisher);
+										TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lOriginalPublisher);
 										if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
 
 										prepareBuzzfeedItem(lItem, lBuzz, lBuzzer, lExtension);

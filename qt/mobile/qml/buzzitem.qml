@@ -128,6 +128,10 @@ Item {
 		calculateHeight();
 	}
 
+	onChildrenCount_Changed: {
+		calculateHeight();
+	}
+
 	//
 	// avatar download
 	//
@@ -883,14 +887,19 @@ Item {
 		text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.buzz.threaded");
 		font.pointSize: 14
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link");
-		visible: threaded_ || showMore()
+		visible: getVisible() //threaded_ || showMore()
+
+		function getVisible() {
+			console.log("threaded_ = " + threaded_ + ", replies_ = " + replies_ + ", childenCount_ = " + childrenCount_);
+			return threaded_ || showMore();
+		}
 
 		function showMore() {
 			//
 			if (dynamic_) return false;
 
 			if (replies_ > 0) {
-				if (buzzfeedModel_ && buzzfeedModel_.childrenCount(index) === 0)
+				if (/*buzzfeedModel_ && buzzfeedModel_.childrenCount(index)*/ childrenCount_ < replies_)
 					return true;
 			}
 
@@ -927,6 +936,10 @@ Item {
 		penWidth: 1
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
 		visible: true
+
+		onY1Changed: {
+			calculateHeight();
+		}
 	}
 
 	//

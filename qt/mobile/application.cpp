@@ -314,6 +314,16 @@ std::string Application::getLogCategories()
 #endif
 }
 
+std::string Application::getPeers()
+{
+	qbit::json::Value lValue;
+	if (appConfig_.find("peers", lValue)) {
+		return lValue.getString();
+	}
+
+	return "";
+}
+
 bool Application::getTestNet()
 {
 	qbit::json::Value lValue = appConfig_["testNet"];

@@ -1053,7 +1053,9 @@ void Buzzfeed::insertNewItem(BuzzfeedItemPtr item) {
 				item->setHasNextLink(true);
 			}
 
-			if (lIndex-1 >= 0 && list_[lIndex-1]->originalBuzzId() == item->originalBuzzId() && list_[lIndex-1]->hasPrevLink()) {
+			if (lIndex-1 >= 0 && /*list_[lIndex-1]->originalBuzzId() == item->originalBuzzId() &&*/
+					item->hasPrevLink() &&
+					list_[lIndex-1]->hasPrevLink()) {
 				list_[lIndex-1]->setHasNextLink(true);
 			}
 		}
