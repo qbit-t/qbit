@@ -890,7 +890,7 @@ Item {
 		visible: getVisible() //threaded_ || showMore()
 
 		function getVisible() {
-			console.log("threaded_ = " + threaded_ + ", replies_ = " + replies_ + ", childenCount_ = " + childrenCount_);
+			//console.log("threaded_ = " + threaded_ + ", replies_ = " + replies_ + ", childenCount_ = " + childrenCount_);
 			return threaded_ || showMore();
 		}
 

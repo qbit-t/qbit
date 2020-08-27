@@ -467,6 +467,10 @@ QuarkPage {
 					buzzersList.close();
 					tagsList.close();
 				}
+
+				onFocusChanged: {
+					editBuzzTimer.start();
+				}
 			}
 
 			layer.enabled: true
@@ -562,6 +566,17 @@ QuarkPage {
 			Material.background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.background");
 			Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground");
 			Material.primary: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.primary");
+		}
+	}
+
+	Timer {
+		id: editBuzzTimer
+		interval: 500
+		repeat: false
+		running: false
+
+		onTriggered: {
+			list.positionViewAtEnd();
 		}
 	}
 

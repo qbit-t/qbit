@@ -1137,9 +1137,10 @@ public:
 								buzzfeedItemUpdatedFunction itemUpdated,
 								buzzfeedItemsUpdatedFunction itemsUpdated,
 								buzzfeedItemAbsentFunction itemAbsent, 
-								Merge merge) : 
+								Merge merge, Expand expand) :
 		Buzzfeed (buzzer, verifyPublisher, largeUpdated, itemNew, itemUpdated, itemsUpdated, itemAbsent, merge) {
 		verifyPublisherLazy_ = verifyPublisherLazy;
+		expand_ = expand;
 	}
 
 	Buzzfeed(BuzzerPtr buzzer,	buzzfeedItemVerifyFunction verifyPublisher,
@@ -1151,7 +1152,7 @@ public:
 								buzzfeedItemsUpdatedFunction itemsUpdated,
 								buzzfeedItemAbsentFunction itemAbsent, 
 								Merge merge) :
-		Buzzfeed (buzzer, verifyPublisher, verifyPublisherLazy, largeUpdated, itemNew, itemUpdated, itemsUpdated, itemAbsent, merge) {
+		Buzzfeed (buzzer, verifyPublisher, verifyPublisherLazy, largeUpdated, itemNew, itemUpdated, itemsUpdated, itemAbsent, merge, Expand::SMART) {
 		verifyUpdateForMyThread_ = verifyUpdateForMyThread;
 	}
 
@@ -1258,9 +1259,9 @@ public:
 			buzzfeedItemNewFunction itemNew, 
 			buzzfeedItemUpdatedFunction itemUpdated,
 			buzzfeedItemsUpdatedFunction itemsUpdated,
-			buzzfeedItemAbsentFunction itemAbsent, Merge merge) {
+			buzzfeedItemAbsentFunction itemAbsent, Merge merge, Expand expand) {
 		return std::make_shared<Buzzfeed>(buzzer, verifyPublisher, verifyPublisherLazy,
-					largeUpdated, itemNew, itemUpdated, itemsUpdated, itemAbsent, merge);
+					largeUpdated, itemNew, itemUpdated, itemsUpdated, itemAbsent, merge, expand);
 	}
 
 	static BuzzfeedPtr instance(BuzzerPtr buzzer, 

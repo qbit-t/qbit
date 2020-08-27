@@ -1999,11 +1999,11 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedByBuzz(uint64_t from, const 
 		}
 	}
 	*/
-	bool lContinue = true;
+	bool lContinue = false;
 	std::set<BuzzfeedItem::Key> lAdded;
 	for (std::multimap<uint64_t, BuzzfeedItem::Key>::iterator lItem = lRawBuzzfeed.begin(); lItem != lRawBuzzfeed.end(); lItem++) {
 		//
-		if (feed.size() < 30 /*max last mixed events*/ || lContinue && feed.size() < 100) {
+		if (!lContinue && feed.size() < 30 /*max last mixed events*/ || lContinue && feed.size() < 100) {
 			std::map<BuzzfeedItem::Key, BuzzfeedItemPtr>::iterator lBuzzItem = lBuzzItems.find(lItem->second);
 			if (lBuzzItem != lBuzzItems.end()) {
 				if (lAdded.insert(lItem->second).second) {
@@ -2140,11 +2140,11 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedByBuzzer(uint64_t from, cons
 
 	lTransaction.commit();
 
-	bool lContinue = true;
+	bool lContinue = false;
 	std::set<BuzzfeedItem::Key> lAdded;
 	for (std::multimap<uint64_t, BuzzfeedItem::Key>::iterator lItem = lRawBuzzfeed.begin(); lItem != lRawBuzzfeed.end(); lItem++) {
 		//
-		if (feed.size() < 30 /*max last mixed events*/ || lContinue && feed.size() < 100) {
+		if (!lContinue && feed.size() < 30 /*max last mixed events*/ || lContinue && feed.size() < 100) {
 			std::map<BuzzfeedItem::Key, BuzzfeedItemPtr>::iterator lBuzzItem = lBuzzItems.find(lItem->second);
 			if (lBuzzItem != lBuzzItems.end()) {
 				if (lAdded.insert(lItem->second).second) {
@@ -2616,11 +2616,11 @@ void BuzzerTransactionStoreExtension::selectBuzzfeed(const std::vector<BuzzfeedP
 	}
 
 	// 3. fill reply
-	bool lContinue = true;
+	bool lContinue = false;
 	std::set<BuzzfeedItem::Key> lAdded;
 	for (std::multimap<uint64_t, BuzzfeedItem::Key>::reverse_iterator lItem = lRawBuzzfeed.rbegin(); lItem != lRawBuzzfeed.rend(); lItem++) {
 		//
-		if (feed.size() < 100 /*max last mixed events*/ || lContinue && feed.size() < 500) {
+		if (!lContinue && feed.size() < 100 /*max last mixed events*/ || lContinue && feed.size() < 500) {
 			std::map<BuzzfeedItem::Key, BuzzfeedItemPtr>::iterator lBuzzItem = lBuzzItems.find(lItem->second);
 			if (lBuzzItem != lBuzzItems.end()) {
 				if (lAdded.insert(lItem->second).second) {
@@ -2628,7 +2628,9 @@ void BuzzerTransactionStoreExtension::selectBuzzfeed(const std::vector<BuzzfeedP
 					//
 					if (lBuzzItem->second->type() == TX_BUZZ_REPLY) {
 						lContinue = true;
-					} else lContinue = false;
+					} else { 
+						lContinue = false;
+					}
 				}
 			} else {
 				//
