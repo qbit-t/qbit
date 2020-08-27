@@ -200,12 +200,19 @@ public:
 	//
 	// push state
 	bool pushState(StatePtr state) {
+		//
+		boost::unique_lock<boost::recursive_mutex> lLock(peersMutex_);
+		states_.erase(state->addressId());
+		states_[state->addressId()] = state;
 		return true;
 	}
 
 	//
 	// pop state
 	bool popState(StatePtr state) {
+		//
+		boost::unique_lock<boost::recursive_mutex> lLock(peersMutex_);
+		states_.erase(state->addressId());
 		return true;
 	}
 
@@ -606,6 +613,8 @@ private:
 	LatencyMap latencyMap_;
 
 	std::map<uint160 /*peer*/, IPeerPtr> peers_;
+	std::map<uint160 /*peer*/, StatePtr> states_;
+	std::map<uint256 /*chain*/, std::map<uint64_t, std::set<uint160>>> chainHeights_;
 	std::map<uint256 /*chain*/, std::set<uint160>> chainPeers_;
 	std::map<std::string /*dapp*/, std::set<uint160>> dappPeers_;
 	std::map<std::string /*dapp*/, std::set<uint256>> dappChains_;

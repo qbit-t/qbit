@@ -630,6 +630,9 @@ void BuzzfeedItem::feed(std::vector<BuzzfeedItemPtr>& feed, bool expanded) {
 						if (gLog().isEnabled(Log::CLIENT))
 							gLog().write(Log::CLIENT, strprintf("[FEED-ERROR]: %s", lBuzz->second->toString()));
 					}
+				} else {
+					if (gLog().isEnabled(Log::CLIENT))
+						gLog().write(Log::CLIENT, strprintf("[FEED-ERROR-NOT-FOUND]: %s", lBuzz->second->toString()));
 				}
 			}
 		} else {
@@ -677,8 +680,11 @@ void BuzzfeedItem::feed(std::vector<BuzzfeedItemPtr>& feed, bool expanded) {
 						if (gLog().isEnabled(Log::CLIENT))
 							gLog().write(Log::CLIENT, strprintf("[FEED-ERROR]: %s", lBuzz->second->toString()));
 					}
+				} else {
+					if (gLog().isEnabled(Log::CLIENT))
+						gLog().write(Log::CLIENT, strprintf("[FEED-ERROR-NOT-FOUND]: %s", lBuzz->second->toString()));
 				}
-			}			
+			}
 		}
 	} else {
 		// FORWARD
@@ -714,6 +720,9 @@ void BuzzfeedItem::feed(std::vector<BuzzfeedItemPtr>& feed, bool expanded) {
 						if (gLog().isEnabled(Log::CLIENT))
 							gLog().write(Log::CLIENT, strprintf("[FEED-ERROR]: %s", lBuzz->second->toString()));
 					}
+				} else {
+					if (gLog().isEnabled(Log::CLIENT))
+						gLog().write(Log::CLIENT, strprintf("[FEED-ERROR-NOT-FOUND]: %s", lBuzz->second->toString()));
 				}
 			}
 		} else {
@@ -781,6 +790,9 @@ void BuzzfeedItem::feed(std::vector<BuzzfeedItemPtr>& feed, bool expanded) {
 						if (gLog().isEnabled(Log::CLIENT))
 							gLog().write(Log::CLIENT, strprintf("[FEED-ERROR]: %s", lBuzz->second->toString()));
 					}
+				} else {
+					if (gLog().isEnabled(Log::CLIENT))
+						gLog().write(Log::CLIENT, strprintf("[FEED-ERROR-NOT-FOUND]: %s", lBuzz->second->toString()));
 				}
 			}
 		}

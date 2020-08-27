@@ -150,7 +150,7 @@ void EventsfeedListModel::feed(qbit::EventsfeedPtr local, bool more) {
 		// make index
 		for (int lItem = 0; lItem < (int)list_.size(); lItem++) {
 			index_[list_[lItem]->key()] = lItem;
-			qInfo() << "Initial: " << QString::fromStdString(list_[lItem]->key().toString()) << QString::fromStdString(list_[lItem]->toString());
+			//qInfo() << "Initial: " << QString::fromStdString(list_[lItem]->key().toString()) << QString::fromStdString(list_[lItem]->toString());
 		}
 
 		//
@@ -198,7 +198,7 @@ void EventsfeedListModel::feed(qbit::EventsfeedPtr local, bool more) {
 			// make index
 			for (int lItem = 0; lItem < (int)list_.size(); lItem++) {
 				index_[list_[lItem]->key()] = lItem;
-				qInfo() << "More: " << QString::fromStdString(list_[lItem]->key().toString()) << QString::fromStdString(list_[lItem]->toString());
+				//qInfo() << "More: " << QString::fromStdString(list_[lItem]->key().toString()) << QString::fromStdString(list_[lItem]->toString());
 			}
 
 			qInfo() << "new.count = " << list_.size();
