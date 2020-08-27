@@ -770,7 +770,8 @@ bool BuzzerPeerExtension::processEventCommon(TransactionContextPtr ctx) {
 
 					// check
 					// if subscriber (peer) has subscription on this new publisher
-					if (dapp_.instance() == lInnerPublisher) {
+					if (dapp_.instance() == lInnerPublisher && 
+							lOriginalPublisher != lInnerPublisher /*self-notification*/) {
 						//
 						EventsfeedItem lItem;
 						TxBuzzerPtr lBuzzer = nullptr;
@@ -799,7 +800,8 @@ bool BuzzerPeerExtension::processEventCommon(TransactionContextPtr ctx) {
 																					lReTx->type() == TX_BUZZ)) {
 
 								lInnerPublisher = (*lReTx->in().begin()).out().tx();
-								if (dapp_.instance() == lInnerPublisher) {
+								if (dapp_.instance() == lInnerPublisher &&
+										lOriginalPublisher != lInnerPublisher /*self-notification*/) {
 									// make event
 									EventsfeedItem lItem;
 									TxBuzzerPtr lBuzzer = nullptr;

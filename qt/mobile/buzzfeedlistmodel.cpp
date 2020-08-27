@@ -505,7 +505,8 @@ BuzzfeedListModelPersonal::BuzzfeedListModelPersonal() {
 		boost::bind(&BuzzfeedListModel::buzzfeedItemUpdated, this, _1),
 		boost::bind(&BuzzfeedListModel::buzzfeedItemsUpdated, this, _1),
 		boost::bind(&BuzzfeedListModel::buzzfeedItemAbsent, this, _1, _2),
-		qbit::BuzzfeedItem::Merge::UNION
+		qbit::BuzzfeedItem::Merge::UNION,
+		qbit::BuzzfeedItem::Expand::FULL
 	);
 
 	buzzfeed_->prepare();

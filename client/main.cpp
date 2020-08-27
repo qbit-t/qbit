@@ -359,7 +359,8 @@ int main(int argv, char** argc) {
 		boost::bind(&buzzfeedItemUpdated, _1),
 		boost::bind(&buzzfeedItemsUpdated, _1),
 		boost::bind(&buzzfeedItemAbsent, _1, _2),
-		BuzzfeedItem::Merge::UNION
+		BuzzfeedItem::Merge::UNION,
+		BuzzfeedItem::Expand::FULL
 	);
 
 	lBuzzfeed->prepare();
