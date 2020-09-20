@@ -82,8 +82,11 @@ public:
 	LightWallet(ISettingsPtr settings, IRequestProcessorPtr requestProcessor) : 
 		settings_(settings),
 		requestProcessor_(requestProcessor),
-		keys_(settings_->dataPath() + "/wallet/keys"), 
-		utxo_(settings_->dataPath() + "/wallet/utxo") {
+		keys_ (settings_->dataPath() + "/wallet/keys" ), 
+		utxo_ (settings_->dataPath() + "/wallet/utxo" ),
+		outs_ (settings_->dataPath() + "/wallet/outs" ),
+		index_(settings_->dataPath() + "/wallet/index"),
+		value_(settings_->dataPath() + "/wallet/value") {
 		opened_ = false;
 	}
 
@@ -105,8 +108,44 @@ public:
 	// 
 	TransactionContextPtr processTransaction(TransactionPtr);
 
-	void setWalletReceiveTransactionFunction(walletReceiveTransactionFunction walletReceiveTransaction) {
-		walletReceiveTransaction_ = walletReceiveTransaction;
+	void setWalletReceiveTransactionFunction(const std::string& key, walletReceiveTransactionFunction walletReceiveTransaction) {
+		walletReceiveTransaction_.erase(key);
+		walletReceiveTransaction_[key] = walletReceiveTransaction;
+	}
+	void setWalletOutUpdatedFunction(const std::string& key, walletOutUpdatedFunction out) {
+		outUpdated_.erase(key);
+		outUpdated_[key] = out;
+	}
+	void setWalletInUpdatedFunction(const std::string& key, walletInUpdatedFunction in) {
+		inUpdated_.erase(key);
+		inUpdated_[key] = in;
+	}
+
+	void walletReceiveTransaction(Transaction::UnlinkedOutPtr utxo, TransactionPtr tx) {
+		for (std::map<std::string, walletReceiveTransactionFunction>::iterator lItem = walletReceiveTransaction_.begin();
+					lItem != walletReceiveTransaction_.end(); lItem++) {
+			//
+			walletReceiveTransactionFunction lCallback = lItem->second;
+			lCallback(utxo, tx);
+		}
+	}
+
+	void outUpdated(Transaction::NetworkUnlinkedOutPtr utxo) {
+		for (std::map<std::string, walletOutUpdatedFunction>::iterator lItem = outUpdated_.begin();
+					lItem != outUpdated_.end(); lItem++) {
+			//
+			walletOutUpdatedFunction lCallback = lItem->second;
+			lCallback(utxo);
+		}
+	}
+
+	void inUpdated(Transaction::NetworkUnlinkedOutPtr utxo) {
+		for (std::map<std::string, walletInUpdatedFunction>::iterator lItem = inUpdated_.begin();
+					lItem != inUpdated_.end(); lItem++) {
+			//
+			walletInUpdatedFunction lCallback = lItem->second;
+			lCallback(utxo);
+		}
 	}
 
 	//
@@ -160,11 +199,11 @@ public:
 	bool isOpened() { return opened_; }
 
 	// create spend tx
-	TransactionContextPtr createTxSpend(const uint256& /*asset*/, const PKey& /*dest*/, amount_t /*amount*/, qunit_t /*fee limit*/);
+	TransactionContextPtr createTxSpend(const uint256& /*asset*/, const PKey& /*dest*/, amount_t /*amount*/, qunit_t /*fee limit*/, int32_t targetBlock = -1);
 	TransactionContextPtr createTxSpend(const uint256& /*asset*/, const PKey& /*dest*/, amount_t /*amount*/);
 
 	// create spend private tx
-	TransactionContextPtr createTxSpendPrivate(const uint256& /*asset*/, const PKey& /*dest*/, amount_t /*amount*/, qunit_t /*fee limit*/);
+	TransactionContextPtr createTxSpendPrivate(const uint256& /*asset*/, const PKey& /*dest*/, amount_t /*amount*/, qunit_t /*fee limit*/, int32_t targetBlock = -1);
 	TransactionContextPtr createTxSpendPrivate(const uint256& /*asset*/, const PKey& /*dest*/, amount_t /*amount*/);
 
 	// create tx fee
@@ -173,7 +212,21 @@ public:
 
 	amount_t fillInputs(TxSpendPtr /*tx*/, const uint256& /*asset*/, amount_t /*amount*/, std::list<Transaction::UnlinkedOutPtr>& /*utxos*/);
 	void removeUnlinkedOut(std::list<Transaction::UnlinkedOutPtr>&);
+	void removeUnlinkedOut(Transaction::UnlinkedOutPtr);
 	void cacheUnlinkedOut(Transaction::UnlinkedOutPtr);
+
+	//
+	void updateOut(Transaction::NetworkUnlinkedOutPtr /*out*/, const uint256& /*parent*/, unsigned short /*type*/);
+	void updateIn(Transaction::NetworkUnlinkedOutPtr /*out*/);
+	void updateOuts(TransactionPtr /*tx*/);
+
+	//
+	void selectLog(uint64_t /*from*/, std::vector<Transaction::NetworkUnlinkedOutPtr>& /*items*/);
+	void selectIns(uint64_t /*from*/, std::vector<Transaction::NetworkUnlinkedOutPtr>& /*items*/);
+	void selectOuts(uint64_t /*from*/, std::vector<Transaction::NetworkUnlinkedOutPtr>& /*items*/);
+
+	//
+	bool isTimelockReached(const uint256& /*utxo*/);
 
 private:
 	TransactionContextPtr makeTxSpend(Transaction::Type /*type*/, const uint256& /*asset*/, const PKey& /*dest*/, amount_t /*amount*/, qunit_t /*fee limit*/);
@@ -189,6 +242,11 @@ private:
 	db::DbContainer<uint160 /*id*/, SKey> keys_;
 	// unlinked outs
 	db::DbContainer<uint256 /*utxo*/, Transaction::NetworkUnlinkedOut /*data*/> utxo_;
+
+	// index
+	db::DbContainer<uint256 /*id*/, Transaction::NetworkUnlinkedOut /*data*/> outs_;
+	db::DbContainer<std::string /*timestamp - lexicographically comparison*/, uint256 /*utxo*/> index_;
+	db::DbTwoKeyContainer<unsigned short /*direction*/, std::string /*timestamp - lexicographically comparison*/, uint256 /*utxo*/> value_;
 
 	// cache
 	// asset/utxo/data
@@ -211,7 +269,9 @@ private:
 	boost::recursive_mutex keyMutex_;
 
 	//
-	walletReceiveTransactionFunction walletReceiveTransaction_;
+	std::map<std::string, walletReceiveTransactionFunction> walletReceiveTransaction_;
+	std::map<std::string, walletInUpdatedFunction> inUpdated_;
+	std::map<std::string, walletOutUpdatedFunction> outUpdated_;
 };
 
 } // qbit

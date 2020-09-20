@@ -832,6 +832,7 @@ void VirtualMachine::qptxo() {
 
 	Register& lC1 	= registers_[qasm::QC1]; // timelock check result
 	Register& lR1 	= registers_[qasm::QR1]; // timelock 
+	Register& lA6 	= registers_[qasm::QA6]; // change?
 
 	if (lTH1.getType() != qasm::QNONE && lTH3.getType() != qasm::QNONE) {
 		//
@@ -857,7 +858,8 @@ void VirtualMachine::qptxo() {
 
 			Transaction::UnlinkedOutPtr lUTXO = Transaction::UnlinkedOut::instance(
 				lLink, // link
-				lTimelock
+				lTimelock,
+				lA6.to<unsigned char>()
 			);
 
 			store_->pushUnlinkedOut(lUTXO, wrapper_); // push public
@@ -885,6 +887,7 @@ void VirtualMachine::qatxoa() {
 	Register& lA0 	= registers_[qasm::QA0]; // amount
 	Register& lA1 	= registers_[qasm::QA1]; // commit
 	Register& lA2 	= registers_[qasm::QA2]; // blind
+	Register& lA6 	= registers_[qasm::QA6]; // change?
 	Register& lA7 	= registers_[qasm::QA7]; // check amount result
 	Register& lTH1 	= registers_[qasm::QTH1]; // tx type
 	Register& lTH3 	= registers_[qasm::QTH3]; // current out number
@@ -924,7 +927,8 @@ void VirtualMachine::qatxoa() {
 						lA0.to<uint64_t>(), // amount
 						lA2.to<uint256>(), // blinding key
 						lA1.to<std::vector<unsigned char> >(), // commit
-						lTimelock
+						lTimelock,
+						lA6.to<unsigned char>()
 					);
 
 					SKeyPtr lSKey = wallet_->findKey(lPKey);
@@ -958,6 +962,7 @@ void VirtualMachine::qatxo() {
 	Register& lTH3 	= registers_[qasm::QTH3]; // current out number
 	Register& lC1 	= registers_[qasm::QC1]; // timelock check result
 	Register& lR1 	= registers_[qasm::QR1]; // timelock 
+	Register& lA6 	= registers_[qasm::QA6]; // change?
 
 	if (lP0.getType() == qasm::QNONE) { // amount checked by checka AND there was not spend 
 
@@ -983,7 +988,8 @@ void VirtualMachine::qatxo() {
 					Transaction::UnlinkedOutPtr lUTXO = Transaction::UnlinkedOut::instance(
 						lLink, // link
 						lPKey,
-						lTimelock
+						lTimelock,
+						lA6.to<unsigned char>()
 					);
 
 					SKeyPtr lSKey = wallet_->findKey(lPKey);
@@ -1016,6 +1022,7 @@ void VirtualMachine::qatxop() {
 	Register& lP0 	= registers_[qasm::QP0]; // dtxo -> p0 undefined 	
 	Register& lA1 	= registers_[qasm::QA1]; // commit
 	Register& lA2 	= registers_[qasm::QA2]; // proof
+	Register& lA6 	= registers_[qasm::QA6]; // change?
 	Register& lA7 	= registers_[qasm::QA7]; // checkp amount result
 	Register& lTH3 	= registers_[qasm::QTH3]; // current out number
 	Register& lC1 	= registers_[qasm::QC1]; // timelock check result
@@ -1101,7 +1108,8 @@ void VirtualMachine::qatxop() {
 									lBlindFactor, // blinding key
 									lA1.to<std::vector<unsigned char> >(), // commit
 									lNonce,
-									lTimelock
+									lTimelock,
+									lA6.to<unsigned char>()
 								);
 
 								wallet_->pushUnlinkedOut(lUTXO, wrapper_); // push UTXO
@@ -1110,7 +1118,7 @@ void VirtualMachine::qatxop() {
 					}
 
 					// public 
-					store_->pushUnlinkedOut(Transaction::UnlinkedOut::instance(lLink, lPKey, lTimelock), wrapper_); // push public
+					store_->pushUnlinkedOut(Transaction::UnlinkedOut::instance(lLink, lPKey, lTimelock, lA6.to<unsigned char>()), wrapper_); // push public
 					// out address
 					wrapper_->addOutAddress(lPKey);
 				} else {
@@ -1125,9 +1133,13 @@ void VirtualMachine::qatxop() {
 			state_ = VirtualMachine::UNKNOWN_OBJECT;
 		}
 
-	} else {
-		state_ = VirtualMachine::INVALID_AMOUNT; // general failure
+	} 
+	/*
+	else {
+		if (state_ == VirtualMachine::RUNNING || state_ == VirtualMachine::UNDEFINED)
+			state_ = VirtualMachine::INVALID_AMOUNT; // general failure
 	}
+	*/
 }
 
 void VirtualMachine::qatxop(DisassemblyLine& line) {

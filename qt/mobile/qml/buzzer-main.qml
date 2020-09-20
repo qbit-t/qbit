@@ -172,6 +172,13 @@ QuarkPage
 			} else {
 				headerBar.showBottomLine = true;
 			}
+
+			if (currentIndex == 4 /*wallet*/) {
+				buzzerApp.lockPortraitOrientation();
+				walletQbit.init();
+			} else {
+				buzzerApp.unlockOrientation();
+			}
 		}
 
 		Component.onCompleted: {
@@ -224,7 +231,15 @@ QuarkPage
 			height: navigatorBar.y - (headerBar.y + headerBar.height)
 			controller: buzzermain_.controller
 		}
-		Item {}
-		Item {}
+		Item {
+		}
+		Wallet {
+			id: walletQbit
+			x: 0
+			y: headerBar.y + headerBar.height
+			width: buzzermain_.width
+			height: navigatorBar.y - (headerBar.y + headerBar.height)
+			controller: buzzermain_.controller
+		}
 	}
 }

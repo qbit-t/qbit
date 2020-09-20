@@ -16,3 +16,11 @@ BuzzEndorseMistrustItem 1.0 buzzendorseitem.qml
 QuarkCamera 1.0 camera.qml
 BuzzerItem 1.0 buzzitembuzzer.qml
 Eventsfeed 1.0 eventsfeed.qml
+Wallet 1.0 wallet.qml
+WalletBalance 1.0 walletbalance.qml
+WalletTransactions 1.0 wallettransactions.qml
+WalletReceive 1.0 walletreceive.qml
+WalletSend 1.0 walletsend.qml
+WalletReceiveReceipt 1.0 walletreceivereceipt.qml
+AddAddressDialog 1.0 addaddressdialog.qml
+ConfirmSendDialog 1.0 confirmsenddialog.qml

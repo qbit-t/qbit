@@ -9,10 +9,8 @@ import Qt.labs.settings 1.0
 import QtQuick.Dialogs 1.1
 import StatusBar 0.1
 
-import "qrc:/backend"
 import "qrc:/fonts"
 import "qrc:/components"
-import "qrc:/models"
 
 import "qrc:/lib/dateFunctions.js" as DateHelper
 import "qrc:/lib/numberFunctions.js" as NumberFunctions
@@ -51,7 +49,7 @@ QuarkPage
 
         onTriggered:
         {
-            if (camera.cameraStatus == Camera.ActiveStatus)
+			if (camera.cameraStatus === Camera.ActiveStatus)
             {
                 viewfinder.grabToImage(function (result)
                 {
@@ -113,7 +111,7 @@ QuarkPage
         anchors.fill: parent
         focus : visible // to receive focus and capture key events when visible
         autoOrientation: true
-        fillMode: VideoOutput.PreserveAspectFit
+		fillMode: VideoOutput.PreserveAspectCrop
     }
 
     Image
@@ -121,42 +119,21 @@ QuarkPage
         id: photoPreview
     }
 
-    QuarkPanel
-    {
-        id: infoPanel
-        x: 0
-        y: 0
-        width: parent.width
-        height: 60
+	QuarkToolButton {
+		id: backButton
+		symbol: Fonts.cancelSym
+		visible: true
+		labelYOffset: 3
+		x: 10
+		y: topOffset + 10
 
-        QuarkToolButton
-        {
-            id: backButton
-            symbol: Fonts.shevronLeftSym
-            Material.background: "transparent"
-            visible: true
-            labelYOffset: 3
-            x: 5
-            y: topOffset
+		onClicked: {
+			camera.stop();
+			closePage();
+		}
+	}
 
-            onClicked:
-            {
-                closePage();
-            }
-        }
-
-        QuarkLabel
-        {
-            id: infoText
-            x: infoPanel.width / 2 - infoText.width / 2
-            y: 15 + topOffset
-            color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Panel.textForeground");
-            text: caption
-            font.pointSize: 14
-        }
-    }
-
-    Column
+	Column
     {
         id: exposureControl
         anchors.left: parent.left

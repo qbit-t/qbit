@@ -107,6 +107,17 @@ void UploadMediaCommand::feeSent(const uint256& tx, const std::vector<Transactio
 
 	feeSent_ = true;
 
+	//
+	TransactionContextPtr lFee = ctx_->locateByType(Transaction::FEE);
+	for (std::list<Transaction::NetworkUnlinkedOutPtr>::iterator lOut = lFee->externalOuts().begin(); 
+																lOut != lFee->externalOuts().end(); lOut++) {
+		//
+		if (gLog().isEnabled(Log::CLIENT))
+			gLog().write(Log::CLIENT, strprintf("[feeSent]: fee for %s", tx.toHex()));
+		composer_->wallet()->updateOut(*lOut, ctx_->tx()->id(), ctx_->tx()->type());
+	}
+
+	//
 	composer_->requestProcessor()->sendTransaction(peer_, ctx_,
 			SentTransaction::instance(
 				boost::bind(&UploadMediaCommand::summarySent, shared_from_this(), _1, _2),

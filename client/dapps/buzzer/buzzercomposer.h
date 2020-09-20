@@ -859,7 +859,8 @@ public:
 	BuzzerLightComposer(ISettingsPtr settings, BuzzerPtr buzzer, IWalletPtr wallet, IRequestProcessorPtr requestProcessor, BuzzerRequestProcessorPtr buzzerRequestProcessor): 
 		settings_(settings), buzzer_(buzzer), wallet_(wallet), requestProcessor_(requestProcessor), buzzerRequestProcessor_(buzzerRequestProcessor),
 		workingSettings_(settings->dataPath() + "/wallet/buzzer/settings"),
-		subscriptions_(settings->dataPath() + "/wallet/buzzer/subscriptions") {
+		subscriptions_(settings->dataPath() + "/wallet/buzzer/subscriptions"),
+		contacts_(settings->dataPath() + "/wallet/buzzer/contacts") {
 		opened_ = false;
 	}
 
@@ -924,7 +925,7 @@ public:
 		if (!open()) return false;
 
 		// save our buzzer
-		DataStream lStream(SER_NETWORK, PROTOCOL_VERSION);
+		DataStream lStream(SER_DISK, PROTOCOL_VERSION);
 		Transaction::Serializer::serialize<DataStream>(lStream, buzzerTx_);
 		std::string lBuzzerTxHex = HexStr(lStream.begin(), lStream.end());
 		workingSettings_.write("buzzerTx", lBuzzerTxHex);
@@ -953,7 +954,7 @@ public:
 		if (!open()) return false;
 
 		// save our buzzer
-		DataStream lStream(SER_NETWORK, PROTOCOL_VERSION);
+		DataStream lStream(SER_DISK, PROTOCOL_VERSION);
 		Transaction::Serializer::serialize<DataStream>(lStream, buzzerInfoTx_);
 		std::string lBuzzerTxHex = HexStr(lStream.begin(), lStream.end());
 		workingSettings_.write("buzzerInfoTx", lBuzzerTxHex);
@@ -976,7 +977,7 @@ public:
 		if (!open()) return false;
 
 		// save our buzzer
-		DataStream lStream(SER_NETWORK, PROTOCOL_VERSION);
+		DataStream lStream(SER_DISK, PROTOCOL_VERSION);
 		lStream << buzzerUtxo_;
 		std::string lBuzzerUtxoHex = HexStr(lStream.begin(), lStream.end());
 		workingSettings_.write("buzzerUtxo", lBuzzerUtxoHex);
@@ -1028,6 +1029,26 @@ public:
 
 	bool getSubscription(const uint256&, PKey&);
 
+	void addContact(const std::string& buzzer, const std::string& address) {
+		contacts_.write(buzzer, address);
+	}
+
+	void removeContact(const std::string& buzzer) {
+		contacts_.remove(buzzer);
+	}
+
+	void selectContacts(std::map<std::string, std::string>& contacts) {
+		//
+		db::DbContainer<std::string /*buzzer*/, std::string /*packed-pkey*/>::Iterator lItem = contacts_.begin();
+		for (; lItem.valid(); ++lItem) {
+			//
+			std::string lBuzzer;
+			if (lItem.first(lBuzzer)) {
+				contacts[lBuzzer] = *lItem;
+			}
+		}
+	}
+
 private:
 	// various settings, command line args & config file
 	ISettingsPtr settings_;
@@ -1050,9 +1071,10 @@ private:
 
 	// persistent settings
 	db::DbContainer<std::string /*name*/, std::string /*data*/> workingSettings_;
-
 	// subscriptions
 	db::DbContainer<uint256 /*publisher*/, PKey /*pubkey*/> subscriptions_;
+	// contacts
+	db::DbContainer<std::string /*buzzer*/, std::string /*packed-pkey*/> contacts_;
 
 	// flag
 	bool opened_ = false;

@@ -22,6 +22,7 @@ Rectangle
     property string labelColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground");
 
     property string symbol;
+	property int fontPointSize: parent.height - 10;
     //property bool clicked: false;
 
     signal clicked()
@@ -40,7 +41,7 @@ Rectangle
 
         font.family: Fonts.icons
         font.weight: Font.Normal
-        font.pointSize: parent.height - 10 //?
+		font.pointSize: fontPointSize
 
         MouseArea
         {

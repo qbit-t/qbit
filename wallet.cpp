@@ -819,7 +819,7 @@ TransactionContextPtr Wallet::makeTxSpend(Transaction::Type type, const uint256&
 			lTx->addFeeOut(*lSKey, asset, lFee); // to miner
 
 			if (lAmount > amount + lFee) { // make change
-				lTx->addOut(*lSChangeKey, lSChangeKey->createPKey()/*change*/, asset, lAmount - (amount + lFee));
+				lTx->addOut(*lSChangeKey, lSChangeKey->createPKey()/*change*/, asset, lAmount - (amount + lFee), true);
 			}
 		} else { // rare cases
 			return makeTxSpend(type, asset, dest, amount + lFee, feeRateLimit, targetBlock);
@@ -829,7 +829,7 @@ TransactionContextPtr Wallet::makeTxSpend(Transaction::Type type, const uint256&
 		amount_t lFeeAmount = fillInputs(lTx, TxAssetType::qbitAsset(), lFee, lFeeUtxos);
 		lTx->addFeeOut(*lSKey, TxAssetType::qbitAsset(), lFee); // to miner
 		if (lFeeAmount > lFee) { // make change
-			lTx->addOut(*lSChangeKey, lSChangeKey->createPKey()/*change*/, TxAssetType::qbitAsset(), lFeeAmount - lFee);
+			lTx->addOut(*lSChangeKey, lSChangeKey->createPKey()/*change*/, TxAssetType::qbitAsset(), lFeeAmount - lFee, true);
 		}
 	}
 
@@ -898,7 +898,7 @@ TransactionContextPtr Wallet::createTxAssetType(const PKey& dest, const std::str
 	amount_t lFeeAmount = fillInputs(lAssetTypeTx, TxAssetType::qbitAsset(), lFee, lUtxos);
 	lAssetTypeTx->addFeeOut(*lSKey, TxAssetType::qbitAsset(), lFee); // to miner
 	if (lFeeAmount > lFee) { // make change
-		lAssetTypeTx->addOut(*lSChangeKey, lSChangeKey->createPKey()/*change*/, TxAssetType::qbitAsset(), lFeeAmount - lFee);
+		lAssetTypeTx->addOut(*lSChangeKey, lSChangeKey->createPKey()/*change*/, TxAssetType::qbitAsset(), lFeeAmount - lFee, true);
 	}
 
 	if (!lAssetTypeTx->finalize(*lSKey)) throw qbit::exception("E_TX_FINALIZE", "Transaction finalization failed.");
@@ -964,7 +964,7 @@ TransactionContextPtr Wallet::createTxLimitedAssetEmission(const PKey& dest, con
 	amount_t lFeeAmount = fillInputs(lAssetEmissionTx, TxAssetType::qbitAsset(), lFee, lUtxos);
 	lAssetEmissionTx->addFeeOut(*lSKey, TxAssetType::qbitAsset(), lFee); // to miner
 	if (lFeeAmount > lFee) { // make change
-		lAssetEmissionTx->addOut(*lSChangeKey, lSChangeKey->createPKey()/*change*/, TxAssetType::qbitAsset(), lFeeAmount - lFee);
+		lAssetEmissionTx->addOut(*lSChangeKey, lSChangeKey->createPKey()/*change*/, TxAssetType::qbitAsset(), lFeeAmount - lFee, true);
 	}
 
 	if (!lAssetEmissionTx->finalize(*lSKey)) throw qbit::exception("E_TX_FINALIZE", "Transaction finalization failed.");
@@ -1028,7 +1028,7 @@ TransactionContextPtr Wallet::createTxDApp(const PKey& dest, const std::string& 
 	amount_t lFeeAmount = fillInputs(lDAppTx, TxAssetType::qbitAsset(), lFee, lUtxos);
 	lDAppTx->addFeeOut(*lSKey, TxAssetType::qbitAsset(), lFee); // to miner
 	if (lFeeAmount > lFee) { // make change
-		lDAppTx->addOut(*lSChangeKey, lSChangeKey->createPKey()/*change*/, TxAssetType::qbitAsset(), lFeeAmount - lFee);
+		lDAppTx->addOut(*lSChangeKey, lSChangeKey->createPKey()/*change*/, TxAssetType::qbitAsset(), lFeeAmount - lFee, true);
 	}
 
 	if (!lDAppTx->finalize(*lSKey)) throw qbit::exception("E_TX_FINALIZE", "Transaction finalization failed.");
@@ -1075,7 +1075,7 @@ TransactionContextPtr Wallet::createTxShard(const PKey& dest, const std::string&
 	amount_t lFeeAmount = fillInputs(lShardTx, TxAssetType::qbitAsset(), lFee, lInputsUtxos);
 	lShardTx->addFeeOut(*lSKey, TxAssetType::qbitAsset(), lFee); // to miner
 	if (lFeeAmount > lFee) { // make change
-		lShardTx->addOut(*lSChangeKey, lSChangeKey->createPKey()/*change*/, TxAssetType::qbitAsset(), lFeeAmount - lFee);
+		lShardTx->addOut(*lSChangeKey, lSChangeKey->createPKey()/*change*/, TxAssetType::qbitAsset(), lFeeAmount - lFee, true);
 	}
 
 	if (!lShardTx->finalize(*lSKey)) throw qbit::exception("E_TX_FINALIZE", "Transaction finalization failed.");
@@ -1112,7 +1112,7 @@ TransactionContextPtr Wallet::createTxFee(const PKey& dest, amount_t amount) {
 		lTx->addFeeOut(*lSKey, TxAssetType::qbitAsset(), lFee); // to miner
 
 		if (lAmount > amount + lFee) { // make change
-			lTx->addOut(*lSChangeKey, lSChangeKey->createPKey()/*change*/, TxAssetType::qbitAsset(), lAmount - (amount + lFee));
+			lTx->addOut(*lSChangeKey, lSChangeKey->createPKey()/*change*/, TxAssetType::qbitAsset(), lAmount - (amount + lFee), true);
 		}
 	} else { // rare cases
 		return createTxFee(dest, amount + lFee);
@@ -1156,7 +1156,7 @@ TransactionContextPtr Wallet::createTxFeeLockedChange(const PKey& dest, amount_t
 		lTx->addFeeOut(*lSKey, TxAssetType::qbitAsset(), lFee); // to miner
 
 		if (lAmount > amount + locked + lFee) { // make change
-			lTx->addOut(*lSChangeKey, lSChangeKey->createPKey()/*change*/, TxAssetType::qbitAsset(), lAmount - (amount + locked + lFee));
+			lTx->addOut(*lSChangeKey, lSChangeKey->createPKey()/*change*/, TxAssetType::qbitAsset(), lAmount - (amount + locked + lFee), true);
 		}
 	} else { // rare cases
 		return createTxFeeLockedChange(dest, amount + lFee, locked, height);

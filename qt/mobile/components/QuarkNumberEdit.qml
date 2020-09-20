@@ -21,12 +21,18 @@ Item
     Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground");
     Material.primary: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.primary");
 
-    property int fontPointSize: 12;
-    property int popUpWidth: editRect.width;
+	property int fontPointSize: 12;
+	property int buzztonsFontPointSize: 14;
+	property int popUpWidth: editRect.width;
     property int itemRightPadding: -5;
     property int itemLeftPadding: 5;
     property int itemHorizontalAlignment: Text.AlignHCenter;
     property bool popUpAlignLeft: true;
+	property string units: "";
+
+	property bool useLimits: false;
+	property real leftLimit: 0.0;
+	property real rightLimit: 100000000.0;
 
     property string priceUpColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
     property string priceDownColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
@@ -93,6 +99,7 @@ Item
         labelColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Price.zeroes");
         visible: !readOnly
         width: readOnly ? 0 : parent.height
+		fontPointSize: buzztonsFontPointSize
 
         onClicked:
         {
@@ -102,7 +109,7 @@ Item
             var lMinDelta = getMinDelta(numberString);
             var lNumber = parseFloat(numberString);
 
-            if (lNumber >= zeroNumber)
+			if (lNumber >= zeroNumber && (!useLimits || useLimits && lNumber > leftLimit))
             {
                 var lResult = appHelper.minusReal(lNumber, lMinDelta);
                 if (lResult === "0") numberString = "";
@@ -110,7 +117,8 @@ Item
             }
             else
             {
-                numberString = "";
+				if (!useLimits) numberString = "";
+				else numberString = NumberFunctions.scientificToDecimal(leftLimit);
             }
 
             numberStringModified();
@@ -133,7 +141,7 @@ Item
         {
             id: numberLabel
 
-            x: parent.width / 2 - numberLabel.calculatedWidth / 2
+			x: parent.width / 2 - (numberLabel.calculatedWidth /*+ unitsLabel.getWidth()*/)/ 2
             y: parent.height / 2 - numberLabel.calculatedHeight / 2
 
             trend: numberEdit.trend
@@ -152,6 +160,21 @@ Item
 
             priceUpColor: numberEdit.priceUpColor
             priceDownColor: numberEdit.priceDownColor
+
+			QuarkLabel {
+				id: unitsLabel
+				font.pointSize: 10
+				x: numberLabel.calculatedWidth + 5
+				y: 0
+				text: units
+				color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
+				visible: units !== ""
+
+				function getWidth() {
+					if (units !== "") return width;
+					return 0;
+				}
+			}
         }
 
         MouseArea
@@ -191,7 +214,7 @@ Item
             function allowEditing()
             {
                 var lPointIdx = numberString.indexOf(".");
-                if ((lPointIdx > 0 && numberString.split(".")[1].length < fillTo) || lPointIdx == -1)
+				if ((lPointIdx > 0 && numberString.split(".")[1].length < fillTo) || lPointIdx === -1)
                 {
                     return true;
                 }
@@ -302,6 +325,15 @@ Item
                     {
                         emitPopupClosed_ = false;
                         popup.close();
+
+						if (useLimits) {
+							var lNumber = parseFloat(numberString);
+							if (lNumber < leftLimit || lNumber > rightLimit)
+							{
+								numberString = NumberFunctions.scientificToDecimal(leftLimit);
+							}
+						}
+
                         numberStringModified();
                     }
                 }
@@ -325,20 +357,26 @@ Item
         labelColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Price.zeroes");
         visible: !readOnly
         width: readOnly ? 0 : parent.height
+		fontPointSize: buzztonsFontPointSize
 
         onClicked:
         {
             //
             if (!numberString.length)
             {
-                numberString = minNumber();
+				if (useLimits) numberString = NumberFunctions.scientificToDecimal(leftLimit);
+				else numberString = minNumber();
             }
             else
             {
                 var lMinDelta = getMinDelta(numberString);
                 var lNumber = parseFloat(numberString);
                 var lResult = appHelper.addReal(lNumber, lMinDelta);
-                numberString = NumberFunctions.scientificToDecimal(lResult);
+
+				if (useLimits && rightLimit < lResult)
+					numberString = NumberFunctions.scientificToDecimal(rightLimit);
+				else
+					numberString = NumberFunctions.scientificToDecimal(lResult);
             }
 
             numberStringModified();

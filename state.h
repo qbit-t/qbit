@@ -35,14 +35,17 @@ public:
 	class BlockInfo {
 	public:
 		BlockInfo() {}
-		BlockInfo(const uint256& chain, uint64_t height, const uint256& hash) : chain_(chain), height_(height), hash_(hash) {}
-		BlockInfo(const uint256& chain, uint64_t height, const uint256& hash, const std::string& dApp) : chain_(chain), height_(height), hash_(hash), dApp_(dApp) {}
+		BlockInfo(const uint256& chain, uint64_t timestamp, uint64_t height, const uint256& hash) : 
+			chain_(chain), timestamp_(timestamp), height_(height), hash_(hash) {}
+		BlockInfo(const uint256& chain, uint64_t timestamp, uint64_t height, const uint256& hash, const std::string& dApp) : 
+			chain_(chain), timestamp_(timestamp), height_(height), hash_(hash), dApp_(dApp) {}
 
 		ADD_SERIALIZE_METHODS;
 
 		template <typename Stream, typename Operation>
 		inline void serializationOp(Stream& s, Operation ser_action) {
 			READWRITE(chain_);
+			READWRITE(timestamp_);
 			READWRITE(height_);
 			READWRITE(hash_);
 
@@ -55,6 +58,7 @@ public:
 			}
 		}
 
+		inline uint64_t timestamp() { return timestamp_; }
 		inline uint64_t height() { return height_; }
 		inline uint256 hash() { return hash_; }
 		inline uint256 chain() { return chain_; }
@@ -62,6 +66,7 @@ public:
 
 	private:
 		uint256 chain_;
+		uint64_t timestamp_;
 		uint64_t height_;
 		uint256 hash_;
 		std::string dApp_;
@@ -170,7 +175,7 @@ public:
 	}
 
 	void addHeader(BlockHeader& header, uint64_t height, const std::string& dapp) {
-		BlockInfo lBlock(header.chain(), height, header.hash(), dapp);
+		BlockInfo lBlock(header.chain(), header.time(), height, header.hash(), dapp);
 		infos_.push_back(lBlock);
 	}
 
@@ -322,7 +327,7 @@ public:
 				pkey_.toString(), addressId().toHex(), infos_.size());
 			
 			for (auto& lInfo : infos_)
-				str += "  -> chain(" + strprintf("%s, %d/%s#", lInfo.dApp().size() ? lInfo.dApp() : "none", lInfo.height(), lInfo.chain().toHex().substr(0, 10)) + ")\n";
+				str += "  -> chain(" + strprintf("%s, %d/%d/%s#", lInfo.dApp().size() ? lInfo.dApp() : "none", lInfo.height(), lInfo.timestamp(), lInfo.chain().toHex().substr(0, 10)) + ")\n";
 		}
 
 		return str;

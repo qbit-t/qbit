@@ -88,9 +88,10 @@ typedef std::shared_ptr<SendToAddressCommand> SendToAddressCommandPtr;
 
 class SendToAddressCommand: public ICommand, public std::enable_shared_from_this<SendToAddressCommand> {
 public:
-	SendToAddressCommand(LightComposerPtr composer, doneFunction done): composer_(composer), done_(done) {}
+	SendToAddressCommand(LightComposerPtr composer, doneSentWithErrorFunction done): composer_(composer), done_(done) {}
+	SendToAddressCommand(LightComposerPtr composer, bool manual, doneSentWithErrorFunction done): composer_(composer), manualProcessing_(manual), done_(done) {}
 
-	void process(const std::vector<std::string>&);
+	virtual void process(const std::vector<std::string>&);
 	std::set<std::string> name() {
 		std::set<std::string> lSet;
 		lSet.insert("sendToAddress"); 
@@ -99,40 +100,142 @@ public:
 		return lSet;
 	}
 
-	void help() {
-		std::cout << "sendToAddress | send | s <asset or *> <address> <amount>" << std::endl;
+	virtual void help() {
+		std::cout << "sendToAddress | send | s <asset or *> <address> <amount> [feerate]" << std::endl;
 		std::cout << "\tMake regular send transaction for specified asset and amount to given address." << std::endl;
 		std::cout << "\t<asset or *> - required, asset in hex or qbit-asset - (*)" << std::endl;
 		std::cout << "\t<address>    - required, recipient's address, qbit-address" << std::endl;
 		std::cout << "\t<amount>     - required, amount to send, in asset units" << std::endl;
+		std::cout << "\t[feerate]    - optional, fee rate in qBIT/byte" << std::endl;
 		std::cout << "\texample:\n\t\t>send * 523pXWffBi7Hgeyi6VSdhxSUJ1sYU1xunZ5bfnwBhy1dx6WG7v 0.5" << std::endl << std::endl;
 	}	
 
-	static ICommandPtr instance(LightComposerPtr composer, doneFunction done) { 
-		return std::make_shared<SendToAddressCommand>(composer, done); 
+	static ICommandPtr instance(LightComposerPtr composer, doneSentWithErrorFunction done) {
+		return std::make_shared<SendToAddressCommand>(composer, done);
+	}
+
+	static ICommandPtr instance(LightComposerPtr composer, bool manual, doneSentWithErrorFunction done) {
+		return std::make_shared<SendToAddressCommand>(composer, manual, done);
 	}
 
 	// callbacks
 	void created(TransactionContextPtr ctx) {
-		if (composer_->requestProcessor()->broadcastTransaction(ctx)) {
-			std::cout << ctx->tx()->id().toHex() << std::endl;		
+		//
+		ctx_ = ctx;
+		if (!manualProcessing_) {
+			broadcast();
 		} else {
+			done_(false, ProcessingError());
+		}
+	}
+
+	amount_t finalAmount() {
+		if (ctx_) return ctx_->fee() + ctx_->amount();
+		return 0;
+	}
+
+	std::string finalAmountFormatted() {
+		if (ctx_) {
+			return strprintf(TxAssetType::scaleFormat(ctx_->scale()), (double)finalAmount()/(double)ctx_->scale());
+		}
+
+		return "0.00000000";
+	}
+
+	void rollback() {
+		if (ctx_ && manualProcessing_)
+			composer_->wallet()->rollback(ctx_);		
+	}
+
+	void broadcast() {
+		//
+		if (!ctx_) return;
+		//
+		if (!composer_->requestProcessor()->sendTransaction(ctx_,
+				SentTransaction::instance(
+					boost::bind(&SendToAddressCommand::sent, shared_from_this(), _1, _2),
+					boost::bind(&SendToAddressCommand::timeout, shared_from_this())))) {
 			gLog().writeClient(Log::CLIENT, std::string(": tx was not broadcasted, wallet re-init..."));
 			composer_->wallet()->resetCache();
 			composer_->wallet()->prepareCache();
+			done_(false, ProcessingError("E_TX_NOT_SENT", "Transaction was not sent."));
 		}
+	}
 
-		done_();
+	void sent(const uint256& tx, const std::vector<TransactionContext::Error>& errors) {
+		//
+		if (errors.size()) {
+			for (std::vector<TransactionContext::Error>::iterator lError = const_cast<std::vector<TransactionContext::Error>&>(errors).begin(); 
+					lError != const_cast<std::vector<TransactionContext::Error>&>(errors).end(); lError++) {
+				gLog().writeClient(Log::CLIENT, strprintf("[error]: %s", lError->data()));
+				done_(false, ProcessingError("E_SENT_TX", lError->data()));
+			}
+		} else {
+			std::cout << tx.toHex() << std::endl;
+
+			//
+			if (ctx_) {
+				for (std::list<Transaction::NetworkUnlinkedOutPtr>::iterator lOut = ctx_->externalOuts().begin(); 
+																			lOut != ctx_->externalOuts().end(); lOut++) {
+					composer_->wallet()->updateOut(*lOut, ctx_->tx()->id(), ctx_->tx()->type());
+				}
+			}
+
+			ctx_ = nullptr;
+			done_(true, ProcessingError());
+		}
+	}
+
+	void timeout() {
+		error("E_TIMEOUT", "Timeout expired during send spend transaction.");
 	}
 
 	void error(const std::string& code, const std::string& message) {
 		gLog().writeClient(Log::CLIENT, strprintf(": %s | %s", code, message));
-		done_();
+		done_(false, ProcessingError(code, message));
 	}	
 
-private:
+protected:
 	LightComposerPtr composer_;
-	doneFunction done_;
+	bool manualProcessing_ = false;
+	doneSentWithErrorFunction done_;
+	TransactionContextPtr ctx_;
+};
+
+class SendPrivateToAddressCommand;
+typedef std::shared_ptr<SendPrivateToAddressCommand> SendPrivateToAddressCommandPtr;
+
+class SendPrivateToAddressCommand: public SendToAddressCommand {
+public:
+	SendPrivateToAddressCommand(LightComposerPtr composer, doneSentWithErrorFunction done): SendToAddressCommand(composer, done) {}
+	SendPrivateToAddressCommand(LightComposerPtr composer, bool manual, doneSentWithErrorFunction done): SendToAddressCommand(composer, manual, done) {}
+
+	void process(const std::vector<std::string>&);
+	std::set<std::string> name() {
+		std::set<std::string> lSet;
+		lSet.insert("sendPrivateToAddress"); 
+		lSet.insert("sendp"); 
+		lSet.insert("sp"); 
+		return lSet;
+	}
+
+	void help() {
+		std::cout << "sendPrivateToAddress | sendp | sp <asset or *> <address> <amount> [feerate]" << std::endl;
+		std::cout << "\tMake regular send transaction for specified asset and amount to given address." << std::endl;
+		std::cout << "\t<asset or *> - required, asset in hex or qbit-asset - (*)" << std::endl;
+		std::cout << "\t<address>    - required, recipient's address, qbit-address" << std::endl;
+		std::cout << "\t<amount>     - required, amount to send, in asset units" << std::endl;
+		std::cout << "\t[feerate]    - optional, fee rate in qBIT/byte" << std::endl;
+		std::cout << "\texample:\n\t\t>sendp * 523pXWffBi7Hgeyi6VSdhxSUJ1sYU1xunZ5bfnwBhy1dx6WG7v 0.5" << std::endl << std::endl;
+	}	
+
+	static ICommandPtr instance(LightComposerPtr composer, doneSentWithErrorFunction done) {
+		return std::make_shared<SendPrivateToAddressCommand>(composer, done);
+	}
+
+	static ICommandPtr instance(LightComposerPtr composer, bool manual, doneSentWithErrorFunction done) {
+		return std::make_shared<SendPrivateToAddressCommand>(composer, manual, done);
+	}
 };
 
 class SearchEntityNamesCommand;
@@ -256,6 +359,52 @@ public:
 
 	static ICommandPtr instance(LightComposerPtr composer, doneTransactionWithErrorFunction done) { 
 		return std::make_shared<LoadTransactionCommand>(composer, done); 
+	}
+
+	void error(const std::string& code, const std::string& message) {
+		gLog().writeClient(Log::CLIENT, strprintf(": %s | %s", code, message));
+		done_(nullptr, ProcessingError(code, message));
+	}	
+
+private:
+	LightComposerPtr composer_;
+	doneTransactionWithErrorFunction done_;
+};
+
+class LoadEntityCommand;
+typedef std::shared_ptr<LoadEntityCommand> LoadEntityCommandPtr;
+
+class LoadEntityCommand: public ICommand, public std::enable_shared_from_this<LoadEntityCommand> {
+public:
+	LoadEntityCommand(LightComposerPtr composer, doneTransactionWithErrorFunction done): composer_(composer), done_(done) {}
+
+	void process(const std::vector<std::string>&);
+
+	std::set<std::string> name() {
+		std::set<std::string> lSet;
+		lSet.insert("loadEntity"); 
+		lSet.insert("loade"); 
+		lSet.insert("le"); 
+		return lSet;
+	}
+
+	void help() {
+		std::cout << "loadTransaction | loade | le <entity>" << std::endl;
+		std::cout << "\tLoad entity by name." << std::endl;
+		std::cout << "\texample:\n\t\t>loade @buzzer" << std::endl << std::endl;
+	}
+
+	void entityLoaded(EntityPtr tx) {
+		done_(TransactionHelper::to<Transaction>(tx), ProcessingError());
+	}
+
+	// 
+	void timeout() {
+		error("E_TIMEOUT", "Timeout expired during load entity.");
+	}
+
+	static ICommandPtr instance(LightComposerPtr composer, doneTransactionWithErrorFunction done) { 
+		return std::make_shared<LoadEntityCommand>(composer, done); 
 	}
 
 	void error(const std::string& code, const std::string& message) {

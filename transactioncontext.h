@@ -91,6 +91,7 @@ public:
 	inline void addNewUnlinkedOut(Transaction::UnlinkedOutPtr out) { newUtxo_.push_back(out); }
 
 	inline void addOut(const Transaction::Link& out) { outs_.push_back(out); }
+	inline void addExternalOut(const Transaction::NetworkUnlinkedOutPtr& out) { externalOuts_.push_back(out); }
 	inline std::vector<Transaction::Link>& out() { return outs_; }
 	inline std::vector<Transaction::In>& in() { return tx_->in(); }
 
@@ -98,6 +99,8 @@ public:
 	inline static TransactionContextPtr instance(TransactionPtr tx, ProcessingContext context) { 
 		return std::make_shared<TransactionContext>(tx, context); 
 	}
+
+	inline std::list<Transaction::NetworkUnlinkedOutPtr>& externalOuts() { return externalOuts_; }
 
 	inline _commitMap& commitIn() { return commitIn_; }
 	inline _commitMap& commitOut() { return commitOut_; }
@@ -107,6 +110,9 @@ public:
 
 	inline amount_t amount() { return amount_; }
 	inline void addAmount(amount_t amount) { amount_ += amount; }
+
+	inline amount_t scale() { return scale_; }
+	inline void setScale(amount_t scale) { scale_ = scale; }
 
 	inline void setQbitTx() { qbitTx_ = true; }
 	inline void resetQbitTx() { qbitTx_ = true; }
@@ -159,9 +165,11 @@ private:
 	// commit out group
 	_commitMap commitOut_;
 	// miner fee
-	amount_t fee_;
+	amount_t fee_ = 0;
 	// output amount (if possible)
-	amount_t amount_;
+	amount_t amount_ = 0;
+	// asset scale
+	amount_t scale_ = 0;
 	// cached size
 	size_t size_;
 	// used my utxo's
@@ -180,6 +188,8 @@ private:
 	std::set<uint256 /*from*/> crossLinks_;
 	// re-process count
 	int reprocessed_ = 0;
+	// persisted outs
+	std::list<Transaction::NetworkUnlinkedOutPtr> externalOuts_;
 };
 
 } // qbit

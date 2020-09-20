@@ -102,10 +102,6 @@ QuarkPage
 
 		function onWalletTransactionReceived() {
 			// chain, tx
-			waitTimer.stop();
-			progressBar.arcEnd = 360;
-			nextButton.enabled = true;
-
 			// get balance
 			balanceCommand.process();
 		}
@@ -131,6 +127,10 @@ QuarkPage
 		onProcessed: {
 			// amount, pending, scale
 			if (amount > 0.0) {
+				// stop waiting
+				waitTimer.stop();
+				progressBar.arcEnd = 360;
+
 				// you have qbits
 				askButton.enabled = false;
 				nextButton.enabled = true;
@@ -169,7 +169,7 @@ QuarkPage
 			interval: 100
 
 			onTriggered: {
-				progressBar.arcEnd += 10;
+				progressBar.arcEnd += 5;
 				if (progressBar.arcEnd >= 360) {
 					running = false;
 				}
