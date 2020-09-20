@@ -29,6 +29,10 @@ Item
 
     signal textCleared();
 
+	function toBegin() {
+		field.ensureVisible(0);
+	}
+
     function reset()
     {
         searchText = "";

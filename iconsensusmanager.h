@@ -13,6 +13,9 @@
 
 namespace qbit {
 
+class IPeerManager;
+typedef std::shared_ptr<IPeerManager> IPeerManagerPtr;
+
 class IConsensusManager {
 public:
 	IConsensusManager() {}
@@ -48,6 +51,7 @@ public:
 	virtual ITransactionStoreManagerPtr storeManager() { throw qbit::exception("NOT_IMPL", "IConsensusManager::storeManager - not implemented."); }
 	virtual IWalletPtr wallet() { throw qbit::exception("NOT_IMPL", "IConsensusManager::wallet - not implemented."); }
 	virtual IMemoryPoolManagerPtr mempoolManager() { throw qbit::exception("NOT_IMPL", "IConsensusManager::mempoolManager - not implemented."); }
+	virtual IPeerManagerPtr peerManager() { throw qbit::exception("NOT_IMPL", "IConsensusManager::peerManager - not implemented."); }
 
 	virtual size_t chainSupportPeersCount(const uint256& /*chain*/) { throw qbit::exception("NOT_IMPL", "IConsensusManager::chainSupportPeersCount - not implemented."); }
 	virtual const std::vector<State::DAppInstance>& dApps() const {	throw qbit::exception("NOT_IMPL", "IConsensusManager::dApps - not implemented."); }

@@ -45,6 +45,7 @@
 #include "buzzfeedlistmodel.h"
 #include "eventsfeedlistmodel.h"
 #include "websourceinfo.h"
+#include "wallettransactionslistmodel.h"
 
 Q_DECLARE_METATYPE(qbit::Buzzfeed*)
 Q_DECLARE_METATYPE(qbit::BuzzfeedItem*)
@@ -52,6 +53,26 @@ Q_DECLARE_METATYPE(qbit::Eventsfeed*)
 Q_DECLARE_METATYPE(qbit::EventsfeedItem*)
 
 namespace buzzer {
+
+class Contact: public QObject
+{
+	Q_OBJECT
+
+public:
+	Contact() {}
+	Contact(QString buzzer, QString pkey) : buzzer_(buzzer), pkey_(pkey) {}
+	Contact(const Contact& other) {
+		buzzer_ = other.buzzer();
+		pkey_ = other.pkey();
+	}
+
+	Q_INVOKABLE QString buzzer() const { return buzzer_; }
+	Q_INVOKABLE QString pkey() const { return pkey_; }
+
+private:
+	QString buzzer_;
+	QString pkey_;
+};
 
 class Settings;
 class Client: public QObject, public IClient
@@ -72,6 +93,8 @@ class Client: public QObject, public IClient
 	Q_PROPERTY(ulong trustScore READ getTrustScore NOTIFY trustScoreChanged)
 	Q_PROPERTY(ulong endorsements READ getEndorsements NOTIFY endorsementsChanged)
 	Q_PROPERTY(ulong mistrusts READ getMistrusts NOTIFY mistrustsChanged)
+	Q_PROPERTY(QString address READ address NOTIFY addressChanged)
+	Q_PROPERTY(QList<buzzer::Contact*> contacts READ selectContacts NOTIFY contactsChanged)
 
 public:
 	Client(QObject *parent = nullptr);
@@ -119,6 +142,18 @@ public:
     Q_INVOKABLE bool configured();
 	Q_INVOKABLE bool pinAccessConfigured();
 
+	QString address() {
+		//
+		if (wallet_) {
+			//
+			qbit::SKeyPtr lKey = wallet_->firstKey();
+			qbit::PKey lPKey = lKey->createPKey();
+			return QString::fromStdString(lPKey.toString());
+		}
+
+		return QString();
+	}
+
     Q_INVOKABLE void setTheme(QString theme, QString themeSelector)
     {
         theme_ = theme;
@@ -160,8 +195,13 @@ public:
 	Q_INVOKABLE QVariant getGlobalBuzzfeedList() { return QVariant::fromValue(globalBuzzfeedList_); }
 	Q_INVOKABLE QVariant getBuzzfeedList() { return QVariant::fromValue(buzzfeedList_); }
 	Q_INVOKABLE QVariant getEventsfeedList() { return QVariant::fromValue(eventsfeedList_); }
-	//Q_INVOKABLE QVariant getBuzzerBuzzfeedList() { return QVariant::fromValue(buzzerBuzzfeedList_); }
-	//Q_INVOKABLE QVariant getBuzzesBuzzfeedList() {return QVariant::fromValue(buzzesBuzzfeedList_); }
+
+	Q_INVOKABLE QVariant getWalletLog() { return QVariant::fromValue(walletLog_); }
+	Q_INVOKABLE QVariant getWalletReceivedLog() { return QVariant::fromValue(walletReceivedLog_); }
+	Q_INVOKABLE QVariant getWalletSentLog() { return QVariant::fromValue(walletSentLog_); }
+
+	Q_INVOKABLE long getQbitRate();
+
 	Q_INVOKABLE QVariant createBuzzesBuzzfeedList() {
 		BuzzfeedListModelBuzzes* lBuzzesBuzzfeedList = new BuzzfeedListModelBuzzes();
 		buzzer_->registerUpdate(lBuzzesBuzzfeedList->buzzfeed());
@@ -217,6 +257,7 @@ public:
 	Q_INVOKABLE QString getCurrentBuzzerId() {
 		return QString::fromStdString(getBuzzerComposer()->buzzerId().toHex());
 	}
+	Q_INVOKABLE ulong getQbitBase();
 	Q_INVOKABLE ulong getTrustScoreBase();
 	Q_INVOKABLE ulong getTrustScore() { return buzzer_->score(); }
 	Q_INVOKABLE ulong getEndorsements() { return buzzer_->endorsements(); }
@@ -246,6 +287,11 @@ public:
 		return lList;
 	}
 
+	Q_INVOKABLE void addContact(QString, QString);
+	Q_INVOKABLE void removeContact(QString);
+	QList<buzzer::Contact*> selectContacts();
+
+	Q_INVOKABLE unsigned short tx_BUZZER_TYPE() { return qbit::Transaction::TX_BUZZER; }
 	Q_INVOKABLE unsigned short tx_BUZZ_TYPE() { return qbit::Transaction::TX_BUZZ; }
 	Q_INVOKABLE unsigned short tx_REBUZZ_TYPE() { return qbit::Transaction::TX_REBUZZ; }
 	Q_INVOKABLE unsigned short tx_REBUZZ_REPLY_TYPE() { return qbit::Transaction::TX_REBUZZ_REPLY; }
@@ -255,12 +301,20 @@ public:
 	Q_INVOKABLE unsigned short tx_BUZZER_MISTRUST_TYPE() { return qbit::Transaction::TX_BUZZER_MISTRUST; }
 	Q_INVOKABLE unsigned short tx_BUZZER_ENDORSE_TYPE() { return qbit::Transaction::TX_BUZZER_ENDORSE; }
 	Q_INVOKABLE unsigned short tx_BUZZER_SUBSCRIBE_TYPE() { return qbit::Transaction::TX_BUZZER_SUBSCRIBE; }
+	Q_INVOKABLE unsigned short tx_CUBIX_MEDIA_SUMMARY() { return qbit::Transaction::TX_CUBIX_MEDIA_SUMMARY; }
+	Q_INVOKABLE unsigned short tx_SPEND() { return qbit::Transaction::SPEND; }
+	Q_INVOKABLE unsigned short tx_SPEND_PRIVATE() { return qbit::Transaction::SPEND_PRIVATE; }
+	Q_INVOKABLE unsigned short tx_FEE() { return qbit::Transaction::FEE; }
+	Q_INVOKABLE unsigned short tx_COINBASE() { return qbit::Transaction::COINBASE; }
 
 	Q_INVOKABLE int getBuzzBodyMaxSize() { return TX_BUZZ_BODY_SIZE; }
 
 	Q_INVOKABLE QString timestampAgo(long long timestamp);
+	Q_INVOKABLE QString timeAgo(long long timestamp);
 	Q_INVOKABLE QString decorateBuzzBody(const QString&);
 	Q_INVOKABLE QString extractLastUrl(const QString&);
+
+	Q_INVOKABLE bool isTimelockReached(const QString&);
 
 	Q_INVOKABLE QString resolveBuzzerAlias(QString buzzerInfoId) {
 		//
@@ -330,6 +384,20 @@ private:
 	}
 
 	//
+	void chainStateChanged(const uint256& chain, const uint256 block, uint64_t height, uint64_t timestamp) {
+		//
+		QString lDateTime = QString::fromStdString(qbit::formatLocalDateTimeLong(timestamp));
+		QString lAgo = timeAgo(timestamp);
+		//
+		emit chainStateUpdated(QString::fromStdString(chain.toHex()),
+							   QString::fromStdString(block.toHex()), height, lDateTime, lAgo);
+
+		if (chain == qbit::MainChain::id()) {
+			emit mainChainStateUpdated(QString::fromStdString(block.toHex()), height, lDateTime, lAgo);
+		}
+	}
+
+	//
 	void prepareCache();
 
 	//
@@ -381,6 +449,8 @@ private:
 	void peerPushed(qbit::IPeerPtr /*peer*/, bool /*update*/, int /*count*/);
 	void peerPopped(qbit::IPeerPtr /*peer*/, int /*count*/);
 
+	QString internalTimestampAgo(long long, long long);
+
 signals:
 	void nameChanged();
 	void aliasChanged();
@@ -396,6 +466,10 @@ signals:
 	void trustScoreChanged(long endorsements, long mistrusts);
 	void endorsementsChanged();
 	void mistrustsChanged();
+	void chainStateUpdated(QString chain, QString block, long long height, QString time, QString ago);
+	void mainChainStateUpdated(QString block, long long height, QString time, QString ago);
+	void addressChanged();
+	void contactsChanged();
 
 	void networkReady();
 	void networkLimited();
@@ -452,8 +526,9 @@ private:
 	BuzzfeedListModelGlobal* globalBuzzfeedList_;
 	EventsfeedListModelPersonal* eventsfeedList_;
 
-	//BuzzfeedListModelBuzzer* buzzerBuzzfeedList_;
-	//BuzzfeedListModelBuzzes* buzzesBuzzfeedList_;
+	WalletTransactionsListModel* walletLog_;
+	WalletTransactionsListModelReceived* walletReceivedLog_;
+	WalletTransactionsListModelSent* walletSentLog_;
 };
 
 } // buzzer

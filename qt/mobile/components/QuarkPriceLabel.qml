@@ -74,7 +74,8 @@ Label
 
         // lNumber[0] - significant part, lNumber[1] - decimal
 
-        significant.text = lParts[0] + "."; // 000.
+		significant.text = lParts[0]; // + "."; // 000.
+		if (fillTo > 0) significant.text += ".";
 
         // extract mantissa
         var lFillTo = 0;

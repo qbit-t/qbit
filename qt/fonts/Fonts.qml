@@ -163,6 +163,7 @@ Item
 	readonly property string rebuzzWithCommantSym: "\uf044";
 	readonly property string likeSym: "\uf004";
 	readonly property string tipSym: "\uf51e";
+	readonly property string heartBeatSym: "\uf21e";
 
 	readonly property string endorseSym: "\uf164";
 	readonly property string mistrustSym: "\uf165";
@@ -188,9 +189,14 @@ Item
 	readonly property string autoFitSym: "\uf78c";
 
 	readonly property string richEditSym: "\uf1ea";
-
 	readonly property string leftArrowSym: "\uf060";
-
 	readonly property string elipsisVerticalSym: "\uf142";
+
+	readonly property string blockSym: "\uf1b2";
+	readonly property string hourglassHalfSym: "\uf252";
+	readonly property string hash2Sym: "\uf3ef";
+	readonly property string expandDownSym: "\uf32d";
+	readonly property string expandSimpleDownSym: "\uf0d7";
+	readonly property string targetMapSym: "\uf276";
 }
 

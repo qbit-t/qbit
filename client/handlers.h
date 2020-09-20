@@ -37,6 +37,7 @@ typedef boost::function<void (void)> doneFunction;
 
 //
 typedef boost::function<void (const ProcessingError& /*error*/)> doneWithErrorFunction;
+typedef boost::function<void (bool, const ProcessingError& /*error*/)> doneSentWithErrorFunction;
 typedef boost::function<void (double, double, amount_t, const ProcessingError& /*error*/)> doneBalanceWithErrorFunction;
 typedef boost::function<void (TransactionPtr, const ProcessingError& /*error*/)> doneTransactionWithErrorFunction;
 typedef boost::function<void (TransactionPtr, TransactionPtr, const ProcessingError& /*error*/)> doneTransactionsWithErrorFunction;

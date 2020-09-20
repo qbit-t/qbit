@@ -25,6 +25,7 @@ Rectangle
 
     property string symbol: Fonts.tagSym;
     property string text: "";
+	property string address: "";
     property string placeholderText;
     property int symbolLeftPadding: 0;
     property int textLeftPadding: 0;
@@ -32,28 +33,47 @@ Rectangle
     property bool scan: true
     property bool copy: true
     property bool help: false
+	property bool editor: false
     property string innerAction: "dropDown"; // "add"
 
     property int highlightedIndex: -1
 
-    property QuarkListModel model: null
+	property ListModel model: null
 
     signal scanButtonClicked();
     signal helpButtonClicked();
     signal addAddress(var address);
     signal removeAddress(var id);
+	signal addressTextChanged(var address);
+	signal cleared();
 
     function synchronize()
     {
         infoLabel.text = addressBox.text;
+		search.setText(addressBox.text);
+		search.toBegin();
         highlightedIndex = getAddressIndex(addressBox.text);
         dropDownAction.adjust();
     }
+
+	function reset()
+	{
+		infoLabel.text = "";
+		addressBox.text = "";
+		addressBox.address = "";
+		search.setText(addressBox.text);
+		synchronize();
+	}
 
     onTextChanged:
     {
         synchronize();
     }
+
+	onAddressChanged:
+	{
+		search.makeText();
+	}
 
     onModelChanged:
     {
@@ -82,8 +102,10 @@ Rectangle
 
             onClicked:
             {
-                addressBox.text = "";
+				addressBox.address = "";
+				addressBox.text = "";
                 infoLabel.text = addressBox.placeholderText;
+				cleared();
             }
         }
     }
@@ -93,7 +115,7 @@ Rectangle
         if (!model) return false;
         for (var lIdx = 0; lIdx < model.count; lIdx++)
         {
-            if (model.get(lIdx).address === address) return true;
+			if (model.get(lIdx).label === address) return true;
         }
 
         return false;
@@ -104,7 +126,7 @@ Rectangle
         if (!model) return -1;
         for (var lIdx = 0; lIdx < model.count; lIdx++)
         {
-            if (model.get(lIdx).address === address) return lIdx;
+			if (model.get(lIdx).label === address) return lIdx;
         }
 
         return -1;
@@ -133,6 +155,8 @@ Rectangle
             text: !addressBox.text.length ? addressBox.placeholderText : addressBox.text
             color: getColor()
 
+			visible: !editor
+
             onTextChanged:
             {
                 color = getColor();
@@ -152,6 +176,28 @@ Rectangle
             }
         }
 
+		QuarkSearchField {
+			id: search
+			placeHolder: addressBox.placeholderText
+			searchText: addressBox.text;// + (addressBox.address !== "" ? (" / " + addressBox.address) : "")
+			clearButton: false
+			visible: editor
+
+			x: 5 + textLeftPadding
+			y: parent.height / 2 - calculatedHeight / 2 + 5
+			width: parent.width - dropDownAction.width - (15 + textLeftPadding)
+
+			onSearchTextChanged: {
+				//
+				search.setText(searchText);
+				addressTextChanged(searchText);
+			}
+
+			function makeText() {
+				searchText = addressBox.text;// + (addressBox.address !== "" ? (" / " + addressBox.address) : "");
+			}
+		}
+
         QuarkSymbolLabel
         {
             id: dropDownAction
@@ -162,7 +208,7 @@ Rectangle
 
             function getSymbol()
             {
-                var lText = infoLabel.getText();
+				var lText = editor ? addressBox.text : infoLabel.getText();
                 var lExists = isAddressExists(lText);
                 if (lText.length && !lExists) { innerAction = "add"; return Fonts.circleAddSym; }
                 innerAction = "dropDown";
@@ -204,11 +250,12 @@ Rectangle
             y: 0
             width: infoLabel.width - 20
             height: parent.height
+			enabled: !editor
 
             onClicked:
             {
-                if (!infoLabel.getText().length) popUp.open();
-                else if (infoLabel.elide == Text.ElideRight) infoLabel.elide = Text.ElideLeft;
+				if (!infoLabel.getText().length && !editor) popUp.open(); else if (editor) return;
+				else if (infoLabel.elide === Text.ElideRight) infoLabel.elide = Text.ElideLeft;
                 else infoLabel.elide = Text.ElideRight;
             }
         }
@@ -282,6 +329,7 @@ Rectangle
             onClicked:
             {
                 addressBox.text = clipboard.getText();
+
             }
         }
     }
@@ -325,9 +373,9 @@ Rectangle
     Popup
     {
         id: popUp
-        x: 0
+		x: addressBox.height
         y: addressBox.height
-        width: addressBox.width - 50
+		width: addressBox.width - 2 * addressBox.height
         implicitHeight: contentItem.implicitHeight
         padding: 0
 
@@ -366,7 +414,8 @@ Rectangle
                 {
                     addressBox.highlightedIndex = index;
                     listRect.setHighlight();
-                    addressBox.text = address;
+					addressBox.text = id;
+					addressBox.address = address;
                     popUp.close();
                 }
 
@@ -403,10 +452,10 @@ Rectangle
                         id: addressLabel
                         x: 10
                         y: 5
-                        width: popUp.width - 10
-
+						width: popUp.width - (10 + 5)
                         elide: Text.ElideRight
-                        text: address
+
+						text: label
 
                         Material.background: "transparent"
                     }
@@ -416,8 +465,11 @@ Rectangle
                         id: labelLabel
                         x: 10
                         y: addressLabel.y + addressLabel.height + 2
-                        font.pointSize: 12
-                        text: label
+						width: popUp.width - (10 + 5)
+						elide: Text.ElideRight
+
+						font.pointSize: 12
+						text: address
                         color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.textDisabled")
                     }
 

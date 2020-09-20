@@ -17,13 +17,15 @@ namespace qbit {
 //
 typedef boost::function<void (IPeerPtr /*peer*/, bool /*update*/, int /*count*/)> peerPushedFunction;
 typedef boost::function<void (IPeerPtr /*peer*/, int /*count*/)> peerPoppedFunction;
+typedef boost::function<void (const uint256& /*chain*/, const uint256 /*block*/, uint64_t /*height*/, uint64_t /*timestamp*/)> chainStateChangedFunction;
 
 //
 class RequestProcessor: public IConsensusManager, public IRequestProcessor, public std::enable_shared_from_this<RequestProcessor> {
 public:
 	RequestProcessor(ISettingsPtr settings) : settings_(settings) {}
-	RequestProcessor(ISettingsPtr settings, peerPushedFunction peerPushed, peerPoppedFunction peerPopped) : 
-		settings_(settings), peerPushed_(peerPushed), peerPopped_(peerPopped) {}
+	RequestProcessor(ISettingsPtr settings, peerPushedFunction peerPushed, peerPoppedFunction peerPopped, 
+																			chainStateChangedFunction chainStateChanged) : 
+		settings_(settings), peerPushed_(peerPushed), peerPopped_(peerPopped), chainStateChanged_(chainStateChanged) {}
 
 	//
 	// current state
@@ -204,6 +206,56 @@ public:
 		boost::unique_lock<boost::recursive_mutex> lLock(peersMutex_);
 		states_.erase(state->addressId());
 		states_[state->addressId()] = state;
+
+		//
+		std::map<uint256 /*chain*/, std::map<uint64_t, std::set<uint160>>> lChainHeights = chainHeights_;
+
+		//
+		std::vector<State::BlockInfo>& lInfos = state->infos();
+		for (std::vector<State::BlockInfo>::iterator lInfo = lInfos.begin(); lInfo != lInfos.end(); lInfo++) {
+			//
+			std::map<uint64_t, std::set<uint160>>& lChainMap = chainHeights_[lInfo->chain()];
+			lChainMap[lInfo->height()].insert(state->addressId());
+
+			if (lChainMap.size() > 10) {
+				lChainMap.erase(lChainMap.begin());
+			}
+		}
+
+		//if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, std::string("[pushState]: ") +
+		//			strprintf("%d/%d", chainHeights_.size(), lChainHeights.size()));
+
+		// check if new block confirmed (at least 2 peers) - notification
+		if (chainStateChanged_) {
+			for (std::map<uint256 /*chain*/, std::map<uint64_t, std::set<uint160>>>::iterator 
+					lChain = chainHeights_.begin(); 
+			            lChain != chainHeights_.end() /*&& lChainHeights.size()*/; lChain++) {
+				//
+				//if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, std::string("[pushState]: ") +
+				//			strprintf("%s, %d, %d", lChain->first.toHex(), lChain->second.rbegin()->first, lChain->second.rbegin()->second.size()));
+				//
+				std::map<uint64_t, std::set<uint160>>& lChainMap = lChainHeights[lChain->first];
+				if (lChainMap.rbegin() != lChainMap.rend() &&
+				        lChain->second.rbegin()->first >= lChainMap.rbegin()->first &&
+				            lChain->second.rbegin()->second.size() >= 2 /*at least two nodes*/) {
+					//
+					//if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, std::string("[pushState]: ") +
+					//			strprintf(" -> %d", lChainMap.rbegin()->first));
+					//
+					uint160 lAddressId = *lChain->second.rbegin()->second.begin();
+					StatePtr lState = states_[lAddressId];
+					if (lState) {
+						State::BlockInfo lInfo;
+						if (lState->locateChain(lChain->first, lInfo)) {
+							//if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, std::string("[pushState]: ") +
+							//			strprintf("%s, %d, %d", lChain->first.toHex(), lInfo.height(), lInfo.timestamp()));
+							chainStateChanged_(lChain->first, lInfo.hash(), lInfo.height(), lInfo.timestamp());
+						}
+					}
+				}
+			}
+		}
+
 		return true;
 	}
 
@@ -231,8 +283,8 @@ public:
 	static IRequestProcessorPtr instance(ISettingsPtr settings) {
 		return std::make_shared<RequestProcessor>(settings);
 	}
-	static IRequestProcessorPtr instance(ISettingsPtr settings, peerPushedFunction peerPushed, peerPoppedFunction peerPopped) {
-		return std::make_shared<RequestProcessor>(settings, peerPushed, peerPopped);
+	static IRequestProcessorPtr instance(ISettingsPtr settings, peerPushedFunction peerPushed, peerPoppedFunction peerPopped, chainStateChangedFunction chainStateChanged) {
+		return std::make_shared<RequestProcessor>(settings, peerPushed, peerPopped, chainStateChanged);
 	}
 
 	void requestState() {
@@ -597,6 +649,8 @@ public:
 		return nullptr;
 	}
 
+	ITransactionStoreManagerPtr storeManager() { return nullptr; }
+
 private:
 	std::vector<State::DAppInstance> dapps_;
 
@@ -606,6 +660,7 @@ private:
 	IWalletPtr wallet_;
 	peerPushedFunction peerPushed_;
 	peerPoppedFunction peerPopped_;
+	chainStateChangedFunction chainStateChanged_;
 
 	typedef uint160 peer_t;
 

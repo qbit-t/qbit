@@ -92,6 +92,9 @@ bool LightWallet::open(const std::string& secret) {
 
 			keys_.open();
 			utxo_.open();
+			outs_.open();
+			index_.open();
+			value_.open();
 			secret_ = secret;
 
 			opened_ = true;
@@ -118,6 +121,8 @@ bool LightWallet::close() {
 	if (opened_) {
 		keys_.close();
 		utxo_.close();
+		outs_.close();
+		index_.close();
 	}
 
 	return true;
@@ -253,8 +258,8 @@ bool LightWallet::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, TransactionC
 	uint256 lUtxoId = utxo->hash();
 
 	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[pushUnlinkedOut]: ") + 
-		strprintf("try to push utxo = %s, tx = %s, ctx = %s/%s#", 
-			utxo->hash().toHex(), utxo->out().tx().toHex(), ctx->tx()->id().toHex(), utxo->out().chain().toHex().substr(0, 10)));
+		strprintf("try to push utxo = %s, tx = %s, ctx = %s/%d/%s#", 
+			utxo->hash().toHex(), utxo->out().tx().toHex(), ctx->tx()->id().toHex(), ctx->tx()->confirms(), utxo->out().chain().toHex().substr(0, 10)));
 
 	// update utxo db
 	std::map<uint256 /*id*/, Transaction::NetworkUnlinkedOutPtr /*utxo*/>::iterator lItem = utxoCache_.find(lUtxoId);
@@ -262,33 +267,44 @@ bool LightWallet::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, TransactionC
 		//
 		uint256 lAssetId = utxo->out().asset();
 		if (ctx->tx()->isValue(utxo)) {
-				boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
-				removeFromAssetsCache(Transaction::UnlinkedOut::instance(lItem->second->utxo()));
-				assetsCache_[lAssetId].insert(std::multimap<amount_t, uint256>::value_type(utxo->amount(), lUtxoId));
+			boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
+			removeFromAssetsCache(Transaction::UnlinkedOut::instance(lItem->second->utxo()));
+			assetsCache_[lAssetId].insert(std::multimap<amount_t, uint256>::value_type(utxo->amount(), lUtxoId));
 		}
 
 		lItem->second->setUtxo(*utxo);
-		if (opened_) utxo_.write(lUtxoId, *lItem->second);
+		if (opened_) {
+			lItem->second->setConfirms(ctx->tx()->confirms() /*updated*/);
+			utxo_.write(lUtxoId, *lItem->second);
+			updateIn(lItem->second);
+		}
 
 		if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[pushUnlinkedOut]: pushed ") + 
-			strprintf("utxo = %s, tx = %s, ctx = %s/%s#", 
-				utxo->hash().toHex(), utxo->out().tx().toHex(), ctx->tx()->id().toHex(), utxo->out().chain().toHex().substr(0, 10)));
-		// notify
-		if (walletReceiveTransaction_) walletReceiveTransaction_(utxo, ctx->tx());
+			strprintf("utxo = %s, tx = %s, ctx = %s/%d/%s#", 
+				utxo->hash().toHex(), utxo->out().tx().toHex(), ctx->tx()->id().toHex(), ctx->tx()->confirms(), utxo->out().chain().toHex().substr(0, 10)));
 	} else {
+		Transaction::NetworkUnlinkedOutPtr lNetworkUtxo;
 		{
 			boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
 			// add new one
-			utxoCache_[lUtxoId] = Transaction::NetworkUnlinkedOut::instance(*utxo, settings_->mainChainMaturity(), false);
+			lNetworkUtxo = Transaction::NetworkUnlinkedOut::instance(*utxo, /*settings_->mainChainMaturity()*/ 
+																			ctx->tx()->confirms(), false);
+			utxoCache_[lUtxoId] = lNetworkUtxo;
 			assetsCache_[utxo->out().asset()].insert(std::multimap<amount_t, uint256>::value_type(utxo->amount(), lUtxoId));
 		}
 
+		if (opened_) {
+			utxo_.write(lUtxoId, *lNetworkUtxo);
+			updateIn(lNetworkUtxo);
+		}
+
 		if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[pushUnlinkedOut]: ") + 
-			strprintf("PUSHED utxo = %s, tx = %s, ctx = %s/%s#", 
-				utxo->hash().toHex(), utxo->out().tx().toHex(), ctx->tx()->id().toHex(), utxo->out().chain().toHex().substr(0, 10)));
-		// notify
-		if (walletReceiveTransaction_) walletReceiveTransaction_(utxo, ctx->tx());
+			strprintf("PUSHED utxo = %s, tx = %s, ctx = %s/%d/%s#", 
+				utxo->hash().toHex(), utxo->out().tx().toHex(), ctx->tx()->id().toHex(), ctx->tx()->confirms(), utxo->out().chain().toHex().substr(0, 10)));
 	}
+
+	// notify
+	walletReceiveTransaction(utxo, ctx->tx());
 
 	return true;
 }
@@ -386,6 +402,17 @@ void LightWallet::removeUnlinkedOut(std::list<Transaction::UnlinkedOutPtr>& utxo
 	}
 }
 
+void LightWallet::removeUnlinkedOut(Transaction::UnlinkedOutPtr utxo) {
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
+	uint256 lId = utxo->hash();
+
+	utxoCache_.erase(lId);
+	if (opened_) utxo_.remove(lId);
+
+	removeFromAssetsCache(utxo);
+}
+
 amount_t LightWallet::pendingBalance(const uint256& asset) {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
@@ -466,6 +493,9 @@ amount_t LightWallet::balance(const uint256& asset) {
 						lAmount++;
 						continue; // skip UTXO
 					} else if (lUtxo->coinbase() && lUtxo->confirms() < settings_->mainChainCoinbaseMaturity()) {
+						//
+						// NOTICE: this case is not for light wallet (supposely)
+						//
 						if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[balance]: COINBASE transaction is NOT MATURE ") + 
 							strprintf("%d/%d/%s/%s#", lUtxo->confirms(), settings_->mainChainCoinbaseMaturity(), 
 								lUtxo->utxo().out().tx().toHex(), lUtxo->utxo().out().chain().toHex().substr(0, 10)));
@@ -526,6 +556,9 @@ void LightWallet::collectUnlinkedOutsByAsset(const uint256& asset, amount_t amou
 					lAmount++;
 					continue; // skip UTXO
 				} else if (lUtxo->coinbase() && lUtxo->confirms() < settings_->mainChainCoinbaseMaturity()) {
+					//
+					// NOTICE: this case is not for light wallet (supposely)
+					//					
 					if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[collectUnlinkedOutsByAsset]: COINBASE transaction is NOT MATURE ") + 
 						strprintf("%d/%d/%s/%s#", lUtxo->confirms(), settings_->mainChainCoinbaseMaturity(), 
 							lUtxo->utxo().out().tx().toHex(), lUtxo->utxo().out().chain().toHex().substr(0, 10)));
@@ -564,6 +597,34 @@ void LightWallet::collectUnlinkedOutsByAsset(const uint256& asset, amount_t amou
 		strprintf("%d", lTotal));
 }
 
+//
+bool LightWallet::isTimelockReached(const uint256& utxo) {
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
+	Transaction::NetworkUnlinkedOut lOut;
+	std::map<uint256 /*id*/, Transaction::NetworkUnlinkedOutPtr /*utxo*/>::iterator lUTXO = utxoCache_.find(utxo);
+
+	uint64_t lTimelock = 0;
+	if (lUTXO == utxoCache_.end()) {
+		if (outs_.read(utxo, lOut)) {
+			lTimelock = lOut.utxo().lock();
+		}
+	} else {
+		lTimelock = lUTXO->second->utxo().lock();
+	}
+
+	//
+	uint64_t lHeight = requestProcessor_->locateHeight(MainChain::id()); // only main chain can contain value transactions
+	//if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[isTimelockReached]: ") +
+	//	strprintf("height = %d, timelock = %d, utxo = %s", lHeight, lTimelock, utxo.toHex()));
+	if (lTimelock <= lHeight)
+		return true;
+
+	//if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[isTimelockReached]: ") +
+	//	strprintf("utxo = %s was NOT found", utxo.toHex()));
+	return false;
+}
+
 // clean-up assets utxo
 void LightWallet::cleanUp() {
 }
@@ -589,7 +650,45 @@ void LightWallet::cleanUpData() {
 
 // rollback tx
 bool LightWallet::rollback(TransactionContextPtr ctx) {
-	// stub
+	//
+	gLog().write(Log::WALLET, std::string("[rollback]: rollback tx ") + 
+		strprintf("%s/%s#", ctx->tx()->id().toHex(), ctx->tx()->chain().toHex().substr(0, 10)));
+	// recover new utxos
+	for (std::list<Transaction::UnlinkedOutPtr>::iterator lUtxo = ctx->newUtxo().begin(); lUtxo != ctx->newUtxo().end(); lUtxo++) {
+		// locate utxo
+		uint256 lUtxoId = (*lUtxo)->out().hash();
+		Transaction::NetworkUnlinkedOutPtr lUtxoPtr = findNetworkUnlinkedOut(lUtxoId);
+		if (lUtxoPtr) {
+			//
+			if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[rollback]: remove utxo ") + 
+				strprintf("%s/%s/%s#", 
+					lUtxoId.toHex(), (*lUtxo)->out().tx().toHex(), (*lUtxo)->out().chain().toHex().substr(0, 10)));
+
+			// remove entry
+			removeUnlinkedOut(Transaction::UnlinkedOut::instance(lUtxoPtr->utxo()));
+		}
+	}
+
+	ctx->newUtxo().clear();
+
+	// recover used utxos
+	for (std::list<Transaction::UnlinkedOutPtr>::iterator lUtxo = ctx->usedUtxo().begin(); lUtxo != ctx->usedUtxo().end(); lUtxo++) {
+		// locate utxo
+		uint256 lUtxoId = (*lUtxo)->hash();
+		uint256 lAssetId = (*lUtxo)->out().asset();
+
+		if (!findNetworkUnlinkedOut(lUtxoId)) {
+			//
+			if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[rollback]: reconstruct utxo ") + 
+				strprintf("%s/%s/%s#", 
+					lUtxoId.toHex(), (*lUtxo)->out().tx().toHex(), (*lUtxo)->out().chain().toHex().substr(0, 10)));
+			// recover
+			cacheUnlinkedOut((*lUtxo));
+		}
+	}
+
+	ctx->usedUtxo().clear();
+	
 	return true;
 }
 
@@ -642,7 +741,7 @@ TransactionContextPtr LightWallet::makeTxSpend(Transaction::Type type, const uin
 	SKeyPtr lSChangeKey = changeKey();
 	SKeyPtr lSKey = firstKey();
 	if (!lSKey->valid() || !lSChangeKey->valid()) throw qbit::exception("E_KEY", "Secret key is invalid.");
-	lTx->addOut(*lSKey, dest, asset, amount);
+	Transaction::UnlinkedOutPtr lMainOut = lTx->addOut(*lSKey, dest, asset, amount);
 
 	// make change
 	if (asset != TxAssetType::qbitAsset() && lAmount > amount) {
@@ -661,7 +760,7 @@ TransactionContextPtr LightWallet::makeTxSpend(Transaction::Type type, const uin
 			lTx->addFeeOut(*lSKey, asset, lFee); // to miner
 
 			if (lAmount > amount + lFee) { // make change
-				lChangeUtxo = lTx->addOut(*lSChangeKey, lSChangeKey->createPKey()/*change*/, asset, lAmount - (amount + lFee));
+				lChangeUtxo = lTx->addOut(*lSChangeKey, lSChangeKey->createPKey()/*change*/, asset, lAmount - (amount + lFee), true);
 			}
 		} else { // rare cases
 			return makeTxSpend(type, asset, dest, amount + lFee, feeRateLimit);
@@ -671,17 +770,35 @@ TransactionContextPtr LightWallet::makeTxSpend(Transaction::Type type, const uin
 		amount_t lFeeAmount = fillInputs(lTx, TxAssetType::qbitAsset(), lFee, lFeeUtxos);
 		lTx->addFeeOut(*lSKey, TxAssetType::qbitAsset(), lFee); // to miner
 		if (lFeeAmount > lFee) { // make change
-			lChangeUtxo = lTx->addOut(*lSChangeKey, lSChangeKey->createPKey()/*change*/, TxAssetType::qbitAsset(), lFeeAmount - lFee);
+			lChangeUtxo = lTx->addOut(*lSChangeKey, lSChangeKey->createPKey()/*change*/, TxAssetType::qbitAsset(), lFeeAmount - lFee, true);
 		}
 	}
 
 	if (!lTx->finalize(*lSKey)) throw qbit::exception("E_TX_FINALIZE", "Transaction finalization failed.");
+
+	// add out
+	lCtx->addExternalOut(Transaction::NetworkUnlinkedOut::instance(*lMainOut, type, 0, false, lFee));
+	lCtx->addAmount(amount); // amount info
+	lCtx->addFee(lFee); // fee info
+
+	// cache used outs - for rollback
+	for (std::list<Transaction::UnlinkedOutPtr>::iterator lOut = lUtxos.begin(); lOut != lUtxos.end(); lOut++) {
+		//
+		lCtx->addUsedUnlinkedOut(*lOut);
+	}
+
+	for (std::list<Transaction::UnlinkedOutPtr>::iterator lOut = lFeeUtxos.begin(); lOut != lFeeUtxos.end(); lOut++) {
+		//
+		lCtx->addUsedUnlinkedOut(*lOut);
+	}
 
 	// we good
 	removeUnlinkedOut(lUtxos);
 	removeUnlinkedOut(lFeeUtxos);
 
 	if (lChangeUtxo) { 
+		// cache new utxo
+		lCtx->addNewUnlinkedOut(lChangeUtxo);
 		cacheUnlinkedOut(lChangeUtxo);
 
 		if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[makeTxSpend]: ") + 
@@ -696,7 +813,7 @@ TransactionContextPtr LightWallet::makeTxSpend(Transaction::Type type, const uin
 }
 
 // create spend tx
-TransactionContextPtr LightWallet::createTxSpend(const uint256& asset, const PKey& dest, amount_t amount, qunit_t feeRateLimit) {
+TransactionContextPtr LightWallet::createTxSpend(const uint256& asset, const PKey& dest, amount_t amount, qunit_t feeRateLimit, int32_t targetBlock) {
 	return makeTxSpend(Transaction::SPEND, asset, dest, amount, feeRateLimit);
 }
 
@@ -706,7 +823,7 @@ TransactionContextPtr LightWallet::createTxSpend(const uint256& asset, const PKe
 }
 
 // create spend private tx
-TransactionContextPtr LightWallet::createTxSpendPrivate(const uint256& asset, const PKey& dest, amount_t amount, qunit_t feeRateLimit) {
+TransactionContextPtr LightWallet::createTxSpendPrivate(const uint256& asset, const PKey& dest, amount_t amount, qunit_t feeRateLimit, int32_t targetBlock) {
 	return makeTxSpend(Transaction::SPEND_PRIVATE, asset, dest, amount, feeRateLimit);	
 }
 
@@ -731,7 +848,7 @@ TransactionContextPtr LightWallet::createTxFee(const PKey& dest, amount_t amount
 	SKeyPtr lSChangeKey = changeKey();
 	SKeyPtr lSKey = firstKey();
 	if (!lSKey->valid() || !lSChangeKey->valid()) throw qbit::exception("E_KEY", "Secret key is invalid.");
-	lTx->addExternalOut(*lSKey, dest, TxAssetType::qbitAsset(), amount); // out[0] - use to pay fee in shards
+	Transaction::UnlinkedOutPtr lMainOut = lTx->addExternalOut(*lSKey, dest, TxAssetType::qbitAsset(), amount); // out[0] - use to pay fee in shards
 
 	amount_t lRate = settings_->maxFeeRate();
 	amount_t lFee = (lRate * lCtx->size()) / 2; // half fee 
@@ -744,13 +861,16 @@ TransactionContextPtr LightWallet::createTxFee(const PKey& dest, amount_t amount
 		lTx->addFeeOut(*lSKey, TxAssetType::qbitAsset(), lFee); // to miner
 
 		if (lAmount > amount + lFee) { // make change
-			lChangeUtxo = lTx->addOut(*lSChangeKey, lSChangeKey->createPKey()/*change*/, TxAssetType::qbitAsset(), lAmount - (amount + lFee));
+			lChangeUtxo = lTx->addOut(*lSChangeKey, lSChangeKey->createPKey()/*change*/, TxAssetType::qbitAsset(), lAmount - (amount + lFee), true);
 		}
 	} else { // rare cases
 		return createTxFee(dest, amount + lFee);
 	}
 
 	if (!lTx->finalize(*lSKey)) throw qbit::exception("E_TX_FINALIZE", "Transaction finalization failed.");
+
+	// add out
+	lCtx->addExternalOut(Transaction::NetworkUnlinkedOut::instance(*lMainOut, Transaction::FEE, 0, false, lFee));
 
 	// we good
 	removeUnlinkedOut(lUtxos);
@@ -781,7 +901,7 @@ TransactionContextPtr LightWallet::createTxFeeLockedChange(const PKey& dest, amo
 	SKeyPtr lSChangeKey = changeKey();
 	SKeyPtr lSKey = firstKey();
 	if (!lSKey->valid() || !lSChangeKey->valid()) throw qbit::exception("E_KEY", "Secret key is invalid.");
-	lTx->addExternalOut(*lSKey, dest, TxAssetType::qbitAsset(), amount); // out[0] - use to pay fee in shards
+	Transaction::UnlinkedOutPtr lMainOut = lTx->addExternalOut(*lSKey, dest, TxAssetType::qbitAsset(), amount); // out[0] - use to pay fee in shards
 
 	Transaction::UnlinkedOutPtr lLockedUtxo =
 		lTx->addLockedOut(*lSKey, dest, TxAssetType::qbitAsset(), locked, height); // out[1] - locked
@@ -797,13 +917,19 @@ TransactionContextPtr LightWallet::createTxFeeLockedChange(const PKey& dest, amo
 		lTx->addFeeOut(*lSKey, TxAssetType::qbitAsset(), lFee); // to miner
 
 		if (lAmount > amount + locked + lFee) { // make change
-			lChangeUtxo = lTx->addOut(*lSChangeKey, lSChangeKey->createPKey()/*change*/, TxAssetType::qbitAsset(), lAmount - (amount + locked + lFee));
+			lChangeUtxo = lTx->addOut(*lSChangeKey, lSChangeKey->createPKey()/*change*/, TxAssetType::qbitAsset(), lAmount - (amount + locked + lFee), true);
 		}
 	} else { // rare cases
 		return createTxFeeLockedChange(dest, amount + lFee, locked, height);
 	}
 
 	if (!lTx->finalize(*lSKey)) throw qbit::exception("E_TX_FINALIZE", "Transaction finalization failed.");
+
+	if (opened_) {
+		// add outs
+		lCtx->addExternalOut(Transaction::NetworkUnlinkedOut::instance(*lMainOut, Transaction::FEE, 0, false, lFee));
+		lCtx->addExternalOut(Transaction::NetworkUnlinkedOut::instance(*lLockedUtxo, Transaction::FEE, 0, false, lFee));
+	}
 
 	// we good
 	removeUnlinkedOut(lUtxos);
@@ -820,4 +946,184 @@ TransactionContextPtr LightWallet::createTxFeeLockedChange(const PKey& dest, amo
 		strprintf("to = %s, amount = [%d/%d]%d", const_cast<PKey&>(dest).toString(), amount, locked, lAmount));
 
 	return lCtx;
+}
+
+void LightWallet::updateOut(Transaction::NetworkUnlinkedOutPtr out, const uint256& parent, unsigned short type) {
+	//
+	out->setParent(parent);
+	out->setParentType(type);
+	out->setDirection(Transaction::NetworkUnlinkedOut::Direction::OUT);
+
+	//
+	Transaction::NetworkUnlinkedOut lOut;
+	if (!outs_.read(out->utxo().hash(), lOut)) {
+		// try to reconstrust timstamp
+		uint64_t lTimestamp = out->confirms();
+		if (!lTimestamp) { 
+			lTimestamp = qbit::getMedianMicroseconds();
+		} else {
+			lTimestamp = qbit::getMedianMicroseconds() - lTimestamp * settings_->mainChainBlockTime() * 1000 /*microseconds*/;
+		}
+
+		out->setTimestamp(lTimestamp);
+		index_.write(strprintf("%d", lTimestamp), out->utxo().hash());
+		//
+		// TODO: only send, sendprivate?
+		//
+		value_.write(Transaction::NetworkUnlinkedOut::Direction::OUT, strprintf("%d", lTimestamp), out->utxo().hash());
+	} else {
+		out->setTimestamp(lOut.timestamp());
+	}
+
+	//
+	if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[updateOut]: timestamp = %d, confirms = %d", out->timestamp(), out->confirms()));
+	//
+	outs_.write(out->utxo().hash(), *out);
+	outUpdated(out);
+}
+
+void LightWallet::updateOuts(TransactionPtr tx) {
+	//
+	uint32_t lIdx = 0;
+	for (std::vector<Transaction::Out>::iterator lOut = tx->out().begin(); lOut != tx->out().end(); lOut++, lIdx++) {
+		//
+		// make link
+		Transaction::Link lLink;
+		lLink.setChain(tx->chain());
+		lLink.setAsset(lOut->asset());
+		lLink.setTx(tx->id());
+		lLink.setIndex(lIdx);
+
+		Transaction::UnlinkedOutPtr lUTXO = Transaction::UnlinkedOut::instance(
+			lLink // link
+		);
+
+		Transaction::NetworkUnlinkedOut lPersistedOut;
+		if (outs_.read(lUTXO->hash(), lPersistedOut)) {
+			lPersistedOut.setConfirms(1); // trick
+			outs_.write(lUTXO->hash(), lPersistedOut); // update
+			outUpdated(Transaction::NetworkUnlinkedOut::instance(lPersistedOut));
+		}
+	}
+}
+
+void LightWallet::updateIn(Transaction::NetworkUnlinkedOutPtr out) {
+	//
+	Transaction::NetworkUnlinkedOut lOut;
+	if (!outs_.read(out->utxo().hash(), lOut)) {
+		//
+		// try to reconstrust timstamp
+		uint64_t lTimestamp = out->confirms();
+		if (!lTimestamp) { 
+			lTimestamp = qbit::getMedianMicroseconds();
+		} else {
+			lTimestamp = qbit::getMedianMicroseconds() - lTimestamp * settings_->mainChainBlockTime() * 1000 /*microseconds*/;
+		}
+
+		out->setTimestamp(lTimestamp);
+		index_.write(strprintf("%d", lTimestamp), out->utxo().hash());
+		//
+		// TODO: only send, sendprivate?
+		//
+		value_.write(Transaction::NetworkUnlinkedOut::Direction::IN, strprintf("%d", lTimestamp), out->utxo().hash());
+	} else {
+		out->setTimestamp(lOut.timestamp());
+	}
+
+	//
+	if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[updateIn]: timestamp = %d, confirms = %d", out->timestamp(), out->confirms()));
+	//
+	out->setDirection(Transaction::NetworkUnlinkedOut::Direction::IN);
+	outs_.write(out->utxo().hash(), *out);
+	inUpdated(out);
+}
+
+void LightWallet::selectLog(uint64_t from, std::vector<Transaction::NetworkUnlinkedOutPtr>& items) {
+	//
+	db::DbContainer<
+		std::string /*timestamp*/,
+		uint256 /*utxo*/>::Iterator lFrom;
+
+	if (!from) lFrom = index_.last();
+	else lFrom = index_.find(strprintf("%d", from));
+
+	for (; items.size() < 10 && lFrom.valid(); --lFrom) {
+		//
+		uint256 lHash = *lFrom;
+		std::string lTimestamp;
+		lFrom.first(lTimestamp);
+
+		//
+		//if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[selectLog]: timestamp = %s, from = %d", lTimestamp, from));
+		//
+		Transaction::NetworkUnlinkedOut lOut;
+		if (outs_.read(lHash, lOut) && !lOut.utxo().change() /*exclude change*/) {
+			//
+			items.push_back(Transaction::NetworkUnlinkedOut::instance(lOut));
+		}
+	}
+
+	//
+	//if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[selectLog]: items.size = %d", items.size()));	
+}
+
+void LightWallet::selectIns(uint64_t from, std::vector<Transaction::NetworkUnlinkedOutPtr>& items) {
+	//
+	db::DbTwoKeyContainer<
+		unsigned short /*direction*/,
+		std::string /*timestamp*/,
+		uint256 /*utxo*/>::Iterator lFrom;
+
+	if (!from) lFrom = value_.last();
+	else lFrom = value_.find(Transaction::NetworkUnlinkedOut::Direction::IN, strprintf("%d", from));
+
+	lFrom.setKey2Empty(); // off limits
+	for (; items.size() < 10 && lFrom.valid(); --lFrom) {
+		//
+		unsigned short lDirection;
+		if (lFrom.first(lDirection) && lDirection != Transaction::NetworkUnlinkedOut::Direction::IN) {
+			continue;
+		}
+
+		//
+		uint256 lHash = *lFrom;
+		Transaction::NetworkUnlinkedOut lOut;
+		if (outs_.read(lHash, lOut) && !lOut.utxo().change() /*exclude change*/) {
+			//
+			items.push_back(Transaction::NetworkUnlinkedOut::instance(lOut));
+		}
+	}
+
+	//
+	//if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[selectIns]: items.size = %d", items.size()));	
+}
+
+void LightWallet::selectOuts(uint64_t from, std::vector<Transaction::NetworkUnlinkedOutPtr>& items) {
+	//
+	db::DbTwoKeyContainer<
+		unsigned short /*direction*/,
+		std::string /*timestamp*/,
+		uint256 /*utxo*/>::Iterator lFrom;
+
+	if (!from) lFrom = value_.last();
+	else lFrom = value_.find(Transaction::NetworkUnlinkedOut::Direction::OUT, strprintf("%d", from));
+
+	lFrom.setKey2Empty(); // off limits
+	for (; items.size() < 10 && lFrom.valid(); --lFrom) {
+		//
+		unsigned short lDirection;
+		if (lFrom.first(lDirection) && lDirection != Transaction::NetworkUnlinkedOut::Direction::OUT) {
+			continue;
+		}
+		//
+		uint256 lHash = *lFrom;
+		Transaction::NetworkUnlinkedOut lOut;
+		if (outs_.read(lHash, lOut) && (lOut.parentType() == Transaction::SPEND || lOut.parentType() == Transaction::SPEND_PRIVATE)) {
+			//
+			items.push_back(Transaction::NetworkUnlinkedOut::instance(lOut));
+		}
+	}
+
+	//
+	//if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[selectOuts]: items.size = %d", items.size()));	
 }

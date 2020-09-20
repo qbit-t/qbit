@@ -20,6 +20,8 @@
 namespace qbit {
 
 typedef boost::function<void (Transaction::UnlinkedOutPtr, TransactionPtr)> walletReceiveTransactionFunction;
+typedef boost::function<void (Transaction::NetworkUnlinkedOutPtr)> walletOutUpdatedFunction;
+typedef boost::function<void (Transaction::NetworkUnlinkedOutPtr)> walletInUpdatedFunction;
 
 class IWallet {
 public:
@@ -56,7 +58,9 @@ public:
 	virtual bool isUnlinkedOutUsed(const uint256&) { throw qbit::exception("NOT_IMPL", "IWallet::isUnlinkedOutExists - not implemented."); }
 
 	// notify
-	virtual void setWalletReceiveTransactionFunction(walletReceiveTransactionFunction /*walletReceiveTransaction*/) { throw qbit::exception("NOT_IMPL", "IWallet::setWalletReceiveTransactionFunction - not implemented."); }
+	virtual void setWalletReceiveTransactionFunction(const std::string& /*key*/, walletReceiveTransactionFunction /*walletReceiveTransaction*/) { throw qbit::exception("NOT_IMPL", "IWallet::setWalletReceiveTransactionFunction - not implemented."); }
+	virtual void setWalletOutUpdatedFunction(const std::string& /*key*/, walletOutUpdatedFunction /*walletOutUpdated*/) { throw qbit::exception("NOT_IMPL", "IWallet::setWalletOutUpdatedFunction - not implemented."); }
+	virtual void setWalletInUpdatedFunction(const std::string& /*key*/, walletInUpdatedFunction /*walletInUpdated*/) { throw qbit::exception("NOT_IMPL", "IWallet::setWalletInUpdatedFunction - not implemented."); }
 
 	// try to locate utxo
 	virtual Transaction::UnlinkedOutPtr findUnlinkedOut(const uint256&) { throw qbit::exception("NOT_IMPL", "IWallet::findUnlinkedOut - not implemented."); }
@@ -138,6 +142,15 @@ public:
 	virtual void cacheUnlinkedOut(Transaction::UnlinkedOutPtr) { throw qbit::exception("NOT_IMPL", "IWallet::cacheUnlinkedOut - Not implemented."); }
 
 	virtual TransactionContextPtr processTransaction(TransactionPtr) { throw qbit::exception("NOT_IMPL", "IWallet::processTransaction - Not implemented."); }
+
+	virtual bool isTimelockReached(const uint256& /*utxo*/) { throw qbit::exception("NOT_IMPL", "IWallet::isTimelockReached - Not implemented."); }
+
+	// wallet local selects
+	virtual void updateOut(Transaction::NetworkUnlinkedOutPtr /*out*/, const uint256& /*parent*/, unsigned short /*type*/) { throw qbit::exception("NOT_IMPL", "IWallet::updateOut - Not implemented."); }
+	virtual void updateOuts(TransactionPtr /*tx*/) { throw qbit::exception("NOT_IMPL", "IWallet::updateOuts - Not implemented."); }
+	virtual void selectLog(uint64_t /*from*/, std::vector<Transaction::NetworkUnlinkedOutPtr>& /*items*/) { throw qbit::exception("NOT_IMPL", "IWallet::selectLog - Not implemented."); }
+	virtual void selectIns(uint64_t /*from*/, std::vector<Transaction::NetworkUnlinkedOutPtr>& /*items*/) { throw qbit::exception("NOT_IMPL", "IWallet::selectIns - Not implemented."); }
+	virtual void selectOuts(uint64_t /*from*/, std::vector<Transaction::NetworkUnlinkedOutPtr>& /*items*/) { throw qbit::exception("NOT_IMPL", "IWallet::selectOuts - Not implemented."); }
 };
 
 typedef std::shared_ptr<IWallet> IWalletPtr;

@@ -74,7 +74,7 @@ QuarkPopup
 				QuarkLabel
 				{
 					id: textLabel
-					x: symbolLabel.x + symbolLabel.width + 5
+					x: /*symbolLabel.x + symbolLabel.width + 5*/ keySymbol ? 40 : 15
 					y: parent.height / 2 - height / 2
 					width: popupBox.width - (symbolLabel.x + symbolLabel.width + 5 + 10)
 					text: name

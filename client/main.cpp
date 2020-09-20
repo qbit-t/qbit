@@ -269,6 +269,7 @@ int main(int argv, char** argc) {
 	lCommandsHandler->push(KeyCommand::instance(boost::bind(&commandDone)));
 	lCommandsHandler->push(BalanceCommand::instance(lComposer, boost::bind(&commandDone)));
 	lCommandsHandler->push(SendToAddressCommand::instance(lComposer, boost::bind(&commandDone)));
+	lCommandsHandler->push(SendPrivateToAddressCommand::instance(lComposer, boost::bind(&commandDone)));
 	lCommandsHandler->push(SearchEntityNamesCommand::instance(lComposer, boost::bind(&commandDone)));
 	lCommandsHandler->push(AskForQbitsCommand::instance(lComposer, boost::bind(&commandDone)));
 

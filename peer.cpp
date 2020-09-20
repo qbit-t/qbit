@@ -1424,17 +1424,30 @@ void Peer::processGetTransactionData(std::list<DataStream>::iterator msg, const 
 		(*msg) >> lTryMempool;
 		eraseInData(msg);
 
+		// tx info
+		uint256 lBlock; lBlock.setNull();
+		uint64_t lConfirms = 0;
+		uint64_t lHeight = 0;
+		uint32_t lIndex = 0;
+		bool lCoinbase = false;
+
 		// try storages
 		TransactionPtr lTx = nullptr;
 		if (lChain.isNull()) {
 			std::vector<ITransactionStorePtr> lStorages = peerManager_->consensusManager()->storeManager()->storages();
 			for (std::vector<ITransactionStorePtr>::iterator lStore = lStorages.begin(); lStore != lStorages.end(); lStore++) {
 				lTx = (*lStore)->locateTransaction(lTxId);
-				if (lTx) break;
+				if (lTx) { 
+					(*lStore)->transactionInfo(lTxId, lBlock, lHeight, lConfirms, lIndex, lCoinbase);
+					break;
+				}
 			}
 		} else {
 			ITransactionStorePtr lStorage = peerManager_->consensusManager()->storeManager()->locate(lChain);
 			lTx = lStorage->locateTransaction(lTxId);
+			if (lTx) {
+				lStorage->transactionInfo(lTxId, lBlock, lHeight, lConfirms, lIndex, lCoinbase);
+			}
 		}
 
 		// try mempool
@@ -1444,6 +1457,7 @@ void Peer::processGetTransactionData(std::list<DataStream>::iterator msg, const 
 			for (std::vector<IMemoryPoolPtr>::iterator lPool = lMempools.begin(); lPool != lMempools.end(); lPool++) {
 				lTx = (*lPool)->locateTransaction(lTxId);
 				if (lTx) {
+					lTx->setMempool(true);
 					break;
 				}
 			}
@@ -1452,6 +1466,12 @@ void Peer::processGetTransactionData(std::list<DataStream>::iterator msg, const 
 		if (lTx != nullptr) {
 			// make message, serialize, send back
 			std::list<DataStream>::iterator lMsg = newOutMessage();
+
+			// extra info
+			lTx->setBlock(lBlock);
+			lTx->setHeight(lHeight);
+			lTx->setConfirms(lConfirms);
+			lTx->setIndex(lIndex);
 
 			// fill data
 			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION);
@@ -3711,6 +3731,22 @@ void Peer::broadcastTransaction(TransactionContextPtr ctx) {
 	//
 	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; } // TODO: connect will skip current call
 	else if (socketStatus_ == CONNECTED) {
+		//
+		if (peerManager_->consensusManager()->storeManager()) {
+			// get tx info
+			uint64_t lConfirms = 0;
+			uint64_t lHeight = 0;
+			bool lCoinbase = false;
+			//
+			ITransactionStorePtr lStorage = peerManager_->consensusManager()->storeManager()->locate(ctx->tx()->chain());
+			if (lStorage) {
+				lStorage->transactionHeight(ctx->tx()->id(), lHeight, lConfirms, lCoinbase);
+				//
+				// NOTICE: memory & network only
+				//
+				ctx->tx()->setConfirms(lConfirms);
+			}
+		}
 
 		// new message
 		std::list<DataStream>::iterator lMsg = newOutMessage();

@@ -125,6 +125,8 @@ public:
 	// callbacks
 	void created(TransactionContextPtr ctx) {
 		//
+		ctx_ = ctx;
+		//
 		// push linked and newly created txs; order matters
 		// NOTE: fee and parent tx should start processing on the one node
 		for (std::list<TransactionContextPtr>::iterator lLinkedCtx = ctx->linkedTxs().begin(); lLinkedCtx != ctx->linkedTxs().end(); lLinkedCtx++) {
@@ -169,6 +171,12 @@ public:
 			}			
 		} else {
 			std::cout << " fee: " << tx.toHex() << std::endl;
+			//
+			TransactionContextPtr lFee = ctx_->locateByType(Transaction::FEE);
+			for (std::list<Transaction::NetworkUnlinkedOutPtr>::iterator lOut = lFee->externalOuts().begin(); 
+																		lOut != lFee->externalOuts().end(); lOut++) {
+				composer_->wallet()->updateOut(*lOut, ctx_->tx()->id(), ctx_->tx()->type());
+			}
 		}
 
 		feeSent_ = true;
@@ -213,6 +221,8 @@ private:
 	ICommandPtr uploadMedia_;
 	std::vector<BuzzerMediaPointer> mediaPointers_;
 	std::vector<std::string> mediaFiles_;
+
+	TransactionContextPtr ctx_;
 
 	bool feeSent_ = false;
 	bool buzzSent_ = false;
@@ -1291,6 +1301,8 @@ public:
 	// callbacks
 	void created(TransactionContextPtr ctx) {
 		//
+		ctx_ = ctx;
+		//
 		// push linked and newly created txs; order matters
 		for (std::list<TransactionContextPtr>::iterator lLinkedCtx = ctx->linkedTxs().begin(); lLinkedCtx != ctx->linkedTxs().end(); lLinkedCtx++) {
 			if (!composer_->requestProcessor()->sendTransaction(ctx->tx()->chain(), *lLinkedCtx,
@@ -1333,6 +1345,12 @@ public:
 			}			
 		} else {
 			std::cout << " fee: " << tx.toHex() << std::endl;
+			//
+			TransactionContextPtr lFee = ctx_->locateByType(Transaction::FEE);
+			for (std::list<Transaction::NetworkUnlinkedOutPtr>::iterator lOut = lFee->externalOuts().begin(); 
+																		lOut != lFee->externalOuts().end(); lOut++) {
+				composer_->wallet()->updateOut(*lOut, ctx_->tx()->id(), ctx_->tx()->type());
+			}
 		}
 
 		feeSent_ = true;
@@ -1380,6 +1398,8 @@ private:
 	std::vector<BuzzerMediaPointer> mediaPointers_;
 	std::vector<std::string> mediaFiles_;
 
+	TransactionContextPtr ctx_;
+
 	bool feeSent_ = false;
 	bool buzzSent_ = false;
 };	
@@ -1416,6 +1436,8 @@ public:
 
 	// callbacks
 	void created(TransactionContextPtr ctx) {
+		//
+		ctx_ = ctx;
 		//
 		// push linked and newly created txs; order matters
 
@@ -1470,6 +1492,15 @@ public:
 	void feeSent(const uint256& tx, const std::vector<TransactionContext::Error>& errors) {
 		//
 		checkSent("   fee: ", tx, errors);
+		
+		//
+		TransactionContextPtr lFee = ctx_->locateByType(Transaction::FEE);
+		for (std::list<Transaction::NetworkUnlinkedOutPtr>::iterator lOut = lFee->externalOuts().begin(); 
+																	lOut != lFee->externalOuts().end(); lOut++) {
+			composer_->wallet()->updateOut(*lOut, ctx_->tx()->id(), ctx_->tx()->type());
+		}
+
+		//
 		feeSent_ = true;
 		if (feeSent_ && buzzSent_ && notifySent_) done_(ProcessingError());
 	}
@@ -1531,6 +1562,8 @@ private:
 	ICommandPtr uploadMedia_;
 	std::vector<BuzzerMediaPointer> mediaPointers_;
 	std::vector<std::string> mediaFiles_;
+
+	TransactionContextPtr ctx_;
 
 	bool feeSent_ = false;
 	bool notifySent_ = false;
@@ -1618,10 +1651,10 @@ public:
 	// callbacks
 	void created(TransactionContextPtr ctx) {
 		//
+		ctx_ = ctx;
+		//
 		// push linked and newly created txs; order matters
-
 		TransactionContextPtr lFee = ctx->locateByType(Transaction::FEE);
-
 		if (!composer_->requestProcessor()->sendTransaction(ctx->tx()->chain(), lFee,
 				SentTransaction::instance(
 					boost::bind(&BuzzerEndorseCommand::feeSent, shared_from_this(), _1, _2),
@@ -1646,6 +1679,15 @@ public:
 	void feeSent(const uint256& tx, const std::vector<TransactionContext::Error>& errors) {
 		//
 		checkSent("    fee: ", tx, errors);
+
+		//
+		TransactionContextPtr lFee = ctx_->locateByType(Transaction::FEE);
+		for (std::list<Transaction::NetworkUnlinkedOutPtr>::iterator lOut = lFee->externalOuts().begin(); 
+																	lOut != lFee->externalOuts().end(); lOut++) {
+			composer_->wallet()->updateOut(*lOut, ctx_->tx()->id(), ctx_->tx()->type());
+		}
+
+		//
 		feeSent_ = true;
 		if (feeSent_ && endorseSent_) done_(ProcessingError());
 	}
@@ -1687,6 +1729,8 @@ private:
 	BuzzerLightComposerPtr composer_;
 	doneWithErrorFunction done_;
 
+	TransactionContextPtr ctx_;
+
 	bool feeSent_;
 	bool endorseSent_;	
 };
@@ -1721,10 +1765,10 @@ public:
 	// callbacks
 	void created(TransactionContextPtr ctx) {
 		//
+		ctx_ = ctx;
+		//
 		// push linked and newly created txs; order matters
-
 		TransactionContextPtr lFee = ctx->locateByType(Transaction::FEE);
-
 		if (!composer_->requestProcessor()->sendTransaction(ctx->tx()->chain(), lFee,
 				SentTransaction::instance(
 					boost::bind(&BuzzerMistrustCommand::feeSent, shared_from_this(), _1, _2),
@@ -1749,6 +1793,15 @@ public:
 	void feeSent(const uint256& tx, const std::vector<TransactionContext::Error>& errors) {
 		//
 		checkSent("     fee: ", tx, errors);
+
+		//
+		TransactionContextPtr lFee = ctx_->locateByType(Transaction::FEE);
+		for (std::list<Transaction::NetworkUnlinkedOutPtr>::iterator lOut = lFee->externalOuts().begin(); 
+																	lOut != lFee->externalOuts().end(); lOut++) {
+			composer_->wallet()->updateOut(*lOut, ctx_->tx()->id(), ctx_->tx()->type());
+		}
+
+		//
 		feeSent_ = true;
 		if (feeSent_ && mistrustSent_) done_(ProcessingError());
 	}
@@ -1789,6 +1842,8 @@ public:
 private:
 	BuzzerLightComposerPtr composer_;
 	doneWithErrorFunction done_;
+
+	TransactionContextPtr ctx_;
 
 	bool feeSent_;
 	bool mistrustSent_;

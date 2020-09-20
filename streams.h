@@ -415,7 +415,7 @@ public:
     // Stream subset
     //
     bool eof() const             { return size() == 0; }
-    DataStream* rdbuf()         { return this; }
+    DataStream* rdbuf()          { return this; }
     int in_avail() const         { return size(); }
 
     void SetType(int n)          { nType = n; }

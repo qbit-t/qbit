@@ -587,3 +587,36 @@ LoadTransactionCommand::LoadTransactionCommand(QObject* /*parent*/) : QObject() 
 		boost::bind(&LoadTransactionCommand::done, this, _1, _2)
 	);
 }
+
+LoadEntityCommand::LoadEntityCommand(QObject* /*parent*/) : QObject() {
+	//
+	Client* lClient = static_cast<Client*>(gApplication->getClient());
+
+	command_ = qbit::LoadEntityCommand::instance(
+		lClient->getComposer(),
+		boost::bind(&LoadEntityCommand::done, this, _1, _2)
+	);
+}
+
+QString LoadEntityCommand::extractAddress() {
+	//
+	if (tx_) {
+		//
+		qbit::PKey lPKey;
+		qbit::Transaction::Out& lOut = (*tx_->out().begin());
+		qbit::VirtualMachine lVM(lOut.destination());
+		lVM.execute();
+
+		if (lVM.getR(qbit::qasm::QD0).getType() != qbit::qasm::QNONE) {
+			lPKey.set<unsigned char*>(lVM.getR(qbit::qasm::QD0).begin(), lVM.getR(qbit::qasm::QD0).end());
+
+			return QString::fromStdString(lPKey.toString());
+		}
+	}
+
+	return QString();
+}
+
+SendToAddressCommand::SendToAddressCommand(QObject* /*parent*/) : QObject() {
+	//
+}
