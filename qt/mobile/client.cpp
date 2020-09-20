@@ -14,6 +14,7 @@
 #include "peermanager.h"
 
 #include "buzztexthighlighter.h"
+#include "wallettransactionslistmodel.h"
 
 #include <QQuickImageProvider>
 
@@ -125,15 +126,20 @@ int Client::open(QString secret) {
 	requestProcessor_ = RequestProcessor::instance(
 		settings_->shared(),
 		boost::bind(&Client::peerPushed, this, _1, _2, _3),
-		boost::bind(&Client::peerPopped, this, _1, _2)
+		boost::bind(&Client::peerPopped, this, _1, _2),
+		boost::bind(&Client::chainStateChanged, this, _1, _2, _3, _4)
 	);
 
 	// wallet
 	wallet_ = LightWallet::instance(settings_->shared(), requestProcessor_);
-	wallet_->setWalletReceiveTransactionFunction(boost::bind(&Client::transactionReceived, this, _1, _2));
+	wallet_->setWalletReceiveTransactionFunction("common", boost::bind(&Client::transactionReceived, this, _1, _2));
 
 	std::static_pointer_cast<RequestProcessor>(requestProcessor_)->setWallet(wallet_);
 	wallet_->open(secret.toStdString()); // secret - pin or keystore inlocked pin
+
+	walletLog_ = new WalletTransactionsListModel("log", wallet_);
+	walletReceivedLog_ = new WalletTransactionsListModelReceived(wallet_);
+	walletSentLog_ = new WalletTransactionsListModelSent(wallet_);
 
 	// composer
 	composer_ = LightComposer::instance(settings_->shared(), wallet_, requestProcessor_);
@@ -302,6 +308,9 @@ int Client::open(QString secret) {
 	qmlRegisterType<buzzer::LoadMistrustsByBuzzerCommand>("app.buzzer.commands", 1, 0, "LoadMistrustsByBuzzerCommand");
 	qmlRegisterType<buzzer::LoadFollowingByBuzzerCommand>("app.buzzer.commands", 1, 0, "LoadFollowingByBuzzerCommand");
 	qmlRegisterType<buzzer::LoadFollowersByBuzzerCommand>("app.buzzer.commands", 1, 0, "LoadFollowersByBuzzerCommand");
+	qmlRegisterType<buzzer::LoadEntityCommand>("app.buzzer.commands", 1, 0, "LoadEntityCommand");
+	qmlRegisterType<buzzer::LoadTransactionCommand>("app.buzzer.commands", 1, 0, "LoadTransactionCommand");
+	qmlRegisterType<buzzer::SendToAddressCommand>("app.buzzer.commands", 1, 0, "SendToAddressCommand");
 
 	qmlRegisterType<buzzer::BuzzfeedListModel>("app.buzzer.commands", 1, 0, "BuzzfeedListModel");
 	qmlRegisterType<buzzer::BuzzfeedListModelPersonal>("app.buzzer.commands", 1, 0, "BuzzfeedListModelPersonal");
@@ -317,7 +326,9 @@ int Client::open(QString secret) {
 	qmlRegisterType<buzzer::EventsfeedListModelFollowing>("app.buzzer.commands", 1, 0, "EventsfeedListModelFollowing");
 	qmlRegisterType<buzzer::EventsfeedListModelFollowers>("app.buzzer.commands", 1, 0, "EventsfeedListModelFollowers");
 
-	qmlRegisterType<buzzer::LoadTransactionCommand>("app.buzzer.commands", 1, 0, "LoadTransactionCommand");
+	qmlRegisterType<buzzer::WalletTransactionsListModel>("app.buzzer.commands", 1, 0, "WalletTransactionsListModel");
+	qmlRegisterType<buzzer::WalletTransactionsListModelReceived>("app.buzzer.commands", 1, 0, "WalletTransactionsListModelReceived");
+	qmlRegisterType<buzzer::WalletTransactionsListModelSent>("app.buzzer.commands", 1, 0, "WalletTransactionsListModelSent");
 
 	qRegisterMetaType<qbit::BuzzfeedProxy>("qbit::BuzzfeedProxy");
 	qRegisterMetaType<qbit::BuzzfeedItemProxy>("qbit::BuzzfeedItemProxy");
@@ -325,6 +336,12 @@ int Client::open(QString secret) {
 
 	qRegisterMetaType<qbit::EventsfeedProxy>("qbit::EventsfeedProxy");
 	qRegisterMetaType<qbit::EventsfeedItemProxy>("qbit::EventsfeedItemProxy");
+
+	qRegisterMetaType<buzzer::UnlinkedOutProxy>("buzzer::UnlinkedOutProxy");
+	qRegisterMetaType<buzzer::NetworkUnlinkedOutProxy>("buzzer::NetworkUnlinkedOutProxy");
+	qRegisterMetaType<buzzer::TransactionProxy>("buzzer::TransactionProxy");
+
+	qRegisterMetaType<buzzer::Contact>("buzzer::Contact");
 
 	//
 	/*
@@ -358,6 +375,40 @@ int Client::open(QString secret) {
 	syncTimer_->start(500);
 
 	return 1;
+}
+
+void Client::addContact(QString buzzer, QString pkey) {
+	getBuzzerComposer()->addContact(buzzer.toStdString(), pkey.toStdString());
+	emit contactsChanged();
+}
+
+void Client::removeContact(QString buzzer) {
+	getBuzzerComposer()->removeContact(buzzer.toStdString());
+	emit contactsChanged();
+}
+
+QList<buzzer::Contact*> Client::selectContacts() {
+	//
+	QList<buzzer::Contact*> lList;
+	std::map<std::string, std::string> lMap;
+	getBuzzerComposer()->selectContacts(lMap);
+
+	for (std::map<std::string, std::string>::iterator lItem = lMap.begin(); lItem != lMap.end(); lItem++) {
+		//
+		lList.push_back(new buzzer::Contact(QString::fromStdString(lItem->first), QString::fromStdString(lItem->second)));
+	}
+
+	return lList;
+}
+
+long Client::getQbitRate() {
+	return settings_->maxFeeRate();
+}
+
+bool Client::isTimelockReached(const QString& utxo) {
+	//
+	uint256 lUtxo; lUtxo.setHex(utxo.toStdString());
+	return wallet_->isTimelockReached(lUtxo);
 }
 
 QString Client::extractLastUrl(const QString& body) {
@@ -413,17 +464,17 @@ QString Client::decorateBuzzBody(const QString& body) {
 	return lResult;
 }
 
-QString Client::timestampAgo(long long timestamp) {
+QString Client::internalTimestampAgo(long long timestamp, long long fraction) {
 	//
 	gApplication->getLocalization(locale(), "Buzzer.now");
 
-	uint64_t lBuzzTime = timestamp;
-	uint64_t lCurrentTime = qbit::getMicroseconds();
+	uint64_t lBuzzTime = timestamp / fraction;
+	uint64_t lCurrentTime = qbit::getMicroseconds() / 1000000;
 	const uint64_t lHour = 3600;
 	const uint64_t lDay = 3600*24;
 
 	if (lCurrentTime > lBuzzTime) {
-		uint64_t lDiff = (lCurrentTime - lBuzzTime) / 1000000; // seconds
+		uint64_t lDiff = (lCurrentTime - lBuzzTime); // seconds
 		if (lDiff < 5) return gApplication->getLocalization(locale(), "Buzzer.now");
 		else if (lDiff < 60) {
 			std::string lMark = gApplication->getLocalization(locale(), "Buzzer.seconds").toStdString();
@@ -443,8 +494,20 @@ QString Client::timestampAgo(long long timestamp) {
 	return gApplication->getLocalization(locale(), "Buzzer.now");
 }
 
+QString Client::timestampAgo(long long timestamp) {
+	return internalTimestampAgo(timestamp, 1000000);
+}
+
+QString Client::timeAgo(long long timestamp) {
+	return internalTimestampAgo(timestamp, 1);
+}
+
 ulong Client::getTrustScoreBase() {
 	return BUZZER_TRUST_SCORE_BASE;
+}
+
+ulong Client::getQbitBase() {
+	return QBIT;
 }
 
 QString Client::getTempFilesPath() {

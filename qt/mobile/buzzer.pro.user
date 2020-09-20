@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 4.12.2, 2020-08-25T09:56:47. -->
+<!-- Written by QtCreator 4.12.2, 2020-09-20T21:03:19. -->
 <qtcreator>
  <data>
   <variable>EnvironmentId</variable>
@@ -109,7 +109,7 @@
      </valuemap>
      <valuemap type="QVariantMap" key="ProjectExplorer.BuildStepList.Step.3">
       <value type="QString" key="BuildTargetSdk">android-29</value>
-      <value type="QString" key="KeystoreLocation"></value>
+      <value type="QString" key="KeystoreLocation">/home/demuskov/Projects/gravio-net/qbit/qbit.keystore</value>
       <value type="bool" key="ProjectExplorer.BuildStep.Enabled">true</value>
       <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">QmakeProjectManager.AndroidBuildApkStep</value>
       <value type="bool" key="UseMinistro">false</value>

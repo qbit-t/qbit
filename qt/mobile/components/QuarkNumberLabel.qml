@@ -68,6 +68,11 @@ Label
         formatNumber();
     }
 
+	onMayCompactChanged:
+	{
+		formatNumber();
+	}
+
     function compactNumber()
     {
         if (text.length) return;

@@ -938,6 +938,7 @@ public:
     }
 
     int GetVersion() const { return nVersion; }
+    int GetType() const { return SER_DISK; }
 };
 
 template<typename Stream>

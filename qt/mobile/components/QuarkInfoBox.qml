@@ -36,6 +36,11 @@ Rectangle
     property bool clipboardButton: false;
     property bool helpButton: false;
     property bool openUrl: false;
+	property bool isNumber: false;
+	property real number: -1000000000.0;
+	property int fillTo: 4;
+	property int itemRightPadding: -5;
+	property int itemLeftPadding: 5;
 
     signal helpClicked();
     signal textClicked();
@@ -44,12 +49,12 @@ Rectangle
     {
         id: symbolRect
 
-        width: 50
-        height: 50
+		width: infoBox.height
+		height: infoBox.height
         clip: true
 
         border.color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Box.border");
-        color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.background");
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.background");
 
         Label
         {
@@ -106,7 +111,7 @@ Rectangle
         id: infoRect
 
         x: symbolRect.width - 1
-        height: 50
+		height: infoBox.height
         //width: infoBox.width - copyRect.getWidth() - symbolRect.width + 2
         width: infoBox.width - symbolRect.width - copyRect.width * clipboardButton - helpRect.width * helpButton +
                clipboardButton*1 + helpButton*1 + 1
@@ -119,19 +124,46 @@ Rectangle
             id: infoLabel
             leftPadding: textLeftPadding
             rightPadding: 5
-            anchors.fill: parent
+			topPadding: 1
+			anchors.fill: parent
             horizontalAlignment: Text.AlignLeft
-            verticalAlignment: Text.AlignVCenter
-            elide: Text.ElideRight
+			verticalAlignment: Text.AlignVCenter
+			elide: Text.ElideRight
 
 			font.pointSize: textFontSize
+
+			visible: !isNumber
 
             text: !infoBox.text.length ? infoBox.placeholderText : infoBox.text
             color: !infoBox.text.length ? buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.textDisabled") :
                 buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground");
         }
 
-        MouseArea
+		QuarkPriceLabel
+		{
+			id: numberLabel
+
+			trend: ""
+
+			y: parent.height / 2 - calculatedHeight / 2
+			x: itemLeftPadding
+
+			number: infoBox.number
+			//useNumberText: true
+
+			fillTo: infoBox.fillTo
+			verticalAlignment: Text.AlignVCenter
+			//horizontalAlignment: Text.AlignHCenter
+			//elide: Text.ElideRight
+			font.pointSize: textFontSize
+
+			visible: isNumber
+
+			priceUpColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+			priceDownColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+		}
+
+		MouseArea
         {
             width: parent.width
             height: parent.height
@@ -153,8 +185,8 @@ Rectangle
         id: copyRect
 
         x: infoRect.x + infoRect.width - 1
-        width: 50
-        height: 50
+		width: infoBox.height
+		height: infoBox.height
         visible: clipboardButton
         clip: true
 
@@ -194,8 +226,8 @@ Rectangle
         id: helpRect
 
         x: copyRect.getX() + copyRect.getWidth() - 1
-        width: 50
-        height: 50
+		width: infoBox.height
+		height: infoBox.height
         visible: helpButton
         clip: true
 

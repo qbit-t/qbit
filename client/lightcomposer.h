@@ -74,6 +74,8 @@ public:
 	public:
 		SendToAddress(LightComposerPtr composer, const uint256& asset, const PKey& address, double amount, transactionCreatedFunction created): 
 			composer_(composer), asset_(asset), address_(address), amount_(amount), created_(created) {}
+		SendToAddress(LightComposerPtr composer, const uint256& asset, const PKey& address, double amount, int feeRate, transactionCreatedFunction created): 
+			composer_(composer), asset_(asset), address_(address), amount_(amount), feeRate_(feeRate), created_(created) {}
 		void process(errorFunction error) {
 			error_ = error;
 
@@ -87,6 +89,10 @@ public:
 			} else {
 				assetLoaded(nullptr);		
 			}
+		}
+
+		static IComposerMethodPtr instance(LightComposerPtr composer, const uint256& asset, const PKey& address, double amount, int feeRate, transactionCreatedFunction created) {
+			return std::make_shared<SendToAddress>(composer, asset, address, amount, feeRate, created); 
 		}
 
 		static IComposerMethodPtr instance(LightComposerPtr composer, const uint256& asset, const PKey& address, double amount, transactionCreatedFunction created) {
@@ -113,9 +119,15 @@ public:
 			}
 
 			try {
-				TransactionContextPtr lCtx = composer_->wallet()->createTxSpend(lAsset, address_, (amount_t)(amount_ * (double)lScale));
-				if (lCtx) created_(lCtx);
-				else error_("E_TX_CREATE", "Transaction creation error.");
+				TransactionContextPtr lCtx;
+				if (feeRate_ == -1) 
+					lCtx = composer_->wallet()->createTxSpend(lAsset, address_, (amount_t)(amount_ * (double)lScale));
+				else
+					lCtx = composer_->wallet()->createTxSpend(lAsset, address_, (amount_t)(amount_ * (double)lScale), feeRate_);
+				if (lCtx) { 
+					lCtx->setScale(lScale);
+					created_(lCtx);
+				} else error_("E_TX_CREATE", "Transaction creation error.");
 			}
 			catch(qbit::exception& ex) {
 				error_(ex.code(), ex.what());
@@ -129,7 +141,85 @@ public:
 		LightComposerPtr composer_;
 		uint256 asset_;
 		PKey address_;
-		double amount_;
+		double amount_ = 0;
+		int feeRate_ = -1;
+		transactionCreatedFunction created_;
+		errorFunction error_;
+	};
+
+	class SendPrivateToAddress: public IComposerMethod, public std::enable_shared_from_this<SendPrivateToAddress> {
+	public:
+		SendPrivateToAddress(LightComposerPtr composer, const uint256& asset, const PKey& address, double amount, transactionCreatedFunction created): 
+			composer_(composer), asset_(asset), address_(address), amount_(amount), created_(created) {}
+		SendPrivateToAddress(LightComposerPtr composer, const uint256& asset, const PKey& address, double amount, int feeRate, transactionCreatedFunction created): 
+			composer_(composer), asset_(asset), address_(address), amount_(amount), feeRate_(feeRate), created_(created) {}
+		void process(errorFunction error) {
+			error_ = error;
+
+			if (!asset_.isNull()) {
+				//
+				composer_->requestProcessor()->loadTransaction(MainChain::id(), asset_, 
+					LoadTransaction::instance(
+						boost::bind(&LightComposer::SendPrivateToAddress::assetLoaded, shared_from_this(), _1),
+						boost::bind(&LightComposer::SendPrivateToAddress::timeout, shared_from_this()))
+				);
+			} else {
+				assetLoaded(nullptr);		
+			}
+		}
+
+		static IComposerMethodPtr instance(LightComposerPtr composer, const uint256& asset, const PKey& address, double amount, int feeRate, transactionCreatedFunction created) {
+			return std::make_shared<SendPrivateToAddress>(composer, asset, address, amount, feeRate, created); 
+		}
+
+		static IComposerMethodPtr instance(LightComposerPtr composer, const uint256& asset, const PKey& address, double amount, transactionCreatedFunction created) {
+			return std::make_shared<SendPrivateToAddress>(composer, asset, address, amount, created); 
+		}
+
+		// 
+		void timeout() {
+			error_("E_TIMEOUT", "Timeout expired during creating buzzer.");
+		}
+
+		//
+		void assetLoaded(TransactionPtr asset) {
+			//
+			amount_t lScale = QBIT;
+			uint256 lAsset = TxAssetType::qbitAsset();
+
+			if (asset) {
+				if (asset->type() == Transaction::ASSET_TYPE) {
+					TxAssetTypePtr lAssetType = TransactionHelper::to<TxAssetType>(asset);
+					lScale = lAssetType->scale();	
+					lAsset = lAssetType->id();
+				}
+			}
+
+			try {
+				TransactionContextPtr lCtx;
+				if (feeRate_ == -1) 
+					lCtx = composer_->wallet()->createTxSpendPrivate(lAsset, address_, (amount_t)(amount_ * (double)lScale));
+				else
+					lCtx = composer_->wallet()->createTxSpendPrivate(lAsset, address_, (amount_t)(amount_ * (double)lScale), feeRate_);
+				if (lCtx) {
+					lCtx->setScale(lScale);
+					created_(lCtx);
+				} else error_("E_TX_CREATE", "Transaction creation error.");
+			}
+			catch(qbit::exception& ex) {
+				error_(ex.code(), ex.what());
+			}
+			catch(std::exception& ex) {
+				error_("E_TX_CREATE", ex.what());
+			}
+		}
+
+	private:
+		LightComposerPtr composer_;
+		uint256 asset_;
+		PKey address_;
+		double amount_ = 0;
+		int feeRate_ = -1;
 		transactionCreatedFunction created_;
 		errorFunction error_;
 	};

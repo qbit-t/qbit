@@ -884,9 +884,9 @@ Item {
 		y: replyButton.y + replyButton.height // + getSpacing()
 		width: bodyControl.width
 		elide: Text.ElideRight
-		text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.buzz.threaded");
+		text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.buzz.threaded")
 		font.pointSize: 14
-		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link");
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link")
 		visible: getVisible() //threaded_ || showMore()
 
 		function getVisible() {

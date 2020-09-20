@@ -1831,10 +1831,19 @@ public:
 		command_->process(lArgs);
 	}
 
+	Q_INVOKABLE void updateWalletInfo() {
+		//
+		if (tx_) {
+			Client* lClient = static_cast<Client*>(gApplication->getClient());
+			lClient->getComposer()->wallet()->updateOuts(tx_);
+		}
+	}
+
 	void done(qbit::TransactionPtr tx, const qbit::ProcessingError& result) {
 		if (result.success()) {
 			if (tx) {
 				// TODO: check integrity (tx->id() == params.tx)
+				tx_ = tx;
 				emit processed(QString::fromStdString(tx->id().toHex()), QString::fromStdString(tx->chain().toHex()));
 			} else emit transactionNotFound();
 		} else {
@@ -1849,6 +1858,146 @@ signals:
 
 private:
 	qbit::ICommandPtr command_;
+	qbit::TransactionPtr tx_;
+};
+
+class LoadEntityCommand: public QObject
+{
+	Q_OBJECT
+
+public:
+	explicit LoadEntityCommand(QObject* parent = nullptr);
+
+	Q_INVOKABLE void process(QString entity) {
+		std::vector<std::string> lArgs;
+		lArgs.push_back(entity.toStdString());
+
+		command_->process(lArgs);
+	}
+
+	Q_INVOKABLE QString extractAddress();
+
+	void done(qbit::TransactionPtr tx, const qbit::ProcessingError& result) {
+		if (result.success()) {
+			if (tx) {
+				// TODO: check integrity (tx->id() == params.tx)
+				tx_ = tx;
+				emit processed(QString::fromStdString(tx->id().toHex()), QString::fromStdString(tx->chain().toHex()));
+			} else emit transactionNotFound();
+		} else {
+			emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
+		}
+	}
+
+signals:
+	void processed(QString tx, QString chain);
+	void error(QString code, QString message);
+	void transactionNotFound();
+
+private:
+	qbit::ICommandPtr command_;
+	qbit::TransactionPtr tx_;
+};
+
+class SendToAddressCommand: public QObject
+{
+	Q_OBJECT
+	Q_PROPERTY(bool manualProcessing READ manualProcessing WRITE setManualProcessing NOTIFY manualProcessingChanged)
+	Q_PROPERTY(bool privateSend READ privateSend WRITE setPrivateSend NOTIFY privateSendChanged)
+
+public:
+	explicit SendToAddressCommand(QObject* parent = nullptr);
+
+	Q_INVOKABLE void process(QString asset, QString address, QString amount) {
+		//
+		process(asset, address, amount, QString());
+	}
+
+	Q_INVOKABLE void process(QString asset, QString address, QString amount, QString feeRate) {
+		//
+		makeCommand();
+
+		//
+		std::vector<std::string> lArgs;
+		lArgs.push_back(asset.toStdString());
+		lArgs.push_back(address.toStdString());
+		lArgs.push_back(amount.toStdString());
+		if (feeRate.size()) lArgs.push_back(feeRate.toStdString());
+
+		command_->process(lArgs);
+	}
+
+	bool manualProcessing() {
+		return manualProcessing_;
+	}
+
+	void setManualProcessing(bool manual) {
+		manualProcessing_ = manual;
+		emit manualProcessingChanged();
+	}
+
+	bool privateSend() {
+		return privateSend_;
+	}
+
+	void setPrivateSend(bool privateSend) {
+		privateSend_ = privateSend;
+		emit privateSendChanged();
+	}
+
+	Q_INVOKABLE void broadcast() {
+		//
+		command_->broadcast();
+	}
+
+	Q_INVOKABLE QString finalAmount() {
+		//
+		if (command_)
+			return QString::fromStdString(command_->finalAmountFormatted());
+		return "0.00000000";
+	}
+
+	void done(bool broadcasted, const qbit::ProcessingError& result) {
+		if (result.success()) {
+			emit processed(broadcasted);
+		} else {
+			emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
+		}
+	}
+
+signals:
+	void processed(bool broadcasted);
+	void error(QString code, QString message);
+	void transactionNotFound();
+	void manualProcessingChanged();
+	void privateSendChanged();
+
+private:
+	void makeCommand() {
+		Client* lClient = static_cast<Client*>(gApplication->getClient());
+
+		// if previous tx was prepared
+		if (command_) {
+			command_->rollback();
+		}
+
+		if (!privateSend_) {
+			command_ = std::static_pointer_cast<qbit::SendToAddressCommand>(qbit::SendToAddressCommand::instance(
+				lClient->getComposer(), manualProcessing_,
+				boost::bind(&SendToAddressCommand::done, this, _1, _2))
+			);
+		} else {
+			command_ = std::static_pointer_cast<qbit::SendToAddressCommand>(qbit::SendPrivateToAddressCommand::instance(
+				lClient->getComposer(), manualProcessing_,
+				boost::bind(&SendToAddressCommand::done, this, _1, _2))
+			);
+		}
+	}
+
+private:
+	qbit::SendToAddressCommandPtr command_;
+	bool manualProcessing_ = false;
+	bool privateSend_ = false;
 };
 
 } // buzzer

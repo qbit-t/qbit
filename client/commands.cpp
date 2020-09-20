@@ -62,9 +62,7 @@ void BalanceCommand::process(const std::vector<std::string>& args) {
 
 void SendToAddressCommand::process(const std::vector<std::string>& args) {
 	// process
-	if (args.size() == 3) {
-		//
-		amount_t lScale = QBIT;
+	if (args.size() >= 3) {
 		// 0
 		uint256 lAsset = TxAssetType::qbitAsset();
 		if (args[0] != "*") lAsset.setHex(args[0]);
@@ -72,13 +70,66 @@ void SendToAddressCommand::process(const std::vector<std::string>& args) {
 		// 1
 		PKey lAddress;
 		lAddress.fromString(args[1]);
+		if (!lAddress.valid()) {
+			done_(false, ProcessingError("E_ADDRESS_IS_INVALID", "Address is invalid."));
+			return;
+		}
 
 		// 2
 		double lAmount = (double)(boost::lexical_cast<double>(args[2]));
 
+		// 3
+		int lFeeRate = -1;
+		if (args.size() > 3) 
+			lFeeRate = (int)(boost::lexical_cast<int>(args[3]));
+
 		// prepare
-		IComposerMethodPtr lSendToAddress = LightComposer::SendToAddress::instance(composer_, lAsset, lAddress, lAmount,
-			boost::bind(&SendToAddressCommand::created, shared_from_this(), _1));
+		IComposerMethodPtr lSendToAddress;
+		if (lFeeRate == -1) 
+			lSendToAddress = LightComposer::SendToAddress::instance(composer_, lAsset, lAddress, lAmount,
+				boost::bind(&SendToAddressCommand::created, shared_from_this(), _1));
+		else
+			lSendToAddress = LightComposer::SendToAddress::instance(composer_, lAsset, lAddress, lAmount, lFeeRate,
+				boost::bind(&SendToAddressCommand::created, shared_from_this(), _1));
+		// async process
+		lSendToAddress->process(boost::bind(&SendToAddressCommand::error, shared_from_this(), _1, _2));
+		
+	} else {
+		gLog().writeClient(Log::CLIENT, std::string(": incorrect number of arguments"));
+	}
+}
+
+void SendPrivateToAddressCommand::process(const std::vector<std::string>& args) {
+	// process
+	if (args.size() >= 3) {
+		// 0
+		uint256 lAsset = TxAssetType::qbitAsset();
+		if (args[0] != "*") lAsset.setHex(args[0]);
+
+		// 1
+		PKey lAddress;
+		lAddress.fromString(args[1]);
+		if (!lAddress.valid()) {
+			done_(false, ProcessingError("E_ADDRESS_IS_INVALID", "Address is invalid."));
+			return;
+		}
+
+		// 2
+		double lAmount = (double)(boost::lexical_cast<double>(args[2]));
+
+		// 3
+		int lFeeRate = -1;
+		if (args.size() > 3) 
+			lFeeRate = (int)(boost::lexical_cast<int>(args[3]));
+
+		// prepare
+		IComposerMethodPtr lSendToAddress;
+		if (lFeeRate == -1) 
+			lSendToAddress = LightComposer::SendPrivateToAddress::instance(composer_, lAsset, lAddress, lAmount,
+				boost::bind(&SendToAddressCommand::created, shared_from_this(), _1));
+		else
+			lSendToAddress = LightComposer::SendPrivateToAddress::instance(composer_, lAsset, lAddress, lAmount, lFeeRate,
+				boost::bind(&SendToAddressCommand::created, shared_from_this(), _1));
 		// async process
 		lSendToAddress->process(boost::bind(&SendToAddressCommand::error, shared_from_this(), _1, _2));
 		
@@ -135,6 +186,21 @@ void LoadTransactionCommand::process(const std::vector<std::string>& args) {
 					boost::bind(&LoadTransactionCommand::transactionLoaded, shared_from_this(), _1),
 					boost::bind(&LoadTransactionCommand::timeout, shared_from_this()))
 			))	error("E_TRANSACTION_NOT_LOADED", "Transaction is not loaded.");
+	} else {
+		error("E_INCORRECT_AGRS", "Incorrect number of arguments.");
+	}
+}
+
+void LoadEntityCommand::process(const std::vector<std::string>& args) {
+	//
+	// process
+	if (args.size() == 1) {
+		//
+		if (!composer_->requestProcessor()->loadEntity(args[0], 
+				LoadEntity::instance(
+					boost::bind(&LoadEntityCommand::entityLoaded, shared_from_this(), _1),
+					boost::bind(&LoadEntityCommand::timeout, shared_from_this()))
+			))	error("E_ENTITY_NOT_FOUND", "Entity was not found.");
 	} else {
 		error("E_INCORRECT_AGRS", "Incorrect number of arguments.");
 	}

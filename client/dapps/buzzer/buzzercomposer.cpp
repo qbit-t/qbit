@@ -70,7 +70,7 @@ void BuzzerLightComposer::checkWorkingSettings() {
 			std::string lBuzzerTx = lItem->second;
 			std::vector<unsigned char> lBuzzerTxHex = ParseHex(lBuzzerTx);
 
-			DataStream lStream(lBuzzerTxHex, SER_NETWORK, PROTOCOL_VERSION);
+			DataStream lStream(lBuzzerTxHex, SER_DISK, PROTOCOL_VERSION);
 			TransactionPtr lBuzzer = Transaction::Deserializer::deserialize<DataStream>(lStream);
 			buzzerTx_ = TransactionHelper::to<TxBuzzer>(lBuzzer);
 
@@ -83,7 +83,7 @@ void BuzzerLightComposer::checkWorkingSettings() {
 			std::string lBuzzerInfoTx = lItem->second;
 			std::vector<unsigned char> lBuzzerTxHex = ParseHex(lBuzzerInfoTx);
 
-			DataStream lStream(lBuzzerTxHex, SER_NETWORK, PROTOCOL_VERSION);
+			DataStream lStream(lBuzzerTxHex, SER_DISK, PROTOCOL_VERSION);
 			TransactionPtr lBuzzerInfo = Transaction::Deserializer::deserialize<DataStream>(lStream);
 			buzzerInfoTx_ = TransactionHelper::to<TxBuzzerInfo>(lBuzzerInfo);
 
@@ -94,7 +94,7 @@ void BuzzerLightComposer::checkWorkingSettings() {
 			std::string lBuzzerUtxo = lItem->second;
 			std::vector<unsigned char> lBuzzerUtxoHex = ParseHex(lBuzzerUtxo);
 
-			DataStream lStream(lBuzzerUtxoHex, SER_NETWORK, PROTOCOL_VERSION);
+			DataStream lStream(lBuzzerUtxoHex, SER_DISK, PROTOCOL_VERSION);
 			lStream >> buzzerUtxo_;
 		}
 	}
@@ -178,6 +178,7 @@ bool BuzzerLightComposer::open() {
 			gLog().write(Log::INFO, std::string("[buzzer/wallet/open]: opening buzzer wallet data..."));
 			workingSettings_.open();
 			subscriptions_.open();
+			contacts_.open();
 
 			std::string lBuzzerTx;
 			if (workingSettings_.read("buzzerTx", lBuzzerTx)) {
@@ -186,7 +187,7 @@ bool BuzzerLightComposer::open() {
 				//
 				std::vector<unsigned char> lBuzzerTxHex = ParseHex(lBuzzerTx);
 
-				DataStream lStream(lBuzzerTxHex, SER_NETWORK, PROTOCOL_VERSION);
+				DataStream lStream(lBuzzerTxHex, SER_DISK, PROTOCOL_VERSION);
 				TransactionPtr lBuzzer = Transaction::Deserializer::deserialize<DataStream>(lStream);
 				buzzerTx_ = TransactionHelper::to<TxBuzzer>(lBuzzer);
 
@@ -203,7 +204,7 @@ bool BuzzerLightComposer::open() {
 				//
 				std::vector<unsigned char> lBuzzerTxHex = ParseHex(lBuzzerInfoTx);
 
-				DataStream lStream(lBuzzerTxHex, SER_NETWORK, PROTOCOL_VERSION);
+				DataStream lStream(lBuzzerTxHex, SER_DISK, PROTOCOL_VERSION);
 				TransactionPtr lBuzzerInfo = Transaction::Deserializer::deserialize<DataStream>(lStream);
 				buzzerInfoTx_ = TransactionHelper::to<TxBuzzerInfo>(lBuzzerInfo);
 
@@ -219,7 +220,7 @@ bool BuzzerLightComposer::open() {
 				//
 				std::vector<unsigned char> lBuzzerUtxoHex = ParseHex(lBuzzerUtxo);
 
-				DataStream lStream(lBuzzerUtxoHex, SER_NETWORK, PROTOCOL_VERSION);
+				DataStream lStream(lBuzzerUtxoHex, SER_DISK, PROTOCOL_VERSION);
 				lStream >> buzzerUtxo_;
 			}
 			//

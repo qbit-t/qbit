@@ -161,7 +161,7 @@ ApplicationWindow
         return false;
     }
 
-	property int lastErrorCodeDialog: 0;
+	property var lastErrorCodeDialog: "";
 	property var lastErrorMessageDialog: "";
 	property bool suspended: false;
     property int extraPadding: 0;

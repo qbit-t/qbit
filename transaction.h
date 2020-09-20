@@ -326,23 +326,36 @@ public:
 			nonce_ = utxo.nonce();
 			commit_ = utxo.commit();
 			lock_ = utxo.lock();
+			change_ = utxo.change();
 		} 
 		UnlinkedOut(const Link& o) : 
 			out_(o) {}
 		UnlinkedOut(const Link& o, uint64_t lock) : 
 			out_(o), lock_(lock) {}
+		UnlinkedOut(const Link& o, uint64_t lock, unsigned char change) : 
+			out_(o), lock_(lock), change_(change) {}
 		UnlinkedOut(const Link& o, const PKey& address) : 
 			out_(o), address_(address) {}
 		UnlinkedOut(const Link& o, const PKey& address, uint64_t lock) : 
 			out_(o), address_(address), lock_(lock) {}
+		UnlinkedOut(const Link& o, const PKey& address, uint64_t lock, unsigned char change) : 
+			out_(o), address_(address), lock_(lock), change_(change) {}
 		UnlinkedOut(const Link& o, const PKey& address, amount_t a, const uint256& b, const std::vector<unsigned char>& c) : 
 			out_(o), address_(address), amount_(a), blind_(b), commit_(c) {}
+		UnlinkedOut(const Link& o, const PKey& address, amount_t a, const uint256& b, const std::vector<unsigned char>& c, unsigned char change) : 
+			out_(o), address_(address), amount_(a), blind_(b), commit_(c), change_(change) {}
 		UnlinkedOut(const Link& o, const PKey& address, amount_t a, const uint256& b, const std::vector<unsigned char>& c, uint64_t lock) : 
 			out_(o), address_(address), amount_(a), blind_(b), commit_(c), lock_(lock) {}
+		UnlinkedOut(const Link& o, const PKey& address, amount_t a, const uint256& b, const std::vector<unsigned char>& c, uint64_t lock, unsigned char change) : 
+			out_(o), address_(address), amount_(a), blind_(b), commit_(c), lock_(lock), change_(change) {}
 		UnlinkedOut(const Link& o, const PKey& address, amount_t a, const uint256& b, const std::vector<unsigned char>& c, const uint256& n) : 
 			UnlinkedOut(o, address, a, b, c) { nonce_ = n; }
+		UnlinkedOut(const Link& o, const PKey& address, amount_t a, const uint256& b, const std::vector<unsigned char>& c, const uint256& n, unsigned char change) : 
+			UnlinkedOut(o, address, a, b, c) { nonce_ = n; change_ = change; }
 		UnlinkedOut(const Link& o, const PKey& address, amount_t a, const uint256& b, const std::vector<unsigned char>& c, const uint256& n, uint64_t lock) : 
 			UnlinkedOut(o, address, a, b, c) { nonce_ = n; lock_ = lock; }
+		UnlinkedOut(const Link& o, const PKey& address, amount_t a, const uint256& b, const std::vector<unsigned char>& c, const uint256& n, uint64_t lock, unsigned char change) : 
+			UnlinkedOut(o, address, a, b, c) { nonce_ = n; lock_ = lock; change_ = change; }
 
 		ADD_SERIALIZE_METHODS;
 
@@ -355,6 +368,7 @@ public:
 			READWRITE(nonce_);
 			READWRITE(commit_);
 			READWRITE(lock_);
+			READWRITE(change_);
 		}
 
 		Link& out() { return out_; }
@@ -366,30 +380,43 @@ public:
 		uint64_t lock() const { return lock_; }
 
 		uint256 hash() { return out_.hash(); }
+		unsigned char change() const { return change_; }
+		bool blinded() const { return !nonce_.isNull(); }
 
 		static UnlinkedOutPtr instance() { return std::make_shared<UnlinkedOut>(); }
 		static UnlinkedOutPtr instance(const UnlinkedOut& utxo) { return std::make_shared<UnlinkedOut>(utxo); }
 		static UnlinkedOutPtr instance(const Link& o) { return std::make_shared<UnlinkedOut>(o); }
 		static UnlinkedOutPtr instance(const Link& o, uint64_t lock) { return std::make_shared<UnlinkedOut>(o, lock); }
+		static UnlinkedOutPtr instance(const Link& o, uint64_t lock, unsigned char change) { return std::make_shared<UnlinkedOut>(o, lock, change); }
 		static UnlinkedOutPtr instance(const Link& o, const PKey& address) { return std::make_shared<UnlinkedOut>(o, address); }
 		static UnlinkedOutPtr instance(const Link& o, const PKey& address, uint64_t lock) { return std::make_shared<UnlinkedOut>(o, address, lock); }
+		static UnlinkedOutPtr instance(const Link& o, const PKey& address, uint64_t lock, unsigned char change) { return std::make_shared<UnlinkedOut>(o, address, lock, change); }
 		static UnlinkedOutPtr instance(const Link& o, const PKey& address, amount_t a, const uint256& b, const std::vector<unsigned char>& c) 
 		{ return std::make_shared<UnlinkedOut>(o, address, a, b, c); }
+		static UnlinkedOutPtr instance(const Link& o, const PKey& address, amount_t a, const uint256& b, const std::vector<unsigned char>& c, unsigned char change) 
+		{ return std::make_shared<UnlinkedOut>(o, address, a, b, c, change); }
 		static UnlinkedOutPtr instance(const Link& o, const PKey& address, amount_t a, const uint256& b, const std::vector<unsigned char>& c, uint64_t lock) 
 		{ return std::make_shared<UnlinkedOut>(o, address, a, b, c, lock); }
+		static UnlinkedOutPtr instance(const Link& o, const PKey& address, amount_t a, const uint256& b, const std::vector<unsigned char>& c, uint64_t lock, unsigned char change) 
+		{ return std::make_shared<UnlinkedOut>(o, address, a, b, c, lock, change); }
 		static UnlinkedOutPtr instance(const Link& o, const PKey& address, amount_t a, const uint256& b, const std::vector<unsigned char>& c, const uint256& n) 
 		{ return std::make_shared<UnlinkedOut>(o, address, a, b, c, n); }
+		static UnlinkedOutPtr instance(const Link& o, const PKey& address, amount_t a, const uint256& b, const std::vector<unsigned char>& c, const uint256& n, unsigned char change) 
+		{ return std::make_shared<UnlinkedOut>(o, address, a, b, c, n, change); }
 		static UnlinkedOutPtr instance(const Link& o, const PKey& address, amount_t a, const uint256& b, const std::vector<unsigned char>& c, const uint256& n, uint64_t lock) 
 		{ return std::make_shared<UnlinkedOut>(o, address, a, b, c, n, lock); }
+		static UnlinkedOutPtr instance(const Link& o, const PKey& address, amount_t a, const uint256& b, const std::vector<unsigned char>& c, const uint256& n, uint64_t lock, unsigned char change) 
+		{ return std::make_shared<UnlinkedOut>(o, address, a, b, c, n, lock, change); }
 
 	private:
 		Link out_; // one of previous out
-		PKey address_;	
+		PKey address_;
 		amount_t amount_ = 0;
 		uint256 blind_;
 		uint256 nonce_;
 		std::vector<unsigned char> commit_;
 		uint64_t lock_ = 0;
+		unsigned char change_ = 0;
 	};
 
 	class NetworkUnlinkedOut;
@@ -397,38 +424,95 @@ public:
 
 	class NetworkUnlinkedOut {
 	public:
+		enum Direction {
+			IN = 1,
+			OUT = 2
+		};
+	public:
 		NetworkUnlinkedOut() {}
 		NetworkUnlinkedOut(const UnlinkedOut& utxo, uint64_t confirms, bool coinbase) : 
 			utxo_(utxo), confirms_(confirms), coinbase_(coinbase) {}
+		NetworkUnlinkedOut(const UnlinkedOut& utxo, unsigned short type, uint64_t confirms, bool coinbase) : 
+			utxo_(utxo), type_(type), confirms_(confirms), coinbase_(coinbase) {}
+		NetworkUnlinkedOut(const UnlinkedOut& utxo, unsigned short type, uint64_t confirms, bool coinbase, uint64_t fee) : 
+			utxo_(utxo), type_(type), confirms_(confirms), coinbase_(coinbase), fee_(fee) {}
+		NetworkUnlinkedOut(const UnlinkedOut& utxo, unsigned short type, uint64_t confirms, bool coinbase, const uint256& parent, unsigned short parentType) : 
+			utxo_(utxo), type_(type), confirms_(confirms), coinbase_(coinbase), parent_(parent), parentType_(parentType) {}
 		NetworkUnlinkedOut(const NetworkUnlinkedOut& txo) {
 			utxo_ = const_cast<NetworkUnlinkedOut&>(txo).utxo();
 			confirms_ = const_cast<NetworkUnlinkedOut&>(txo).confirms();
 			coinbase_ = const_cast<NetworkUnlinkedOut&>(txo).coinbase();
-		} 
+			type_ = const_cast<NetworkUnlinkedOut&>(txo).type();
+			timestamp_ = const_cast<NetworkUnlinkedOut&>(txo).timestamp();
+			parent_ = const_cast<NetworkUnlinkedOut&>(txo).parent();
+			parentType_ = const_cast<NetworkUnlinkedOut&>(txo).parentType();
+			direction_ = const_cast<NetworkUnlinkedOut&>(txo).direction();
+			fee_ = const_cast<NetworkUnlinkedOut&>(txo).fee();
+		}
 
 		inline UnlinkedOut utxo() { return utxo_; }
 		inline void setUtxo(const UnlinkedOut& utxo) { utxo_ = utxo; }
 		inline uint64_t confirms() { return confirms_; }
 		inline bool coinbase() { return coinbase_; }
+		inline unsigned short type() { return type_; }
+		inline uint64_t timestamp() { return timestamp_; }
+		inline Direction direction() { return (Direction)direction_; }
+		inline uint64_t fee() { return fee_; }
+
+		inline unsigned short parentType() { return parentType_; }
+		inline uint256& parent() { return parent_; }
+
+		inline void setParentType(unsigned short type) { parentType_ = type; }
+		inline void setParent(const uint256& parent) { parent_ = parent; }
+		inline void setTimestamp(uint64_t timestamp) { timestamp_ = timestamp; }
+		inline void setDirection(Direction direction) { direction_ = direction; }
+		inline void setConfirms(uint64_t confirms) { confirms_ = confirms; }
+		inline void setFee(uint64_t fee) { fee_ = fee; }
 
 		ADD_SERIALIZE_METHODS;
 
 		template <typename Stream, typename Operation>
 		inline void serializationOp(Stream& s, Operation ser_action) {
 			READWRITE(utxo_);
+			READWRITE(direction_);
+			READWRITE(type_);
 			READWRITE(confirms_);
 			READWRITE(coinbase_);
+			READWRITE(timestamp_);
+			READWRITE(fee_);
+
+			if (type_ != Transaction::UNDEFINED) {
+				READWRITE(parent_);
+				READWRITE(parentType_);
+			}
 		}		
 
 		static NetworkUnlinkedOutPtr instance(const NetworkUnlinkedOut& txo) { return std::make_shared<NetworkUnlinkedOut>(txo); }
 		static NetworkUnlinkedOutPtr instance(const UnlinkedOut& utxo, uint64_t confirms, bool coinbase) { 
 			return std::make_shared<NetworkUnlinkedOut>(utxo, confirms, coinbase); 
 		}
+		static NetworkUnlinkedOutPtr instance(const UnlinkedOut& utxo, unsigned short type, uint64_t confirms, bool coinbase) { 
+			return std::make_shared<NetworkUnlinkedOut>(utxo, type, confirms, coinbase); 
+		}
+		static NetworkUnlinkedOutPtr instance(const UnlinkedOut& utxo, unsigned short type, uint64_t confirms, bool coinbase, uint64_t fee) { 
+			return std::make_shared<NetworkUnlinkedOut>(utxo, type, confirms, coinbase, fee); 
+		}
+		static NetworkUnlinkedOutPtr instance(const UnlinkedOut& utxo, unsigned short type, uint64_t confirms, bool coinbase, const uint256& parent, unsigned short parentType) { 
+			return std::make_shared<NetworkUnlinkedOut>(utxo, type, confirms, coinbase, parent, parentType); 
+		}
 
 	private:
 		UnlinkedOut utxo_;
-		uint64_t confirms_;
-		bool coinbase_;
+		unsigned short type_ = Transaction::UNDEFINED;
+		uint64_t confirms_ = 0;
+		bool coinbase_ = false;
+		uint64_t timestamp_ = 0;
+		char direction_ = 0;
+		uint64_t fee_ = 0;
+
+		// parent
+		uint256 parent_;
+		unsigned short parentType_ = Transaction::UNDEFINED;
 	};
 
 	class Serializer {
@@ -443,6 +527,14 @@ public:
 			s << tx->in();
 			s << tx->out();
 
+			if (s.GetType() == SER_NETWORK) {
+				s << tx->block();
+				s << tx->height();
+				s << tx->confirms();
+				s << tx->index();
+				s << tx->mempool();
+			}
+
 			tx->serialize(s);
 		}
 
@@ -454,6 +546,14 @@ public:
 			s << tx->chain();
 			s << tx->in();
 			s << tx->out();
+
+			if (s.GetType() == SER_NETWORK) {
+				s << tx->block();
+				s << tx->height();
+				s << tx->confirms();
+				s << tx->index();
+				s << tx->mempool();
+			}
 
 			tx->serialize(s);
 		}
@@ -478,6 +578,17 @@ public:
 
 	inline std::vector<In>& in() { return in_; }
 	inline std::vector<Out>& out() { return out_; }
+
+	inline uint64_t confirms() { return confirms_; }
+	inline void setConfirms(uint64_t confirms) { confirms_ = confirms; }
+	inline uint64_t height() { return height_; }
+	inline void setHeight(uint64_t height) { height_ = height; }
+	inline uint32_t index() { return height_; }
+	inline void setIndex(uint32_t index) { index_ = index; }
+	inline bool mempool() { return mempool_; }
+	inline void setMempool(bool mempool) { mempool_ = mempool; }
+	inline uint256& block() { return block_; }
+	inline void setBlock(const uint256& block) { block_ = block; }
 
 	inline Out* out(uint32_t o) { if (o < out_.size()) return &out_[o]; return nullptr; }
 
@@ -546,7 +657,18 @@ protected:
 
 	//
 	// in-memory only
+	//
 
+	// block
+	uint256 block_;
+	// height
+	uint64_t height_ = 0;
+	// confirms
+	uint64_t confirms_ = 0;
+	// index
+	uint32_t index_ = 0;
+	// mempool
+	bool mempool_ = false;
 	// tx current status
 	Status status_;
 	// id
@@ -659,7 +781,7 @@ public:
 	// skey - our secret key
 	// pkey - destination address
 	// asset - asset type hash
-	virtual Transaction::UnlinkedOutPtr addOut(const SKey& skey, const PKey& pkey, const uint256& asset, amount_t amount) {
+	virtual Transaction::UnlinkedOutPtr addOut(const SKey& skey, const PKey& pkey, const uint256& asset, amount_t amount, bool change = false) {
 		qbit::vector<unsigned char> lCommitment;
 
 		uint256 lBlind = const_cast<SKey&>(skey).shared(pkey);
@@ -674,8 +796,9 @@ public:
 		lOut.setDestination(ByteCode() <<
 			OP(QMOV) 		<< REG(QD0) << CVAR(const_cast<PKey&>(pkey).get()) << 
 			OP(QMOV) 		<< REG(QA0) << CU64(amount) <<
-			OP(QMOV) 		<< REG(QA1) << CVAR(lCommitment) <<			
-			OP(QMOV) 		<< REG(QA2) << CU256(lBlind) <<			
+			OP(QMOV) 		<< REG(QA1) << CVAR(lCommitment) <<
+			OP(QMOV) 		<< REG(QA2) << CU256(lBlind) <<	
+			OP(QMOV) 		<< REG(QA6) << CU8((unsigned char)change) <<
 			OP(QCHECKA) 	<<
 			OP(QATXOA) 		<<
 			OP(QEQADDR) 	<<
@@ -687,7 +810,8 @@ public:
 			pkey,
 			amount, // amount
 			lBlind, // blinding key
-			lCommitment // commit
+			lCommitment, // commit
+			(unsigned char)change
 		);
 
 		// fill up for finalization
@@ -819,7 +943,7 @@ public:
 	// skey - our secret key
 	// pkey - destination address
 	// asset - asset type hash
-	Transaction::UnlinkedOutPtr addOut(const SKey& skey, const PKey& pkey, const uint256& asset, amount_t amount) {
+	Transaction::UnlinkedOutPtr addOut(const SKey& skey, const PKey& pkey, const uint256& asset, amount_t amount, bool change = false) {
 		qbit::vector<unsigned char> lCommitment;
 		qbit::vector<unsigned char> lRangeProof;
 
@@ -840,8 +964,9 @@ public:
 		lOut.setDestination(ByteCode() <<
 			OP(QMOV) 		<< REG(QD0) << CVAR(const_cast<PKey&>(pkey).get()) << 
 			OP(QMOV) 		<< REG(QA0) << CU64(0x00) <<
-			OP(QMOV) 		<< REG(QA1) << CVAR(lCommitment) <<			
-			OP(QMOV) 		<< REG(QA2) << CVAR(lRangeProof) <<	
+			OP(QMOV) 		<< REG(QA1) << CVAR(lCommitment) <<
+			OP(QMOV) 		<< REG(QA2) << CVAR(lRangeProof) <<
+			OP(QMOV) 		<< REG(QA6) << CU8((unsigned char)change) <<
 			OP(QCHECKP) 	<<
 			OP(QATXOP)	 	<<
 			OP(QEQADDR) 	<<
@@ -854,7 +979,8 @@ public:
 			amount, // amount
 			lBlind, // blinding key
 			lCommitment, // commit
-			lNonce
+			lNonce,
+			(unsigned char)change
 		);
 
 		// fill up for finalization
@@ -960,6 +1086,14 @@ inline TransactionPtr Transaction::Deserializer::deserialize(Stream& s) {
 		s >> lTx->chain_;
 		s >> lTx->in();
 		s >> lTx->out();
+
+		if (s.GetType() == SER_NETWORK) {
+			s >> lTx->block_;
+			s >> lTx->height_;
+			s >> lTx->confirms_;
+			s >> lTx->index_;
+			s >> lTx->mempool_;
+		}
 
 		lTx->deserialize(s);
 	}

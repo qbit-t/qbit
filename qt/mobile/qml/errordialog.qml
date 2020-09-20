@@ -39,6 +39,7 @@ Dialog
         var lMessage = error.message + "\n(Code = " + error.code + ")";
         errorText.text = lMessage;
         callback = accepted;
+		title = error.component;
         open();
     }
 

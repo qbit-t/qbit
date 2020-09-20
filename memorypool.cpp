@@ -4,6 +4,7 @@
 #include "txblockbase.h"
 #include "txbase.h"
 #include "iconsensusmanager.h"
+#include "ipeermanager.h"
 
 #include <iostream>
 
@@ -761,6 +762,13 @@ void MemoryPool::removeTransactions(BlockPtr block) {
 			
 			lPoolStore->remove(lCtx);
 			lPoolEntityStore->removeEntity(lCtx->tx()->id());
+
+			//
+			// NOTICE: massive broadcast may occure - main chain ONLY
+			if (chain_ == MainChain::id()) {
+				//
+				consensus_->consensusManager()->peerManager()->notifyTransaction(lCtx);
+			}
 		}
 	}
 }

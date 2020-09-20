@@ -498,6 +498,7 @@ public:
 	ITransactionStoreManagerPtr storeManager() { return storeManager_; }
 	IWalletPtr wallet() { return wallet_; }
 	IMemoryPoolManagerPtr mempoolManager() { return validatorManager_->mempoolManager(); }
+	IPeerManagerPtr peerManager() { return peerManager_; }
 
 private:
 	bool enqueueBlockHeader(const NetworkBlockHeader& blockHeader) {
