@@ -70,6 +70,11 @@
 	#include "dapps/buzzer/txbuzzermistrust.h"
 	#include "dapps/buzzer/txbuzzersubscribe.h"
 	#include "dapps/buzzer/txbuzzerunsubscribe.h"
+	#include "dapps/buzzer/txbuzzerconversation.h"
+	#include "dapps/buzzer/txbuzzeracceptconversation.h"
+	#include "dapps/buzzer/txbuzzerdeclineconversation.h"
+	#include "dapps/buzzer/txbuzzermessage.h"
+	#include "dapps/buzzer/txbuzzermessagereply.h"
 	#include "dapps/buzzer/transactionstoreextension.h"
 	#include "dapps/buzzer/transactionactions.h"
 	#include "dapps/buzzer/peerextension.h"
@@ -176,6 +181,10 @@ public:
 		Transaction::registerTransactionType(TX_BUZZER_MISTRUST, TxBuzzerMistrustCreator::instance());
 		Transaction::registerTransactionType(TX_BUZZER_INFO, TxBuzzerInfoCreator::instance());
 		Transaction::registerTransactionType(TX_BUZZ_REWARD, TxBuzzRewardCreator::instance());
+		Transaction::registerTransactionType(TX_BUZZER_CONVERSATION, TxBuzzerConversationCreator::instance());
+		Transaction::registerTransactionType(TX_BUZZER_ACCEPT_CONVERSATION, TxBuzzerAcceptConversationCreator::instance());
+		Transaction::registerTransactionType(TX_BUZZER_DECLINE_CONVERSATION, TxBuzzerDeclineConversationCreator::instance());
+		Transaction::registerTransactionType(TX_BUZZER_MESSAGE, TxBuzzerMessageCreator::instance());
 #endif
 #if defined (CUBIX_MOD)		
 		Transaction::registerTransactionType(TX_CUBIX_MEDIA_HEADER, cubix::TxMediaHeaderCreator::instance());
@@ -247,6 +256,18 @@ public:
 		Message::registerMessageType(BUZZ_FEED_BY_TAG, "BUZZ_FEED_BY_TAG");
 		Message::registerMessageType(GET_HASH_TAGS, "GET_HASH_TAGS");
 		Message::registerMessageType(HASH_TAGS, "HASH_TAGS");
+		Message::registerMessageType(BUZZ_SUBSCRIBE, "BUZZ_SUBSCRIBE");
+		Message::registerMessageType(BUZZ_UNSUBSCRIBE, "BUZZ_UNSUBSCRIBE");
+		Message::registerMessageType(GET_BUZZER_AND_INFO, "GET_BUZZER_AND_INFO");
+		Message::registerMessageType(BUZZER_AND_INFO, "BUZZER_AND_INFO");
+		Message::registerMessageType(BUZZER_AND_INFO_ABSENT, "BUZZER_AND_INFO_ABSENT");
+		Message::registerMessageType(GET_CONVERSATIONS_FEED_BY_BUZZER, "GET_CONVERSATIONS_FEED_BY_BUZZER");
+		Message::registerMessageType(CONVERSATIONS_FEED_BY_BUZZER, "CONVERSATIONS_FEED_BY_BUZZER");
+		Message::registerMessageType(GET_MESSAGES_FEED_BY_CONVERSATION, "GET_MESSAGES_FEED_BY_CONVERSATION");
+		Message::registerMessageType(MESSAGES_FEED_BY_CONVERSATION, "MESSAGES_FEED_BY_CONVERSATION");
+		Message::registerMessageType(NEW_BUZZER_CONVERSATION_NOTIFY, "NEW_BUZZER_CONVERSATION_NOTIFY");
+		Message::registerMessageType(NEW_BUZZER_MESSAGE_NOTIFY, "NEW_BUZZER_MESSAGE_NOTIFY");
+		Message::registerMessageType(UPDATE_BUZZER_CONVERSATION_NOTIFY, "UPDATE_BUZZER_CONVERSATION_NOTIFY");
 #endif
 
 		// buzzer peer extention
@@ -310,6 +331,8 @@ public:
 		httpRequestHandler_->push(HttpCreateDApp::instance());
 		httpRequestHandler_->push(HttpCreateShard::instance());
 		httpRequestHandler_->push(HttpGetTransaction::instance());
+		httpRequestHandler_->push(HttpCreateAsset::instance());
+		httpRequestHandler_->push(HttpCreateAssetEmission::instance());
 		httpRequestHandler_->push(HttpCreateBuzzer::instance(buzzerComposer_)); // custom
 		httpRequestHandler_->push(HttpAttachBuzzer::instance(buzzerComposer_)); // custom
 		httpRequestHandler_->push(HttpBuzz::instance(buzzerComposer_)); // custom

@@ -26,6 +26,7 @@ QuarkToolBar
 	property bool showBottomLine: true;
 
 	signal goHome();
+	signal goDrawer();
 
 	Component.onCompleted: {
 	}
@@ -51,6 +52,16 @@ QuarkToolBar
 
 			console.log("[onTrustScoreChanged]: starting checker for endorsements = " + endorsements + ", mistrusts = " + mistrusts);
 			checkTrustScore.start();
+		}
+
+		function onCacheReadyChanged() {
+			openDrawer.enabled = buzzerClient.buzzerDAppReady === true;
+		}
+
+		function onBuzzerDAppReadyChanged() {
+			if (buzzerClient.buzzerDAppReady) {
+				openDrawer.enabled = buzzerClient.buzzerDAppReady === true;
+			}
 		}
 	}
 
@@ -166,6 +177,20 @@ QuarkToolBar
 		}
 	}
 
+	MouseArea
+	{
+		id: openDrawer
+		x: imageFrame.x - 10
+		y: imageFrame.y - 10
+		width: imageFrame.width + 20
+		height: imageFrame.height + 20
+		enabled: buzzerClient.buzzerDAppReady === true
+
+		onClicked: {
+			goDrawer();
+		}
+	}
+
 	Image
 	{
 		id: logo
@@ -189,6 +214,35 @@ QuarkToolBar
 
 		onClicked: {
 			goHome();
+		}
+	}
+
+	QuarkToolButton
+	{
+		id: networkButton
+		symbol: Fonts.networkSym
+		Material.background: "transparent"
+		visible: true
+		labelYOffset: 3
+		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+		Layout.alignment: Qt.AlignHCenter
+
+		x: themeButton.x - width + 5
+		y: extraOffset
+
+		onClicked: {
+			//
+			var lComponent = null;
+			var lPage = null;
+			lComponent = Qt.createComponent("qrc:/qml/peers.qml");
+			if (lComponent.status === Component.Error) {
+				showError(lComponent.errorString());
+			} else {
+				lPage = lComponent.createObject(window);
+				lPage.controller = window;
+
+				addPage(lPage);
+			}
 		}
 	}
 

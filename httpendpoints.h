@@ -118,6 +118,30 @@ public:
 	}
 };
 
+class HttpCreateAsset: public IHttpCallEnpoint {
+public:
+	HttpCreateAsset() {}
+
+	void process(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
+	std::string method() { return std::string("createasset"); }
+
+	static IHttpCallEnpointPtr instance() {
+		return std::make_shared<HttpCreateAsset>();
+	}
+};
+
+class HttpCreateAssetEmission: public IHttpCallEnpoint {
+public:
+	HttpCreateAssetEmission() {}
+
+	void process(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
+	std::string method() { return std::string("createassetemission"); }
+
+	static IHttpCallEnpointPtr instance() {
+		return std::make_shared<HttpCreateAssetEmission>();
+	}
+};
+
 } // qbit
 
 #endif

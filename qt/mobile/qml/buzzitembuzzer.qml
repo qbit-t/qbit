@@ -117,6 +117,8 @@ Item {
 
 			if (endorsements > mistrusts) realScore_ = endorsements - mistrusts;
 			else realScore_ = 0;
+
+			imageFrame.visible = true;
 		}
 
 		onError: {
@@ -188,12 +190,16 @@ Item {
 				//
 				if (status == Image.Ready) {
 					//
+					/*
 					if (is54()) {
 						sourceClipRect = Qt.rect(getX(), getY(), getWidth(), parent.height);
 					} else {
 						fillMode = Image.PreserveAspectCrop;
 						height = parent.height;
 					}
+					*/
+					fillMode = Image.PreserveAspectCrop;
+					height = parent.height;
 				}
 			}
 
@@ -245,6 +251,7 @@ Item {
 		size: avatarImage.displayWidth + 6
 		color: getColor()
 		background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
+		visible: false
 
 		function getColor() {
 			var lScoreBase = buzzerClient.getTrustScoreBase() / 10;
@@ -522,7 +529,7 @@ Item {
 
 	QuarkSymbolLabel {
 		id: expandMistrustsSymbol
-		x: mistrustsNumber.x + mistrustsNumber.width + spaceItems_ + 5
+		x: mistrustsNumber.x + mistrustsNumber.width + spaceItems_
 		y: mistrustSymbol.y
 		symbol: Fonts.externalLinkSym
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
@@ -726,6 +733,15 @@ Item {
 				buzzerEndorseCommand.process(buzzer_);
 			} else if (key === "mistrust") {
 				buzzerMistrustCommand.process(buzzer_);
+			} else if (key === "conversation") {
+				//
+				var lId = buzzerClient.getConversationsList().locateConversation(buzzer_);
+				// conversation found
+				if (lId !== "") {
+					openBuzzerConversation(lId);
+				} else {
+					createConversation.process(buzzer_);
+				}
 			}
 		}
 
@@ -754,6 +770,11 @@ Item {
 					keySymbol: Fonts.unsubscribeSym,
 					name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.unsubscribe")});
 			}
+
+			menuModel.append({
+				key: "conversation",
+				keySymbol: Fonts.conversationMessageSym,
+				name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.conversation")});
 		}
 	}
 
@@ -805,6 +826,59 @@ Item {
 				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.UNKNOWN_REFTX"));
 			} else {
 				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_MISTRUST"));
+			}
+		}
+	}
+
+	BuzzerCommands.CreateConversationCommand {
+		id: createConversation
+
+		onProcessed: {
+			// open conversation
+			openConversation.start();
+		}
+
+		onError: {
+			// code, message
+			handleError(code, message);
+		}
+	}
+
+	Timer {
+		id: openConversation
+		interval: 500
+		repeat: false
+		running: false
+
+		onTriggered: {
+			//
+			var lId = buzzerClient.getConversationsList().locateConversation(buzzer_);
+			// conversation found
+			if (lId !== "") {
+				openBuzzerConversation(lId);
+			} else {
+				start();
+			}
+		}
+	}
+
+	function openBuzzerConversation(conversationId) {
+		// open conversation
+		var lComponent = null;
+		var lPage = null;
+
+		//
+		lComponent = Qt.createComponent("qrc:/qml/conversationthread.qml");
+		if (lComponent.status === Component.Error) {
+			controller_.showError(lComponent.errorString());
+		} else {
+			lPage = lComponent.createObject(controller_);
+			lPage.controller = controller_;
+
+			var lConversation = buzzerClient.locateConversation(conversationId);
+			if (lConversation) {
+				addPage(lPage);
+				lPage.start(conversationId, lConversation, buzzerClient.getConversationsList());
 			}
 		}
 	}

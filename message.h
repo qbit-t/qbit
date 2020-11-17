@@ -146,8 +146,7 @@ public:
 		CUSTOM_0047 = 0x102f,	//
 		CUSTOM_0048 = 0x1030,	//
 		CUSTOM_0049 = 0x1031,	//
-
-		CUSTOM_0050 = 0x1032,	// cubix
+		CUSTOM_0050 = 0x1032,	//
 		CUSTOM_0051 = 0x1033,	//
 		CUSTOM_0052 = 0x1034,	//
 		CUSTOM_0053 = 0x1035,	//
@@ -160,7 +159,22 @@ public:
 		CUSTOM_0060 = 0x103c,	//
 		CUSTOM_0061 = 0x103d,	//
 		CUSTOM_0062 = 0x103e,	//
-		CUSTOM_0063 = 0x103f	//		
+		CUSTOM_0063 = 0x103f,	//
+
+		CUSTOM_0064 = 0x1042,	// cubix
+		CUSTOM_0065 = 0x1043,	//
+		CUSTOM_0066 = 0x1044,	//
+		CUSTOM_0067 = 0x1045,	//
+		CUSTOM_0068 = 0x1046,	//
+		CUSTOM_0069 = 0x1047,	//
+		CUSTOM_0070 = 0x1048,	//
+		CUSTOM_0071 = 0x1049,	//
+		CUSTOM_0072 = 0x104a,	//
+		CUSTOM_0073 = 0x104b,	//
+		CUSTOM_0074 = 0x104c,	//
+		CUSTOM_0075 = 0x104d,	//
+		CUSTOM_0076 = 0x104e,	//
+		CUSTOM_0077 = 0x104f	//		
 	};
 
 public:

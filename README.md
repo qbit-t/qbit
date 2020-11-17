@@ -87,7 +87,7 @@ curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"getkey","params":
 
 curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"getbalance","params":[]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
 
-curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"sendtoaddress","params":["<from|*>", "<to>", "<amount>"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
+curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"sendtoaddress","params":["<asset|*>", "<to>", "<amount>"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
 
 curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"gettransaction","params":["<tx_id>"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
 

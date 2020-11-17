@@ -69,6 +69,20 @@ QuarkPage
 		source: "../images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "qbit.splash")
 	}
 
+	//
+	// Switch (i'm already have seed words)
+	//
+
+	QuarkSwitchBox {
+		id: switchBox
+		x: nextButton.x - 10
+		y: nextButton.y - height
+		width: nextButton.width
+		color: "transparent"
+		border.color: "transparent"
+		text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.already.have.qbitKeys")
+	}
+
 	QuarkButton {
 		id: nextButton
 		x: welcomeText.x + 2
@@ -84,14 +98,27 @@ QuarkPage
 			var lComponent = null;
 			var lPage = null;
 
-			lComponent = Qt.createComponent("qrc:/qml/setupqbitaddress.qml");
-			if (lComponent.status === Component.Error) {
-				controller.showError(lComponent.errorString());
-			} else {
-				lPage = lComponent.createObject(window);
-				lPage.controller = controller;
+			if (!switchBox.checked) {
+				lComponent = Qt.createComponent("qrc:/qml/setupqbitaddress.qml");
+				if (lComponent.status === Component.Error) {
+					controller.showError(lComponent.errorString());
+				} else {
+					lPage = lComponent.createObject(window);
+					lPage.controller = controller;
 
-				addPage(lPage);
+					addPage(lPage);
+				}
+			} else {
+				lComponent = Qt.createComponent("qrc:/qml/buzzerqbitkey.qml");
+				if (lComponent.status === Component.Error) {
+					controller.showError(lComponent.errorString());
+				} else {
+					lPage = lComponent.createObject(window);
+					lPage.controller = controller;
+					lPage.setupProcess = true;
+
+					addPage(lPage);
+				}
 			}
 		}
 	}

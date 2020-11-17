@@ -25,7 +25,7 @@ void CreateBuzzerCommand::process(const std::vector<std::string>& args) {
 		// async process
 		lCommander->process(boost::bind(&CreateBuzzerCommand::error, shared_from_this(), _1, _2));
 	} else {
-		error("E_INCORRECT_AGRS", "0-Incorrect number of arguments");
+		error("E_INCORRECT_AGRS", "Incorrect number of arguments");
 		return;
 	}
 }
@@ -54,6 +54,7 @@ void CreateBuzzerCommand::buzzerSent(const uint256& tx, const std::vector<Transa
 		}
 	} else {
 		std::cout << "     buzzer: " << tx.toHex() << std::endl;
+		if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("     buzzer: %s", tx.toHex()));
 	}
 
 	//	
@@ -158,6 +159,119 @@ void CreateBuzzerCommand::buzzerInfoSent(const uint256& tx, const std::vector<Tr
 }
 
 //
+// CreateBuzzerInfoCommand
+//
+void CreateBuzzerInfoCommand::process(const std::vector<std::string>& args) {
+	//
+	args_ = args;
+
+	if (args.size() >= 2) {
+		//
+#if defined(CUBIX_MOD)
+		if (args_.size() > 2 && uploadAvatar_) {
+			//
+			// upload avatar
+			std::vector<std::string> lArgs;
+			lArgs.push_back(args_[2]);
+			if (args_.size() > 5 && args_[3] == "-s") {
+				lArgs.push_back(args_[3]);
+				lArgs.push_back(args_[4]);
+			}
+			uploadAvatar_->process(lArgs);
+		} else {
+			createBuzzerInfo();
+		}
+#else
+		createBuzzerInfo();
+#endif
+	} else {
+		error("E_INCORRECT_AGRS", "Incorrect number of arguments");
+		return;
+	}
+}
+
+void CreateBuzzerInfoCommand::avatarUploaded(TransactionPtr tx, const ProcessingError& err) {
+	//
+	if (tx && uploadHeader_) {
+		//
+		avatarTx_ = tx;
+
+		// upload header
+		std::vector<std::string> lArgs;
+		if (args_.size() > 5) {
+			lArgs.push_back(args_[5]);
+		} else if (args_.size() > 3) {
+			lArgs.push_back(args_[3]);
+		}
+
+		uploadHeader_->process(lArgs);
+		return;
+	} else if (!tx) {
+		error(err.error(), err.message());
+		return;
+	}
+
+	createBuzzerInfo();
+}
+
+void CreateBuzzerInfoCommand::headerUploaded(TransactionPtr tx, const ProcessingError& err) {
+	if (tx) {
+		//
+		headerTx_ = tx;
+	} else {
+		error(err.error(), err.message());
+		return;
+	}
+
+	createBuzzerInfo();
+}
+
+void CreateBuzzerInfoCommand::createBuzzerInfo() {
+	//
+	BuzzerMediaPointer lAvatar;
+	BuzzerMediaPointer lHeader;
+
+	if (avatarTx_) lAvatar = BuzzerMediaPointer(avatarTx_->chain(), avatarTx_->id());
+	if (headerTx_) lHeader = BuzzerMediaPointer(headerTx_->chain(), headerTx_->id());
+
+	// prepare
+	IComposerMethodPtr lCommanderInfo = BuzzerLightComposer::CreateTxBuzzerInfo::instance(
+		composer_, Transaction::UnlinkedOut::instance(composer_->buzzerUtxo()[0]), args_[0], args_[1], lAvatar, lHeader,
+		boost::bind(&CreateBuzzerInfoCommand::buzzerInfoCreated, shared_from_this(), _1));
+	// async process
+	lCommanderInfo->process(boost::bind(&CreateBuzzerInfoCommand::error, shared_from_this(), _1, _2));
+}
+
+void CreateBuzzerInfoCommand::buzzerInfoCreated(TransactionContextPtr ctx) {
+	//
+	buzzerInfoTx_ = ctx->tx();
+	//
+	if (!composer_->requestProcessor()->sendTransaction(ctx->tx()->chain(), ctx, 
+			SentTransaction::instance(
+				boost::bind(&CreateBuzzerInfoCommand::buzzerInfoSent, shared_from_this(), _1, _2),
+				boost::bind(&CreateBuzzerInfoCommand::timeout, shared_from_this())))) {
+		composer_->wallet()->resetCache();
+		composer_->wallet()->prepareCache();
+		error("E_TX_INFO_NOT_SENT", "Transaction was not sent");
+	}
+}
+
+void CreateBuzzerInfoCommand::buzzerInfoSent(const uint256& tx, const std::vector<TransactionContext::Error>& errors) {
+	//
+	if (errors.size()) {
+		for (std::vector<TransactionContext::Error>::iterator lError = const_cast<std::vector<TransactionContext::Error>&>(errors).begin(); 
+				lError != const_cast<std::vector<TransactionContext::Error>&>(errors).end(); lError++) {
+			error("E_CREATE_BUZZER_INFO", lError->data());
+		}
+
+		return;			
+	}
+
+	std::cout << "buzzer info: " << tx.toHex() << std::endl;
+	done_(nullptr, buzzerInfoTx_, ProcessingError());
+}
+
+//
 // CreateBuzzCommand
 //
 void CreateBuzzCommand::process(const std::vector<std::string>& args) {
@@ -184,7 +298,7 @@ void CreateBuzzCommand::process(const std::vector<std::string>& args) {
 			createBuzz();
 		}
 	} else {
-		error("E_INCORRECT_AGRS", "1-Incorrect number of arguments.");
+		error("E_INCORRECT_AGRS", "Incorrect number of arguments.");
 	}
 }
 
@@ -237,7 +351,7 @@ void BuzzerSubscribeCommand::process(const std::vector<std::string>& args) {
 		// async process
 		lCommand->process(boost::bind(&BuzzerSubscribeCommand::error, shared_from_this(), _1, _2));
 	} else {
-		error("E_INCORRECT_AGRS", "2-Incorrect number of arguments.");
+		error("E_INCORRECT_AGRS", "Incorrect number of arguments.");
 	}
 }
 
@@ -252,7 +366,7 @@ void BuzzerUnsubscribeCommand::process(const std::vector<std::string>& args) {
 		// async process
 		lCommand->process(boost::bind(&BuzzerUnsubscribeCommand::error, shared_from_this(), _1, _2));
 	} else {
-		error("E_INCORRECT_AGRS", "3-Incorrect number of arguments.");
+		error("E_INCORRECT_AGRS", "Incorrect number of arguments.");
 	}
 }
 
@@ -274,7 +388,7 @@ void LoadHashTagsCommand::process(const std::vector<std::string>& args) {
 	if (args.size() == 1) {
 		tag_ = args[0];
 	} else {
-		error("E_INCORRECT_AGRS", "4-Incorrect number of arguments.");
+		error("E_INCORRECT_AGRS", "Incorrect number of arguments.");
 	}
 
 	// collect all sources
@@ -586,6 +700,64 @@ void LoadBuzzfeedByBuzzCommand::process(const std::vector<std::string>& args) {
 }
 
 //
+// LoadMessagesCommand
+//
+void LoadMessagesCommand::process(const std::vector<std::string>& args) {
+	// clean-up
+	chains_.clear();
+	loaded_.clear();
+	pending_.clear();
+	pendingLoaded_.clear();
+	pendingInfos_.clear();
+	pengindChainInfos_.clear();
+	localBuzzFeed_->clear();
+	pendingChainInfosLoaded_ = 0;
+	//buzzFeed_->clear();
+
+	uint256 lConversationId;
+	// args - from
+	from_ = 0; // most recent
+	if (args.size() >= 1) {
+		//
+		lConversationId.setHex(args[0]);
+
+		//
+		if (args.size() > 1 && args[1] == "more") {
+			//
+			from_ = buzzFeed_->locateLastTimestamp();
+		}
+	}
+
+	// collect all sources
+	composer_->requestProcessor()->collectChains(composer_->dAppName(), chains_);
+
+	// 
+	if (!chains_.size()) {
+		error("E_CHAINS_ABSENT", "Chains is absent. Requesting state...");
+
+		composer_->requestProcessor()->requestState();
+	}
+
+	if (gLog().isEnabled(Log::CLIENT))
+		gLog().write(Log::CLIENT, strprintf("[LoadMessagesCommand]: %d / %s",
+										from_, lConversationId.toHex()));
+
+	// spead requests
+	for (std::vector<uint256>::iterator lChain = chains_.begin(); lChain != chains_.end(); lChain++) {
+		//
+		IComposerMethodPtr lCommand = BuzzerLightComposer::LoadMessages::instance(
+			composer_, 
+			*lChain, 
+			from_,
+			lConversationId,
+			2 /*to be sure that the feed is not doctored*/,
+			boost::bind(&LoadMessagesCommand::buzzfeedLoaded, shared_from_this(), _1, _2, _3));
+		// async process
+		lCommand->process(boost::bind(&LoadMessagesCommand::error, shared_from_this(), _1, _2));
+	}
+}
+
+//
 // LoadBuzzfeedCommand
 //
 void LoadBuzzfeedCommand::process(const std::vector<std::string>& args) {
@@ -672,9 +844,9 @@ void LoadBuzzfeedCommand::buzzesLoaded(const std::vector<BuzzfeedItem>& feed, co
 void LoadBuzzfeedCommand::buzzfeedLoaded(const std::vector<BuzzfeedItem>& feed, const uint256& chain, int requests) {
 	//
 	loaded_[chain] = loaded_[chain] + 1;
-	std::cout << strprintf("chain: %s/%d, n = %d/%d/%d", chain.toHex(), feed.size(), loaded_.size(), loaded_[chain], requests) << std::endl;
+	std::cout << strprintf("[buzzfeed] - chain: %s/%d, n = %d/%d/%d", chain.toHex(), feed.size(), loaded_.size(), loaded_[chain], requests) << std::endl;
 	if (gLog().isEnabled(Log::CLIENT))
-		gLog().write(Log::CLIENT, strprintf("chain: %s/%d, n = %d/%d/%d", chain.toHex(), feed.size(), loaded_.size(), loaded_[chain], requests));
+		gLog().write(Log::CLIENT, strprintf("[buzzfeed] - chain: %s/%d, n = %d/%d/%d", chain.toHex(), feed.size(), loaded_.size(), loaded_[chain], requests));
 
 	//
 	int lReady = 0;
@@ -1153,7 +1325,9 @@ void LoadEventsfeedCommand::buzzesLoaded(const std::vector<BuzzfeedItem>& feed, 
 void LoadEventsfeedCommand::eventsfeedLoaded(const std::vector<EventsfeedItem>& feed, const uint256& chain, int requests) {
 	//
 	loaded_[chain] = loaded_[chain] + 1;
-	std::cout << strprintf("chain: %s/%d, n = %d/%d/%d", chain.toHex(), feed.size(), loaded_.size(), loaded_[chain], requests) << std::endl;
+	std::cout << strprintf("[eventsfeed] - chain: %s/%d, n = %d/%d/%d", chain.toHex(), feed.size(), loaded_.size(), loaded_[chain], requests) << std::endl;
+	if (gLog().isEnabled(Log::CLIENT))
+		gLog().write(Log::CLIENT, strprintf("[eventsfeed] - chain: %s/%d, n = %d/%d/%d", chain.toHex(), feed.size(), loaded_.size(), loaded_[chain], requests));
 
 	//
 	int lReady = 0;
@@ -1247,6 +1421,201 @@ void LoadEventsfeedCommand::show() {
 		// display
 		std::cout << std::endl;
 		display(eventsFeed_->toItem());
+	}
+
+	done_(ProcessingError());
+}
+
+//
+// LoadConversationsCommand
+//
+void LoadConversationsCommand::process(const std::vector<std::string>& args) {
+	// clean-up
+	chains_.clear();
+	loaded_.clear();
+	pending_.clear();
+	pendingLoaded_.clear();
+	pendingInfos_.clear();
+	pengindChainInfos_.clear();
+	localConversationsFeed_->clear();
+	pendingChainInfosLoaded_ = 0;
+	conversationsFeed_->clear();
+
+	// args - from
+	uint256 lBuzzerId;
+	from_ = 0; // most recent
+	if (args.size() >= 1) {
+		if (args[0] == "more") {
+			//
+			from_ = conversationsFeed_->locateLastTimestamp();
+		} else {
+			lBuzzerId.setHex(args[0]);
+		}
+
+		if (args.size() > 1 && args[1] == "more") {
+			from_ = conversationsFeed_->locateLastTimestamp();
+		}
+	}
+
+	if (lBuzzerId.isNull()) {
+		lBuzzerId = composer_->buzzerId();
+	}
+
+	// collect all sources
+	composer_->requestProcessor()->collectChains(composer_->dAppName(), chains_);
+
+	// 
+	if (!chains_.size()) {
+		error("E_CHAINS_ABSENT", "Chains is absent. Requesting state...");
+
+		composer_->requestProcessor()->requestState();
+	}
+
+	// spead requests
+	for (std::vector<uint256>::iterator lChain = chains_.begin(); lChain != chains_.end(); lChain++) {
+		//
+		IComposerMethodPtr lCommand = BuzzerLightComposer::LoadConversations::instance(
+			composer_, 
+			*lChain, 
+			lBuzzerId, 
+			from_,
+			2,
+			boost::bind(&LoadConversationsCommand::eventsfeedLoaded, shared_from_this(), _1, _2, _3));
+
+		// async process
+		lCommand->process(boost::bind(&LoadConversationsCommand::error, shared_from_this(), _1, _2));
+	}
+}
+
+void LoadConversationsCommand::display(ConversationItemPtr item) {
+	//
+	std::vector<ConversationItemPtr> lFeed;
+	item->feed(lFeed);
+
+	for (std::vector<ConversationItemPtr>::iterator lEvent = lFeed.begin(); lEvent != lFeed.end(); lEvent++) {
+		std::cout << (*lEvent)->toString() << std::endl << std::endl;
+	}
+}
+
+void LoadConversationsCommand::buzzesLoaded(const std::vector<BuzzfeedItem>& feed, const uint256& chain) {
+	//
+	pendingLoaded_.insert(chain);
+	std::cout << strprintf("pending, chain: %s/%d, n = %d", chain.toHex(), feed.size(), pendingLoaded_.size()) << std::endl;
+
+	/*
+	if (pendingLoaded_.size() < pending_.size()) {
+		// merge feed
+		conversationsfeed()->merge(feed);
+	} else {
+		// merge and notify
+		conversationsfeed()->merge(feed);
+		// process pending info
+		processPengingInfos();
+	}
+	*/
+
+	processPengingInfos();
+}
+
+void LoadConversationsCommand::eventsfeedLoaded(const std::vector<ConversationItem>& feed, const uint256& chain, int requests) {
+	//
+	loaded_[chain] = loaded_[chain] + 1;
+	std::cout << strprintf("[conversations] - chain: %s/%d, n = %d/%d/%d", chain.toHex(), feed.size(), loaded_.size(), loaded_[chain], requests) << std::endl;
+	if (gLog().isEnabled(Log::CLIENT))
+		gLog().write(Log::CLIENT, strprintf("[conversations] - chain: %s/%d, n = %d/%d/%d", chain.toHex(), feed.size(), loaded_.size(), loaded_[chain], requests));
+
+	//
+	int lReady = 0;
+	for (std::map<uint256, int>::iterator lChainLoaded = loaded_.begin(); lChainLoaded != loaded_.end(); lChainLoaded++) {
+		lReady += lChainLoaded->second;
+	}
+
+	// for real client - mobile, for example, we can start to display feeds as soon as they arrived
+	if (lReady < requests * chains_.size()) {
+		// merge feed
+		conversationsfeed()->merge(feed, chain);
+	} else {
+		// merge and notify
+		conversationsfeed()->merge(feed, chain, true);
+		// if we have postponed items, request missing
+		conversationsfeed()->collectPendingItems(pending_);
+
+		if (pending_.size()) {
+			for (std::map<uint256 /*chain*/, std::set<uint256>/*items*/>::iterator lChain = pending_.begin(); lChain != pending_.end(); lChain++) {
+				//
+				std::vector<uint256> lBuzzes(lChain->second.begin(), lChain->second.end());
+				if (!composer_->buzzerRequestProcessor()->selectBuzzes(lChain->first, lBuzzes, 
+					SelectBuzzFeed::instance(
+						boost::bind(&LoadConversationsCommand::buzzesLoaded, shared_from_this(), _1, _2),
+						boost::bind(&LoadConversationsCommand::timeout, shared_from_this()))
+				)) error("E_LOAD_PENDING_EVENTSFEED", "Eventsfeed pending items loading failed.");	
+			}
+		} else {
+			processPengingInfos();
+		}
+	}
+}
+
+void LoadConversationsCommand::processPengingInfos() {
+	//
+	pendingInfos_ = conversationsFeed_->buzzer()->pendingInfos(); // collect
+	conversationsFeed_->buzzer()->collectPengingInfos(pengindChainInfos_); // prepare
+
+	if (pengindChainInfos_.size()) {
+		for (std::map<uint256 /*chain*/, std::set<uint256>/*items*/>::iterator lChain = pengindChainInfos_.begin(); lChain != pengindChainInfos_.end(); lChain++) {
+			//
+			std::vector<uint256> lInfos(lChain->second.begin(), lChain->second.end());
+			if (!composer_->requestProcessor()->loadTransactions(lChain->first, lInfos, 
+				LoadTransactions::instance(
+					boost::bind(&LoadConversationsCommand::buzzerInfoLoaded, shared_from_this(), _1),
+					boost::bind(&LoadConversationsCommand::timeout, shared_from_this()))
+			)) error("E_LOAD_PENDING_BUZZER_INFOS", "Buzzer infos failed to load.");
+		}
+	} else {
+		show();
+	}
+}
+
+void LoadConversationsCommand::buzzerInfoLoaded(const std::vector<TransactionPtr>& txs) {
+	//
+	pendingChainInfosLoaded_++;
+	//
+	if (txs.size()) {
+		//
+		for (std::vector<TransactionPtr>::const_iterator lTx = txs.begin(); lTx != txs.end(); lTx++) {
+			//
+			TxBuzzerInfoPtr lInfo = TransactionHelper::to<TxBuzzerInfo>(*lTx);
+			//
+			std::map<uint256 /*info tx*/, Buzzer::Info>::iterator lItem = pendingInfos_.find(lInfo->id());
+			if (lItem != pendingInfos_.end() && lInfo->verifySignature() && // signature and ...
+					lInfo->in()[TX_BUZZER_INFO_MY_IN].out().tx() == lItem->second.id()) // ... expected buzzer is match
+				conversationsFeed_->buzzer()->pushBuzzerInfo(lInfo);
+		}
+	}
+
+	if (pendingChainInfosLoaded_ >= pengindChainInfos_.size()) {
+		show();
+	}
+}
+
+void LoadConversationsCommand::show() {
+	if (conversationsfeedReady_) {
+		//
+		conversationsfeedReady_(conversationsFeed_, localConversationsFeed_);
+	} else {
+		// get list
+		std::vector<ConversationItemPtr> lFeed;
+		// if 'more' provided
+		if (appendFeed()) {
+			std::vector<ConversationItemPtr> lUpFeed;
+			localConversationsFeed_->feed(lUpFeed);
+			conversationsFeed_->mergeAppend(lUpFeed);
+		}
+
+		conversationsFeed_->feed(lFeed);
+		// display
+		std::cout << std::endl;
+		display(conversationsFeed_->toItem());
 	}
 
 	done_(ProcessingError());
@@ -1427,6 +1796,73 @@ void EventsfeedListCommand::process(const std::vector<std::string>& args) {
 }
 
 //
+// ConversationsListCommand
+//
+void ConversationsListCommand::display(ConversationItemPtr item) {
+	//
+	std::vector<ConversationItemPtr> lFeed;
+	item->feed(lFeed);
+
+	for (std::vector<ConversationItemPtr>::iterator lEvent = lFeed.begin(); lEvent != lFeed.end(); lEvent++) {
+		std::cout << (*lEvent)->toString() << std::endl << std::endl;
+	}
+}
+
+void ConversationsListCommand::buzzesLoaded(const std::vector<BuzzfeedItem>& feed, const uint256& chain) {
+	//
+	pendingLoaded_.insert(chain);
+	std::cout << strprintf("pending, chain: %s/%d, n = %d", chain.toHex(), feed.size(), pendingLoaded_.size()) << std::endl;
+
+	/*
+	if (pendingLoaded_.size() < pending_.size()) {
+		// merge feed
+		eventsFeed_->merge(feed);
+	} else {
+		// merge and notify
+		eventsFeed_->merge(feed);
+		// get list
+		std::vector<ConversationItemPtr> lFeed;
+		eventsFeed_->feed(lFeed);
+		// display
+		std::cout << std::endl;
+		display(eventsFeed_->toItem());
+
+		done_();
+	}
+	*/
+
+	display(eventsFeed_->toItem());
+	done_();
+}
+
+void ConversationsListCommand::process(const std::vector<std::string>& args) {
+	//
+	pending_.clear();
+	pendingLoaded_.clear();	
+
+	// if we have postponed items, request missing
+	eventsFeed_->collectPendingItems(pending_);
+
+	if (pending_.size()) {
+		for (std::map<uint256 /*chain*/, std::set<uint256>/*items*/>::iterator lChain = pending_.begin(); lChain != pending_.end(); lChain++) {
+			//
+			std::vector<uint256> lBuzzes(lChain->second.begin(), lChain->second.end());
+			if (!composer_->buzzerRequestProcessor()->selectBuzzes(lChain->first, lBuzzes, 
+				SelectBuzzFeed::instance(
+					boost::bind(&ConversationsListCommand::buzzesLoaded, shared_from_this(), _1, _2),
+					boost::bind(&ConversationsListCommand::timeout, shared_from_this()))
+			)) error("E_LOAD_PENDING_BUZZFEED", "Buzzfeed pending items loading failed.");	
+		}
+	} else {
+		//
+		std::cout << std::endl;
+		display(eventsFeed_->toItem());
+
+		done_();
+	}
+}
+
+//
 // BuzzLikeCommand
 //
 void BuzzLikeCommand::process(const std::vector<std::string>& args) {
@@ -1447,7 +1883,7 @@ void BuzzLikeCommand::process(const std::vector<std::string>& args) {
 			return;
 		}
 	} else {
-		error("E_INCORRECT_AGRS", "5-Incorrect number of arguments");
+		error("E_INCORRECT_AGRS", "Incorrect number of arguments");
 		return;
 	}
 }
@@ -1494,7 +1930,7 @@ void BuzzRewardCommand::process(const std::vector<std::string>& args) {
 			return;
 		}
 	} else {
-		error("E_INCORRECT_AGRS", "6-Incorrect number of arguments");
+		error("E_INCORRECT_AGRS", "Incorrect number of arguments");
 		return;
 	}
 }
@@ -1530,7 +1966,7 @@ void CreateBuzzReplyCommand::process(const std::vector<std::string>& args) {
 			createBuzz();
 		}
 	} else {
-		error("E_INCORRECT_AGRS", "7-Incorrect number of arguments.");
+		error("E_INCORRECT_AGRS", "Incorrect number of arguments.");
 	}
 }
 
@@ -1611,7 +2047,7 @@ void CreateReBuzzCommand::process(const std::vector<std::string>& args) {
 		}
 
 	} else {
-		error("E_INCORRECT_AGRS", "8-Incorrect number of arguments");
+		error("E_INCORRECT_AGRS", "Incorrect number of arguments");
 	}
 }
 
@@ -1708,7 +2144,7 @@ void BuzzerEndorseCommand::process(const std::vector<std::string>& args) {
 		// async process
 		lCommand->process(boost::bind(&BuzzerEndorseCommand::error, shared_from_this(), _1, _2));
 	} else {
-		error("E_INCORRECT_AGRS", "9-Incorrect number of arguments");
+		error("E_INCORRECT_AGRS", "Incorrect number of arguments");
 	}
 }
 
@@ -1731,7 +2167,7 @@ void BuzzerMistrustCommand::process(const std::vector<std::string>& args) {
 		// async process
 		lCommand->process(boost::bind(&BuzzerMistrustCommand::error, shared_from_this(), _1, _2));
 	} else {
-		error("E_INCORRECT_AGRS", "10-Incorrect number of arguments");
+		error("E_INCORRECT_AGRS", "Incorrect number of arguments");
 	}
 }
 
@@ -1774,7 +2210,7 @@ void BuzzSubscribeCommand::process(const std::vector<std::string>& args) {
 		done_(ProcessingError());
 
 	} else {
-		error("E_INCORRECT_AGRS", "11-Incorrect number of arguments");
+		error("E_INCORRECT_AGRS", "Incorrect number of arguments");
 	}
 }
 
@@ -1805,7 +2241,7 @@ void BuzzUnsubscribeCommand::process(const std::vector<std::string>& args) {
 		done_(ProcessingError());
 
 	} else {
-		error("E_INCORRECT_AGRS", "12-Incorrect number of arguments");
+		error("E_INCORRECT_AGRS", "Incorrect number of arguments");
 	}
 }
 
@@ -1813,9 +2249,10 @@ void BuzzUnsubscribeCommand::process(const std::vector<std::string>& args) {
 // LoadBuzzerInfoCommand
 //
 void LoadBuzzerInfoCommand::process(const std::vector<std::string>& args) {
-	if (args.size() == 1) {
-
+	if (args.size() >= 1) {
+		//
 		std::string lBuzzer = args[0];
+		if (args.size() > 1) loadUtxo_ = args[1] == "-utxo";
 		//
 		IComposerMethodPtr lCommand = BuzzerLightComposer::LoadBuzzerInfo::instance(
 			composer_, 
@@ -1825,7 +2262,574 @@ void LoadBuzzerInfoCommand::process(const std::vector<std::string>& args) {
 		// async process
 		lCommand->process(boost::bind(&LoadBuzzerInfoCommand::error, shared_from_this(), _1, _2));
 	} else {
-		error("E_INCORRECT_AGRS", "13-Incorrect number of arguments");
+		error("E_INCORRECT_AGRS", "Incorrect number of arguments");
 		return;
 	}
+}
+
+void LoadBuzzerInfoCommand::buzzerAndInfoLoaded(EntityPtr buzzer, TransactionPtr info, const std::string& name) {
+	//
+	if (!buzzer) {
+		error("E_BUZZER_NOT_FOUND", "Buzzer was not found.");
+		return;
+	}
+
+	buzzer_ = buzzer;
+	info_ = info;
+
+	if (!loadUtxo_) {
+		done_(buzzer, info, std::vector<Transaction::NetworkUnlinkedOut>(), name, ProcessingError());
+	} else {
+		// 
+		if (!composer_->requestProcessor()->selectUtxoByTransaction(buzzer_->chain(), buzzer_->id(), 
+			SelectUtxoByTransaction::instance(
+				boost::bind(&LoadBuzzerInfoCommand::utxoByBuzzerLoaded, shared_from_this(), _1, _2),
+				boost::bind(&LoadBuzzerInfoCommand::timeout, shared_from_this()))
+		)) { error("E_LOAD_UTXO_BY_BUZZER", "Buzzer loading failed."); return; }
+	}
+}
+
+void LoadBuzzerInfoCommand::utxoByBuzzerLoaded(const std::vector<Transaction::NetworkUnlinkedOut>& outs, const uint256& tx) {
+	//
+	if (tx == buzzer_->id()) {
+		//
+		done_(buzzer_, info_, outs, buzzer_->entityName(), ProcessingError());
+	} else {
+		error("E_LOAD_UTXO_BY_BUZZER", "Buzzer loading failed.");	
+	}
+}
+
+//
+// CreateBuzzerConversationCommand
+//
+void CreateBuzzerConversationCommand::process(const std::vector<std::string>& args) {
+	//
+	feeSent_ = false;
+	conversationSent_ = false;
+
+	if (args.size() == 1) {
+		// prepare
+		IComposerMethodPtr lCommand = BuzzerLightComposer::CreateTxBuzzerConversation::instance(composer_, args[0],
+			boost::bind(&CreateBuzzerConversationCommand::created, shared_from_this(), _1));
+		// async process
+		lCommand->process(boost::bind(&CreateBuzzerConversationCommand::error, shared_from_this(), _1, _2));
+	} else {
+		error("E_INCORRECT_AGRS", "Incorrect number of arguments");
+	}
+}
+
+//
+// AcceptConversationCommand
+//
+void AcceptConversationCommand::process(const std::vector<std::string>& args) {
+	//
+	if (args.size() == 1) {
+		//
+		uint256 lConversationId;
+		lConversationId.setHex(args[0]);
+		ConversationItemPtr lConversation = conversations_->locateItem(lConversationId);
+		//
+		if (gLog().isEnabled(Log::CLIENT))
+			gLog().write(Log::CLIENT, strprintf("[AcceptConversationCommand]: %s", lConversationId.toHex()));
+		//
+		if (lConversation) {
+			IComposerMethodPtr lCommand = BuzzerLightComposer::CreateTxBuzzerAcceptConversation::instance(
+				composer_, 
+				lConversation->conversationChainId(),
+				lConversation->conversationId(),
+				boost::bind(&AcceptConversationCommand::created, shared_from_this(), _1));
+			// async process
+			lCommand->process(boost::bind(&AcceptConversationCommand::error, shared_from_this(), _1, _2));
+		} else {
+			error("E_CONVERSATION_NOT_FOUND_IN_FEED", "Conversation was not found in local feed");
+			return;
+		}
+
+		// prepare
+	} else {
+		error("E_INCORRECT_AGRS", "Incorrect number of arguments");
+	}
+}
+
+//
+// DeclineConversationCommand
+//
+void DeclineConversationCommand::process(const std::vector<std::string>& args) {
+	//
+	if (args.size() == 1) {
+		//
+		uint256 lConversationId;
+		lConversationId.setHex(args[0]);
+		ConversationItemPtr lConversation = conversations_->locateItem(lConversationId);
+		//
+		if (lConversation) {
+			IComposerMethodPtr lCommand = BuzzerLightComposer::CreateTxBuzzerDeclineConversation::instance(
+				composer_, 
+				lConversation->conversationChainId(),
+				lConversation->conversationId(),
+				boost::bind(&DeclineConversationCommand::created, shared_from_this(), _1));
+			// async process
+			lCommand->process(boost::bind(&DeclineConversationCommand::error, shared_from_this(), _1, _2));
+		} else {
+			error("E_CONVERSATION_NOT_FOUND_IN_FEED", "Conversation was not found in local feed");
+			return;
+		}
+
+		// prepare
+	} else {
+		error("E_INCORRECT_AGRS", "Incorrect number of arguments");
+	}
+}
+
+//
+// CreateBuzzerMessageCommand
+//
+void CreateBuzzerMessageCommand::process(const std::vector<std::string>& args) {
+	if (args.size() >= 2) {
+		// reset
+		feeSent_ = false;
+		messageSent_ = false;
+		mediaPointers_.clear();
+		mediaFiles_.clear();
+
+		std::vector<std::string>::const_iterator lArg = args.begin();
+
+		// prepare
+		conversationId_.setHex(*(lArg++));
+		body_ = *(lArg++);
+
+		if (args.size() > 1) {
+			//
+			for (; lArg != args.end(); lArg++) {
+				mediaFiles_.push_back(*lArg);
+			}
+		}
+
+		//
+		ConversationItemPtr lItem = conversations_->locateItem(conversationId_);
+		if (!lItem) {
+			error("E_CONVERSATION_NOT_FOUND_IN_FEED", "Conversation was not found in local feed.");
+			return;
+		}
+
+		// locate counterpart pkey
+		if (!composer_->getCounterparty(conversationId_, pkey_)) {
+			// load conversation and extract counterparty key
+			if (!composer_->requestProcessor()->loadTransaction(lItem->conversationChainId(), conversationId_, 
+				LoadTransaction::instance(
+					boost::bind(&CreateBuzzerMessageCommand::conversationLoaded, shared_from_this(), _1),
+					boost::bind(&CreateBuzzerMessageCommand::timeout, shared_from_this()))
+			)) { error("E_LOAD_UTXO_BY_CONVERSATION", "Conversation loading failed."); return; }
+		} else {
+			createMessage(pkey_);
+		}
+	} else {
+		error("E_INCORRECT_AGRS", "Incorrect number of arguments.");
+	}
+}
+
+void CreateBuzzerMessageCommand::conversationLoaded(TransactionPtr conversation) {
+	//
+	TxBuzzerConversationPtr lConversation = TransactionHelper::to<TxBuzzerConversation>(conversation);
+	//
+	uint256 lInitiator = lConversation->in()[TX_BUZZER_CONVERSATION_MY_IN].out().tx(); 
+	uint256 lCounterparty = lConversation->in()[TX_BUZZER_CONVERSATION_BUZZER_IN].out().tx(); 
+
+	// define counterparty
+	if (composer_->buzzerId() == lInitiator) {
+		lConversation->counterpartyAddress(pkey_);
+	} else {
+		lConversation->initiatorAddress(pkey_);
+	}
+
+	// save conversation -> pkey for counterparty
+	composer_->writeCounterparty(conversationId_, pkey_);
+	// continue...
+	createMessage(pkey_);
+}
+
+void CreateBuzzerMessageCommand::createMessage(const PKey& pkey) {
+	//
+	if (mediaFiles_.size() && uploadMedia_) {
+		uploadNextMedia(pkey);
+	} else {
+		createBuzz(pkey);
+	}
+}
+
+void CreateBuzzerMessageCommand::createBuzz(const PKey& pkey) {
+	//
+	ConversationItemPtr lItem = conversations_->locateItem(conversationId_);
+	//
+	if (lItem) {
+		IComposerMethodPtr lCommand = BuzzerLightComposer::CreateTxBuzzerMessage::instance(
+			composer_, 
+			pkey,
+			lItem->conversationChainId(), 
+			lItem->conversationId(), 
+			body_, 
+			mediaPointers_,
+			boost::bind(&CreateBuzzerMessageCommand::created, shared_from_this(), _1));
+		// async process
+		lCommand->process(boost::bind(&CreateBuzzerMessageCommand::error, shared_from_this(), _1, _2));
+	} else {
+		error("E_CONVERSATION_NOT_FOUND_IN_FEED", "Conversation was not found in local feed");
+	}
+}
+
+void CreateBuzzerMessageCommand::uploadNextMedia(const PKey& pkey) {
+	//
+	if (mediaFiles_.size() && uploadMedia_) {
+		std::string lFile = *mediaFiles_.begin();
+		mediaFiles_.erase(mediaFiles_.begin());
+
+		std::vector<std::string> lArgs;
+		lArgs.push_back(lFile);
+		lArgs.push_back("-p");
+		lArgs.push_back(pkey.toString());
+		uploadMedia_->process(lArgs);
+	}	
+}
+
+void CreateBuzzerMessageCommand::mediaUploaded(TransactionPtr tx, const ProcessingError& err) {
+	//
+	if (!tx) {
+		error(err.error(), err.message());
+		return;
+	}
+
+	if (mediaUploaded_) mediaUploaded_(tx, err);
+
+	mediaPointers_.push_back(BuzzerMediaPointer(tx->chain(), tx->id()));
+	
+	// pop next
+	if (mediaFiles_.size() && uploadMedia_) {
+		uploadNextMedia(pkey_);
+	} else {
+		createBuzz(pkey_);
+	}
+}
+
+//
+// SelectConversationCommand
+//
+void SelectConversationCommand::process(const std::vector<std::string>& args) {
+	//
+	if (args.size() == 1) {
+		//
+		uint256 lConversationId;
+		lConversationId.setHex(args[0]);
+
+		//
+		buzzFeed_->setRootBuzzId(lConversationId);
+		composer_->buzzer()->setConversation(buzzFeed_);
+
+		done_(ProcessingError());
+	} else {
+		error("E_INCORRECT_AGRS", "Incorrect number of arguments");
+	}
+}
+
+//
+// ConversationListCommand
+//
+void ConversationListCommand::display(const std::vector<BuzzfeedItemPtr>& feed) {
+	//
+	for (std::vector<BuzzfeedItemPtr>::const_iterator lBuzz = feed.begin(); lBuzz != feed.end(); lBuzz++) {
+		std::cout << (*lBuzz)->toString() << std::endl << std::endl;
+	}
+}
+
+void ConversationListCommand::buzzesLoaded(const std::vector<BuzzfeedItem>& feed, const uint256& chain) {
+	//
+	pendingLoaded_.insert(chain);
+	std::cout << strprintf("pending, chain: %s/%d, n = %d", chain.toHex(), feed.size(), pendingLoaded_.size()) << std::endl;
+
+	if (pendingLoaded_.size() < pending_.size()) {
+		// merge feed
+		buzzFeed_->merge(feed);
+	} else {
+		// merge and notify
+		buzzFeed_->merge(feed, true);
+		//
+		processPengingInfos();
+	}
+}
+
+void ConversationListCommand::process(const std::vector<std::string>& args) {
+	//
+	pending_.clear();
+	pendingLoaded_.clear();	
+	pendingInfos_.clear();
+	pengindChainInfos_.clear();
+	pendingChainInfosLoaded_ = 0;
+
+	// if we have postponed items, request missing
+	buzzFeed_->collectPendingItems(pending_);
+
+	if (pending_.size()) {
+		for (std::map<uint256 /*chain*/, std::set<uint256>/*items*/>::iterator lChain = pending_.begin(); lChain != pending_.end(); lChain++) {
+			//
+			std::vector<uint256> lBuzzes(lChain->second.begin(), lChain->second.end());
+			if (!composer_->buzzerRequestProcessor()->selectBuzzes(lChain->first, lBuzzes, 
+				SelectBuzzFeed::instance(
+					boost::bind(&ConversationListCommand::buzzesLoaded, shared_from_this(), _1, _2),
+					boost::bind(&ConversationListCommand::timeout, shared_from_this()))
+			)) error("E_LOAD_PENDING_BUZZFEED", "Buzzfeed pending items loading failed.");	
+		}
+	} else {
+		//
+		processPengingInfos();
+	}
+}
+
+void ConversationListCommand::processPengingInfos() {
+	//
+	pendingInfos_ = buzzFeed_->buzzer()->pendingInfos(); // collect
+	buzzFeed_->buzzer()->collectPengingInfos(pengindChainInfos_); // prepare
+
+	if (pengindChainInfos_.size()) {
+		for (std::map<uint256 /*chain*/, std::set<uint256>/*items*/>::iterator lChain = pengindChainInfos_.begin(); lChain != pengindChainInfos_.end(); lChain++) {
+			//
+			std::vector<uint256> lInfos(lChain->second.begin(), lChain->second.end());
+			if (!composer_->requestProcessor()->loadTransactions(lChain->first, lInfos, 
+				LoadTransactions::instance(
+					boost::bind(&ConversationListCommand::buzzerInfoLoaded, shared_from_this(), _1),
+					boost::bind(&ConversationListCommand::timeout, shared_from_this()))
+			)) error("E_LOAD_PENDING_BUZZER_INFOS", "Buzzer infos failed to load.");	
+		}
+	} else {
+		// show
+		show();
+		// we are done
+		done_();
+	}
+}
+
+void ConversationListCommand::buzzerInfoLoaded(const std::vector<TransactionPtr>& txs) {
+	//
+	pendingChainInfosLoaded_++;
+	//
+	if (txs.size()) {
+		//
+		for (std::vector<TransactionPtr>::const_iterator lTx = txs.begin(); lTx != txs.end(); lTx++) {
+			//
+			TxBuzzerInfoPtr lInfo = TransactionHelper::to<TxBuzzerInfo>(*lTx);
+			//
+			std::map<uint256 /*info tx*/, Buzzer::Info>::iterator lItem = pendingInfos_.find(lInfo->id());
+			if (lItem != pendingInfos_.end() && lInfo->verifySignature() && // signature and ...
+					lInfo->in()[TX_BUZZER_INFO_MY_IN].out().tx() == lItem->second.id()) // ... expected buzzer is match
+				buzzFeed_->buzzer()->pushBuzzerInfo(lInfo);
+		}
+	}
+
+	if (pendingChainInfosLoaded_ >= pengindChainInfos_.size()) {
+		// show
+		show();
+		// we are done
+		done_();
+	}
+}
+
+void ConversationListCommand::show() {
+	// get list
+	std::vector<BuzzfeedItemPtr> lFeed;
+	buzzFeed_->feed(lFeed);
+	// display
+	std::cout << std::endl;
+	display(lFeed);
+	//
+	done_();
+}
+
+//
+// DecryptBuzzerMessageCommand
+//
+void DecryptBuzzerMessageCommand::process(const std::vector<std::string>& args) {
+	//
+	if (args.size() == 1) {
+		//
+		messageId_.setHex(args[0]);
+		//
+		BuzzfeedItemPtr lMessage = conversation_->locateBuzz(messageId_);
+		if (lMessage) {
+			ConversationItemPtr lConversation = conversations_->locateItem(lMessage->rootBuzzId());
+			if (lConversation) {
+				//
+				// load conversation and extract counterparty key
+				if (!composer_->requestProcessor()->loadTransaction(lConversation->conversationChainId(), lConversation->conversationId(), 
+					LoadTransaction::instance(
+						boost::bind(&DecryptBuzzerMessageCommand::conversationLoaded, shared_from_this(), _1),
+						boost::bind(&DecryptBuzzerMessageCommand::timeout, shared_from_this()))
+				)) { error("E_LOAD_UTXO_BY_CONVERSATION", "Conversation loading failed."); return; }
+
+			} else {
+				error("E_CONVERSATION_NOT_FOUND_IN_FEED", "Conversation was not found in local feed");		
+			}
+		} else {
+			error("E_MESSAGE_NOT_FOUND_IN_FEED", "Message was not found in feed");	
+		}
+	} else {
+		error("E_INCORRECT_AGRS", "Incorrect number of arguments");
+	}
+}
+
+void DecryptBuzzerMessageCommand::conversationLoaded(TransactionPtr conversation) {
+	//
+	TxBuzzerConversationPtr lConversation = TransactionHelper::to<TxBuzzerConversation>(conversation);
+	//
+	PKey lCounterpartyKey;
+	uint256 lInitiator = lConversation->in()[TX_BUZZER_CONVERSATION_MY_IN].out().tx(); 
+	uint256 lCounterparty = lConversation->in()[TX_BUZZER_CONVERSATION_BUZZER_IN].out().tx(); 
+
+	// define counterparty
+	if (composer_->buzzerId() == lInitiator) {
+		lConversation->counterpartyAddress(lCounterpartyKey);
+	} else {
+		lConversation->initiatorAddress(lCounterpartyKey);
+	}
+
+	BuzzfeedItemPtr lMessage = conversation_->locateBuzz(messageId_);
+	if (lMessage) {
+		if (lMessage->decrypt(lCounterpartyKey)) {
+			done_(lCounterpartyKey.toString(), lMessage->decryptedBuzzBodyString(), ProcessingError()); // pass pkey to the caller
+		} else {
+			error("E_MESSAGE_DECRYPTION_FAILED", "Message decryption failed");
+		}
+	}
+}
+
+//
+// DecryptMessageBodyCommand
+//
+void DecryptMessageBodyCommand::process(const std::vector<std::string>& args) {
+	//
+	if (args.size() == 1) {
+		//
+		conversationId_.setHex(args[0]);
+
+		// locate counterpart pkey
+		PKey lPKey;
+		if (composer_->getCounterparty(conversationId_, lPKey)) {
+			//
+			ConversationItemPtr lConversationItem = conversations_->locateItem(conversationId_);
+			if (lConversationItem) {
+				//
+				std::string lBody;
+				if (lConversationItem->decrypt(lPKey, lBody)) {
+					done_(lPKey.toString(), lBody, ProcessingError()); // pass body
+				} else {
+					error("E_MESSAGE_DECRYPTION_FAILED", "Message decryption failed");
+				}
+			} else {
+				error("E_CONVERSATION_NOT_FOUND_IN_FEED", "Conversation was not found in local feed");
+			}
+		} else {
+			ConversationItemPtr lConversation = conversations_->locateItem(conversationId_);
+			if (lConversation) {
+				//
+				// load conversation and extract counterparty key
+				if (!composer_->requestProcessor()->loadTransaction(
+					lConversation->conversationChainId(),
+					lConversation->conversationId(),
+					true, // try mempool
+					LoadTransaction::instance(
+						boost::bind(&DecryptMessageBodyCommand::conversationLoaded, shared_from_this(), _1),
+						boost::bind(&DecryptMessageBodyCommand::timeout, shared_from_this()))
+				)) { error("E_LOAD_UTXO_BY_CONVERSATION", "Conversation loading failed."); return; }
+
+			} else {
+				error("E_CONVERSATION_NOT_FOUND_IN_FEED", "Conversation was not found in local feed");
+			}
+		}
+	} else {
+		error("E_INCORRECT_AGRS", "Incorrect number of arguments");
+	}
+}
+
+void DecryptMessageBodyCommand::conversationLoaded(TransactionPtr conversation) {
+	//
+	if (!conversation) error("E_MESSAGE_DECRYPTION_FAILED", "Message decryption failed");
+
+	//
+	TxBuzzerConversationPtr lConversation = TransactionHelper::to<TxBuzzerConversation>(conversation);
+	//
+	PKey lCounterpartyKey;
+	uint256 lInitiator = lConversation->in()[TX_BUZZER_CONVERSATION_MY_IN].out().tx(); 
+
+	// define counterparty
+	if (composer_->buzzerId() == lInitiator) {
+		lConversation->counterpartyAddress(lCounterpartyKey);
+	} else {
+		lConversation->initiatorAddress(lCounterpartyKey);
+	}
+
+	ConversationItemPtr lConversationItem = conversations_->locateItem(conversationId_);
+	if (lConversationItem) {
+		std::string lBody;
+		if (lConversationItem->decrypt(lCounterpartyKey, lBody)) {
+			done_(lCounterpartyKey.toString(), lBody, ProcessingError()); // pass pkey to the caller
+		} else {
+			error("E_MESSAGE_DECRYPTION_FAILED", "Message decryption failed");
+		}
+	}
+}
+
+//
+// LoadCounterpartyKeyCommand
+//
+void LoadCounterpartyKeyCommand::process(const std::vector<std::string>& args) {
+	//
+	if (args.size() == 1) {
+		//
+		conversationId_.setHex(args[0]);
+
+		// locate counterpart pkey
+		PKey lPKey;
+		if (!composer_->getCounterparty(conversationId_, lPKey)) {
+			ConversationItemPtr lConversation = conversations_->locateItem(conversationId_);
+			if (lConversation) {
+				//
+				// load conversation and extract counterparty key
+				if (!composer_->requestProcessor()->loadTransaction(
+					lConversation->conversationChainId(),
+					lConversation->conversationId(),
+					true, // try mempool
+					LoadTransaction::instance(
+						boost::bind(&LoadCounterpartyKeyCommand::conversationLoaded, shared_from_this(), _1),
+						boost::bind(&LoadCounterpartyKeyCommand::timeout, shared_from_this()))
+				)) { error("E_LOAD_UTXO_BY_CONVERSATION", "Conversation loading failed."); return; }
+
+			} else {
+				error("E_CONVERSATION_NOT_FOUND_IN_FEED", "Conversation was not found in local feed");
+			}
+		} else {
+			done_(ProcessingError());
+		}
+	} else {
+		error("E_INCORRECT_AGRS", "Incorrect number of arguments");
+	}
+}
+
+void LoadCounterpartyKeyCommand::conversationLoaded(TransactionPtr conversation) {
+	//
+	if (!conversation) error("E_KEY_LOAD_FAILED", "Counterparty pkey loading failed.");
+
+	//
+	TxBuzzerConversationPtr lConversation = TransactionHelper::to<TxBuzzerConversation>(conversation);
+	//
+	PKey lCounterpartyKey;
+	uint256 lInitiator = lConversation->in()[TX_BUZZER_CONVERSATION_MY_IN].out().tx(); 
+
+	// define counterparty
+	if (composer_->buzzerId() == lInitiator) {
+		lConversation->counterpartyAddress(lCounterpartyKey);
+	} else {
+		lConversation->initiatorAddress(lCounterpartyKey);
+	}
+
+	// save conversation -> pkey for counterparty
+	composer_->writeCounterparty(conversationId_, lCounterpartyKey);
+	// done
+	done_(ProcessingError());
 }

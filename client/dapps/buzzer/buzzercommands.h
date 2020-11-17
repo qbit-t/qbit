@@ -38,7 +38,7 @@ public:
 		std::cout << "\t<description>	- required, short description of your buzzer (up to 256 bytes)" << std::endl;
 #if defined(CUBIX_MOD)		
 		std::cout << "\t[avatar_path]	- optional, cubix powered, path to jpeg or png image, that will be used as avatar picture" << std::endl;
-		std::cout << "\t[-s 000x000>] 	- optional, preview size of avatar in format 000x000" << std::endl;
+		std::cout << "\t[-s <000x000>]	- optional, preview size of avatar in format 000x000" << std::endl;
 		std::cout << "\t[header_path]	- optional, cubix powered, path to jpeg or png image, that will be used header for your buzzer" << std::endl;
 #endif		
 		std::cout << "\texample:\n\t\t>createBuzzer @mybuzzer \"I'm buzzer\" \"Buzzing the world\"" << std::endl << std::endl;
@@ -91,6 +91,81 @@ private:
 
 	std::vector<std::string> args_;
 	Transaction::UnlinkedOutPtr buzzerOut_;
+};
+
+class CreateBuzzerInfoCommand;
+typedef std::shared_ptr<CreateBuzzerInfoCommand> CreateBuzzerInfoCommandPtr;
+
+class CreateBuzzerInfoCommand: public ICommand, public std::enable_shared_from_this<CreateBuzzerInfoCommand> {
+public:
+	CreateBuzzerInfoCommand(BuzzerLightComposerPtr composer, doneTransactionsWithErrorFunction done): composer_(composer), done_(done) {}
+
+	void process(const std::vector<std::string>&);
+	std::set<std::string> name() {
+		std::set<std::string> lSet;
+		lSet.insert("createBuzzerInfo"); 
+		return lSet;
+	}
+
+	void help() {
+#if defined(CUBIX_MOD)
+		std::cout << "createBuzzerInfo \"<alias>\" \"<description>\" \"[avatar_path]\" \"[-s <000x000>]\" \"[header_path]\"" << std::endl;
+#else
+		std::cout << "createBuzzerInfo \"<alias>\" \"<description>\"" << std::endl;
+#endif
+		std::cout << "\tCreate new buzzer info for current buzzer." << std::endl;
+		std::cout << "\t<alias>			- required, buzzer alias, should be easy human-readable (up to 64 bytes)" << std::endl;
+		std::cout << "\t<description>	- required, short description of your buzzer (up to 256 bytes)" << std::endl;
+#if defined(CUBIX_MOD)		
+		std::cout << "\t[avatar_path]	- optional, cubix powered, path to jpeg or png image, that will be used as avatar picture" << std::endl;
+		std::cout << "\t[-s <000x000>]	- optional, preview size of avatar in format 000x000" << std::endl;
+		std::cout << "\t[header_path]	- optional, cubix powered, path to jpeg or png image, that will be used header for your buzzer" << std::endl;
+#endif		
+		std::cout << "\texample:\n\t\t>createBuzzerInfo \"I'm buzzer\" \"Buzzing the world\"" << std::endl << std::endl;
+	}	
+
+	static ICommandPtr instance(BuzzerLightComposerPtr composer, doneTransactionsWithErrorFunction done) { 
+		return std::make_shared<CreateBuzzerInfoCommand>(composer, done); 
+	}
+
+	void setUploadAvatar(ICommandPtr uploadAvatar) {
+		uploadAvatar_ = uploadAvatar;
+	}
+
+	void setUploadHeader(ICommandPtr uploadHeader) {
+		uploadHeader_ = uploadHeader;
+	}
+
+	// callbacks
+	void avatarUploaded(TransactionPtr, const ProcessingError&);
+	void headerUploaded(TransactionPtr, const ProcessingError&);
+
+	void createBuzzerInfo();
+	void buzzerInfoCreated(TransactionContextPtr);
+	void buzzerInfoSent(const uint256& tx, const std::vector<TransactionContext::Error>& errors);
+
+	void timeout() {
+		error("E_TIMEOUT", "Timeout expired during buzzer info creation.");
+	}
+
+	void error(const std::string& code, const std::string& message) {
+		gLog().writeClient(Log::CLIENT, strprintf(": %s | %s", code, message));
+		done_(nullptr, nullptr, ProcessingError(code, message));
+	}
+
+private:
+	BuzzerLightComposerPtr composer_;
+	doneTransactionsWithErrorFunction done_;
+
+	ICommandPtr uploadAvatar_;
+	ICommandPtr uploadHeader_;
+
+	TransactionPtr avatarTx_;
+	TransactionPtr headerTx_;
+
+	TransactionPtr buzzerInfoTx_;
+
+	std::vector<std::string> args_;
 };
 
 class CreateBuzzCommand;
@@ -168,7 +243,9 @@ public:
 					lError != const_cast<std::vector<TransactionContext::Error>&>(errors).end(); lError++) {
 				gLog().writeClient(Log::CLIENT, strprintf("[error]: %s", lError->data()));
 				done_(ProcessingError("E_SENT_TX", lError->data()));
-			}			
+			}
+			// done
+			return;	
 		} else {
 			std::cout << " fee: " << tx.toHex() << std::endl;
 			//
@@ -188,7 +265,10 @@ public:
 			for (std::vector<TransactionContext::Error>::iterator lError = const_cast<std::vector<TransactionContext::Error>&>(errors).begin(); 
 					lError != const_cast<std::vector<TransactionContext::Error>&>(errors).end(); lError++) {
 				gLog().writeClient(Log::CLIENT, strprintf("[error]: %s", lError->data()));
-			}			
+				done_(ProcessingError("E_SENT_TX", lError->data()));
+			}
+
+			return;
 		} else {
 			std::cout << "buzz: " << tx.toHex() << std::endl;
 		}
@@ -275,7 +355,9 @@ public:
 					lError != const_cast<std::vector<TransactionContext::Error>&>(errors).end(); lError++) {
 				gLog().writeClient(Log::CLIENT, strprintf("[error]: %s", lError->data()));
 				done_(ProcessingError("E_SENT_TX", lError->data()));
-			}			
+			}
+
+			return;
 		} else {
 			std::cout << tx.toHex() << std::endl;
 		}
@@ -344,7 +426,9 @@ public:
 					lError != const_cast<std::vector<TransactionContext::Error>&>(errors).end(); lError++) {
 				gLog().writeClient(Log::CLIENT, strprintf("[error]: %s", lError->data()));
 				done_(ProcessingError("E_SENT_TX", lError->data()));
-			}			
+			}
+
+			return;
 		} else {
 			std::cout << tx.toHex() << std::endl;
 		}
@@ -485,6 +569,51 @@ public:
 	}
 	static ICommandPtr instance(BuzzerLightComposerPtr composer, BuzzfeedPtr buzzFeed, buzzfeedReadyFunction buzzfeedReady, doneWithErrorFunction done) { 
 		return std::make_shared<LoadBuzzfeedByBuzzCommand>(composer, buzzFeed, buzzfeedReady, done); 
+	}
+
+	virtual bool appendFeed() {
+		if (from_) return true;
+		return false;
+	}
+
+protected:
+	uint64_t from_ = 0;
+};
+
+class LoadMessagesCommand;
+typedef std::shared_ptr<LoadMessagesCommand> LoadMessagesCommandPtr;
+
+class LoadMessagesCommand: public LoadBuzzfeedCommand {
+public:
+	LoadMessagesCommand(BuzzerLightComposerPtr composer, BuzzfeedPtr buzzFeed, doneWithErrorFunction done): 
+		LoadBuzzfeedCommand (composer, buzzFeed, done) {
+	}
+	LoadMessagesCommand(BuzzerLightComposerPtr composer, BuzzfeedPtr buzzFeed, buzzfeedReadyFunction buzzfeedReady, doneWithErrorFunction done): 
+		LoadBuzzfeedCommand (composer, buzzFeed, buzzfeedReady, done) {
+	}
+
+	void process(const std::vector<std::string>&);
+	std::set<std::string> name() {
+		std::set<std::string> lSet;
+		lSet.insert("messagesByConversation"); 
+		lSet.insert("messages"); 
+		lSet.insert("msgs"); 
+		return lSet;
+	}
+
+	void help() {
+		std::cout << "messagesByConversation | messages | msgs <conversation_id> [more]" << std::endl;
+		std::cout << "\tLoad messages by given conversation. Limited to last 50 msgs." << std::endl;
+		std::cout << "\t<conversation_id> 	- required, conversation id to fetch thread" << std::endl;
+		std::cout << "\t[more]				- optional, flag to feed more from last message" << std::endl;
+		std::cout << "\texample:\n\t\t>msgs 28c9a2debf0996193684979723a5a7c859a0a3cb0876125ea066b1e5b90d9902" << std::endl << std::endl;
+	}
+
+	static ICommandPtr instance(BuzzerLightComposerPtr composer, BuzzfeedPtr buzzFeed, doneWithErrorFunction done) { 
+		return std::make_shared<LoadMessagesCommand>(composer, buzzFeed, done); 
+	}
+	static ICommandPtr instance(BuzzerLightComposerPtr composer, BuzzfeedPtr buzzFeed, buzzfeedReadyFunction buzzfeedReady, doneWithErrorFunction done) { 
+		return std::make_shared<LoadMessagesCommand>(composer, buzzFeed, buzzfeedReady, done); 
 	}
 
 	virtual bool appendFeed() {
@@ -794,6 +923,92 @@ protected:
 	EventsfeedPtr localEventsFeed_;
 	doneWithErrorFunction done_;
 	eventsfeedReadyFunction eventsfeedReady_;
+	std::vector<uint256> chains_;
+	std::map<uint256, int> loaded_;
+	std::map<uint256 /*chain*/, std::set<uint256>/*items*/> pending_;
+	std::set<uint256> pendingLoaded_;
+	std::map<uint256 /*chain*/, std::set<uint256>/*items*/> pengindChainInfos_;
+	std::map<uint256 /*info tx*/, Buzzer::Info> pendingInfos_;
+	int pendingChainInfosLoaded_ = 0;
+	uint64_t from_ = 0;	
+};
+
+class LoadConversationsCommand;
+typedef std::shared_ptr<LoadConversationsCommand> LoadConversationsCommandPtr;
+
+class LoadConversationsCommand: public ICommand, public std::enable_shared_from_this<LoadConversationsCommand> {
+public:
+
+	LoadConversationsCommand(BuzzerLightComposerPtr composer, ConversationsfeedPtr conversationsFeed, doneWithErrorFunction done): 
+		composer_(composer), conversationsFeed_(conversationsFeed), done_(done) {
+		localConversationsFeed_ = Conversationsfeed::instance(conversationsFeed);
+	}
+
+	LoadConversationsCommand(BuzzerLightComposerPtr composer, ConversationsfeedPtr conversationsFeed, conversationsReadyFunction conversationsfeedReady, doneWithErrorFunction done): 
+		composer_(composer), conversationsFeed_(conversationsFeed), conversationsfeedReady_(conversationsfeedReady), done_(done) {
+		localConversationsFeed_ = Conversationsfeed::instance(conversationsFeed);
+	}
+
+	void process(const std::vector<std::string>&);
+	std::set<std::string> name() {
+		std::set<std::string> lSet;
+		lSet.insert("conversationsFeed"); 
+		lSet.insert("conversations"); 
+		lSet.insert("cfeed"); 
+		return lSet;
+	}
+
+	void help() {
+		std::cout << "conversations | cfeed [buzzer_id] [more]" << std::endl;
+		std::cout << "\tLoad conversations by buzzer. Limited to last 50 conversations." << std::endl;
+		std::cout << "\t[buzzer_id]	- required, buzz id to fetch thread" << std::endl;
+		std::cout << "\t[more]		- optional, flag to feed more from last item" << std::endl;
+		std::cout << "\texample:\n\t\t>cfeed" << std::endl << std::endl;
+	}	
+
+	static ICommandPtr instance(BuzzerLightComposerPtr composer, ConversationsfeedPtr conversationsFeed, doneWithErrorFunction done) { 
+		return std::make_shared<LoadConversationsCommand>(composer, conversationsFeed, done); 
+	}
+
+	static ICommandPtr instance(BuzzerLightComposerPtr composer, ConversationsfeedPtr conversationsFeed, conversationsReadyFunction conversationsfeedReady, doneWithErrorFunction done) { 
+		return std::make_shared<LoadConversationsCommand>(composer, conversationsFeed, conversationsfeedReady, done); 
+	}
+
+	// callbacks
+	void eventsfeedLoaded(const std::vector<ConversationItem>& /*feed*/, const uint256& /*chain*/, int /*requests*/);
+	void buzzesLoaded(const std::vector<BuzzfeedItem>& /*feed*/, const uint256& /*chain*/);
+
+	void processPengingInfos();
+	void buzzerInfoLoaded(const std::vector<TransactionPtr>&);
+	void show();
+
+	void error(const std::string& code, const std::string& message) {
+		gLog().writeClient(Log::CLIENT, strprintf(": %s | %s", code, message));
+		done_(ProcessingError(code, message));
+	}
+
+	void timeout() {
+		error("E_TIMEOUT", "Timeout expired during conversation loading.");
+	}
+
+	virtual void display(ConversationItemPtr);
+
+	virtual ConversationsfeedPtr conversationsfeed() {
+		if (!appendFeed()) return conversationsFeed_;
+		return localConversationsFeed_;
+	}
+
+	virtual bool appendFeed() {
+		if (!from_) return false;
+		return true;
+	}
+
+protected:
+	BuzzerLightComposerPtr composer_;
+	ConversationsfeedPtr conversationsFeed_;
+	ConversationsfeedPtr localConversationsFeed_;
+	doneWithErrorFunction done_;
+	conversationsReadyFunction conversationsfeedReady_;
 	std::vector<uint256> chains_;
 	std::map<uint256, int> loaded_;
 	std::map<uint256 /*chain*/, std::set<uint256>/*items*/> pending_;
@@ -1127,6 +1342,52 @@ private:
 	std::set<uint256> pendingLoaded_;	
 };
 
+class ConversationsListCommand;
+typedef std::shared_ptr<ConversationsListCommand> ConversationsListCommandPtr;
+
+class ConversationsListCommand: public ICommand, public std::enable_shared_from_this<ConversationsListCommand> {
+public:
+	ConversationsListCommand(BuzzerLightComposerPtr composer, ConversationsfeedPtr eventsFeed, doneFunction done): composer_(composer), eventsFeed_(eventsFeed), done_(done) {}
+
+	void process(const std::vector<std::string>&);
+	std::set<std::string> name() {
+		std::set<std::string> lSet;
+		lSet.insert("conversationsList"); 
+		lSet.insert("clist"); 
+		return lSet;
+	}
+
+	void help() {
+		std::cout << "conversationsList | clist" << std::endl;
+		std::cout << "\tShow current conversations." << std::endl;
+		std::cout << "\texample:\n\t\t>clist" << std::endl << std::endl;
+	}	
+
+	static ICommandPtr instance(BuzzerLightComposerPtr composer, ConversationsfeedPtr eventsFeed, doneFunction done) { 
+		return std::make_shared<ConversationsListCommand>(composer, eventsFeed, done); 
+	}
+
+	void error(const std::string& code, const std::string& message) {
+		gLog().writeClient(Log::CLIENT, strprintf(": %s | %s", code, message));
+		done_();
+	}
+
+	void buzzesLoaded(const std::vector<BuzzfeedItem>& /*feed*/, const uint256& /*chain*/);
+
+	void timeout() {
+		error("E_TIMEOUT", "Timeout expired during buzzes loading.");
+	}
+
+	void display(ConversationItemPtr);
+
+private:
+	BuzzerLightComposerPtr composer_;
+	ConversationsfeedPtr eventsFeed_;
+	doneFunction done_;
+	std::map<uint256 /*chain*/, std::set<uint256>/*items*/> pending_;
+	std::set<uint256> pendingLoaded_;	
+};
+
 class BuzzLikeCommand;
 typedef std::shared_ptr<BuzzLikeCommand> BuzzLikeCommandPtr;
 
@@ -1174,7 +1435,9 @@ public:
 					lError != const_cast<std::vector<TransactionContext::Error>&>(errors).end(); lError++) {
 				gLog().writeClient(Log::CLIENT, strprintf("[error]: %s", lError->data()));
 				done_(ProcessingError("E_SENT_TX", lError->data()));
-			}			
+			}
+
+			return;
 		} else {
 			std::cout << tx.toHex() << std::endl;
 		}
@@ -1245,7 +1508,9 @@ public:
 					lError != const_cast<std::vector<TransactionContext::Error>&>(errors).end(); lError++) {
 				gLog().writeClient(Log::CLIENT, strprintf("[error]: %s", lError->data()));
 				done_(ProcessingError("E_SENT_TX", lError->data()));
-			}			
+			}
+
+			return;
 		} else {
 			std::cout << tx.toHex() << std::endl;
 		}
@@ -1342,7 +1607,10 @@ public:
 			for (std::vector<TransactionContext::Error>::iterator lError = const_cast<std::vector<TransactionContext::Error>&>(errors).begin(); 
 					lError != const_cast<std::vector<TransactionContext::Error>&>(errors).end(); lError++) {
 				gLog().writeClient(Log::CLIENT, strprintf("[error]: %s", lError->data()));
-			}			
+				done_(ProcessingError("E_SENT_TX", lError->data()));
+			}
+
+			return;
 		} else {
 			std::cout << " fee: " << tx.toHex() << std::endl;
 			//
@@ -1362,7 +1630,10 @@ public:
 			for (std::vector<TransactionContext::Error>::iterator lError = const_cast<std::vector<TransactionContext::Error>&>(errors).begin(); 
 					lError != const_cast<std::vector<TransactionContext::Error>&>(errors).end(); lError++) {
 				gLog().writeClient(Log::CLIENT, strprintf("[error]: %s", lError->data()));
-			}			
+				done_(ProcessingError("E_SENT_TX", lError->data()));
+			}
+
+			return;
 		} else {
 			std::cout << "buzz: " << tx.toHex() << std::endl;
 		}
@@ -1948,7 +2219,7 @@ typedef std::shared_ptr<LoadBuzzerInfoCommand> LoadBuzzerInfoCommandPtr;
 
 class LoadBuzzerInfoCommand: public ICommand, public std::enable_shared_from_this<LoadBuzzerInfoCommand> {
 public:
-	LoadBuzzerInfoCommand(BuzzerLightComposerPtr composer, buzzerAndInfoDoneWithErrorFunction done): composer_(composer), done_(done) {}
+	LoadBuzzerInfoCommand(BuzzerLightComposerPtr composer, buzzerInfoAndUtxoDoneWithErrorFunction done): composer_(composer), done_(done) {}
 
 	void process(const std::vector<std::string>&);
 	std::set<std::string> name() {
@@ -1961,24 +2232,18 @@ public:
 	void help() {
 		std::cout << "buzzerInfo | info <@buzzer>" << std::endl;
 		std::cout << "\tLoad buzzer and buzzer info." << std::endl;
-		std::cout << "\t<@buzzer> - required, buzzer name, prefixed with @" << std::endl;
+		std::cout << "\t<@buzzer>	- required, buzzer name, prefixed with @" << std::endl;
+		std::cout << "\t[-utxo]		- optional, load buzzer utxo" << std::endl;
 		std::cout << "\texample:\n\t\t>info @buzzer" << std::endl << std::endl;
 	}	
 
-	static ICommandPtr instance(BuzzerLightComposerPtr composer, buzzerAndInfoDoneWithErrorFunction done) { 
+	static ICommandPtr instance(BuzzerLightComposerPtr composer, buzzerInfoAndUtxoDoneWithErrorFunction done) { 
 		return std::make_shared<LoadBuzzerInfoCommand>(composer, done); 
 	}
 
 	// callbacks
-	void buzzerAndInfoLoaded(EntityPtr buzzer, TransactionPtr info, const std::string& name) {
-		//
-		if (!buzzer) {
-			error("E_BUZZER_NOT_FOUND", "Buzzer was not found.");
-			return;
-		}
-
-		done_(buzzer, info, name, ProcessingError());
-	}
+	void buzzerAndInfoLoaded(EntityPtr, TransactionPtr, const std::string&);
+	void utxoByBuzzerLoaded(const std::vector<Transaction::NetworkUnlinkedOut>&, const uint256&);
 
 	void timeout() {
 		error("E_TIMEOUT", "Timeout expired during buzzer endorsement.");
@@ -1986,13 +2251,660 @@ public:
 
 	void error(const std::string& code, const std::string& message) {
 		gLog().writeClient(Log::CLIENT, strprintf(": %s | %s", code, message));
-		done_(nullptr, nullptr, std::string(), ProcessingError(code, message));
+		done_(nullptr, nullptr, std::vector<Transaction::NetworkUnlinkedOut>(), std::string(), ProcessingError(code, message));
 	}	
 
 private:
 	BuzzerLightComposerPtr composer_;
-	buzzerAndInfoDoneWithErrorFunction done_;
+	buzzerInfoAndUtxoDoneWithErrorFunction done_;
+	EntityPtr buzzer_;
+	TransactionPtr info_;
+	bool loadUtxo_ = false;
 };
+
+class CreateBuzzerConversationCommand;
+typedef std::shared_ptr<CreateBuzzerConversationCommand> CreateBuzzerConversationCommandPtr;
+
+class CreateBuzzerConversationCommand: public ICommand, public std::enable_shared_from_this<CreateBuzzerConversationCommand> {
+public:
+	CreateBuzzerConversationCommand(BuzzerLightComposerPtr composer, doneWithErrorFunction done): composer_(composer), done_(done) {}
+
+	void process(const std::vector<std::string>&);
+	std::set<std::string> name() {
+		std::set<std::string> lSet;
+		lSet.insert("createConversation"); 
+		lSet.insert("convc"); 
+		return lSet;
+	}
+
+	void help() {
+		std::cout << "createConversation | convc <buzzer>" << std::endl;
+		std::cout << "\tCreate conversation with buzzer." << std::endl;
+		std::cout << "\t<buzzer> - required, buzzer - name prefixed with @" << std::endl;
+		std::cout << "\texample:\n\t\t>convc @other" << std::endl << std::endl;
+	}	
+
+	static ICommandPtr instance(BuzzerLightComposerPtr composer, doneWithErrorFunction done) { 
+		return std::make_shared<CreateBuzzerConversationCommand>(composer, done); 
+	}
+
+	// callbacks
+	void created(TransactionContextPtr ctx) {
+		//
+		ctx_ = ctx;
+		//
+		// push linked and newly created txs; order matters
+		TransactionContextPtr lFee = ctx->locateByType(Transaction::FEE);
+		if (!composer_->requestProcessor()->sendTransaction(ctx->tx()->chain(), lFee,
+				SentTransaction::instance(
+					boost::bind(&CreateBuzzerConversationCommand::feeSent, shared_from_this(), _1, _2),
+					boost::bind(&CreateBuzzerConversationCommand::timeout, shared_from_this())))) {
+			gLog().writeClient(Log::CLIENT, std::string(": tx was not broadcasted, wallet re-init..."));
+			composer_->wallet()->resetCache();
+			composer_->wallet()->prepareCache();
+			done_(ProcessingError("E_TX_NOT_SENT", "Transaction was not sent."));
+		}
+
+		if (!composer_->requestProcessor()->sendTransaction(ctx->tx()->chain(), ctx,
+				SentTransaction::instance(
+					boost::bind(&CreateBuzzerConversationCommand::conversationSent, shared_from_this(), _1, _2),
+					boost::bind(&CreateBuzzerConversationCommand::timeout, shared_from_this())))) {
+			gLog().writeClient(Log::CLIENT, std::string(": tx was not broadcasted, wallet re-init..."));
+			composer_->wallet()->resetCache();
+			composer_->wallet()->prepareCache();
+			done_(ProcessingError("E_TX_NOT_SENT", "Transaction was not sent."));
+		}
+	}
+
+	void feeSent(const uint256& tx, const std::vector<TransactionContext::Error>& errors) {
+		//
+		checkSent("         fee: ", tx, errors);
+
+		//
+		TransactionContextPtr lFee = ctx_->locateByType(Transaction::FEE);
+		for (std::list<Transaction::NetworkUnlinkedOutPtr>::iterator lOut = lFee->externalOuts().begin(); 
+																	lOut != lFee->externalOuts().end(); lOut++) {
+			composer_->wallet()->updateOut(*lOut, ctx_->tx()->id(), ctx_->tx()->type());
+		}
+
+		//
+		feeSent_ = true;
+		if (feeSent_ && conversationSent_) done_(ProcessingError());
+	}
+
+	void conversationSent(const uint256& tx, const std::vector<TransactionContext::Error>& errors) {
+		//
+		checkSent("conversation: ", tx, errors);
+		conversationSent_ = true;
+		if (feeSent_ && conversationSent_) done_(ProcessingError());
+	}
+
+	bool checkSent(const std::string& msg, const uint256& tx, const std::vector<TransactionContext::Error>& errors) {
+		//
+		if (errors.size()) {
+			for (std::vector<TransactionContext::Error>::iterator lError = const_cast<std::vector<TransactionContext::Error>&>(errors).begin(); 
+					lError != const_cast<std::vector<TransactionContext::Error>&>(errors).end(); lError++) {
+				gLog().writeClient(Log::CLIENT, strprintf("[error]: %s", lError->data()));
+				done_(ProcessingError("E_SENT_TX", lError->data()));
+			}
+
+			return false;
+		} else {
+			std::cout << msg << tx.toHex() << std::endl;
+		}
+
+		return true;
+	}
+
+	void timeout() {
+		error("E_TIMEOUT", "Timeout expired during conversation creation.");
+	}
+
+	void error(const std::string& code, const std::string& message) {
+		gLog().writeClient(Log::CLIENT, strprintf(": %s | %s", code, message));
+		done_(ProcessingError(code, message));
+	}	
+
+private:
+	BuzzerLightComposerPtr composer_;
+	doneWithErrorFunction done_;
+
+	TransactionContextPtr ctx_;
+
+	bool feeSent_;
+	bool conversationSent_;
+};
+
+class AcceptConversationCommand;
+typedef std::shared_ptr<AcceptConversationCommand> AcceptConversationCommandPtr;
+
+class AcceptConversationCommand: public ICommand, public std::enable_shared_from_this<AcceptConversationCommand> {
+public:
+	AcceptConversationCommand(BuzzerLightComposerPtr composer, ConversationsfeedPtr conversations, doneWithErrorFunction done): composer_(composer), conversations_(conversations), done_(done) {}
+
+	void process(const std::vector<std::string>&);
+	std::set<std::string> name() {
+		std::set<std::string> lSet;
+		lSet.insert("acceptConversation"); 
+		lSet.insert("accept");
+		lSet.insert("acc"); 
+		return lSet;
+	}
+
+	void help() {
+		std::cout << "acceptConversation | accept | acc <conversation_id>" << std::endl;
+		std::cout << "\tAccept pending conversation." << std::endl;
+		std::cout << "\t<conversation_id> - required, conversation id" << std::endl;
+		std::cout << "\texample:\n\t\t>accept d1bb559d3a912a0838163c8ea76eb753e5b99e3b24162bb56d2a6426fb3b7f83" << std::endl << std::endl;
+	}	
+
+	static ICommandPtr instance(BuzzerLightComposerPtr composer, ConversationsfeedPtr conversations, doneWithErrorFunction done) {
+		return std::make_shared<AcceptConversationCommand>(composer, conversations, done); 
+	}
+
+	// callbacks
+	void created(TransactionContextPtr ctx) {
+		//
+		ctx_ = ctx;
+		if (!composer_->requestProcessor()->sendTransaction(ctx->tx()->chain(), ctx,
+				SentTransaction::instance(
+					boost::bind(&AcceptConversationCommand::acceptSent, shared_from_this(), _1, _2),
+					boost::bind(&AcceptConversationCommand::timeout, shared_from_this())))) {
+			gLog().writeClient(Log::CLIENT, std::string(": tx was not broadcasted, wallet re-init..."));
+			composer_->wallet()->resetCache();
+			composer_->wallet()->prepareCache();
+			done_(ProcessingError("E_TX_NOT_SENT", "Transaction was not sent."));
+		}
+	}
+
+	void timeout() {
+		error("E_TIMEOUT", "Timeout expired during accept creation.");
+	}
+
+	void error(const std::string& code, const std::string& message) {
+		gLog().writeClient(Log::CLIENT, strprintf(": %s | %s", code, message));
+		done_(ProcessingError(code, message));
+	}
+
+	void acceptSent(const uint256& tx, const std::vector<TransactionContext::Error>& errors) {
+		if (errors.size()) {
+			for (std::vector<TransactionContext::Error>::iterator lError = const_cast<std::vector<TransactionContext::Error>&>(errors).begin(); 
+					lError != const_cast<std::vector<TransactionContext::Error>&>(errors).end(); lError++) {
+				gLog().writeClient(Log::CLIENT, strprintf("[error]: %s", lError->data()));
+				done_(ProcessingError("E_SENT_TX", lError->data()));
+			}
+
+			return;
+		} else {
+			std::cout << "accept: " << tx.toHex() << std::endl;
+		}
+
+		done_(ProcessingError());
+	}
+
+	void createBuzz();
+
+private:
+	BuzzerLightComposerPtr composer_;
+	ConversationsfeedPtr conversations_;
+	doneWithErrorFunction done_;
+
+	TransactionContextPtr ctx_;
+};	
+
+class DeclineConversationCommand;
+typedef std::shared_ptr<DeclineConversationCommand> DeclineConversationCommandPtr;
+
+class DeclineConversationCommand: public ICommand, public std::enable_shared_from_this<DeclineConversationCommand> {
+public:
+	DeclineConversationCommand(BuzzerLightComposerPtr composer, ConversationsfeedPtr conversations, doneWithErrorFunction done): composer_(composer), conversations_(conversations), done_(done) {}
+
+	void process(const std::vector<std::string>&);
+	std::set<std::string> name() {
+		std::set<std::string> lSet;
+		lSet.insert("declineConversation"); 
+		lSet.insert("decline");
+		lSet.insert("dec"); 
+		return lSet;
+	}
+
+	void help() {
+		std::cout << "declineConversation | decline | dec <conversation_id>" << std::endl;
+		std::cout << "\tDecline pending conversation." << std::endl;
+		std::cout << "\t<conversation_id> - required, conversation id" << std::endl;
+		std::cout << "\texample:\n\t\t>decline d1bb559d3a912a0838163c8ea76eb753e5b99e3b24162bb56d2a6426fb3b7f83" << std::endl << std::endl;
+	}	
+
+	static ICommandPtr instance(BuzzerLightComposerPtr composer, ConversationsfeedPtr conversations, doneWithErrorFunction done) {
+		return std::make_shared<DeclineConversationCommand>(composer, conversations, done); 
+	}
+
+	// callbacks
+	void created(TransactionContextPtr ctx) {
+		//
+		ctx_ = ctx;
+		if (!composer_->requestProcessor()->sendTransaction(ctx->tx()->chain(), ctx,
+				SentTransaction::instance(
+					boost::bind(&DeclineConversationCommand::declineSent, shared_from_this(), _1, _2),
+					boost::bind(&DeclineConversationCommand::timeout, shared_from_this())))) {
+			gLog().writeClient(Log::CLIENT, std::string(": tx was not broadcasted, wallet re-init..."));
+			composer_->wallet()->resetCache();
+			composer_->wallet()->prepareCache();
+			done_(ProcessingError("E_TX_NOT_SENT", "Transaction was not sent."));
+		}
+	}
+
+	void timeout() {
+		error("E_TIMEOUT", "Timeout expired during decline creation.");
+	}
+
+	void error(const std::string& code, const std::string& message) {
+		gLog().writeClient(Log::CLIENT, strprintf(": %s | %s", code, message));
+		done_(ProcessingError(code, message));
+	}
+
+	void declineSent(const uint256& tx, const std::vector<TransactionContext::Error>& errors) {
+		if (errors.size()) {
+			for (std::vector<TransactionContext::Error>::iterator lError = const_cast<std::vector<TransactionContext::Error>&>(errors).begin(); 
+					lError != const_cast<std::vector<TransactionContext::Error>&>(errors).end(); lError++) {
+				gLog().writeClient(Log::CLIENT, strprintf("[error]: %s", lError->data()));
+				done_(ProcessingError("E_SENT_TX", lError->data()));
+			}
+
+			return;
+		} else {
+			std::cout << "decline: " << tx.toHex() << std::endl;
+		}
+
+		done_(ProcessingError());
+	}
+
+	void createBuzz();
+
+private:
+	BuzzerLightComposerPtr composer_;
+	ConversationsfeedPtr conversations_;
+	doneWithErrorFunction done_;
+
+	TransactionContextPtr ctx_;
+};	
+
+class CreateBuzzerMessageCommand;
+typedef std::shared_ptr<CreateBuzzerMessageCommand> CreateBuzzerMessageCommandPtr;
+
+class CreateBuzzerMessageCommand: public ICommand, public std::enable_shared_from_this<CreateBuzzerMessageCommand> {
+public:
+	CreateBuzzerMessageCommand(BuzzerLightComposerPtr composer, ConversationsfeedPtr conversations, doneWithErrorFunction done): composer_(composer), conversations_(conversations), done_(done) {}
+
+	void process(const std::vector<std::string>&);
+	std::set<std::string> name() {
+		std::set<std::string> lSet;
+		lSet.insert("createMessage"); 
+		lSet.insert("message");
+		lSet.insert("msg"); 
+		return lSet;
+	}
+
+	void help() {
+		std::cout << "createMessage | message | msg <conversation_id> \"<message>\" [mediafile1 mediafile2 ...]" << std::endl;
+		std::cout << "\tSend message to the conversation. Message body and media will be encrypted." << std::endl;
+		std::cout << "\t<buzz_id> 	- required, conversation id" << std::endl;
+		std::cout << "\t<message> 	- required, message body; can contains multibyte sequences, i.e. 😀 (up to 512 bytes)" << std::endl;
+		std::cout << "\t[mediafile]	- optional, media file to upload" << std::endl;
+		std::cout << "\texample:\n\t\t>msg d1bb559d3a912a0838163c8ea76eb753e5b99e3b24162bb56d2a6426fb3b7f83 \"Hi, Bob, and welcome!\"" << std::endl << std::endl;
+	}	
+
+	static ICommandPtr instance(BuzzerLightComposerPtr composer, ConversationsfeedPtr conversations, doneWithErrorFunction done) {
+		return std::make_shared<CreateBuzzerMessageCommand>(composer, conversations, done); 
+	}
+
+	// callbacks
+	void created(TransactionContextPtr ctx) {
+		//
+		ctx_ = ctx;
+		//
+		// push linked and newly created txs; order matters
+		for (std::list<TransactionContextPtr>::iterator lLinkedCtx = ctx->linkedTxs().begin(); lLinkedCtx != ctx->linkedTxs().end(); lLinkedCtx++) {
+			if (!composer_->requestProcessor()->sendTransaction(ctx->tx()->chain(), *lLinkedCtx,
+					SentTransaction::instance(
+						boost::bind(&CreateBuzzerMessageCommand::feeSent, shared_from_this(), _1, _2),
+						boost::bind(&CreateBuzzerMessageCommand::timeout, shared_from_this())))) {
+				gLog().writeClient(Log::CLIENT, std::string(": tx was not broadcasted, wallet re-init..."));
+				composer_->wallet()->resetCache();
+				composer_->wallet()->prepareCache();
+				done_(ProcessingError("E_TX_NOT_SENT", "Transaction was not sent."));
+			}
+		}
+
+		if (!composer_->requestProcessor()->sendTransaction(ctx->tx()->chain(), ctx,
+				SentTransaction::instance(
+					boost::bind(&CreateBuzzerMessageCommand::messageSent, shared_from_this(), _1, _2),
+					boost::bind(&CreateBuzzerMessageCommand::timeout, shared_from_this())))) {
+			gLog().writeClient(Log::CLIENT, std::string(": tx was not broadcasted, wallet re-init..."));
+			composer_->wallet()->resetCache();
+			composer_->wallet()->prepareCache();
+			done_(ProcessingError("E_TX_NOT_SENT", "Transaction was not sent."));
+		}
+	}
+
+	void timeout() {
+		error("E_TIMEOUT", "Timeout expired during buzz creation.");
+	}
+
+	void error(const std::string& code, const std::string& message) {
+		gLog().writeClient(Log::CLIENT, strprintf(": %s | %s", code, message));
+		done_(ProcessingError(code, message));
+	}
+
+	void feeSent(const uint256& tx, const std::vector<TransactionContext::Error>& errors) {
+		//
+		if (errors.size()) {
+			for (std::vector<TransactionContext::Error>::iterator lError = const_cast<std::vector<TransactionContext::Error>&>(errors).begin(); 
+					lError != const_cast<std::vector<TransactionContext::Error>&>(errors).end(); lError++) {
+				gLog().writeClient(Log::CLIENT, strprintf("[error]: %s", lError->data()));
+				done_(ProcessingError("E_SENT_TX", lError->data()));
+			}
+
+			return;
+		} else {
+			std::cout << "    fee: " << tx.toHex() << std::endl;
+			//
+			TransactionContextPtr lFee = ctx_->locateByType(Transaction::FEE);
+			for (std::list<Transaction::NetworkUnlinkedOutPtr>::iterator lOut = lFee->externalOuts().begin(); 
+																			lOut != lFee->externalOuts().end(); lOut++) {
+				composer_->wallet()->updateOut(*lOut, ctx_->tx()->id(), ctx_->tx()->type());
+			}
+		}
+
+		feeSent_ = true;
+		if (feeSent_ && messageSent_) done_(ProcessingError());
+	}
+
+	void messageSent(const uint256& tx, const std::vector<TransactionContext::Error>& errors) {
+		if (errors.size()) {
+			for (std::vector<TransactionContext::Error>::iterator lError = const_cast<std::vector<TransactionContext::Error>&>(errors).begin(); 
+					lError != const_cast<std::vector<TransactionContext::Error>&>(errors).end(); lError++) {
+				gLog().writeClient(Log::CLIENT, strprintf("[error]: %s", lError->data()));
+				done_(ProcessingError("E_SENT_TX", lError->data()));
+			}
+
+			return;
+		} else {
+			std::cout << "message: " << tx.toHex() << std::endl;
+		}
+
+		messageSent_ = true;
+		if (feeSent_ && messageSent_) done_(ProcessingError());
+	}
+
+	void setUploadMedia(ICommandPtr uploadMedia) {
+		uploadMedia_ = uploadMedia;
+	}
+
+	void uploadNextMedia(const PKey&);
+	void mediaUploaded(TransactionPtr, const ProcessingError&);
+
+	void setMediaUploaded(doneTransactionWithErrorFunction mediaUploaded) {
+		mediaUploaded_ = mediaUploaded;
+	}
+
+	void createBuzz(const PKey&);
+	void conversationLoaded(TransactionPtr);
+	void createMessage(const PKey&);
+
+private:
+	BuzzerLightComposerPtr composer_;
+	ConversationsfeedPtr conversations_;
+	doneWithErrorFunction done_;
+	doneTransactionWithErrorFunction mediaUploaded_;
+	PKey pkey_;
+
+	uint256 conversationId_;
+	std::string body_;
+
+	ICommandPtr uploadMedia_;
+	std::vector<BuzzerMediaPointer> mediaPointers_;
+	std::vector<std::string> mediaFiles_;
+
+	TransactionContextPtr ctx_;
+
+	bool feeSent_ = false;
+	bool messageSent_ = false;
+};	
+
+class SelectConversationCommand;
+typedef std::shared_ptr<SelectConversationCommand> SelectConversationCommandPtr;
+
+class SelectConversationCommand: public ICommand, public std::enable_shared_from_this<SelectConversationCommand> {
+public:
+	SelectConversationCommand(BuzzerLightComposerPtr composer, BuzzfeedPtr buzzFeed, doneWithErrorFunction done): composer_(composer), buzzFeed_(buzzFeed), done_(done) {}
+
+	void process(const std::vector<std::string>&);
+	std::set<std::string> name() {
+		std::set<std::string> lSet;
+		lSet.insert("selectConversation"); 
+		lSet.insert("select");
+		lSet.insert("selc"); 
+		return lSet;
+	}
+
+	void help() {
+		std::cout << "selectConversation | select | selc <conversation_id>" << std::endl;
+		std::cout << "\tSelect conversation for interactive messaging." << std::endl;
+		std::cout << "\t<conversation_id> - required, conversation id" << std::endl;
+		std::cout << "\texample:\n\t\t>select d1bb559d3a912a0838163c8ea76eb753e5b99e3b24162bb56d2a6426fb3b7f83" << std::endl << std::endl;
+	}	
+
+	static ICommandPtr instance(BuzzerLightComposerPtr composer, BuzzfeedPtr buzzFeed, doneWithErrorFunction done) {
+		return std::make_shared<SelectConversationCommand>(composer, buzzFeed, done); 
+	}
+
+	void error(const std::string& code, const std::string& message) {
+		gLog().writeClient(Log::CLIENT, strprintf(": %s | %s", code, message));
+		done_(ProcessingError(code, message));
+	}
+
+private:
+	BuzzerLightComposerPtr composer_;
+	BuzzfeedPtr buzzFeed_;
+	doneWithErrorFunction done_;
+
+	TransactionContextPtr ctx_;
+};	
+
+class ConversationListCommand;
+typedef std::shared_ptr<ConversationListCommand> ConversationListCommandPtr;
+
+class ConversationListCommand: public ICommand, public std::enable_shared_from_this<ConversationListCommand> {
+public:
+	ConversationListCommand(BuzzerLightComposerPtr composer, BuzzfeedPtr buzzFeed, doneFunction done): composer_(composer), buzzFeed_(buzzFeed), done_(done) {}
+
+	void process(const std::vector<std::string>&);
+	std::set<std::string> name() {
+		std::set<std::string> lSet;
+		lSet.insert("conversationList"); 
+		lSet.insert("cclist"); 
+		lSet.insert("ccl"); 
+		return lSet;
+	}
+
+	void help() {
+		std::cout << "conversationList | cclist | ccl" << std::endl;
+		std::cout << "\tShow current conversation messages." << std::endl;
+		std::cout << "\texample:\n\t\t>ccl" << std::endl << std::endl;
+	}	
+
+	static ICommandPtr instance(BuzzerLightComposerPtr composer, BuzzfeedPtr buzzFeed, doneFunction done) { 
+		return std::make_shared<ConversationListCommand>(composer, buzzFeed, done); 
+	}
+
+	void error(const std::string& code, const std::string& message) {
+		gLog().writeClient(Log::CLIENT, strprintf(": %s | %s", code, message));
+		done_();
+	}
+
+	void buzzesLoaded(const std::vector<BuzzfeedItem>& /*feed*/, const uint256& /*chain*/);
+
+	void processPengingInfos();
+	void buzzerInfoLoaded(const std::vector<TransactionPtr>&);
+	void show();
+
+	void timeout() {
+		error("E_TIMEOUT", "Timeout expired during buzzes loading.");
+	}
+
+	void display(const std::vector<BuzzfeedItemPtr>&);
+
+private:
+	BuzzerLightComposerPtr composer_;
+	BuzzfeedPtr buzzFeed_;
+	doneFunction done_;
+	std::map<uint256 /*chain*/, std::set<uint256>/*items*/> pending_;
+	std::set<uint256> pendingLoaded_;
+	std::map<uint256 /*chain*/, std::set<uint256>/*items*/> pengindChainInfos_;
+	std::map<uint256 /*info tx*/, Buzzer::Info> pendingInfos_;
+	int pendingChainInfosLoaded_ = 0;
+};
+
+class DecryptBuzzerMessageCommand;
+typedef std::shared_ptr<DecryptBuzzerMessageCommand> DecryptBuzzerMessageCommandPtr;
+
+class DecryptBuzzerMessageCommand: public ICommand, public std::enable_shared_from_this<DecryptBuzzerMessageCommand> {
+public:
+	DecryptBuzzerMessageCommand(BuzzerLightComposerPtr composer, ConversationsfeedPtr conversations, BuzzfeedPtr conversation, doneStringStringWithErrorFunction done): 
+		composer_(composer), conversations_(conversations), conversation_(conversation), done_(done) {}
+
+	void process(const std::vector<std::string>&);
+	std::set<std::string> name() {
+		std::set<std::string> lSet;
+		lSet.insert("decryptMessage"); 
+		lSet.insert("decrypt");
+		return lSet;
+	}
+
+	void help() {
+		std::cout << "decryptMessage | decrypt <message_id>" << std::endl;
+		std::cout << "\tDecrypt message." << std::endl;
+		std::cout << "\t<message_id> - required, message id" << std::endl;
+		std::cout << "\texample:\n\t\t>decrypt d1bb559d3a912a0838163c8ea76eb753e5b99e3b24162bb56d2a6426fb3b7f83" << std::endl << std::endl;
+	}	
+
+	static ICommandPtr instance(BuzzerLightComposerPtr composer, ConversationsfeedPtr conversations, BuzzfeedPtr conversation, doneStringStringWithErrorFunction done) {
+		return std::make_shared<DecryptBuzzerMessageCommand>(composer, conversations, conversation, done); 
+	}
+
+	void timeout() {
+		error("E_TIMEOUT", "Timeout expired during message decryption.");
+	}
+
+	void error(const std::string& code, const std::string& message) {
+		gLog().writeClient(Log::CLIENT, strprintf(": %s | %s", code, message));
+		done_("", "", ProcessingError(code, message));
+	}
+
+	void conversationLoaded(TransactionPtr);
+
+private:
+	BuzzerLightComposerPtr composer_;
+	ConversationsfeedPtr conversations_;
+	BuzzfeedPtr conversation_;
+	doneStringStringWithErrorFunction done_;
+
+	uint256 messageId_;
+};	
+
+class DecryptMessageBodyCommand;
+typedef std::shared_ptr<DecryptMessageBodyCommand> DecryptMessageBodyCommandPtr;
+
+class DecryptMessageBodyCommand: public ICommand, public std::enable_shared_from_this<DecryptMessageBodyCommand> {
+public:
+	DecryptMessageBodyCommand(BuzzerLightComposerPtr composer, ConversationsfeedPtr conversations, doneStringStringWithErrorFunction done): 
+		composer_(composer), conversations_(conversations), done_(done) {}
+
+	void process(const std::vector<std::string>&);
+	std::set<std::string> name() {
+		std::set<std::string> lSet;
+		lSet.insert("decryptBody"); 
+		return lSet;
+	}
+
+	void help() {
+		std::cout << "decryptBody <conversation_id>" << std::endl;
+		std::cout << "\tDecrypt conversation body (last message)." << std::endl;
+		std::cout << "\t<conversation_id> - required, conversation id" << std::endl;
+		std::cout << "\texample:\n\t\t>decrypt d1bb559d3a912a0838163c8ea76eb753e5b99e3b24162bb56d2a6426fb3b7f83" << std::endl << std::endl;
+	}	
+
+	static ICommandPtr instance(BuzzerLightComposerPtr composer, ConversationsfeedPtr conversations, doneStringStringWithErrorFunction done) {
+		return std::make_shared<DecryptMessageBodyCommand>(composer, conversations, done); 
+	}
+
+	void timeout() {
+		error("E_TIMEOUT", "Timeout expired during message decryption.");
+	}
+
+	void error(const std::string& code, const std::string& message) {
+		gLog().writeClient(Log::CLIENT, strprintf(": %s | %s", code, message));
+		done_("", "", ProcessingError(code, message));
+	}
+
+	void conversationLoaded(TransactionPtr);
+
+private:
+	BuzzerLightComposerPtr composer_;
+	ConversationsfeedPtr conversations_;
+	BuzzfeedPtr conversation_;
+	doneStringStringWithErrorFunction done_;
+
+	uint256 conversationId_;
+};	
+
+class LoadCounterpartyKeyCommand;
+typedef std::shared_ptr<LoadCounterpartyKeyCommand> LoadCounterpartyKeyCommandPtr;
+
+class LoadCounterpartyKeyCommand: public ICommand, public std::enable_shared_from_this<LoadCounterpartyKeyCommand> {
+public:
+	LoadCounterpartyKeyCommand(BuzzerLightComposerPtr composer, ConversationsfeedPtr conversations, doneWithErrorFunction done): 
+		composer_(composer), conversations_(conversations), done_(done) {}
+
+	void process(const std::vector<std::string>&);
+	std::set<std::string> name() {
+		std::set<std::string> lSet;
+		lSet.insert("loadCounterpartyKey"); 
+		lSet.insert("loadCKey"); 
+		return lSet;
+	}
+
+	void help() {
+		std::cout << "loadCKey <conversation_id>" << std::endl;
+		std::cout << "\tLoad counterarty pkey." << std::endl;
+		std::cout << "\t<conversation_id> - required, conversation id" << std::endl;
+		std::cout << "\texample:\n\t\t>loadCKey d1bb559d3a912a0838163c8ea76eb753e5b99e3b24162bb56d2a6426fb3b7f83" << std::endl << std::endl;
+	}	
+
+	static ICommandPtr instance(BuzzerLightComposerPtr composer, ConversationsfeedPtr conversations, doneWithErrorFunction done) {
+		return std::make_shared<LoadCounterpartyKeyCommand>(composer, conversations, done); 
+	}
+
+	void timeout() {
+		error("E_TIMEOUT", "Timeout expired during load pkey.");
+	}
+
+	void error(const std::string& code, const std::string& message) {
+		gLog().writeClient(Log::CLIENT, strprintf(": %s | %s", code, message));
+		done_(ProcessingError(code, message));
+	}
+
+	void conversationLoaded(TransactionPtr);
+
+private:
+	BuzzerLightComposerPtr composer_;
+	ConversationsfeedPtr conversations_;
+	BuzzfeedPtr conversation_;
+	doneWithErrorFunction done_;
+
+	uint256 conversationId_;
+};	
 
 } // qbit
 

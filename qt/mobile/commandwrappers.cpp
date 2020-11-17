@@ -66,7 +66,31 @@ CreateBuzzerCommand::CreateBuzzerCommand(QObject* /*parent*/) : QObject() {
 		qbit::cubix::UploadMediaCommand::instance(
 			lClient->getCubixComposer(),
 			boost::bind(&CreateBuzzerCommand::headerUploadProgress, this, _1, _2, _3),
+			"760x570", // special header case - higher resolution for image
 			boost::bind(&qbit::CreateBuzzerCommand::headerUploaded, command_, _1, _2))
+	);
+}
+
+CreateBuzzerInfoCommand::CreateBuzzerInfoCommand(QObject* /*parent*/) : QObject() {
+	//
+	Client* lClient = static_cast<Client*>(gApplication->getClient());
+
+	command_ = std::static_pointer_cast<qbit::CreateBuzzerInfoCommand>(
+		qbit::CreateBuzzerInfoCommand::instance(lClient->getBuzzerComposer(), boost::bind(&CreateBuzzerInfoCommand::done, this, _1, _2, _3))
+	);
+
+	command_->setUploadAvatar(
+		qbit::cubix::UploadMediaCommand::instance(
+			lClient->getCubixComposer(),
+			boost::bind(&CreateBuzzerInfoCommand::avatarUploadProgress, this, _1, _2, _3),
+			boost::bind(&qbit::CreateBuzzerInfoCommand::avatarUploaded, command_, _1, _2))
+	);
+	command_->setUploadHeader(
+		qbit::cubix::UploadMediaCommand::instance(
+			lClient->getCubixComposer(),
+			boost::bind(&CreateBuzzerInfoCommand::headerUploadProgress, this, _1, _2, _3),
+			"760x570", // special header case - higher resolution for image
+			boost::bind(&qbit::CreateBuzzerInfoCommand::headerUploaded, command_, _1, _2))
 	);
 }
 
@@ -419,7 +443,7 @@ LoadBuzzerInfoCommand::LoadBuzzerInfoCommand(QObject* /*parent*/) : QObject() {
 	command_ = std::static_pointer_cast<qbit::LoadBuzzerInfoCommand>(
 			qbit::LoadBuzzerInfoCommand::instance(
 				lClient->getBuzzerComposer(),
-				boost::bind(&LoadBuzzerInfoCommand::done, this, _1, _2, _3, _4))
+				boost::bind(&LoadBuzzerInfoCommand::done, this, _1, _2, _3, _4, _5))
 	);
 }
 
@@ -619,4 +643,221 @@ QString LoadEntityCommand::extractAddress() {
 
 SendToAddressCommand::SendToAddressCommand(QObject* /*parent*/) : QObject() {
 	//
+}
+
+//
+// LoadConversationsCommand
+//
+
+LoadConversationsCommand::LoadConversationsCommand(QObject* /*parent*/) : QObject() {}
+
+void LoadConversationsCommand::prepare() {
+	//
+	if (!command_ && conversationsModel_) {
+		Client* lClient = static_cast<Client*>(gApplication->getClient());
+
+		command_ = std::static_pointer_cast<qbit::LoadConversationsCommand>(
+			qbit::LoadConversationsCommand::instance(
+				lClient->getBuzzerComposer(),
+				conversationsModel_->conversations(),
+				boost::bind(&LoadConversationsCommand::ready, this, _1, _2),
+				boost::bind(&LoadConversationsCommand::done, this, _1)
+			)
+		);
+
+		connect(this, SIGNAL(dataReady(const qbit::ConversationsfeedProxy&, bool)), conversationsModel_, SLOT(feedSlot(const qbit::ConversationsfeedProxy&, bool)));
+	}
+}
+
+void LoadConversationsCommand::ready(qbit::ConversationsfeedPtr /*base*/, qbit::ConversationsfeedPtr local) {
+	//
+	if (conversationsModel_) {
+		emit dataReady(qbit::ConversationsfeedProxy(local), more_);
+	}
+}
+
+//
+// CreateConversationCommand
+//
+
+CreateConversationCommand::CreateConversationCommand(QObject* /*parent*/) : QObject() {
+	//
+	Client* lClient = static_cast<Client*>(gApplication->getClient());
+	//
+	command_ = std::static_pointer_cast<qbit::CreateBuzzerConversationCommand>(
+		qbit::CreateBuzzerConversationCommand::instance(
+			lClient->getBuzzerComposer(),
+			boost::bind(&CreateConversationCommand::done, this, _1)
+		)
+	);
+}
+
+//
+// AcceptConversationCommand
+//
+
+AcceptConversationCommand::AcceptConversationCommand(QObject* /*parent*/) : QObject() {}
+
+void AcceptConversationCommand::prepare() {
+	//
+	if (!command_ && conversationsfeedModel_) {
+		Client* lClient = static_cast<Client*>(gApplication->getClient());
+
+		command_ = std::static_pointer_cast<qbit::AcceptConversationCommand>(
+			qbit::AcceptConversationCommand::instance(
+				lClient->getBuzzerComposer(),
+				conversationsfeedModel_->conversations(),
+				boost::bind(&AcceptConversationCommand::done, this, _1)
+			)
+		);
+	}
+}
+
+//
+// DeclineConversationCommand
+//
+
+DeclineConversationCommand::DeclineConversationCommand(QObject* /*parent*/) : QObject() {}
+
+void DeclineConversationCommand::prepare() {
+	//
+	if (!command_ && conversationsfeedModel_) {
+		Client* lClient = static_cast<Client*>(gApplication->getClient());
+
+		command_ = std::static_pointer_cast<qbit::DeclineConversationCommand>(
+			qbit::DeclineConversationCommand::instance(
+				lClient->getBuzzerComposer(),
+				conversationsfeedModel_->conversations(),
+				boost::bind(&DeclineConversationCommand::done, this, _1)
+			)
+		);
+	}
+}
+
+//
+// DecryptMessageBodyCommand
+//
+
+DecryptMessageBodyCommand::DecryptMessageBodyCommand(QObject* /*parent*/) : QObject() {}
+
+void DecryptMessageBodyCommand::prepare() {
+	//
+	if (!command_ && conversationsfeedModel_) {
+		Client* lClient = static_cast<Client*>(gApplication->getClient());
+
+		command_ = std::static_pointer_cast<qbit::DecryptMessageBodyCommand>(
+			qbit::DecryptMessageBodyCommand::instance(
+				lClient->getBuzzerComposer(),
+				conversationsfeedModel_->conversations(),
+				boost::bind(&DecryptMessageBodyCommand::done, this, _1, _2, _3)
+			)
+		);
+	}
+}
+
+//
+// LoadConversationMessagesCommand
+//
+
+LoadConversationMessagesCommand::LoadConversationMessagesCommand(QObject* /*parent*/) : QObject() {}
+
+void LoadConversationMessagesCommand::prepare() {
+	//
+	if (!command_ && buzzfeedModel_) {
+		Client* lClient = static_cast<Client*>(gApplication->getClient());
+
+		uint256 lRootId; lRootId.setHex(conversationId_.toStdString());
+		// interlink & receive realtime updates
+		buzzfeedModel_->buzzfeed()->setRootBuzzId(lRootId);
+		lClient->getBuzzerComposer()->buzzer()->setConversation(buzzfeedModel_->buzzfeed());
+		// prepare command
+		command_ = std::static_pointer_cast<qbit::LoadMessagesCommand>(
+			qbit::LoadMessagesCommand::instance(
+				lClient->getBuzzerComposer(),
+				buzzfeedModel_->buzzfeed(),
+				boost::bind(&LoadConversationMessagesCommand::ready, this, _1, _2),
+				boost::bind(&LoadConversationMessagesCommand::done, this, _1)
+			)
+		);
+
+		connect(this, SIGNAL(dataReady(const qbit::BuzzfeedProxy&, bool)), buzzfeedModel_, SLOT(feedSlot(const qbit::BuzzfeedProxy&, bool)));
+	}
+}
+
+void LoadConversationMessagesCommand::ready(qbit::BuzzfeedPtr /*base*/, qbit::BuzzfeedPtr local) {
+	//
+	if (buzzfeedModel_) {
+		emit dataReady(qbit::BuzzfeedProxy(local), more_);
+	}
+}
+
+//
+// ConversationMessageCommand
+//
+
+ConversationMessageCommand::ConversationMessageCommand(QObject* /*parent*/) : QObject() {
+}
+
+void ConversationMessageCommand::prepare() {
+	//
+	Client* lClient = static_cast<Client*>(gApplication->getClient());
+
+	command_ = std::static_pointer_cast<qbit::CreateBuzzerMessageCommand>(
+		qbit::CreateBuzzerMessageCommand::instance(
+			lClient->getBuzzerComposer(),
+			std::static_pointer_cast<qbit::Conversationsfeed>(lClient->getBuzzer()->conversations()),
+			boost::bind(&ConversationMessageCommand::done, this, _1))
+	);
+
+	if (uploadCommand_) {
+		// link command
+		command_->setUploadMedia(uploadCommand_->command());
+		uploadCommand_->setDone(boost::bind(&qbit::CreateBuzzerMessageCommand::mediaUploaded, command_, _1, _2));
+
+		// link notification
+		command_->setMediaUploaded(boost::bind(&ConversationMessageCommand::mediaUploaded, this, _1, _2));
+	}
+}
+
+//
+// DecryptBuzzerMessageCommand
+//
+
+DecryptBuzzerMessageCommand::DecryptBuzzerMessageCommand(QObject* /*parent*/) : QObject() {}
+
+void DecryptBuzzerMessageCommand::prepare() {
+	//
+	if (!command_ && conversationModel_) {
+		Client* lClient = static_cast<Client*>(gApplication->getClient());
+
+		command_ = std::static_pointer_cast<qbit::DecryptBuzzerMessageCommand>(
+			qbit::DecryptBuzzerMessageCommand::instance(
+				lClient->getBuzzerComposer(),
+				std::static_pointer_cast<qbit::Conversationsfeed>(lClient->getBuzzer()->conversations()),
+				conversationModel_->buzzfeed(),
+				boost::bind(&DecryptBuzzerMessageCommand::done, this, _1, _2, _3)
+			)
+		);
+	}
+}
+
+//
+// LoadCounterpartyKeyCommand
+//
+
+LoadCounterpartyKeyCommand::LoadCounterpartyKeyCommand(QObject* /*parent*/) : QObject() {}
+
+void LoadCounterpartyKeyCommand::prepare() {
+	//
+	if (!command_) {
+		Client* lClient = static_cast<Client*>(gApplication->getClient());
+
+		command_ = std::static_pointer_cast<qbit::LoadCounterpartyKeyCommand>(
+			qbit::LoadCounterpartyKeyCommand::instance(
+				lClient->getBuzzerComposer(),
+				std::static_pointer_cast<qbit::Conversationsfeed>(lClient->getBuzzer()->conversations()),
+				boost::bind(&LoadCounterpartyKeyCommand::done, this, _1)
+			)
+		);
+	}
 }

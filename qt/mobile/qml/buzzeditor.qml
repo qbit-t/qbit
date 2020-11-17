@@ -50,14 +50,18 @@ QuarkPage {
 	property bool buzz_: true;
 	property bool rebuzz_: false;
 	property bool reply_: false;
+	property bool message_: false;
 	property var buzzfeedModel_;
 	property var buzzItem_;
+	property var pkey_: "";
+	property var conversation_: "";
 
 	function initializeRebuzz(item, model) {
 		buzzItem_ = item;
 		buzzfeedModel_ = model;
 		buzz_ = false;
 		rebuzz_ = true;
+		message_ = false;
 
 		bodyContainer.wrapItem(item);
 	}
@@ -67,6 +71,7 @@ QuarkPage {
 		buzzfeedModel_ = model;
 		buzz_ = false;
 		reply_ = true;
+		message_ = false;
 
 		if (text) buzzText.text = text;
 
@@ -77,6 +82,18 @@ QuarkPage {
 		buzz_ = true;
 		reply_ = false;
 		rebuzz_ = false;
+		message_ = false;
+
+		if (text) buzzText.text = text;
+	}
+
+	function initializeMessage(text, pkey, conversation) {
+		buzz_ = false;
+		reply_ = false;
+		rebuzz_ = false;
+		message_ = true;
+		pkey_ = pkey;
+		conversation_ = conversation;
 
 		if (text) buzzText.text = text;
 	}
@@ -139,7 +156,8 @@ QuarkPage {
 			y: topOffset + parent.height / 2 - height / 2
 			text: buzz_ ? buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.editor.buzz") :
 						  rebuzz_ ? buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.editor.rebuzz") :
-									buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.editor.reply")
+									message_ ? buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.editor.send") :
+											   buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.editor.reply")
 
 			textColor: !sending ?
 						 buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground") :
@@ -154,6 +172,7 @@ QuarkPage {
 					if (rebuzz_) buzzeditor_.createRebuzz(buzzItem_.buzzId);
 					else if (reply_) buzzeditor_.createReply(buzzItem_.buzzId);
 					else if (buzz_) buzzeditor_.createBuzz();
+					else if (message_) buzzeditor_.createMessage();
 				}
 			}
 		}
@@ -846,6 +865,7 @@ QuarkPage {
 
 	BuzzerCommands.UploadMediaCommand {
 		id: uploadBuzzMedia
+		pkey: pkey_
 
 		onProgress: {
 			//
@@ -922,6 +942,26 @@ QuarkPage {
 			createProgressBar.value = 1.0;
 			controller.popPage();
 		}
+		onError: {
+			createProgressBar.visible = false;
+			sending = false;
+			handleError(code, message);
+		}
+
+		onMediaUploaded: {
+			createProgressBar.indeterminate = true;
+		}
+	}
+
+	BuzzerCommands.ConversationMessageCommand {
+		id: messageCommand
+		uploadCommand: uploadBuzzMedia
+
+		onProcessed: {
+			createProgressBar.value = 1.0;
+			controller.popPage();
+		}
+
 		onError: {
 			createProgressBar.visible = false;
 			sending = false;
@@ -1020,6 +1060,37 @@ QuarkPage {
 		if (buzzId) replyCommand.buzzId = buzzId;
 
 		replyCommand.process();
+	}
+
+	function createMessage() {
+		//
+		var lText = buzzerClient.getPlainText(buzzText.textDocument);
+		if (lText.length === 0) lText = buzzText.preeditText;
+
+		if (lText.length === 0 && mediaModel.count === 0) {
+			handleError("E_BUZZ_IS_EMPTY", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZ_IS_EMPTY"));
+			sending = false;
+			return;
+		}
+
+		//
+		createProgressBar.indeterminate = true;
+		createProgressBar.visible = true;
+
+		//
+		if (conversation_ !== "") messageCommand.conversation = conversation_;
+		messageCommand.messageBody = lText;
+		//
+		var lBuzzers = buzzerClient.extractBuzzers(messageCommand.messageBody);
+		for (var lIdx = 0; lIdx < lBuzzers.length; lIdx++) {
+			messageCommand.addBuzzer(lBuzzers[lIdx]);
+		}
+
+		for (lIdx = 0; lIdx < mediaModel.count; lIdx++) {
+			messageCommand.addMedia(mediaModel.get(lIdx).key);
+		}
+
+		messageCommand.process();
 	}
 
 	function handleError(code, message) {

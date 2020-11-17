@@ -194,6 +194,10 @@ public:
     Q_INVOKABLE bool getDebug();
     Q_INVOKABLE bool getNetworkDebug();
 
+	Q_INVOKABLE QString qttAsset() {
+		return QString::fromStdString(getQttAsset());
+	}
+
     Q_INVOKABLE QString getLanguages();
     Q_INVOKABLE QString getColorSchemes();
 
@@ -208,7 +212,10 @@ public:
     Q_INVOKABLE void stopNotificator();
     Q_INVOKABLE void startNotificator();
 
-    Q_INVOKABLE void startFingerprintAuth();
+	Q_INVOKABLE void pauseNotifications();
+	Q_INVOKABLE void resumeNotifications();
+
+	Q_INVOKABLE void startFingerprintAuth();
     Q_INVOKABLE void stopFingerprintAuth();
 	Q_INVOKABLE bool isFingerprintAuthAvailable();
     Q_INVOKABLE void enablePinStore(QString);
@@ -229,6 +236,7 @@ public:
 	std::string getLogCategories();
 	bool getTestNet();
 	std::string getPeers();
+	std::string getQttAsset();
 
     void emit_fingertipAuthSuccessed(QString);
     void emit_fingertipAuthFailed();

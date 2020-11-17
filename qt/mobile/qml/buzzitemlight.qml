@@ -34,24 +34,24 @@ Item {
 	property var buzzerInfoChainId_//: buzzerInfoChainId
 	property var buzzBody_: buzzBody
 	property var buzzMedia_: buzzMedia
-	property var replies_: replies
-	property var rebuzzes_: rebuzzes
-	property var likes_: likes
-	property var rewards_: rewards
-	property var originalBuzzId_: originalBuzzId
-	property var originalBuzzChainId_: originalBuzzChainId
-	property var hasParent_: hasParent
+	//property var replies_: replies
+	//property var rebuzzes_: rebuzzes
+	//property var likes_: likes
+	//property var rewards_: rewards
+	//property var originalBuzzId_: originalBuzzId
+	//property var originalBuzzChainId_: originalBuzzChainId
+	//property var hasParent_: hasParent
 	property var value_: value
-	property var buzzInfos_: buzzInfos
-	property var buzzerName_: buzzerName
-	property var buzzerAlias_: buzzerAlias
-	property var childrenCount_: childrenCount
-	property var hasPrevSibling_: hasPrevSibling
-	property var hasNextSibling_: hasNextSibling
-	property var prevSiblingId_: prevSiblingId
-	property var nextSiblingId_: nextSiblingId
-	property var firstChildId_: firstChildId
-	property var wrapped_: wrapped
+	//property var buzzInfos_: buzzInfos
+	//property var buzzerName_: buzzerName
+	//property var buzzerAlias_: buzzerAlias
+	//property var childrenCount_: childrenCount
+	//property var hasPrevSibling_: hasPrevSibling
+	//property var hasNextSibling_: hasNextSibling
+	//property var prevSiblingId_: prevSiblingId
+	//property var nextSiblingId_: nextSiblingId
+	//property var firstChildId_: firstChildId
+	//property var wrapped_: wrapped
 	property var childLink_: false
 	property var parentLink_: false
 	property var lastUrl_: lastUrl

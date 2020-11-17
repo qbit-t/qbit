@@ -75,6 +75,7 @@ class WalletTransactionsListModel: public QAbstractListModel {
 
 	Q_PROPERTY(ulong count READ count NOTIFY countChanged)
 	Q_PROPERTY(bool noMoreData READ noMoreData NOTIFY noMoreDataChanged)
+	Q_PROPERTY(QString asset READ asset WRITE setAsset NOTIFY assetChanged)
 
 public:
 	enum WalletTransactionRoles {
@@ -110,6 +111,11 @@ public:
 	ulong count() { return list_.size(); }
 	bool noMoreData() { return noMoreData_; }
 
+	QString asset() { return QString::fromStdString(asset_.toHex()); }
+	void setAsset(QString asset) {
+		asset_.setHex(asset.toStdString());
+	}
+
 	void walletReceiveTransaction(qbit::Transaction::UnlinkedOutPtr, qbit::TransactionPtr);
 	void outUpdated(qbit::Transaction::NetworkUnlinkedOutPtr);
 	void inUpdated(qbit::Transaction::NetworkUnlinkedOutPtr);
@@ -130,6 +136,7 @@ public slots:
 signals:
 	void countChanged();
 	void noMoreDataChanged();
+	void assetChanged();
 	void walletReceiveTransactionSignal(const buzzer::UnlinkedOutProxy&, const buzzer::TransactionProxy&);
 	void outUpdatedSignal(const buzzer::NetworkUnlinkedOutProxy&);
 	void inUpdatedSignal(const buzzer::NetworkUnlinkedOutProxy&);
@@ -141,6 +148,7 @@ protected:
 	virtual void outUpdatedInternal(const NetworkUnlinkedOutProxy&);
 	virtual void inUpdatedInternal(const NetworkUnlinkedOutProxy&);
 	virtual void updatedInternal(const NetworkUnlinkedOutProxy&);
+	virtual bool processUpdate(const NetworkUnlinkedOutProxy&);
 
 protected:
 	qbit::IWalletPtr wallet_;
@@ -150,6 +158,7 @@ protected:
 	std::map<uint256, int> txIndex_;
 	std::multimap<uint64_t, uint256> order_;
 	std::vector<int> index_;
+	uint256 asset_ = qbit::TxAssetType::qbitAsset();
 	bool noMoreData_ = false;
 };
 
@@ -157,6 +166,7 @@ class WalletTransactionsListModelReceived: public WalletTransactionsListModel {
 public:
 	WalletTransactionsListModelReceived() {}
 	WalletTransactionsListModelReceived(qbit::IWalletPtr wallet) : WalletTransactionsListModel("received", wallet) {
+		QQmlEngine::setObjectOwnership(this, QQmlEngine::CppOwnership);
 	}
 
 protected:
@@ -165,12 +175,18 @@ protected:
 		//
 		wallet_->selectIns(from, items);
 	}
+	bool processUpdate(const NetworkUnlinkedOutProxy& out) {
+		//
+		qbit::Transaction::NetworkUnlinkedOutPtr lOut = out.get();
+		return !lOut->utxo().change();
+	}
 };
 
 class WalletTransactionsListModelSent: public WalletTransactionsListModel {
 public:
 	WalletTransactionsListModelSent() {}
 	WalletTransactionsListModelSent(qbit::IWalletPtr wallet) : WalletTransactionsListModel("sent", wallet) {
+		QQmlEngine::setObjectOwnership(this, QQmlEngine::CppOwnership);
 	}
 
 protected:
@@ -179,8 +195,14 @@ protected:
 		//
 		wallet_->selectOuts(from, items);
 	}
+	bool processUpdate(const NetworkUnlinkedOutProxy& out) {
+		//
+		qbit::Transaction::NetworkUnlinkedOutPtr lOut = out.get();
+		return (lOut->parentType() == qbit::Transaction::SPEND ||
+				lOut->parentType() == qbit::Transaction::SPEND_PRIVATE);
+	}
 };
 
 }
 
-#endif // EVENTSFEED_LIST_MODEL_H
+#endif // WALLETTRANSACTIONS_LIST_MODEL_H

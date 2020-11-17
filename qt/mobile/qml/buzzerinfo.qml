@@ -25,6 +25,12 @@ Item
 	property string action: "CREATE";
 	property var controller;
 
+	property string buzzerName_: action !== "CREATE" ? buzzerClient.name : "";
+	property string buzzerAlias_: action !== "CREATE" ? buzzerClient.alias : "";
+	property string buzzerDescription_: action !== "CREATE" ? buzzerClient.description : "";
+	property string buzzerAvatar_: action !== "CREATE" ? buzzerClient.avatar : "";
+	property string buzzerHeader_: action !== "CREATE" ? buzzerClient.header : "";
+
 	signal processed();
 
 	//
@@ -66,8 +72,7 @@ Item
 		}
 
 		function makeAction() {
-			if (camera.cameraState() !== Camera.ActiveState)
-			{
+			if (camera.cameraState() !== Camera.ActiveState) {
 				camera.start();
 				avatarImage.mipmap = true;
 				cancelPhotoButton.visible = true;
@@ -97,7 +102,7 @@ Item
 			if (camera.cameraState() === Camera.ActiveState) {
 				camera.stop();
 				avatarImage.mipmap = false;
-				avatarImage.source = "file://" + buzzerClient.avatar;
+				avatarImage.source = "file://" + buzzerAvatar_;
 			}
 		}
 
@@ -160,8 +165,8 @@ Item
 				}
 				function applyPicture(path) {
 					avatarImage.mipmap = false;
-					buzzerClient.avatar = path;
-					avatarImage.source = "file://" + buzzerClient.avatar;
+					buzzerAvatar_ = path;
+					avatarImage.source = "file://" + buzzerAvatar_;
 				}
 				function rotate() {
 					if (inner !== undefined) {
@@ -187,7 +192,7 @@ Item
 		height: avatarImage.displayHeight
 		fillMode: Image.PreserveAspectCrop
 
-		source: "file://" + buzzerClient.avatar
+		source: action !== "CREATE" ? "file://" + buzzerAvatar_ : ""
 
 		layer.enabled: rounded
 		layer.effect: OpacityMask {
@@ -222,8 +227,8 @@ Item
 
 		onImageFound:  {
 			avatarImage.mipmap = false;
-			buzzerClient.avatar = file;
-			avatarImage.source = "file://" + buzzerClient.avatar;
+			buzzerAvatar_ = file;
+			avatarImage.source = "file://" + buzzerAvatar_;
 		}
 	}
 
@@ -237,12 +242,12 @@ Item
 			//
 			if (destination == "avatar") {
 				avatarImage.mipmap = false;
-				buzzerClient.avatar = file;
-				avatarImage.source = "file://" + buzzerClient.avatar;
+				buzzerAvatar_ = file;
+				avatarImage.source = "file://" + buzzerAvatar_;
 				createBuzzer.enabled = createBuzzer.getEnabled();
 			} else if (destination == "header") {
-				buzzerClient.header = file;
-				headerImage.source = "file://" + buzzerClient.header;
+				buzzerHeader_ = file;
+				headerImage.source = "file://" + buzzerHeader_;
 				createBuzzer.enabled = createBuzzer.getEnabled();
 			}
 
@@ -272,13 +277,13 @@ Item
 		x: parent.width / 2 + avatarImage.width / 2 + 10
 		y: takePhotoButton.y + takePhotoButton.height + 5
 		symbol: Fonts.trashSym
-		visible: (buzzerClient.avatar !== "")
+		visible: (buzzerAvatar_ !== "")
 		labelYOffset: 3
 		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 		Layout.alignment: Qt.AlignHCenter
 
 		onClicked: {
-			buzzerClient.avatar = "";
+			buzzerAvatar_ = "";
 			avatarImage.source = "";
 			createBuzzer.enabled = createBuzzer.getEnabled();
 		}
@@ -295,17 +300,21 @@ Item
 		symbol: Fonts.userTagSym
 		clipboardButton: false
 		helpButton: true
-		placeholderText: "@" + buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.placeholder.name")
-		text: buzzerClient.name
+		placeholderText: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.placeholder.name")
+		text: action !== "CREATE" ? buzzerName_ : ""
+		enabled: action === "CREATE"
+		visible: action === "CREATE"
 
 		onHelpClicked:  {
-			var lMsgs = [];
-			lMsgs.push(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.help.name"));
-			infoDialog.show(lMsgs);
+			if (enabled) {
+				var lMsgs = [];
+				lMsgs.push(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.help.name"));
+				infoDialog.show(lMsgs);
+			}
 		}
 
 		onTextChanged: {
-			buzzerClient.name = text;
+			buzzerName_ = text;
 			createBuzzer.enabled = createBuzzer.getEnabled();
 		}
 	}
@@ -313,13 +322,14 @@ Item
 	QuarkEditBox {
 		id: aliasEditBox
 		x: 20
-		y: nameEditBox.y + nameEditBox.height + 10
+		y: nameEditBox.visible ? nameEditBox.y + nameEditBox.height + 10 :
+								 avatarImage.y + avatarImage.displayHeight + 20
 		width: parent.width - 20 * 2
 		symbol: Fonts.userAliasSym
 		clipboardButton: false
 		helpButton: true
 		placeholderText: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.placeholder.alias")
-		text: buzzerClient.alias
+		text: action !== "CREATE" ? buzzerAlias_ : ""
 
 		onHelpClicked: {
 			var lMsgs = [];
@@ -328,7 +338,7 @@ Item
 		}
 
 		onTextChanged: {
-			buzzerClient.alias = text;
+			buzzerAlias_ = text;
 			createBuzzer.enabled = createBuzzer.getEnabled();
 		}
 	}
@@ -342,7 +352,7 @@ Item
 		clipboardButton: false
 		helpButton: true
 		placeholderText: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.placeholder.description")
-		text: buzzerClient.description
+		text: action !== "CREATE" ? buzzerDescription_ : ""
 
 		onHelpClicked: {
 			var lMsgs = [];
@@ -351,7 +361,7 @@ Item
 		}
 
 		onTextChanged: {
-			buzzerClient.description = text;
+			buzzerDescription_ = text;
 			createBuzzer.enabled = createBuzzer.getEnabled();
 		}
 	}
@@ -378,7 +388,7 @@ Item
 			height: parent.height - 20
 			fillMode: Image.PreserveAspectCrop
 			autoTransform: true
-			source: "file://" + buzzerClient.header
+			source: action !== "CREATE" ? "file://" + buzzerHeader_ : ""
 		}
 	}
 
@@ -386,8 +396,8 @@ Item
 		id: headerListing
 
 		onImageFound: {
-			buzzerClient.header = file;
-			headerImage.source = "file://" + buzzerClient.header;
+			buzzerHeader_ = file;
+			headerImage.source = "file://" + buzzerHeader_;
 		}
 	}
 
@@ -419,7 +429,7 @@ Item
 		Layout.alignment: Qt.AlignHCenter
 
 		onClicked: {
-			buzzerClient.header = "";
+			buzzerHeader_ = "";
 			headerImage.source = "";
 			createBuzzer.enabled = createBuzzer.getEnabled();
 		}
@@ -452,7 +462,7 @@ Item
 		width: parent.width * 45 / 100
 		height: width
 		visible: true
-		labelYOffset: height / 2 - metrics.tightBoundingRect.height
+		labelYOffset: height / 2 //- metrics.tightBoundingRect.height
 		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 		Layout.alignment: Qt.AlignHCenter
 		radius: width / 2 //- 10
@@ -478,22 +488,27 @@ Item
 			// create buzzer
 			if (buzzerinfo_.action === "CREATE") {
 				//
-				if (buzzerClient.name === "" || buzzerClient.name[0] !== '@') {
+				if (buzzerName_ === "" || buzzerName_[0] !== '@') {
 					controller.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZER_NAME_INCORRECT"), true);
 					return;
 				}
 
-				if (buzzerClient.alias === "") {
-					controller.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZER_ALIAS_INCORREC"), true);
+				if (buzzerAlias_ === "") {
+					controller.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZER_ALIAS_INCORRECT"), true);
 					return;
 				}
 
-				if (buzzerClient.avatar === "") {
+				if (buzzerDescription_ === "") {
+					controller.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZER_DESCRIPTION_INCORRECT"), true);
+					return;
+				}
+
+				if (buzzerAvatar_ === "") {
 					controller.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZER_AVATAR_ABSENT"), true);
 					return;
 				}
 
-				if (buzzerClient.header === "") {
+				if (buzzerHeader_ === "") {
 					controller.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZER_HEADER_ABSENT"), true);
 					return;
 				}
@@ -501,22 +516,51 @@ Item
 				//
 				waitTimer.start();
 
-				createBuzzerCommand.name = buzzerClient.name;
-				createBuzzerCommand.alias = buzzerClient.alias;
-				createBuzzerCommand.description = buzzerClient.description;
-				createBuzzerCommand.avatar = buzzerClient.avatar;
-				createBuzzerCommand.header = buzzerClient.header;
+				createBuzzerCommand.name = buzzerName_;
+				createBuzzerCommand.alias = buzzerAlias_;
+				createBuzzerCommand.description = buzzerDescription_;
+				createBuzzerCommand.avatar = buzzerAvatar_;
+				createBuzzerCommand.header = buzzerHeader_;
 
 				createBuzzerCommand.process();
 			} else {
-				// create new buzzer info
+				//
+				if (buzzerAlias_ === "") {
+					controller.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZER_ALIAS_INCORRECT"), true);
+					return;
+				}
+
+				if (buzzerDescription_ === "") {
+					controller.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZER_DESCRIPTION_INCORRECT"), true);
+					return;
+				}
+
+				if (buzzerAvatar_ === "") {
+					controller.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZER_AVATAR_ABSENT"), true);
+					return;
+				}
+
+				if (buzzerHeader_ === "") {
+					controller.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZER_HEADER_ABSENT"), true);
+					return;
+				}
+
+				//
+				waitTimer.start();
+
+				createBuzzerInfoCommand.alias = buzzerAlias_;
+				createBuzzerInfoCommand.description = buzzerDescription_;
+				createBuzzerInfoCommand.avatar = buzzerAvatar_;
+				createBuzzerInfoCommand.header = buzzerHeader_;
+
+				createBuzzerInfoCommand.process();
 			}
 
 			enabled = false;
 		}
 
 		function getEnabled() {
-			return true; //buzzerClient.avatar !== "" && buzzerClient.header !== "" && buzzerClient.name !== "" && buzzerClient.alias !== "";
+			return true;
 		}
 	}
 
@@ -562,6 +606,12 @@ Item
 			buzzerStartImage.visible = false;
 			buzzerStopImage.visible = true;
 
+			buzzerClient.name = buzzerName_;
+			buzzerClient.alias = buzzerAlias_;
+			buzzerClient.description = buzzerDescription_;
+			buzzerClient.avatar = buzzerAvatar_;
+			buzzerClient.header = buzzerHeader_;
+
 			// update local info
 			buzzerClient.save();
 
@@ -570,8 +620,75 @@ Item
 
 			// setup completed
 			buzzerClient.setProperty("Client.configured", "true");
+		}
 
-			console.log("[buzzer]: buzzer = " + buzzer + ", chain = " + buzzerChain + ", info = " + buzzerInfo + ", info_chain = " + buzzerInfoChain);
+		onAvatarProcessed: {
+			// tx, chain
+			if (progressBar.arcEnd < 120) progressBar.arcEnd = 120;
+
+			console.log("[avatar]: tx = " + tx + ", chain = " + chain);
+		}
+
+		onHeaderProcessed: {
+			// tx, chain
+			if (progressBar.arcEnd < 240) progressBar.arcEnd = 240;
+
+			console.log("[header]: tx = " + tx + ", chain = " + chain);
+		}
+
+		onAvatarProgress: {
+			// pos, size
+			console.log("[avatar/progress]: pos = " + pos + ", size = " + size);
+
+			var lPrcent = (pos * 100) / size;
+			var lArc = (120 * lPrcent) / 100;
+			progressBar.arcEnd = lArc;
+		}
+
+		onHeaderProgress: {
+			// pos, size
+			console.log("[header/progress]: pos = " + pos + ", size = " + size);
+
+			var lPrcent = (pos * 100) / size;
+			var lArc = 120 + (120 * lPrcent) / 100;
+			progressBar.arcEnd = lArc;
+		}
+
+		onError: {
+			console.log("[error]: code = " + code + ", message = " + message);
+			//
+			createBuzzer.enabled = createBuzzer.getEnabled();
+
+			waitTimer.stop();
+			progressBar.arcEnd = 0;
+
+			//
+			controller.showError(message, true);
+		}
+	}
+
+	BuzzerCommands.CreateBuzzerInfoCommand {
+		//
+		id: createBuzzerInfoCommand
+
+		onProcessed: {
+			// buzzer, buzzerChain, buzzerInfo, buzzerInfoChain
+			waitTimer.stop();
+			progressBar.arcEnd = 360;
+
+			buzzerStartImage.visible = false;
+			buzzerStopImage.visible = true;
+
+			buzzerClient.alias = buzzerAlias_;
+			buzzerClient.description = buzzerDescription_;
+			buzzerClient.avatar = buzzerAvatar_;
+			buzzerClient.header = buzzerHeader_;
+
+			// update local info
+			buzzerClient.save();
+
+			// processed
+			buzzerinfo_.processed();
 		}
 
 		onAvatarProcessed: {

@@ -62,6 +62,13 @@ Item
 		function onThemeChanged() {
 			buzzerClient.getBuzzfeedList().resetModel();
 		}
+
+		function onBuzzerChanged() {
+			if (buzzerClient.buzzerDAppReady) {
+				console.log("[buzzfeed/onBuzzerChanged]: name = " + buzzerClient.name);
+				modelLoader.restart();
+			}
+		}
 	}
 
 	BuzzerCommands.LoadBuzzfeedCommand	{

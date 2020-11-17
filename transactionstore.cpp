@@ -1393,7 +1393,7 @@ void TransactionStore::saveBlock(BlockPtr block) {
 	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[saveBlock]: saving block ") +
 		strprintf("%s/%s#", block->hash().toHex(), chain_.toHex().substr(0, 10)));
 	//
-	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);	
+	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
 	//
 	// WARNING: should not ever be called from mining circle
 	//

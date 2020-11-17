@@ -77,9 +77,16 @@ QuarkPage
 		y: addressBox.y + addressBox.height + 10
 		width: parent.width - 20 * 2
 		symbol: Fonts.keySym
-		clipboardButton: true
+		clipboardButton: false
+		helpButton: true
 
 		text: buzzerClient.firstSKey()
+
+		onHelpClicked: {
+			var lMsgs = [];
+			lMsgs.push(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.qbitKeys.secret.help"));
+			infoDialog.show(lMsgs);
+		}
 	}
 
 	QuarkText {
@@ -127,11 +134,11 @@ QuarkPage
 
 	QuarkButton	{
 		id: nextButton
-		x: welcomeText.x + 2
+		x: qbitKeysText.x + 2
 		y: parent.height - height - 20
 		text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.next")
 		visible: true
-		width: welcomeText.width
+		width: seedView.width
 
 		Layout.minimumWidth: 150
 		Layout.alignment: Qt.AlignHCenter
@@ -150,5 +157,10 @@ QuarkPage
 				addPage(lPage);
 			}
 		}
+	}
+
+	InfoDialog {
+		id: infoDialog
+		bottom: 50
 	}
 }

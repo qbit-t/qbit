@@ -41,6 +41,11 @@
 	#include "../dapps/buzzer/txbuzzerunsubscribe.h"
 	#include "../dapps/buzzer/txbuzzerendorse.h"
 	#include "../dapps/buzzer/txbuzzermistrust.h"
+	#include "../dapps/buzzer/txbuzzerconversation.h"
+	#include "../dapps/buzzer/txbuzzeracceptconversation.h"
+	#include "../dapps/buzzer/txbuzzerdeclineconversation.h"
+	#include "../dapps/buzzer/txbuzzermessage.h"
+	#include "../dapps/buzzer/txbuzzermessagereply.h"
 	#include "../dapps/buzzer/peerextension.h"
 	#include "../dapps/buzzer/buzzer.h"
 	#include "../dapps/buzzer/buzzfeed.h"
@@ -123,6 +128,33 @@ void eventsfeedItemsUpdated(const std::vector<EventsfeedItem>& items) {
 	gLog().writeClient(Log::CLIENT, strprintf(": events bulk updates count %d", items.size()));
 	for (std::vector<EventsfeedItem>::const_iterator lUpdate = items.begin(); lUpdate != items.end(); lUpdate++)
 		gLog().writeClient(Log::CLIENT, std::string(": -> event for ") + lUpdate->buzzId().toHex());
+}
+
+//
+// conversations
+//
+void conversationsfeedLargeUpdated() {
+	//
+}
+
+void conversationsfeedItemNew(ConversationItemPtr buzz) {
+	//
+	std::cout << std::endl;
+	gLog().writeClient(Log::CLIENT, strprintf(": new conversation %s from %s ", buzz->conversationId().toHex(), buzz->creatorId().toHex()));
+}
+
+void conversationsfeedItemUpdated(ConversationItemPtr buzz) {
+	//
+	std::cout << std::endl;
+	gLog().writeClient(Log::CLIENT, strprintf(": updated conversation %s from %s ", buzz->conversationId().toHex(), buzz->counterpartyId().toHex()));
+}
+
+void conversationsfeedItemsUpdated(const std::vector<ConversationItem>& items) {
+	//
+	std::cout << std::endl;
+	gLog().writeClient(Log::CLIENT, strprintf(": conversations bulk updates count %d", items.size()));
+	for (std::vector<ConversationItem>::const_iterator lUpdate = items.begin(); lUpdate != items.end(); lUpdate++)
+		gLog().writeClient(Log::CLIENT, std::string(": -> conversation ") + lUpdate->conversationId().toHex());
 }
 
 void trustScoreUpdated(amount_t edorsements, amount_t mistrusts) {
@@ -296,6 +328,10 @@ int main(int argv, char** argc) {
 	Transaction::registerTransactionType(TX_BUZZER_MISTRUST, TxBuzzerMistrustCreator::instance());
 	Transaction::registerTransactionType(TX_BUZZER_INFO, TxBuzzerInfoCreator::instance());
 	Transaction::registerTransactionType(TX_BUZZ_REWARD, TxBuzzRewardCreator::instance());
+	Transaction::registerTransactionType(TX_BUZZER_CONVERSATION, TxBuzzerConversationCreator::instance());
+	Transaction::registerTransactionType(TX_BUZZER_ACCEPT_CONVERSATION, TxBuzzerAcceptConversationCreator::instance());
+	Transaction::registerTransactionType(TX_BUZZER_DECLINE_CONVERSATION, TxBuzzerDeclineConversationCreator::instance());
+	Transaction::registerTransactionType(TX_BUZZER_MESSAGE, TxBuzzerMessageCreator::instance());
 
 	// buzzer message types
 	Message::registerMessageType(GET_BUZZER_SUBSCRIPTION, "GET_BUZZER_SUBSCRIPTION");
@@ -340,12 +376,19 @@ int main(int argv, char** argc) {
 	Message::registerMessageType(GET_BUZZER_AND_INFO, "GET_BUZZER_AND_INFO");
 	Message::registerMessageType(BUZZER_AND_INFO, "BUZZER_AND_INFO");
 	Message::registerMessageType(BUZZER_AND_INFO_ABSENT, "BUZZER_AND_INFO_ABSENT");
+	Message::registerMessageType(GET_CONVERSATIONS_FEED_BY_BUZZER, "GET_CONVERSATIONS_FEED_BY_BUZZER");
+	Message::registerMessageType(CONVERSATIONS_FEED_BY_BUZZER, "CONVERSATIONS_FEED_BY_BUZZER");
+	Message::registerMessageType(GET_MESSAGES_FEED_BY_CONVERSATION, "GET_MESSAGES_FEED_BY_CONVERSATION");
+	Message::registerMessageType(MESSAGES_FEED_BY_CONVERSATION, "MESSAGES_FEED_BY_CONVERSATION");
+	Message::registerMessageType(NEW_BUZZER_CONVERSATION_NOTIFY, "NEW_BUZZER_CONVERSATION_NOTIFY");
+	Message::registerMessageType(NEW_BUZZER_MESSAGE_NOTIFY, "NEW_BUZZER_MESSAGE_NOTIFY");
+	Message::registerMessageType(UPDATE_BUZZER_CONVERSATION_NOTIFY, "UPDATE_BUZZER_CONVERSATION_NOTIFY");
 
 	// buzzer request processor
 	BuzzerRequestProcessorPtr lBuzzerRequestProcessor = BuzzerRequestProcessor::instance(lRequestProcessor);
 
 	// buzzer
-	BuzzerPtr lBuzzer = Buzzer::instance(lRequestProcessor, lBuzzerRequestProcessor, boost::bind(&trustScoreUpdated, _1, _2));
+	BuzzerPtr lBuzzer = Buzzer::instance(lRequestProcessor, lBuzzerRequestProcessor, lWallet, boost::bind(&trustScoreUpdated, _1, _2));
 
 
 	// buzzer composer
@@ -439,6 +482,36 @@ int main(int argv, char** argc) {
 
 	lContextEventsfeed->prepare();
 
+	//
+	// conversations
+	ConversationsfeedPtr lConversations = Conversationsfeed::instance(lBuzzer,
+		boost::bind(&BuzzerLightComposer::verifyConversationPublisher, lBuzzerComposer, _1),
+		boost::bind(&conversationsfeedLargeUpdated), 
+		boost::bind(&conversationsfeedItemNew, _1), 
+		boost::bind(&conversationsfeedItemUpdated, _1),
+		boost::bind(&conversationsfeedItemsUpdated, _1)
+	);
+
+	// conversation feed
+	BuzzfeedPtr lConversationfeed = Buzzfeed::instance(lBuzzer,
+		boost::bind(&BuzzerLightComposer::getCounterparty, lBuzzerComposer, _1, _2),
+		boost::bind(&BuzzerLightComposer::verifyPublisherLazy, lBuzzerComposer, _1),
+		boost::bind(&buzzfeedLargeUpdated), 
+		boost::bind(&buzzfeedItemNew, _1), 
+		boost::bind(&buzzfeedItemUpdated, _1),
+		boost::bind(&buzzfeedItemsUpdated, _1),
+		boost::bind(&buzzfeedItemAbsent, _1, _2),
+		BuzzfeedItem::Merge::INTERSECT,
+		BuzzfeedItem::Order::FORWARD,
+		BuzzfeedItem::Group::TIMESTAMP
+	);	
+
+	lConversations->prepare();
+	lBuzzer->setConversations(lConversations); // conversations
+
+	lConversationfeed->prepare();
+	lBuzzer->setConversation(lConversationfeed); // current conversation
+
 	// buzzer peer extention
 	PeerManager::registerPeerExtension("buzzer", BuzzerPeerExtensionCreator::instance(lBuzzer, lBuzzfeed, lEventsfeed));
 
@@ -482,6 +555,33 @@ int main(int argv, char** argc) {
 	lCommandsHandler->push(LoadEndorsementsByBuzzerCommand::instance(lBuzzerComposer, lContextEventsfeed, boost::bind(&commandDone)));
 	lCommandsHandler->push(LoadSubscriptionsByBuzzerCommand::instance(lBuzzerComposer, lContextEventsfeed, boost::bind(&commandDone)));
 	lCommandsHandler->push(LoadFollowersByBuzzerCommand::instance(lBuzzerComposer, lContextEventsfeed, boost::bind(&commandDone)));
+
+	lCommandsHandler->push(LoadConversationsCommand::instance(lBuzzerComposer, lConversations, boost::bind(&commandDone)));
+	lCommandsHandler->push(ConversationsListCommand::instance(lBuzzerComposer, lConversations, boost::bind(&commandDone)));
+
+	CreateBuzzerConversationCommandPtr lConversationCommand = std::static_pointer_cast<CreateBuzzerConversationCommand>(
+		CreateBuzzerConversationCommand::instance(lBuzzerComposer, boost::bind(&commandDone)));
+	lCommandsHandler->push(lConversationCommand);
+
+	AcceptConversationCommandPtr lAcceptConversationCommand = std::static_pointer_cast<AcceptConversationCommand>(
+		AcceptConversationCommand::instance(lBuzzerComposer, lConversations, boost::bind(&commandDone)));
+	lCommandsHandler->push(lAcceptConversationCommand);
+
+	DeclineConversationCommandPtr lDeclineConversationCommand = std::static_pointer_cast<DeclineConversationCommand>(
+		DeclineConversationCommand::instance(lBuzzerComposer, lConversations, boost::bind(&commandDone)));
+	lCommandsHandler->push(lDeclineConversationCommand);
+
+	CreateBuzzerMessageCommandPtr lMessageCommand = std::static_pointer_cast<CreateBuzzerMessageCommand>(
+		CreateBuzzerMessageCommand::instance(lBuzzerComposer, lConversations, boost::bind(&commandDone)));
+	lCommandsHandler->push(lMessageCommand);
+
+	SelectConversationCommandPtr lSelectConversationCommand = std::static_pointer_cast<SelectConversationCommand>(
+		SelectConversationCommand::instance(lBuzzerComposer, lConversationfeed /* TRICK */, boost::bind(&commandDone)));
+	lCommandsHandler->push(lSelectConversationCommand);
+
+	lCommandsHandler->push(ConversationListCommand::instance(lBuzzerComposer, lConversationfeed, boost::bind(&commandDone)));
+	lCommandsHandler->push(LoadMessagesCommand::instance(lBuzzerComposer, lConversationfeed, boost::bind(&commandDone)));
+
 #endif
 
 #if defined (CUBIX_MOD)

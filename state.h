@@ -59,10 +59,10 @@ public:
 		}
 
 		inline uint64_t timestamp() { return timestamp_; }
-		inline uint64_t height() { return height_; }
-		inline uint256 hash() { return hash_; }
-		inline uint256 chain() { return chain_; }
-		inline std::string dApp() { return dApp_; }
+		inline uint64_t height() const { return height_; }
+		inline uint256 hash() const { return hash_; }
+		inline uint256 chain() const { return chain_; }
+		inline std::string dApp() const { return dApp_; }
 
 	private:
 		uint256 chain_;

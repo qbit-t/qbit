@@ -99,3 +99,9 @@ curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"createbuzzer","pa
 ./qbit-cli -home .qbit-cli-1 -peers 127.0.0.1:31415 -debug info,warn,error,wallet,store,net,bal,client
 
 ./qbit-cli -home .qbit-cli-2 -peers 127.0.0.1:31415 -debug info,warn,error,wallet,store,net,bal,client
+
+### Create QTT asset
+
+curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"createasset","params":["ADDRESS_NODE_0", "QTT", "Qbit Technology Token", "10000", "10000", "1", "limited"]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
+
+curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"createassetemission","params":["ADDRESS_NODE_0", "ASSET_TYPE" ]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080

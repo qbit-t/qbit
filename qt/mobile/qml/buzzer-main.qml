@@ -74,7 +74,15 @@ QuarkPage
 		}
 
 		function onNewEvents() {
-			newEventsDot.visible = true;
+			if (navigatorBar.currentIndex != 2 /*events*/) {
+				newEventsDot.visible = true;
+			}
+		}
+
+		function onNewMessages() {
+			if (navigatorBar.currentIndex != 3 /*conversations*/) {
+				newMessagesDot.visible = true;
+			}
 		}
 	}
 
@@ -100,6 +108,10 @@ QuarkPage
 			} else if (navigatorBar.currentIndex === 1) { // global
 				buzzfeedGlobal.externalPull();
 			}
+		}
+
+		onGoDrawer: {
+			controller.openDrawer();
 		}
 	}
 
@@ -146,9 +158,21 @@ QuarkPage
 		}
 		TabButton {
 			QuarkSymbolLabel {
+				id: messagesSymbol
 				x: parent.width / 2 - width / 2
 				y: parent.height / 2 - height / 2
 				symbol: Fonts.chatsSym
+			}
+
+			Rectangle {
+				id: newMessagesDot
+				x: messagesSymbol.x + messagesSymbol.width + 3
+				y: messagesSymbol.y - 3
+				width: 6
+				height: 6
+				radius: 3
+				color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Market.tabActive");
+				visible: false
 			}
 		}
 		TabButton {
@@ -161,19 +185,30 @@ QuarkPage
 
 		onCurrentIndexChanged: {
 			//
-			if (currentIndex == 2 /*events*/) {
-				//
-				newEventsDot.visible = false;
-			}
-
-			if (currentIndex == 1 /*global*/) {
-				headerBar.showBottomLine = false;
-				buzzfeedGlobal.start();
-			} else {
+			if (currentIndex == 0 /*feed*/) {
 				headerBar.showBottomLine = true;
 			}
 
+			//
+			if (currentIndex == 1 /*global*/) {
+				headerBar.showBottomLine = false;
+				buzzfeedGlobal.start();
+			}
+
+			//
+			if (currentIndex == 2 /*events*/) {
+				headerBar.showBottomLine = true;
+				newEventsDot.visible = false;
+			}
+
+			if (currentIndex == 3 /*conversations*/) {
+				headerBar.showBottomLine = false;
+				newMessagesDot.visible = false;
+				conversations.resetModel();
+			}
+
 			if (currentIndex == 4 /*wallet*/) {
+				headerBar.showBottomLine = false;
 				buzzerApp.lockPortraitOrientation();
 				walletQbit.init();
 			} else {
@@ -189,7 +224,6 @@ QuarkPage
 
 		Material.accent: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Market.tabActive");
 		Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Market.tabInactive");
-
 	}
 
 	QuarkHLine {
@@ -231,7 +265,13 @@ QuarkPage
 			height: navigatorBar.y - (headerBar.y + headerBar.height)
 			controller: buzzermain_.controller
 		}
-		Item {
+		Conversations {
+			id: conversations
+			x: 0
+			y: headerBar.y + headerBar.height
+			width: buzzermain_.width
+			height: navigatorBar.y - (headerBar.y + headerBar.height)
+			controller: buzzermain_.controller
 		}
 		Wallet {
 			id: walletQbit

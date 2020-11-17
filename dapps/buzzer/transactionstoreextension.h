@@ -14,6 +14,7 @@
 
 #include "buzzfeed.h"
 #include "eventsfeed.h"
+#include "conversationsfeed.h"
 #include "txbuzzer.h"
 #include "txbuzz.h"
 #include "txbuzzerendorse.h"
@@ -21,6 +22,9 @@
 #include <memory>
 
 namespace qbit {
+
+class BuzzerTransactionStoreExtension;
+typedef std::shared_ptr<BuzzerTransactionStoreExtension> BuzzerTransactionStoreExtensionPtr;
 
 class BuzzerTransactionStoreExtension: public ITransactionStoreExtension, public std::enable_shared_from_this<BuzzerTransactionStoreExtension> {
 public:
@@ -121,11 +125,81 @@ public:
 		uint256 info_;
 	};
 
+	class ConversationInfo {
+	public:
+		enum State {
+			PENDING = 0,
+			ACCEPTED = 1,
+			DECLINED = 2
+		};
+
+	public:
+		ConversationInfo() {}
+		ConversationInfo(const uint256& id, const uint256& chain) : 
+			id_(id), chain_(chain) {}
+		ConversationInfo(const uint256& id, const uint256& chain, ConversationInfo::State state) : 
+			id_(id), chain_(chain), state_(state) {}
+
+		ADD_SERIALIZE_METHODS;
+
+		template <typename Stream, typename Operation>
+		inline void serializationOp(Stream& s, Operation ser_action) {
+			READWRITE(id_);
+			READWRITE(chain_);
+			READWRITE(stateId_);
+			READWRITE(stateChain_);
+			READWRITE(messageId_);
+			READWRITE(messageChain_);
+
+			if (ser_action.ForRead()) {
+				unsigned char lState;
+				s >> lState;
+				state_ = (ConversationInfo::State)lState;
+			} else {
+				s << (unsigned char)state_;
+			}
+		}
+
+		const uint256& id() const { return id_; }
+		const uint256& chain() const { return chain_; }
+		
+		const uint256& stateId() const { return stateId_; } // TX_ACCEPT | TX_DECLINE
+		const uint256& stateChain() const { return stateChain_; }
+		void setState(const uint256& id, const uint256& chain, ConversationInfo::State state) {
+			stateId_ = id;
+			stateChain_ = chain;
+			state_ = state;
+		}
+
+		const uint256& messageId() const { return messageId_; }
+		const uint256& messageChain() const { return messageChain_; }
+		void setMessage(const uint256& id, const uint256& chain) {
+			messageId_ = id;
+			messageChain_ = chain;
+		}
+
+		ConversationInfo::State state() const { return state_; }
+		void setState(ConversationInfo::State state) { state_ = state; }
+
+	private:
+		uint256 id_;
+		uint256 chain_;
+		uint256 stateId_;
+		uint256 stateChain_;
+		uint256 messageId_;
+		uint256 messageChain_;
+		State state_ = ConversationInfo::PENDING;
+	};
+
 public:
 	BuzzerTransactionStoreExtension(ISettingsPtr settings, ITransactionStorePtr store) : 
 		settings_(settings),
 		store_(store),
 		timeline_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/timeline"), 
+		conversations_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/conversations"), 
+		conversationsIndex_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/indexes/conversations"),
+		conversationsOrder_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/indexes/conversations_order"),
+		conversationsActivity_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/indexes/conversations_activity"),
 		globalTimeline_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/global_timeline"), 
 		hashTagTimeline_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/hashed_timeline"), 
 		hashTagUpdates_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/hash_tag_updates"), 
@@ -135,8 +209,8 @@ public:
 		publishersIdx_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/indexes/publishers"),
 		likesIdx_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/indexes/likes"),
 		rebuzzesIdx_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/indexes/rebuzzes"),
-		publisherUpdates_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/indexes/publisher_updates"),		
-		subscriberUpdates_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/indexes/subscriber_updates"),		
+		publisherUpdates_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/indexes/publisher_updates"),
+		subscriberUpdates_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/indexes/subscriber_updates"),
 		replies_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/replies"),		
 		//rebuzzes_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/rebuzzes"),
 		endorsements_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/endorsements"),
@@ -164,6 +238,8 @@ public:
 	void selectEndorsements(const uint256& /*from*/, const uint256& /*buzzer*/, std::vector<EventsfeedItem>& /*feed*/);
 	void selectSubscriptions(const uint256& /*from*/, const uint256& /*buzzer*/, std::vector<EventsfeedItem>& /*feed*/);
 	void selectFollowers(const uint256& /*from*/, const uint256& /*buzzer*/, std::vector<EventsfeedItem>& /*feed*/);
+	void selectConversations(uint64_t /*from*/, const uint256& /*buzzer*/, std::vector<ConversationItem>& /*feed*/);
+	void selectMessages(uint64_t /*from*/, const uint256& /*conversation*/, std::vector<BuzzfeedItem>& /*feed*/);
 	bool checkSubscription(const uint256& /*subscriber*/, const uint256& /*publisher*/);
 	bool checkLike(const uint256& /*buzz*/, const uint256& /*liker*/);
 	bool readBuzzInfo(const uint256& /*buzz*/, BuzzInfo& /*info*/);
@@ -190,6 +266,10 @@ private:
 	void processReward(const uint256&, TransactionContextPtr);
 	void processEndorse(const uint256&, TransactionContextPtr);
 	void processMistrust(const uint256&, TransactionContextPtr);
+	void processConversation(const uint256&, TransactionContextPtr);
+	void processAcceptConversation(const uint256&, TransactionContextPtr);
+	void processDeclineConversation(const uint256&, TransactionContextPtr);
+	void processMessage(const uint256&, TransactionContextPtr);
 
 	void incrementLikes(const uint256&);
 	void decrementLikes(const uint256&);
@@ -224,7 +304,7 @@ private:
 	void makeBuzzfeedRebuzzItem(TransactionPtr, ITransactionStorePtr, std::multimap<uint64_t, BuzzfeedItem::Key>&, std::map<BuzzfeedItem::Key, BuzzfeedItemPtr>&, const uint256&);
 
 	void prepareEventsfeedItem(EventsfeedItem&, TxBuzzPtr, TxBuzzerPtr, const uint256&, const uint256&, uint64_t, const uint256&, const uint256&, uint64_t, const uint512&);
-	void makeEventsfeedItem(TxBuzzerPtr, TransactionPtr, ITransactionStorePtr, std::multimap<uint64_t, EventsfeedItem::Key>&, std::map<EventsfeedItem::Key, EventsfeedItemPtr>&);
+	EventsfeedItemPtr makeEventsfeedItem(TxBuzzerPtr, TransactionPtr, ITransactionStorePtr, std::multimap<uint64_t, EventsfeedItem::Key>&, std::map<EventsfeedItem::Key, EventsfeedItemPtr>&);
 	void makeEventsfeedLikeItem(TransactionPtr, ITransactionStorePtr, std::multimap<uint64_t, EventsfeedItem::Key>&, std::map<EventsfeedItem::Key, EventsfeedItemPtr>&);
 	void makeEventsfeedRewardItem(EventsfeedItemPtr item, TransactionPtr tx, const uint256& buzz, const uint256& buzzChain, const uint256& buzzer);
 
@@ -293,6 +373,8 @@ private:
 
 	void hashTagUpdate(const uint160&, const db::FiveKey<uint160, uint64_t, uint64_t, uint64_t, uint256>&);
 
+	BuzzerTransactionStoreExtensionPtr locateBuzzerExtension(const uint256& /*buzzer*/);
+
 private:
 	ISettingsPtr settings_;
 	ITransactionStorePtr store_;
@@ -300,17 +382,41 @@ private:
 
 	// timeline: publisher | timestamp -> tx
 	db::DbTwoKeyContainer<
-		uint256 /*publisher*/, 
+		uint256 /*publisher | conversation*/, 
 		uint64_t /*timestamp*/, 
-		uint256 /*buzz/reply/rebuzz/like/...*/> timeline_;
+		uint256 /*buzz/reply/rebuzz/like/message...*/> timeline_;
+
+	//
+	// conversations
+	//
+
+	// buzzer | conversation
+	db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*conversation*/, ConversationInfo /*state*/> conversations_;
+
+	// buzzer conversations timestamp
+	db::DbTwoKeyContainer<
+		uint256 /*buzzer*/, 
+		uint256 /*conversation*/,
+		uint64_t /*timestamp*/> conversationsIndex_;
+
+	// conversations ordering by timestamp
+	db::DbTwoKeyContainer<
+		uint256 /*buzzer*/, 
+		uint64_t /*timestamp*/,
+		uint256 /*conversation*/> conversationsOrder_;
+	
+	// buzzer last activity
+	db::DbContainer<uint256 /*buzzer*/, uint64_t /*timestamp*/> conversationsActivity_;
+
+	//
 
 	// global timeline: timeframe | score | publisher -> tx
 	// NOTICE: this index is not absolute unique, but very close
 	db::DbFourKeyContainer<
-		uint64_t /*timeframe*/, 
-		uint64_t /*score*/, 
+		uint64_t /*timeframe*/,
+		uint64_t /*score*/,
 		uint64_t /*timestamp*/,
-		uint256 /*publisher*/, 
+		uint256 /*publisher*/,
 		uint256 /*buzz/reply/rebuzz/like/...*/> globalTimeline_;
 
 	// hash-tag indexed timeline: hash | timeframe | score | publisher -> tx
@@ -373,8 +479,6 @@ private:
 	// buzzer | mistruster -> tx
 	db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*mistruster*/, uint256 /*tx*/> mistrusts_;
 };
-
-typedef std::shared_ptr<BuzzerTransactionStoreExtension> BuzzerTransactionStoreExtensionPtr;
 
 //
 class BuzzerTransactionStoreExtensionCreator: public TransactionStoreExtensionCreator {

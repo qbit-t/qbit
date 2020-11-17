@@ -1,6 +1,7 @@
 #include "buzzfeed.h"
 #include "buzzfeedview.h"
 #include "../../log/log.h"
+#include "txbuzzermessage.h"
 
 using namespace qbit;
 
@@ -1012,6 +1013,67 @@ void BuzzfeedItem::crossMerge(bool notify) {
 			pendings_.erase(lPending->first);
 		}
 	}
+}
+
+const std::vector<unsigned char>& BuzzfeedItem::buzzBody() const {
+	return buzzBody_; 
+}
+
+bool BuzzfeedItem::resolvePKey(PKey& pkey) {
+	//
+	if (pkeyResolve_ && pkeyResolve_(rootBuzzId_, pkey)) {
+		return true;
+	}
+
+	return false;
+}
+
+bool BuzzfeedItem::decrypt(const PKey& pkey) {
+	//
+	if (type_ == TX_BUZZER_MESSAGE || type_ == TX_BUZZER_MESSAGE_REPLY) {
+		//
+		if (!decryptedBody_.size() && buzzer()) {
+			SKeyPtr lSKey = buzzer()->wallet()->firstKey();
+			//
+			uint256 lNonce = lSKey->shared(pkey);
+			return TxBuzzerMessage::decrypt(lNonce, buzzBody_, decryptedBody_);
+		}
+
+		if (decryptedBody_.size()) return true;
+	}
+
+	return false;
+}
+
+std::string BuzzfeedItem::buzzBodyString() {
+	//
+	std::string lBody; 
+	if (type_ == TX_BUZZER_MESSAGE || type_ == TX_BUZZER_MESSAGE_REPLY) {
+		//
+		if (!decryptedBody_.size() && buzzer()) {
+			SKeyPtr lSKey = buzzer()->wallet()->firstKey();
+			//
+			PKey lPKey;
+			if (pkeyResolve_ && pkeyResolve_(rootBuzzId_, lPKey)) {
+				//
+				uint256 lNonce = lSKey->shared(lPKey);
+				TxBuzzerMessage::decrypt(lNonce, buzzBody_, decryptedBody_);
+			}
+		}
+
+		lBody.insert(lBody.end(), decryptedBody_.begin(), decryptedBody_.end());
+		return lBody;
+	}
+
+	lBody.insert(lBody.end(), buzzBody_.begin(), buzzBody_.end());
+	return lBody;
+}
+
+std::string BuzzfeedItem::decryptedBuzzBodyString() {
+	//
+	std::string lBody; 
+	lBody.insert(lBody.end(), decryptedBody_.begin(), decryptedBody_.end());
+	return lBody;
 }
 
 //

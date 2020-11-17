@@ -66,6 +66,34 @@ QuarkToolBar
 		source: "../images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "lightning.logo")
 	}
 
+	QuarkToolButton	{
+		id: networkButton
+		symbol: Fonts.networkSym
+		Material.background: "transparent"
+		visible: true
+		labelYOffset: 3
+		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+		Layout.alignment: Qt.AlignHCenter
+
+		x: (themeButton.x + themeButton.width) - 5
+		y: extraOffset
+
+		onClicked: {
+			//
+			var lComponent = null;
+			var lPage = null;
+			lComponent = Qt.createComponent("qrc:/qml/peers.qml");
+			if (lComponent.status === Component.Error) {
+				showError(lComponent.errorString());
+			} else {
+				lPage = lComponent.createObject(window);
+				lPage.controller = window;
+
+				addPage(lPage);
+			}
+		}
+	}
+
 	QuarkSimpleComboBox {
 		id: localeCombo
 		x: parent.width - width - 8
@@ -94,22 +122,6 @@ QuarkToolBar
 			if (lEntry.name !== buzzerClient.locale) {
 				buzzerClient.locale = lEntry.id;
 				buzzerClient.save();
-			}
-		}
-
-		function activate() {
-			if (!languageModel_.count) prepare();
-			else {
-				var lLanguages = buzzerApp.getLanguages().split("|");
-				var lCurrentIdx = 0;
-				for (var lIdx = 0; lIdx < lLanguages.length; lIdx++) {
-					if (lLanguages[lIdx].length) {
-						var lPair = lLanguages[lIdx].split(",");
-						if (lPair[1] === buzzerClient.locale) lCurrentIdx = lIdx;
-					}
-				}
-
-				localeCombo.currentIndex = lCurrentIdx;
 			}
 		}
 

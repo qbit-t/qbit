@@ -34,14 +34,25 @@ Rectangle
     property int symbolFontSize: 20;
     property int imageWidth: 36;
     property bool clipboardButton: false;
-    property bool helpButton: false;
-    property bool openUrl: false;
+	property bool helpButton: false;
+	property bool addButton: false;
+	property bool openUrl: false;
 
     signal helpClicked();
+	signal addClicked();
+	signal headClicked();
 
 	onPlaceholderTextChanged:
 	{
 		infoLabel.text = textEdit.getPlaceholderText();
+	}
+
+	onTextChanged:
+	{
+		if (text === "") {
+			textEdit.text = "";
+			infoLabel.text = textEdit.getPlaceholderText();
+		}
 	}
 
     Rectangle
@@ -70,6 +81,16 @@ Rectangle
             font.family: Fonts.icons
             font.weight: Font.Normal
             font.pointSize: symbolFontSize
+
+			MouseArea
+			{
+				anchors.fill: parent
+
+				onClicked:
+				{
+					headClicked();
+				}
+			}
         }
 
         QuarkSymbolButton
@@ -110,8 +131,9 @@ Rectangle
 
         x: symbolRect.width - 1
         height: 50
-		width: editBox.width - symbolRect.width - copyRect.width * clipboardButton - helpRect.width * helpButton +
-               clipboardButton*1 + helpButton*1 + 1
+		width: editBox.width - symbolRect.width - copyRect.width * clipboardButton -
+			   helpRect.width * helpButton  - addRect.width * addButton +
+			   clipboardButton*1 + helpButton*1 + addButton*1 + 1
 
         border.color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Box.border");
         color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Box.background");
@@ -170,9 +192,15 @@ Rectangle
 				infoLabel.text = getPlaceholderText();
 			}
 
+			onPreeditTextChanged:
+			{
+				infoLabel.text = getPlaceholderText();
+			}
+
 			function getPlaceholderText()
 			{
-				return ((!textEdit.displayText.length && !textEdit.text.length) ? editBox.placeholderText : "");
+				return ((!textEdit.displayText.length && !textEdit.text.length && !textEdit.preeditText.length) ?
+							editBox.placeholderText : "");
 			}
 		}
     }
@@ -218,11 +246,51 @@ Rectangle
         }
     }
 
-    Rectangle
+	Rectangle
+	{
+		id: addRect
+		x: copyRect.getX() + copyRect.getWidth() - 1
+		width: 50
+		height: 50
+		visible: addButton
+		clip: true
+
+		border.color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Box.border");
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.background");
+
+		function getWidth()
+		{
+			if (addButton) return width;
+			return 0;
+		}
+
+		function getX()
+		{
+			return x;
+		}
+
+		QuarkSymbolButton
+		{
+			x: -5
+			y: -5
+			width: parent.width + 10
+			height: parent.height + 10
+
+			symbol: Fonts.circleAddSym
+			Material.background: "transparent"
+
+			onClicked:
+			{
+				addClicked();
+			}
+		}
+	}
+
+	Rectangle
     {
         id: helpRect
 
-        x: copyRect.getX() + copyRect.getWidth() - 1
+		x: addRect.getX() + addRect.getWidth() - 1
         width: 50
         height: 50
         visible: helpButton
@@ -237,7 +305,12 @@ Rectangle
             return 0;
         }
 
-        QuarkSymbolButton
+		function getX()
+		{
+			return x;
+		}
+
+		QuarkSymbolButton
         {
             x: -5
             y: -5
@@ -252,6 +325,6 @@ Rectangle
                 helpClicked();
             }
         }
-    }
+	}
 }
 

@@ -598,7 +598,8 @@ void Peer::sendTransaction(TransactionContextPtr ctx, ISentTransactionHandlerPtr
 		lMsg->write(lStateStream.data(), lStateStream.size());
 
 		// log
-		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: sending transaction to ") + key());
+		if (gLog().isEnabled(Log::NET)) 
+			gLog().write(Log::NET, strprintf("[peer]: sending transaction %s to %s", ctx->tx()->id().toHex(), key()));
 
 		// write
 		sendMessageAsync(lMsg);
@@ -1476,6 +1477,7 @@ void Peer::processGetTransactionData(std::list<DataStream>::iterator msg, const 
 			// fill data
 			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION);
 			lStream << lRequestId;
+			lStream << lTxId;
 			Transaction::Serializer::serialize<DataStream>(lStream, lTx); // tx
 
 			// prepare message
@@ -2036,9 +2038,11 @@ void Peer::processTransactionData(std::list<DataStream>::iterator msg, const boo
 
 		// extract
 		uint256 lRequestId;
+		uint256 lTxId;
 		TransactionPtr lTx;
 
 		(*msg) >> lRequestId;
+		(*msg) >> lTxId;
 		lTx = Transaction::Deserializer::deserialize<DataStream>(*msg);
 		eraseInData(msg);
 
@@ -2047,6 +2051,9 @@ void Peer::processTransactionData(std::list<DataStream>::iterator msg, const boo
 
 		// log
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing transaction ") + strprintf("r = %s, %s", lRequestId.toHex(), lTx->id().toHex()) + std::string("..."));
+
+		// sanity
+		if (lTx->id() != lTxId) lTx = nullptr;
 
 		IReplyHandlerPtr lHandler = locateRequest(lRequestId);
 		if (lHandler) {

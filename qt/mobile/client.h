@@ -40,17 +40,22 @@
 #include "dapps/buzzer/buzzfeed.h"
 #include "dapps/buzzer/buzzfeedview.h"
 #include "dapps/buzzer/eventsfeed.h"
+#include "dapps/buzzer/conversationsfeed.h"
 
 #include "iapplication.h"
 #include "buzzfeedlistmodel.h"
 #include "eventsfeedlistmodel.h"
+#include "conversationsfeedlistmodel.h"
 #include "websourceinfo.h"
 #include "wallettransactionslistmodel.h"
+#include "peerslistmodel.h"
 
 Q_DECLARE_METATYPE(qbit::Buzzfeed*)
 Q_DECLARE_METATYPE(qbit::BuzzfeedItem*)
 Q_DECLARE_METATYPE(qbit::Eventsfeed*)
 Q_DECLARE_METATYPE(qbit::EventsfeedItem*)
+Q_DECLARE_METATYPE(qbit::Conversationsfeed*)
+Q_DECLARE_METATYPE(qbit::ConversationItem*)
 
 namespace buzzer {
 
@@ -191,6 +196,7 @@ public:
 	qbit::LightComposerPtr getComposer() { return composer_; }
 	qbit::BuzzerLightComposerPtr getBuzzerComposer() { return buzzerComposer_; }
 	qbit::cubix::CubixLightComposerPtr getCubixComposer() { return cubixComposer_; }
+	qbit::IPeerManagerPtr getPeerManager() { return peerManager_; }
 
 	Q_INVOKABLE QVariant getGlobalBuzzfeedList() { return QVariant::fromValue(globalBuzzfeedList_); }
 	Q_INVOKABLE QVariant getBuzzfeedList() { return QVariant::fromValue(buzzfeedList_); }
@@ -199,6 +205,12 @@ public:
 	Q_INVOKABLE QVariant getWalletLog() { return QVariant::fromValue(walletLog_); }
 	Q_INVOKABLE QVariant getWalletReceivedLog() { return QVariant::fromValue(walletReceivedLog_); }
 	Q_INVOKABLE QVariant getWalletSentLog() { return QVariant::fromValue(walletSentLog_); }
+
+	Q_INVOKABLE QVariant getConversationsList() { return QVariant::fromValue(conversationsList_); }
+
+	Q_INVOKABLE QVariant getPeersActive() { return QVariant::fromValue(peersActive_); }
+	Q_INVOKABLE QVariant getPeersAll() { return QVariant::fromValue(peersAll_); }
+	Q_INVOKABLE QVariant getPeersAdded() { return QVariant::fromValue(peersAdded_); }
 
 	Q_INVOKABLE long getQbitRate();
 
@@ -242,6 +254,22 @@ public:
 
 	Q_INVOKABLE void unregisterBuzzfeed(BuzzfeedListModel* model) {
 		if (model) buzzer_->removeUpdate(model->buzzfeed());
+	}
+
+	Q_INVOKABLE QVariant createConversationMessagesList() {
+		ConversationMessagesList* lList = new ConversationMessagesList();
+		return QVariant::fromValue(lList);
+	}
+
+	Q_INVOKABLE QString getCounterpartyKey(QString id) {
+		//
+		uint256 lId; lId.setHex(id.toStdString());
+		qbit::PKey lPKey;
+		if (buzzerComposer_->getCounterparty(lId, lPKey)) {
+			return QString::fromStdString(lPKey.toString());
+		}
+
+		return QString();
 	}
 
 	Q_INVOKABLE bool subscriptionExists(QString publisher);
@@ -291,6 +319,13 @@ public:
 	Q_INVOKABLE void removeContact(QString);
 	QList<buzzer::Contact*> selectContacts();
 
+	Q_INVOKABLE QVariant locateConversation(QString);
+
+	Q_INVOKABLE unsigned short tx_BUZZER_CONVERSATION() { return qbit::Transaction::TX_BUZZER_CONVERSATION; }
+	Q_INVOKABLE unsigned short tx_BUZZER_ACCEPT_CONVERSATION() { return qbit::Transaction::TX_BUZZER_ACCEPT_CONVERSATION; }
+	Q_INVOKABLE unsigned short tx_BUZZER_DECLINE_CONVERSATION() { return qbit::Transaction::TX_BUZZER_DECLINE_CONVERSATION; }
+	Q_INVOKABLE unsigned short tx_BUZZER_MESSAGE() { return qbit::Transaction::TX_BUZZER_MESSAGE; }
+	Q_INVOKABLE unsigned short tx_BUZZER_MESSAGE_REPLY() { return qbit::Transaction::TX_BUZZER_MESSAGE_REPLY; }
 	Q_INVOKABLE unsigned short tx_BUZZER_TYPE() { return qbit::Transaction::TX_BUZZER; }
 	Q_INVOKABLE unsigned short tx_BUZZ_TYPE() { return qbit::Transaction::TX_BUZZ; }
 	Q_INVOKABLE unsigned short tx_REBUZZ_TYPE() { return qbit::Transaction::TX_REBUZZ; }
@@ -307,12 +342,29 @@ public:
 	Q_INVOKABLE unsigned short tx_FEE() { return qbit::Transaction::FEE; }
 	Q_INVOKABLE unsigned short tx_COINBASE() { return qbit::Transaction::COINBASE; }
 
+	Q_INVOKABLE unsigned short peer_UNDEFINED() { return qbit::IPeer::UNDEFINED; }
+	Q_INVOKABLE unsigned short peer_ACTIVE() { return qbit::IPeer::ACTIVE; }
+	Q_INVOKABLE unsigned short peer_QUARANTINE() { return qbit::IPeer::QUARANTINE; }
+	Q_INVOKABLE unsigned short peer_BANNED() { return qbit::IPeer::BANNED; }
+	Q_INVOKABLE unsigned short peer_PENDING_STATE() { return qbit::IPeer::PENDING_STATE; }
+	Q_INVOKABLE unsigned short peer_POSTPONED() { return qbit::IPeer::POSTPONED; }
+
 	Q_INVOKABLE int getBuzzBodyMaxSize() { return TX_BUZZ_BODY_SIZE; }
+
+	Q_INVOKABLE bool addPeerExplicit(QString);
+	Q_INVOKABLE void removePeer(QString);
 
 	Q_INVOKABLE QString timestampAgo(long long timestamp);
 	Q_INVOKABLE QString timeAgo(long long timestamp);
 	Q_INVOKABLE QString decorateBuzzBody(const QString&);
 	Q_INVOKABLE QString extractLastUrl(const QString&);
+
+	Q_INVOKABLE void notifyBuzzerChanged() {
+		emit buzzerChanged();
+	}
+
+	Q_INVOKABLE void cleanUpBuzzerCache();
+	Q_INVOKABLE void preregisterBuzzerInstance();
 
 	Q_INVOKABLE bool isTimelockReached(const QString&);
 
@@ -364,11 +416,31 @@ public slots:
 		}
 	}
 
+	// conversations updated
+	void conversationsUpdated(unsigned long long timestamp) {
+		//
+		QString lLastTimestamp = getProperty("Client.conversationsLastTimestamp");
+		if (lLastTimestamp.length()) {
+			if (lLastTimestamp.toULongLong() < timestamp) {
+				qInfo() << "[conversationsUpdated]" << lLastTimestamp.toULongLong() << timestamp;
+				emit newMessages();
+				setProperty("Client.conversationsLastTimestamp", QString::number(timestamp));
+			}
+		} else {
+			qInfo() << "[conversationsUpdated]" << lLastTimestamp.toULongLong() << timestamp;
+			emit newMessages();
+			setProperty("Client.conversationsLastTimestamp", QString::number(timestamp));
+		}
+	}
+
 public:
 	// Wallet
 	Q_INVOKABLE QString firstPKey();
 	Q_INVOKABLE QString firstSKey();
 	Q_INVOKABLE QStringList firstSeedWords();
+	Q_INVOKABLE void removeAllKeys();
+	Q_INVOKABLE bool importKey(QStringList);
+	Q_INVOKABLE bool checkKey(QStringList);
 
 private:
 	//
@@ -471,6 +543,8 @@ signals:
 	void addressChanged();
 	void contactsChanged();
 
+	void buzzerChanged();
+
 	void networkReady();
 	void networkLimited();
 	void networkUnavailable();
@@ -478,6 +552,10 @@ signals:
 	void walletTransactionReceived(QString chain, QString tx);
 
 	void newEvents();
+	void newMessages();
+
+	void peerPushedSignal(const buzzer::PeerProxy& peer, bool update, int count);
+	void peerPoppedSignal(const buzzer::PeerProxy& peer, int count);
 
 private:
     QString name_;
@@ -522,13 +600,18 @@ private:
 	qbit::cubix::CubixLightComposerPtr cubixComposer_ = nullptr;
 
 private:
-	BuzzfeedListModelPersonal* buzzfeedList_;
-	BuzzfeedListModelGlobal* globalBuzzfeedList_;
-	EventsfeedListModelPersonal* eventsfeedList_;
+	BuzzfeedListModelPersonal* buzzfeedList_ = nullptr;
+	BuzzfeedListModelGlobal* globalBuzzfeedList_ = nullptr;
+	EventsfeedListModelPersonal* eventsfeedList_ = nullptr;
+	ConversationsListModel* conversationsList_ = nullptr;
 
-	WalletTransactionsListModel* walletLog_;
-	WalletTransactionsListModelReceived* walletReceivedLog_;
-	WalletTransactionsListModelSent* walletSentLog_;
+	WalletTransactionsListModel* walletLog_ = nullptr;
+	WalletTransactionsListModelReceived* walletReceivedLog_ = nullptr;
+	WalletTransactionsListModelSent* walletSentLog_ = nullptr;
+
+	PeersActiveListModel* peersActive_ = nullptr;
+	PeersListModel* peersAll_ = nullptr;
+	PeersAddedListModel* peersAdded_ = nullptr;
 };
 
 } // buzzer
