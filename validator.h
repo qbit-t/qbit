@@ -214,6 +214,7 @@ private:
 
 					std::cout << "start gen" << std::endl;
 
+					bool lTimeout = false;
 					int nonce = 0;
 					while(minerRunning_) {
 						std::set<uint32_t> cycle;
