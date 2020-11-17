@@ -15,6 +15,7 @@
 #include "block.h"
 #include "blockcontext.h"
 #include "hash/cuckoo.h"
+#include "pow.h"
 
 #include <boost/thread/thread.hpp>
 #include <boost/thread/mutex.hpp>
@@ -171,26 +172,24 @@ private:
 			while(!minerRunning_) minerActive_.wait(lLock);
 
 			if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[miner]: starting for ") + strprintf("%s#", chain_.toHex().substr(0, 10)));
-
 			// check and run
 			while(minerRunning_) {
 				try {
 					// get block template
 					BlockPtr lCurrentBlock = Block::instance();
 
-					/*
+					// prepare block
+                                        BlockContextPtr lCurrentBlockContext = mempool_->beginBlock(lCurrentBlock);
+
 					//calculate work required
 					BlockHeader lPrev, lPPrev;
 					bool fNegative;
-    				bool fOverflow;
+    					bool fOverflow;
 					arith_uint256 target;
-					BlockContextPtr lCurrentBlockContext = mempool_->beginBlock(lCurrentBlock);
-					lCurrentBock->bits_ = GetNextWorkRequired(store_, lCurrentBlock);
+					lCurrentBlock->bits_ = GetNextWorkRequired(store_, *lCurrentBlock);
 					target.SetCompact(lCurrentBlock->bits_, &fNegative, &fOverflow);
-					*/
 
-					// prepare block
-					BlockContextPtr lCurrentBlockContext = mempool_->beginBlock(lCurrentBlock);
+					std::cout << "target " << lCurrentBlock->bits_ << " " << fNegative << " " << fOverflow << std::endl;
 
 					// make coinbase tx
 					BlockHeader lHeader;
@@ -213,34 +212,35 @@ private:
 					int lMSeconds = lDist(lGen); //(consensus_->blockTime())/1000;
 					uint64_t lStartTime = getTime();
 
-					/*
-					uint64_t lStartTime = getTime();
+					std::cout << "start gen" << std::endl;
+
 					int nonce = 0;
 					while(minerRunning_) {
 						std::set<uint32_t> cycle;
 						lCurrentBlock->nonce_ = nonce;
 						bool result = FindCycle(lCurrentBlock->hash(), EDGEBITS, PROOFSIZE, cycle);
 						nonce++;
-						if (getTime() - lStartTime >= lMSeconds) break;
-						if(cycle.size() == 0) continue;
+						//if (getTime() - lStartTime >= lMSeconds){ std::cout << "timeout" << std::endl;  break;}
+						if(cycle.size() == 0) { /*std::cout << "cycle empty" << std::endl;*/  continue; }
+						else { std::cout << "cycle not empty" << std::endl; }
 						HashWriter lStream(SER_GETHASH, PROTOCOL_VERSION);
 						std::vector<uint32_t> v(cycle.begin(), cycle.end());
 						lCurrentBlock->cycle_ = v;
 						lStream << v;
 						uint256 cycle_hash = lStream.GetHash();
 
-						
-						
 						arith_uint256 cycle_hash_arith = UintToArith256(cycle_hash);
-						if (fNegative || target == 0 || fOverflow || target < cycle_hash_arith) continue;
-						if (result) break;
+
+						std::cout << "nonce " << nonce << " target " << target.GetCompact() << " hash bits " <<  cycle_hash_arith.GetCompact() << " diff " <<  cycle_hash_arith.GetCompact()-target.GetCompact() << std::endl;
+
+						if (fNegative || target == 0 || fOverflow || target < cycle_hash_arith) { if(target < cycle_hash_arith) std::cout << "hash not ok of target" << std::endl; continue; }
+						if (result) { std::cout << "block found" << std::endl; break; }
 					}
-					*/
-					
-					while(minerRunning_) {
-						if (getTime() - lStartTime >= lMSeconds) break;
-						boost::this_thread::sleep_for(boost::chrono::milliseconds(50));
-					}
+
+					//while(minerRunning_) {
+					//	if (getTime() - lStartTime >= lMSeconds) break;
+					//	boost::this_thread::sleep_for(boost::chrono::milliseconds(50));
+					//}
 					
 					// TODO: mining -----------------------------------------
 					
