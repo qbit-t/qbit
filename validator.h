@@ -179,12 +179,12 @@ private:
 					BlockPtr lCurrentBlock = Block::instance();
 
 					// prepare block
-                                        BlockContextPtr lCurrentBlockContext = mempool_->beginBlock(lCurrentBlock);
+                    BlockContextPtr lCurrentBlockContext = mempool_->beginBlock(lCurrentBlock);
 
 					//calculate work required
 					BlockHeader lPrev, lPPrev;
 					bool fNegative;
-    					bool fOverflow;
+    				bool fOverflow;
 					arith_uint256 target;
 					lCurrentBlock->bits_ = GetNextWorkRequired(store_, *lCurrentBlock);
 					target.SetCompact(lCurrentBlock->bits_, &fNegative, &fOverflow);
@@ -210,7 +210,7 @@ private:
 
 					boost::random::uniform_int_distribution<> lDist(3, (consensus_->blockTime())/1000);
 					int lMSeconds = lDist(lGen); //(consensus_->blockTime())/1000;
-					uint64_t lStartTime = getTime();
+					uint64_t lStartTime = consensus_->currentTime()
 
 					std::cout << "start gen" << std::endl;
 
@@ -220,7 +220,7 @@ private:
 						lCurrentBlock->nonce_ = nonce;
 						bool result = FindCycle(lCurrentBlock->hash(), EDGEBITS, PROOFSIZE, cycle);
 						nonce++;
-						//if (getTime() - lStartTime >= lMSeconds){ std::cout << "timeout" << std::endl;  break;}
+						if (consensus_->currentTime() - lStartTime >= (consensus_->blockTime())/1000) { lTimeout = true; break; }
 						if(cycle.size() == 0) { /*std::cout << "cycle empty" << std::endl;*/  continue; }
 						else { std::cout << "cycle not empty" << std::endl; }
 						HashWriter lStream(SER_GETHASH, PROTOCOL_VERSION);
@@ -236,13 +236,6 @@ private:
 						if (fNegative || target == 0 || fOverflow || target < cycle_hash_arith) { if(target < cycle_hash_arith) std::cout << "hash not ok of target" << std::endl; continue; }
 						if (result) { std::cout << "block found" << std::endl; break; }
 					}
-
-					//while(minerRunning_) {
-					//	if (getTime() - lStartTime >= lMSeconds) break;
-					//	boost::this_thread::sleep_for(boost::chrono::milliseconds(50));
-					//}
-					
-					// TODO: mining -----------------------------------------
 					
 					if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[validator/miner]: new block found ") + strprintf("%s/%s#", lCurrentBlock->hash().toHex(), chain_.toHex().substr(0, 10)));
 
