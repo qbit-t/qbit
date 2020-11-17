@@ -210,7 +210,7 @@ private:
 
 					boost::random::uniform_int_distribution<> lDist(3, (consensus_->blockTime())/1000);
 					int lMSeconds = lDist(lGen); //(consensus_->blockTime())/1000;
-					uint64_t lStartTime = consensus_->currentTime()
+					uint64_t lStartTime = consensus_->currentTime();
 
 					std::cout << "start gen" << std::endl;
 
