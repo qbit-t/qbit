@@ -12,6 +12,11 @@
 #include "txbuzzerendorse.h"
 #include "txbuzzermistrust.h"
 #include "txbuzzersubscribe.h"
+#include "txbuzzerconversation.h"
+#include "txbuzzeracceptconversation.h"
+#include "txbuzzerdeclineconversation.h"
+#include "txbuzzermessage.h"
+#include "txbuzzermessagereply.h"
 
 using namespace qbit;
 
@@ -62,7 +67,8 @@ void BuzzerPeerExtension::prepareEventsfeedItem(EventsfeedItem& item, TxBuzzPtr 
 	if (buzzer) {
 		EventsfeedItem::EventInfo lInfo(eventTimestamp, buzzer->id(), buzzerInfoChain, buzzerInfo, score);
 
-		if (buzz && (buzz->type() == TX_BUZZ || buzz->type() == TX_BUZZ_REPLY || buzz->type() == TX_REBUZZ)) {
+		if (buzz && (buzz->type() == TX_BUZZ || buzz->type() == TX_BUZZ_REPLY || 
+						buzz->type() == TX_REBUZZ || buzz->type() == TX_BUZZER_MESSAGE || buzz->type() == TX_BUZZER_MESSAGE_REPLY)) {
 			lInfo.setEvent(eventChainId, eventId, buzz->body(), buzz->mediaPointers(), signature);
 		} else {
 			lInfo.setEvent(eventChainId, eventId, signature);
@@ -1167,7 +1173,7 @@ bool BuzzerPeerExtension::processEventSubscribe(TransactionContextPtr ctx) {
 		// get store
 		ITransactionStorePtr lStore = peerManager_->consensusManager()->storeManager()->locate(lTx->chain());
 		//
-		ITransactionStorePtr lMainStore = peerManager_->consensusManager()->storeManager()->locate(MainChain::id());		
+		ITransactionStorePtr lMainStore = peerManager_->consensusManager()->storeManager()->locate(MainChain::id());
 		// process
 		if (lStore && lStore->extension()) {
 			BuzzerTransactionStoreExtensionPtr lExtension = std::static_pointer_cast<BuzzerTransactionStoreExtension>(lStore->extension());
@@ -1201,6 +1207,456 @@ bool BuzzerPeerExtension::processEventSubscribe(TransactionContextPtr ctx) {
 	}
 
 	return false;
+}
+
+//
+BuzzerTransactionStoreExtensionPtr BuzzerPeerExtension::locateBuzzerExtension(const uint256& buzzer) {
+	//
+	ITransactionStorePtr lMainStore = peerManager_->consensusManager()->storeManager()->locate(MainChain::id());
+	TransactionPtr lBuzzerTx = lMainStore->locateTransaction(buzzer);
+	if (!lBuzzerTx) return nullptr;
+
+	ITransactionStorePtr lStore = lMainStore->storeManager()->locate(lBuzzerTx->in()[TX_BUZZER_SHARD_IN].out().tx());
+	if (!lStore) return nullptr;
+
+	if (!lStore->extension()) return nullptr;
+	BuzzerTransactionStoreExtensionPtr lExtension = std::static_pointer_cast<BuzzerTransactionStoreExtension>(lStore->extension());
+	return lExtension;
+}
+
+//
+bool BuzzerPeerExtension::processConversation(TransactionContextPtr ctx) {
+	//
+	if (ctx->tx()->type() == TX_BUZZER_CONVERSATION) {
+		//
+		TransactionPtr lTx = ctx->tx();
+		//
+		if (lTx->in().size() <= TX_BUZZER_CONVERSATION_BUZZER_IN) return false;
+
+		// buzzer event
+		bool lFound = false;
+		if (lTx->in()[TX_BUZZER_CONVERSATION_MY_IN].out().tx() == dapp_.instance()) {
+			lFound = true;
+		} else if (lTx->in()[TX_BUZZER_CONVERSATION_BUZZER_IN].out().tx() == dapp_.instance()) {
+			lFound = true;
+		}
+
+		if (lFound) {
+			//
+			TxBuzzerConversationPtr lConversationTx = TransactionHelper::to<TxBuzzerConversation>(lTx);
+			uint256 lCreator = lConversationTx->in()[TX_BUZZER_CONVERSATION_MY_IN].out().tx();
+			uint256 lCounterparty = lConversationTx->in()[TX_BUZZER_CONVERSATION_BUZZER_IN].out().tx();
+
+			//
+			BuzzerTransactionStoreExtensionPtr lCreatorExtension = locateBuzzerExtension(lCreator);
+			if (!lCreatorExtension) return true;
+			BuzzerTransactionStoreExtensionPtr lCounterpartyExtension = locateBuzzerExtension(lCounterparty);
+			if (!lCounterpartyExtension) return true;
+
+			ConversationItemPtr lItem = ConversationItem::instance();
+
+			lItem->setTimestamp(lConversationTx->timestamp()); // last update
+			lItem->setConversationId(lConversationTx->id());
+			lItem->setConversationChainId(lConversationTx->chain());
+
+			TxBuzzerInfoPtr lCreatorInfo = lCreatorExtension->readBuzzerInfo(lCreator);
+			if (!lCreatorInfo) return true;
+			lItem->setCreatorId(lCreator);
+			lItem->setCreatorInfoId(lCreatorInfo->id());
+			lItem->setCreatorInfoChainId(lCreatorInfo->chain());
+
+			TxBuzzerInfoPtr lCounterpartyInfo = lCounterpartyExtension->readBuzzerInfo(lCounterparty);
+			if (!lCounterpartyInfo) return true;
+			lItem->setCounterpartyId(lCounterparty);
+			lItem->setCounterpartyInfoId(lCounterpartyInfo->id());
+			lItem->setCounterpartyInfoChainId(lCounterpartyInfo->chain());
+
+			lItem->setSignature(lConversationTx->signature());
+
+			BuzzerTransactionStoreExtension::BuzzerInfo lCounterpartyScore;
+			BuzzerTransactionStoreExtension::BuzzerInfo lCreatorScore;
+			if (dapp_.instance() == lCreator) {
+				// get score
+				lCounterpartyExtension->readBuzzerStat(lCounterparty, lCounterpartyScore);
+				//
+				lItem->setSide(ConversationItem::COUNTERPARTY);
+				lItem->setScore(lCounterpartyScore.score());
+			} else {
+				// get score
+				lCreatorExtension->readBuzzerStat(lCreator, lCreatorScore);
+				//
+				lItem->setSide(ConversationItem::CREATOR);
+				lItem->setScore(lCreatorScore.score());
+			}
+
+			//
+			// make event
+			if (lTx->in()[TX_BUZZER_CONVERSATION_BUZZER_IN].out().tx() == dapp_.instance()) {
+				//
+				EventsfeedItemPtr lEvent = EventsfeedItem::instance();
+
+				lEvent->setType(TX_BUZZER_CONVERSATION);
+				lEvent->setTimestamp(lConversationTx->timestamp());
+
+				// get score
+				BuzzerTransactionStoreExtension::BuzzerInfo lScore;
+				lCounterpartyExtension->readBuzzerStat(lCounterparty, lScore);
+
+				// conversation info
+				lEvent->setBuzzId(lConversationTx->id());
+				lEvent->setBuzzChainId(lConversationTx->chain());
+				lEvent->setPublisher(lCreator);
+				lEvent->setPublisherInfo(lCreatorInfo->id());
+				lEvent->setPublisherInfoChain(lCreatorInfo->chain());
+				lEvent->setScore(lCreatorScore.score());
+
+				// add CONVERSATION for verification
+				EventsfeedItem::EventInfo lEventInfo(
+					lConversationTx->timestamp(), 
+					lCounterparty, // trick
+					lCreatorInfo->chain(), 
+					lCreatorInfo->id(), 
+					lCreatorScore.score());
+				
+				lEventInfo.setEvent(lConversationTx->chain(), lConversationTx->id(), lConversationTx->signature());
+				lEvent->addEventInfo(lEventInfo);
+
+				//
+				notifyNewEvent(*lEvent);
+			}
+
+			//
+			// make conversation notification
+			notifyNewConversation(*lItem);
+		}
+
+		return true;
+	}
+
+	return false;
+}
+
+bool BuzzerPeerExtension::processAcceptConversation(TransactionContextPtr ctx) {
+	//
+	if (ctx->tx()->type() == TX_BUZZER_ACCEPT_CONVERSATION) {
+		//
+		TransactionPtr lTx = ctx->tx();
+		// in[0] - buzzer
+		uint256 lBuzzer = lTx->in()[TX_BUZZER_CONVERSATION_ACCEPT_MY_IN].out().tx(); 
+		uint256 lBuzzerChain = lTx->in()[TX_BUZZER_CONVERSATION_ACCEPT_MY_IN].out().chain();
+		// in[1] - conversation
+		uint256 lConversationId = lTx->in()[TX_BUZZER_CONVERSATION_ACCEPT_IN].out().tx();
+		uint256 lConversationChain = lTx->in()[TX_BUZZER_CONVERSATION_ACCEPT_IN].out().chain();
+		//
+		ITransactionStorePtr lConversationStore = peerManager_->consensusManager()->storeManager()->locate(lConversationChain);
+		if (!lConversationStore) return false;
+		TransactionPtr lConversationTx = lConversationStore->locateTransaction(lConversationId);
+		if (!lConversationTx) return false;
+
+		// buzzer event
+		bool lFound = false;
+		if (lConversationTx->in()[TX_BUZZER_CONVERSATION_MY_IN].out().tx() == dapp_.instance()) {
+			lFound = true;
+		} else if (lConversationTx->in()[TX_BUZZER_CONVERSATION_BUZZER_IN].out().tx() == dapp_.instance()) {
+			lFound = true;
+		}
+
+		if (lFound) {
+			//
+			uint256 lCreator = lConversationTx->in()[TX_BUZZER_CONVERSATION_MY_IN].out().tx();
+			uint256 lCounterparty = lConversationTx->in()[TX_BUZZER_CONVERSATION_BUZZER_IN].out().tx();
+
+			//
+			BuzzerTransactionStoreExtensionPtr lCreatorExtension = locateBuzzerExtension(lCreator);
+			if (!lCreatorExtension) return true;
+			BuzzerTransactionStoreExtensionPtr lCounterpartyExtension = locateBuzzerExtension(lCounterparty);
+			if (!lCounterpartyExtension) return true;
+
+			TxBuzzerInfoPtr lCreatorInfo = lCreatorExtension->readBuzzerInfo(lCreator);
+			if (!lCreatorInfo) return true;
+			TxBuzzerInfoPtr lCounterpartyInfo = lCounterpartyExtension->readBuzzerInfo(lCounterparty);
+			if (!lCounterpartyInfo) return true;
+
+			BuzzerTransactionStoreExtension::BuzzerInfo lCounterpartyScore;
+			lCounterpartyExtension->readBuzzerStat(lCounterparty, lCounterpartyScore);
+
+			TxBuzzerAcceptConversationPtr lAccept = TransactionHelper::to<TxBuzzerAcceptConversation>(lTx);
+			ConversationItem::EventInfo lItem(
+				lAccept->type(),
+				lAccept->timestamp(),
+				lConversationId,
+				lAccept->id(), 
+				lAccept->chain(), 
+				lCounterparty,
+				lCounterpartyInfo->chain(),
+				lCounterpartyInfo->id(),
+				lCounterpartyScore.score(),
+				lAccept->signature());
+
+			//
+			// make conversation update
+			notifyUpdateConversation(lItem);
+
+			//
+			// create event
+			if (lCreator == dapp_.instance()) {
+				//
+				EventsfeedItemPtr lEvent = EventsfeedItem::instance();
+
+				lEvent->setType(TX_BUZZER_ACCEPT_CONVERSATION);
+				lEvent->setTimestamp(lAccept->timestamp());
+
+				// get score
+				BuzzerTransactionStoreExtension::BuzzerInfo lCounterpartyScore;
+				lCounterpartyExtension->readBuzzerStat(lCounterparty, lCounterpartyScore);
+
+				BuzzerTransactionStoreExtension::BuzzerInfo lCreatorScore;
+				lCreatorExtension->readBuzzerStat(lCreator, lCreatorScore);
+
+				// conversation info
+				lEvent->setBuzzId(lConversationTx->id());
+				lEvent->setBuzzChainId(lConversationTx->chain());
+				lEvent->setPublisher(lCreator);
+				lEvent->setPublisherInfo(lCreatorInfo->id());
+				lEvent->setPublisherInfoChain(lCreatorInfo->chain());
+				lEvent->setScore(lCreatorScore.score());
+
+				// add CONVERSATION for verification
+				EventsfeedItem::EventInfo lEventInfo(
+					lAccept->timestamp(), 
+					lAccept->in()[TX_BUZZER_CONVERSATION_ACCEPT_MY_IN].out().tx(), 
+					lCounterpartyInfo->chain(), 
+					lCounterpartyInfo->id(), 
+					lCounterpartyScore.score());
+				
+				lEventInfo.setEvent(lAccept->chain(), lAccept->id(), lAccept->signature());
+				lEvent->addEventInfo(lEventInfo);
+
+				//
+				notifyNewEvent(*lEvent);				
+			}
+		}
+
+		return true;
+	}
+
+	return false;
+}
+
+bool BuzzerPeerExtension::processDeclineConversation(TransactionContextPtr ctx) {
+	//
+	if (ctx->tx()->type() == TX_BUZZER_DECLINE_CONVERSATION) {
+		//
+		TransactionPtr lTx = ctx->tx();
+		// in[0] - buzzer
+		uint256 lBuzzer = lTx->in()[TX_BUZZER_CONVERSATION_DECLINE_MY_IN].out().tx(); 
+		uint256 lBuzzerChain = lTx->in()[TX_BUZZER_CONVERSATION_DECLINE_MY_IN].out().chain();
+		// in[1] - conversation
+		uint256 lConversationId = lTx->in()[TX_BUZZER_CONVERSATION_DECLINE_IN].out().tx();
+		uint256 lConversationChain = lTx->in()[TX_BUZZER_CONVERSATION_DECLINE_IN].out().chain();
+		//
+		ITransactionStorePtr lConversationStore = peerManager_->consensusManager()->storeManager()->locate(lConversationChain);
+		if (!lConversationStore) return false;
+		TransactionPtr lConversationTx = lConversationStore->locateTransaction(lConversationId);
+		if (!lConversationTx) return false;
+
+		// buzzer event
+		bool lFound = false;
+		if (lConversationTx->in()[TX_BUZZER_CONVERSATION_MY_IN].out().tx() == dapp_.instance()) {
+			lFound = true;
+		} else if (lConversationTx->in()[TX_BUZZER_CONVERSATION_BUZZER_IN].out().tx() == dapp_.instance()) {
+			lFound = true;
+		}
+
+		if (lFound) {
+			//
+			uint256 lCreator = lConversationTx->in()[TX_BUZZER_CONVERSATION_MY_IN].out().tx();
+			uint256 lCounterparty = lConversationTx->in()[TX_BUZZER_CONVERSATION_BUZZER_IN].out().tx();
+
+			//
+			BuzzerTransactionStoreExtensionPtr lCreatorExtension = locateBuzzerExtension(lCreator);
+			if (!lCreatorExtension) return true;
+			BuzzerTransactionStoreExtensionPtr lCounterpartyExtension = locateBuzzerExtension(lCounterparty);
+			if (!lCounterpartyExtension) return true;
+
+			TxBuzzerInfoPtr lCreatorInfo = lCreatorExtension->readBuzzerInfo(lCreator);
+			if (!lCreatorInfo) return true;
+			TxBuzzerInfoPtr lCounterpartyInfo = lCounterpartyExtension->readBuzzerInfo(lCounterparty);
+			if (!lCounterpartyInfo) return true;
+
+			BuzzerTransactionStoreExtension::BuzzerInfo lCounterpartyScore;
+			lCounterpartyExtension->readBuzzerStat(lCounterparty, lCounterpartyScore);
+
+			TxBuzzerDeclineConversationPtr lDecline = TransactionHelper::to<TxBuzzerDeclineConversation>(lTx);
+			ConversationItem::EventInfo lItem(
+				lDecline->type(),
+				lDecline->timestamp(),
+				lConversationId,
+				lDecline->id(), 
+				lDecline->chain(), 
+				lCounterparty,
+				lCounterpartyInfo->chain(),
+				lCounterpartyInfo->id(),
+				lCounterpartyScore.score(),
+				lDecline->signature());
+
+			//
+			// make conversation update
+			notifyUpdateConversation(lItem);
+
+			//
+			// create event
+			if (lCreator == dapp_.instance()) {
+				//
+				EventsfeedItemPtr lEvent = EventsfeedItem::instance();
+
+				lEvent->setType(TX_BUZZER_DECLINE_CONVERSATION);
+				lEvent->setTimestamp(lDecline->timestamp());
+
+				// get score
+				BuzzerTransactionStoreExtension::BuzzerInfo lCounterpartyScore;
+				lCounterpartyExtension->readBuzzerStat(lCounterparty, lCounterpartyScore);
+
+				BuzzerTransactionStoreExtension::BuzzerInfo lCreatorScore;
+				lCreatorExtension->readBuzzerStat(lCreator, lCreatorScore);
+
+				// conversation info
+				lEvent->setBuzzId(lConversationTx->id());
+				lEvent->setBuzzChainId(lConversationTx->chain());
+				lEvent->setPublisher(lCreator);
+				lEvent->setPublisherInfo(lCreatorInfo->id());
+				lEvent->setPublisherInfoChain(lCreatorInfo->chain());
+				lEvent->setScore(lCreatorScore.score());
+
+				// add CONVERSATION for verification
+				EventsfeedItem::EventInfo lEventInfo(
+					lDecline->timestamp(), 
+					lDecline->in()[TX_BUZZER_CONVERSATION_DECLINE_MY_IN].out().tx(), 
+					lCounterpartyInfo->chain(), 
+					lCounterpartyInfo->id(), 
+					lCounterpartyScore.score());
+				
+				lEventInfo.setEvent(lDecline->chain(), lDecline->id(), lDecline->signature());
+				lEvent->addEventInfo(lEventInfo);
+
+				//
+				notifyNewEvent(*lEvent);
+			}
+		}
+
+		return true;
+	}
+
+	return false;
+}
+
+bool BuzzerPeerExtension::processConversationMessage(TransactionContextPtr ctx) {
+	//
+	if (ctx->tx()->type() == TX_BUZZER_MESSAGE) {
+		//
+		TransactionPtr lTx = ctx->tx();
+		// sanity
+		if (lTx->in().size() <= TX_BUZZER_CONVERSATION_IN) return false;
+		// get store
+		ITransactionStorePtr lStore = peerManager_->consensusManager()->storeManager()->locate(lTx->chain());
+		if (!lStore) return false;
+		//
+		ITransactionStorePtr lMainStore = peerManager_->consensusManager()->storeManager()->locate(MainChain::id());
+		//
+		uint256 lCounterparty;
+		uint256 lCounterpartyChain;
+		// in[0] - buzzer
+		uint256 lBuzzerId = lTx->in()[TX_BUZZER_MY_IN].out().tx(); 
+		// in[1] - conversation
+		uint256 lConversationId = lTx->in()[TX_BUZZER_CONVERSATION_IN].out().tx();
+		uint256 lConversationChain = lTx->in()[TX_BUZZER_CONVERSATION_IN].out().chain();
+		//
+		ITransactionStorePtr lConversationStore = peerManager_->consensusManager()->storeManager()->locate(lConversationChain);
+		if (!lConversationStore) return false;
+		TransactionPtr lConversationTx = lConversationStore->locateTransaction(lConversationId);
+		if (!lConversationTx) return false;
+
+		// buzzer event
+		bool lFound = false;
+		if (lConversationTx->in()[TX_BUZZER_CONVERSATION_MY_IN].out().tx() == dapp_.instance()) {
+			lFound = true;
+		} else if (lConversationTx->in()[TX_BUZZER_CONVERSATION_BUZZER_IN].out().tx() == dapp_.instance()) {
+			lFound = true;
+		}
+
+		if (lFound) {
+			//
+			ITransactionStorePtr lMainStore = peerManager_->consensusManager()->storeManager()->locate(MainChain::id());
+
+			TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lBuzzerId);
+			if (!lBuzzerTx) return true;
+
+			ITransactionStorePtr lStore = lMainStore->storeManager()->locate(lBuzzerTx->in()[TX_BUZZER_SHARD_IN].out().tx());
+			if (!lStore) return true;
+
+			if (!lStore->extension()) return true;
+			BuzzerTransactionStoreExtensionPtr lExtension = std::static_pointer_cast<BuzzerTransactionStoreExtension>(lStore->extension());
+
+			TxBuzzerMessagePtr lMessage = TransactionHelper::to<TxBuzzerMessage>(lTx);
+
+			BuzzfeedItem lItem;
+			TxBuzzerPtr lBuzzer = nullptr;
+			if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
+
+			//
+			// send new message
+			prepareBuzzfeedItem(lItem, TransactionHelper::to<TxBuzz>(lTx), lBuzzer, lExtension);
+			lItem.setRootBuzzId(lConversationId);
+			notifyNewMessage(lItem);
+
+			//
+			// send event
+			if (lBuzzerId != dapp_.instance()) {
+				EventsfeedItem lEventItem;
+				prepareEventsfeedItem(lEventItem, lMessage, lBuzzer, lMessage->chain(), lMessage->id(), 
+					lMessage->timestamp(), lMessage->buzzerInfoChain(), lMessage->buzzerInfo(), lMessage->score(), lMessage->signature());
+				// conversation is root
+				lEventItem.beginInfo()->setEventId(lConversationId);
+				lEventItem.beginInfo()->setEventChainId(lConversationChain);
+				notifyNewEvent(lEventItem);
+			}
+
+			BuzzerTransactionStoreExtensionPtr lCounterpartyExtension = locateBuzzerExtension(lBuzzerId);
+			if (!lCounterpartyExtension) return true;
+
+			TxBuzzerInfoPtr lBuzzerInfo = lCounterpartyExtension->readBuzzerInfo(lBuzzerId);
+			if (!lBuzzerInfo) return true;
+
+			BuzzerTransactionStoreExtension::BuzzerInfo lBuzzerScore;
+			lCounterpartyExtension->readBuzzerStat(lBuzzerId, lBuzzerScore);
+
+			//
+			// notify update conversations
+			ConversationItem::EventInfo lMessageItem(
+				lMessage->type(),
+				lMessage->timestamp(),
+				lConversationId,
+				lMessage->id(), 
+				lMessage->chain(), 
+				lBuzzerId,
+				lBuzzerInfo->chain(),
+				lBuzzerInfo->id(),
+				lMessage->mediaPointers(),
+				lMessage->body(),
+				lBuzzerScore.score(),
+				lMessage->signature());
+
+			//
+			// make conversation update
+			notifyUpdateConversation(lMessageItem);
+		}
+	}
+
+	return true;
+}
+
+bool BuzzerPeerExtension::processConversationMessageReply(TransactionContextPtr ctx) {
+	return true;
 }
 
 //
@@ -1241,6 +1697,16 @@ void BuzzerPeerExtension::processTransaction(TransactionContextPtr ctx) {
 		processMistrust(ctx);
 	} else if (ctx->tx()->type() == TX_BUZZER_SUBSCRIBE) {
 		processEventSubscribe(ctx);
+	} else if (ctx->tx()->type() == TX_BUZZER_CONVERSATION) {
+		processConversation(ctx);
+	} else if (ctx->tx()->type() == TX_BUZZER_ACCEPT_CONVERSATION) {
+		processAcceptConversation(ctx);
+	} else if (ctx->tx()->type() == TX_BUZZER_DECLINE_CONVERSATION) {
+		processDeclineConversation(ctx);
+	} else if (ctx->tx()->type() == TX_BUZZER_MESSAGE) {
+		processConversationMessage(ctx);
+	} else if (ctx->tx()->type() == TX_BUZZER_MESSAGE_REPLY) {
+		processConversationMessageReply(ctx);
 	}
 }
 
@@ -1509,6 +1975,51 @@ bool BuzzerPeerExtension::processMessage(Message& message, std::list<DataStream>
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
 				&BuzzerPeerExtension::processBuzzerAndInfoAbsent, shared_from_this(), msg,
+				boost::asio::placeholders::error)));
+
+	} else if (message.type() == GET_CONVERSATIONS_FEED_BY_BUZZER) {
+		boost::asio::async_read(*peer_->socket(),
+			boost::asio::buffer(msg->data(), message.dataSize()),
+			peer_->strand()->wrap(boost::bind(
+				&BuzzerPeerExtension::processGetConversationsFeedByBuzzer, shared_from_this(), msg,
+				boost::asio::placeholders::error)));
+	} else if (message.type() == CONVERSATIONS_FEED_BY_BUZZER) {
+		boost::asio::async_read(*peer_->socket(),
+			boost::asio::buffer(msg->data(), message.dataSize()),
+			peer_->strand()->wrap(boost::bind(
+				&BuzzerPeerExtension::processConversationsFeedByBuzzer, shared_from_this(), msg,
+				boost::asio::placeholders::error)));
+
+	} else if (message.type() == GET_MESSAGES_FEED_BY_CONVERSATION) {
+		boost::asio::async_read(*peer_->socket(),
+			boost::asio::buffer(msg->data(), message.dataSize()),
+			peer_->strand()->wrap(boost::bind(
+				&BuzzerPeerExtension::processGetMessagesFeedByConversation, shared_from_this(), msg,
+				boost::asio::placeholders::error)));
+	} else if (message.type() == MESSAGES_FEED_BY_CONVERSATION) {
+		boost::asio::async_read(*peer_->socket(),
+			boost::asio::buffer(msg->data(), message.dataSize()),
+			peer_->strand()->wrap(boost::bind(
+				&BuzzerPeerExtension::processMessagesFeedByConversation, shared_from_this(), msg,
+				boost::asio::placeholders::error)));
+
+	} else if (message.type() == NEW_BUZZER_CONVERSATION_NOTIFY) {
+		boost::asio::async_read(*peer_->socket(),
+			boost::asio::buffer(msg->data(), message.dataSize()),
+			peer_->strand()->wrap(boost::bind(
+				&BuzzerPeerExtension::processNewConversationNotify, shared_from_this(), msg,
+				boost::asio::placeholders::error)));
+	} else if (message.type() == UPDATE_BUZZER_CONVERSATION_NOTIFY) {
+		boost::asio::async_read(*peer_->socket(),
+			boost::asio::buffer(msg->data(), message.dataSize()),
+			peer_->strand()->wrap(boost::bind(
+				&BuzzerPeerExtension::processUpdateConversationNotify, shared_from_this(), msg,
+				boost::asio::placeholders::error)));
+	} else if (message.type() == NEW_BUZZER_MESSAGE_NOTIFY) {
+		boost::asio::async_read(*peer_->socket(),
+			boost::asio::buffer(msg->data(), message.dataSize()),
+			peer_->strand()->wrap(boost::bind(
+				&BuzzerPeerExtension::processNewMessageNotify, shared_from_this(), msg,
 				boost::asio::placeholders::error)));
 	} else {
 		return false;
@@ -1840,6 +2351,126 @@ void BuzzerPeerExtension::processUnsubscribeBuzzThread(std::list<DataStream>::it
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processGetBuzzfeed/error]: closing session " + peer_->key() + " -> " + error.message());
+		// try to deactivate peer
+		peerManager_->deactivatePeer(peer_);
+		// close socket
+		peer_->close();
+	}
+}
+
+void BuzzerPeerExtension::processGetConversationsFeedByBuzzer(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
+	//
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, strprintf("[peer/buzzer]: checksum %s is INVALID for message from %s -> %s", (*msg).calculateCheckSum().toHex(), peer_->key(), HexStr((*msg).begin(), (*msg).end())));
+	if (!error && lMsgValid) {
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: processing request load conversations from ") + peer_->key());
+
+		// extract
+		uint256 lRequestId;
+		uint256 lChain;
+		uint256 lBuzzer;
+		uint64_t lFrom;
+		(*msg) >> lRequestId;
+		(*msg) >> lChain;
+		(*msg) >> lBuzzer;
+		(*msg) >> lFrom;
+		peer_->eraseInData(msg);
+
+		// locate subscription
+		TransactionPtr lSubscription = nullptr;
+		ITransactionStorePtr lStorage = peerManager_->consensusManager()->storeManager()->locate(lChain);
+		if (lStorage && lStorage->extension()) {
+			//
+			BuzzerTransactionStoreExtensionPtr lExtension = std::static_pointer_cast<BuzzerTransactionStoreExtension>(lStorage->extension());
+			std::vector<ConversationItem> lFeed;
+			lExtension->selectConversations(lFrom, lBuzzer, lFeed);
+
+			// make message, serialize, send back
+			std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
+
+			// fill data
+			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION);
+			lStream << lRequestId;
+			lStream << lChain;
+			lStream << lBuzzer;
+			lStream << lFeed;
+
+			// prepare message
+			Message lMessage(CONVERSATIONS_FEED_BY_BUZZER, lStream.size(), Hash160(lStream.begin(), lStream.end()));
+			(*lMsg) << lMessage;
+			lMsg->write(lStream.data(), lStream.size());
+
+			// log
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: sending conversations ") + strprintf("%d/%s#", lFeed.size(), lChain.toHex().substr(0, 10)) + std::string(" for ") + peer_->key());
+
+			// write
+			peer_->sendMessage(lMsg);
+		} else {
+			peer_->processed();
+		}
+	} else {
+		// log
+		gLog().write(Log::NET, "[peer/processGetConversationsFeedByBuzzer/error]: closing session " + peer_->key() + " -> " + error.message());
+		// try to deactivate peer
+		peerManager_->deactivatePeer(peer_);
+		// close socket
+		peer_->close();
+	}
+}
+
+void BuzzerPeerExtension::processGetMessagesFeedByConversation(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
+	//
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, strprintf("[peer/buzzer]: checksum %s is INVALID for message from %s -> %s", (*msg).calculateCheckSum().toHex(), peer_->key(), HexStr((*msg).begin(), (*msg).end())));
+	if (!error && lMsgValid) {
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: processing request load conversation messages from ") + peer_->key());
+
+		// extract
+		uint256 lRequestId;
+		uint256 lChain;
+		uint256 lConversation;
+		uint64_t lFrom;
+		(*msg) >> lRequestId;
+		(*msg) >> lChain;
+		(*msg) >> lConversation;
+		(*msg) >> lFrom;
+		peer_->eraseInData(msg);
+
+		// locate subscription
+		TransactionPtr lSubscription = nullptr;
+		ITransactionStorePtr lStorage = peerManager_->consensusManager()->storeManager()->locate(lChain);
+		if (lStorage && lStorage->extension()) {
+			//
+			BuzzerTransactionStoreExtensionPtr lExtension = std::static_pointer_cast<BuzzerTransactionStoreExtension>(lStorage->extension());
+			std::vector<BuzzfeedItem> lFeed;
+			lExtension->selectMessages(lFrom, lConversation, lFeed);
+
+			// make message, serialize, send back
+			std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
+
+			// fill data
+			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION);
+			lStream << lRequestId;
+			lStream << lChain;
+			lStream << lConversation;
+			lStream << lFeed;
+
+			// prepare message
+			Message lMessage(MESSAGES_FEED_BY_CONVERSATION, lStream.size(), Hash160(lStream.begin(), lStream.end()));
+			(*lMsg) << lMessage;
+			lMsg->write(lStream.data(), lStream.size());
+
+			// log
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: sending conversation messages ") + strprintf("%d/%s#", lFeed.size(), lChain.toHex().substr(0, 10)) + std::string(" for ") + peer_->key());
+
+			// write
+			peer_->sendMessage(lMsg);
+		} else {
+			peer_->processed();
+		}
+	} else {
+		// log
+		gLog().write(Log::NET, "[peer/processGetMessagesFeedByConversation/error]: closing session " + peer_->key() + " -> " + error.message());
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -3325,6 +3956,98 @@ void BuzzerPeerExtension::processFollowersByBuzzer(std::list<DataStream>::iterat
 	}
 }
 
+void BuzzerPeerExtension::processConversationsFeedByBuzzer(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
+	//
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: checksum is INVALID for message from ") + peer_->key());
+	if (!error && lMsgValid) {
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: processing response load conversations by buzzer from ") + peer_->key());
+
+		// extract
+		uint256 lRequestId;
+		uint256 lChain;
+		uint256 lBuzzer;
+		std::vector<ConversationItem> lFeed;
+
+		(*msg) >> lRequestId;
+		(*msg) >> lChain;
+		(*msg) >> lBuzzer;
+		(*msg) >> lFeed;
+		peer_->eraseInData(msg);
+
+		// read
+		peer_->processed();
+
+		// log
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: processing conversations by buzzer ") + strprintf("r = %s, %d/%s#", lRequestId.toHex(), lFeed.size(), lChain.toHex().substr(0, 10)) + std::string("..."));
+
+		IReplyHandlerPtr lHandler = peer_->locateRequest(lRequestId);
+		if (lHandler) {
+			ReplyHelper::to<ISelectConversationsFeedByEntityHandler>(lHandler)->handleReply(lFeed, lChain, lBuzzer);
+			peer_->removeRequest(lRequestId);
+		} else {
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: request was NOT FOUND for conversations by buzzer ") + strprintf("r = %s", lRequestId.toHex()) + std::string("..."));
+		}
+	} else {
+		// log
+		gLog().write(Log::NET, "[peer/processConversationsFeedByBuzzer/error]: closing session " + peer_->key() + " -> " + error.message());
+		// try to deactivate peer
+		peerManager_->deactivatePeer(peer_);
+		// close socket
+		peer_->close();
+	}
+}
+
+void BuzzerPeerExtension::processMessagesFeedByConversation(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
+	//
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: checksum is INVALID for message from ") + peer_->key());
+	if (!error && lMsgValid) {
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: processing response load messages by conversation from ") + peer_->key());
+
+		// extract
+		uint256 lRequestId;
+		uint256 lChain;
+		uint256 lConversation;
+		std::vector<BuzzfeedItem> lFeed;
+
+		(*msg) >> lRequestId;
+		(*msg) >> lChain;
+		(*msg) >> lConversation;
+		(*msg) >> lFeed;
+		peer_->eraseInData(msg);
+
+		// read
+		peer_->processed();
+
+		// log
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: processing messages by conversations` ") + strprintf("r = %s, %d/%s#", lRequestId.toHex(), lFeed.size(), lChain.toHex().substr(0, 10)) + std::string("..."));
+
+		IReplyHandlerPtr lHandler = peer_->locateRequest(lRequestId);
+		if (lHandler) {
+			// mixup pending messages
+			std::list<BuzzfeedItemPtr> lItems;
+			buzzer_->pendingMessages(peer_->addressId(), lChain, lConversation, lItems);
+			//
+			for (std::list<BuzzfeedItemPtr>::iterator lItem = lItems.begin(); lItem != lItems.end(); lItem++) {
+				lFeed.push_back((*lItem)->self());
+			}
+
+			ReplyHelper::to<ISelectBuzzFeedByEntityHandler>(lHandler)->handleReply(lFeed, lChain, lConversation);
+			peer_->removeRequest(lRequestId);
+		} else {
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: request was NOT FOUND ") + strprintf("r = %s", lRequestId.toHex()) + std::string("..."));
+		}
+	} else {
+		// log
+		gLog().write(Log::NET, "[peer/processMessagesFeedByConversation/error]: closing session " + peer_->key() + " -> " + error.message());
+		// try to deactivate peer
+		peerManager_->deactivatePeer(peer_);
+		// close socket
+		peer_->close();
+	}
+}
+
 void BuzzerPeerExtension::processEventsfeed(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
 	//
 	bool lMsgValid = (*msg).valid();
@@ -3404,6 +4127,45 @@ void BuzzerPeerExtension::processNewBuzzNotify(std::list<DataStream>::iterator m
 	}
 }
 
+void BuzzerPeerExtension::processNewMessageNotify(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
+	//
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: checksum is INVALID for message from ") + peer_->key());
+	if (!error && lMsgValid) {
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: processing new message notification from ") + peer_->key());
+
+		// extract
+		BuzzfeedItem lBuzz;
+		(*msg) >> lBuzz;
+		peer_->eraseInData(msg);
+
+		// log
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: processing new message notification ") + 
+			strprintf("%s/%s# from %s", lBuzz.buzzId().toHex(), lBuzz.buzzChainId().toHex().substr(0, 10), peer_->key()));
+		else if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, std::string("[peer/buzzer]: processing message buzz notification ") + 
+			strprintf("%s/%s# from %s", lBuzz.buzzId().toHex(), lBuzz.buzzChainId().toHex().substr(0, 10), peer_->key()));
+
+		if (buzzer_->conversation() && buzzer_->conversation()->rootBuzzId() == lBuzz.rootBuzzId()) {
+			// update (if necessary) current buzzfeed
+			buzzer_->conversation()->push(lBuzz, peer_->addressId());
+			// try to process pending items (in case of rebuzz)
+			buzzer_->resolvePendingItems();
+		} else {
+			buzzer_->pushPendingMessage(peer_->addressId(), lBuzz.buzzChainId(), lBuzz.rootBuzzId(), BuzzfeedItem::instance(lBuzz));
+		}
+
+		// WARNING: in case of async_read for large data
+		peer_->processed();
+	} else {
+		// log
+		gLog().write(Log::NET, "[peer/processNewMessageNotify/error]: closing session " + peer_->key() + " -> " + error.message());
+		// try to deactivate peer
+		peerManager_->deactivatePeer(peer_);
+		// close socket
+		peer_->close();
+	}
+}
+
 void BuzzerPeerExtension::processNewEventNotify(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
 	//
 	bool lMsgValid = (*msg).valid();
@@ -3434,6 +4196,86 @@ void BuzzerPeerExtension::processNewEventNotify(std::list<DataStream>::iterator 
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processNewEventNotify/error]: closing session " + peer_->key() + " -> " + error.message());
+		// try to deactivate peer
+		peerManager_->deactivatePeer(peer_);
+		// close socket
+		peer_->close();
+	}
+}
+
+void BuzzerPeerExtension::processNewConversationNotify(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
+	//
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: checksum is INVALID for message from ") + peer_->key());
+	if (!error && lMsgValid) {
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: processing new conversation notification from ") + peer_->key());
+
+		// extract
+		std::vector<ConversationItem> lEvents;
+		(*msg) >> lEvents;
+		peer_->eraseInData(msg);
+
+		// log
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: processing new conversation notifications ") +
+			strprintf("%d from %s", lEvents.size(), peer_->key()));
+		else if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, std::string("[peer/buzzer]: processing new conversation notifications ") +
+			strprintf("%d from %s", lEvents.size(), peer_->key()));
+
+		// update
+		if (buzzer_->conversations()) { 
+			//
+			buzzer_->conversations()->mergeUpdate(lEvents, peer_->addressId());
+			// try to process pending items (in case of rebuzz)
+			buzzer_->resolvePendingEventsItems();
+			// resolve info
+			buzzer_->resolveBuzzerInfos(); //
+		}
+
+		// WARNING: in case of async_read for large data
+		peer_->processed();
+	} else {
+		// log
+		gLog().write(Log::NET, "[peer/processNewConversationNotify/error]: closing session " + peer_->key() + " -> " + error.message());
+		// try to deactivate peer
+		peerManager_->deactivatePeer(peer_);
+		// close socket
+		peer_->close();
+	}
+}
+
+void BuzzerPeerExtension::processUpdateConversationNotify(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
+	//
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: checksum is INVALID for message from ") + peer_->key());
+	if (!error && lMsgValid) {
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: processing update conversation notification from ") + peer_->key());
+
+		// extract
+		std::vector<ConversationItem::EventInfo> lEvents;
+		(*msg) >> lEvents;
+		peer_->eraseInData(msg);
+
+		// log
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: processing update conversation notifications ") +
+			strprintf("%d from %s", lEvents.size(), peer_->key()));
+		else if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, std::string("[peer/buzzer]: processing update conversation notifications ") +
+			strprintf("%d from %s", lEvents.size(), peer_->key()));
+
+		// update
+		if (buzzer_->conversations()) {
+			//
+			buzzer_->conversations()->mergeUpdate(lEvents, peer_->addressId());
+			// try to process pending items (in case of rebuzz)
+			buzzer_->resolvePendingEventsItems();
+			// resolve info
+			buzzer_->resolveBuzzerInfos(); //
+		}
+
+		// WARNING: in case of async_read for large data
+		peer_->processed();
+	} else {
+		// log
+		gLog().write(Log::NET, "[peer/processUpdateConversationNotify/error]: closing session " + peer_->key() + " -> " + error.message());
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -3895,6 +4737,64 @@ bool BuzzerPeerExtension::selectBuzzes(const uint256& chain, const std::vector<u
 	return false;
 }
 
+bool BuzzerPeerExtension::selectConversations(const uint256& chain, uint64_t from, const uint256& buzzer, ISelectConversationsFeedByEntityHandlerPtr handler) {
+	//
+	if (peer_->status() == IPeer::ACTIVE) {
+		
+		// new message
+		std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION);
+
+		uint256 lRequestId = peer_->addRequest(handler);
+		lStateStream << lRequestId;
+		lStateStream << chain;
+		lStateStream << buzzer;
+		lStateStream << from;
+		Message lMessage(GET_CONVERSATIONS_FEED_BY_BUZZER, lStateStream.size(), Hash160(lStateStream.begin(), lStateStream.end()));
+
+		(*lMsg) << lMessage;
+		lMsg->write(lStateStream.data(), lStateStream.size());
+
+		// log
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: loading conversations by buzzer ") + strprintf("%s/%s# from %s -> %s", buzzer.toHex(), chain.toHex().substr(0, 10), peer_->key(), HexStr(lStateStream.begin(), lStateStream.end())));
+
+		// write
+		peer_->sendMessageAsync(lMsg);
+		return true;
+	}
+
+	return false;
+}
+
+bool BuzzerPeerExtension::selectMessages(const uint256& chain, uint64_t from, const uint256& conversation, ISelectBuzzFeedByEntityHandlerPtr handler) {
+	//
+	if (peer_->status() == IPeer::ACTIVE) {
+		
+		// new message
+		std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION);
+
+		uint256 lRequestId = peer_->addRequest(handler);
+		lStateStream << lRequestId;
+		lStateStream << chain;
+		lStateStream << conversation;
+		lStateStream << from;
+		Message lMessage(GET_MESSAGES_FEED_BY_CONVERSATION, lStateStream.size(), Hash160(lStateStream.begin(), lStateStream.end()));
+
+		(*lMsg) << lMessage;
+		lMsg->write(lStateStream.data(), lStateStream.size());
+
+		// log
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: loading messages by conversation ") + strprintf("%s/%s# from %s -> %s", conversation.toHex(), chain.toHex().substr(0, 10), peer_->key(), HexStr(lStateStream.begin(), lStateStream.end())));
+
+		// write
+		peer_->sendMessageAsync(lMsg);
+		return true;
+	}
+
+	return false;
+}
+
 bool BuzzerPeerExtension::notifyNewBuzz(const BuzzfeedItem& buzz) {
 	//
 	if (peer_->status() == IPeer::ACTIVE) {
@@ -3911,6 +4811,34 @@ bool BuzzerPeerExtension::notifyNewBuzz(const BuzzfeedItem& buzz) {
 
 		// log
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: new buzz notification ") + 
+			strprintf("%s/%s# for %s -> %d/%s", 
+				const_cast<BuzzfeedItem&>(buzz).buzzId().toHex(), 
+				const_cast<BuzzfeedItem&>(buzz).buzzChainId().toHex().substr(0, 10), peer_->key(), lStateStream.size(), HexStr(lStateStream.begin(), lStateStream.end())));
+
+		// write
+		peer_->sendMessageAsync(lMsg);
+		return true;
+	}
+
+	return false;
+}
+
+bool BuzzerPeerExtension::notifyNewMessage(const BuzzfeedItem& buzz) {
+	//
+	if (peer_->status() == IPeer::ACTIVE) {
+		
+		// new message
+		std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION);
+
+		lStateStream << buzz;
+		Message lMessage(NEW_BUZZER_MESSAGE_NOTIFY, lStateStream.size(), Hash160(lStateStream.begin(), lStateStream.end()));
+
+		(*lMsg) << lMessage;
+		lMsg->write(lStateStream.data(), lStateStream.size());
+
+		// log
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: new message notification ") + 
 			strprintf("%s/%s# for %s -> %d/%s", 
 				const_cast<BuzzfeedItem&>(buzz).buzzId().toHex(), 
 				const_cast<BuzzfeedItem&>(buzz).buzzChainId().toHex().substr(0, 10), peer_->key(), lStateStream.size(), HexStr(lStateStream.begin(), lStateStream.end())));
@@ -3966,6 +4894,66 @@ bool BuzzerPeerExtension::notifyNewEvent(const EventsfeedItem& buzz, bool tryFor
 			// write
 			peer_->sendMessageAsync(lMsg);
 		}
+
+		return true;
+	}
+
+	return false;
+}
+
+bool BuzzerPeerExtension::notifyNewConversation(const ConversationItem& conversation) {
+	//
+	if (peer_->status() == IPeer::ACTIVE) {
+		//
+		std::vector<ConversationItem> lUpdates;
+		lUpdates.push_back(conversation);
+
+		// new message
+		std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION);
+
+		lStateStream << lUpdates;
+		Message lMessage(NEW_BUZZER_CONVERSATION_NOTIFY, lStateStream.size(), Hash160(lStateStream.begin(), lStateStream.end()));
+
+		(*lMsg) << lMessage;
+		lMsg->write(lStateStream.data(), lStateStream.size());
+
+		// log
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: new conversation notification ") + 
+			strprintf("%d for %s", conversation.conversationId().toHex(), peer_->key()));
+
+		// write
+		peer_->sendMessageAsync(lMsg);
+
+		return true;
+	}
+
+	return false;
+}
+
+bool BuzzerPeerExtension::notifyUpdateConversation(const ConversationItem::EventInfo& conversation) {
+	//
+	if (peer_->status() == IPeer::ACTIVE) {		
+		//
+		std::vector<ConversationItem::EventInfo> lUpdates;
+		lUpdates.push_back(conversation);
+
+		// new message
+		std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION);
+
+		lStateStream << lUpdates;
+		Message lMessage(UPDATE_BUZZER_CONVERSATION_NOTIFY, lStateStream.size(), Hash160(lStateStream.begin(), lStateStream.end()));
+
+		(*lMsg) << lMessage;
+		lMsg->write(lStateStream.data(), lStateStream.size());
+
+		// log
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: update conversation notification ") + 
+			strprintf("%d for %s", conversation.conversationId().toHex(), peer_->key()));
+
+		// write
+		peer_->sendMessageAsync(lMsg);
 
 		return true;
 	}

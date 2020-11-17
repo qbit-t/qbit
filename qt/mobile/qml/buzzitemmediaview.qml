@@ -37,6 +37,7 @@ Item {
 	readonly property int spaceRightMenu_: 15
 	readonly property int spaceStats_: -5
 	readonly property int spaceLine_: 4
+	property var pkey_: ""
 
 	signal calculatedHeightModified(var value);
 	onCalculatedHeightChanged: calculatedHeightModified(calculatedHeight);
@@ -44,7 +45,8 @@ Item {
 	Component.onCompleted: {
 	}
 
-	function initialize() {
+	function initialize(pkey) {
+		if (key !== undefined) pkey_ = pkey;
 		mediaList.prepare();
 	}
 
@@ -219,9 +221,10 @@ Item {
 			BuzzerCommands.DownloadMediaCommand {
 				id: downloadCommand
 				preview: false
-				skipIfExists: true
+				skipIfExists: true // (pkey_ !== "" || pkey_ !== undefined) ? false : true
 				url: url_
 				localFile: key_
+				pkey: pkey_
 
 				property int tryCount_: 0;
 

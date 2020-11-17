@@ -198,6 +198,24 @@ public:
 		}
 	}
 
+	void removePeer(const std::string& endpoint) {
+		//
+		IPeerPtr lPeer = locate(endpoint);
+		if (lPeer) {
+			if (lPeer->type() == IPeer::Type::EXPLICIT) {
+				// check all
+				for (int lIdx = 0; lIdx < contexts_.size(); lIdx++) {
+					boost::unique_lock<boost::mutex> lLock(contextMutex_[lIdx]);
+					explicit_[lIdx].erase(lPeer->key());
+				}
+
+				peersContainer_.remove(lPeer->key()); // remove from storage
+			}
+
+			removePeer(lPeer);
+		}
+	}
+
 	bool updatePeerState(IPeerPtr peer, StatePtr state, IPeer::UpdatePeerResult& peerResult) {
 		// forward
 		peerResult = IPeer::SUCCESSED;
@@ -284,7 +302,7 @@ public:
 			}
 		}
 
-		return nullptr;		
+		return nullptr;
 	}
 
 	IPeerPtr addPeer(const std::string& endpoint) {
@@ -426,7 +444,7 @@ public:
 				Peer::PersistentState lPersistentState;
 				if (lState.first(lKey) && lState.second(lPersistentState)) {
 					// make peer
-					IPeerPtr lPeer = addPeer(lKey);
+					IPeerPtr lPeer = addPeerInternal(lKey, lPersistentState.type());
 					if (lPeer) {
 						lPeer->setState(State::instance(lPersistentState.state()));
 
@@ -522,6 +540,18 @@ public:
 				PeersMap::iterator lPeerPtr = peers_[lIdx].find(*lPeer);
 				if (lPeerPtr != peers_[lIdx].end()) 
 					peers.push_back(*lPeer);
+			}
+		}
+	}
+
+	void explicitPeers(std::list<IPeerPtr>& peers) {
+		//
+		for (int lIdx = 0; lIdx < contexts_.size(); lIdx++) {
+			boost::unique_lock<boost::mutex> lLock(contextMutex_[lIdx]);
+			for (std::set<std::string /*endpoint*/>::iterator lPeer = explicit_[lIdx].begin(); lPeer != explicit_[lIdx].end(); lPeer++) {
+				PeersMap::iterator lPeerPtr = peers_[lIdx].find(*lPeer);
+				if (lPeerPtr != peers_[lIdx].end()) 
+					peers.push_back(lPeerPtr->second);
 			}
 		}
 	}
@@ -975,7 +1005,7 @@ public:
 
 	void updatePeer(IPeerPtr peer) {
 		if (!gLightDaemon && peer->isOutbound()) {
-			peersContainer_.write(peer->key(), Peer::PersistentState(*peer->state(), peer->status()));
+			peersContainer_.write(peer->key(), Peer::PersistentState(*peer->state(), peer->status(), peer->type()));
 		}
 	}
 

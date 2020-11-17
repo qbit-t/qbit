@@ -55,6 +55,7 @@ public:
 				if (asset->type() == Transaction::ASSET_TYPE) {
 					TxAssetTypePtr lAssetType = TransactionHelper::to<TxAssetType>(asset);
 					lScale = lAssetType->scale();
+					lAsset = asset->id();
 				}
 			}
 

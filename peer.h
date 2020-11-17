@@ -48,22 +48,37 @@ public:
 	class PersistentState {
 	public:
 		PersistentState() {}
-		PersistentState(const State& state, IPeer::Status status) : state_(state), status_(status) {}
+		PersistentState(const State& state, IPeer::Status status, IPeer::Type type) : 
+			state_(state), status_(status), type_(type) {}
 
 		ADD_SERIALIZE_METHODS;
 
 		template <typename Stream, typename Operation>
 		inline void serializationOp(Stream& s, Operation ser_action) {
 			READWRITE(state_);
-			READWRITE((int)status_);
+
+			if (ser_action.ForRead()) {
+				int lStatus;
+				s >> lStatus;
+				status_ = (IPeer::Status)lStatus;
+
+				int lType;
+				s >> lType;
+				type_ = (IPeer::Type)lType;
+			} else {
+				READWRITE((int)status_);
+				READWRITE((int)type_);				
+			}
 		}
 
 		State& state() { return state_; }
 		IPeer::Status status() { return status_; }
+		IPeer::Type type() { return type_; }
 
 	private:
 		State state_;
 		IPeer::Status status_;
+		IPeer::Type type_;
 	};
 
 public:

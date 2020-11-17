@@ -110,7 +110,17 @@ Item
 	readonly property string questionSym: "\uf128";
 	readonly property string questionCircleSym: "\uf059";
 	readonly property string addressBookSym: "\uf2b9";
+
 	readonly property string userPlusSym: "\uf234";
+	readonly property string userEditSym: "\uf4ff";
+	readonly property string userSecretSym: "\uf21b";
+
+	readonly property string conversationStartedSym: "\uf234";
+	readonly property string conversationPendingSym: "\uf4fd";
+	readonly property string conversationAcceptedSym: "\uf4fc";
+	readonly property string conversationDeclinedSym: "\uf235";
+	readonly property string conversationMessageSym: "\uf4a6";
+
 	readonly property string chevronCircleSym: "\uf13a";
 	readonly property string pasteSym: "\uf0ea";
 	readonly property string levelDownSym: "\uf149";
@@ -198,5 +208,22 @@ Item
 	readonly property string expandDownSym: "\uf32d";
 	readonly property string expandSimpleDownSym: "\uf0d7";
 	readonly property string targetMapSym: "\uf276";
+
+	readonly property string userClockSym: "\uf4fd";
+	readonly property string userBanSym: "\uf235";
+
+	readonly property string copySym: "\uf0c5";
+
+	readonly property string serverSym: "\uf233";
+	readonly property string passportSym: "\uf5ab";
+	readonly property string queuesSym: "\uf5fd";
+	readonly property string stopwatchSym: "\uf2f2";
+	readonly property string networkSym: "\uf78a";
+	readonly property string chainsSym: "\uf1b3";
+
+	readonly property string collapsedSym: "\uf105";
+	readonly property string expandedSym: "\uf107";
+
+	readonly property string globeSym: "\uf0ac";
 }
 

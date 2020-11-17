@@ -33,6 +33,7 @@ public class NotificatorService extends QtService
     private static final int ID_SERVICE = 31415;
 	private static String CHANNEL_ID = "buzzer_notifications_01";
     private static NotificatorService instance_;
+	private static int running_ = 1;
 
     public NotificatorService()
     {
@@ -123,6 +124,9 @@ public class NotificatorService extends QtService
     public static void notify(int type, String id, String alias, String name, String comment,
 	                                                        String text, String avatarPath, String mediaPath) {
 		//
+		//if (running_ == 0) return;
+
+		//
         Intent notificationIntent = new Intent(instance_, MainActivity.class);
         PendingIntent pendingIntent =
                 PendingIntent.getActivity(instance_, 0, notificationIntent, 0);
@@ -176,17 +180,27 @@ public class NotificatorService extends QtService
 			case 0x1006: // TX_REBUZZ, TX_REBUZZ_REPLY
 			    return R.drawable.rebuzz;
 			case 0x1008: // TX_BUZZ_REPLY
-			    return R.drawable.reply;
+			    return R.drawable.reply;			//!
 			case 0x1007: // TX_BUZZ_LIKE
-			    return R.drawable.like;
+			    return R.drawable.like;				//!
 			case 0x100c: // TX_BUZZ_REWARD
-			    return R.drawable.donate;
+			    return R.drawable.donate;			//!
 			case 0x1002: // TX_BUZZER_SUBSCRIBE
-			    return R.drawable.subscribe;
+			    return R.drawable.subscribe;		//!
 			case 0x1004: // TX_BUZZER_ENDORSE
-			    return R.drawable.endorse;
+			    return R.drawable.endorse;			//!
 			case 0x1005: // TX_BUZZER_MISTRUST
-			    return R.drawable.mistrust;
+			    return R.drawable.mistrust;			//!
+
+			case 0x100e: // TX_BUZZER_CONVERSATION
+			    return R.drawable.conversation;
+			case 0x100f: // TX_BUZZER_ACCEPT_CONVERSATION
+			    return R.drawable.conversationaccepted;
+			case 0x1010: // TX_BUZZER_DECLINE_CONVERSATION
+			    return R.drawable.conversationdeclined;
+			case 0x1011: // TX_BUZZER_MESSAGE, TX_BUZZER_MESSAGE_REPLY
+			case 0x1012:
+			    return R.drawable.message;			//!
 		}
 
 	    return R.drawable.contour;
@@ -237,5 +251,13 @@ public class NotificatorService extends QtService
         if (isServiceRunning(ctx, "app.buzzer.mobile.NotificatorService"))
             ctx.stopService(new Intent(ctx, NotificatorService.class));
     }
+
+    public static void pauseNotifications(Context ctx) {
+		running_ = 0;
+	}
+
+    public static void resumeNotifications(Context ctx) {
+		running_ = 1;
+	}
 }
 

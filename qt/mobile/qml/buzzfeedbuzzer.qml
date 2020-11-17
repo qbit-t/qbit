@@ -196,7 +196,7 @@ QuarkPage {
 			id: buzzerControl
 			x: cancelButton.x + cancelButton.width + spaceItems_
 			y: parent.height / 2 - height / 2
-			width: parent.width - (x + spaceRightMenu_)
+			width: parent.width - (x /*+ spaceRightMenu_*/)
 			elide: Text.ElideRight
 			text: buzzerModelLoader.buzzer
 			font.pointSize: 18

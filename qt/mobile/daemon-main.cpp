@@ -45,6 +45,7 @@
 	#include "../dapps/buzzer/buzzer.h"
 	#include "../dapps/buzzer/buzzfeed.h"
 	#include "../dapps/buzzer/eventsfeed.h"
+	#include "../dapps/buzzer/conversationsfeed.h"
 	#include "../../client/dapps/buzzer/buzzerrequestprocessor.h"
 	#include "../../client/dapps/buzzer/buzzercomposer.h"
 	#include "../../client/dapps/buzzer/buzzercommands.h"
@@ -284,10 +285,23 @@ public:
 				QString lString = getLocalization(gClient->locale(), "Buzzer.event.subscribe.one");
 				return lString;
 			}
+		} else if (buzz_->type() == TX_BUZZER_CONVERSATION) {
+			QString lString = getLocalization(gClient->locale(), "Buzzer.event.conversation.one");
+			return lString;
+		} else if (buzz_->type() == TX_BUZZER_ACCEPT_CONVERSATION) {
+			QString lString = getLocalization(gClient->locale(), "Buzzer.event.conversation.accepted.one");
+			return lString;
+		} else if (buzz_->type() == TX_BUZZER_DECLINE_CONVERSATION) {
+			QString lString = getLocalization(gClient->locale(), "Buzzer.event.conversation.declined.one");
+			return lString;
+		} else if (buzz_->type() == TX_BUZZER_MESSAGE || buzz_->type() == TX_BUZZER_MESSAGE_REPLY) {
+			QString lString = getLocalization(gClient->locale(), "Buzzer.event.conversation.message.one");
+			return lString;
 		}
 	}
 
 	QString getText() {
+		if (buzz_->type() == TX_BUZZER_MESSAGE || buzz_->type() == TX_BUZZER_MESSAGE_REPLY) return QString("");
 		return QString::fromStdString(buzz_->buzzBodyString());
 	}
 
@@ -379,8 +393,8 @@ public:
 		std::vector<std::string> lArgs;
 		lArgs.push_back(lUrl);
 		lArgs.push_back(lPath + "/" + lHeader);
-		lArgs.push_back("preview");
-		lArgs.push_back("skip");
+		lArgs.push_back("-preview");
+		lArgs.push_back("-skip");
 		downloadAvatar_->process(lArgs);
 	}
 
@@ -406,8 +420,8 @@ public:
 		std::vector<std::string> lArgs;
 		lArgs.push_back(lUrl);
 		lArgs.push_back(lPath + "/" + lHeader);
-		lArgs.push_back("preview");
-		lArgs.push_back("skip");
+		lArgs.push_back("-preview");
+		lArgs.push_back("-skip");
 		downloadMedia_->process(lArgs);
 	}
 
@@ -585,6 +599,10 @@ int main(int argc, char** argv) {
 	Transaction::registerTransactionType(TX_BUZZER_MISTRUST, TxBuzzerMistrustCreator::instance());
 	Transaction::registerTransactionType(TX_BUZZER_INFO, TxBuzzerInfoCreator::instance());
 	Transaction::registerTransactionType(TX_BUZZ_REWARD, TxBuzzRewardCreator::instance());
+	Transaction::registerTransactionType(TX_BUZZER_CONVERSATION, TxBuzzerConversationCreator::instance());
+	Transaction::registerTransactionType(TX_BUZZER_ACCEPT_CONVERSATION, TxBuzzerAcceptConversationCreator::instance());
+	Transaction::registerTransactionType(TX_BUZZER_DECLINE_CONVERSATION, TxBuzzerDeclineConversationCreator::instance());
+	Transaction::registerTransactionType(TX_BUZZER_MESSAGE, TxBuzzerMessageCreator::instance());
 
 	// buzzer message types
 	Message::registerMessageType(GET_BUZZER_SUBSCRIPTION, "GET_BUZZER_SUBSCRIPTION");
@@ -629,12 +647,19 @@ int main(int argc, char** argv) {
 	Message::registerMessageType(GET_BUZZER_AND_INFO, "GET_BUZZER_AND_INFO");
 	Message::registerMessageType(BUZZER_AND_INFO, "BUZZER_AND_INFO");
 	Message::registerMessageType(BUZZER_AND_INFO_ABSENT, "BUZZER_AND_INFO_ABSENT");
+	Message::registerMessageType(GET_CONVERSATIONS_FEED_BY_BUZZER, "GET_CONVERSATIONS_FEED_BY_BUZZER");
+	Message::registerMessageType(CONVERSATIONS_FEED_BY_BUZZER, "CONVERSATIONS_FEED_BY_BUZZER");
+	Message::registerMessageType(GET_MESSAGES_FEED_BY_CONVERSATION, "GET_MESSAGES_FEED_BY_CONVERSATION");
+	Message::registerMessageType(MESSAGES_FEED_BY_CONVERSATION, "MESSAGES_FEED_BY_CONVERSATION");
+	Message::registerMessageType(NEW_BUZZER_CONVERSATION_NOTIFY, "NEW_BUZZER_CONVERSATION_NOTIFY");
+	Message::registerMessageType(NEW_BUZZER_MESSAGE_NOTIFY, "NEW_BUZZER_MESSAGE_NOTIFY");
+	Message::registerMessageType(UPDATE_BUZZER_CONVERSATION_NOTIFY, "UPDATE_BUZZER_CONVERSATION_NOTIFY");
 
 	// buzzer request processor
 	BuzzerRequestProcessorPtr lBuzzerRequestProcessor = BuzzerRequestProcessor::instance(lRequestProcessor);
 
 	// buzzer
-	gBuzzer = Buzzer::instance(lRequestProcessor, lBuzzerRequestProcessor, boost::bind(&trustScoreUpdated, _1, _2));
+	gBuzzer = Buzzer::instance(lRequestProcessor, lBuzzerRequestProcessor, lWallet, boost::bind(&trustScoreUpdated, _1, _2));
 
 	// buzzer composer
 	gBuzzerComposer = BuzzerLightComposer::instance(lSettings->shared(),

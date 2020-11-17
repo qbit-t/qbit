@@ -12,6 +12,9 @@
 
 #include "exif.h"
 
+#include "../../crypto/aes.h"
+#include "../../crypto/sha256.h"
+
 #include <iostream>
 #include <iterator>
 
@@ -33,33 +36,50 @@ void UploadMediaCommand::process(const std::vector<std::string>& args) {
 	headerSent_ = false;
 	peer_ = nullptr;
 
-	if (args.size() >= 1) {
+	args_ = args;
+
+	if (preview_.size()) {
+		args_.push_back("-s");
+		args_.push_back(preview_);
+	}
+
+	if (args_.size() >= 1) {
 		//
-		file_ = args[0];
-		if (args.size() > 1) {
-			if (args[1] == "-s") {
-				//
-				std::vector<std::string> lSize; 
-				boost::split(lSize, std::string(args[2]), boost::is_any_of("x"));
+		file_ = args_[0];
+		if (args_.size() > 1) {
+			std::vector<std::string>::const_iterator lArg = ++(args_.begin());
+			while (lArg != args_.end()) {
+				if (*lArg == "-s") {
+					//
+					lArg++;
+					//
+					std::vector<std::string> lSize; 
+					boost::split(lSize, std::string(*lArg), boost::is_any_of("x"));
 
-				if (lSize.size() == 2) {
-					if (!boost::conversion::try_lexical_convert<int>(std::string(lSize[0]), previewWidth_)) {
-						error("E_WIDTH_INVALID", "Preview width is invalid.");
+					if (lSize.size() == 2) {
+						if (!boost::conversion::try_lexical_convert<int>(std::string(lSize[0]), previewWidth_)) {
+							error("E_WIDTH_INVALID", "Preview width is invalid.");
+							return;
+						}
+
+						if (!boost::conversion::try_lexical_convert<int>(std::string(lSize[1]), previewHeight_)) {
+							error("E_HEIGHT_INVALID", "Preview height is invalid.");
+							return;
+						}
+					} else {
+						error("E_SIZE_INVALID", "Preview size is invalid.");
 						return;
 					}
 
-					if (!boost::conversion::try_lexical_convert<int>(std::string(lSize[1]), previewHeight_)) {
-						error("E_HEIGHT_INVALID", "Preview height is invalid.");
-						return;
-					}
-				} else {
-					error("E_SIZE_INVALID", "Preview size is invalid.");
-					return;
+					//
+				} else if (*lArg == "-p") {
+					pkey_.fromString(*(++lArg));
+				} else if (*lArg == "-d") {
+					description_ = 	*(++lArg);
 				}
 
-				//
-				if (args.size() > 3) description_ = args[3];
-			} else description_ = args[1];
+				lArg++;
+			}
 		}
 
 		// try file
@@ -137,6 +157,20 @@ void UploadMediaCommand::summarySent(const uint256& tx, const std::vector<Transa
 	if (summarySent_ && feeSent_) {
 		startSendData();
 	}
+}
+
+void UploadMediaCommand::encrypt(const uint256& nonce, const std::vector<unsigned char>& data, std::vector<unsigned char>& cypher) {
+	//
+	// prepare secret
+	unsigned char lMix[AES_BLOCKSIZE] = {0};
+	memcpy(lMix, nonce.begin() + 8 /*shift*/, AES_BLOCKSIZE);
+
+	// make cypher
+	cypher.resize(data.size() + AES_BLOCKSIZE /*padding*/, 0);
+	AES256CBCEncrypt lEncrypt(nonce.begin(), lMix, true);
+	unsigned lLen = lEncrypt.Encrypt(&data[0], data.size(), &cypher[0]);
+	std::cout << "[UploadMediaCommand::encrypt]: " << lLen << " " << nonce.toHex() << "\n";
+	cypher.resize(lLen);
 }
 
 void UploadMediaCommand::startSendData() {
@@ -285,15 +319,44 @@ void UploadMediaCommand::startSendData() {
 				boost::gil::write_view(lStream, boost::gil::view(lPreviewImage), boost::gil::image_write_info<boost::gil::jpeg_tag>(95));
 			else if (mediaType_ == TxMediaHeader::IMAGE_PNG)
 				boost::gil::write_view(lStream, boost::gil::view(lPreviewImage), boost::gil::png_tag());
-			previewData_.insert(previewData_.end(),
-					std::istreambuf_iterator<char>(lStream),
-					std::istreambuf_iterator<char>());
+
+			if (pkey_.valid()) {
+				// data
+				std::vector<unsigned char> lPreviewData;
+				lPreviewData.insert(lPreviewData.end(),
+						std::istreambuf_iterator<char>(lStream),
+						std::istreambuf_iterator<char>());
+
+				// make cypher
+				SKeyPtr lSKey = composer_->wallet()->firstKey();
+				uint256 lNonce = lSKey->shared(pkey_);
+				encrypt(lNonce, lPreviewData, previewData_);
+			} else {
+				//
+				previewData_.insert(previewData_.end(),
+						std::istreambuf_iterator<char>(lStream),
+						std::istreambuf_iterator<char>());
+			}
 		} else {
 			// just read data into preview
 			std::ifstream lStream(file_, std::ios::binary);
-			previewData_.insert(previewData_.end(),
-					std::istreambuf_iterator<char>(lStream),
-					std::istreambuf_iterator<char>());
+
+			if (pkey_.valid()) {
+				// data
+				std::vector<unsigned char> lPreviewData;
+				lPreviewData.insert(lPreviewData.end(),
+						std::istreambuf_iterator<char>(lStream),
+						std::istreambuf_iterator<char>());
+
+				// make cypher
+				SKeyPtr lSKey = composer_->wallet()->firstKey();
+				uint256 lNonce = lSKey->shared(pkey_);
+				encrypt(lNonce, lPreviewData, previewData_);
+			} else {
+				previewData_.insert(previewData_.end(),
+						std::istreambuf_iterator<char>(lStream),
+						std::istreambuf_iterator<char>());
+			}
 		}
 	} catch (const std::ios_base::failure& err) {
 		error("E_IMAGE_IO_ERROR", err.what());
@@ -348,7 +411,18 @@ void UploadMediaCommand::continueSendData() {
 	} else {
 		//
 		std::vector<unsigned char> lData;
-		readNextChunk(pos_, lData);
+		if (pkey_.valid()) {
+			// read
+			std::vector<unsigned char> lTemp;
+			readNextChunk(pos_, lTemp);
+			// make cypher
+			SKeyPtr lSKey = composer_->wallet()->firstKey();
+			uint256 lNonce = lSKey->shared(pkey_);
+			encrypt(lNonce, lTemp, lData);
+		} else {
+			readNextChunk(pos_, lData);
+		}
+
 		//
 		IComposerMethodPtr lCreateData = CubixLightComposer::CreateTxMediaData::instance(composer_, 
 			lData, summary_->chain(), prev_,
@@ -425,12 +499,18 @@ void DownloadMediaCommand::process(const std::vector<std::string>& args) {
 		localFile_ = args[1];
 
 		if (args.size() > 2) {
-			if (args[2] == "preview") previewOnly_ = true;
-			else if (args[2] == "skip") skipIfExists_ = true;
-		}
+			std::vector<std::string>::const_iterator lArg = ++(++(args.begin()));
+			while (lArg != args.end()) {
+				if (*lArg == "-p") {
+					pkey_.fromString(*(++lArg));
+				} else if (*lArg == "-preview") {
+					previewOnly_ = true;
+				} else if (*lArg == "-skip") {
+					skipIfExists_ = true;
+				}
 
-		if (args.size() > 3) {
-			if (args[3] == "skip") skipIfExists_ = true;
+				lArg++;
+			}
 		}
 
 		/*
@@ -438,6 +518,7 @@ void DownloadMediaCommand::process(const std::vector<std::string>& args) {
 			gLog().write(Log::CLIENT, strprintf("[downloadMediaCommand/%X]: header = %s/%s, file = %s", 
 						this, headerTx_.toHex(), chain_.toHex(), localFile_));
 		*/
+
 		// try file
 		if (skipIfExists_) {
 			//
@@ -495,6 +576,19 @@ void DownloadMediaCommand::process(const std::vector<std::string>& args) {
 	}
 }
 
+void DownloadMediaCommand::decrypt(const uint256& nonce, const std::vector<unsigned char>& cypher, std::vector<unsigned char>& data) {
+	//
+	unsigned char lMix[AES_BLOCKSIZE] = {0};
+	memcpy(lMix, nonce.begin() + 8, AES_BLOCKSIZE);
+
+	// decrypt
+	data.resize(cypher.size() + 1, 0);
+	AES256CBCDecrypt lDecrypt(nonce.begin(), lMix, true);
+	unsigned lLen = lDecrypt.Decrypt(&cypher[0], cypher.size(), &data[0]);
+	std::cout << "[DownloadMediaCommand::decrypt]: " << lLen << " " << nonce.toHex() << "\n";
+	data.resize(lLen);
+}
+
 void DownloadMediaCommand::headerLoaded(TransactionPtr tx) {
 	//
 	if (tx) {
@@ -535,7 +629,18 @@ void DownloadMediaCommand::headerLoaded(TransactionPtr tx) {
 		}
 
 		std::ofstream lPreviewFile = std::ofstream(localPreviewFileName_, std::ios::binary);
-		lPreviewFile.write((char*)&header_->data()[0], header_->data().size());
+		if (pkey_.valid()) {
+			std::vector<unsigned char> lData;
+			SKeyPtr lSKey = composer_->wallet()->firstKey();
+			uint256 lNonce = lSKey->shared(pkey_);
+			decrypt(lNonce, header_->data(), lData);
+			//
+			lPreviewFile.write((char*)&lData[0], lData.size());
+		} else {
+			//
+			lPreviewFile.write((char*)&header_->data()[0], header_->data().size());
+		}
+
 		lPreviewFile.close();
 
 		std::ofstream lPreviewFileMeta = std::ofstream(localPreviewFileName_ + ".meta", std::ios::binary);
@@ -607,9 +712,21 @@ void DownloadMediaCommand::dataLoaded(TransactionPtr tx) {
 			if (progress_) progress_(pos_, header_->size());
 
 			//
-			outLocalFile_.write((char*)&lData->data()[0], lData->data().size());
-			std::cout << "              data: " << lData->id().toHex() << std::endl;		
+			if (pkey_.valid()) {
+				std::vector<unsigned char> lTemp;
+				SKeyPtr lSKey = composer_->wallet()->firstKey();
+				uint256 lNonce = lSKey->shared(pkey_);
+				decrypt(lNonce, lData->data(), lTemp);
+				//
+				outLocalFile_.write((char*)&lTemp[0], lTemp.size());
 
+			} else {
+				//
+				outLocalFile_.write((char*)&lData->data()[0], lData->data().size());
+			}
+
+			//
+			std::cout << "              data: " << lData->id().toHex() << std::endl;
 
 			//
 			nextDataTx_ = lData->in()[0].out().tx();

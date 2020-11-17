@@ -12,6 +12,11 @@
 #include "txbuzzerunsubscribe.h"
 #include "txbuzzerendorse.h"
 #include "txbuzzermistrust.h"
+#include "txbuzzerconversation.h"
+#include "txbuzzeracceptconversation.h"
+#include "txbuzzerdeclineconversation.h"
+#include "txbuzzermessage.h"
+#include "txbuzzermessagereply.h"
 
 #include <iostream>
 
@@ -26,6 +31,10 @@ bool BuzzerTransactionStoreExtension::open() {
 			if (mkpath(std::string(settings_->dataPath() + "/" + store_->chain().toHex() + "/buzzer/indexes").c_str(), 0777)) return false;
 
 			timeline_.open();
+			conversations_.open();
+			conversationsOrder_.open();
+			conversationsIndex_.open();
+			conversationsActivity_.open();
 			globalTimeline_.open();
 			hashTagTimeline_.open();
 			hashTags_.open();
@@ -63,6 +72,10 @@ bool BuzzerTransactionStoreExtension::close() {
 	store_.reset();
 	
 	timeline_.close();
+	conversations_.close();
+	conversationsOrder_.close();
+	conversationsIndex_.close();
+	conversationsActivity_.close();
 	globalTimeline_.close();
 	hashTagTimeline_.close();
 	hashTags_.close();
@@ -231,6 +244,71 @@ bool BuzzerTransactionStoreExtension::isAllowed(TransactionContextPtr ctx) {
 				}
 			}
 		}
+	} else if (ctx->tx()->type() == TX_BUZZER_MESSAGE) {
+		//
+		// that should be tx_event object
+		TxEventPtr lEvent = TransactionHelper::to<TxEvent>(ctx->tx());
+		//
+		// in[1] - conversation
+		uint256 lConversation = lEvent->in()[TX_BUZZER_CONVERSATION_IN].out().tx();
+		uint256 lChain = lEvent->in()[TX_BUZZER_CONVERSATION_IN].out().chain();
+
+		//
+		ITransactionStorePtr lStore = store_->storeManager()->locate(lChain);
+		if (lStore) {
+			TransactionPtr lTx = lStore->locateTransaction(lConversation);
+			if (lTx) {
+				//
+				TxBuzzerConversationPtr lConversationTx = TransactionHelper::to<TxBuzzerConversation>(lTx);
+				uint256 lInitiator = lConversationTx->in()[TX_BUZZER_CONVERSATION_MY_IN].out().tx(); 
+				uint256 lCounterparty = lConversationTx->in()[TX_BUZZER_CONVERSATION_BUZZER_IN].out().tx(); 
+
+				db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*conversation*/, ConversationInfo /*state*/>::Iterator 
+													lConversationItem = conversations_.find(lCounterparty, lConversation);
+
+				if (lConversationItem.valid()) {
+					ConversationInfo lInfo = *lConversationItem;
+					if (lInfo.state() == ConversationInfo::DECLINED)
+						return false;
+				}
+			}
+		}
+	} else if (ctx->tx()->type() == TX_BUZZER_CONVERSATION) {
+		//
+		TxEventPtr lEvent = TransactionHelper::to<TxEvent>(ctx->tx());
+		uint256 lInitiator = lEvent->in()[TX_BUZZER_CONVERSATION_MY_IN].out().tx(); 
+		uint256 lCounterparty = lEvent->in()[TX_BUZZER_CONVERSATION_BUZZER_IN].out().tx(); 
+
+		db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*conversation*/, ConversationInfo /*state*/>::Iterator 
+											lConversationItem = conversations_.find(lInitiator, lCounterparty);
+		if (lConversationItem.valid()) {
+			return false;
+		}
+
+		lConversationItem = conversations_.find(lCounterparty, lInitiator);
+		if (lConversationItem.valid()) {
+			return false;
+		}
+	} else if (ctx->tx()->type() == TX_BUZZER_ACCEPT_CONVERSATION || ctx->tx()->type() == TX_BUZZER_DECLINE_CONVERSATION) {
+		//
+		// that should be tx_event object
+		TxEventPtr lEvent = TransactionHelper::to<TxEvent>(ctx->tx());
+		// in[0]
+		uint256 lBuzzer = lEvent->in()[TX_BUZZER_CONVERSATION_ACCEPT_MY_IN].out().tx();
+		// in[1] - conversation
+		uint256 lConversation = lEvent->in()[TX_BUZZER_CONVERSATION_ACCEPT_IN].out().tx();
+		uint256 lChain = lEvent->in()[TX_BUZZER_CONVERSATION_ACCEPT_IN].out().chain();
+
+		//
+		ITransactionStorePtr lStore = store_->storeManager()->locate(lChain);
+		if (lStore) {
+			TransactionPtr lTx = lStore->locateTransaction(lConversation);
+			if (lTx) {
+				//
+				uint256 lCounterparty = lTx->in()[TX_BUZZER_CONVERSATION_BUZZER_IN].out().tx(); 
+				if (lBuzzer != lCounterparty) return false;
+			}
+		}
 	}
 
 	return true;
@@ -262,9 +340,284 @@ bool BuzzerTransactionStoreExtension::pushEntity(const uint256& id, TransactionC
 			ctx->tx()->in()[TX_BUZZER_INFO_MY_IN].out().tx(),
 			ctx->tx()->id()
 		);
+	} else if (ctx->tx()->type() == TX_BUZZER_CONVERSATION) {
+		processConversation(id, ctx);
+	} else if (ctx->tx()->type() == TX_BUZZER_ACCEPT_CONVERSATION) {
+		processAcceptConversation(id, ctx);
+	} else if (ctx->tx()->type() == TX_BUZZER_DECLINE_CONVERSATION) {
+		processDeclineConversation(id, ctx);
+	} else if (ctx->tx()->type() == TX_BUZZER_MESSAGE) {
+		processMessage(id, ctx);
 	}
 
+	//
+	// TODO: qbit value transactions - make events (receive transactions)
+	//
+
 	return true;
+}
+
+void BuzzerTransactionStoreExtension::processConversation(const uint256& id, TransactionContextPtr ctx) {
+	//
+	if (ctx->tx()->type() == TX_BUZZER_CONVERSATION) {
+		//
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: pushing conversation ") +
+			strprintf("%s/%s#", ctx->tx()->id().toHex(), store_->chain().toHex().substr(0, 10)));
+		//
+		// that should be tx_event object
+		TxEventPtr lEvent = TransactionHelper::to<TxEvent>(ctx->tx());
+
+		// in[0] - originator
+		uint256 lOriginator = lEvent->in()[TX_BUZZER_CONVERSATION_MY_IN].out().tx(); 
+		// in[1] - counterparty
+		uint256 lBuzzer = lEvent->in()[TX_BUZZER_CONVERSATION_BUZZER_IN].out().tx();
+
+		//
+		bool lAdded = false;
+		//
+		db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*conversation*/, ConversationInfo /*state*/>::Iterator 
+											lOriginatorConversation = conversations_.find(lOriginator, lEvent->id());
+		if (!lOriginatorConversation.valid()) {
+			conversations_.write(lOriginator, lEvent->id(), ConversationInfo(lEvent->id(), lEvent->chain(), ConversationInfo::PENDING));
+			conversationsIndex_.write(lOriginator, lEvent->id(), lEvent->timestamp());
+			conversationsOrder_.write(lOriginator, lEvent->timestamp(), lEvent->id());
+			conversationsActivity_.write(lOriginator, lEvent->timestamp());
+
+			lAdded = true;
+
+			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: PUSHED conversation for originator ") +
+				strprintf("%s/%s/%s#", lOriginator.toHex(), ctx->tx()->id().toHex(), store_->chain().toHex().substr(0, 10)));
+		}
+
+		//
+		db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*conversation*/, ConversationInfo /*state*/>::Iterator 
+											lBuzzerConversation = conversations_.find(lBuzzer, lEvent->id());
+		if (!lBuzzerConversation.valid()) {
+			conversations_.write(lBuzzer, lEvent->id(), ConversationInfo(lEvent->id(), lEvent->chain(), ConversationInfo::PENDING));
+			conversationsIndex_.write(lBuzzer, lEvent->id(), lEvent->timestamp());
+			conversationsOrder_.write(lBuzzer, lEvent->timestamp(), lEvent->id());
+			conversationsActivity_.write(lBuzzer, lEvent->timestamp());
+
+			lAdded = true;
+			events_.write(lBuzzer, lEvent->timestamp(), lEvent->id(), lEvent->type());
+			subscriberUpdates(lBuzzer, lEvent->timestamp());
+
+			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: PUSHED conversation for buzzer ") +
+				strprintf("%s/%s/%s#", lBuzzer.toHex(), ctx->tx()->id().toHex(), store_->chain().toHex().substr(0, 10)));
+		}
+
+		if (lAdded) conversations_.write(lOriginator, lBuzzer, ConversationInfo(lEvent->id(), lEvent->chain(), ConversationInfo::PENDING));
+	}
+}
+
+void BuzzerTransactionStoreExtension::processAcceptConversation(const uint256& id, TransactionContextPtr ctx) {
+	//
+	if (ctx->tx()->type() == TX_BUZZER_ACCEPT_CONVERSATION) {
+		//
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: accepting conversation ") +
+			strprintf("%s/%s#", ctx->tx()->id().toHex(), store_->chain().toHex().substr(0, 10)));
+		//
+		// that should be tx_event object
+		TxEventPtr lEvent = TransactionHelper::to<TxEvent>(ctx->tx());
+
+		// in[0] - buzzer
+		uint256 lBuzzer = lEvent->in()[TX_BUZZER_CONVERSATION_ACCEPT_MY_IN].out().tx(); 
+		// in[1] - conversation
+		uint256 lConversationId = lEvent->in()[TX_BUZZER_CONVERSATION_ACCEPT_IN].out().tx();
+		uint256 lConversationChain = lEvent->in()[TX_BUZZER_CONVERSATION_ACCEPT_IN].out().chain();
+
+		// counterparty
+		uint256 lCounterparty;
+
+		// make event
+		ITransactionStorePtr lStore = store_->storeManager()->locate(lConversationChain);
+		if (lStore) {
+			TransactionPtr lConversationTx = lStore->locateTransaction(lConversationId);
+			if (lConversationTx) {
+				//
+				lCounterparty = lConversationTx->in()[TX_BUZZER_CONVERSATION_MY_IN].out().tx();
+				events_.write(lCounterparty, lEvent->timestamp(), lEvent->id(), lEvent->type());
+				subscriberUpdates(lCounterparty, lEvent->timestamp());
+			}
+		}
+
+		//
+		db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*conversation*/, ConversationInfo /*state*/>::Iterator 
+											lConversation = conversations_.find(lBuzzer, lConversationId);
+		if (lConversation.valid()) {
+			ConversationInfo lInfo = *lConversation;
+			lInfo.setState(lEvent->id(), lEvent->chain(), ConversationInfo::ACCEPTED);
+			conversations_.write(lBuzzer, lConversationId, lInfo);
+			conversationsIndex_.write(lBuzzer, lEvent->id(), lEvent->timestamp());
+			conversationsOrder_.write(lBuzzer, lEvent->timestamp(), lEvent->id());
+			conversationsActivity_.write(lBuzzer, lEvent->timestamp());
+		}
+
+		//
+		db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*conversation*/, ConversationInfo /*state*/>::Iterator 
+											lCounterpartyConversation = conversations_.find(lCounterparty, lConversationId);
+		if (lCounterpartyConversation.valid()) {
+			ConversationInfo lInfo = *lCounterpartyConversation;
+			lInfo.setState(lEvent->id(), lEvent->chain(), ConversationInfo::ACCEPTED);
+			conversations_.write(lCounterparty, lConversationId, lInfo);
+			conversationsIndex_.write(lCounterparty, lEvent->id(), lEvent->timestamp());
+			conversationsOrder_.write(lCounterparty, lEvent->timestamp(), lEvent->id());
+			conversationsActivity_.write(lCounterparty, lEvent->timestamp());
+		}
+
+		//
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: ACCEPTED conversation for buzzer ") +
+			strprintf("%s/%s/%s#", lBuzzer.toHex(), ctx->tx()->id().toHex(), store_->chain().toHex().substr(0, 10)));
+	}
+}
+
+void BuzzerTransactionStoreExtension::processDeclineConversation(const uint256& id, TransactionContextPtr ctx) {
+	//
+	if (ctx->tx()->type() == TX_BUZZER_DECLINE_CONVERSATION) {
+		//
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: declining conversation ") +
+			strprintf("%s/%s#", ctx->tx()->id().toHex(), store_->chain().toHex().substr(0, 10)));
+		//
+		// that should be tx_event object
+		TxEventPtr lEvent = TransactionHelper::to<TxEvent>(ctx->tx());
+
+		// in[0] - buzzer
+		uint256 lBuzzer = lEvent->in()[TX_BUZZER_CONVERSATION_DECLINE_MY_IN].out().tx(); 
+		// in[1] - conversation
+		uint256 lConversationId = lEvent->in()[TX_BUZZER_CONVERSATION_DECLINE_IN].out().tx();
+		uint256 lConversationChain = lEvent->in()[TX_BUZZER_CONVERSATION_DECLINE_IN].out().chain();
+
+		// counterparty
+		uint256 lCounterparty;
+
+		// make event
+		ITransactionStorePtr lStore = store_->storeManager()->locate(lConversationChain);
+		if (lStore) {
+			TransactionPtr lConversationTx = lStore->locateTransaction(lConversationId);
+			if (lConversationTx) {
+				//
+				lCounterparty = lConversationTx->in()[TX_BUZZER_CONVERSATION_MY_IN].out().tx();
+				events_.write(lCounterparty, lEvent->timestamp(), lEvent->id(), lEvent->type());
+				subscriberUpdates(lCounterparty, lEvent->timestamp());
+			}
+		}
+
+		//
+		db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*conversation*/, ConversationInfo /*state*/>::Iterator 
+											lConversation = conversations_.find(lBuzzer, lConversationId);
+		if (lConversation.valid()) {
+			ConversationInfo lInfo = *lConversation;
+			lInfo.setState(lEvent->id(), lEvent->chain(), ConversationInfo::DECLINED);
+			conversations_.write(lBuzzer, lConversationId, lInfo);
+			conversationsIndex_.write(lBuzzer, lEvent->id(), lEvent->timestamp());
+			conversationsOrder_.write(lBuzzer, lEvent->timestamp(), lEvent->id());
+			conversationsActivity_.write(lBuzzer, lEvent->timestamp());
+		}
+
+		//
+		db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*conversation*/, ConversationInfo /*state*/>::Iterator 
+											lCounterpartyConversation = conversations_.find(lCounterparty, lConversationId);
+		if (lCounterpartyConversation.valid()) {
+			ConversationInfo lInfo = *lCounterpartyConversation;
+			lInfo.setState(lEvent->id(), lEvent->chain(), ConversationInfo::DECLINED);
+			conversations_.write(lCounterparty, lConversationId, lInfo);
+			conversationsIndex_.write(lCounterparty, lEvent->id(), lEvent->timestamp());
+			conversationsOrder_.write(lCounterparty, lEvent->timestamp(), lEvent->id());
+			conversationsActivity_.write(lCounterparty, lEvent->timestamp());
+		}
+
+		//
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: DECLINED conversation for buzzer ") +
+			strprintf("%s/%s/%s#", lBuzzer.toHex(), ctx->tx()->id().toHex(), store_->chain().toHex().substr(0, 10)));
+	}
+}
+
+void BuzzerTransactionStoreExtension::processMessage(const uint256& id, TransactionContextPtr ctx) {
+	//
+	if (ctx->tx()->type() == TX_BUZZER_MESSAGE) {
+		//
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: pushing message ") +
+			strprintf("%s/%s#", ctx->tx()->id().toHex(), store_->chain().toHex().substr(0, 10)));
+		//
+		// that should be tx_event object
+		TxEventPtr lEvent = TransactionHelper::to<TxEvent>(ctx->tx());
+		// in[0] - buzzer
+		uint256 lBuzzer = lEvent->in()[TX_BUZZER_MY_IN].out().tx(); 
+		// in[1] - conversation
+		uint256 lConversation = lEvent->in()[TX_BUZZER_CONVERSATION_IN].out().tx();
+		uint256 lChain = lEvent->in()[TX_BUZZER_CONVERSATION_IN].out().chain();
+
+		//
+		ITransactionStorePtr lStore = store_->storeManager()->locate(lChain);
+		if (lStore) {
+			TransactionPtr lTx = lStore->locateTransaction(lConversation);
+			if (lTx) {
+				//
+				TxBuzzerConversationPtr lConversationTx = TransactionHelper::to<TxBuzzerConversation>(lTx);
+				uint256 lInitiator = lConversationTx->in()[TX_BUZZER_CONVERSATION_MY_IN].out().tx(); 
+				uint256 lCounterparty = lConversationTx->in()[TX_BUZZER_CONVERSATION_BUZZER_IN].out().tx(); 
+
+				// initiator
+				db::DbTwoKeyContainer<
+					uint256 /*buzzer*/, 
+					uint256 /*conversation*/,
+					uint64_t /*timestamp*/>::Iterator lIndex = conversationsIndex_.find(lInitiator, lConversation);
+				if (lIndex.valid()) {
+					conversationsOrder_.remove(lInitiator, *lIndex);
+				}
+
+				conversationsIndex_.write(lInitiator, lConversation, lEvent->timestamp());
+				conversationsOrder_.write(lInitiator, lEvent->timestamp(), lConversation);
+				conversationsActivity_.write(lInitiator, lEvent->timestamp());
+
+				// counterparty
+				lIndex = conversationsIndex_.find(lCounterparty, lConversation);
+				if (lIndex.valid()) {
+					conversationsOrder_.remove(lCounterparty, *lIndex);
+				}
+
+				conversationsIndex_.write(lCounterparty, lConversation, lEvent->timestamp());
+				conversationsOrder_.write(lCounterparty, lEvent->timestamp(), lConversation);
+				conversationsActivity_.write(lCounterparty, lEvent->timestamp());
+
+				//
+				db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*conversation*/, ConversationInfo /*state*/>::Iterator 
+													lConversationIter = conversations_.find(lInitiator, lConversation);
+				if (lConversationIter.valid()) {
+					ConversationInfo lInfo = *lConversationIter;
+					lInfo.setMessage(lEvent->id(), lEvent->chain());
+					conversations_.write(lInitiator, lConversation, lInfo);
+				}
+
+				//
+				db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*conversation*/, ConversationInfo /*state*/>::Iterator 
+													lCounterpartyConversationIter = conversations_.find(lCounterparty, lConversation);
+				if (lCounterpartyConversationIter.valid()) {
+					ConversationInfo lInfo = *lCounterpartyConversationIter;
+					lInfo.setMessage(lEvent->id(), lEvent->chain());
+					conversations_.write(lCounterparty, lConversation, lInfo);
+				}
+
+				//
+				if (lBuzzer == lInitiator) {
+					events_.write(lCounterparty, lEvent->timestamp(), lEvent->id(), lEvent->type());
+					subscriberUpdates(lCounterparty, lEvent->timestamp());
+				} else {
+					events_.write(lInitiator, lEvent->timestamp(), lEvent->id(), lEvent->type());
+					subscriberUpdates(lInitiator, lEvent->timestamp());
+				}
+			}
+		}
+
+		// conversation last timestamp
+		publisherUpdates(lConversation, lEvent->timestamp());
+		// conversation -> message
+		timeline_.write(lConversation, lEvent->timestamp(), lEvent->id());
+
+		//
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: PUSHED message ") +
+			strprintf("%s/%s#", ctx->tx()->id().toHex(), store_->chain().toHex().substr(0, 10)));
+	}
 }
 
 void BuzzerTransactionStoreExtension::processEndorse(const uint256& id, TransactionContextPtr ctx) {
@@ -737,7 +1090,9 @@ void BuzzerTransactionStoreExtension::removeTransaction(TransactionPtr tx) {
 		tx->type() == TX_BUZZ_LIKE || 
 		tx->type() == TX_BUZZ_REWARD || 
 		tx->type() == TX_BUZZ_REPLY ||
-		tx->type() == TX_BUZZ_REBUZZ_NOTIFY) {
+		tx->type() == TX_BUZZ_REBUZZ_NOTIFY || 
+		tx->type() == TX_BUZZER_MESSAGE ||
+		tx->type() == TX_BUZZER_MESSAGE_REPLY) {
 		//
 		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/removeTransaction]: removing event from timeline ") +
 			strprintf("%s/%s#", tx->id().toHex(), store_->chain().toHex().substr(0, 10)));
@@ -1006,6 +1361,99 @@ void BuzzerTransactionStoreExtension::removeTransaction(TransactionPtr tx) {
 				}
 			}
 		}
+	} else if (tx->type() == TX_BUZZER_CONVERSATION) {
+		//
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: removing conversation ") +
+			strprintf("%s/%s#", tx->id().toHex(), store_->chain().toHex().substr(0, 10)));
+		//
+		// that should be tx_event object
+		TxEventPtr lEvent = TransactionHelper::to<TxEvent>(tx);
+
+		// in[0] - originator
+		uint256 lOriginator = lEvent->in()[TX_BUZZER_CONVERSATION_MY_IN].out().tx(); 
+		// in[1] - counterparty
+		uint256 lBuzzer = lEvent->in()[TX_BUZZER_CONVERSATION_BUZZER_IN].out().tx();
+
+		//
+		conversations_.remove(lOriginator, lEvent->id());
+		conversationsIndex_.remove(lOriginator, lEvent->id());
+		conversationsOrder_.remove(lOriginator, lEvent->timestamp());
+
+		//
+		conversations_.remove(lBuzzer, lEvent->id());
+		conversationsIndex_.remove(lBuzzer, lEvent->id());
+		conversationsOrder_.remove(lBuzzer, lEvent->timestamp());
+
+		//
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: removed conversation ") +
+			strprintf("%s/%s#", tx->id().toHex(), store_->chain().toHex().substr(0, 10)));
+		//
+	} else if (tx->type() == TX_BUZZER_ACCEPT_CONVERSATION) {
+		//
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: removing accept conversation ") +
+			strprintf("%s/%s#", tx->id().toHex(), store_->chain().toHex().substr(0, 10)));
+
+		// that should be tx_event object
+		TxEventPtr lEvent = TransactionHelper::to<TxEvent>(tx);
+
+		// in[0] - buzzer
+		uint256 lBuzzer = lEvent->in()[TX_BUZZER_CONVERSATION_ACCEPT_MY_IN].out().tx(); 
+		// in[1] - conversation
+		uint256 lConversationId = lEvent->in()[TX_BUZZER_CONVERSATION_ACCEPT_IN].out().tx();
+		uint256 lConversationChain = lEvent->in()[TX_BUZZER_CONVERSATION_ACCEPT_IN].out().chain();
+
+		// counterparty
+		uint256 lCounterparty;
+
+		// make event
+		ITransactionStorePtr lStore = store_->storeManager()->locate(lConversationChain);
+		if (lStore) {
+			TransactionPtr lConversationTx = lStore->locateTransaction(lConversationId);
+			if (lConversationTx) {
+				lCounterparty = lConversationTx->in()[TX_BUZZER_CONVERSATION_MY_IN].out().tx();
+			}
+		}
+
+		//
+		conversations_.remove(lBuzzer, lConversationId);
+		if (!lCounterparty.isNull()) conversations_.remove(lCounterparty, lConversationId);
+		//	
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: removed accept conversation ") +
+			strprintf("%s/%s#", tx->id().toHex(), store_->chain().toHex().substr(0, 10)));
+		//
+	} else if (tx->type() == TX_BUZZER_DECLINE_CONVERSATION) {
+		//
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: removing decline conversation ") +
+			strprintf("%s/%s#", tx->id().toHex(), store_->chain().toHex().substr(0, 10)));
+
+		// that should be tx_event object
+		TxEventPtr lEvent = TransactionHelper::to<TxEvent>(tx);
+
+		// in[0] - buzzer
+		uint256 lBuzzer = lEvent->in()[TX_BUZZER_CONVERSATION_DECLINE_MY_IN].out().tx(); 
+		// in[1] - conversation
+		uint256 lConversationId = lEvent->in()[TX_BUZZER_CONVERSATION_DECLINE_IN].out().tx();
+		uint256 lConversationChain = lEvent->in()[TX_BUZZER_CONVERSATION_DECLINE_IN].out().chain();
+
+		// counterparty
+		uint256 lCounterparty;
+
+		// make event
+		ITransactionStorePtr lStore = store_->storeManager()->locate(lConversationChain);
+		if (lStore) {
+			TransactionPtr lConversationTx = lStore->locateTransaction(lConversationId);
+			if (lConversationTx) {
+				lCounterparty = lConversationTx->in()[TX_BUZZER_CONVERSATION_MY_IN].out().tx();
+			}
+		}
+
+		//
+		conversations_.remove(lBuzzer, lConversationId);
+		if (!lCounterparty.isNull()) conversations_.remove(lCounterparty, lConversationId);
+		//	
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: removed decline conversation ") +
+			strprintf("%s/%s#", tx->id().toHex(), store_->chain().toHex().substr(0, 10)));
+		//
 	}
 }
 
@@ -1585,6 +2033,296 @@ void BuzzerTransactionStoreExtension::selectFollowers(const uint256& from, const
 	}	
 }
 
+BuzzerTransactionStoreExtensionPtr BuzzerTransactionStoreExtension::locateBuzzerExtension(const uint256& buzzer) {
+	//
+	ITransactionStorePtr lMainStore = store_->storeManager()->locate(MainChain::id());
+	TransactionPtr lBuzzerTx = lMainStore->locateTransaction(buzzer);
+	if (!lBuzzerTx) return nullptr;
+
+	ITransactionStorePtr lStore = lMainStore->storeManager()->locate(lBuzzerTx->in()[TX_BUZZER_SHARD_IN].out().tx());
+	if (!lStore) return nullptr;
+
+	if (!lStore->extension()) return nullptr;
+	BuzzerTransactionStoreExtensionPtr lExtension = std::static_pointer_cast<BuzzerTransactionStoreExtension>(lStore->extension());
+	return lExtension;
+}
+
+void BuzzerTransactionStoreExtension::selectConversations(uint64_t from, const uint256& buzzer, std::vector<ConversationItem>& feed) {
+	//
+	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectConversations]: selecting conversations for ") +
+		strprintf("buzzer = %s, from = %d, chain = %s#", buzzer.toHex(), from, store_->chain().toHex().substr(0, 10)));
+
+	std::multimap<uint64_t, uint256> lRawBuzzfeed;
+	std::map<uint256, ConversationItemPtr> lBuzzItems;
+
+	// 0. get/set current time
+	uint64_t lTimeFrom = from;
+	if (lTimeFrom == 0) {
+		//
+		if (conversationsActivity_.read(buzzer, lTimeFrom)) {
+			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectConversations]: select conversations - corrected from for ") +
+				strprintf("buzzer = %s, from = %d, chain = %s#", buzzer.toHex(), from, store_->chain().toHex().substr(0, 10)));
+		}
+	}
+
+	db::DbTwoKeyContainer<
+		uint256 /*buzzer*/, 
+		uint64_t /*timestamp*/,
+		uint256 /*conversation*/>::Iterator lFrom;
+
+	if (lTimeFrom == 0) lFrom = conversationsOrder_.last(); // just in case
+	else lFrom = conversationsOrder_.find(buzzer, lTimeFrom);
+
+	// 1.0 resetting timestamp to ensure appropriate backtracing
+	lFrom.setKey2Empty();
+
+	// 1.1. stepping down up to max 100 conversations 
+	for (int lCount = 0; lCount < 100 /*TODO: settings?*/ && lFrom.valid(); --lFrom, ++lCount) {
+		//
+		uint256 lConversation = *lFrom;
+		uint256 lBuzzer;
+		uint64_t lTimestamp;
+		lFrom.first(lBuzzer, lTimestamp);
+
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectConversations]: order... "));
+
+		//
+		db::DbTwoKeyContainer<
+			uint256 /*buzzer*/,
+			uint256 /*conversation*/,
+			ConversationInfo /*state*/>::Iterator lConversationInfo = conversations_.find(buzzer, lConversation);
+
+		if (lConversationInfo.valid()) {
+			//
+			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectConversations]: conversations... "));
+			//
+			ConversationInfo lInfo = *lConversationInfo;
+			if ((lInfo.state() == ConversationInfo::PENDING || lInfo.state() == ConversationInfo::ACCEPTED) && 
+					lBuzzItems.find(lInfo.id()) == lBuzzItems.end()) {
+				//
+				if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectConversations]: try to select ") +
+					strprintf("conversation = %s, chain = %s#", lConversation.toHex(), store_->chain().toHex().substr(0, 10)));
+				//
+				ITransactionStorePtr lConversationStore = store_->storeManager()->locate(lInfo.chain()); // conversation store
+				TransactionPtr lTx = lConversationStore->locateTransaction(lInfo.id());
+				TxBuzzerConversationPtr lConversationTx = TransactionHelper::to<TxBuzzerConversation>(lTx);
+				//
+				uint256 lCreator = lConversationTx->in()[TX_BUZZER_CONVERSATION_MY_IN].out().tx();
+				uint256 lCounterparty = lConversationTx->in()[TX_BUZZER_CONVERSATION_BUZZER_IN].out().tx();
+
+				//
+				BuzzerTransactionStoreExtensionPtr lCreatorExtension = locateBuzzerExtension(lCreator);
+				if (!lCreatorExtension) continue;
+				BuzzerTransactionStoreExtensionPtr lCounterpartyExtension = locateBuzzerExtension(lCounterparty);
+				if (!lCounterpartyExtension) continue;
+
+				ConversationItemPtr lItem = ConversationItem::instance();
+
+				lItem->setTimestamp(lTimestamp); // last update
+				lItem->setConversationId(lInfo.id());
+				lItem->setConversationChainId(lInfo.chain());
+
+				TxBuzzerInfoPtr lCreatorInfo = lCreatorExtension->readBuzzerInfo(lCreator);
+				lItem->setCreatorId(lCreator);
+				lItem->setCreatorInfoId(lCreatorInfo->id());
+				lItem->setCreatorInfoChainId(lCreatorInfo->chain());
+
+				TxBuzzerInfoPtr lCounterpartyInfo = lCounterpartyExtension->readBuzzerInfo(lCounterparty);
+				lItem->setCounterpartyId(lCounterparty);
+				lItem->setCounterpartyInfoId(lCounterpartyInfo->id());
+				lItem->setCounterpartyInfoChainId(lCounterpartyInfo->chain());
+
+				lItem->setSignature(lConversationTx->signature());
+
+				BuzzerInfo lCreatorScore;
+				BuzzerInfo lCounterpartyScore;
+				//
+				if (buzzer == lCreator) {
+					// get score
+					lCounterpartyExtension->readBuzzerStat(lCounterparty, lCounterpartyScore);
+					//
+					lItem->setSide(ConversationItem::COUNTERPARTY);
+					lItem->setScore(lCounterpartyScore.score());
+				} else {
+					// get score
+					lCreatorExtension->readBuzzerStat(lCreator, lCreatorScore);
+					//
+					lItem->setSide(ConversationItem::CREATOR);
+					lItem->setScore(lCreatorScore.score());
+				}
+
+				// add ACCEPT for verification
+				if (!lInfo.stateChain().isNull() && !lInfo.stateId().isNull()) {
+					//
+					ITransactionStorePtr lAcceptStore = store_->storeManager()->locate(lInfo.stateChain());
+					if (!lAcceptStore) continue;
+
+					TransactionPtr lStateTx = lAcceptStore->locateTransaction(lInfo.stateId());
+					if (!lStateTx) continue;
+
+					if (lStateTx->type() == TX_BUZZER_ACCEPT_CONVERSATION) {
+						//
+						TxBuzzerAcceptConversationPtr lAccept = TransactionHelper::to<TxBuzzerAcceptConversation>(lStateTx);
+
+						ConversationItem::EventInfo lAcceptInfo(
+							lAccept->type(),
+							lAccept->timestamp(), 
+							lConversation,
+							lAccept->id(), 
+							lAccept->chain(), 
+							lCounterparty,
+							lCounterpartyInfo->chain(),
+							lCounterpartyInfo->id(),
+							lCounterpartyScore.score(),
+							lAccept->signature());
+						
+						lItem->addEventInfo(lAcceptInfo);
+					}
+				}
+
+				if (!lInfo.messageChain().isNull() && !lInfo.messageId().isNull()) {
+					//
+					ITransactionStorePtr lMessageStore = store_->storeManager()->locate(lInfo.messageChain());
+					if (!lMessageStore) continue;
+
+					TransactionPtr lMessageTx = lMessageStore->locateTransaction(lInfo.messageId());
+					if (!lMessageTx) continue;
+					//
+					TxBuzzerMessagePtr lMessage = TransactionHelper::to<TxBuzzerMessage>(lMessageTx);
+
+					ConversationItem::EventInfo lMessageInfo(
+						lMessage->type(),
+						lMessage->timestamp(), 
+						lConversation,
+						lMessage->id(), 
+						lMessage->chain(), 
+						lMessage->in()[TX_BUZZER_MY_IN].out().tx(),
+						lMessage->buzzerInfoChain(),
+						lMessage->buzzerInfo(),
+						lMessage->mediaPointers(),
+						lMessage->body(),
+						lMessage->in()[TX_BUZZER_MY_IN].out().tx() == lCounterparty ? 
+																lCounterpartyScore.score() : lCreatorScore.score(),
+						lMessage->signature());
+					
+					lItem->addEventInfo(lMessageInfo);
+				}
+
+				lRawBuzzfeed.insert(std::multimap<uint64_t, uint256>::value_type(lItem->timestamp(), lItem->key()));
+				lBuzzItems.insert(std::map<uint256, ConversationItemPtr>::value_type(lItem->key(), lItem));
+			}
+		}
+	}
+
+	for (std::multimap<uint64_t, uint256>::reverse_iterator lItem = lRawBuzzfeed.rbegin(); lItem != lRawBuzzfeed.rend(); lItem++) {
+		//
+		if (feed.size() < 100 /*max last events*/) {
+			std::map<uint256, ConversationItemPtr>::iterator lBuzzItem = lBuzzItems.find(lItem->second);
+			if (lBuzzItem != lBuzzItems.end()) feed.push_back(*(lBuzzItem->second));
+		} else {
+			break;
+		}
+	}
+
+	//
+	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectConversations]: ") +
+		strprintf("items count = %d, %s#", feed.size(), store_->chain().toHex().substr(0, 10)));			
+}
+
+void BuzzerTransactionStoreExtension::selectMessages(uint64_t from, const uint256& conversation, std::vector<BuzzfeedItem>& feed) {
+	//	
+	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectMessages]: selecting messages for ") +
+		strprintf("conversation = %s, from = %d, chain = %s#", conversation.toHex(), from, store_->chain().toHex().substr(0, 10)));
+
+	// 0. get/set current time
+	uint64_t lPublisherTime = from;
+	if (!lPublisherTime && publisherUpdates_.read(conversation, lPublisherTime)) {
+		// insert own
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectMessages]: conversation time is ") +
+			strprintf("%s/%d", conversation.toHex(), lPublisherTime));
+	}
+
+	ITransactionStorePtr lMainStore = store_->storeManager()->locate(MainChain::id());
+	std::multimap<uint64_t, BuzzfeedItem::Key> lRawBuzzfeed;
+	std::map<BuzzfeedItem::Key, BuzzfeedItemPtr> lBuzzItems;
+
+	db::DbTwoKeyContainer<uint256 /*publisher*/, uint64_t /*timestamp*/, uint256 /*tx*/>::Iterator lFrom = 
+			timeline_.find(conversation, lPublisherTime);
+	db::DbTwoKeyContainer<uint256 /*publisher*/, uint64_t /*timestamp*/, uint256 /*tx*/>::Transaction lTransaction = 
+			timeline_.transaction();
+	lFrom.setKey2Empty();
+
+	// 1. select
+	for (;lBuzzItems.size() < 50 /*TODO: settings?*/ && lFrom.valid(); --lFrom) {
+		//
+		uint256 lId; 
+		uint64_t lTimestamp; 
+
+		//
+		if (!lFrom.first(lId, lTimestamp)) {
+			lTransaction.remove(lFrom);
+			continue;
+		}
+
+		//
+		int lContext = 0;
+		TxBuzzerPtr lBuzzer = nullptr;
+		uint256 lEventId = *lFrom;
+		TransactionPtr lTx = store_->locateTransaction(lEventId);
+		if (!lTx) {
+			lTransaction.remove(lFrom);
+			continue;
+		}
+		//
+		if (lTx->type() == TX_BUZZER_MESSAGE || lTx->type() == TX_BUZZER_MESSAGE_REPLY) {
+			//
+			uint256 lTxPublisher = lTx->in()[TX_BUZZER_MY_IN].out().tx(); // buzzer allways is the first in
+			TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lTxPublisher);
+			if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
+			//
+			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectMessages]: try to added item ") +
+				strprintf("buzzer = %s/%s, %s/%s#", lBuzzer->id().toHex(), lTxPublisher.toHex(), lTx->id().toHex(), store_->chain().toHex().substr(0, 10)));
+
+			//
+			makeBuzzfeedItem(lContext, lBuzzer, lTx, lMainStore, lRawBuzzfeed, lBuzzItems);
+		} 
+	}
+
+	// 3. free-up
+	lTransaction.commit();
+
+	// 4. fill reply
+	bool lContinue = false;
+	std::set<BuzzfeedItem::Key> lAdded;
+	for (std::multimap<uint64_t, BuzzfeedItem::Key>::reverse_iterator lItem = lRawBuzzfeed.rbegin(); lItem != lRawBuzzfeed.rend(); lItem++) {
+		//
+		if (!lContinue && feed.size() < 100 /*max last mixed events*/ || lContinue && feed.size() < 500) {
+			std::map<BuzzfeedItem::Key, BuzzfeedItemPtr>::iterator lBuzzItem = lBuzzItems.find(lItem->second);
+			if (lBuzzItem != lBuzzItems.end()) {
+				if (lAdded.insert(lItem->second).second) {
+					feed.push_back(*(lBuzzItem->second));
+					//
+					if (lBuzzItem->second->type() == TX_BUZZER_MESSAGE_REPLY) {
+						lContinue = true;
+					} else { 
+						lContinue = false;
+					}
+				}
+			} else {
+				//
+				if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectMessages]: item is MISSING ") +
+					strprintf("%s/%s, %s#", lItem->second.id().toHex(), lItem->second.typeToString(), store_->chain().toHex().substr(0, 10)));
+			}
+		} else {
+			break;
+		}
+	}
+
+	//
+	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectMessages]: ") +
+		strprintf("items count = %d, %s#", feed.size(), store_->chain().toHex().substr(0, 10)));	
+}
+
 void BuzzerTransactionStoreExtension::selectEventsfeed(uint64_t from, const uint256& subscriber, std::vector<EventsfeedItem>& feed) {
 	//
 	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectEventsfeed]: selecting eventsfeed for ") +
@@ -1618,12 +2356,13 @@ void BuzzerTransactionStoreExtension::selectEventsfeed(uint64_t from, const uint
 
 		if (*lFromEvent == TX_BUZZ || *lFromEvent == TX_BUZZ_REPLY || 
 			*lFromEvent == TX_REBUZZ || *lFromEvent == TX_BUZZ_LIKE || *lFromEvent == TX_BUZZ_REWARD ||
-			*lFromEvent == TX_BUZZER_MISTRUST || *lFromEvent == TX_BUZZER_ENDORSE ||
-			*lFromEvent == TX_BUZZER_SUBSCRIBE) {
+			*lFromEvent == TX_BUZZER_MISTRUST || *lFromEvent == TX_BUZZER_ENDORSE || *lFromEvent == TX_BUZZER_SUBSCRIBE || 
+			*lFromEvent == TX_BUZZER_CONVERSATION || *lFromEvent == TX_BUZZER_ACCEPT_CONVERSATION || 
+			*lFromEvent == TX_BUZZER_DECLINE_CONVERSATION || *lFromEvent == TX_BUZZER_MESSAGE || *lFromEvent == TX_BUZZER_MESSAGE_REPLY) {
 			//
 			uint256 lSubscriber;
 			uint64_t lTimestamp;
-			uint256 lEvent; 
+			uint256 lEvent;
 
 			if (lFromEvent.first(lSubscriber, lTimestamp, lEvent)) {
 				//
@@ -1636,14 +2375,24 @@ void BuzzerTransactionStoreExtension::selectEventsfeed(uint64_t from, const uint
 					continue;
 				}
 
-				if (*lFromEvent == TX_BUZZ || *lFromEvent == TX_BUZZ_REPLY || *lFromEvent == TX_REBUZZ) {
+				if (*lFromEvent == TX_BUZZ || *lFromEvent == TX_BUZZ_REPLY || *lFromEvent == TX_REBUZZ ||
+					*lFromEvent == TX_BUZZER_MESSAGE || *lFromEvent == TX_BUZZER_MESSAGE_REPLY) {
 					//
 					uint256 lPublisher = lTx->in()[TX_BUZZ_REPLY_MY_IN].out().tx();
 					//
 					TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lPublisher);
 					if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
 					//
-					makeEventsfeedItem(lBuzzer, lTx, lMainStore, lRawBuzzfeed, lBuzzItems);
+					EventsfeedItemPtr lItem = makeEventsfeedItem(lBuzzer, lTx, lMainStore, lRawBuzzfeed, lBuzzItems);
+					//
+					if (lItem && (*lFromEvent == TX_BUZZER_MESSAGE || *lFromEvent == TX_BUZZER_MESSAGE_REPLY)) {
+						//
+						uint256 lConversationId = lTx->in()[TX_BUZZER_CONVERSATION_IN].out().tx();
+						uint256 lConversationChain = lTx->in()[TX_BUZZER_CONVERSATION_IN].out().chain();
+						//
+						lItem->beginInfo()->setEventId(lConversationId);
+						lItem->beginInfo()->setEventChainId(lConversationChain);
+					}
 				} else if (*lFromEvent == TX_BUZZ_LIKE) {
 					//
 					makeEventsfeedLikeItem(lTx, lMainStore, lRawBuzzfeed, lBuzzItems);
@@ -1707,9 +2456,218 @@ void BuzzerTransactionStoreExtension::selectEventsfeed(uint64_t from, const uint
 					//
 					if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectEventsfeed]: ") +
 						strprintf("add subscribe = %s, %s, %s#", lPublisher.toHex(), lSubscriber.toHex(), store_->chain().toHex().substr(0, 10)));		
+				} else if (*lFromEvent == TX_BUZZER_CONVERSATION) {
+					//
+					TxBuzzerConversationPtr lConversationTx = TransactionHelper::to<TxBuzzerConversation>(lTx);			
+					ITransactionStorePtr lStore = store_->storeManager()->locate(lConversationTx->chain()); // conversation store
+					if (lStore) {
+						//
+						uint256 lCreator = lConversationTx->in()[TX_BUZZER_CONVERSATION_MY_IN].out().tx();
+						uint256 lCounterparty = lConversationTx->in()[TX_BUZZER_CONVERSATION_BUZZER_IN].out().tx();
+
+						//
+						BuzzerTransactionStoreExtensionPtr lCreatorExtension = locateBuzzerExtension(lCreator);
+						if (!lCreatorExtension) continue;
+						BuzzerTransactionStoreExtensionPtr lCounterpartyExtension = locateBuzzerExtension(lCounterparty);
+						if (!lCounterpartyExtension) continue;
+
+						TxBuzzerInfoPtr lCreatorInfo = lCreatorExtension->readBuzzerInfo(lCreator);
+						if (!lCreatorInfo) continue;
+
+						TxBuzzerInfoPtr lCounterpartyInfo = lCounterpartyExtension->readBuzzerInfo(lCounterparty);
+						if (!lCounterpartyInfo) continue;
+
+						BuzzerInfo lCounterpartyScore;
+						BuzzerInfo lCreatorScore;
+						lCounterpartyExtension->readBuzzerStat(lCounterparty, lCounterpartyScore);
+						lCreatorExtension->readBuzzerStat(lCreator, lCreatorScore);
+
+						//
+						EventsfeedItemPtr lEvent = EventsfeedItem::instance();
+
+						lEvent->setType(TX_BUZZER_CONVERSATION);
+						lEvent->setTimestamp(lConversationTx->timestamp());
+
+						// get score
+						BuzzerTransactionStoreExtension::BuzzerInfo lScore;
+						lCounterpartyExtension->readBuzzerStat(lCounterparty, lScore);
+
+						// conversation info
+						lEvent->setBuzzId(lConversationTx->id());
+						lEvent->setBuzzChainId(lConversationTx->chain());
+						lEvent->setPublisher(lCreator);
+						lEvent->setPublisherInfo(lCreatorInfo->id());
+						lEvent->setPublisherInfoChain(lCreatorInfo->chain());
+						lEvent->setScore(lCreatorScore.score());
+
+						// add CONVERSATION for verification
+						EventsfeedItem::EventInfo lEventInfo(
+							lConversationTx->timestamp(), 
+							lCounterparty, //lConversationTx->in()[TX_BUZZER_CONVERSATION_MY_IN].out().tx(), 
+							lCreatorInfo->chain(), 
+							lCreatorInfo->id(), 
+							lCreatorScore.score());
+						
+						lEventInfo.setEvent(lConversationTx->chain(), lConversationTx->id(), lConversationTx->signature());
+						lEvent->addEventInfo(lEventInfo);
+
+						//
+						lRawBuzzfeed.insert(std::multimap<uint64_t, EventsfeedItem::Key>::value_type(lEvent->timestamp(), lEvent->key()));
+						lBuzzItems.insert(std::map<EventsfeedItem::Key, EventsfeedItemPtr>::value_type(lEvent->key(), lEvent));
+						//
+						if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectEventsfeed]: ") +
+							strprintf("add conversation = %s, %s, %s#", lConversationTx->id().toHex(), lCounterparty.toHex(), store_->chain().toHex().substr(0, 10)));
+					}
+					//
+				} else if (*lFromEvent == TX_BUZZER_ACCEPT_CONVERSATION) {
+					//
+					TxBuzzerAcceptConversationPtr lAcceptConversationTx = TransactionHelper::to<TxBuzzerAcceptConversation>(lTx);
+					// in[0] - buzzer
+					uint256 lBuzzer = lAcceptConversationTx->in()[TX_BUZZER_CONVERSATION_ACCEPT_MY_IN].out().tx(); 
+					// in[1] - conversation
+					uint256 lConversationId = lAcceptConversationTx->in()[TX_BUZZER_CONVERSATION_ACCEPT_IN].out().tx();
+					uint256 lConversationChain = lAcceptConversationTx->in()[TX_BUZZER_CONVERSATION_ACCEPT_IN].out().chain();
+					//
+					ITransactionStorePtr lStore = store_->storeManager()->locate(lAcceptConversationTx->chain()); // conversation store
+					if (lStore) {
+						//
+						TransactionPtr lConversation = lStore->locateTransaction(lConversationId);
+						if (!lConversation) continue;
+						TxBuzzerConversationPtr lConversationTx = TransactionHelper::to<TxBuzzerConversation>(lConversation);
+						//
+						uint256 lCreator = lConversationTx->in()[TX_BUZZER_CONVERSATION_MY_IN].out().tx();
+						uint256 lCounterparty = lConversationTx->in()[TX_BUZZER_CONVERSATION_BUZZER_IN].out().tx();
+
+						//
+						BuzzerTransactionStoreExtensionPtr lCreatorExtension = locateBuzzerExtension(lCreator);
+						if (!lCreatorExtension) continue;
+						BuzzerTransactionStoreExtensionPtr lCounterpartyExtension = locateBuzzerExtension(lCounterparty);
+						if (!lCounterpartyExtension) continue;
+
+						TxBuzzerInfoPtr lCreatorInfo = lCreatorExtension->readBuzzerInfo(lCreator);
+						if (!lCreatorInfo) continue;
+
+						TxBuzzerInfoPtr lCounterpartyInfo = lCounterpartyExtension->readBuzzerInfo(lCounterparty);
+						if (!lCounterpartyInfo) continue;
+
+						BuzzerInfo lCounterpartyScore;
+						BuzzerInfo lCreatorScore;
+						lCounterpartyExtension->readBuzzerStat(lCounterparty, lCounterpartyScore);
+						lCreatorExtension->readBuzzerStat(lCreator, lCreatorScore);
+
+						//
+						EventsfeedItemPtr lEvent = EventsfeedItem::instance();
+
+						lEvent->setType(TX_BUZZER_ACCEPT_CONVERSATION);
+						lEvent->setTimestamp(lConversationTx->timestamp());
+
+						// get score
+						BuzzerTransactionStoreExtension::BuzzerInfo lScore;
+						lCounterpartyExtension->readBuzzerStat(lCounterparty, lScore);
+
+						// conversation info
+						lEvent->setBuzzId(lConversationTx->id());
+						lEvent->setBuzzChainId(lConversationTx->chain());
+						lEvent->setPublisher(lCreator);
+						lEvent->setPublisherInfo(lCreatorInfo->id());
+						lEvent->setPublisherInfoChain(lCreatorInfo->chain());
+						lEvent->setScore(lCreatorScore.score());
+
+						// add CONVERSATION for verification
+						EventsfeedItem::EventInfo lEventInfo(
+							lAcceptConversationTx->timestamp(), 
+							lAcceptConversationTx->in()[TX_BUZZER_CONVERSATION_ACCEPT_MY_IN].out().tx(), 
+							lCounterpartyInfo->chain(), 
+							lCounterpartyInfo->id(), 
+							lCounterpartyScore.score());
+
+						
+						lEventInfo.setEvent(lAcceptConversationTx->chain(), lAcceptConversationTx->id(), lAcceptConversationTx->signature());
+						lEvent->addEventInfo(lEventInfo);
+
+						lRawBuzzfeed.insert(std::multimap<uint64_t, EventsfeedItem::Key>::value_type(lEvent->timestamp(), lEvent->key()));
+						lBuzzItems.insert(std::map<EventsfeedItem::Key, EventsfeedItemPtr>::value_type(lEvent->key(), lEvent));
+						//
+						if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectEventsfeed]: ") +
+							strprintf("add accept conversation = %s, %s, %s#", lAcceptConversationTx->id().toHex(), lBuzzer.toHex(), store_->chain().toHex().substr(0, 10)));
+					}
+					//
+				} else if (*lFromEvent == TX_BUZZER_DECLINE_CONVERSATION) {
+					//
+					TxBuzzerDeclineConversationPtr lDeclineConversationTx = TransactionHelper::to<TxBuzzerDeclineConversation>(lTx);
+					// in[0] - buzzer
+					uint256 lBuzzer = lDeclineConversationTx->in()[TX_BUZZER_CONVERSATION_ACCEPT_MY_IN].out().tx(); 
+					// in[1] - conversation
+					uint256 lConversationId = lDeclineConversationTx->in()[TX_BUZZER_CONVERSATION_DECLINE_IN].out().tx();
+					//
+					uint256 lConversationChain = lDeclineConversationTx->in()[TX_BUZZER_CONVERSATION_DECLINE_IN].out().chain();
+					//
+					ITransactionStorePtr lStore = store_->storeManager()->locate(lDeclineConversationTx->chain()); // conversation store
+					if (lStore) {
+						//
+						TransactionPtr lConversation = lStore->locateTransaction(lConversationId);
+						if (!lConversation) continue;
+						TxBuzzerConversationPtr lConversationTx = TransactionHelper::to<TxBuzzerConversation>(lConversation);
+						//
+						uint256 lCreator = lConversationTx->in()[TX_BUZZER_CONVERSATION_MY_IN].out().tx();
+						uint256 lCounterparty = lConversationTx->in()[TX_BUZZER_CONVERSATION_BUZZER_IN].out().tx();
+
+						//
+						BuzzerTransactionStoreExtensionPtr lCreatorExtension = locateBuzzerExtension(lCreator);
+						if (!lCreatorExtension) continue;
+						BuzzerTransactionStoreExtensionPtr lCounterpartyExtension = locateBuzzerExtension(lCounterparty);
+						if (!lCounterpartyExtension) continue;
+
+						TxBuzzerInfoPtr lCreatorInfo = lCreatorExtension->readBuzzerInfo(lCreator);
+						if (!lCreatorInfo) continue;
+
+						TxBuzzerInfoPtr lCounterpartyInfo = lCounterpartyExtension->readBuzzerInfo(lCounterparty);
+						if (!lCounterpartyInfo) continue;
+
+						BuzzerInfo lCounterpartyScore;
+						BuzzerInfo lCreatorScore;
+						lCounterpartyExtension->readBuzzerStat(lCounterparty, lCounterpartyScore);
+						lCreatorExtension->readBuzzerStat(lCreator, lCreatorScore);
+
+						//
+						EventsfeedItemPtr lEvent = EventsfeedItem::instance();
+
+						lEvent->setType(TX_BUZZER_DECLINE_CONVERSATION);
+						lEvent->setTimestamp(lConversationTx->timestamp());
+
+						// get score
+						BuzzerTransactionStoreExtension::BuzzerInfo lScore;
+						lCounterpartyExtension->readBuzzerStat(lCounterparty, lScore);
+
+						// conversation info
+						lEvent->setBuzzId(lConversationTx->id());
+						lEvent->setBuzzChainId(lConversationTx->chain());
+						lEvent->setPublisher(lCreator);
+						lEvent->setPublisherInfo(lCreatorInfo->id());
+						lEvent->setPublisherInfoChain(lCreatorInfo->chain());
+						lEvent->setScore(lCreatorScore.score());
+
+						// add CONVERSATION for verification
+						EventsfeedItem::EventInfo lEventInfo(
+							lDeclineConversationTx->timestamp(), 
+							lDeclineConversationTx->in()[TX_BUZZER_CONVERSATION_DECLINE_MY_IN].out().tx(), 
+							lCounterpartyInfo->chain(), 
+							lCounterpartyInfo->id(), 
+							lCounterpartyScore.score());
+
+						
+						lEventInfo.setEvent(lDeclineConversationTx->chain(), lDeclineConversationTx->id(), lDeclineConversationTx->signature());
+						lEvent->addEventInfo(lEventInfo);
+						//
+						lRawBuzzfeed.insert(std::multimap<uint64_t, EventsfeedItem::Key>::value_type(lEvent->timestamp(), lEvent->key()));
+						lBuzzItems.insert(std::map<EventsfeedItem::Key, EventsfeedItemPtr>::value_type(lEvent->key(), lEvent));
+						//
+						if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectEventsfeed]: ") +
+							strprintf("add decline conversation = %s, %s, %s#", lDeclineConversationTx->id().toHex(), lBuzzer.toHex(), store_->chain().toHex().substr(0, 10)));
+					}
 				}
 			}
-		} 
+		}
 	}
 
 	lEventsTransaction.commit(); // clean-up
@@ -1730,18 +2688,21 @@ void BuzzerTransactionStoreExtension::selectEventsfeed(uint64_t from, const uint
 		strprintf("items count = %d, %s#", feed.size(), store_->chain().toHex().substr(0, 10)));		
 }
 
-void BuzzerTransactionStoreExtension::makeEventsfeedItem(TxBuzzerPtr buzzer, TransactionPtr tx, ITransactionStorePtr mainStore, std::multimap<uint64_t, EventsfeedItem::Key>& rawBuzzfeed, std::map<EventsfeedItem::Key, EventsfeedItemPtr>& buzzes) {
+EventsfeedItemPtr BuzzerTransactionStoreExtension::makeEventsfeedItem(TxBuzzerPtr buzzer, TransactionPtr tx, ITransactionStorePtr mainStore, std::multimap<uint64_t, EventsfeedItem::Key>& rawBuzzfeed, std::map<EventsfeedItem::Key, EventsfeedItemPtr>& buzzes) {
 	//
 	if (tx->type() == TX_BUZZ ||
 		tx->type() == TX_REBUZZ ||
-		tx->type() == TX_BUZZ_REPLY) {
+		tx->type() == TX_BUZZ_REPLY ||
+		tx->type() == TX_BUZZER_MESSAGE ||
+		tx->type() == TX_BUZZER_MESSAGE_REPLY) {
 		//
 		bool lAdd = true;
 		TxBuzzPtr lBuzz = TransactionHelper::to<TxBuzz>(tx);
 		//
 		EventsfeedItemPtr lItem = EventsfeedItem::instance();
 		//
-		if (tx->type() == TX_BUZZ || tx->type() == TX_BUZZ_REPLY) {
+		if (tx->type() == TX_BUZZ || tx->type() == TX_BUZZ_REPLY ||
+			tx->type() == TX_BUZZER_MESSAGE || tx->type() == TX_BUZZER_MESSAGE_REPLY) {
 			//
 			prepareEventsfeedItem(*lItem, lBuzz, buzzer, lBuzz->chain(), lBuzz->id(), 
 				lBuzz->timestamp(), lBuzz->buzzerInfoChain(), lBuzz->buzzerInfo(), lBuzz->score(), lBuzz->signature());
@@ -1794,7 +2755,10 @@ void BuzzerTransactionStoreExtension::makeEventsfeedItem(TxBuzzerPtr buzzer, Tra
 
 		rawBuzzfeed.insert(std::multimap<uint64_t, EventsfeedItem::Key>::value_type(lItem->timestamp(), lItem->key()));
 		if (lAdd) buzzes.insert(std::map<EventsfeedItem::Key, EventsfeedItemPtr>::value_type(lItem->key(), lItem));
+		if (lAdd) return lItem;
 	}
+
+	return nullptr;
 }
 
 void BuzzerTransactionStoreExtension::makeEventsfeedLikeItem(TransactionPtr tx, ITransactionStorePtr mainStore, std::multimap<uint64_t, EventsfeedItem::Key>& rawBuzzfeed, std::map<EventsfeedItem::Key, EventsfeedItemPtr>& buzzes) {
@@ -1885,7 +2849,8 @@ void BuzzerTransactionStoreExtension::prepareEventsfeedItem(EventsfeedItem& item
 	if (buzzer) {
 		EventsfeedItem::EventInfo lInfo(eventTimestamp, buzzer->id(), buzzerInfoChain, buzzerInfo, score);
 
-		if (buzz->type() == TX_BUZZ || buzz->type() == TX_BUZZ_REPLY || buzz->type() == TX_REBUZZ) {
+		if (buzz->type() == TX_BUZZ || buzz->type() == TX_BUZZ_REPLY || buzz->type() == TX_REBUZZ || 
+			buzz->type() == TX_BUZZER_MESSAGE || buzz->type() == TX_BUZZER_MESSAGE_REPLY) {
 			lInfo.setEvent(eventChainId, eventId, buzz->body(), buzz->mediaPointers(), signature);
 		} else {
 			lInfo.setEvent(eventChainId, eventId, signature);			
@@ -2928,7 +3893,9 @@ bool BuzzerTransactionStoreExtension::makeBuzzfeedItem(int& context, TxBuzzerPtr
 	//
 	if (tx->type() == TX_BUZZ ||
 		tx->type() == TX_REBUZZ ||
-		tx->type() == TX_BUZZ_REPLY) {
+		tx->type() == TX_BUZZ_REPLY ||
+		tx->type() == TX_BUZZER_MESSAGE ||
+		tx->type() == TX_BUZZER_MESSAGE_REPLY) {
 		//
 		TxBuzzPtr lBuzz = TransactionHelper::to<TxBuzz>(tx);
 
@@ -2985,7 +3952,7 @@ bool BuzzerTransactionStoreExtension::makeBuzzfeedItem(int& context, TxBuzzerPtr
 		BuzzfeedItemPtr lItem = BuzzfeedItem::instance();
 		prepareBuzzfeedItem(*lItem, lBuzz, buzzer);
 
-		if (tx->type() == TX_BUZZ_REPLY) {
+		if (tx->type() == TX_BUZZ_REPLY || tx->type() == TX_BUZZER_MESSAGE_REPLY) {
 			//
 			uint256 lOriginalId = lBuzz->in()[TX_BUZZ_REPLY_BUZZ_IN].out().tx();
 			uint256 lOriginalChainId = lBuzz->in()[TX_BUZZ_REPLY_BUZZ_IN].out().chain();
@@ -3015,7 +3982,7 @@ bool BuzzerTransactionStoreExtension::makeBuzzfeedItem(int& context, TxBuzzerPtr
 		rawBuzzfeed.insert(std::multimap<uint64_t, BuzzfeedItem::Key>::value_type(lItem->actualOrder(), lItem->key()));
 		buzzes.insert(std::map<BuzzfeedItem::Key, BuzzfeedItemPtr>::value_type(lItem->key(), lItem));
 
-		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectBuzzfeed]: item added ") +
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/makeBuzzfeedItem]: item added ") +
 			strprintf("(%d/%d), buzzer = %s, %d/%s/%s#", buzzes.size(), rawBuzzfeed.size(), buzzer->id().toHex(), lBuzz->timestamp(), lBuzz->id().toHex(), store_->chain().toHex().substr(0, 10)));
 
 		return true;

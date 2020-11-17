@@ -76,6 +76,7 @@ set(SOURCES
 	./dapps/buzzer/peerextension.cpp
 	./dapps/buzzer/buzzfeed.cpp
 	./dapps/buzzer/eventsfeed.cpp
+	./dapps/buzzer/conversationsfeed.cpp
 	./itransactionstoreextension.cpp
 	./seedwords.cpp
 	./message.cpp	
@@ -137,7 +138,8 @@ set(UNITTESTS
 	./dapps/buzzer/transactionactions.cpp	
 	./dapps/buzzer/peerextension.cpp	
 	./dapps/buzzer/buzzfeed.cpp
-	./dapps/buzzer/eventsfeed.cpp	
+	./dapps/buzzer/eventsfeed.cpp
+	./dapps/buzzer/conversationsfeed.cpp
 	./itransactionstoreextension.cpp
 	./seedwords.cpp
 	./message.cpp
@@ -199,6 +201,7 @@ set(CLIENT
 	./dapps/buzzer/buzzer.cpp
 	./dapps/buzzer/buzzfeed.cpp
 	./dapps/buzzer/eventsfeed.cpp	
+	./dapps/buzzer/conversationsfeed.cpp
 	./dapps/buzzer/peerextension.cpp
 	./dapps/buzzer/transactionstoreextension.cpp
 	./dapps/buzzer/transactionactions.cpp	

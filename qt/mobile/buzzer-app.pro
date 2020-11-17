@@ -5,7 +5,7 @@ else: QT += qml quick quickcontrols2 multimedia
 
 CONFIG += c++11
 
-VERSION = 0.1.0.11
+VERSION = 0.1.0.12
 DEFINES += VERSION_STRING=\\\"$${VERSION}\\\"
 DEFINES += QT_ENVIRONMENT
 DEFINES += BUZZER_MOD
@@ -18,7 +18,7 @@ DEFINES += CLIENT_PLATFORM
 DEFINES += QBIT_VERSION_MAJOR=0
 DEFINES += QBIT_VERSION_MINOR=1
 DEFINES += QBIT_VERSION_REVISION=0
-DEFINES += QBIT_VERSION_BUILD=11
+DEFINES += QBIT_VERSION_BUILD=12
 
 DEFINES += BUZZER_MOD
 DEFINES += CUBIX_MOD
@@ -60,8 +60,9 @@ SOURCES += \
     ../../pow.cpp \
     ../../dapps/buzzer/buzzer.cpp \
     ../../dapps/buzzer/buzzfeed.cpp \
-    ../../dapps/buzzer/eventsfeed.cpp \
-    ../../dapps/buzzer/peerextension.cpp \
+	../../dapps/buzzer/eventsfeed.cpp \
+	../../dapps/buzzer/conversationsfeed.cpp \
+	../../dapps/buzzer/peerextension.cpp \
     ../../dapps/buzzer/transactionstoreextension.cpp \
     ../../dapps/buzzer/transactionactions.cpp \
     ../../client/dapps/buzzer/buzzercommands.cpp \
@@ -76,6 +77,7 @@ SOURCES += \
     buzztexthighlighter.cpp \
     client.cpp \
     commandwrappers.cpp \
+	conversationsfeedlistmodel.cpp \
     eventsfeedlistmodel.cpp \
 	imagelisting.cpp \
     main.cpp \
@@ -83,6 +85,7 @@ SOURCES += \
     application.cpp \
     cameracontroler.cpp \
     applicationpath.cpp \
+    peerslistmodel.cpp \
     settings.cpp \
     wallettransactionslistmodel.cpp \
     websourceinfo.cpp
@@ -143,14 +146,30 @@ DISTFILES += \
     android/src/app/buzzer/mobile/NotificatorBroadcastReceiver.java \
     android/src/app/buzzer/mobile/FingerprintHandler.java \
 	android/src/app/buzzer/mobile/FileUtils.java \
+    components/QuarkRoundRectangle.qml \
     ios/Info.plist \
-    ios/Launch.xib
+    ios/Launch.xib \
+    qml/buzzercreateupdate.qml \
+    qml/buzzerheader.qml \
+    qml/buzzerqbitkey.qml \
+    qml/buzzerquickhelp.qml \
+    qml/conversationitem.qml \
+    qml/conversationmessageitem.qml \
+    qml/conversationsfeed.qml \
+    qml/conversationthread.qml \
+    qml/eventconversationitem.qml \
+    qml/peerinactiveitem.qml \
+    qml/peeritem.qml \
+    qml/peers.qml \
+    qml/peerslist.qml \
+    qml/peersmanuallist.qml
 
 HEADERS += \
     asiodispatcher.h \
     buzzfeedlistmodel.h \
     buzztexthighlighter.h \
     client.h \
+	conversationsfeedlistmodel.h \
     error.h \
     eventsfeedlistmodel.h \
     iclient.h \
@@ -160,6 +179,7 @@ HEADERS += \
     applicationpath.h \
     line.h \
     cameracontroler.h \
+    peerslistmodel.h \
 	settings.h \
 	commandwrappers.h \
 	imagelisting.h \
@@ -168,6 +188,8 @@ HEADERS += \
 	../../dapps/buzzer/buzzfeedview.h \
 	../../dapps/buzzer/eventsfeed.h \
 	../../dapps/buzzer/eventsfeedview.h \
+	../../dapps/buzzer/conversationsfeed.h \
+	../../dapps/buzzer/conversationsfeedview.h \
 	../../client/dapps/buzzer/buzzercommands.h \
 	../../client/dapps/buzzer/buzzercomposer.h \
 	../../client/dapps/cubix/cubixcommands.h \

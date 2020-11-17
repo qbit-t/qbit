@@ -18,8 +18,10 @@ typedef std::shared_ptr<UploadMediaCommand> UploadMediaCommandPtr;
 
 class UploadMediaCommand: public ICommand, public std::enable_shared_from_this<UploadMediaCommand> {
 public:
-	UploadMediaCommand(CubixLightComposerPtr composer, progressUploadFunction progress, doneTransactionWithErrorFunction done): 
-		composer_(composer), progress_(progress), done_(done) {}
+	UploadMediaCommand(CubixLightComposerPtr composer, progressUploadFunction progress, doneTransactionWithErrorFunction done):
+	    composer_(composer), progress_(progress), done_(done) {}
+	UploadMediaCommand(CubixLightComposerPtr composer, progressUploadFunction progress, const std::string& preview, doneTransactionWithErrorFunction done):
+	    composer_(composer), progress_(progress), preview_(preview), done_(done) {}
 
 	void process(const std::vector<std::string>&);
 	std::set<std::string> name() {
@@ -30,16 +32,21 @@ public:
 	}
 
 	void help() {
-		std::cout << "uploadMedia | upload \"<file>\" [-s <000x000>] [\"description\"]" << std::endl;
+		std::cout << "uploadMedia | upload \"<file>\" [-p <public key>] [-s <000x000>] [-d <\"description\">]" << std::endl;
 		std::cout << "\tUpload media file to the cubix network." << std::endl;
-		std::cout << "\t<file> 			- path to media file (jpeg, png)" << std::endl;
-		std::cout << "\t[-s <000x000>] 	- optional, preview with specified size" << std::endl;
-		std::cout << "\t[description]	- optional, media file description" << std::endl;
+		std::cout << "\t<file> 				- path to media file (jpeg, png, more to come...)" << std::endl;
+		std::cout << "\t[-p <public key>] 	- optional, counterparty public key for encryption" << std::endl;
+		std::cout << "\t[-s <000x000>] 		- optional, preview with specified size" << std::endl;
+		std::cout << "\t[-d <description>]	- optional, media file description" << std::endl;
 		std::cout << "\texample:\n\t\t>upload \"./my_photo.png\" \"My photo\"" << std::endl << std::endl;
 	}	
 
-	static ICommandPtr instance(CubixLightComposerPtr composer, progressUploadFunction progress, doneTransactionWithErrorFunction done) { 
-		return std::make_shared<UploadMediaCommand>(composer, progress, done); 
+	static ICommandPtr instance(CubixLightComposerPtr composer, progressUploadFunction progress, doneTransactionWithErrorFunction done) {
+		return std::make_shared<UploadMediaCommand>(composer, progress, done);
+	}
+
+	static ICommandPtr instance(CubixLightComposerPtr composer, progressUploadFunction progress, const std::string& preview, doneTransactionWithErrorFunction done) {
+		return std::make_shared<UploadMediaCommand>(composer, progress, preview, done);
 	}
 
 	// callbacks
@@ -88,14 +95,19 @@ public:
 		done_ = done;
 	}
 
+	void encrypt(const uint256&, const std::vector<unsigned char>&, std::vector<unsigned char>&);
+
 private:
 	CubixLightComposerPtr composer_;
-	doneTransactionWithErrorFunction done_;
 	progressUploadFunction progress_;
+	std::string preview_;
+	doneTransactionWithErrorFunction done_;
 
 	uint64_t size_ = 0;
 	std::string file_;
 	std::string description_;
+
+	std::vector<std::string> args_;
 
 	TxMediaHeader::Type mediaType_;
 	std::vector<unsigned char> previewData_;
@@ -112,6 +124,8 @@ private:
 	int previewHeight_ = 0;
 
 	IPeerPtr peer_;
+
+	PKey pkey_;
 
 	bool feeSent_ = false;
 	bool summarySent_ = false;
@@ -135,7 +149,7 @@ public:
 	}
 
 	void help() {
-		std::cout << "downloadMedia | download [<header>/<chain>] \"<local_file>\" [preview] [skip]" << std::endl;
+		std::cout << "downloadMedia | download [<header>/<chain>] \"<local_file>\" [-p <public_key>] [-preview] [-skip]" << std::endl;
 		std::cout << "\tDownload media from cubix network." << std::endl;
 		std::cout << "\t<header> 	 - required, header tx" << std::endl;
 		std::cout << "\t<chain>		 - required, cubix chain" << std::endl;
@@ -166,7 +180,9 @@ public:
 	void error(const std::string& code, const std::string& message) {
 		gLog().writeClient(Log::CLIENT, strprintf(": %s | %s", code, message));
 		done_(nullptr, std::string(), std::string(), 0, ProcessingError(code, message));
-	}	
+	}
+
+	void decrypt(const uint256&, const std::vector<unsigned char>&, std::vector<unsigned char>&);
 
 private:
 	CubixLightComposerPtr composer_;
@@ -186,6 +202,8 @@ private:
 	std::string localPreviewFileName_;
 
 	std::string localFile_;
+
+	PKey pkey_;
 	
 	bool previewOnly_ = false;
 	bool skipIfExists_ = false;

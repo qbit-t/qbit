@@ -25,6 +25,7 @@ QuarkPage {
 	// mandatory
 	property var buzzMedia_;
 	property bool initialized_: false;
+	property var pkey_: ""
 
 	Component.onCompleted: {
 		closePageHandler = closePage;
@@ -48,8 +49,9 @@ QuarkPage {
 	function stopPage() {
 	}
 
-	function initialize() {
+	function initialize(pkey) {
 		//
+		if (key !== undefined) pkey_ = pkey;
 		mediaContainer.initialize();
 		//
 		initialized_ = true;
@@ -188,7 +190,7 @@ QuarkPage {
 				buzzMediaItem_.height = mediaContainer.height;
 				buzzMediaItem_.controller_ = buzzmedia_.controller;
 				buzzMediaItem_.buzzMedia_ = buzzmedia_.buzzMedia_;
-				buzzMediaItem_.initialize();
+				buzzMediaItem_.initialize(pkey_);
 			}
 		}
 

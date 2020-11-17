@@ -37,13 +37,16 @@ Item {
 	readonly property int spaceStats_: -5
 	readonly property int spaceLine_: 4
 
+	property var pkey_: ""
+
 	signal calculatedHeightModified(var value);
 	onCalculatedHeightChanged: calculatedHeightModified(calculatedHeight);
 
 	Component.onCompleted: {
 	}
 
-	function initialize() {
+	function initialize(key) {
+		if (key !== undefined) pkey_ = key;
 		mediaList.prepare();
 	}
 
@@ -130,7 +133,7 @@ Item {
 								var lMedia = lComponent.createObject(controller_);
 								lMedia.controller = controller_;
 								lMedia.buzzMedia_ = buzzitemmedia_.buzzMedia_;
-								lMedia.initialize();
+								lMedia.initialize(pkey_);
 								controller_.addPage(lMedia);
 							}
 						}
@@ -183,9 +186,10 @@ Item {
 			BuzzerCommands.DownloadMediaCommand {
 				id: downloadCommand
 				preview: true
-				skipIfExists: true
+				skipIfExists: true // (pkey_ !== "" || pkey_ !== undefined) ? false : true
 				url: url_
 				localFile: key_
+				pkey: pkey_
 
 				property int tryCount_: 0;
 

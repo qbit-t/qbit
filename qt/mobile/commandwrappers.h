@@ -81,6 +81,12 @@ public:
 		command_->process(std::vector<std::string>());
 	}
 
+	Q_INVOKABLE void process(QString asset) {
+		std::vector<std::string> lArgs;
+		lArgs.push_back(asset.toStdString());
+		command_->process(lArgs);
+	}
+
 	void done(double amount, double pending, uint64_t scale, const qbit::ProcessingError& result) {
 		if (result.success()) emit processed(amount, pending, scale);
 		else emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
@@ -252,6 +258,90 @@ private:
 	QString header_;
 
 	qbit::CreateBuzzerCommandPtr command_;
+};
+
+class CreateBuzzerInfoCommand: public QObject
+{
+	Q_OBJECT
+
+	Q_PROPERTY(QString alias READ alias WRITE setAlias NOTIFY aliasChanged)
+	Q_PROPERTY(QString description READ description WRITE setDescription NOTIFY descriptionChanged)
+	Q_PROPERTY(QString avatar READ avatar WRITE setAvatar NOTIFY avatarChanged)
+	Q_PROPERTY(QString header READ header WRITE setHeader NOTIFY headerChanged)
+
+public:
+	explicit CreateBuzzerInfoCommand(QObject* parent = nullptr);
+
+	Q_INVOKABLE void process() {
+		std::vector<std::string> lArgs;
+		lArgs.push_back(alias_.toStdString());
+		lArgs.push_back(description_.toStdString());
+
+		lArgs.push_back(avatar_.toStdString()); // full path
+		lArgs.push_back("-s");
+		lArgs.push_back("160x100");
+		lArgs.push_back(header_.toStdString()); // full path
+
+		command_->process(lArgs);
+	}
+
+	void setAlias(const QString& alias) { alias_ = alias; emit aliasChanged(); }
+	QString alias() const { return alias_; }
+
+	void setDescription(const QString& description) { description_ = description; emit descriptionChanged(); }
+	QString description() const { return description_; }
+
+	void setAvatar(const QString& avatar) { avatar_ = avatar; emit avatarChanged(); }
+	QString avatar() const { return avatar_; }
+
+	void setHeader(const QString& header) { header_ = header; emit headerChanged(); }
+	QString header() const { return header_; }
+
+	void done(qbit::TransactionPtr buzzerTx, qbit::TransactionPtr buzzerInfoTx, const qbit::ProcessingError& result) {
+		if (result.success())
+			emit processed(
+					QString::fromStdString(buzzerInfoTx->id().toHex()), QString::fromStdString(buzzerInfoTx->chain().toHex())
+			);
+		else emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
+	}
+
+	void avatarUploadProgress(const std::string& /*file*/, uint64_t pos, uint64_t size) {
+		emit avatarProgress(pos, size);
+	}
+
+	void headerUploadProgress(const std::string& /*file*/, uint64_t pos, uint64_t size) {
+		emit headerProgress(pos, size);
+	}
+
+	void avatarUploaded(qbit::TransactionPtr tx, const qbit::ProcessingError& result) {
+		if (result.success()) emit avatarProcessed(QString::fromStdString(tx->id().toHex()), QString::fromStdString(tx->chain().toHex()));
+		else emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
+	}
+
+	void headerUploaded(qbit::TransactionPtr tx, const qbit::ProcessingError& result) {
+		if (result.success()) emit headerProcessed(QString::fromStdString(tx->id().toHex()), QString::fromStdString(tx->chain().toHex()));
+		else emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
+	}
+
+signals:
+	void processed(QString buzzerInfo, QString buzzerInfoChain);
+	void avatarProcessed(QString tx, QString chain);
+	void headerProcessed(QString tx, QString chain);
+	void avatarProgress(ulong pos, ulong size);
+	void headerProgress(ulong pos, ulong size);
+	void error(QString code, QString message);
+	void aliasChanged();
+	void descriptionChanged();
+	void avatarChanged();
+	void headerChanged();
+
+private:
+	QString alias_;
+	QString description_;
+	QString avatar_;
+	QString header_;
+
+	qbit::CreateBuzzerInfoCommandPtr command_;
 };
 
 class LoadBuzzerTrustScoreCommand: public QObject
@@ -740,6 +830,7 @@ class DownloadMediaCommand: public QObject
 	Q_PROPERTY(QString header READ header WRITE setHeader NOTIFY headerChanged)
 	Q_PROPERTY(QString chain READ chain WRITE setChain NOTIFY chainChanged)
 	Q_PROPERTY(QString localFile READ localFile WRITE setLocalFile NOTIFY localFileChanged)
+	Q_PROPERTY(QString pkey READ pkey WRITE setPKey NOTIFY pKeyChanged)
 	Q_PROPERTY(bool preview READ preview WRITE setPreview NOTIFY previewChanged)
 	Q_PROPERTY(bool skipIfExists READ skipIfExists WRITE setSkipIfExists NOTIFY skipIfExistsChanged)
 
@@ -750,8 +841,9 @@ public:
 		std::vector<std::string> lArgs;
 		lArgs.push_back(header_.toStdString() + "/" + chain_.toStdString());
 		lArgs.push_back(localFile_.toStdString());
-		if (preview_) lArgs.push_back("preview");
-		if (skipIfExists_) lArgs.push_back("skip");
+		if (pkey_.size()) { lArgs.push_back("-p"); lArgs.push_back(pkey_.toStdString()); }
+		if (preview_) lArgs.push_back("-preview");
+		if (skipIfExists_) lArgs.push_back("-skip");
 		command_->process(lArgs);
 	}
 
@@ -776,6 +868,9 @@ public:
 
 	void setLocalFile(const QString& file) { localFile_ = file; emit localFileChanged(); }
 	QString localFile() const { return localFile_; }
+
+	void setPKey(const QString& pkey) { pkey_ = pkey; emit pKeyChanged(); }
+	QString pkey() const { return pkey_; }
 
 	void setPreview(bool preview) { preview_ = preview; emit previewChanged(); }
 	bool preview() const { return preview_; }
@@ -805,6 +900,7 @@ signals:
 	void headerChanged();
 	void chainChanged();
 	void localFileChanged();
+	void pKeyChanged();
 	void previewChanged();
 	void skipIfExistsChanged();
 
@@ -813,6 +909,7 @@ private:
 	QString header_;
 	QString chain_;
 	QString localFile_;
+	QString pkey_;
 	bool preview_;
 	bool skipIfExists_;
 
@@ -827,6 +924,7 @@ class UploadMediaCommand: public QObject
 	Q_PROPERTY(int width READ width WRITE setWidth NOTIFY widthChanged)
 	Q_PROPERTY(int height READ height WRITE setHeight NOTIFY heightChanged)
 	Q_PROPERTY(QString description READ description WRITE setDescription NOTIFY descriptionChanged)
+	Q_PROPERTY(QString pkey READ pkey WRITE setPKey NOTIFY pKeyChanged)
 
 public:
 	explicit UploadMediaCommand(QObject* parent = nullptr);
@@ -839,6 +937,11 @@ public:
 			QString lDim = QString::number(width_) + "x" + QString::number(height_);
 			lArgs.push_back("-s");
 			lArgs.push_back(lDim.toStdString());
+		}
+
+		if (pkey_.size()) {
+			lArgs.push_back("-p");
+			lArgs.push_back(pkey_.toStdString());
 		}
 
 		if (description_.length())
@@ -858,6 +961,9 @@ public:
 
 	void setDescription(const QString& desc) { description_ = desc; emit descriptionChanged(); }
 	QString description() const { return description_; }
+
+	void setPKey(const QString& pkey) { pkey_ = pkey; emit pKeyChanged(); }
+	QString pkey() const { return pkey_; }
 
 	void done(qbit::TransactionPtr tx, const qbit::ProcessingError& result) {
 		if (result.success()) {
@@ -886,12 +992,14 @@ signals:
 	void widthChanged();
 	void heightChanged();
 	void descriptionChanged();
+	void pKeyChanged();
 
 private:
 	QString file_;
 	int width_ = 0;
 	int height_ = 0;
 	QString description_;
+	QString pkey_;
 
 	qbit::ICommandPtr command_;
 };
@@ -1385,12 +1493,14 @@ class LoadBuzzerInfoCommand: public QObject
 
 	Q_PROPERTY(QString buzzerId READ buzzerId NOTIFY buzzerIdChanged)
 	Q_PROPERTY(QString buzzerChainId READ buzzerChainId NOTIFY buzzerChainIdChanged)
+	Q_PROPERTY(QString pkey READ pkey NOTIFY pkeyChanged)
 	Q_PROPERTY(QString alias READ alias NOTIFY aliasChanged)
 	Q_PROPERTY(QString description READ description NOTIFY descriptionChanged)
 	Q_PROPERTY(QString avatarUrl READ avatarUrl NOTIFY avatarUrlChanged)
 	Q_PROPERTY(QString avatarId READ avatarId NOTIFY avatarIdChanged)
 	Q_PROPERTY(QString headerUrl READ headerUrl NOTIFY headerUrlChanged)
 	Q_PROPERTY(QString headerId READ headerId NOTIFY headerIdChanged)
+	Q_PROPERTY(bool loadUtxo READ loadUtxo WRITE setLoadUtxo NOTIFY headerIdChanged)
 
 public:
 	explicit LoadBuzzerInfoCommand(QObject* parent = nullptr);
@@ -1398,7 +1508,38 @@ public:
 	Q_INVOKABLE void process(QString buzzer) {
 		std::vector<std::string> lArgs;
 		lArgs.push_back(buzzer.toStdString());
+		if (loadUtxo_) lArgs.push_back("-utxo");
 		command_->process(lArgs);
+	}
+
+	Q_INVOKABLE bool updateLocalBuzzer() {
+		//
+		if (buzzer_ != nullptr && info_ != nullptr && outs_.size()) {
+			//
+			Client* lClient = static_cast<Client*>(gApplication->getClient());
+			lClient->getBuzzerComposer()->writeBuzzerTx(qbit::TransactionHelper::to<qbit::TxBuzzer>(buzzer_));
+			lClient->getBuzzerComposer()->writeBuzzerInfoTx(info_);
+
+			std::vector<qbit::Transaction::UnlinkedOut> lOuts;
+			for (std::vector<qbit::Transaction::NetworkUnlinkedOut>::iterator lOut = outs_.begin(); lOut != outs_.end(); lOut++) {
+				//
+				lOuts.push_back(lOut->utxo());
+			}
+
+			lClient->getBuzzerComposer()->writeBuzzerUtxo(lOuts);
+
+			qbit::PKey lPKey;
+			if (info_->extractAddress(lPKey)) {
+				lClient->getBuzzerComposer()->addSubscription(buzzer_->id(), lPKey); // recover at least yourself subscription
+			}
+
+			// TODO: lazy subcription recovering - if buzz apeared in list and there is no subscription, try
+			// to load subscription and if subscription exists - add it
+
+			return true;
+		}
+
+		return false;
 	}
 
 	QString buzzerId() {
@@ -1469,10 +1610,26 @@ public:
 		return QString();
 	}
 
-	void done(qbit::EntityPtr buzzer, qbit::TransactionPtr info, const std::string& name, const qbit::ProcessingError& result) {
+	QString pkey() {
+		if (info_) {
+			qbit::PKey lPKey;
+			if (info_->extractAddress(lPKey)) {
+				//
+				return QString::fromStdString(lPKey.toString());
+			}
+		}
+
+		return QString();
+	}
+
+	bool loadUtxo() { return loadUtxo_; }
+	void setLoadUtxo(bool loadUtxo) { loadUtxo_ = loadUtxo; emit loadUtxoChanged(); }
+
+	void done(qbit::EntityPtr buzzer, qbit::TransactionPtr info, const std::vector<qbit::Transaction::NetworkUnlinkedOut>& outs, const std::string& name, const qbit::ProcessingError& result) {
 		if (result.success()) {
 			buzzer_ = buzzer;
 			info_ = qbit::TransactionHelper::to<qbit::TxBuzzerInfo>(info);
+			outs_ = outs;
 			emit processed(QString::fromStdString(name));
 		} else {
 			emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
@@ -1483,6 +1640,7 @@ signals:
 	void processed(QString name);
 	void error(QString code, QString message);
 	void aliasChanged();
+	void pkeyChanged();
 	void descriptionChanged();
 	void buzzerIdChanged();
 	void avatarUrlChanged();
@@ -1490,11 +1648,14 @@ signals:
 	void avatarIdChanged();
 	void headerIdChanged();
 	void buzzerChainIdChanged();
+	void loadUtxoChanged();
 
 private:
 	qbit::LoadBuzzerInfoCommandPtr command_;
 	qbit::EntityPtr buzzer_;
+	std::vector<qbit::Transaction::NetworkUnlinkedOut> outs_;
 	qbit::TxBuzzerInfoPtr info_;
+	bool loadUtxo_ = false;
 };
 
 class LoadEventsfeedCommand: public QObject
@@ -1998,6 +2159,474 @@ private:
 	qbit::SendToAddressCommandPtr command_;
 	bool manualProcessing_ = false;
 	bool privateSend_ = false;
+};
+
+class LoadConversationsCommand: public QObject
+{
+	Q_OBJECT
+
+	Q_PROPERTY(ConversationsfeedListModel* model READ model WRITE setModel NOTIFY modelChanged)
+
+public:
+	explicit LoadConversationsCommand(QObject* parent = nullptr);
+
+	Q_INVOKABLE void process(bool more) {
+		//
+		if (!conversationsModel_) return;
+
+		// prepare command
+		prepare();
+
+		// params
+		more_ = more;
+
+		//
+		if (!more_) conversationsModel_->conversations()->clear();
+		//
+		std::vector<std::string> lArgs;
+		if (more) lArgs.push_back("more");
+		command_->process(lArgs);
+	}
+
+	void prepare();
+
+	void done(const qbit::ProcessingError& result) {
+		if (!result.success()) {
+			emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
+			return;
+		}
+
+		emit processed();
+	}
+
+	ConversationsfeedListModel* model() { return conversationsModel_; }
+	void setModel(ConversationsfeedListModel* model) {
+		conversationsModel_ = model;
+		emit modelChanged();
+	}
+
+	void ready(qbit::ConversationsfeedPtr base, qbit::ConversationsfeedPtr local);
+
+signals:
+	void processed();
+	void error(QString code, QString message);
+	void modelChanged();
+	void dataReady(const qbit::ConversationsfeedProxy& /*local*/, bool /*more*/);
+
+private:
+	ConversationsfeedListModel* conversationsModel_ = nullptr;
+	qbit::LoadConversationsCommandPtr command_ = nullptr;
+	bool more_ = false;
+};
+
+class CreateConversationCommand: public QObject
+{
+	Q_OBJECT
+
+public:
+	explicit CreateConversationCommand(QObject* parent = nullptr);
+
+	Q_INVOKABLE void process(QString buzzer) {
+		//
+		buzzer_ = buzzer;
+		//
+		std::vector<std::string> lArgs;
+		lArgs.push_back(buzzer.toStdString());
+		command_->process(lArgs);
+	}
+
+	void done(const qbit::ProcessingError& result) {
+		if (!result.success()) {
+			emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
+			return;
+		}
+
+		emit processed(buzzer_);
+	}
+
+signals:
+	void processed(QString buzzer);
+	void error(QString code, QString message);
+
+private:
+	qbit::CreateBuzzerConversationCommandPtr command_ = nullptr;
+	QString buzzer_;
+};
+
+class AcceptConversationCommand: public QObject
+{
+	Q_OBJECT
+
+	Q_PROPERTY(ConversationsfeedListModel* model READ model WRITE setModel NOTIFY modelChanged)
+
+public:
+	explicit AcceptConversationCommand(QObject* parent = nullptr);
+
+	Q_INVOKABLE void process(QString conversation) {
+		//
+		if (!conversationsfeedModel_) return;
+
+		// prepare command
+		prepare();
+
+		//
+		std::vector<std::string> lArgs;
+		lArgs.push_back(conversation.toStdString());
+		command_->process(lArgs);
+	}
+
+	void prepare();
+
+	void done(const qbit::ProcessingError& result) {
+		if (!result.success()) {
+			emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
+			return;
+		}
+
+		emit processed();
+	}
+
+	ConversationsfeedListModel* model() { return conversationsfeedModel_; }
+	void setModel(ConversationsfeedListModel* model) { conversationsfeedModel_ = model; }
+
+signals:
+	void processed();
+	void error(QString code, QString message);
+	void modelChanged();
+
+private:
+	ConversationsfeedListModel* conversationsfeedModel_ = nullptr;
+	qbit::AcceptConversationCommandPtr command_ = nullptr;
+};
+
+class DeclineConversationCommand: public QObject
+{
+	Q_OBJECT
+
+	Q_PROPERTY(ConversationsfeedListModel* model READ model WRITE setModel NOTIFY modelChanged)
+
+public:
+	explicit DeclineConversationCommand(QObject* parent = nullptr);
+
+	Q_INVOKABLE void process(QString conversation) {
+		//
+		if (!conversationsfeedModel_) return;
+
+		// prepare command
+		prepare();
+
+		//
+		std::vector<std::string> lArgs;
+		lArgs.push_back(conversation.toStdString());
+		command_->process(lArgs);
+	}
+
+	void prepare();
+
+	void done(const qbit::ProcessingError& result) {
+		if (!result.success()) {
+			emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
+			return;
+		}
+
+		emit processed();
+	}
+
+	ConversationsfeedListModel* model() { return conversationsfeedModel_; }
+	void setModel(ConversationsfeedListModel* model) { conversationsfeedModel_ = model; }
+
+signals:
+	void processed();
+	void error(QString code, QString message);
+	void modelChanged();
+
+private:
+	ConversationsfeedListModel* conversationsfeedModel_ = nullptr;
+	qbit::DeclineConversationCommandPtr command_ = nullptr;
+};
+
+class DecryptMessageBodyCommand: public QObject
+{
+	Q_OBJECT
+
+	Q_PROPERTY(ConversationsfeedListModel* model READ model WRITE setModel NOTIFY modelChanged)
+
+public:
+	explicit DecryptMessageBodyCommand(QObject* parent = nullptr);
+
+	Q_INVOKABLE void process(QString conversation) {
+		//
+		if (!conversationsfeedModel_) return;
+
+		// prepare command
+		prepare();
+
+		//
+		std::vector<std::string> lArgs;
+		lArgs.push_back(conversation.toStdString());
+		command_->process(lArgs);
+	}
+
+	void prepare();
+
+	void done(const std::string& key, const std::string& body, const qbit::ProcessingError& result) {
+		if (!result.success()) {
+			emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
+			return;
+		}
+
+		emit processed(QString::fromStdString(key), QString::fromStdString(body));
+	}
+
+	ConversationsfeedListModel* model() { return conversationsfeedModel_; }
+	void setModel(ConversationsfeedListModel* model) { conversationsfeedModel_ = model; emit modelChanged(); }
+
+signals:
+	void processed(QString key, QString body);
+	void error(QString code, QString message);
+	void modelChanged();
+
+private:
+	ConversationsfeedListModel* conversationsfeedModel_ = nullptr;
+	qbit::DecryptMessageBodyCommandPtr command_ = nullptr;
+};
+
+class DecryptBuzzerMessageCommand: public QObject
+{
+	Q_OBJECT
+
+	Q_PROPERTY(BuzzfeedListModel* model READ model WRITE setModel NOTIFY modelChanged)
+
+public:
+	explicit DecryptBuzzerMessageCommand(QObject* parent = nullptr);
+
+	Q_INVOKABLE void process(QString id) {
+		//
+		if (!conversationModel_) return;
+
+		// prepare command
+		prepare();
+
+		//
+		std::vector<std::string> lArgs;
+		lArgs.push_back(id.toStdString());
+		command_->process(lArgs);
+	}
+
+	void prepare();
+
+	void done(const std::string& key, const std::string& body, const qbit::ProcessingError& result) {
+		if (!result.success()) {
+			emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
+			return;
+		}
+
+		emit processed(QString::fromStdString(key), QString::fromStdString(body));
+	}
+
+	BuzzfeedListModel* model() { return conversationModel_; }
+	void setModel(BuzzfeedListModel* model) { conversationModel_ = model; emit modelChanged(); }
+
+signals:
+	void processed(QString key, QString body);
+	void error(QString code, QString message);
+	void modelChanged();
+
+private:
+	BuzzfeedListModel* conversationModel_ = nullptr;
+	qbit::DecryptBuzzerMessageCommandPtr command_ = nullptr;
+};
+
+class LoadConversationMessagesCommand: public QObject
+{
+	Q_OBJECT
+
+	Q_PROPERTY(QString conversationId READ conversationId WRITE setConversationId NOTIFY conversationIdChanged)
+	Q_PROPERTY(BuzzfeedListModel* model READ model WRITE setModel NOTIFY modelChanged)
+
+public:
+	explicit LoadConversationMessagesCommand(QObject* parent = nullptr);
+
+	Q_INVOKABLE void process(bool more) {
+		//
+		if (!buzzfeedModel_) return;
+
+		// prepare command
+		prepare();
+
+		// params
+		more_ = more;
+
+		// NOTICE: we actually able to process only "our" updates not "all", that is why there is no
+		// interception of destination have sence for global feed
+
+		//
+		if (!more_) buzzfeedModel_->buzzfeed()->clear();
+
+		std::vector<std::string> lArgs;
+		lArgs.push_back(conversationId_.toStdString());
+		if (more) lArgs.push_back("more");
+
+		command_->process(lArgs);
+	}
+
+	void prepare();
+
+	Q_INVOKABLE void reset() {
+		Client* lClient = static_cast<Client*>(gApplication->getClient());
+		lClient->getBuzzerComposer()->buzzer()->setConversation(nullptr);
+	}
+
+	void done(const qbit::ProcessingError& result) {
+		if (!result.success()) {
+			emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
+			return;
+		}
+
+		emit processed();
+	}
+
+	void setConversationId(const QString& conversationId) { conversationId_ = conversationId; emit conversationIdChanged(); }
+	QString conversationId() const { return conversationId_; }
+
+	BuzzfeedListModel* model() { return buzzfeedModel_; }
+	void setModel(BuzzfeedListModel* model) { buzzfeedModel_ = model; emit modelChanged(); }
+
+	void ready(qbit::BuzzfeedPtr base, qbit::BuzzfeedPtr local);
+
+signals:
+	void processed();
+	void error(QString code, QString message);
+	void modelChanged();
+	void dataReady(const qbit::BuzzfeedProxy& /*local*/, bool /*more*/);
+	void conversationIdChanged();
+
+private:
+	BuzzfeedListModel* buzzfeedModel_ = nullptr;
+	qbit::LoadMessagesCommandPtr command_ = nullptr;
+	QString conversationId_;
+	bool more_ = false;
+};
+
+class ConversationMessageCommand: public QObject
+{
+	Q_OBJECT
+
+	Q_PROPERTY(QString conversation READ conversation WRITE setConversation NOTIFY conversationChanged)
+	Q_PROPERTY(QString messageBody READ messageBody WRITE setMessageBody NOTIFY messageBodyChanged)
+	Q_PROPERTY(UploadMediaCommand* uploadCommand READ uploadCommand WRITE setUploadCommand NOTIFY uploadCommandChanged)
+
+public:
+	explicit ConversationMessageCommand(QObject* parent = nullptr);
+
+	Q_INVOKABLE void process() {
+		//
+		prepare();
+
+		//
+		std::vector<std::string> lArgs;
+		lArgs.push_back(conversation_.toStdString());
+		lArgs.push_back(messageBody_.toStdString());
+
+		for (QStringList::iterator lBuzzer = buzzers_.begin(); lBuzzer != buzzers_.end(); lBuzzer++) {
+			lArgs.push_back((*lBuzzer).toStdString());
+			qInfo() << *lBuzzer;
+		}
+
+		for (QStringList::iterator lMedia = messageMedia_.begin(); lMedia != messageMedia_.end(); lMedia++) {
+			lArgs.push_back((*lMedia).toStdString());
+			qInfo() << *lMedia;
+		}
+
+		command_->process(lArgs);
+	}
+
+	void setMessageBody(const QString& messageBody) { messageBody_ = messageBody; emit messageBodyChanged(); }
+	QString messageBody() const { return messageBody_; }
+
+	void setConversation(const QString& conversation) { conversation_ = conversation; emit conversationChanged(); }
+	QString conversation() const { return conversation_; }
+
+	UploadMediaCommand* uploadCommand() { return uploadCommand_; }
+	void setUploadCommand(UploadMediaCommand* uploadCommand) { uploadCommand_ = uploadCommand; emit uploadCommandChanged(); }
+
+	void prepare();
+
+	void done(const qbit::ProcessingError& result) {
+		if (result.success()) emit processed();
+		else emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
+	}
+
+	void mediaUploaded(qbit::TransactionPtr tx, const qbit::ProcessingError& result) {
+		if (result.success()) {
+			QString lTx;
+			if (tx) lTx = QString::fromStdString(tx->id().toHex());
+			emit mediaUploaded(lTx);
+		} else {
+			emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
+		}
+	}
+
+	Q_INVOKABLE void addBuzzer(QString buzzer) {
+		buzzers_.push_back(buzzer);
+	}
+
+	Q_INVOKABLE void addMedia(QString media) {
+		messageMedia_.push_back(media);
+	}
+
+signals:
+	void conversationChanged();
+	void messageBodyChanged();
+	void uploadCommandChanged();
+	void processed();
+	void error(QString code, QString message);
+	void mediaUploaded(QString tx);
+
+private:
+	QString conversation_;
+	QString messageBody_;
+	QStringList buzzers_;
+	QStringList messageMedia_;
+	UploadMediaCommand* uploadCommand_ = nullptr;
+	qbit::CreateBuzzerMessageCommandPtr command_;
+};
+
+class LoadCounterpartyKeyCommand: public QObject
+{
+	Q_OBJECT
+
+public:
+	explicit LoadCounterpartyKeyCommand(QObject* parent = nullptr);
+
+	Q_INVOKABLE void process(QString id) {
+		// prepare command
+		prepare();
+
+		//
+		std::vector<std::string> lArgs;
+		lArgs.push_back(id.toStdString());
+		command_->process(lArgs);
+	}
+
+	void prepare();
+
+	void done(const qbit::ProcessingError& result) {
+		if (!result.success()) {
+			emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
+			return;
+		}
+
+		emit processed();
+	}
+
+signals:
+	void processed();
+	void error(QString code, QString message);
+
+private:
+	BuzzfeedListModel* conversationModel_ = nullptr;
+	qbit::LoadCounterpartyKeyCommandPtr command_ = nullptr;
 };
 
 } // buzzer

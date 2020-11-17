@@ -110,7 +110,10 @@ public:
 		}
 
 		const uint256& eventId() const { return eventId_; } 
+		void setEventId(const uint256& eventId) { eventId_ = eventId; }
+
 		const uint256& eventChainId() const { return eventChainId_; } 
+		void setEventChainId(const uint256& eventChainId) { eventChainId_ = eventChainId; }
 
 		uint64_t timestamp() const { return timestamp_; }
 
@@ -184,7 +187,7 @@ public:
 			}
 		}
 
-		if (type_ == TX_BUZZER_ENDORSE || type_ == TX_BUZZER_MISTRUST || type_ == TX_BUZZER_SUBSCRIBE) {
+		if (type_ == TX_BUZZER_ENDORSE || type_ == TX_BUZZER_MISTRUST || type_ == TX_BUZZER_SUBSCRIBE || TX_BUZZER_CONVERSATION) {
 			READWRITE(publisher_);
 		}
 
@@ -192,7 +195,7 @@ public:
 			READWRITE(value_);
 		}
 
-		if (type_ == TX_BUZZER_SUBSCRIBE) {
+		if (type_ == TX_BUZZER_SUBSCRIBE || TX_BUZZER_CONVERSATION || TX_BUZZER_ACCEPT_CONVERSATION || TX_BUZZER_DECLINE_CONVERSATION) {
 			READWRITE(publisherInfo_);
 			READWRITE(publisherInfoChain_);
 		}
@@ -233,6 +236,8 @@ public:
 	}
 
 	const std::vector<EventInfo>& buzzers() const { return buzzers_; }
+	std::vector<EventInfo>::iterator beginInfo() { return buzzers_.begin(); }
+	std::vector<EventInfo>::iterator endInfo() { return buzzers_.end(); }
 
 	uint64_t order() { return order_; }
 	void setOrder(uint64_t order) { order_ = order; }
@@ -304,6 +309,8 @@ public:
 
 	void feed(std::vector<EventsfeedItemPtr>&);
 	int locateIndex(EventsfeedItemPtr);
+
+	EventsfeedItemPtr locateItem(const Key&);
 
 	size_t confirmations() { return confirmed_.size(); }
 	size_t addConfirmation(const uint160& peer) {
@@ -398,6 +405,10 @@ public:
 		else if (type_ == TX_BUZZER_SUBSCRIBE) return "started reading you";
 		else if (type_ == TX_BUZZER_ENDORSE) return "endorsed you";
 		else if (type_ == TX_BUZZER_MISTRUST) return "mistrusted you";
+		else if (type_ == TX_BUZZER_CONVERSATION) return "created conversation";
+		else if (type_ == TX_BUZZER_ACCEPT_CONVERSATION) return "accepted conversation";
+		else if (type_ == TX_BUZZER_DECLINE_CONVERSATION) return "declined conversation";
+		else if (type_ == TX_BUZZER_MESSAGE) return "sent you a message";
 		return "N";
 	}
 
@@ -413,6 +424,10 @@ public:
 		}
 		else if (type_ == TX_BUZZER_ENDORSE) return "endorsed";
 		else if (type_ == TX_BUZZER_MISTRUST) return "mistrusted";
+		else if (type_ == TX_BUZZER_CONVERSATION) return "created conversation";
+		else if (type_ == TX_BUZZER_ACCEPT_CONVERSATION) return "accepted conversation";
+		else if (type_ == TX_BUZZER_DECLINE_CONVERSATION) return "declined conversation";
+		else if (type_ == TX_BUZZER_MESSAGE) return "sent message";
 		return "N";
 	}
 
@@ -476,7 +491,8 @@ public:
 
 	void buzzerInfoReady(const uint256& /*info*/) {
 		//
-		itemNew(shared_from_this());
+		if (fed())
+			itemNew(shared_from_this());
 	}
 
 	void buzzerInfo(const EventInfo& info, std::string& name, std::string& alias) {
@@ -515,6 +531,16 @@ public:
 
 	virtual BuzzerPtr buzzer() {
 		return nullptr;
+	}
+
+	virtual bool fed() {
+		if (parent_) return parent_->fed();
+
+		return false;
+	}
+
+	virtual void setFed() {
+		if (parent_) return parent_->setFed();
 	}
 
 	Buzzer::VerificationResult signatureVerification() { return checkResult_; }
@@ -696,6 +722,12 @@ public:
 		mutex_.unlock();
 	}
 
+	bool fed() { return fed_; }
+
+	void setFed() {
+		fed_ = true;
+	}
+
 	static EventsfeedPtr instance(EventsfeedPtr eventsfeed) {
 		return std::make_shared<Eventsfeed>(eventsfeed);
 	}
@@ -724,6 +756,7 @@ private:
 	eventsfeedItemsUpdatedFunction itemsUpdated_;
 
 	boost::recursive_mutex mutex_;
+	bool fed_ = false;
 };
 
 //

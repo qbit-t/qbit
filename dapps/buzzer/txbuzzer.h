@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Andrew Demuskov
+// Copyright (c) 2019-2020 Andrew Demuskov
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -19,20 +19,25 @@ namespace qbit {
 
 typedef LimitedString<64> buzzer_name_t;
 
-#define TX_BUZZER 				Transaction::CUSTOM_00 // main chain: entity, fees
-#define TX_BUZZ 				Transaction::CUSTOM_01 // shard: fees
-#define TX_BUZZER_SUBSCRIBE 	Transaction::CUSTOM_02 // shard: fee-free
-#define TX_BUZZER_UNSUBSCRIBE 	Transaction::CUSTOM_03 // shard: fee-free 
-#define TX_BUZZER_ENDORSE 		Transaction::CUSTOM_04 // ?
-#define TX_BUZZER_MISTRUST		Transaction::CUSTOM_05 // ?
-#define TX_REBUZZ				Transaction::CUSTOM_06 // shard: fees
-#define TX_BUZZ_LIKE			Transaction::CUSTOM_07 // shard: fee-free
-#define TX_BUZZ_REPLY			Transaction::CUSTOM_08 // shard: fees
-#define TX_BUZZ_PIN				Transaction::CUSTOM_09 // shard: fee-free
-#define TX_BUZZ_REBUZZ_NOTIFY	Transaction::CUSTOM_10 // shard: fee-free, action
-#define TX_BUZZER_INFO			Transaction::CUSTOM_11 //
-#define TX_BUZZ_REWARD			Transaction::CUSTOM_12 //
-#define TX_REBUZZ_REPLY			Transaction::CUSTOM_13 // dummy
+#define TX_BUZZER 						Transaction::CUSTOM_00 // main chain: entity, fees
+#define TX_BUZZ 						Transaction::CUSTOM_01 // shard: fees
+#define TX_BUZZER_SUBSCRIBE 			Transaction::CUSTOM_02 // shard: fee-free
+#define TX_BUZZER_UNSUBSCRIBE 			Transaction::CUSTOM_03 // shard: fee-free 
+#define TX_BUZZER_ENDORSE 				Transaction::CUSTOM_04 // ?
+#define TX_BUZZER_MISTRUST				Transaction::CUSTOM_05 // ?
+#define TX_REBUZZ						Transaction::CUSTOM_06 // shard: fees
+#define TX_BUZZ_LIKE					Transaction::CUSTOM_07 // shard: fee-free
+#define TX_BUZZ_REPLY					Transaction::CUSTOM_08 // shard: fees
+#define TX_BUZZ_PIN						Transaction::CUSTOM_09 // shard: fee-free
+#define TX_BUZZ_REBUZZ_NOTIFY			Transaction::CUSTOM_10 // shard: fee-free, action
+#define TX_BUZZER_INFO					Transaction::CUSTOM_11 //
+#define TX_BUZZ_REWARD					Transaction::CUSTOM_12 //
+#define TX_REBUZZ_REPLY					Transaction::CUSTOM_13 // dummy
+#define TX_BUZZER_CONVERSATION			Transaction::CUSTOM_14 //
+#define TX_BUZZER_ACCEPT_CONVERSATION	Transaction::CUSTOM_15 //
+#define TX_BUZZER_DECLINE_CONVERSATION	Transaction::CUSTOM_16 //
+#define TX_BUZZER_MESSAGE				Transaction::CUSTOM_17 //
+#define TX_BUZZER_MESSAGE_REPLY			Transaction::CUSTOM_18 //
 
 #define TX_BUZZER_ALIAS_SIZE 64 
 #define TX_BUZZER_DESCRIPTION_SIZE 256 
@@ -44,7 +49,8 @@ typedef LimitedString<64> buzzer_name_t;
 #define TX_BUZZER_ENDORSE_OUT 2
 #define TX_BUZZER_MISTRUST_OUT 3
 #define TX_BUZZER_REPLY_OUT 4
-#define TX_BUZZER_BUZZ_OUT 5
+#define TX_BUZZER_BUZZ_OUT TX_BUZZER_REPLY_OUT
+#define TX_BUZZER_CONVERSATION_OUT 5
 
 //
 // Endorse/mistrust model parameters
@@ -186,6 +192,11 @@ public:
 	Transaction::UnlinkedOutPtr addBuzzerBuzzOut(const SKey& skey, const PKey& pkey) {
 		//
 		return addBuzzerSpecialOut(skey, pkey, TX_BUZZ);
+	}
+
+	Transaction::UnlinkedOutPtr addBuzzerConversationOut(const SKey& skey, const PKey& pkey) {
+		//
+		return addBuzzerSpecialOut(skey, pkey, TX_BUZZER_CONVERSATION);
 	}
 
 	virtual In& addDAppIn(const SKey& skey, UnlinkedOutPtr utxo) {

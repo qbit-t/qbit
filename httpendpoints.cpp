@@ -1102,3 +1102,309 @@ void HttpGetTransaction::process(const std::string& source, const HttpRequest& r
 		return;
 	}
 }
+
+void HttpCreateAsset::process(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
+	/* request
+	{
+		"jsonrpc": "1.0",
+		"id": "curltext",
+		"method": "createasset",
+		"params": [
+			"<address>", 		-- (string) owners' address
+			"<short_name>",		-- (string) asset short name, should be unique
+			"<description>",	-- (string) asset description
+			"<chunk>",			-- (long)   asset single chunk
+			"<scale>",			-- (long)   asset unit scale
+			"<chunks>",			-- (long)   asset unspend chunks
+			"<type>"			-- (string, optional) asset type: limited, unlimited, pegged
+		]
+	}
+	*/
+	/* reply
+	{
+		"result": "<tx_asset_id>",		-- (string) txid = asset_id
+		"error":						-- (object or null) error description
+		{
+			"code": "EFAIL", 
+			"message": "<explanation>" 
+		},
+		"id": "curltext"				-- (string) request id
+	}
+	*/
+
+	// id
+	json::Value lId;
+	if (!(const_cast<json::Document&>(data).find("id", lId) && lId.isString())) {
+		reply = HttpReply::stockReply(HttpReply::bad_request);
+		return;
+	}
+
+	// params
+	json::Value lParams;
+	if (const_cast<json::Document&>(data).find("params", lParams) && lParams.isArray()) {
+		// extract parameters
+		PKey lAddress; // 0
+		std::string lShortName; // 1
+		std::string lDescription; // 2
+		amount_t lChunk; // 3
+		amount_t lScale; // 4
+		amount_t lChunks; // 5
+		std::string lType = "limited"; // 6
+
+		if (lParams.size() == 6 || lParams.size() == 7) {
+			// param[0]
+			json::Value lP0 = lParams[0];
+			if (lP0.isString()) lAddress.fromString(lP0.getString());
+			else { reply = HttpReply::stockReply(HttpReply::bad_request); return; }
+
+			// param[1]
+			json::Value lP1 = lParams[1];
+			if (lP1.isString()) lShortName = lP1.getString();
+			else { reply = HttpReply::stockReply(HttpReply::bad_request); return; }
+
+			// param[2]
+			json::Value lP2 = lParams[2];
+			if (lP2.isString()) lDescription = lP2.getString();
+			else { reply = HttpReply::stockReply(HttpReply::bad_request); return; }
+
+			// param[3]
+			json::Value lP3 = lParams[3];
+			if (lP3.isString()) { 
+				amount_t lValue;
+				if (!convert<amount_t>(lP3.getString(), lValue)) {
+					reply = HttpReply::stockReply("E_INCORRECT_VALUE_TYPE", "Incorrect parameter type"); return;	
+				}
+				lChunk = lValue;
+			} else { reply = HttpReply::stockReply(HttpReply::bad_request); return; }
+
+			// param[4]
+			json::Value lP4 = lParams[4];
+			if (lP4.isString()) { 
+				amount_t lValue;
+				if (!convert<amount_t>(lP4.getString(), lValue)) {
+					reply = HttpReply::stockReply("E_INCORRECT_VALUE_TYPE", "Incorrect parameter type"); return;	
+				}
+				lScale = lValue;
+			} else { reply = HttpReply::stockReply(HttpReply::bad_request); return; }
+
+			// param[5]
+			json::Value lP5 = lParams[5];
+			if (lP5.isString()) { 
+				amount_t lValue;
+				if (!convert<amount_t>(lP5.getString(), lValue)) {
+					reply = HttpReply::stockReply("E_INCORRECT_VALUE_TYPE", "Incorrect parameter type"); return;	
+				}
+				lChunks = lValue;
+			} else { reply = HttpReply::stockReply(HttpReply::bad_request); return; }
+
+			// param[6]
+			if (lParams.size() == 7) {
+				json::Value lP6 = lParams[6];
+				if (lP6.isString()) lType = lP6.getString();
+				else { reply = HttpReply::stockReply(HttpReply::bad_request); return; }
+			}
+		} else {
+			reply = HttpReply::stockReply("E_PARAMS", "Insufficient or extra parameters"); 
+			return;
+		}
+
+		// prepare reply
+		json::Document lReply;
+		lReply.loadFromString("{}");
+
+		// process
+		std::string lCode, lMessage;
+		TransactionContextPtr lCtx = nullptr;
+		try {
+			// create tx
+			lCtx = wallet_->createTxAssetType(lAddress, lShortName, lDescription, lChunk, lScale, lChunks, (lType == "limited" ? TxAssetType::LIMITED : TxAssetType::UNLIMITED));
+			if (lCtx->errors().size()) {
+				reply = HttpReply::stockReply("E_TX_CREATE_ASSET", *lCtx->errors().begin()); 
+				return;
+			}
+
+			// push to memory pool
+			IMemoryPoolPtr lMempool = wallet_->mempoolManager()->locate(MainChain::id()); // dapp -> main chain
+			if (lMempool) {
+				//
+				if (lMempool->pushTransaction(lCtx)) {
+					// check for errors
+					if (lCtx->errors().size()) {
+						// unpack
+						if (!unpackTransaction(lCtx->tx(), uint256(), 0, 0, 0, false, false, lReply, reply)) return;
+						// rollback transaction
+						wallet_->rollback(lCtx);
+						// error
+						lCode = "E_TX_MEMORYPOOL";
+						lMessage = *lCtx->errors().begin(); 
+						lCtx = nullptr;
+					} else if (!lMempool->consensus()->broadcastTransaction(lCtx, wallet_->firstKey()->createPKey().id())) {
+						lCode = "E_TX_NOT_BROADCASTED";
+						lMessage = "Transaction is not broadcasted"; 
+					}
+				} else {
+					lCode = "E_TX_EXISTS";
+					lMessage = "Transaction already exists";
+					// unpack
+					if (!unpackTransaction(lCtx->tx(), uint256(), 0, 0, 0, false, false, lReply, reply)) return;
+					// rollback transaction
+					wallet_->rollback(lCtx);
+					// reset
+					lCtx = nullptr;
+				}
+			} else {
+				reply = HttpReply::stockReply("E_MEMPOOL", "Corresponding memory pool was not found"); 
+				return;
+			}
+
+		}
+		catch(qbit::exception& ex) {
+			reply = HttpReply::stockReply(ex.code(), ex.what()); 
+			return;
+		}
+
+		if (lCtx != nullptr) lReply.addString("result", lCtx->tx()->hash().toHex());
+		if (!lCode.size() && !lMessage.size()) lReply.addObject("error").toNull();
+		else {
+			json::Value lError = lReply.addObject("error");
+			lError.addString("code", lCode);
+			lError.addString("message", lMessage);
+		}
+		lReply.addString("id", lId.getString());
+
+		// pack
+		pack(reply, lReply);
+		// finalize
+		finalize(reply);
+	} else {
+		reply = HttpReply::stockReply(HttpReply::bad_request);
+		return;
+	}
+}
+
+void HttpCreateAssetEmission::process(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
+	/* request
+	{
+		"jsonrpc": "1.0",
+		"id": "curltext",
+		"method": "createassetemission",
+		"params": [
+			"<address>", 		-- (string) owners' address
+			"<asset>"			-- (string) asset id
+		]
+	}
+	*/
+	/* reply
+	{
+		"result": "<tx_emission_id>",	-- (string) txid = emission_id
+		"error":						-- (object or null) error description
+		{
+			"code": "EFAIL", 
+			"message": "<explanation>" 
+		},
+		"id": "curltext"				-- (string) request id
+	}
+	*/
+
+	// id
+	json::Value lId;
+	if (!(const_cast<json::Document&>(data).find("id", lId) && lId.isString())) {
+		reply = HttpReply::stockReply(HttpReply::bad_request);
+		return;
+	}
+
+	// params
+	json::Value lParams;
+	if (const_cast<json::Document&>(data).find("params", lParams) && lParams.isArray()) {
+		// extract parameters
+		PKey lAddress; // 0
+		uint256 lAsset; // 1
+
+		if (lParams.size() == 2) {
+			// param[0]
+			json::Value lP0 = lParams[0];
+			if (lP0.isString()) lAddress.fromString(lP0.getString());
+			else { reply = HttpReply::stockReply(HttpReply::bad_request); return; }
+
+			// param[1]
+			json::Value lP1 = lParams[1];
+			if (lP1.isString()) lAsset.setHex(lP1.getString());
+			else { reply = HttpReply::stockReply(HttpReply::bad_request); return; }
+		} else {
+			reply = HttpReply::stockReply("E_PARAMS", "Insufficient or extra parameters"); 
+			return;
+		}
+
+		// prepare reply
+		json::Document lReply;
+		lReply.loadFromString("{}");
+
+		// process
+		std::string lCode, lMessage;
+		TransactionContextPtr lCtx = nullptr;
+		try {
+			// create tx
+			lCtx = wallet_->createTxLimitedAssetEmission(lAddress, lAsset);
+			if (lCtx->errors().size()) {
+				reply = HttpReply::stockReply("E_TX_CREATE_ASSET_EMISSION", *lCtx->errors().begin()); 
+				return;
+			}
+
+			// push to memory pool
+			IMemoryPoolPtr lMempool = wallet_->mempoolManager()->locate(MainChain::id()); // dapp -> main chain
+			if (lMempool) {
+				//
+				if (lMempool->pushTransaction(lCtx)) {
+					// check for errors
+					if (lCtx->errors().size()) {
+						// unpack
+						if (!unpackTransaction(lCtx->tx(), uint256(), 0, 0, 0, false, false, lReply, reply)) return;
+						// rollback transaction
+						wallet_->rollback(lCtx);
+						// error
+						lCode = "E_TX_MEMORYPOOL";
+						lMessage = *lCtx->errors().begin(); 
+						lCtx = nullptr;
+					} else if (!lMempool->consensus()->broadcastTransaction(lCtx, wallet_->firstKey()->createPKey().id())) {
+						lCode = "E_TX_NOT_BROADCASTED";
+						lMessage = "Transaction is not broadcasted"; 
+					}
+				} else {
+					lCode = "E_TX_EXISTS";
+					lMessage = "Transaction already exists";
+					// unpack
+					if (!unpackTransaction(lCtx->tx(), uint256(), 0, 0, 0, false, false, lReply, reply)) return;
+					// rollback transaction
+					wallet_->rollback(lCtx);
+					// reset
+					lCtx = nullptr;
+				}
+			} else {
+				reply = HttpReply::stockReply("E_MEMPOOL", "Corresponding memory pool was not found"); 
+				return;
+			}
+
+		}
+		catch(qbit::exception& ex) {
+			reply = HttpReply::stockReply(ex.code(), ex.what()); 
+			return;
+		}
+
+		if (lCtx != nullptr) lReply.addString("result", lCtx->tx()->hash().toHex());
+		if (!lCode.size() && !lMessage.size()) lReply.addObject("error").toNull();
+		else {
+			json::Value lError = lReply.addObject("error");
+			lError.addString("code", lCode);
+			lError.addString("message", lMessage);
+		}
+		lReply.addString("id", lId.getString());
+
+		// pack
+		pack(reply, lReply);
+		// finalize
+		finalize(reply);
+	} else {
+		reply = HttpReply::stockReply(HttpReply::bad_request);
+		return;
+	}
+}

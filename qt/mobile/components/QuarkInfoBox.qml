@@ -34,16 +34,18 @@ Rectangle
     property int symbolFontSize: 20;
     property int imageWidth: 36;
     property bool clipboardButton: false;
-    property bool helpButton: false;
-    property bool openUrl: false;
+	property bool helpButton: false;
+	property bool pasteButton: false;
+	property bool openUrl: false;
 	property bool isNumber: false;
 	property real number: -1000000000.0;
 	property int fillTo: 4;
 	property int itemRightPadding: -5;
 	property int itemLeftPadding: 5;
 
-    signal helpClicked();
-    signal textClicked();
+	signal helpClicked();
+	signal pasteClicked();
+	signal textClicked();
 
     Rectangle
     {
@@ -113,8 +115,9 @@ Rectangle
         x: symbolRect.width - 1
 		height: infoBox.height
         //width: infoBox.width - copyRect.getWidth() - symbolRect.width + 2
-        width: infoBox.width - symbolRect.width - copyRect.width * clipboardButton - helpRect.width * helpButton +
-               clipboardButton*1 + helpButton*1 + 1
+		width: infoBox.width - symbolRect.width - copyRect.width * clipboardButton -
+			   helpRect.width * helpButton - pasteRect.width * pasteButton +
+			   clipboardButton*1 + helpButton*1 + pasteButton*1 + 1
 
         border.color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Box.border");
         color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Box.background");
@@ -256,5 +259,42 @@ Rectangle
             }
         }
     }
+
+	Rectangle
+	{
+		id: pasteRect
+
+		x: copyRect.getX() + copyRect.getWidth() - 1
+		width: infoBox.height
+		height: infoBox.height
+		visible: pasteButton
+		clip: true
+
+		border.color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Box.border");
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.background");
+
+		function getWidth()
+		{
+			if (pasteButton) return width;
+			return 0;
+		}
+
+		QuarkSymbolButton
+		{
+			x: -5
+			y: -5
+			width: parent.width + 10
+			height: parent.height + 10
+
+			symbol: Fonts.pasteSym
+			Material.background: "transparent"
+
+			onClicked:
+			{
+				infoBox.text = clipboard.getText();
+				pasteClicked();
+			}
+		}
+	}
 }
 

@@ -6,6 +6,7 @@
 using namespace buzzer;
 
 WalletTransactionsListModel::WalletTransactionsListModel() {
+	QQmlEngine::setObjectOwnership(this, QQmlEngine::CppOwnership);
 }
 
 WalletTransactionsListModel::WalletTransactionsListModel(const std::string& key, qbit::IWalletPtr wallet) : wallet_(wallet) {
@@ -21,6 +22,8 @@ WalletTransactionsListModel::WalletTransactionsListModel(const std::string& key,
 			this,  SLOT(outUpdatedSlot(const buzzer::NetworkUnlinkedOutProxy&)));
 	connect(this, SIGNAL(inUpdatedSignal(const buzzer::NetworkUnlinkedOutProxy&)),
 			this,  SLOT(inUpdatedSlot(const buzzer::NetworkUnlinkedOutProxy&)));
+
+	QQmlEngine::setObjectOwnership(this, QQmlEngine::CppOwnership);
 }
 
 void WalletTransactionsListModel::updateAgo(int index) {
@@ -242,9 +245,16 @@ void WalletTransactionsListModel::walletReceiveTransactionInternal(const buzzer:
 
 }
 
+bool WalletTransactionsListModel::processUpdate(const NetworkUnlinkedOutProxy& /*out*/) {
+	return true;
+}
+
 void WalletTransactionsListModel::updatedInternal(const buzzer::NetworkUnlinkedOutProxy& out) {
 	//
+	if (!processUpdate(out)) return;
+	//
 	qbit::Transaction::NetworkUnlinkedOutPtr lOut = out.get();
+	if (lOut->utxo().out().asset() != asset_) return;
 	//
 	std::map<uint256, int>::iterator lTx = tx_.find(lOut->utxo().out().hash());
 	if (lTx != tx_.end()) {
