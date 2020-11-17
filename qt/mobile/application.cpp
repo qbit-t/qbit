@@ -176,6 +176,32 @@ void Application::startNotificator()
 #endif
 }
 
+void Application::pauseNotifications()
+{
+	qInfo() << "Pausing notifications...";
+
+#ifdef Q_OS_ANDROID
+		QAndroidJniObject lActivity = QAndroidJniObject::callStaticObjectMethod("org/qtproject/qt5/android/QtNative", "activity", "()Landroid/app/Activity;");
+		QAndroidJniObject::callStaticMethod<void>("app/buzzer/mobile/NotificatorService",
+													  "pauseNotifications",
+													  "(Landroid/content/Context;)V",
+													  lActivity.object());
+#endif
+}
+
+void Application::resumeNotifications()
+{
+	qInfo() << "Resuming notifications...";
+
+#ifdef Q_OS_ANDROID
+		QAndroidJniObject lActivity = QAndroidJniObject::callStaticObjectMethod("org/qtproject/qt5/android/QtNative", "activity", "()Landroid/app/Activity;");
+		QAndroidJniObject::callStaticMethod<void>("app/buzzer/mobile/NotificatorService",
+													  "resumeNotifications",
+													  "(Landroid/content/Context;)V",
+													  lActivity.object());
+#endif
+}
+
 void Application::startFingerprintAuth()
 {
 #ifdef Q_OS_ANDROID
@@ -298,6 +324,11 @@ bool Application::getNetworkDebug()
 {
 	qbit::json::Value lValue = appConfig_["networkDebug"];
     return lValue.getBool();
+}
+
+std::string Application::getQttAsset() {
+	qbit::json::Value lValue = appConfig_["qttAsset"];
+	return lValue.getString();
 }
 
 std::string Application::getLogCategories()

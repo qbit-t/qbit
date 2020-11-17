@@ -11,8 +11,6 @@ void EventsfeedItem::push(const EventsfeedItem& buzz, const uint160& peer) {
 		EventsfeedItemPtr lBuzz = EventsfeedItem::instance(buzz);
 		lBuzz->addConfirmation(peer);
 		unconfirmed_[buzz.key()] = lBuzz;
-		if (gLog().isEnabled(Log::CLIENT))
-			gLog().write(Log::CLIENT, "[PUSH-0]");
 	} else {
 		if (lItem->second->addConfirmation(peer) >= BUZZ_PEERS_CONFIRMATIONS) {
 			//
@@ -21,9 +19,6 @@ void EventsfeedItem::push(const EventsfeedItem& buzz, const uint160& peer) {
 			unconfirmed_.erase(lItem);
 			// merge finally
 			mergeInternal(lBuzz, true, true);
-
-			if (gLog().isEnabled(Log::CLIENT))
-				gLog().write(Log::CLIENT, "[PUSH-1]");
 
 			// resolve info
 			if (buzzer()) { 
@@ -281,6 +276,8 @@ void EventsfeedItem::feed(std::vector<EventsfeedItemPtr>& feed) {
 			}
 		}
 	}
+
+	setFed();
 }
 
 int EventsfeedItem::locateIndex(EventsfeedItemPtr item) {
@@ -323,4 +320,15 @@ void EventsfeedItem::collectPendingItems(std::map<uint256 /*chain*/, std::set<ui
 				items[lEvent->buzzChainId()].insert(lEvent->buzzId());
 		}
 	}
+}
+
+EventsfeedItemPtr EventsfeedItem::locateItem(const Key& key) {
+	//
+	Guard lLock(this);
+	std::map<Key /*buzz*/, EventsfeedItemPtr>::iterator lItem = items_.find(key);
+	if (lItem != items_.end()) {
+		return lItem->second;
+	}
+
+	return nullptr;
 }

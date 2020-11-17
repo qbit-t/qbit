@@ -133,7 +133,16 @@ void Buzzer::pendingEventItemsLoaded(const std::vector<BuzzfeedItem>& feed, cons
 	resolveBuzzerInfos();
 }
 
-BuzzerPtr Buzzer::instance(IRequestProcessorPtr requestProcessor, BuzzerRequestProcessorPtr buzzerRequestProcessor, buzzerTrustScoreUpdatedFunction trustScoreUpdated) {
-	return std::make_shared<Buzzer>(requestProcessor, buzzerRequestProcessor, trustScoreUpdated);
+BuzzerPtr Buzzer::instance(IRequestProcessorPtr requestProcessor, BuzzerRequestProcessorPtr buzzerRequestProcessor, IWalletPtr wallet, buzzerTrustScoreUpdatedFunction trustScoreUpdated) {
+	return std::make_shared<Buzzer>(requestProcessor, buzzerRequestProcessor, wallet, trustScoreUpdated);
+}
+
+void Buzzer::pushPendingMessage(const uint160& peer, const uint256& chain, const uint256& conversation, BuzzfeedItemPtr item) {
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
+	item->notOnChain(); // only for the dynamic updates
+	item->setDynamic(); // dynamic
+	pendingMessages_[peer][chain][conversation].push_back(item);
+	if (pendingMessages_[peer][chain][conversation].size() > 5) pendingMessages_[peer][chain][conversation].pop_front();
 }
 

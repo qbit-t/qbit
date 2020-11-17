@@ -13,6 +13,7 @@
 #include "buzzer.h"
 #include "buzzfeed.h"
 #include "eventsfeed.h"
+#include "conversationsfeed.h"
 #include "txbuzzer.h"
 #include "txbuzz.h"
 #include "handlers.h"
@@ -22,66 +23,77 @@
 namespace qbit {
 
 // register message type
-#define GET_BUZZER_SUBSCRIPTION 		Message::CUSTOM_0000
-#define BUZZER_SUBSCRIPTION 			Message::CUSTOM_0001
-#define BUZZER_SUBSCRIPTION_IS_ABSENT 	Message::CUSTOM_0002
-#define GET_BUZZ_FEED					Message::CUSTOM_0003
-#define BUZZ_FEED						Message::CUSTOM_0004
-#define NEW_BUZZ_NOTIFY					Message::CUSTOM_0005
-#define BUZZ_UPDATE_NOTIFY				Message::CUSTOM_0006
-#define GET_BUZZES						Message::CUSTOM_0007
-#define GET_EVENTS_FEED					Message::CUSTOM_0008
-#define EVENTS_FEED						Message::CUSTOM_0009
-#define NEW_EVENT_NOTIFY				Message::CUSTOM_0010
-#define EVENT_UPDATE_NOTIFY				Message::CUSTOM_0011
+#define GET_BUZZER_SUBSCRIPTION 			Message::CUSTOM_0000
+#define BUZZER_SUBSCRIPTION 				Message::CUSTOM_0001
+#define BUZZER_SUBSCRIPTION_IS_ABSENT 		Message::CUSTOM_0002
+#define GET_BUZZ_FEED						Message::CUSTOM_0003
+#define BUZZ_FEED							Message::CUSTOM_0004
+#define NEW_BUZZ_NOTIFY						Message::CUSTOM_0005
+#define BUZZ_UPDATE_NOTIFY					Message::CUSTOM_0006
+#define GET_BUZZES							Message::CUSTOM_0007
+#define GET_EVENTS_FEED						Message::CUSTOM_0008
+#define EVENTS_FEED							Message::CUSTOM_0009
+#define NEW_EVENT_NOTIFY					Message::CUSTOM_0010
+#define EVENT_UPDATE_NOTIFY					Message::CUSTOM_0011
 
-#define GET_BUZZER_TRUST_SCORE			Message::CUSTOM_0012
-#define BUZZER_TRUST_SCORE				Message::CUSTOM_0013
-#define BUZZER_TRUST_SCORE_UPDATE		Message::CUSTOM_0014
+#define GET_BUZZER_TRUST_SCORE				Message::CUSTOM_0012
+#define BUZZER_TRUST_SCORE					Message::CUSTOM_0013
+#define BUZZER_TRUST_SCORE_UPDATE			Message::CUSTOM_0014
 
-#define GET_BUZZER_MISTRUST_TX			Message::CUSTOM_0015
-#define BUZZER_MISTRUST_TX				Message::CUSTOM_0016
-#define GET_BUZZER_ENDORSE_TX			Message::CUSTOM_0017
-#define BUZZER_ENDORSE_TX				Message::CUSTOM_0018
+#define GET_BUZZER_MISTRUST_TX				Message::CUSTOM_0015
+#define BUZZER_MISTRUST_TX					Message::CUSTOM_0016
+#define GET_BUZZER_ENDORSE_TX				Message::CUSTOM_0017
+#define BUZZER_ENDORSE_TX					Message::CUSTOM_0018
 
-#define GET_BUZZ_FEED_BY_BUZZ			Message::CUSTOM_0019
-#define BUZZ_FEED_BY_BUZZ				Message::CUSTOM_0020
-#define GET_BUZZ_FEED_BY_BUZZER			Message::CUSTOM_0021
-#define BUZZ_FEED_BY_BUZZER				Message::CUSTOM_0022
+#define GET_BUZZ_FEED_BY_BUZZ				Message::CUSTOM_0019
+#define BUZZ_FEED_BY_BUZZ					Message::CUSTOM_0020
+#define GET_BUZZ_FEED_BY_BUZZER				Message::CUSTOM_0021
+#define BUZZ_FEED_BY_BUZZER					Message::CUSTOM_0022
 
 /*
-#define GET_LIKES_FEED_BY_BUZZ			Message::CUSTOM_0023
-#define LIKES_FEED_BY_BUZZ				Message::CUSTOM_0024
-#define GET_REBUZZES_FEED_BY_BUZZ		Message::CUSTOM_0025
-#define REBUZZES_FEED_BY_BUZZ			Message::CUSTOM_0026
+#define GET_LIKES_FEED_BY_BUZZ				Message::CUSTOM_0023
+#define LIKES_FEED_BY_BUZZ					Message::CUSTOM_0024
+#define GET_REBUZZES_FEED_BY_BUZZ			Message::CUSTOM_0025
+#define REBUZZES_FEED_BY_BUZZ				Message::CUSTOM_0026
 */
 
-#define GET_MISTRUSTS_FEED_BY_BUZZER	Message::CUSTOM_0027
-#define MISTRUSTS_FEED_BY_BUZZER		Message::CUSTOM_0028
+#define GET_MISTRUSTS_FEED_BY_BUZZER		Message::CUSTOM_0027
+#define MISTRUSTS_FEED_BY_BUZZER			Message::CUSTOM_0028
 
-#define GET_ENDORSEMENTS_FEED_BY_BUZZER	Message::CUSTOM_0029
-#define ENDORSEMENTS_FEED_BY_BUZZER		Message::CUSTOM_0030
+#define GET_ENDORSEMENTS_FEED_BY_BUZZER		Message::CUSTOM_0029
+#define ENDORSEMENTS_FEED_BY_BUZZER			Message::CUSTOM_0030
 
-#define GET_BUZZER_SUBSCRIPTIONS		Message::CUSTOM_0031
-#define BUZZER_SUBSCRIPTIONS			Message::CUSTOM_0032
+#define GET_BUZZER_SUBSCRIPTIONS			Message::CUSTOM_0031
+#define BUZZER_SUBSCRIPTIONS				Message::CUSTOM_0032
 
-#define GET_BUZZER_FOLLOWERS			Message::CUSTOM_0033
-#define BUZZER_FOLLOWERS				Message::CUSTOM_0034
+#define GET_BUZZER_FOLLOWERS				Message::CUSTOM_0033
+#define BUZZER_FOLLOWERS					Message::CUSTOM_0034
 
-#define GET_BUZZ_FEED_GLOBAL			Message::CUSTOM_0035
-#define BUZZ_FEED_GLOBAL				Message::CUSTOM_0036
-#define GET_BUZZ_FEED_BY_TAG			Message::CUSTOM_0037
-#define BUZZ_FEED_BY_TAG				Message::CUSTOM_0038
+#define GET_BUZZ_FEED_GLOBAL				Message::CUSTOM_0035
+#define BUZZ_FEED_GLOBAL					Message::CUSTOM_0036
+#define GET_BUZZ_FEED_BY_TAG				Message::CUSTOM_0037
+#define BUZZ_FEED_BY_TAG					Message::CUSTOM_0038
 
-#define GET_HASH_TAGS					Message::CUSTOM_0039
-#define HASH_TAGS						Message::CUSTOM_0040
+#define GET_HASH_TAGS						Message::CUSTOM_0039
+#define HASH_TAGS							Message::CUSTOM_0040
 
-#define BUZZ_SUBSCRIBE					Message::CUSTOM_0041
-#define BUZZ_UNSUBSCRIBE				Message::CUSTOM_0042
+#define BUZZ_SUBSCRIBE						Message::CUSTOM_0041
+#define BUZZ_UNSUBSCRIBE					Message::CUSTOM_0042
 
-#define GET_BUZZER_AND_INFO				Message::CUSTOM_0043
-#define BUZZER_AND_INFO					Message::CUSTOM_0045
-#define BUZZER_AND_INFO_ABSENT			Message::CUSTOM_0046
+#define GET_BUZZER_AND_INFO					Message::CUSTOM_0043
+#define BUZZER_AND_INFO						Message::CUSTOM_0045
+#define BUZZER_AND_INFO_ABSENT				Message::CUSTOM_0046
+
+#define GET_CONVERSATIONS_FEED_BY_BUZZER	Message::CUSTOM_0047
+#define CONVERSATIONS_FEED_BY_BUZZER		Message::CUSTOM_0048
+
+#define GET_MESSAGES_FEED_BY_CONVERSATION	Message::CUSTOM_0049
+#define MESSAGES_FEED_BY_CONVERSATION		Message::CUSTOM_0050
+
+#define NEW_BUZZER_CONVERSATION_NOTIFY		Message::CUSTOM_0051
+#define NEW_BUZZER_MESSAGE_NOTIFY			Message::CUSTOM_0052
+
+#define UPDATE_BUZZER_CONVERSATION_NOTIFY	Message::CUSTOM_0053
 
 //
 class BuzzerPeerExtension: public IPeerExtension, public std::enable_shared_from_this<BuzzerPeerExtension> {
@@ -126,6 +138,8 @@ public:
 	bool subscribeBuzzThread(const uint256& /*chain*/, const uint256& /*buzzId*/, const uint512& /*signature*/);
 	bool unsubscribeBuzzThread(const uint256& /*chain*/, const uint256& /*buzzId*/);
 	bool loadBuzzerAndInfo(const std::string& /*buzzer*/, ILoadBuzzerAndInfoHandlerPtr /*handler*/);
+	bool selectConversations(const uint256& /*chain*/, uint64_t /*from*/, const uint256& /*buzzer*/, ISelectConversationsFeedByEntityHandlerPtr /*handler*/);
+	bool selectMessages(const uint256& /*chain*/, uint64_t /*from*/, const uint256& /*conversation*/, ISelectBuzzFeedByEntityHandlerPtr /*handler*/);
 
 	//
 	// node-to-peer notifications  
@@ -133,6 +147,9 @@ public:
 	bool notifyUpdateBuzz(const std::vector<BuzzfeedItemUpdate>& /*update*/);
 	bool notifyNewEvent(const EventsfeedItem& /*buzz*/, bool tryForward = false);
 	bool notifyUpdateTrustScore(const BuzzerTransactionStoreExtension::BuzzerInfo& /*score*/);
+	bool notifyNewConversation(const ConversationItem& /*conversation*/);
+	bool notifyUpdateConversation(const ConversationItem::EventInfo& /*info*/);
+	bool notifyNewMessage(const BuzzfeedItem& /*message*/);
 
 private:
 	// server-side processing
@@ -155,6 +172,8 @@ private:
 	void processSubscribeBuzzThread(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processUnsubscribeBuzzThread(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processGetBuzzerAndInfo(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processGetConversationsFeedByBuzzer(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processGetMessagesFeedByConversation(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 
 	// client-side answer processing
 	void processSubscription(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
@@ -179,6 +198,11 @@ private:
 	void processHashTags(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processBuzzerAndInfo(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processBuzzerAndInfoAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processConversationsFeedByBuzzer(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processMessagesFeedByConversation(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processNewConversationNotify(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processUpdateConversationNotify(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processNewMessageNotify(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 
 	//
 	void processSubscriptionAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
@@ -200,7 +224,15 @@ private:
 	bool processEndorse(TransactionContextPtr ctx);
 	bool processMistrust(TransactionContextPtr ctx);
 
+	bool processConversation(TransactionContextPtr ctx);
+	bool processAcceptConversation(TransactionContextPtr ctx);
+	bool processDeclineConversation(TransactionContextPtr ctx);
+	bool processConversationMessage(TransactionContextPtr ctx);
+	bool processConversationMessageReply(TransactionContextPtr ctx);
+
 	bool haveBuzzSubscription(TransactionPtr ctx, uint512& signature);
+
+	BuzzerTransactionStoreExtensionPtr locateBuzzerExtension(const uint256& /*buzzer*/);
 
 public:
 	IPeerPtr peer_;

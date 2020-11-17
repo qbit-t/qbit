@@ -159,7 +159,7 @@ void EventsfeedListModel::feed(qbit::EventsfeedPtr local, bool more) {
 		//
 		emit countChanged();
 		if (list_.size()) {
-			emit eventsfeedUpdated(list_[8]->timestamp());
+			emit eventsfeedUpdated(list_[0]->timestamp());
 		}
 	} else if (!noMoreData_) {
 		//
@@ -248,11 +248,16 @@ void EventsfeedListModel::eventsfeedItemNewSlot(const qbit::EventsfeedItemProxy&
 	//
 	qbit::EventsfeedItemPtr lEventsfeedItem(event.get());
 	int lIndex = eventsfeed_->locateIndex(lEventsfeedItem);
-	if (lIndex != -1 && list_.begin() != list_.end() /*lIndex <= list_.size()*/) {
+	if (lIndex != -1 /*&& list_.begin() != list_.end()*/ /*lIndex <= list_.size()*/) {
 		//
 		if (index_.find(lEventsfeedItem->key()) == index_.end()) {
 			qInfo() << "EventsfeedListModel::eventsfeedItemNewSlot -> insert" << lIndex;
-			list_.insert(list_.begin() + lIndex, lEventsfeedItem);
+
+			if (list_.begin() != list_.end() && lIndex <= (int)list_.size())
+				list_.insert(list_.begin() + lIndex, lEventsfeedItem);
+			else
+				list_.push_back(lEventsfeedItem);
+
 			index_[lEventsfeedItem->key()] = lIndex;
 			beginInsertRows(QModelIndex(), lIndex, lIndex);
 			endInsertRows();
@@ -282,6 +287,8 @@ EventsfeedListModelPersonal::EventsfeedListModelPersonal() {
 	);
 
 	eventsfeed_->prepare();
+
+	QQmlEngine::setObjectOwnership(this, QQmlEngine::CppOwnership);
 }
 
 EventsfeedListModelEndorsements::EventsfeedListModelEndorsements() {

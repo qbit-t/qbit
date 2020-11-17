@@ -30,6 +30,9 @@ typedef std::shared_ptr<BuzzfeedItem> BuzzfeedItemPtr;
 class EventsfeedItem;
 typedef std::shared_ptr<EventsfeedItem> EventsfeedItemPtr;
 
+class ConversationItem;
+typedef std::shared_ptr<ConversationItem> ConversationItemPtr;
+
 class BuzzerRequestProcessor;
 typedef std::shared_ptr<BuzzerRequestProcessor> BuzzerRequestProcessorPtr;
 
@@ -85,8 +88,8 @@ public:
 	};
 
 public:
-	Buzzer(IRequestProcessorPtr requestProcessor, BuzzerRequestProcessorPtr buzzerRequestProcessor, buzzerTrustScoreUpdatedFunction trustScoreUpdated) : 
-		requestProcessor_(requestProcessor), buzzerRequestProcessor_(buzzerRequestProcessor), trustScoreUpdated_(trustScoreUpdated) {}
+	Buzzer(IRequestProcessorPtr requestProcessor, BuzzerRequestProcessorPtr buzzerRequestProcessor, IWalletPtr wallet, buzzerTrustScoreUpdatedFunction trustScoreUpdated) : 
+		requestProcessor_(requestProcessor), buzzerRequestProcessor_(buzzerRequestProcessor), wallet_(wallet), trustScoreUpdated_(trustScoreUpdated) {}
 
 	void updateTrustScore(amount_t endorsements, amount_t mistrusts, uint32_t subscriptions, uint32_t followers, const ProcessingError& err) {
 		if (err.success()) {
@@ -130,6 +133,15 @@ public:
 		eventsfeed_ = eventsfeed;
 	}
 
+	void setConversations(ConversationItemPtr conversations) {
+		conversations_ = conversations;
+	}
+
+	void setConversation(BuzzfeedItemPtr conversation) {
+		boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
+		conversation_ = conversation;
+	}
+
 	void registerUpdate(BuzzfeedItemPtr buzzfeed) {
 		boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
 		updates_.insert(buzzfeed);
@@ -154,6 +166,9 @@ public:
 
 	BuzzfeedItemPtr buzzfeed() { return buzzfeed_; }
 	EventsfeedItemPtr eventsfeed() { return eventsfeed_; }
+	ConversationItemPtr conversations() { return conversations_; }
+	BuzzfeedItemPtr conversation() { return conversation_; }
+	IWalletPtr wallet() { return wallet_; }
 
 	template<typename _update>
 	void broadcastUpdate(const _update& updates);
@@ -169,9 +184,13 @@ public:
 		return 0;
 	}
 
-	static BuzzerPtr instance(IRequestProcessorPtr requestProcessor, BuzzerRequestProcessorPtr buzzerRequestProcessor, buzzerTrustScoreUpdatedFunction trustScoreUpdated);
+	static BuzzerPtr instance(IRequestProcessorPtr requestProcessor, BuzzerRequestProcessorPtr buzzerRequestProcessor, IWalletPtr wallet, buzzerTrustScoreUpdatedFunction trustScoreUpdated);
 
-	std::map<uint256 /*info tx*/, Buzzer::Info>& pendingInfos() { return pendingInfos_; }
+	std::map<uint256 /*info tx*/, Buzzer::Info> pendingInfos() {
+		// copy
+		boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
+		return pendingInfos_;
+	}
 	void collectPengingInfos(std::map<uint256 /*chain*/, std::set<uint256>/*items*/>& items);
 
 	bool enqueueBuzzerInfoResolve(const uint256& buzzerChainId, const uint256& buzzerId, const uint256& buzzerInfoId, buzzerInfoReadyFunction readyFunction) {
@@ -256,6 +275,25 @@ public:
 		return false;
 	}
 
+	void pushPendingMessage(const uint160&, const uint256&, const uint256&, BuzzfeedItemPtr);
+	void pendingMessages(const uint160& peer, const uint256& chain, const uint256& conversation, std::list<BuzzfeedItemPtr>& msgs) {
+		//
+		boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
+		std::map<uint160, std::map<uint256, std::map<uint256, std::list<BuzzfeedItemPtr>>>>::iterator lPeer = pendingMessages_.find(peer);
+		if (lPeer != pendingMessages_.end()) {
+			//
+			std::map<uint256, std::map<uint256, std::list<BuzzfeedItemPtr>>>::iterator lChain = lPeer->second.find(chain);
+			if (lChain != lPeer->second.end()) {
+				std::map<uint256, std::list<BuzzfeedItemPtr>>::iterator lMsgs = lChain->second.find(conversation);
+
+				if (lMsgs != lChain->second.end()) {
+					msgs.insert(msgs.end(), lMsgs->second.begin(), lMsgs->second.end());
+					lChain->second.erase(lMsgs);
+				}
+			}
+		}
+	}
+
 private:
 	void buzzerInfoLoaded(TransactionPtr);
 	void pendingItemsLoaded(const std::vector<BuzzfeedItem>&, const uint256&);
@@ -265,6 +303,7 @@ private:
 private:
 	IRequestProcessorPtr requestProcessor_;
 	BuzzerRequestProcessorPtr buzzerRequestProcessor_;
+	IWalletPtr wallet_;
 	buzzerTrustScoreUpdatedFunction trustScoreUpdated_;
 
 	amount_t endorsements_ = 0;
@@ -274,6 +313,8 @@ private:
 
 	BuzzfeedItemPtr buzzfeed_;
 	EventsfeedItemPtr eventsfeed_;
+	ConversationItemPtr conversations_;
+	BuzzfeedItemPtr conversation_;
 	std::set<BuzzfeedItemPtr> updates_;
 
 	// shared buzzer infos
@@ -282,6 +323,14 @@ private:
 	std::map<uint256 /*info tx*/, std::list<buzzerInfoReadyFunction>> pendingNotifications_;
 	std::set<uint256> loadingPendingInfos_;
 	std::map<uint512 /*signature-key*/, BuzzfeedItemPtr> subscriptions_;
+	std::map<
+		uint160 /*peer*/, 
+		std::map<
+			uint256 /*chain*/, 
+			std::map<
+				uint256 /*conversation*/, 
+				std::list<BuzzfeedItemPtr>>> /*up to 5*/> pendingMessages_;
+
 	boost::recursive_mutex mutex_;
 };
 

@@ -24,3 +24,8 @@ WalletSend 1.0 walletsend.qml
 WalletReceiveReceipt 1.0 walletreceivereceipt.qml
 AddAddressDialog 1.0 addaddressdialog.qml
 ConfirmSendDialog 1.0 confirmsenddialog.qml
+Conversations 1.0 conversationsfeed.qml
+BuzzerHeader 1.0 buzzerheader.qml
+PeersList 1.0 peerslist.qml
+PeersManualList 1.0 peersmanuallist.qml
+

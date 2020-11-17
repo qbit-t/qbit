@@ -19,6 +19,10 @@ typedef boost::function<void (IPeerPtr /*peer*/, bool /*update*/, int /*count*/)
 typedef boost::function<void (IPeerPtr /*peer*/, int /*count*/)> peerPoppedFunction;
 typedef boost::function<void (const uint256& /*chain*/, const uint256 /*block*/, uint64_t /*height*/, uint64_t /*timestamp*/)> chainStateChangedFunction;
 
+// forward
+class RequestProcessor;
+typedef std::shared_ptr<RequestProcessor> RequestProcessorPtr;
+
 //
 class RequestProcessor: public IConsensusManager, public IRequestProcessor, public std::enable_shared_from_this<RequestProcessor> {
 public:

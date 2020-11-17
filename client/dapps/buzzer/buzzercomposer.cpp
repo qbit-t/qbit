@@ -33,6 +33,35 @@ void BuzzerLightComposer::writeWorkingSetings() {
 	lFile.close();
 }
 
+void BuzzerLightComposer::writeSubscriptions() {
+	// try file
+	std::string lName = settings_->dataPath() + "/wallet/buzzer/subscriptions.bin";
+	boost::filesystem::path lPath(lName);
+	if (boost::filesystem::exists(lPath)) {
+		boost::filesystem::remove(lPath);
+	}
+
+	//
+	std::ofstream lFile = std::ofstream(lName, std::ios::binary);
+	db::DbContainer<uint256 /*publisher*/, PKey /*pubkey*/>::Iterator lSubscription = subscriptions_.begin();
+
+	for (; lSubscription.valid(); ++lSubscription) {
+		//
+		uint256 lPublisher;
+		lSubscription.first(lPublisher);
+		PKey lKey;
+		lSubscription.second(lKey);
+		std::string lPublisherStr = lPublisher.toHex();
+		std::string lKeyStr = lKey.toString();
+		lFile.write((char*)lPublisherStr.c_str(), lPublisherStr.length());
+		lFile.write("|", 1);
+		lFile.write((char*)lKeyStr.c_str(), lKeyStr.length());
+		lFile.write("\n", 1);
+	}
+
+	lFile.close();
+}
+
 void BuzzerLightComposer::checkWorkingSettings() {
 	//
 	if (!gLightDaemon) return;
@@ -114,6 +143,16 @@ void BuzzerLightComposer::writeSubscription(const uint256& publisher, const PKey
 	lFile.write("\n", 1);
 
 	lFile.close();	
+}
+
+void BuzzerLightComposer::writeCounterparty(const uint256& publisher, const PKey& key) {
+	//
+	subscriptions_.write(publisher, key);
+}
+
+bool BuzzerLightComposer::getCounterparty(const uint256& publisher, PKey& key) {
+	//
+	return subscriptions_.read(publisher, key);
 }
 
 void BuzzerLightComposer::checkSubscriptions() {
@@ -281,6 +320,70 @@ bool BuzzerLightComposer::verifySecret(const std::string& secret) {
 	return false;
 }
 
+void BuzzerLightComposer::checkSubscription(const uint256& chain, const uint256& publisher) {
+	//
+	{
+		boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
+
+		std::map<uint256 /*publisher*/, bool>::iterator lCandidate = absentSubscriptions_.find(publisher);
+		if (lCandidate != absentSubscriptions_.end() && !lCandidate->second) return;
+
+		//
+		absentSubscriptions_[publisher] = false;
+	}
+
+	//
+	buzzerRequestProcessor()->loadSubscription(chain, buzzerTx()->id(), publisher, 
+		LoadTransaction::instance(
+			boost::bind(&BuzzerLightComposer::subscriptionLoaded, shared_from_this(), _1),
+			boost::bind(&BuzzerLightComposer::timeout, shared_from_this())));
+}
+
+void BuzzerLightComposer::subscriptionLoaded(TransactionPtr subscription) {
+	//
+	if (!subscription) return;
+
+	//
+	TxBuzzerSubscribePtr lSubscribe = TransactionHelper::to<TxBuzzerSubscribe>(subscription);
+	if (lSubscribe) {
+		//
+		SKeyPtr lSKey = wallet()->firstKey();
+		PKey lPKey = lSKey->createPKey();
+		//
+		uint256 lPublisher = lSubscribe->in()[0].out().tx(); // in[0] - publisher
+
+		bool lResult = TxBuzzerSubscribe::verifySignature(lPKey, lSubscribe->type(), lSubscribe->timestamp(), lSubscribe->score(),
+			lSubscribe->buzzerInfo(), lPublisher, lSubscribe->signature());
+
+		if (lResult) {
+			//
+			requestProcessor()->loadTransaction(MainChain::id(), lPublisher, 
+				LoadTransaction::instance(
+					boost::bind(&BuzzerLightComposer::publisherLoaded, shared_from_this(), _1),
+					boost::bind(&BuzzerLightComposer::timeout, shared_from_this()))
+			);
+		}
+	}
+}
+
+void BuzzerLightComposer::publisherLoaded(TransactionPtr publisher) {
+	//
+	if (!publisher) return;
+
+	PKey lPKey;
+	TxBuzzerPtr lBuzzer = TransactionHelper::to<TxBuzzer>(publisher);
+	if (lBuzzer->extractAddress(lPKey)) {
+		//
+		addSubscription(publisher->id(), lPKey);
+
+		// update
+		{
+			boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
+			absentSubscriptions_[publisher->id()] = true;
+		}
+	}
+}
+
 Buzzer::VerificationResult BuzzerLightComposer::verifyPublisherLazy(BuzzfeedItemPtr item) {
 	//
 	PKey lPKey;
@@ -299,6 +402,7 @@ Buzzer::VerificationResult BuzzerLightComposer::verifyPublisherLazy(BuzzfeedItem
 			if (lFound) {
 				lResult = TxBuzzLike::verifySignature(lPKey, item->type(), lInfo->timestamp(), lInfo->score(),
 					lInfo->buzzerInfoId(), item->buzzId(), lInfo->signature());
+				if (!lResult) break;
 			} else {
 				return Buzzer::VerificationResult::POSTPONED;
 			}
@@ -320,6 +424,7 @@ Buzzer::VerificationResult BuzzerLightComposer::verifyPublisherLazy(BuzzfeedItem
 			if (lFound) {
 				lResult = TxBuzzReward::verifySignature(lPKey, item->type(), lInfo->timestamp(), lInfo->score(), 
 					lInfo->amount(), lInfo->buzzerInfoId(), item->buzzId(), lInfo->signature());
+				if (!lResult) break;
 			} else {
 				return Buzzer::VerificationResult::POSTPONED;
 			}
@@ -390,6 +495,13 @@ Buzzer::VerificationResult BuzzerLightComposer::verifyPublisherLazy(BuzzfeedItem
 					else
 						return Buzzer::VerificationResult::INVALID;
 				}
+			} else if (item->type() == TX_BUZZER_MESSAGE || item->type() == TX_BUZZER_MESSAGE_REPLY) {
+				//
+				if (TxBuzzerMessage::verifySignature(lPKey, item->timestamp(), item->buzzBody(), item->buzzMedia(), 
+					item->signature()))
+					return Buzzer::VerificationResult::SUCCESS;
+				else
+					return Buzzer::VerificationResult::INVALID;				
 			}
 
 			if (TxBuzz::verifySignature(lPKey, item->type(), item->timestamp(), item->score(),
@@ -414,6 +526,9 @@ Buzzer::VerificationResult BuzzerLightComposer::verifyPublisherStrict(BuzzfeedIt
 				lResult = TxBuzzLike::verifySignature(lPKey, item->type(), lInfo->timestamp(), lInfo->score(),
 					lInfo->buzzerInfoId(), item->buzzId(), lInfo->signature());
 				if (!lResult) break;
+			} else {
+				//
+				checkSubscription(lInfo->buzzerInfoChainId(), lInfo->buzzerId());
 			}
 		}
 
@@ -427,6 +542,9 @@ Buzzer::VerificationResult BuzzerLightComposer::verifyPublisherStrict(BuzzfeedIt
 				lResult = TxBuzzReward::verifySignature(lPKey, item->type(), lInfo->timestamp(), lInfo->score(), 
 					lInfo->amount(), lInfo->buzzerInfoId(), item->buzzId(), lInfo->signature());
 				if (!lResult) break;
+			} else {
+				//
+				checkSubscription(lInfo->buzzerInfoChainId(), lInfo->buzzerId());
 			}
 		}
 
@@ -443,17 +561,24 @@ Buzzer::VerificationResult BuzzerLightComposer::verifyPublisherStrict(BuzzfeedIt
 										lInfo->buzzerInfoId(), std::vector<unsigned char>(), std::vector<BuzzerMediaPointer>(), 
 										item->buzzId(), item->buzzChainId(), lInfo->signature());
 						if (!lResult) break;
+					} else {
+						//
+						checkSubscription(lInfo->buzzerInfoChainId(), lInfo->buzzerId());
 					}
 				}
 
 				return (lResult == true ? Buzzer::VerificationResult::SUCCESS : Buzzer::VerificationResult::INVALID);				
 			} else {
-				if (getSubscription(item->buzzerId(), lPKey))
+				if (getSubscription(item->buzzerId(), lPKey)) {
 					if (TxReBuzz::verifySignature(lPKey, item->type(), item->timestamp(), item->score(),
 						item->buzzerInfoId(), item->buzzBody(), item->buzzMedia(), item->originalBuzzId(),
 						item->originalBuzzChainId(), item->signature())) {
 						return Buzzer::VerificationResult::SUCCESS;
 					}
+				} else {
+					//
+					checkSubscription(item->buzzerInfoChainId(), item->buzzerId());
+				}
 			}
 		} else if (getSubscription(item->buzzerId(), lPKey)) {
 			if (item->type() == TX_BUZZER_ENDORSE || item->type() == TX_BUZZER_MISTRUST) {
@@ -468,6 +593,9 @@ Buzzer::VerificationResult BuzzerLightComposer::verifyPublisherStrict(BuzzfeedIt
 
 			if (TxBuzz::verifySignature(lPKey, item->type(), item->timestamp(), item->score(), item->buzzerInfoId(),
 				item->buzzBody(), item->buzzMedia(), item->signature())) return Buzzer::VerificationResult::SUCCESS;
+		} else {
+			//
+			checkSubscription(item->buzzerInfoChainId(), item->buzzerId());
 		}
 	}
 
@@ -475,7 +603,6 @@ Buzzer::VerificationResult BuzzerLightComposer::verifyPublisherStrict(BuzzfeedIt
 }
 
 Buzzer::VerificationResult BuzzerLightComposer::verifyEventPublisher(EventsfeedItemPtr item) {
-	//
 	//
 	PKey lPKey;
 	//
@@ -496,9 +623,54 @@ Buzzer::VerificationResult BuzzerLightComposer::verifyEventPublisher(EventsfeedI
 			if (lFound) {
 				lResult = TxBuzzLike::verifySignature(lPKey, item->type(), lInfo->timestamp(), lInfo->score(),
 					lInfo->buzzerInfoId(), item->buzzId(), lInfo->signature());
+				if (!lResult) break;
 			} else {
 				return Buzzer::VerificationResult::POSTPONED;
 			}
+		}
+
+		return (lResult == true ? Buzzer::VerificationResult::SUCCESS : Buzzer::VerificationResult::INVALID);
+
+	} else if (item->type() == TX_BUZZER_ACCEPT_CONVERSATION) {
+		//
+		bool lResult = false;
+		EventsfeedItem::EventInfo lInfo = *(item->buzzers().begin());
+		//
+		bool lFound = false;
+		TxBuzzerInfoPtr lBuzzerInfo = buzzer_->locateBuzzerInfo(lInfo.buzzerInfoId());
+		if (lBuzzerInfo && lBuzzerInfo->extractAddress(lPKey)) lFound = true;
+
+		if (lFound) {
+			lResult = TxBuzzerAcceptConversation::verifySignature(
+				lPKey, 
+				lInfo.timestamp(),
+				lInfo.buzzerId(),
+				lInfo.signature()
+			);
+		} else {
+			return Buzzer::VerificationResult::POSTPONED;
+		}
+
+		return (lResult == true ? Buzzer::VerificationResult::SUCCESS : Buzzer::VerificationResult::INVALID);
+
+	} else if (item->type() == TX_BUZZER_DECLINE_CONVERSATION) {
+		//
+		bool lResult = false;
+		EventsfeedItem::EventInfo lInfo = *(item->buzzers().begin());
+		//
+		bool lFound = false;
+		TxBuzzerInfoPtr lBuzzerInfo = buzzer_->locateBuzzerInfo(lInfo.buzzerInfoId());
+		if (lBuzzerInfo && lBuzzerInfo->extractAddress(lPKey)) lFound = true;
+
+		if (lFound) {
+			lResult = TxBuzzerDeclineConversation::verifySignature(
+				lPKey, 
+				lInfo.timestamp(),
+				lInfo.buzzerId(),
+				lInfo.signature()
+			);
+		} else {
+			return Buzzer::VerificationResult::POSTPONED;
 		}
 
 		return (lResult == true ? Buzzer::VerificationResult::SUCCESS : Buzzer::VerificationResult::INVALID);
@@ -520,6 +692,7 @@ Buzzer::VerificationResult BuzzerLightComposer::verifyEventPublisher(EventsfeedI
 			if (lFound) {
 				lResult = TxBuzzReward::verifySignature(lPKey, item->type(), lInfo->timestamp(), lInfo->score(),
 					item->value(), lInfo->buzzerInfoId(), item->buzzId(), lInfo->signature());
+				if (!lResult) break;
 			} else {
 				return Buzzer::VerificationResult::POSTPONED;
 			}
@@ -527,6 +700,27 @@ Buzzer::VerificationResult BuzzerLightComposer::verifyEventPublisher(EventsfeedI
 
 		return (lResult == true ? Buzzer::VerificationResult::SUCCESS : Buzzer::VerificationResult::INVALID);
 
+	} else if (item->type() == TX_BUZZER_MESSAGE || item->type() == TX_BUZZER_MESSAGE_REPLY) {
+		//
+		bool lResult = false;
+		EventsfeedItem::EventInfo lInfo = *(item->buzzers().begin());
+		//
+		bool lFound = false;
+		TxBuzzerInfoPtr lBuzzerInfo = buzzer_->locateBuzzerInfo(lInfo.buzzerInfoId());
+		if (lBuzzerInfo && lBuzzerInfo->extractAddress(lPKey)) lFound = true;
+
+		if (lFound) {
+			lResult = TxBuzzerMessage::verifySignature(
+				lPKey, 
+				lInfo.timestamp(),
+				lInfo.buzzBody(),
+				lInfo.buzzMedia(),
+				lInfo.signature());
+		} else {
+			return Buzzer::VerificationResult::POSTPONED;
+		}
+
+		return (lResult == true ? Buzzer::VerificationResult::SUCCESS : Buzzer::VerificationResult::INVALID);
 	} else if (item->type() == TX_BUZZER_ENDORSE || item->type() == TX_BUZZER_MISTRUST) {
 		//
 		bool lResult = false;
@@ -570,9 +764,29 @@ Buzzer::VerificationResult BuzzerLightComposer::verifyEventPublisher(EventsfeedI
 		}
 
 		return (lResult == true ? Buzzer::VerificationResult::SUCCESS : Buzzer::VerificationResult::INVALID);
-	} else {
+
+	} else if (item->type() == TX_BUZZER_CONVERSATION) {
 		//
 		bool lResult = false;
+		EventsfeedItem::EventInfo lInfo = *(item->buzzers().begin());
+		//
+		bool lFound = false;
+		TxBuzzerInfoPtr lBuzzerInfo = buzzer_->locateBuzzerInfo(lInfo.buzzerInfoId());
+		if (lBuzzerInfo && lBuzzerInfo->extractAddress(lPKey)) lFound = true;
+
+		if (lFound) {
+			lResult = TxBuzzerConversation::verifySignature(lPKey, lInfo.timestamp(), 
+				item->publisher(), lInfo.buzzerId(), lInfo.signature());
+		} else {
+			return Buzzer::VerificationResult::POSTPONED;
+		}
+
+		return (lResult == true ? Buzzer::VerificationResult::SUCCESS : Buzzer::VerificationResult::INVALID);
+
+	} else {
+		//
+		if (!item->type() || !item->buzzers().size()) return Buzzer::VerificationResult::INVALID;
+		//
 		EventsfeedItem::EventInfo lInfo = *(item->buzzers().begin());
 		//
 		bool lFound = getSubscription(lInfo.buzzerId(), lPKey);
@@ -618,6 +832,65 @@ Buzzer::VerificationResult BuzzerLightComposer::verifyMyThreadUpdates(const uint
 	}
 
 	return Buzzer::VerificationResult::INVALID;
+}
+
+Buzzer::VerificationResult BuzzerLightComposer::verifyConversationPublisher(ConversationItemPtr item) {
+	//
+	PKey lPKey;
+	//
+	bool lResult = false;
+	// check events
+	for (std::vector<ConversationItem::EventInfo>::const_iterator lInfo = item->events().begin(); lInfo != item->events().end(); lInfo++) {
+		//
+		bool lFound = false;
+		TxBuzzerInfoPtr lBuzzerInfo = buzzer_->locateBuzzerInfo(lInfo->buzzerInfoId());
+		if (lBuzzerInfo && lBuzzerInfo->extractAddress(lPKey)) lFound = true;
+
+		if (lFound) {
+			if (lInfo->type() == TX_BUZZER_ACCEPT_CONVERSATION) {
+				lResult = TxBuzzerAcceptConversation::verifySignature(
+					lPKey, 
+					lInfo->timestamp(), 
+					lInfo->buzzerId(),
+					lInfo->signature());
+			} else if (lInfo->type() == TX_BUZZER_DECLINE_CONVERSATION) {
+				lResult = TxBuzzerDeclineConversation::verifySignature(
+					lPKey, 
+					lInfo->timestamp(), 
+					lInfo->buzzerId(),
+					lInfo->signature());
+			} else if (lInfo->type() == TX_BUZZER_MESSAGE || lInfo->type() == TX_BUZZER_MESSAGE_REPLY) {
+				lResult = TxBuzzerMessage::verifySignature(
+					lPKey, 
+					lInfo->timestamp(), 
+					lInfo->body(),
+					lInfo->media(),
+					lInfo->signature());
+			}
+		} else {
+			return Buzzer::VerificationResult::POSTPONED;
+		}
+
+		if (!lResult) return Buzzer::VerificationResult::INVALID;
+	}
+
+	bool lFound = false;
+	TxBuzzerInfoPtr lBuzzerInfo = buzzer_->locateBuzzerInfo(item->creatorInfoId());
+	if (lBuzzerInfo && lBuzzerInfo->extractAddress(lPKey)) lFound = true;
+
+	if (lFound) {
+		lResult = TxBuzzerConversation::verifySignature(
+			lPKey,
+			item->timestamp(),
+			item->creatorId(),
+			item->counterpartyId(),
+			item->signature()
+		);
+	} else { 
+		return Buzzer::VerificationResult::POSTPONED;
+	}
+
+	return (lResult == true ? Buzzer::VerificationResult::SUCCESS : Buzzer::VerificationResult::INVALID);
 }
 
 //
@@ -691,11 +964,13 @@ void BuzzerLightComposer::CreateTxBuzzer::buzzerEntityLoaded(EntityPtr buzzer) {
 	// for subscriptions
 	buzzerTx_->addBuzzerSubscriptionOut(*lSKey, lSelf); // out[1]
 	// endorse
-	buzzerTx_->addBuzzerEndorseOut(*lSKey, lSelf);
+	buzzerTx_->addBuzzerEndorseOut(*lSKey, lSelf); // 2
 	// mistrust
-	buzzerTx_->addBuzzerMistrustOut(*lSKey, lSelf);
+	buzzerTx_->addBuzzerMistrustOut(*lSKey, lSelf); // 3
 	// buzzin
-	buzzerTx_->addBuzzerBuzzOut(*lSKey, lSelf);
+	buzzerTx_->addBuzzerBuzzOut(*lSKey, lSelf); // 4
+	// conversation
+	buzzerTx_->addBuzzerConversationOut(*lSKey, lSelf); // 5
 
 	composer_->requestProcessor()->selectUtxoByEntity(composer_->dAppName(), 
 		SelectUtxoByEntityName::instance(
@@ -1279,6 +1554,21 @@ void BuzzerLightComposer::LoadBuzzesByBuzz::process(errorFunction error) {
 }
 
 //
+// LoadMessages
+//
+void BuzzerLightComposer::LoadMessages::process(errorFunction error) {
+	//
+	error_ = error;
+
+	// 
+	if (!(count_ = composer_->buzzerRequestProcessor()->selectMessages(chain_, from_, conversation_, requests_,
+		SelectBuzzFeedByEntity::instance(
+			boost::bind(&BuzzerLightComposer::LoadMessages::messagesLoaded, shared_from_this(), _1, _2, _3),
+			boost::bind(&BuzzerLightComposer::LoadMessages::timeout, shared_from_this()))
+	))) error_("E_LOAD_MESSAGES", "Messages for conversation loading failed.");
+}
+
+//
 // LoadBuzzesByBuzzer
 //
 void BuzzerLightComposer::LoadBuzzesByBuzzer::process(errorFunction error) {
@@ -1425,6 +1715,21 @@ void BuzzerLightComposer::LoadEventsfeed::process(errorFunction error) {
 		SelectEventsFeed::instance(
 			boost::bind(&BuzzerLightComposer::LoadEventsfeed::eventsfeedLoaded, shared_from_this(), _1, _2),
 			boost::bind(&BuzzerLightComposer::LoadEventsfeed::timeout, shared_from_this()))
+	))) error_("E_LOAD_CONVERSATIONS", "Conversations loading failed.");
+}
+
+//
+// LoadConversations
+//
+void BuzzerLightComposer::LoadConversations::process(errorFunction error) {
+	//
+	error_ = error;
+
+	// 
+	if (!(count_ = composer_->buzzerRequestProcessor()->selectConversations(chain_, from_, composer_->buzzerTx()->id(), requests_,
+		SelectConversationsFeedByEntity::instance(
+			boost::bind(&BuzzerLightComposer::LoadConversations::conversationsLoaded, shared_from_this(), _1, _2, _3),
+			boost::bind(&BuzzerLightComposer::LoadConversations::timeout, shared_from_this()))
 	))) error_("E_LOAD_EVENTSFEED", "Eventsfeed loading failed.");
 }
 
@@ -2455,3 +2760,509 @@ void BuzzerLightComposer::LoadBuzzerInfo::transactionLoaded(EntityPtr buzzer, Tr
 	loaded_(buzzer, info, buzzer_);
 }
 
+//
+// CreateTxBuzzerConversation
+//
+void BuzzerLightComposer::CreateTxBuzzerConversation::process(errorFunction error) {
+	//
+	error_ = error;
+	counterpartyTx_ = nullptr;
+
+	// create empty tx
+	conversationTx_ = TransactionHelper::to<TxBuzzerConversation>(TransactionFactory::create(TX_BUZZER_CONVERSATION));
+	// create context
+	ctx_ = TransactionContext::instance(conversationTx_);
+	// get buzzer tx (saved/cached)
+	TxBuzzerPtr lMyBuzzer = composer_->buzzerTx();
+
+	if (lMyBuzzer) {
+		// set timestamp
+		conversationTx_->setTimestamp(qbit::getMedianMicroseconds());
+
+		composer_->requestProcessor()->loadEntity(counterparty_, 
+			LoadEntity::instance(
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzerConversation::counterpartyLoaded, shared_from_this(), _1),
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzerConversation::timeout, shared_from_this()))
+		);
+	} else {
+		error_("E_BUZZER_TX_NOT_FOUND", "Local buzzer was not found."); return;
+	}
+}
+
+void BuzzerLightComposer::CreateTxBuzzerConversation::counterpartyLoaded(EntityPtr counterparty) {
+	//
+	if (!counterparty) { error_("E_BUZZER_NOT_FOUND", "Buzzer not found."); return; }
+
+	//
+	counterpartyTx_ = counterparty;
+
+	//
+	// extract bound shard
+	if (counterparty->in().size() > 1) {
+		//
+		Transaction::In& lShardIn = *(++(counterparty->in().begin())); // second in
+		// set shard/chain
+		conversationTx_->setChain(lShardIn.out().tx());
+		//
+		composer_->requestProcessor()->selectUtxoByEntity(counterparty_, 
+			SelectUtxoByEntityName::instance(
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzerConversation::utxoByCounterpartyLoaded, shared_from_this(), _1, _2),
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzerConversation::timeout, shared_from_this()))
+		);
+	} else {
+		error_("E_BUZZER_COUNTERPARTY_INCONSISTENT", "Counterparty buzzer is inconsistent."); return;
+	}
+}
+
+void BuzzerLightComposer::CreateTxBuzzerConversation::utxoByCounterpartyLoaded(const std::vector<Transaction::UnlinkedOut>& utxo, const std::string& buzzer) {
+	//
+	SKeyPtr lSChangeKey = composer_->wallet()->changeKey();
+	SKeyPtr lSKey = composer_->wallet()->firstKey();
+	PKey lPKey = lSKey->createPKey();	
+
+	if (!lSKey->valid() || !lSChangeKey->valid()) { error_("E_KEY", "Secret key is invalid."); return; }
+
+	if (!utxo.size()) {
+		error_("E_BUZZER_UTXO_INCONSISTENT", "Buzzer utxo is inconsistent."); return;	
+	}
+
+	if (utxo.size() > 1) {
+		counterpartyUtxo_ = utxo;
+	} else { error_("E_COUNTERPARTY_BUZZER_INCORRECT", "Counterparty buzzer outs is incorrect."); return; }
+
+	std::vector<Transaction::UnlinkedOut> lMyBuzzerUtxos = composer_->buzzerUtxo();
+	if (!lMyBuzzerUtxos.size()) {
+		composer_->requestProcessor()->selectUtxoByEntity(composer_->buzzerTx()->myName(), 
+			SelectUtxoByEntityName::instance(
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzerConversation::saveBuzzerUtxo, shared_from_this(), _1, _2),
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzerConversation::timeout, shared_from_this()))
+		);
+	} else {
+		utxoByBuzzerLoaded(lMyBuzzerUtxos, composer_->buzzerTx()->myName());
+	}
+}
+
+void BuzzerLightComposer::CreateTxBuzzerConversation::saveBuzzerUtxo(const std::vector<Transaction::UnlinkedOut>& utxo, const std::string& buzzer) {
+	//
+	TxBuzzerPtr lMyBuzzer = composer_->buzzerTx();
+	composer_->writeBuzzerUtxo(utxo);
+	utxoByBuzzerLoaded(utxo, lMyBuzzer->myName());
+}
+
+void BuzzerLightComposer::CreateTxBuzzerConversation::utxoByBuzzerLoaded(const std::vector<Transaction::UnlinkedOut>& utxo, const std::string& buzzer) {
+	//
+	SKeyPtr lSChangeKey = composer_->wallet()->changeKey();
+	SKeyPtr lSKey = composer_->wallet()->firstKey();
+	PKey lPKey = lSKey->createPKey();	
+
+	if (!lSKey->valid() || !lSChangeKey->valid()) { error_("E_KEY", "Secret key is invalid."); return; }
+
+	if (!utxo.size()) {
+		error_("E_BUZZER_TX_INCONSISTENT", "Buzzer tx is inconsistent."); return;	
+	}
+
+	if (utxo.size() > 1) {
+		conversationTx_->addMyBuzzerIn(*lSKey, Transaction::UnlinkedOut::instance(*(utxo.begin()))); // first out
+		conversationTx_->addBuzzerIn(*lSKey, Transaction::UnlinkedOut::instance(counterpartyUtxo_[TX_BUZZER_CONVERSATION_OUT]));
+	} else { error_("E_COUNTERPARTY_BUZZER_INCORRECT", "Counterparty buzzer outs is incorrect."); return; }
+
+	//
+	conversationTx_->addAcceptOut(*lSKey, lPKey);
+	conversationTx_->addDeclineOut(*lSKey, lPKey);
+	conversationTx_->addMessageOut(*lSKey, lPKey);
+
+	// extract counterparty address
+	TxBuzzerPtr lCounterparty = TransactionHelper::to<TxBuzzer>(counterpartyTx_);
+	PKey lCounterpartyAddress;
+	lCounterparty->extractAddress(lCounterpartyAddress);
+	conversationTx_->setCountepartyAddress(lCounterpartyAddress);
+
+	// make extra signature
+	conversationTx_->makeSignature(*lSKey, 
+		conversationTx_->in()[TX_BUZZER_CONVERSATION_MY_IN].out().tx(), 
+		conversationTx_->in()[TX_BUZZER_CONVERSATION_BUZZER_IN].out().tx());
+
+	//
+	amount_t lFeeAmount = ctx_->size();
+	TransactionContextPtr lFee;
+
+	try {
+		lFee = composer_->wallet()->createTxFee(lPKey, lFeeAmount); // size-only, without ratings
+		if (!lFee) { error_("E_TX_CREATE", "Transaction creation error."); return; }
+	}
+	catch(qbit::exception& ex) {
+		error_(ex.code(), ex.what()); return;
+	}
+	catch(std::exception& ex) {
+		error_("E_TX_CREATE", ex.what()); return;
+	}
+
+	std::list<Transaction::UnlinkedOutPtr> lFeeUtxos = lFee->tx()->utxos(TxAssetType::qbitAsset()); // we need only qbits
+	if (lFeeUtxos.size()) {
+		// utxo[0]
+		conversationTx_->addIn(*lSKey, *(lFeeUtxos.begin())); // qbit fee that was exact for fee - in
+		conversationTx_->addFeeOut(*lSKey, TxAssetType::qbitAsset(), lFeeAmount); // to the miner
+	} else {
+		error_("E_FEE_UTXO_ABSENT", "Fee utxo for buzz was not found."); return;
+	}
+
+	// push linked tx, which need to be pushed and broadcasted before this
+	ctx_->addLinkedTx(lFee);
+
+	if (!conversationTx_->finalize(*lSKey)) { error_("E_TX_FINALIZE", "Transaction finalization failed."); return; }
+
+	// put conversation id -> counterparty pkey
+	composer_->writeCounterparty(conversationTx_->id(), lCounterpartyAddress);
+
+	// notify
+	created_(ctx_);
+}
+
+//
+// CreateTxBuzzerAcceptConversation
+//
+void BuzzerLightComposer::CreateTxBuzzerAcceptConversation::process(errorFunction error) {
+	//
+	error_ = error;
+	conversationUtxo_.clear();
+
+	// 
+	if (!composer_->requestProcessor()->selectUtxoByTransaction(chain_, conversation_, 
+		SelectUtxoByTransaction::instance(
+			boost::bind(&BuzzerLightComposer::CreateTxBuzzerAcceptConversation::utxoByConversationLoaded, shared_from_this(), _1, _2),
+			boost::bind(&BuzzerLightComposer::CreateTxBuzzerAcceptConversation::timeout, shared_from_this()))
+	)) { error_("E_LOAD_UTXO_BY_CONVERSATION", "Conversation loading failed."); return; }
+}
+
+void BuzzerLightComposer::CreateTxBuzzerAcceptConversation::utxoByConversationLoaded(const std::vector<Transaction::NetworkUnlinkedOut>& utxo, const uint256& tx) {
+	//
+	conversationUtxo_ = utxo;
+
+	// create empty tx
+	acceptTx_ = TransactionHelper::to<TxBuzzerAcceptConversation>(TransactionFactory::create(TX_BUZZER_ACCEPT_CONVERSATION));
+	// create context
+	ctx_ = TransactionContext::instance(acceptTx_);
+	// get buzzer tx (saved/cached)
+	TxBuzzerPtr lMyBuzzer = composer_->buzzerTx();
+	// check
+	if (!composer_->buzzerInfoTx()) {
+		error_("E_BUZZER_INFO_ABSENT", "Buzzer info is absent."); return;
+	}
+
+	if (lMyBuzzer) {
+		// extract bound shard
+		if (lMyBuzzer->in().size() > 1) {
+			//
+			SKeyPtr lSKey = composer_->wallet()->firstKey();
+			if (!lSKey->valid()) { error_("E_KEY", "Secret key is invalid."); return; }
+			// set timestamp
+			acceptTx_->setTimestamp(qbit::getMedianMicroseconds());
+			// set shard/chain
+			acceptTx_->setChain(conversationUtxo_[TX_BUZZER_CONVERSATION_ACCEPT_OUT].utxo().out().chain());		
+		} else {
+			error_("E_BUZZER_TX_INCONSISTENT", "Buzzer tx is inconsistent."); return;	
+		}
+	} else {
+		error_("E_BUZZER_TX_NOT_FOUND", "Local buzzer was not found."); return;
+	}
+
+	// check conversation counterparty key
+	PKey lPKey;
+	if (!composer_->getCounterparty(conversation_, lPKey)) {
+		//
+		// load conversation and extract counterparty key
+		if (!composer_->requestProcessor()->loadTransaction(chain_, conversation_, 
+			LoadTransaction::instance(
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzerAcceptConversation::conversationLoaded, shared_from_this(), _1),
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzerAcceptConversation::timeout, shared_from_this()))
+		)) { error_("E_LOAD_UTXO_BY_CONVERSATION", "Conversation loading failed."); return; }
+	} else {
+		createMessage(lPKey);
+	}
+}
+
+void BuzzerLightComposer::CreateTxBuzzerAcceptConversation::conversationLoaded(TransactionPtr conversation) {
+	//
+	TxBuzzerConversationPtr lConversation = TransactionHelper::to<TxBuzzerConversation>(conversation);
+	//
+	PKey lCounterpartyKey;
+	uint256 lInitiator = lConversation->in()[TX_BUZZER_CONVERSATION_MY_IN].out().tx(); 
+	uint256 lCounterparty = lConversation->in()[TX_BUZZER_CONVERSATION_BUZZER_IN].out().tx(); 
+
+	// define counterparty
+	if (composer_->buzzerId() == lInitiator) {
+		lConversation->counterpartyAddress(lCounterpartyKey);
+	} else {
+		lConversation->initiatorAddress(lCounterpartyKey);
+	}
+
+	// save conversation -> pkey for counterparty
+	composer_->writeCounterparty(conversation_, lCounterpartyKey);
+	// continue...
+	createMessage(lCounterpartyKey);
+}
+
+void BuzzerLightComposer::CreateTxBuzzerAcceptConversation::createMessage(const PKey& pkey) {
+	//
+	TxBuzzerPtr lMyBuzzer = composer_->buzzerTx();
+	//
+	std::vector<Transaction::UnlinkedOut> lMyBuzzerUtxos = composer_->buzzerUtxo();
+	if (!lMyBuzzerUtxos.size()) {
+		composer_->requestProcessor()->selectUtxoByEntity(lMyBuzzer->myName(), 
+			SelectUtxoByEntityName::instance(
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzerAcceptConversation::saveBuzzerUtxo, shared_from_this(), _1, _2),
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzerAcceptConversation::timeout, shared_from_this()))
+		);
+	} else {
+		utxoByBuzzerLoaded(lMyBuzzerUtxos, lMyBuzzer->myName());
+	}
+}
+
+void BuzzerLightComposer::CreateTxBuzzerAcceptConversation::saveBuzzerUtxo(const std::vector<Transaction::UnlinkedOut>& utxo, const std::string& buzzer) {
+	//
+	TxBuzzerPtr lMyBuzzer = composer_->buzzerTx();
+	composer_->writeBuzzerUtxo(utxo);
+	utxoByBuzzerLoaded(utxo, lMyBuzzer->myName());
+}
+
+void BuzzerLightComposer::CreateTxBuzzerAcceptConversation::utxoByBuzzerLoaded(const std::vector<Transaction::UnlinkedOut>& utxo, const std::string& buzzer) {
+	//
+	SKeyPtr lSKey = composer_->wallet()->firstKey();
+	PKey lPKey = lSKey->createPKey();	
+
+	if (!lSKey->valid()) { error_("E_KEY", "Secret key is invalid."); return; }
+
+	if (!utxo.size() || conversationUtxo_.size() <= TX_BUZZER_CONVERSATION_DECLINE_OUT) {
+		error_("E_BUZZER_TX_INCONSISTENT", "Buzzer tx is inconsistent."); return;	
+	}
+
+	// in[0] - buzzer utxo
+	acceptTx_->addMyBuzzerIn(*lSKey, Transaction::UnlinkedOut::instance(*(utxo.begin()))); // first out
+	// in[1] - conversation accept out
+	acceptTx_->addConversationIn(*lSKey, Transaction::UnlinkedOut::instance(conversationUtxo_[TX_BUZZER_CONVERSATION_ACCEPT_OUT].utxo()));
+	// make extra signature
+	acceptTx_->makeSignature(*lSKey, composer_->buzzerId());
+
+	if (!acceptTx_->finalize(*lSKey)) { error_("E_TX_FINALIZE", "Transaction finalization failed."); return; }
+
+	created_(ctx_);
+}
+
+//
+// CreateTxBuzzerDeclineConversation
+//
+void BuzzerLightComposer::CreateTxBuzzerDeclineConversation::process(errorFunction error) {
+	//
+	error_ = error;
+	conversationUtxo_.clear();
+
+	// 
+	if (!composer_->requestProcessor()->selectUtxoByTransaction(chain_, conversation_, 
+		SelectUtxoByTransaction::instance(
+			boost::bind(&BuzzerLightComposer::CreateTxBuzzerDeclineConversation::utxoByConversationLoaded, shared_from_this(), _1, _2),
+			boost::bind(&BuzzerLightComposer::CreateTxBuzzerDeclineConversation::timeout, shared_from_this()))
+	)) { error_("E_LOAD_UTXO_BY_CONVERSATION", "Conversation loading failed."); return; }
+}
+
+void BuzzerLightComposer::CreateTxBuzzerDeclineConversation::utxoByConversationLoaded(const std::vector<Transaction::NetworkUnlinkedOut>& utxo, const uint256& tx) {
+	//
+	conversationUtxo_ = utxo;
+
+	// create empty tx
+	declineTx_ = TransactionHelper::to<TxBuzzerDeclineConversation>(TransactionFactory::create(TX_BUZZER_DECLINE_CONVERSATION));
+	// create context
+	ctx_ = TransactionContext::instance(declineTx_);
+	// get buzzer tx (saved/cached)
+	TxBuzzerPtr lMyBuzzer = composer_->buzzerTx();
+	// check
+	if (!composer_->buzzerInfoTx()) {
+		error_("E_BUZZER_INFO_ABSENT", "Buzzer info is absent."); return;
+	}
+
+	if (lMyBuzzer) {
+		// extract bound shard
+		if (lMyBuzzer->in().size() > 1) {
+			//
+			SKeyPtr lSKey = composer_->wallet()->firstKey();
+			if (!lSKey->valid()) { error_("E_KEY", "Secret key is invalid."); return; }
+			// set timestamp
+			declineTx_->setTimestamp(qbit::getMedianMicroseconds());
+			// set shard/chain
+			declineTx_->setChain(conversationUtxo_[TX_BUZZER_CONVERSATION_DECLINE_OUT].utxo().out().chain());		
+			//
+			std::vector<Transaction::UnlinkedOut> lMyBuzzerUtxos = composer_->buzzerUtxo();
+			if (!lMyBuzzerUtxos.size()) {
+				composer_->requestProcessor()->selectUtxoByEntity(lMyBuzzer->myName(), 
+					SelectUtxoByEntityName::instance(
+						boost::bind(&BuzzerLightComposer::CreateTxBuzzerDeclineConversation::saveBuzzerUtxo, shared_from_this(), _1, _2),
+						boost::bind(&BuzzerLightComposer::CreateTxBuzzerDeclineConversation::timeout, shared_from_this()))
+				);
+			} else {
+				utxoByBuzzerLoaded(lMyBuzzerUtxos, lMyBuzzer->myName());
+			}
+
+		} else {
+			error_("E_BUZZER_TX_INCONSISTENT", "Buzzer tx is inconsistent."); return;	
+		}
+	} else {
+		error_("E_BUZZER_TX_NOT_FOUND", "Local buzzer was not found."); return;
+	}
+}
+
+void BuzzerLightComposer::CreateTxBuzzerDeclineConversation::saveBuzzerUtxo(const std::vector<Transaction::UnlinkedOut>& utxo, const std::string& buzzer) {
+	//
+	TxBuzzerPtr lMyBuzzer = composer_->buzzerTx();
+	composer_->writeBuzzerUtxo(utxo);
+	utxoByBuzzerLoaded(utxo, lMyBuzzer->myName());
+}
+
+void BuzzerLightComposer::CreateTxBuzzerDeclineConversation::utxoByBuzzerLoaded(const std::vector<Transaction::UnlinkedOut>& utxo, const std::string& buzzer) {
+	//
+	SKeyPtr lSKey = composer_->wallet()->firstKey();
+	PKey lPKey = lSKey->createPKey();	
+
+	if (!lSKey->valid()) { error_("E_KEY", "Secret key is invalid."); return; }
+
+	if (!utxo.size() || conversationUtxo_.size() <= TX_BUZZER_CONVERSATION_MESSAGE_OUT) {
+		error_("E_BUZZER_TX_INCONSISTENT", "Buzzer tx is inconsistent."); return;	
+	}
+
+	// in[0] - buzzer utxo
+	declineTx_->addMyBuzzerIn(*lSKey, Transaction::UnlinkedOut::instance(*(utxo.begin()))); // first out
+	// in[1] - conversation accept out
+	declineTx_->addConversationIn(*lSKey, Transaction::UnlinkedOut::instance(conversationUtxo_[TX_BUZZER_CONVERSATION_DECLINE_OUT].utxo()));
+	// make extra signature
+	declineTx_->makeSignature(*lSKey, composer_->buzzerId());
+
+	if (!declineTx_->finalize(*lSKey)) { error_("E_TX_FINALIZE", "Transaction finalization failed."); return; }
+
+	created_(ctx_);
+}
+
+//
+// CreateTxBuzzerMessage
+//
+void BuzzerLightComposer::CreateTxBuzzerMessage::process(errorFunction error) {
+	//
+	error_ = error;
+	conversationUtxo_.clear();
+
+	//
+	if (!composer_->requestProcessor()->selectUtxoByTransaction(chain_, conversation_, 
+		SelectUtxoByTransaction::instance(
+			boost::bind(&BuzzerLightComposer::CreateTxBuzzerMessage::utxoByConversationLoaded, shared_from_this(), _1, _2),
+			boost::bind(&BuzzerLightComposer::CreateTxBuzzerMessage::timeout, shared_from_this()))
+	)) { error_("E_LOAD_UTXO_BY_CONVERSATION", "Conversation loading failed."); return; }
+}
+
+void BuzzerLightComposer::CreateTxBuzzerMessage::utxoByConversationLoaded(const std::vector<Transaction::NetworkUnlinkedOut>& utxo, const uint256& tx) {
+	//
+	conversationUtxo_ = utxo;
+
+	// create empty tx
+	messageTx_ = TransactionHelper::to<TxBuzzerMessage>(TransactionFactory::create(TX_BUZZER_MESSAGE));
+	// create context
+	ctx_ = TransactionContext::instance(messageTx_);
+	// check
+	if (!composer_->buzzerInfoTx()) {
+		error_("E_BUZZER_INFO_ABSENT", "Buzzer info is absent."); return;
+	}
+	// get buzzer tx (saved/cached)
+	TxBuzzerPtr lMyBuzzer = composer_->buzzerTx();
+	if (lMyBuzzer) {
+		// extract bound shard
+		if (lMyBuzzer->in().size() > 1) {
+			//
+			SKeyPtr lSKey = composer_->wallet()->firstKey();
+			if (!lSKey->valid()) { error_("E_KEY", "Secret key is invalid."); return; }
+			// set info
+			messageTx_->setBuzzerInfo(composer_->buzzerInfoTx()->id());
+			// set info chain
+			messageTx_->setBuzzerInfoChain(composer_->buzzerInfoTx()->chain());
+			// score
+			messageTx_->setScore(composer_->buzzer()->score());
+			// pointers
+			messageTx_->setMediaPointers(mediaPointers_);
+			// set timestamp
+			messageTx_->setTimestamp(qbit::getMedianMicroseconds());
+			// set body
+			messageTx_->setBody(body_, *lSKey, pkey_);
+			//
+			TxBuzzerPtr lMyBuzzer = composer_->buzzerTx();
+			std::vector<Transaction::UnlinkedOut> lMyBuzzerUtxos = composer_->buzzerUtxo();
+			//
+			if (!lMyBuzzerUtxos.size()) {
+				composer_->requestProcessor()->selectUtxoByEntity(lMyBuzzer->myName(), 
+					SelectUtxoByEntityName::instance(
+						boost::bind(&BuzzerLightComposer::CreateTxBuzzerMessage::saveBuzzerUtxo, shared_from_this(), _1, _2),
+						boost::bind(&BuzzerLightComposer::CreateTxBuzzerMessage::timeout, shared_from_this()))
+				);
+			} else {
+				utxoByBuzzerLoaded(lMyBuzzerUtxos, lMyBuzzer->myName());
+			}
+		} else {
+			error_("E_BUZZER_TX_INCONSISTENT", "Buzzer tx is inconsistent."); return;	
+		}
+	} else {
+		error_("E_BUZZER_TX_NOT_FOUND", "Local buzzer was not found."); return;
+	}
+}
+
+void BuzzerLightComposer::CreateTxBuzzerMessage::saveBuzzerUtxo(const std::vector<Transaction::UnlinkedOut>& utxo, const std::string& buzzer) {
+	//
+	TxBuzzerPtr lMyBuzzer = composer_->buzzerTx();
+	composer_->writeBuzzerUtxo(utxo);
+	utxoByBuzzerLoaded(utxo, lMyBuzzer->myName());
+}
+
+void BuzzerLightComposer::CreateTxBuzzerMessage::utxoByBuzzerLoaded(const std::vector<Transaction::UnlinkedOut>& utxo, const std::string& buzzer) {
+	//
+	SKeyPtr lSKey = composer_->wallet()->firstKey();
+	PKey lPKey = lSKey->createPKey();	
+
+	if (!lSKey->valid()) { error_("E_KEY", "Secret key is invalid."); return; }
+
+	if (!utxo.size() || conversationUtxo_.size() <= TX_BUZZER_CONVERSATION_MESSAGE_OUT) {
+		error_("E_BUZZER_TX_INCONSISTENT", "Buzzer tx is inconsistent."); return;	
+	}
+
+	// in[0] - buzzer utxo for new buzz
+	messageTx_->addMyBuzzerIn(*lSKey, Transaction::UnlinkedOut::instance(*(utxo.begin()))); // first out
+	// in[1] - buzz reply out
+	messageTx_->addConversationIn(*lSKey, Transaction::UnlinkedOut::instance(conversationUtxo_[TX_BUZZER_CONVERSATION_MESSAGE_OUT].utxo()));
+	// set shard
+	messageTx_->setChain(conversationUtxo_[TX_BUZZER_CONVERSATION_MESSAGE_OUT].utxo().out().chain());
+	// reply out
+	messageTx_->addMessageReplyOut(*lSKey, lPKey); // out[0]
+
+	// prepare fee tx
+	amount_t lFeeAmount = ctx_->size();
+	TransactionContextPtr lFee;
+
+	try {
+		lFee = composer_->wallet()->createTxFee(lPKey, lFeeAmount); // size-only, without ratings
+		if (!lFee) { error_("E_TX_CREATE", "Transaction creation error."); return; }
+	}
+	catch(qbit::exception& ex) {
+		error_(ex.code(), ex.what()); return;
+	}
+	catch(std::exception& ex) {
+		error_("E_TX_CREATE", ex.what()); return;
+	}
+
+	std::list<Transaction::UnlinkedOutPtr> lFeeUtxos = lFee->tx()->utxos(TxAssetType::qbitAsset()); // we need only qbits
+	if (lFeeUtxos.size()) {
+		// utxo[0]
+		messageTx_->addIn(*lSKey, *(lFeeUtxos.begin())); // qbit fee that was exact for fee - in
+		messageTx_->addFeeOut(*lSKey, TxAssetType::qbitAsset(), lFeeAmount); // to the miner
+	} else {
+		error_("E_FEE_UTXO_ABSENT", "Fee utxo for buzz was not found."); return;
+	}
+
+	// push linked tx, which need to be pushed and broadcasted before this
+	ctx_->addLinkedTx(lFee);
+
+	if (!messageTx_->finalize(*lSKey)) { error_("E_TX_FINALIZE", "Transaction finalization failed."); return; }
+
+	created_(ctx_);
+}

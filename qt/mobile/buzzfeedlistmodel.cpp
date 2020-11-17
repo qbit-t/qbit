@@ -169,7 +169,7 @@ QVariant BuzzfeedListModel::data(const QModelIndex& index, int role) const {
 	} else if (role == HasNextSiblingRole) {
 		//
 		int lCurrentIndex = index.row();
-		if (lCurrentIndex + 1 < list_.size()) {
+		if (lCurrentIndex + 1 < (int)list_.size()) {
 			if (!list_[lCurrentIndex + 1]->originalBuzzId().isEmpty()) return true;
 		}
 		return false;
@@ -183,7 +183,7 @@ QVariant BuzzfeedListModel::data(const QModelIndex& index, int role) const {
 	} else if (role == NextSiblingIdRole) {
 		//
 		int lCurrentIndex = index.row();
-		if (lCurrentIndex + 1 < list_.size()) {
+		if (lCurrentIndex + 1 < (int)list_.size()) {
 			return QString::fromStdString(list_[lCurrentIndex + 1]->buzzId().toHex());
 		}
 		return "";
@@ -293,7 +293,7 @@ void BuzzfeedListModel::feed(qbit::BuzzfeedPtr local, bool more) {
 		noMoreData_ = false;
 
 		// make index
-		for (int lItem = 0; lItem < list_.size(); lItem++) {
+		for (int lItem = 0; lItem < (int)list_.size(); lItem++) {
 			index_[list_[lItem]->key()] = lItem;
 			//qInfo() << "Initial: " << QString::fromStdString(list_[lItem]->key().toString()) << QString::fromStdString(list_[lItem]->buzzBodyString());
 		}
@@ -401,7 +401,12 @@ void BuzzfeedListModel::buzzfeedItemNewSlot(const qbit::BuzzfeedItemProxy& buzz)
 				list_.insert(list_.begin() + lIndex, lBuzzfeedItem);
 			}
 
-			index_[lBuzzfeedItem->key()] = lIndex;
+			// rebuild index
+			index_.clear();
+			//
+			for (int lItem = 0; lItem < (int)list_.size(); lItem++) {
+				index_[list_[lItem]->key()] = lItem;
+			}
 
 			qInfo() << "BuzzfeedListModel::buzzfeedItemNewSlot -> insert" << lIndex;
 			beginInsertRows(QModelIndex(), lIndex, lIndex);
@@ -510,6 +515,8 @@ BuzzfeedListModelPersonal::BuzzfeedListModelPersonal() {
 	);
 
 	buzzfeed_->prepare();
+
+	QQmlEngine::setObjectOwnership(this, QQmlEngine::CppOwnership);
 }
 
 BuzzfeedListModelGlobal::BuzzfeedListModelGlobal() {
@@ -527,6 +534,8 @@ BuzzfeedListModelGlobal::BuzzfeedListModelGlobal() {
 	);
 
 	buzzfeed_->prepare();
+
+	QQmlEngine::setObjectOwnership(this, QQmlEngine::CppOwnership);
 }
 
 BuzzfeedListModelBuzzer::BuzzfeedListModelBuzzer() {
@@ -580,6 +589,26 @@ BuzzfeedListModelTag::BuzzfeedListModelTag() {
 		boost::bind(&BuzzfeedListModel::buzzfeedItemsUpdated, this, _1),
 		boost::bind(&BuzzfeedListModel::buzzfeedItemAbsent, this, _1, _2),
 		qbit::BuzzfeedItem::Merge::INTERSECT
+	);
+
+	buzzfeed_->prepare();
+}
+
+ConversationMessagesList::ConversationMessagesList() {
+	//
+	Client* lClient = static_cast<Client*>(gApplication->getClient());
+	//
+	buzzfeed_ = qbit::Buzzfeed::instance(lClient->getBuzzer(),
+		boost::bind(&qbit::BuzzerLightComposer::getCounterparty, lClient->getBuzzerComposer(), _1, _2),
+		boost::bind(&qbit::BuzzerLightComposer::verifyPublisherLazy, lClient->getBuzzerComposer(), _1),
+		boost::bind(&BuzzfeedListModel::buzzfeedLargeUpdated, this),
+		boost::bind(&BuzzfeedListModel::buzzfeedItemNew, this, _1),
+		boost::bind(&BuzzfeedListModel::buzzfeedItemUpdated, this, _1),
+		boost::bind(&BuzzfeedListModel::buzzfeedItemsUpdated, this, _1),
+		boost::bind(&BuzzfeedListModel::buzzfeedItemAbsent, this, _1, _2),
+		qbit::BuzzfeedItem::Merge::INTERSECT,
+		qbit::BuzzfeedItem::Order::FORWARD,
+		qbit::BuzzfeedItem::Group::TIMESTAMP
 	);
 
 	buzzfeed_->prepare();

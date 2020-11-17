@@ -536,6 +536,24 @@ Item {
 		}
 	}
 
+	Timer {
+		id: openConversation
+		interval: 500
+		repeat: false
+		running: false
+
+		onTriggered: {
+			//
+			var lId = buzzerClient.getConversationsList().locateConversation(buzzerName_);
+			// conversation found
+			if (lId !== "") {
+				openBuzzerConversation(lId);
+			} else {
+				start();
+			}
+		}
+	}
+
 	//
 	// body
 	//
@@ -969,6 +987,15 @@ Item {
 				buzzerMistrustCommand.process(buzzerName_);
 			} else if (key === "copytx") {
 				clipboard.setText(buzzId_);
+			} else if (key === "conversation") {
+				//
+				var lId = buzzerClient.getConversationsList().locateConversation(buzzerName_);
+				// conversation found
+				if (lId !== "") {
+					openBuzzerConversation(lId);
+				} else {
+					createConversation.process(buzzerName_);
+				}
 			}
 		}
 
@@ -999,6 +1026,11 @@ Item {
 						keySymbol: Fonts.unsubscribeSym,
 						name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.unsubscribe")});
 				}
+
+				menuModel.append({
+					key: "conversation",
+					keySymbol: Fonts.conversationMessageSym,
+					name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.conversation")});
 			}
 
 			menuModel.append({
@@ -1197,6 +1229,41 @@ Item {
 		}
 		onError: {
 			handleError(code, message);
+		}
+	}
+
+	BuzzerCommands.CreateConversationCommand {
+		id: createConversation
+
+		onProcessed: {
+			// open conversation
+			openConversation.start();
+		}
+
+		onError: {
+			// code, message
+			handleError(code, message);
+		}
+	}
+
+	function openBuzzerConversation(conversationId) {
+		// open conversation
+		var lComponent = null;
+		var lPage = null;
+
+		//
+		lComponent = Qt.createComponent("qrc:/qml/conversationthread.qml");
+		if (lComponent.status === Component.Error) {
+			controller.showError(lComponent.errorString());
+		} else {
+			lPage = lComponent.createObject(controller);
+			lPage.controller = controller;
+
+			var lConversation = buzzerClient.locateConversation(conversationId);
+			if (lConversation) {
+				addPage(lPage);
+				lPage.start(conversationId, lConversation, buzzerClient.getConversationsList());
+			}
 		}
 	}
 

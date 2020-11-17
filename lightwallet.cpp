@@ -85,6 +85,21 @@ SKeyPtr LightWallet::changeKey() {
 	return firstKey();
 }
 
+void LightWallet::removeAllKeys() {
+	//
+	db::DbContainer<uint160 /*id*/, SKey>::Iterator lKey = keys_.begin();
+	for (; lKey.valid(); ++lKey) {
+		//
+		keys_.remove(lKey);
+	}
+
+	//
+	{
+		boost::unique_lock<boost::recursive_mutex> lLock(keyMutex_);
+		keysCache_.clear();
+	}
+}
+
 bool LightWallet::open(const std::string& secret) {
 	if (!opened_ && !gLightDaemon) {
 		try {
@@ -195,27 +210,29 @@ void LightWallet::handleReply(TransactionPtr tx) {
 
 void LightWallet::handleReply(const std::vector<Transaction::NetworkUnlinkedOut>& outs, const PKey& pkey) {
 	//
+	if (gLog().isEnabled(Log::WALLET)) 
+		gLog().write(Log::WALLET, strprintf("[prepareCache]: outs.size() = %d", outs.size()));
+	//
 	for (std::vector<Transaction::NetworkUnlinkedOut>::const_iterator lOut = outs.begin(); lOut != outs.end(); lOut++) {
 		Transaction::NetworkUnlinkedOut& lOutRef = const_cast<Transaction::NetworkUnlinkedOut&>(*lOut);
 		uint256 lUtxoId = lOutRef.utxo().hash();
+		//
+		if (gLog().isEnabled(Log::WALLET)) 
+			gLog().write(Log::WALLET, strprintf("[prepareCache]: amount = %d, %s", lOutRef.utxo().amount(), lOutRef.utxo().out().toString()));
+
 		if (lOutRef.utxo().amount() != 0) {
 			// make map
 			assetsCache_[lOutRef.utxo().out().asset()].insert(std::multimap<amount_t, uint256>::value_type(lOutRef.utxo().amount(), lUtxoId));
 			utxoCache_[lUtxoId] = Transaction::NetworkUnlinkedOut::instance(lOutRef);
 		} else {
-			// probably blinded out
+			// probably blinded out (re-cache)
 			Transaction::NetworkUnlinkedOut lUtxoObj;
-			if (!utxo_.read(lUtxoId, lUtxoObj)) {
-				// pre-cache
-				utxoCache_[lUtxoId] = Transaction::NetworkUnlinkedOut::instance(lOutRef);
-				// request for tx
-				if (status_ == IWallet::FETCHING_UTXO) status_ = IWallet::FETCHING_TXS;
-				if (!requestProcessor_->loadTransaction(lOutRef.utxo().out().chain(), lOutRef.utxo().out().tx(), shared_from_this())) {
-					status_ = IWallet::TX_INFO_NOT_FOUND;
-				}
-			} else {
-				utxoCache_[lUtxoId] = Transaction::NetworkUnlinkedOut::instance(lOutRef); // re-create with new confirms
-				utxoCache_[lUtxoId]->setUtxo(lUtxoObj.utxo()); // update utxo
+			// pre-cache
+			utxoCache_[lUtxoId] = Transaction::NetworkUnlinkedOut::instance(lOutRef);
+			// request for tx
+			if (status_ == IWallet::FETCHING_UTXO) status_ = IWallet::FETCHING_TXS;
+			if (!requestProcessor_->loadTransaction(lOutRef.utxo().out().chain(), lOutRef.utxo().out().tx(), shared_from_this())) {
+				status_ = IWallet::TX_INFO_NOT_FOUND;
 			}
 		}
 	}
@@ -1047,6 +1064,8 @@ void LightWallet::selectLog(uint64_t from, std::vector<Transaction::NetworkUnlin
 	if (!from) lFrom = index_.last();
 	else lFrom = index_.find(strprintf("%d", from));
 
+	uint256 lAsset = TxAssetType::qbitAsset(); // default
+
 	for (; items.size() < 10 && lFrom.valid(); --lFrom) {
 		//
 		uint256 lHash = *lFrom;
@@ -1057,7 +1076,7 @@ void LightWallet::selectLog(uint64_t from, std::vector<Transaction::NetworkUnlin
 		//if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[selectLog]: timestamp = %s, from = %d", lTimestamp, from));
 		//
 		Transaction::NetworkUnlinkedOut lOut;
-		if (outs_.read(lHash, lOut) && !lOut.utxo().change() /*exclude change*/) {
+		if (outs_.read(lHash, lOut) && !lOut.utxo().change() /*exclude change*/ && lOut.utxo().out().asset() == lAsset) {
 			//
 			items.push_back(Transaction::NetworkUnlinkedOut::instance(lOut));
 		}
@@ -1077,6 +1096,8 @@ void LightWallet::selectIns(uint64_t from, std::vector<Transaction::NetworkUnlin
 	if (!from) lFrom = value_.last();
 	else lFrom = value_.find(Transaction::NetworkUnlinkedOut::Direction::IN, strprintf("%d", from));
 
+	uint256 lAsset = TxAssetType::qbitAsset(); // default
+
 	lFrom.setKey2Empty(); // off limits
 	for (; items.size() < 10 && lFrom.valid(); --lFrom) {
 		//
@@ -1088,7 +1109,7 @@ void LightWallet::selectIns(uint64_t from, std::vector<Transaction::NetworkUnlin
 		//
 		uint256 lHash = *lFrom;
 		Transaction::NetworkUnlinkedOut lOut;
-		if (outs_.read(lHash, lOut) && !lOut.utxo().change() /*exclude change*/) {
+		if (outs_.read(lHash, lOut) && !lOut.utxo().change() /*exclude change*/ && lOut.utxo().out().asset() == lAsset) {
 			//
 			items.push_back(Transaction::NetworkUnlinkedOut::instance(lOut));
 		}
@@ -1108,6 +1129,8 @@ void LightWallet::selectOuts(uint64_t from, std::vector<Transaction::NetworkUnli
 	if (!from) lFrom = value_.last();
 	else lFrom = value_.find(Transaction::NetworkUnlinkedOut::Direction::OUT, strprintf("%d", from));
 
+	uint256 lAsset = TxAssetType::qbitAsset(); // default
+
 	lFrom.setKey2Empty(); // off limits
 	for (; items.size() < 10 && lFrom.valid(); --lFrom) {
 		//
@@ -1118,12 +1141,14 @@ void LightWallet::selectOuts(uint64_t from, std::vector<Transaction::NetworkUnli
 		//
 		uint256 lHash = *lFrom;
 		Transaction::NetworkUnlinkedOut lOut;
-		if (outs_.read(lHash, lOut) && (lOut.parentType() == Transaction::SPEND || lOut.parentType() == Transaction::SPEND_PRIVATE)) {
+		if (outs_.read(lHash, lOut) && (lOut.parentType() == Transaction::SPEND || lOut.parentType() == Transaction::SPEND_PRIVATE) &&
+				lOut.utxo().out().asset() == lAsset) {
 			//
+			//if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[selectOuts]: parentType = %d", lOut.parentType()));
 			items.push_back(Transaction::NetworkUnlinkedOut::instance(lOut));
 		}
 	}
 
 	//
-	//if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[selectOuts]: items.size = %d", items.size()));	
+	//if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[selectOuts]: items.size = %d", items.size()));
 }

@@ -9,6 +9,7 @@
 #include "../../../irequestprocessor.h"
 #include "../../../dapps/buzzer/peerextension.h"
 #include "../../../dapps/buzzer/buzzfeed.h"
+#include "../../../dapps/buzzer/conversationsfeed.h"
 #include "../../../dapps/buzzer/txrebuzz.h"
 
 #include <boost/atomic.hpp>
@@ -197,6 +198,27 @@ public:
 		return lCount;
 	}
 
+	int selectConversations(const uint256& chain, uint64_t from, const uint256& buzzer, int requests, ISelectConversationsFeedByEntityHandlerPtr handler) {
+		//
+		std::map<IRequestProcessor::KeyOrder, IPeerPtr> lOrder;
+		requestProcessor_->collectPeersByChain(chain, lOrder);
+
+		int lCount = 0;
+		if (lOrder.size()) {
+			// use nearest
+			for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::iterator lPeer = lOrder.begin(); lPeer != lOrder.end(); lPeer++) {
+				IPeerExtensionPtr lExtension = lPeer->second->extension("buzzer");
+				if (lExtension) {
+					std::static_pointer_cast<BuzzerPeerExtension>(lExtension)->selectConversations(chain, from, buzzer, handler);
+					// for now just 1 active feed
+					if (++lCount == requests /*may be 2/3 nearest - but it doubles traffic*/) break;
+				}
+			}
+		}
+
+		return lCount;
+	}
+
 	int selectBuzzfeedByBuzz(const uint256& chain, uint64_t from, const uint256& buzz, int requests, ISelectBuzzFeedByEntityHandlerPtr handler) {
 		//
 		std::map<IRequestProcessor::KeyOrder, IPeerPtr> lOrder;
@@ -211,6 +233,29 @@ public:
 				IPeerExtensionPtr lExtension = lPeer->second->extension("buzzer");
 				if (lExtension) {
 					std::static_pointer_cast<BuzzerPeerExtension>(lExtension)->selectBuzzfeedByBuzz(chain, from, buzz, handler);
+					// for now just 1 active feed
+					if (++lCount == requests /*may be 2/3 nearest - but it doubles traffic*/) break;
+				}
+			}
+		}
+
+		return lCount;
+	}
+
+	int selectMessages(const uint256& chain, uint64_t from, const uint256& conversation, int requests, ISelectBuzzFeedByEntityHandlerPtr handler) {
+		//
+		std::map<IRequestProcessor::KeyOrder, IPeerPtr> lOrder;
+		requestProcessor_->collectPeersByChain(chain, lOrder);
+
+		int lCount = 0;
+		if (lOrder.size()) {
+			// WARNING: if attacker have intent to buzzfeed manipulation, we need to be sure, that the all items
+			// which should be in feed - present and not filtered by attacker node; for this reason now we polling 
+			// several nodes with the given shard 
+			for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::iterator lPeer = lOrder.begin(); lPeer != lOrder.end(); lPeer++) {
+				IPeerExtensionPtr lExtension = lPeer->second->extension("buzzer");
+				if (lExtension) {
+					std::static_pointer_cast<BuzzerPeerExtension>(lExtension)->selectMessages(chain, from, conversation, handler);
 					// for now just 1 active feed
 					if (++lCount == requests /*may be 2/3 nearest - but it doubles traffic*/) break;
 				}

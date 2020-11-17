@@ -137,9 +137,15 @@ int Client::open(QString secret) {
 	std::static_pointer_cast<RequestProcessor>(requestProcessor_)->setWallet(wallet_);
 	wallet_->open(secret.toStdString()); // secret - pin or keystore inlocked pin
 
+	// wallet logs
 	walletLog_ = new WalletTransactionsListModel("log", wallet_);
 	walletReceivedLog_ = new WalletTransactionsListModelReceived(wallet_);
 	walletSentLog_ = new WalletTransactionsListModelSent(wallet_);
+
+	// peers logs
+	peersActive_ = new PeersActiveListModel();
+	peersAll_ = new PeersListModel();
+	peersAdded_ = new PeersAddedListModel();
 
 	// composer
 	composer_ = LightComposer::instance(settings_->shared(), wallet_, requestProcessor_);
@@ -166,6 +172,10 @@ int Client::open(QString secret) {
 	Transaction::registerTransactionType(TX_BUZZER_MISTRUST, TxBuzzerMistrustCreator::instance());
 	Transaction::registerTransactionType(TX_BUZZER_INFO, TxBuzzerInfoCreator::instance());
 	Transaction::registerTransactionType(TX_BUZZ_REWARD, TxBuzzRewardCreator::instance());
+	Transaction::registerTransactionType(TX_BUZZER_CONVERSATION, TxBuzzerConversationCreator::instance());
+	Transaction::registerTransactionType(TX_BUZZER_ACCEPT_CONVERSATION, TxBuzzerAcceptConversationCreator::instance());
+	Transaction::registerTransactionType(TX_BUZZER_DECLINE_CONVERSATION, TxBuzzerDeclineConversationCreator::instance());
+	Transaction::registerTransactionType(TX_BUZZER_MESSAGE, TxBuzzerMessageCreator::instance());
 
 	// buzzer message types
 	Message::registerMessageType(GET_BUZZER_SUBSCRIPTION, "GET_BUZZER_SUBSCRIPTION");
@@ -210,12 +220,19 @@ int Client::open(QString secret) {
 	Message::registerMessageType(GET_BUZZER_AND_INFO, "GET_BUZZER_AND_INFO");
 	Message::registerMessageType(BUZZER_AND_INFO, "BUZZER_AND_INFO");
 	Message::registerMessageType(BUZZER_AND_INFO_ABSENT, "BUZZER_AND_INFO");
+	Message::registerMessageType(GET_CONVERSATIONS_FEED_BY_BUZZER, "GET_CONVERSATIONS_FEED_BY_BUZZER");
+	Message::registerMessageType(CONVERSATIONS_FEED_BY_BUZZER, "CONVERSATIONS_FEED_BY_BUZZER");
+	Message::registerMessageType(GET_MESSAGES_FEED_BY_CONVERSATION, "GET_MESSAGES_FEED_BY_CONVERSATION");
+	Message::registerMessageType(MESSAGES_FEED_BY_CONVERSATION, "MESSAGES_FEED_BY_CONVERSATION");
+	Message::registerMessageType(NEW_BUZZER_CONVERSATION_NOTIFY, "NEW_BUZZER_CONVERSATION_NOTIFY");
+	Message::registerMessageType(NEW_BUZZER_MESSAGE_NOTIFY, "NEW_BUZZER_MESSAGE_NOTIFY");
+	Message::registerMessageType(UPDATE_BUZZER_CONVERSATION_NOTIFY, "UPDATE_BUZZER_CONVERSATION_NOTIFY");
 
 	// buzzer request processor
 	buzzerRequestProcessor_ = BuzzerRequestProcessor::instance(requestProcessor_);
 
 	// buzzer
-	buzzer_ = Buzzer::instance(requestProcessor_, buzzerRequestProcessor_, boost::bind(&Client::trustScoreUpdated, this, _1, _2));
+	buzzer_ = Buzzer::instance(requestProcessor_, buzzerRequestProcessor_, wallet_, boost::bind(&Client::trustScoreUpdated, this, _1, _2));
 
 	// buzzer composer
 	buzzerComposer_ = BuzzerLightComposer::instance(settings_->shared(), buzzer_, wallet_, requestProcessor_, buzzerRequestProcessor_);
@@ -227,6 +244,7 @@ int Client::open(QString secret) {
 	// create basic models
 	buzzfeedList_ = new BuzzfeedListModelPersonal();
 	globalBuzzfeedList_ = new BuzzfeedListModelGlobal();
+	conversationsList_ = new ConversationsListModel();
 
 	// initial
 	buzzer_->setBuzzfeed(buzzfeedList_->buzzfeed());
@@ -240,6 +258,13 @@ int Client::open(QString secret) {
 	// get event feed updates
 	connect(eventsfeedList_, SIGNAL(eventsfeedUpdated(unsigned long long)),
 								this, SLOT(eventsfeedUpdated(unsigned long long)));
+
+	// conversations feed
+	buzzer_->setConversations(conversationsList_->conversations());
+
+	// get conversation updates
+	connect(conversationsList_, SIGNAL(conversationsUpdated(unsigned long long)),
+								this, SLOT(conversationsUpdated(unsigned long long)));
 
 	// buzzer peer extention
 	PeerManager::registerPeerExtension(
@@ -281,6 +306,7 @@ int Client::open(QString secret) {
 	qmlRegisterType<buzzer::AskForQbitsCommand>("app.buzzer.commands", 1, 0, "AskForQbitsCommand");
 	qmlRegisterType<buzzer::BalanceCommand>("app.buzzer.commands", 1, 0, "BalanceCommand");
 	qmlRegisterType<buzzer::CreateBuzzerCommand>("app.buzzer.commands", 1, 0, "CreateBuzzerCommand");
+	qmlRegisterType<buzzer::CreateBuzzerInfoCommand>("app.buzzer.commands", 1, 0, "CreateBuzzerInfoCommand");
 	qmlRegisterType<buzzer::LoadBuzzerTrustScoreCommand>("app.buzzer.commands", 1, 0, "LoadBuzzerTrustScoreCommand");
 	qmlRegisterType<buzzer::LoadBuzzesGlobalCommand>("app.buzzer.commands", 1, 0, "LoadBuzzesGlobalCommand");
 	qmlRegisterType<buzzer::LoadBuzzfeedCommand>("app.buzzer.commands", 1, 0, "LoadBuzzfeedCommand");
@@ -312,6 +338,20 @@ int Client::open(QString secret) {
 	qmlRegisterType<buzzer::LoadTransactionCommand>("app.buzzer.commands", 1, 0, "LoadTransactionCommand");
 	qmlRegisterType<buzzer::SendToAddressCommand>("app.buzzer.commands", 1, 0, "SendToAddressCommand");
 
+	qmlRegisterType<buzzer::LoadConversationsCommand>("app.buzzer.commands", 1, 0, "LoadConversationsCommand");
+	qmlRegisterType<buzzer::CreateConversationCommand>("app.buzzer.commands", 1, 0, "CreateConversationCommand");
+	qmlRegisterType<buzzer::AcceptConversationCommand>("app.buzzer.commands", 1, 0, "AcceptConversationCommand");
+	qmlRegisterType<buzzer::DeclineConversationCommand>("app.buzzer.commands", 1, 0, "DeclineConversationCommand");
+	qmlRegisterType<buzzer::DecryptMessageBodyCommand>("app.buzzer.commands", 1, 0, "DecryptMessageBodyCommand");
+	qmlRegisterType<buzzer::DecryptBuzzerMessageCommand>("app.buzzer.commands", 1, 0, "DecryptBuzzerMessageCommand");
+	qmlRegisterType<buzzer::LoadConversationMessagesCommand>("app.buzzer.commands", 1, 0, "LoadConversationMessagesCommand");
+	qmlRegisterType<buzzer::ConversationMessageCommand>("app.buzzer.commands", 1, 0, "ConversationMessageCommand");
+	qmlRegisterType<buzzer::LoadCounterpartyKeyCommand>("app.buzzer.commands", 1, 0, "LoadCounterpartyKeyCommand");
+
+	/*
+	qmlRegisterType<buzzer::SelectConversationCommand>("app.buzzer.commands", 1, 0, "SelectConversationCommand");
+	*/
+
 	qmlRegisterType<buzzer::BuzzfeedListModel>("app.buzzer.commands", 1, 0, "BuzzfeedListModel");
 	qmlRegisterType<buzzer::BuzzfeedListModelPersonal>("app.buzzer.commands", 1, 0, "BuzzfeedListModelPersonal");
 	qmlRegisterType<buzzer::BuzzfeedListModelGlobal>("app.buzzer.commands", 1, 0, "BuzzfeedListModelGlobal");
@@ -330,16 +370,27 @@ int Client::open(QString secret) {
 	qmlRegisterType<buzzer::WalletTransactionsListModelReceived>("app.buzzer.commands", 1, 0, "WalletTransactionsListModelReceived");
 	qmlRegisterType<buzzer::WalletTransactionsListModelSent>("app.buzzer.commands", 1, 0, "WalletTransactionsListModelSent");
 
+	qmlRegisterType<buzzer::PeersListModel>("app.buzzer.commands", 1, 0, "PeersListModel");
+	qmlRegisterType<buzzer::PeersActiveListModel>("app.buzzer.commands", 1, 0, "PeersActiveListModel");
+	qmlRegisterType<buzzer::PeersAddedListModel>("app.buzzer.commands", 1, 0, "PeersAddedListModel");
+
+	qmlRegisterType<buzzer::ConversationsfeedListModel>("app.buzzer.commands", 1, 0, "ConversationsfeedListModel");
+	qmlRegisterType<buzzer::ConversationsListModel>("app.buzzer.commands", 1, 0, "ConversationsListModel");
+
 	qRegisterMetaType<qbit::BuzzfeedProxy>("qbit::BuzzfeedProxy");
 	qRegisterMetaType<qbit::BuzzfeedItemProxy>("qbit::BuzzfeedItemProxy");
 	qRegisterMetaType<qbit::BuzzfeedItemUpdatesProxy>("qbit::BuzzfeedItemUpdatesProxy");
 
 	qRegisterMetaType<qbit::EventsfeedProxy>("qbit::EventsfeedProxy");
+	qRegisterMetaType<qbit::ConversationsfeedProxy>("qbit::ConversationsfeedProxy");
+
+	qRegisterMetaType<qbit::ConversationItemProxy>("qbit::ConversationItemProxy");
 	qRegisterMetaType<qbit::EventsfeedItemProxy>("qbit::EventsfeedItemProxy");
 
 	qRegisterMetaType<buzzer::UnlinkedOutProxy>("buzzer::UnlinkedOutProxy");
 	qRegisterMetaType<buzzer::NetworkUnlinkedOutProxy>("buzzer::NetworkUnlinkedOutProxy");
 	qRegisterMetaType<buzzer::TransactionProxy>("buzzer::TransactionProxy");
+	qRegisterMetaType<buzzer::PeerProxy>("buzzer::PeerProxy");
 
 	qRegisterMetaType<buzzer::Contact>("buzzer::Contact");
 
@@ -377,6 +428,29 @@ int Client::open(QString secret) {
 	return 1;
 }
 
+void Client::cleanUpBuzzerCache() {
+	// TODO: do we need to clear local containers?
+	if (wallet_) {
+		prepareCache();
+	}
+}
+
+void Client::preregisterBuzzerInstance() {
+	//
+	getBuzzerComposer()->proposeDAppInstance();
+}
+
+QVariant Client::locateConversation(QString id) {
+	//
+	uint256 lConversationId; lConversationId.setHex(id.toStdString());
+	if (conversationsList_) {
+		ConversationItemPtr lItem = conversationsList_->conversations()->locateItem(lConversationId);
+		return QVariant::fromValue(new qbit::QConversationItem(lItem));
+	}
+
+	return QVariant();
+}
+
 void Client::addContact(QString buzzer, QString pkey) {
 	getBuzzerComposer()->addContact(buzzer.toStdString(), pkey.toStdString());
 	emit contactsChanged();
@@ -385,6 +459,22 @@ void Client::addContact(QString buzzer, QString pkey) {
 void Client::removeContact(QString buzzer) {
 	getBuzzerComposer()->removeContact(buzzer.toStdString());
 	emit contactsChanged();
+}
+
+bool Client::addPeerExplicit(QString endpoint) {
+	//
+	if (peerManager_) {
+		return peerManager_->addPeerExplicit(endpoint.toStdString()) != nullptr;
+	}
+
+	return false;
+}
+
+void Client::removePeer(QString endpoint) {
+	//
+	if (peerManager_) {
+		peerManager_->removePeer(endpoint.toStdString());
+	}
 }
 
 QList<buzzer::Contact*> Client::selectContacts() {
@@ -638,6 +728,8 @@ void Client::peerPushed(qbit::IPeerPtr peer, bool update, int count) {
 	}
 
 	setBuzzerDAppReady();
+
+	emit peerPushedSignal(PeerProxy(peer), update, count);
 }
 
 void Client::peerPopped(qbit::IPeerPtr peer, int count) {
@@ -654,6 +746,8 @@ void Client::peerPopped(qbit::IPeerPtr peer, int count) {
 	}
 
 	setBuzzerDAppReady();
+
+	emit peerPoppedSignal(PeerProxy(peer), count);
 }
 
 void Client::prepareCache() {
@@ -726,6 +820,40 @@ QStringList Client::firstSeedWords() {
 	}
 
 	return QStringList();
+}
+
+void Client::removeAllKeys() {
+	//
+	if (wallet_) {
+		wallet_->removeAllKeys();
+	}
+}
+
+bool Client::importKey(QStringList words) {
+	//
+	std::list<std::string> lWords;
+	for (QStringList::iterator lWord = words.begin(); lWord != words.end(); lWord++) {
+		lWords.push_back(lWord->toStdString());
+	}
+
+	if (wallet_) {
+		qbit::SKeyPtr lSKey = wallet_->createKey(lWords);
+		return lSKey->valid();
+	}
+
+	return false;
+}
+
+bool Client::checkKey(QStringList words) {
+	//
+	std::list<std::string> lWords;
+	for (QStringList::iterator lWord = words.begin(); lWord != words.end(); lWord++) {
+		lWords.push_back(lWord->toStdString());
+	}
+
+	qbit::SKey lSKey(lWords);
+	lSKey.create();
+	return lSKey.valid();
 }
 
 void Client::unlink() {

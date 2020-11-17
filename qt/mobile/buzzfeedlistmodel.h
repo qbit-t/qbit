@@ -167,6 +167,11 @@ public:
 	BuzzfeedListModelTag();
 };
 
+class ConversationMessagesList: public BuzzfeedListModel {
+public:
+	ConversationMessagesList();
+};
+
 }
 
 #endif // BUZZFEED_LIST_MODEL_H

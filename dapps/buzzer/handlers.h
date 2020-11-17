@@ -117,6 +117,7 @@ typedef std::shared_ptr<ILoadBuzzerAndInfoHandler> ILoadBuzzerAndInfoHandlerPtr;
 typedef boost::function<void (EntityPtr, TransactionPtr)> buzzerAndInfoLoadedFunction;
 typedef boost::function<void (EntityPtr, TransactionPtr, const std::string&)> buzzerAndInfoByBuzzerLoadedFunction;
 typedef boost::function<void (EntityPtr, TransactionPtr, const std::string&, const ProcessingError&)> buzzerAndInfoDoneWithErrorFunction;
+typedef boost::function<void (EntityPtr, TransactionPtr, const std::vector<Transaction::NetworkUnlinkedOut>&, const std::string&, const ProcessingError&)> buzzerInfoAndUtxoDoneWithErrorFunction;
 
 // load buzzer & info
 class LoadBuzzerAndInfo: public ILoadBuzzerAndInfoHandler, public std::enable_shared_from_this<LoadBuzzerAndInfo> {

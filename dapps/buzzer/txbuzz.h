@@ -49,7 +49,7 @@ public:
 		if (body_.size() > TX_BUZZ_BODY_SIZE) body_.resize(TX_BUZZ_BODY_SIZE);
 	}
 
-	inline std::vector<unsigned char>& body() { return body_; }
+	inline const std::vector<unsigned char>& body() const { return body_; }
 	inline void body(std::string& body) {
 		body.insert(body.end(), body_.begin(), body_.end());		
 	}

@@ -48,6 +48,7 @@ public:
 	virtual IPeerPtr addPeerExplicit(const std::string& /*endpoint*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::addPeerExplicit - not implemented."); }
 	virtual void deactivatePeer(IPeerPtr /*peer*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::deactivatePeer - not implemented."); }
 	virtual void removePeer(IPeerPtr /*peer*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::removePeer - not implemented."); }
+	virtual void removePeer(const std::string& /*endpoint*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::removePeer - not implemented."); }
 
 	virtual uint32_t clients() { throw qbit::exception("NOT_IMPL", "IPeerManager::clients - not implemented."); }
 
@@ -58,6 +59,7 @@ public:
 	virtual void activePeers(std::vector<std::string>& /*peers container*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::activePeers - not implemented."); }
 
 	virtual void allPeers(std::list<IPeerPtr>& /*peers*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::allPeers - not implemented."); }
+	virtual void explicitPeers(std::list<IPeerPtr>& /*peers*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::explicitPeers - not implemented."); }
 
 	virtual boost::asio::io_context& getContext(int /*id*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::getContext - not implemented."); }
 	virtual int getContextId() { throw qbit::exception("NOT_IMPL", "IPeerManager::getContextId - not implemented."); }
