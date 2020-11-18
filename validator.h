@@ -257,7 +257,7 @@ private:
 						std::cout << "POW_OK" << std::endl;
 						if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[validator/miner]: VerifyCycle POW_OK"));
 					else
-						std::cout << "Not POW_OK " << lRes << std::endl;
+						std::cout << "Not POW_OK " << lRes << " " << POW_NON_MATCHING << std::endl;
 						if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[validator/miner]: VerifyCycle Not POW_OK"));
 					
 					IConsensus::ChainState lState = consensus_->chainState();
