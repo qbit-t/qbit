@@ -176,16 +176,9 @@ public:
 
 	void collectPendingTransactions(std::list<TransactionPtr>& list) {
 		//
-		std::cout << "start collect" << std::endl;
-
 		db::DbEntityContainer<uint256 /*tx*/, Transaction /*data*/>::Transaction lDbTx = pendingtxs_.transaction();
-
-		std::cout << "tx list received" << std::endl;
-
 		for (db::DbEntityContainer<uint256 /*tx*/, Transaction /*data*/>::Iterator lTx = pendingtxs_.begin(); lTx.valid(); lTx++) {
 			//
-			std::cout << "star proc tx" << std::endl;
-
 			TransactionPtr lTxPtr = *lTx;
 			if (lTxPtr) {
 				list.push_back(lTxPtr);
@@ -195,15 +188,9 @@ public:
 					lDbTx.remove(lId);
 				}
 			}
-
-			std::cout << "finished tx proc" << std::endl;
 		}
 
-		std::cout << "tx list processed" << std::endl;
-
 		lDbTx.commit();
-
-		std::cout << "collect finished" << std::endl;
 	}
 
 	void writePendingTransaction(const uint256& id, TransactionPtr tx) {

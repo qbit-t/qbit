@@ -3,11 +3,13 @@
 
 #include "./hash/cuckoo.h"
 #include "block.h"
-#include "itransactionstore.h"
 
 namespace qbit {
 
-uint32_t GetNextWorkRequired(ITransactionStorePtr store, BlockHeader &current);
+class ITransactionStore;
+typedef std::shared_ptr<ITransactionStore> ITransactionStorePtr;
+
+uint32_t getNextWorkRequired(ITransactionStorePtr store, BlockPtr current);
 
 }
 
