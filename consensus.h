@@ -129,11 +129,19 @@ public:
 
     		// Check range
     		if (lNegative || lTarget == 0 || lOverflow) // || bnTarget > UintToArith256(params.powLimit.uHashLimit)
+    		{
+    			if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, 
+					strprintf("[checkSequenceConsistency]: lNegative || lTarget == 0 || lOverflow"));
         		return false;
+    		}
 
     		// Check proof of work matches claimed amount
     		if (UintToArith256(const_cast<BlockHeader&>(block).hash()) > lTarget)
+    		{
+    			if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, 
+					strprintf("[checkSequenceConsistency]: Check proof failed"));
         		return false;
+    		}
 
     		return true;
 		}
