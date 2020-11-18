@@ -145,6 +145,8 @@ public:
     		return true;
 		}
 
+		gLog().write(Log::CONSENSUS, "[checkSequenceConsistency]: Not POW_OK");
+
 		return false;
 	}
 
