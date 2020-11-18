@@ -118,30 +118,27 @@ public:
 	//
 	// PoW/PoS work sequnce with "block" and "block->prev"
 	virtual bool checkSequenceConsistency(const BlockHeader& block) {
-		/*
-		int res = VerifyCycle(const_cast<BlockHeader&>(block).hash(), EDGEBITS, PROOFSIZE, block.cycle_);
-		if(res == verify_code::POW_OK) {
-			bool fNegative;
-    		bool fOverflow;
-    		arith_uint256 bnTarget;
+		//
+		int lRes = VerifyCycle(const_cast<BlockHeader&>(block).hash(), EDGEBITS, PROOFSIZE, block.cycle_);
+		if(lRes == verify_code::POW_OK) {
+			bool lNegative = false;
+    		bool lOverflow = false;
+    		arith_uint256 lTarget;
 
-    		bnTarget.SetCompact(block.bits_, &fNegative, &fOverflow);
+    		lTarget.SetCompact(block.bits_, &lNegative, &lOverflow);
 
     		// Check range
-    		if (fNegative || bnTarget == 0 || fOverflow) // || bnTarget > UintToArith256(params.powLimit.uHashLimit)
+    		if (lNegative || lTarget == 0 || lOverflow) // || bnTarget > UintToArith256(params.powLimit.uHashLimit)
         		return false;
 
     		// Check proof of work matches claimed amount
-    		if (UintToArith256(const_cast<BlockHeader&>(block).hash()) > bnTarget)
+    		if (UintToArith256(const_cast<BlockHeader&>(block).hash()) > lTarget)
         		return false;
 
     		return true;
 		}
 
 		return false;
-		*/
-		
-		return true;
 	}
 
 	//

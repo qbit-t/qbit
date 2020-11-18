@@ -179,17 +179,7 @@ private:
 					BlockPtr lCurrentBlock = Block::instance();
 
 					// prepare block
-                    BlockContextPtr lCurrentBlockContext = mempool_->beginBlock(lCurrentBlock);
-
-					//calculate work required
-					BlockHeader lPrev, lPPrev;
-					bool fNegative;
-    				bool fOverflow;
-					arith_uint256 target;
-					lCurrentBlock->bits_ = GetNextWorkRequired(store_, *lCurrentBlock);
-					target.SetCompact(lCurrentBlock->bits_, &fNegative, &fOverflow);
-
-					std::cout << "target " << lCurrentBlock->bits_ << " " << fNegative << " " << fOverflow << std::endl;
+					BlockContextPtr lCurrentBlockContext = mempool_->beginBlock(lCurrentBlock);
 
 					// make coinbase tx
 					BlockHeader lHeader;
@@ -208,34 +198,55 @@ private:
 					// TODO: mining -----------------------------------------
 					if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[validator/miner]: looking for a block for ") + strprintf("%s#", chain_.toHex().substr(0, 10)) + "...");
 
-					boost::random::uniform_int_distribution<> lDist(3, (consensus_->blockTime())/1000);
-					int lMSeconds = lDist(lGen); //(consensus_->blockTime())/1000;
+					//
+					// cuckoo -----------------------------------------------
+					//
+
+					//calculate work required
+					BlockHeader lPrev, lPPrev;
+					bool lNegative = false;
+    				bool lOverflow = false;
+					arith_uint256 lTarget;
+					lCurrentBlock->bits_ = qbit::getNextWorkRequired(store_, lCurrentBlock);
+					lTarget.SetCompact(lCurrentBlock->bits_, &lNegative, &lOverflow);
+
+					//std::cout << "target " << lCurrentBlock->bits_ << " " << fNegative << " " << fOverflow << std::endl;
+
 					uint64_t lStartTime = consensus_->currentTime();
 
-					std::cout << "start gen" << std::endl;
-
+					int lNonce = 0;
 					bool lTimeout = false;
-					int nonce = 0;
 					while(minerRunning_) {
-						std::set<uint32_t> cycle;
-						lCurrentBlock->nonce_ = nonce;
-						bool result = FindCycle(lCurrentBlock->hash(), EDGEBITS, PROOFSIZE, cycle);
-						nonce++;
+						//
+						std::set<uint32_t> lCycle;
+						lCurrentBlock->nonce_ = lNonce;
+						bool lResult = FindCycle(lCurrentBlock->hash(), EDGEBITS, PROOFSIZE, lCycle);
+						lNonce++;
+
+						// calculation timed out
 						if (consensus_->currentTime() - lStartTime >= (consensus_->blockTime())/1000) { lTimeout = true; break; }
-						if(cycle.size() == 0) { /*std::cout << "cycle empty" << std::endl;*/  continue; }
-						else { std::cout << "cycle not empty" << std::endl; }
+						if (!lCycle.size()) { /*cycle not found*/  continue; }
+
 						HashWriter lStream(SER_GETHASH, PROTOCOL_VERSION);
-						std::vector<uint32_t> v(cycle.begin(), cycle.end());
-						lCurrentBlock->cycle_ = v;
-						lStream << v;
-						uint256 cycle_hash = lStream.GetHash();
+						std::vector<uint32_t> lVector(lCycle.begin(), lCycle.end());
+						lCurrentBlock->cycle_ = lVector; // save vector
+						lStream << lVector;
+						uint256 lCycleHash = lStream.GetHash();
 
-						arith_uint256 cycle_hash_arith = UintToArith256(cycle_hash);
+						arith_uint256 lCycleHashArith = UintToArith256(lCycleHash);
 
-						std::cout << "nonce " << nonce << " target " << target.GetCompact() << " hash bits " <<  cycle_hash_arith.GetCompact() << " diff " <<  cycle_hash_arith.GetCompact()-target.GetCompact() << std::endl;
+						// std::cout << "nonce " << nonce << " target " << target.GetCompact() << " hash bits " <<  cycle_hash_arith.GetCompact() << " diff " <<  cycle_hash_arith.GetCompact()-target.GetCompact() << std::endl;
 
-						if (fNegative || target == 0 || fOverflow || target < cycle_hash_arith) { if(target < cycle_hash_arith) std::cout << "hash not ok of target" << std::endl; continue; }
-						if (result) { std::cout << "block found" << std::endl; break; }
+						if (lNegative || lTarget == 0 || lOverflow || lTarget < lCycleHashArith) { continue; }
+						if (lResult) { 
+							std::cout << "nonce " << lNonce << " target " << lTarget.GetCompact() << " hash bits " << lCycleHashArith.GetCompact() << " diff " <<  lCycleHashArith.GetCompact()-lTarget.GetCompact() << std::endl;
+							break;
+						}
+					}
+
+					if (lTimeout) { 
+						if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[validator/miner]: timeout exiped during calculation for ") + strprintf("%s/%s#", lCurrentBlock->hash().toHex(), chain_.toHex().substr(0, 10)));
+						continue;
 					}
 					
 					if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[validator/miner]: new block found ") + strprintf("%s/%s#", lCurrentBlock->hash().toHex(), chain_.toHex().substr(0, 10)));
