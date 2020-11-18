@@ -253,9 +253,9 @@ private:
 
 					int lRes = VerifyCycle(lCurrentBlock->hash(), EDGEBITS, PROOFSIZE, lCurrentBlock->cycle_);
 					if(lRes == verify_code::POW_OK) 
-						if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::ERROR, std::string("[miner]: VerifyCycle POW_OK"));
+						if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[miner]: VerifyCycle POW_OK"));
 					else
-						if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::ERROR, std::string("[miner]: VerifyCycle Not POW_OK"));
+						if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[miner]: VerifyCycle Not POW_OK"));
 					
 					IConsensus::ChainState lState = consensus_->chainState();
 					if (minerRunning_ && lState == IConsensus::SYNCHRONIZED) {
