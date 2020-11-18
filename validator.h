@@ -239,7 +239,7 @@ private:
 
 						if (lNegative || lTarget == 0 || lOverflow || lTarget < lCycleHashArith) { continue; }
 						if (lResult) { 
-							std::cout << "nonce " << lNonce << " target " << lTarget.GetCompact() << " hash bits " << lCycleHashArith.GetCompact() << " diff " <<  lCycleHashArith.GetCompact()-lTarget.GetCompact() << std::endl;
+							//std::cout << "nonce " << lNonce << " target " << lTarget.GetCompact() << " hash bits " << lCycleHashArith.GetCompact() << " diff " <<  lCycleHashArith.GetCompact()-lTarget.GetCompact() << std::endl;
 							break;
 						}
 					}
@@ -251,6 +251,12 @@ private:
 					
 					if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[validator/miner]: new block found ") + strprintf("%s/%s#", lCurrentBlock->hash().toHex(), chain_.toHex().substr(0, 10)));
 
+					int lRes = VerifyCycle(lCurrentBlock->hash(), EDGEBITS, PROOFSIZE, lCurrentBlock->block.cycle_);
+					if(lRes == verify_code::POW_OK) 
+						if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::ERROR, std::string("[miner]: VerifyCycle POW_OK"));
+					else
+						if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::ERROR, std::string("[miner]: VerifyCycle Not POW_OK"));
+					
 					IConsensus::ChainState lState = consensus_->chainState();
 					if (minerRunning_ && lState == IConsensus::SYNCHRONIZED) {
 						// commit block
