@@ -233,6 +233,14 @@ private:
 						lStream << lVector;
 						uint256 lCycleHash = lStream.GetHash();
 
+						std::cout << "Verify 1" << std::endl;
+						int lRes = VerifyCycle(lCurrentBlock->hash(), EDGEBITS, PROOFSIZE, lVector);
+						if (lRes == verify_code::POW_OK)
+							std::cout << "POW_OK" << std::endl;
+						else
+							std::cout << "Not POW_OK " << lRes << " " << POW_NON_MATCHING << std::endl;
+
+
 						arith_uint256 lCycleHashArith = UintToArith256(lCycleHash);
 
 						// std::cout << "nonce " << nonce << " target " << target.GetCompact() << " hash bits " <<  cycle_hash_arith.GetCompact() << " diff " <<  cycle_hash_arith.GetCompact()-target.GetCompact() << std::endl;
@@ -255,10 +263,8 @@ private:
 					int lRes = VerifyCycle(lCurrentBlock->hash(), EDGEBITS, PROOFSIZE, lCurrentBlock->cycle_);
 					if (lRes == verify_code::POW_OK)
 						std::cout << "POW_OK" << std::endl;
-						if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[validator/miner]: VerifyCycle POW_OK"));
 					else
 						std::cout << "Not POW_OK " << lRes << " " << POW_NON_MATCHING << std::endl;
-						if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[validator/miner]: VerifyCycle Not POW_OK"));
 					
 					IConsensus::ChainState lState = consensus_->chainState();
 					if (minerRunning_ && lState == IConsensus::SYNCHRONIZED) {
