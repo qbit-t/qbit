@@ -45,6 +45,18 @@ public:
 	}
 
 	template <typename Stream>
+	void serialize_hash(Stream& s) const {
+		s << version_;
+		s << chain_;
+		s << prev_;
+		s << root_;
+		s << origin_;
+		s << time_;
+		s << bits_;
+		s << nonce_;
+	}
+
+	template <typename Stream>
 	void deserialize(Stream& s) {
 		s >> version_;
 		s >> chain_;
