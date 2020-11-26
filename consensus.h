@@ -242,30 +242,29 @@ public:
 		int lRes = VerifyCycle(const_cast<BlockHeader&>(block).hash(), EDGEBITS, PROOFSIZE, block.cycle_);
 		if(lRes == verify_code::POW_OK) {
 			bool lNegative = false;
-    		bool lOverflow = false;
-    		arith_uint256 lTarget;
+			bool lOverflow = false;
+			arith_uint256 lTarget;
 
-    		lTarget.SetCompact(block.bits_, &lNegative, &lOverflow);
+			lTarget.SetCompact(block.bits_, &lNegative, &lOverflow);
 
-    		// Check range
-    		if (lNegative || lTarget == 0 || lOverflow) // || bnTarget > UintToArith256(params.powLimit.uHashLimit)
-    		{
-    			if (gLog().isEnabled(Log::CONSENSUS)) 
-    				gLog().write(Log::CONSENSUS, "[checkSequenceConsistency]: lNegative || lTarget == 0 || lOverflow");
-        		return false;
-    		}
+			// Check range
+			if (lNegative || lTarget == 0 || lOverflow) { // || bnTarget > UintToArith256(params.powLimit.uHashLimit)
+				if (gLog().isEnabled(Log::VALIDATOR)) 
+					gLog().write(Log::VALIDATOR, "[checkSequenceConsistency/error]: lNegative || lTarget == 0 || lOverflow");
+				return false;
+			}
 
-    		// Check proof of work matches claimed amount
-    		if (UintToArith256(const_cast<BlockHeader&>(block).hash()) > lTarget)
-    		{
-    			if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, "[checkSequenceConsistency]: Check proof failed");
-        		return false;
-    		}
+			// Check proof of work matches claimed amount
+			if (UintToArith256(const_cast<BlockHeader&>(block).hash()) > lTarget) {
+				if (gLog().isEnabled(Log::VALIDATOR)) 
+					gLog().write(Log::VALIDATOR, "[checkSequenceConsistency/error]: Proof check FAILED");
+				return false;
+			}
 
-    		return true;
+			return true;
 		}
 
-		gLog().write(Log::CONSENSUS, "[checkSequenceConsistency]: Not POW_OK");
+		gLog().write(Log::VALIDATOR, "[checkSequenceConsistency]: Not POW_OK");
 
 		return false;
 	}

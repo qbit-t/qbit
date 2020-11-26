@@ -45,7 +45,7 @@ public:
 	}
 
 	template <typename Stream>
-	void serialize_hash(Stream& s) const {
+	void serializeHash(Stream& s) const {
 		s << version_;
 		s << chain_;
 		s << prev_;
