@@ -631,6 +631,7 @@ void HttpGetPeerInfo::process(const std::string& source, const HttpRequest& requ
 					lChain.addString("dapp", lInfo->dApp().size() ? lInfo->dApp() : "none");
 					lChain.addUInt64("height", lInfo->height());
 					lChain.addString("chain", lInfo->chain().toHex());
+					lChain.addString("block", lInfo->hash().toHex());
 				}
 			}
 		}

@@ -243,32 +243,34 @@ public:
 		if(lRes == verify_code::POW_OK) {
 			bool lNegative = false;
 			bool lOverflow = false;
+			//
 			arith_uint256 lTarget;
-
 			lTarget.SetCompact(block.bits_, &lNegative, &lOverflow);
 
 			// Check range
 			if (lNegative || lTarget == 0 || lOverflow) { // || bnTarget > UintToArith256(params.powLimit.uHashLimit)
 				if (gLog().isEnabled(Log::VALIDATOR)) 
-					gLog().write(Log::VALIDATOR, "[checkSequenceConsistency/error]: lNegative || lTarget == 0 || lOverflow");
+					gLog().write(Log::VALIDATOR, "[consensus/error]: target wan NOT COMPACTED");
 				return false;
 			}
 
 			// Check proof of work matches claimed amount
-	    HashWriter lStream(SER_GETHASH, PROTOCOL_VERSION);
-	    lStream << block.cycle_;
-	    uint256 lCycleHash = lStream.GetHash();
-	    arith_uint256 lCycleHashArith = UintToArith256(lCycleHash);
-	    if (lCycleHashArith > lTarget) {
+			HashWriter lStream(SER_GETHASH, PROTOCOL_VERSION);
+			lStream << block.cycle_;
+			uint256 lCycleHash = lStream.GetHash();
+			arith_uint256 lCycleHashArith = UintToArith256(lCycleHash);
+
+			// Compare
+			if (lCycleHashArith > lTarget) {
 				if (gLog().isEnabled(Log::VALIDATOR)) 
-					gLog().write(Log::VALIDATOR, "[checkSequenceConsistency/error]: Proof check FAILED");
+					gLog().write(Log::VALIDATOR, "[consensus/error]: cycle is less than TARGET");
 				return false;
 			}
 
 			return true;
 		}
 
-		gLog().write(Log::VALIDATOR, "[checkSequenceConsistency]: Not POW_OK");
+		gLog().write(Log::VALIDATOR, "[consensus/error]: PoW check FAILED");
 
 		return false;
 	}
