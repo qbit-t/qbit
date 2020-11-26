@@ -207,7 +207,7 @@ private:
 					bool lNegative = false;
     				bool lOverflow = false;
 					arith_uint256 lTarget;
-					lCurrentBlock->bits_ = qbit::getNextWorkRequired(store_, lCurrentBlock);
+					lCurrentBlock->bits_ = qbit::getNextWorkRequired(store_, lCurrentBlock, consensus_->blockTime()/1000);
 					lTarget.SetCompact(lCurrentBlock->bits_, &lNegative, &lOverflow);
 
 					uint64_t lStartTime = consensus_->currentTime();
