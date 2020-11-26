@@ -10,7 +10,7 @@ using namespace qbit;
 
 uint256 BlockHeader::hash() {
 	HashWriter lStream(SER_GETHASH, PROTOCOL_VERSION);
-	serialize_hash<HashWriter>(lStream);
+	serializeHash<HashWriter>(lStream);
 	return lStream.GetHash();
 }
 
