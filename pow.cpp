@@ -3,13 +3,13 @@
 
 namespace qbit {
 
-uint32_t getNextWorkRequired(ITransactionStorePtr store, BlockPtr current) {
+uint32_t getNextWorkRequired(ITransactionStorePtr store, BlockPtr current, uint64_t blockTime) {
 	uint32_t bits_limit = 553713663;
 	BlockHeader lPrev, lPPrev;
 	if(store->blockHeader(current->prev(), lPrev)) {
 		if(store->blockHeader(lPrev.prev(), lPPrev)) {
 			uint64_t block_found_time = lPrev.time_ - lPPrev.time_;
-			uint64_t time_limit = 10;
+			uint64_t time_limit = blockTime;
 			double time_shift = (double)block_found_time / (double) time_limit;
 			bool fNegative;
     		bool fOverflow;
