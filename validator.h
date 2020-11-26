@@ -199,7 +199,7 @@ private:
 					if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[validator/miner]: looking for a block for ") + strprintf("%s#", chain_.toHex().substr(0, 10)) + "...");
 
 					//
-					// cuckoo -----------------------------------------------
+					// begin:cuckoo -----------------------------------------------
 					//
 
 					//calculate work required
@@ -209,8 +209,6 @@ private:
 					arith_uint256 lTarget;
 					lCurrentBlock->bits_ = qbit::getNextWorkRequired(store_, lCurrentBlock);
 					lTarget.SetCompact(lCurrentBlock->bits_, &lNegative, &lOverflow);
-
-					//std::cout << "target " << lCurrentBlock->bits_ << " " << fNegative << " " << fOverflow << std::endl;
 
 					uint64_t lStartTime = consensus_->currentTime();
 
@@ -233,21 +231,9 @@ private:
 						lStream << lVector;
 						uint256 lCycleHash = lStream.GetHash();
 
-						std::cout << "Verify 1" << std::endl;
-						int lRes = VerifyCycle(lCurrentBlock->hash(), EDGEBITS, PROOFSIZE, lVector);
-						if (lRes == verify_code::POW_OK)
-							std::cout << "POW_OK" << std::endl;
-						else
-							std::cout << "Not POW_OK " << lRes << " " << POW_NON_MATCHING << std::endl;
-
-
 						arith_uint256 lCycleHashArith = UintToArith256(lCycleHash);
-
-						// std::cout << "nonce " << nonce << " target " << target.GetCompact() << " hash bits " <<  cycle_hash_arith.GetCompact() << " diff " <<  cycle_hash_arith.GetCompact()-target.GetCompact() << std::endl;
-
 						if (lNegative || lTarget == 0 || lOverflow || lTarget < lCycleHashArith) { continue; }
 						if (lResult) { 
-							//std::cout << "nonce " << lNonce << " target " << lTarget.GetCompact() << " hash bits " << lCycleHashArith.GetCompact() << " diff " <<  lCycleHashArith.GetCompact()-lTarget.GetCompact() << std::endl;
 							break;
 						}
 					}
@@ -257,14 +243,17 @@ private:
 						continue;
 					}
 					
-					if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[validator/miner]: new block found ") + strprintf("%s/%s#", lCurrentBlock->hash().toHex(), chain_.toHex().substr(0, 10)));
+					int lVerifyResult = VerifyCycle(lCurrentBlock->hash(), EDGEBITS, PROOFSIZE, lCurrentBlock->cycle_);
+					if (lVerifyResult != verify_code::POW_OK) {
+						if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[validator/miner/error]: cycle verification FAILED for ") + strprintf("%s/%s#", lCurrentBlock->hash().toHex(), chain_.toHex().substr(0, 10)));
+						continue;
+					}
 
-					std::cout << "Verify" << std::endl;
-					int lRes = VerifyCycle(lCurrentBlock->hash(), EDGEBITS, PROOFSIZE, lCurrentBlock->cycle_);
-					if (lRes == verify_code::POW_OK)
-						std::cout << "POW_OK" << std::endl;
-					else
-						std::cout << "Not POW_OK " << lRes << " " << POW_NON_MATCHING << std::endl;
+					//
+					// end:cuckoo -----------------------------------------------
+					//					
+
+					if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[validator/miner]: new block found ") + strprintf("%s/%s#", lCurrentBlock->hash().toHex(), chain_.toHex().substr(0, 10)));					
 					
 					IConsensus::ChainState lState = consensus_->chainState();
 					if (minerRunning_ && lState == IConsensus::SYNCHRONIZED) {
