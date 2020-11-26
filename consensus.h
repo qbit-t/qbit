@@ -255,7 +255,11 @@ public:
 			}
 
 			// Check proof of work matches claimed amount
-			if (UintToArith256(const_cast<BlockHeader&>(block).hash()) > lTarget) {
+	    HashWriter lStream(SER_GETHASH, PROTOCOL_VERSION);
+	    lStream << block.cycle_;
+	    uint256 lCycleHash = lStream.GetHash();
+	    arith_uint256 lCycleHashArith = UintToArith256(lCycleHash);
+	    if (lCycleHashArith > lTarget) {
 				if (gLog().isEnabled(Log::VALIDATOR)) 
 					gLog().write(Log::VALIDATOR, "[checkSequenceConsistency/error]: Proof check FAILED");
 				return false;
