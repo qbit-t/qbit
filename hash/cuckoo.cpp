@@ -289,8 +289,9 @@ bool FindCycle(const uint256& hash, uint8_t edgeBits, uint8_t proofSize, std::se
 // verify that nonces are ascending and form a cycle in header-generated graph
 int VerifyCycle(const uint256& hash, uint8_t edgeBits, uint8_t proofSize, const std::vector<uint32_t>& cycle)
 {
-    assert(cycle.size() == proofSize);
-    assert(edgeBits >= MIN_EDGE_BITS && edgeBits <= MAX_EDGE_BITS);
+    if (cycle.size() != proofSize) return POW_SHORT_CYCLE;
+    // if (edgeBits < MIN_EDGE_BITS || edgeBits > MAX_EDGE_BITS) return POW_SHORT_CYCLE;
+    //
     siphash_keys keys;
 
     // edge mask is a max valid value of an edge (max index of nodes array).
