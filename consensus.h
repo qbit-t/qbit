@@ -91,28 +91,148 @@ public:
 	//
 	// mining/emission schedule control
 	virtual bool checkBalance(amount_t coinbaseAmount, amount_t blockFee, uint64_t height) {
-		// TODO: implement, NOT strict: each level should vary +\- 3-5 blocks 
-		// coinbaseAmount - blockFee should/can be in schedule, for example
-		// 1		- 1000000 block height, coinbase = 1 qbit
-		// 1000001	- 2000000 block height, coinbase = 0.9 qbit
-		// 2000001	- 3000000 block height, coinbase = 0.8 qbit
-		// ...
-		// NOTE: height might be a bit floating, so need flexible borders
+		//
+		// coinbaseAmount = reward + blockFee
+		if (coinbaseAmount <= blockFee) return false;
 
-		return true;
+		//
+		uint64_t lTargetReward = blockReward(height);
+		if (lTargetReward >= (coinbaseAmount - blockFee)) return true;
+
+		return false;
 	}
 
 	//
 	// calc current reward
 	amount_t blockReward(uint64_t height) {
-		// TODO: implement
-		// 1		- 1000000 block height, coinbase = 1 qbit
-		// 1000001	- 2000000 block height, coinbase = 0.9 qbit
-		// 2000001	- 3000000 block height, coinbase = 0.8 qbit
-		// ...
-		// NOTE: height might be a bit floating, so need flexible borders
+		//
+		uint64_t lBlocksPerYear = 31536000/(blockTime()/1000); // 365*24*60*(60/5)
+		uint64_t lYear = height / lBlocksPerYear;
 
-		return QBIT;
+		switch(lYear) {
+			case   0: return 100000000; // first year
+			case   1: return  90000000; // second year
+			case   2: return  81000000; // third year
+			case   3: return  72900000; // ...
+			case   4: return  65610000;
+			case   5: return  59049000;
+			case   6: return  53144100;
+			case   7: return  47829690;
+			case   8: return  43046721;
+			case   9: return  38742049;
+
+			case  10: return  34867844;
+			case  11: return  31381060;
+			case  12: return  28242954;
+			case  13: return  25418658;
+			case  14: return  22876792;
+			case  15: return  20589113;
+			case  16: return  18530202;
+			case  17: return  16677182;
+			case  18: return  15009464;
+			case  19: return  13508517;
+
+			case  20: return  12157665;
+			case  21: return  10941899;
+			case  22: return   9847709;
+			case  23: return   8862938;
+			case  24: return   7976644;
+			case  25: return   7178980;
+			case  26: return   6461082;
+			case  27: return   5814974;
+			case  28: return   5233476;
+			case  29: return   4710129;
+
+			case  30: return   4239116;
+			case  31: return   3815204;
+			case  32: return   3433684;
+			case  33: return   3090315;
+			case  34: return   2781284;
+			case  35: return   2503156;
+			case  36: return   2252840;
+			case  37: return   2027556;
+			case  38: return   1824800;
+			case  39: return   1642320;
+
+			case  40: return   1478088;
+			case  41: return   1330279;
+			case  42: return   1197252;
+			case  43: return   1077526;
+			case  44: return    969774;
+			case  45: return    872796;
+			case  46: return    785517;
+			case  47: return    706965;
+			case  48: return    636269;
+			case  49: return    572642;
+
+			case  50: return    515378;
+			case  51: return    463840;
+			case  52: return    417456;
+			case  53: return    375710;
+			case  54: return    338139;
+			case  55: return    304325;
+			case  56: return    273893;
+			case  57: return    246503;
+			case  58: return    221853;
+			case  59: return    199668;
+
+			case  60: return    179701;
+			case  61: return    161731;
+			case  62: return    145558;
+			case  63: return    131002;
+			case  64: return    117902;
+			case  65: return    106112;
+			case  66: return     95500;
+			case  67: return     85950;
+			case  68: return     77355;
+			case  69: return     69620;
+
+			case  70: return     62658;
+			case  71: return     56392;
+			case  72: return     50753;
+			case  73: return     45678;
+			case  74: return     41110;
+			case  75: return     36999;
+			case  76: return     33299;
+			case  77: return     29969;
+			case  78: return     26972;
+			case  79: return     24275;
+
+			case  80: return     21847;
+			case  81: return     19663;
+			case  82: return     17696;
+			case  83: return     15927;
+			case  84: return     14334;
+			case  85: return     12901;
+			case  86: return     11611;
+			case  87: return     10450;
+			case  88: return      9405;
+			case  89: return      8464;
+
+			case  90: return      7618;
+			case  91: return      6856;
+			case  92: return      6170;
+			case  93: return      5553;
+			case  94: return      4998;
+			case  95: return      4498;
+			case  96: return      4048;
+			case  97: return      3644;
+			case  98: return      3279;
+			case  99: return      2951;
+
+			case 100: return      2656;
+			case 101: return      2391;
+			case 102: return      2151;
+			case 103: return      1936;
+			case 104: return      1743;
+			case 105: return      1568;
+			case 106: return      1412;
+			case 107: return      1270;
+			case 108: return      1143;
+			case 109: return      1029;
+
+			default: return       1000; // infinite
+		}
 	}
 
 	//
