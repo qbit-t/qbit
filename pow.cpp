@@ -4,44 +4,49 @@
 namespace qbit {
 
 uint32_t getNextWorkRequired(ITransactionStorePtr store, BlockPtr current, uint64_t blockTime) {
-	uint32_t bits_limit = 553713663;
+	//
+	uint32_t lBitsLimit = 553713663;
+	//
 	BlockHeader lPrev, lPPrev;
 	if(store->blockHeader(current->prev(), lPrev)) {
 		if(store->blockHeader(lPrev.prev(), lPPrev)) {
-			uint64_t block_found_time = lPrev.time_ - lPPrev.time_;
-			uint64_t time_limit = blockTime;
-			double time_shift = (double)block_found_time / (double) time_limit;
+			//
+			uint64_t lBlockFoundTime = lPrev.time_ - lPPrev.time_;
+			uint64_t lTimeLimit = blockTime;
+			double lTimeShift = (double) lBlockFoundTime / (double) lTimeLimit;
 			bool fNegative;
     		bool fOverflow;
-			arith_uint256 target;
-			target.SetCompact(lPrev.bits_, &fNegative, &fOverflow);
+    		//
+			arith_uint256 lTarget;
+			lTarget.SetCompact(lPrev.bits_, &fNegative, &fOverflow);
 
 			/*
-			std::cout << "Was work " << bits_limit << " prev bits " << lPrev.bits_ << " " << fNegative << " " << fOverflow << std::endl ;
-			std::cout << "Next work " << target.GetCompact() << std::endl;
-			std::cout << "block found time " << block_found_time << std::endl;
-			std::cout << "time limit " << time_limit << std::endl;
-			std::cout << "time shift " << time_shift << std::endl;
+			std::cout << "Was work " << lPrev.bits_ << " " << fNegative << " " << fOverflow << std::endl;
+			std::cout << "Next work " << lTarget.GetCompact() << std::endl;
+			std::cout << "block found time " << lBlockFoundTime << std::endl;
+			std::cout << "time limit " << lTimeLimit << std::endl;
+			std::cout << "time shift " << lTimeShift << std::endl;
 			*/
 
-			if(time_shift < 0.5) {
-				target /= 2;
-			} else if(time_shift > 2) {
-				target *= 2;
+			uint32_t lDelta = 2;
+
+			if(lTimeShift < 0.5) {
+				lTarget /= lDelta;
+			} else if(lTimeShift > 2.0) {
+				lTarget *= lDelta;
 			}
 
-			//target *= block_found_time;
-			//target /= time_limit;
-			//target *= time_shift;
+			if (!lTarget) {
+				// std::cout << "Target is ZERO!" << std::endl;
+				lTarget.SetCompact(lPrev.bits_, &fNegative, &fOverflow);
+			}
 
-			/*
-			std::cout << "Was work " << bits_limit << " prev bits " << lPrev.bits_ << " " << fNegative << " " << fOverflow << std::endl ;
-			std::cout << "Next work " << target.GetCompact() << std::endl;
-			*/
-			return target.GetCompact();
+			// std::cout << "Adjusted next work " << lTarget.GetCompact() << " " << lTarget.GetHex() << std::endl;
+			return lTarget.GetCompact();
 		}
 	}
-	return bits_limit;
+
+	return lBitsLimit;
 }
 
 }
