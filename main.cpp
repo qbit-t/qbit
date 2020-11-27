@@ -451,6 +451,9 @@ int main(int argv, char** argc) {
 		} else if (std::string(argc[lIdx]) == std::string("-testnet")) {
 			//
 			qbit::gTestNet = true;
+		} else if (std::string(argc[lIdx]) == std::string("-sparing")) {
+			//
+			qbit::gSparingMode = true;
 		} else if (std::string(argc[lIdx]) == std::string("-daemon")) {
 			//
 			lDaemon = true;
@@ -500,7 +503,7 @@ int main(int argv, char** argc) {
 		// on a mounted filesystem, which means that the running daemon would
 		// prevent this filesystem from being unmounted. Changing to the root
 		// directory avoids this problem.
-		chdir("/");
+		int lRes = chdir("/");
 
 		// The file mode creation mask is also inherited from the parent process.
 		// We don't want to restrict the permissions on files created by the

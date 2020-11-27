@@ -3,6 +3,7 @@
 using namespace qbit;
 
 bool qbit::gTestNet = false;
+bool qbit::gSparingMode = false;
 
 qbit::MessageTypes qbit::gMessageTypes;
 

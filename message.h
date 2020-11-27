@@ -26,6 +26,7 @@
 namespace qbit {
 
 extern bool gTestNet;
+extern bool gSparingMode;
 
 class Message {
 public:
