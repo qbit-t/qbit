@@ -59,13 +59,13 @@ curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"buzzerunsubscribe
 
 ### Start nodes
 
-./qbitd -home .qbit-0 -peers 127.0.0.1:31415,127.0.0.1:31416,127.0.0.1:31417 -port 31415 -threadpool 2 -http 8080 -console -airdrop -roles fullnode,miner -debug info,warn,error,wallet,store,net,bal,pool,cons,http,val,shard
+./qbitd -home .qbit-0 -peers 127.0.0.1:31415,127.0.0.1:31416,127.0.0.1:31417 -port 31415 -threadpool 2 -http 8080 -console -airdrop -roles fullnode,miner -debug info,warn,error,wallet,store,net,bal,pool,cons,http,val,shard -testnet -sparing
 
-./qbitd -home .qbit-1 -peers 127.0.0.1:31415,127.0.0.1:31416,127.0.0.1:31417 -port 31416 -threadpool 2 -http 8081 -console -roles fullnode -debug info,warn,error,wallet,store,net,bal,pool,cons,http,val,shard
+./qbitd -home .qbit-1 -peers 127.0.0.1:31415,127.0.0.1:31416,127.0.0.1:31417 -port 31416 -threadpool 2 -http 8081 -console -roles fullnode -debug info,warn,error,wallet,store,net,bal,pool,cons,http,val,shard -testnet -sparing
 
-./qbitd -home .qbit-2 -peers 127.0.0.1:31415,127.0.0.1:31416,127.0.0.1:31417 -port 31417 -threadpool 2 -http 8082 -console -roles fullnode -debug info,warn,error,wallet,store,net,bal,pool,cons,http,val,shard
+./qbitd -home .qbit-2 -peers 127.0.0.1:31415,127.0.0.1:31416,127.0.0.1:31417 -port 31417 -threadpool 2 -http 8082 -console -roles fullnode -debug info,warn,error,wallet,store,net,bal,pool,cons,http,val,shard -testnet -sparing
 
-./qbitd -home .qbit-3 -peers 127.0.0.1:31415,127.0.0.1:31416,127.0.0.1:31417,127.0.0.1:31418 -port 31418 -threadpool 2 -http 8083 -console -roles fullnode,miner -debug info,warn,error,wallet,store,net,bal,pool,cons,http,val,shard
+./qbitd -home .qbit-3 -peers 127.0.0.1:31415,127.0.0.1:31416,127.0.0.1:31417,127.0.0.1:31418 -port 31418 -threadpool 2 -http 8083 -console -roles fullnode,miner -debug info,warn,error,wallet,store,net,bal,pool,cons,http,val,shard -testnet -sparing
 
 ### Prepare buzzer and cubix dapps
 

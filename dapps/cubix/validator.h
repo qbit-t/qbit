@@ -197,14 +197,68 @@ private:
 					// TODO: mining -----------------------------------------
 					if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[cubix/validator/miner]: looking for a block for ") + strprintf("%s#", chain_.toHex().substr(0, 10)) + "...");
 					
-					boost::random::uniform_int_distribution<> lDist(3, (consensus_->blockTime())/1000);
-					int lMSeconds = lDist(lGen);
-					uint64_t lStartTime = getTime();
+					//
+					// begin:cuckoo -----------------------------------------------
+					//
+
+					//calculate work required
+					BlockHeader lPrev, lPPrev;
+					bool lNegative = false;
+    				bool lOverflow = false;
+					arith_uint256 lTarget;
+					lCurrentBlock->bits_ = qbit::getNextWorkRequired(store_, lCurrentBlock, consensus_->blockTime()/1000);
+					lTarget.SetCompact(lCurrentBlock->bits_, &lNegative, &lOverflow);
+
+					uint64_t lStartTime = consensus_->currentTime();
+
+					int lNonce = 0;
+					bool lTimeout = false;
 					while(minerRunning_) {
-						if (getTime() - lStartTime >= lMSeconds) break;
-						boost::this_thread::sleep_for(boost::chrono::milliseconds(50));
+						//
+						if (qbit::gSparingMode) {
+							boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
+						}
+
+						//
+						std::set<uint32_t> lCycle;
+						lCurrentBlock->nonce_ = lNonce;
+						bool lResult = FindCycle(lCurrentBlock->hash(), EDGEBITS, PROOFSIZE, lCycle);
+						lNonce++;
+
+						// calculation timed out
+						if (consensus_->currentTime() - lStartTime >= (consensus_->blockTime())/1000) { lTimeout = true; break; }
+						if (!lCycle.size()) { /*cycle not found*/  continue; }
+
+						HashWriter lStream(SER_GETHASH, PROTOCOL_VERSION);
+						std::vector<uint32_t> lVector(lCycle.begin(), lCycle.end());
+						lCurrentBlock->cycle_ = lVector; // save vector
+						lStream << lVector;
+						uint256 lCycleHash = lStream.GetHash();
+
+						arith_uint256 lCycleHashArith = UintToArith256(lCycleHash);
+						if (lNegative || lTarget == 0 || lOverflow || lTarget < lCycleHashArith) { continue; }
+						if (lResult) { 
+							break;
+						}
 					}
-					// TODO: mining -----------------------------------------
+
+					// miner is active
+					if (minerRunning_) {
+						if (lTimeout) { 
+							if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[validator/miner]: timeout exiped during calculation for ") + strprintf("%s/%s#", lCurrentBlock->hash().toHex(), chain_.toHex().substr(0, 10)));
+							continue;
+						}
+						
+						int lVerifyResult = VerifyCycle(lCurrentBlock->hash(), EDGEBITS, PROOFSIZE, lCurrentBlock->cycle_);
+						if (lVerifyResult != verify_code::POW_OK) {
+							if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[validator/miner/error]: cycle verification FAILED for ") + strprintf("%s/%s#", lCurrentBlock->hash().toHex(), chain_.toHex().substr(0, 10)));
+							continue;
+						}
+					}
+
+					//
+					// end:cuckoo -----------------------------------------------
+					//
 					
 					if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[cubix/validator/miner]: new block found ") + strprintf("%s/%s#", lCurrentBlock->hash().toHex(), chain_.toHex().substr(0, 10)));
 

@@ -59,6 +59,11 @@ public:
 	// TODO: settings
 	virtual uint32_t partialTreeThreshold() { return 5; }
 
+	virtual bool checkBalance(amount_t /*coinbaseAmount*/, amount_t /*blockFee*/, uint64_t /*height*/) {
+		//
+		return true;
+	}	
+
 	static IConsensusPtr instance(const uint256& chain, IConsensusManagerPtr consensusManager, ISettingsPtr settings, IWalletPtr wallet, ITransactionStorePtr store) { 
 		return std::make_shared<BuzzerConsensus>(chain, consensusManager, settings, wallet, store);
 	}
