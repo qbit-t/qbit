@@ -22,6 +22,7 @@ Item {
 	id: buzzerheader_
 
 	property int calculatedHeight: calculateHeightInternal()
+	property var infoDialog
 
 	property var buzzer_
 	property var endorsements_
@@ -572,6 +573,28 @@ Item {
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
 	}
 
+	QuarkSymbolLabel {
+		id: questionSymbol
+		x: qbitText2.x + qbitText2.width + spaceItems_
+		y: qbitText2.y
+		symbol: Fonts.questionCircleSym
+	}
+
+	MouseArea {
+		x: questionSymbol.x - spaceItems_
+		y: questionSymbol.y - spaceItems_
+		width: questionSymbol.width + 2 * spaceItems_
+		height: questionSymbol.height + 2 * spaceItems_
+
+		onClicked: {
+			//
+			console.log("[questionCircleSym]: clicked");
+			var lMsgs = [];
+			lMsgs.push(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.qtt.help"));
+			infoDialog.show(lMsgs);
+		}
+	}
+
 	BuzzerCommands.BalanceCommand {
 		id: balanceQttCommand
 
@@ -583,7 +606,7 @@ Item {
 		onError: {
 			controller_.showError({ code: code, message: message, component: "Balance" });
 		}
-	}
+	}	
 
 	//
 	// bottom line

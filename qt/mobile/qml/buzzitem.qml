@@ -78,7 +78,7 @@ Item {
 	readonly property int spaceMedia_: 10
 	readonly property int spaceSingleMedia_: 8
 	readonly property int spaceMediaIndicator_: 15
-	readonly property int spaceHeader_: 5
+	readonly property int spaceHeader_: 7
 	readonly property int spaceRightMenu_: 15
 	readonly property int spaceStats_: -5
 	readonly property int spaceLine_: 4
