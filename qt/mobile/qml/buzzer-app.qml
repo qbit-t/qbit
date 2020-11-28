@@ -214,10 +214,12 @@ ApplicationWindow
     {
         target: buzzerApp
 
+		/*
         onDeviceTokenUpdated:
         {
             registerDeviceId(token);
         }
+		*/
     }
 
     function registerDeviceId(token)
@@ -334,6 +336,12 @@ ApplicationWindow
 			id: myBuzzer
 			width: parent.width
 			controller_: window
+			infoDialog: drawerInfoDialog
+		}
+
+		InfoDialog {
+			id: drawerInfoDialog
+			bottom: 50
 		}
 
 		QuarkListView {

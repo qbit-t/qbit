@@ -82,6 +82,18 @@ public:
 	}
 };
 
+class HttpGetState: public IHttpCallEnpoint {
+public:
+	HttpGetState() {}
+
+	void process(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
+	std::string method() { return std::string("getstate"); }
+
+	static IHttpCallEnpointPtr instance() {
+		return std::make_shared<HttpGetState>();
+	}
+};
+
 class HttpCreateDApp: public IHttpCallEnpoint {
 public:
 	HttpCreateDApp() {}

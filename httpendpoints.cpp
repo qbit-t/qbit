@@ -1409,3 +1409,126 @@ void HttpCreateAssetEmission::process(const std::string& source, const HttpReque
 		return;
 	}
 }
+
+void HttpGetState::process(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
+	/* request
+	{
+		"jsonrpc": "1.0",
+		"id": "curltext",
+		"method": "getstate",
+		"params": []
+	}
+	*/
+	/* reply
+	{
+		"result": { 
+			"state": {
+					...
+				}
+			}
+		},
+		"error":								-- (object or null) error description
+		{
+			"code": "EFAIL", 
+			"message": "<explanation>" 
+		},
+		"id": "curltext"						-- (string) request id
+	}
+	*/
+
+	// id
+	json::Value lId;
+	if (!(const_cast<json::Document&>(data).find("id", lId) && lId.isString())) {
+		reply = HttpReply::stockReply(HttpReply::bad_request);
+		return;
+	}
+
+	// params
+	json::Value lParams;
+	if (const_cast<json::Document&>(data).find("params", lParams) && lParams.isArray()) {
+		// prepare reply
+		json::Document lReply;
+		lReply.loadFromString("{}");
+
+		json::Value lKeyObject = lReply.addObject("result");
+		json::Value lStateObject = lKeyObject.addObject("state");
+
+		// peer manager
+		lStateObject.addUInt("clients", peerManager_->clients());
+		lStateObject.addUInt("peers_count", peerManager_->peersCount());		
+
+		// get peers
+		std::list<IPeerPtr> lPeers;
+		peerManager_->allPeers(lPeers);
+
+		uint64_t lInQueue = 0;
+		uint64_t lOutQueue = 0;
+		uint64_t lPendingQueue = 0;
+		uint64_t lReceivedCount = 0;
+		uint64_t lReceivedBytes = 0;
+		uint64_t lSentCount = 0;
+		uint64_t lSentBytes = 0;
+
+		for (std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
+			//
+			if ((*lPeer)->status() == IPeer::UNDEFINED) continue;
+			//
+			if ((*lPeer)->status() == IPeer::BANNED || (*lPeer)->status() == IPeer::POSTPONED) {
+				//
+				lInQueue += (*lPeer)->inQueueLength();
+				lOutQueue += (*lPeer)->outQueueLength();
+				lPendingQueue += (*lPeer)->pendingQueueLength();
+				lReceivedCount += (*lPeer)->receivedMessagesCount();
+				lReceivedBytes += (*lPeer)->bytesReceived();
+				lSentCount += (*lPeer)->sentMessagesCount();
+				lSentBytes += (*lPeer)->bytesSent();
+				continue;				
+			}
+
+
+			lInQueue += (*lPeer)->inQueueLength();
+			lOutQueue += (*lPeer)->outQueueLength();
+			lPendingQueue += (*lPeer)->pendingQueueLength();
+			lReceivedCount += (*lPeer)->receivedMessagesCount();
+			lReceivedBytes += (*lPeer)->bytesReceived();
+			lSentCount += (*lPeer)->sentMessagesCount();
+			lSentBytes += (*lPeer)->bytesSent();
+		}
+
+		//
+		lStateObject.addUInt("in_queue", lInQueue);
+		lStateObject.addUInt("out_queue", lOutQueue);
+		lStateObject.addUInt("pending_queue", lPendingQueue);
+		lStateObject.addUInt("received_count", lReceivedCount);
+		lStateObject.addUInt64("received_bytes", lReceivedBytes);
+		lStateObject.addUInt("sent_count", lSentCount);
+		lStateObject.addUInt64("sent_bytes", lSentBytes);
+
+		//
+		StatePtr lState = peerManager_->consensusManager()->currentState();
+		//
+		json::Value lChainsObject = lStateObject.addArray("chains");
+		std::vector<State::BlockInfo> lInfos = lState->infos();
+		for (std::vector<State::BlockInfo>::iterator lInfo = lInfos.begin(); lInfo != lInfos.end(); lInfo++) {
+			//
+			json::Value lChain = lChainsObject.newArrayItem();
+			lChain.toObject(); // make object
+
+			lChain.addString("dapp", lInfo->dApp().size() ? lInfo->dApp() : "none");
+			lChain.addUInt64("height", lInfo->height());
+			lChain.addString("chain", lInfo->chain().toHex());
+			lChain.addString("block", lInfo->hash().toHex());
+		}
+
+		lReply.addObject("error").toNull();
+		lReply.addString("id", lId.getString());
+
+		// pack
+		pack(reply, lReply);
+		// finalize
+		finalize(reply);
+	} else {
+		reply = HttpReply::stockReply(HttpReply::bad_request);
+		return;
+	}
+}

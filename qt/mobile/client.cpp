@@ -768,11 +768,13 @@ void Client::setBuzzerDAppReady() {
 	//
 	int lSupportNodes = 0;
 	for (std::map<uint256, std::map<uint32_t, IPeerPtr>>::iterator lChain = lMap.begin(); lChain != lMap.end(); lChain++) {
-		if (lChain->second.size() > 1) lSupportNodes++;
+		//if (gLog().isEnabled(Log::CLIENT))
+		//	gLog().write(Log::CLIENT, strprintf("[Client::setBuzzerDAppReady]: chain = %s, count = %d", lChain->first.toHex(), lChain->second.size()));
+		if (lChain->second.size() > 1) lSupportNodes += lChain->second.size();
 	}
 
 	// at least two nodes
-	if (lSupportNodes > 1) {
+	if (lSupportNodes / lMap.size() > 1) {
 		bool lNotify = !buzzerDAppReady_;
 		buzzerDAppReady_ = true;
 		if (lNotify) {
