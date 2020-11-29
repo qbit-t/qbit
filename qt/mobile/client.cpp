@@ -729,7 +729,8 @@ void Client::peerPushed(qbit::IPeerPtr peer, bool update, int count) {
 
 	setBuzzerDAppReady();
 
-	emit peerPushedSignal(PeerProxy(peer), update, count);
+	if (!suspended_)
+		emit peerPushedSignal(PeerProxy(peer), update, count);
 }
 
 void Client::peerPopped(qbit::IPeerPtr peer, int count) {
@@ -747,7 +748,8 @@ void Client::peerPopped(qbit::IPeerPtr peer, int count) {
 
 	setBuzzerDAppReady();
 
-	emit peerPoppedSignal(PeerProxy(peer), count);
+	if (!suspended_)
+		emit peerPoppedSignal(PeerProxy(peer), count);
 }
 
 void Client::prepareCache() {
