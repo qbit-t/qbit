@@ -51,11 +51,15 @@ void Application::appStateChanged(Qt::ApplicationState state)
 {
     if (state == Qt::ApplicationState::ApplicationSuspended || state == Qt::ApplicationState::ApplicationHidden)
     {
+		qInfo() << "[appStateChanged]: suspended";
+		client_.suspend();
         emit appSuspending();
     }
     else if (state == Qt::ApplicationState::ApplicationActive)
     {
-        emit appRunning();
+		qInfo() << "[appStateChanged]: resumed";
+		client_.resume();
+		emit appRunning();
     }
 }
 
@@ -98,6 +102,7 @@ int Application::execute()
 #endif
 
     connect(&app_, SIGNAL(aboutToQuit()), this, SLOT(appQuit()));
+	connect(&app_, SIGNAL(applicationStateChanged(Qt::ApplicationState)), this, SLOT(appStateChanged(Qt::ApplicationState)));
 
 	// set application
 	client_.setApplication(this);

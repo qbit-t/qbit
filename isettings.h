@@ -54,11 +54,15 @@ public:
 	virtual size_t mainChainMaturity() { return 1; } // for reqular tx that will be enough
 	virtual size_t mainChainCoinbaseMaturity() { return 5; } // for coinbase - we need _much_ more, 50 at least
 
-	virtual size_t clientSessionsLimit() { return 500; } // default client sessions for node\full node
+	virtual size_t clientSessionsLimit() { return 50; } // default client sessions for node\full node
+	virtual void setClientSessionsLimit(size_t) {}
 
 	virtual size_t mainChainBlockTime() { return 5000; } // ms
 
 	virtual bool supportAirdrop() { return false; }
+
+	virtual bool qbitOnly() { return false; }
+	virtual void setQbitOnly() {}
 
 	virtual void setServerPort(int) {}
 	virtual void setThreadPoolSize(size_t) {}
