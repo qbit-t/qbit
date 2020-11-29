@@ -147,6 +147,14 @@ public:
     Q_INVOKABLE bool configured();
 	Q_INVOKABLE bool pinAccessConfigured();
 
+	void suspend() {
+		suspended_ = true;
+	}
+
+	void resume() {
+		suspended_ = false;
+	}
+
 	QString address() {
 		//
 		if (wallet_) {
@@ -575,6 +583,7 @@ private:
 	bool cacheReady_ = false;
 	bool networkReady_ = false;
 	bool buzzerDAppReady_ = false;
+	bool suspended_ = false;
 
 private:
 	qbit::IRequestProcessorPtr requestProcessor_ = nullptr;

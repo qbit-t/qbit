@@ -139,6 +139,16 @@ public:
 	bool supportAirdrop() { return supportAirdrop_; }
 	void setSupportAirdrop() { supportAirdrop_ = true; }
 
+	size_t clientSessionsLimit() { return clientSessionsLimit_; }
+	void setClientSessionsLimit(size_t limit) {
+		clientSessionsLimit_ = limit;
+	}
+
+	bool qbitOnly() { return qbitOnly_; }
+	void setQbitOnly() {
+		qbitOnly_ = true;
+	}
+
 	static ISettingsPtr instance() { return std::make_shared<NodeSettings>(); }
 	static ISettingsPtr instance(const std::string& dir, ISettingsPtr other) { return std::make_shared<NodeSettings>(dir, other); }
 
@@ -149,6 +159,8 @@ private:
 	size_t threadPoolSize_ = 2;
 	int httpServerPort_ = 8080;
 	bool supportAirdrop_ = false;
+	size_t clientSessionsLimit_ = 50;
+	bool qbitOnly_ = false;
 };
 
 class Node;
@@ -384,7 +396,7 @@ int main(int argv, char** argc) {
 		QBIT_VERSION_MAJOR << "." <<
 		QBIT_VERSION_MINOR << "." <<
 		QBIT_VERSION_REVISION << "." <<
-		QBIT_VERSION_BUILD << ") | (c) 2020 q-bit.technology | MIT license" << std::endl;
+		QBIT_VERSION_BUILD << ") | (c) 2020 Qbit Technology | MIT license" << std::endl;
 
 	// home
 	ISettingsPtr lSettings = NodeSettings::instance();
@@ -446,6 +458,15 @@ int main(int argv, char** argc) {
 				std::cout << "http: incorrect value" << std::endl;
 				return -1;
 			}
+		} else if (std::string(argc[lIdx]) == std::string("-clients")) {
+			//
+			size_t lClients;
+			if (boost::conversion::try_lexical_convert<size_t>(std::string(argc[++lIdx]), lClients)) {
+				lSettings->setClientSessionsLimit(lClients);
+			} else {
+				std::cout << "clients: incorrect value" << std::endl;
+				return -1;
+			}
 		} else if (std::string(argc[lIdx]) == std::string("-console")) {
 			//
 			gLog().enableConsole();
@@ -462,6 +483,9 @@ int main(int argv, char** argc) {
 		} else if (std::string(argc[lIdx]) == std::string("-airdrop")) {
 			//
 			lSettings->setSupportAirdrop();
+		} else if (std::string(argc[lIdx]) == std::string("-qbit-only")) {
+			//
+			lSettings->setQbitOnly();
 		} else if (std::string(argc[lIdx]) == std::string("-roles")) {
 			//
 			std::vector<std::string> lRoles;
