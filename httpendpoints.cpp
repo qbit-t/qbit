@@ -247,6 +247,81 @@ void HttpGetKey::process(const std::string& source, const HttpRequest& request, 
 	}
 }
 
+void HttpNewKey::process(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
+	/* request
+	{
+		"jsonrpc": "1.0",
+		"id": "curltext",
+		"method": "getkey",
+		"params": [
+		]
+	}
+	*/
+	/* reply
+	{
+		"result":						-- (object) address details
+		{
+			"address": "<address>",		-- (string) address, base58 encoded
+			"pkey": "<public_key>",		-- (string) public key, hex encoded
+			"skey": "<secret_key>",		-- (string) secret key, hex encoded
+			"seed": []					-- (string array) seed words
+		},
+		"error":						-- (object or null) error description
+		{
+			"code": "EFAIL", 
+			"message": "<explanation>" 
+		},
+		"id": "curltext"				-- (string) request id
+	}
+	*/
+
+	// id
+	json::Value lId;
+	if (!(const_cast<json::Document&>(data).find("id", lId) && lId.isString())) {
+		reply = HttpReply::stockReply(HttpReply::bad_request);
+		return;
+	}
+
+	// params
+	json::Value lParams;
+	if (const_cast<json::Document&>(data).find("params", lParams) && lParams.isArray()) {
+		// process
+		SKeyPtr lKey = wallet_->createKey(std::list<std::string>());
+		if (!lKey->valid()) {
+			reply = HttpReply::stockReply("E_SKEY_IS_INVALID", "Key is invalid"); 
+			return;
+		}
+
+		PKey lPFoundKey = lKey->createPKey();
+
+		// prepare reply
+		json::Document lReply;
+		lReply.loadFromString("{}");
+		
+		json::Value lKeyObject = lReply.addObject("result");
+		lKeyObject.addString("address", lPFoundKey.toString());
+		lKeyObject.addString("pkey", lPFoundKey.toHex());
+		lKeyObject.addString("skey", lKey->toHex());
+
+		json::Value lKeyArrayObject = lKeyObject.addArray("seed");
+		for (std::vector<SKey::Word>::iterator lWord = lKey->seed().begin(); lWord != lKey->seed().end(); lWord++) {
+			json::Value lItem = lKeyArrayObject.newArrayItem();
+			lItem.setString((*lWord).wordA());
+		}
+
+		lReply.addObject("error").toNull();
+		lReply.addString("id", lId.getString());
+
+		// pack
+		pack(reply, lReply);
+		// finalize
+		finalize(reply);
+	} else {
+		reply = HttpReply::stockReply(HttpReply::bad_request);
+		return;
+	}
+}
+
 void HttpGetBalance::process(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
 	/* request
 	{
@@ -1083,6 +1158,294 @@ void HttpGetTransaction::process(const std::string& source, const HttpRequest& r
 			}
 		} else {
 			reply = HttpReply::stockReply("E_STOREMANAGER", "Transactions store manager not found"); 
+			return;
+		}
+
+		if (!lCode.size() && !lMessage.size()) lReply.addObject("error").toNull();
+		else {
+			json::Value lError = lReply.addObject("error");
+			lError.addString("code", lCode);
+			lError.addString("message", lMessage);
+		}
+		lReply.addString("id", lId.getString());
+
+		// pack
+		pack(reply, lReply);
+		// finalize
+		finalize(reply);
+	} else {
+		reply = HttpReply::stockReply(HttpReply::bad_request);
+		return;
+	}
+}
+
+void HttpGetBlock::process(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
+	/* request
+	{
+		"jsonrpc": "1.0",
+		"id": "curltext",
+		"method": "getblock",
+		"params": [
+			"<block_id>" 			-- (string) block hash (id)
+		]
+	}
+	*/
+	/* reply
+	{
+		"result": {
+			"id": "<tx_id>",				-- (string) block hash (id)
+			"chain": "<chain_id>",			-- (string) chain / shard hash (id)
+			"height": <height>,				-- (int64) block height
+			"version": <version>,			-- (int) version (0-256)
+			"time: <time>,					-- (int64) block time
+			"prev": "<prev_id>",			-- (string) prev block hash (id)
+			"root": "<merkle_root_hash>",	-- (string) merkle root hash
+			"origin": "<miner_id>",			-- (string) miner address id
+			"bits": <pow_bits>,				-- (int) pow bits
+			"nonce": <nonce_counter>,		-- (int) found nonce
+			"pow": [
+				<int>, <int> ... <int>		-- (aray) found pow cycle
+			],
+			"transactions": [
+				{
+					"id": "<tx_id>",		-- (string) tx hash (id)
+					"size": "<size>"		-- (int) tx size
+				}
+			]
+		},
+		"error":							-- (object or null) error description
+		{
+			"code": "EFAIL", 
+			"message": "<explanation>" 
+		},
+		"id": "curltext"					-- (string) request id
+	}
+	*/
+
+	// id
+	json::Value lId;
+	if (!(const_cast<json::Document&>(data).find("id", lId) && lId.isString())) {
+		reply = HttpReply::stockReply(HttpReply::bad_request);
+		return;
+	}
+
+	// params
+	json::Value lParams;
+	if (const_cast<json::Document&>(data).find("params", lParams) && lParams.isArray()) {
+		// extract parameters
+		uint256 lBlockId; // 0
+
+		if (lParams.size() == 1) {
+			// param[0]
+			json::Value lP0 = lParams[0];
+			if (lP0.isString()) lBlockId.setHex(lP0.getString());
+			else { reply = HttpReply::stockReply(HttpReply::bad_request); return; }
+
+		} else {
+			reply = HttpReply::stockReply("E_PARAMS", "Insufficient or extra parameters"); 
+			return;
+		}
+
+		// prepare reply
+		json::Document lReply;
+		lReply.loadFromString("{}");
+
+		// process
+		BlockPtr lBlock;
+		std::string lCode, lMessage;
+
+		// height
+		uint64_t lHeight = 0;
+		// try to lookup transaction
+		ITransactionStoreManagerPtr lStoreManager = wallet_->storeManager();
+		if (lStoreManager) {
+			//
+			std::vector<ITransactionStorePtr> lStorages = lStoreManager->storages();
+			for (std::vector<ITransactionStorePtr>::iterator lStore = lStorages.begin(); lStore != lStorages.end(); lStore++) {
+				lBlock = (*lStore)->block(lBlockId);
+				if (lBlock) {
+					(*lStore)->blockHeight(lBlockId, lHeight);
+					break;
+				}
+			}
+
+			if (lBlock) {
+				//
+				json::Value lRootObject = lReply.addObject("result");
+
+				lRootObject.addString("id", lBlock->hash().toHex());
+				lRootObject.addString("chain", lBlock->chain().toHex());
+				lRootObject.addUInt64("height", lHeight);
+				lRootObject.addInt("version", lBlock->version());
+				lRootObject.addUInt64("time", lBlock->time());
+				lRootObject.addString("prev", lBlock->prev().toHex());
+				lRootObject.addString("root", lBlock->root().toHex());
+				lRootObject.addString("origin", lBlock->origin().toHex());
+				lRootObject.addInt("bits", lBlock->bits());
+				lRootObject.addInt("nonce", lBlock->nonce());
+
+				json::Value lPowObject = lRootObject.addArray("pow");
+				int lIdx = 0;
+				for (std::vector<uint32_t>::iterator lNumber = lBlock->cycle_.begin(); lNumber != lBlock->cycle_.end(); lNumber++, lIdx++) {
+					//
+					json::Value lItem = lPowObject.newArrayItem();
+					lItem.toObject();
+					lItem.addInt("index", lIdx);
+					lItem.addUInt("number", *lNumber);
+				}
+
+				json::Value lTransactionsObject = lRootObject.addArray("transactions");
+				BlockTransactionsPtr lTransactions = lBlock->blockTransactions();
+				for (std::vector<TransactionPtr>::iterator lTransaction = lTransactions->transactions().begin(); lTransaction != lTransactions->transactions().end(); lTransaction++) {
+					//
+					json::Value lItem = lTransactionsObject.newArrayItem();
+					lItem.toObject();
+
+					TransactionContextPtr lCtx = TransactionContext::instance(*lTransaction);
+					lItem.addString("id", lCtx->tx()->id().toHex());
+					lItem.addUInt("size", lCtx->size());
+				}
+			} else {
+				reply = HttpReply::stockReply("E_BLOCK_NOT_FOUND", "Block not found"); 
+				return;
+			}
+		} else {
+			reply = HttpReply::stockReply("E_STOREMANAGER", "Store manager not found"); 
+			return;
+		}
+
+		if (!lCode.size() && !lMessage.size()) lReply.addObject("error").toNull();
+		else {
+			json::Value lError = lReply.addObject("error");
+			lError.addString("code", lCode);
+			lError.addString("message", lMessage);
+		}
+		lReply.addString("id", lId.getString());
+
+		// pack
+		pack(reply, lReply);
+		// finalize
+		finalize(reply);
+	} else {
+		reply = HttpReply::stockReply(HttpReply::bad_request);
+		return;
+	}
+}
+
+void HttpGetBlockHeader::process(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
+	/* request
+	{
+		"jsonrpc": "1.0",
+		"id": "curltext",
+		"method": "getblock",
+		"params": [
+			"<block_id>" 			-- (string) block hash (id)
+		]
+	}
+	*/
+	/* reply
+	{
+		"result": {
+			"id": "<tx_id>",				-- (string) block hash (id)
+			"chain": "<chain_id>",			-- (string) chain / shard hash (id)
+			"height": <height>,				-- (int64) block height
+			"version": <version>,			-- (int) version (0-256)
+			"time: <time>,					-- (int64) block time
+			"prev": "<prev_id>",			-- (string) prev block hash (id)
+			"root": "<merkle_root_hash>",	-- (string) merkle root hash
+			"origin": "<miner_id>",			-- (string) miner address id
+			"bits": <pow_bits>,				-- (int) pow bits
+			"nonce": <nonce_counter>,		-- (int) found nonce
+			"pow": [
+				<int>, <int> ... <int>		-- (aray) found pow cycle
+			]
+		},
+		"error":							-- (object or null) error description
+		{
+			"code": "EFAIL", 
+			"message": "<explanation>" 
+		},
+		"id": "curltext"					-- (string) request id
+	}
+	*/
+
+	// id
+	json::Value lId;
+	if (!(const_cast<json::Document&>(data).find("id", lId) && lId.isString())) {
+		reply = HttpReply::stockReply(HttpReply::bad_request);
+		return;
+	}
+
+	// params
+	json::Value lParams;
+	if (const_cast<json::Document&>(data).find("params", lParams) && lParams.isArray()) {
+		// extract parameters
+		uint256 lBlockId; // 0
+
+		if (lParams.size() == 1) {
+			// param[0]
+			json::Value lP0 = lParams[0];
+			if (lP0.isString()) lBlockId.setHex(lP0.getString());
+			else { reply = HttpReply::stockReply(HttpReply::bad_request); return; }
+
+		} else {
+			reply = HttpReply::stockReply("E_PARAMS", "Insufficient or extra parameters"); 
+			return;
+		}
+
+		// prepare reply
+		json::Document lReply;
+		lReply.loadFromString("{}");
+
+		// process
+		BlockPtr lBlock;
+		std::string lCode, lMessage;
+
+		// height
+		uint64_t lHeight = 0;
+		// try to lookup transaction
+		ITransactionStoreManagerPtr lStoreManager = wallet_->storeManager();
+		if (lStoreManager) {
+			//
+			std::vector<ITransactionStorePtr> lStorages = lStoreManager->storages();
+			for (std::vector<ITransactionStorePtr>::iterator lStore = lStorages.begin(); lStore != lStorages.end(); lStore++) {
+				lBlock = (*lStore)->block(lBlockId);
+				if (lBlock) {
+					(*lStore)->blockHeight(lBlockId, lHeight);
+					break;
+				}
+			}
+
+			if (lBlock) {
+				//
+				json::Value lRootObject = lReply.addObject("result");
+
+				lRootObject.addString("id", lBlock->hash().toHex());
+				lRootObject.addString("chain", lBlock->chain().toHex());
+				lRootObject.addUInt64("height", lHeight);
+				lRootObject.addInt("version", lBlock->version());
+				lRootObject.addUInt64("time", lBlock->time());
+				lRootObject.addString("prev", lBlock->prev().toHex());
+				lRootObject.addString("root", lBlock->root().toHex());
+				lRootObject.addString("origin", lBlock->origin().toHex());
+				lRootObject.addInt("bits", lBlock->bits());
+				lRootObject.addInt("nonce", lBlock->nonce());
+
+				json::Value lPowObject = lRootObject.addArray("pow");
+				int lIdx = 0;
+				for (std::vector<uint32_t>::iterator lNumber = lBlock->cycle_.begin(); lNumber != lBlock->cycle_.end(); lNumber++, lIdx++) {
+					//
+					json::Value lItem = lPowObject.newArrayItem();
+					lItem.toObject();
+					lItem.addInt("index", lIdx);
+					lItem.addUInt("number", *lNumber);
+				}
+			} else {
+				reply = HttpReply::stockReply("E_BLOCK_NOT_FOUND", "Block not found"); 
+				return;
+			}
+		} else {
+			reply = HttpReply::stockReply("E_STOREMANAGER", "Store manager not found"); 
 			return;
 		}
 

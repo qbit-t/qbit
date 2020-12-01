@@ -1610,8 +1610,13 @@ void Peer::processAskForQbits(std::list<DataStream>::iterator msg, const boost::
 			// 1. check if address already has some qbits
 			ITransactionStorePtr lStorage = peerManager_->consensusManager()->storeManager()->locate(MainChain::id());
 			if (lStorage) {
-				// TODO: UNCOMMENT!!!
-				if (/*!lStorage->airdropped(lAddress.id(), keyId())*/ true) {
+				if (
+#ifdef PRODUCTION_MOD					
+					!lStorage->airdropped(lAddress.id(), keyId())
+#else
+					true
+#endif
+					) {
 					//
 					// 2. make airdrop tx
 					try {

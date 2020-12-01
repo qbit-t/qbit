@@ -309,6 +309,24 @@ bool BuzzerTransactionStoreExtension::isAllowed(TransactionContextPtr ctx) {
 				if (lBuzzer != lCounterparty) return false;
 			}
 		}
+	} else if (ctx->tx()->type() == TX_BUZZER) {
+		//
+#ifdef PRODUCTION_MOD
+		TxBuzzerPtr lBuzzer = TransactionHelper::to<TxBuzzer>(ctx->tx());
+		std::string lName = lBuzzer->myName();
+
+		// tolower
+		std::transform(lName.begin(), lName.end(), lName.begin(), ::tolower);
+
+		//
+		if (lName.find("@buz" ) != std::string::npos ||
+			lName.find("buzz" ) != std::string::npos ||
+			lName.find("buzer") != std::string::npos ||
+			lName.find("bazer") != std::string::npos ||
+			lName.find("bazze") != std::string::npos || 
+			lName.find("baze" ) != std::string::npos)
+			return false;
+#endif
 	}
 
 	return true;

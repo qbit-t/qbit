@@ -68,6 +68,9 @@ public:
 	virtual void setThreadPoolSize(size_t) {}
 	virtual void setHttpServerPort(int) {}
 	virtual void setSupportAirdrop() {}
+
+	virtual void notifyTransaction(const uint256&) {}
+	virtual void setNotifyTransactionCommand(const std::string&) {}
 };
 
 typedef std::shared_ptr<ISettings> ISettingsPtr;
