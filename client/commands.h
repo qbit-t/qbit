@@ -39,6 +39,33 @@ private:
 	doneFunction done_;
 };
 
+class NewKeyCommand: public ICommand, public std::enable_shared_from_this<NewKeyCommand> {
+public:
+	NewKeyCommand(doneFunction done): done_(done) {}
+	virtual ~NewKeyCommand() {}
+
+	void process(const std::vector<std::string>&);
+	std::set<std::string> name() {
+		std::set<std::string> lSet;
+		lSet.insert("newkey"); 
+		lSet.insert("nk"); 
+		return lSet;
+	}
+
+	void help() {
+		std::cout << "newkey | nk [<seed>,<words>,<...>]" << std::endl;
+		std::cout << "\tCreate new key from scratch or as recovered key from seed words, and prints out it, including: qbit-address, qbit-id, qbit-private key, seed phrase." << std::endl;
+		std::cout << "\t[<seed>,<words>,<...>] - optional, seed words" << std::endl << std::endl;
+	}	
+
+	static ICommandPtr instance(doneFunction done) { 
+		return std::make_shared<NewKeyCommand>(done); 
+	}
+
+private:
+	doneFunction done_;
+};
+
 class BalanceCommand;
 typedef std::shared_ptr<BalanceCommand> BalanceCommandPtr;
 

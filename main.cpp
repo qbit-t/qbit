@@ -149,11 +149,35 @@ public:
 		qbitOnly_ = true;
 	}
 
+	void notifyTransaction(const uint256& tx) {
+		//
+		if (notifyTransaction_.size()) {
+			// try exec
+			std::string lCommand = notifyTransaction_;
+			strrepl(lCommand, "#tx", tx.toHex());
+			// execute
+			int lResult = system(lCommand.c_str());
+		}
+	}
+	void setNotifyTransactionCommand(const std::string& notifyTransaction) {
+		notifyTransaction_ = notifyTransaction;
+	}	
+
 	static ISettingsPtr instance() { return std::make_shared<NodeSettings>(); }
 	static ISettingsPtr instance(const std::string& dir, ISettingsPtr other) { return std::make_shared<NodeSettings>(dir, other); }
 
 private:
+	bool strrepl(std::string& str, const std::string& from, const std::string& to) {
+		size_t lStartPos = str.find(from);
+		if(lStartPos == std::string::npos)
+			return false;
+		str.replace(lStartPos, from.length(), to);
+		return true;
+	}
+
+private:
 	std::string path_;
+	std::string notifyTransaction_;
 	uint32_t roles_ = State::PeerRoles::UNDEFINED;
 	int serverPort_ = 31415;
 	size_t threadPoolSize_ = 2;
@@ -343,6 +367,8 @@ public:
 		httpRequestHandler_->push(HttpSendToAddress::instance());
 		httpRequestHandler_->push(HttpCreateDApp::instance());
 		httpRequestHandler_->push(HttpCreateShard::instance());
+		httpRequestHandler_->push(HttpGetBlock::instance());
+		httpRequestHandler_->push(HttpGetBlockHeader::instance());
 		httpRequestHandler_->push(HttpGetTransaction::instance());
 		httpRequestHandler_->push(HttpCreateAsset::instance());
 		httpRequestHandler_->push(HttpCreateAssetEmission::instance());
@@ -502,6 +528,30 @@ int main(int argv, char** argc) {
 				}
 			}
 		}
+	}
+
+	//
+	// check config
+	try {
+		qbit::json::Document lConfig;
+		if (lConfig.loadFromFile(lSettings->dataPath() + "/qbit.config")) {
+
+			// notify transaction command
+			qbit::json::Value lNotifyTransactionValue;
+			if (lConfig.find("notifyTransaction", lNotifyTransactionValue)) {
+				lSettings->setNotifyTransactionCommand(lNotifyTransactionValue.getString());
+			}
+
+			// peers (default if NOT -peers)
+			qbit::json::Value lPeersValue;
+			if (lConfig.find("peers", lPeersValue) && !lPeers.size()) {
+				//
+				boost::split(lPeers, lPeersValue.getString(), boost::is_any_of(","));
+			}
+		}
+	} catch(qbit::exception& ex) {
+		std::cout << ex.code() << ": " << ex.what() << std::endl;
+		return 1;
 	}
 
 	//
