@@ -253,6 +253,9 @@ bool Wallet::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, TransactionContex
 	// preserve in tx context for rollback
 	ctx->addNewUnlinkedOut(utxo);
 
+	// notify
+	settings_->notifyTransaction(utxo->out().tx());
+
 	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[pushUnlinkedOut]: pushed ") + 
 		strprintf("utxo = %s, tx = %s, ctx = %s/%s#", 
 			utxo->hash().toHex(), utxo->out().tx().toHex(), ctx->tx()->id().toHex(), utxo->out().chain().toHex().substr(0, 10)));

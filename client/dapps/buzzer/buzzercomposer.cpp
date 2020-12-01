@@ -924,6 +924,21 @@ void BuzzerLightComposer::CreateTxBuzzer::process(errorFunction error) {
 	}
 
 	//
+#ifdef PRODUCTION_MOD
+	std::string lName = lBuzzerName;
+	std::transform(lName.begin(), lName.end(), lName.begin(), ::tolower);
+
+	//
+	if (lName.find("@buz" ) != std::string::npos ||
+		lName.find("buzz" ) != std::string::npos ||
+		lName.find("buzer") != std::string::npos ||
+		lName.find("bazer") != std::string::npos ||
+		lName.find("bazze") != std::string::npos || 
+		lName.find("baze" ) != std::string::npos)
+		lFail = true;
+#endif
+
+	//
 	if (lFail) {
 		error_("E_BUZZER_NAME_INCORRECT", "Buzzer name is incorrect.");
 		return;

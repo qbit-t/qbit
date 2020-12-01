@@ -46,6 +46,45 @@ void KeyCommand::process(const std::vector<std::string>& args) {
 	done_();
 }
 
+void NewKeyCommand::process(const std::vector<std::string>& args) {
+	//
+	std::string lWords;
+	if (args.size()) {
+		lWords = args[0];
+	}
+
+	SKeyPtr lKey;
+	if (lWords.size()) {
+		//
+		std::list<std::string> lList;
+		boost::split(lList, std::string(lWords), boost::is_any_of(","));
+
+		lKey = wallet_->createKey(lList);
+		if (!lKey || !lKey->valid()) {
+			throw qbit::exception("E_SKEY_IS_INVALID", "Key is invalid."); 
+		}
+	} else {
+		lKey = wallet_->createKey(std::list<std::string>());
+		if (!lKey || !lKey->valid()) {
+			throw qbit::exception("E_SKEY_IS_INVALID", "Key is invalid."); 
+		}
+	}
+
+	PKey lPFoundKey = lKey->createPKey();
+
+	std::cout << "address = " << lPFoundKey.toString() << std::endl;
+	std::cout << "id      = " << lPFoundKey.id().toHex() << std::endl;
+	std::cout << "pkey    = " << lPFoundKey.toHex() << std::endl;
+	std::cout << "skey    = " << lKey->toHex() << std::endl;
+	std::cout << "seed    ->" << std::endl;
+
+	for (std::vector<SKey::Word>::iterator lWord = lKey->seed().begin(); lWord != lKey->seed().end(); lWord++) {
+		std::cout << "\t" << (*lWord).wordA() << std::endl;
+	}
+
+	done_();
+}
+
 void BalanceCommand::process(const std::vector<std::string>& args) {
 	//
 	uint256 lAsset;

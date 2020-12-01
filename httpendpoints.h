@@ -46,6 +46,18 @@ public:
 	}
 };
 
+class HttpNewKey: public IHttpCallEnpoint {
+public:
+	HttpNewKey() {}
+
+	void process(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
+	std::string method() { return std::string("newkey"); }
+
+	static IHttpCallEnpointPtr instance() {
+		return std::make_shared<HttpNewKey>();
+	}
+};
+
 class HttpGetBalance: public IHttpCallEnpoint {
 public:
 	HttpGetBalance() {}
@@ -127,6 +139,30 @@ public:
 
 	static IHttpCallEnpointPtr instance() {
 		return std::make_shared<HttpGetTransaction>();
+	}
+};
+
+class HttpGetBlock: public IHttpCallEnpoint {
+public:
+	HttpGetBlock() {}
+
+	void process(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
+	std::string method() { return std::string("getblock"); }
+
+	static IHttpCallEnpointPtr instance() {
+		return std::make_shared<HttpGetBlock>();
+	}
+};
+
+class HttpGetBlockHeader: public IHttpCallEnpoint {
+public:
+	HttpGetBlockHeader() {}
+
+	void process(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
+	std::string method() { return std::string("getblockheader"); }
+
+	static IHttpCallEnpointPtr instance() {
+		return std::make_shared<HttpGetBlockHeader>();
 	}
 };
 
