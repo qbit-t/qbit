@@ -5,6 +5,12 @@ sudo iptables -A INPUT -p tcp --dport 31415 -j ACCEPT
 sudo iptables -I INPUT 1 -i lo -j ACCEPT
 sudo iptables -P INPUT DROP
 
+sudo ip6tables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+sudo ip6tables -A INPUT -p tcp --dport 22 -j ACCEPT
+sudo ip6tables -A INPUT -p tcp --dport 31415 -j ACCEPT
+sudo ip6tables -I INPUT 1 -i lo -j ACCEPT
+sudo ip6tables -P INPUT DROP
+
 # 2 install persistent
 # apt-get install iptables-persistent
 

@@ -68,7 +68,6 @@ Prerequisites:
 4. [optionally] sudo apt-get install libtool
 5. [optionally] sudo apt-get update && sudo apt-get install build-essential
 6. [optionally] sudo apt-get install cmake
-7. [] sudo apt install binutils
 
 Build:
 1. cd ./secp256k1
