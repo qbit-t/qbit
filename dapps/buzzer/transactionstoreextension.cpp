@@ -189,6 +189,32 @@ bool BuzzerTransactionStoreExtension::isAllowed(TransactionContextPtr ctx) {
 				//
 				return false; // already endorsed
 			}
+
+			ITransactionStorePtr lMainStore = store_->storeManager()->locate(MainChain::id());
+			if (lMainStore && lEvent->in().size() > TX_BUZZER_ENDORSE_FEE_IN) {
+				TransactionPtr lFeeTx = lMainStore->locateTransaction(lEvent->in()[TX_BUZZER_ENDORSE_FEE_IN].out().tx());
+				if (lFeeTx) {
+					TxFeePtr lFee = TransactionHelper::to<TxFee>(lFeeTx);
+
+					amount_t lAmount;
+					uint64_t lHeight;
+					if (TxBuzzerEndorse::extractLockedAmountAndHeight(lFee, lAmount, lHeight) && lAmount != BUZZER_MIN_EM_STEP) {
+						// if amount is not fixed - for NOW
+						// maybe later we'll implement schedule
+						return false;
+					}
+				} else {
+					//
+					TxBuzzerEndorsePtr lEndorse = TransactionHelper::to<TxBuzzerEndorse>(lEvent);
+					incrementEndorsements(lBuzzer, lEndorse->amount());
+					if (lEndorse->amount() != BUZZER_MIN_EM_STEP) {
+						// if amount is not fixed - for NOW
+						// maybe later we'll implement schedule
+						return false;
+					}
+				}
+			}
+
 		} else if (ctx->tx()->type() == TX_BUZZER_MISTRUST) {
 			//
 			// in[0] - publisher/initiator
@@ -201,6 +227,31 @@ bool BuzzerTransactionStoreExtension::isAllowed(TransactionContextPtr ctx) {
 			if (lMitrust.valid()) {
 				//
 				return false; // already endorsed
+			}
+
+			ITransactionStorePtr lMainStore = store_->storeManager()->locate(MainChain::id());
+			if (lMainStore && lEvent->in().size() > TX_BUZZER_MISTRUST_FEE_IN) {
+				TransactionPtr lFeeTx = lMainStore->locateTransaction(lEvent->in()[TX_BUZZER_MISTRUST_FEE_IN].out().tx());
+				if (lFeeTx) {
+					TxFeePtr lFee = TransactionHelper::to<TxFee>(lFeeTx);
+
+					amount_t lAmount;
+					uint64_t lHeight;
+					if (TxBuzzerMistrust::extractLockedAmountAndHeight(lFee, lAmount, lHeight) && lAmount != BUZZER_MIN_EM_STEP) {
+						// if amount is not fixed - for NOW
+						// maybe later we'll implement schedule
+						return false;
+					}
+				} else {
+					//
+					TxBuzzerMistrustPtr lMistrust = TransactionHelper::to<TxBuzzerMistrust>(lEvent);
+					incrementEndorsements(lBuzzer, lMistrust->amount());
+					if (lMistrust->amount() != BUZZER_MIN_EM_STEP) {
+						// if amount is not fixed - for NOW
+						// maybe later we'll implement schedule
+						return false;
+					}
+				}
 			}
 		} else if (ctx->tx()->type() == TX_BUZZ_LIKE) {
 
