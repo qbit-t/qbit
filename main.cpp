@@ -431,6 +431,7 @@ int main(int argv, char** argc) {
 	// command line
 	bool lDaemon = false;
 	bool lDebugFound = false;
+	std::string lEndpointV4;
 	std::vector<std::string> lPeers;
 	for (int lIdx = 1; lIdx < argv; lIdx++) {
 		//
@@ -466,6 +467,9 @@ int main(int argv, char** argc) {
 				std::cout << "port: incorrect value" << std::endl;
 				return -1;
 			}
+		} else if (std::string(argc[lIdx]) == std::string("-endpoint")) {
+			//
+			lEndpointV4 = std::string(argc[++lIdx]);
 		} else if (std::string(argc[lIdx]) == std::string("-threadpool")) {
 			//
 			size_t lPool;
@@ -637,13 +641,16 @@ int main(int argv, char** argc) {
 	// initialize first key (if absent - create it)
 	lNode->wallet()->firstKey();
 
-	// NOTE: add static nodes here
-	// lNode->peerManager()->addPeerExplicit("8.8.8.8:31415");
-
 	// add nodes
 	for (std::vector<std::string>::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
 		//
 		lNode->peerManager()->addPeerExplicit(*lPeer);
+	}
+
+	// allow connection to this host
+	if (lEndpointV4.length() && lSettings->serverPort()) {
+		//
+		lNode->peerManager()->addPeerExplicit(strprintf("%s:%d", lEndpointV4, lSettings->serverPort()));
 	}
 
 	// start sequence
