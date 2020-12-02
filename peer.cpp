@@ -845,7 +845,10 @@ void Peer::requestPeers() {
 		// prepare peers list
 		std::vector<std::string> lPeers;
 		StatePtr lOwnState = peerManager_->consensusManager()->currentState();
-		if (!lOwnState->client()) peerManager_->activePeers(lPeers);
+		if (!lOwnState->client()) { 
+			// active & explicit
+			peerManager_->activePeers(lPeers);
+		}
 
 		// push own current state
 		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION);
