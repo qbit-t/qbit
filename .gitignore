@@ -4,7 +4,6 @@
 CMakeFiles*
 CMakeCache*
 Makefile
-qbit
 qbit-cli
 qbitd
 *test
