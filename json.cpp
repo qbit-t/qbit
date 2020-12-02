@@ -1,4 +1,7 @@
 #include "json.h"
+#include <boost/filesystem.hpp>
+#include <iostream>
+#include <iterator>
 
 using namespace qbit::json;
 
@@ -295,7 +298,23 @@ bool Document::loadFromFile(const std::string& source) {
 	if(document_.Parse(lText.toStdString()).HasParseError()) {
 		throw exception("E_JSON_PARSE_ERROR", std::string("[JsonDocument/LoadFromFile/Error]: ") + Error::getError(document_.GetParseError()));
 	}
+#else
+	// try file
+	boost::filesystem::path lPath(source);
+	if (!boost::filesystem::exists(lPath)) {
+		return false;
+	}
 
+	std::ifstream lStream(source, std::ios::binary);
+	std::vector<unsigned char> lData;
+	lData.insert(lData.end(),
+			std::istreambuf_iterator<char>(lStream),
+			std::istreambuf_iterator<char>());
+
+	std::string lText(lData.begin(), lData.end());
+	if(document_.Parse(lText).HasParseError()) {
+		throw exception("E_JSON_PARSE_ERROR", std::string("[JsonDocument/LoadFromFile/Error]: ") + Error::getError(document_.GetParseError()));
+	}
 #endif
 	return true;
 }

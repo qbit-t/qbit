@@ -62,12 +62,12 @@ Qbit Smart contracts based on the following principles:
 ## How to build
 
 Prerequisites:
-1. sudo apt-get install libjpeg-dev
-2. sudo apt-get install libpng-dev
-3. [optionally] sudo apt-get install autoconf
-4. [optionally] sudo apt-get install libtool
-5. [optionally] sudo apt-get update && sudo apt-get install build-essential
-6. [optionally] sudo apt-get install cmake
+1. [optionally] sudo apt-get update && sudo apt-get install build-essential
+2. [optionally] sudo apt-get install autoconf
+3. [optionally] sudo apt-get install libtool
+4. [optionally] sudo apt-get install cmake
+5. sudo apt-get install libjpeg-dev
+6. sudo apt-get install libpng-dev
 
 Build:
 1. cd ./secp256k1
