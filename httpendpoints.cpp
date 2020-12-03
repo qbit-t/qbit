@@ -675,7 +675,8 @@ void HttpGetPeerInfo::process(const std::string& source, const HttpRequest& requ
 			lItem.addBool("outbound", (*lPeer)->isOutbound() ? true : false);
 			lItem.addUInt("latency", (*lPeer)->latency());
 			lItem.addString("roles", (*lPeer)->state()->rolesString());
-			lItem.addString("address", (*lPeer)->state()->address().toString());
+			if ((*lPeer)->state()->address().valid()) 
+				lItem.addString("address", (*lPeer)->state()->address().toString());
 
 			lItem.addUInt("in_queue", (*lPeer)->inQueueLength());
 			lItem.addUInt("out_queue", (*lPeer)->outQueueLength());
