@@ -25,6 +25,7 @@ public:
 
 	std::string dataPath() { return path_; }
 	uint32_t roles() { return State::PeerRoles::CLIENT; }
+	qunit_t maxFeeRate() { return QUNIT * 5; }
 
 	static ISettingsPtr instance() { return std::make_shared<ClientSettings>(); }
 	static ISettingsPtr instance(const std::string& dir) { return std::make_shared<ClientSettings>(dir); }
