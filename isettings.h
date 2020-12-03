@@ -71,6 +71,8 @@ public:
 
 	virtual void notifyTransaction(const uint256&) {}
 	virtual void setNotifyTransactionCommand(const std::string&) {}
+
+	virtual int clientActivePeers() { return 3; }
 };
 
 typedef std::shared_ptr<ISettings> ISettingsPtr;

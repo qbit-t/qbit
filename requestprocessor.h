@@ -104,9 +104,9 @@ public:
 			for (std::vector<State::BlockInfo>::iterator lInfo = lInfos.begin(); lInfo != lInfos.end(); lInfo++) {
 				std::set<uint160> lPeers = chainPeers_[(*lInfo).chain()];
 				//
-				// if peer collection by chain is less than 3 - take this peer
+				// if peer collection by chain is less than clientActivePeers() - take this peer
 				lExisting = peers_.find(lAddress);
-				if (lPeers.size() < 3 /*settings: normal, average, paranoid*/ || lExists) {
+				if (lPeers.size() < settings_->clientActivePeers() /*settings: normal, average, paranoid*/ || lExists) {
 					bool lCorrect = false;
 					for (std::vector<State::DAppInstance>::iterator lInstance = dapps_.begin(); lInstance != dapps_.end(); lInstance++) {
 						if ((*lInfo).dApp() == lInstance->name()) { 
