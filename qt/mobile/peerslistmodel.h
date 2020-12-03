@@ -50,7 +50,10 @@ public:
 		outbound_ = peer->isOutbound() ? true : false;
 		latency_ = peer->latency();
 		roles_ = peer->state()->rolesString();
-		address_ = peer->state()->address().toString();
+		if (peer->state()->address().valid())
+			address_ = peer->state()->address().toString();
+		else
+			address_ = "undefined";
 
 		inQueue_ = peer->inQueueLength();
 		outQueue_ = peer->outQueueLength();

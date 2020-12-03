@@ -52,7 +52,7 @@ public:
 	//
 	// minimum network size
 	// TODO: settings
-	virtual uint32_t simpleNetworkSize() { return 5; }
+	virtual uint32_t simpleNetworkSize() { return 4; }
 
 	//
 	// mini-tree for sync
