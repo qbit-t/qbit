@@ -1335,7 +1335,8 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 			} else if (lMessage.type() == Message::PEER_EXISTS) {
 				// mark peer
 				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/msg]: peer already exists ") + key());				
-				peerManager_->postpone(shared_from_this());
+				// keep as is
+				// peerManager_->postpone(shared_from_this());
 				eraseInData(lMsg);
 				processed();
 			} else if (lMessage.type() == Message::PEER_BANNED) {
