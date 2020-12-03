@@ -103,9 +103,6 @@ public:
 			else followers_ = 0;
 		}
 
-		const uint256& info() const { return info_; }
-		void setInfo(const uint256& info) { info_ = info; }
-
 		ADD_SERIALIZE_METHODS;
 
 		template <typename Stream, typename Operation>
@@ -114,7 +111,6 @@ public:
 			READWRITE(mistrusts_);
 			READWRITE(subscriptions_);
 			READWRITE(followers_);
-			READWRITE(info_);
 		}
 
 	private:
@@ -122,7 +118,6 @@ public:
 		uint64_t mistrusts_ = BUZZER_TRUST_SCORE_BASE; // initial
 		uint32_t subscriptions_ = 0;
 		uint32_t followers_ = 0;
-		uint256 info_;
 	};
 
 	class ConversationInfo {
@@ -216,7 +211,8 @@ public:
 		endorsements_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/endorsements"),
 		mistrusts_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/mistrusts"),
 		buzzInfo_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/buzz_info"),
-		buzzerStat_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/buzzer_stat")
+		buzzerStat_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/buzzer_stat"),
+		buzzerInfo_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/buzzer_info")
 		{}
 
 	bool open();
@@ -469,6 +465,8 @@ private:
 	// buzz | info
 	db::DbContainer<uint256 /*buzz*/, BuzzInfo /*buzz info*/> buzzInfo_;
 	// buzzer | info
+	db::DbContainer<uint256 /*buzz*/, uint256 /*buzz info*/> buzzerInfo_;
+	// buzzer | stat
 	db::DbContainer<uint256 /*buzzer*/, BuzzerInfo /*buzzer info*/> buzzerStat_;
 	// publisher | timestamp
 	db::DbContainer<uint256 /*publisher*/, uint64_t /*timestamp*/> publisherUpdates_;
