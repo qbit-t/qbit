@@ -9,6 +9,7 @@
 #include "json.h"
 #include "../../isettings.h"
 #include "../../state.h"
+#include "../../amount.h"
 
 namespace buzzer {
 
@@ -26,6 +27,7 @@ public:
 	virtual std::string dataPath() { return path_; }
 	uint32_t roles() { return qbit::State::PeerRoles::CLIENT; }
 	int clientActivePeers() { return 32; }
+	qbit::qunit_t maxFeeRate() { return qbit::QUNIT * 5; }
 
 	qbit::ISettingsPtr shared() { return qbit::ISettingsPtr(static_cast<ISettings*>(this)); }
 

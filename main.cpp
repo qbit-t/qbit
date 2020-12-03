@@ -122,6 +122,8 @@ public:
 
 	std::string dataPath() { return path_; }
 
+	qunit_t maxFeeRate() { return QUNIT * 5; }
+
 	int serverPort() { return serverPort_; }
 	void setServerPort(int port) { serverPort_ = port; }
 

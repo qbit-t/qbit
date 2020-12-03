@@ -2180,10 +2180,16 @@ void BuzzerTransactionStoreExtension::selectConversations(uint64_t from, const u
 				uint256 lCounterparty = lConversationTx->in()[TX_BUZZER_CONVERSATION_BUZZER_IN].out().tx();
 
 				//
+				if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectConversations]: [0]"));
+
+				//
 				BuzzerTransactionStoreExtensionPtr lCreatorExtension = locateBuzzerExtension(lCreator);
 				if (!lCreatorExtension) continue;
 				BuzzerTransactionStoreExtensionPtr lCounterpartyExtension = locateBuzzerExtension(lCounterparty);
 				if (!lCounterpartyExtension) continue;
+
+				//
+				if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectConversations]: [1]"));
 
 				ConversationItemPtr lItem = ConversationItem::instance();
 
@@ -2196,12 +2202,18 @@ void BuzzerTransactionStoreExtension::selectConversations(uint64_t from, const u
 				lItem->setCreatorInfoId(lCreatorInfo->id());
 				lItem->setCreatorInfoChainId(lCreatorInfo->chain());
 
+				//
+				if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectConversations]: [2]"));
+
 				TxBuzzerInfoPtr lCounterpartyInfo = lCounterpartyExtension->readBuzzerInfo(lCounterparty);
 				lItem->setCounterpartyId(lCounterparty);
 				lItem->setCounterpartyInfoId(lCounterpartyInfo->id());
 				lItem->setCounterpartyInfoChainId(lCounterpartyInfo->chain());
 
 				lItem->setSignature(lConversationTx->signature());
+
+				//
+				if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectConversations]: [3]"));
 
 				BuzzerInfo lCreatorScore;
 				BuzzerInfo lCounterpartyScore;
@@ -2219,6 +2231,9 @@ void BuzzerTransactionStoreExtension::selectConversations(uint64_t from, const u
 					lItem->setSide(ConversationItem::CREATOR);
 					lItem->setScore(lCreatorScore.score());
 				}
+
+				//
+				if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectConversations]: [4]"));				
 
 				// add ACCEPT for verification
 				if (!lInfo.stateChain().isNull() && !lInfo.stateId().isNull()) {
