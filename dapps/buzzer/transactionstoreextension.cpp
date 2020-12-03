@@ -2207,13 +2207,14 @@ void BuzzerTransactionStoreExtension::selectConversations(uint64_t from, const u
 
 				TxBuzzerInfoPtr lCounterpartyInfo = lCounterpartyExtension->readBuzzerInfo(lCounterparty);
 				lItem->setCounterpartyId(lCounterparty);
+
+				//
+				if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectConversations]: [3]"));
+
 				lItem->setCounterpartyInfoId(lCounterpartyInfo->id());
 				lItem->setCounterpartyInfoChainId(lCounterpartyInfo->chain());
 
 				lItem->setSignature(lConversationTx->signature());
-
-				//
-				if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectConversations]: [3]"));
 
 				BuzzerInfo lCreatorScore;
 				BuzzerInfo lCounterpartyScore;
