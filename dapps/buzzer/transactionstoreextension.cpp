@@ -50,6 +50,7 @@ bool BuzzerTransactionStoreExtension::open() {
 			subscriberUpdates_.open();
 			buzzInfo_.open();
 			buzzerStat_.open();
+			buzzerInfo_.open();
 			endorsements_.open();
 			mistrusts_.open();
 
@@ -90,6 +91,7 @@ bool BuzzerTransactionStoreExtension::close() {
 	publisherUpdates_.close();
 	subscriberUpdates_.close();
 	buzzInfo_.close();
+	buzzerInfo_.close();
 	buzzerStat_.close();
 	endorsements_.close();
 	mistrusts_.close();
@@ -1645,10 +1647,7 @@ void BuzzerTransactionStoreExtension::decrementMistrusts(const uint256& buzzer, 
 
 void BuzzerTransactionStoreExtension::updateBuzzerInfo(const uint256& buzzer, const uint256& info) {
 	//
-	BuzzerInfo lInfo;
-	buzzerStat_.read(buzzer, lInfo);
-	lInfo.setInfo(info);
-	buzzerStat_.write(buzzer, lInfo);
+	buzzerInfo_.write(buzzer, info);
 }
 
 void BuzzerTransactionStoreExtension::incrementSubscriptions(const uint256& buzzer) {
@@ -1707,13 +1706,10 @@ bool BuzzerTransactionStoreExtension::readBuzzerStat(const uint256& buzzer, Buzz
 
 TxBuzzerInfoPtr BuzzerTransactionStoreExtension::readBuzzerInfo(const uint256& buzzer) {
 	//
-	BuzzerInfo lInfo;
-	if (buzzerStat_.read(buzzer, lInfo)) {
+	uint256 lInfo;
+	if (buzzerInfo_.read(buzzer, lInfo)) {
 		//
-		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[readBuzzerInfo]: ") +
-			strprintf("buzzer = %s, info = %s#", buzzer.toHex(), lInfo.info().toHex()));
-
-		TransactionPtr lTx = store_->locateTransaction(lInfo.info());
+		TransactionPtr lTx = store_->locateTransaction(lInfo);
 		if (lTx) {
 			return TransactionHelper::to<TxBuzzerInfo>(lTx);
 		}
@@ -2183,16 +2179,10 @@ void BuzzerTransactionStoreExtension::selectConversations(uint64_t from, const u
 				uint256 lCounterparty = lConversationTx->in()[TX_BUZZER_CONVERSATION_BUZZER_IN].out().tx();
 
 				//
-				if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectConversations]: [0]"));
-
-				//
 				BuzzerTransactionStoreExtensionPtr lCreatorExtension = locateBuzzerExtension(lCreator);
 				if (!lCreatorExtension) continue;
 				BuzzerTransactionStoreExtensionPtr lCounterpartyExtension = locateBuzzerExtension(lCounterparty);
 				if (!lCounterpartyExtension) continue;
-
-				//
-				if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectConversations]: [1]"));
 
 				ConversationItemPtr lItem = ConversationItem::instance();
 
@@ -2201,19 +2191,14 @@ void BuzzerTransactionStoreExtension::selectConversations(uint64_t from, const u
 				lItem->setConversationChainId(lInfo.chain());
 
 				TxBuzzerInfoPtr lCreatorInfo = lCreatorExtension->readBuzzerInfo(lCreator);
+				if (!lCreatorInfo) continue;
 				lItem->setCreatorId(lCreator);
 				lItem->setCreatorInfoId(lCreatorInfo->id());
 				lItem->setCreatorInfoChainId(lCreatorInfo->chain());
 
-				//
-				if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectConversations]: [2]"));
-
 				TxBuzzerInfoPtr lCounterpartyInfo = lCounterpartyExtension->readBuzzerInfo(lCounterparty);
+				if (!lCounterpartyInfo) continue;
 				lItem->setCounterpartyId(lCounterparty);
-
-				//
-				if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectConversations]: [3]"));
-
 				lItem->setCounterpartyInfoId(lCounterpartyInfo->id());
 				lItem->setCounterpartyInfoChainId(lCounterpartyInfo->chain());
 
@@ -2235,9 +2220,6 @@ void BuzzerTransactionStoreExtension::selectConversations(uint64_t from, const u
 					lItem->setSide(ConversationItem::CREATOR);
 					lItem->setScore(lCreatorScore.score());
 				}
-
-				//
-				if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectConversations]: [4]"));				
 
 				// add ACCEPT for verification
 				if (!lInfo.stateChain().isNull() && !lInfo.stateId().isNull()) {
