@@ -25,6 +25,7 @@ public:
 
 	virtual std::string dataPath() { return path_; }
 	uint32_t roles() { return qbit::State::PeerRoles::CLIENT; }
+	int clientActivePeers() { return 32; }
 
 	qbit::ISettingsPtr shared() { return qbit::ISettingsPtr(static_cast<ISettings*>(this)); }
 
