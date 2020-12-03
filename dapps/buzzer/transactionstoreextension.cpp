@@ -1710,6 +1710,9 @@ TxBuzzerInfoPtr BuzzerTransactionStoreExtension::readBuzzerInfo(const uint256& b
 	BuzzerInfo lInfo;
 	if (buzzerStat_.read(buzzer, lInfo)) {
 		//
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[readBuzzerInfo]: ") +
+			strprintf("buzzer = %s, info = %s#", buzzer.toHex(), lInfo.info().toHex()));
+
 		TransactionPtr lTx = store_->locateTransaction(lInfo.info());
 		if (lTx) {
 			return TransactionHelper::to<TxBuzzerInfo>(lTx);
