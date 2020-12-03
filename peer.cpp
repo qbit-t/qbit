@@ -4034,7 +4034,7 @@ void Peer::connect() {
 			std::vector<std::string> lParts;
 			boost::split(lParts, endpoint_, boost::is_any_of(":"), boost::token_compress_on);
 
-			if (lParts.size() == 2) {
+			if (lParts.size() >= 2) {
 				resolver_->async_resolve(tcp::resolver::query(lParts[0], lParts[1]),
 					strand_->wrap(boost::bind(&Peer::resolved, shared_from_this(),
 						boost::asio::placeholders::error,
