@@ -289,16 +289,25 @@ public:
 
 	IPeerPtr addPeerInternal(const std::string& endpoint, IPeer::Type type) {
 		//
-		if (locate(endpoint) == nullptr) {
-			std::vector<std::string> lParts;
-			boost::split(lParts, endpoint, boost::is_any_of(":"), boost::token_compress_on);
+		std::vector<std::string> lParts;
+		boost::split(lParts, endpoint, boost::is_any_of(":"), boost::token_compress_on);
 
-			if (lParts.size() == 2) {
-				IPeerPtr lPeer = Peer::instance(getContextId(), endpoint, std::static_pointer_cast<IPeerManager>(shared_from_this()));
-				lPeer->setType(type);
-				add(lPeer);
+		std::string lEndpoint;
+		if (lParts.size() >= 2) {
+			//
+			lEndpoint = strprintf("%s:%s", lParts[0], lParts[1]);
+			//
+			if (locate(lEndpoint) == nullptr) {
+				//
+				if (lParts.size() >= 2) {
+					IPeerPtr lPeer = Peer::instance(getContextId(), lEndpoint, std::static_pointer_cast<IPeerManager>(shared_from_this()));
+					
+					if (lParts.size() > 2 && lParts[2] == "e") lPeer->setType(IPeer::Type::EXPLICIT);
+					else lPeer->setType(type);
+					add(lPeer);
 
-				return lPeer;
+					return lPeer;
+				}
 			}
 		}
 
@@ -539,7 +548,7 @@ public:
 			for (std::set<std::string /*endpoint*/>::iterator lPeer = explicit_[lIdx].begin(); lPeer != explicit_[lIdx].end(); lPeer++) {
 				PeersMap::iterator lPeerPtr = peers_[lIdx].find(*lPeer);
 				if (lPeerPtr != peers_[lIdx].end()) 
-					peers.push_back(*lPeer);
+					peers.push_back((*lPeer) + ":e"); // explicit mark
 			}
 		}
 	}
