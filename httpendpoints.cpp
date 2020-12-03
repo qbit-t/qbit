@@ -386,11 +386,11 @@ void HttpGetBalance::process(const std::string& source, const HttpRequest& reque
 
 		if (lState == IConsensus::SYNCHRONIZED) {
 			if (!lAsset.isNull()) { 
-				lBalance = ((double)wallet_->balance(lAsset)) / lScale;
 				lPendingBalance = ((double)wallet_->pendingBalance(lAsset)) / lScale;
+				lBalance = ((double)wallet_->balance(lAsset)) / lScale;
 			} else { 
-				lBalance = ((double)wallet_->balance()) / lScale;
 				lPendingBalance = ((double)wallet_->pendingBalance()) / lScale;
+				lBalance = ((double)wallet_->balance()) / lScale;
 			}
 		} else if (lState == IConsensus::SYNCHRONIZING) {
 			reply = HttpReply::stockReply("E_NODE_SYNCHRONIZING", "Synchronization is in progress..."); 
