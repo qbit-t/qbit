@@ -5,7 +5,7 @@ else: QT += qml quick quickcontrols2 multimedia
 
 CONFIG += c++11
 
-VERSION = 0.1.0.12
+VERSION = 0.1.1.2
 DEFINES += VERSION_STRING=\\\"$${VERSION}\\\"
 DEFINES += QT_ENVIRONMENT
 DEFINES += BUZZER_MOD
@@ -22,6 +22,8 @@ DEFINES += QBIT_VERSION_BUILD=2
 
 DEFINES += BUZZER_MOD
 DEFINES += CUBIX_MOD
+# remove for production
+DEFINES += PRODUCTION_MOD
 
 SOURCES += \
     ../../secp256k1/src/secp256k1.c \

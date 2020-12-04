@@ -522,7 +522,7 @@ Item {
 		y: availableNumber.y
 		text: "QBIT"
 		font.pointSize: 10
-		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 	}
 
 	BuzzerCommands.BalanceCommand {
@@ -572,7 +572,7 @@ Item {
 		y: sharesNumber.y
 		text: "QTT"
 		font.pointSize: 10
-		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 	}
 
 	QuarkSymbolLabel {

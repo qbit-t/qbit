@@ -169,7 +169,7 @@ QuarkPage
 			interval: 100
 
 			onTriggered: {
-				progressBar.arcEnd += 5;
+				progressBar.arcEnd += 3;
 				if (progressBar.arcEnd >= 360) {
 					running = false;
 				}

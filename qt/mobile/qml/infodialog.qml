@@ -88,7 +88,7 @@ Dialog
 
             if (infoDialog.bottom)
             {
-				if (infoDialog.parent !== undefined)
+				if (infoDialog.parent)
 					infoDialog.y = infoDialog.parent.height - calculatedHeight - infoDialog.bottom - 150;
             }
         }
