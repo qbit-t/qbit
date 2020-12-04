@@ -271,7 +271,7 @@ Item {
 				} else {
 					lPage = lComponent.createObject(controller);
 					lPage.controller = controller;
-					lPage.start(buzzerName_);
+					lPage.start(buzzerClient.getBuzzerName(side_ === sideCreator_ ? creatorInfoId_ : counterpartyInfoId_));
 					addPage(lPage);
 				}
 			}

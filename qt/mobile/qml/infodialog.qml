@@ -88,7 +88,8 @@ Dialog
 
             if (infoDialog.bottom)
             {
-                infoDialog.y = infoDialog.parent.height - calculatedHeight - infoDialog.bottom - 150;
+				if (infoDialog.parent !== undefined)
+					infoDialog.y = infoDialog.parent.height - calculatedHeight - infoDialog.bottom - 150;
             }
         }
     }

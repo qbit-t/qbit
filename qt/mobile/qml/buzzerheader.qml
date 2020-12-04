@@ -138,12 +138,12 @@ Item {
 
 	BuzzerCommands.DownloadMediaCommand {
 		id: avatarDownloadCommand
-		preview: true // TODO: consider to use full image
+		preview: false // TODO: consider to use full image
 		skipIfExists: true
 
 		onProcessed: {
 			// tx, previewFile, originalFile
-			avatarImage.source = "file://" + previewFile;
+			avatarImage.source = "file://" + originalFile;
 		}
 
 		onError: {
@@ -157,12 +157,12 @@ Item {
 
 	BuzzerCommands.DownloadMediaCommand {
 		id: headerDownloadCommand
-		preview: true // TODO: consider to use full image
+		preview: false // TODO: consider to use full image
 		skipIfExists: true
 
 		onProcessed: {
 			// tx, previewFile, originalFile
-			headerImage.source = "file://" + previewFile;
+			headerImage.source = "file://" + originalFile;
 		}
 
 		onError: {
@@ -204,6 +204,7 @@ Item {
 			id: headerImage
 
 			width: parent.width
+			mipmap: true
 
 			onStatusChanged: {
 				//
@@ -373,6 +374,7 @@ Item {
 		width: avatarImage.displayWidth
 		height: avatarImage.displayHeight
 		fillMode: Image.PreserveAspectCrop
+		mipmap: true
 
 		property bool rounded: true
 		property int displayWidth: 120
