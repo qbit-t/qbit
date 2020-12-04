@@ -222,7 +222,7 @@ add_definitions(-DBUZZER_MOD)
 add_definitions(-DCUBIX_MOD)
 #
 # uncomment and rebuild after initial deployment
-#add_definitions(-DPRODUCTION_MOD)
+add_definitions(-DPRODUCTION_MOD)
 
 add_subdirectory(./jm)
 add_subdirectory(./leveldb)
