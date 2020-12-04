@@ -406,7 +406,8 @@ void HttpGetBalance::process(const std::string& source, const HttpRequest& reque
 
 		json::Value lKeyObject = lReply.addObject("result");
 		lKeyObject.addString("available", strprintf(TxAssetType::scaleFormat(lScale), lBalance));
-		lKeyObject.addString("pending", strprintf(TxAssetType::scaleFormat(lScale), lPendingBalance-lBalance));
+		if (lPendingBalance > lBalance) lKeyObject.addString("pending", strprintf(TxAssetType::scaleFormat(lScale), lPendingBalance-lBalance));
+		else lKeyObject.addString("pending", strprintf(TxAssetType::scaleFormat(lScale), 0));
 
 		lReply.addObject("error").toNull();
 		lReply.addString("id", lId.getString());
