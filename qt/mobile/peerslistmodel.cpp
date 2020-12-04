@@ -228,7 +228,7 @@ void PeersListModel::peerPushedInternal(const buzzer::PeerProxy& peer, bool /*up
 		list_.push_back(lItem);
 		index_[lItem->id()] = list_.size()-1;
 
-		qInfo() << "[peerPushedInternal]" << QString::fromStdString(peer.get()->key()) << list_.size()-1;
+		//qInfo() << "[peerPushedInternal]" << QString::fromStdString(peer.get()->key()) << list_.size()-1;
 
 		beginInsertRows(QModelIndex(), list_.size()-1, list_.size()-1);
 		endInsertRows();
