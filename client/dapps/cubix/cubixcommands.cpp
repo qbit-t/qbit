@@ -35,6 +35,8 @@ void UploadMediaCommand::process(const std::vector<std::string>& args) {
 	feeSent_ = false;
 	headerSent_ = false;
 	peer_ = nullptr;
+	previewWidth_ = 0;
+	previewHeight_ = 0;
 
 	args_ = args;
 
@@ -495,6 +497,10 @@ void DownloadMediaCommand::process(const std::vector<std::string>& args) {
 
 		headerTx_.setHex(lParts[0]);
 		chain_.setHex(lParts[1]);
+		previewOnly_ = false;
+		skipIfExists_ = false;
+		localPreviewFileName_ = "";
+		localFileName_ = "";
 
 		localFile_ = args[1];
 
@@ -542,8 +548,8 @@ void DownloadMediaCommand::process(const std::vector<std::string>& args) {
 				}
 			}
 
-			bool lOriginalExists = previewOnly_;
-			if (lPreviewExists && !lOriginalExists) {
+			bool lOriginalExists = false;
+			if (lPreviewExists/* && !lOriginalExists*/) {
 				for (std::list<std::string>::iterator lExtension = lExtensions.begin(); lExtension != lExtensions.end(); lExtension++) {
 					localFileName_ = localFile_ + *lExtension;
 					boost::filesystem::path lPath(localFileName_);
@@ -554,6 +560,7 @@ void DownloadMediaCommand::process(const std::vector<std::string>& args) {
 				}
 			}
 
+			if (!lOriginalExists) { lOriginalExists = previewOnly_; localFileName_ = ""; }
 			if (lPreviewExists && lOriginalExists) {
 				/*
 				if (gLog().isEnabled(Log::CLIENT))
@@ -628,6 +635,7 @@ void DownloadMediaCommand::headerLoaded(TransactionPtr tx) {
 			boost::filesystem::remove(lPathPreview);
 		}
 
+		size_t lFirstSize = 0;
 		std::ofstream lPreviewFile = std::ofstream(localPreviewFileName_, std::ios::binary);
 		if (pkey_.valid()) {
 			std::vector<unsigned char> lData;
@@ -635,9 +643,11 @@ void DownloadMediaCommand::headerLoaded(TransactionPtr tx) {
 			uint256 lNonce = lSKey->shared(pkey_);
 			decrypt(lNonce, header_->data(), lData);
 			//
+			lFirstSize = lData.size();
 			lPreviewFile.write((char*)&lData[0], lData.size());
 		} else {
 			//
+			lFirstSize = header_->data().size();
 			lPreviewFile.write((char*)&header_->data()[0], header_->data().size());
 		}
 
@@ -652,11 +662,11 @@ void DownloadMediaCommand::headerLoaded(TransactionPtr tx) {
 		else std::cout << "local preview file: " << localPreviewFileName_ << std::endl;	
 
 		//
-		if (previewOnly_) {
+		if (previewOnly_ && header_->size() > CUBIX_MAX_DATA_CHUNK) {
 			done_(header_, localPreviewFileName_, std::string(), header_->orientation(), ProcessingError());
 		} else {
 			// load data
-			if (header_->size() > CUBIX_MAX_DATA_CHUNK) {
+			if (header_->size() > CUBIX_MAX_DATA_CHUNK || lFirstSize != header_->size()) {
 				// try file
 				boost::filesystem::path lLocalPath(localFile_ + header_->mediaTypeToExtension());
 				if (boost::filesystem::exists(lLocalPath)) {

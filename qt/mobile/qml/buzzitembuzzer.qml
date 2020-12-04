@@ -137,7 +137,8 @@ Item {
 
 		onProcessed: {
 			// tx, previewFile, originalFile
-			avatarImage.source = "file://" + previewFile
+			if (originalFile === "") avatarImage.source = "file://" + previewFile;
+			else avatarImage.source = "file://" + originalFile;
 		}
 
 		onError: {
@@ -156,7 +157,8 @@ Item {
 
 		onProcessed: {
 			// tx, previewFile, originalFile
-			headerImage.source = "file://" + previewFile
+			if (originalFile === "") headerImage.source = "file://" + previewFile;
+			else headerImage.source = "file://" + originalFile;
 		}
 
 		onError: {
