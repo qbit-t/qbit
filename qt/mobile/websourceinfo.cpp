@@ -145,7 +145,7 @@ void WebSourceInfo::processCommon(QNetworkReply* reply) {
 	}
 
 	if (lFound) {
-		title_ = title_.replace("&quot;", "\"").replace("&amp;", "&");
+		title_ = title_.replace("&quot;", "\"").replace("&amp;", "&").replace("&#x27;", "'").replace("&#x39;", "'");
 		description_ = description_.replace("&quot;", "\"").replace("&amp;", "&").replace("&#x27;", "'").replace("&#x39;", "'");
 		image_ = image_.replace("&amp;", "&");
 		type_ = INFO_RICH;
