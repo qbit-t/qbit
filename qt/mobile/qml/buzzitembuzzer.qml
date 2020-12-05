@@ -286,7 +286,7 @@ Item {
 		id: avatarImage
 
 		x: spaceLeft_
-		y: headerImage.y + headerImage.height - height / 2 + getY()
+		y: headerContainer.y + headerContainer.height - height / 2 + getY() // headerImage.y + headerImage.height - height / 2 + getY()
 		width: avatarImage.displayWidth
 		height: avatarImage.displayHeight
 		fillMode: Image.PreserveAspectCrop
@@ -321,7 +321,7 @@ Item {
 	QuarkToolButton {
 		id: subscribeControl
 		x: parent.width - width - spaceItems_
-		y: headerImage.height + spaceTop_
+		y: headerContainer.height + spaceTop_ // headerImage.height + spaceTop_
 		Layout.alignment: Qt.AlignHCenter
 
 		spacing: 10
