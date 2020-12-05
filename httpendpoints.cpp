@@ -1879,10 +1879,17 @@ void HttpGetState::process(const std::string& source, const HttpRequest& request
 			json::Value lChain = lChainsObject.newArrayItem();
 			lChain.toObject(); // make object
 
+			// get consensus
+			IConsensusPtr lConsensus = peerManager_->consensusManager()->locate(lInfo->chain());
+
 			lChain.addString("dapp", lInfo->dApp().size() ? lInfo->dApp() : "none");
 			lChain.addUInt64("height", lInfo->height());
 			lChain.addString("chain", lInfo->chain().toHex());
 			lChain.addString("block", lInfo->hash().toHex());
+			if (lConsensus) { 
+				lChain.addUInt64("time", lConsensus->currentTime());
+				lChain.addString("state", lConsensus->chainStateString());
+			}
 		}
 
 		lReply.addObject("error").toNull();
