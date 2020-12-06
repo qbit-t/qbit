@@ -386,9 +386,13 @@ void HttpGetBalance::process(const std::string& source, const HttpRequest& reque
 
 		if (lState == IConsensus::SYNCHRONIZED) {
 			if (!lAsset.isNull()) { 
-				lPendingBalance = ((double)wallet_->pendingBalance(lAsset)) / lScale;
-				lBalance = ((double)wallet_->balance(lAsset)) / lScale;
+				amount_t lPending = 0, lActual = 0;
+				wallet_->balance(lAsset, lPending, lActual);
+				lPendingBalance = ((double)lPending) / lScale;
+				lBalance = ((double)lActual) / lScale;
 			} else { 
+				amount_t lPending = 0, lActual = 0;
+				wallet_->balance(TxAssetType::qbitAsset(), lPending, lActual);
 				lPendingBalance = ((double)wallet_->pendingBalance()) / lScale;
 				lBalance = ((double)wallet_->balance()) / lScale;
 			}

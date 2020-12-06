@@ -120,6 +120,7 @@ public:
 	// wallet balance
 	virtual amount_t balance() { return 0; } // qbit balance
 	virtual amount_t balance(const uint256& asset) { return 0; }
+	virtual void balance(const uint256& asset, amount_t& pending, amount_t& actual) { pending = 0; actual = 0; }
 
 	virtual amount_t pendingBalance() { return 0; } // qbit balance
 	virtual amount_t pendingBalance(const uint256& asset) { return 0; }

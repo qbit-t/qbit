@@ -438,44 +438,23 @@ Transaction::UnlinkedOutPtr Wallet::findUnlinkedOutByAsset(const uint256& asset,
 
 amount_t Wallet::pendingBalance(const uint256& asset) {
 	//
-	boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
-	//
-	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[balance]: ") + strprintf("computing available balance for %s", asset.toHex()));
-	//
-	amount_t lBalance = 0;
-	std::map<uint256 /*asset*/, std::multimap<amount_t /*amount*/, uint256 /*utxo*/>>::iterator lAsset = assetsCache_.find(asset);
-	if (lAsset != assetsCache_.end()) {
-		for (std::multimap<amount_t /*amount*/, uint256 /*utxo*/>::iterator lAmount = lAsset->second.begin(); 
-			lAmount != lAsset->second.end(); lAmount++) {
-
-			Transaction::UnlinkedOutPtr lUtxo = findUnlinkedOut(lAmount->second);
-
-			if (lUtxo == nullptr) {
-				//
-				if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[balance]: ") + 
-							strprintf("utxo NOT FOUND %s/%s", lAmount->second.toHex(), asset.toHex()));
-				// delete from store
-				utxo_.remove(lAmount->second);
-				lAsset->second.erase(lAmount);
-			} else {
-				//
-				if (gLog().isEnabled(Log::BALANCE)) gLog().write(Log::WALLET, std::string("[balance]: ") + 
-							strprintf("utxo FOUND %d/%s/%s", lAmount->first, lAmount->second.toHex(), asset.toHex()));
-
-				lBalance += lAmount->first;
-			}
-		}
-	}
-
-	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[balance]: ") + strprintf("wallet balance for %s = %d", asset.toHex(), lBalance));
-	return lBalance;
+	amount_t lPeending = 0, lActual = 0;
+	balance(asset, lPeending, lActual);
+	return lPeending;
 }
 
 amount_t Wallet::balance(const uint256& asset) {
 	//
+	amount_t lPeending = 0, lActual = 0;
+	balance(asset, lPeending, lActual);
+	return lActual;
+}
+
+void Wallet::balance(const uint256& asset, amount_t& pending, amount_t& actual) {
+	//
 	boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
 	//
-	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[balance]: ") + strprintf("computing pending balance for %s", asset.toHex()));
+	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[balance]: ") + strprintf("computing balance for %s", asset.toHex()));
 	//
 	amount_t lBalance = 0;
 	std::map<uint256 /*asset*/, std::multimap<amount_t /*amount*/, uint256 /*utxo*/>>::iterator lAsset = assetsCache_.find(asset);
@@ -497,6 +476,9 @@ amount_t Wallet::balance(const uint256& asset) {
 				//
 				if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[balance]: ") + 
 							strprintf("utxo FOUND %d/%s/%s", lAmount->first, lAmount->second.toHex(), asset.toHex()));
+
+				// available + pending
+				pending += lAmount->first;
 
 				// extra check
 				{
@@ -541,14 +523,13 @@ amount_t Wallet::balance(const uint256& asset) {
 					}
 				}
 
-				lBalance += lAmount->first;
+				actual += lAmount->first;
 				lAmount++;
 			}
 		}
 	}
 
-	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[balance]: ") + strprintf("wallet balance for %s = %d", asset.toHex(), lBalance));
-	return lBalance;
+	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[balance]: ") + strprintf("wallet balance for %s = %d", asset.toHex(), actual));
 }
 
 void Wallet::collectUnlinkedOutsByAsset(const uint256& asset, amount_t amount, std::list<Transaction::UnlinkedOutPtr>& list) {

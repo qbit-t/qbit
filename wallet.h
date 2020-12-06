@@ -87,6 +87,7 @@ public:
 		return pendingBalance(TxAssetType::qbitAsset());
 	}
 	amount_t pendingBalance(const uint256&);
+	void balance(const uint256& /*asset*/, amount_t& /*pending*/, amount_t& /*actual*/);
 
 	void resetCache() {
 		boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
