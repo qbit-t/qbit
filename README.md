@@ -19,17 +19,15 @@ Qbit is a multi-asset privacy oriented platform based on PoW/DPoS consensus with
 	- Flexible integration infrastructure to support alts- and side- chains (gate-keepers)
 	- DApp making infrastructure
 	- Built-in support of the "open digital organization" principles
-	- Built-in support of DEX DApp infrastructure (as one of "open digital organization" types) (CADEX will be the first implementation)
+	- Built-in support of DEX DApp infrastructure (as one of "open digital organization" types)
 
 ## Basics, motivation and exchange
 
 There are two basic building blocks: transactions (various types) and blocks. Generic transaction consists of one or more inputs, one or more outputs, including fee. Every input and output contains hash of 'asset' type, thus single transaction can contains several assets to transfer with in&out balance consistence. Value transfer transactions is private transactions with blinded amounts (Pedersen commitment, range proofs). Transactions is not free - you need some "Qbits" to pay for them. 
 
-On the first stage Qbits will be mined. Block reward is variative (from 0.0000 0001 up to 1.0000 0000 q-bit or from 1 q-unit to 1 0000 0000 q-units) and depends on the number of pure Qbit transactions in the past N blocks. If Qbit tx count is relatively small, than reward will be closer to 1 q-unit and if tx cont is relatively high - rewad will be closer to 1 0000 0000 q-units or 1 Qbit.
+Block time - 5 secs. Emission ~ 63M.
 
-Block time - 10 secs. Emission - unlimited.
-
-On the second stage we will implement special node role - "validator" and will switch network to the DPoS consensus mode. In that scheme each node with validator role will have relatively equal probability to close the next block. But, there will be some requirements to become validator - computational power and stable wide internet connectivity. That is because (in case of CADEX) each validator will be havy loaded by the tx flow. Reward scheme and block time remains.
+For the CAEDX we will implement special node role - "validator" and will implement specialized sub-network with DPoS consensus. In that scheme each node with validator role will have relatively equal probability to close the next block. But, there will be some requirements to become validator - computational power and stable wide internet connectivity. That is because (in case of CADEX) each validator will be havy loaded by the tx flow. Reward scheme and block time remains.
 
 Validators will support Global consensus and will produce blocks. But to implement some CADEX features (HFT, for example) we need a bunch of Local consensuses with higest network rates and minimal latency. That is because we planning to implement, in terms of CADEX, another role - market node. So, all exchange markets will be distributed across the community-driven network. And in this case we need some additional control: each active market node will have corresponding, at least, 2 passive market nodes. Active market node will process orders (create, revoke) and generate trades (as a strike result) transactions. And to be convinent, that the active node is not corrupted - corresponding and independent passive market nodes will process the same transactions (orders) and get the independent results. And if active and passive processing results are the same - that mean all goes ok. CADEX Local-to-Global consensus is just an example of such approach. 	
 
