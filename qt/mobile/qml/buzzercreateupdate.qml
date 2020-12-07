@@ -36,6 +36,7 @@ QuarkPage
     }
 
 	function activatePage() {
+		buzzerApp.lockPortraitOrientation();
 		buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background"));
 		toolBar.activate();
 	}
