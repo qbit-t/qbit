@@ -33,6 +33,7 @@ QuarkPage
 	}
 
 	function activatePage() {
+		buzzerApp.lockPortraitOrientation();
 		buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background"));
 		toolBar.activate();
 	}
@@ -138,8 +139,9 @@ QuarkPage
 				askButton.text = "";
 				qbitBalance.number = amount;
 				qbitBalance.visible = true;
-			} else {
+			} else if (!qbitBalance.visible) {
 				//
+				qbitBalance.visible = false;
 				askButton.enabled = true;
 				nextButton.enabled = false;
 			}

@@ -662,8 +662,16 @@ Item
 			waitTimer.stop();
 			progressBar.arcEnd = 0;
 
-			//
-			controller.showError(message, true);
+			// insufficient amount
+			if (code === "E_AMOUNT") {
+				// clean-up and refill cache
+				buzzerClient.cleanUpBuzzerCache();
+				// check info and try again
+				controller.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_AMOUNT_INSTALL"), true);
+			} else {
+				//
+				controller.showError(message, true);
+			}
 		}
 	}
 
