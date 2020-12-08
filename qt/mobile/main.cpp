@@ -28,24 +28,6 @@ int main(int argc, char *argv[]) {
 	// generic application
     QApplication lApp(argc, argv);
 
-	/*
-	qreal factor = 1.0;
-	QScreen* screen = lApp.screens()[0];
-	qreal pixelDensity = screen->physicalDotsPerInch() / 25.4;
-	qreal wFactor = qreal(screen->geometry().width()) / qRound(screen->geometry().width() / pixelDensity);
-	qreal hFactor = qreal(screen->geometry().height()) / qRound(screen->geometry().height() / pixelDensity);
-	qreal averageDensity = (wFactor + hFactor) / 2;
-	if (!qFuzzyCompare(pixelDensity, averageDensity))
-		pixelDensity = averageDensity;
-	factor *= pixelDensity;
-
-	qInfo() << "--------------->" << factor << pixelDensity << averageDensity << wFactor << hFactor;
-
-	//qputenv("QT_SCREEN_SCALE_FACTORS", "2.623"); // The original value is 2.625 ,8
-	//qputenv("QT_AUTO_SCREEN_SCALE_FACTOR", "0");
-
-	*/
-
 	// buzzer global application
 	try {
 		buzzer::gApplication = new buzzer::Application(lApp);

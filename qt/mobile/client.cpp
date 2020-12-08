@@ -410,15 +410,15 @@ int Client::open(QString secret) {
 	peerManager_->addPeerExplicit("85.90.245.180:31416");
 	*/
 
+	// fill up peers
+	peerManager_->run();
+
 	// peers
 	std::vector<std::string> lPeers;
 	boost::split(lPeers, std::string(application_->getPeers()), boost::is_any_of(","));
 	for (std::vector<std::string>::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
 		peerManager_->addPeer(*lPeer);
 	}
-
-	//
-	peerManager_->run();
 
 	// prepare cache timer
 	syncTimer_ = new QTimer(this);
