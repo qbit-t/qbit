@@ -92,13 +92,17 @@ Item {
 
 			trustScoreLoader.process(infoLoaderCommand.buzzerId + "/" + infoLoaderCommand.buzzerChainId);
 
-			avatarDownloadCommand.url = infoLoaderCommand.avatarUrl;
-			avatarDownloadCommand.localFile = buzzerClient.getTempFilesPath() + "/" + infoLoaderCommand.avatarId;
-			avatarDownloadCommand.process();
+			if (infoLoaderCommand.avatarId !== "0000000000000000000000000000000000000000000000000000000000000000") {
+				avatarDownloadCommand.url = infoLoaderCommand.avatarUrl;
+				avatarDownloadCommand.localFile = buzzerClient.getTempFilesPath() + "/" + infoLoaderCommand.avatarId;
+				avatarDownloadCommand.process();
+			}
 
-			headerDownloadCommand.url = infoLoaderCommand.headerUrl;
-			headerDownloadCommand.localFile = buzzerClient.getTempFilesPath() + "/" + infoLoaderCommand.headerId;
-			headerDownloadCommand.process();
+			if (infoLoaderCommand.headerId !== "0000000000000000000000000000000000000000000000000000000000000000") {
+				headerDownloadCommand.url = infoLoaderCommand.headerUrl;
+				headerDownloadCommand.localFile = buzzerClient.getTempFilesPath() + "/" + infoLoaderCommand.headerId;
+				headerDownloadCommand.process();
+			}
 		}
 
 		onError: {
@@ -370,7 +374,7 @@ Item {
 		id: avatarImage
 
 		x: spaceLeft_
-		y: headerImage.y + headerImage.height - height / 2 + getY()
+		y: headerContainer.y + headerContainer.height - height / 2 + getY() // headerImage.y + headerImage.height - height / 2 + getY()
 		width: avatarImage.displayWidth
 		height: avatarImage.displayHeight
 		fillMode: Image.PreserveAspectCrop
@@ -608,7 +612,7 @@ Item {
 		onError: {
 			controller_.showError({ code: code, message: message, component: "Balance" });
 		}
-	}	
+	}
 
 	//
 	// bottom line

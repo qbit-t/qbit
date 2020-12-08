@@ -247,7 +247,11 @@ public:
 			if (lPeer->status() == IPeer::BANNED) return false;
 
 			// sanity for new key
-			if (lPeer->status() != IPeer::UNDEFINED && lPeer->address().id() != state->address().id()) {
+			if (lPeer->status() != IPeer::UNDEFINED && 
+						lPeer->address().valid() && lPeer->address().id() != state->address().id()) {
+				if (gLog().isEnabled(Log::NET)) 
+					gLog().write(Log::NET, strprintf("[peerManager]: quarantine peer with old id = %s, new id = %s, key = %s", 
+						lPeer->address().id().toHex(), state->address().id().toHex(), lPeer->key()));
 				quarantine(lPeer);
 				return false;
 			}
@@ -453,17 +457,23 @@ public:
 				Peer::PersistentState lPersistentState;
 				if (lState.first(lKey) && lState.second(lPersistentState)) {
 					// make peer
+					gLog().write(Log::INFO, std::string("[peerManager]: try to load ") + lKey);
 					IPeerPtr lPeer = addPeerInternal(lKey, lPersistentState.type());
 					if (lPeer) {
+						// previous state
 						lPeer->setState(State::instance(lPersistentState.state()));
+
+						// check if address id is actual
+						if (!lPeer->state()->address().valid()) continue;
 
 						// process status
 						switch(lPersistentState.status()) {
-							case IPeer::ACTIVE: activate(lPeer); break;
 							case IPeer::QUARANTINE: quarantine(lPeer); break; // quarantine starts from beginning
 							case IPeer::BANNED: ban(lPeer); break;
-							case IPeer::PENDING_STATE: pending(lPeer); break;
-							case IPeer::POSTPONED: postpone(lPeer); break;
+							// NOTICE: statuses below is for real processing only
+							// case IPeer::ACTIVE: activate(lPeer); break;
+							// case IPeer::PENDING_STATE: pending(lPeer); break;
+							// case IPeer::POSTPONED: postpone(lPeer); break;
 						}
 					}
 				}
@@ -833,6 +843,9 @@ public:
 			if (peer->type() == IPeer::Type::EXPLICIT) 
 				explicit_[peer->contextId()].insert(peer->key());
 		}
+
+		//
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::INFO, std::string("[peerManager]: peer added ") + peer->key());
 
 		// update peers db
 		openPeersContainer(); // if not running

@@ -462,9 +462,37 @@ QuarkPage
 				// update local info
 				buzzerClient.save();
 
-				avatarDownloadCommand.url = avatarUrl;
-				avatarDownloadCommand.localFile = buzzerClient.getTempFilesPath() + "/" + avatarId;
-				avatarDownloadCommand.process();
+				if (avatarId !== "0000000000000000000000000000000000000000000000000000000000000000") {
+					avatarDownloadCommand.url = avatarUrl;
+					avatarDownloadCommand.localFile = buzzerClient.getTempFilesPath() + "/" + avatarId;
+					avatarDownloadCommand.process();
+				} else {
+					// clean-up cache
+					buzzerClient.cleanUpBuzzerCache();
+					// notify changes
+					buzzerClient.notifyBuzzerChanged();
+					//
+					if (!setupProcess) {
+						closePage();
+					} else {
+						// setup completed
+						buzzerClient.setProperty("Client.configured", "true");
+
+						// open main app
+						var lComponent = null;
+						var lPage = null;
+
+						lComponent = Qt.createComponent("qrc:/qml/buzzer-main.qml");
+						if (lComponent.status === Component.Error) {
+							controller.showError(lComponent.errorString());
+						} else {
+							lPage = lComponent.createObject(controller);
+							lPage.controller = controller;
+
+							addPage(lPage);
+						}
+					}
+				}
 			} else {
 				progressBar.visible = false;
 				progressBar.indeterminate = false;
