@@ -47,7 +47,7 @@ uint32_t getNextWorkRequired(ITransactionStorePtr store, BlockPtr current, uint6
 
 	if (!lTimeSpan) return lBitsLimit;
 
-	std::cout << "\nSpan = " << lTimeSpan << ", time = " << current->time() << std::endl;
+	std::cout << "\nSpan = " << lTimeSpan << ", time = " << current->time() << " " << current->bits() << std::endl;
 
 	uint64_t lTargetTimespan = lIdx * blockTime;
 	if (lTimeSpan < lTargetTimespan/3) lTimeSpan = lTargetTimespan/3;
