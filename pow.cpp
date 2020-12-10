@@ -31,7 +31,7 @@ uint32_t getNextWorkRequired(ITransactionStorePtr store, BlockPtr current, uint6
 			lCurrentTarget.SetCompact(lPrev.bits_, &fNegative, &fOverflow);
 
 			if (!lTarget) {
-				lTarget = lCurrentTarget;
+				lTarget.SetCompact(current->bits(), &fNegative, &fOverflow); // = lCurrentTarget;
 				//lBlockTime = lPrev.time();
 				lBlockId = lPrev.prev();
 				lBits = lPrev.bits();
