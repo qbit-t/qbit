@@ -22,6 +22,21 @@ uint32_t getNextWorkRequired(ITransactionStorePtr store, BlockPtr current, uint6
 	uint32_t lBits = lBitsLimit;
 	//
 	std::cout << std::endl;
+	while(lIdx++ < 2) {
+		//
+		BlockHeader lPrev;
+		if (store->blockHeader(lBlockId, lPrev)) {
+    		//
+			arith_uint256 lCurrentTarget;
+			lCurrentTarget.SetCompact(lPrev.bits_, &fNegative, &fOverflow);
+
+			lTarget += lCurrentTarget;
+		}
+	}
+
+	if (lIdx) lTarget /= lIdx;
+
+	lIdx = 0;
 	while(lIdx++ < lBlocks) {
 		//
 		BlockHeader lPrev;
@@ -30,8 +45,8 @@ uint32_t getNextWorkRequired(ITransactionStorePtr store, BlockPtr current, uint6
 			arith_uint256 lCurrentTarget;
 			lCurrentTarget.SetCompact(lPrev.bits_, &fNegative, &fOverflow);
 
-			if (!lTarget) {
-				lTarget.SetCompact(current->bits(), &fNegative, &fOverflow); // = lCurrentTarget;
+			if (!lIdx) {
+				if (!lTarget) lTarget = lCurrentTarget;
 				//lBlockTime = lPrev.time();
 				lBlockId = lPrev.prev();
 				lBits = lPrev.bits();
@@ -47,11 +62,11 @@ uint32_t getNextWorkRequired(ITransactionStorePtr store, BlockPtr current, uint6
 
 	if (!lTimeSpan) return lBitsLimit;
 
-	std::cout << "\nSpan = " << lTimeSpan << ", time = " << current->time() << " " << current->bits() << std::endl;
+	std::cout << "\nSpan = " << lTimeSpan << ", time = " << current->time() << ", mid = " << lTarget.GetCompact() << std::endl;
 
 	uint64_t lTargetTimespan = lIdx * blockTime;
 	if (lTimeSpan < lTargetTimespan/3) lTimeSpan = lTargetTimespan/3;
-	//else if (lTimeSpan > lTargetTimespan*3) lTimeSpan = lTargetTimespan*3;
+	else if (lTimeSpan > lTargetTimespan*3) lTimeSpan = lTargetTimespan*3;
 	//
 	std::cout << "\nSpan new = " << lTimeSpan << " " << lTargetTimespan << std::endl;
 
