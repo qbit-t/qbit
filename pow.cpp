@@ -50,8 +50,8 @@ uint32_t getNextWorkRequired(ITransactionStorePtr store, BlockPtr current, uint6
 	std::cout << "\nSpan = " << lTimeSpan << ", time = " << current->time() << std::endl;
 
 	uint64_t lTargetTimespan = lIdx * blockTime;
-	if (lTimeSpan < lTargetTimespan/2) lTimeSpan = lTargetTimespan/2;
-	if (lTimeSpan > lTargetTimespan*2) lTimeSpan = lTargetTimespan*2;
+	if (lTimeSpan < lTargetTimespan/3) lTimeSpan = lTargetTimespan/3;
+	else if (lTimeSpan > lTargetTimespan*3) lTimeSpan = lTargetTimespan*3;
 	//
 	std::cout << "\nSpan new = " << lTimeSpan << " " << lTargetTimespan << std::endl;
 
