@@ -9,7 +9,6 @@ uint32_t getNextWorkRequired(ITransactionStorePtr store, BlockPtr current, uint6
 	bool fOverflow;
 	//
 	uint32_t lBitsLimit = 553713663;
-	                    //536962798
 	arith_uint256 lTargetLimit;
 	lTargetLimit.SetCompact(lBitsLimit, &fNegative, &fOverflow);
 
@@ -53,36 +52,26 @@ uint32_t getNextWorkRequired(ITransactionStorePtr store, BlockPtr current, uint6
 	uint64_t lTargetTimespan = lIdx * blockTime;
 	if (lTimeSpan < lTargetTimespan/2) lTimeSpan = lTargetTimespan/2;
 	if (lTimeSpan > lTargetTimespan*2) lTimeSpan = lTargetTimespan*2;
-
+	//
 	std::cout << "\nSpan new = " << lTimeSpan << " " << lTargetTimespan << std::endl;
 
 	//
-	if (lBits * lTimeSpan / lTargetTimespan > lBitsLimit) {
-		std::cout << "\n[DEFAULT] = " << lBitsLimit << std::endl;
-		return lBitsLimit;
-	} else {
-		//
-		// Retarget
-		arith_uint256 lTarget;
-		lTarget.SetCompact(lBits, &fNegative, &fOverflow);
-		//
-		lTarget /= lTargetTimespan;
-		lTarget *= lTimeSpan;
+	lTarget.SetCompact(lBits, &fNegative, &fOverflow);
+	// Retarget
+	lTarget /= lTargetTimespan;
+	lTarget *= lTimeSpan;
 
-		if (lTarget > lTargetLimit) {
-			lTarget = lTargetLimit;
-		}
-
-		if (!lTarget) {
-			std::cout << "\nTarget is ZERO!\n";
-			lTarget.SetCompact(lBits, &fNegative, &fOverflow);
-		}
-
-		std::cout << "\nTarget = " << lTarget.GetCompact() << std::endl;
-		return lTarget.GetCompact();
+	if (lTarget > lTargetLimit) {
+		lTarget = lTargetLimit;
 	}
 
-	return lBitsLimit;
+	if (!lTarget) {
+		std::cout << "\nTarget is ZERO!\n";
+		lTarget.SetCompact(lBits, &fNegative, &fOverflow);
+	}
+
+	std::cout << "\nTarget = " << lTarget.GetCompact() << std::endl;
+	return lTarget.GetCompact();
 }
 
 }
