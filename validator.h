@@ -172,6 +172,7 @@ private:
 			while(!minerRunning_) minerActive_.wait(lLock);
 
 			if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[miner]: starting for ") + strprintf("%s#", chain_.toHex().substr(0, 10)));
+
 			// check and run
 			while(minerRunning_) {
 				try {
