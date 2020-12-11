@@ -9,7 +9,7 @@ uint32_t getNextWorkRequired(ITransactionStorePtr store, BlockPtr current, uint6
 	bool fOverflow;
 
 	// minimum difficulty 0xffff
-	uint32_t lBitsLimit = 0x2100FFFF; //553713663
+	uint32_t lBitsLimit = 0x2100FFFF; // or 553713663
 	arith_uint256 lTargetLimit;
 	lTargetLimit.SetCompact(lBitsLimit, &fNegative, &fOverflow);
 
@@ -21,32 +21,8 @@ uint32_t getNextWorkRequired(ITransactionStorePtr store, BlockPtr current, uint6
 	arith_uint256 lTarget;
 	uint32_t lTimeSpan = 0;
 	uint32_t lBits = lBitsLimit;
-	//
-	std::cout << std::endl;
 
-	//
-	/*
-	uint32_t lAvgTarget = 0;
-	while(lIdx < 3) {
-		//
-		BlockHeader lPrev;
-		if (store->blockHeader(lBlockId, lPrev)) {
-    		//
-    		std::cout << lPrev.bits_ << "\n";
-			lAvgTarget += lPrev.bits_;
-		} else break;
-
-		lIdx++;
-	}
-
-	if (lIdx) {
-		lAvgTarget /= lIdx;
-		std::cout << "AvgTarget = " << lAvgTarget << " " << lIdx << "\n";
-		lTarget.SetCompact(lAvgTarget, &fNegative, &fOverflow);		
-	}
-	*/
-
-	lIdx = 0;
+	// calc total time with work done
 	while(lIdx < lBlocks) {
 		//
 		BlockHeader lPrev;
@@ -64,7 +40,7 @@ uint32_t getNextWorkRequired(ITransactionStorePtr store, BlockPtr current, uint6
 			} else {
 				uint64_t lDelta = ((lBlockTime - lPrev.time()) * lCurrentTarget.getdouble()) / lTarget.getdouble();
 				lTimeSpan += lDelta;
-				std::cout << "\tDelta = " << lDelta << std::endl;
+				// std::cout << "\tDelta = " << lDelta << std::endl;
 				lBlockTime = lPrev.time();
 				lBlockId = lPrev.prev();
 			}
@@ -73,27 +49,27 @@ uint32_t getNextWorkRequired(ITransactionStorePtr store, BlockPtr current, uint6
 		lIdx++;
 	}
 
-	//lTimeSpan += current->time() - lLastBlockTime;
-
-	std::cout << "\nSpan = " << lTimeSpan << ", time = " << current->time() << ", mid = " << lTarget.GetCompact() << ", bits = " << lBits << std::endl;
+	//
+	// std::cout << "\nSpan = " << lTimeSpan << ", time = " << current->time() << ", mid = " << lTarget.GetCompact() << ", bits = " << lBits << std::endl;
 
 	if (!lTimeSpan) return lBitsLimit;
 
 	uint32_t lTargetTimespan = lIdx * blockTime;
 	if (lTimeSpan < lTargetTimespan/3) lTimeSpan = lTargetTimespan/3;
 	if (lTimeSpan > lTargetTimespan*6) lTimeSpan = lTargetTimespan*6;
+	
 	//
-	std::cout << "\nSpan new = " << lTimeSpan << " " << lTargetTimespan << " " << (double)lTimeSpan / (double)lTargetTimespan << std::endl;
+	// std::cout << "\nSpan new = " << lTimeSpan << " " << lTargetTimespan << " " << (double)lTimeSpan / (double)lTargetTimespan << std::endl;
 
-	//
+	// get last block bits (difficulty)
 	lTarget.SetCompact(lBits, &fNegative, &fOverflow);
 
+	// check bounds
 	if (lTarget.getdouble() * lTimeSpan / lTargetTimespan > lTargetLimit.getdouble()) {
-		//
-		std::cout << "\nTarget(r) = " << lTarget.GetCompact() << std::endl;
+		// default - minimum difficulty
 		lTarget = lTargetLimit;
 	} else {
-		// Retarget
+		// retarget
 		lTarget /= lTargetTimespan;
 		lTarget *= lTimeSpan;
 
@@ -102,9 +78,15 @@ uint32_t getNextWorkRequired(ITransactionStorePtr store, BlockPtr current, uint6
 		}
 	}
 
+	//
+	uint32_t lCompactTarget = lTarget.GetCompact();
 
-	std::cout << "\nTarget = " << lTarget.GetCompact() << std::endl;
-	return lTarget.GetCompact();
+	//
+	if (gLog().isEnabled(Log::VALIDATOR)) 
+		gLog().write(Log::VALIDATOR, strprintf("[validator/miner/pow]: bits = %d, coeff = %f", lCompactTarget, (double)lTimeSpan / (double)lTargetTimespan));
+
+	// std::cout << "\nTarget = " << lTarget.GetCompact() << std::endl;
+	return lCompactTarget;
 }
 
 }
