@@ -173,9 +173,6 @@ private:
 
 			if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[miner]: starting for ") + strprintf("%s#", chain_.toHex().substr(0, 10)));
 
-			// save bits
-			uint32_t lLastBits = 553713663;
-
 			// check and run
 			while(minerRunning_) {
 				try {
@@ -211,9 +208,7 @@ private:
 					bool lNegative = false;
     				bool lOverflow = false;
 					arith_uint256 lTarget;
-					lCurrentBlock->bits_ = lLastBits;
 					lCurrentBlock->bits_ = qbit::getNextWorkRequired(store_, lCurrentBlock, consensus_->blockTime()/1000);
-					lLastBits = lCurrentBlock->bits_;
 					lTarget.SetCompact(lCurrentBlock->bits_, &lNegative, &lOverflow);
 
 					uint64_t lStartTime = consensus_->currentTime();
