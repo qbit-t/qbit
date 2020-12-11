@@ -7,9 +7,9 @@ uint32_t getNextWorkRequired(ITransactionStorePtr store, BlockPtr current, uint6
 	//
 	bool fNegative;
 	bool fOverflow;
-	//
-	uint32_t lBitsLimit = 570490879; //553713663
-	                    //553713663
+
+	// minimum difficulty 0xffff
+	uint32_t lBitsLimit = 0x2100FFFF; //553713663
 	arith_uint256 lTargetLimit;
 	lTargetLimit.SetCompact(lBitsLimit, &fNegative, &fOverflow);
 
