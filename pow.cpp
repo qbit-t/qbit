@@ -12,32 +12,41 @@ uint32_t getNextWorkRequired(ITransactionStorePtr store, BlockPtr current, uint6
 	arith_uint256 lTargetLimit;
 	lTargetLimit.SetCompact(lBitsLimit, &fNegative, &fOverflow);
 
-	// calculate time (5 blocks)
+	// calculate time (24 blocks)
 	uint64_t lBlocks = 24;
 	uint64_t lIdx = 0;
 	uint256 lBlockId = current->prev();
-	uint64_t lBlockTime = current->time();
+	uint64_t lBlockTime = current->time(), lLastBlockTime = current->time();
 	arith_uint256 lTarget;
-	uint64_t lTimeSpan = 0;
+	uint32_t lTimeSpan = 0;
 	uint32_t lBits = lBitsLimit;
 	//
 	std::cout << std::endl;
-	while(lIdx++ < 2) {
+
+	//
+	/*
+	uint32_t lAvgTarget = 0;
+	while(lIdx < 3) {
 		//
 		BlockHeader lPrev;
 		if (store->blockHeader(lBlockId, lPrev)) {
     		//
-			arith_uint256 lCurrentTarget;
-			lCurrentTarget.SetCompact(lPrev.bits_, &fNegative, &fOverflow);
+    		std::cout << lPrev.bits_ << "\n";
+			lAvgTarget += lPrev.bits_;
+		} else break;
 
-			lTarget += lCurrentTarget;
-		}
+		lIdx++;
 	}
 
-	if (lIdx) lTarget /= lIdx;
+	if (lIdx) {
+		lAvgTarget /= lIdx;
+		std::cout << "AvgTarget = " << lAvgTarget << " " << lIdx << "\n";
+		lTarget.SetCompact(lAvgTarget, &fNegative, &fOverflow);		
+	}
+	*/
 
 	lIdx = 0;
-	while(lIdx++ < lBlocks) {
+	while(lIdx < lBlocks) {
 		//
 		BlockHeader lPrev;
 		if (store->blockHeader(lBlockId, lPrev)) {
@@ -47,7 +56,8 @@ uint32_t getNextWorkRequired(ITransactionStorePtr store, BlockPtr current, uint6
 
 			if (!lIdx) {
 				if (!lTarget) lTarget = lCurrentTarget;
-				//lBlockTime = lPrev.time();
+				lLastBlockTime = lPrev.time();
+				lBlockTime = lPrev.time();
 				lBlockId = lPrev.prev();
 				lBits = lPrev.bits();
 			} else {
@@ -57,33 +67,40 @@ uint32_t getNextWorkRequired(ITransactionStorePtr store, BlockPtr current, uint6
 				lBlockTime = lPrev.time();
 				lBlockId = lPrev.prev();
 			}
-		}
+		} else break;
+
+		lIdx++;
 	}
+
+	//lTimeSpan += current->time() - lLastBlockTime;
+
+	std::cout << "\nSpan = " << lTimeSpan << ", time = " << current->time() << ", mid = " << lTarget.GetCompact() << ", bits = " << lBits << std::endl;
 
 	if (!lTimeSpan) return lBitsLimit;
 
-	std::cout << "\nSpan = " << lTimeSpan << ", time = " << current->time() << ", mid = " << lTarget.GetCompact() << std::endl;
-
-	uint64_t lTargetTimespan = lIdx * blockTime;
+	uint32_t lTargetTimespan = lIdx * blockTime;
 	if (lTimeSpan < lTargetTimespan/3) lTimeSpan = lTargetTimespan/3;
-	else if (lTimeSpan > lTargetTimespan*3) lTimeSpan = lTargetTimespan*3;
+	if (lTimeSpan > lTargetTimespan*5) lTimeSpan = lTargetTimespan*5;
 	//
-	std::cout << "\nSpan new = " << lTimeSpan << " " << lTargetTimespan << std::endl;
+	std::cout << "\nSpan new = " << lTimeSpan << " " << lTargetTimespan << " " << (double)lTimeSpan / (double)lTargetTimespan << std::endl;
 
 	//
 	lTarget.SetCompact(lBits, &fNegative, &fOverflow);
-	// Retarget
-	lTarget /= lTargetTimespan;
-	lTarget *= lTimeSpan;
 
-	if (lTarget > lTargetLimit) {
+	if (lTarget.getdouble() * lTimeSpan / lTargetTimespan > lTargetLimit.getdouble()) {
+		//
 		lTarget = lTargetLimit;
+	} else {
+		// Retarget
+		lTarget /= lTargetTimespan;
+		lTarget *= lTimeSpan;
+
+		if (lTarget > lTargetLimit || !lTarget) {
+			lTarget = lTargetLimit;
+		}
+
 	}
 
-	if (!lTarget) {
-		std::cout << "\nTarget is ZERO!\n";
-		lTarget.SetCompact(lBits, &fNegative, &fOverflow);
-	}
 
 	std::cout << "\nTarget = " << lTarget.GetCompact() << std::endl;
 	return lTarget.GetCompact();
