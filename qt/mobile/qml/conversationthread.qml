@@ -281,6 +281,23 @@ QuarkPage {
 	}
 
 	//
+	// decline dialog
+	//
+
+	YesNoDialog	{
+		id: declineConversationDialog
+
+		onAccepted:	{
+			//
+			declineCommand.process(modelLoader.conversationId);
+		}
+
+		onRejected: {
+			declineConversationDialog.close();
+		}
+	}
+
+	//
 	// toolbar
 	//
 
@@ -499,7 +516,7 @@ QuarkPage {
 
 			onClicked: {
 				//
-				declineCommand.process(modelLoader.conversationId);
+				declineConversationDialog.show(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.conversation.decline.confirm"));
 			}
 		}
 
