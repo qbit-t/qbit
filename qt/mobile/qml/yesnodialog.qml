@@ -14,7 +14,7 @@ Dialog
     id: yesnoDialog
     modal: true
     focus: true
-    title: "GRAVIEX"
+	title: "Buzzer"
     x: (parent.width - width) / 2
     y: parent.height / 6
     width: Math.min(parent.width, parent.height) / 3 * 2
