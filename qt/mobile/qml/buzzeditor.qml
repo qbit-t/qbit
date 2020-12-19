@@ -324,7 +324,6 @@ QuarkPage {
 			onPreeditTextChanged: {
 				buzzersList.close();
 				tagsList.close();
-
 				// console.log("preedit = '" + preeditText + "'");
 			}
 
