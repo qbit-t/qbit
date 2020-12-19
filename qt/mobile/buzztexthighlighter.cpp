@@ -37,9 +37,6 @@ void BuzzTextHighlighter::highlightBlock(const QString &text) {
 		while (matchIterator.hasNext()) {
 			QRegularExpressionMatch match = matchIterator.next();
 			if (rule.format.isValid()) setFormat(match.capturedStart(), match.capturedLength(), rule.format);
-			QString lCut = text.mid(match.capturedStart(), match.capturedLength());
-			QByteArray lBytes = lCut.toUtf8();
-			//qInfo() << lBytes;
 			emit matched(match.capturedStart(), match.capturedLength(), text.mid(match.capturedStart(), match.capturedLength()));
 		}
 	}
