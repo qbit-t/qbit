@@ -120,10 +120,17 @@ QuarkPage {
 		onError: {
 			// code, message
 			console.log("[globalfeed/buzzer/error]: " + code + " | " + message);
-			dataReceived = false;
-			dataRequested = false;
 			waitDataTimer.done();
-			controller.showError(message);
+
+			if (code !== "E_LOAD_BUZZFEED_BUZZER_TIMESTAMP") {
+				//
+				dataReceived = false;
+				dataRequested = false;
+				controller.showError(message);
+			} else {
+				dataReceived = true;
+				dataRequested = false;
+			}
 		}
 
 		function start() {

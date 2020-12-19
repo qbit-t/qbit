@@ -17,10 +17,12 @@ public:
 		KeyOrder(uint64_t height, uint32_t latency): height_(height), latency_(latency) {}
 
 		friend bool operator < (const KeyOrder& a, const KeyOrder& b) {
+			// forward order (less height - on top)
 			if (a.height() < b.height()) return true;
 			if (a.height() > b.height()) return false;
-			if (a.latency() < b.latency()) return true;
-			if (a.latency() > b.latency()) return false;
+			// reverse order (less latency - on bottom)
+			if (a.latency() > b.latency()) return true;
+			if (a.latency() < b.latency()) return false;
 
 			return false;
 		}

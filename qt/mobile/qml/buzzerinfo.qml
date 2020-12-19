@@ -22,7 +22,8 @@ Item
 
 	property var infoDialog;
 	property int calculatedHeight: progressBar.y + progressBar.height + 15;
-	property string action: "CREATE";
+	property string action: "CREATE"; // UPDATE
+	property bool buzzerCreated: false
 	property var controller;
 
 	property string buzzerName_: action !== "CREATE" ? buzzerClient.name : "";
@@ -46,7 +47,7 @@ Item
 		y: takePhotoButton.y - (width + 5)
 
 		onClicked: {
-			camera.rotate();
+			imageContainer.rotate();
 		}
 	}
 
@@ -68,19 +69,19 @@ Item
 		function takeImage() {
 			cancelPhotoButton.visible = false;
 			rotateButton.visible = false;
-			camera.captureToLocation("");
+			imageContainer.captureToLocation("");
 		}
 
 		function makeAction() {
-			if (camera.cameraState() !== Camera.ActiveState) {
-				camera.start();
+			if (imageContainer.cameraState() !== Camera.ActiveState) {
+				imageContainer.start();
 				avatarImage.mipmap = true;
 				cancelPhotoButton.visible = true;
 				rotateButton.visible = true;
-			} else if (camera.cameraState() === Camera.ActiveState) {
+			} else if (imageContainer.cameraState() === Camera.ActiveState) {
 				cancelPhotoButton.visible = false;
 				rotateButton.visible = false;
-				camera.captureToLocation("");
+				imageContainer.captureToLocation("");
 			}
 		}
 	}
@@ -99,8 +100,8 @@ Item
 			cancelPhotoButton.visible = false;
 			rotateButton.visible = false;
 
-			if (camera.cameraState() === Camera.ActiveState) {
-				camera.stop();
+			if (imageContainer.cameraState() === Camera.ActiveState) {
+				imageContainer.stop();
 				avatarImage.mipmap = false;
 				avatarImage.source = "file://" + buzzerAvatar_;
 			}
@@ -122,59 +123,6 @@ Item
 
 		autoTransform: true
 
-		Rectangle {
-			id: imageContainer
-			x: 0
-			y: 0
-			width: avatarImage.displayWidth // 256
-			height: avatarImage.displayHeight // 256
-
-			color: "transparent"
-
-			// camera proxy
-			Item {
-				id: camera
-
-				property variant inner;
-
-				function cameraState() {
-					if (inner !== undefined) return inner.cameraState();
-					return Camera.Unavailable;
-				}
-				function start() {
-					// TODO: create camera
-					if(inner === undefined) {
-						var lComponent = Qt.createComponent("qrc:/qml/cameraview.qml");
-						inner = lComponent.createObject(imageContainer);
-						inner.setup(camera);
-					}
-
-					if (inner !== undefined) {
-						inner.start();
-					}
-				}
-				function stop() {
-					if (inner !== undefined) {
-						inner.stop();
-					}
-				}
-				function captureToLocation(location) {
-					if (inner !== undefined) {
-						inner.captureToLocation(location);
-					}
-				}
-				function applyPicture(path) {
-					avatarImage.mipmap = false;
-					buzzerAvatar_ = path;
-					avatarImage.source = "file://" + buzzerAvatar_;
-				}
-				function rotate() {
-					if (inner !== undefined) {
-						inner.rotate();
-					}
-				}
-			}
-		}
 
 		MouseArea {
 			x: parent.x
@@ -206,6 +154,60 @@ Item
 					height: avatarImage.displayHeight
 					radius: avatarImage.displayWidth
 				}
+			}
+		}
+	}
+
+	Rectangle {
+		id: imageContainer
+
+		x: parent.width / 2 - avatarImage.width / 2
+		width: avatarImage.displayWidth
+		height: avatarImage.displayHeight
+		clip: true
+
+		color: "transparent"
+
+		property variant inner;
+
+		function cameraState() {
+			if (inner !== undefined) return inner.cameraState();
+			return Camera.Unavailable;
+		}
+		function start() {
+			// TODO: create camera
+			if(inner === undefined) {
+				var lComponent = Qt.createComponent("qrc:/qml/cameraview.qml");
+				if (lComponent.status === Component.Error) {
+					console.log("[CAMERAVIEW]: " + lComponent.errorString());
+				} else {
+					inner = lComponent.createObject(imageContainer);
+					inner.setup(imageContainer /*cameraDevice*/);
+				}
+			}
+
+			if (inner !== undefined) {
+				inner.start();
+			}
+		}
+		function stop() {
+			if (inner !== undefined) {
+				inner.stop();
+			}
+		}
+		function captureToLocation(location) {
+			if (inner !== undefined) {
+				inner.captureToLocation(location);
+			}
+		}
+		function applyPicture(path) {
+			avatarImage.mipmap = false;
+			buzzerAvatar_ = path;
+			avatarImage.source = "file://" + buzzerAvatar_;
+		}
+		function rotate() {
+			if (inner !== undefined) {
+				inner.rotate();
 			}
 		}
 	}
@@ -486,7 +488,7 @@ Item
 
 		onClicked: {
 			// create buzzer
-			if (buzzerinfo_.action === "CREATE") {
+			if (buzzerinfo_.action === "CREATE" && !buzzerinfo_.buzzerCreated) {
 				//
 				if (buzzerName_ === "" || buzzerName_[0] !== '@') {
 					controller.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZER_NAME_INCORRECT"), true);
@@ -668,7 +670,20 @@ Item
 				buzzerClient.cleanUpBuzzerCache();
 				// check info and try again
 				controller.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_AMOUNT_INSTALL"), true);
+			} else if (code === "E_BUZZER_EXISTS") {
+				//
+				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZER_EXISTS"), true);
+			} else if (message === "UNKNOWN_REFTX" || code === "E_TX_NOT_SENT") {
+				// NOTICE: probably buzzer is sucessfully was created, so just try to create info
+				buzzerinfo_.buzzerCreated = true;
+				buzzerClient.name = buzzerName_;
+				//
+				buzzerClient.resync();
+				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.UNKNOWN_REFTX"), true);
 			} else {
+				// NOTICE: probably buzzer is sucessfully was created, so just try to create info
+				buzzerinfo_.buzzerCreated = true;
+				buzzerClient.name = buzzerName_;
 				//
 				controller.showError(message, true);
 			}
@@ -739,8 +754,20 @@ Item
 			waitTimer.stop();
 			progressBar.arcEnd = 0;
 
-			//
-			controller.showError(message, true);
+			// insufficient amount
+			if (code === "E_AMOUNT") {
+				// clean-up and refill cache
+				buzzerClient.cleanUpBuzzerCache();
+				// check info and try again
+				controller.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_AMOUNT_INSTALL"), true);
+			} else if (message === "UNKNOWN_REFTX" || code === "E_TX_NOT_SENT") {
+				//
+				buzzerClient.resync();
+				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.UNKNOWN_REFTX"), true);
+			} else {
+				//
+				controller.showError(message, true);
+			}
 		}
 	}
 }

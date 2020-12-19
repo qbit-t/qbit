@@ -28,8 +28,9 @@ public:
 		VALIDATOR	= (1 <<  2),
 		CLIENT 		= (1 <<  3),
 		NODE 		= (1 <<  4),
+		DAEMON 		= (1 <<  5),
 		ALL			= ~(uint32_t)0
-	};	
+	};
 
 public:
 	class BlockInfo {
@@ -220,11 +221,13 @@ public:
 		if ((roles_ & VALIDATOR) != 0) { if (lRoles.size()) lRoles += "|"; lRoles += "VALIDATOR"; }
 		if ((roles_ & CLIENT) != 0) { if (lRoles.size()) lRoles += "|"; lRoles += "CLIENT"; }
 		if ((roles_ & NODE) != 0) { if (lRoles.size()) lRoles += "|"; lRoles += "NODE"; }
+		if ((roles_ & DAEMON) != 0) { if (lRoles.size()) lRoles += "|"; lRoles += "DAEMON"; }
 
 		return lRoles;
 	}
 
 	bool client() { return (roles_ & CLIENT) != 0; }
+	bool daemon() { return (roles_ & DAEMON) != 0; }
 	bool minerOrValidator() {
 		return ((roles_ & MINER) != 0) || ((roles_ & VALIDATOR) != 0);
 	}

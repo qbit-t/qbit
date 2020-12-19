@@ -7,6 +7,8 @@ import QtQuick.Controls.Material 2.1
 import QtQuick.Controls.Universal 2.1
 import QtQuick.Controls.Styles 1.4
 
+import "qrc:/fonts"
+
 TextInput
 {
     id: textInput

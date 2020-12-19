@@ -248,7 +248,7 @@ void PeersListModel::peerPoppedInternal(const buzzer::PeerProxy& peer, int /*cou
 			index_[list_[lIdx]->id()] = lIdx;
 		}
 
-		qInfo() << "[peerPoppedInternal]" << QString::fromStdString(peer.get()->key()) << lIdx;
+		//qInfo() << "[peerPoppedInternal]" << QString::fromStdString(peer.get()->key()) << lIdx;
 
 		beginRemoveRows(QModelIndex(), lIdx, lIdx);
 		endRemoveRows();

@@ -46,7 +46,6 @@ private:
 
 private:
 	QQuickTextDocument* textDocument_;
-
 };
 
 } // buzzer

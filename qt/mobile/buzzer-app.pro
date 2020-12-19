@@ -5,7 +5,7 @@ else: QT += qml quick quickcontrols2 multimedia
 
 CONFIG += c++11
 
-VERSION = 0.1.1.6
+VERSION = 0.1.1.7
 DEFINES += VERSION_STRING=\\\"$${VERSION}\\\"
 DEFINES += QT_ENVIRONMENT
 DEFINES += BUZZER_MOD
@@ -18,7 +18,7 @@ DEFINES += CLIENT_PLATFORM
 DEFINES += QBIT_VERSION_MAJOR=0
 DEFINES += QBIT_VERSION_MINOR=1
 DEFINES += QBIT_VERSION_REVISION=1
-DEFINES += QBIT_VERSION_BUILD=6
+DEFINES += QBIT_VERSION_BUILD=7
 
 DEFINES += BUZZER_MOD
 DEFINES += CUBIX_MOD
@@ -179,8 +179,9 @@ HEADERS += \
     application.h \
     iapplication.h \
     applicationpath.h \
-    line.h \
-    cameracontroler.h \
+	line.h \
+	roundframe.h \
+	cameracontroler.h \
     peerslistmodel.h \
 	settings.h \
 	commandwrappers.h \

@@ -314,7 +314,7 @@ public:
 
 		if (lOrder.size()) {
 			// use nearest
-			lOrder.begin()->second->loadTransaction(chain, tx, tryMempool, handler);
+			lOrder.rbegin()->second->loadTransaction(chain, tx, tryMempool, handler);
 			return true;
 		}
 
@@ -328,7 +328,7 @@ public:
 
 		if (lOrder.size()) {
 			// use nearest
-			lOrder.begin()->second->loadTransactions(chain, txs, handler);
+			lOrder.rbegin()->second->loadTransactions(chain, txs, handler);
 			return true;
 		}
 
@@ -342,7 +342,7 @@ public:
 
 		if (lOrder.size()) {
 			// use nearest
-			lOrder.begin()->second->loadEntity(entityName, handler);
+			lOrder.rbegin()->second->loadEntity(entityName, handler);
 			return true;
 		}
 
@@ -356,7 +356,7 @@ public:
 
 		if (lOrder.size()) {
 			// use nearest
-			lOrder.begin()->second->selectUtxoByAddress(source, chain, handler);
+			lOrder.rbegin()->second->selectUtxoByAddress(source, chain, handler);
 			return true;
 		}
 
@@ -370,7 +370,7 @@ public:
 
 		if (lOrder.size()) {
 			// use nearest
-			lOrder.begin()->second->selectUtxoByAddressAndAsset(source, chain, asset, handler);
+			lOrder.rbegin()->second->selectUtxoByAddressAndAsset(source, chain, asset, handler);
 			return true;
 		}
 
@@ -384,7 +384,7 @@ public:
 
 		if (lOrder.size()) {
 			// use nearest
-			lOrder.begin()->second->selectUtxoByTransaction(chain, tx, handler);
+			lOrder.rbegin()->second->selectUtxoByTransaction(chain, tx, handler);
 			return true;
 		}
 
@@ -398,7 +398,7 @@ public:
 
 		if (lOrder.size()) {
 			// use nearest
-			lOrder.begin()->second->selectUtxoByEntity(entityName, handler);
+			lOrder.rbegin()->second->selectUtxoByEntity(entityName, handler);
 			return true;
 		}
 
@@ -412,7 +412,7 @@ public:
 
 		if (lOrder.size()) {
 			// use nearest
-			lOrder.begin()->second->selectUtxoByEntityNames(entityNames, handler);
+			lOrder.rbegin()->second->selectUtxoByEntityNames(entityNames, handler);
 			return true;
 		}
 
@@ -426,7 +426,7 @@ public:
 
 		if (lOrder.size()) {
 			// use nearest
-			lOrder.begin()->second->selectEntityCountByShards(dapp, handler);
+			lOrder.rbegin()->second->selectEntityCountByShards(dapp, handler);
 			return true;
 		}
 
@@ -440,7 +440,7 @@ public:
 
 		if (lOrder.size()) {
 			// use nearest
-			lOrder.begin()->second->selectEntityNames(pattern, handler);
+			lOrder.rbegin()->second->selectEntityNames(pattern, handler);
 			return true;
 		}
 
@@ -493,8 +493,8 @@ public:
 
 		if (lOrder.size()) {
 			// use nearest
-			lOrder.begin()->second->sendTransaction(ctx, handler);
-			return lOrder.begin()->second;
+			lOrder.rbegin()->second->sendTransaction(ctx, handler);
+			return lOrder.rbegin()->second;
 		}
 
 		return nullptr;
@@ -507,8 +507,8 @@ public:
 
 		if (lOrder.size()) {
 			// use nearest
-			lOrder.begin()->second->sendTransaction(ctx, handler);
-			return lOrder.begin()->second;
+			lOrder.rbegin()->second->sendTransaction(ctx, handler);
+			return lOrder.rbegin()->second;
 		}
 
 		return nullptr;
@@ -528,7 +528,7 @@ public:
 
 		if (lOrder.size()) {
 			// use nearest
-			lOrder.begin()->second->broadcastTransaction(ctx);
+			lOrder.rbegin()->second->broadcastTransaction(ctx);
 			return true;
 		}
 

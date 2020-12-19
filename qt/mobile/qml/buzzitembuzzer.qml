@@ -31,6 +31,7 @@ Item {
 	property var alias_
 	property var description_
 	property var buzzerId_
+	property var buzzerInfoId_
 	property var controller_
 	property var buzzfeedModel_
 	property var listView_
@@ -83,6 +84,7 @@ Item {
 			alias_ = infoLoaderCommand.alias;
 			description_ = buzzerClient.decorateBuzzBody(infoLoaderCommand.description);
 			buzzerId_ = infoLoaderCommand.buzzerId;
+			buzzerInfoId_ = infoLoaderCommand.infoId;
 
 			trustScoreLoader.process(infoLoaderCommand.buzzerId + "/" + infoLoaderCommand.buzzerChainId);
 
@@ -396,6 +398,16 @@ Item {
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
 		//font.pointSize: 12
 	}
+	MouseArea {
+		x: buzzerIdControl.x - spaceItems_
+		y: buzzerIdControl.y - spaceItems_
+		width: buzzerIdControl.width + 2 * spaceItems_
+		height: buzzerIdControl.height + 2 * spaceItems_
+
+		onClicked: {
+			clipboard.setText(buzzerInfoId_);
+		}
+	}
 
 	QuarkSymbolLabel {
 		id: copySymbol
@@ -404,16 +416,15 @@ Item {
 		symbol: Fonts.clipboardSym
 		// color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 		//font.pointSize: 14
+	}
+	MouseArea {
+		x: copySymbol.x - spaceItems_
+		y: copySymbol.y - spaceItems_
+		width: copySymbol.width + 2 * spaceItems_
+		height: copySymbol.height + 2 * spaceItems_
 
-		MouseArea {
-			x: parent.x - spaceItems_
-			y: parent.y - spaceItems_
-			width: parent.width + 2 * spaceItems_
-			height: parent.height + 2 * spaceItems_
-
-			onClicked: {
-				clipboard.setText(buzzerId_);
-			}
+		onClicked: {
+			clipboard.setText(buzzerId_);
 		}
 	}
 
