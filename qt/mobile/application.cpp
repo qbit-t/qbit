@@ -5,6 +5,7 @@
 #include "application.h"
 #include "error.h"
 #include "line.h"
+#include "roundframe.h"
 #include "statusbar/statusbar.h"
 #include "httprequest.h"
 
@@ -83,7 +84,8 @@ int Application::execute()
 	qmlRegisterType<buzzer::Client>("app.buzzer.client", 1, 0, "Client");
     qmlRegisterType<buzzer::ClipboardAdapter>("app.buzzer.helpers", 1, 0, "Clipboard");
     qmlRegisterType<StatusBar>("StatusBar", 0, 1, "StatusBar");
-    buzzer::QuarkLine::declare();
+	buzzer::QuarkLine::declare();
+	buzzer::QuarkRoundFrame::declare();
 
     networkManager_ = new QNetworkAccessManager(this);
     clipboard_ = new ClipboardAdapter(this);

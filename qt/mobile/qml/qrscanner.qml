@@ -49,14 +49,14 @@ QuarkPage
 
         onTriggered:
         {
-			if (camera.cameraStatus === Camera.ActiveStatus)
+			if (cameraDevice.cameraStatus === Camera.ActiveStatus)
             {
                 viewfinder.grabToImage(function (result)
                 {
                     cameraController.decodeQMLImage(result);
                 });
             }
-            else camera.start();
+            else cameraDevice.start();
         }
 
         running: true
@@ -79,7 +79,7 @@ QuarkPage
 
     Camera
     {
-        id: camera
+        id: cameraDevice
 
         imageProcessing.whiteBalanceMode: CameraImageProcessing.WhiteBalanceFlash
 
@@ -107,7 +107,7 @@ QuarkPage
     VideoOutput
     {
         id: viewfinder
-        source: camera
+        source: cameraDevice
         anchors.fill: parent
         focus : visible // to receive focus and capture key events when visible
         autoOrientation: true
@@ -128,7 +128,7 @@ QuarkPage
 		y: topOffset + 10
 
 		onClicked: {
-			camera.stop();
+			cameraDevice.stop();
 			closePage();
 		}
 	}
@@ -198,7 +198,7 @@ QuarkPage
         Slider
         {
             id: zoomSlider
-            to: camera.maximumOpticalZoom * camera.maximumDigitalZoom
+            to: cameraDevice.maximumOpticalZoom * cameraDevice.maximumDigitalZoom
             from: 1
             orientation: Qt.Vertical
             stepSize: 0.5

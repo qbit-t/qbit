@@ -149,10 +149,18 @@ public:
 
 	void suspend() {
 		suspended_ = true;
+		if (peerManager_) {
+			qInfo() << "Suspending PeerManager...";
+			peerManager_->suspend();
+		}
 	}
 
 	void resume() {
 		suspended_ = false;
+		if (peerManager_) {
+			qInfo() << "Resuming PeerManager...";
+			peerManager_->resume();
+		}
 	}
 
 	QString address() {

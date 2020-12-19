@@ -472,16 +472,15 @@ Item {
 		x: parent.width - (spaceRight_ + width)
 		y: buzzerIdControl.y - 2
 		symbol: Fonts.clipboardSym
+	}
+	MouseArea {
+		x: copySymbol.x - spaceItems_
+		y: copySymbol.y - spaceItems_
+		width: copySymbol.width + 2 * spaceItems_
+		height: copySymbol.height + 2 * spaceItems_
 
-		MouseArea {
-			x: parent.x - spaceItems_
-			y: parent.y - spaceItems_
-			width: parent.width + 2 * spaceItems_
-			height: parent.height + 2 * spaceItems_
-
-			onClicked: {
-				clipboard.setText(buzzerId_);
-			}
+		onClicked: {
+			clipboard.setText(buzzerId_);
 		}
 	}
 

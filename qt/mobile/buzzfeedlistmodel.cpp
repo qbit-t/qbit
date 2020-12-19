@@ -263,17 +263,17 @@ void BuzzfeedListModel::buzzfeedItemAbsent(const uint256& /*chain*/, const uint2
 }
 
 void BuzzfeedListModel::buzzfeedItemNew(qbit::BuzzfeedItemPtr buzz) {
-	qInfo() << "BuzzfeedListModel::buzzfeedItemNew";
+	// qInfo() << "BuzzfeedListModel::buzzfeedItemNew";
 	emit buzzfeedItemNewSignal(qbit::BuzzfeedItemProxy(buzz));
 }
 
 void BuzzfeedListModel::buzzfeedItemUpdated(qbit::BuzzfeedItemPtr buzz) {
-	qInfo() << "BuzzfeedListModel::buzzfeedItemUpdated";
+	// qInfo() << "BuzzfeedListModel::buzzfeedItemUpdated";
 	emit buzzfeedItemUpdatedSignal(qbit::BuzzfeedItemProxy(buzz));
 }
 
 void BuzzfeedListModel::buzzfeedItemsUpdated(const std::vector<qbit::BuzzfeedItemUpdate>& items) {
-	qInfo() << "BuzzfeedListModel::buzzfeedItemsUpdated";
+	// qInfo() << "BuzzfeedListModel::buzzfeedItemsUpdated";
 	emit buzzfeedItemsUpdatedSignal(qbit::BuzzfeedItemUpdatesProxy(items));
 }
 
@@ -354,7 +354,7 @@ void BuzzfeedListModel::feed(qbit::BuzzfeedPtr local, bool more) {
 						//
 						if (index_.find(lIdx->first) == index_.end()) {
 							beginRemoveRows(QModelIndex(), lIdx->second, lIdx->second);
-							qInfo() << "Removed: " << QString::fromStdString(lIdx->first.toString());
+							// qInfo() << "Removed: " << QString::fromStdString(lIdx->first.toString());
 							endRemoveRows();
 						}
 					}
@@ -408,7 +408,7 @@ void BuzzfeedListModel::buzzfeedItemNewSlot(const qbit::BuzzfeedItemProxy& buzz)
 				index_[list_[lItem]->key()] = lItem;
 			}
 
-			qInfo() << "BuzzfeedListModel::buzzfeedItemNewSlot -> insert" << lIndex;
+			// qInfo() << "BuzzfeedListModel::buzzfeedItemNewSlot -> insert" << lIndex;
 			beginInsertRows(QModelIndex(), lIndex, lIndex);
 			endInsertRows();
 
@@ -449,7 +449,7 @@ bool BuzzfeedListModel::buzzfeedItemUpdatedProcess(qbit::BuzzfeedItemPtr item, u
 		//
 		int lIndex = lItem->second;
 		if (lIndex >= 0 && lIndex < list_.size()) {
-			qInfo() << "BuzzfeedListModel::buzzfeedItemUpdatedProcess -> update" << lIndex;
+			// qInfo() << "BuzzfeedListModel::buzzfeedItemUpdatedProcess -> update" << lIndex;
 			QModelIndex lModelIndex = createIndex(lIndex, lIndex);
 			emit dataChanged(lModelIndex, lModelIndex, QVector<int>()
 					<< HasParentRole
@@ -479,8 +479,8 @@ bool BuzzfeedListModel::buzzfeedItemsUpdatedProcess(const qbit::BuzzfeedItemUpda
 		int lIndex = lEntry->second;
 		QModelIndex lModelIndex = createIndex(lIndex, lIndex);
 
-		qInfo() << "BuzzfeedListModel::buzzfeedItemsUpdatedProcess -> update" <<
-				   lIndex << QString::fromStdString(update.fieldString()) << update.count();
+		// qInfo() << "BuzzfeedListModel::buzzfeedItemsUpdatedProcess -> update" <<
+		//		   lIndex << QString::fromStdString(update.fieldString()) << update.count();
 
 		qbit::BuzzfeedItemUpdate::Field lField = update.field();
 		if (lField == qbit::BuzzfeedItemUpdate::Field::LIKES)

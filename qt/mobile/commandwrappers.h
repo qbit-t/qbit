@@ -1492,6 +1492,7 @@ class LoadBuzzerInfoCommand: public QObject
 	Q_OBJECT
 
 	Q_PROPERTY(QString buzzerId READ buzzerId NOTIFY buzzerIdChanged)
+	Q_PROPERTY(QString infoId READ infoId NOTIFY infoIdChanged)
 	Q_PROPERTY(QString buzzerChainId READ buzzerChainId NOTIFY buzzerChainIdChanged)
 	Q_PROPERTY(QString pkey READ pkey NOTIFY pkeyChanged)
 	Q_PROPERTY(QString alias READ alias NOTIFY aliasChanged)
@@ -1545,6 +1546,14 @@ public:
 	QString buzzerId() {
 		if (buzzer_) {
 			return QString::fromStdString(buzzer_->id().toHex());
+		}
+
+		return QString();
+	}
+
+	QString infoId() {
+		if (info_) {
+			return QString::fromStdString(info_->id().toHex());
 		}
 
 		return QString();
@@ -1649,6 +1658,7 @@ signals:
 	void headerIdChanged();
 	void buzzerChainIdChanged();
 	void loadUtxoChanged();
+	void infoIdChanged();
 
 private:
 	qbit::LoadBuzzerInfoCommandPtr command_;

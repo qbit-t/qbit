@@ -197,7 +197,7 @@ public:
 	void close() {
 		if (socket_) {
 			socket_->close();
-			socket_ = nullptr;
+			socketStatus_ = CLOSED;
 		}
 	}
 

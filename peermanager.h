@@ -429,6 +429,25 @@ public:
 		}
 	}
 
+	void suspend() {
+		//
+		for (int lIdx = 0; lIdx < contexts_.size(); lIdx++) {
+			boost::unique_lock<boost::mutex> lLock(contextMutex_[lIdx]);
+			for (std::set<std::string /*endpoint*/>::iterator lPeer = active_[lIdx].begin(); lPeer != active_[lIdx].end(); lPeer++) {
+				PeersMap::iterator lPeerPtr = peers_[lIdx].find(*lPeer);
+				if (lPeerPtr != peers_[lIdx].end() && lPeerPtr->second->isOutbound() && !lPeerPtr->second->state()->client()) {
+					lPeerPtr->second->close();
+				}
+			}
+		}
+
+		paused_ = true;
+	}
+
+	void resume() {
+		paused_ = false;
+	}
+
 	void poll() {
 		//
 		for (std::vector<IOContextPtr>::iterator lCtx = contexts_.begin(); lCtx != contexts_.end(); lCtx++)	{
@@ -634,22 +653,24 @@ private:
 
 	void touch(int id, std::shared_ptr<boost::asio::steady_timer> timer, const boost::system::error_code& error) {
 		// touch active peers
-		if(!error) {
-			boost::unique_lock<boost::mutex> lLock(contextMutex_[id]);
-			for (std::set<std::string /*endpoint*/>::iterator lPeer = inactive_[id].begin(); lPeer != inactive_[id].end(); lPeer++) {
-				IPeerPtr lPeerPtr = peers_[id][*lPeer];
-				if (lPeerPtr->status() != IPeer::POSTPONED || (lPeerPtr->status() == IPeer::POSTPONED && lPeerPtr->postponedTick()))
-					lPeerPtr->connect();
-			}
+		if (!paused_) {
+			if (!error) {
+				boost::unique_lock<boost::mutex> lLock(contextMutex_[id]);
+				for (std::set<std::string /*endpoint*/>::iterator lPeer = inactive_[id].begin(); lPeer != inactive_[id].end(); lPeer++) {
+					IPeerPtr lPeerPtr = peers_[id][*lPeer];
+					if (lPeerPtr->status() != IPeer::POSTPONED || (lPeerPtr->status() == IPeer::POSTPONED && lPeerPtr->postponedTick()))
+						lPeerPtr->connect();
+				}
 
-			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager/touch]: active count = ") + strprintf("%d", active_[id].size()));
-			for (std::set<std::string /*endpoint*/>::iterator lPeer = active_[id].begin(); lPeer != active_[id].end(); lPeer++) {
-				// TODO?
-				peers_[id][*lPeer]->ping();
+				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager/touch]: active count = ") + strprintf("%d", active_[id].size()));
+				for (std::set<std::string /*endpoint*/>::iterator lPeer = active_[id].begin(); lPeer != active_[id].end(); lPeer++) {
+					// TODO?: DAEMON - no need to support latency updates
+					/*if (!peers_[id][*lPeer]->state()->daemon())*/	peers_[id][*lPeer]->ping();
+				}
+			} else {
+				// log
+				gLog().write(Log::ERROR, std::string("[peerManager/touch]: ") + error.message());
 			}
-		} else {
-			// log
-			gLog().write(Log::ERROR, std::string("[peerManager/touch]: ") + error.message());
 		}
 
 		timer->expires_at(timer->expiry() + boost::asio::chrono::seconds(2));
@@ -1072,6 +1093,8 @@ private:
 
 	db::DbContainer<std::string /*endpoint*/, Peer::PersistentState> peersContainer_;
 	std::map<uint160, uint512> peerStateSent_;
+
+	bool paused_ = false;
 };
 
 }

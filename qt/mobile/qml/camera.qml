@@ -34,23 +34,23 @@ QuarkPage {
 	}
 
 	Camera {
-        id: camera
+		id: cameraDevice
 
-        imageProcessing.whiteBalanceMode: CameraImageProcessing.WhiteBalanceFlash
+		//imageProcessing.whiteBalanceMode: CameraImageProcessing.WhiteBalanceFlash
 
         focus.focusMode: Camera.FocusContinuous
 		captureMode: Camera.CaptureStillImage
 
 		imageCapture {
 			onImageSaved: {
-				camera.stop();
+				cameraDevice.stop();
 				dataReady(path);
 				closePage();
 			}
 		}
 
 		exposure {
-            exposureMode: Camera.ExposureAuto
+			exposureMode: Camera.ExposureAuto
             exposureCompensation: expoSlider.value
         }
 
@@ -63,7 +63,7 @@ QuarkPage {
 
 	VideoOutput {
         id: viewfinder
-        source: camera
+		source: cameraDevice
         anchors.fill: parent
         focus : visible // to receive focus and capture key events when visible
         autoOrientation: true
@@ -79,7 +79,7 @@ QuarkPage {
 		y: topOffset + 10
 
 		onClicked: {
-			camera.stop();
+			cameraDevice.stop();
 			closePage();
 		}
     }
@@ -95,11 +95,11 @@ QuarkPage {
 		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
 
 		onClicked: {
-			if (camera.flash.mode === Camera.FlashOff) {
-				camera.flash.mode = Camera.FlashAuto;
+			if (cameraDevice.flash.mode === Camera.FlashOff) {
+				cameraDevice.flash.mode = Camera.FlashAuto;
 				symbolColor = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground");
 			} else {
-				camera.flash.mode = Camera.FlashOff;
+				cameraDevice.flash.mode = Camera.FlashOff;
 				symbolColor = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
 			}
 		}
@@ -114,10 +114,10 @@ QuarkPage {
 		y: topOffset + 10
 
 		onClicked: {
-			if (camera.position === Camera.BackFace) {
-				camera.position = Camera.FrontFace;
+			if (cameraDevice.position === Camera.BackFace) {
+				cameraDevice.position = Camera.FrontFace;
 			} else {
-				camera.position = Camera.BackFace;
+				cameraDevice.position = Camera.BackFace;
 			}
 		}
 	}
@@ -147,7 +147,7 @@ QuarkPage {
 		}
 
 		onClicked: {
-			camera.imageCapture.capture();
+			cameraDevice.imageCapture.capture();
 		}
 	}
 
@@ -207,7 +207,7 @@ QuarkPage {
 
 		Slider {
             id: zoomSlider
-            to: camera.maximumOpticalZoom * camera.maximumDigitalZoom
+			to: cameraDevice.maximumOpticalZoom * cameraDevice.maximumDigitalZoom
             from: 1
             orientation: Qt.Vertical
             stepSize: 0.5

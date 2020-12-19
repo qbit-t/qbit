@@ -122,7 +122,7 @@ void EventsfeedListModel::eventsfeedLargeUpdated() {
 }
 
 void EventsfeedListModel::eventsfeedItemNew(qbit::EventsfeedItemPtr event) {
-	qInfo() << "EventsfeedListModel::eventsfeedItemNew";
+	// qInfo() << "EventsfeedListModel::eventsfeedItemNew";
 	emit eventsfeedItemNewSignal(qbit::EventsfeedItemProxy(event));
 }
 
@@ -251,7 +251,7 @@ void EventsfeedListModel::eventsfeedItemNewSlot(const qbit::EventsfeedItemProxy&
 	if (lIndex != -1 /*&& list_.begin() != list_.end()*/ /*lIndex <= list_.size()*/) {
 		//
 		if (index_.find(lEventsfeedItem->key()) == index_.end()) {
-			qInfo() << "EventsfeedListModel::eventsfeedItemNewSlot -> insert" << lIndex;
+			// qInfo() << "EventsfeedListModel::eventsfeedItemNewSlot -> insert" << lIndex;
 
 			if (list_.begin() != list_.end() && lIndex <= (int)list_.size())
 				list_.insert(list_.begin() + lIndex, lEventsfeedItem);
@@ -265,7 +265,7 @@ void EventsfeedListModel::eventsfeedItemNewSlot(const qbit::EventsfeedItemProxy&
 			emit countChanged();
 			emit eventsfeedUpdated(lEventsfeedItem->timestamp());
 		} else {
-			qInfo() << "EventsfeedListModel::eventsfeedItemNewSlot -> update" << lIndex;
+			// qInfo() << "EventsfeedListModel::eventsfeedItemNewSlot -> update" << lIndex;
 			QModelIndex lModelIndex = createIndex(lIndex, lIndex);
 			emit dataChanged(lModelIndex, lModelIndex, QVector<int>() << TimestampRole << EventInfosRoles);
 		}

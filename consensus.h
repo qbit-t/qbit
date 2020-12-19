@@ -421,7 +421,8 @@ public:
 
 		// broadcast
 		for (std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
-			if (except.isNull() || (except != (*lPeer)->addressId())) (*lPeer)->broadcastBlockHeader(blockHeader);
+			if (except.isNull() || (except != (*lPeer)->addressId())) 
+				if (!(*lPeer)->state()->daemon()) (*lPeer)->broadcastBlockHeader(blockHeader);
 		}
 	}
 
@@ -445,7 +446,7 @@ public:
 		// broadcast
 		for (std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
 			if (except.isNull() || (except != (*lPeer)->addressId())) {
-				(*lPeer)->broadcastBlockHeaderAndState(block, state);
+				if (!(*lPeer)->state()->daemon()) (*lPeer)->broadcastBlockHeaderAndState(block, state);
 
 			if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, 
 				strprintf("[broadcastBlockHeaderAndState]: block header and state broadcasted to %s/%s/%s#", 

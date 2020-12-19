@@ -37,7 +37,7 @@ public:
 
 		if (lOrder.size()) {
 			// use nearest
-			for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::iterator lPeer = lOrder.begin(); lPeer != lOrder.end(); lPeer++) {
+			for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::reverse_iterator lPeer = lOrder.rbegin(); lPeer != lOrder.rend(); lPeer++) {
 				IPeerExtensionPtr lExtension = lPeer->second->extension("buzzer");
 				if (lExtension) {
 					std::static_pointer_cast<BuzzerPeerExtension>(lExtension)->loadSubscription(chain, subscriber, publisher, handler);
@@ -56,7 +56,7 @@ public:
 
 		if (lOrder.size()) {
 			// use nearest
-			for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::iterator lPeer = lOrder.begin(); lPeer != lOrder.end(); lPeer++) {
+			for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::reverse_iterator lPeer = lOrder.rbegin(); lPeer != lOrder.rend(); lPeer++) {
 				IPeerExtensionPtr lExtension = lPeer->second->extension("buzzer");
 				if (lExtension) {
 					std::static_pointer_cast<BuzzerPeerExtension>(lExtension)->loadTrustScore(chain, buzzer, handler);
@@ -75,18 +75,13 @@ public:
 
 		//
 		if (lOrder.size()) {
-			// use nearest
-			std::list<IPeerPtr> lDests;
-			for (std::map<uint256, std::map<uint32_t, IPeerPtr>>::iterator lItem = lOrder.begin(); lItem != lOrder.end(); lItem++) {
-				//
-				if (!lDests.size() || (lDests.size() && (*lDests.rbegin())->addressId() != lItem->second.begin()->second->addressId())) {
-					lDests.push_back(lItem->second.begin()->second);
-				}
-			}
+			// extract
+			std::map<IRequestProcessor::KeyOrder, IPeerPtr> lChainOrder;
+			requestProcessor_->collectPeersByChain(lOrder.begin()->first, lChainOrder);
 
-			std::list<IPeerPtr>::iterator lPeer = lDests.begin();
-			if (lPeer != lDests.end()) {
-				IPeerExtensionPtr lExtension = (*lPeer)->extension("buzzer");
+			if (lChainOrder.size()) {
+				//
+				IPeerExtensionPtr lExtension = lChainOrder.rbegin()->second->extension("buzzer");
 				if (lExtension) { 
 					std::static_pointer_cast<BuzzerPeerExtension>(lExtension)->loadBuzzerAndInfo(buzzer, handler);
 					return true;
@@ -104,7 +99,7 @@ public:
 
 		if (lOrder.size()) {
 			// use nearest
-			for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::iterator lPeer = lOrder.begin(); lPeer != lOrder.end(); lPeer++) {
+			for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::reverse_iterator lPeer = lOrder.rbegin(); lPeer != lOrder.rend(); lPeer++) {
 				IPeerExtensionPtr lExtension = lPeer->second->extension("buzzer");
 				if (lExtension) {
 					std::static_pointer_cast<BuzzerPeerExtension>(lExtension)->selectBuzzerEndorse(chain, actor, buzzer, handler);
@@ -123,7 +118,7 @@ public:
 
 		if (lOrder.size()) {
 			// use nearest
-			for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::iterator lPeer = lOrder.begin(); lPeer != lOrder.end(); lPeer++) {
+			for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::reverse_iterator lPeer = lOrder.rbegin(); lPeer != lOrder.rend(); lPeer++) {
 				IPeerExtensionPtr lExtension = lPeer->second->extension("buzzer");
 				if (lExtension) {
 					std::static_pointer_cast<BuzzerPeerExtension>(lExtension)->selectBuzzerMistrust(chain, actor, buzzer, handler);
@@ -142,7 +137,7 @@ public:
 
 		if (lOrder.size()) {
 			// use nearest
-			for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::iterator lPeer = lOrder.begin(); lPeer != lOrder.end(); lPeer++) {
+			for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::reverse_iterator lPeer = lOrder.rbegin(); lPeer != lOrder.rend(); lPeer++) {
 				IPeerExtensionPtr lExtension = lPeer->second->extension("buzzer");
 				if (lExtension) {
 					std::static_pointer_cast<BuzzerPeerExtension>(lExtension)->selectBuzzes(chain, buzzes, handler);
@@ -164,7 +159,7 @@ public:
 			// WARNING: if attacker have intent to buzzfeed manipulation, we need to be sure, that the all items
 			// which should be in feed - present and not filtered by attacker node; for this reason now we polling 
 			// several nodes with the given shard 
-			for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::iterator lPeer = lOrder.begin(); lPeer != lOrder.end(); lPeer++) {
+			for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::reverse_iterator lPeer = lOrder.rbegin(); lPeer != lOrder.rend(); lPeer++) {
 				IPeerExtensionPtr lExtension = lPeer->second->extension("buzzer");
 				if (lExtension) {
 					std::static_pointer_cast<BuzzerPeerExtension>(lExtension)->selectBuzzfeed(chain, from, subscriber, handler);
@@ -185,7 +180,7 @@ public:
 		int lCount = 0;
 		if (lOrder.size()) {
 			// use nearest
-			for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::iterator lPeer = lOrder.begin(); lPeer != lOrder.end(); lPeer++) {
+			for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::reverse_iterator lPeer = lOrder.rbegin(); lPeer != lOrder.rend(); lPeer++) {
 				IPeerExtensionPtr lExtension = lPeer->second->extension("buzzer");
 				if (lExtension) {
 					std::static_pointer_cast<BuzzerPeerExtension>(lExtension)->selectEventsfeed(chain, from, subscriber, handler);
@@ -206,7 +201,7 @@ public:
 		int lCount = 0;
 		if (lOrder.size()) {
 			// use nearest
-			for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::iterator lPeer = lOrder.begin(); lPeer != lOrder.end(); lPeer++) {
+			for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::reverse_iterator lPeer = lOrder.rbegin(); lPeer != lOrder.rend(); lPeer++) {
 				IPeerExtensionPtr lExtension = lPeer->second->extension("buzzer");
 				if (lExtension) {
 					std::static_pointer_cast<BuzzerPeerExtension>(lExtension)->selectConversations(chain, from, buzzer, handler);
@@ -229,9 +224,10 @@ public:
 			// WARNING: if attacker have intent to buzzfeed manipulation, we need to be sure, that the all items
 			// which should be in feed - present and not filtered by attacker node; for this reason now we polling 
 			// several nodes with the given shard 
-			for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::iterator lPeer = lOrder.begin(); lPeer != lOrder.end(); lPeer++) {
+			for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::reverse_iterator lPeer = lOrder.rbegin(); lPeer != lOrder.rend(); lPeer++) {
 				IPeerExtensionPtr lExtension = lPeer->second->extension("buzzer");
 				if (lExtension) {
+					if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[selectBuzzfeedByBuzz]: %s", lPeer->second->key()));
 					std::static_pointer_cast<BuzzerPeerExtension>(lExtension)->selectBuzzfeedByBuzz(chain, from, buzz, handler);
 					// for now just 1 active feed
 					if (++lCount == requests /*may be 2/3 nearest - but it doubles traffic*/) break;
@@ -252,7 +248,7 @@ public:
 			// WARNING: if attacker have intent to buzzfeed manipulation, we need to be sure, that the all items
 			// which should be in feed - present and not filtered by attacker node; for this reason now we polling 
 			// several nodes with the given shard 
-			for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::iterator lPeer = lOrder.begin(); lPeer != lOrder.end(); lPeer++) {
+			for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::reverse_iterator lPeer = lOrder.rbegin(); lPeer != lOrder.rend(); lPeer++) {
 				IPeerExtensionPtr lExtension = lPeer->second->extension("buzzer");
 				if (lExtension) {
 					std::static_pointer_cast<BuzzerPeerExtension>(lExtension)->selectMessages(chain, from, conversation, handler);
@@ -275,7 +271,7 @@ public:
 			// WARNING: if attacker have intent to buzzfeed manipulation, we need to be sure, that the all items
 			// which should be in feed - present and not filtered by attacker node; for this reason now we polling 
 			// several nodes with the given shard 
-			for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::iterator lPeer = lOrder.begin(); lPeer != lOrder.end(); lPeer++) {
+			for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::reverse_iterator lPeer = lOrder.rbegin(); lPeer != lOrder.rend(); lPeer++) {
 				IPeerExtensionPtr lExtension = lPeer->second->extension("buzzer");
 				if (lExtension) {
 					std::static_pointer_cast<BuzzerPeerExtension>(lExtension)->selectBuzzfeedByBuzzer(chain, from, buzzer, handler);
@@ -296,7 +292,7 @@ public:
 		int lCount = 0;
 		if (lOrder.size()) {
 			// use nearest
-			for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::iterator lPeer = lOrder.begin(); lPeer != lOrder.end(); lPeer++) {
+			for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::reverse_iterator lPeer = lOrder.rbegin(); lPeer != lOrder.rend(); lPeer++) {
 				IPeerExtensionPtr lExtension = lPeer->second->extension("buzzer");
 				if (lExtension) {
 					std::static_pointer_cast<BuzzerPeerExtension>(lExtension)->selectMistrustsByBuzzer(chain, from, buzzer, handler);
@@ -317,7 +313,7 @@ public:
 		int lCount = 0;
 		if (lOrder.size()) {
 			// use nearest
-			for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::iterator lPeer = lOrder.begin(); lPeer != lOrder.end(); lPeer++) {
+			for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::reverse_iterator lPeer = lOrder.rbegin(); lPeer != lOrder.rend(); lPeer++) {
 				IPeerExtensionPtr lExtension = lPeer->second->extension("buzzer");
 				if (lExtension) {
 					std::static_pointer_cast<BuzzerPeerExtension>(lExtension)->selectEndorsementsByBuzzer(chain, from, buzzer, handler);
@@ -338,7 +334,7 @@ public:
 		int lCount = 0;
 		if (lOrder.size()) {
 			// use nearest
-			for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::iterator lPeer = lOrder.begin(); lPeer != lOrder.end(); lPeer++) {
+			for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::reverse_iterator lPeer = lOrder.rbegin(); lPeer != lOrder.rend(); lPeer++) {
 				IPeerExtensionPtr lExtension = lPeer->second->extension("buzzer");
 				if (lExtension) {
 					std::static_pointer_cast<BuzzerPeerExtension>(lExtension)->selectSubscriptionsByBuzzer(chain, from, buzzer, handler);
@@ -359,7 +355,7 @@ public:
 		int lCount = 0;
 		if (lOrder.size()) {
 			// use nearest
-			for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::iterator lPeer = lOrder.begin(); lPeer != lOrder.end(); lPeer++) {
+			for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::reverse_iterator lPeer = lOrder.rbegin(); lPeer != lOrder.rend(); lPeer++) {
 				IPeerExtensionPtr lExtension = lPeer->second->extension("buzzer");
 				if (lExtension) {
 					std::static_pointer_cast<BuzzerPeerExtension>(lExtension)->selectFollowersByBuzzer(chain, from, buzzer, handler);
@@ -380,7 +376,7 @@ public:
 		int lCount = 0;
 		if (lOrder.size()) {
 			// nearest some
-			for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::iterator lPeer = lOrder.begin(); lPeer != lOrder.end(); lPeer++) {
+			for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::reverse_iterator lPeer = lOrder.rbegin(); lPeer != lOrder.rend(); lPeer++) {
 				IPeerExtensionPtr lExtension = lPeer->second->extension("buzzer");
 				if (lExtension) {
 					std::static_pointer_cast<BuzzerPeerExtension>(lExtension)->selectBuzzfeedGlobal(
@@ -407,7 +403,7 @@ public:
 		int lCount = 0;
 		if (lOrder.size()) {
 			// nearest some
-			for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::iterator lPeer = lOrder.begin(); lPeer != lOrder.end(); lPeer++) {
+			for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::reverse_iterator lPeer = lOrder.rbegin(); lPeer != lOrder.rend(); lPeer++) {
 				IPeerExtensionPtr lExtension = lPeer->second->extension("buzzer");
 				if (lExtension) {
 					std::static_pointer_cast<BuzzerPeerExtension>(lExtension)->selectBuzzfeedByTag(
@@ -435,7 +431,7 @@ public:
 		int lCount = 0;
 		if (lOrder.size()) {
 			// nearest some
-			for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::iterator lPeer = lOrder.begin(); lPeer != lOrder.end(); lPeer++) {
+			for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::reverse_iterator lPeer = lOrder.rbegin(); lPeer != lOrder.rend(); lPeer++) {
 				IPeerExtensionPtr lExtension = lPeer->second->extension("buzzer");
 				if (lExtension) {
 					std::static_pointer_cast<BuzzerPeerExtension>(lExtension)->selectHashTags(
@@ -460,7 +456,7 @@ public:
 		int lCount = 0;
 		if (lOrder.size()) {
 			// nearest some
-			for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::iterator lPeer = lOrder.begin(); lPeer != lOrder.end(); lPeer++) {
+			for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::reverse_iterator lPeer = lOrder.rbegin(); lPeer != lOrder.rend(); lPeer++) {
 				IPeerExtensionPtr lExtension = lPeer->second->extension("buzzer");
 				if (lExtension) {
 					std::static_pointer_cast<BuzzerPeerExtension>(lExtension)->subscribeBuzzThread(

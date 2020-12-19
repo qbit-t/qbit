@@ -41,6 +41,8 @@ public:
 	virtual void run() { throw qbit::exception("NOT_IMPL", "IPeerManager::run - not implemented."); }
 	virtual void stop() { throw qbit::exception("NOT_IMPL", "IPeerManager::stop - not implemented."); }
 	virtual void poll() { throw qbit::exception("NOT_IMPL", "IPeerManager::poll - not implemented."); }
+	virtual void suspend() { throw qbit::exception("NOT_IMPL", "IPeerManager::suspend - not implemented."); }
+	virtual void resume() { throw qbit::exception("NOT_IMPL", "IPeerManager::resume - not implemented."); }
 
 	virtual void updateMedianTime() { throw qbit::exception("NOT_IMPL", "IPeerManager::updateMedianTime - not implemented."); }
 
