@@ -360,7 +360,7 @@ public:
 				if (lPeer) {
 					std::map<uint160, uint512>::iterator lPeerStateSent = peerStateSent_.find(*lClient);
 					if (lPeerStateSent == peerStateSent_.end() || lPeerStateSent->second != state->signature()) {
-						lPeer->broadcastState(state);
+						if (!lPeer->state()->daemon()) lPeer->broadcastState(state);
 						if (lPeerStateSent == peerStateSent_.end()) peerStateSent_[*lClient] = state->signature();
 						else lPeerStateSent->second = state->signature();
 					}
@@ -665,7 +665,7 @@ private:
 				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager/touch]: active count = ") + strprintf("%d", active_[id].size()));
 				for (std::set<std::string /*endpoint*/>::iterator lPeer = active_[id].begin(); lPeer != active_[id].end(); lPeer++) {
 					// TODO?: DAEMON - no need to support latency updates
-					/*if (!peers_[id][*lPeer]->state()->daemon())*/	peers_[id][*lPeer]->ping();
+					if (!peers_[id][*lPeer]->state()->daemon())	peers_[id][*lPeer]->ping();
 				}
 			} else {
 				// log
