@@ -8,7 +8,7 @@
 
 #define MAXPATHLEN 8192
 #define EDGEBITS 20 //20
-#define PROOFSIZE 42 //42
+#define PROOFSIZE 40 //42
 
 enum verify_code {
     POW_OK,
