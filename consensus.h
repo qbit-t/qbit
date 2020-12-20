@@ -270,7 +270,7 @@ public:
 			return true;
 		}
 
-		gLog().write(Log::VALIDATOR, "[consensus/error]: PoW check FAILED");
+		gLog().write(Log::VALIDATOR, strprintf("[consensus/error]: PoW check FAILED. Reason = %d", lRes));
 
 		return false;
 	}
