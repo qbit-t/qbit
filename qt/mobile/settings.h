@@ -25,7 +25,11 @@ public:
 	virtual void link(IClient*) = 0;
 
 	virtual std::string dataPath() { return path_; }
+#ifdef DAEMON_MOD
 	uint32_t roles() { return qbit::State::PeerRoles::CLIENT|qbit::State::PeerRoles::DAEMON; }
+#else
+	uint32_t roles() { return qbit::State::PeerRoles::CLIENT|qbit::State::PeerRoles::DAEMON; }
+#endif
 	int clientActivePeers() { return 32; }
 	qbit::qunit_t maxFeeRate() { return qbit::QUNIT * 5; }
 

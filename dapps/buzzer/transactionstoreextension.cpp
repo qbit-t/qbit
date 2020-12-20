@@ -377,7 +377,12 @@ bool BuzzerTransactionStoreExtension::isAllowed(TransactionContextPtr ctx) {
 			lName.find("buzer") != std::string::npos ||
 			lName.find("bazer") != std::string::npos ||
 			lName.find("bazze") != std::string::npos || 
-			lName.find("baze" ) != std::string::npos)
+			// lName.find("baze" ) != std::string::npos ||
+
+			lName.find("admin"  ) != std::string::npos ||
+			lName.find("founder") != std::string::npos ||
+			lName.find("owner"  ) != std::string::npos ||
+			lName.find("member" ) != std::string::npos)
 			return false;
 #endif
 	}
