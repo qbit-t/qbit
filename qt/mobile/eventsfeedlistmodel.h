@@ -55,7 +55,8 @@ public:
 	void eventsfeedItemUpdated(qbit::EventsfeedItemPtr /*buzz*/);
 	void eventsfeedItemsUpdated(const std::vector<qbit::EventsfeedItem>& /*items*/);
 
-	void feed(qbit::EventsfeedPtr /*local*/, bool /*more*/);
+	void feed(qbit::EventsfeedPtr /*local*/, bool /*more*/, bool /*merge*/);
+	void merge();
 
 	qbit::EventsfeedPtr eventsfeed() { return eventsfeed_; }
 
@@ -76,7 +77,7 @@ public:
 	}
 
 public slots:
-	void feedSlot(const qbit::EventsfeedProxy& local, bool more);
+	void feedSlot(const qbit::EventsfeedProxy& local, bool more, bool merge);
 	void eventsfeedItemNewSlot(const qbit::EventsfeedItemProxy& buzz);
 
 signals:

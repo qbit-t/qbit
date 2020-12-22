@@ -30,7 +30,7 @@ Item
 	Component.onCompleted: {
 		//
 		if (buzzerClient.buzzerDAppReady) {
-			modelLoader.start();
+			modelLoader.restart();
 		}
 	}
 
@@ -56,6 +56,12 @@ Item
 		function onBuzzerDAppReadyChanged() {
 			if (buzzerClient.buzzerDAppReady) {
 				modelLoader.start();
+			}
+		}
+
+		function onBuzzerDAppResumed() {
+			if (buzzerClient.buzzerDAppReady) {
+				modelLoader.processAndMerge();
 			}
 		}
 

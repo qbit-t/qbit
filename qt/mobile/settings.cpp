@@ -18,6 +18,11 @@ Settings* SettingsFactory::get()
 	return new SettingsJSON();
 }
 
+Settings* SettingsFactory::getDaemon()
+{
+	return new SettingsJSON(true);
+}
+
 std::string SettingsJSON::getApplicationDataPath()
 {
 	QString lGlobalDataPath = ApplicationPath::dataDirPath();

@@ -277,8 +277,13 @@ void BuzzfeedListModel::buzzfeedItemsUpdated(const std::vector<qbit::BuzzfeedIte
 	emit buzzfeedItemsUpdatedSignal(qbit::BuzzfeedItemUpdatesProxy(items));
 }
 
-void BuzzfeedListModel::feed(qbit::BuzzfeedPtr local, bool more) {
+void BuzzfeedListModel::feed(qbit::BuzzfeedPtr local, bool more, bool merge) {
 	//
+	if (merge) {
+		BuzzfeedListModel::merge();
+		return;
+	}
+
 	if (!more) {
 		//
 		qInfo() << "==== START =====";
@@ -381,10 +386,81 @@ void BuzzfeedListModel::feed(qbit::BuzzfeedPtr local, bool more) {
 	}
 }
 
-void BuzzfeedListModel::feedSlot(const qbit::BuzzfeedProxy& local, bool more) {
+void BuzzfeedListModel::merge() {
+	// index for check
+	std::map<qbit::BuzzfeedItem::Key, int> lOldIndex = index_;
+
+	//
+	qInfo() << "==== MERGE =====";	
+	qInfo() << "existing.count = " << list_.size();
+
+	// update feed
+	list_.clear();
+	index_.clear();
+	buzzfeed_->feed(list_);
+
+	qInfo() << "new.count = " << list_.size();
+
+	// make index
+	for (int lItem = 0; lItem < (int)list_.size(); lItem++) {
+		index_[list_[lItem]->key()] = lItem;
+	}
+
+	bool lChanged = false;
+
+	// reverse merge
+	for (std::map<qbit::BuzzfeedItem::Key, int>::iterator lIdx = lOldIndex.begin(); lIdx != lOldIndex.end(); lIdx++) {
+		//
+		std::map<qbit::BuzzfeedItem::Key, int>::iterator lNewIdx = index_.find(lIdx->first);
+		if (lNewIdx == index_.end()) {
+			beginRemoveRows(QModelIndex(), lIdx->second, lIdx->second);
+			endRemoveRows();
+
+			lChanged = true;
+		} else {
+			QModelIndex lModelIndex = createIndex(lNewIdx->second, lNewIdx->second);
+			emit dataChanged(lModelIndex, lModelIndex, QVector<int>()
+					<< HasParentRole
+					<< HasNextSiblingRole
+					<< HasPrevSiblingRole
+					<< ChildrenCountRole
+					<< FirstChildIdRole
+					<< NextSiblingIdRole
+					<< PrevSiblingIdRole
+					<< HasPrevLinkRole
+					<< HasNextLinkRole
+					<< LikesRole
+					<< RebuzzesRole
+					<< RepliesRole
+					<< RewardsRole);
+
+			//qInfo() << "-> modified" << lNewIdx->second;
+		}
+	}
+
+	// forward merge
+	for (std::map<qbit::BuzzfeedItem::Key, int>::iterator lIdx = index_.begin(); lIdx != index_.end(); lIdx++) {
+		//
+		std::map<qbit::BuzzfeedItem::Key, int>::iterator lOldIdx = lOldIndex.find(lIdx->first);
+		if (lOldIdx == lOldIndex.end()) {
+			beginInsertRows(QModelIndex(), lIdx->second, lIdx->second);
+			endInsertRows();
+
+			lChanged = true;
+
+			//qInfo() << "-> inserted" << lIdx->second;
+		}
+	}
+
+	//
+	if (lChanged)
+		emit countChanged();
+}
+
+void BuzzfeedListModel::feedSlot(const qbit::BuzzfeedProxy& local, bool more, bool merge) {
 	//
 	qbit::BuzzfeedPtr lBuzzfeed(local.get());
-	feed(lBuzzfeed, more);
+	feed(lBuzzfeed, more, merge);
 }
 
 void BuzzfeedListModel::buzzfeedItemNewSlot(const qbit::BuzzfeedItemProxy& buzz) {
@@ -448,7 +524,7 @@ bool BuzzfeedListModel::buzzfeedItemUpdatedProcess(qbit::BuzzfeedItemPtr item, u
 	if (lItem != index_.end()) {
 		//
 		int lIndex = lItem->second;
-		if (lIndex >= 0 && lIndex < list_.size()) {
+		if (lIndex >= 0 && lIndex < (int)list_.size()) {
 			// qInfo() << "BuzzfeedListModel::buzzfeedItemUpdatedProcess -> update" << lIndex;
 			QModelIndex lModelIndex = createIndex(lIndex, lIndex);
 			emit dataChanged(lModelIndex, lModelIndex, QVector<int>()

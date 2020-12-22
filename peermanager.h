@@ -39,14 +39,14 @@ public:
 			banned_[lIdx] = PeersSet();
 			inactive_[lIdx] = PeersSet();
 
-			contextMutex_.push_back(new boost::mutex());
+			contextMutex_.push_back(new boost::recursive_mutex());
 		}
 	}
 
 	inline bool exists(const std::string& endpoint) {
 		// traverse
 		for (std::map<int, PeersMap>::iterator lChannel = peers_.begin(); lChannel != peers_.end(); lChannel++) {
-			boost::unique_lock<boost::mutex> lLock(contextMutex_[lChannel->first]);
+			boost::unique_lock<boost::recursive_mutex> lLock(contextMutex_[lChannel->first]);
 			std::map<std::string /*endpoint*/, IPeerPtr>::iterator lPeerIter = lChannel->second.find(endpoint);
 			if (lPeerIter != lChannel->second.end()) return true;
 		}
@@ -57,7 +57,7 @@ public:
 	inline bool existsBanned(const std::string& endpoint) {
 		// traverse
 		for (std::map<int, PeersMap>::iterator lChannel = peers_.begin(); lChannel != peers_.end(); lChannel++) {
-			boost::unique_lock<boost::mutex> lLock(contextMutex_[lChannel->first]);
+			boost::unique_lock<boost::recursive_mutex> lLock(contextMutex_[lChannel->first]);
 			std::map<std::string /*endpoint*/, IPeerPtr>::iterator lPeerIter = lChannel->second.find(endpoint);
 			if (lPeerIter != lChannel->second.end() && banned_[lChannel->first].find(endpoint) != banned_[lChannel->first].end())
 				return true;
@@ -74,7 +74,7 @@ public:
 	inline bool existsQuarantine(const std::string& endpoint) {
 		// traverse
 		for (std::map<int, PeersMap>::iterator lChannel = peers_.begin(); lChannel != peers_.end(); lChannel++) {
-			boost::unique_lock<boost::mutex> lLock(contextMutex_[lChannel->first]);
+			boost::unique_lock<boost::recursive_mutex> lLock(contextMutex_[lChannel->first]);
 			std::map<std::string /*endpoint*/, IPeerPtr>::iterator lPeerIter = lChannel->second.find(endpoint);
 			if (lPeerIter != lChannel->second.end() && quarantine_[lChannel->first].find(endpoint) != quarantine_[lChannel->first].end())
 				return true;
@@ -86,7 +86,7 @@ public:
 	inline bool existsBannedOrQuarantine(const std::string& endpoint) {
 		// traverse
 		for (std::map<int, PeersMap>::iterator lChannel = peers_.begin(); lChannel != peers_.end(); lChannel++) {
-			boost::unique_lock<boost::mutex> lLock(contextMutex_[lChannel->first]);
+			boost::unique_lock<boost::recursive_mutex> lLock(contextMutex_[lChannel->first]);
 			std::map<std::string /*endpoint*/, IPeerPtr>::iterator lPeerIter = lChannel->second.find(endpoint);
 			if (lPeerIter != lChannel->second.end() && banned_[lChannel->first].find(endpoint) != banned_[lChannel->first].end())
 				return true;
@@ -100,7 +100,7 @@ public:
 	inline bool existsActive(const std::string& endpoint) {
 		// traverse
 		for (std::map<int, PeersMap>::iterator lChannel = peers_.begin(); lChannel != peers_.end(); lChannel++) {
-			boost::unique_lock<boost::mutex> lLock(contextMutex_[lChannel->first]);
+			boost::unique_lock<boost::recursive_mutex> lLock(contextMutex_[lChannel->first]);
 			std::map<std::string /*endpoint*/, IPeerPtr>::iterator lPeerIter = lChannel->second.find(endpoint);
 			if (lPeerIter != lChannel->second.end() && active_[lChannel->first].find(endpoint) != active_[lChannel->first].end())
 				return true;
@@ -141,7 +141,7 @@ public:
 		int lPeers = 0;
 
 		for (std::map<int, PeersMap>::iterator lChannel = peers_.begin(); lChannel != peers_.end(); lChannel++) {
-			boost::unique_lock<boost::mutex> lLock(contextMutex_[lChannel->first]);
+			boost::unique_lock<boost::recursive_mutex> lLock(contextMutex_[lChannel->first]);
 
 			for (std::map<std::string /*endpoint*/, IPeerPtr>::iterator lPeer = lChannel->second.begin(); lPeer != lChannel->second.end(); lPeer++) {
 				if (lPeer->second->state()->client()) continue;
@@ -181,7 +181,7 @@ public:
 
 	void removePeer(IPeerPtr peer) {
 		if (peer) {
-			boost::unique_lock<boost::mutex> lLock(contextMutex_[peer->contextId()]);
+			boost::unique_lock<boost::recursive_mutex> lLock(contextMutex_[peer->contextId()]);
 
 			peer->release();
 
@@ -205,7 +205,7 @@ public:
 			if (lPeer->type() == IPeer::Type::EXPLICIT) {
 				// check all
 				for (int lIdx = 0; lIdx < contexts_.size(); lIdx++) {
-					boost::unique_lock<boost::mutex> lLock(contextMutex_[lIdx]);
+					boost::unique_lock<boost::recursive_mutex> lLock(contextMutex_[lIdx]);
 					explicit_[lIdx].erase(lPeer->key());
 				}
 
@@ -331,7 +331,7 @@ public:
 	IPeerPtr locate(const std::string& endpoint) {
 		// traverse
 		for (std::map<int, PeersMap>::iterator lChannel = peers_.begin(); lChannel != peers_.end(); lChannel++) {
-			boost::unique_lock<boost::mutex> lLock(contextMutex_[lChannel->first]);
+			boost::unique_lock<boost::recursive_mutex> lLock(contextMutex_[lChannel->first]);
 			std::map<std::string /*endpoint*/, IPeerPtr>::iterator lPeerIter = lChannel->second.find(endpoint);
 			if (lPeerIter != lChannel->second.end()) return lPeerIter->second;
 		}
@@ -344,7 +344,7 @@ public:
 		std::set<uint160> lClients;
 		std::map<uint160, std::string> lPeerIdx;
 		{
-			boost::unique_lock<boost::mutex> lLock(peersIdxMutex_);
+			boost::unique_lock<boost::recursive_mutex> lLock(peersIdxMutex_);
 			lClients = clients_;
 			lPeerIdx = peerIdx_;
 		}
@@ -374,7 +374,7 @@ public:
 		std::set<uint160> lClients;
 		std::map<uint160, std::string> lPeerIdx;
 		{
-			boost::unique_lock<boost::mutex> lLock(peersIdxMutex_);
+			boost::unique_lock<boost::recursive_mutex> lLock(peersIdxMutex_);
 			lClients = clients_;
 			lPeerIdx = peerIdx_;
 		}
@@ -431,17 +431,27 @@ public:
 
 	void suspend() {
 		//
+		paused_ = true;
+
+		//
+		std::list<IPeerPtr> lPeersToRemove;
 		for (int lIdx = 0; lIdx < contexts_.size(); lIdx++) {
-			boost::unique_lock<boost::mutex> lLock(contextMutex_[lIdx]);
+			boost::unique_lock<boost::recursive_mutex> lLock(contextMutex_[lIdx]);
 			for (std::set<std::string /*endpoint*/>::iterator lPeer = active_[lIdx].begin(); lPeer != active_[lIdx].end(); lPeer++) {
 				PeersMap::iterator lPeerPtr = peers_[lIdx].find(*lPeer);
 				if (lPeerPtr != peers_[lIdx].end() && lPeerPtr->second->isOutbound() && !lPeerPtr->second->state()->client()) {
-					lPeerPtr->second->close();
+					//
+					lPeersToRemove.push_back(lPeerPtr->second);
 				}
 			}
 		}
 
-		paused_ = true;
+		//
+		for (std::list<IPeerPtr>::iterator lPeer = lPeersToRemove.begin(); lPeer != lPeersToRemove.end(); lPeer++) {
+			//
+			deactivatePeer(*lPeer);
+			(*lPeer)->close();
+		}
 	}
 
 	void resume() {
@@ -556,7 +566,7 @@ public:
 
 	int getContextId() {
 		// lock peers - use the same mutex as for the peers
-		boost::unique_lock<boost::mutex> lLock(nextContextMutex_);
+		boost::unique_lock<boost::recursive_mutex> lLock(nextContextMutex_);
 
 		int lId = nextContext_++;
 		
@@ -567,7 +577,7 @@ public:
 	void activePeers(std::vector<std::string>& peers) {
 		//
 		for (int lIdx = 0; lIdx < contexts_.size(); lIdx++) {
-			boost::unique_lock<boost::mutex> lLock(contextMutex_[lIdx]);
+			boost::unique_lock<boost::recursive_mutex> lLock(contextMutex_[lIdx]);
 			for (std::set<std::string /*endpoint*/>::iterator lPeer = active_[lIdx].begin(); lPeer != active_[lIdx].end(); lPeer++) {
 				PeersMap::iterator lPeerPtr = peers_[lIdx].find(*lPeer);
 				if (lPeerPtr != peers_[lIdx].end() && lPeerPtr->second->isOutbound() && !lPeerPtr->second->state()->client()) 
@@ -585,7 +595,7 @@ public:
 	void explicitPeers(std::list<IPeerPtr>& peers) {
 		//
 		for (int lIdx = 0; lIdx < contexts_.size(); lIdx++) {
-			boost::unique_lock<boost::mutex> lLock(contextMutex_[lIdx]);
+			boost::unique_lock<boost::recursive_mutex> lLock(contextMutex_[lIdx]);
 			for (std::set<std::string /*endpoint*/>::iterator lPeer = explicit_[lIdx].begin(); lPeer != explicit_[lIdx].end(); lPeer++) {
 				PeersMap::iterator lPeerPtr = peers_[lIdx].find(*lPeer);
 				if (lPeerPtr != peers_[lIdx].end()) 
@@ -613,7 +623,7 @@ public:
 	void allPeers(std::list<IPeerPtr>& peers) {
 		//
 		for (std::map<int, PeersMap>::iterator lChannel = peers_.begin(); lChannel != peers_.end(); lChannel++) {
-			boost::unique_lock<boost::mutex> lLock(contextMutex_[lChannel->first]);
+			boost::unique_lock<boost::recursive_mutex> lLock(contextMutex_[lChannel->first]);
 			for (std::map<std::string /*endpoint*/, IPeerPtr>::iterator lPeer = lChannel->second.begin(); lPeer != lChannel->second.end(); lPeer++) {
 				peers.push_back(lPeer->second);
 			}
@@ -655,7 +665,7 @@ private:
 		// touch active peers
 		if (!paused_) {
 			if (!error) {
-				boost::unique_lock<boost::mutex> lLock(contextMutex_[id]);
+				boost::unique_lock<boost::recursive_mutex> lLock(contextMutex_[id]);
 				for (std::set<std::string /*endpoint*/>::iterator lPeer = inactive_[id].begin(); lPeer != inactive_[id].end(); lPeer++) {
 					IPeerPtr lPeerPtr = peers_[id][*lPeer];
 					if (lPeerPtr->status() != IPeer::POSTPONED || (lPeerPtr->status() == IPeer::POSTPONED && lPeerPtr->postponedTick()))
@@ -673,7 +683,7 @@ private:
 			}
 		}
 
-		timer->expires_at(timer->expiry() + boost::asio::chrono::seconds(2));
+		timer->expires_at(timer->expiry() + (settings_->isDaemon() ? boost::asio::chrono::seconds(6) : boost::asio::chrono::seconds(2)));
 		timer->async_wait(boost::bind(&PeerManager::touch, shared_from_this(), id, timer, boost::asio::placeholders::error));
 	}
 
@@ -681,7 +691,7 @@ public:
 	void quarantine(IPeerPtr peer) {
 		bool lPop = false;
 		{
-			boost::unique_lock<boost::mutex> lLock(peersIdxMutex_);
+			boost::unique_lock<boost::recursive_mutex> lLock(peersIdxMutex_);
 			std::map<uint160, std::string>::iterator lPeerIter = peerIdx_.find(peer->addressId());
 			if (lPeerIter != peerIdx_.end() && lPeerIter->second == peer->key()) {
 				peerIdx_.erase(peer->addressId());
@@ -698,7 +708,7 @@ public:
 			if (peer->state()->client()) {
 				removePeer(peer);
 			} else {
-				boost::unique_lock<boost::mutex> lLock(contextMutex_[peer->contextId()]);
+				boost::unique_lock<boost::recursive_mutex> lLock(contextMutex_[peer->contextId()]);
 				peer->toQuarantine(consensusManager_->currentState()->height() + consensusManager_->quarantineTime());
 				active_[peer->contextId()].erase(peer->key());
 				quarantine_[peer->contextId()].insert(peer->key());
@@ -719,7 +729,7 @@ public:
 	void ban(IPeerPtr peer) {
 		bool lPop = false;
 		{
-			boost::unique_lock<boost::mutex> lLock(peersIdxMutex_);
+			boost::unique_lock<boost::recursive_mutex> lLock(peersIdxMutex_);
 			std::map<uint160, std::string>::iterator lPeerIter = peerIdx_.find(peer->addressId());
 			if (lPeerIter != peerIdx_.end() && lPeerIter->second == peer->key()) {
 				peerIdx_.erase(peer->addressId());
@@ -736,7 +746,7 @@ public:
 			if (peer->state()->client()) {
 				removePeer(peer);
 			} else {
-				boost::unique_lock<boost::mutex> lLock(contextMutex_[peer->contextId()]);
+				boost::unique_lock<boost::recursive_mutex> lLock(contextMutex_[peer->contextId()]);
 				peer->toBan();
 				quarantine_[peer->contextId()].erase(peer->key());
 				active_[peer->contextId()].erase(peer->key());
@@ -762,7 +772,7 @@ public:
 	bool activate(IPeerPtr peer) {
 		uint160 lAddress = peer->addressId();
 		{
-			boost::unique_lock<boost::mutex> lLock(peersIdxMutex_);
+			boost::unique_lock<boost::recursive_mutex> lLock(peersIdxMutex_);
 			std::map<uint160, std::string>::iterator lPeerIndex = peerIdx_.find(lAddress);
 			//
 			if (lPeerIndex == peerIdx_.end() || (peer->state()->client() && lPeerIndex->second != peer->key())) {
@@ -822,7 +832,7 @@ public:
 		}
 
 		{
-			boost::unique_lock<boost::mutex> lLock(contextMutex_[peer->contextId()]);
+			boost::unique_lock<boost::recursive_mutex> lLock(contextMutex_[peer->contextId()]);
 			peer->toActive();
 
 			if (peers_[peer->contextId()].find(peer->key()) != peers_[peer->contextId()].end()) {
@@ -853,7 +863,7 @@ public:
 
 	void add(IPeerPtr peer) {
 		{
-			boost::unique_lock<boost::mutex> lLock(contextMutex_[peer->contextId()]);
+			boost::unique_lock<boost::recursive_mutex> lLock(contextMutex_[peer->contextId()]);
 			if (peers_[peer->contextId()].find(peer->key()) != peers_[peer->contextId()].end()) {
 				peers_[peer->contextId()][peer->key()]->release();
 				peers_[peer->contextId()].erase(peer->key());
@@ -876,7 +886,7 @@ public:
 	void pending(IPeerPtr peer) {
 		bool lPop = false;
 		{
-			boost::unique_lock<boost::mutex> lLock(peersIdxMutex_);
+			boost::unique_lock<boost::recursive_mutex> lLock(peersIdxMutex_);
 			std::map<uint160, std::string>::iterator lPeerIter = peerIdx_.find(peer->addressId());
 			if (lPeerIter != peerIdx_.end() && lPeerIter->second == peer->key()) {
 				peerIdx_.erase(peer->addressId());
@@ -893,7 +903,7 @@ public:
 			if (peer->state()->client()) {
 				removePeer(peer);
 			} else {
-				boost::unique_lock<boost::mutex> lLock(contextMutex_[peer->contextId()]);
+				boost::unique_lock<boost::recursive_mutex> lLock(contextMutex_[peer->contextId()]);
 				if (peer->status() == IPeer::BANNED) return;
 				if (peer->status() != IPeer::POSTPONED) peer->toPendingState();
 
@@ -920,7 +930,7 @@ public:
 
 	bool update(IPeerPtr peer) {
 		{
-			boost::unique_lock<boost::mutex> lLock(peersIdxMutex_);
+			boost::unique_lock<boost::recursive_mutex> lLock(peersIdxMutex_);
 			uint160 lAddress = peer->addressId();
 			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: updating - ") + strprintf("%s/%s", peer->key(), lAddress.toHex()));
 			std::map<uint160, std::string>::iterator lPeerIndex = peerIdx_.find(lAddress);
@@ -983,7 +993,7 @@ public:
 		}
 
 		{
-			boost::unique_lock<boost::mutex> lLock(contextMutex_[peer->contextId()]);
+			boost::unique_lock<boost::recursive_mutex> lLock(contextMutex_[peer->contextId()]);
 			peer->toActive();
 
 			if (peers_[peer->contextId()].find(peer->key()) == peers_[peer->contextId()].end())
@@ -1012,7 +1022,7 @@ public:
 	void deactivate(IPeerPtr peer) {
 		bool lPop = false;
 		{
-			boost::unique_lock<boost::mutex> lLock(peersIdxMutex_);
+			boost::unique_lock<boost::recursive_mutex> lLock(peersIdxMutex_);
 			std::map<uint160, std::string>::iterator lPeerIter = peerIdx_.find(peer->addressId());
 			if (lPeerIter != peerIdx_.end() && lPeerIter->second == peer->key()) {
 				peerIdx_.erase(peer->addressId());
@@ -1029,7 +1039,7 @@ public:
 			if (peer->state()->client()) {
 				removePeer(peer);
 			} else {
-				boost::unique_lock<boost::mutex> lLock(contextMutex_[peer->contextId()]);
+				boost::unique_lock<boost::recursive_mutex> lLock(contextMutex_[peer->contextId()]);
 				peer->deactivate();
 
 				active_[peer->contextId()].erase(peer->key());
@@ -1065,17 +1075,17 @@ private:
 	typedef std::shared_ptr<boost::asio::steady_timer> TimerPtr;
 	typedef boost::asio::executor_work_guard<boost::asio::io_context::executor_type> IOContextWork;
 
-	boost::mutex nextContextMutex_;
+	boost::recursive_mutex nextContextMutex_;
 	std::map<int, PeersMap> peers_; // peers by context id's
 
-	boost::ptr_vector<boost::mutex> contextMutex_;
+	boost::ptr_vector<boost::recursive_mutex> contextMutex_;
 	std::map<int, PeersSet> active_;
 	std::map<int, PeersSet> quarantine_;
 	std::map<int, PeersSet> banned_;
 	std::map<int, PeersSet> inactive_;
 	std::map<int, PeersSet> explicit_;	
 
-	boost::mutex peersIdxMutex_;
+	boost::recursive_mutex peersIdxMutex_;
 	std::map<uint160, std::string> peerIdx_;
 	std::set<uint160> clients_;
 

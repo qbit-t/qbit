@@ -427,7 +427,7 @@ signals:
 	void processed();
 	void error(QString code, QString message);
 	void modelChanged();
-	void dataReady(const qbit::BuzzfeedProxy& /*local*/, bool /*more*/);
+	void dataReady(const qbit::BuzzfeedProxy& /*local*/, bool /*more*/, bool /*merge*/);
 
 private:
 	BuzzfeedListModel* buzzfeedModel_ = nullptr;
@@ -454,6 +454,7 @@ public:
 
 		// params
 		more_ = more;
+		merge_ = false;
 
 		// NOTICE: we actually able to process only "our" updates not "all", that is why there is no
 		// interception of destination have sence for global feed
@@ -464,6 +465,29 @@ public:
 		std::vector<std::string> lArgs;
 		lArgs.push_back(buzzId_.toStdString());
 		if (more) lArgs.push_back("more");
+
+		command_->process(lArgs);
+	}
+
+	Q_INVOKABLE void processAndMerge() {
+		//
+		if (!buzzfeedModel_) return;
+
+		// prepare command
+		prepare();
+
+		// params
+		more_ = false;
+		merge_ = true;
+
+		// NOTICE: we actually able to process only "our" updates not "all", that is why there is no
+		// interception of destination have sence for global feed
+
+		//
+		if (!more_) buzzfeedModel_->buzzfeed()->clear();
+
+		std::vector<std::string> lArgs;
+		lArgs.push_back(buzzId_.toStdString());
 
 		command_->process(lArgs);
 	}
@@ -491,7 +515,7 @@ signals:
 	void processed();
 	void error(QString code, QString message);
 	void modelChanged();
-	void dataReady(const qbit::BuzzfeedProxy& /*local*/, bool /*more*/);
+	void dataReady(const qbit::BuzzfeedProxy& /*local*/, bool /*more*/, bool /*merge*/);
 	void buzzIdChanged();
 
 private:
@@ -499,6 +523,7 @@ private:
 	qbit::LoadBuzzfeedByBuzzCommandPtr command_ = nullptr;
 	QString buzzId_;
 	bool more_ = false;
+	bool merge_ = false;
 };
 
 class LoadBuzzfeedByBuzzerCommand: public QObject
@@ -520,6 +545,7 @@ public:
 
 		// params
 		more_ = more;
+		merge_ = false;
 
 		// NOTICE: we actually able to process only "our" updates not "all", that is why there is no
 		// interception of destination have sence for global feed
@@ -530,6 +556,29 @@ public:
 		std::vector<std::string> lArgs;
 		lArgs.push_back(buzzer_.toStdString());
 		if (more) lArgs.push_back("more");
+
+		command_->process(lArgs);
+	}
+
+	Q_INVOKABLE void processAndMerge() {
+		//
+		if (!buzzfeedModel_) return;
+
+		// prepare command
+		prepare();
+
+		// params
+		more_ = false;
+		merge_ = true;
+
+		// NOTICE: we actually able to process only "our" updates not "all", that is why there is no
+		// interception of destination have sence for global feed
+
+		//
+		if (!more_) buzzfeedModel_->buzzfeed()->clear();
+
+		std::vector<std::string> lArgs;
+		lArgs.push_back(buzzer_.toStdString());
 
 		command_->process(lArgs);
 	}
@@ -557,7 +606,7 @@ signals:
 	void processed();
 	void error(QString code, QString message);
 	void modelChanged();
-	void dataReady(const qbit::BuzzfeedProxy& /*local*/, bool /*more*/);
+	void dataReady(const qbit::BuzzfeedProxy& /*local*/, bool /*more*/, bool /*merge*/);
 	void buzzerChanged();
 
 private:
@@ -565,6 +614,7 @@ private:
 	qbit::LoadBuzzfeedByBuzzerCommandPtr command_ = nullptr;
 	QString buzzer_;
 	bool more_ = false;
+	bool merge_ = false;
 };
 
 class LoadBuzzfeedByTagCommand: public QObject
@@ -623,7 +673,7 @@ signals:
 	void processed();
 	void error(QString code, QString message);
 	void modelChanged();
-	void dataReady(const qbit::BuzzfeedProxy& /*local*/, bool /*more*/);
+	void dataReady(const qbit::BuzzfeedProxy& /*local*/, bool /*more*/, bool /*merge*/);
 	void tagChanged();
 
 private:
@@ -651,6 +701,7 @@ public:
 
 		// params
 		more_ = more;
+		merge_ = false;
 
 		// set buzzes updates to this buzzfeed
 		Client* lClient = static_cast<Client*>(gApplication->getClient());
@@ -661,6 +712,28 @@ public:
 		//
 		std::vector<std::string> lArgs;
 		if (more) lArgs.push_back("more");
+		command_->process(lArgs);
+	}
+
+	Q_INVOKABLE void processAndMerge() {
+		//
+		if (!buzzfeedModel_) return;
+
+		// prepare command
+		prepare();
+
+		// params
+		more_ = false;
+		merge_ = true;
+
+		// set buzzes updates to this buzzfeed
+		Client* lClient = static_cast<Client*>(gApplication->getClient());
+		lClient->getBuzzer()->setBuzzfeed(buzzfeedModel_->buzzfeed());
+
+		//
+		if (!more_) buzzfeedModel_->buzzfeed()->clear();
+		//
+		std::vector<std::string> lArgs;
 		command_->process(lArgs);
 	}
 
@@ -684,12 +757,13 @@ signals:
 	void processed();
 	void error(QString code, QString message);
 	void modelChanged();
-	void dataReady(const qbit::BuzzfeedProxy& /*local*/, bool /*more*/);
+	void dataReady(const qbit::BuzzfeedProxy& /*local*/, bool /*more*/, bool /*merge*/);
 
 private:
 	BuzzfeedListModel* buzzfeedModel_ = nullptr;
 	qbit::LoadBuzzfeedCommandPtr command_ = nullptr;
 	bool more_ = false;
+	bool merge_ = false;
 };
 
 class BuzzerSubscribeCommand: public QObject
@@ -1686,12 +1760,31 @@ public:
 
 		// params
 		more_ = more;
+		merge_ = false;
 
 		//
 		if (!more_) eventsfeedModel_->eventsfeed()->clear();
 		//
 		std::vector<std::string> lArgs;
 		if (more) lArgs.push_back("more");
+		command_->process(lArgs);
+	}
+
+	Q_INVOKABLE void processAndMerge() {
+		//
+		if (!eventsfeedModel_) return;
+
+		// prepare command
+		prepare();
+
+		// params
+		more_ = false;
+		merge_ = true;
+
+		//
+		if (!more_) eventsfeedModel_->eventsfeed()->clear();
+		//
+		std::vector<std::string> lArgs;
 		command_->process(lArgs);
 	}
 
@@ -1715,12 +1808,13 @@ signals:
 	void processed();
 	void error(QString code, QString message);
 	void modelChanged();
-	void dataReady(const qbit::EventsfeedProxy& /*local*/, bool /*more*/);
+	void dataReady(const qbit::EventsfeedProxy& /*local*/, bool /*more*/, bool /*merge*/);
 
 private:
 	EventsfeedListModel* eventsfeedModel_ = nullptr;
 	qbit::LoadEventsfeedCommandPtr command_ = nullptr;
 	bool more_ = false;
+	bool merge_ = false;
 };
 
 class LoadEndorsementsByBuzzerCommand: public QObject
@@ -1742,6 +1836,7 @@ public:
 
 		// params
 		more_ = more;
+		merge_ = false;
 
 		// NOTICE: we actually able to process only "our" updates not "all", that is why there is no
 		// interception of destination have sence for global feed
@@ -1753,6 +1848,28 @@ public:
 		lArgs.push_back(buzzer_.toStdString());
 		if (more) lArgs.push_back("more");
 
+		command_->process(lArgs);
+	}
+
+	Q_INVOKABLE void processAndMerge() {
+		//
+		if (!eventsfeedModel_) return;
+
+		// prepare command
+		prepare();
+
+		// params
+		more_ = false;
+		merge_ = true;
+
+		// NOTICE: we actually able to process only "our" updates not "all", that is why there is no
+		// interception of destination have sence for global feed
+
+		//
+		if (!more_) eventsfeedModel_->eventsfeed()->clear();
+
+		std::vector<std::string> lArgs;
+		lArgs.push_back(buzzer_.toStdString());
 		command_->process(lArgs);
 	}
 
@@ -1779,7 +1896,7 @@ signals:
 	void processed();
 	void error(QString code, QString message);
 	void modelChanged();
-	void dataReady(const qbit::EventsfeedProxy& /*local*/, bool /*more*/);
+	void dataReady(const qbit::EventsfeedProxy& /*local*/, bool /*more*/, bool /*merge*/);
 	void buzzerChanged();
 
 private:
@@ -1787,6 +1904,7 @@ private:
 	qbit::LoadEndorsementsByBuzzerCommandPtr command_ = nullptr;
 	QString buzzer_;
 	bool more_ = false;
+	bool merge_ = false;
 };
 
 class LoadMistrustsByBuzzerCommand: public QObject
@@ -1808,6 +1926,7 @@ public:
 
 		// params
 		more_ = more;
+		merge_ = false;
 
 		// NOTICE: we actually able to process only "our" updates not "all", that is why there is no
 		// interception of destination have sence for global feed
@@ -1819,6 +1938,28 @@ public:
 		lArgs.push_back(buzzer_.toStdString());
 		if (more) lArgs.push_back("more");
 
+		command_->process(lArgs);
+	}
+
+	Q_INVOKABLE void processAndMerge() {
+		//
+		if (!eventsfeedModel_) return;
+
+		// prepare command
+		prepare();
+
+		// params
+		more_ = false;
+		merge_ = true;
+
+		// NOTICE: we actually able to process only "our" updates not "all", that is why there is no
+		// interception of destination have sence for global feed
+
+		//
+		if (!more_) eventsfeedModel_->eventsfeed()->clear();
+
+		std::vector<std::string> lArgs;
+		lArgs.push_back(buzzer_.toStdString());
 		command_->process(lArgs);
 	}
 
@@ -1845,7 +1986,7 @@ signals:
 	void processed();
 	void error(QString code, QString message);
 	void modelChanged();
-	void dataReady(const qbit::EventsfeedProxy& /*local*/, bool /*more*/);
+	void dataReady(const qbit::EventsfeedProxy& /*local*/, bool /*more*/, bool /*merge*/);
 	void buzzerChanged();
 
 private:
@@ -1853,6 +1994,7 @@ private:
 	qbit::LoadMistrustsByBuzzerCommandPtr command_ = nullptr;
 	QString buzzer_;
 	bool more_ = false;
+	bool merge_ = false;
 };
 
 class LoadFollowingByBuzzerCommand: public QObject
@@ -1874,6 +2016,7 @@ public:
 
 		// params
 		more_ = more;
+		merge_ = false;
 
 		// NOTICE: we actually able to process only "our" updates not "all", that is why there is no
 		// interception of destination have sence for global feed
@@ -1885,6 +2028,28 @@ public:
 		lArgs.push_back(buzzer_.toStdString());
 		if (more) lArgs.push_back("more");
 
+		command_->process(lArgs);
+	}
+
+	Q_INVOKABLE void processAndMerge() {
+		//
+		if (!eventsfeedModel_) return;
+
+		// prepare command
+		prepare();
+
+		// params
+		more_ = false;
+		merge_ = true;
+
+		// NOTICE: we actually able to process only "our" updates not "all", that is why there is no
+		// interception of destination have sence for global feed
+
+		//
+		if (!more_) eventsfeedModel_->eventsfeed()->clear();
+
+		std::vector<std::string> lArgs;
+		lArgs.push_back(buzzer_.toStdString());
 		command_->process(lArgs);
 	}
 
@@ -1911,7 +2076,7 @@ signals:
 	void processed();
 	void error(QString code, QString message);
 	void modelChanged();
-	void dataReady(const qbit::EventsfeedProxy& /*local*/, bool /*more*/);
+	void dataReady(const qbit::EventsfeedProxy& /*local*/, bool /*more*/, bool /*merge*/);
 	void buzzerChanged();
 
 private:
@@ -1919,6 +2084,7 @@ private:
 	qbit::LoadSubscriptionsByBuzzerCommandPtr command_ = nullptr;
 	QString buzzer_;
 	bool more_ = false;
+	bool merge_ = false;
 };
 
 class LoadFollowersByBuzzerCommand: public QObject
@@ -1940,6 +2106,7 @@ public:
 
 		// params
 		more_ = more;
+		merge_ = false;
 
 		// NOTICE: we actually able to process only "our" updates not "all", that is why there is no
 		// interception of destination have sence for global feed
@@ -1951,6 +2118,28 @@ public:
 		lArgs.push_back(buzzer_.toStdString());
 		if (more) lArgs.push_back("more");
 
+		command_->process(lArgs);
+	}
+
+	Q_INVOKABLE void processAndMerge() {
+		//
+		if (!eventsfeedModel_) return;
+
+		// prepare command
+		prepare();
+
+		// params
+		more_ = false;
+		merge_ = true;
+
+		// NOTICE: we actually able to process only "our" updates not "all", that is why there is no
+		// interception of destination have sence for global feed
+
+		//
+		if (!more_) eventsfeedModel_->eventsfeed()->clear();
+
+		std::vector<std::string> lArgs;
+		lArgs.push_back(buzzer_.toStdString());
 		command_->process(lArgs);
 	}
 
@@ -1977,7 +2166,7 @@ signals:
 	void processed();
 	void error(QString code, QString message);
 	void modelChanged();
-	void dataReady(const qbit::EventsfeedProxy& /*local*/, bool /*more*/);
+	void dataReady(const qbit::EventsfeedProxy& /*local*/, bool /*more*/, bool /*merge*/);
 	void buzzerChanged();
 
 private:
@@ -1985,6 +2174,7 @@ private:
 	qbit::LoadFollowersByBuzzerCommandPtr command_ = nullptr;
 	QString buzzer_;
 	bool more_ = false;
+	bool merge_ = false;
 };
 
 class LoadTransactionCommand: public QObject
@@ -2189,12 +2379,31 @@ public:
 
 		// params
 		more_ = more;
+		merge_ = false;
 
 		//
 		if (!more_) conversationsModel_->conversations()->clear();
 		//
 		std::vector<std::string> lArgs;
 		if (more) lArgs.push_back("more");
+		command_->process(lArgs);
+	}
+
+	Q_INVOKABLE void processAndMerge() {
+		//
+		if (!conversationsModel_) return;
+
+		// prepare command
+		prepare();
+
+		// params
+		more_ = false;
+		merge_ = true;
+
+		//
+		if (!more_) conversationsModel_->conversations()->clear();
+		//
+		std::vector<std::string> lArgs;
 		command_->process(lArgs);
 	}
 
@@ -2221,12 +2430,13 @@ signals:
 	void processed();
 	void error(QString code, QString message);
 	void modelChanged();
-	void dataReady(const qbit::ConversationsfeedProxy& /*local*/, bool /*more*/);
+	void dataReady(const qbit::ConversationsfeedProxy& /*local*/, bool /*more*/, bool /*merge*/);
 
 private:
 	ConversationsfeedListModel* conversationsModel_ = nullptr;
 	qbit::LoadConversationsCommandPtr command_ = nullptr;
 	bool more_ = false;
+	bool merge_ = false;
 };
 
 class CreateConversationCommand: public QObject
@@ -2466,6 +2676,7 @@ public:
 
 		// params
 		more_ = more;
+		merge_ = false;
 
 		// NOTICE: we actually able to process only "our" updates not "all", that is why there is no
 		// interception of destination have sence for global feed
@@ -2476,6 +2687,29 @@ public:
 		std::vector<std::string> lArgs;
 		lArgs.push_back(conversationId_.toStdString());
 		if (more) lArgs.push_back("more");
+
+		command_->process(lArgs);
+	}
+
+	Q_INVOKABLE void processAndMerge() {
+		//
+		if (!buzzfeedModel_) return;
+
+		// prepare command
+		prepare();
+
+		// params
+		more_ = false;
+		merge_ = true;
+
+		// NOTICE: we actually able to process only "our" updates not "all", that is why there is no
+		// interception of destination have sence for global feed
+
+		//
+		if (!more_) buzzfeedModel_->buzzfeed()->clear();
+
+		std::vector<std::string> lArgs;
+		lArgs.push_back(conversationId_.toStdString());
 
 		command_->process(lArgs);
 	}
@@ -2508,7 +2742,7 @@ signals:
 	void processed();
 	void error(QString code, QString message);
 	void modelChanged();
-	void dataReady(const qbit::BuzzfeedProxy& /*local*/, bool /*more*/);
+	void dataReady(const qbit::BuzzfeedProxy& /*local*/, bool /*more*/, bool /*merge*/);
 	void conversationIdChanged();
 
 private:
@@ -2516,6 +2750,7 @@ private:
 	qbit::LoadMessagesCommandPtr command_ = nullptr;
 	QString conversationId_;
 	bool more_ = false;
+	bool merge_ = false;
 };
 
 class ConversationMessageCommand: public QObject

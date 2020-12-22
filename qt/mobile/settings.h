@@ -25,11 +25,8 @@ public:
 	virtual void link(IClient*) = 0;
 
 	virtual std::string dataPath() { return path_; }
-#ifdef DAEMON_MOD
-	uint32_t roles() { return qbit::State::PeerRoles::CLIENT|qbit::State::PeerRoles::DAEMON; }
-#else
-	uint32_t roles() { return qbit::State::PeerRoles::CLIENT|qbit::State::PeerRoles::DAEMON; }
-#endif
+	virtual uint32_t roles() { return qbit::State::PeerRoles::CLIENT; }
+
 	int clientActivePeers() { return 32; }
 	qbit::qunit_t maxFeeRate() { return qbit::QUNIT * 5; }
 
@@ -47,11 +44,16 @@ class SettingsJSON: public Settings
     Q_OBJECT
 public:
 	SettingsJSON() { opened_ = false; path_ = getApplicationDataPath(); }
+	SettingsJSON(bool daemon) { opened_ = false; daemon_ = daemon; path_ = getApplicationDataPath(); }
 	~SettingsJSON() {}
 
 	void open();
 	void update();
 	void link(IClient*);
+
+	uint32_t roles() {
+		return daemon_ ? qbit::State::PeerRoles::CLIENT|qbit::State::PeerRoles::DAEMON : qbit::State::PeerRoles::CLIENT;
+	}
 
 private:
     QString getSettingsFile();
@@ -61,12 +63,14 @@ private:
 private:	
 	IClient* client_;
     bool opened_;
+	bool daemon_ = false;
 };
 
 class SettingsFactory
 {
 public:
 	static Settings* get();
+	static Settings* getDaemon();
 };
 
 } // buzzer

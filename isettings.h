@@ -36,6 +36,7 @@ public:
 	virtual bool isNode() { uint32_t lRoles(roles());  return (lRoles & State::PeerRoles::NODE) != 0; }
 	virtual bool isFullNode() { uint32_t lRoles(roles()); return (lRoles & State::PeerRoles::FULLNODE) != 0; }
 	virtual bool isClient() { uint32_t lRoles(roles()); return (lRoles & State::PeerRoles::CLIENT) != 0; }
+	virtual bool isDaemon() { uint32_t lRoles(roles()); return (lRoles & State::PeerRoles::DAEMON) != 0; }
 
 	virtual void addMinerRole() {}
 	virtual void addNodeRole() {}

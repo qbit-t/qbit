@@ -83,7 +83,8 @@ public:
 	void buzzfeedItemsUpdated(const std::vector<qbit::BuzzfeedItemUpdate>& /*items*/);
 	void buzzfeedItemAbsent(const uint256& /*chain*/, const uint256& /*buzz*/);
 
-	void feed(qbit::BuzzfeedPtr /*local*/, bool /*more*/);
+	void feed(qbit::BuzzfeedPtr /*local*/, bool /*more*/, bool /*merge*/);
+	void merge();
 
 	qbit::BuzzfeedPtr buzzfeed() { return buzzfeed_; }
 
@@ -114,7 +115,7 @@ public:
 	}
 
 public slots:
-	void feedSlot(const qbit::BuzzfeedProxy& local, bool more);
+	void feedSlot(const qbit::BuzzfeedProxy& local, bool more, bool merge);
 	void buzzfeedItemNewSlot(const qbit::BuzzfeedItemProxy& buzz);
 	void buzzfeedItemUpdatedSlot(const qbit::BuzzfeedItemProxy& buzz);
 	void buzzfeedItemsUpdatedSlot(const qbit::BuzzfeedItemUpdatesProxy& items);

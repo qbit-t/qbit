@@ -91,6 +91,12 @@ QuarkPage {
 			}
 		}
 
+		function onBuzzerDAppResumed() {
+			if (buzzerClient.buzzerDAppReady) {
+				modelLoader.processAndMerge();
+			}
+		}
+
 		function onThemeChanged() {
 			eventsThread_.resetModel();
 		}
