@@ -113,6 +113,12 @@ QuarkPage {
 				listen = false;
 			}
 		}
+
+		function onBuzzerDAppResumed() {
+			if (buzzerClient.buzzerDAppReady) {
+				modelLoader.processAndMerge();
+			}
+		}
 	}
 
 	BuzzerCommands.BuzzSubscribeCommand {

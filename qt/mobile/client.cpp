@@ -765,7 +765,40 @@ void Client::prepareCache() {
 	}
 }
 
+void Client::suspend() {
+	//
+	suspended_ = true;
+
+	//
+	if (peerManager_) {
+		qInfo() << "Suspending PeerManager...";
+		peerManager_->suspend();
+	}
+
+	//
+	emit buzzerDAppSuspended();
+}
+
+void Client::resume() {
+	//
+	if (!opened_) return;
+
+	//
+	suspended_ = false;
+	buzzerDAppReady_ = false;
+	recallWallet_ = true;
+
+	//
+	if (peerManager_) {
+		qInfo() << "Resuming PeerManager...";
+		peerManager_->resume();
+	}
+}
+
 void Client::setBuzzerDAppReady() {
+	//
+	if (suspended_) return;
+
 	//
 	std::map<uint256, std::map<uint32_t, IPeerPtr>> lMap;
 	requestProcessor_->collectPeersByDApp("buzzer", lMap);
@@ -778,12 +811,23 @@ void Client::setBuzzerDAppReady() {
 		if (lChain->second.size() > 1) lSupportNodes += lChain->second.size();
 	}
 
+	// if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[Client::setBuzzerDAppReady]: peers %d/%d", lSupportNodes, lMap.size()));
+
 	// at least two nodes
 	if (lSupportNodes / lMap.size() > 1) {
 		bool lNotify = !buzzerDAppReady_;
 		buzzerDAppReady_ = true;
 		if (lNotify) {
 			if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, std::string("[Client::setBuzzerDAppReady]: buzzer is ready"));
+			if (recallWallet_) {
+				if (wallet_->prepareCache()) {
+					recallWallet_ = false;
+					if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, std::string("[Client::prepareCache]: cache is ready"));
+					emit buzzerDAppResumed();
+				}
+			}
+
+			opened_ = true; // allways
 			emit buzzerDAppReadyChanged();
 		}
 	} else {

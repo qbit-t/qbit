@@ -110,14 +110,14 @@ void LoadBuzzesGlobalCommand::prepare() {
 			)
 		);
 
-		connect(this, SIGNAL(dataReady(const qbit::BuzzfeedProxy&, bool)), buzzfeedModel_, SLOT(feedSlot(const qbit::BuzzfeedProxy&, bool)));
+		connect(this, SIGNAL(dataReady(const qbit::BuzzfeedProxy&, bool, bool)), buzzfeedModel_, SLOT(feedSlot(const qbit::BuzzfeedProxy&, bool, bool)));
 	}
 }
 
 void LoadBuzzesGlobalCommand::ready(qbit::BuzzfeedPtr /*base*/, qbit::BuzzfeedPtr local) {
 	//
 	if (buzzfeedModel_) {
-		emit dataReady(qbit::BuzzfeedProxy(local), more_);
+		emit dataReady(qbit::BuzzfeedProxy(local), more_, false);
 	}
 }
 
@@ -145,14 +145,14 @@ void LoadBuzzfeedByBuzzCommand::prepare() {
 			)
 		);
 
-		connect(this, SIGNAL(dataReady(const qbit::BuzzfeedProxy&, bool)), buzzfeedModel_, SLOT(feedSlot(const qbit::BuzzfeedProxy&, bool)));
+		connect(this, SIGNAL(dataReady(const qbit::BuzzfeedProxy&, bool, bool)), buzzfeedModel_, SLOT(feedSlot(const qbit::BuzzfeedProxy&, bool, bool)));
 	}
 }
 
 void LoadBuzzfeedByBuzzCommand::ready(qbit::BuzzfeedPtr /*base*/, qbit::BuzzfeedPtr local) {
 	//
 	if (buzzfeedModel_) {
-		emit dataReady(qbit::BuzzfeedProxy(local), more_);
+		emit dataReady(qbit::BuzzfeedProxy(local), more_, merge_);
 	}
 }
 
@@ -176,14 +176,14 @@ void LoadBuzzfeedByBuzzerCommand::prepare() {
 			)
 		);
 
-		connect(this, SIGNAL(dataReady(const qbit::BuzzfeedProxy&, bool)), buzzfeedModel_, SLOT(feedSlot(const qbit::BuzzfeedProxy&, bool)));
+		connect(this, SIGNAL(dataReady(const qbit::BuzzfeedProxy&, bool, bool)), buzzfeedModel_, SLOT(feedSlot(const qbit::BuzzfeedProxy&, bool, bool)));
 	}
 }
 
 void LoadBuzzfeedByBuzzerCommand::ready(qbit::BuzzfeedPtr /*base*/, qbit::BuzzfeedPtr local) {
 	//
 	if (buzzfeedModel_) {
-		emit dataReady(qbit::BuzzfeedProxy(local), more_);
+		emit dataReady(qbit::BuzzfeedProxy(local), more_, merge_);
 	}
 }
 
@@ -207,14 +207,14 @@ void LoadBuzzfeedByTagCommand::prepare() {
 			)
 		);
 
-		connect(this, SIGNAL(dataReady(const qbit::BuzzfeedProxy&, bool)), buzzfeedModel_, SLOT(feedSlot(const qbit::BuzzfeedProxy&, bool)));
+		connect(this, SIGNAL(dataReady(const qbit::BuzzfeedProxy&, bool, bool)), buzzfeedModel_, SLOT(feedSlot(const qbit::BuzzfeedProxy&, bool, bool)));
 	}
 }
 
 void LoadBuzzfeedByTagCommand::ready(qbit::BuzzfeedPtr /*base*/, qbit::BuzzfeedPtr local) {
 	//
 	if (buzzfeedModel_) {
-		emit dataReady(qbit::BuzzfeedProxy(local), more_);
+		emit dataReady(qbit::BuzzfeedProxy(local), more_, false);
 	}
 }
 
@@ -238,14 +238,14 @@ void LoadBuzzfeedCommand::prepare() {
 			)
 		);
 
-		connect(this, SIGNAL(dataReady(const qbit::BuzzfeedProxy&, bool)), buzzfeedModel_, SLOT(feedSlot(const qbit::BuzzfeedProxy&, bool)));
+		connect(this, SIGNAL(dataReady(const qbit::BuzzfeedProxy&, bool, bool)), buzzfeedModel_, SLOT(feedSlot(const qbit::BuzzfeedProxy&, bool, bool)));
 	}
 }
 
 void LoadBuzzfeedCommand::ready(qbit::BuzzfeedPtr /*base*/, qbit::BuzzfeedPtr local) {
 	//
 	if (buzzfeedModel_) {
-		emit dataReady(qbit::BuzzfeedProxy(local), more_);
+		emit dataReady(qbit::BuzzfeedProxy(local), more_, merge_);
 	}
 }
 
@@ -467,14 +467,14 @@ void LoadEndorsementsByBuzzerCommand::prepare() {
 			)
 		);
 
-		connect(this, SIGNAL(dataReady(const qbit::EventsfeedProxy&, bool)), eventsfeedModel_, SLOT(feedSlot(const qbit::EventsfeedProxy&, bool)));
+		connect(this, SIGNAL(dataReady(const qbit::EventsfeedProxy&, bool, bool)), eventsfeedModel_, SLOT(feedSlot(const qbit::EventsfeedProxy&, bool, bool)));
 	}
 }
 
 void LoadEndorsementsByBuzzerCommand::ready(qbit::EventsfeedPtr /*base*/, qbit::EventsfeedPtr local) {
 	//
 	if (eventsfeedModel_) {
-		emit dataReady(qbit::EventsfeedProxy(local), more_);
+		emit dataReady(qbit::EventsfeedProxy(local), more_, merge_);
 	}
 }
 
@@ -498,14 +498,14 @@ void LoadMistrustsByBuzzerCommand::prepare() {
 			)
 		);
 
-		connect(this, SIGNAL(dataReady(const qbit::EventsfeedProxy&, bool)), eventsfeedModel_, SLOT(feedSlot(const qbit::EventsfeedProxy&, bool)));
+		connect(this, SIGNAL(dataReady(const qbit::EventsfeedProxy&, bool, bool)), eventsfeedModel_, SLOT(feedSlot(const qbit::EventsfeedProxy&, bool, bool)));
 	}
 }
 
 void LoadMistrustsByBuzzerCommand::ready(qbit::EventsfeedPtr /*base*/, qbit::EventsfeedPtr local) {
 	//
 	if (eventsfeedModel_) {
-		emit dataReady(qbit::EventsfeedProxy(local), more_);
+		emit dataReady(qbit::EventsfeedProxy(local), more_, merge_);
 	}
 }
 
@@ -529,14 +529,14 @@ void LoadEventsfeedCommand::prepare() {
 			)
 		);
 
-		connect(this, SIGNAL(dataReady(const qbit::EventsfeedProxy&, bool)), eventsfeedModel_, SLOT(feedSlot(const qbit::EventsfeedProxy&, bool)));
+		connect(this, SIGNAL(dataReady(const qbit::EventsfeedProxy&, bool, bool)), eventsfeedModel_, SLOT(feedSlot(const qbit::EventsfeedProxy&, bool, bool)));
 	}
 }
 
 void LoadEventsfeedCommand::ready(qbit::EventsfeedPtr /*base*/, qbit::EventsfeedPtr local) {
 	//
 	if (eventsfeedModel_) {
-		emit dataReady(qbit::EventsfeedProxy(local), more_);
+		emit dataReady(qbit::EventsfeedProxy(local), more_, merge_);
 	}
 }
 
@@ -560,14 +560,14 @@ void LoadFollowingByBuzzerCommand::prepare() {
 			)
 		);
 
-		connect(this, SIGNAL(dataReady(const qbit::EventsfeedProxy&, bool)), eventsfeedModel_, SLOT(feedSlot(const qbit::EventsfeedProxy&, bool)));
+		connect(this, SIGNAL(dataReady(const qbit::EventsfeedProxy&, bool, bool)), eventsfeedModel_, SLOT(feedSlot(const qbit::EventsfeedProxy&, bool, bool)));
 	}
 }
 
 void LoadFollowingByBuzzerCommand::ready(qbit::EventsfeedPtr /*base*/, qbit::EventsfeedPtr local) {
 	//
 	if (eventsfeedModel_) {
-		emit dataReady(qbit::EventsfeedProxy(local), more_);
+		emit dataReady(qbit::EventsfeedProxy(local), more_, merge_);
 	}
 }
 
@@ -591,14 +591,14 @@ void LoadFollowersByBuzzerCommand::prepare() {
 			)
 		);
 
-		connect(this, SIGNAL(dataReady(const qbit::EventsfeedProxy&, bool)), eventsfeedModel_, SLOT(feedSlot(const qbit::EventsfeedProxy&, bool)));
+		connect(this, SIGNAL(dataReady(const qbit::EventsfeedProxy&, bool, bool)), eventsfeedModel_, SLOT(feedSlot(const qbit::EventsfeedProxy&, bool, bool)));
 	}
 }
 
 void LoadFollowersByBuzzerCommand::ready(qbit::EventsfeedPtr /*base*/, qbit::EventsfeedPtr local) {
 	//
 	if (eventsfeedModel_) {
-		emit dataReady(qbit::EventsfeedProxy(local), more_);
+		emit dataReady(qbit::EventsfeedProxy(local), more_, merge_);
 	}
 }
 
@@ -665,14 +665,14 @@ void LoadConversationsCommand::prepare() {
 			)
 		);
 
-		connect(this, SIGNAL(dataReady(const qbit::ConversationsfeedProxy&, bool)), conversationsModel_, SLOT(feedSlot(const qbit::ConversationsfeedProxy&, bool)));
+		connect(this, SIGNAL(dataReady(const qbit::ConversationsfeedProxy&, bool, bool)), conversationsModel_, SLOT(feedSlot(const qbit::ConversationsfeedProxy&, bool, bool)));
 	}
 }
 
 void LoadConversationsCommand::ready(qbit::ConversationsfeedPtr /*base*/, qbit::ConversationsfeedPtr local) {
 	//
 	if (conversationsModel_) {
-		emit dataReady(qbit::ConversationsfeedProxy(local), more_);
+		emit dataReady(qbit::ConversationsfeedProxy(local), more_, merge_);
 	}
 }
 
@@ -780,14 +780,14 @@ void LoadConversationMessagesCommand::prepare() {
 			)
 		);
 
-		connect(this, SIGNAL(dataReady(const qbit::BuzzfeedProxy&, bool)), buzzfeedModel_, SLOT(feedSlot(const qbit::BuzzfeedProxy&, bool)));
+		connect(this, SIGNAL(dataReady(const qbit::BuzzfeedProxy&, bool, bool)), buzzfeedModel_, SLOT(feedSlot(const qbit::BuzzfeedProxy&, bool, bool)));
 	}
 }
 
 void LoadConversationMessagesCommand::ready(qbit::BuzzfeedPtr /*base*/, qbit::BuzzfeedPtr local) {
 	//
 	if (buzzfeedModel_) {
-		emit dataReady(qbit::BuzzfeedProxy(local), more_);
+		emit dataReady(qbit::BuzzfeedProxy(local), more_, merge_);
 	}
 }
 

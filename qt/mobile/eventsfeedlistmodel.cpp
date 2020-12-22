@@ -132,7 +132,13 @@ void EventsfeedListModel::eventsfeedItemUpdated(qbit::EventsfeedItemPtr) {
 void EventsfeedListModel::eventsfeedItemsUpdated(const std::vector<qbit::EventsfeedItem>&) {
 }
 
-void EventsfeedListModel::feed(qbit::EventsfeedPtr local, bool more) {
+void EventsfeedListModel::feed(qbit::EventsfeedPtr local, bool more, bool merge) {
+	//
+	if (merge) {
+		EventsfeedListModel::merge();
+		return;
+	}
+
 	//
 	if (!more) {
 		//
@@ -238,10 +244,51 @@ void EventsfeedListModel::feed(qbit::EventsfeedPtr local, bool more) {
 	}
 }
 
-void EventsfeedListModel::feedSlot(const qbit::EventsfeedProxy& local, bool more) {
+void EventsfeedListModel::merge() {
+	//
+	// index for check
+	std::map<qbit::EventsfeedItem::Key, int> lOldIndex = index_;
+
+	qInfo() << "==== MERGE =====";
+
+	// new feed
+	list_.clear();
+	index_.clear();
+	eventsfeed_->feed(list_);
+
+	// make index
+	for (int lItem = 0; lItem < (int)list_.size(); lItem++) {
+		index_[list_[lItem]->key()] = lItem;
+	}
+
+	// reverse
+	for (std::map<qbit::EventsfeedItem::Key, int>::iterator lIdx = lOldIndex.begin(); lIdx != lOldIndex.end(); lIdx++) {
+		//
+		std::map<qbit::EventsfeedItem::Key, int>::iterator lNewIdx = index_.find(lIdx->first);
+		if (lNewIdx == index_.end()) {
+			beginRemoveRows(QModelIndex(), lIdx->second, lIdx->second);
+			endRemoveRows();
+		} else {
+			QModelIndex lModelIndex = createIndex(lNewIdx->second, lNewIdx->second);
+			emit dataChanged(lModelIndex, lModelIndex, QVector<int>() << TimestampRole << EventInfosRoles);
+		}
+	}
+
+	// forward merge
+	for (std::map<qbit::EventsfeedItem::Key, int>::iterator lIdx = index_.begin(); lIdx != index_.end(); lIdx++) {
+		//
+		std::map<qbit::EventsfeedItem::Key, int>::iterator lOldIdx = lOldIndex.find(lIdx->first);
+		if (lOldIdx == lOldIndex.end()) {
+			beginInsertRows(QModelIndex(), lIdx->second, lIdx->second);
+			endInsertRows();
+		}
+	}
+}
+
+void EventsfeedListModel::feedSlot(const qbit::EventsfeedProxy& local, bool more, bool merge) {
 	//
 	qbit::EventsfeedPtr lEventsfeed(local.get());
-	feed(lEventsfeed, more);
+	feed(lEventsfeed, more, merge);
 }
 
 void EventsfeedListModel::eventsfeedItemNewSlot(const qbit::EventsfeedItemProxy& event) {

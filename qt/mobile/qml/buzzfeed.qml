@@ -59,6 +59,12 @@ Item
 			}
 		}
 
+		function onBuzzerDAppResumed() {
+			if (buzzerClient.buzzerDAppReady) {
+				modelLoader.processAndMerge();
+			}
+		}
+
 		function onThemeChanged() {
 			buzzerClient.getBuzzfeedList().resetModel();
 		}

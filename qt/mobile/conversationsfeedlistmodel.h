@@ -58,7 +58,8 @@ public:
 	void conversationItemUpdated(qbit::ConversationItemPtr /*conversation*/);
 	void conversationsfeedItemsUpdated(const std::vector<qbit::ConversationItem>& /*items*/) {}
 
-	void feed(qbit::ConversationsfeedPtr /*local*/, bool /*more*/);
+	void feed(qbit::ConversationsfeedPtr /*local*/, bool /*more*/, bool /*merge*/);
+	void merge();
 
 	qbit::ConversationsfeedPtr conversations() {
 		return conversations_;
@@ -81,7 +82,7 @@ public:
 	}
 
 public slots:
-	void feedSlot(const qbit::ConversationsfeedProxy& local, bool more);
+	void feedSlot(const qbit::ConversationsfeedProxy& local, bool more, bool merge);
 	void conversationItemNewSlot(const qbit::ConversationItemProxy& buzz);
 	void conversationItemUpdatedSlot(const qbit::ConversationItemProxy& buzz);
 

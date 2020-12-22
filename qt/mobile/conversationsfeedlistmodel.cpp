@@ -181,9 +181,15 @@ void ConversationsfeedListModel::conversationItemUpdated(qbit::ConversationItemP
 	emit conversationItemUpdatedSignal(qbit::ConversationItemProxy(buzz));
 }
 
-void ConversationsfeedListModel::feed(qbit::ConversationsfeedPtr local, bool more) {
+void ConversationsfeedListModel::feed(qbit::ConversationsfeedPtr local, bool more, bool merge) {
 	//
 	if (filtered_) return;
+
+	//
+	if (merge) {
+		ConversationsfeedListModel::merge();
+		return;
+	}
 
 	//
 	if (!more) {
@@ -291,10 +297,51 @@ void ConversationsfeedListModel::feed(qbit::ConversationsfeedPtr local, bool mor
 	}
 }
 
-void ConversationsfeedListModel::feedSlot(const qbit::ConversationsfeedProxy& local, bool more) {
+void ConversationsfeedListModel::merge() {
+	// index for check
+	std::map<uint256, int> lOldIndex = index_;
+
+	//
+	qInfo() << "==== MERGE =====";
+
+	// new feed
+	list_.clear();
+	index_.clear();
+	conversations_->feed(list_);
+
+	// make index
+	for (int lItem = 0; lItem < (int)list_.size(); lItem++) {
+		index_[list_[lItem]->key()] = lItem;
+	}
+
+	// reverse
+	for (std::map<uint256, int>::iterator lIdx = lOldIndex.begin(); lIdx != lOldIndex.end(); lIdx++) {
+		//
+		std::map<uint256, int>::iterator lNewIdx = index_.find(lIdx->first);
+		if (lNewIdx == index_.end()) {
+			beginRemoveRows(QModelIndex(), lIdx->second, lIdx->second);
+			endRemoveRows();
+		} else {
+			QModelIndex lModelIndex = createIndex(lNewIdx->second, lNewIdx->second);
+			emit dataChanged(lModelIndex, lModelIndex, QVector<int>() << AgoRole << EventsRole);
+		}
+	}
+
+	// forward merge
+	for (std::map<uint256, int>::iterator lIdx = index_.begin(); lIdx != index_.end(); lIdx++) {
+		//
+		std::map<uint256, int>::iterator lOldIdx = lOldIndex.find(lIdx->first);
+		if (lOldIdx == lOldIndex.end()) {
+			beginInsertRows(QModelIndex(), lIdx->second, lIdx->second);
+			endInsertRows();
+		}
+	}
+}
+
+void ConversationsfeedListModel::feedSlot(const qbit::ConversationsfeedProxy& local, bool more, bool merge) {
 	//
 	qbit::ConversationsfeedPtr lFeed(local.get());
-	feed(lFeed, more);
+	feed(lFeed, more, merge);
 }
 
 void ConversationsfeedListModel::conversationItemNewSlot(const qbit::ConversationItemProxy& buzz) {

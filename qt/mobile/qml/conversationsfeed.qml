@@ -71,6 +71,12 @@ Item
 			}
 		}
 
+		function onBuzzerDAppResumed() {
+			if (buzzerClient.buzzerDAppReady) {
+				conversationsModelLoader.processAndMerge();
+			}
+		}
+
 		function onThemeChanged() {
 			if (conversationModel_) conversationModel_.resetModel();
 		}

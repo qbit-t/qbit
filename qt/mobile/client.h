@@ -147,21 +147,8 @@ public:
     Q_INVOKABLE bool configured();
 	Q_INVOKABLE bool pinAccessConfigured();
 
-	void suspend() {
-		suspended_ = true;
-		if (peerManager_) {
-			qInfo() << "Suspending PeerManager...";
-			peerManager_->suspend();
-		}
-	}
-
-	void resume() {
-		suspended_ = false;
-		if (peerManager_) {
-			qInfo() << "Resuming PeerManager...";
-			peerManager_->resume();
-		}
-	}
+	void suspend();
+	void resume();
 
 	QString address() {
 		//
@@ -551,6 +538,8 @@ signals:
 	void cacheReadyChanged();
 	void networkReadyChanged();
 	void buzzerDAppReadyChanged();
+	void buzzerDAppResumed();
+	void buzzerDAppSuspended();
 	void trustScoreChanged(long endorsements, long mistrusts);
 	void endorsementsChanged();
 	void mistrustsChanged();
@@ -592,6 +581,8 @@ private:
 	bool networkReady_ = false;
 	bool buzzerDAppReady_ = false;
 	bool suspended_ = false;
+	bool recallWallet_ = false;
+	bool opened_ = false;
 
 private:
 	qbit::IRequestProcessorPtr requestProcessor_ = nullptr;

@@ -301,7 +301,11 @@ public:
 	}
 
 	QString getText() {
-		if (buzz_->type() == TX_BUZZER_MESSAGE || buzz_->type() == TX_BUZZER_MESSAGE_REPLY) return QString("");
+		if (buzz_->type() == TX_BUZZER_MESSAGE || buzz_->type() == TX_BUZZER_MESSAGE_REPLY) {
+			QString lString = getLocalization(gClient->locale(), "Buzzer.event.conversation.message.encrypted");
+			return lString;
+		}
+
 		return QString::fromStdString(buzz_->buzzBodyString());
 	}
 
@@ -530,7 +534,7 @@ int main(int argc, char** argv) {
 	qbit::gLightDaemon = true;
 
 	// home
-	buzzer::Settings* lSettings = buzzer::SettingsFactory::get();
+	buzzer::Settings* lSettings = buzzer::SettingsFactory::getDaemon();
 	gClient = new DaemonClient();
 	lSettings->link(gClient);
 	lSettings->open();
