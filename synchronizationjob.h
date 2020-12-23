@@ -97,6 +97,16 @@ public:
 		pendingBlocks_.push_back(block);
 	}
 
+	uint256 lastPendingBlock() {
+		//
+		if (pendingBlocks_.size()) {
+			boost::unique_lock<boost::mutex> lLock(jobMutex_);
+			return *pendingBlocks_.rbegin();
+		}
+
+		return uint256();
+	}
+
 	uint256 acquireNextPendingBlockJob(IPeerPtr peer) {
 		boost::unique_lock<boost::mutex> lLock(jobMutex_);
 		time_ = getTime(); // timestamp
