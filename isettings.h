@@ -74,6 +74,9 @@ public:
 	virtual void setNotifyTransactionCommand(const std::string&) {}
 
 	virtual int clientActivePeers() { return 3; }
+
+	virtual bool reindex() { return false; }
+	virtual void setReindex() {}
 };
 
 typedef std::shared_ptr<ISettings> ISettingsPtr;

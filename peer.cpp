@@ -182,7 +182,10 @@ void Peer::internalSendState(StatePtr state, bool global) {
 //
 // external repeatable procedure
 //
-void Peer::synchronizeFullChain(IConsensusPtr consensus, SynchronizationJobPtr job) {
+void Peer::synchronizeFullChain(IConsensusPtr consensus, SynchronizationJobPtr job, const boost::system::error_code& error) {
+	//
+	if (error == boost::asio::error::operation_aborted) return;
+
 	//
 	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
 	else if (socketStatus_ == CONNECTED) {
@@ -195,12 +198,13 @@ void Peer::synchronizeFullChain(IConsensusPtr consensus, SynchronizationJobPtr j
 
 		// done?
 		if (!lHeight) {
-			std::map<uint64_t, IPeerPtr> lPendingJobs = job->pendingJobs();
-			if (lPendingJobs.size()) 
+			std::map<uint64_t, SynchronizationJob::Agent> lPendingJobs = job->pendingJobs();
+			if (lPendingJobs.size()) {
+				//
 				lHeight = job->reacquireJob(lPendingJobs.rbegin()->first, shared_from_this());
-			else {
+			} else {
 				// log
-				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: synchronization job is done, root = ") + strprintf("%s", job->block().toHex()));
+				if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: synchronization job is done, root = ") + strprintf("%s, %s#", job->block().toHex(), consensus->chain().toHex().substr(0, 10)));
 				
 				// cleanup
 				removeJob(consensus->chain());
@@ -216,6 +220,13 @@ void Peer::synchronizeFullChain(IConsensusPtr consensus, SynchronizationJobPtr j
 			}
 		}
 
+		// double check
+		if (!lHeight) {
+			if (gLog().isEnabled(Log::CONSENSUS))
+				gLog().write(Log::CONSENSUS, std::string("[peer]: synchronization job is done EARLIER, root = ") + strprintf("%s, %s#", job->block().toHex(), consensus->chain().toHex().substr(0, 10)));
+			return;
+		}
+
 		// new message
 		std::list<DataStream>::iterator lMsg = newOutMessage();
 
@@ -227,7 +238,7 @@ void Peer::synchronizeFullChain(IConsensusPtr consensus, SynchronizationJobPtr j
 		lMsg->write(lStateStream.data(), lStateStream.size());
 
 		// log
-		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: requesting BLOCK ") + strprintf("%d", lHeight) + std::string(" from ") + key());
+		if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: requesting BLOCK ") + strprintf("%d/%s#", lHeight, consensus->chain().toHex().substr(0, 10)) + std::string(" from ") + key());
 
 		// write
 		sendMessageAsync(lMsg);
@@ -235,20 +246,27 @@ void Peer::synchronizeFullChain(IConsensusPtr consensus, SynchronizationJobPtr j
 }
 
 //
-// external repeatable procedure
+// NOTICE: the last and only WORKING proto, external repeatable procedure
 //
-void Peer::synchronizePartialTree(IConsensusPtr consensus, SynchronizationJobPtr job) {
+void Peer::synchronizePartialTree(IConsensusPtr consensus, SynchronizationJobPtr job, const boost::system::error_code& error) {
+	//
+	if (error == boost::asio::error::operation_aborted) return;
+
 	//
 	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
 	else if (socketStatus_ == CONNECTED) {
-
+		// register job
+		addJob(consensus->chain(), job);
+		//
 		uint256 lId = job->nextBlock();
 		if (lId.isNull()) {
 			// log
-			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: synchronization job is done, root = ") + strprintf("%s", job->block().toHex()));
+			if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: partial synchronization job is done, root = ") + strprintf("%s, %s#", job->block().toHex(), consensus->chain().toHex().substr(0, 10)));
 
 			// cleanup
 			removeJob(consensus->chain());
+			// finish
+			consensus->finishJob(job);
 
 			// reindex, partial
 			if (consensus->doIndex(job->block()/*root block*/, job->lastBlock())) {
@@ -257,7 +275,7 @@ void Peer::synchronizePartialTree(IConsensusPtr consensus, SynchronizationJobPtr
 				peerManager_->consensusManager()->broadcastState(lState, addressId());
 			} else {
 				// log
-				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: partial reindex FAILED skipping subtree switching, root = ") + strprintf("%s", job->block().toHex()));				
+				if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: partial reindex FAILED skipping subtree switching, root = ") + strprintf("%s, %s#", job->block().toHex(), consensus->chain().toHex().substr(0, 10)));
 				//
 				consensus->toNonSynchronized();
 			}
@@ -265,9 +283,11 @@ void Peer::synchronizePartialTree(IConsensusPtr consensus, SynchronizationJobPtr
 			return;
 		}
 
+		/*
 		// check if block exists
 		uint256 lRootId = BlockHeader().hash();
-		while (lId != lRootId && peerManager_->consensusManager()->locate(consensus->chain())->store()->blockExists(lId)) {
+		// end-of-chain OR last_block
+		while ((lId != lRootId || lId != job->lastBlock()) && peerManager_->consensusManager()->locate(consensus->chain())->store()->blockExists(lId)) {
 			//
 			BlockHeader lHeader;
 			if (peerManager_->consensusManager()->locate(consensus->chain())->store()->blockHeader(lId, lHeader)) {
@@ -278,34 +298,31 @@ void Peer::synchronizePartialTree(IConsensusPtr consensus, SynchronizationJobPtr
 			}
 		}
 
-		//
-		if (lId != lRootId) {
-			//
-			job->setLastBlock(lId);
-
+		// root found?
+		if (lId == lRootId) {
 			// log
-			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: blockchain exists, synchronization job is done, root = ") + strprintf("%s", job->block().toHex()));
+			if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer/root]: patial synchronization job is done, root = ") + strprintf("%s, %s", job->block().toHex(), consensus->chain().toHex().substr(0, 10)));
 
 			// cleanup
 			removeJob(consensus->chain());
+			// finish
+			consensus->finishJob(job);
 
 			// reindex, partial
-			if (consensus->doIndex(job->block()/*root block*/, job->lastBlock())) {
+			if (consensus->doIndex(job->block(), job->lastBlock())) {
 				// broadcast new state
 				StatePtr lState = peerManager_->consensusManager()->currentState();
 				peerManager_->consensusManager()->broadcastState(lState, addressId());
 			} else {
 				// log
-				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: blockchain exists, but partial reindex FAILED skipping subtree switching, root = ") + strprintf("%s", job->block().toHex()));
+				if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer/root]: partial reindex FAILED skipping subtree switching, root = ") + strprintf("%s, %s#", job->block().toHex(), consensus->chain().toHex().substr(0, 10)));
 				//
 				consensus->toNonSynchronized();
 			}
 
 			return;
 		}
-
-		// register job
-		addJob(consensus->chain(), job);
+		*/
 
 		// new message
 		std::list<DataStream>::iterator lMsg = newOutMessage();
@@ -319,7 +336,7 @@ void Peer::synchronizePartialTree(IConsensusPtr consensus, SynchronizationJobPtr
 		lMsg->write(lStateStream.data(), lStateStream.size());
 
 		// log
-		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: requesting block ") + lId.toHex() + std::string(" from ") + key());
+		if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, strprintf("[peer]: partial requesting block %s/%s#", lId.toHex(), consensus->chain().toHex().substr(0, 10)) + std::string(" from ") + key());
 
 		// write
 		sendMessageAsync(lMsg);
@@ -327,7 +344,7 @@ void Peer::synchronizePartialTree(IConsensusPtr consensus, SynchronizationJobPtr
 }
 
 //
-// external repeatable procedure
+// NOTICE: the last and only WORKING proto, external repeatable procedure
 //
 void Peer::synchronizeLargePartialTree(IConsensusPtr consensus, SynchronizationJobPtr job) {
 	//
@@ -337,10 +354,10 @@ void Peer::synchronizeLargePartialTree(IConsensusPtr consensus, SynchronizationJ
 		uint256 lId = job->nextBlock();
 		if (lId.isNull()) {
 			// log
-			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: headers synchronization job is done, root = ") + strprintf("%s", job->block().toHex()));
+			if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: large headers synchronization job is done, root = ") + strprintf("%s, %s#", job->block().toHex(), consensus->chain().toHex().substr(0, 10)));
 
 			if (!consensus->processPartialTreeHeaders(job)) {
-				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: pending blocks synchronization is not possible, root = ") + strprintf("%s", job->block().toHex()));
+				if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: large pending blocks synchronization is not possible, root = ") + strprintf("%s, %s#", job->block().toHex(), consensus->chain().toHex().substr(0, 10)));
 			}
 
 			return;
@@ -361,7 +378,7 @@ void Peer::synchronizeLargePartialTree(IConsensusPtr consensus, SynchronizationJ
 		lMsg->write(lStateStream.data(), lStateStream.size());
 
 		// log
-		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: requesting block header ") + lId.toHex() + std::string(" from ") + key());
+		if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, strprintf("[peer]: requesting large block header %s/%s#", lId.toHex(), consensus->chain().toHex().substr(0, 10)) + std::string(" from ") + key());
 
 		// write
 		sendMessageAsync(lMsg);
@@ -369,28 +386,42 @@ void Peer::synchronizeLargePartialTree(IConsensusPtr consensus, SynchronizationJ
 }
 
 //
-// external repeatable procedure
+// NOTICE: the last and only WORKING proto, external repeatable procedure
 //
-void Peer::synchronizePendingBlocks(IConsensusPtr consensus, SynchronizationJobPtr job) {
+void Peer::synchronizePendingBlocks(IConsensusPtr consensus, SynchronizationJobPtr job, const boost::system::error_code& error) {
+	//
+	if (error == boost::asio::error::operation_aborted) return;
+
 	//
 	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
 	else if (socketStatus_ == CONNECTED) {
 		// register job
 		addJob(consensus->chain(), job);
 
+		// try to expand current job to active peers
+		consensus->expandJob(job);
+
 		// next job
 		uint256 lBlockHeader = job->acquireNextPendingBlockJob(shared_from_this());
 
 		// done?
 		if (lBlockHeader.isNull()) {
-			std::map<uint256, IPeerPtr> lPendingJobs = job->pendingBlockJobs();
-			if (lPendingJobs.size()) lBlockHeader = job->reacquirePendingBlockJob(lPendingJobs.rbegin()->first, shared_from_this());
-			if (lBlockHeader.isNull()) {
+			//
+			if (job->hasPendingBlocks()) {
 				// log
-				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: pending blocks synchronization job is done, root = ") + strprintf("%s", job->block().toHex()));
+				if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: pending blocks synchronization is NOT done, waiting for root = ") + strprintf("%s, %d, %s#", job->block().toHex(), job->pendingBlocks() + job->activeWorkers(), consensus->chain().toHex().substr(0, 10)));
+				// cleanup
+				removeJob(consensus->chain());
+				//
+				return;
+			} else {
+				// log
+				if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: pending blocks synchronization job is done, root = ") + strprintf("%s, %s#", job->block().toHex(), consensus->chain().toHex().substr(0, 10)));
 				
 				// cleanup
 				removeJob(consensus->chain());
+				// finish
+				consensus->finishJob(job);
 
 				// reindex, partial
 				if (consensus->doIndex(job->block()/*root block*/, job->lastBlock())) {
@@ -399,7 +430,7 @@ void Peer::synchronizePendingBlocks(IConsensusPtr consensus, SynchronizationJobP
 					peerManager_->consensusManager()->broadcastState(lState, addressId());
 				} else {
 					// log
-					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: partial reindex FAILED skipping subtree switching, root = ") + strprintf("%s", job->block().toHex()));				
+					if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: partial reindex FAILED skipping subtree switching, root = ") + strprintf("%s, %s#", job->block().toHex(), consensus->chain().toHex().substr(0, 10)));
 					//
 					consensus->toNonSynchronized();
 				}
@@ -409,31 +440,33 @@ void Peer::synchronizePendingBlocks(IConsensusPtr consensus, SynchronizationJobP
 		}
 
 		// make target - last
-		if (job->lastBlock().isNull()) job->setLastBlock(job->lastPendingBlock());
+		if (job->lastBlock().isNull()) job->setLastBlockInstant(job->lastPendingBlock());
 
 		// check if block exists
-		while (!lBlockHeader.isNull() && peerManager_->consensusManager()->locate(consensus->chain())->store()->blockExists(lBlockHeader)) {
+		while (!lBlockHeader.isNull() && 
+					peerManager_->consensusManager()->locate(consensus->chain())->store()->blockExists(lBlockHeader)) {
 			//
-			BlockHeader lHeader;
-			if (peerManager_->consensusManager()->locate(consensus->chain())->store()->blockHeader(lBlockHeader, lHeader)) {
-				//
-				lBlockHeader = job->acquireNextPendingBlockJob(shared_from_this());
-			} else {
-				break;
-			}
+			job->releasePendingBlockJob(lBlockHeader);
+			lBlockHeader = job->acquireNextPendingBlockJob(shared_from_this());
 		}
 
-		//
+		// check next job, and if job absent - call handler after a little while
 		if (lBlockHeader.isNull()) {
-			//
-			std::map<uint256, IPeerPtr> lPendingJobs = job->pendingBlockJobs();
-			if (lPendingJobs.size()) lBlockHeader = job->reacquirePendingBlockJob(lPendingJobs.rbegin()->first, shared_from_this());
-			if (lBlockHeader.isNull()) {
+			if (job->hasPendingBlocks()) {
 				// log
-				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: blockchain exists, pending blocks synchronization job is done, root = ") + strprintf("%s", job->block().toHex()));
+				if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer/root]: pending blocks synchronization in NOT done, waiting for root = ") + strprintf("%s, %d, %s#", job->block().toHex(), job->pendingBlocks() + job->activeWorkers(), consensus->chain().toHex().substr(0, 10)));
+				// cleanup
+				removeJob(consensus->chain());
+				//
+				return;
+			} else {
+				// log
+				if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer/root]: pending blocks synchronization job is done, root = ") + strprintf("%s, %s#", job->block().toHex(), consensus->chain().toHex().substr(0, 10)));
 				
 				// cleanup
 				removeJob(consensus->chain());
+				// finish
+				consensus->finishJob(job);
 
 				// reindex, partial
 				if (consensus->doIndex(job->block()/*root block*/, job->lastBlock())) {
@@ -442,9 +475,9 @@ void Peer::synchronizePendingBlocks(IConsensusPtr consensus, SynchronizationJobP
 					peerManager_->consensusManager()->broadcastState(lState, addressId());
 				} else {
 					// log
-					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: blockchain exists, but partial reindex FAILED skipping subtree switching, root = ") + strprintf("%s", job->block().toHex()));				
+					if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer/root]: partial reindex FAILED skipping subtree switching, root = ") + strprintf("%s, %s#", job->block().toHex(), consensus->chain().toHex().substr(0, 10)));
 					//
-					consensus->toNonSynchronized();				
+					consensus->toNonSynchronized();
 				}
 
 				return;
@@ -463,7 +496,7 @@ void Peer::synchronizePendingBlocks(IConsensusPtr consensus, SynchronizationJobP
 		lMsg->write(lStateStream.data(), lStateStream.size());
 
 		// log
-		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: requesting BLOCK data ") + strprintf("%s", lBlockHeader.toHex()) + std::string(" from ") + key());
+		if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: requesting pending BLOCK data ") + strprintf("%s/%s#", lBlockHeader.toHex(), consensus->chain().toHex().substr(0, 10)) + std::string(" from ") + key());
 
 		// write
 		sendMessageAsync(lMsg);

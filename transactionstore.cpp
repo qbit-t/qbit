@@ -733,7 +733,7 @@ bool TransactionStore::processBlocks(const uint256& from, const uint256& to, std
 	while(lHash != to && headers_.read(lHash, lHeader)) {
 		// check sequence consistency
 		if (lMempool && !lMempool->consensus()->checkSequenceConsistency(lHeader)) {
-			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlocks]: check sequence consistency FAILED ") +
+			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlocks/error]: check sequence consistency FAILED ") +
 				strprintf("block = %s, prev = %s, chain = %s#", lHash.toHex(), lHeader.prev().toHex(), chain_.toHex().substr(0, 10)));
 			return false;
 		}
@@ -747,14 +747,20 @@ bool TransactionStore::processBlocks(const uint256& from, const uint256& to, std
 	// traverse
 	for (std::list<BlockHeader>::reverse_iterator lBlock = lHeadersSeq.rbegin(); lBlock != lHeadersSeq.rend(); lBlock++) {
 		//
-		BlockContextPtr lBlockCtx = BlockContext::instance(Block::instance(*lBlock)); // just header without transactions attached
-		uint256 lBlockHash = lBlockCtx->block()->hash();
-		BlockTransactionsPtr lTransactions = transactions_.read(lBlockHash);
-		lBlockCtx->block()->append(lTransactions); // reconstruct block consistensy
-		ctxs.push_back(lBlockCtx);
-
+		uint256 lBlockHash = (*lBlock).hash();
 		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlocks]: processing block ") +
 			strprintf("%s/%s#", lBlockHash.toHex(), chain_.toHex().substr(0, 10)));
+
+		BlockContextPtr lBlockCtx = BlockContext::instance(Block::instance(*lBlock)); // just header without transactions attached
+		BlockTransactionsPtr lTransactions = transactions_.read(lBlockHash);
+		if (!lTransactions) {
+			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlocks/error]: transaction DATA is ABSENT for ") +
+				strprintf("block = %s, prev = %s, chain = %s#", lBlockHash.toHex(), (*lBlock).prev().toHex(), chain_.toHex().substr(0, 10)));
+			return false;
+		}
+
+		lBlockCtx->block()->append(lTransactions); // reconstruct block consistensy
+		ctxs.push_back(lBlockCtx);
 
 		//
 		// process txs
@@ -949,6 +955,22 @@ BlockPtr TransactionStore::block(uint64_t height) {
 	}
 
 	return nullptr;
+}
+
+bool TransactionStore::blockHeader(uint64_t height, BlockHeader& header) {
+	//
+	uint256 lHash;
+	{
+		boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
+		std::map<uint64_t, uint256>::iterator lHeight = heightMap_.find(height);
+		if (lHeight != heightMap_.end()) {
+			lHash = lHeight->second;
+		} else {
+			return false;
+		}
+	}
+
+	return headers_.read(lHash, header);
 }
 
 BlockPtr TransactionStore::block(const uint256& id) {
@@ -1390,6 +1412,12 @@ bool TransactionStore::pushEntity(const uint256& id, TransactionContextPtr ctx) 
 
 void TransactionStore::saveBlock(BlockPtr block) {
 	//
+	if (synchronizing()) {
+		gLog().write(Log::STORE, strprintf("[saveBlock]: skipped, REINDEXING %s", chain_.toHex().substr(0, 10)));
+		return;
+	}
+
+	//
 	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[saveBlock]: saving block ") +
 		strprintf("%s/%s#", block->hash().toHex(), chain_.toHex().substr(0, 10)));
 	//
@@ -1409,6 +1437,12 @@ void TransactionStore::saveBlock(BlockPtr block) {
 }
 
 void TransactionStore::saveBlockHeader(const BlockHeader& header) {
+	//
+	if (synchronizing()) {
+		gLog().write(Log::STORE, strprintf("[saveBlockHeader]: skipped, REINDEXING %s", chain_.toHex().substr(0, 10)));
+		return;
+	}
+
 	//
 	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[saveBlockHeader]: saving block header ") +
 		strprintf("%s/%s#", const_cast<BlockHeader&>(header).hash().toHex(), chain_.toHex().substr(0, 10)));
@@ -1436,7 +1470,7 @@ void TransactionStore::reindexFull(const uint256& from, IMemoryPoolPtr pool) {
 		gLog().write(Log::STORE, std::string("[reindexFull]: already SYNCHRONIZING ") + 
 			strprintf("%s/%s#", from.toHex(), chain_.toHex().substr(0, 10)));
 		return;
-	}	
+	}
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(storageCommitMutex_);
 	// synchronizing
@@ -1445,8 +1479,9 @@ void TransactionStore::reindexFull(const uint256& from, IMemoryPoolPtr pool) {
 	gLog().write(Log::STORE, std::string("[reindexFull]: starting FULL reindex for ") + 
 		strprintf("%s#", chain_.toHex().substr(0, 10)));
 
-	// remove index
+	// remove index, DO WE need really this? - that is totally new chain
 	removeBlocks(from, uint256(), false);
+
 	// reset connected wallet cache
 	wallet_->resetCache();	
 	// remove wallet utxo-binding data
@@ -1496,6 +1531,7 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 			strprintf("%s/%s/%s#", from.toHex(), to.toHex(), chain_.toHex().substr(0, 10)));
 	} else {
 		// WARNING: lastBlock AND to MUST be in current chain - otherwise all indexes will be invalidated
+		/*
 		uint64_t lLastHeight, lToHeight;
 		if (!blockHeight(lastBlock_, lLastHeight) || !blockHeight(to, lToHeight)) {
 			//
@@ -1504,6 +1540,7 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 
 			return false;
 		}
+		*/
 	}
 
 	bool lResyncHeight = false;

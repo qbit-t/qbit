@@ -308,6 +308,16 @@ private:
 		// life control
 		if(!error) {
 			//
+			if (consensus_->settings()->reindex() && !reindexed_) {
+				//
+				if (gLog().isEnabled(Log::VALIDATOR))
+					gLog().write(Log::VALIDATOR, std::string("[touch]: reindexing ") + strprintf("%s#...", consensus_->chainStateString(), chain_.toHex().substr(0, 10)));
+				//
+				consensus_->doReindex();
+				reindexed_ = true;
+			}
+
+			//
 			IConsensus::ChainState lState = consensus_->chainState();
 			if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[touch]: chain state = ") + strprintf("%s/%s#", consensus_->chainStateString(), chain_.toHex().substr(0, 10)));
 
@@ -324,6 +334,7 @@ private:
 			} else if (lState == IConsensus::SYNCHRONIZING) {
 				SynchronizationJobPtr lJob = consensus_->lastJob();
 				if (lJob && getTime() - lJob->timestamp() > consensus_->settings()->consensusSynchronizationLatency()) {
+					consensus_->finishJob(nullptr); // restart job
 					consensus_->toNonSynchronized(); // restart sync process
 					if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::ERROR, std::string("[validator/touch/error]: synchronization was stalled."));
 				} else {
@@ -344,6 +355,17 @@ private:
 			} else if (lState == IConsensus::SYNCHRONIZED) {
 				// mining
 				startMiner();
+
+				// try to start synchronization
+				if (!consensus_->settings()->isMiner()) {
+					//
+					BlockHeader lHeader;
+					if (!store_->currentHeight(lHeader)) {
+						if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[touch]: state seems NOT synchronized for ") + 
+							strprintf("%s#...", chain_.toHex().substr(0, 10)));
+						consensus_->toNonSynchronized();
+					}
+				}
 			}
 
 			// check pending transactions
@@ -396,6 +418,7 @@ private:
 	TimerPtr timer_;
 
 	bool minerRunning_ = false;
+	bool reindexed_ = false;
 };
 
 class ValidatorFactory {

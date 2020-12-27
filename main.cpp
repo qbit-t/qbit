@@ -151,6 +151,11 @@ public:
 		qbitOnly_ = true;
 	}
 
+	bool reindex() { return reindex_; }
+	void setReindex() {
+		reindex_ = true;
+	}
+
 	void notifyTransaction(const uint256& tx) {
 		//
 		if (notifyTransaction_.size()) {
@@ -187,6 +192,7 @@ private:
 	bool supportAirdrop_ = false;
 	size_t clientSessionsLimit_ = 50;
 	bool qbitOnly_ = false;
+	bool reindex_ = false;
 };
 
 class Node;
@@ -371,6 +377,7 @@ public:
 		httpRequestHandler_->push(HttpCreateShard::instance());
 		httpRequestHandler_->push(HttpGetBlock::instance());
 		httpRequestHandler_->push(HttpGetBlockHeader::instance());
+		httpRequestHandler_->push(HttpGetBlockHeaderByHeight::instance());
 		httpRequestHandler_->push(HttpGetTransaction::instance());
 		httpRequestHandler_->push(HttpCreateAsset::instance());
 		httpRequestHandler_->push(HttpCreateAssetEmission::instance());
@@ -518,6 +525,9 @@ int main(int argv, char** argc) {
 		} else if (std::string(argc[lIdx]) == std::string("-qbit-only")) {
 			//
 			lSettings->setQbitOnly();
+		} else if (std::string(argc[lIdx]) == std::string("-reindex")) {
+			//
+			lSettings->setReindex();
 		} else if (std::string(argc[lIdx]) == std::string("-roles")) {
 			//
 			std::vector<std::string> lRoles;
