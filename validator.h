@@ -311,7 +311,7 @@ private:
 			if (consensus_->settings()->reindex() && !reindexed_) {
 				//
 				if (gLog().isEnabled(Log::VALIDATOR))
-					gLog().write(Log::VALIDATOR, std::string("[touch]: reindexing ") + strprintf("%s#...", consensus_->chainStateString(), chain_.toHex().substr(0, 10)));
+					gLog().write(Log::VALIDATOR, std::string("[touch]: reindexing ") + strprintf("%s#...", chain_.toHex().substr(0, 10)));
 				//
 				consensus_->doReindex();
 				reindexed_ = true;

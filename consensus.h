@@ -835,7 +835,7 @@ public:
 				}
 			}
 
-			if (job_ == job) {
+			{
 				gLog().write(Log::CONSENSUS, strprintf("[finishJob]: reset synchronization job for %s#", chain_.toHex().substr(0, 10)));
 				job_ = nullptr;
 			}
@@ -866,7 +866,7 @@ public:
 						if ((*lCandidate)->jobExists(chain_)) {
 							SynchronizationJobPtr lJob = (*lCandidate)->locateJob(chain_);
 							// clean-up
-							if (!lJob->pendingBlocks() && !lJob->activeWorkers()) {
+							if (!lJob->pendingBlocks() && !lJob->activeWorkers() /*&& lJob->type() != SynchronizationJob::PARTIAL*/) {
 								if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[doSynchronize]: synchronization job is EMPTY ") + 
 									strprintf("%d/%s/%s# - (blocks = %d/peers = %d)", lHeight, lBlock.toHex(), 
 										chain_.toHex().substr(0, 10), lJob->pendingBlocks(), lJob->activeWorkers()));
@@ -886,26 +886,34 @@ public:
 					uint64_t lOurHeight = store_->currentHeight(lHeader);
 					if (!lOurHeight) {
 						//
-						if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[doSynchronize]: starting FULL synchronization ") + 
-							strprintf("%d/%s/%s#", lHeight, lBlock.toHex(), chain_.toHex().substr(0, 10)));
-						//
 						std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); // this node -> get current block thread
-						if (!job_) job_ = SynchronizationJob::instance(lBlock, SynchronizationJob::FULL); // block from
-						(*lPeer)->synchronizeLargePartialTree(shared_from_this(), job_);
+						if (!job_ || job_->nextBlockInstant().isNull()) { 
+							//
+							if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[doSynchronize]: starting FULL synchronization ") + 
+								strprintf("%d/%s/%s#", lHeight, lBlock.toHex(), chain_.toHex().substr(0, 10)));
+
+							job_ = SynchronizationJob::instance(lBlock, SynchronizationJob::FULL); // block from
+							(*lPeer)->synchronizeLargePartialTree(shared_from_this(), job_);
+						}
 					} else if (lHeight > lOurHeight && lHeight - lOurHeight < partialTreeThreshold()) {
 						//
-						if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[doSynchronize]: starting PARTIAL tree synchronization ") + 
-							strprintf("%d/%s/%s#", lHeight, lBlock.toHex(), chain_.toHex().substr(0, 10)));
 						std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); // just first?
-						if (!job_) job_ = SynchronizationJob::instance(lBlock, lLast, SynchronizationJob::PARTIAL); // block from
-						(*lPeer)->synchronizePartialTree(shared_from_this(), job_);
+						if (!job_ || job_->nextBlockInstant().isNull()) { 
+							if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[doSynchronize]: starting PARTIAL tree synchronization ") + 
+								strprintf("%d/%s/%s#", lHeight, lBlock.toHex(), chain_.toHex().substr(0, 10)));
+							job_ = SynchronizationJob::instance(lBlock, lLast, SynchronizationJob::PARTIAL); // block from
+							(*lPeer)->synchronizePartialTree(shared_from_this(), job_);
+						}
 					} else {
-						//
-						if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[doSynchronize]: starting LARGE PARTIAL tree synchronization ") + 
-							strprintf("%d/%s/%s#", lHeight, lBlock.toHex(), chain_.toHex().substr(0, 10)));
 						std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); // just first?
-						if (!job_) job_ = SynchronizationJob::instance(lBlock, SynchronizationJob::LARGE_PARTIAL); // block from
-						(*lPeer)->synchronizeLargePartialTree(shared_from_this(), job_);
+						if (!job_ || job_->nextBlockInstant().isNull()) { 
+							//
+							if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[doSynchronize]: starting LARGE PARTIAL tree synchronization ") + 
+								strprintf("%d/%s/%s#", lHeight, lBlock.toHex(), chain_.toHex().substr(0, 10)));
+
+							job_ = SynchronizationJob::instance(lBlock, SynchronizationJob::LARGE_PARTIAL); // block from
+							(*lPeer)->synchronizeLargePartialTree(shared_from_this(), job_);
+						}
 					}
 				} else {
 					gLog().write(Log::CONSENSUS, "[doSynchronize]: synchronization is allowed for NODE or FULLNODE only.");
