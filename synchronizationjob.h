@@ -27,15 +27,43 @@ typedef std::shared_ptr<IPeer> IPeerPtr;
 
 class SynchronizationJob {
 public:
-	SynchronizationJob(const uint256& block) : height_(0), block_(block), nextBlock_(block) {}
-	SynchronizationJob(uint64_t height, const uint256& block) : height_(height), block_(block) {}
+	struct Agent {
+		IPeerPtr peer_ = nullptr;
+		uint64_t time_ = 0;
+		Agent() {}
+		Agent(IPeerPtr peer, uint64_t time) : peer_(peer), time_(time) {}
+	};
+
+	enum Type {
+		UNDEFINED,
+		FULL,
+		PARTIAL,
+		LARGE_PARTIAL
+	};
+
+public:
+	SynchronizationJob(const uint256& block, Type type) : height_(0), block_(block), nextBlock_(block), type_(type) {}
+	SynchronizationJob(const uint256& block, const uint256& lastBlock, Type type) : height_(0), block_(block), lastBlock_(lastBlock), nextBlock_(block), type_(type) {}
+	SynchronizationJob(uint64_t height, const uint256& block, Type type) : height_(height), block_(block), type_() {}
+
+	Type type() { return type_; }
+
+	std::string typeString() {
+		switch(type_) {
+			case FULL: return "FULL";
+			case PARTIAL: return "PARTIAL";
+			case LARGE_PARTIAL: return "LARGE_PARTIAL";
+		}
+
+		return "UNDEFINED";
+	}
 
 	uint64_t acquireNextJob(IPeerPtr peer) {
 		boost::unique_lock<boost::mutex> lLock(jobMutex_);
 		time_ = getTime(); // timestamp
 		if (height_) {
-			std::pair<std::map<uint64_t, IPeerPtr>::iterator,bool> lPtr = 
-				workers_.insert(std::map<uint64_t, IPeerPtr>::value_type(height_--, peer));
+			std::pair<std::map<uint64_t, Agent>::iterator,bool> lPtr = 
+				workers_.insert(std::map<uint64_t, Agent>::value_type(height_--, Agent(peer, qbit::getTime())));
 			return lPtr.first->first;
 		}
 
@@ -45,7 +73,8 @@ public:
 	uint64_t reacquireJob(uint64_t height, IPeerPtr peer) {
 		boost::unique_lock<boost::mutex> lLock(jobMutex_);
 		time_ = getTime(); // timestamp
-		workers_[height] = peer;
+		workers_.erase(height);
+		workers_[height] = Agent(peer, qbit::getTime());
 		return height;
 	}
 
@@ -55,7 +84,7 @@ public:
 		return workers_.erase(height) == 1;
 	}
 
-	std::map<uint64_t, IPeerPtr> pendingJobs() {
+	std::map<uint64_t, Agent> pendingJobs() {
 		boost::unique_lock<boost::mutex> lLock(jobMutex_);
 		return workers_;
 	}
@@ -69,6 +98,14 @@ public:
 	void setLastBlock(const uint256& block) {
 		boost::unique_lock<boost::mutex> lLock(jobMutex_);
 		lastBlock_ = block; 
+		nextBlock_.setNull();
+		time_ = getTime(); // timestamp
+	}
+
+	void setLastBlockInstant(const uint256& block) {
+		boost::unique_lock<boost::mutex> lLock(jobMutex_);
+		lastBlock_ = block;
+		time_ = getTime(); // timestamp
 	}
 
 	uint256 nextBlock() {
@@ -86,33 +123,54 @@ public:
 
 	uint256& block() { return block_; }
 	uint64_t timestamp() { return time_; }
+	uint64_t height() { return height_; }
 
-	static SynchronizationJobPtr instance(uint64_t height, const uint256& block) { return std::make_shared<SynchronizationJob>(height, block); }
-	static SynchronizationJobPtr instance(const uint256& block) { return std::make_shared<SynchronizationJob>(block); }
+	static SynchronizationJobPtr instance(uint64_t height, const uint256& block, Type type) { return std::make_shared<SynchronizationJob>(height, block, type); }
+	static SynchronizationJobPtr instance(const uint256& block, Type type) { return std::make_shared<SynchronizationJob>(block, type); }
+	static SynchronizationJobPtr instance(const uint256& block, const uint256& lastBlock, Type type) 
+	{ return std::make_shared<SynchronizationJob>(block, lastBlock, type); }
 
 	//
 	// pending blocks
 	void pushPendingBlock(const uint256& block) {
 		boost::unique_lock<boost::mutex> lLock(jobMutex_);
-		pendingBlocks_.push_back(block);
+		time_ = getTime(); // timestamp
+		std::pair<std::set<uint256>::iterator, bool> lExists = pendingBlocksIndex_.insert(block);
+		if (lExists.second) {
+			pendingBlocks_.push_back(block);
+		}
 	}
 
 	uint256 lastPendingBlock() {
 		//
+		boost::unique_lock<boost::mutex> lLock(jobMutex_);
 		if (pendingBlocks_.size()) {
-			boost::unique_lock<boost::mutex> lLock(jobMutex_);
 			return *pendingBlocks_.rbegin();
 		}
 
 		return uint256();
 	}
 
+	uint64_t pendingBlocks() {
+		boost::unique_lock<boost::mutex> lLock(jobMutex_);
+		return pendingBlocks_.size();
+	}
+
+	uint64_t activeWorkers() {
+		boost::unique_lock<boost::mutex> lLock(jobMutex_);
+		return txWorkers_.size();
+	}
+
 	uint256 acquireNextPendingBlockJob(IPeerPtr peer) {
 		boost::unique_lock<boost::mutex> lLock(jobMutex_);
-		time_ = getTime(); // timestamp
-		std::list<uint256>::iterator lBlock = pendingBlocks_.begin();
-		if (lBlock != pendingBlocks_.end()) {
-			std::pair<std::map<uint256, IPeerPtr>::iterator, bool> lResult = txWorkers_.insert(std::map<uint256, IPeerPtr>::value_type(*lBlock, peer));
+		if (pendingBlocks_.size()) {
+			std::list<uint256>::iterator lBlock = pendingBlocks_.begin();
+			//
+			time_ = getTime(); // timestamp
+			//
+			std::pair<std::map<uint256, Agent>::iterator, bool> lResult = 
+				txWorkers_.insert(std::map<uint256, Agent>::value_type(*lBlock, Agent(peer, qbit::getTime())));
+			pendingBlocksIndex_.erase(*lBlock);
 			pendingBlocks_.pop_front();
 			return lResult.first->first;
 		}
@@ -129,14 +187,36 @@ public:
 	uint256 reacquirePendingBlockJob(const uint256& block, IPeerPtr peer) {
 		boost::unique_lock<boost::mutex> lLock(jobMutex_);
 		time_ = getTime(); // timestamp
-		txWorkers_[block] = peer;
+		txWorkers_.erase(block);
+		txWorkers_[block] = Agent(peer, qbit::getTime());
 		return block;
 	}
 
-	std::map<uint256, IPeerPtr> pendingBlockJobs() {
+	uint256 reacquirePendingBlockJob(IPeerPtr peer) {
+		boost::unique_lock<boost::mutex> lLock(jobMutex_);
+
+		if (txWorkers_.size()) {
+			//
+			time_ = getTime(); // timestamp
+			//
+			std::map<uint256, Agent>::iterator lWorker = txWorkers_.begin();
+			lWorker->second = Agent(peer, qbit::getTime());
+			return lWorker->first;
+		}
+
+		return uint256();
+	}
+
+	std::map<uint256, Agent> pendingBlockJobs() {
 		boost::unique_lock<boost::mutex> lLock(jobMutex_);
 		return txWorkers_;
-	}	
+	}
+
+	bool hasPendingBlocks() {
+		//
+		boost::unique_lock<boost::mutex> lLock(jobMutex_);
+		return pendingBlocks_.size() || txWorkers_.size();
+	}
 
 private:
 	boost::mutex jobMutex_;
@@ -145,9 +225,11 @@ private:
 	uint256 nextBlock_;
 	uint256 lastBlock_;
 	uint64_t time_;
-	std::map<uint64_t, IPeerPtr> workers_;
-	std::map<uint256, IPeerPtr> txWorkers_;
+	std::map<uint64_t, Agent> workers_; // TODO: add timeout & check
+	std::map<uint256, Agent> txWorkers_; // TODO: add timeout & check
 	std::list<uint256> pendingBlocks_;
+	std::set<uint256> pendingBlocksIndex_;
+	Type type_;
 };
 
 } // qbit

@@ -426,6 +426,7 @@ public:
 	BlockPtr block(const uint256& /*id*/);
 	bool blockExists(const uint256& /*id*/);
 	bool blockHeader(const uint256& /*id*/, BlockHeader& /*header*/);
+	bool blockHeader(uint64_t /*height*/, BlockHeader& /*header*/);
 	bool blockHeaderHeight(const uint256& /*block*/, uint64_t& /*height*/, BlockHeader& /*header*/);	
 
 	uint64_t currentHeight(BlockHeader&);

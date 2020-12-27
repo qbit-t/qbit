@@ -283,7 +283,7 @@ public:
 	//
 	// mini-tree for sync
 	// TODO: settings
-	virtual uint32_t partialTreeThreshold() { return 5; }
+	virtual uint32_t partialTreeThreshold() { return 30; }
 
 	//
 	// use peer for network participation
@@ -712,7 +712,7 @@ public:
 
 	//
 	// find fully synced root
-	uint64_t locateSynchronizedRoot(std::list<IPeerPtr>& peers, uint256& block) {
+	uint64_t locateSynchronizedRoot(std::list<IPeerPtr>& peers, uint256& block, uint256& last) {
 		//
 		uint64_t lResultHeight = 0;
 		//
@@ -721,6 +721,8 @@ public:
 		uint64_t lHeight = store_->currentHeight(lHeader);		
 		{
 			boost::unique_lock<boost::mutex> lLock(stateMutex_);
+			//
+			last = lHeader.hash();
 			// reverse traversal of heights of the chain
 			bool lFound = false;
 			for (HeightMap::reverse_iterator lHeightPos = heightMap_.rbegin(); !lFound && lHeightPos != heightMap_.rend(); lHeightPos++) {
@@ -791,6 +793,56 @@ public:
 	}
 
 	//
+	// expand sync job
+	void expandJob(SynchronizationJobPtr job) {
+		//
+		if (chainState_ == IConsensus::SYNCHRONIZING) {
+			//
+			std::list<IPeerPtr> lPeers;
+			uint256 lBlock, lLast;
+			locateSynchronizedRoot(lPeers, lBlock, lLast); // get peers, height and block
+
+			// add more peers to enforce sync job
+			if (lPeers.size()) {
+				if (settings_->isFullNode() || settings_->isNode()) {
+					for(std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
+						if (!(*lPeer)->jobExists(chain_) && 
+								(job->type() == SynchronizationJob::FULL || 
+									job->type() == SynchronizationJob::LARGE_PARTIAL)) {
+							gLog().write(Log::CONSENSUS, strprintf("[expandJob]: starting block feed for %s# from %s/%d", chain_.toHex().substr(0, 10), (*lPeer)->key(), lPeers.size()));
+							(*lPeer)->synchronizePendingBlocks(shared_from_this(), job); // last job
+						}
+					}
+				}
+			}
+		}
+	}
+
+	//
+	// finish sync job
+	void finishJob(SynchronizationJobPtr job) {
+		//
+		std::list<IPeerPtr> lPeers;
+		uint256 lBlock, lLast;
+		locateSynchronizedRoot(lPeers, lBlock, lLast); // get peers, height and block
+
+		// add more peers to enforce sync job
+		if (lPeers.size()) {
+			if (settings_->isFullNode() || settings_->isNode()) {
+				for(std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
+						gLog().write(Log::CONSENSUS, strprintf("[finishJob]: cleaning up for %s# from %s/%d", chain_.toHex().substr(0, 10), (*lPeer)->key(), lPeers.size()));
+						(*lPeer)->removeJob(chain_); // last job
+				}
+			}
+
+			if (job_ == job) {
+				gLog().write(Log::CONSENSUS, strprintf("[finishJob]: reset synchronization job for %s#", chain_.toHex().substr(0, 10)));
+				job_ = nullptr;
+			}
+		}
+	}
+
+	//
 	// begin synchronization
 	bool doSynchronize() {
 		//
@@ -805,15 +857,26 @@ public:
 
 		if (lProcess) {
 			std::list<IPeerPtr> lPeers;
-			uint256 lBlock;
-			uint64_t lHeight = locateSynchronizedRoot(lPeers, lBlock); // get peers, height and block
+			uint256 lBlock, lLast;
+			uint64_t lHeight = locateSynchronizedRoot(lPeers, lBlock, lLast); // get peers, height and block
 			if (lHeight && lPeers.size()) {
 				if (settings_->isFullNode() || settings_->isNode()) {
 					// sanity
 					for (std::list<IPeerPtr>::iterator lCandidate = lPeers.begin(); lCandidate != lPeers.end(); lCandidate++) {
 						if ((*lCandidate)->jobExists(chain_)) {
-							if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[doSynchronize]: synchronization jon is already RUNNING ") + 
-								strprintf("%d/%s/%s#", lHeight, lBlock.toHex(), chain_.toHex().substr(0, 10)));
+							SynchronizationJobPtr lJob = (*lCandidate)->locateJob(chain_);
+							// clean-up
+							if (!lJob->pendingBlocks() && !lJob->activeWorkers()) {
+								if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[doSynchronize]: synchronization job is EMPTY ") + 
+									strprintf("%d/%s/%s# - (blocks = %d/peers = %d)", lHeight, lBlock.toHex(), 
+										chain_.toHex().substr(0, 10), lJob->pendingBlocks(), lJob->activeWorkers()));
+								(*lCandidate)->removeJob(chain_);
+								continue;
+							}
+
+							if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[doSynchronize]: synchronization is already RUNNING ") + 
+								strprintf("%d/%s/%s# - (blocks = %d/peers = %d)", lHeight, lBlock.toHex(), 
+									chain_.toHex().substr(0, 10), lJob->pendingBlocks(), lJob->activeWorkers()));
 							return false;
 						}
 					}
@@ -827,21 +890,21 @@ public:
 							strprintf("%d/%s/%s#", lHeight, lBlock.toHex(), chain_.toHex().substr(0, 10)));
 						//
 						std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); // this node -> get current block thread
-						job_ = SynchronizationJob::instance(lBlock); // block from
+						if (!job_) job_ = SynchronizationJob::instance(lBlock, SynchronizationJob::FULL); // block from
 						(*lPeer)->synchronizeLargePartialTree(shared_from_this(), job_);
 					} else if (lHeight > lOurHeight && lHeight - lOurHeight < partialTreeThreshold()) {
 						//
 						if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[doSynchronize]: starting PARTIAL tree synchronization ") + 
 							strprintf("%d/%s/%s#", lHeight, lBlock.toHex(), chain_.toHex().substr(0, 10)));
 						std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); // just first?
-						job_ = SynchronizationJob::instance(lBlock); // block from
+						if (!job_) job_ = SynchronizationJob::instance(lBlock, lLast, SynchronizationJob::PARTIAL); // block from
 						(*lPeer)->synchronizePartialTree(shared_from_this(), job_);
 					} else {
 						//
 						if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[doSynchronize]: starting LARGE PARTIAL tree synchronization ") + 
 							strprintf("%d/%s/%s#", lHeight, lBlock.toHex(), chain_.toHex().substr(0, 10)));
 						std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); // just first?
-						job_ = SynchronizationJob::instance(lBlock); // block from
+						if (!job_) job_ = SynchronizationJob::instance(lBlock, SynchronizationJob::LARGE_PARTIAL); // block from
 						(*lPeer)->synchronizeLargePartialTree(shared_from_this(), job_);
 					}
 				} else {
@@ -878,11 +941,12 @@ public:
 
 		if (lProcess) {
 			std::list<IPeerPtr> lPeers;
-			uint256 lBlock;
-			locateSynchronizedRoot(lPeers, lBlock); // get peers, height and block
+			uint256 lBlock, lLast;
+			locateSynchronizedRoot(lPeers, lBlock, lLast); // get peers, height and block
 			if (lPeers.size()) {
 				if (settings_->isFullNode() || settings_->isNode()) {
 					for(std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
+						gLog().write(Log::CONSENSUS, strprintf("[processPartialTreeHeaders]: starting block feed for %s# from %s/%d", chain_.toHex().substr(0, 10), (*lPeer)->key(), lPeers.size()));
 						(*lPeer)->synchronizePendingBlocks(shared_from_this(), job);
 					}
 
@@ -935,6 +999,29 @@ public:
 	}
 
 	//
+	// do full reindex
+	void doReindex() {
+		//
+		bool lProcess = false; 
+		{
+			boost::unique_lock<boost::mutex> lLock(transitionMutex_);
+			chainState_ = IConsensus::INDEXING;
+		}
+
+		//
+		BlockHeader lHeader;
+		if (store_->currentHeight(lHeader)) {
+			// full re-index
+			store_->reindexFull(lHeader.hash(), consensusManager_->mempoolManager()->locate(chain_));
+		}
+
+		{
+			boost::unique_lock<boost::mutex> lLock(transitionMutex_);
+			chainState_ = IConsensus::NOT_SYNCHRONIZED;
+		}
+	}
+
+	//
 	// to indexing
 	bool doIndex(const uint256& block, const uint256& lastBlock) {
 		//
@@ -951,6 +1038,11 @@ public:
 			// partial re-index
 			if (!store_->reindex(block, lastBlock, consensusManager_->mempoolManager()->locate(chain_))) {
 				// partial reindex for given blocks intervale is not possible
+				{
+					boost::unique_lock<boost::mutex> lLock(transitionMutex_);
+					chainState_ = IConsensus::NOT_SYNCHRONIZED;
+				}
+
 				return false;
 			}
 
@@ -969,9 +1061,11 @@ public:
 	//
 	// to non-sync
 	void toNonSynchronized() {
+		//
 		{
 			boost::unique_lock<boost::mutex> lLock(transitionMutex_);
-			if (chainState_ == IConsensus::SYNCHRONIZING || chainState_ == IConsensus::SYNCHRONIZED || chainState_ == IConsensus::INDEXING) {
+			// NOTICE: if we already synchronizing - do not fallback to non_synchronized
+			if (chainState_ == IConsensus::SYNCHRONIZING || chainState_ == IConsensus::SYNCHRONIZED /*|| chainState_ == IConsensus::INDEXING*/) {
 				chainState_ = IConsensus::NOT_SYNCHRONIZED;
 			}
 		}

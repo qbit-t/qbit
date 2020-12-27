@@ -97,6 +97,11 @@ public:
 		time_ = getMicroseconds();
 		timestamp_ = time_;
 
+		controlTimer_.reset(
+			new boost::asio::steady_timer(
+				peerManager->getContext(contextId), boost::asio::chrono::seconds(5))
+		);
+
 		peerManager->incPeersCount();
 
 		gen_ = boost::random::mt19937(rd_());
@@ -111,6 +116,11 @@ public:
 		strand_.reset(new boost::asio::io_service::strand(peerManager->getContext(contextId_)));
 		time_ = getMicroseconds();
 		timestamp_ = time_;
+
+		controlTimer_.reset(
+			new boost::asio::steady_timer(
+				peerManager->getContext(contextId), boost::asio::chrono::seconds(5))
+		);
 
 		peerManager->incPeersCount();
 
@@ -294,10 +304,10 @@ public:
 	void broadcastTransaction(TransactionContextPtr /*ctx*/);
 	void broadcastBlockHeaderAndState(const NetworkBlockHeader& /*block*/, StatePtr /*state*/);
 
-	void synchronizeFullChain(IConsensusPtr, SynchronizationJobPtr /*job*/);
-	void synchronizePartialTree(IConsensusPtr, SynchronizationJobPtr /*job*/);
+	void synchronizeFullChain(IConsensusPtr, SynchronizationJobPtr /*job*/, const boost::system::error_code& error = boost::system::error_code());
+	void synchronizePartialTree(IConsensusPtr, SynchronizationJobPtr /*job*/, const boost::system::error_code& error = boost::system::error_code());
 	void synchronizeLargePartialTree(IConsensusPtr, SynchronizationJobPtr /*job*/);
-	void synchronizePendingBlocks(IConsensusPtr, SynchronizationJobPtr /*job*/);
+	void synchronizePendingBlocks(IConsensusPtr, SynchronizationJobPtr /*job*/, const boost::system::error_code& error = boost::system::error_code());
 	void acquireBlock(const NetworkBlockHeader& /*block*/);
 
 	IPeerExtensionPtr extension(const std::string& dapp) { 
@@ -550,8 +560,10 @@ private:
 
 	bool addJob(const uint256& chain, SynchronizationJobPtr job) {
 		boost::unique_lock<boost::mutex> lLock(jobsMutex_);
-		if (jobs_.find(chain) == jobs_.end()) { jobs_[chain] = job; return true; }
-		return false;
+		//if (jobs_.find(chain) == jobs_.end()) { jobs_[chain] = job; return true; }
+		jobs_.erase(chain);
+		jobs_[chain] = job;
+		return true;
 	}
 
 	void removeJob(const uint256& chain) {
@@ -655,7 +667,11 @@ private:
 
 	//
 	boost::random_device rd_;
-	boost::random::mt19937 gen_;	
+	boost::random::mt19937 gen_;
+
+	//
+	typedef std::shared_ptr<boost::asio::steady_timer> TimerPtr;
+	TimerPtr controlTimer_;
 };
 
 }

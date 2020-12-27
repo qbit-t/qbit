@@ -83,11 +83,14 @@ public:
 	virtual bool doSynchronize() { throw qbit::exception("NOT_IMPL", "IConsensus::doSynchrinize - not implemented."); }
 	virtual void doIndex(const uint256& /*block*/) { throw qbit::exception("NOT_IMPL", "IConsensus::doIndex - not implemented."); }
 	virtual bool doIndex(const uint256& /*block*/, const uint256& /*lastFoundBlock*/) { throw qbit::exception("NOT_IMPL", "IConsensus::doIndex - not implemented."); }
+	virtual void doReindex() { throw qbit::exception("NOT_IMPL", "IConsensus::doReindex - not implemented."); }
 	virtual void toNonSynchronized() { throw qbit::exception("NOT_IMPL", "IConsensus::toNonSynchronized - not implemented."); }
 	virtual void toSynchronizing() { throw qbit::exception("NOT_IMPL", "IConsensus::toSynchronizing - not implemented."); }
 
 	virtual SynchronizationJobPtr lastJob() { throw qbit::exception("NOT_IMPL", "IConsensus::lastJob - not implemented."); }
 	virtual ITransactionStorePtr store() { throw qbit::exception("NOT_IMPL", "IConsensus::store - not implemented."); }
+	virtual void expandJob(SynchronizationJobPtr) { throw qbit::exception("NOT_IMPL", "IConsensus::expandJob - not implemented."); }
+	virtual void finishJob(SynchronizationJobPtr) { throw qbit::exception("NOT_IMPL", "IConsensus::finishJob - not implemented."); }
 
 	virtual std::string chainStateString() { throw qbit::exception("NOT_IMPL", "IConsensus::chainStateString - not implemented."); }
 	virtual uint32_t maturity() { throw qbit::exception("NOT_IMPL", "IConsensus::maturity - not implemented."); }

@@ -361,11 +361,14 @@ public:
 	virtual void broadcastTransaction(TransactionContextPtr /*ctx*/) { throw qbit::exception("NOT_IMPL", "IPeer::broadcastTransaction - not implemented."); }
 	virtual void broadcastBlockHeaderAndState(const NetworkBlockHeader& /*block*/, StatePtr /*state*/) { throw qbit::exception("NOT_IMPL", "IPeer::broadcastBlockHeaderAndState - not implemented."); }
 
-	virtual void synchronizeFullChain(IConsensusPtr, SynchronizationJobPtr /*job*/) { throw qbit::exception("NOT_IMPL", "IPeer::synchronizeFullChain - not implemented."); }
-	virtual void synchronizePartialTree(IConsensusPtr, SynchronizationJobPtr /*job*/) { throw qbit::exception("NOT_IMPL", "IPeer::synchronizePartialTree - not implemented."); }
+	virtual void synchronizeFullChain(IConsensusPtr, SynchronizationJobPtr /*job*/, const boost::system::error_code& error = boost::system::error_code()) { throw qbit::exception("NOT_IMPL", "IPeer::synchronizeFullChain - not implemented."); }
+	virtual void synchronizePartialTree(IConsensusPtr, SynchronizationJobPtr /*job*/, const boost::system::error_code& error = boost::system::error_code()) { throw qbit::exception("NOT_IMPL", "IPeer::synchronizePartialTree - not implemented."); }
 	virtual void synchronizeLargePartialTree(IConsensusPtr, SynchronizationJobPtr /*job*/) { throw qbit::exception("NOT_IMPL", "IPeer::synchronizeLargePartialTree - not implemented."); }
-	virtual void synchronizePendingBlocks(IConsensusPtr, SynchronizationJobPtr /*job*/) { throw qbit::exception("NOT_IMPL", "IPeer::synchronizePendingBlocks - not implemented."); }
+	virtual void synchronizePendingBlocks(IConsensusPtr, SynchronizationJobPtr /*job*/, const boost::system::error_code& error = boost::system::error_code()) { throw qbit::exception("NOT_IMPL", "IPeer::synchronizePendingBlocks - not implemented."); }
 	virtual bool jobExists(const uint256& /*chain*/) { throw qbit::exception("NOT_IMPL", "IPeer::jobExists - not implemented."); }
+	virtual bool hasActiveJobs() { throw qbit::exception("NOT_IMPL", "IPeer::hasActiveJobs - not implemented."); }
+	virtual void removeJob(const uint256& /*chain*/) { throw qbit::exception("NOT_IMPL", "IPeer::removeJob - not implemented."); }
+	virtual SynchronizationJobPtr locateJob(const uint256& /*chain*/) { throw qbit::exception("NOT_IMPL", "IPeer::locateJob - not implemented."); }
 	virtual void acquireBlock(const NetworkBlockHeader& /*block*/) { throw qbit::exception("NOT_IMPL", "IPeer::acquireBlock - not implemented."); }
 
 	virtual uint256 addRequest(IReplyHandlerPtr /*replyHandler*/) { throw qbit::exception("NOT_IMPL", "IPeer::addRequest - not implemented."); }

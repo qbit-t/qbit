@@ -80,6 +80,7 @@ public:
 	virtual BlockPtr block(uint64_t /*height*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::block - not implemented."); }
 	virtual BlockPtr block(const uint256& /*id*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::block - not implemented."); }
 	virtual bool blockHeader(const uint256& /*id*/, BlockHeader& /*header*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::blockHeader - not implemented."); }
+	virtual bool blockHeader(uint64_t /*height*/, BlockHeader& /*header*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::blockHeader - not implemented."); }
 
 	virtual bool blockExists(const uint256& /*block*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::blockExists - not implemented."); }
 	virtual bool enqueueBlock(const NetworkBlockHeader& /*block*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::enqueueBlock - not implemented."); }
