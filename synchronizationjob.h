@@ -43,7 +43,7 @@ public:
 
 public:
 	SynchronizationJob(const uint256& block, Type type) : height_(0), block_(block), nextBlock_(block), type_(type) {}
-	SynchronizationJob(const uint256& block, const uint256& lastBlock, Type type) : height_(0), block_(block), lastBlock_(lastBlock), nextBlock_(block), type_(type) {}
+	SynchronizationJob(const uint256& block, const uint256& lastBlock, Type type) : height_(0), block_(block), nextBlock_(block), lastBlock_(lastBlock), type_(type) {}
 	SynchronizationJob(uint64_t height, const uint256& block, Type type) : height_(height), block_(block), type_() {}
 
 	Type type() { return type_; }
@@ -105,20 +105,25 @@ public:
 	void setLastBlockInstant(const uint256& block) {
 		boost::unique_lock<boost::mutex> lLock(jobMutex_);
 		lastBlock_ = block;
-		time_ = getTime(); // timestamp
+		// time_ = getTime(); // timestamp
 	}
 
 	uint256 nextBlock() {
 		boost::unique_lock<boost::mutex> lLock(jobMutex_);
-		time_ = getTime(); // timestamp
+		// time_ = getTime(); // timestamp
 		uint256 lBlock = nextBlock_;
 		nextBlock_.setNull();
 		return lBlock;
 	}
 
-	uint256& lastBlock() {
+	uint256 lastBlock() {
 		boost::unique_lock<boost::mutex> lLock(jobMutex_);
 		return lastBlock_;
+	}
+
+	uint256 nextBlockInstant() {
+		boost::unique_lock<boost::mutex> lLock(jobMutex_);
+		return nextBlock_;
 	}
 
 	uint256& block() { return block_; }

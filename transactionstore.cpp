@@ -426,14 +426,16 @@ bool TransactionStore::resyncHeight() {
 	uint256 lHash = lastBlock_;
 	uint64_t lIndex = 0;
 
+	uint256 lNull = BlockHeader().hash();
+	//
 	std::list<uint256> lSeq;
-	while (headers_.read(lHash, lHeader)) {
+	while (lHash != lNull && headers_.read(lHash, lHeader)) {
 		lSeq.push_back(lHash);
 		lHash = lHeader.prev();
 	}
 
-	if (lHeader.prev() != BlockHeader().hash()) {
-		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight]: chain is BROKEN on ") + strprintf("block = %s, chain = %s#", lHeader.hash().toHex(), chain_.toHex().substr(0, 10)));
+	if (lHash != lNull) {
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight]: chain is BROKEN on ") + strprintf("block = %s, chain = %s#", lHash.toHex(), chain_.toHex().substr(0, 10)));
 		return false;
 	}
 
@@ -803,13 +805,14 @@ uint64_t TransactionStore::currentHeight(BlockHeader& block) {
 	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
 	if (heightMap_.size()) {
 		std::map<uint64_t, uint256>::reverse_iterator lHeader = heightMap_.rbegin();
+		// validate
 		if (headers_.read(lHeader->second, block)) {
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[currentHeight]: ") + strprintf("%d/%s/%s#", lHeader->first, block.hash().toHex(), chain_.toHex().substr(0, 10)));
 			return lHeader->first;
 		}
 	}
 
-	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[currentHeight]: ") + strprintf("%d/%s/%s#", 0, BlockHeader().hash().toHex(), chain_.toHex().substr(0, 10)));
+	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[currentHeight/missing]: ") + strprintf("%d/%s/%s#", 0, BlockHeader().hash().toHex(), chain_.toHex().substr(0, 10)));
 	return 0;
 }
 
@@ -1412,10 +1415,12 @@ bool TransactionStore::pushEntity(const uint256& id, TransactionContextPtr ctx) 
 
 void TransactionStore::saveBlock(BlockPtr block) {
 	//
+	/*
 	if (synchronizing()) {
 		gLog().write(Log::STORE, strprintf("[saveBlock]: skipped, REINDEXING %s", chain_.toHex().substr(0, 10)));
 		return;
 	}
+	*/
 
 	//
 	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[saveBlock]: saving block ") +
@@ -1438,10 +1443,12 @@ void TransactionStore::saveBlock(BlockPtr block) {
 
 void TransactionStore::saveBlockHeader(const BlockHeader& header) {
 	//
+	/*
 	if (synchronizing()) {
 		gLog().write(Log::STORE, strprintf("[saveBlockHeader]: skipped, REINDEXING %s", chain_.toHex().substr(0, 10)));
 		return;
 	}
+	*/
 
 	//
 	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[saveBlockHeader]: saving block header ") +
