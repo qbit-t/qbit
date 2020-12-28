@@ -42,9 +42,9 @@ public:
 	};
 
 public:
-	SynchronizationJob(const uint256& block, Type type) : height_(0), block_(block), nextBlock_(block), type_(type) {}
-	SynchronizationJob(const uint256& block, const uint256& lastBlock, Type type) : height_(0), block_(block), nextBlock_(block), lastBlock_(lastBlock), type_(type) {}
-	SynchronizationJob(uint64_t height, const uint256& block, Type type) : height_(height), block_(block), type_() {}
+	SynchronizationJob(const uint256& block, Type type) : height_(0), block_(block), nextBlock_(block), type_(type) { time_ = getTime(); }
+	SynchronizationJob(const uint256& block, const uint256& lastBlock, Type type) : height_(0), block_(block), nextBlock_(block), lastBlock_(lastBlock), type_(type) { time_ = getTime(); }
+	SynchronizationJob(uint64_t height, const uint256& block, Type type) : height_(height), block_(block), type_() { time_ = getTime(); }
 
 	Type type() { return type_; }
 
@@ -57,6 +57,9 @@ public:
 
 		return "UNDEFINED";
 	}
+
+	void cancel() { cancelled_ = true; }
+	bool cancelled() { return cancelled_; }
 
 	uint64_t acquireNextJob(IPeerPtr peer) {
 		boost::unique_lock<boost::mutex> lLock(jobMutex_);
@@ -235,6 +238,7 @@ private:
 	std::list<uint256> pendingBlocks_;
 	std::set<uint256> pendingBlocksIndex_;
 	Type type_;
+	bool cancelled_ = false;
 };
 
 } // qbit
