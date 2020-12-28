@@ -2818,6 +2818,13 @@ void Peer::processBlockByIdAbsent(std::list<DataStream>::iterator msg, const boo
 		(*msg) >> lChain;
 		(*msg) >> lId;
 		eraseInData(msg);
+
+		//
+		SynchronizationJobPtr lJob = locateJob(lChain);
+		if (lJob) {
+			lJob->cancel();
+			if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: block is absent for ") + strprintf("%s/%s#", lId.toHex(), lChain.toHex().substr(0, 10)));
+		}
 		
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: block is absent for ") + strprintf("%s/%s#", lId.toHex(), lChain.toHex().substr(0, 10)));
 
