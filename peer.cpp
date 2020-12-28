@@ -255,6 +255,13 @@ void Peer::synchronizePartialTree(IConsensusPtr consensus, SynchronizationJobPtr
 	//
 	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
 	else if (socketStatus_ == CONNECTED) {
+		//
+		if (job->cancelled()) {
+			// log
+			if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: partial synchronization job is CANCELLED, root = ") + strprintf("%s, %s#", job->block().toHex(), consensus->chain().toHex().substr(0, 10)));
+			return;
+		}
+
 		// register job
 		addJob(consensus->chain(), job);
 		//
@@ -269,15 +276,17 @@ void Peer::synchronizePartialTree(IConsensusPtr consensus, SynchronizationJobPtr
 			consensus->finishJob(job);
 
 			// reindex, partial
-			if (consensus->doIndex(job->block()/*root block*/, job->lastBlock())) {
-				// broadcast new state
-				StatePtr lState = peerManager_->consensusManager()->currentState();
-				peerManager_->consensusManager()->broadcastState(lState, addressId());
-			} else {
-				// log
-				if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: partial reindex FAILED skipping subtree switching, root = ") + strprintf("%s, %s#", job->block().toHex(), consensus->chain().toHex().substr(0, 10)));
-				//
-				consensus->toNonSynchronized();
+			if (!job->cancelled()) {
+				if (consensus->doIndex(job->block()/*root block*/, job->lastBlock())) {
+					// broadcast new state
+					StatePtr lState = peerManager_->consensusManager()->currentState();
+					peerManager_->consensusManager()->broadcastState(lState, addressId());
+				} else {
+					// log
+					if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: partial reindex FAILED skipping subtree switching, root = ") + strprintf("%s, %s#", job->block().toHex(), consensus->chain().toHex().substr(0, 10)));
+					//
+					consensus->toNonSynchronized();
+				}
 			}
 
 			return;
@@ -350,6 +359,12 @@ void Peer::synchronizeLargePartialTree(IConsensusPtr consensus, SynchronizationJ
 	//
 	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
 	else if (socketStatus_ == CONNECTED) {
+		//
+		if (job->cancelled()) {
+			// log
+			if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: large pending blocks synchronization job is CANCELLED, root = ") + strprintf("%s, %s#", job->block().toHex(), consensus->chain().toHex().substr(0, 10)));
+			return;
+		}
 
 		uint256 lId = job->nextBlock();
 		if (lId.isNull()) {
@@ -395,6 +410,13 @@ void Peer::synchronizePendingBlocks(IConsensusPtr consensus, SynchronizationJobP
 	//
 	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
 	else if (socketStatus_ == CONNECTED) {
+		//
+		if (job->cancelled()) {
+			// log
+			if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: pending blocks synchronization job is CANCELLED, root = ") + strprintf("%s, %s#", job->block().toHex(), consensus->chain().toHex().substr(0, 10)));
+			return;
+		}
+
 		// register job
 		addJob(consensus->chain(), job);
 
@@ -424,13 +446,15 @@ void Peer::synchronizePendingBlocks(IConsensusPtr consensus, SynchronizationJobP
 				consensus->finishJob(job);
 
 				// reindex, partial
-				if (consensus->doIndex(job->block()/*root block*/, job->lastBlock())) {
-					// broadcast new state
-					StatePtr lState = peerManager_->consensusManager()->currentState();
-					peerManager_->consensusManager()->broadcastState(lState, addressId());
-				} else {
-					// log
-					if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: partial reindex FAILED skipping subtree switching, root = ") + strprintf("%s, %s#", job->block().toHex(), consensus->chain().toHex().substr(0, 10)));
+				if (!job->cancelled()) {
+					if (consensus->doIndex(job->block()/*root block*/, job->lastBlock())) {
+						// broadcast new state
+						StatePtr lState = peerManager_->consensusManager()->currentState();
+						peerManager_->consensusManager()->broadcastState(lState, addressId());
+					} else {
+						// log
+						if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: partial reindex FAILED skipping subtree switching, root = ") + strprintf("%s, %s#", job->block().toHex(), consensus->chain().toHex().substr(0, 10)));
+					}
 				}
 
 				return;
@@ -464,13 +488,15 @@ void Peer::synchronizePendingBlocks(IConsensusPtr consensus, SynchronizationJobP
 				consensus->finishJob(job);
 
 				// reindex, partial
-				if (consensus->doIndex(job->block()/*root block*/, job->lastBlock())) {
-					// broadcast new state
-					StatePtr lState = peerManager_->consensusManager()->currentState();
-					peerManager_->consensusManager()->broadcastState(lState, addressId());
-				} else {
-					// log
-					if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer/root]: partial reindex FAILED skipping subtree switching, root = ") + strprintf("%s, %s#", job->block().toHex(), consensus->chain().toHex().substr(0, 10)));
+				if (!job->cancelled()) {
+					if (consensus->doIndex(job->block()/*root block*/, job->lastBlock())) {
+						// broadcast new state
+						StatePtr lState = peerManager_->consensusManager()->currentState();
+						peerManager_->consensusManager()->broadcastState(lState, addressId());
+					} else {
+						// log
+						if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer/root]: partial reindex FAILED skipping subtree switching, root = ") + strprintf("%s, %s#", job->block().toHex(), consensus->chain().toHex().substr(0, 10)));
+					}
 				}
 
 				return;

@@ -826,6 +826,8 @@ public:
 		uint256 lBlock, lLast;
 		locateSynchronizedRoot(lPeers, lBlock, lLast); // get peers, height and block
 
+		if (job_) job_->cancel();
+
 		// add more peers to enforce sync job
 		if (lPeers.size()) {
 			if (settings_->isFullNode() || settings_->isNode()) {
@@ -872,19 +874,18 @@ public:
 			if (lHeight && lPeers.size()) {
 				if (settings_->isFullNode() || settings_->isNode()) {
 					// sanity
+					/*
 					for (std::list<IPeerPtr>::iterator lCandidate = lPeers.begin(); lCandidate != lPeers.end(); lCandidate++) {
 						if ((*lCandidate)->jobExists(chain_)) {
 							SynchronizationJobPtr lJob = (*lCandidate)->locateJob(chain_);
 							// clean-up
-							/*
-							if (!lJob->pendingBlocks() && !lJob->activeWorkers()) {
+							if (!lJob->pendingBlocks() && !lJob->activeWorkers() && ) {
 								if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[doSynchronize]: synchronization job is EMPTY ") + 
 									strprintf("%d/%s/%s# - (blocks = %d/peers = %d)", lHeight, lBlock.toHex(), 
 										chain_.toHex().substr(0, 10), lJob->pendingBlocks(), lJob->activeWorkers()));
 								(*lCandidate)->removeJob(chain_);
 								continue;
 							}
-							*/
 
 							if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[doSynchronize]: synchronization is already RUNNING ") + 
 								strprintf("%d/%s/%s# - (blocks = %d/peers = %d)", lHeight, lBlock.toHex(), 
@@ -892,6 +893,7 @@ public:
 							return false;
 						}
 					}
+					*/
 
 					// store is empty - full sync
 					BlockHeader lHeader;
@@ -954,7 +956,7 @@ public:
 		bool lProcess = false; 
 		{
 			boost::unique_lock<boost::mutex> lLock(transitionMutex_);
-			if (chainState_ == IConsensus::SYNCHRONIZING /*|| chainState_ == IConsensus::NOT_SYNCHRONIZED*/) {
+			if (chainState_ == IConsensus::SYNCHRONIZING && !job->cancelled() /*|| chainState_ == IConsensus::NOT_SYNCHRONIZED*/) {
 				lProcess = true;
 			}
 		}
