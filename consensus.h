@@ -840,6 +840,16 @@ public:
 				job_ = nullptr;
 			}
 		}
+
+		// force
+		if (job == nullptr) {
+			job_ = nullptr; // reset
+			gLog().write(Log::CONSENSUS, strprintf("[finishJob]: forcing synchronization for %s#", chain_.toHex().substr(0, 10)));
+			{
+				boost::unique_lock<boost::mutex> lLock(transitionMutex_);
+				chainState_ = IConsensus::NOT_SYNCHRONIZED;
+			}
+		}
 	}
 
 	//
