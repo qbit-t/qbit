@@ -431,16 +431,11 @@ void Peer::synchronizePendingBlocks(IConsensusPtr consensus, SynchronizationJobP
 				} else {
 					// log
 					if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: partial reindex FAILED skipping subtree switching, root = ") + strprintf("%s, %s#", job->block().toHex(), consensus->chain().toHex().substr(0, 10)));
-					//
-					consensus->toNonSynchronized();
 				}
 
 				return;
 			}
 		}
-
-		// make target - last
-		if (job->lastBlock().isNull()) job->setLastBlockInstant(job->lastPendingBlock());
 
 		// check if block exists
 		while (!lBlockHeader.isNull() && 
@@ -450,7 +445,7 @@ void Peer::synchronizePendingBlocks(IConsensusPtr consensus, SynchronizationJobP
 			lBlockHeader = job->acquireNextPendingBlockJob(shared_from_this());
 		}
 
-		// check next job, and if job absent - call handler after a little while
+		// check next job
 		if (lBlockHeader.isNull()) {
 			if (job->hasPendingBlocks()) {
 				// log
@@ -476,8 +471,6 @@ void Peer::synchronizePendingBlocks(IConsensusPtr consensus, SynchronizationJobP
 				} else {
 					// log
 					if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer/root]: partial reindex FAILED skipping subtree switching, root = ") + strprintf("%s, %s#", job->block().toHex(), consensus->chain().toHex().substr(0, 10)));
-					//
-					consensus->toNonSynchronized();
 				}
 
 				return;
@@ -3028,7 +3021,7 @@ void Peer::processBlockById(std::list<DataStream>::iterator msg, const boost::sy
 			uint64_t lHeight;
 			uint256 lPrev = lBlock->prev();
 			if (lPrev != BlockHeader().hash()) { // BlockHeader().hash() - final/absent link 
-				if (!peerManager_->consensusManager()->locate(lBlock->chain())->store()->blockHeight(lPrev, lHeight)) {
+				if (lPrev != lJob->lastBlock() /*!peerManager_->consensusManager()->locate(lBlock->chain())->store()->blockHeight(lPrev, lHeight)*/) {
 					// go do next job
 					lJob->setNextBlock(lPrev);
 				} else {
@@ -3536,6 +3529,7 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 		IConsensusPtr lConsensus = peerManager_->consensusManager()->locate(lHeaders.begin()->blockHeader().chain());
 		if (lJob) {
 			//
+			uint256 lNull = BlockHeader().hash();
 			for (std::vector<NetworkBlockHeader>::iterator lHeader = lHeaders.begin(); lHeader != lHeaders.end(); lHeader++) {
 				//
 				BlockHeader lBlockHeader = (*lHeader).blockHeader();
@@ -3550,8 +3544,8 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 				// extract next block id
 				uint64_t lHeight;
 				uint256 lPrev = lBlockHeader.prev();
-				if (lPrev != BlockHeader().hash()) { // BlockHeader().hash() - final/absent link 
-					if (!peerManager_->consensusManager()->locate(lBlockHeader.chain())->store()->blockHeight(lPrev, lHeight)) {
+				if (lPrev != lNull) { // BlockHeader().hash() - final/absent link 
+					if (lPrev != lJob->lastBlock()/*!peerManager_->consensusManager()->locate(lBlockHeader.chain())->store()->blockHeight(lPrev, lHeight)*/) {
 						// go do next job
 						lJob->setNextBlock(lPrev);
 					} else {
@@ -3560,7 +3554,7 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 						break;
 					}
 				} else {
-					// we have new shiny full chain
+					// we have a new shiny full chain
 					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: full chain found, try switching to ") + 
 						strprintf("head = %s, root = %s/%s#", lBlockHeader.hash().toHex(), lJob->block().toHex(), lBlockHeader.chain().toHex().substr(0, 10)) + std::string("..."));
 					lJob->setLastBlock(lPrev);

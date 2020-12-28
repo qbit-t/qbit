@@ -750,24 +750,49 @@ void MemoryPool::removeTransactions(BlockPtr block) {
 	//
 	PoolStorePtr lPoolStore = PoolStore::toStore(poolStore_);
 	PoolEntityStorePtr lPoolEntityStore = PoolEntityStore::toStore(poolEntityStore_);
-	for (TransactionsContainer::iterator lTx = block->transactions().begin(); lTx != block->transactions().end(); lTx++) {
-		//
-		if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[removeTransactions]: try to remove tx ") + 
-			strprintf("%s/%s/%s#", (*lTx)->id().toHex(), block->blockHeader().hash().toHex(), chain_.toHex().substr(0, 10)));	
-		//
-		TransactionContextPtr lCtx = poolStore_->locateTransactionContext((*lTx)->id());
-		if (lCtx) {
-			if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[removeTransactions]: remove tx ") + 
-				strprintf("%s/%s/%s#", lCtx->tx()->hash().toHex(), block->blockHeader().hash().toHex(), chain_.toHex().substr(0, 10)));	
-			
-			lPoolStore->remove(lCtx);
-			lPoolEntityStore->removeEntity(lCtx->tx()->id());
 
+	if (block->headers().size()) {
+		for (HeadersContainer::iterator lTx = block->headers().begin(); lTx != block->headers().end(); lTx++) {
 			//
-			// NOTICE: massive broadcast may occure - main chain ONLY
-			if (chain_ == MainChain::id()) {
+			if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[removeTransactions]: try to remove tx ") + 
+				strprintf("%s/%s/%s#", (*lTx).toHex(), block->blockHeader().hash().toHex(), chain_.toHex().substr(0, 10)));	
+			//
+			TransactionContextPtr lCtx = poolStore_->locateTransactionContext(*lTx);
+			if (lCtx) {
+				if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[removeTransactions]: remove tx ") + 
+					strprintf("%s/%s/%s#", lCtx->tx()->hash().toHex(), block->blockHeader().hash().toHex(), chain_.toHex().substr(0, 10)));	
+				
+				lPoolStore->remove(lCtx);
+				lPoolEntityStore->removeEntity(lCtx->tx()->id());
+
 				//
-				consensus_->consensusManager()->peerManager()->notifyTransaction(lCtx);
+				// NOTICE: massive broadcast may occure - main chain ONLY
+				if (chain_ == MainChain::id()) {
+					//
+					consensus_->consensusManager()->peerManager()->notifyTransaction(lCtx);
+				}
+			}
+		}
+	} else {
+		for (TransactionsContainer::iterator lTx = block->transactions().begin(); lTx != block->transactions().end(); lTx++) {
+			//
+			if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[removeTransactions]: try to remove tx ") + 
+				strprintf("%s/%s/%s#", (*lTx)->id().toHex(), block->blockHeader().hash().toHex(), chain_.toHex().substr(0, 10)));	
+			//
+			TransactionContextPtr lCtx = poolStore_->locateTransactionContext((*lTx)->id());
+			if (lCtx) {
+				if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[removeTransactions]: remove tx ") + 
+					strprintf("%s/%s/%s#", lCtx->tx()->hash().toHex(), block->blockHeader().hash().toHex(), chain_.toHex().substr(0, 10)));	
+				
+				lPoolStore->remove(lCtx);
+				lPoolEntityStore->removeEntity(lCtx->tx()->id());
+
+				//
+				// NOTICE: massive broadcast may occure - main chain ONLY
+				if (chain_ == MainChain::id()) {
+					//
+					consensus_->consensusManager()->peerManager()->notifyTransaction(lCtx);
+				}
 			}
 		}
 	}
