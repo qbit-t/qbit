@@ -866,13 +866,15 @@ public:
 						if ((*lCandidate)->jobExists(chain_)) {
 							SynchronizationJobPtr lJob = (*lCandidate)->locateJob(chain_);
 							// clean-up
-							if (!lJob->pendingBlocks() && !lJob->activeWorkers() /*&& lJob->type() != SynchronizationJob::PARTIAL*/) {
+							/*
+							if (!lJob->pendingBlocks() && !lJob->activeWorkers()) {
 								if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[doSynchronize]: synchronization job is EMPTY ") + 
 									strprintf("%d/%s/%s# - (blocks = %d/peers = %d)", lHeight, lBlock.toHex(), 
 										chain_.toHex().substr(0, 10), lJob->pendingBlocks(), lJob->activeWorkers()));
 								(*lCandidate)->removeJob(chain_);
 								continue;
 							}
+							*/
 
 							if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[doSynchronize]: synchronization is already RUNNING ") + 
 								strprintf("%d/%s/%s# - (blocks = %d/peers = %d)", lHeight, lBlock.toHex(), 
@@ -892,7 +894,7 @@ public:
 							if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[doSynchronize]: starting FULL synchronization ") + 
 								strprintf("%d/%s/%s#", lHeight, lBlock.toHex(), chain_.toHex().substr(0, 10)));
 
-							job_ = SynchronizationJob::instance(lBlock, SynchronizationJob::FULL); // block from
+							job_ = SynchronizationJob::instance(lBlock, BlockHeader().hash(), SynchronizationJob::FULL); // block from
 							(*lPeer)->synchronizeLargePartialTree(shared_from_this(), job_);
 						}
 					} else if (lHeight > lOurHeight && lHeight - lOurHeight < partialTreeThreshold()) {
@@ -911,7 +913,7 @@ public:
 							if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[doSynchronize]: starting LARGE PARTIAL tree synchronization ") + 
 								strprintf("%d/%s/%s#", lHeight, lBlock.toHex(), chain_.toHex().substr(0, 10)));
 
-							job_ = SynchronizationJob::instance(lBlock, SynchronizationJob::LARGE_PARTIAL); // block from
+							job_ = SynchronizationJob::instance(lBlock, lLast, SynchronizationJob::LARGE_PARTIAL); // block from
 							(*lPeer)->synchronizeLargePartialTree(shared_from_this(), job_);
 						}
 					}
@@ -942,7 +944,7 @@ public:
 		bool lProcess = false; 
 		{
 			boost::unique_lock<boost::mutex> lLock(transitionMutex_);
-			if (chainState_ == IConsensus::SYNCHRONIZING || chainState_ == IConsensus::NOT_SYNCHRONIZED) {
+			if (chainState_ == IConsensus::SYNCHRONIZING /*|| chainState_ == IConsensus::NOT_SYNCHRONIZED*/) {
 				lProcess = true;
 			}
 		}
@@ -1073,7 +1075,7 @@ public:
 		{
 			boost::unique_lock<boost::mutex> lLock(transitionMutex_);
 			// NOTICE: if we already synchronizing - do not fallback to non_synchronized
-			if (chainState_ == IConsensus::SYNCHRONIZING || chainState_ == IConsensus::SYNCHRONIZED /*|| chainState_ == IConsensus::INDEXING*/) {
+			if (/*chainState_ == IConsensus::SYNCHRONIZING ||*/ chainState_ == IConsensus::SYNCHRONIZED || chainState_ == IConsensus::UNDEFINED/*|| chainState_ == IConsensus::INDEXING*/) {
 				chainState_ = IConsensus::NOT_SYNCHRONIZED;
 			}
 		}

@@ -334,7 +334,7 @@ private:
 			} else if (lState == IConsensus::SYNCHRONIZING) {
 				SynchronizationJobPtr lJob = consensus_->lastJob();
 				if (lJob && getTime() - lJob->timestamp() > consensus_->settings()->consensusSynchronizationLatency()) {
-					consensus_->finishJob(nullptr); // restart job
+					consensus_->finishJob(nullptr); // finish stalled job
 					consensus_->toNonSynchronized(); // restart sync process
 					if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::ERROR, std::string("[validator/touch/error]: synchronization was stalled."));
 				} else {

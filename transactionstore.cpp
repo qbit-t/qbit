@@ -419,14 +419,13 @@ bool TransactionStore::resyncHeight() {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
 	//
-	heightMap_.clear();
-	blockMap_.clear();
-
 	BlockHeader lHeader;
 	uint256 lHash = lastBlock_;
 	uint64_t lIndex = 0;
 
+	//
 	uint256 lNull = BlockHeader().hash();
+
 	//
 	std::list<uint256> lSeq;
 	while (lHash != lNull && headers_.read(lHash, lHeader)) {
@@ -434,10 +433,15 @@ bool TransactionStore::resyncHeight() {
 		lHash = lHeader.prev();
 	}
 
+	// NOTICE: lHash is sometimes becomes NULL or '000000000000000000...'
 	if (lHash != lNull) {
-		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight]: chain is BROKEN on ") + strprintf("block = %s, chain = %s#", lHash.toHex(), chain_.toHex().substr(0, 10)));
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight/error]: chain is BROKEN on ") + strprintf("prev_block = %s, block = %s, chain = %s#", lHash.toHex(), lHeader.hash().toHex(), chain_.toHex().substr(0, 10)));
 		return false;
 	}
+
+	//
+	heightMap_.clear();
+	blockMap_.clear();
 
 	for (std::list<uint256>::reverse_iterator lIter = lSeq.rbegin(); lIter != lSeq.rend(); lIter++) {
 		heightMap_.insert(std::map<uint64_t, uint256>::value_type(++lIndex, *lIter));
@@ -792,7 +796,12 @@ bool TransactionStore::processBlocks(const uint256& from, const uint256& to, std
 				if (lAction->action() == TxBlockAction::PUSH) utxoBlock_.write(lAction->utxo(), lBlockHash);
 				else utxoBlock_.remove(lAction->utxo());
 			}
+
+			//
+			lBlockCtx->block()->compact(); // compact txs to just ids
 		} else {
+			//
+			lBlockCtx->block()->compact(); // compact txs to just ids
 			return false;
 		}
 	}
@@ -1487,7 +1496,7 @@ void TransactionStore::reindexFull(const uint256& from, IMemoryPoolPtr pool) {
 		strprintf("%s#", chain_.toHex().substr(0, 10)));
 
 	// remove index, DO WE need really this? - that is totally new chain
-	removeBlocks(from, uint256(), false);
+	removeBlocks(from, BlockHeader().hash(), false);
 
 	// reset connected wallet cache
 	wallet_->resetCache();	
@@ -1495,13 +1504,18 @@ void TransactionStore::reindexFull(const uint256& from, IMemoryPoolPtr pool) {
 	wallet_->cleanUpData();
 	// process blocks
 	std::list<BlockContextPtr> lContexts;
-	if (!processBlocks(from, uint256(), lContexts)) {
+	if (!processBlocks(from, BlockHeader().hash(), lContexts)) {
 		if (lContexts.size()) {
 			std::list<BlockContextPtr>::reverse_iterator lLast = (++lContexts.rbegin());
 			if (lLast != lContexts.rend()) {
+				uint256 lLastBlock = lastBlock_;
 				setLastBlock((*lLast)->block()->hash());
 				// build height map
-				resyncHeight();
+				if (!resyncHeight()) {
+					// try to rollback
+					setLastBlock(lLastBlock);
+					resyncHeight();
+				}
 			}
 		}
 	} else {
@@ -1509,10 +1523,16 @@ void TransactionStore::reindexFull(const uint256& from, IMemoryPoolPtr pool) {
 		for (std::list<BlockContextPtr>::iterator lBlock = lContexts.begin(); lBlock != lContexts.end(); lBlock++) {
 			pool->removeTransactions((*lBlock)->block());
 		}
+		//
+		uint256 lLastBlock = lastBlock_;
 		// new last
 		setLastBlock(from);
 		// build height map
-		resyncHeight();	
+		if (!resyncHeight()) {
+			// try to rollback
+			setLastBlock(lLastBlock);
+			resyncHeight();
+		}
 	}
 
 	//
@@ -1550,6 +1570,9 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 		*/
 	}
 
+	// save prev_last
+	uint256 lLastBlock = lastBlock_;
+	//
 	bool lResyncHeight = false;
 	bool lRemoveTransactions = false;
 	std::list<BlockContextPtr> lContexts;
@@ -1569,14 +1592,22 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 				if (lLast != lContexts.rend()) {
 					setLastBlock((*lLast)->block()->hash());
 					// build height map
-					resyncHeight();
+					if (!resyncHeight()) {
+						// rollback
+						setLastBlock(lLastBlock);
+						resyncHeight();
+					}
 				} else {
 					// shift "to" to prev, try to handle
 					BlockHeader lHeader;
 					if (blockHeader(to, lHeader)) {
 						setLastBlock(lHeader.prev());
 						// build height map
-						resyncHeight();
+						if (!resyncHeight()) {
+							// rollback
+							setLastBlock(lLastBlock);
+							resyncHeight();
+						}
 					}
 				}
 			}
@@ -1588,7 +1619,11 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 			// point to the last block
 			setLastBlock(from);
 			// build height map
-			resyncHeight();
+			if (!resyncHeight()) {
+				// rollback
+				setLastBlock(lLastBlock);
+				resyncHeight();
+			}
 		}
 	}
 

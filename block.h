@@ -143,6 +143,7 @@ private:
 
 // forward
 typedef std::vector<TransactionPtr> TransactionsContainer;
+typedef std::vector<uint256> HeadersContainer;
 
 class BlockTransactions;
 typedef std::shared_ptr<BlockTransactions> BlockTransactionsPtr;
@@ -151,6 +152,7 @@ class BlockTransactions {
 public:
 	// network and disk
 	TransactionsContainer transactions_;
+	HeadersContainer headers_;
 
 	BlockTransactions() {}
 	BlockTransactions(const TransactionsContainer& txs) {
@@ -205,6 +207,7 @@ public:
 	void append(TransactionPtr tx) { transactions_.push_back(tx); }
 	void prepend(TransactionPtr tx) { transactions_.insert(transactions_.begin(), tx); }
 	TransactionsContainer& transactions() { return transactions_; }	
+	HeadersContainer& headers() { return headers_; }	
 
 	void transactionsHashes(std::list<uint256>&);
 };
@@ -288,6 +291,7 @@ public:
 	}
 
 	BlockPtr clone();
+	void compact();
 
 	void append(BlockTransactionsPtr txs) {
 		transactions_.insert(transactions_.end(), txs->transactions().begin(), txs->transactions().end()); 
