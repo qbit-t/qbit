@@ -826,7 +826,8 @@ public:
 		uint256 lBlock, lLast;
 		locateSynchronizedRoot(lPeers, lBlock, lLast); // get peers, height and block
 
-		if (job_) job_->cancel();
+		// force
+		if (job == nullptr) job_->cancel();
 
 		// add more peers to enforce sync job
 		if (lPeers.size()) {
