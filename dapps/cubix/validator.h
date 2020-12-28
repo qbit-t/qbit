@@ -368,8 +368,7 @@ private:
 			} else if (lState == IConsensus::SYNCHRONIZING) {
 				SynchronizationJobPtr lJob = consensus_->lastJob();
 				if (lJob && getTime() - lJob->timestamp() > consensus_->settings()->consensusSynchronizationLatency()) {
-					consensus_->finishJob(nullptr); // restart job
-					consensus_->toNonSynchronized(); // restart sync process
+					consensus_->finishJob(nullptr); // force and restart job
 					if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::ERROR, std::string("[cubix/validator/touch/error]: synchronization was stalled."));
 				} else {
 					// in case of acquiring block is in progress
