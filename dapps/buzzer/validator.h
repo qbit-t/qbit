@@ -95,6 +95,7 @@ public:
 			strprintf("%d/%s/%s#", const_cast<NetworkBlockHeader&>(blockHeader).height(), 
 				lOther.hash().toHex(), chain_.toHex().substr(0, 10)));
 		
+		stopMiner();
 		consensus_->toNonSynchronized();
 		return IValidator::BROKEN_CHAIN;
 	}
@@ -119,7 +120,7 @@ public:
 private:
 	void stopMiner() {
 		// stop miner
-		if (consensus_->settings()->isMiner()) {
+		if (consensus_->settings()->isMiner() && minerRunning_) {
 			gLog().write(Log::VALIDATOR, std::string("[buzzer/miner]: stopping for ") + strprintf("%s#", chain_.toHex().substr(0, 10)));
 			minerRunning_ = false;
 			minerActive_.notify_one();
@@ -354,17 +355,23 @@ private:
 			IConsensus::ChainState lState = consensus_->chainState();
 			if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[buzzer/touch]: chain state = ") + strprintf("%s/%s#", consensus_->chainStateString(), chain_.toHex().substr(0, 10)));
 
-			if (lState != IConsensus::SYNCHRONIZED && lState != IConsensus::SYNCHRONIZING) {
+			if (lState != IConsensus::SYNCHRONIZED && lState != IConsensus::SYNCHRONIZING && lState != IConsensus::INDEXING) {
 				// stop miner
 				stopMiner();
-
+				//
 				if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[buzzer/touch]: chain ") + strprintf("%s#", chain_.toHex().substr(0, 10)) + std::string(" NOT synchronized, starting synchronization..."));
 				if (consensus_->doSynchronize()) {
 					// already synchronized
 					if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[buzzer/touch]: chain ") + strprintf("%s#", chain_.toHex().substr(0, 10)) + std::string(" IS synchronized."));
 					startMiner();
 				}
+			} else if (lState == IConsensus::NOT_SYNCHRONIZED || lState == IConsensus::INDEXING) {
+				// stop miner
+				stopMiner();
 			} else if (lState == IConsensus::SYNCHRONIZING) {
+				// stop miner
+				stopMiner();
+				//
 				SynchronizationJobPtr lJob = consensus_->lastJob();
 				if (lJob && getTime() - lJob->timestamp() > consensus_->settings()->consensusSynchronizationLatency()) {
 					consensus_->finishJob(nullptr); // force and restart job

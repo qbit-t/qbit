@@ -283,7 +283,7 @@ public:
 	//
 	// mini-tree for sync
 	// TODO: settings
-	virtual uint32_t partialTreeThreshold() { return 30; }
+	virtual uint32_t partialTreeThreshold() { return 10; }
 
 	//
 	// use peer for network participation
@@ -915,7 +915,7 @@ public:
 						std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); // just first?
 						if (!job_ || job_->nextBlockInstant().isNull()) { 
 							if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[doSynchronize]: starting PARTIAL tree synchronization ") + 
-								strprintf("%d/%s/%s#", lHeight, lBlock.toHex(), chain_.toHex().substr(0, 10)));
+								strprintf("%d/%s-%s/%s#", lHeight, lBlock.toHex(), lLast.toHex(), chain_.toHex().substr(0, 10)));
 							job_ = SynchronizationJob::instance(lBlock, lLast, SynchronizationJob::PARTIAL); // block from
 							(*lPeer)->synchronizePartialTree(shared_from_this(), job_);
 						}
@@ -924,7 +924,7 @@ public:
 						if (!job_ || job_->nextBlockInstant().isNull()) { 
 							//
 							if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[doSynchronize]: starting LARGE PARTIAL tree synchronization ") + 
-								strprintf("%d/%s/%s#", lHeight, lBlock.toHex(), chain_.toHex().substr(0, 10)));
+								strprintf("%d/%s-%s/%s#", lHeight, lBlock.toHex(), lLast.toHex(), chain_.toHex().substr(0, 10)));
 
 							job_ = SynchronizationJob::instance(lBlock, lLast, SynchronizationJob::LARGE_PARTIAL); // block from
 							(*lPeer)->synchronizeLargePartialTree(shared_from_this(), job_);

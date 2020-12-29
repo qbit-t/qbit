@@ -1469,7 +1469,7 @@ void TransactionStore::saveBlockHeader(const BlockHeader& header) {
 
 bool TransactionStore::blockExists(const uint256& id) {
 	//
-	return transactions_.read(id) != nullptr;
+	return transactions_.exists(id);
 }
 
 bool TransactionStore::blockHeader(const uint256& id, BlockHeader& header) {
