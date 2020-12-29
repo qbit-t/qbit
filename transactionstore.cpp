@@ -433,8 +433,7 @@ bool TransactionStore::resyncHeight() {
 		lHash = lHeader.prev();
 	}
 
-	// NOTICE: lHash is sometimes becomes NULL or '000000000000000000...'
-	if (lHash != lNull) {
+	if (lHash != lNull && !lastBlock_.isNull()) {
 		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight/error]: chain is BROKEN on ") + strprintf("prev_block = %s, block = %s, chain = %s#", lHash.toHex(), lHeader.hash().toHex(), chain_.toHex().substr(0, 10)));
 		return false;
 	}
