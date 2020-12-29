@@ -290,6 +290,7 @@ void Peer::synchronizePartialTree(IConsensusPtr consensus, SynchronizationJobPtr
 			return;
 		}
 
+		/*
 		// check if block exists
 		uint256 lRootId = BlockHeader().hash();
 		// end-of-chain OR last_block
@@ -328,6 +329,7 @@ void Peer::synchronizePartialTree(IConsensusPtr consensus, SynchronizationJobPtr
 
 			return;
 		}
+		*/
 
 		// new message
 		std::list<DataStream>::iterator lMsg = newOutMessage();
@@ -457,6 +459,7 @@ void Peer::synchronizePendingBlocks(IConsensusPtr consensus, SynchronizationJobP
 			}
 		}
 
+		/*
 		// check if block exists
 		while (!lBlockHeader.isNull() && 
 					peerManager_->consensusManager()->locate(consensus->chain())->store()->blockExists(lBlockHeader)) {
@@ -485,7 +488,7 @@ void Peer::synchronizePendingBlocks(IConsensusPtr consensus, SynchronizationJobP
 
 				// reindex, partial
 				if (!job->cancelled()) {
-					if (consensus->doIndex(job->block()/*root block*/, job->lastBlock())) {
+					if (consensus->doIndex(job->block(), job->lastBlock())) {
 						// broadcast new state
 						StatePtr lState = peerManager_->consensusManager()->currentState();
 						peerManager_->consensusManager()->broadcastState(lState, addressId());
@@ -498,6 +501,7 @@ void Peer::synchronizePendingBlocks(IConsensusPtr consensus, SynchronizationJobP
 				return;
 			}
 		}
+		*/
 
 		// new message
 		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION);
@@ -3047,10 +3051,9 @@ void Peer::processBlockById(std::list<DataStream>::iterator msg, const boost::sy
 			// save block
 			peerManager_->consensusManager()->locate(lBlock->chain())->store()->saveBlock(lBlock);
 			// extract next block id
-			uint64_t lHeight;
 			uint256 lPrev = lBlock->prev();
 			if (lPrev != BlockHeader().hash()) { // BlockHeader().hash() - final/absent link 
-				if (lPrev != lJob->lastBlock() /*!peerManager_->consensusManager()->locate(lBlock->chain())->store()->blockHeight(lPrev, lHeight)*/) {
+				if (/*lPrev != lJob->lastBlock() &&*/ !peerManager_->consensusManager()->locate(lBlock->chain())->store()->blockExists(lPrev)) {
 					// go do next job
 					lJob->setNextBlock(lPrev);
 				} else {
@@ -3558,39 +3561,52 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 		IConsensusPtr lConsensus = peerManager_->consensusManager()->locate(lHeaders.begin()->blockHeader().chain());
 		if (lJob) {
 			//
+			bool lChunkExists = true;
+			bool lChainFound = false;
 			uint256 lNull = BlockHeader().hash();
+			uint256 lFirst = lNull; 
+			uint256 lLast = lNull;
 			for (std::vector<NetworkBlockHeader>::iterator lHeader = lHeaders.begin(); lHeader != lHeaders.end(); lHeader++) {
 				//
 				BlockHeader lBlockHeader = (*lHeader).blockHeader();
+				uint256 lId = lBlockHeader.hash();
+				if (lFirst == lNull) lFirst = lId;
+				lLast = lId;
+
 				// log
 				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: process block header from ") + key() + " -> " + 
-					strprintf("%s/%s#", lBlockHeader.hash().toHex(), lBlockHeader.chain().toHex().substr(0, 10)));
+					strprintf("%s/%s#", lId.toHex(), lBlockHeader.chain().toHex().substr(0, 10)));
 
 				// save
-				lConsensus->store()->saveBlockHeader(lBlockHeader);
-				lJob->pushPendingBlock(lBlockHeader.hash());				
-
-				// extract next block id
-				uint64_t lHeight;
+				lConsensus->store()->saveBlockHeader(lBlockHeader);		
+				// if not exists -> schedule
+				if (!peerManager_->consensusManager()->locate(lBlockHeader.chain())->store()->blockExists(lId)) {
+					lJob->pushPendingBlock(lId);
+					lChunkExists = false;
+				}
+				// check next block id
 				uint256 lPrev = lBlockHeader.prev();
-				if (lPrev != lNull) { // BlockHeader().hash() - final/absent link 
-					if (lPrev != lJob->lastBlock()/*!peerManager_->consensusManager()->locate(lBlockHeader.chain())->store()->blockHeight(lPrev, lHeight)*/) {
-						// go do next job
-						lJob->setNextBlock(lPrev);
-					} else {
-						// we found root
-						lJob->setLastBlock(lPrev);
-						break;
-					}
-				} else {
+				if (lPrev == lNull) { // BlockHeader().hash() - final/absent link 
 					// we have a new shiny full chain
 					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: full chain found, try switching to ") + 
 						strprintf("head = %s, root = %s/%s#", lBlockHeader.hash().toHex(), lJob->block().toHex(), lBlockHeader.chain().toHex().substr(0, 10)) + std::string("..."));
 					lJob->setLastBlock(lPrev);
+					lChainFound = true;
 					break;
 				}
 			}
-			
+
+			// finalize
+			if (!lChainFound) {
+				if (!lChunkExists) {
+					// go do next job
+					lJob->setNextBlock(lLast);
+				} else {
+					// we found root
+					lJob->setLastBlock(lFirst); // full chunk exists
+				}
+			}
+
 			if (lConsensus != nullptr) synchronizeLargePartialTree(lConsensus, lJob);
 		}
 	} else {

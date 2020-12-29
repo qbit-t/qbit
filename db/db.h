@@ -1323,6 +1323,13 @@ public:
 		return nullptr;
 	}
 
+	inline bool exists(const key& k) {
+		//
+		key lKey;
+		EntityContainer::Iterator lItem(Container<key, value, impl>::find(k));
+		return (lItem.valid() && lItem.first(lKey) && lKey == k);
+	}
+
 	inline Iterator begin() { return EntityContainer::Iterator(Container<key, value, impl>::begin()); }
 	inline Iterator last() { return EntityContainer::Iterator(Container<key, value, impl>::last()); }
 
