@@ -156,6 +156,11 @@ public:
 		reindex_ = true;
 	}
 
+	bool resync() { return resync_; }
+	void setResync() {
+		resync_ = true;
+	}
+
 	void notifyTransaction(const uint256& tx) {
 		//
 		if (notifyTransaction_.size()) {
@@ -193,6 +198,7 @@ private:
 	size_t clientSessionsLimit_ = 50;
 	bool qbitOnly_ = false;
 	bool reindex_ = false;
+	bool resync_ = false;
 };
 
 class Node;
@@ -528,6 +534,9 @@ int main(int argv, char** argc) {
 		} else if (std::string(argc[lIdx]) == std::string("-reindex")) {
 			//
 			lSettings->setReindex();
+		} else if (std::string(argc[lIdx]) == std::string("-resync")) {
+			//
+			lSettings->setResync();
 		} else if (std::string(argc[lIdx]) == std::string("-roles")) {
 			//
 			std::vector<std::string> lRoles;

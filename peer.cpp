@@ -430,8 +430,6 @@ void Peer::synchronizePendingBlocks(IConsensusPtr consensus, SynchronizationJobP
 			if (job->hasPendingBlocks()) {
 				// log
 				if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: pending blocks synchronization is NOT done, waiting for root = ") + strprintf("%s, %d, %s#", job->block().toHex(), job->pendingBlocks() + job->activeWorkers(), consensus->chain().toHex().substr(0, 10)));
-				// cleanup
-				removeJob(consensus->chain());
 				//
 				return;
 			} else {
@@ -2822,8 +2820,8 @@ void Peer::processBlockByIdAbsent(std::list<DataStream>::iterator msg, const boo
 		//
 		SynchronizationJobPtr lJob = locateJob(lChain);
 		if (lJob) {
-			lJob->cancel();
 			if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: block is absent for ") + strprintf("%s/%s#", lId.toHex(), lChain.toHex().substr(0, 10)));
+			lJob->pushPendingBlock(lId);
 		}
 		
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: block is absent for ") + strprintf("%s/%s#", lId.toHex(), lChain.toHex().substr(0, 10)));
@@ -2921,6 +2919,13 @@ void Peer::processBlockAbsent(std::list<DataStream>::iterator msg, const boost::
 		(*msg) >> lId;
 		eraseInData(msg);
 		
+		//
+		SynchronizationJobPtr lJob = locateJob(lChain);
+		if (lJob) {
+			if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: block is absent for ") + strprintf("%s/%s#", lId.toHex(), lChain.toHex().substr(0, 10)));
+			lJob->pushPendingBlock(lId);
+		}
+
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: block is absent for ") + strprintf("%s/%s#", lId.toHex(), lChain.toHex().substr(0, 10)));
 
 		//
@@ -3089,13 +3094,14 @@ void Peer::processBlock(std::list<DataStream>::iterator msg, const boost::system
 		//
 		processed();
 
+		// save block
+		peerManager_->consensusManager()->locate(lBlock->chain())->store()->saveBlock(lBlock);
+
 		// locate job
 		SynchronizationJobPtr lJob = locateJob(lBlock->chain());
 		if (lJob) {
 			// log
 			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing block ") + strprintf("%s/%s#", lBlock->hash().toHex(), lBlock->chain().toHex().substr(0, 10)) + std::string("..."));
-			// save block
-			peerManager_->consensusManager()->locate(lBlock->chain())->store()->saveBlock(lBlock);
 			// release job
 			lJob->releasePendingBlockJob(lBlock->hash());
 			// move to the next job
@@ -3561,7 +3567,6 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 		IConsensusPtr lConsensus = peerManager_->consensusManager()->locate(lHeaders.begin()->blockHeader().chain());
 		if (lJob) {
 			//
-			bool lChunkExists = true;
 			bool lChainFound = false;
 			uint256 lNull = BlockHeader().hash();
 			uint256 lFirst = lNull; 
@@ -3570,7 +3575,6 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 				//
 				BlockHeader lBlockHeader = (*lHeader).blockHeader();
 				uint256 lId = lBlockHeader.hash();
-				if (lFirst == lNull) lFirst = lId;
 				lLast = lId;
 
 				// log
@@ -3578,12 +3582,15 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 					strprintf("%s/%s#", lId.toHex(), lBlockHeader.chain().toHex().substr(0, 10)));
 
 				// save
-				lConsensus->store()->saveBlockHeader(lBlockHeader);		
+				lConsensus->store()->saveBlockHeader(lBlockHeader);
+
 				// if not exists -> schedule
 				if (!peerManager_->consensusManager()->locate(lBlockHeader.chain())->store()->blockExists(lId)) {
 					lJob->pushPendingBlock(lId);
-					lChunkExists = false;
-				}
+					if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: process block data MISSING from ") + key() + " -> " + 
+						strprintf("%s/%s#", lId.toHex(), lBlockHeader.chain().toHex().substr(0, 10)));
+				} else lJob->registerPendingBlock(lId);
+
 				// check next block id
 				uint256 lPrev = lBlockHeader.prev();
 				if (lPrev == lNull) { // BlockHeader().hash() - final/absent link 
@@ -3594,16 +3601,23 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 					lChainFound = true;
 					break;
 				}
+
+				//
+				if (lJob->lastBlock() == lId) {
+					// found
+					lJob->resetNextBlock();
+					break;
+				}
 			}
 
 			// finalize
 			if (!lChainFound) {
-				if (!lChunkExists) {
+				if (lJob->pendingBlocksCount() <= lJob->delta()) {
 					// go do next job
 					lJob->setNextBlock(lLast);
 				} else {
 					// we found root
-					lJob->setLastBlock(lFirst); // full chunk exists
+					lJob->setLastBlock(lLast); // full chunk exists
 				}
 			}
 

@@ -857,14 +857,17 @@ public:
 
 	//
 	// begin synchronization
-	bool doSynchronize() {
+	bool doSynchronize(bool resync = false) {
 		//
 		bool lProcess = false; 
 		{
 			boost::unique_lock<boost::mutex> lLock(transitionMutex_);
-			if ((chainState_ == IConsensus::UNDEFINED || chainState_ == IConsensus::NOT_SYNCHRONIZED) && !store_->synchronizing()) {
+			if (((chainState_ == IConsensus::UNDEFINED || chainState_ == IConsensus::NOT_SYNCHRONIZED) && 
+					!store_->synchronizing()) || 
+						resync) {
 				chainState_ = IConsensus::SYNCHRONIZING;
 				lProcess = true;
+				if (resync) resync_ = true;
 			}
 		}
 
@@ -899,37 +902,50 @@ public:
 					// store is empty - full sync
 					BlockHeader lHeader;
 					uint64_t lOurHeight = store_->currentHeight(lHeader);
-					if (!lOurHeight) {
-						//
-						std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); // this node -> get current block thread
-						if (!job_ || job_->nextBlockInstant().isNull()) { 
-							//
-							if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[doSynchronize]: starting FULL synchronization ") + 
-								strprintf("%d/%s/%s#", lHeight, lBlock.toHex(), chain_.toHex().substr(0, 10)));
 
-							job_ = SynchronizationJob::instance(lBlock, BlockHeader().hash(), SynchronizationJob::FULL); // block from
-							(*lPeer)->synchronizeLargePartialTree(shared_from_this(), job_);
-						}
-					} else if (lHeight > lOurHeight && lHeight - lOurHeight < partialTreeThreshold()) {
+					if (resync_) {
 						//
 						std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); // just first?
-						if (!job_ || job_->nextBlockInstant().isNull()) { 
-							if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[doSynchronize]: starting PARTIAL tree synchronization ") + 
-								strprintf("%d/%s-%s/%s#", lHeight, lBlock.toHex(), lLast.toHex(), chain_.toHex().substr(0, 10)));
-							job_ = SynchronizationJob::instance(lBlock, lLast, SynchronizationJob::PARTIAL); // block from
-							(*lPeer)->synchronizePartialTree(shared_from_this(), job_);
-						}
+						//
+						if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[doSynchronize]: starting FULL RESYNC for ") + 
+							strprintf("%d/%s-%s/%s#", lHeight, lBlock.toHex(), lLast.toHex(), chain_.toHex().substr(0, 10)));
+
+						job_ = SynchronizationJob::instance(lBlock, BlockHeader().hash(), 1000000000000, SynchronizationJob::LARGE_PARTIAL);
+						(*lPeer)->synchronizeLargePartialTree(shared_from_this(), job_);
+						resync_ = false;
 					} else {
-						std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); // just first?
-						if (!job_ || job_->nextBlockInstant().isNull()) { 
+						if (!lOurHeight) {
 							//
-							if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[doSynchronize]: starting LARGE PARTIAL tree synchronization ") + 
-								strprintf("%d/%s-%s/%s#", lHeight, lBlock.toHex(), lLast.toHex(), chain_.toHex().substr(0, 10)));
+							std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); // this node -> get current block thread
+							if (!job_ || job_->nextBlockInstant().isNull()) { 
+								//
+								if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[doSynchronize]: starting FULL synchronization ") + 
+									strprintf("%d/%s/%s#", lHeight, lBlock.toHex(), chain_.toHex().substr(0, 10)));
 
-							job_ = SynchronizationJob::instance(lBlock, lLast, SynchronizationJob::LARGE_PARTIAL); // block from
-							(*lPeer)->synchronizeLargePartialTree(shared_from_this(), job_);
+								job_ = SynchronizationJob::instance(lBlock, BlockHeader().hash(), lHeight, SynchronizationJob::FULL); // block from
+								(*lPeer)->synchronizeLargePartialTree(shared_from_this(), job_);
+							}
+						} else if (lHeight > lOurHeight && lHeight - lOurHeight < partialTreeThreshold()) {
+							//
+							std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); // just first?
+							if (!job_ || job_->nextBlockInstant().isNull()) { 
+								if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[doSynchronize]: starting PARTIAL tree synchronization ") + 
+									strprintf("%d/%s-%s/%s#", lHeight, lBlock.toHex(), lLast.toHex(), chain_.toHex().substr(0, 10)));
+								job_ = SynchronizationJob::instance(lBlock, lLast, lHeight - lOurHeight, SynchronizationJob::PARTIAL); // block from
+								(*lPeer)->synchronizePartialTree(shared_from_this(), job_);
+							}
+						} else {
+							std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); // just first?
+							if (!job_ || job_->nextBlockInstant().isNull()) { 
+								//
+								if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[doSynchronize]: starting LARGE PARTIAL tree synchronization ") + 
+									strprintf("%d/%s-%s/%s#", lHeight, lBlock.toHex(), lLast.toHex(), chain_.toHex().substr(0, 10)));
+
+								job_ = SynchronizationJob::instance(lBlock, lLast, lHeight - lOurHeight, SynchronizationJob::LARGE_PARTIAL); // block from
+								(*lPeer)->synchronizeLargePartialTree(shared_from_this(), job_);
+							}
 						}
-					}
+					}	
 				} else {
 					gLog().write(Log::CONSENSUS, "[doSynchronize]: synchronization is allowed for NODE or FULLNODE only.");
 					//
@@ -1179,6 +1195,7 @@ protected:
 	BlockTimePeerMap blockTimePeer_;
 
 	HeightMap heightMap_;
+	bool resync_ = false;
 };
 
 } // qbit

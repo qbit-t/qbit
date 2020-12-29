@@ -77,6 +77,9 @@ public:
 
 	virtual bool reindex() { return false; }
 	virtual void setReindex() {}
+
+	virtual bool resync() { return false; }
+	virtual void setResync() {}
 };
 
 typedef std::shared_ptr<ISettings> ISettingsPtr;

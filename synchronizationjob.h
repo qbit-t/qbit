@@ -42,9 +42,9 @@ public:
 	};
 
 public:
-	SynchronizationJob(const uint256& block, Type type) : height_(0), block_(block), nextBlock_(block), type_(type) { time_ = getTime(); }
-	SynchronizationJob(const uint256& block, const uint256& lastBlock, Type type) : height_(0), block_(block), nextBlock_(block), lastBlock_(lastBlock), type_(type) { time_ = getTime(); }
-	SynchronizationJob(uint64_t height, const uint256& block, Type type) : height_(height), block_(block), type_() { time_ = getTime(); }
+	SynchronizationJob(const uint256& block, uint64_t delta, Type type) : height_(0), delta_(delta), block_(block), nextBlock_(block), type_(type) { time_ = getTime(); }
+	SynchronizationJob(const uint256& block, const uint256& lastBlock, uint64_t delta, Type type) : height_(0), delta_(delta), block_(block), nextBlock_(block), lastBlock_(lastBlock), type_(type) { time_ = getTime(); }
+	SynchronizationJob(uint64_t height, const uint256& block, Type type) : height_(height), delta_(0), block_(block), type_() { time_ = getTime(); }
 
 	Type type() { return type_; }
 
@@ -105,6 +105,12 @@ public:
 		time_ = getTime(); // timestamp
 	}
 
+	void resetNextBlock() {
+		boost::unique_lock<boost::mutex> lLock(jobMutex_);
+		nextBlock_.setNull();
+		time_ = getTime(); // timestamp
+	}
+
 	void setLastBlockInstant(const uint256& block) {
 		boost::unique_lock<boost::mutex> lLock(jobMutex_);
 		lastBlock_ = block;
@@ -132,11 +138,12 @@ public:
 	uint256& block() { return block_; }
 	uint64_t timestamp() { return time_; }
 	uint64_t height() { return height_; }
+	uint64_t delta() { return delta_; }
 
 	static SynchronizationJobPtr instance(uint64_t height, const uint256& block, Type type) { return std::make_shared<SynchronizationJob>(height, block, type); }
-	static SynchronizationJobPtr instance(const uint256& block, Type type) { return std::make_shared<SynchronizationJob>(block, type); }
-	static SynchronizationJobPtr instance(const uint256& block, const uint256& lastBlock, Type type) 
-	{ return std::make_shared<SynchronizationJob>(block, lastBlock, type); }
+	static SynchronizationJobPtr instance(const uint256& block, uint64_t delta, Type type) { return std::make_shared<SynchronizationJob>(block, delta, type); }
+	static SynchronizationJobPtr instance(const uint256& block, const uint256& lastBlock, uint64_t delta, Type type) 
+	{ return std::make_shared<SynchronizationJob>(block, lastBlock, delta, type); }
 
 	//
 	// pending blocks
@@ -147,6 +154,17 @@ public:
 		if (lExists.second) {
 			pendingBlocks_.push_back(block);
 		}
+	}
+
+	void registerPendingBlock(const uint256& block) {
+		boost::unique_lock<boost::mutex> lLock(jobMutex_);
+		time_ = getTime(); // timestamp
+		pendingBlocksIndex_.insert(block);
+	}
+
+	uint64_t pendingBlocksCount() {
+		boost::unique_lock<boost::mutex> lLock(jobMutex_);
+		return pendingBlocksIndex_.size();
 	}
 
 	uint256 lastPendingBlock() {
@@ -229,6 +247,7 @@ public:
 private:
 	boost::mutex jobMutex_;
 	uint64_t height_;
+	uint64_t delta_;
 	uint256 block_;
 	uint256 nextBlock_;
 	uint256 lastBlock_;
