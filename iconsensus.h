@@ -80,7 +80,7 @@ public:
 	virtual uint64_t locateSynchronizedRoot(std::list<IPeerPtr>& /*peers*/, uint256& /*block*/) { throw qbit::exception("NOT_IMPL", "IConsensus::locateSynchronizedRoot - not implemented."); }
 
 	virtual ChainState chainState() { throw qbit::exception("NOT_IMPL", "IConsensus::chainState - not implemented."); }
-	virtual bool doSynchronize() { throw qbit::exception("NOT_IMPL", "IConsensus::doSynchrinize - not implemented."); }
+	virtual bool doSynchronize(bool resync = false) { throw qbit::exception("NOT_IMPL", "IConsensus::doSynchrinize - not implemented."); }
 	virtual void doIndex(const uint256& /*block*/) { throw qbit::exception("NOT_IMPL", "IConsensus::doIndex - not implemented."); }
 	virtual bool doIndex(const uint256& /*block*/, const uint256& /*lastFoundBlock*/) { throw qbit::exception("NOT_IMPL", "IConsensus::doIndex - not implemented."); }
 	virtual void doReindex() { throw qbit::exception("NOT_IMPL", "IConsensus::doReindex - not implemented."); }

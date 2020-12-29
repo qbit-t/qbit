@@ -319,6 +319,17 @@ private:
 				reindexed_ = true;
 			}
 
+			if (consensus_->settings()->resync() && !reindexed_) {
+				// stop miner
+				stopMiner();
+				//
+				if (gLog().isEnabled(Log::VALIDATOR))
+					gLog().write(Log::VALIDATOR, std::string("[touch]: resyncing ") + strprintf("%s#...", chain_.toHex().substr(0, 10)));
+				//
+				consensus_->doSynchronize(true);
+				reindexed_ = true;
+			}
+
 			//
 			IConsensus::ChainState lState = consensus_->chainState();
 			if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[touch]: chain state = ") + strprintf("%s/%s#", consensus_->chainStateString(), chain_.toHex().substr(0, 10)));

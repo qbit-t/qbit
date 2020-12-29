@@ -429,12 +429,27 @@ bool TransactionStore::resyncHeight() {
 	//
 	std::list<uint256> lSeq;
 	while (lHash != lNull && headers_.read(lHash, lHeader)) {
-		lSeq.push_back(lHash);
-		lHash = lHeader.prev();
+		// check block data
+		if (blockExists(lHash)) {
+			// push
+			lSeq.push_back(lHash);
+			lHash = lHeader.prev();
+		} else {
+			break;
+		}
 	}
 
 	if (lHash != lNull && !lastBlock_.isNull()) {
-		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight/error]: chain is BROKEN on ") + strprintf("prev_block = %s, block = %s, chain = %s#", lHash.toHex(), lHeader.hash().toHex(), chain_.toHex().substr(0, 10)));
+		if (lHash == lHeader.hash()) {
+			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight/error]: block data is MISSING for ") + 
+					strprintf("block = %s, chain = %s#", 
+						lHash.toHex(), lHeader.hash().toHex(), chain_.toHex().substr(0, 10)));
+		} else {
+			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight/error]: chain is BROKEN on ") + 
+					strprintf("prev_block = %s, block = %s, chain = %s#", 
+						lHash.toHex(), lHeader.hash().toHex(), chain_.toHex().substr(0, 10)));
+		}
+
 		return false;
 	}
 
@@ -730,6 +745,7 @@ bool TransactionStore::processBlocks(const uint256& from, const uint256& to, std
 	std::list<BlockHeader> lHeadersSeq;
 	uint256 lHash = from;
 	IMemoryPoolPtr lMempool = wallet_->mempoolManager()->locate(chain_);
+
 	//
 	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlocks]: ") +
 		strprintf("processing blocks data [%s-%s]/%s#", from.toHex(), to.toHex(), chain_.toHex().substr(0, 10)));		
@@ -1548,7 +1564,7 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 	}
 	//
 	gLog().write(Log::STORE, std::string("[reindex]: STARTING reindex for ") + 
-		strprintf("%s#", chain_.toHex().substr(0, 10)));
+		strprintf("from = %s, to = %s, %s#", from.toHex(), to.toHex(), chain_.toHex().substr(0, 10)));
 
 	// check for new chain switching
 	if (to == BlockHeader().hash()) {
@@ -1569,6 +1585,9 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 		*/
 	}
 
+	//
+	bool lResult = true;
+
 	// save prev_last
 	uint256 lLastBlock = lastBlock_;
 	//
@@ -1583,9 +1602,9 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 		// remove old index
 		removeBlocks(lastBlock_, to, false);
 		// remove new index
-		removeBlocks(from, to, false); // in case of wrapped restarts (re-process blocks may occure)
+		removeBlocks(from, to, false); // in case of wrapped restarts (re-process blocks may occur)
 		// process blocks
-		if (!processBlocks(from, to, lContexts)) {
+		if (!(lResult = processBlocks(from, to, lContexts))) {
 			if (lContexts.size()) {
 				std::list<BlockContextPtr>::reverse_iterator lLast = (++lContexts.rbegin()); // prev good
 				if (lLast != lContexts.rend()) {
@@ -1630,7 +1649,7 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 	gLog().write(Log::STORE, std::string("[reindex]: reindex FINISHED for ") + 
 		strprintf("%s#", chain_.toHex().substr(0, 10)));
 
-	return true;
+	return lResult;
 }
 
 bool TransactionStore::enqueueBlock(const NetworkBlockHeader& block) {
