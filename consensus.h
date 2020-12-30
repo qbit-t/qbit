@@ -941,7 +941,11 @@ public:
 								if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[doSynchronize]: starting LARGE PARTIAL tree synchronization ") + 
 									strprintf("%d/%s-%s/%s#", lHeight, lBlock.toHex(), lLast.toHex(), chain_.toHex().substr(0, 10)));
 
-								job_ = SynchronizationJob::instance(lBlock, lLast, lHeight - lOurHeight, SynchronizationJob::LARGE_PARTIAL); // block from
+								job_ = SynchronizationJob::instance(
+									lBlock,
+									lLast,
+									lHeight - lOurHeight,
+									SynchronizationJob::LARGE_PARTIAL); // block from
 								(*lPeer)->synchronizeLargePartialTree(shared_from_this(), job_);
 							}
 						}

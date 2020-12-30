@@ -3611,6 +3611,8 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 			}
 
 			// finalize
+			// NOTICE: irrelevant to the chain consistency (in case of switching and not mixing headers)
+			/*
 			if (!lChainFound) {
 				if (lJob->pendingBlocksCount() <= lJob->delta()) {
 					// go do next job
@@ -3620,6 +3622,7 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 					lJob->setLastBlock(lLast); // full chunk exists
 				}
 			}
+			*/
 
 			if (lConsensus != nullptr) synchronizeLargePartialTree(lConsensus, lJob);
 		}
