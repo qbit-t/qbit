@@ -1573,7 +1573,6 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 			strprintf("%s/%s/%s#", from.toHex(), to.toHex(), chain_.toHex().substr(0, 10)));
 	} else {
 		// WARNING: lastBlock AND to MUST be in current chain - otherwise all indexes will be invalidated
-		/*
 		uint64_t lLastHeight, lToHeight;
 		if (!blockHeight(lastBlock_, lLastHeight) || !blockHeight(to, lToHeight)) {
 			//
@@ -1582,7 +1581,6 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 
 			return false;
 		}
-		*/
 	}
 
 	//
