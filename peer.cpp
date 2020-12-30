@@ -3569,7 +3569,7 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 			//
 			bool lChainFound = false;
 			uint256 lNull = BlockHeader().hash();
-			uint256 lFirst = lNull; 
+			// uint256 lFirst = lNull; 
 			uint256 lLast = lNull;
 			for (std::vector<NetworkBlockHeader>::iterator lHeader = lHeaders.begin(); lHeader != lHeaders.end(); lHeader++) {
 				//
@@ -3610,19 +3610,10 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 				}
 			}
 
-			// finalize
-			// NOTICE: irrelevant to the chain consistency (in case of switching and not mixing headers)
-			/*
-			if (!lChainFound) {
-				if (lJob->pendingBlocksCount() <= lJob->delta()) {
-					// go do next job
-					lJob->setNextBlock(lLast);
-				} else {
-					// we found root
-					lJob->setLastBlock(lLast); // full chunk exists
-				}
+			// finalize & continue
+			if (!lChainFound && lJob->lastBlock() != lLast) {
+				lJob->setNextBlock(lLast);
 			}
-			*/
 
 			if (lConsensus != nullptr) synchronizeLargePartialTree(lConsensus, lJob);
 		}
