@@ -61,6 +61,14 @@ public:
 			std::map<std::string /*endpoint*/, IPeerPtr>::iterator lPeerIter = lChannel->second.find(endpoint);
 			if (lPeerIter != lChannel->second.end() && banned_[lChannel->first].find(endpoint) != banned_[lChannel->first].end())
 				return true;
+
+			// check banned hosts
+			std::vector<std::string> lParts;
+			boost::split(lParts, endpoint, boost::is_any_of(":"), boost::token_compress_on);
+			//
+			if (lParts.size() == 2) {
+				if (bannedEndpoins_.find(lParts[0]) != bannedEndpoins_.end()) return true;
+			}
 		}
 		
 		return false;
@@ -752,6 +760,13 @@ public:
 				active_[peer->contextId()].erase(peer->key());
 				banned_[peer->contextId()].insert(peer->key());
 				inactive_[peer->contextId()].erase(peer->key());
+
+				std::vector<std::string> lParts;
+				boost::split(lParts, peer->key(), boost::is_any_of(":"), boost::token_compress_on);
+
+				if (lParts.size() == 2) {
+					bannedEndpoins_.insert(lParts[0]); // push host
+				}
 			}
 		}
 
@@ -1084,6 +1099,7 @@ private:
 	std::map<int, PeersSet> banned_;
 	std::map<int, PeersSet> inactive_;
 	std::map<int, PeersSet> explicit_;	
+	std::set<std::string> bannedEndpoins_;
 
 	boost::recursive_mutex peersIdxMutex_;
 	std::map<uint160, std::string> peerIdx_;
