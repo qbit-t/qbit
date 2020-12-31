@@ -215,6 +215,7 @@ private:
 
 					int lNonce = 0;
 					bool lTimeout = false;
+					bool lResult = false;
 					while(minerRunning_) {
 						//
 						if (qbit::gSparingMode) {
@@ -224,7 +225,7 @@ private:
 						//
 						std::set<uint32_t> lCycle;
 						lCurrentBlock->nonce_ = lNonce;
-						bool lResult = FindCycle(lCurrentBlock->hash(), EDGEBITS, PROOFSIZE, lCycle);
+						lResult = FindCycle(lCurrentBlock->hash(), EDGEBITS, PROOFSIZE, lCycle);
 						lNonce++;
 
 						// calculation timed out
@@ -244,18 +245,22 @@ private:
 						}
 					}
 
-					// miner is active
-					if (minerRunning_) {
-						if (lTimeout) { 
-							if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[validator/miner]: timeout exiped during calculation for ") + strprintf("%s/%s#", lCurrentBlock->hash().toHex(), chain_.toHex().substr(0, 10)));
-							continue;
-						}
-						
-						int lVerifyResult = VerifyCycle(lCurrentBlock->hash(), EDGEBITS, PROOFSIZE, lCurrentBlock->cycle_);
-						if (lVerifyResult != verify_code::POW_OK) {
-							if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[validator/miner/error]: cycle verification FAILED for ") + strprintf("%s/%s#", lCurrentBlock->hash().toHex(), chain_.toHex().substr(0, 10)));
-							continue;
-						}
+					// timeout
+					if (lTimeout) { 
+						if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[validator/miner]: timeout exiped during calculation for ") + strprintf("%s/%s#", lCurrentBlock->hash().toHex(), chain_.toHex().substr(0, 10)));
+						continue;
+					}
+
+					if (!lResult) {
+						if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[validator/miner]: cycle not found for ") + strprintf("%s/%s#", lCurrentBlock->hash().toHex(), chain_.toHex().substr(0, 10)));
+						continue;
+					}
+
+					// check block pow
+					int lVerifyResult = VerifyCycle(lCurrentBlock->hash(), EDGEBITS, PROOFSIZE, lCurrentBlock->cycle_);
+					if (lVerifyResult != verify_code::POW_OK) {
+						if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[validator/miner/error]: cycle verification FAILED for ") + strprintf("%s/%s#", lCurrentBlock->hash().toHex(), chain_.toHex().substr(0, 10)));
+						continue;
 					}
 
 					//
@@ -333,10 +338,12 @@ private:
 			//
 			IConsensus::ChainState lState = consensus_->chainState();
 			if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[touch]: chain state = ") + strprintf("%s/%s#", consensus_->chainStateString(), chain_.toHex().substr(0, 10)));
-
-			if (lState != IConsensus::SYNCHRONIZED && lState != IConsensus::SYNCHRONIZING && lState != IConsensus::INDEXING) {
+			if (lState != IConsensus::SYNCHRONIZED) {
 				// stop miner
 				stopMiner();
+			}
+
+			if (lState != IConsensus::SYNCHRONIZED && lState != IConsensus::SYNCHRONIZING && lState != IConsensus::INDEXING) {
 				//
 				if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[touch]: chain ") + strprintf("%s#", chain_.toHex().substr(0, 10)) + std::string(" NOT synchronized, starting synchronization..."));
 				if (consensus_->doSynchronize()) {
@@ -344,12 +351,7 @@ private:
 					if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[touch]: chain ") + strprintf("%s#", chain_.toHex().substr(0, 10)) + std::string(" IS synchronized."));
 					startMiner();
 				}
-			} else if (lState == IConsensus::NOT_SYNCHRONIZED || lState == IConsensus::INDEXING) {
-				// stop miner
-				stopMiner();
 			} else if (lState == IConsensus::SYNCHRONIZING) {
-				// stop miner
-				stopMiner();
 				//
 				SynchronizationJobPtr lJob = consensus_->lastJob();
 				if (lJob && getTime() - lJob->timestamp() > consensus_->settings()->consensusSynchronizationLatency()) {

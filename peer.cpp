@@ -259,6 +259,11 @@ void Peer::synchronizePartialTree(IConsensusPtr consensus, SynchronizationJobPtr
 		if (job->cancelled()) {
 			// log
 			if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: partial synchronization job is CANCELLED, root = ") + strprintf("%s, %s#", job->block().toHex(), consensus->chain().toHex().substr(0, 10)));
+			// cleanup
+			removeJob(consensus->chain());
+			// finish
+			consensus->finishJob(job);
+			//
 			return;
 		}
 
@@ -361,6 +366,11 @@ void Peer::synchronizeLargePartialTree(IConsensusPtr consensus, SynchronizationJ
 		if (job->cancelled()) {
 			// log
 			if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: large pending blocks synchronization job is CANCELLED, root = ") + strprintf("%s, %s#", job->block().toHex(), consensus->chain().toHex().substr(0, 10)));
+			// cleanup
+			removeJob(consensus->chain());
+			// finish
+			consensus->finishJob(job);
+			//
 			return;
 		}
 
@@ -412,6 +422,11 @@ void Peer::synchronizePendingBlocks(IConsensusPtr consensus, SynchronizationJobP
 		if (job->cancelled()) {
 			// log
 			if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: pending blocks synchronization job is CANCELLED, root = ") + strprintf("%s, %s#", job->block().toHex(), consensus->chain().toHex().substr(0, 10)));
+			// cleanup
+			removeJob(consensus->chain());
+			// finish
+			consensus->finishJob(job);
+			//
 			return;
 		}
 
@@ -3048,13 +3063,34 @@ void Peer::processBlockById(std::list<DataStream>::iterator msg, const boost::sy
 
 		processed();
 
+		//
+		IConsensusPtr lConsensus = peerManager_->consensusManager()->locate(lBlock->chain());
+		if (!lConsensus) {
+			if (gLog().isEnabled(Log::ERROR)) gLog().write(Log::ERROR, std::string("[peer/error]: chain not found for block ") + strprintf("%s/%s#", lBlock->hash().toHex(), lBlock->chain().toHex().substr(0, 10)) + std::string("..."));
+			return;
+		}
+
+		// log
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing block ") + strprintf("%s/%s#", lBlock->hash().toHex(), lBlock->chain().toHex().substr(0, 10)) + std::string("..."));
+		// check block
+		if (!lConsensus->checkSequenceConsistency(*lBlock)) {
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: block has errors ") + strprintf("%s/%s#", lBlock->hash().toHex(), lBlock->chain().toHex().substr(0, 10)) + std::string("..."));
+			peerManager_->ban(shared_from_this());
+
+			SynchronizationJobPtr lJob = locateJob(lBlock->chain());
+			if (lJob) {
+				lJob->cancel();
+				synchronizePartialTree(peerManager_->consensusManager()->locate(lBlock->chain()), lJob);
+				return;
+			}
+		}
+
+		// save block
+		peerManager_->consensusManager()->locate(lBlock->chain())->store()->saveBlock(lBlock);
+
 		// locate job
 		SynchronizationJobPtr lJob = locateJob(lBlock->chain());
 		if (lJob) {
-			// log
-			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing block ") + strprintf("%s/%s#", lBlock->hash().toHex(), lBlock->chain().toHex().substr(0, 10)) + std::string("..."));
-			// save block
-			peerManager_->consensusManager()->locate(lBlock->chain())->store()->saveBlock(lBlock);
 			// extract next block id
 			uint256 lPrev = lBlock->prev();
 			if (lPrev != BlockHeader().hash()) { // BlockHeader().hash() - final/absent link 
@@ -3565,7 +3601,7 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 		// locate job
 		SynchronizationJobPtr lJob = locateJob(lHeaders.begin()->blockHeader().chain());
 		IConsensusPtr lConsensus = peerManager_->consensusManager()->locate(lHeaders.begin()->blockHeader().chain());
-		if (lJob) {
+		if (lJob && lConsensus) {
 			//
 			bool lChainFound = false;
 			uint256 lNull = BlockHeader().hash();
@@ -3580,6 +3616,20 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 				// log
 				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: process block header from ") + key() + " -> " + 
 					strprintf("%s/%s#", lId.toHex(), lBlockHeader.chain().toHex().substr(0, 10)));
+
+				// check
+				if (!lConsensus->checkSequenceConsistency(lBlockHeader)) {
+					if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: block headers has errors from ") + key() + " -> " + 
+						strprintf("%s/%s#", lId.toHex(), lBlockHeader.chain().toHex().substr(0, 10)));
+					peerManager_->ban(shared_from_this());
+
+					SynchronizationJobPtr lJob = locateJob(lBlockHeader.chain());
+					if (lJob) {
+						lJob->cancel();
+						synchronizeLargePartialTree(lConsensus, lJob);
+						return;
+					}
+				}
 
 				// save
 				lConsensus->store()->saveBlockHeader(lBlockHeader);
@@ -3611,11 +3661,11 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 			}
 
 			// finalize & continue
-			if (!lChainFound && lJob->lastBlock() != lLast) {
+			if (lJob && !lChainFound && lJob->lastBlock() != lLast) {
 				lJob->setNextBlock(lLast);
 			}
 
-			if (lConsensus != nullptr) synchronizeLargePartialTree(lConsensus, lJob);
+			if (lConsensus != nullptr && lJob != nullptr) synchronizeLargePartialTree(lConsensus, lJob);
 		}
 	} else {
 		processError("processBlockHeader", error);
