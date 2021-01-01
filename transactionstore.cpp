@@ -481,7 +481,7 @@ bool TransactionStore::resyncHeight() {
 		if (lHash == lHeader.hash()) {
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight/error]: block data is MISSING for ") + 
 					strprintf("block = %s, chain = %s#", 
-						lHash.toHex(), lHeader.hash().toHex(), chain_.toHex().substr(0, 10)));
+						lHash.toHex(), chain_.toHex().substr(0, 10)));
 		} else {
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight/error]: chain is BROKEN on ") + 
 					strprintf("prev_block = %s, block = %s, chain = %s#", 
@@ -1551,6 +1551,8 @@ void TransactionStore::reindexFull(const uint256& from, IMemoryPoolPtr pool) {
 	// remove index, DO WE need really this? - that is totally new chain
 	removeBlocks(from, BlockHeader().hash(), false);
 
+	//
+	uint256 lLastBlock = lastBlock_;
 	// reset connected wallet cache
 	wallet_->resetCache();	
 	// remove wallet utxo-binding data
@@ -1558,26 +1560,14 @@ void TransactionStore::reindexFull(const uint256& from, IMemoryPoolPtr pool) {
 	// process blocks
 	std::list<BlockContextPtr> lContexts;
 	if (!processBlocks(from, BlockHeader().hash(), lContexts)) {
-		if (lContexts.size()) {
-			std::list<BlockContextPtr>::reverse_iterator lLast = (++lContexts.rbegin());
-			if (lLast != lContexts.rend()) {
-				uint256 lLastBlock = lastBlock_;
-				setLastBlock((*lLast)->block()->hash());
-				// build height map
-				if (!resyncHeight()) {
-					// try to rollback
-					setLastBlock(lLastBlock);
-					resyncHeight();
-				}
-			}
-		}
+		// try to rollback
+		setLastBlock(lLastBlock);
+		resyncHeight();
 	} else {
 		// clean-up
 		for (std::list<BlockContextPtr>::iterator lBlock = lContexts.begin(); lBlock != lContexts.end(); lBlock++) {
 			pool->removeTransactions((*lBlock)->block());
 		}
-		//
-		uint256 lLastBlock = lastBlock_;
 		// new last
 		setLastBlock(from);
 		// build height map
@@ -1658,30 +1648,8 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 		removeBlocks(from, to, false); // in case of wrapped restarts (re-process blocks may occur)
 		// process blocks
 		if (!(lResult = processBlocks(from, to, lContexts))) {
-			if (lContexts.size()) {
-				std::list<BlockContextPtr>::reverse_iterator lLast = (++lContexts.rbegin()); // prev good
-				if (lLast != lContexts.rend()) {
-					setLastBlock((*lLast)->block()->hash());
-					// build height map
-					if (!resyncHeight()) {
-						// rollback
-						setLastBlock(lLastBlock);
-						resyncHeight();
-					}
-				} else {
-					// shift "to" to prev, try to handle
-					BlockHeader lHeader;
-					if (blockHeader(to, lHeader)) {
-						setLastBlock(lHeader.prev());
-						// build height map
-						if (!resyncHeight()) {
-							// rollback
-							setLastBlock(lLastBlock);
-							resyncHeight();
-						}
-					}
-				}
-			}
+			setLastBlock(lLastBlock);
+			resyncHeight();
 		} else {
 			// clean-up
 			for (std::list<BlockContextPtr>::iterator lBlock = lContexts.begin(); lBlock != lContexts.end(); lBlock++) {
