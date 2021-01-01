@@ -84,7 +84,7 @@ public:
 	virtual void doIndex(const uint256& /*block*/) { throw qbit::exception("NOT_IMPL", "IConsensus::doIndex - not implemented."); }
 	virtual bool doIndex(const uint256& /*block*/, const uint256& /*lastFoundBlock*/) { throw qbit::exception("NOT_IMPL", "IConsensus::doIndex - not implemented."); }
 	virtual void doReindex() { throw qbit::exception("NOT_IMPL", "IConsensus::doReindex - not implemented."); }
-	virtual void toNonSynchronized() { throw qbit::exception("NOT_IMPL", "IConsensus::toNonSynchronized - not implemented."); }
+	virtual void toNonSynchronized(bool force = false) { throw qbit::exception("NOT_IMPL", "IConsensus::toNonSynchronized - not implemented."); }
 	virtual void toSynchronizing() { throw qbit::exception("NOT_IMPL", "IConsensus::toSynchronizing - not implemented."); }
 
 	virtual SynchronizationJobPtr lastJob() { throw qbit::exception("NOT_IMPL", "IConsensus::lastJob - not implemented."); }

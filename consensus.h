@@ -1103,12 +1103,12 @@ public:
 
 	//
 	// to non-sync
-	void toNonSynchronized() {
+	void toNonSynchronized(bool force = false) {
 		//
 		{
 			boost::unique_lock<boost::mutex> lLock(transitionMutex_);
 			// NOTICE: if we already synchronizing - do not fallback to non_synchronized
-			if (/*chainState_ == IConsensus::SYNCHRONIZING ||*/ chainState_ == IConsensus::SYNCHRONIZED || chainState_ == IConsensus::UNDEFINED/*|| chainState_ == IConsensus::INDEXING*/) {
+			if (/*chainState_ == IConsensus::SYNCHRONIZING ||*/ chainState_ == IConsensus::SYNCHRONIZED || chainState_ == IConsensus::UNDEFINED/*|| chainState_ == IConsensus::INDEXING*/ || force) {
 				chainState_ = IConsensus::NOT_SYNCHRONIZED;
 			}
 		}
