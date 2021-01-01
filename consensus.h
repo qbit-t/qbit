@@ -283,7 +283,7 @@ public:
 	//
 	// mini-tree for sync
 	// TODO: settings
-	virtual uint32_t partialTreeThreshold() { return 10; }
+	virtual uint32_t partialTreeThreshold() { return 20; }
 
 	//
 	// use peer for network participation
@@ -911,6 +911,7 @@ public:
 							strprintf("%d/%s-%s/%s#", lHeight, lBlock.toHex(), lLast.toHex(), chain_.toHex().substr(0, 10)));
 
 						job_ = SynchronizationJob::instance(lBlock, BlockHeader().hash(), 1000000000000, SynchronizationJob::LARGE_PARTIAL);
+						job_->setResync(); // resync!
 						(*lPeer)->synchronizeLargePartialTree(shared_from_this(), job_);
 						resync_ = false;
 					} else {
