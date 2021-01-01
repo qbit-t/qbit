@@ -244,6 +244,9 @@ public:
 		return pendingBlocks_.size() || txWorkers_.size();
 	}
 
+	void setResync() { resync_ = true; }
+	bool resync() { return resync_; }
+
 private:
 	boost::mutex jobMutex_;
 	uint64_t height_;
@@ -258,6 +261,7 @@ private:
 	std::set<uint256> pendingBlocksIndex_;
 	Type type_;
 	bool cancelled_ = false;
+	bool resync_ = false;
 };
 
 } // qbit

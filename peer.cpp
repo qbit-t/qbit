@@ -3634,10 +3634,20 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 
 				// if not exists -> schedule
 				if (!peerManager_->consensusManager()->locate(lBlockHeader.chain())->store()->blockExists(lId)) {
-					lJob->pushPendingBlock(lId);
 					if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: process block data MISSING from ") + key() + " -> " + 
 						strprintf("%s/%s#", lId.toHex(), lBlockHeader.chain().toHex().substr(0, 10)));
-				} else lJob->registerPendingBlock(lId);
+					lJob->pushPendingBlock(lId);
+				} else {
+					// if resync -> continue up to the end
+					if (!lJob->resync()) {
+						// first link was found
+						if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: up-link block found ") + key() + " -> " + 
+							strprintf("%s/%s#", lId.toHex(), lBlockHeader.chain().toHex().substr(0, 10)));
+						lJob->setLastBlock(lId);
+						lChainFound = true;
+						break;
+					}
+				}
 
 				// check next block id
 				uint256 lPrev = lBlockHeader.prev();
@@ -3649,17 +3659,10 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 					lChainFound = true;
 					break;
 				}
-
-				//
-				if (lJob->lastBlock() == lId) {
-					// found
-					lJob->resetNextBlock();
-					break;
-				}
 			}
 
 			// finalize & continue
-			if (lJob && !lChainFound && lJob->lastBlock() != lLast) {
+			if (lJob && !lChainFound /*&& lJob->lastBlock() != lLast*/) {
 				lJob->setNextBlock(lLast);
 			}
 
