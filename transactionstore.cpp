@@ -415,6 +415,44 @@ bool TransactionStore::setLastBlock(const uint256& block) {
 	return false;
 }
 
+bool TransactionStore::isHeaderReachable(const uint256& from, const uint256& to) {
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
+	//
+	BlockHeader lHeader;
+	uint256 lHash = from;
+
+	//
+	uint256 lNull = BlockHeader().hash();
+
+	//
+	bool lTraced = true;
+	while (headers_.read(lHash, lHeader)) {
+		// reached
+		bool lReached = (lHash == to);
+		// check block data
+		if (blockExists(lHash)) {
+			// check
+			if (lReached) break; // we found hard link
+			// push
+			lHash = lHeader.prev();
+		} else {
+			lTraced = false;
+			break;
+		}
+
+		if (lHash == lNull) {
+			lTraced = false;
+			break;
+		}
+	}
+
+	if (!lTraced) return false;
+	if (lHash == to) return true;
+
+	return false;
+}
+
 bool TransactionStore::resyncHeight() {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
@@ -1566,6 +1604,9 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 	gLog().write(Log::STORE, std::string("[reindex]: STARTING reindex for ") + 
 		strprintf("from = %s, to = %s, %s#", from.toHex(), to.toHex(), chain_.toHex().substr(0, 10)));
 
+	// clean-up from lastBlock_
+	bool lCleanUpLastBlock = true;
+
 	// check for new chain switching
 	if (to == BlockHeader().hash()) {
 		//
@@ -1573,11 +1614,25 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 			strprintf("%s/%s/%s#", from.toHex(), to.toHex(), chain_.toHex().substr(0, 10)));
 	} else {
 		// WARNING: lastBlock AND to MUST be in current chain - otherwise all indexes will be invalidated
-		uint64_t lLastHeight, lToHeight;
-		if (!blockHeight(lastBlock_, lLastHeight) || !blockHeight(to, lToHeight)) {
+		if (!blockExists(lastBlock_) || !blockExists(to)) {
 			//
 			gLog().write(Log::STORE, std::string("[reindex]: partial reindex is NOT POSSIBLE for ") + 
 				strprintf("%s/%s/%s#", lastBlock_.toHex(), to.toHex(), chain_.toHex().substr(0, 10)));
+
+			return false;
+		}
+
+		// check is block headers are traceable from the root
+		if (!(lCleanUpLastBlock = isHeaderReachable(lastBlock_, to))) {
+			//
+			gLog().write(Log::STORE, std::string("[reindex/warning]: partial reindex is POSSIBLE for ") + 
+				strprintf("lastBlock = %s, to = %s/%s#", lastBlock_.toHex(), to.toHex(), chain_.toHex().substr(0, 10)));
+		}
+
+		if (!isHeaderReachable(from, to)) {
+			//
+			gLog().write(Log::STORE, std::string("[reindex]: partial reindex is NOT POSSIBLE for ") + 
+				strprintf("from = %s, to = %s/%s#", from.toHex(), to.toHex(), chain_.toHex().substr(0, 10)));
 
 			return false;
 		}
@@ -1598,7 +1653,7 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 		// synchronizing
 		SynchronizingGuard lGuard(shared_from_this());
 		// remove old index
-		removeBlocks(lastBlock_, to, false);
+		if (lCleanUpLastBlock) removeBlocks(lastBlock_, to, false);
 		// remove new index
 		removeBlocks(from, to, false); // in case of wrapped restarts (re-process blocks may occur)
 		// process blocks

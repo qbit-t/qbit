@@ -473,6 +473,7 @@ private:
 	uint64_t pushNewHeight(const uint256&);
 	uint64_t top();
 	uint64_t calcHeight(const uint256&);
+	bool isHeaderReachable(const uint256&, const uint256&);
 
 private:
 	class SynchronizingGuard {
