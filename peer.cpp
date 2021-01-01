@@ -261,8 +261,6 @@ void Peer::synchronizePartialTree(IConsensusPtr consensus, SynchronizationJobPtr
 			if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: partial synchronization job is CANCELLED, root = ") + strprintf("%s, %s#", job->block().toHex(), consensus->chain().toHex().substr(0, 10)));
 			// cleanup
 			removeJob(consensus->chain());
-			// finish
-			consensus->finishJob(job);
 			//
 			return;
 		}
@@ -290,6 +288,8 @@ void Peer::synchronizePartialTree(IConsensusPtr consensus, SynchronizationJobPtr
 					// log
 					if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: partial reindex FAILED skipping subtree switching, root = ") + strprintf("%s, %s#", job->block().toHex(), consensus->chain().toHex().substr(0, 10)));
 				}
+			} else {
+				consensus->toNonSynchronized(true);
 			}
 
 			return;
@@ -368,8 +368,6 @@ void Peer::synchronizeLargePartialTree(IConsensusPtr consensus, SynchronizationJ
 			if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: large pending blocks synchronization job is CANCELLED, root = ") + strprintf("%s, %s#", job->block().toHex(), consensus->chain().toHex().substr(0, 10)));
 			// cleanup
 			removeJob(consensus->chain());
-			// finish
-			consensus->finishJob(job);
 			//
 			return;
 		}
@@ -424,8 +422,6 @@ void Peer::synchronizePendingBlocks(IConsensusPtr consensus, SynchronizationJobP
 			if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: pending blocks synchronization job is CANCELLED, root = ") + strprintf("%s, %s#", job->block().toHex(), consensus->chain().toHex().substr(0, 10)));
 			// cleanup
 			removeJob(consensus->chain());
-			// finish
-			consensus->finishJob(job);
 			//
 			return;
 		}
@@ -466,6 +462,8 @@ void Peer::synchronizePendingBlocks(IConsensusPtr consensus, SynchronizationJobP
 						// log
 						if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: partial reindex FAILED skipping subtree switching, root = ") + strprintf("%s, %s#", job->block().toHex(), consensus->chain().toHex().substr(0, 10)));
 					}
+				} else {
+					consensus->toNonSynchronized(true);
 				}
 
 				return;
