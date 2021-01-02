@@ -646,7 +646,6 @@ void TransactionStore::removeBlocks(const uint256& from, const uint256& to, bool
 				//
 				if (extension_) extension_->removeTransaction(*lTx);
 
-				//
 				if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[removeBlocks]: ") +
 					strprintf("removing tx index %s/%s/%s#", (*lTx)->id().toHex(), lHash.toHex(), chain_.toHex().substr(0, 10)));
 
