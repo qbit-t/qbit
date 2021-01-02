@@ -3638,6 +3638,8 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 						strprintf("%s/%s#", lId.toHex(), lBlockHeader.chain().toHex().substr(0, 10)));
 					lJob->pushPendingBlock(lId);
 				} else {
+					lJob->registerPendingBlock(lId);
+					/*
 					// if resync -> continue up to the end
 					if (!lJob->resync()) {
 						// first link was found
@@ -3647,6 +3649,7 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 						lChainFound = true;
 						break;
 					}
+					*/
 				}
 
 				// check next block id
@@ -3659,10 +3662,17 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 					lChainFound = true;
 					break;
 				}
+
+				if (lJob->lastBlock() == lLast) {
+					lJob->setLastBlock(lLast);
+					lChainFound = true;
+					// NOTICE: continue with this frame
+					// break;
+				}
 			}
 
 			// finalize & continue
-			if (lJob && !lChainFound /*&& lJob->lastBlock() != lLast*/) {
+			if (lJob && !lChainFound) {
 				lJob->setNextBlock(lLast);
 			}
 

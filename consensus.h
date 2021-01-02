@@ -283,7 +283,7 @@ public:
 	//
 	// mini-tree for sync
 	// TODO: settings
-	virtual uint32_t partialTreeThreshold() { return 20; }
+	virtual uint32_t partialTreeThreshold() { return 10; }
 
 	//
 	// use peer for network participation
@@ -928,6 +928,14 @@ public:
 							}
 						} else if (lHeight > lOurHeight && lHeight - lOurHeight < partialTreeThreshold()) {
 							//
+							/*
+							BlockHeader lConfirmed;
+							if (store_->blockHeader(lOurHeight - coinbaseMaturity(), lConfirmed)) {
+								lLast = lConfirmed.hash();
+								lOurHeight -= coinbaseMaturity();
+							}
+							*/
+							//
 							std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); // just first?
 							if (!job_ || job_->nextBlockInstant().isNull()) { 
 								if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[doSynchronize]: starting PARTIAL tree synchronization ") + 
@@ -938,6 +946,12 @@ public:
 						} else {
 							std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); // just first?
 							if (!job_ || job_->nextBlockInstant().isNull()) { 
+								//
+								BlockHeader lConfirmed;
+								if (store_->blockHeader(lOurHeight - coinbaseMaturity(), lConfirmed)) {
+									lLast = lConfirmed.hash();
+									lOurHeight -= coinbaseMaturity();
+								}
 								//
 								if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[doSynchronize]: starting LARGE PARTIAL tree synchronization ") + 
 									strprintf("%d/%s-%s/%s#", lHeight, lBlock.toHex(), lLast.toHex(), chain_.toHex().substr(0, 10)));
