@@ -131,8 +131,10 @@ private:
 		// start miner
 		if (consensus_->settings()->isMiner() && !minerRunning_) {
 			BlockHeader lHeader = store_->currentBlockHeader();
-			if (lHeader.hash() != currentBlockHeader_.hash() || 
-						consensus_->currentTime() - currentBlockHeader_.time() >= (consensus_->blockTime() / 1000)) {
+			if (currentBlockHeader_.origin() != lHeader.origin() && !consensus_->isSimpleNetwork() || 
+					consensus_->isSimpleNetwork()
+				/*lHeader.hash() != currentBlockHeader_.hash() || 
+						consensus_->currentTime() - currentBlockHeader_.time() >= (consensus_->blockTime() / 1000)*/) {
 				if (!miner_) miner_ = boost::shared_ptr<boost::thread>(
 							new boost::thread(
 								boost::bind(&MiningValidator::miner, shared_from_this())));
