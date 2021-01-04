@@ -23,7 +23,7 @@ DEFINES += QBIT_VERSION_BUILD=1
 DEFINES += BUZZER_MOD
 DEFINES += CUBIX_MOD
 # remove for production
-# DEFINES += PRODUCTION_MO
+DEFINES += PRODUCTION_MO
 
 SOURCES += \
     ../../secp256k1/src/secp256k1.c \
