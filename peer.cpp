@@ -266,7 +266,13 @@ void Peer::synchronizePartialTree(IConsensusPtr consensus, SynchronizationJobPtr
 		}
 
 		// register job
-		addJob(consensus->chain(), job);
+		if (!addJob(consensus->chain(), job)) {
+			// log
+			if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: partial synchronization job is EXISTS, root = ") + strprintf("%s, %s#", job->block().toHex(), consensus->chain().toHex().substr(0, 10)));
+			//
+			return;
+		}
+
 		//
 		uint256 lId = job->nextBlock();
 		if (lId.isNull()) {
@@ -385,7 +391,14 @@ void Peer::synchronizeLargePartialTree(IConsensusPtr consensus, SynchronizationJ
 		}
 
 		// register job
-		addJob(consensus->chain(), job);
+		if (!addJob(consensus->chain(), job)) {
+			// log
+			if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: large pending blocks synchronization job is EXISTS, root = ") + strprintf("%s, %s#", job->block().toHex(), consensus->chain().toHex().substr(0, 10)));
+			// cleanup
+			removeJob(consensus->chain());
+			//
+			return;			
+		}
 
 		// new message
 		std::list<DataStream>::iterator lMsg = newOutMessage();
@@ -427,7 +440,12 @@ void Peer::synchronizePendingBlocks(IConsensusPtr consensus, SynchronizationJobP
 		}
 
 		// register job
-		addJob(consensus->chain(), job);
+		if (!addJob(consensus->chain(), job)) {
+			// log
+			if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: pending blocks synchronization job is EXISTS, root = ") + strprintf("%s, %s#", job->block().toHex(), consensus->chain().toHex().substr(0, 10)));
+			//
+			return;
+		}
 
 		// try to expand current job to active peers
 		consensus->expandJob(job);

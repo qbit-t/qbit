@@ -417,8 +417,6 @@ bool TransactionStore::setLastBlock(const uint256& block) {
 
 bool TransactionStore::isHeaderReachable(const uint256& from, const uint256& to) {
 	//
-	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
-	//
 	BlockHeader lHeader;
 	uint256 lHash = from;
 
@@ -455,8 +453,6 @@ bool TransactionStore::isHeaderReachable(const uint256& from, const uint256& to)
 
 bool TransactionStore::resyncHeight() {
 	//
-	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
-	//
 	BlockHeader lHeader;
 	uint256 lHash = lastBlock_;
 	uint64_t lIndex = 0;
@@ -467,6 +463,11 @@ bool TransactionStore::resyncHeight() {
 	//
 	std::list<uint256> lSeq;
 	while (lHash != lNull && headers_.read(lHash, lHeader)) {
+		// push
+		lSeq.push_back(lHash);
+		lHash = lHeader.prev();
+
+		/*
 		// check block data
 		if (blockExists(lHash)) {
 			// push
@@ -475,14 +476,18 @@ bool TransactionStore::resyncHeight() {
 		} else {
 			break;
 		}
+		*/
 	}
 
 	if (lHash != lNull && !lastBlock_.isNull()) {
+		/*
 		if (lHash == lHeader.hash()) {
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight/error]: block data is MISSING for ") + 
 					strprintf("block = %s, chain = %s#", 
 						lHash.toHex(), chain_.toHex().substr(0, 10)));
-		} else {
+		} else 
+		*/
+		{
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight/error]: chain is BROKEN on ") + 
 					strprintf("prev_block = %s, block = %s, chain = %s#", 
 						lHash.toHex(), lHeader.hash().toHex(), chain_.toHex().substr(0, 10)));
@@ -492,12 +497,17 @@ bool TransactionStore::resyncHeight() {
 	}
 
 	//
-	heightMap_.clear();
-	blockMap_.clear();
+	{
+		boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
 
-	for (std::list<uint256>::reverse_iterator lIter = lSeq.rbegin(); lIter != lSeq.rend(); lIter++) {
-		heightMap_.insert(std::map<uint64_t, uint256>::value_type(++lIndex, *lIter));
-		blockMap_.insert(std::map<uint256, uint64_t>::value_type(*lIter, lIndex));
+		//
+		heightMap_.clear();
+		blockMap_.clear();
+
+		for (std::list<uint256>::reverse_iterator lIter = lSeq.rbegin(); lIter != lSeq.rend(); lIter++) {
+			heightMap_.insert(std::map<uint64_t, uint256>::value_type(++lIndex, *lIter));
+			blockMap_.insert(std::map<uint256, uint64_t>::value_type(*lIter, lIndex));
+		}
 	}
 
 	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight]: current ") + strprintf("height = %d, block = %s, chain = %s#", lIndex, lastBlock_.toHex(), chain_.toHex().substr(0, 10)));
@@ -1487,7 +1497,7 @@ void TransactionStore::saveBlock(BlockPtr block) {
 	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[saveBlock]: saving block ") +
 		strprintf("%s/%s#", block->hash().toHex(), chain_.toHex().substr(0, 10)));
 	//
-	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
+	// boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
 	//
 	// WARNING: should not ever be called from mining circle
 	//
@@ -1650,12 +1660,18 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 			setLastBlock(lLastBlock);
 			resyncHeight();
 		} else {
+			//
+			gLog().write(Log::STORE, std::string("[reindex]: blocks processed for ") + 
+				strprintf("%s#", chain_.toHex().substr(0, 10)));
 			// clean-up
 			for (std::list<BlockContextPtr>::iterator lBlock = lContexts.begin(); lBlock != lContexts.end(); lBlock++) {
 				pool->removeTransactions((*lBlock)->block());
 			}
 			// point to the last block
 			setLastBlock(from);
+			// resync height
+			gLog().write(Log::STORE, std::string("[reindex]: resyncing height for ") + 
+				strprintf("%s#", chain_.toHex().substr(0, 10)));
 			// build height map
 			if (!resyncHeight()) {
 				// rollback

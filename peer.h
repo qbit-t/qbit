@@ -560,10 +560,15 @@ private:
 
 	bool addJob(const uint256& chain, SynchronizationJobPtr job) {
 		boost::unique_lock<boost::mutex> lLock(jobsMutex_);
-		//if (jobs_.find(chain) == jobs_.end()) { jobs_[chain] = job; return true; }
-		jobs_.erase(chain);
-		jobs_[chain] = job;
-		return true;
+		std::map<uint256, SynchronizationJobPtr>::iterator lJob = jobs_.find(chain);
+		if (lJob == jobs_.end()) { jobs_[chain] = job; return true; }
+		else {
+			return lJob->second->unique() == job->unique();
+		}
+		
+		//jobs_.erase(chain);
+		//jobs_[chain] = job;
+		return false;
 	}
 
 	void removeJob(const uint256& chain) {
