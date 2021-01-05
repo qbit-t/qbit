@@ -48,6 +48,8 @@ public:
 
 	Type type() { return type_; }
 
+	uint64_t unique() { return timestamp_; }
+
 	std::string typeString() {
 		switch(type_) {
 			case FULL: return "FULL";
@@ -262,6 +264,7 @@ private:
 	Type type_;
 	bool cancelled_ = false;
 	bool resync_ = false;
+	uint64_t timestamp_ = qbit::getMicroseconds();
 };
 
 } // qbit
