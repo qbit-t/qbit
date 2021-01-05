@@ -37,6 +37,7 @@ public:
 
 	virtual void postpone(IPeerPtr /*peer*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::postpone - not implemented."); }
 	virtual void ban(IPeerPtr /*peer*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::ban - not implemented."); }
+	virtual void release(const std::string& /*endpoint*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::ban - not implemented."); }
 
 	virtual void run() { throw qbit::exception("NOT_IMPL", "IPeerManager::run - not implemented."); }
 	virtual void stop() { throw qbit::exception("NOT_IMPL", "IPeerManager::stop - not implemented."); }

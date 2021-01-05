@@ -61,7 +61,10 @@ public:
 			std::map<std::string /*endpoint*/, IPeerPtr>::iterator lPeerIter = lChannel->second.find(endpoint);
 			if (lPeerIter != lChannel->second.end() && banned_[lChannel->first].find(endpoint) != banned_[lChannel->first].end())
 				return true;
+		}
 
+		{
+			boost::unique_lock<boost::recursive_mutex> lLock(peersIdxMutex_);
 			// check banned hosts
 			std::vector<std::string> lParts;
 			boost::split(lParts, endpoint, boost::is_any_of(":"), boost::token_compress_on);
@@ -734,6 +737,12 @@ public:
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::INFO, std::string("[peerManager]: quarantine peer ") + peer->key());
 	}
 
+	void release(const std::string& endpoint) {
+		//
+		boost::unique_lock<boost::recursive_mutex> lLock(peersIdxMutex_);
+		bannedEndpoins_.erase(endpoint);
+	}
+
 	void ban(IPeerPtr peer) {
 		bool lPop = false;
 		{
@@ -754,18 +763,23 @@ public:
 			if (peer->state()->client()) {
 				removePeer(peer);
 			} else {
-				boost::unique_lock<boost::recursive_mutex> lLock(contextMutex_[peer->contextId()]);
-				peer->toBan();
-				quarantine_[peer->contextId()].erase(peer->key());
-				active_[peer->contextId()].erase(peer->key());
-				banned_[peer->contextId()].insert(peer->key());
-				inactive_[peer->contextId()].erase(peer->key());
+				{
+					boost::unique_lock<boost::recursive_mutex> lLock(contextMutex_[peer->contextId()]);
+					peer->toBan();
+					quarantine_[peer->contextId()].erase(peer->key());
+					active_[peer->contextId()].erase(peer->key());
+					banned_[peer->contextId()].insert(peer->key());
+					inactive_[peer->contextId()].erase(peer->key());
+				}
 
-				std::vector<std::string> lParts;
-				boost::split(lParts, peer->key(), boost::is_any_of(":"), boost::token_compress_on);
+				{
+					boost::unique_lock<boost::recursive_mutex> lLock(peersIdxMutex_);
+					std::vector<std::string> lParts;
+					boost::split(lParts, peer->key(), boost::is_any_of(":"), boost::token_compress_on);
 
-				if (lParts.size() == 2) {
-					bannedEndpoins_.insert(lParts[0]); // push host
+					if (lParts.size() == 2) {
+						bannedEndpoins_.insert(lParts[0]); // push host
+					}
 				}
 			}
 		}
