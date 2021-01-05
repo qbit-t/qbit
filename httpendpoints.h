@@ -94,6 +94,18 @@ public:
 	}
 };
 
+class HttpReleasePeer: public IHttpCallEnpoint {
+public:
+	HttpReleasePeer() {}
+
+	void process(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
+	std::string method() { return std::string("releasepeer"); }
+
+	static IHttpCallEnpointPtr instance() {
+		return std::make_shared<HttpReleasePeer>();
+	}
+};
+
 class HttpGetState: public IHttpCallEnpoint {
 public:
 	HttpGetState() {}
