@@ -559,7 +559,13 @@ void Wallet::collectUnlinkedOutsByAsset(const uint256& asset, amount_t amount, s
 	if (lAsset != assetsCache_.end()) {
 		for (std::multimap<amount_t /*amount*/, uint256 /*utxo*/>::reverse_iterator lAmount = lAsset->second.rbegin(); 
 			lAmount != lAsset->second.rend();) {
-			
+						
+			//
+			if (!lAmount->first) {
+				lAmount++;
+				continue;
+			}
+
 			Transaction::UnlinkedOutPtr lUtxo = findUnlinkedOut(lAmount->second);
 			if (lUtxo == nullptr) {
 				// delete from store
