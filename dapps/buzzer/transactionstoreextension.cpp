@@ -2454,19 +2454,21 @@ void BuzzerTransactionStoreExtension::selectEventsfeed(uint64_t from, const uint
 					*lFromEvent == TX_BUZZER_MESSAGE || *lFromEvent == TX_BUZZER_MESSAGE_REPLY) {
 					//
 					uint256 lPublisher = lTx->in()[TX_BUZZ_REPLY_MY_IN].out().tx();
-					//
-					TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lPublisher);
-					if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
-					//
-					EventsfeedItemPtr lItem = makeEventsfeedItem(lBuzzer, lTx, lMainStore, lRawBuzzfeed, lBuzzItems);
-					//
-					if (lItem && (*lFromEvent == TX_BUZZER_MESSAGE || *lFromEvent == TX_BUZZER_MESSAGE_REPLY)) {
+					if (lPublisher != subscriber) {
 						//
-						uint256 lConversationId = lTx->in()[TX_BUZZER_CONVERSATION_IN].out().tx();
-						uint256 lConversationChain = lTx->in()[TX_BUZZER_CONVERSATION_IN].out().chain();
+						TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lPublisher);
+						if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
 						//
-						lItem->beginInfo()->setEventId(lConversationId);
-						lItem->beginInfo()->setEventChainId(lConversationChain);
+						EventsfeedItemPtr lItem = makeEventsfeedItem(lBuzzer, lTx, lMainStore, lRawBuzzfeed, lBuzzItems);
+						//
+						if (lItem && (*lFromEvent == TX_BUZZER_MESSAGE || *lFromEvent == TX_BUZZER_MESSAGE_REPLY)) {
+							//
+							uint256 lConversationId = lTx->in()[TX_BUZZER_CONVERSATION_IN].out().tx();
+							uint256 lConversationChain = lTx->in()[TX_BUZZER_CONVERSATION_IN].out().chain();
+							//
+							lItem->beginInfo()->setEventId(lConversationId);
+							lItem->beginInfo()->setEventChainId(lConversationChain);
+						}
 					}
 				} else if (*lFromEvent == TX_BUZZ_LIKE) {
 					//
