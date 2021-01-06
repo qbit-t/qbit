@@ -2033,20 +2033,26 @@ void HttpGetState::process(const std::string& source, const HttpRequest& request
 			// sync job
 			IConsensus::ChainState lState = lConsensus->chainState();
 			if (lState == IConsensus::SYNCHRONIZING) {
+				SynchronizationJobPtr lJob = nullptr;
 				for (std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
 					//
 					if ((*lPeer)->status() == IPeer::ACTIVE) {
 						//
-						SynchronizationJobPtr lJob = (*lPeer)->locateJob(lInfo->chain());
-						if (lJob) {
-							json::Value lSyncObject = lChain.addObject("synchronization");
-							lSyncObject.addString("type",lJob->typeString());
-							if (lJob->type() != SynchronizationJob::PARTIAL)
-								lSyncObject.addUInt64("remains",lJob->pendingBlocks());
-
-							break;
+						SynchronizationJobPtr lNewJob = (*lPeer)->locateJob(lInfo->chain());
+						if (!lJob) lJob = lNewJob;
+						else if (lNewJob && lJob && lJob->timestamp() > lNewJob->timestamp()) {
+							lJob = lNewJob;
 						}
 					}
+				}
+
+				if (lJob) {
+					json::Value lSyncObject = lChain.addObject("synchronization");
+					lSyncObject.addString("type",lJob->typeString());
+					if (lJob->type() != SynchronizationJob::PARTIAL)
+						lSyncObject.addUInt64("remains",lJob->pendingBlocks());
+
+					break;
 				}
 			}
 		}
