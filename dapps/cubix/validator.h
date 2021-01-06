@@ -349,7 +349,8 @@ private:
 		// life control
 		if(!error) {
 			//
-			if (consensus_->settings()->reindex() && !reindexed_) {
+			if (consensus_->settings()->reindex() && !reindexed_ &&
+					consensus_->consensusManager()->locate(MainChain::id())->chainState() == IConsensus::SYNCHRONIZED) {
 				// stop miner
 				stopMiner();
 				//
@@ -360,7 +361,8 @@ private:
 				reindexed_ = true;
 			}
 
-			if (consensus_->settings()->resync() && !reindexed_) {
+			if (consensus_->settings()->resync() && !reindexed_ &&
+					consensus_->consensusManager()->locate(MainChain::id())->chainState() == IConsensus::SYNCHRONIZED) {
 				// stop miner
 				stopMiner();
 				//
@@ -382,7 +384,8 @@ private:
 			if (lState != IConsensus::SYNCHRONIZED && lState != IConsensus::SYNCHRONIZING && lState != IConsensus::INDEXING) {
 				//
 				if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[cubix/touch]: chain ") + strprintf("%s#", chain_.toHex().substr(0, 10)) + std::string(" NOT synchronized, starting synchronization..."));
-				if (consensus_->doSynchronize()) {
+				if (consensus_->consensusManager()->locate(MainChain::id())->chainState() == IConsensus::SYNCHRONIZED &&
+						consensus_->doSynchronize()) {
 					// already synchronized
 					if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[cubix/touch]: chain ") + strprintf("%s#", chain_.toHex().substr(0, 10)) + std::string(" IS synchronized."));
 					startMiner();
