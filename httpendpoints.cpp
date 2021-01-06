@@ -2051,8 +2051,6 @@ void HttpGetState::process(const std::string& source, const HttpRequest& request
 					lSyncObject.addString("type",lJob->typeString());
 					if (lJob->type() != SynchronizationJob::PARTIAL)
 						lSyncObject.addUInt64("remains",lJob->pendingBlocks());
-
-					break;
 				}
 			}
 		}
