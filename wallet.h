@@ -267,6 +267,8 @@ private:
 	// cache
 	// utxo/data
 	std::map<uint256 /*utxo*/, Transaction::UnlinkedOutPtr /*data*/> utxoCache_; // optionally
+	// asset presence
+	std::set<uint256 /*utxo*/> assetsUtxoPresence_;
 	// asset/utxo/data
 	std::map<uint256 /*asset*/, std::multimap<amount_t /*amount*/, uint256 /*utxo*/>> assetsCache_;
 	// entity/utxo/data

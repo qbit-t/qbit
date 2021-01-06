@@ -148,14 +148,18 @@ bool Wallet::prepareCache() {
 			if (utxo_.read(lUtxoId, lUtxo)) {
 				// if utxo exists
 				if (isUnlinkedOutExistsGlobal(lUtxoId, lUtxo)) {
-					// utxo exists
-					Transaction::UnlinkedOutPtr lUtxoPtr = Transaction::UnlinkedOut::instance(lUtxo);
-					
-					// cache it
-					cacheUtxo(lUtxoPtr);
+					//
+					if (assetsUtxoPresence_.find(lUtxoId) == assetsUtxoPresence_.end()) {
+						// utxo exists
+						Transaction::UnlinkedOutPtr lUtxoPtr = Transaction::UnlinkedOut::instance(lUtxo);
+						
+						// cache it
+						cacheUtxo(lUtxoPtr);
 
-					// make map
-					assetsCache_[lAssetId].insert(std::multimap<amount_t, uint256>::value_type(lUtxo.amount(), lUtxoId));
+						// make map
+						assetsCache_[lAssetId].insert(std::multimap<amount_t, uint256>::value_type(lUtxo.amount(), lUtxoId));
+						assetsUtxoPresence_.insert(lUtxoId);
+					}
 				} else {
 					lUtxoTransaction.remove(lUtxoId);
 				}
@@ -265,7 +269,9 @@ bool Wallet::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, TransactionContex
 		//
 		{
 			boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
-			assetsCache_[lAssetId].insert(std::multimap<amount_t, uint256>::value_type(utxo->amount(), lUtxoId));
+			if (assetsUtxoPresence_.insert(lUtxoId).second) {
+				assetsCache_[lAssetId].insert(std::multimap<amount_t, uint256>::value_type(utxo->amount(), lUtxoId));
+			}
 		}
 
 		// update assets db
@@ -329,6 +335,7 @@ bool Wallet::popUnlinkedOut(const uint256& hash, TransactionContextPtr ctx) {
 				for (std::multimap<amount_t /*amount*/, uint256 /*utxo*/>::iterator lItem = lRange.first; lItem != lRange.second; lItem++) {
 					if (lItem->second == hash) {
 						lAsset->second.erase(lItem);
+						assetsUtxoPresence_.erase(hash);
 						break;
 					}
 				}
@@ -425,6 +432,7 @@ Transaction::UnlinkedOutPtr Wallet::findUnlinkedOutByAsset(const uint256& asset,
 				if (lUtxo == nullptr) {
 					// delete from store
 					utxo_.remove(lAmount->second);
+					assetsUtxoPresence_.erase(lAmount->second);
 					lAsset->second.erase(lAmount);
 				} else {
 					return lUtxo;
@@ -470,6 +478,7 @@ void Wallet::balance(const uint256& asset, amount_t& pending, amount_t& actual) 
 							strprintf("utxo NOT FOUND %s/%s", lAmount->second.toHex(), asset.toHex()));
 				// delete from store
 				utxo_.remove(lAmount->second);
+				assetsUtxoPresence_.erase(lAmount->second);
 				lAsset->second.erase(lAmount);
 				lAmount++;
 			} else {
@@ -545,6 +554,7 @@ void Wallet::collectUnlinkedOutsByAsset(const uint256& asset, amount_t amount, s
 			if (lUtxo == nullptr) {
 				// delete from store
 				utxo_.remove(lAmount->second);
+				assetsUtxoPresence_.erase(lAmount->second);
 				lAsset->second.erase(std::next(lAmount).base());
 				continue;
 			}
@@ -720,7 +730,8 @@ bool Wallet::rollback(TransactionContextPtr ctx) {
 				}
 
 				if (!lFound) {
-					assetsCache_[lAssetId].insert(std::multimap<amount_t, uint256>::value_type((*lUtxo)->amount(), lUtxoId));
+					if (assetsUtxoPresence_.insert(lUtxoId).second)
+						assetsCache_[lAssetId].insert(std::multimap<amount_t, uint256>::value_type((*lUtxo)->amount(), lUtxoId));
 				}
 
 			} else if (ctx->tx()->isEntity(*lUtxo)) {
