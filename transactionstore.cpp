@@ -1507,9 +1507,18 @@ void TransactionStore::saveBlock(BlockPtr block) {
 	// write block header
 	headers_.write(lHash, lHeader);
 	// write block transactions
-	transactions_.write(lHash, block->blockTransactions());
+	transactions_.write(lHash, block->blockTransactions());	
 	// remove
 	dequeueBlock(lHash);
+	// tx to block|index
+	uint32_t lIndex = 0;
+	for(TransactionsContainer::iterator lTx = block->transactions().begin(); lTx != block->transactions().end(); lTx++) {
+		//
+		//if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[saveBlock]: writing index ") +
+		//	strprintf("%s/block(%d/%s)/%s#", (*lTx)->id().toHex(), lIndex, lHash.toHex(), chain_.toHex().substr(0, 10)));
+		//
+		transactionsIdx_.write((*lTx)->id(), TxBlockIndex(lHash, lIndex++));
+	}
 }
 
 void TransactionStore::saveBlockHeader(const BlockHeader& header) {
