@@ -525,10 +525,14 @@ void Wallet::balance(const uint256& asset, amount_t& pending, amount_t& actual) 
 						} else {
 							gLog().write(Log::WALLET, std::string("[balance]: transaction not found ") + 
 								strprintf("%s/%s#", lUtxo->out().tx().toHex(), lUtxo->out().chain().toHex().substr(0, 10)));
+							lAmount++;
+							continue; // skip UTXO
 						}
 					} else {
 						gLog().write(Log::WALLET, std::string("[collectUnlinkedOutsByAsset]: storage not found for ") + 
 							strprintf("%s#", lUtxo->out().chain().toHex().substr(0, 10)));
+						lAmount++;
+						continue; // skip UTXO
 					}
 				}
 
