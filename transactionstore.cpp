@@ -570,23 +570,20 @@ bool TransactionStore::resyncHeight(const uint256& to) {
 			// build up
 			lIter = ++(lSeq.rbegin()); // next from "to"
 			for (; lIter != lSeq.rend(); lIter++) {
-				std::map<uint256, uint64_t>::iterator lBlockIter = blockMap_.find(*lIter);
-				if (lBlockIter != blockMap_.end()) { 
-					if (!heightMap_.insert(std::map<uint64_t, uint256>::value_type(++lLastIndex, *lIter)).second) {
-						lFull = true;
-						if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight/partial/warning]: height map is not clean, making FULL resync for ") + 
-								strprintf("to = %s, last = %s, chain = %s#", 
-									to.toHex(), lastBlock_.toHex(), chain_.toHex().substr(0, 10)));
-						break;
-					}
+				if (!heightMap_.insert(std::map<uint64_t, uint256>::value_type(++lLastIndex, *lIter)).second) {
+					lFull = true;
+					if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight/partial/warning]: height map is not clean, making FULL resync for ") + 
+							strprintf("to = %s, last = %s, chain = %s#", 
+								to.toHex(), lastBlock_.toHex(), chain_.toHex().substr(0, 10)));
+					break;
+				}
 
-					if (!blockMap_.insert(std::map<uint256, uint64_t>::value_type(*lIter, lLastIndex)).second) {
-						lFull = true;
-						if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight/partial/warning]: block map is not clean, making FULL resync for ") + 
-								strprintf("to = %s, last = %s, chain = %s#", 
-									to.toHex(), lastBlock_.toHex(), chain_.toHex().substr(0, 10)));
-						break;
-					}
+				if (!blockMap_.insert(std::map<uint256, uint64_t>::value_type(*lIter, lLastIndex)).second) {
+					lFull = true;
+					if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight/partial/warning]: block map is not clean, making FULL resync for ") + 
+							strprintf("to = %s, last = %s, chain = %s#", 
+								to.toHex(), lastBlock_.toHex(), chain_.toHex().substr(0, 10)));
+					break;
 				}
 			}
 		} else {
