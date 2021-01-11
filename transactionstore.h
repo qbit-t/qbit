@@ -417,6 +417,7 @@ public:
 	Transaction::UnlinkedOutPtr findLinkedOut(const uint256&);
 
 	bool resyncHeight();
+	bool resyncHeight(const uint256&);
 
 	void erase(const uint256& /*from*/, const uint256& /*to*/); // erase indexes, reverse order (native)
 	void remove(const uint256& /*from*/, const uint256& /*to*/); // remove indexes with data (headers, transactions), reverse order (native)
