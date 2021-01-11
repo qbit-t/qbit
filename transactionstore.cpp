@@ -515,6 +515,100 @@ bool TransactionStore::resyncHeight() {
 	return true;
 }
 
+bool TransactionStore::resyncHeight(const uint256& to) {
+	//
+	BlockHeader lHeader;
+	uint256 lHash = lastBlock_;
+	uint64_t lIndex = 0;
+	uint32_t lPartialTree = 0;
+
+	//
+	IMemoryPoolPtr lMempool = wallet_->mempoolManager()->locate(chain_);
+	lPartialTree = (lMempool ? lMempool->consensus()->partialTreeThreshold() : 10);
+
+	//
+	uint256 lNull = BlockHeader().hash();
+
+	//
+	std::list<uint256> lSeq;
+	while (lHash != lNull && headers_.read(lHash, lHeader)) {
+		// push
+		lSeq.push_back(lHash);
+
+		// check
+		if (lHash == to) break;
+
+		// next
+		lHash = lHeader.prev();
+	}
+
+	if ((lHash != lNull || lHash != to) && !lastBlock_.isNull()) {
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight/partial/error]: chain is BROKEN on ") + 
+				strprintf("prev_block = %s, block = %s, chain = %s#", 
+					lHash.toHex(), lHeader.hash().toHex(), chain_.toHex().substr(0, 10)));
+
+		return false;
+	}
+
+	//
+	bool lFull = false;
+	if (lSeq.size() <= lPartialTree && lSeq.size()) {
+		// partial resync
+		boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
+		// locate last index
+		uint64_t lLastIndex = 0;
+		std::map<uint256, uint64_t>::iterator lBlockPtr = blockMap_.find(*lSeq.rbegin());
+		if (lBlockPtr != blockMap_.end()) {
+			// "to" found
+			lLastIndex = lBlockPtr->second; // "to" index
+			// clean-up
+			std::list<uint256>::reverse_iterator lIter = ++(lSeq.rbegin()); // next from "to"
+			for (; lIter != lSeq.rend(); lIter++) {
+				std::map<uint256, uint64_t>::iterator lBlockIter = blockMap_.find(*lIter);
+				if (lBlockIter != blockMap_.end()) { 
+					heightMap_.erase(lBlockIter->second);
+					blockMap_.erase(lBlockIter);
+				}
+			}
+			// build up
+			lIter = ++(lSeq.rbegin()); // next from "to"
+			for (; lIter != lSeq.rend(); lIter++) {
+				std::map<uint256, uint64_t>::iterator lBlockIter = blockMap_.find(*lIter);
+				if (lBlockIter != blockMap_.end()) { 
+					if (!heightMap_.insert(std::map<uint64_t, uint256>::value_type(++lLastIndex, *lIter)).second) {
+						lFull = true;
+						if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight/partial/warning]: height map is not clean, making FULL resync for ") + 
+								strprintf("to = %s, last = %s, chain = %s#", 
+									to.toHex(), lastBlock_.toHex(), chain_.toHex().substr(0, 10)));
+						break;
+					}
+
+					if (!blockMap_.insert(std::map<uint256, uint64_t>::value_type(*lIter, lIndex)).second) {
+						lFull = true;
+						if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight/partial/warning]: block map is not clean, making FULL resync for ") + 
+								strprintf("to = %s, last = %s, chain = %s#", 
+									to.toHex(), lastBlock_.toHex(), chain_.toHex().substr(0, 10)));
+						break;
+					}
+				}
+			}
+		} else {
+			// full resync
+			lFull = true;
+			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight/partial/warning]: root was not found, making FULL resync for ") + 
+					strprintf("to = %s, chain = %s#", 
+						to.toHex(), chain_.toHex().substr(0, 10)));
+		}
+	}
+
+	//
+	if (lFull) return resyncHeight();
+	//
+	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight/partial]: current ") + strprintf("height = %d, block = %s, chain = %s#", lIndex, lastBlock_.toHex(), chain_.toHex().substr(0, 10)));
+
+	return true;
+}
+
 uint64_t TransactionStore::calcHeight(const uint256& from) {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
@@ -1667,7 +1761,8 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 		// process blocks
 		if (!(lResult = processBlocks(from, to, lContexts))) {
 			setLastBlock(lLastBlock);
-			resyncHeight();
+			// NOTICE: height map was not changed
+			// resyncHeight();
 		} else {
 			//
 			gLog().write(Log::STORE, std::string("[reindex]: blocks processed for ") + 
@@ -1681,11 +1776,11 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 			// resync height
 			gLog().write(Log::STORE, std::string("[reindex]: resyncing height for ") + 
 				strprintf("%s#", chain_.toHex().substr(0, 10)));
-			// build height map
-			if (!resyncHeight()) {
+			//
+			if (!resyncHeight(to)) {
 				// rollback
 				setLastBlock(lLastBlock);
-				resyncHeight();
+				resyncHeight(to);
 			}
 		}
 	}
