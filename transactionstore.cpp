@@ -596,6 +596,11 @@ bool TransactionStore::resyncHeight(const uint256& to) {
 					strprintf("to = %s, chain = %s#", 
 						to.toHex(), chain_.toHex().substr(0, 10)));
 		}
+	} else if (lSeq.size() > lPartialTree) {
+		lFull = true;
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight/partial/warning]: subtree is LARGE, making FULL resync for ") + 
+				strprintf("to = %s, delta = %d, chain = %s#", 
+					to.toHex(), lSeq.size(), chain_.toHex().substr(0, 10)));
 	}
 
 	//
