@@ -3674,7 +3674,7 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 				uint256 lPrev = lBlockHeader.prev();
 				if (lPrev == lNull) { // BlockHeader().hash() - final/absent link 
 					// we have a new shiny full chain
-					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: full chain found, try switching to ") + 
+					if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: full chain found, try switching to ") + 
 						strprintf("head = %s, root = %s/%s#", lBlockHeader.hash().toHex(), lJob->block().toHex(), lBlockHeader.chain().toHex().substr(0, 10)) + std::string("..."));
 					lJob->setLastBlock(lPrev);
 					lChainFound = true;
