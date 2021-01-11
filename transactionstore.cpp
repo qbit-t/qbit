@@ -571,19 +571,21 @@ bool TransactionStore::resyncHeight(const uint256& to) {
 			lIter = ++(lSeq.rbegin()); // next from "to"
 			for (; lIter != lSeq.rend(); lIter++) {
 				if (!heightMap_.insert(std::map<uint64_t, uint256>::value_type(++lLastIndex, *lIter)).second) {
-					lFull = true;
-					if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight/partial/warning]: height map is not clean, making FULL resync for ") + 
+					if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight/partial/warning]: height map is not clean, replacing for ") + 
 							strprintf("index = %d, block = %s, to = %s, last = %s, chain = %s#", 
 								lLastIndex, (*lIter).toHex(), to.toHex(), lastBlock_.toHex(), chain_.toHex().substr(0, 10)));
-					break;
+					//
+					heightMap_.erase(lLastIndex);
+					heightMap_.insert(std::map<uint64_t, uint256>::value_type(++lLastIndex, *lIter));
 				}
 
 				if (!blockMap_.insert(std::map<uint256, uint64_t>::value_type(*lIter, lLastIndex)).second) {
-					lFull = true;
-					if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight/partial/warning]: block map is not clean, making FULL resync for ") + 
+					if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight/partial/warning]: block map is not clean, replacing for ") + 
 							strprintf("block = %s, to = %s, last = %s, chain = %s#", 
 								(*lIter).toHex(), to.toHex(), lastBlock_.toHex(), chain_.toHex().substr(0, 10)));
-					break;
+					//
+					blockMap_.erase(*lIter);
+					blockMap_.insert(std::map<uint256, uint64_t>::value_type(*lIter, lLastIndex));
 				}
 			}
 		} else {
