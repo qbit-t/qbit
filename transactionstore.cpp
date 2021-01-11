@@ -576,7 +576,7 @@ bool TransactionStore::resyncHeight(const uint256& to) {
 								lLastIndex, (*lIter).toHex(), to.toHex(), lastBlock_.toHex(), chain_.toHex().substr(0, 10)));
 					//
 					heightMap_.erase(lLastIndex);
-					heightMap_.insert(std::map<uint64_t, uint256>::value_type(++lLastIndex, *lIter));
+					heightMap_.insert(std::map<uint64_t, uint256>::value_type(lLastIndex, *lIter));
 				}
 
 				if (!blockMap_.insert(std::map<uint256, uint64_t>::value_type(*lIter, lLastIndex)).second) {
