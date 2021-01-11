@@ -519,7 +519,6 @@ bool TransactionStore::resyncHeight(const uint256& to) {
 	//
 	BlockHeader lHeader;
 	uint256 lHash = lastBlock_;
-	uint64_t lIndex = 0;
 	uint32_t lPartialTree = 0;
 
 	//
@@ -527,11 +526,8 @@ bool TransactionStore::resyncHeight(const uint256& to) {
 	lPartialTree = (lMempool ? lMempool->consensus()->partialTreeThreshold() : 10);
 
 	//
-	uint256 lNull = BlockHeader().hash();
-
-	//
 	std::list<uint256> lSeq;
-	while (lHash != lNull && headers_.read(lHash, lHeader)) {
+	while (headers_.read(lHash, lHeader)) {
 		// push
 		lSeq.push_back(lHash);
 
@@ -542,7 +538,7 @@ bool TransactionStore::resyncHeight(const uint256& to) {
 		lHash = lHeader.prev();
 	}
 
-	if ((lHash != lNull || lHash != to) && !lastBlock_.isNull()) {
+	if (lHash != to && !lastBlock_.isNull()) {
 		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight/partial/error]: chain is BROKEN on ") + 
 				strprintf("prev_block = %s, block = %s, chain = %s#", 
 					lHash.toHex(), lHeader.hash().toHex(), chain_.toHex().substr(0, 10)));
@@ -552,11 +548,12 @@ bool TransactionStore::resyncHeight(const uint256& to) {
 
 	//
 	bool lFull = false;
+	uint64_t lLastIndex = 0;
+	//
 	if (lSeq.size() <= lPartialTree && lSeq.size()) {
 		// partial resync
 		boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
 		// locate last index
-		uint64_t lLastIndex = 0;
 		std::map<uint256, uint64_t>::iterator lBlockPtr = blockMap_.find(*lSeq.rbegin());
 		if (lBlockPtr != blockMap_.end()) {
 			// "to" found
@@ -583,7 +580,7 @@ bool TransactionStore::resyncHeight(const uint256& to) {
 						break;
 					}
 
-					if (!blockMap_.insert(std::map<uint256, uint64_t>::value_type(*lIter, lIndex)).second) {
+					if (!blockMap_.insert(std::map<uint256, uint64_t>::value_type(*lIter, lLastIndex)).second) {
 						lFull = true;
 						if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight/partial/warning]: block map is not clean, making FULL resync for ") + 
 								strprintf("to = %s, last = %s, chain = %s#", 
@@ -604,7 +601,7 @@ bool TransactionStore::resyncHeight(const uint256& to) {
 	//
 	if (lFull) return resyncHeight();
 	//
-	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight/partial]: current ") + strprintf("height = %d, block = %s, chain = %s#", lIndex, lastBlock_.toHex(), chain_.toHex().substr(0, 10)));
+	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight/partial]: current ") + strprintf("height = %d, block = %s, chain = %s#", lLastIndex, lastBlock_.toHex(), chain_.toHex().substr(0, 10)));
 
 	return true;
 }
