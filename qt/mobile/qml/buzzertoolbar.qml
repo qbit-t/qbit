@@ -118,7 +118,7 @@ QuarkToolBar
 			var lScoreBase = buzzerClient.getTrustScoreBase() / 10;
 			var lIndex = buzzerClient.trustScore / lScoreBase;
 
-			console.log("index = " + lIndex + ", ts = " + buzzerClient.trustScore +
+			console.log("index = " + Math.round(lIndex) + ", ts = " + buzzerClient.trustScore +
 						", endorsements = " + buzzerClient.endorsements + ", mistrusts = " + buzzerClient.mistrusts);
 			// TODO: consider to use 4 basic colours:
 			// 0 - red
@@ -127,7 +127,7 @@ QuarkToolBar
 			// 6 - 9 - teal
 			// 10 -
 
-			switch(lIndex) {
+			switch(Math.round(lIndex)) {
 				case 0: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.0");
 				case 1: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.1");
 				case 2: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.2");

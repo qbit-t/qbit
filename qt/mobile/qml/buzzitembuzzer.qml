@@ -268,7 +268,7 @@ Item {
 			// 6 - 9 - teal
 			// 10 -
 
-			switch(parseInt(lIndex)) {
+			switch(Math.round(lIndex)) {
 				case 0: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.0");
 				case 1: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.1");
 				case 2: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.2");
