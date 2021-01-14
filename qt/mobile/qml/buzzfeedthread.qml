@@ -750,6 +750,31 @@ QuarkPage {
 						searchBuzzers.process(match);
 					else if (match[0] === '#')
 						searchTags.process(match);
+					else if (match.includes('/data/user/')) {
+						var lParts = match.split(".");
+						if (lParts.length) {
+							if (lParts[lParts.length-1].toLowerCase() === "jpg" || lParts[lParts.length-1].toLowerCase() === "jpeg" ||
+								lParts[lParts.length-1].toLowerCase() === "png") {
+								// pop-up rich editor
+								if (!sending) {
+									//
+									var lComponent = null;
+									var lPage = null;
+
+									lComponent = Qt.createComponent("qrc:/qml/buzzeditor.qml");
+									if (lComponent.status === Component.Error) {
+										showError(lComponent.errorString());
+									} else {
+										lPage = lComponent.createObject(controller);
+										lPage.controller = controller;
+										lPage.initializeReply(buzzesThread_.self(0), buzzesThread_, buzzerClient.getPlainText(buzzText.textDocument));
+										buzzText.clear();
+										addPage(lPage);
+									}
+								}
+							}
+						}
+					}
 				}
 			}
 		}

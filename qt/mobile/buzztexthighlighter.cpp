@@ -28,6 +28,10 @@ BuzzTextHighlighter::BuzzTextHighlighter(QObject* parent): QSyntaxHighlighter(pa
 	lRule.pattern = QRegularExpression("((?:https?|ftp)://\\S+)");
 	lRule.format = tagFormat;
 	highlightingRules_.append(lRule);
+
+	lRule.pattern = QRegularExpression("((/data/user)/\\S+)");
+	lRule.format = QTextCharFormat();
+	highlightingRules_.append(lRule);
 }
 
 void BuzzTextHighlighter::highlightBlock(const QString &text) {

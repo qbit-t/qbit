@@ -55,6 +55,7 @@ QuarkPage {
 	property var buzzItem_;
 	property var pkey_: "";
 	property var conversation_: "";
+	property var text_: "";
 
 	function initializeRebuzz(item, model) {
 		buzzItem_ = item;
@@ -73,7 +74,11 @@ QuarkPage {
 		reply_ = true;
 		message_ = false;
 
-		if (text) buzzText.text = text;
+		if (text) {
+			// buzzText.text = text;
+			text_ = text;
+			injectText.start();
+		}
 
 		bodyContainer.replyItem(item);
 	}
@@ -84,7 +89,11 @@ QuarkPage {
 		rebuzz_ = false;
 		message_ = false;
 
-		if (text) buzzText.text = text;
+		if (text) {
+			// buzzText.text = text;
+			text_ = text;
+			injectText.start();
+		}
 	}
 
 	function initializeMessage(text, pkey, conversation) {
@@ -120,6 +129,18 @@ QuarkPage {
 
 		onTriggered: {
 			buzzText.forceActiveFocus();
+		}
+	}
+
+	// only once to inject outer text
+	Timer {
+		id: injectText
+		interval: 500
+		repeat: false
+		running: false
+
+		onTriggered: {
+			buzzText.text = text_;
 		}
 	}
 
@@ -247,6 +268,20 @@ QuarkPage {
 							searchBuzzers.process(match);
 						else if (match[0] === '#')
 							searchTags.process(match);
+						else if (match.includes('/data/user/')) {
+							var lParts = match.split(".");
+							if (lParts.length) {
+								if (lParts[lParts.length-1].toLowerCase() === "jpg" || lParts[lParts.length-1].toLowerCase() === "jpeg" ||
+									lParts[lParts.length-1].toLowerCase() === "png") {
+									console.log(match);
+									// inject
+									mediaList.addMedia(match);
+									// remove
+									buzzText.remove(start, start + length);
+
+								}
+							}
+						}
 					}
 				}
 			}

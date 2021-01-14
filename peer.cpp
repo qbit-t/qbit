@@ -3771,8 +3771,10 @@ void Peer::processBlockHeaderAndState(std::list<DataStream>::iterator msg, const
 						// quarantine? - just skip for now
 					break;
 				case IValidator::INTEGRITY_IS_INVALID:
-						// ban
-						peerManager_->ban(shared_from_this());
+						// WARNING: banning is too hard, consider quarantinig
+						// peerManager_->ban(shared_from_this());
+
+						// quarantine? - just skip for now
 					break;
 				case IValidator::ALREADY_PROCESSED:
 						// skip
