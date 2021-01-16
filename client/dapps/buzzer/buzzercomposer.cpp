@@ -952,13 +952,77 @@ void BuzzerLightComposer::CreateTxBuzzer::process(errorFunction error) {
 	//
 	buzzerName_ = lBuzzerName;
 
+	/*
 	composer_->requestProcessor()->loadEntity(buzzerName_, 
 		LoadEntity::instance(
 			boost::bind(&BuzzerLightComposer::CreateTxBuzzer::buzzerEntityLoaded, shared_from_this(), _1),
 			boost::bind(&BuzzerLightComposer::CreateTxBuzzer::timeout, shared_from_this()))
 	);
+	*/
+
+	//
+	composer_->requestProcessor()->selectEntityNames(buzzerName_, 
+		SelectEntityNames::instance(
+			boost::bind(&BuzzerLightComposer::CreateTxBuzzer::assetNamesLoaded, shared_from_this(), _1, _2),
+			boost::bind(&BuzzerLightComposer::CreateTxBuzzer::timeout, shared_from_this()))
+	);
 }
 
+void BuzzerLightComposer::CreateTxBuzzer::assetNamesLoaded(const std::string& name, const std::vector<IEntityStore::EntityName>& names) {
+	//
+	std::string lBuzzerName = name;
+	std::transform(lBuzzerName.begin(), lBuzzerName.end(), lBuzzerName.begin(), ::tolower);
+	//
+	bool lExists = false;
+	for (std::vector<IEntityStore::EntityName>::const_iterator lName = names.begin(); lName != names.end(); lName++) {
+		//
+		std::string lSelectedName = (*lName).data();
+		std::transform(lSelectedName.begin(), lSelectedName.end(), lSelectedName.begin(), ::tolower);
+		//
+		if (lBuzzerName == lSelectedName) {
+			lExists = true;
+		}
+	}
+
+	if (lExists) {
+		error_("E_BUZZER_EXISTS", "Buzzer name already taken.");
+		return;		
+	}
+
+	// create empty tx
+	buzzerTx_ = TransactionHelper::to<TxBuzzer>(TransactionFactory::create(TX_BUZZER));
+	// create context
+	ctx_ = TransactionContext::instance(buzzerTx_);
+	//
+	buzzerTx_->setMyName(buzzerName_);
+
+	SKeyPtr lSChangeKey = composer_->wallet()->changeKey();
+	SKeyPtr lSKey = composer_->wallet()->firstKey();
+	if (!lSKey->valid() || !lSChangeKey->valid()) { error_("E_KEY", "Secret key is invalid."); return; }
+
+	SKeyPtr lFirstKey = composer_->wallet()->firstKey();
+	PKey lSelf = lSKey->createPKey();
+	// make buzzer out (for buzz creation)
+	buzzerOut_ = buzzerTx_->addBuzzerOut(*lSKey, lSelf); // out[0]
+	// for subscriptions
+	buzzerTx_->addBuzzerSubscriptionOut(*lSKey, lSelf); // out[1]
+	// endorse
+	buzzerTx_->addBuzzerEndorseOut(*lSKey, lSelf); // 2
+	// mistrust
+	buzzerTx_->addBuzzerMistrustOut(*lSKey, lSelf); // 3
+	// buzzin
+	buzzerTx_->addBuzzerBuzzOut(*lSKey, lSelf); // 4
+	// conversation
+	buzzerTx_->addBuzzerConversationOut(*lSKey, lSelf); // 5
+
+	composer_->requestProcessor()->selectUtxoByEntity(composer_->dAppName(), 
+		SelectUtxoByEntityName::instance(
+			boost::bind(&BuzzerLightComposer::CreateTxBuzzer::utxoByDAppLoaded, shared_from_this(), _1, _2),
+			boost::bind(&BuzzerLightComposer::CreateTxBuzzer::timeout, shared_from_this()))
+	);
+}
+
+/*
 void BuzzerLightComposer::CreateTxBuzzer::buzzerEntityLoaded(EntityPtr buzzer) {
 	//
 	if (buzzer) {
@@ -998,6 +1062,7 @@ void BuzzerLightComposer::CreateTxBuzzer::buzzerEntityLoaded(EntityPtr buzzer) {
 			boost::bind(&BuzzerLightComposer::CreateTxBuzzer::timeout, shared_from_this()))
 	);
 }
+*/
 
 void BuzzerLightComposer::CreateTxBuzzer::utxoByDAppLoaded(const std::vector<Transaction::UnlinkedOut>& utxo, const std::string& dapp) {
 	//

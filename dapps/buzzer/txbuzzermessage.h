@@ -113,7 +113,6 @@ public:
 		body.resize(cypher.size() + 1, 0);
 		AES256CBCDecrypt lDecrypt(nonce.begin(), lMix, true);
 		unsigned lLen = lDecrypt.Decrypt(&cypher[0], cypher.size(), &body[0]);
-		std::cout << "[TxBuzzerMessage::decrypt]: " << lLen << " " << nonce.toHex() << "\n";
 		body.resize(lLen);
 
 		return lLen > 0;
@@ -129,7 +128,6 @@ private:
 		std::vector<unsigned char> lCypher; lCypher.resize(body.size() + AES_BLOCKSIZE /*padding*/, 0);
 		AES256CBCEncrypt lEncrypt(nonce.begin(), lMix, true);
 		unsigned lLen = lEncrypt.Encrypt(&body[0], body.size(), &lCypher[0]);
-		std::cout << "[TxBuzzerMessage::encrypt]: " << lLen << " " << nonce.toHex() << "\n";
 		lCypher.resize(lLen);
 
 		// set

@@ -228,7 +228,7 @@ Item
 
 				lComponent = Qt.createComponent("qrc:/qml/conversationthread.qml");
 				if (lComponent.status === Component.Error) {
-					showError(lComponent.errorString());
+					controller.showError(lComponent.errorString());
 				} else {
 					lPage = lComponent.createObject(controller);
 					lPage.controller = controller;

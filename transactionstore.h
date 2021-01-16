@@ -338,6 +338,7 @@ public:
 		ltxo_(settings_->dataPath() + "/" + chain.toHex() + "/ltxo"), 
 		entities_(settings_->dataPath() + "/" + chain.toHex() + "/entities"), 
 		transactionsIdx_(settings_->dataPath() + "/" + chain.toHex() + "/indexes/transactions"), 
+		entitiesIdx_(settings_->dataPath() + "/" + chain.toHex() + "/indexes/entities"), 
 		addressAssetUtxoIdx_(settings_->dataPath() + "/" + chain.toHex() + "/indexes/utxo"),
 		blockUtxoIdx_(settings_->dataPath() + "/" + chain.toHex() + "/indexes/block_utxo"),
 		utxoBlock_(settings_->dataPath() + "/" + chain.toHex() + "/indexes/utxo_block"),
@@ -546,6 +547,8 @@ private:
 	db::DbContainer<uint256 /*shard*/, uint32_t /*entities_count*/> shardEntities_;
 	// tx | utxo
 	db::DbMultiContainer<uint256 /*tx*/, uint256 /*utxo*/> txUtxo_;
+	// entities names
+	db::DbContainer<std::string /*short name lower case*/, std::string /*entity name*/> entitiesIdx_;
 
 	//
 	// airdrop

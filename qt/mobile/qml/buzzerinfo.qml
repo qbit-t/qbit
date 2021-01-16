@@ -672,14 +672,14 @@ Item
 				controller.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_AMOUNT_INSTALL"), true);
 			} else if (code === "E_BUZZER_EXISTS") {
 				//
-				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZER_EXISTS"), true);
+				controller.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZER_EXISTS"), true);
 			} else if (message === "UNKNOWN_REFTX" || code === "E_TX_NOT_SENT") {
 				// NOTICE: probably buzzer is sucessfully was created, so just try to create info
 				buzzerinfo_.buzzerCreated = true;
 				buzzerClient.name = buzzerName_;
 				//
 				buzzerClient.resync();
-				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.UNKNOWN_REFTX"), true);
+				controller.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.UNKNOWN_REFTX"), true);
 			} else {
 				// NOTICE: probably buzzer is sucessfully was created, so just try to create info
 				buzzerinfo_.buzzerCreated = true;
@@ -763,7 +763,7 @@ Item
 			} else if (message === "UNKNOWN_REFTX" || code === "E_TX_NOT_SENT") {
 				//
 				buzzerClient.resync();
-				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.UNKNOWN_REFTX"), true);
+				controller.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.UNKNOWN_REFTX"), true);
 			} else {
 				//
 				controller.showError(message, true);
