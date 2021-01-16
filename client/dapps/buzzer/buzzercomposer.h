@@ -57,11 +57,13 @@ public:
 		}
 
 		//
-		void buzzerEntityLoaded(EntityPtr);
 		void utxoByDAppLoaded(const std::vector<Transaction::UnlinkedOut>&, const std::string&);
 		void dAppInstancesCountByShardsLoaded(const std::map<uint32_t, uint256>&, const std::string&);
 		void shardLoaded(TransactionPtr);
 		void utxoByShardLoaded(const std::vector<Transaction::UnlinkedOut>&, const std::string&);
+		void assetNamesLoaded(const std::string&, const std::vector<IEntityStore::EntityName>&);
+		// NOTICE: refactored
+		// void buzzerEntityLoaded(EntityPtr);
 
 	private:
 		BuzzerLightComposerPtr composer_;

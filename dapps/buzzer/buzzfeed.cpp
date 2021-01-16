@@ -1032,7 +1032,7 @@ bool BuzzfeedItem::decrypt(const PKey& pkey) {
 	//
 	if (type_ == TX_BUZZER_MESSAGE || type_ == TX_BUZZER_MESSAGE_REPLY) {
 		//
-		if (!decryptedBody_.size() && buzzer()) {
+		if (!decryptedBody_.size() && buzzBody_.size() && buzzer()) {
 			SKeyPtr lSKey = buzzer()->wallet()->firstKey();
 			//
 			uint256 lNonce = lSKey->shared(pkey);
@@ -1050,7 +1050,7 @@ std::string BuzzfeedItem::buzzBodyString() {
 	std::string lBody; 
 	if (type_ == TX_BUZZER_MESSAGE || type_ == TX_BUZZER_MESSAGE_REPLY) {
 		//
-		if (!decryptedBody_.size() && buzzer()) {
+		if (!decryptedBody_.size() && buzzBody_.size() && buzzer()) {
 			SKeyPtr lSKey = buzzer()->wallet()->firstKey();
 			//
 			PKey lPKey;

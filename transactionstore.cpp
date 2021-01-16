@@ -258,7 +258,11 @@ bool TransactionStore::processBlockTransactions(ITransactionStorePtr store, IEnt
 				//
 				if (lTx->isEntity() && lTx->entityName() != Entity::emptyName()) {
 					entities_.remove(lTx->entityName());
-					
+
+					std::string lEntityName = lTx->entityName();
+					std::transform(lEntityName.begin(), lEntityName.end(), lEntityName.begin(), ::tolower);
+					entitiesIdx_.remove(lEntityName);
+
 					// iterate
 					db::DbMultiContainer<std::string /*short name*/, uint256 /*utxo*/>::Transaction lEntityUtxoTransaction = entityUtxo_.transaction();
 					for (db::DbMultiContainer<std::string /*short name*/, uint256 /*utxo*/>::Iterator lEntityUtxo = entityUtxo_.find(lTx->entityName()); lEntityUtxo.valid(); ++lEntityUtxo) {
@@ -776,6 +780,10 @@ void TransactionStore::removeBlocks(const uint256& from, const uint256& to, bool
 				if ((*lTx)->isEntity() && (*lTx)->entityName() != Entity::emptyName()) {
 					entities_.remove((*lTx)->entityName());
 					
+					std::string lEntityName = (*lTx)->entityName();
+					std::transform(lEntityName.begin(), lEntityName.end(), lEntityName.begin(), ::tolower);
+					entitiesIdx_.remove(lEntityName);
+
 					// iterate
 					db::DbMultiContainer<std::string /*short name*/, uint256 /*utxo*/>::Transaction lEntityUtxoTransaction = entityUtxo_.transaction();
 					for (db::DbMultiContainer<std::string /*short name*/, uint256 /*utxo*/>::Iterator lEntityUtxo = entityUtxo_.find((*lTx)->entityName()); lEntityUtxo.valid(); ++lEntityUtxo) {
@@ -1182,6 +1190,7 @@ bool TransactionStore::open() {
 			blockUtxoIdx_.open();
 			utxoBlock_.open();
 			transactionsIdx_.open();
+			entitiesIdx_.open();
 			addressAssetUtxoIdx_.open();
 			shards_.open();
 			entityUtxo_.open();
@@ -1242,6 +1251,7 @@ bool TransactionStore::close() {
 	ltxo_.close();	
 	entities_.close();
 	transactionsIdx_.close();
+	entitiesIdx_.close();
 	addressAssetUtxoIdx_.close();
 	blockUtxoIdx_.close();
 	utxoBlock_.close();
@@ -1506,12 +1516,31 @@ void TransactionStore::selectUtxoByTransaction(const uint256& tx, std::vector<Tr
 }
 
 void TransactionStore::selectEntityNames(const std::string& name, std::vector<IEntityStore::EntityName>& names) {
-	//
+	// control
+	std::set<std::string> lControl;
+
+	// try direct names
 	db::DbContainer<std::string /*short name*/, uint256 /*tx*/>::Iterator lFrom = entities_.find(name);
 	for (int lCount = 0; lFrom.valid() && names.size() < 6 && lCount < 100; ++lFrom, ++lCount) {
 		std::string lName;
-		if (lFrom.first(lName) && lName.find(name) != std::string::npos) 
+		if (lFrom.first(lName) && lName.find(name) != std::string::npos && lControl.insert(lName).second) {
 			names.push_back(IEntityStore::EntityName(lName));
+		}
+	}
+
+	// if namel list is not long enough
+	if (names.size() < 6) {
+		// try entity names index
+		std::string lArgName = name;
+		std::transform(lArgName.begin(), lArgName.end(), lArgName.begin(), ::tolower);
+		//
+		db::DbContainer<std::string, std::string>::Iterator lFromIndex = entitiesIdx_.find(lArgName);
+		for (int lCount = 0; lFromIndex.valid() && names.size() < 6 && lCount < 100; ++lFromIndex, ++lCount) {
+			std::string lName;
+			if (lFromIndex.first(lName) && lName.find(lArgName) != std::string::npos && lControl.insert(*lFromIndex).second) {
+				names.push_back(IEntityStore::EntityName(*lFromIndex));
+			}
+		}
 	}
 }
 
@@ -1530,13 +1559,30 @@ bool TransactionStore::pushEntity(const uint256& id, TransactionContextPtr ctx) 
 	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[pushEntity]: try to push entity ") +
 		strprintf("'%s'/%s", ctx->tx()->entityName(), id.toHex()));
 
+	// try regular index
 	if (entities_.read(ctx->tx()->entityName(), lId)) {
 		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[pushEntity]: entity ALREADY EXISTS - ") +
 			strprintf("'%s'/%s", ctx->tx()->entityName(), id.toHex()));
 		return false;
 	}
 
+	// try entity name full text index
+	std::string lEntityName = ctx->tx()->entityName();
+	std::transform(lEntityName.begin(), lEntityName.end(), lEntityName.begin(), ::tolower);
+
+	std::string lOriginalEntityName;
+	if (entitiesIdx_.read(lEntityName, lOriginalEntityName)) {
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[pushEntity]: entity ALREADY EXISTS - ") +
+			strprintf("'%s'/%s", ctx->tx()->entityName(), id.toHex()));
+		return false;
+	}
+
+	// main entity entry
 	entities_.write(ctx->tx()->entityName(), id);
+
+	// entity name full text index
+	entitiesIdx_.write(lEntityName, ctx->tx()->entityName());
+
 	// coint own entities
 	if (chain_ != MainChain::id()) {
 		uint32_t lCount = 0;
