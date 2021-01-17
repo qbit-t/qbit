@@ -86,6 +86,21 @@ SKeyPtr Wallet::changeKey() {
 	return createKey(std::list<std::string>());
 }
 
+void Wallet::removeAllKeys() {
+	//
+	db::DbContainer<uint160 /*id*/, SKey>::Iterator lKey = keys_.begin();
+	for (; lKey.valid(); ++lKey) {
+		//
+		keys_.remove(lKey);
+	}
+
+	//
+	{
+		boost::unique_lock<boost::recursive_mutex> lLock(keyMutex_);
+		keysCache_.clear();
+	}
+}
+
 bool Wallet::open(const std::string& /*secret*/) {
 	if (!opened_) {
 		try {

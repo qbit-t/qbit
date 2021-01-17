@@ -65,6 +65,7 @@ public:
 	SKeyPtr findKey(const PKey& pkey);
 	SKeyPtr firstKey();
 	SKeyPtr changeKey();
+	void removeAllKeys();
 
 	// utxo management
 	bool pushUnlinkedOut(Transaction::UnlinkedOutPtr, TransactionContextPtr);

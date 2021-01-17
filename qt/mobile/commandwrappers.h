@@ -912,12 +912,16 @@ public:
 	explicit DownloadMediaCommand(QObject* parent = nullptr);
 
 	Q_INVOKABLE void process() {
+		process(false);
+	}
+
+	Q_INVOKABLE void process(bool force) {
 		std::vector<std::string> lArgs;
 		lArgs.push_back(header_.toStdString() + "/" + chain_.toStdString());
 		lArgs.push_back(localFile_.toStdString());
 		if (pkey_.size()) { lArgs.push_back("-p"); lArgs.push_back(pkey_.toStdString()); }
 		if (preview_) lArgs.push_back("-preview");
-		if (skipIfExists_) lArgs.push_back("-skip");
+		if (skipIfExists_ && !force) lArgs.push_back("-skip");
 		command_->process(lArgs);
 	}
 

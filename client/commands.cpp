@@ -59,6 +59,8 @@ void NewKeyCommand::process(const std::vector<std::string>& args) {
 		std::list<std::string> lList;
 		boost::split(lList, std::string(lWords), boost::is_any_of(","));
 
+		wallet_->removeAllKeys(); // TODO: option
+
 		lKey = wallet_->createKey(lList);
 		if (!lKey || !lKey->valid()) {
 			throw qbit::exception("E_SKEY_IS_INVALID", "Key is invalid."); 

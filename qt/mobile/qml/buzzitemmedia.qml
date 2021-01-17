@@ -102,6 +102,16 @@ Item {
 					buzzitemmedia_.calculatedHeight = mediaList.height;
 				}
 
+				onStatusChanged: {
+					//
+					if (status == Image.Error) {
+						// force to reload
+						console.log("[onStatusChanged]: forcing reload of " + path_);
+						path_ = "";
+						downloadCommand.process(true);
+					}
+				}
+
 				MouseArea {
 					id: linkClick
 					x: 0

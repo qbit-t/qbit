@@ -361,7 +361,6 @@ public:
 			mediaFile_ = previewFile;
 		} else {
 			gLog().write(Log::CLIENT, strprintf("[downloadMedia/error]: %s - %s", result.error(), result.message()));
-			mediaFile_ = result.message();
 		}
 
 		// anyway
@@ -431,7 +430,8 @@ public:
 
 	void process() {
 		//
-		if (buzz_->buzzMedia().size() || (buzz_->buzzers().size() && buzz_->buzzers()[0].buzzMedia().size())) {
+		if ((buzz_->buzzMedia().size() || (buzz_->buzzers().size() && buzz_->buzzers()[0].buzzMedia().size())) &&
+				(buzz_->type() != TX_BUZZER_MESSAGE && buzz_->type() != TX_BUZZER_MESSAGE_REPLY)) {
 			loadMedia();
 		} else {
 			loadAvatar();
