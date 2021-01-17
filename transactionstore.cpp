@@ -1226,17 +1226,6 @@ bool TransactionStore::open() {
 				}
 			}
 
-			// TEMP: reprocess entities to recover index
-			for (db::DbContainer<std::string /*short name*/, uint256 /*tx*/>::Iterator lEntity = entities_.begin(); lEntity.valid(); ++lEntity) {
-				//
-				std::string lName;
-				if (lEntity.first(lName)) {
-					std::string lArgName = lName;
-					std::transform(lArgName.begin(), lArgName.end(), lArgName.begin(), ::tolower);
-					entitiesIdx_.write(lArgName, lName);
-				}
-			}
-
 			opened_ = true;
 		}
 		catch(const std::exception& ex) {
@@ -1530,17 +1519,19 @@ void TransactionStore::selectEntityNames(const std::string& name, std::vector<IE
 	// control
 	std::set<std::string> lControl;
 
+	// NOTICE: extra search is unneeded now, just use entitiesIdx_ for complete entity name search
+	/*
 	// try direct names
-	db::DbContainer<std::string /*short name*/, uint256 /*tx*/>::Iterator lFrom = entities_.find(name);
+	db::DbContainer<std::string, uint256>::Iterator lFrom = entities_.find(name);
 	for (int lCount = 0; lFrom.valid() && names.size() < 6 && lCount < 100; ++lFrom, ++lCount) {
 		std::string lName;
 		if (lFrom.first(lName) && lName.find(name) != std::string::npos && lControl.insert(lName).second) {
 			names.push_back(IEntityStore::EntityName(lName));
 		}
 	}
+	*/
 
-	// if namel list is not long enough
-	if (names.size() < 6) {
+	{
 		// try entity names index
 		std::string lArgName = name;
 		std::transform(lArgName.begin(), lArgName.end(), lArgName.begin(), ::tolower);
