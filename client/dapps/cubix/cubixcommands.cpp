@@ -4,12 +4,6 @@
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
 
-#include <boost/gil.hpp>
-#include <boost/gil/extension/io/jpeg.hpp>
-#include <boost/gil/extension/io/png.hpp>
-#include <boost/gil/extension/numeric/sampler.hpp>
-#include <boost/gil/extension/numeric/resample.hpp>
-
 #include "exif.h"
 
 #include "../../crypto/aes.h"
@@ -171,7 +165,6 @@ void UploadMediaCommand::encrypt(const uint256& nonce, const std::vector<unsigne
 	cypher.resize(data.size() + AES_BLOCKSIZE /*padding*/, 0);
 	AES256CBCEncrypt lEncrypt(nonce.begin(), lMix, true);
 	unsigned lLen = lEncrypt.Encrypt(&data[0], data.size(), &cypher[0]);
-	std::cout << "[UploadMediaCommand::encrypt]: " << lLen << " " << nonce.toHex() << "\n";
 	cypher.resize(lLen);
 }
 
@@ -271,11 +264,13 @@ void UploadMediaCommand::startSendData() {
 				else if (orientation_ == 3) lAngle = -180.0 * 3.1415/180.0;
 				else if (orientation_ == 8) lAngle = -90.0 * 3.1415/180.0;
 
-				if (lAngle != 0.0) {
-					//
+				if (orientation_ == 6 || orientation_ == 8) {
+					// exchange width and height
 					lTargetWidth = lHeight;
 					lTargetHeight = lWidth;
+				}
 
+				if (lAngle != 0.0) {
 					//
 					double lCoefficient = 0.0;
 					// recalculate
@@ -290,17 +285,49 @@ void UploadMediaCommand::startSendData() {
 						lNewHeight = ((double) lTargetHeight) / lCoefficient;
 					}
 
-					lCoefficient = lNewHeight / lNewWidth;
+					if (orientation_ == 6 || orientation_ == 8) {
+						// rotation needed 90:-90, exchange width and height
+						// 1. scale
+						boost::gil::rgb8_image_t lOriginalScaledImage(lNewHeight, lNewWidth);
+						boost::gil::resample_subimage(
+							boost::gil::const_view(lImage),
+							boost::gil::view(lOriginalScaledImage),
+							0, 0, lWidth, lHeight,
+							0.0,
+							boost::gil::bilinear_sampler()
+						);
 
-					// re-create destination image
-					lPreviewImage = boost::gil::rgb8_image_t(lNewHeight, lNewWidth);
-					boost::gil::resample_subimage(
-						boost::gil::const_view(lImage),
-						boost::gil::view(lPreviewImage),
-						0, 0, lWidth, lHeight,
-						lAngle,
-						boost::gil::bilinear_sampler()
-					);
+						// 2. rotate
+						lPreviewImage = boost::gil::rgb8_image_t(lNewWidth, lNewHeight);
+						cubix::resample_subimage(
+							boost::gil::const_view(lOriginalScaledImage),
+							boost::gil::view(lPreviewImage),
+							0, 0, lNewHeight, lNewWidth,
+							lAngle,
+							boost::gil::bilinear_sampler()
+						);
+					} else {
+						// rotation needed 180:-180, width and height should remains
+						// 1. scale
+						boost::gil::rgb8_image_t lOriginalScaledImage(lNewWidth, lNewHeight);
+						boost::gil::resample_subimage(
+							boost::gil::const_view(lImage),
+							boost::gil::view(lOriginalScaledImage),
+							0, 0, lWidth, lHeight,
+							0.0,
+							boost::gil::bilinear_sampler()
+						);
+
+						// 2. rotate
+						lPreviewImage = boost::gil::rgb8_image_t(lNewWidth, lNewHeight);
+						cubix::resample_subimage(
+							boost::gil::const_view(lOriginalScaledImage),
+							boost::gil::view(lPreviewImage),
+							0, 0, lNewWidth, lNewHeight,
+							lAngle,
+							boost::gil::bilinear_sampler()
+						);
+					}
 				} else {
 					boost::gil::resize_view(
 						boost::gil::const_view(lImage),
@@ -592,7 +619,6 @@ void DownloadMediaCommand::decrypt(const uint256& nonce, const std::vector<unsig
 	data.resize(cypher.size() + 1, 0);
 	AES256CBCDecrypt lDecrypt(nonce.begin(), lMix, true);
 	unsigned lLen = lDecrypt.Decrypt(&cypher[0], cypher.size(), &data[0]);
-	std::cout << "[DownloadMediaCommand::decrypt]: " << lLen << " " << nonce.toHex() << "\n";
 	data.resize(lLen);
 }
 

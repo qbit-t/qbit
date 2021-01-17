@@ -10,8 +10,32 @@
 #include "../../../log/log.h"
 #include "cubixcomposer.h"
 
+#include <boost/gil.hpp>
+#include <boost/gil/extension/io/jpeg.hpp>
+#include <boost/gil/extension/io/png.hpp>
+#include <boost/gil/extension/numeric/sampler.hpp>
+#include <boost/gil/extension/numeric/resample.hpp>
+
 namespace qbit {
 namespace cubix {
+
+template <typename Sampler, typename SrcMetaView, typename DstMetaView>
+void resample_subimage(const SrcMetaView& src, const DstMetaView& dst,
+						 double src_min_x, double src_min_y,
+						 double src_max_x, double src_max_y,
+						 double angle, const Sampler& sampler=Sampler()) {
+	double src_width  = std::max<double>(src_max_x - src_min_x - 1,1);
+	double src_height = std::max<double>(src_max_y - src_min_y - 1,1);
+	double dst_width  = std::max<double>((double)(dst.width()-1),1);
+	double dst_height = std::max<double>((double)(dst.height()-1),1);
+
+	boost::gil::matrix3x2<double> mat =
+		boost::gil::matrix3x2<double>::get_translate(-dst_width/2.0, -dst_height/2.0) *
+		//boost::gil::matrix3x2<double>::get_scale(src_width / dst_width, src_height / dst_height)*
+		boost::gil::matrix3x2<double>::get_rotate(-angle)*
+		boost::gil::matrix3x2<double>::get_translate(src_min_x + src_width/2.0, src_min_y + src_height/2.0);
+	resample_pixels(src,dst,mat,sampler);
+}
 
 class UploadMediaCommand;
 typedef std::shared_ptr<UploadMediaCommand> UploadMediaCommandPtr;
