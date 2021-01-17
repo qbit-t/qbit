@@ -1226,6 +1226,17 @@ bool TransactionStore::open() {
 				}
 			}
 
+			// TEMP: reprocess entities to recover index
+			for (db::DbContainer<std::string /*short name*/, uint256 /*tx*/>::Iterator lEntity = entities_.begin(); lEntity.valid(); ++lEntity) {
+				//
+				std::string lName;
+				if (lEntity.first(lName)) {
+					std::string lArgName = lName;
+					std::transform(lArgName.begin(), lArgName.end(), lArgName.begin(), ::tolower);
+					entitiesIdx_.write(lArgName, lName);
+				}
+			}
+
 			opened_ = true;
 		}
 		catch(const std::exception& ex) {
