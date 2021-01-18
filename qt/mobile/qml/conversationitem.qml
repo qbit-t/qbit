@@ -416,7 +416,8 @@ Item {
 
 		function getText() {
 			//
-			return conversationMessage();
+			var lMessage = conversationMessage();
+			return (lMessage !== "" ? lMessage : "...");
 		}
 	}
 

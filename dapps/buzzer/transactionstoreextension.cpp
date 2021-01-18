@@ -3018,6 +3018,13 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedByBuzz(uint64_t from, const 
 			uint256 lTxPublisher = lTx->in()[TX_BUZZ_MY_IN].out().tx(); // buzzer allways is the first in
 			TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lTxPublisher);
 			if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
+			// check for "trusted"
+			BuzzerTransactionStoreExtensionPtr lPublisherExtension = locateBuzzerExtension(lTxPublisher);
+			if (lPublisherExtension) {
+				BuzzerInfo lPublisherInfo;
+				lPublisherExtension->readBuzzerStat(lTxPublisher, lPublisherInfo);
+				if (!lPublisherInfo.trusted()) continue;
+			}
 			//
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectBuzzfeedByBuzz]: try to added item ") +
 				strprintf("buzzer = %s/%s, %s/%s#", lBuzzer->id().toHex(), lTxPublisher.toHex(), lTx->id().toHex(), store_->chain().toHex().substr(0, 10)));
@@ -3110,6 +3117,13 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedByBuzzer(uint64_t from, cons
 			uint256 lTxPublisher = lTx->in()[TX_BUZZ_MY_IN].out().tx(); // buzzer allways is the first in
 			TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lTxPublisher);
 			if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
+			// check for "trusted"
+			BuzzerTransactionStoreExtensionPtr lPublisherExtension = locateBuzzerExtension(lTxPublisher);
+			if (lPublisherExtension) {
+				BuzzerInfo lPublisherInfo;
+				lPublisherExtension->readBuzzerStat(lTxPublisher, lPublisherInfo);
+				if (!lPublisherInfo.trusted()) continue;
+			}
 			//
 			bool lProcessed = false;
 			if (lTx->type() == TX_REBUZZ) {
@@ -3261,6 +3275,15 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedGlobal(uint64_t timeframeFro
 			uint256 lTxPublisher = lTx->in()[TX_BUZZ_MY_IN].out().tx(); // buzzer allways is the first in
 			TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lTxPublisher);
 			if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
+
+			// check for "trusted"
+			BuzzerTransactionStoreExtensionPtr lPublisherExtension = locateBuzzerExtension(lTxPublisher);
+			if (lPublisherExtension) {
+				BuzzerInfo lPublisherInfo;
+				lPublisherExtension->readBuzzerStat(lTxPublisher, lPublisherInfo);
+				if (!lPublisherInfo.trusted()) continue;
+			}
+
 			//
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectBuzzfeedGlobal]: try to added item ") +
 				strprintf("buzzer = %s/%s, %s/%s#", lBuzzer->id().toHex(), lTxPublisher.toHex(), lTx->id().toHex(), store_->chain().toHex().substr(0, 10)));
@@ -3404,6 +3427,15 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedByTag(const std::string& tag
 			uint256 lTxPublisher = lTx->in()[TX_BUZZ_MY_IN].out().tx(); // buzzer allways is the first in
 			TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lTxPublisher);
 			if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
+			
+			// check for "trusted"
+			BuzzerTransactionStoreExtensionPtr lPublisherExtension = locateBuzzerExtension(lTxPublisher);
+			if (lPublisherExtension) {
+				BuzzerInfo lPublisherInfo;
+				lPublisherExtension->readBuzzerStat(lTxPublisher, lPublisherInfo);
+				if (!lPublisherInfo.trusted()) continue;
+			}
+
 			//
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectBuzzfeedByTag]: try to added item ") +
 				strprintf("buzzer = %s/%s, %s/%s#", lBuzzer->id().toHex(), lTxPublisher.toHex(), lTx->id().toHex(), store_->chain().toHex().substr(0, 10)));
@@ -3570,6 +3602,15 @@ void BuzzerTransactionStoreExtension::selectBuzzfeed(const std::vector<BuzzfeedP
 				uint256 lTxPublisher = lTx->in()[TX_BUZZ_MY_IN].out().tx(); // buzzer allways is the first in
 				TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lTxPublisher);
 				if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
+
+				// check for "trusted"
+				BuzzerTransactionStoreExtensionPtr lPublisherExtension = locateBuzzerExtension(lTxPublisher);
+				if (lPublisherExtension) {
+					BuzzerInfo lPublisherInfo;
+					lPublisherExtension->readBuzzerStat(lTxPublisher, lPublisherInfo);
+					if (!lPublisherInfo.trusted()) continue;
+				}
+
 				//
 				bool lProcessed = false;
 				if (lTx->type() == TX_REBUZZ) {
