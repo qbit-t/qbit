@@ -1295,9 +1295,10 @@ void HttpGetBlock::process(const std::string& source, const HttpRequest& request
 				for (std::vector<uint32_t>::iterator lNumber = lBlock->cycle_.begin(); lNumber != lBlock->cycle_.end(); lNumber++, lIdx++) {
 					//
 					json::Value lItem = lPowObject.newArrayItem();
-					lItem.toObject();
-					lItem.addInt("index", lIdx);
-					lItem.addUInt("number", *lNumber);
+					//lItem.toObject();
+					//lItem.addInt("index", lIdx);
+					//lItem.addUInt("number", *lNumber);
+					lItem.setUInt(*lNumber);
 				}
 
 				json::Value lTransactionsObject = lRootObject.addArray("transactions");
@@ -1442,9 +1443,10 @@ void HttpGetBlockHeader::process(const std::string& source, const HttpRequest& r
 				for (std::vector<uint32_t>::iterator lNumber = lBlock->cycle_.begin(); lNumber != lBlock->cycle_.end(); lNumber++, lIdx++) {
 					//
 					json::Value lItem = lPowObject.newArrayItem();
-					lItem.toObject();
-					lItem.addInt("index", lIdx);
-					lItem.addUInt("number", *lNumber);
+					//lItem.toObject();
+					//lItem.addInt("index", lIdx);
+					//lItem.addUInt("number", *lNumber);
+					lItem.setUInt(*lNumber);
 				}
 			} else {
 				reply = HttpReply::stockReply("E_BLOCK_NOT_FOUND", "Block not found"); 
@@ -1581,9 +1583,10 @@ void HttpGetBlockHeaderByHeight::process(const std::string& source, const HttpRe
 			for (std::vector<uint32_t>::iterator lNumber = lHeader.cycle_.begin(); lNumber != lHeader.cycle_.end(); lNumber++, lIdx++) {
 				//
 				json::Value lItem = lPowObject.newArrayItem();
-				lItem.toObject();
-				lItem.addInt("index", lIdx);
-				lItem.addUInt("number", *lNumber);
+				//lItem.toObject();
+				//lItem.addInt("index", lIdx);
+				//lItem.addUInt("number", *lNumber);
+				lItem.setUInt(*lNumber);
 			}
 		} else {
 			reply = HttpReply::stockReply("E_STOREMANAGER", "Store manager not found"); 
@@ -2122,6 +2125,88 @@ void HttpReleasePeer::process(const std::string& source, const HttpRequest& requ
 		peerManager_->release(lAddress);
 
 		lReply.addString("result", lAddress);
+		lReply.addObject("error").toNull();
+		lReply.addString("id", lId.getString());
+
+		// pack
+		pack(reply, lReply);
+		// finalize
+		finalize(reply);
+	} else {
+		reply = HttpReply::stockReply(HttpReply::bad_request);
+		return;
+	}
+}
+
+void HttpGetEntitiesCount::process(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
+	/* request
+	{
+		"jsonrpc": "1.0",
+		"id": "curltext",
+		"method": "getentitiescount",
+		"params": [
+			"<dapp_name>" 	-- (string, required) dapp name
+		]
+	}
+	*/
+	/* reply
+	{
+		"result":						-- (object) details
+		{
+			...
+		},
+		"error":						-- (object or null) error description
+		{
+			"code": "EFAIL", 
+			"message": "<explanation>" 
+		},
+		"id": "curltext"				-- (string) request id
+	}
+	*/
+
+	// id
+	json::Value lId;
+	if (!(const_cast<json::Document&>(data).find("id", lId) && lId.isString())) {
+		reply = HttpReply::stockReply(HttpReply::bad_request);
+		return;
+	}
+
+	// params
+	json::Value lParams;
+	if (const_cast<json::Document&>(data).find("params", lParams) && lParams.isArray()) {
+		// extract parameters
+		std::string lDApp; // 0
+		if (lParams.size()) {
+			// param[0]
+			json::Value lP0 = lParams[0];
+			if (lP0.isString()) lDApp = lP0.getString();
+			else { reply = HttpReply::stockReply(HttpReply::bad_request); return; }
+		} else {
+			reply = HttpReply::stockReply("E_PARAMS", "Insufficient or extra parameters"); 
+			return;
+		}
+
+		//
+		json::Document lReply;
+		lReply.loadFromString("{}");		
+		json::Value lRootObject = lReply.addObject("result");
+		json::Value lDAppObject = lRootObject.addArray(lDApp);
+
+		//
+		std::map<uint32_t, uint256> lShardInfo;
+		ITransactionStorePtr lStorage = peerManager_->consensusManager()->storeManager()->locate(MainChain::id());
+		//
+		std::vector<ISelectEntityCountByShardsHandler::EntitiesCount> lEntitiesCount;
+		if (lStorage->entityStore()->entityCountByShards(lDApp, lShardInfo)) {
+			for (std::map<uint32_t, uint256>::iterator lItem = lShardInfo.begin(); lItem != lShardInfo.end(); lItem++) {
+				//
+				json::Value lDAppItem = lDAppObject.newArrayItem();
+				lDAppItem.toObject();
+				lDAppItem.addString("shard", lItem->second.toHex());
+				lDAppItem.addUInt("count", lItem->first);
+			}
+		}
+
 		lReply.addObject("error").toNull();
 		lReply.addString("id", lId.getString());
 
