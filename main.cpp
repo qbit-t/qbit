@@ -388,6 +388,7 @@ public:
 		httpRequestHandler_->push(HttpGetTransaction::instance());
 		httpRequestHandler_->push(HttpCreateAsset::instance());
 		httpRequestHandler_->push(HttpCreateAssetEmission::instance());
+		httpRequestHandler_->push(HttpGetEntitiesCount::instance());		
 		httpRequestHandler_->push(HttpCreateBuzzer::instance(buzzerComposer_)); // custom
 		httpRequestHandler_->push(HttpAttachBuzzer::instance(buzzerComposer_)); // custom
 		httpRequestHandler_->push(HttpBuzz::instance(buzzerComposer_)); // custom

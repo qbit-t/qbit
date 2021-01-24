@@ -214,6 +214,18 @@ public:
 	}
 };
 
+class HttpGetEntitiesCount: public IHttpCallEnpoint {
+public:
+	HttpGetEntitiesCount() {}
+
+	void process(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
+	std::string method() { return std::string("getentitiescount"); }
+
+	static IHttpCallEnpointPtr instance() {
+		return std::make_shared<HttpGetEntitiesCount>();
+	}
+};
+
 } // qbit
 
 #endif
