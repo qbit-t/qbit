@@ -172,6 +172,9 @@ protected:
 						lItem.addUInt64("amount", lUtxoPtr->amount());
 						lItem.addString("value", strprintf(TxAssetType::scaleFormat(lScale), 
 														((double)lUtxoPtr->amount() / (double)lScale)));
+
+						if (lUtxoPtr->change())
+							lItem.addBool("change", true);
 					}
 
 					lItem.addString("utxo", lUtxoPtr->out().hash().toHex());
@@ -187,6 +190,8 @@ protected:
 								lItem.addUInt64("amount", lUtxoPtr->amount());
 								lItem.addString("value", strprintf(TxAssetType::scaleFormat(lScale), 
 															((double)lUtxoPtr->amount() / (double)lScale)));
+								if (lUtxoPtr->change())
+									lItem.addBool("change", true);
 							}
 
 							lItem.addString("utxo", lUtxoPtr->out().hash().toHex());
