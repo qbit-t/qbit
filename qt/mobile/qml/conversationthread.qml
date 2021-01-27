@@ -586,6 +586,11 @@ QuarkPage {
 			modelLoader.feed();
 		}
 
+		Component.onCompleted: {
+			list.positionViewAtEnd();
+			atTheBottom = true;
+		}
+
 		delegate: ItemDelegate {
 			id: itemDelegate
 
@@ -835,7 +840,7 @@ QuarkPage {
 
 	Timer {
 		id: editBuzzTimer
-		interval: 1000
+		interval: 200
 		repeat: false
 		running: false
 
