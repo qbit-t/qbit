@@ -688,7 +688,9 @@ Item
 					onClick: {
 						if (key === "explore") {
 							//
-							controller.showError({ code: 10002, message: "Explorer is not implemented yet", component: "Wallet" });
+							var lUrl = buzzerApp.getExploreTxRaw();
+							lUrl.replace("{tx}", info);
+							Qt.openUrlExternally(lUrl);
 						} else if (key === "copy") {
 							//
 							clipboard.setText(info);
