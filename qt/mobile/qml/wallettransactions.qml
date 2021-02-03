@@ -689,7 +689,7 @@ Item
 						if (key === "explore") {
 							//
 							var lUrl = buzzerApp.getExploreTxRaw();
-							lUrl.replace("{tx}", info);
+							lUrl = lUrl.replace("{tx}", info);
 							Qt.openUrlExternally(lUrl);
 						} else if (key === "copy") {
 							//
