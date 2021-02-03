@@ -1959,7 +1959,9 @@ void BuzzerTransactionStoreExtension::selectSubscriptions(const uint256& from, c
 			lSubscriber = lSubscribe->in()[1].out().tx(); // in[1] - subscriber
 
 			TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lSubscriber);
+			if (!lBuzzerTx) continue;
 			TransactionPtr lPublisherTx = lMainStore->locateTransaction(lPublisher);
+			if (!lPublisherTx) continue;
 
 			ITransactionStorePtr lStore = store_->storeManager()->locate(lBuzzerTx->in()[TX_BUZZER_SHARD_IN].out().tx());
 			if (!lStore) continue;
@@ -2055,7 +2057,9 @@ void BuzzerTransactionStoreExtension::selectFollowers(const uint256& from, const
 			lSubscriber = lSubscribe->in()[1].out().tx(); // in[1] - subscriber
 
 			TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lSubscriber);
+			if (!lBuzzerTx) continue;
 			TransactionPtr lPublisherTx = lMainStore->locateTransaction(lPublisher);
+			if (!lPublisherTx) continue;
 
 			ITransactionStorePtr lStore = store_->storeManager()->locate(lBuzzerTx->in()[TX_BUZZER_SHARD_IN].out().tx());
 			if (!lStore) continue;
@@ -2178,6 +2182,7 @@ void BuzzerTransactionStoreExtension::selectConversations(uint64_t from, const u
 				//
 				ITransactionStorePtr lConversationStore = store_->storeManager()->locate(lInfo.chain()); // conversation store
 				TransactionPtr lTx = lConversationStore->locateTransaction(lInfo.id());
+				if (!lTx) continue;
 				TxBuzzerConversationPtr lConversationTx = TransactionHelper::to<TxBuzzerConversation>(lTx);
 				//
 				uint256 lCreator = lConversationTx->in()[TX_BUZZER_CONVERSATION_MY_IN].out().tx();
@@ -2354,6 +2359,7 @@ void BuzzerTransactionStoreExtension::selectMessages(uint64_t from, const uint25
 			uint256 lTxPublisher = lTx->in()[TX_BUZZER_MY_IN].out().tx(); // buzzer allways is the first in
 			TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lTxPublisher);
 			if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
+			else continue;
 			//
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectMessages]: try to added item ") +
 				strprintf("buzzer = %s/%s, %s/%s#", lBuzzer->id().toHex(), lTxPublisher.toHex(), lTx->id().toHex(), store_->chain().toHex().substr(0, 10)));
@@ -2458,6 +2464,7 @@ void BuzzerTransactionStoreExtension::selectEventsfeed(uint64_t from, const uint
 						//
 						TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lPublisher);
 						if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
+						else continue;
 						//
 						EventsfeedItemPtr lItem = makeEventsfeedItem(lBuzzer, lTx, lMainStore, lRawBuzzfeed, lBuzzItems);
 						//
@@ -2971,6 +2978,7 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedByBuzz(uint64_t from, const 
 			uint256 lTxPublisher = lTx->in()[TX_BUZZ_MY_IN].out().tx(); // buzzer allways is the first in
 			TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lTxPublisher);
 			if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
+			else return;
 			//
 			bool lProcessed = false;
 			if (lTx->type() == TX_REBUZZ) {
@@ -3018,6 +3026,7 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedByBuzz(uint64_t from, const 
 			uint256 lTxPublisher = lTx->in()[TX_BUZZ_MY_IN].out().tx(); // buzzer allways is the first in
 			TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lTxPublisher);
 			if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
+			else continue;
 			// check for "trusted"
 			BuzzerTransactionStoreExtensionPtr lPublisherExtension = locateBuzzerExtension(lTxPublisher);
 			if (lPublisherExtension) {
@@ -3117,6 +3126,7 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedByBuzzer(uint64_t from, cons
 			uint256 lTxPublisher = lTx->in()[TX_BUZZ_MY_IN].out().tx(); // buzzer allways is the first in
 			TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lTxPublisher);
 			if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
+			else continue;
 			// check for "trusted"
 			BuzzerTransactionStoreExtensionPtr lPublisherExtension = locateBuzzerExtension(lTxPublisher);
 			if (lPublisherExtension) {
@@ -3154,6 +3164,7 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedByBuzzer(uint64_t from, cons
 			uint256 lBuzzerId = lTx->in()[TX_BUZZER_MISTRUST_BUZZER_IN].out().tx(); 
 
 			TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lBuzzerId);
+			if (!lBuzzerTx) continue;
 
 			ITransactionStorePtr lStore = store_->storeManager()->locate(lBuzzerTx->in()[TX_BUZZER_SHARD_IN].out().tx());
 			if (!lStore) continue;
@@ -3176,6 +3187,7 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedByBuzzer(uint64_t from, cons
 			uint256 lBuzzerId = lTx->in()[TX_BUZZER_ENDORSE_BUZZER_IN].out().tx(); 
 
 			TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lBuzzerId);
+			if (!lBuzzerTx) continue;
 
 			ITransactionStorePtr lStore = store_->storeManager()->locate(lBuzzerTx->in()[TX_BUZZER_SHARD_IN].out().tx());
 			if (!lStore) continue;
@@ -3275,6 +3287,7 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedGlobal(uint64_t timeframeFro
 			uint256 lTxPublisher = lTx->in()[TX_BUZZ_MY_IN].out().tx(); // buzzer allways is the first in
 			TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lTxPublisher);
 			if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
+			else continue;
 
 			// check for "trusted"
 			BuzzerTransactionStoreExtensionPtr lPublisherExtension = locateBuzzerExtension(lTxPublisher);
@@ -3296,6 +3309,7 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedGlobal(uint64_t timeframeFro
 			uint256 lBuzzerId = lTx->in()[TX_BUZZER_MISTRUST_BUZZER_IN].out().tx(); 
 
 			TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lBuzzerId);
+			if (!lBuzzerTx) continue;
 
 			ITransactionStorePtr lStore = store_->storeManager()->locate(lBuzzerTx->in()[TX_BUZZER_SHARD_IN].out().tx());
 			if (!lStore) continue;
@@ -3318,6 +3332,7 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedGlobal(uint64_t timeframeFro
 			uint256 lBuzzerId = lTx->in()[TX_BUZZER_ENDORSE_BUZZER_IN].out().tx(); 
 
 			TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lBuzzerId);
+			if (!lBuzzerTx) continue;
 
 			ITransactionStorePtr lStore = store_->storeManager()->locate(lBuzzerTx->in()[TX_BUZZER_SHARD_IN].out().tx());
 			if (!lStore) continue;
@@ -3427,6 +3442,7 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedByTag(const std::string& tag
 			uint256 lTxPublisher = lTx->in()[TX_BUZZ_MY_IN].out().tx(); // buzzer allways is the first in
 			TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lTxPublisher);
 			if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
+			else continue;
 			
 			// check for "trusted"
 			BuzzerTransactionStoreExtensionPtr lPublisherExtension = locateBuzzerExtension(lTxPublisher);
@@ -3602,6 +3618,7 @@ void BuzzerTransactionStoreExtension::selectBuzzfeed(const std::vector<BuzzfeedP
 				uint256 lTxPublisher = lTx->in()[TX_BUZZ_MY_IN].out().tx(); // buzzer allways is the first in
 				TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lTxPublisher);
 				if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
+				else continue;
 
 				// check for "trusted"
 				BuzzerTransactionStoreExtensionPtr lPublisherExtension = locateBuzzerExtension(lTxPublisher);
@@ -3672,6 +3689,7 @@ void BuzzerTransactionStoreExtension::selectBuzzfeed(const std::vector<BuzzfeedP
 				uint256 lBuzzerId = lTx->in()[TX_BUZZER_ENDORSE_BUZZER_IN].out().tx(); 
 
 				TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lBuzzerId);
+				if (!lBuzzerTx) continue;
 
 				ITransactionStorePtr lStore = store_->storeManager()->locate(lBuzzerTx->in()[TX_BUZZER_SHARD_IN].out().tx());
 				if (!lStore) continue;
