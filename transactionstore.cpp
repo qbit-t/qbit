@@ -762,6 +762,15 @@ void TransactionStore::removeBlocks(const uint256& from, const uint256& to, bool
 		if (lTransactions) {
 			for(TransactionsContainer::iterator lTx = lTransactions->transactions().begin(); lTx != lTransactions->transactions().end(); lTx++) {
 				//
+				TxBlockIndex lIndex;
+				if (transactionsIdx_.read((*lTx)->id(), lIndex) && lIndex.block() != lHash) {
+					// if transaction NOT belongs to the current block;
+					// that can happened in the process of consensus making - tx can be added by the two miners in the same time
+					// so conflict may occure and tx index should stay intact
+					continue;
+				}
+
+				//
 				if (extension_) extension_->removeTransaction(*lTx);
 
 				if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[removeBlocks]: ") +

@@ -442,6 +442,16 @@ QString Application::getEndPoint()
 	return QString::fromStdString(lValue.getString());
 }
 
+QString Application::getExploreTx() {
+	qbit::json::Value lValue = appConfig_["exploreTx"];
+	return QString::fromStdString(lValue.getString());
+}
+
+QString Application::getExploreTxRaw() {
+	qbit::json::Value lValue = appConfig_["exploreTxRaw"];
+	return QString::fromStdString(lValue.getString());
+}
+
 void Application::setAndroidOrientation(int orientation)
 {
 #ifdef Q_OS_ANDROID

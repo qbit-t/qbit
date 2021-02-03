@@ -190,6 +190,8 @@ public:
     Q_INVOKABLE int getRealtimePort();
     Q_INVOKABLE bool getRealtimeEncrypted();
     Q_INVOKABLE bool getRealtimeDebug();
+	Q_INVOKABLE QString getExploreTx();
+	Q_INVOKABLE QString getExploreTxRaw();
 
     Q_INVOKABLE bool getDebug();
     Q_INVOKABLE bool getNetworkDebug();
