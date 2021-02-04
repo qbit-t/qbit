@@ -39,7 +39,10 @@ void CubixLightComposer::CreateTxMediaSummary::process(errorFunction error) {
 
 void CubixLightComposer::CreateTxMediaSummary::mergeInfo(const std::map<uint256, uint32_t>& info) {
 	//
-	dAppInfo_.insert(info.begin(), info.end());
+	for (std::map<uint256, uint32_t>::const_iterator lInfo = info.begin(); lInfo != info.end(); lInfo++) {
+		//
+		dAppInfo_[lInfo->second] = lInfo->first;	
+	}
 }
 
 void CubixLightComposer::CreateTxMediaSummary::entitiesCountByDAppLoaded(const std::map<uint256, uint32_t>& info, const std::string&) {
@@ -62,7 +65,7 @@ void CubixLightComposer::CreateTxMediaSummary::entitiesCountByDAppLoaded(const s
 		// create context
 		ctx_ = TransactionContext::instance(tx_);
 		// set chain
-		tx_->setChain(dAppInfo_.begin()->first);
+		tx_->setChain(dAppInfo_.begin()->second); // sorted asc
 		// set proposed size
 		tx_->setSize(size_);
 		// set timestamp

@@ -54,7 +54,7 @@ public:
 		TransactionContextPtr ctx_;
 		int destinations_ = 0;
 		int collected_ = 0;
-		std::map<uint256, uint32_t> dAppInfo_;
+		std::map<uint32_t, uint256> dAppInfo_;
 	};
 
 	class CreateTxMediaData: public IComposerMethod, public std::enable_shared_from_this<CreateTxMediaData> {
