@@ -2193,17 +2193,17 @@ void HttpGetEntitiesCount::process(const std::string& source, const HttpRequest&
 		json::Value lDAppObject = lRootObject.addArray(lDApp);
 
 		//
-		std::map<uint32_t, uint256> lShardInfo;
+		std::map<uint256, uint32_t> lShardInfo;
 		ITransactionStorePtr lStorage = peerManager_->consensusManager()->storeManager()->locate(MainChain::id());
 		//
 		std::vector<ISelectEntityCountByShardsHandler::EntitiesCount> lEntitiesCount;
-		if (lStorage->entityStore()->entityCountByShards(lDApp, lShardInfo)) {
-			for (std::map<uint32_t, uint256>::iterator lItem = lShardInfo.begin(); lItem != lShardInfo.end(); lItem++) {
+		if (lStorage->entityStore()->entityCountByDApp(lDApp, lShardInfo)) {
+			for (std::map<uint256, uint32_t>::iterator lItem = lShardInfo.begin(); lItem != lShardInfo.end(); lItem++) {
 				//
 				json::Value lDAppItem = lDAppObject.newArrayItem();
 				lDAppItem.toObject();
-				lDAppItem.addString("shard", lItem->second.toHex());
-				lDAppItem.addUInt("count", lItem->first);
+				lDAppItem.addString("shard", lItem->first.toHex());
+				lDAppItem.addUInt("count", lItem->second);
 			}
 		}
 

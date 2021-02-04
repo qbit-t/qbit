@@ -876,13 +876,17 @@ bool TransactionStore::entityCountByDApp(const std::string& name, std::map<uint2
 		for (db::DbMultiContainer<uint256 /*entity*/, uint256 /*shard*/>::Iterator lShard = shards_.find(lDAppTx); lShard.valid(); ++lShard) {
 			//
 			uint32_t lCount = 0;
+			uint32_t lMainCount = 0;
+			shardEntities_.read(*lShard, lMainCount);
+
+			//
 			ITransactionStorePtr lStore = storeManager()->locate(*lShard);
 			if (lStore) {
 				//
 				if (lStore->entityStore()->entityCount(lCount)) {
-					result[*lShard] = lCount;
+					result[*lShard] = lMainCount + lCount;
 				} else {
-					result[*lShard] = 0;
+					result[*lShard] = lMainCount;
 				}
 			}
 		}
