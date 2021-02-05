@@ -120,7 +120,7 @@ void WebSourceInfo::processCommon(QNetworkReply* reply) {
 	bool lFound = false;
 	//
 	QString lRawSource;
-	while (!lFound && (lLen = reply->readLine(&lLine[0], 1023)) > 0 && lSource.size() < 6 * 1024) {
+	while (!lFound && (lLen = reply->readLine(&lLine[0], 1023)) > 0 && lSource.size() < 7 * 1024) {
 		lLine.resize(lLen); lSource.insert(lSource.end(), lLine.begin(), lLine.end());
 
 		lRawSource = QString::fromStdString(std::string(lSource.begin(), lSource.end()));
