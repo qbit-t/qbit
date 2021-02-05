@@ -27,3 +27,5 @@ toolchain*
 boost_*
 qbit.keystore
 qbit.keystore.*
+qt/fonts/fa-*
+qt/fonts-all/*
