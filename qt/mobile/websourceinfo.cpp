@@ -26,6 +26,7 @@ void WebSourceInfo::process() {
 	QUrl lUrl(url_);
 	host_ = lUrl.host();
 	host_ = host_.replace("www.", "");
+	totalBytes_ = 0;
 
 	reply_ = lManager->get(lRequest);
 	connect(reply_, &QIODevice::readyRead, this, &WebSourceInfo::readyToRead);
@@ -113,17 +114,19 @@ void WebSourceInfo::processCommon(QNetworkReply* reply) {
 	bool lImageFound = false;
 
 	//
-	std::vector<char> lLine; lLine.resize(1024);
+	qint64 lBytesAvailable = !reply->bytesAvailable() ? 1024 : reply->bytesAvailable();
+	std::vector<char> lLine; lLine.resize(lBytesAvailable);
 	std::vector<char> lSource;
 	//
 	size_t lLen = 0;
 	bool lFound = false;
 	//
 	QString lRawSource;
-	while (!lFound && (lLen = reply->readLine(&lLine[0], 1023)) > 0 && lSource.size() < 7 * 1024) {
-		lLine.resize(lLen); lSource.insert(lSource.end(), lLine.begin(), lLine.end());
+	if ((lLen = reply->read(&lLine[0], lBytesAvailable)) > 0) {
+		lLine.resize(lLen); totalBytes_ += lLen;
 
-		lRawSource = QString::fromStdString(std::string(lSource.begin(), lSource.end()));
+		// TODO: do we need to concat?
+		lRawSource = QString::fromStdString(std::string(lLine.begin(), lLine.end()));
 
 		if (!lTitleFound) lTitleFound = extractInfo(lTitle, lRawSource, title_);
 		if (!lDescriptionFound) lDescriptionFound = extractInfo(lDescription, lRawSource, description_);
@@ -135,8 +138,6 @@ void WebSourceInfo::processCommon(QNetworkReply* reply) {
 
 		if (lTitleFound && lDescriptionFound && lImageFound) {
 			lFound = true;
-		} else {
-			lLine.resize(1024);
 		}
 	}
 
@@ -145,8 +146,8 @@ void WebSourceInfo::processCommon(QNetworkReply* reply) {
 	}
 
 	if (lFound) {
-		title_ = title_.replace("&quot;", "\"").replace("&amp;", "&").replace("&#x27;", "'").replace("&#x39;", "'");
-		description_ = description_.replace("&quot;", "\"").replace("&amp;", "&").replace("&#x27;", "'").replace("&#x39;", "'");
+		title_ = title_.replace("&quot;", "\"").replace("&amp;", "&").replace("&#x27;", "'").replace("&#x39;", "'").replace("&#39;", "'");
+		description_ = description_.replace("&quot;", "\"").replace("&amp;", "&").replace("&#x27;", "'").replace("&#x39;", "'").replace("&#39;", "'");
 		image_ = image_.replace("&amp;", "&");
 		type_ = INFO_RICH;
 
@@ -155,9 +156,16 @@ void WebSourceInfo::processCommon(QNetworkReply* reply) {
 		emit descriptionChanged();
 		emit imageChanged();
 		emit hostChanged();
+		emit processed();
+		// remove
+		reply->deleteLater();
+	} else if (totalBytes_ > 200 * 1024) {
+		// just finish it
+		emit processed();
+		reply->deleteLater();
 	}
 
-	emit processed();
+	// wait next chunk...
 }
 
 void WebSourceInfo::finished(QNetworkReply* reply) {
@@ -167,8 +175,6 @@ void WebSourceInfo::finished(QNetworkReply* reply) {
 		processCommon(reply);
 	} else {
 		emit error(reply->errorString());
+		reply->deleteLater();
 	}
-
-	// finally
-	reply->deleteLater();
 }

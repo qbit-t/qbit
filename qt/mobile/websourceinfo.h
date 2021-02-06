@@ -73,6 +73,8 @@ private:
 	QString title_;
 	QString description_;
 	QString image_;
+
+	size_t totalBytes_ = 0;
 };
 
 } // buzzer
