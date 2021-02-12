@@ -79,6 +79,10 @@ Build:
 9. cmake -DCMAKE_BUILD_TYPE=Release
 10. make
 
+Please, note - if make produces linking errors, do the following:
+1. cmake ./
+2. make
+
 ## Requests
 
 curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"getkey","params":[]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080
