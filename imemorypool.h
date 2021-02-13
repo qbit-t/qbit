@@ -58,6 +58,8 @@ public:
 	virtual bool popUnlinkedOut(const uint256& /*utxo*/, TransactionContextPtr /*ctx*/) { throw qbit::exception("NOT_IMPL", "IMemoryPool::popUnlinkedOut - not implemented."); }	
 
 	virtual void processCandidates() { throw qbit::exception("NOT_IMPL", "IMemoryPool::processCandidates - not implemented."); }	
+
+	virtual void selectTransactions(std::list<uint256>& /*txs*/, uint64_t& /*total*/, size_t /*limit*/) { throw qbit::exception("NOT_IMPL", "IMemoryPool::selectTransactions - not implemented."); }	
 };
 
 typedef std::shared_ptr<IMemoryPool> IMemoryPoolPtr;

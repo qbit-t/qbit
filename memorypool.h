@@ -455,6 +455,7 @@ public:
 	}
 
 	void processCandidates();
+	void selectTransactions(std::list<uint256>& /*txs*/, uint64_t& /*total*/, size_t /*limit*/);
 
 	EntityPtr locateEntity(const std::string& name) {
 		//
@@ -506,6 +507,7 @@ private:
 
 	// weighted map
 	std::multimap<qunit_t /*fee rate*/, uint256 /*tx*/> map_;
+	std::map<uint256 /*tx*/, std::multimap<qunit_t /*fee rate*/, uint256 /*tx*/>::iterator> reverseMap_;
 	// qbit txs
 	std::map<uint256, TransactionContextPtr> qbitTxs_;
 	// lock

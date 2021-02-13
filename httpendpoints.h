@@ -178,6 +178,18 @@ public:
 	}
 };
 
+class HttpGetUnconfirmedTransactions: public IHttpCallEnpoint {
+public:
+	HttpGetUnconfirmedTransactions() {}
+
+	void process(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
+	std::string method() { return std::string("getunconfirmedtxs"); }
+
+	static IHttpCallEnpointPtr instance() {
+		return std::make_shared<HttpGetUnconfirmedTransactions>();
+	}
+};
+
 class HttpGetBlockHeaderByHeight: public IHttpCallEnpoint {
 public:
 	HttpGetBlockHeaderByHeight() {}

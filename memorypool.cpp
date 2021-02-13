@@ -336,7 +336,17 @@ bool MemoryPool::pushTransaction(TransactionContextPtr ctx) {
 				if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[pushTransaction]: ") + 
 					strprintf("transaction PUSHED: rate = %d/%s/%s#",
 						ctx->feeRate(), ctx->tx()->hash().toHex(), ctx->tx()->chain().toHex().substr(0, 10)));
-				map_.insert(std::multimap<qunit_t /*fee rate*/, uint256 /*tx*/>::value_type(ctx->feeRate(), ctx->tx()->id()));
+				//
+				std::multimap<qunit_t /*fee rate*/, uint256 /*tx*/>::iterator
+					lEntry = map_.insert(std::multimap<qunit_t /*fee rate*/, uint256 /*tx*/>::value_type(ctx->feeRate(), ctx->tx()->id()));
+				//
+				reverseMap_.insert(
+					std::map<uint256 /*tx*/, std::multimap<qunit_t /*fee rate*/, uint256 /*tx*/>::iterator>::value_type
+					(
+						ctx->tx()->id(),
+						lEntry
+					)
+				);
 			} else {
 				if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[pushTransaction]: ") + 
 					strprintf("transaction NOT PUSHED: rate = %d/%s/%s#",
@@ -521,6 +531,7 @@ BlockContextPtr MemoryPool::beginBlock(BlockPtr block) {
 
 		if (lTx == nullptr) {
 			gLog().write(Log::POOL, std::string("[fillBlock]: tx is absent ") + strprintf("%s/%s#", lEntry->second.toHex(), chain_.toHex().substr(0, 10)));
+			reverseMap_.erase(lEntry->second);
 			map_.erase(std::next(lEntry).base()); // remove from pool if there is no such tx
 			continue;
 		}
@@ -561,6 +572,7 @@ BlockContextPtr MemoryPool::beginBlock(BlockPtr block) {
 									removeConfirmedBlock(lBlockHash);
 									// remove from pool
 									removeTx(lEntry->second);
+									reverseMap_.erase(lEntry->second);
 									map_.erase(std::next(lEntry).base());
 									continue;
 								}
@@ -571,6 +583,7 @@ BlockContextPtr MemoryPool::beginBlock(BlockPtr block) {
 								removeConfirmedBlock(lBlockHash);
 								// remove from pool
 								removeTx(lEntry->second);
+								reverseMap_.erase(lEntry->second);
 								map_.erase(std::next(lEntry).base());
 								continue;
 							}
@@ -581,6 +594,7 @@ BlockContextPtr MemoryPool::beginBlock(BlockPtr block) {
 							removeConfirmedBlock(lBlockHash);
 							// remove from pool
 							removeTx(lEntry->second);
+							reverseMap_.erase(lEntry->second);
 							map_.erase(std::next(lEntry).base());
 							continue;
 						}
@@ -616,6 +630,7 @@ BlockContextPtr MemoryPool::beginBlock(BlockPtr block) {
 							strprintf("%s, %s/%s#", lTx->tx()->id().toHex(), lBlockHash.toHex(), lBlockBaseTx->blockHeader().chain().toHex().substr(0, 10)));
 					// remove from pool
 					removeTx(lEntry->second);
+					reverseMap_.erase(lEntry->second);
 					map_.erase(std::next(lEntry).base());
 					continue;
 				}
@@ -661,6 +676,7 @@ BlockContextPtr MemoryPool::beginBlock(BlockPtr block) {
 			if (lTx->tx()->type() != Transaction::BLOCKBASE) {
 				gLog().write(Log::ERROR, std::string("[fillBlock]: partial tree has broken for -> \n") + lTx->tx()->toString());
 				removeTx(lEntry->second);
+				reverseMap_.erase(lEntry->second);
 				map_.erase(std::next(lEntry).base()); // remove from pool if there is no such tx
 				continue;
 			}
@@ -670,6 +686,7 @@ BlockContextPtr MemoryPool::beginBlock(BlockPtr block) {
 		if (!traverseRight(lTx, lPartialTree)) {
 			gLog().write(Log::ERROR, std::string("[fillBlock]: partial tree too deep for -> \n") + lTx->tx()->toString());
 			removeTx(lEntry->second);
+			reverseMap_.erase(lEntry->second);
 			map_.erase(std::next(lEntry).base()); // remove from pool if there is no such tx
 			continue;
 		}
@@ -734,11 +751,24 @@ BlockContextPtr MemoryPool::beginBlock(BlockPtr block) {
 	return lCtx;
 }
 
+void MemoryPool::selectTransactions(std::list<uint256>& txs, uint64_t& total, size_t limit) {
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(mempoolMutex_);
+	//
+	total = map_.size();
+	//
+	for (std::multimap<qunit_t /*fee rate*/, uint256 /*tx*/>::reverse_iterator lEntry = map_.rbegin(); lEntry != map_.rend() && txs.size() < limit; lEntry++) {
+		//
+		txs.push_back(lEntry->second);
+	}
+}
+
 void MemoryPool::commit(BlockContextPtr ctx) {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(mempoolMutex_);
 	for (std::list<BlockContext::_poolEntry>::iterator lEntry = ctx->poolEntries().begin(); lEntry != ctx->poolEntries().end(); lEntry++) {
 		qbitTxs_.erase((*lEntry)->second);
+		reverseMap_.erase((*lEntry)->second);
 		map_.erase(std::next(*lEntry).base());
 	}
 }
@@ -755,7 +785,19 @@ void MemoryPool::removeTransactions(BlockPtr block) {
 		for (HeadersContainer::iterator lTx = block->headers().begin(); lTx != block->headers().end(); lTx++) {
 			//
 			if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[removeTransactions]: try to remove tx ") + 
-				strprintf("%s/%s/%s#", (*lTx).toHex(), block->blockHeader().hash().toHex(), chain_.toHex().substr(0, 10)));	
+				strprintf("%s/%s/%s#", (*lTx).toHex(), block->blockHeader().hash().toHex(), chain_.toHex().substr(0, 10)));
+
+			// clean-up indexes
+			{
+				boost::unique_lock<boost::recursive_mutex> lLock(mempoolMutex_);
+				std::map<uint256 /*tx*/, std::multimap<qunit_t /*fee rate*/, uint256 /*tx*/>::iterator>::iterator
+				lEntry = reverseMap_.find(*lTx);
+				if (lEntry != reverseMap_.end()) {
+					map_.erase(lEntry->second);
+					reverseMap_.erase(lEntry);
+				}
+			}
+
 			//
 			TransactionContextPtr lCtx = poolStore_->locateTransactionContext(*lTx);
 			if (lCtx) {
@@ -778,6 +820,18 @@ void MemoryPool::removeTransactions(BlockPtr block) {
 			//
 			if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[removeTransactions]: try to remove tx ") + 
 				strprintf("%s/%s/%s#", (*lTx)->id().toHex(), block->blockHeader().hash().toHex(), chain_.toHex().substr(0, 10)));	
+
+			// clean-up indexes
+			{
+				boost::unique_lock<boost::recursive_mutex> lLock(mempoolMutex_);
+				std::map<uint256 /*tx*/, std::multimap<qunit_t /*fee rate*/, uint256 /*tx*/>::iterator>::iterator 
+				lEntry = reverseMap_.find((*lTx)->id());
+				if (lEntry != reverseMap_.end()) {
+					map_.erase(lEntry->second);
+					reverseMap_.erase(lEntry);
+				}
+			}
+
 			//
 			TransactionContextPtr lCtx = poolStore_->locateTransactionContext((*lTx)->id());
 			if (lCtx) {

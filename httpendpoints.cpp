@@ -2219,3 +2219,111 @@ void HttpGetEntitiesCount::process(const std::string& source, const HttpRequest&
 		return;
 	}
 }
+
+void HttpGetUnconfirmedTransactions::process(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
+	/* request
+	{
+		"jsonrpc": "1.0",
+		"id": "curltext",
+		"method": "getunconfirmedtxs",
+		"params": [
+			"<chain_id>" 						-- (string) chain hash (id)
+		]
+	}
+	*/
+	/* reply
+	{
+		"result": {
+			"txs": [
+				"...",
+				"..."
+			]
+		},
+		"error":								-- (object or null) error description
+		{
+			"code": "EFAIL", 
+			"message": "<explanation>" 
+		},
+		"id": "curltext"						-- (string) request id
+	}
+	*/
+
+	// id
+	json::Value lId;
+	if (!(const_cast<json::Document&>(data).find("id", lId) && lId.isString())) {
+		reply = HttpReply::stockReply(HttpReply::bad_request);
+		return;
+	}
+
+	// params
+	json::Value lParams;
+	if (const_cast<json::Document&>(data).find("params", lParams) && lParams.isArray()) {
+		// extract parameters
+		uint256 lChainId; // 0
+
+		if (lParams.size() == 1) {
+			// param[0]
+			json::Value lP0 = lParams[0];
+			if (lP0.isString()) lChainId.setHex(lP0.getString());
+			else { reply = HttpReply::stockReply(HttpReply::bad_request); return; }
+
+		} else {
+			reply = HttpReply::stockReply("E_PARAMS", "Insufficient or extra parameters"); 
+			return;
+		}
+
+		// prepare reply
+		json::Document lReply;
+		lReply.loadFromString("{}");
+
+		json::Value lResultObject = lReply.addObject("result");
+		json::Value lTxsArrayObject = lResultObject.addArray("txs");
+
+		// process
+		std::string lCode, lMessage;
+
+		// try to lookup transaction
+		IMemoryPoolManagerPtr lMempoolManager = wallet_->mempoolManager();
+		if (lMempoolManager) {
+			//
+			IMemoryPoolPtr lMempool = lMempoolManager->locate(lChainId);
+			//
+			if (lMempool) {
+				//
+				uint64_t lTotal = 0;
+				std::list<uint256> lTxs;
+				lMempool->selectTransactions(lTxs, lTotal, 10000 /*max*/);
+				lResultObject.addUInt64("total", lTotal);
+
+				//
+				for (std::list<uint256>::iterator lTx = lTxs.begin(); lTx != lTxs.end(); lTx++) {
+					//
+					json::Value lItem = lTxsArrayObject.newArrayItem();
+					lItem.setString(lTx->toHex());
+				}
+			} else {
+				reply = HttpReply::stockReply("E_MEMPOOL_NOT_FOUND", "Memory pool was not found"); 
+				return;
+			}
+		} else {
+			reply = HttpReply::stockReply("E_POOLMANAGER", "Pool manager not found"); 
+			return;
+		}
+
+		if (!lCode.size() && !lMessage.size()) lReply.addObject("error").toNull();
+		else {
+			json::Value lError = lReply.addObject("error");
+			lError.addString("code", lCode);
+			lError.addString("message", lMessage);
+		}
+		lReply.addString("id", lId.getString());
+
+		// pack
+		pack(reply, lReply);
+		// finalize
+		finalize(reply);
+	} else {
+		reply = HttpReply::stockReply(HttpReply::bad_request);
+		return;
+	}
+}
