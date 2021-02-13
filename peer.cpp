@@ -3458,7 +3458,7 @@ void Peer::processGetNetworkBlockHeader(std::list<DataStream>::iterator msg, con
 		BlockHeader lBlockHeader;
 		ITransactionStorePtr lStore = peerManager_->consensusManager()->locate(lChain)->store();
 		//
-		if (lStore->blockHeaderHeight(lId, lHeight, lBlockHeader)) {
+		if (lStore && lStore->blockHeaderHeight(lId, lHeight, lBlockHeader)) {
 			//
 			BlockHeader lCurrentBlockHeader;
 			uint64_t lCurrentHeight = lStore->currentHeight(lCurrentBlockHeader);
@@ -3468,30 +3468,55 @@ void Peer::processGetNetworkBlockHeader(std::list<DataStream>::iterator msg, con
 
 			// load block and extract ...base (coinbase\base) transaction
 			BlockPtr lBlock = lStore->block(lId);
-			TransactionPtr lTx = *lBlock->transactions().begin();
+			if (lBlock) {
+				//
+				TransactionPtr lTx = *lBlock->transactions().begin();
 
-			// make network block header
-			NetworkBlockHeader lNetworkBlockHeader(lBlockHeader, lHeight, lConfirms);
+				// make network block header
+				NetworkBlockHeader lNetworkBlockHeader(lBlockHeader, lHeight, lConfirms);
 
-			// make message, serialize, send back
-			std::list<DataStream>::iterator lMsg = newOutMessage();
+				// make message, serialize, send back
+				std::list<DataStream>::iterator lMsg = newOutMessage();
 
-			// fill data
-			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION);
-			lStream << lRequestId;
-			lStream << lNetworkBlockHeader;
-			Transaction::Serializer::serialize<DataStream>(lStream, lTx);
+				// fill data
+				DataStream lStream(SER_NETWORK, PROTOCOL_VERSION);
+				lStream << lRequestId;
+				lStream << lNetworkBlockHeader;
+				Transaction::Serializer::serialize<DataStream>(lStream, lTx);
 
-			// prepare message
-			Message lMessage(Message::NETWORK_BLOCK_HEADER, lStream.size(), Hash160(lStream.begin(), lStream.end()));
-			(*lMsg) << lMessage;
-			lMsg->write(lStream.data(), lStream.size());
+				// prepare message
+				Message lMessage(Message::NETWORK_BLOCK_HEADER, lStream.size(), Hash160(lStream.begin(), lStream.end()));
+				(*lMsg) << lMessage;
+				lMsg->write(lStream.data(), lStream.size());
 
-			// log
-			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: sending network block header ") + strprintf("%s/%s#", lBlock->hash().toHex(), lChain.toHex().substr(0, 10)) + std::string(" for ") + key());
+				// log
+				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: sending network block header ") + strprintf("%s/%s#", lBlock->hash().toHex(), lChain.toHex().substr(0, 10)) + std::string(" for ") + key());
 
-			// write
-			sendMessage(lMsg);
+				// write
+				sendMessage(lMsg);				
+			} else {
+				// block is absent
+				// make message, serialize, send back
+				std::list<DataStream>::iterator lMsg = newOutMessage();
+
+				// fill data
+				DataStream lStream(SER_NETWORK, PROTOCOL_VERSION);
+				lStream << lRequestId;
+				lStream << lChain; // chain
+				lStream << lId; // id
+
+				// prepare message
+				Message lMessage(Message::NETWORK_BLOCK_HEADER_IS_ABSENT, lStream.size(), Hash160(lStream.begin(), lStream.end()));
+				(*lMsg) << lMessage;
+				lMsg->write(lStream.data(), lStream.size());
+
+				// log
+				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: network block header is absent for chain ") + strprintf("%s/%s#", lId.toHex(), lChain.toHex().substr(0, 10)) + std::string(" -> ") + key());				
+
+				// write
+				sendMessage(lMsg);
+			}
+
 		} else {
 			// block is absent
 			// make message, serialize, send back
