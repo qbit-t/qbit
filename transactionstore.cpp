@@ -1736,10 +1736,18 @@ void TransactionStore::reindexFull(const uint256& from, IMemoryPoolPtr pool) {
 
 	//
 	uint256 lLastBlock = lastBlock_;
+
+	//
+	// NOICE: This potencially will lead to clean-up wallet utxos
+	//
+
+	/*
 	// reset connected wallet cache
-	wallet_->resetCache();	
+	wallet_->resetCache();
 	// remove wallet utxo-binding data
 	wallet_->cleanUpData();
+	*/
+
 	// process blocks
 	std::list<BlockContextPtr> lContexts;
 	if (!processBlocks(from, BlockHeader().hash(), lContexts)) {
