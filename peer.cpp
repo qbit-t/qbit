@@ -3019,8 +3019,9 @@ void Peer::processGetBlockByHeight(std::list<DataStream>::iterator msg, const bo
 		eraseInData(msg);
 
 		// get block
-		BlockPtr lBlock = peerManager_->consensusManager()->locate(lChain)->store()->block(lHeight);
-		if (lBlock != nullptr) {
+		BlockPtr lBlock;
+		IConsensusPtr lConsensus = peerManager_->consensusManager()->locate(lChain);
+		if (lConsensus && (lBlock = lConsensus->store()->block(lHeight)) != nullptr) {
 			// make message, serialize, send back
 			std::list<DataStream>::iterator lMsg = newOutMessage();
 
@@ -3180,8 +3181,9 @@ void Peer::processGetBlockById(std::list<DataStream>::iterator msg, const boost:
 		eraseInData(msg);
 
 		// get block
-		BlockPtr lBlock = peerManager_->consensusManager()->locate(lChain)->store()->block(lId);
-		if (lBlock != nullptr) {
+		BlockPtr lBlock;
+		IConsensusPtr lConsensus = peerManager_->consensusManager()->locate(lChain);
+		if (lConsensus && (lBlock = lConsensus->store()->block(lId)) != nullptr) {
 			// make message, serialize, send back
 			std::list<DataStream>::iterator lMsg = newOutMessage();
 
@@ -3240,8 +3242,9 @@ void Peer::processGetBlockData(std::list<DataStream>::iterator msg, const boost:
 		eraseInData(msg);
 
 		// get block
-		BlockPtr lBlock = peerManager_->consensusManager()->locate(lChain)->store()->block(lId);
-		if (lBlock != nullptr) {
+		BlockPtr lBlock;
+		IConsensusPtr lConsensus = peerManager_->consensusManager()->locate(lChain);
+		if (lConsensus && (lBlock = lConsensus->store()->block(lId))!= nullptr) {
 			// make message, serialize, send back
 			std::list<DataStream>::iterator lMsg = newOutMessage();
 
@@ -3392,8 +3395,9 @@ void Peer::processGetNetworkBlock(std::list<DataStream>::iterator msg, const boo
 		eraseInData(msg);
 
 		// get block
-		BlockPtr lBlock = peerManager_->consensusManager()->locate(lChain)->store()->block(lId);
-		if (lBlock != nullptr) {
+		BlockPtr lBlock;
+		IConsensusPtr lConsensus = peerManager_->consensusManager()->locate(lChain);
+		if (lConsensus && (lBlock = lConsensus->store()->block(lId)) != nullptr) {
 			// make message, serialize, send back
 			std::list<DataStream>::iterator lMsg = newOutMessage();
 
@@ -3563,7 +3567,8 @@ void Peer::processGetBlockHeader(std::list<DataStream>::iterator msg, const boos
 		uint64_t lHeight;
 		uint256 lCurrent = lId;
 		BlockHeader lHeader;
-		if (peerManager_->consensusManager()->locate(lChain)->store()->blockHeaderHeight(lCurrent, lHeight, lHeader)) {
+		IConsensusPtr lConsensus = peerManager_->consensusManager()->locate(lChain);
+		if (lConsensus && lConsensus->store()->blockHeaderHeight(lCurrent, lHeight, lHeader)) {
 			// make message, serialize, send back
 			std::list<DataStream>::iterator lMsg = newOutMessage();
 
@@ -3574,7 +3579,7 @@ void Peer::processGetBlockHeader(std::list<DataStream>::iterator msg, const boos
 				lHeaders.push_back(NetworkBlockHeader(lHeader, lHeight));
 				lCurrent = lHeader.prev();
 			} while(
-				peerManager_->consensusManager()->locate(lChain)->store()->blockHeaderHeight(lCurrent, lHeight, lHeader) && 
+				lConsensus->store()->blockHeaderHeight(lCurrent, lHeight, lHeader) && 
 				(++lCount) < 500 // NOTICE: header size is around 300b, so 500 headers per request ~150k
 			);
 
