@@ -80,6 +80,8 @@ public:
 
 	virtual bool resync() { return false; }
 	virtual void setResync() {}
+
+	virtual std::string userName() { return ""; }
 };
 
 typedef std::shared_ptr<ISettings> ISettingsPtr;

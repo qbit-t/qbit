@@ -99,6 +99,9 @@
 #include <iostream>
 #include <syslog.h>
 #include <unistd.h>
+#include <stdlib.h>
+#include <pwd.h>
+#include <stdio.h>
 
 namespace qbit {
 
@@ -107,9 +110,21 @@ public:
 	NodeSettings(): NodeSettings(".qbit", nullptr) {}
 	NodeSettings(const std::string& dir, ISettingsPtr other) {
 #if defined(__linux__)
-		char lName[0x100] = {0};
-		getlogin_r(lName, sizeof(lName));
-		path_ = "/home/" + std::string(lName) + "/" + dir;
+		if (dir.find("/") == std::string::npos) {
+			uid_t lUid = geteuid();
+			struct passwd *lPw = getpwuid(lUid);
+			if (lPw) {
+				userName_ = std::string(lPw->pw_name);
+			} else {
+				char lName[0x100] = {0};
+				getlogin_r(lName, sizeof(lName));
+				userName_ = std::string(lName);			
+			}
+
+			path_ = "/home/" + userName_ + "/" + dir;
+		} else {
+			path_ = dir;
+		}
 #endif
 		if (other) {
 			serverPort_ = other->serverPort();
@@ -121,6 +136,7 @@ public:
 	}
 
 	std::string dataPath() { return path_; }
+	std::string userName() { return userName_; }
 
 	qunit_t maxFeeRate() { return QUNIT * 5; }
 
@@ -199,6 +215,7 @@ private:
 	bool qbitOnly_ = false;
 	bool reindex_ = false;
 	bool resync_ = false;
+	std::string userName_;
 };
 
 class Node;
@@ -445,6 +462,12 @@ int main(int argv, char** argc) {
 	// home
 	ISettingsPtr lSettings = NodeSettings::instance();
 	bool lIsLogConfigured = false;
+
+	// check
+	if (lSettings->userName() == "") {
+		std::cout << "error: current user is undefined" << std::endl;
+		return -1;
+	}
 
 	// command line
 	bool lDaemon = false;
