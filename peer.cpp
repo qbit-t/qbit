@@ -3456,11 +3456,12 @@ void Peer::processGetNetworkBlockHeader(std::list<DataStream>::iterator msg, con
 		// get block header
 		uint64_t lHeight;
 		BlockHeader lBlockHeader;
-		ITransactionStorePtr lStore = peerManager_->consensusManager()->locate(lChain)->store();
+		IConsensusPtr lConsensus = peerManager_->consensusManager()->locate(lChain);
 		//
-		if (lStore && lStore->blockHeaderHeight(lId, lHeight, lBlockHeader)) {
+		if (lConsensus && lConsensus->store()->blockHeaderHeight(lId, lHeight, lBlockHeader)) {
 			//
 			BlockHeader lCurrentBlockHeader;
+			ITransactionStorePtr lStore = lConsensus->store();
 			uint64_t lCurrentHeight = lStore->currentHeight(lCurrentBlockHeader);
 
 			uint64_t lConfirms = 0;
