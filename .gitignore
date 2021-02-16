@@ -29,3 +29,5 @@ qbit.keystore
 qbit.keystore.*
 qt/fonts/fa-*
 qt/fonts-all/*
+*config.jam.*
+*.pro.*
