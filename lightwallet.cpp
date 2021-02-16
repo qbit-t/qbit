@@ -205,7 +205,7 @@ void LightWallet::handleReply(TransactionPtr tx) {
 	processTransaction(tx);
 
 	status_ = IWallet::OPENED;
-	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[prepareCache]: cache is ready"));
+	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[handleReply/tx]: cache is ready"));
 }
 
 void LightWallet::handleReply(const std::vector<Transaction::NetworkUnlinkedOut>& outs, const PKey& pkey) {
@@ -239,7 +239,7 @@ void LightWallet::handleReply(const std::vector<Transaction::NetworkUnlinkedOut>
 
 	if (status_ == IWallet::FETCHING_UTXO) {
 		status_ = IWallet::OPENED;
-		if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[prepareCache]: cache is ready"));
+		if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[handleReply/outs]: cache is ready"));
 	} else if (status_ == IWallet::FETCHING_TXS) {
 		if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[prepareCache]: fetching txs..."));
 	} else {

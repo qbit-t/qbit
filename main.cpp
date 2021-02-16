@@ -118,7 +118,7 @@ public:
 			} else {
 				char lName[0x100] = {0};
 				getlogin_r(lName, sizeof(lName));
-				userName_ = std::string(lName);			
+				userName_ = std::string(lName);
 			}
 
 			path_ = "/home/" + userName_ + "/" + dir;

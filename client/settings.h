@@ -7,6 +7,9 @@
 
 #include "../isettings.h"
 #include <unistd.h>
+#include <stdlib.h>
+#include <pwd.h>
+#include <stdio.h>
 
 namespace qbit {
 
@@ -16,9 +19,21 @@ public:
 	ClientSettings(const std::string& dir) {
 #if defined(__linux__)
 #ifndef MOBILE_PLATFORM
-		char lName[0x100] = {0};
-		getlogin_r(lName, sizeof(lName));
-		path_ = "/home/" + std::string(lName) + "/" + dir;
+		if (dir.find("/") == std::string::npos) {
+			uid_t lUid = geteuid();
+			struct passwd *lPw = getpwuid(lUid);
+			if (lPw) {
+				userName_ = std::string(lPw->pw_name);
+			} else {
+				char lName[0x100] = {0};
+				getlogin_r(lName, sizeof(lName));
+				userName_ = std::string(lName);
+			}
+
+			path_ = "/home/" + userName_ + "/" + dir;
+		} else {
+			path_ = dir;
+		}
 #endif
 #endif
 	}
@@ -32,6 +47,7 @@ public:
 
 private:
 	std::string path_;
+	std::string userName_;
 };
 
 } // qbit

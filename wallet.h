@@ -215,10 +215,6 @@ private:
 
 	bool isUnlinkedOutExistsGlobal(const uint256& hash, Transaction::UnlinkedOut& utxo) {
 		//
-		// TODO: do we need to check it?
-		//
-		
-		/*
 		if (!mempool()->isUnlinkedOutExists(hash)) {
 			if (persistentStoreManager_) {
 				return persistentStoreManager_->locate(utxo.out().chain())->isUnlinkedOutExists(hash);
@@ -226,16 +222,12 @@ private:
 
 			return persistentStore_->isUnlinkedOutExists(hash);
 		}
-		*/
+
 		return true;
 	}
 
 	bool isLinkedOutExistsGlobal(const uint256& hash, Transaction::UnlinkedOut& utxo) {
 		//
-		// TODO: do we need to check it?
-		//
-
-		/*
 		if (!mempool()->isUnlinkedOutExists(hash)) {
 			if (persistentStoreManager_) {
 				return persistentStoreManager_->locate(utxo.out().chain())->isLinkedOutExists(hash);
@@ -243,7 +235,7 @@ private:
 
 			return persistentStore_->isLinkedOutExists(hash);
 		}
-		*/
+
 		return true;
 	}
 
