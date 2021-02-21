@@ -2043,7 +2043,7 @@ void HttpGetState::process(const std::string& source, const HttpRequest& request
 						//
 						SynchronizationJobPtr lNewJob = (*lPeer)->locateJob(lInfo->chain());
 						if (!lJob) lJob = lNewJob;
-						else if (lNewJob && lJob && lJob->timestamp() > lNewJob->timestamp()) {
+						else if (lNewJob && lJob && lJob->timestamp() < lNewJob->timestamp()) {
 							lJob = lNewJob;
 						}
 					}
@@ -2051,9 +2051,9 @@ void HttpGetState::process(const std::string& source, const HttpRequest& request
 
 				if (lJob) {
 					json::Value lSyncObject = lChain.addObject("synchronization");
-					lSyncObject.addString("type",lJob->typeString());
+					lSyncObject.addString("type", lJob->typeString());
 					if (lJob->type() != SynchronizationJob::PARTIAL)
-						lSyncObject.addUInt64("remains",lJob->pendingBlocks());
+						lSyncObject.addUInt64("remains", lJob->pendingBlocks());
 				}
 			}
 		}

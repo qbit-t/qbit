@@ -422,7 +422,7 @@ public:
 
 	void erase(const uint256& /*from*/, const uint256& /*to*/); // erase indexes, reverse order (native)
 	void remove(const uint256& /*from*/, const uint256& /*to*/); // remove indexes with data (headers, transactions), reverse order (native)
-	bool processBlocks(const uint256& /*from*/, const uint256& /*to*/, std::list<BlockContextPtr>& /*ctxs*/);	// re\process blocks, forward order
+	bool processBlocks(const uint256& /*from*/, const uint256& /*to*/, IMemoryPoolPtr /*pool*/);	// re\process blocks, forward order
 
 	BlockPtr block(uint64_t /*height*/);
 	BlockPtr block(const uint256& /*id*/);

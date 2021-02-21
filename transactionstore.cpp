@@ -912,7 +912,7 @@ void TransactionStore::erase(const uint256& from, const uint256& to) {
 
 //
 // interval [..)
-bool TransactionStore::processBlocks(const uint256& from, const uint256& to, std::list<BlockContextPtr>& ctxs) {
+bool TransactionStore::processBlocks(const uint256& from, const uint256& to, IMemoryPoolPtr pool) {
 	//
 	std::list<BlockHeader> lHeadersSeq;
 	uint256 lHash = from;
@@ -953,7 +953,6 @@ bool TransactionStore::processBlocks(const uint256& from, const uint256& to, std
 		}
 
 		lBlockCtx->block()->append(lTransactions); // reconstruct block consistensy
-		ctxs.push_back(lBlockCtx);
 
 		//
 		// process txs
@@ -986,9 +985,11 @@ bool TransactionStore::processBlocks(const uint256& from, const uint256& to, std
 
 			//
 			lBlockCtx->block()->compact(); // compact txs to just ids
+			pool->removeTransactions(lBlockCtx->block());
 		} else {
 			//
 			lBlockCtx->block()->compact(); // compact txs to just ids
+			pool->removeTransactions(lBlockCtx->block());
 			return false;
 		}
 	}
@@ -1749,16 +1750,11 @@ void TransactionStore::reindexFull(const uint256& from, IMemoryPoolPtr pool) {
 	*/
 
 	// process blocks
-	std::list<BlockContextPtr> lContexts;
-	if (!processBlocks(from, BlockHeader().hash(), lContexts)) {
+	if (!processBlocks(from, BlockHeader().hash(), pool)) {
 		// try to rollback
 		setLastBlock(lLastBlock);
 		resyncHeight();
 	} else {
-		// clean-up
-		for (std::list<BlockContextPtr>::iterator lBlock = lContexts.begin(); lBlock != lContexts.end(); lBlock++) {
-			pool->removeTransactions((*lBlock)->block());
-		}
 		// new last
 		setLastBlock(from);
 		// build height map
@@ -1827,7 +1823,6 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 	//
 	bool lResyncHeight = false;
 	bool lRemoveTransactions = false;
-	std::list<BlockContextPtr> lContexts;
 	{
 		//
 		boost::unique_lock<boost::recursive_mutex> lLock(storageCommitMutex_);
@@ -1838,7 +1833,7 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 		// remove new index
 		removeBlocks(from, to, false); // in case of wrapped restarts (re-process blocks may occur)
 		// process blocks
-		if (!(lResult = processBlocks(from, to, lContexts))) {
+		if (!(lResult = processBlocks(from, to, pool))) {
 			setLastBlock(lLastBlock);
 			// NOTICE: height map was not changed
 			// resyncHeight();
@@ -1846,10 +1841,6 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 			//
 			gLog().write(Log::STORE, std::string("[reindex]: blocks processed for ") + 
 				strprintf("%s#", chain_.toHex().substr(0, 10)));
-			// clean-up
-			for (std::list<BlockContextPtr>::iterator lBlock = lContexts.begin(); lBlock != lContexts.end(); lBlock++) {
-				pool->removeTransactions((*lBlock)->block());
-			}
 			// point to the last block
 			setLastBlock(from);
 			// resync height
