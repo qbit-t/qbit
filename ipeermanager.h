@@ -31,6 +31,7 @@ public:
 	virtual bool existsActive(const std::string& /*endpoint*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::existsActive - not implemented."); }
 	virtual bool existsBanned(const std::string& /*endpoint*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::existsBanned - not implemented."); }
 	virtual bool existsPostponed(const std::string& /*endpoint*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::existsPostponed - not implemented."); }
+	virtual bool existsExplicit(const std::string& /*endpoint*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::existsExplicit - not implemented."); }
 
 	virtual bool updatePeerState(IPeerPtr /*peer*/, StatePtr /*state*/, IPeer::UpdatePeerResult& /*peerResult*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::updatePeerState - not implemented."); }
 	virtual bool updatePeerLatency(IPeerPtr /*peer*/, uint32_t /*latency*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::updatePeerLatency - not implemented."); }

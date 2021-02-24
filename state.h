@@ -234,6 +234,9 @@ public:
 	bool nodeOrFullNode() {
 		return ((roles_ & FULLNODE) != 0) || ((roles_ & NODE) != 0);
 	}
+	bool fullNode() {
+		return ((roles_ & FULLNODE) != 0);
+	}
 
 	void prepare() {
 		//

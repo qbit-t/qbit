@@ -252,8 +252,9 @@ void HttpNewKey::process(const std::string& source, const HttpRequest& request, 
 	{
 		"jsonrpc": "1.0",
 		"id": "curltext",
-		"method": "getkey",
+		"method": "newkey",
 		"params": [
+			...
 		]
 	}
 	*/
@@ -285,8 +286,20 @@ void HttpNewKey::process(const std::string& source, const HttpRequest& request, 
 	// params
 	json::Value lParams;
 	if (const_cast<json::Document&>(data).find("params", lParams) && lParams.isArray()) {
+		//
+		std::list<std::string> lSeedWords;
+		if (lParams.size()) {
+			// param[0]
+			for (int lIdx = 0; lIdx < lParams.size(); lIdx++) {
+				//
+				json::Value lP0 = lParams[lIdx];
+				if (lP0.isString()) lSeedWords.push_back(lP0.getString());
+				else { reply = HttpReply::stockReply(HttpReply::bad_request); return; }
+			}
+		}
+
 		// process
-		SKeyPtr lKey = wallet_->createKey(std::list<std::string>());
+		SKeyPtr lKey = wallet_->createKey(lSeedWords);
 		if (!lKey->valid()) {
 			reply = HttpReply::stockReply("E_SKEY_IS_INVALID", "Key is invalid"); 
 			return;

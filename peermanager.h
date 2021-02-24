@@ -615,6 +615,27 @@ public:
 		}
 	}
 
+	bool existsExplicit(const std::string& key) {
+		//
+		// NOTICE: qbit protocol changes
+		// - in case of full nodes client connectivity and node services is mandatory
+		//
+		const uint64_t CHANGE_PROTO_TIME_0 = 1614422850; // in seconds since 1614163650 + 3 days
+		if (qbit::getTime() > CHANGE_PROTO_TIME_0) {
+			bool lResult = false;
+			for (int lIdx = 0; lIdx < contexts_.size(); lIdx++) {
+				boost::unique_lock<boost::recursive_mutex> lLock(contextMutex_[lIdx]);
+				std::set<std::string /*endpoint*/>::iterator lPeer = explicit_[lIdx].find(key);
+				lResult = lPeer != explicit_[lIdx].end();
+				if (lResult) break;
+			}
+
+			return lResult;	
+		}
+
+		return true;
+	}
+
 	static void registerPeerExtension(const std::string& dappName, PeerExtensionCreatorPtr extension) {
 		//
 		gPeerExtensions.insert(std::map<std::string /*dapp name*/, PeerExtensionCreatorPtr>::value_type(

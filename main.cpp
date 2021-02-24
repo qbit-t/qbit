@@ -395,6 +395,7 @@ public:
 		httpRequestHandler_->push(HttpReleasePeer::instance());
 		httpRequestHandler_->push(HttpGetState::instance());
 		httpRequestHandler_->push(HttpGetKey::instance());
+		httpRequestHandler_->push(HttpNewKey::instance());
 		httpRequestHandler_->push(HttpGetBalance::instance());
 		httpRequestHandler_->push(HttpSendToAddress::instance());
 		httpRequestHandler_->push(HttpCreateDApp::instance());
@@ -695,7 +696,7 @@ int main(int argv, char** argc) {
 	}
 
 	// allow connection to this host
-	if (lEndpointV4.length() && lSettings->serverPort()) {
+	if (lEndpointV4.length() && lSettings->serverPort() && lEndpointV4 != "0.0.0.0" && lEndpointV4 != "127.0.0.1") {
 		//
 		lNode->peerManager()->addPeerExplicit(strprintf("%s:%d", lEndpointV4, lSettings->serverPort()));
 	}

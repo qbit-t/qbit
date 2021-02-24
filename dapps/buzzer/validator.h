@@ -167,6 +167,9 @@ private:
 	// TODO: rewrite
 	void miner() {
 		//
+		static uint8_t EDGEBITS_ = 20;
+		static uint8_t PROOFSIZE_ = 42;
+		//
 		while(true) {
 			boost::mutex::scoped_lock lLock(minerMutex_);
 			while(!minerRunning_) minerActive_.wait(lLock);
@@ -225,7 +228,7 @@ private:
 						//
 						std::set<uint32_t> lCycle;
 						lCurrentBlock->nonce_ = lNonce;
-						lResult = FindCycle(lCurrentBlock->hash(), EDGEBITS, PROOFSIZE, lCycle);
+						lResult = FindCycle(lCurrentBlock->hash(), EDGEBITS_, PROOFSIZE_, lCycle);
 						lNonce++;
 
 						// calculation timed out
@@ -257,7 +260,7 @@ private:
 					}
 
 					// check block pow
-					int lVerifyResult = VerifyCycle(lCurrentBlock->hash(), EDGEBITS, PROOFSIZE, lCurrentBlock->cycle_);
+					int lVerifyResult = VerifyCycle(lCurrentBlock->hash(), EDGEBITS_, PROOFSIZE_, lCurrentBlock->cycle_);
 					if (lVerifyResult != verify_code::POW_OK) {
 						if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[buzzer/validator/miner/error]: cycle verification FAILED for ") + strprintf("%s/%s#", lCurrentBlock->hash().toHex(), chain_.toHex().substr(0, 10)));
 						continue;

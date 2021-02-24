@@ -239,7 +239,18 @@ public:
 	// PoW/PoS work sequnce with "block" and "block->prev"
 	virtual bool checkSequenceConsistency(const BlockHeader& block) {
 		//
-		int lRes = VerifyCycle(const_cast<BlockHeader&>(block).hash(), EDGEBITS, PROOFSIZE, block.cycle_);
+		uint8_t EDGEBITS_ = 20;
+		uint8_t PROOFSIZE_ = 40;
+
+		//
+		const uint64_t CHANGE_ALG_TIME_0 = 1614422850; // in seconds 1614163650 + 3 days
+		if (block.time() > CHANGE_ALG_TIME_0) {
+			EDGEBITS_ = 20;
+			PROOFSIZE_ = 42;
+		}
+
+		//
+		int lRes = VerifyCycle(const_cast<BlockHeader&>(block).hash(), EDGEBITS_, PROOFSIZE_, block.cycle_);
 		if(lRes == verify_code::POW_OK) {
 			bool lNegative = false;
 			bool lOverflow = false;

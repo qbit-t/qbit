@@ -62,14 +62,20 @@ public:
 			if (dapp) {
 				Consensuses::iterator lCreator = gConsensuses.find(dapp->entityName());
 				if (lCreator != gConsensuses.end()) {
-					IConsensusPtr lConsensus = lCreator->second->create(chain, shared_from_this(), settings_, wallet_, storeManager_->locate(chain));
+					ITransactionStorePtr lStore = storeManager_->locate(chain);
+					if (lStore) {
+						IConsensusPtr lConsensus = lCreator->second->create(chain, shared_from_this(), settings_, wallet_, lStore);
+						consensuses_[chain] = lConsensus;
+						return lConsensus;
+					}
+				}
+			} else {
+				ITransactionStorePtr lStore = storeManager_->locate(chain);
+				if (lStore) {
+					IConsensusPtr lConsensus = Consensus::instance(chain, shared_from_this(), settings_, wallet_, lStore);
 					consensuses_[chain] = lConsensus;
 					return lConsensus;
 				}
-			} else {
-				IConsensusPtr lConsensus = Consensus::instance(chain, shared_from_this(), settings_, wallet_, storeManager_->locate(chain));
-				consensuses_[chain] = lConsensus;
-				return lConsensus;
 			}
 		}
 
@@ -414,8 +420,11 @@ public:
 			if (lConsensusPtr != consensuses_.end()) lConsensus = lConsensusPtr->second;
 		}
 
-		if (lConsensus)
-			return lConsensus->pushBlockHeader(blockHeader, validatorManager_->locate(const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().chain()));
+		if (lConsensus) {
+			IValidatorPtr lValidator = validatorManager_->locate(const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().chain());
+			if (lValidator) return lConsensus->pushBlockHeader(blockHeader, lValidator);
+		}
+
 		return IValidator::VALIDATOR_ABSENT;
 
 		/*

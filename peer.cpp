@@ -3769,53 +3769,66 @@ void Peer::processBlockHeaderAndState(std::list<DataStream>::iterator msg, const
 			peerManager_->consensusManager()->pushState(lStatePtr);
 		} else {
 			//
-			IValidator::BlockCheckResult lResult = peerManager_->consensusManager()->pushBlockHeader(lNetworkBlockHeader);
-			switch(lResult) {
-				case IValidator::SUCCESS: {
-					if (!peerManager_->settings()->isMiner()) {
-						StatePtr lLocalState = peerManager_->consensusManager()->currentState();
-						if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: notifying state changes ") + key() + " -> " + lLocalState->toString());
-						peerManager_->consensusManager()->broadcastState(lLocalState, peerManager_->consensusManager()->mainPKey().id());
-					}	
-				}
-				case IValidator::BROKEN_CHAIN: {
-						// process state
-						if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing state from ") + key() + " -> " + lState.toString());
-						StatePtr lStatePtr = State::instance(lState);
-						IPeer::UpdatePeerResult lPeerResult;
-						if (!peerManager_->updatePeerState(shared_from_this(), lStatePtr, lPeerResult)) {
-							setState(lStatePtr);
-							peerManager_->consensusManager()->pushPeer(shared_from_this());
+			// NOTICE: check if peer is full node and does not allows connectivity -> do not process this block
+			//
+			if (state()->fullNode() && state()->minerOrValidator() && !peerManager_->existsExplicit(key())) {
+				//
+				if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, "[peer]: skip block header from MINER & FULLNODE without backward connectivity " + 
+					strprintf("%s -> %s/%s/%s#", 
+						key(), 
+						lNetworkBlockHeader.blockHeader().hash().toHex(),
+						lNetworkBlockHeader.height(),
+						lNetworkBlockHeader.blockHeader().chain().toHex().substr(0, 10)));
+			} else {
+				//
+				IValidator::BlockCheckResult lResult = peerManager_->consensusManager()->pushBlockHeader(lNetworkBlockHeader);
+				switch(lResult) {
+					case IValidator::SUCCESS: {
+						if (!peerManager_->settings()->isMiner()) {
+							StatePtr lLocalState = peerManager_->consensusManager()->currentState();
+							if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: notifying state changes ") + key() + " -> " + lLocalState->toString());
+							peerManager_->consensusManager()->broadcastState(lLocalState, peerManager_->consensusManager()->mainPKey().id());
+						}	
+					}
+					case IValidator::BROKEN_CHAIN: {
+							// process state
+							if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing state from ") + key() + " -> " + lState.toString());
+							StatePtr lStatePtr = State::instance(lState);
+							IPeer::UpdatePeerResult lPeerResult;
+							if (!peerManager_->updatePeerState(shared_from_this(), lStatePtr, lPeerResult)) {
+								setState(lStatePtr);
+								peerManager_->consensusManager()->pushPeer(shared_from_this());
+							}
+							peerManager_->consensusManager()->pushState(lStatePtr);
 						}
-						peerManager_->consensusManager()->pushState(lStatePtr);
-					}
-					break;
-				/*
-				case IValidator::BROKEN_CHAIN: {
-						// synchronize ?
-						IConsensusPtr lConsensus = peerManager_->consensusManager()->locate(lNetworkBlockHeader.blockHeader().chain());
-						if (lConsensus) lConsensus->toNonSynchronized();
-					}
-					break;
-				*/
-				case IValidator::ORIGIN_NOT_ALLOWED:
-						// quarantine? - just skip for now
-					break;
-				case IValidator::INTEGRITY_IS_INVALID:
-						// WARNING: banning is too hard, consider quarantinig
-						// peerManager_->ban(shared_from_this());
+						break;
+					/*
+					case IValidator::BROKEN_CHAIN: {
+							// synchronize ?
+							IConsensusPtr lConsensus = peerManager_->consensusManager()->locate(lNetworkBlockHeader.blockHeader().chain());
+							if (lConsensus) lConsensus->toNonSynchronized();
+						}
+						break;
+					*/
+					case IValidator::ORIGIN_NOT_ALLOWED:
+							// quarantine? - just skip for now
+						break;
+					case IValidator::INTEGRITY_IS_INVALID:
+							// WARNING: banning is too hard, consider quarantinig
+							// peerManager_->ban(shared_from_this());
 
-						// quarantine? - just skip for now
-					break;
-				case IValidator::ALREADY_PROCESSED:
-						// skip
-					break;
-				case IValidator::VALIDATOR_ABSENT:
-						// skip
-					break;
-				case IValidator::PEERS_IS_ABSENT:
-						// skip
-					break;
+							// quarantine? - just skip for now
+						break;
+					case IValidator::ALREADY_PROCESSED:
+							// skip
+						break;
+					case IValidator::VALIDATOR_ABSENT:
+							// skip
+						break;
+					case IValidator::PEERS_IS_ABSENT:
+							// skip
+						break;
+				}
 			}
 		}
 
