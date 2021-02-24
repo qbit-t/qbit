@@ -169,9 +169,6 @@ private:
 	// miner thread
 	void miner() {
 		//
-		static uint8_t EDGEBITS_ = 20;
-		static uint8_t PROOFSIZE_ = 42;
-		//
 		while(true) {
 			boost::mutex::scoped_lock lLock(minerMutex_);
 			while(!minerRunning_) minerActive_.wait(lLock);
@@ -180,6 +177,17 @@ private:
 
 			// check and run
 			while(minerRunning_) {
+				//
+				uint8_t EDGEBITS_ = 20;
+				uint8_t PROOFSIZE_ = 40;
+
+				//
+				const uint64_t CHANGE_ALG_TIME_0 = 1614422850; // in seconds 1614163650 + 3 days
+				if (consensus_->currentTime() > CHANGE_ALG_TIME_0) {
+					EDGEBITS_ = 20;
+					PROOFSIZE_ = 42;
+				}
+				
 				try {
 					// get block template
 					BlockPtr lCurrentBlock = Block::instance();
