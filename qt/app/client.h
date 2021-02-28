@@ -100,6 +100,8 @@ class Client: public QObject, public IClient
 	Q_PROPERTY(ulong mistrusts READ getMistrusts NOTIFY mistrustsChanged)
 	Q_PROPERTY(QString address READ address NOTIFY addressChanged)
 	Q_PROPERTY(QList<buzzer::Contact*> contacts READ selectContacts NOTIFY contactsChanged)
+	Q_PROPERTY(QString scale READ scale WRITE setScale NOTIFY scaleChanged)
+	Q_PROPERTY(double scaleFactor READ scaleFactor NOTIFY scaleFactorChanged)
 
 public:
 	Client(QObject *parent = nullptr);
@@ -141,7 +143,30 @@ public:
     void setThemeSelector(const QString& themeSelector) { themeSelector_ = themeSelector; emit themeSelectorChanged(); }
     QString themeSelector() const { return themeSelector_; }
 
-    Q_INVOKABLE int open(QString);
+	void setScale(const QString& scale) {
+		scale_ = scale;
+
+		if (scale_ == "100") scaleFactor_ = 1.00;
+		else if (scale_ == "110") scaleFactor_ = 1.10;
+		else if (scale_ == "115") scaleFactor_ = 1.15;
+		else if (scale_ == "120") scaleFactor_ = 1.20;
+		else if (scale_ == "125") scaleFactor_ = 1.25;
+		else if (scale_ == "135") scaleFactor_ = 1.35;
+		else if (scale_ == "150") scaleFactor_ = 1.50;
+		else if (scale_ == "175") scaleFactor_ = 1.75;
+		else if (scale_ == "200") scaleFactor_ = 2.00;
+		else if (scale_ == "250") scaleFactor_ = 2.50;
+		else if (scale_ == "300") scaleFactor_ = 3.00;
+
+		emit scaleChanged();
+		emit scaleFactorChanged();
+	}
+
+	QString scale() const { return scale_; }
+
+	double scaleFactor() const { return scaleFactor_; }
+
+	Q_INVOKABLE int open(QString);
     Q_INVOKABLE int openSettings();
     Q_INVOKABLE void revertChanges();
     Q_INVOKABLE bool configured();
@@ -534,7 +559,9 @@ signals:
 	void headerChanged();
 	void localeChanged();
 	void themeChanged();
-    void themeSelectorChanged();
+	void scaleChanged();
+	void scaleFactorChanged();
+	void themeSelectorChanged();
 	void cacheReadyChanged();
 	void networkReadyChanged();
 	void buzzerDAppReadyChanged();
@@ -571,6 +598,8 @@ private:
 	QString locale_;
     QString theme_;
     QString themeSelector_;
+	QString scale_ = "100";
+	double scaleFactor_ = 1.00;
 	std::map<std::string, std::string> properties_;
 	qbit::json::Document back_;
 	qbit::json::Document appConfig_;

@@ -110,17 +110,18 @@ QuarkPage
 			id: cancelButton
 			Material.background: "transparent"
 			visible: true
-			labelYOffset: 3
+			labelYOffset: buzzerApp.isDesktop ? 0 : 3
 			symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 			Layout.alignment: Qt.AlignHCenter
 			symbol: Fonts.leftArrowSym
+			x: buzzerApp.isDesktop ? 10 : 0
 
 			onClicked: {
 				closePage();
 			}
 		}
 
-		QuarkLabel {
+		QuarkLabelRegular {
 			id: buzzerControl
 			x: cancelButton.x + cancelButton.width + 5
 			y: parent.height / 2 - height / 2
@@ -139,7 +140,7 @@ QuarkPage
 			y2: parent.height
 			penWidth: 1
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
-			visible: true
+			visible: !buzzerApp.isDesktop
 		}
 	}
 
@@ -156,6 +157,7 @@ QuarkPage
 				x: parent.width / 2 - width / 2
 				y: parent.height / 2 - height / 2
 				text: buzzerApp.getLocalization(buzzerClient.locale, "Peers.active")
+				font.pointSize: buzzerApp.isDesktop ? 14 : font.pointSize
 			}
 		}
 		TabButton {
@@ -163,6 +165,7 @@ QuarkPage
 				x: parent.width / 2 - width / 2
 				y: parent.height / 2 - height / 2
 				text: buzzerApp.getLocalization(buzzerClient.locale, "Peers.network")
+				font.pointSize: buzzerApp.isDesktop ? 14 : font.pointSize
 			}
 		}
 		TabButton {
@@ -170,6 +173,7 @@ QuarkPage
 				x: parent.width / 2 - width / 2
 				y: parent.height / 2 - height / 2
 				text: buzzerApp.getLocalization(buzzerClient.locale, "Peers.manual")
+				font.pointSize: buzzerApp.isDesktop ? 14 : font.pointSize
 			}
 		}
 

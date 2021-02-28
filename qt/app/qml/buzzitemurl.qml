@@ -21,7 +21,7 @@ import "qrc:/lib/numberFunctions.js" as NumberFunctions
 Item {
 	id: buzzitemurl_
 
-	property int calculatedHeight: spaceItems_;
+	property int calculatedHeight: 0 //spaceItems_;
 	property int calculatedWidth: 500
 	property var lastUrl_: lastUrl
 	property var controller_: controller
@@ -67,7 +67,7 @@ Item {
 		height: getHeight()
 
 		function getHeight() {
-			if (!infoContainer.visible) return spaceItems_;
+			if (!infoContainer.visible) return 0; //spaceItems_;
 			return infoImage.height + spaceTop_ + infoTitle.height + spaceItems_ +
 					infoDescription.height + spaceItems_ + infoSite.height + spaceBottom_;
 		}
@@ -106,7 +106,7 @@ Item {
 			}
 		}
 
-		QuarkLabel {
+		QuarkLabelRegular {
 			id: infoTitle
 			x: spaceLeft_
 			y: spaceTop_ + infoImage.y + infoImage.height
@@ -134,7 +134,7 @@ Item {
 			font.pointSize: 12
 		}
 
-		QuarkLabel {
+		QuarkLabelRegular {
 			id: infoSite
 			x: infoLink.x + infoLink.width + spaceItems_
 			y: infoDescription.y + infoDescription.height + spaceItems_

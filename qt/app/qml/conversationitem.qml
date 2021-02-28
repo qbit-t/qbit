@@ -290,7 +290,7 @@ Item {
 		font.bold: true
 	}
 
-	QuarkLabel {
+	QuarkLabelRegular {
 		id: buzzerNameControl
 		x: buzzerAliasControl.x + buzzerAliasControl.width + spaceItems_
 		y: avatarImage.y
@@ -404,15 +404,24 @@ Item {
 		text: conversationFrom()
 	}
 
+	TextMetrics	{
+		id: bodyControlMetrics
+		elide: Text.ElideRight
+		text: bodyControl.getText()
+		elideWidth: parent.width - (bodyControl.x + spaceRight_)
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 11) : font.pointSize
+	}
+
 	QuarkLabel {
 		id: bodyControl
 		x: fromControl.x + fromControl.width + (fromControl.text === "" ? 0 : spaceItems_)
 		y: fromControl.y
 		width: parent.width - (x + spaceRight_)
 		elide: Text.ElideRight
-		text: getText()
+		text: bodyControlMetrics.elidedText //getText()
 		font.italic: conversationState() === conversationPending_
-		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 11) : font.pointSize
 
 		function getText() {
 			//

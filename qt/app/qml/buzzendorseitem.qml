@@ -169,7 +169,7 @@ Item {
 			}
 		}
 
-		QuarkLabel {
+		QuarkLabelRegular {
 			id: actionText
 			x: avatarImage.x + avatarImage.width + spaceAvatarBuzz_
 			y: -2
@@ -308,7 +308,7 @@ Item {
 		font.bold: true
 	}
 
-	QuarkLabel {
+	QuarkLabelRegular {
 		id: buzzerNameControl
 		x: buzzerAliasControl.x + buzzerAliasControl.width + spaceItems_
 		y: avatarImage.y
@@ -362,7 +362,7 @@ Item {
 		border.color: "transparent"
 		color: "transparent"
 
-		QuarkLabel {
+		QuarkLabelRegular {
 			id: buzzerIdControl
 			x: 0
 			y: 0

@@ -316,7 +316,7 @@ Item {
 		}
 	}
 
-	QuarkLabel {
+	QuarkLabelRegular {
 		id: buzzerInfoControl
 		x: buzzerAliasControl.x
 		y: buzzerAliasControl.y + buzzerAliasControl.height + 3

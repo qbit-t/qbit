@@ -94,7 +94,7 @@ Item {
 		}
 	}
 
-	QuarkLabel {
+	QuarkLabelRegular {
 		id: endpointLabel
 		x: serverSymbol.x + serverSymbol.width + spaceItems_
 		y: spaceTop_
@@ -134,7 +134,7 @@ Item {
 		symbol: Fonts.clockSym
 	}
 
-	QuarkLabel {
+	QuarkLabelRegular {
 		id: timeLabel
 		x: timeSymbol.x + timeSymbol.width + spaceItems_
 		y: timeSymbol.y
@@ -232,7 +232,7 @@ Item {
 		symbol: Fonts.queuesSym
 	}
 
-	QuarkLabel {
+	QuarkLabelRegular {
 		id: queuesLabel
 		x: queuesSymbol.x + queuesSymbol.width + spaceItems_
 		y: queuesSymbol.y

@@ -89,17 +89,18 @@ QuarkPage
 			id: cancelButton
 			Material.background: "transparent"
 			visible: true
-			labelYOffset: 3
+			labelYOffset: buzzerApp.isDesktop ? 0 : 3
 			symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 			Layout.alignment: Qt.AlignHCenter
 			symbol: Fonts.leftArrowSym
+			x: buzzerApp.isDesktop ? 10 : 0
 
 			onClicked: {
 				closePage();
 			}
 		}
 
-		QuarkLabel {
+		QuarkLabelRegular {
 			id: buzzerControl
 			x: cancelButton.x + cancelButton.width + 5
 			y: parent.height / 2 - height / 2
@@ -118,7 +119,7 @@ QuarkPage
 			y2: parent.height
 			penWidth: 1
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
-			visible: true
+			visible: buzzerApp.isDesktop ? false : true
 		}
 	}
 
@@ -143,7 +144,7 @@ QuarkPage
 			y: 10
 			width: parent.width-40
 			wrapMode: Label.Wrap
-			font.pointSize: 18
+			font.pointSize: buzzerApp.isDesktop ? 14 : 18
 
 			text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.qbitKeys.manage")
 		}
@@ -191,7 +192,7 @@ QuarkPage
 			y: keyBox.y + keyBox.height + 15
 			width: parent.width-40
 			wrapMode: Text.Wrap
-			font.pointSize: 18
+			font.pointSize: buzzerApp.isDesktop ? 14 : 18
 
 			text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.qbitSeed")
 		}
@@ -274,6 +275,7 @@ QuarkPage
 						text: name
 						x: 10
 						y: parent.height / 2 - height / 2
+						font.pointSize: buzzerApp.isDesktop ? 14 : font.pointSize
 					}
 				}
 
@@ -388,7 +390,6 @@ QuarkPage
 						   buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 				horizontalAlignment: Text.AlignHCenter
 				verticalAlignment: Text.AlignVCenter
-				elide: Text.ElideRight
 
 				function adjust(val) {
 					color = val ?
@@ -482,7 +483,7 @@ QuarkPage
 						var lComponent = null;
 						var lPage = null;
 
-						lComponent = Qt.createComponent("qrc:/qml/buzzer-main.qml");
+						lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzer-main-desktop.qml") : Qt.createComponent("qrc:/qml/buzzer-main.qml");
 						if (lComponent.status === Component.Error) {
 							controller.showError(lComponent.errorString());
 						} else {
@@ -581,7 +582,7 @@ QuarkPage
 				var lComponent = null;
 				var lPage = null;
 
-				lComponent = Qt.createComponent("qrc:/qml/buzzer-main.qml");
+				lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzer-main-desktop.qml") : Qt.createComponent("qrc:/qml/buzzer-main.qml");
 				if (lComponent.status === Component.Error) {
 					controller.showError(lComponent.errorString());
 				} else {

@@ -19,6 +19,9 @@ Text
 
 	color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 
+	antialiasing: buzzerApp.isDesktop ? false : antialiasing
+	font.family: buzzerApp.isDesktop ? "Noto Color Emoji N" : font.family
+
 	// reflect theme changes
 	Connections
 	{

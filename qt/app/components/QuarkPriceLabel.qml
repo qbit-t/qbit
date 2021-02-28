@@ -115,7 +115,7 @@ Label
         calculatedWidth = significant.width + mantissa.width + zeroes.width + sublevel.width;
     }
 
-    QuarkLabel
+	QuarkLabelRegular
     {
         id: significant
         x: 0
@@ -141,7 +141,7 @@ Label
         }
     }
 
-    QuarkLabel
+	QuarkLabelRegular
     {
         id: mantissa
         x: significant.x + significant.width
@@ -160,7 +160,7 @@ Label
         color: mantissaColor
     }
 
-    QuarkLabel
+	QuarkLabelRegular
     {
         id: zeroes
         x: mantissa.x + mantissa.width
@@ -179,7 +179,7 @@ Label
         color: zeroesColor
     }
 
-    QuarkLabel
+	QuarkLabelRegular
     {
         id: sublevel
         x: zeroes.x + zeroes.width

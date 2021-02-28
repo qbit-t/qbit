@@ -230,7 +230,7 @@ QuarkPage {
 					color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link")
 				}
 
-				QuarkLabel {
+				QuarkLabelRegular {
 					id: buzzerFollowingControl
 					x: buzzerNameControl.x + buzzerNameControl.width + spaceItems_
 					y: buzzerNameControl.y

@@ -437,7 +437,7 @@ Item {
 		symbol: Fonts.userAliasSym
 	}
 
-	QuarkLabel {
+	QuarkLabelRegular {
 		id: buzzerNameControl
 		x: aliasSymbol.x + aliasSymbol.width + spaceItems_
 		y: nameSymbol.y
@@ -456,7 +456,7 @@ Item {
 		symbol: Fonts.hashSym
 	}
 
-	QuarkLabel {
+	QuarkLabelRegular {
 		id: buzzerIdControl
 		x: aliasSymbol.x + aliasSymbol.width + spaceItems_
 		y: idSymbol.y

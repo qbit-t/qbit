@@ -2,6 +2,9 @@
 #define BUZZER_IMAGE_LISTING_H
 
 #include <QObject>
+
+#ifdef Q_OS_ANDROID
+
 #include <QtAndroidExtras>
 
 #include <QDebug>
@@ -24,5 +27,7 @@ signals:
 };
 
 } // buzzer
+
+#endif
 
 #endif // BUZZER_IMAGE_LISTING_H

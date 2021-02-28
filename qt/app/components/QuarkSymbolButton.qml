@@ -18,6 +18,8 @@ Button
     font.weight: Font.Normal
     font.pointSize: 18
 
+	antialiasing: buzzerApp.isDesktop ? false : antialiasing
+
     Material.theme: buzzerClient.themeSelector == "dark" ? Material.Dark : Material.Light;
     Material.accent: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.accent");
     Material.background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.background");

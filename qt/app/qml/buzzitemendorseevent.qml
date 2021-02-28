@@ -247,7 +247,7 @@ Item {
 		}
 	}
 
-	QuarkLabel {
+	QuarkLabelRegular {
 		id: buzzerNameControl
 		x: buzzerAliasControl.x + buzzerAliasControl.width + spaceItems_
 		y: avatarImage.y
@@ -266,7 +266,7 @@ Item {
 		}
 	}
 
-	QuarkLabel {
+	QuarkLabelRegular {
 		id: buzzerIdControl
 		x: buzzerAliasControl.x
 		y: buzzerNameControl.y + buzzerNameControl.height + spaceItems_

@@ -33,6 +33,7 @@ Item {
 	property var buzzerInfoId_: buzzerInfoId
 	property var buzzerInfoChainId_: buzzerInfoChainId
 	property var buzzBody_: buzzBody
+	property var buzzBodyFlat_: buzzBodyFlat
 	property var buzzMedia_: buzzMedia
 	property int replies_: replies
 	property int rebuzzes_: rebuzzes
@@ -84,6 +85,7 @@ Item {
 	readonly property int spaceLine_: 4
 	readonly property int spaceThreaded_: 33
 	readonly property int spaceThreadedItems_: 4
+	readonly property real defaultFontSize: 10.5
 
 	signal calculatedHeightModified(var value);
 
@@ -180,7 +182,7 @@ Item {
 			x: avatarImage.x + avatarImage.width - width
 			y: -1
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
-			font.pointSize: 12
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : 12
 			symbol: getSymbol()
 
 			function getSymbol() {
@@ -198,15 +200,23 @@ Item {
 			}
 		}
 
+		TextMetrics	{
+			id: bodyactionTextMetrics
+			elide: Text.ElideRight
+			text: actionText.getText()
+			elideWidth: parent.width - actionText.x - spaceRight_
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
+		}
+
 		QuarkLabel {
 			id: actionText
 			x: avatarImage.x + avatarImage.width + spaceAvatarBuzz_
 			y: -2
-			font.pointSize: 12
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : 12
 			width: parent.width - x - spaceRight_
 			elide: Text.ElideRight
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
-			text: getText()
+			text: bodyactionTextMetrics.elidedText // getText()
 
 			function getText() {
 				var lInfo;
@@ -307,9 +317,10 @@ Item {
 		width: avatarImage.displayWidth
 		height: avatarImage.displayHeight
 		fillMode: Image.PreserveAspectCrop
+		mipmap: true
 
 		property bool rounded: true
-		property int displayWidth: 50
+		property int displayWidth: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 50 : 50
 		property int displayHeight: displayWidth
 
 		autoTransform: true
@@ -332,21 +343,11 @@ Item {
 		MouseArea {
 			id: buzzerInfoClick
 			anchors.fill: parent
+			cursorShape: Qt.PointingHandCursor
 
 			onClicked: {
-				// buzzer
-				var lComponent = null;
-				var lPage = null;
-
-				lComponent = Qt.createComponent("qrc:/qml/buzzfeedbuzzer.qml");
-				if (lComponent.status === Component.Error) {
-					showError(lComponent.errorString());
-				} else {
-					lPage = lComponent.createObject(controller);
-					lPage.controller = controller;
-					lPage.start(buzzerName_);
-					addPage(lPage);
-				}
+				//
+				controller_.openBuzzfeedByBuzzer(buzzerName_);
 			}
 		}
 	}
@@ -356,7 +357,7 @@ Item {
 		x: avatarImage.x + avatarImage.displayWidth / 2 - width / 2
 		y: avatarImage.y + avatarImage.displayHeight + spaceItems_
 		symbol: endorsed_ ? Fonts.endorseSym : Fonts.mistrustSym
-		font.pointSize: 14
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 2)) : 14
 		color: endorsed_ ? buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.endorsed") :
 						   buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.mistrusted");
 
@@ -455,9 +456,10 @@ Item {
 		y: avatarImage.y
 		text: buzzerAlias_
 		font.bold: true
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
 	}
 
-	QuarkLabel {
+	QuarkLabelRegular {
 		id: buzzerNameControl
 		x: buzzerAliasControl.x + buzzerAliasControl.width + spaceItems_
 		y: avatarImage.y
@@ -465,6 +467,7 @@ Item {
 		elide: Text.ElideRight
 		text: buzzerName_
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
 	}
 
 	QuarkLabel {
@@ -473,6 +476,7 @@ Item {
 		y: avatarImage.y
 		text: ago_
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
 	}
 
 	QuarkSymbolLabel {
@@ -480,7 +484,7 @@ Item {
 		x: parent.width - width - spaceRightMenu_
 		y: avatarImage.y
 		symbol: Fonts.shevronDownSym
-		font.pointSize: 12
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : 12
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
 	}
 	MouseArea {
@@ -488,6 +492,7 @@ Item {
 		y: menuControl.y - spaceTop_
 		width: agoControl.width + menuControl.width + spaceRightMenu_
 		height: agoControl.height + spaceRightMenu_
+		cursorShape: Qt.PointingHandCursor
 
 		onClicked: {
 			//
@@ -501,7 +506,7 @@ Item {
 		x: menuControl.x
 		y: menuControl.y + menuControl.height + spaceItems_
 		symbol: !onChain_ ? Fonts.clockSym : Fonts.checkedCircleSym //linkSym
-		font.pointSize: 12
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : 12
 		color: !onChain_ ? buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzz.wait") :
 						   buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzz.done");
 
@@ -608,6 +613,18 @@ Item {
 			text: buzzBody_
 			wrapMode: Text.Wrap
 			textFormat: Text.RichText
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
+			lineHeight: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 1.1) : lineHeight
+
+			MouseArea {
+				anchors.fill: parent
+				cursorShape: parent.hoveredLink ? Qt.PointingHandCursor : Qt.ArrowCursor
+				acceptedButtons: Qt.NoButton
+			}
+
+			onLinkHovered: {
+				//
+			}
 
 			onLinkActivated: {
 				var lComponent = null;
@@ -615,26 +632,10 @@ Item {
 				//
 				if (link[0] === '@') {
 					// buzzer
-					lComponent = Qt.createComponent("qrc:/qml/buzzfeedbuzzer.qml");
-					if (lComponent.status === Component.Error) {
-						showError(lComponent.errorString());
-					} else {
-						lPage = lComponent.createObject(controller);
-						lPage.controller = controller;
-						lPage.start(link);
-						addPage(lPage);
-					}
+					controller_.openBuzzfeedByBuzzer(link);
 				} else if (link[0] === '#') {
 					// tag
-					lComponent = Qt.createComponent("qrc:/qml/buzzfeedtag.qml");
-					if (lComponent.status === Component.Error) {
-						showError(lComponent.errorString());
-					} else {
-						lPage = lComponent.createObject(controller);
-						lPage.controller = controller;
-						lPage.start(link);
-						addPage(lPage);
-					}
+					controller_.openBuzzfeedByTag(link);
 				} else {
 					Qt.openUrlExternally(link);
 				}
@@ -724,7 +725,7 @@ Item {
 			} else if (lastUrl_.length) {
 				//
 				if (!urlInfoItem_) {
-					lSource = "qrc:/qml/buzzitemurl.qml";
+					lSource = buzzerApp.isDesktop ? "qrc:/qml/buzzitemurl-desktop.qml" : "qrc:/qml/buzzitemurl.qml";
 					lComponent = Qt.createComponent(lSource);
 					urlInfoItem_ = lComponent.createObject(bodyControl);
 					urlInfoItem_.calculatedHeightModified.connect(innerHeightChanged);
@@ -744,27 +745,36 @@ Item {
 		}
 
 		function innerHeightChanged(value) {
-			bodyControl.height = (buzzBody_.length > 0 ? buzzText.height : 0) + value +
-										(buzzBody_.length > 0 && buzzMedia_.length > 0 ? spaceMedia_ : spaceItems_) +
-										(buzzMedia_.length > 1 ? spaceMediaIndicator_ : spaceSingleMedia_);
+			//bodyControl.height = (buzzBody_.length > 0 ? buzzText.height : 0) + value +
+			//							(buzzBody_.length > 0 && buzzMedia_.length > 0 ? spaceMedia_ : spaceItems_) +
+			//							(buzzMedia_.length > 1 ? spaceMediaIndicator_ : spaceSingleMedia_);
+			bodyControl.height = bodyControl.getHeight();
 			buzzitem_.calculateHeight();
 		}
 
 		function getY() {
-			return (buzzBody_.length > 0 ? buzzText.height : 0) +
+			var lAdjust = buzzMedia_.length > 0 ? 0 : (buzzerClient.scaleFactor * 12);
+			return (buzzBody_.length > 0 ? buzzText.height - lAdjust : 0) +
 					(buzzBody_.length > 0 && buzzMedia_.length > 0 ? spaceMedia_ : spaceItems_) +
 					(buzzMedia_.length > 1 ? spaceMediaIndicator_ : spaceSingleMedia_);
 		}
 
 		function getNextY() {
-			return (buzzBody_.length > 0 ? buzzText.height : 0) +
+			var lAdjust = buzzMedia_.length > 0 || urlInfoItem_ || wrappedItem_ ? 0 : (buzzerClient.scaleFactor * 12);
+			return (buzzBody_.length > 0 ? buzzText.height - lAdjust : 0) +
 					(buzzBody_.length > 0 && buzzMedia_.length > 0 ? spaceMedia_ : spaceItems_) +
 					(buzzMedia_.length > 1 ? spaceMediaIndicator_ : spaceSingleMedia_) +
 					(wrappedItem_ ? wrappedItem_.y + wrappedItem_.calculatedHeight + spaceItems_ : 0);
 		}
 
 		function getHeight() {
-			return (buzzBody_.length > 0 ? buzzText.height : 0) +
+			var lAdjust =
+					buzzMedia_.length > 0 ||
+					buzzMediaItem_ ||
+					urlInfoItem_ && urlInfoItem_.calculatedHeight > 0 ||
+					wrappedItem_ ? 0 : (buzzerClient.scaleFactor * 12);
+
+			return (buzzBody_.length > 0 ? buzzText.height - lAdjust : 0) +
 					(buzzMediaItem_ ? buzzMediaItem_.calculatedHeight : 0) +
 					(urlInfoItem_ ? urlInfoItem_.calculatedHeight : 0) +
 					(buzzBody_.length > 0 && buzzMedia_.length > 0 ? spaceMedia_ : spaceItems_) +
@@ -784,10 +794,11 @@ Item {
 		symbol: Fonts.replySym
 		Material.background: "transparent"
 		visible: true
-		labelYOffset: 3
+		labelYOffset: /*buzzerApp.isDesktop ? 0 :*/ buzzerClient.scaleFactor * 2
 		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 		Layout.alignment: Qt.AlignHCenter
 		font.family: Fonts.icons
+		symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 14) : symbolFontPointSize
 
 		onClicked: {
 			//
@@ -813,6 +824,7 @@ Item {
 		text: NumberFunctions.numberToCompact(replies_).toString()
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 		visible: replies_ > 0
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
 	}
 
 	QuarkToolButton	{
@@ -822,9 +834,10 @@ Item {
 		symbol: Fonts.rebuzzSym
 		Material.background: "transparent"
 		visible: true
-		labelYOffset: 3
+		labelYOffset: /*buzzerApp.isDesktop ? 0 :*/ buzzerClient.scaleFactor * 2
 		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 		Layout.alignment: Qt.AlignHCenter
+		symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 14) : symbolFontPointSize
 
 		onClicked: {
 			if (rebuzzMenu.visible) rebuzzMenu.close();
@@ -839,6 +852,7 @@ Item {
 		text: NumberFunctions.numberToCompact(rebuzzes_).toString()
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 		visible: rebuzzes_ > 0
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
 	}
 
 	QuarkToolButton	{
@@ -851,6 +865,7 @@ Item {
 		labelYOffset: 3
 		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 		Layout.alignment: Qt.AlignHCenter
+		symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 14) : symbolFontPointSize
 
 		onClicked: {
 			buzzLikeCommand.process(buzzId_);
@@ -864,6 +879,7 @@ Item {
 		text: NumberFunctions.numberToCompact(likes_).toString()
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 		visible: likes_ > 0
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
 	}
 
 	QuarkToolButton	{
@@ -876,6 +892,7 @@ Item {
 		labelYOffset: 3
 		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 		Layout.alignment: Qt.AlignHCenter
+		symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 14) : symbolFontPointSize
 
 		onClicked: {
 			if (tipMenu.visible) tipMenu.close();
@@ -890,20 +907,21 @@ Item {
 		text: NumberFunctions.numberToCompact(rewards_).toString()
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 		visible: rewards_ > 0
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
 	}
 
 	//
 	// threaded
 	//
 
-	QuarkLabel {
+	QuarkLabelRegular {
 		id: threadedControl
 		x: bodyControl.x
 		y: replyButton.y + replyButton.height // + getSpacing()
 		width: bodyControl.width
 		elide: Text.ElideRight
 		text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.buzz.threaded")
-		font.pointSize: 14
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : 14
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link")
 		visible: getVisible() //threaded_ || showMore()
 
@@ -968,7 +986,7 @@ Item {
 		id: headerMenu
 		x: parent.width - width - spaceRight_
 		y: menuControl.y + menuControl.height + spaceItems_
-		width: 150
+		width: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 150) : 150
 		visible: false
 
 		model: ListModel { id: menuModel }
@@ -1044,7 +1062,7 @@ Item {
 		id: tipMenu
 		x: (tipButton.x + tipButton.width) - width
 		y: tipButton.y + tipButton.height
-		width: 135
+		width: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 135) : 135
 		visible: false
 
 		model: ListModel { id: tipModel }
@@ -1079,7 +1097,7 @@ Item {
 		id: rebuzzMenu
 		x: rebuzzButton.x
 		y: rebuzzButton.y + rebuzzButton.height
-		width: 190
+		width: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 190) : 190
 		visible: false
 
 		model: ListModel { id: rebuzzModel }

@@ -15,14 +15,24 @@ Page
 
     property string nextPage;
     property var controller;
-    property string key: "";
+	property string key: "";
+	property string caption: "";
 	property var closePageHandler: null;
 	property var activatePageHandler: null;
+	property bool stacked: false;
+	property string alias: "";
 
 	property string statusBarColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.statusBar")
 	property string navigationBarColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.navigationBar")
 
     property int topOffset: Qt.platform.os === "ios" ? Screen.height - Screen.desktopAvailableHeight - statusBar.extraPadding : 0
+
+	function updateStakedInfo(key, alias, caption) {
+		page_.key = key;
+		page_.alias = alias;
+		page_.caption = caption;
+		page_.stacked = true;
+	}
 
 	// reflect theme changes
 	Connections

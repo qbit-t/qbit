@@ -72,6 +72,7 @@ Item {
 	readonly property int spaceRightMenu_: 15
 	readonly property int spaceStats_: -5
 	readonly property int spaceLine_: 4
+	readonly property real defaultFontSize: 10.5
 
 	signal calculatedHeightModified(var value);
 
@@ -188,9 +189,10 @@ Item {
 			width: avatarImage.displayWidth
 			height: avatarImage.displayHeight
 			fillMode: Image.PreserveAspectCrop
+			mipmap: true
 
 			property bool rounded: true
-			property int displayWidth: 20
+			property int displayWidth: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 20 : 20
 			property int displayHeight: displayWidth
 
 			autoTransform: true
@@ -221,9 +223,10 @@ Item {
 			y: avatarImage.y
 			text: buzzerClient.getBuzzerAlias(buzzerInfoId_)
 			font.bold: true
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
 		}
 
-		QuarkLabel {
+		QuarkLabelRegular {
 			id: buzzerNameControl
 			x: buzzerAliasControl.x + buzzerAliasControl.width + spaceItems_
 			y: avatarImage.y
@@ -231,6 +234,7 @@ Item {
 			elide: Text.ElideRight
 			text: buzzerClient.getBuzzerName(buzzerInfoId_)
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
 		}
 
 		QuarkLabel {
@@ -239,6 +243,7 @@ Item {
 			y: avatarImage.y
 			text: ago_
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
 		}
 
 		//
@@ -290,6 +295,8 @@ Item {
 				text: buzzBody_
 				wrapMode: Text.Wrap
 				textFormat: Text.RichText
+				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
+				lineHeight: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 1.1) : lineHeight
 
 				onLinkActivated: {
 					var lComponent = null;
@@ -373,7 +380,7 @@ Item {
 				} else if (lastUrl_ && lastUrl_.length) {
 					//
 					if (!urlInfoItem_) {
-						lSource = "qrc:/qml/buzzitemurl.qml";
+						lSource = buzzerApp.isDesktop ? "qrc:/qml/buzzitemurl-desktop.qml" : "qrc:/qml/buzzitemurl.qml";
 						lComponent = Qt.createComponent(lSource);
 						urlInfoItem_ = lComponent.createObject(bodyControl);
 						urlInfoItem_.calculatedHeightModified.connect(innerHeightChanged);
@@ -393,9 +400,10 @@ Item {
 			}
 
 			function innerHeightChanged(value) {				
-				bodyControl.height = (buzzBody_.length > 0 ? buzzText.height : 0) + value +
-											(buzzBody_.length > 0 ? spaceMedia_ : spaceItems_) +
-											(buzzMedia_.length > 1 ? spaceMediaIndicator_ : 0);
+				//bodyControl.height = (buzzBody_.length > 0 ? buzzText.height : 0) + value +
+				//							(buzzBody_.length > 0 ? spaceMedia_ : spaceItems_) +
+				//							(buzzMedia_.length > 1 ? spaceMediaIndicator_ : 0);
+				bodyControl.height = bodyControl.getHeight();
 				buzzitemlight_.calculateHeight();
 			}
 
@@ -439,7 +447,8 @@ Item {
 				var lComponent = null;
 				var lPage = null;
 
-				lComponent = Qt.createComponent("qrc:/qml/buzzfeedthread.qml");
+				lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzfeedthread-desktop.qml") :
+												   Qt.createComponent("qrc:/qml/buzzfeedthread.qml");
 				if (lComponent.status === Component.Error) {
 					showError(lComponent.errorString());
 				} else {

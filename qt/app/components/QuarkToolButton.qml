@@ -23,11 +23,11 @@ T.RoundButton
 
 	property int labelXOffset: 0;
 	property int labelYOffset: 0;
-	property int symbolFontPointSize: 18
+	property real symbolFontPointSize: 18
 
 	font.family: Fonts.icons
     font.weight: Font.Normal
-    font.pointSize: 18
+	font.pointSize: symbolFontPointSize
 
 	implicitWidth: Math.max(implicitBackgroundWidth + leftInset + rightInset,
 							implicitContentWidth + leftPadding + rightPadding)
@@ -69,7 +69,7 @@ T.RoundButton
 	Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground");
 	Material.primary: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.primary");
 
-    contentItem: Label
+	contentItem: Label
     {
         id: label
 		topPadding: labelYOffset
@@ -77,6 +77,7 @@ T.RoundButton
         text: button.symbol
         color: symbolColor
         font.pointSize: symbolFontPointSize
+		antialiasing: buzzerApp.isDesktop ? false : antialiasing
     }
 
 	background: Rectangle

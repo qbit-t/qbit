@@ -36,7 +36,13 @@ Item
 	}
 
 	function start() {
-		search.setText("");
+		if (!buzzerApp.isDesktop) search.setText("");
+		else {
+			controller.mainToolBar.searchTextEdited.connect(startSearch);
+			controller.mainToolBar.searchTextCleared.connect(searchTextCleared);
+			controller.mainToolBar.setSearchText("", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.global.search"));
+		}
+
 		modelLoader_ = globalModelLoader;
 		buzzfeedModel_ = globalBuzzfeedModel_;
 		list.model = globalBuzzfeedModel_;
@@ -255,36 +261,44 @@ Item
 
 	QuarkSearchField {
 		id: search
-		width: parent.width - x - 14
+		width: buzzerApp.isDesktop ? parent.width - x - 5 : parent.width - x - 14
 		placeHolder: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.global.search")
+		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : fontPointSize
+		visible: !buzzerApp.isDesktop
 
 		x: 15
 		y: 0
 
 		onSearchTextChanged: {
 			//
-			if (searchText[0] === '#') {
-				searchTags.process(searchText);
-			} else if (searchText[0] === '@') {
-				searchBuzzers.process(searchText);
-			}
+			startSearch(searchText);
 		}
 
 		onTextCleared: {
-			start();
+			searchTextCleared();
 		}
+	}
+
+	function startSearch(searchText) {
+		if (searchText[0] === '#') {
+			searchTags.process(searchText);
+		} else if (searchText[0] === '@') {
+			searchBuzzers.process(searchText);
+		}
+	}
+
+	function searchTextCleared() {
+		start();
 	}
 
 	QuarkListView {
 		id: list
 		x: 0
-		y: search.y + search.calculatedHeight
+		y: buzzerApp.isDesktop ? 0 : search.y + search.calculatedHeight
 		width: parent.width
-		height: parent.height - (search.calculatedHeight)
+		height: parent.height - (buzzerApp.isDesktop ? 0 : search.calculatedHeight)
 		usePull: true
 		clip: true
-
-		//model: buzzfeedModel_
 
 		function adjust() {
 			//
@@ -326,20 +340,8 @@ Item
 			}
 
 			onClicked: {
-				// open thread
-				var lComponent = null;
-				var lPage = null;
-
-				lComponent = Qt.createComponent("qrc:/qml/buzzfeedthread.qml");
-				if (lComponent.status === Component.Error) {
-					showError(lComponent.errorString());
-				} else {
-					lPage = lComponent.createObject(controller);
-					lPage.controller = controller;
-					addPage(lPage);
-
-					lPage.start(buzzChainId, buzzId);
-				}
+				//
+				controller.openThread(buzzChainId, buzzId, buzzerAlias, buzzBodyFlat);
 			}
 
 			Component.onCompleted: {
@@ -440,8 +442,13 @@ Item
 					name: buzzers[lIdx]});
 			}
 
-			x = search.x;
-			y = search.y + search.calculatedHeight;
+			if (!buzzerApp.isDesktop) {
+				x = search.x;
+				y = search.y + search.calculatedHeight;
+			} else {
+				x = 10;
+				y = -10;
+			}
 
 			open();
 		}
@@ -478,8 +485,13 @@ Item
 					name: tags[lIdx]});
 			}
 
-			x = search.x;
-			y = search.y + search.calculatedHeight;
+			if (!buzzerApp.isDesktop) {
+				x = search.x;
+				y = search.y + search.calculatedHeight;
+			} else {
+				x = 10;
+				y = -10;
+			}
 
 			open();
 		}

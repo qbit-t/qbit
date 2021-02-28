@@ -52,6 +52,7 @@ Item {
 	readonly property int spaceLine_: 4
 	readonly property int spaceThreaded_: 33
 	readonly property int spaceThreadedItems_: 4
+	readonly property real defaultFontSize: 10.5
 
 	signal calculatedHeightModified(var value);
 
@@ -292,6 +293,7 @@ Item {
 		width: avatarImage.displayWidth
 		height: avatarImage.displayHeight
 		fillMode: Image.PreserveAspectCrop
+		mipmap: true
 
 		property bool rounded: true
 		property int displayWidth: 120
@@ -325,7 +327,10 @@ Item {
 		x: parent.width - width - spaceItems_
 		y: headerContainer.height + spaceTop_ // headerImage.height + spaceTop_
 		Layout.alignment: Qt.AlignHCenter
+		symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 14) : symbolFontPointSize
 
+		//spacing: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 5) : 10
+		//padding: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 9) : 18
 		spacing: 10
 		padding: 18
 
@@ -375,19 +380,21 @@ Item {
 		elide: Text.ElideRight
 		text: alias_
 		font.bold: true
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 3)) : font.pointSize
 	}
 
-	QuarkLabel {
+	QuarkLabelRegular {
 		id: buzzerNameControl
 		x: spaceLeft_
 		y: buzzerAliasControl.y + buzzerAliasControl.height + spaceItems_
 		width: parent.width - (x + spaceRight_)
 		elide: Text.ElideRight
 		text: buzzer_
-		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 3)) : font.pointSize
 	}
 
-	QuarkLabel {
+	QuarkLabelRegular {
 		id: buzzerIdControl
 		x: spaceLeft_
 		y: buzzerNameControl.y + buzzerNameControl.height + spaceItems_
@@ -397,12 +404,14 @@ Item {
 		text: /*"0x" +*/ buzzerId_
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
 		//font.pointSize: 12
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 3)) : font.pointSize
 	}
 	MouseArea {
 		x: buzzerIdControl.x - spaceItems_
 		y: buzzerIdControl.y - spaceItems_
 		width: buzzerIdControl.width + 2 * spaceItems_
 		height: buzzerIdControl.height + 2 * spaceItems_
+		cursorShape: Qt.PointingHandCursor
 
 		onClicked: {
 			clipboard.setText(buzzerInfoId_);
@@ -412,16 +421,18 @@ Item {
 	QuarkSymbolLabel {
 		id: copySymbol
 		x: parent.width - (spaceRight_ + width)
-		y: buzzerIdControl.y - 2
+		y: buzzerIdControl.y - buzzerClient.scaleFactor * 2
 		symbol: Fonts.clipboardSym
 		// color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 		//font.pointSize: 14
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzeritem_.defaultFontSize + 3)) : defaultFontSize
 	}
 	MouseArea {
 		x: copySymbol.x - spaceItems_
 		y: copySymbol.y - spaceItems_
 		width: copySymbol.width + 2 * spaceItems_
 		height: copySymbol.height + 2 * spaceItems_
+		cursorShape: Qt.PointingHandCursor
 
 		onClicked: {
 			clipboard.setText(buzzerId_);
@@ -430,14 +441,15 @@ Item {
 
 	QuarkToolButton {
 		id: menuControl
-		x: parent.width - width - spaceItems_
+		x: parent.width - width - (buzzerApp.isDesktop ? 0 : spaceItems_)
 		y: spaceItems_
-		symbol: Fonts.elipsisVerticalSym
+		symbol: buzzerApp.isDesktop ? Fonts.shevronDownSym : Fonts.elipsisVerticalSym
 		visible: true
-		labelYOffset: 3
+		labelYOffset: /*buzzerApp.isDesktop ? 0 :*/ 3
 		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 		Layout.alignment: Qt.AlignHCenter
 		opacity: 0.7
+		symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 14) : symbolFontPointSize
 
 		onClicked: {
 			if (buzzerId_ === buzzerClient.getCurrentBuzzerId()) return; // no actions
@@ -452,12 +464,12 @@ Item {
 
 	QuarkNumberLabel {
 		id: scoreControl
-		font.pointSize: 24
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 18) : 24
 		visible: true
 		fillTo: 8
 		useSign: false
 		x: spaceLeft_
-		y: buzzerIdControl.y + buzzerIdControl.height + spaceTop_
+		y: buzzerIdControl.y + buzzerIdControl.height + (buzzerApp.isDesktop ? (buzzerClient.scaleFactor * spaceTop_) : spaceTop_)
 		number: score_ ? parseFloat(score_) : 0.0
 
 		numberColor: imageFrame.getColor()
@@ -474,6 +486,7 @@ Item {
 		// font.pointSize: 12
 		symbol: Fonts.endorseSym
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.4")
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzeritem_.defaultFontSize + 3)) : endorseSymbol.defaultFontSize
 	}
 
 	QuarkLabel {
@@ -482,18 +495,19 @@ Item {
 		visible: true
 		//fillTo: 0
 		//useSign: false
-		x: endorseSymbol.x + endorseSymbol.width + spaceItems_ + Math.max(endorsementsNumber.width, mistrustsNumber.width) - width
-		y: endorseSymbol.y
+		x: endorseSymbol.x + endorseSymbol.width + buzzerClient.scaleFactor * spaceItems_ + Math.max(endorsementsNumber.width, mistrustsNumber.width) - width
+		y: endorseSymbol.y + endorseSymbol.height / 2 - height / 2 + buzzerClient.scaleFactor * 3
 		text: endorsements_ === undefined ? "00000000" : "" + endorsements_
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 3)) : font.pointSize
 	}
 
 	QuarkSymbolLabel {
 		id: expandEndorsementsSymbol
-		x: endorsementsNumber.x + endorsementsNumber.width + spaceItems_
-		y: endorseSymbol.y
+		x: endorsementsNumber.x + endorsementsNumber.width + buzzerClient.scaleFactor * spaceItems_
+		y: endorseSymbol.y + buzzerClient.scaleFactor * 1
 		symbol: Fonts.externalLinkSym
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
-		font.pointSize: 14
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzeritem_.defaultFontSize + 2)) : expandEndorsementsSymbol.defaultFontSize
 	}
 
 	MouseArea {
@@ -502,21 +516,11 @@ Item {
 		y: endorsementsNumber.y - spaceItems_
 		width: expandEndorsementsSymbol.x + expandEndorsementsSymbol.width
 		height: endorsementsNumber.height + 2 * spaceItems_
+		cursorShape: Qt.PointingHandCursor
 
 		onClicked: {
 			//
-			var lComponent = null;
-			var lPage = null;
-
-			lComponent = Qt.createComponent("qrc:/qml/buzzfeedendorsements.qml");
-			if (lComponent.status === Component.Error) {
-				showError(lComponent.errorString());
-			} else {
-				lPage = lComponent.createObject(controller);
-				lPage.controller = controller;
-				lPage.start(buzzer_);
-				addPage(lPage);
-			}
+			controller_.openBuzzfeedBuzzerEndorsements(buzzer_);
 		}
 	}
 
@@ -524,9 +528,10 @@ Item {
 	QuarkSymbolLabel {
 		id: mistrustSymbol
 		x: spaceLeft_
-		y: endorseSymbol.y + endorseSymbol.height + spaceItems_ + 5
+		y: endorseSymbol.y + endorseSymbol.height + buzzerClient.scaleFactor * spaceItems_ + buzzerClient.scaleFactor * 5
 		symbol: Fonts.mistrustSym
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.0")
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzeritem_.defaultFontSize + 3)) : mistrustSymbol.defaultFontSize
 	}
 
 	QuarkLabel {
@@ -535,18 +540,19 @@ Item {
 		visible: true
 		//fillTo: 0
 		//useSign: false
-		x: mistrustSymbol.x + mistrustSymbol.width + spaceItems_ + Math.max(endorsementsNumber.width, mistrustsNumber.width) - width
-		y: mistrustSymbol.y
+		x: mistrustSymbol.x + mistrustSymbol.width + (buzzerClient.scaleFactor * spaceItems_) + Math.max(endorsementsNumber.width, mistrustsNumber.width) - width
+		y: mistrustSymbol.y + mistrustSymbol.height / 2 - height / 2 - buzzerClient.scaleFactor * 2
 		text: mistrusts_ === undefined ? "00000000" : "" + mistrusts_
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 3)) : font.pointSize
 	}
 
 	QuarkSymbolLabel {
 		id: expandMistrustsSymbol
-		x: mistrustsNumber.x + mistrustsNumber.width + spaceItems_
-		y: mistrustSymbol.y
+		x: mistrustsNumber.x + mistrustsNumber.width + (buzzerClient.scaleFactor * spaceItems_)
+		y: mistrustSymbol.y - buzzerClient.scaleFactor * 2
 		symbol: Fonts.externalLinkSym
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
-		font.pointSize: 14
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzeritem_.defaultFontSize + 2)) : expandMistrustsSymbol.defaultFontSize
 	}
 
 	MouseArea {
@@ -555,21 +561,11 @@ Item {
 		y: mistrustsNumber.y - spaceItems_
 		width: expandMistrustsSymbol.x + expandMistrustsSymbol.width
 		height: mistrustsNumber.height + 2 * spaceItems_
+		cursorShape: Qt.PointingHandCursor
 
 		onClicked: {
 			//
-			var lComponent = null;
-			var lPage = null;
-
-			lComponent = Qt.createComponent("qrc:/qml/buzzfeedmistrusts.qml");
-			if (lComponent.status === Component.Error) {
-				showError(lComponent.errorString());
-			} else {
-				lPage = lComponent.createObject(controller);
-				lPage.controller = controller;
-				lPage.start(buzzer_);
-				addPage(lPage);
-			}
+			controller_.openBuzzfeedBuzzerMistrusts(buzzer_);
 		}
 	}
 
@@ -580,11 +576,12 @@ Item {
 	QuarkLabel {
 		id: descriptionText
 		x: spaceLeft_
-		y: mistrustSymbol.y + mistrustSymbol.height + spaceTop_
+		y: mistrustSymbol.y + mistrustSymbol.height + (buzzerApp.isDesktop ? (buzzerClient.scaleFactor * spaceTop_) : spaceTop_)
 		width: parent.width - (spaceLeft_ + spaceRight_)
 		text: description_
 		wrapMode: Text.Wrap
 		textFormat: Text.RichText
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 4)) : font.pointSize
 
 		onLinkActivated: {
 			var lComponent = null;
@@ -592,26 +589,10 @@ Item {
 			//
 			if (link[0] === '@') {
 				// buzzer
-				lComponent = Qt.createComponent("qrc:/qml/buzzfeedbuzzer.qml");
-				if (lComponent.status === Component.Error) {
-					showError(lComponent.errorString());
-				} else {
-					lPage = lComponent.createObject(controller);
-					lPage.controller = controller;
-					lPage.start(link);
-					addPage(lPage);
-				}
+				controller_.openBuzzfeedByBuzzer(link);
 			} else if (link[0] === '#') {
 				// tag
-				lComponent = Qt.createComponent("qrc:/qml/buzzfeedtag.qml");
-				if (lComponent.status === Component.Error) {
-					showError(lComponent.errorString());
-				} else {
-					lPage = lComponent.createObject(controller);
-					lPage.controller = controller;
-					lPage.start(link);
-					addPage(lPage);
-				}
+				controller_.openBuzzfeedByTag(link);
 			} else {
 				Qt.openUrlExternally(link);
 			}
@@ -628,6 +609,7 @@ Item {
 		y: descriptionText.y + descriptionText.height + spaceTop_
 		text: NumberFunctions.numberToCompact(following_).toString()
 		// color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 3)) : font.pointSize
 	}
 
 	QuarkLabel {
@@ -636,6 +618,7 @@ Item {
 		y: followingControl.y
 		text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.following")
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 3)) : font.pointSize
 	}
 
 	MouseArea {
@@ -672,6 +655,7 @@ Item {
 		y: followingControl.y
 		text: NumberFunctions.numberToCompact(followers_).toString()
 		// color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 3)) : font.pointSize
 	}
 
 	QuarkLabel {
@@ -680,6 +664,7 @@ Item {
 		y: followingControl.y
 		text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.followers")
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 3)) : font.pointSize
 	}
 
 	MouseArea {
@@ -729,7 +714,7 @@ Item {
 		id: headerMenu
 		x: parent.width - width - spaceRight_
 		y: menuControl.y + menuControl.height + spaceItems_
-		width: 150
+		width: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 150) : 150
 		visible: false
 
 		model: ListModel { id: menuModel }

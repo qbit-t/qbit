@@ -46,7 +46,11 @@
 
 namespace buzzer {
 
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
 const char APP_NAME[] = { "buzzer-app" };
+#else
+const char APP_NAME[] = { "buzzer-desktop-app" };
+#endif
 
 class Helper : public QObject
 {
@@ -106,6 +110,7 @@ class Application : public QQuickItem, public IApplication
     Q_PROPERTY(QString assetsPath READ assetsPath)
 	Q_PROPERTY(QStringList picturesLocation READ picturesLocation)
 	Q_PROPERTY(QString filesLocation READ filesLocation)
+	Q_PROPERTY(bool isDesktop READ isDesktop NOTIFY isDesktopChanged)
 
 public:
     Application(QApplication& app) : app_(app)
@@ -164,6 +169,14 @@ public:
 		QAndroidJniObject lMediaPath = lPath.callObjectMethod( "getAbsolutePath", "()Ljava/lang/String;" );
 
 		return QString("file://") + lMediaPath.toString();
+#endif
+	}
+
+	bool isDesktop() {
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
+		return false;
+#else
+		return true;
 #endif
 	}
 
@@ -257,6 +270,7 @@ signals:
     void fingertipAuthFailed();
     void deviceTokenUpdated(QString token);
 	void fileSelected(QString file);
+	void isDesktopChanged();
 
 private:
     void setAndroidOrientation(int);

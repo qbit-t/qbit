@@ -256,7 +256,7 @@ Item
 					symbol: Fonts.hashSym
 				}
 
-				QuarkLabel {
+				QuarkLabelRegular {
 					id: txLabel
 					x: txSymbol.x + txSymbol.width + spaceItems_
 					y: txSymbol.y
@@ -411,7 +411,7 @@ Item
 					}
 				}
 
-				QuarkLabel {
+				QuarkLabelRegular {
 					id: parentTxLabel
 					x: parentTypeLabel.x + parentTypeLabel.width + spaceItems_
 					y: parentTypeLabel.y
@@ -465,7 +465,7 @@ Item
 					}
 				}
 
-				QuarkLabel {
+				QuarkLabelRegular {
 					id: addressLabel
 					x: addresSymbol.x + addresSymbol.width + spaceItems_
 					y: addresSymbol.y

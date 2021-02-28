@@ -144,7 +144,7 @@ Rectangle
         border.color: borderColor
         color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Box.background")
 
-        Label
+		QuarkLabelRegular
         {
             id: infoLabel
             x: 5 + textLeftPadding
@@ -447,7 +447,7 @@ Rectangle
                     width: listDelegate.width
                     height: listDelegate.height
 
-                    QuarkLabel
+					QuarkLabelRegular
                     {
                         id: addressLabel
                         x: 10
@@ -460,7 +460,7 @@ Rectangle
                         Material.background: "transparent"
                     }
 
-                    QuarkLabel
+					QuarkLabelRegular
                     {
                         id: labelLabel
                         x: 10

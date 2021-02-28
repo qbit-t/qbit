@@ -450,7 +450,7 @@ ApplicationWindow
 						symbol: keySymbol
 					}
 
-					QuarkLabel {
+					QuarkLabelRegular {
 						id: textLabel
 						x: keySymbol ? 45 : 15
 						y: parent.height / 2 - height / 2

@@ -17,6 +17,7 @@ public:
 	virtual QString getColor(QString localtheme, QString selector, QString key) = 0;
 	virtual int load() = 0;
 	virtual int execute() = 0;
+	virtual bool isDesktop() = 0;
 
 	virtual std::string getLogCategories() = 0;
 	virtual std::string getPeers() = 0;

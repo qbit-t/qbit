@@ -104,6 +104,11 @@ int Client::open(QString secret) {
 		qbit::gLog().enable(qbit::getLogCategory(*lCategory));
 	}
 
+	//
+	if (application_->isDesktop()) {
+		QFontDatabase::addApplicationFont(":/fonts-desktop/NotoColorEmojiN.ttf");
+	}
+
 	// setup testnet
 	qbit::gTestNet = application_->getTestNet();
 
@@ -299,7 +304,9 @@ int Client::open(QString secret) {
 #endif
 
 	// registed command wrappers
+#ifdef Q_OS_ANDROID
 	qmlRegisterType<buzzer::ImageListing>("app.buzzer.components", 1, 0, "ImageListing");
+#endif
 	qmlRegisterType<buzzer::BuzzTextHighlighter>("app.buzzer.components", 1, 0, "BuzzTextHighlighter");
 	qmlRegisterType<buzzer::WebSourceInfo>("app.buzzer.components", 1, 0, "WebSourceInfo");
 
@@ -947,7 +954,8 @@ void Client::revertChanges() {
 		setLocale(QString::fromStdString(back_["locale"].getString()));
 		setTheme(QString::fromStdString(back_["theme"].getString()));
 		setThemeSelector(QString::fromStdString(back_["themeSelector"].getString()));
-    }
+		setScale(QString::fromStdString(back_["scale"].getString()));
+	}
 }
 
 void Client::settingsFromJSON(qbit::json::Value& root) {
@@ -959,6 +967,7 @@ void Client::settingsFromJSON(qbit::json::Value& root) {
 	setLocale(QString::fromStdString(root["locale"].getString()));
 	setTheme(QString::fromStdString(root["theme"].getString()));
 	setThemeSelector(QString::fromStdString(root["themeSelector"].getString()));
+	setScale(QString::fromStdString(root["scale"].getString()));
 
     properties_.clear();
 
@@ -982,6 +991,7 @@ void Client::settingsToJSON(qbit::json::Value& root) {
 	root.addString("locale", locale().toStdString());
 	root.addString("theme", theme().toStdString());
 	root.addString("themeSelector", themeSelector().toStdString());
+	root.addString("scale", scale().toStdString());
 
 	qbit::json::Value lProperties = root.addObject("properties");
 

@@ -220,7 +220,8 @@ Item
 						}
 					}
 				} else {
-					lComponent = Qt.createComponent("qrc:/qml/buzzfeedthread.qml");
+					lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzfeedthread-desktop.qml") :
+													   Qt.createComponent("qrc:/qml/buzzfeedthread.qml");
 					if (lComponent.status === Component.Error) {
 						showError(lComponent.errorString());
 					} else {

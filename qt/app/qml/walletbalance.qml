@@ -303,7 +303,7 @@ Item
 			 text: "0s"
 		 }
 
-		 QuarkLabel {
+		 QuarkLabelRegular {
 			 id: blockControl
 			 x: heartBeatSymbol.x + heartBeatSymbol.width + spaceLeft_
 			 y: heightControl.y + heightControl.height + spaceItems_
@@ -312,7 +312,7 @@ Item
 			 text: "00000000000000000000000000000000000000000000000000"
 		 }
 
-		 QuarkLabel {
+		 QuarkLabelRegular {
 			 id: timeControl
 			 x: heartBeatSymbol.x + heartBeatSymbol.width + spaceLeft_
 			 y: blockControl.y + blockControl.height + spaceItems_

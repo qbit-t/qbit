@@ -53,7 +53,7 @@ QuarkPage {
 
 	function closePage() {
 		stopPage();
-		controller.popPage();
+		controller.popPage(buzzfeedbuzzer_);
 		destroy(1000);
 	}
 
@@ -172,7 +172,7 @@ QuarkPage {
 
 	QuarkToolBar {
 		id: buzzerThreadToolBar
-		height: 45
+		height: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 50) : 45
 		width: parent.width
 		//backgroundColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.background")
 
@@ -184,7 +184,7 @@ QuarkPage {
 				height = 0;
 			} else {
 				visible = true;
-				height = 45;
+				height = buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 50) : 45;
 			}
 		}
 
@@ -193,27 +193,47 @@ QuarkPage {
 
 		QuarkToolButton	{
 			id: cancelButton
+			y: parent.height / 2 - height / 2
 			Material.background: "transparent"
 			visible: true
-			labelYOffset: 3
+			labelYOffset: buzzerApp.isDesktop ? 0 : 3
 			symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 			Layout.alignment: Qt.AlignHCenter
 			symbol: Fonts.leftArrowSym
+			symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 16) : symbolFontPointSize
 
 			onClicked: {
 				closePage();
 			}
 		}
 
-		QuarkLabel {
+		QuarkLabelRegular {
 			id: buzzerControl
 			x: cancelButton.x + cancelButton.width + spaceItems_
 			y: parent.height / 2 - height / 2
 			width: parent.width - (x /*+ spaceRightMenu_*/)
 			elide: Text.ElideRight
 			text: buzzerModelLoader.buzzer
-			font.pointSize: 18
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 16) : 18
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link")
+		}
+
+		QuarkToolButton {
+			id: menuControl
+			x: parent.width - width //- spaceItems_
+			y: parent.height / 2 - height / 2
+			Material.background: "transparent"
+			symbol: Fonts.elipsisVerticalSym
+			visible: true
+			labelYOffset: buzzerApp.isDesktop ? 0 : 3
+			symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+			Layout.alignment: Qt.AlignHCenter
+			symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 16) : symbolFontPointSize
+
+			onClicked: {
+				if (headerMenu.visible) headerMenu.close();
+				else { headerMenu.prepare(); headerMenu.open(); }
+			}
 		}
 
 		QuarkHLine {
@@ -285,6 +305,66 @@ QuarkPage {
 			buzzerModelLoader.feed();
 		}
 
+		/*
+		function openThread(buzzChainId, buzzId, buzzerAlias, buzzBody) {
+			//
+			var lComponent = null;
+			var lPage = null;
+
+			lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzfeedthread-desktop.qml", controller) :
+											   Qt.createComponent("qrc:/qml/buzzfeedthread.qml");
+			if (lComponent.status === Component.Error) {
+				controller.showError(lComponent.errorString());
+			} else {
+				lPage = lComponent.createObject(controller);
+				lPage.controller = controller;
+
+				lPage.updateStakedInfo(buzzId, buzzerAlias, buzzBody);
+				lPage.start(buzzChainId, buzzId);
+
+				controller.addPage(lPage);
+			}
+		}
+
+		function openBuzzfeedByBuzzer(buzzerName) {
+			// buzzer
+			var lComponent = null;
+			var lPage = null;
+
+			lComponent = Qt.createComponent("qrc:/qml/buzzfeedbuzzer.qml");
+			if (lComponent.status === Component.Error) {
+				controller.showError(lComponent.errorString());
+			} else {
+				lPage = lComponent.createObject(controller);
+				lPage.controller = controller;
+
+				lPage.updateStakedInfo(buzzerName, buzzerName, "...");
+				lPage.start(buzzerName);
+
+				controller.addPage(lPage);
+			}
+		}
+
+		function openBuzzfeedByTag(tag) {
+			// buzzer
+			var lComponent = null;
+			var lPage = null;
+
+			lComponent = Qt.createComponent("qrc:/qml/buzzfeedtag.qml");
+			if (lComponent.status === Component.Error) {
+				controller.showError(lComponent.errorString());
+			} else {
+				lPage = lComponent.createObject(controller);
+				lPage.controller = controller;
+
+				lPage.updateStakedInfo(tag, tag, "...");
+				lPage.start(tag);
+
+				controller.addPage(lPage);
+			}
+		}
+		*/
+
 		header: BuzzerItem {
 			id: buzzerItem
 			x: 0
@@ -306,7 +386,8 @@ QuarkPage {
 				var lComponent = null;
 				var lPage = null;
 
-				lComponent = Qt.createComponent("qrc:/qml/buzzfeedthread.qml");
+				lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzfeedthread-desktop.qml") :
+												   Qt.createComponent("qrc:/qml/buzzfeedthread.qml");
 				if (lComponent.status === Component.Error) {
 					showError(lComponent.errorString());
 				} else {
@@ -367,7 +448,8 @@ QuarkPage {
 		Image {
 			id: buzzImage
 			anchors.fill: parent
-			source: "../images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "buzzer.round")
+			source: "../images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector,
+					buzzerApp.isDesktop ? "buzzer.round.full" : "buzzer.round")
 			fillMode: Image.PreserveAspectFit
 		}
 
@@ -392,6 +474,38 @@ QuarkPage {
 	//
 	// support
 	//
+
+	QuarkPopupMenu {
+		id: headerMenu
+		x: parent.width - width - spaceRight_
+		y: menuControl.y + menuControl.height + spaceItems_
+		width: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 350) : 350
+		visible: false
+
+		model: ListModel { id: menuModel }
+
+		Component.onCompleted: prepare()
+
+		onClick: {
+			// key, activate
+			controller.activatePage(key);
+		}
+
+		function prepare() {
+			//
+			menuModel.clear();
+
+			//
+			var lArray = controller.enumStakedPages();
+			for (var lI = 0; lI < lArray.length; lI++) {
+				//
+				menuModel.append({
+					key: lArray[lI].key,
+					keySymbol: "",
+					name: lArray[lI].alias + " // " + lArray[lI].caption.substring(0, 100)});
+			}
+		}
+	}
 
 	Timer {
 		id: switchDataTimer

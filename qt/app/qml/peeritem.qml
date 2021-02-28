@@ -99,7 +99,7 @@ Item {
 		}
 	}
 
-	QuarkLabel {
+	QuarkLabelRegular {
 		id: endpointLabel
 		x: serverSymbol.x + serverSymbol.width + spaceItems_
 		y: spaceTop_
@@ -139,7 +139,7 @@ Item {
 		symbol: Fonts.clockSym
 	}
 
-	QuarkLabel {
+	QuarkLabelRegular {
 		id: timeLabel
 		x: timeSymbol.x + timeSymbol.width + spaceItems_
 		y: timeSymbol.y
@@ -159,7 +159,7 @@ Item {
 		symbol: Fonts.tagSym
 	}
 
-	QuarkLabel {
+	QuarkLabelRegular {
 		id: addressLabel
 		x: addressSymbol.x + addressSymbol.width + spaceItems_
 		y: addressSymbol.y
@@ -179,7 +179,7 @@ Item {
 		symbol: Fonts.passportSym
 	}
 
-	QuarkLabel {
+	QuarkLabelRegular {
 		id: peerIdLabel
 		x: addressSymbol.x + addressSymbol.width + spaceItems_
 		y: peerIdSymbol.y
@@ -229,6 +229,7 @@ Item {
 		text: roles_
 		font.pointSize: listView_.fontPointSize
 		font.capitalization: Font.AllLowercase
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground");
 	}
 
 	// received
@@ -319,7 +320,7 @@ Item {
 		symbol: Fonts.queuesSym
 	}
 
-	QuarkLabel {
+	QuarkLabelRegular {
 		id: queuesLabel
 		x: queuesSymbol.x + queuesSymbol.width + spaceItems_
 		y: queuesSymbol.y
@@ -355,7 +356,7 @@ Item {
 
 		function getColor() {
 			//
-			return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.event.undefined");
+			return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.peers.chains");
 		}
 
 		PropertyAnimation {

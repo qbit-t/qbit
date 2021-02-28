@@ -1109,7 +1109,9 @@ int Buzzfeed::locateIndex(BuzzfeedItemPtr item) {
 
 void Buzzfeed::insertNewItem(BuzzfeedItemPtr item) {
 	//
-	// NOTICE: already locked
+	// NOTICE: bug with unlocked merge from two threads
+	//
+	Guard lLock(this);
 	//
 	int lIndex = BuzzfeedItem::locateIndex(item);
 	if (lIndex != -1 && list_.begin() != list_.end()) {

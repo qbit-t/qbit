@@ -102,7 +102,6 @@ QuarkPage
 			x: cancelButton.x + cancelButton.width + 5
 			y: parent.height / 2 - height / 2
 			width: parent.width - (x)
-			elide: Text.ElideRight
 			text: "Help"
 			font.pointSize: 18
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link")

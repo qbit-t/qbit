@@ -69,20 +69,30 @@ QuarkPopup
 					Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
 					visible: true
 					symbol: keySymbol
+					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : defaultFontSize
+				}
+
+				TextMetrics
+				{
+					id: metrics
+					elide: Text.ElideRight
+					text: name
+					elideWidth: popupBox.width - ((keySymbol ? (buzzerClient.scaleFactor * 40) : 15) + 10)
+					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 11) : font.pointSize
 				}
 
 				QuarkLabel
 				{
 					id: textLabel
-					x: /*symbolLabel.x + symbolLabel.width + 5*/ keySymbol ? 40 : 15
+					x: keySymbol ? (buzzerClient.scaleFactor * 40) : 15
 					y: parent.height / 2 - height / 2
-					width: popupBox.width - (symbolLabel.x + symbolLabel.width + 5 + 10)
-					text: name
-					elide: Text.ElideRight
-					verticalAlignment: Text.AlignVCenter
+					width: popupBox.width - ((keySymbol ? (buzzerClient.scaleFactor * 40) : 15) + 10)
+					text: metrics.elidedText
+					//maximumLineCount: 1
 					Material.background: "transparent"
 					Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
 					visible: true
+					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 11) : font.pointSize
 				}
 			}
 		}

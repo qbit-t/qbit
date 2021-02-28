@@ -33,6 +33,7 @@ Item {
 	property var buzzerInfoId_: buzzerInfoId
 	property var buzzerInfoChainId_: buzzerInfoChainId
 	property var buzzBody_: buzzBody
+	property var buzzBodyFlat_: buzzBodyFlat
 	property var buzzMedia_: buzzMedia
 	property var replies_: replies
 	property var rebuzzes_: rebuzzes
@@ -74,6 +75,7 @@ Item {
 	readonly property int spaceRightMenu_: 15
 	readonly property int spaceStats_: -5
 	readonly property int spaceLine_: 4
+	readonly property real defaultFontSize: 10.5
 
 	signal calculatedHeightModified(var value);
 
@@ -163,7 +165,7 @@ Item {
 			}
 		}
 
-		QuarkLabel {
+		QuarkLabelRegular {
 			id: actionText
 			x: avatarImage.x + avatarImage.width + spaceAvatarBuzz_
 			y: -2
@@ -272,9 +274,10 @@ Item {
 		width: avatarImage.displayWidth
 		height: avatarImage.displayHeight
 		fillMode: Image.PreserveAspectCrop
+		mipmap: true
 
 		property bool rounded: true
-		property int displayWidth: 50
+		property int displayWidth: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 50 : 50
 		property int displayHeight: displayWidth
 
 		autoTransform: true
@@ -297,21 +300,11 @@ Item {
 		MouseArea {
 			id: buzzerInfoClick
 			anchors.fill: parent
+			cursorShape: Qt.PointingHandCursor
 
 			onClicked: {
-				// buzzer
-				var lComponent = null;
-				var lPage = null;
-
-				lComponent = Qt.createComponent("qrc:/qml/buzzfeedbuzzer.qml");
-				if (lComponent.status === Component.Error) {
-					showError(lComponent.errorString());
-				} else {
-					lPage = lComponent.createObject(controller);
-					lPage.controller = controller;
-					lPage.start(buzzerName_);
-					addPage(lPage);
-				}
+				//
+				controller_.openBuzzfeedByBuzzer(buzzerName_);
 			}
 		}
 	}
@@ -326,9 +319,10 @@ Item {
 		y: avatarImage.y
 		text: buzzerAlias_
 		font.bold: true
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
 	}
 
-	QuarkLabel {
+	QuarkLabelRegular {
 		id: buzzerNameControl
 		x: avatarImage.x + avatarImage.width + spaceAvatarBuzz_
 		y: buzzerAliasControl.y + buzzerAliasControl.height + spaceItems_
@@ -336,6 +330,7 @@ Item {
 		elide: Text.ElideRight
 		text: buzzerName_
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
 	}
 
 	QuarkSymbolLabel {
@@ -343,7 +338,7 @@ Item {
 		x: parent.width - width - spaceRightMenu_
 		y: avatarImage.y
 		symbol: Fonts.shevronDownSym
-		font.pointSize: 12
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : 12
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
 	}
 
@@ -356,7 +351,7 @@ Item {
 		onClicked: {
 			//
 			if (headerMenu.visible) headerMenu.close();
-			else { headerMenu.prepare(); headerMenu.open(); }
+			else { headerMenu.prepare(); headerMenu.popup(); }
 		}
 	}
 
@@ -406,7 +401,7 @@ Item {
 			buzzitemhead_.calculateHeight();
 		}
 
-		QuarkLabel {
+		QuarkTextEdit {
 			id: buzzText
 			x: 0
 			y: 0
@@ -414,7 +409,27 @@ Item {
 			text: buzzBody_
 			wrapMode: Text.Wrap
 			textFormat: Text.RichText
-			font.pointSize: 22
+			font.pointSize: buzzerApp.isDesktop ? Math.round(buzzerClient.scaleFactor * 13) : 22
+			//lineHeight: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 1.1) : lineHeight
+			readOnly: true
+			selectByMouse: true
+			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+			selectionColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.selected")
+
+			MouseArea {
+				anchors.fill: parent
+				cursorShape: parent.hoveredLink ? Qt.PointingHandCursor : Qt.ArrowCursor
+				acceptedButtons: Qt.RightButton
+
+				onClicked: {
+					//
+					if (headerMenu.visible) headerMenu.close();
+					else {
+						headerMenu.prepare(buzzText.selectedText.length);
+						headerMenu.popup(mouseX, mouseY);
+					}
+				}
+			}
 
 			onLinkActivated: {
 				var lComponent = null;
@@ -422,26 +437,10 @@ Item {
 				//
 				if (link[0] === '@') {
 					// buzzer
-					lComponent = Qt.createComponent("qrc:/qml/buzzfeedbuzzer.qml");
-					if (lComponent.status === Component.Error) {
-						showError(lComponent.errorString());
-					} else {
-						lPage = lComponent.createObject(controller);
-						lPage.controller = controller;
-						lPage.start(link);
-						addPage(lPage);
-					}
+					controller_.openBuzzfeedByBuzzer(link);
 				} else if (link[0] === '#') {
 					// tag
-					lComponent = Qt.createComponent("qrc:/qml/buzzfeedtag.qml");
-					if (lComponent.status === Component.Error) {
-						showError(lComponent.errorString());
-					} else {
-						lPage = lComponent.createObject(controller);
-						lPage.controller = controller;
-						lPage.start(link);
-						addPage(lPage);
-					}
+					controller_.openBuzzfeedByTag(link);
 				} else {
 					Qt.openUrlExternally(link);
 				}
@@ -529,7 +528,7 @@ Item {
 			} else if (lastUrl_.length) {
 				//
 				if (!urlInfoItem_) {
-					lSource = "qrc:/qml/buzzitemurl.qml";
+					lSource = buzzerApp.isDesktop ? "qrc:/qml/buzzitemurl-desktop.qml" : "qrc:/qml/buzzitemurl.qml";
 					lComponent = Qt.createComponent(lSource);
 					urlInfoItem_ = lComponent.createObject(bodyControl);
 					urlInfoItem_.calculatedHeightModified.connect(innerHeightChanged);
@@ -549,9 +548,10 @@ Item {
 		}
 
 		function innerHeightChanged(value) {
-			bodyControl.height = (buzzBody_.length > 0 ? buzzText.height : 0) + value +
-										(buzzBody_.length > 0 ? spaceMedia_ : spaceItems_) +
-										(buzzMedia_.length > 1 ? spaceMediaIndicator_ : 0);
+			//bodyControl.height = (buzzBody_.length > 0 ? buzzText.height : 0) + value +
+			//							(buzzBody_.length > 0 ? spaceMedia_ : spaceItems_) +
+			//							(buzzMedia_.length > 1 ? spaceMediaIndicator_ : 0);
+			bodyControl.height = bodyControl.getHeight();
 			buzzitemhead_.calculateHeight();
 		}
 
@@ -581,7 +581,7 @@ Item {
 	//
 	// footer info
 	//
-	QuarkLabel {
+	QuarkLabelRegular {
 		id: localDateTimeControl
 		x: spaceLeft_
 		y: bodyControl.y + bodyControl.height +
@@ -590,6 +590,7 @@ Item {
 		elide: Text.ElideRight
 		text: localDateTime_
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
 	}
 
 	QuarkHLine {
@@ -614,10 +615,11 @@ Item {
 		symbol: Fonts.replySym
 		Material.background: "transparent"
 		visible: true
-		labelYOffset: 3
+		labelYOffset: /*buzzerApp.isDesktop ? 0 :*/ buzzerClient.scaleFactor * 2
 		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 		Layout.alignment: Qt.AlignHCenter
 		font.family: Fonts.icons
+		symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 14) : symbolFontPointSize
 
 		onClicked: {
 			//
@@ -643,6 +645,7 @@ Item {
 		text: NumberFunctions.numberToCompact(replies_).toString()
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 		visible: replies_ > 0
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
 	}
 
 	QuarkToolButton	{
@@ -652,9 +655,10 @@ Item {
 		symbol: Fonts.rebuzzSym
 		Material.background: "transparent"
 		visible: true
-		labelYOffset: 3
+		labelYOffset: /*buzzerApp.isDesktop ? 0 :*/ buzzerClient.scaleFactor * 2
 		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 		Layout.alignment: Qt.AlignHCenter
+		symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 14) : symbolFontPointSize
 
 		onClicked: {
 			if (rebuzzMenu.visible) rebuzzMenu.close();
@@ -669,6 +673,7 @@ Item {
 		text: NumberFunctions.numberToCompact(rebuzzes_).toString()
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 		visible: rebuzzes_ > 0
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
 	}
 
 	QuarkToolButton	{
@@ -681,6 +686,7 @@ Item {
 		labelYOffset: 3
 		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 		Layout.alignment: Qt.AlignHCenter
+		symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 14) : symbolFontPointSize
 
 		onClicked: {
 			buzzLikeCommand.process(buzzId_);
@@ -694,6 +700,7 @@ Item {
 		text: NumberFunctions.numberToCompact(likes_).toString()
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 		visible: likes_ > 0
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
 	}
 
 	QuarkToolButton	{
@@ -706,6 +713,7 @@ Item {
 		labelYOffset: 3
 		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 		Layout.alignment: Qt.AlignHCenter
+		symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 14) : symbolFontPointSize
 
 		onClicked: {
 			if (tipMenu.visible) tipMenu.close();
@@ -720,6 +728,7 @@ Item {
 		text: NumberFunctions.numberToCompact(rewards_).toString()
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 		visible: rewards_ > 0
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
 	}
 
 	QuarkHLine {
@@ -741,7 +750,7 @@ Item {
 		id: headerMenu
 		x: parent.width - width - spaceRight_
 		y: menuControl.y + menuControl.height + spaceItems_
-		width: 150
+		width: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 160) : 160
 		visible: false
 
 		model: ListModel { id: menuModel }
@@ -760,12 +769,31 @@ Item {
 				buzzerMistrustCommand.process(buzzerName_);
 			} else if (key === "copytx") {
 				clipboard.setText(buzzId_);
+			} else if (key === "copytext") {
+				clipboard.setText(buzzBodyFlat_);
+			} else if (key === "copyselection") {
+				clipboard.setText(buzzText.selectedText);
 			}
 		}
 
-		function prepare() {
+		function popup(nx, ny) {
+			//
+			if (nx !== undefined && nx + width > parent.width) nx = parent.width - (width + spaceRight_);
+
+			x = nx === undefined ? parent.width - width - spaceRight_ : nx;
+			y = ny === undefined ? menuControl.y + menuControl.height + spaceItems_ : ny;
+			open();
+		}
+
+		function prepare(selection) {
 			//
 			menuModel.clear();
+
+			//
+			if (selection) menuModel.append({
+				key: "copyselection",
+				keySymbol: Fonts.copySym,
+				name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.copyselection")});
 
 			//
 			if (buzzerId_ !== buzzerClient.getCurrentBuzzerId()) {
@@ -792,6 +820,10 @@ Item {
 				}
 			}
 
+			if (!selection) menuModel.append({
+				key: "copytext",
+				keySymbol: Fonts.copySym,
+				name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.copytext")});
 			menuModel.append({
 				key: "copytx",
 				keySymbol: Fonts.clipboardSym,
@@ -803,7 +835,7 @@ Item {
 		id: tipMenu
 		x: (tipButton.x + tipButton.width) - width
 		y: tipButton.y + tipButton.height
-		width: 135
+		width: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 135) : 135
 		visible: false
 
 		model: ListModel { id: tipModel }
@@ -838,7 +870,7 @@ Item {
 		id: rebuzzMenu
 		x: rebuzzButton.x
 		y: rebuzzButton.y + rebuzzButton.height
-		width: 190
+		width: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 190) : 190
 		visible: false
 
 		model: ListModel { id: rebuzzModel }

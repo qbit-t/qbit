@@ -189,7 +189,8 @@ Item
 				var lComponent = null;
 				var lPage = null;
 
-				lComponent = Qt.createComponent("qrc:/qml/buzzfeedthread.qml");
+				lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzfeedthread-desktop.qml") :
+												   Qt.createComponent("qrc:/qml/buzzfeedthread.qml");
 				if (lComponent.status === Component.Error) {
 					showError(lComponent.errorString());
 				} else {
@@ -252,7 +253,8 @@ Item
 		Image {
 			id: buzzImage
 			anchors.fill: parent
-			source: "../images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "buzzer.round")
+			source: "../images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector,
+					buzzerApp.isDesktop ? "buzzer.round.full" : "buzzer.round")
 			fillMode: Image.PreserveAspectFit
 		}
 
