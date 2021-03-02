@@ -221,6 +221,7 @@ public:
 				}
 
 				//
+				/*
 				{
 					//
 					std::vector<std::string> lParts;
@@ -233,6 +234,7 @@ public:
 						explicitEndpoins_.erase(lParts[0]);
 					}
 				}
+				*/
 
 				peersContainer_.remove(lPeer->key()); // remove from storage
 			}
