@@ -954,11 +954,13 @@ public:
 			if (lParts.size() > 1) {
 				boost::unique_lock<boost::recursive_mutex> lLock(peersIdxMutex_);
 				explicitEndpoins_.insert(lParts[0]);
+				//
+				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: explicit peer added ") + peer->key() + " / " + lParts[0]);
 			}
 		}
 
 		//
-		if (gLog().isEnabled(Log::NET)) gLog().write(Log::INFO, std::string("[peerManager]: peer added ") + peer->key());
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: peer added ") + peer->key());
 
 		// update peers db
 		openPeersContainer(); // if not running
