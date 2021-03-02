@@ -220,6 +220,20 @@ public:
 					explicit_[lIdx].erase(lPeer->key());
 				}
 
+				//
+				{
+					//
+					std::vector<std::string> lParts;
+					boost::split(lParts, lPeer->key(), boost::is_any_of(":"), boost::token_compress_on);
+
+					//
+					bool lResult = false;
+					if (lParts.size() > 1) {
+						boost::unique_lock<boost::recursive_mutex> lLock(peersIdxMutex_);
+						explicitEndpoins_.erase(lParts[0]);
+					}
+				}
+
 				peersContainer_.remove(lPeer->key()); // remove from storage
 			}
 
@@ -622,12 +636,19 @@ public:
 		//
 		const uint64_t CHANGE_PROTO_TIME_0 = 1614422850; // in seconds since 1614163650 + 3 days
 		if (qbit::getTime() > CHANGE_PROTO_TIME_0) {
+			//
+			std::vector<std::string> lParts;
+			boost::split(lParts, key, boost::is_any_of(":"), boost::token_compress_on);
+
+			//
 			bool lResult = false;
-			for (int lIdx = 0; lIdx < contexts_.size(); lIdx++) {
-				boost::unique_lock<boost::recursive_mutex> lLock(contextMutex_[lIdx]);
-				std::set<std::string /*endpoint*/>::iterator lPeer = explicit_[lIdx].find(key);
-				lResult = lPeer != explicit_[lIdx].end();
-				if (lResult) break;
+			if (lParts.size() > 1) {
+				boost::unique_lock<boost::recursive_mutex> lLock(peersIdxMutex_);
+				std::set<std::string>::iterator lEndpoint = explicitEndpoins_.find(lParts[0]);
+				if (lEndpoint != explicitEndpoins_.end()) {
+					// just potencially reachable address
+					lResult = true;
+				}
 			}
 
 			return lResult;	
@@ -925,6 +946,17 @@ public:
 				explicit_[peer->contextId()].insert(peer->key());
 		}
 
+		if (peer->type() == IPeer::Type::EXPLICIT) {
+			//
+			std::vector<std::string> lParts;
+			boost::split(lParts, peer->key(), boost::is_any_of(":"), boost::token_compress_on);
+
+			if (lParts.size() > 1) {
+				boost::unique_lock<boost::recursive_mutex> lLock(peersIdxMutex_);
+				explicitEndpoins_.insert(lParts[0]);
+			}
+		}
+
 		//
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::INFO, std::string("[peerManager]: peer added ") + peer->key());
 
@@ -1135,6 +1167,7 @@ private:
 	std::map<int, PeersSet> inactive_;
 	std::map<int, PeersSet> explicit_;	
 	std::set<std::string> bannedEndpoins_;
+	std::set<std::string> explicitEndpoins_;
 
 	boost::recursive_mutex peersIdxMutex_;
 	std::map<uint160, std::string> peerIdx_;
