@@ -326,6 +326,8 @@ public:
 		std::string lEndpoint;
 		if (lParts.size() >= 2) {
 			//
+			if (lParts[0] == "0.0.0.0" || lParts[0] == "127.0.0.1" && !qbit::gTestNet) return nullptr;
+			//
 			lEndpoint = strprintf("%s:%s", lParts[0], lParts[1]);
 			//
 			if (locate(lEndpoint) == nullptr) {
@@ -646,8 +648,6 @@ public:
 			bool lResult = false;
 			if (lParts.size() > 1) {
 				//
-				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: looking for explicit peer ") + lParts[0]);	
-				//
 				boost::unique_lock<boost::recursive_mutex> lLock(peersIdxMutex_);
 				std::set<std::string>::iterator lEndpoint = explicitEndpoins_.find(lParts[0]);
 				if (lEndpoint != explicitEndpoins_.end()) {
@@ -656,8 +656,6 @@ public:
 				}
 			}
 
-			if (!lResult && gLog().isEnabled(Log::NET)) 
-				gLog().write(Log::NET, std::string("[peerManager]: explicit peer DOES NOT EXISTS - ") + lParts[0]);	
 			return lResult;	
 		}
 

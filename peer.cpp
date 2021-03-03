@@ -4082,7 +4082,7 @@ void Peer::processRequestPeers(std::list<DataStream>::iterator msg, const boost:
 		// push peers
 		for (std::vector<std::string>::iterator lPeer = lOuterPeers.begin(); lPeer != lOuterPeers.end(); lPeer++) {
 			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: trying to add proposed peer - ") + (*lPeer));
-			peerManager_->addPeer(*lPeer);
+			peerManager_->addPeerExplicit(*lPeer);
 		}
 
 		// new message
@@ -4128,7 +4128,7 @@ void Peer::processPeers(std::list<DataStream>::iterator msg, const boost::system
 
 		for (std::vector<std::string>::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
 			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: trying to add proposed peer - ") + (*lPeer));
-			peerManager_->addPeer(*lPeer);	
+			peerManager_->addPeerExplicit(*lPeer);	
 		}
 
 	} else {
