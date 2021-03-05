@@ -426,6 +426,7 @@ Item {
 						buzzMediaItem_.calculatedWidth = bodyControl.width;
 						buzzMediaItem_.width = bodyControl.width;
 						buzzMediaItem_.controller_ = conversationmessageitem_.controller_;
+						buzzMediaItem_.buzzId_ = conversationmessageitem_.buzzId_;
 						buzzMediaItem_.buzzMedia_ = conversationmessageitem_.buzzMedia_;
 						buzzMediaItem_.initialize(key);
 

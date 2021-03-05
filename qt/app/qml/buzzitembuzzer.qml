@@ -52,7 +52,7 @@ Item {
 	readonly property int spaceLine_: 4
 	readonly property int spaceThreaded_: 33
 	readonly property int spaceThreadedItems_: 4
-	readonly property real defaultFontSize: 10.5
+	readonly property real defaultFontSize: 11
 
 	signal calculatedHeightModified(var value);
 
@@ -583,9 +583,13 @@ Item {
 		textFormat: Text.RichText
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 4)) : font.pointSize
 
+		MouseArea {
+			anchors.fill: parent
+			cursorShape: parent.hoveredLink ? Qt.PointingHandCursor : Qt.ArrowCursor
+			acceptedButtons: Qt.NoButton
+		}
+
 		onLinkActivated: {
-			var lComponent = null;
-			var lPage = null;
 			//
 			if (link[0] === '@') {
 				// buzzer
@@ -630,18 +634,7 @@ Item {
 
 		onClicked: {
 			//
-			var lComponent = null;
-			var lPage = null;
-
-			lComponent = Qt.createComponent("qrc:/qml/buzzfeedfollowing.qml");
-			if (lComponent.status === Component.Error) {
-				showError(lComponent.errorString());
-			} else {
-				lPage = lComponent.createObject(controller);
-				lPage.controller = controller;
-				lPage.start(buzzer_);
-				addPage(lPage);
-			}
+			controller_.openBuzzfeedBuzzerFollowing(buzzer_);
 		}
 	}
 
@@ -676,18 +669,7 @@ Item {
 
 		onClicked: {
 			//
-			var lComponent = null;
-			var lPage = null;
-
-			lComponent = Qt.createComponent("qrc:/qml/buzzfeedfollowers.qml");
-			if (lComponent.status === Component.Error) {
-				showError(lComponent.errorString());
-			} else {
-				lPage = lComponent.createObject(controller);
-				lPage.controller = controller;
-				lPage.start(buzzer_);
-				addPage(lPage);
-			}
+			controller_.openBuzzfeedBuzzerFollowers(buzzer_);
 		}
 	}
 

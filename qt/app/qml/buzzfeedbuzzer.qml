@@ -179,12 +179,14 @@ QuarkPage {
 		property int totalHeight: height
 
 		function adjust() {
+			if (buzzerApp.isDesktop) return;
+
 			if (parent.width > parent.height) {
 				visible = false;
 				height = 0;
 			} else {
 				visible = true;
-				height = buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 50) : 45;
+				height = 45;
 			}
 		}
 
@@ -305,66 +307,6 @@ QuarkPage {
 			buzzerModelLoader.feed();
 		}
 
-		/*
-		function openThread(buzzChainId, buzzId, buzzerAlias, buzzBody) {
-			//
-			var lComponent = null;
-			var lPage = null;
-
-			lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzfeedthread-desktop.qml", controller) :
-											   Qt.createComponent("qrc:/qml/buzzfeedthread.qml");
-			if (lComponent.status === Component.Error) {
-				controller.showError(lComponent.errorString());
-			} else {
-				lPage = lComponent.createObject(controller);
-				lPage.controller = controller;
-
-				lPage.updateStakedInfo(buzzId, buzzerAlias, buzzBody);
-				lPage.start(buzzChainId, buzzId);
-
-				controller.addPage(lPage);
-			}
-		}
-
-		function openBuzzfeedByBuzzer(buzzerName) {
-			// buzzer
-			var lComponent = null;
-			var lPage = null;
-
-			lComponent = Qt.createComponent("qrc:/qml/buzzfeedbuzzer.qml");
-			if (lComponent.status === Component.Error) {
-				controller.showError(lComponent.errorString());
-			} else {
-				lPage = lComponent.createObject(controller);
-				lPage.controller = controller;
-
-				lPage.updateStakedInfo(buzzerName, buzzerName, "...");
-				lPage.start(buzzerName);
-
-				controller.addPage(lPage);
-			}
-		}
-
-		function openBuzzfeedByTag(tag) {
-			// buzzer
-			var lComponent = null;
-			var lPage = null;
-
-			lComponent = Qt.createComponent("qrc:/qml/buzzfeedtag.qml");
-			if (lComponent.status === Component.Error) {
-				controller.showError(lComponent.errorString());
-			} else {
-				lPage = lComponent.createObject(controller);
-				lPage.controller = controller;
-
-				lPage.updateStakedInfo(tag, tag, "...");
-				lPage.start(tag);
-
-				controller.addPage(lPage);
-			}
-		}
-		*/
-
 		header: BuzzerItem {
 			id: buzzerItem
 			x: 0
@@ -382,21 +324,8 @@ QuarkPage {
 			property var buzzItem;
 
 			onClicked: {
-				// open thread
-				var lComponent = null;
-				var lPage = null;
-
-				lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzfeedthread-desktop.qml") :
-												   Qt.createComponent("qrc:/qml/buzzfeedthread.qml");
-				if (lComponent.status === Component.Error) {
-					showError(lComponent.errorString());
-				} else {
-					lPage = lComponent.createObject(controller);
-					lPage.controller = controller;
-					addPage(lPage);
-
-					lPage.start(buzzChainId, buzzId);
-				}
+				//
+				controller.openThread(buzzChainId, buzzId, buzzerAlias, buzzBodyFlat);
 			}
 
 			onWidthChanged: {
@@ -458,7 +387,8 @@ QuarkPage {
 			var lComponent = null;
 			var lPage = null;
 
-			lComponent = Qt.createComponent("qrc:/qml/buzzeditor.qml");
+			lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzeditor-desktop.qml") :
+											   Qt.createComponent("qrc:/qml/buzzeditor.qml");
 			if (lComponent.status === Component.Error) {
 				showError(lComponent.errorString());
 			} else {

@@ -75,7 +75,7 @@ Item {
 	readonly property int spaceRightMenu_: 15
 	readonly property int spaceStats_: -5
 	readonly property int spaceLine_: 4
-	readonly property real defaultFontSize: 10.5
+	readonly property real defaultFontSize: 11
 
 	signal calculatedHeightModified(var value);
 
@@ -519,6 +519,7 @@ Item {
 					buzzMediaItem_.calculatedWidth = bodyControl.width;
 					buzzMediaItem_.width = bodyControl.width;
 					buzzMediaItem_.controller_ = buzzitemhead_.controller_;
+					buzzMediaItem_.buzzId_ = buzzitemhead_.buzzId_;
 					buzzMediaItem_.buzzMedia_ = buzzitemhead_.buzzMedia_;
 					buzzMediaItem_.initialize();
 
@@ -626,7 +627,8 @@ Item {
 			var lComponent = null;
 			var lPage = null;
 
-			lComponent = Qt.createComponent("qrc:/qml/buzzeditor.qml");
+			lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzeditor-desktop.qml") :
+											   Qt.createComponent("qrc:/qml/buzzeditor.qml");
 			if (lComponent.status === Component.Error) {
 				showError(lComponent.errorString());
 			} else {
@@ -886,7 +888,8 @@ Item {
 				var lComponent = null;
 				var lPage = null;
 
-				lComponent = Qt.createComponent("qrc:/qml/buzzeditor.qml");
+				lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzeditor-desktop.qml") :
+												   Qt.createComponent("qrc:/qml/buzzeditor.qml");
 				if (lComponent.status === Component.Error) {
 					showError(lComponent.errorString());
 				} else {

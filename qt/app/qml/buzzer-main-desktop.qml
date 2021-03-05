@@ -232,11 +232,13 @@ QuarkPage
 					//
 					if (currentIndex == 0 /*feed*/) {
 						headerBar.showBottomLine = true;
+						headerBar.resetSearchText();
 					}
 
 					//
 					if (currentIndex == 1 /*global*/) {
 						headerBar.showBottomLine = true; //false;
+						headerBar.resetSearchText();
 						buzzfeedGlobal.start();
 					}
 
@@ -244,15 +246,18 @@ QuarkPage
 					if (currentIndex == 2 /*events*/) {
 						headerBar.showBottomLine = true;
 						newEventsDot.visible = false;
+						headerBar.resetSearchText();
 					}
 
 					if (currentIndex == 3 /*conversations*/) {
+						headerBar.resetSearchText();
 						headerBar.showBottomLine = false;
 						newMessagesDot.visible = false;
 						conversations.resetModel();
 					}
 
 					if (currentIndex == 4 /*wallet*/) {
+						headerBar.resetSearchText();
 						headerBar.showBottomLine = false;
 						buzzerApp.lockPortraitOrientation();
 						walletQbit.init();

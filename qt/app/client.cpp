@@ -15,6 +15,7 @@
 
 #include "buzztexthighlighter.h"
 #include "wallettransactionslistmodel.h"
+#include "emojimodel.h"
 
 #include <QQuickImageProvider>
 
@@ -107,6 +108,9 @@ int Client::open(QString secret) {
 	//
 	if (application_->isDesktop()) {
 		QFontDatabase::addApplicationFont(":/fonts-desktop/NotoColorEmojiN.ttf");
+
+		emojiData_ = new EmojiData();
+		emojiData_->open();
 	}
 
 	// setup testnet
@@ -383,6 +387,8 @@ int Client::open(QString secret) {
 
 	qmlRegisterType<buzzer::ConversationsfeedListModel>("app.buzzer.commands", 1, 0, "ConversationsfeedListModel");
 	qmlRegisterType<buzzer::ConversationsListModel>("app.buzzer.commands", 1, 0, "ConversationsListModel");
+
+	qmlRegisterType<buzzer::EmojiModel>("app.buzzer.commands", 1, 0, "EmojiModel");
 
 	qRegisterMetaType<qbit::BuzzfeedProxy>("qbit::BuzzfeedProxy");
 	qRegisterMetaType<qbit::BuzzfeedItemProxy>("qbit::BuzzfeedItemProxy");
@@ -1045,4 +1051,24 @@ bool Client::hasPropertyBeginWithAndValue(QString sub, QString val) {
     }
 
     return false;
+}
+
+void Client::extractFavoriteEmojis(std::vector<std::string>& fav) {
+	//
+	for(std::map<std::string, std::string>::iterator lProp = properties_.begin(); lProp != properties_.end(); lProp++) {
+		if (lProp->first.find("emoji.") == 0) {
+			std::vector<std::string> lParts;
+			boost::split(lParts, lProp->first, boost::is_any_of("."), boost::token_compress_on);
+
+			if (lParts.size() == 2) {
+				fav.push_back(lParts[1]);
+			}
+		}
+	}
+}
+
+void Client::setFavEmoji(QString emoji) {
+	//
+	setProperty(QString("emoji.") + emoji, "true");
+	emojiData_->updateFavEmojis();
 }

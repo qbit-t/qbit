@@ -438,7 +438,7 @@ QuarkPage {
 					var lComponent = null;
 					var lPage = null;
 
-					lComponent = Qt.createComponent("qrc:/qml/buzzeditor.qml");
+					lComponent = Qt.createComponent("qrc:/qml/buzzeditor-desktop.qml");
 					if (lComponent.status === Component.Error) {
 						showError(lComponent.errorString());
 					} else {
@@ -452,13 +452,33 @@ QuarkPage {
 			}
 		}
 
+		QuarkToolButton {
+			id: addEmojiButton
+			Material.background: "transparent"
+			visible: true
+			symbolColor: !sending ?
+							 buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground") :
+							 buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
+			Layout.alignment: Qt.AlignHCenter
+			symbol: Fonts.peopleEmojiSym
+			symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 16) : symbolFontPointSize
+
+			x: richEditorButton.x + richEditorButton.width // + spaceItems_
+			y: parent.height / 2 - height / 2
+
+			onClicked: {
+				emojiPopup.popup(addEmojiButton.x, replyContainer.y - (emojiPopup.height));
+			}
+		}
+
 		Rectangle {
 			id: replyEditorContainer
-			x: richEditorButton.x + richEditorButton.width
+			x: addEmojiButton.x + addEmojiButton.width
 			y:  buzzText.lineCount > 1 ? buzzerClient.scaleFactor * spaceTop_ :
 										 parent.height / 2 - height / 2
 			height: getHeight()
-			width: parent.width - (sendButton.width + richEditorButton.width + hiddenCountFrame.width + spaceItems_ + spaceRight_)
+			width: parent.width - (addEmojiButton.width + sendButton.width +
+								   richEditorButton.width + hiddenCountFrame.width + spaceItems_ + spaceRight_)
 			radius: 4
 			border.color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
 			color: "transparent"
@@ -558,6 +578,7 @@ QuarkPage {
 			size: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 24) : 24
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.hidden")
 			background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
+			penWidth: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 3) : 3
 		}
 
 		QuarkRoundProgress {
@@ -645,6 +666,25 @@ QuarkPage {
 	//
 	// backend
 	//
+
+	QuarkEmojiPopup {
+		id: emojiPopup
+		width: buzzerClient.scaleFactor * 360
+		height: buzzerClient.scaleFactor * 300
+
+		onEmojiSelected: {
+			//
+			buzzText.insert(buzzText.cursorPosition, emoji);
+		}
+
+		function popup(nx, ny) {
+			//
+			x = nx;
+			y = ny;
+
+			open();
+		}
+	}
 
 	QuarkPopupMenu {
 		id: headerMenu
@@ -812,7 +852,7 @@ QuarkPage {
 									var lComponent = null;
 									var lPage = null;
 
-									lComponent = Qt.createComponent("qrc:/qml/buzzeditor.qml");
+									lComponent = Qt.createComponent("qrc:/qml/buzzeditor-desktop.qml");
 									if (lComponent.status === Component.Error) {
 										showError(lComponent.errorString());
 									} else {

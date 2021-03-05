@@ -85,7 +85,7 @@ Item {
 	readonly property int spaceLine_: 4
 	readonly property int spaceThreaded_: 33
 	readonly property int spaceThreadedItems_: 4
-	readonly property real defaultFontSize: 10.5
+	readonly property real defaultFontSize: 11
 
 	signal calculatedHeightModified(var value);
 
@@ -627,8 +627,6 @@ Item {
 			}
 
 			onLinkActivated: {
-				var lComponent = null;
-				var lPage = null;
 				//
 				if (link[0] === '@') {
 					// buzzer
@@ -716,6 +714,7 @@ Item {
 					buzzMediaItem_.calculatedWidth = bodyControl.width;
 					buzzMediaItem_.width = bodyControl.width;
 					buzzMediaItem_.controller_ = buzzitem_.controller_;
+					buzzMediaItem_.buzzId_ = buzzitem_.buzzId_;
 					buzzMediaItem_.buzzMedia_ = buzzitem_.buzzMedia_;
 					buzzMediaItem_.initialize();
 
@@ -753,8 +752,8 @@ Item {
 		}
 
 		function getY() {
-			var lAdjust = buzzMedia_.length > 0 ? 0 : (buzzerClient.scaleFactor * 12);
-			return (buzzBody_.length > 0 ? buzzText.height - lAdjust : 0) +
+			// var lAdjust = buzzMedia_.length > 0 ? 0 : (buzzerClient.scaleFactor * 12);
+			return (buzzBody_.length > 0 ? buzzText.height : 0) +
 					(buzzBody_.length > 0 && buzzMedia_.length > 0 ? spaceMedia_ : spaceItems_) +
 					(buzzMedia_.length > 1 ? spaceMediaIndicator_ : spaceSingleMedia_);
 		}
@@ -805,7 +804,8 @@ Item {
 			var lComponent = null;
 			var lPage = null;
 
-			lComponent = Qt.createComponent("qrc:/qml/buzzeditor.qml");
+			lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzeditor-desktop.qml") :
+											   Qt.createComponent("qrc:/qml/buzzeditor.qml");
 			if (lComponent.status === Component.Error) {
 				showError(lComponent.errorString());
 			} else {
@@ -1113,7 +1113,8 @@ Item {
 				var lComponent = null;
 				var lPage = null;
 
-				lComponent = Qt.createComponent("qrc:/qml/buzzeditor.qml");
+				lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzeditor-desktop.qml") :
+												   Qt.createComponent("qrc:/qml/buzzeditor.qml");
 				if (lComponent.status === Component.Error) {
 					showError(lComponent.errorString());
 				} else {

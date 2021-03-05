@@ -53,6 +53,12 @@ ApplicationWindow
 
     flags: Qt.Window | Qt.MaximizeUsingFullscreenGeometryHint
 
+	Keys.onPressed: {
+		console.log("[event]: " + event);
+		if (event.key === Qt.Key_Escape)
+			closePage();
+	}
+
     function createPage(source)
     {
         var lComponent = Qt.createComponent(source);
@@ -129,20 +135,28 @@ ApplicationWindow
 
 	function popPage(page) {
 		//
-		console.log("[popPage]: page = " + page);
-		for (var lIdx = pagesView.count - 1; lIdx >= 0; lIdx--) {
-			var lPage = pagesView.itemAt(lIdx);
-			console.log("[popPage]: page key = " + page.key + ", key = " + lPage.key);
-			if (lPage.key === page.key) {
-				//
-				pagesView.removeItem(page);
-				if (pagesView.count > 1) {
-					if (lIdx - 1 === 0) pagesView.currentIndex = 1;
-					else if (lIdx - 1 > 0) pagesView.currentIndex = lIdx - 1;
-					else pagesView.currentIndex = 0;
-				} else pagesView.currentIndex = 0;
+		var lPage;
+		//
+		if (page === undefined) {
+			if (pagesView.count - 1 > 0) {
+				lPage = pagesView.itemAt(pagesView.count - 1);
+				pagesView.removeItem(lPage);
+				pagesView.currentIndex = pagesView.count - 1;
+			}
+		} else {
+			for (var lIdx = pagesView.count - 1; lIdx >= 0; lIdx--) {
+				lPage = pagesView.itemAt(lIdx);
+				if (lPage.key === page.key) {
+					//
+					pagesView.removeItem(page);
+					if (pagesView.count > 1) {
+						if (lIdx - 1 === 0) pagesView.currentIndex = 1;
+						else if (lIdx - 1 > 0) pagesView.currentIndex = lIdx - 1;
+						else pagesView.currentIndex = 0;
+					} else pagesView.currentIndex = 0;
 
-				break;
+					break;
+				}
 			}
 		}
 
@@ -153,6 +167,29 @@ ApplicationWindow
 		}
     }
 
+	function popNonStacked() {
+		//
+		var lArray = [];
+		for (var lIdx = pagesView.count - 1; lIdx > 0; lIdx--) {
+			var lPage = pagesView.itemAt(lIdx);
+			if (lPage.stacked === false) {
+				//
+				lArray.push(lPage);
+			} else {
+				//
+				break;
+			}
+		}
+
+		//
+		for (var lI = 0; lI < lArray.length; lI++) {
+			pagesView.removeItem(lArray[lI]);
+		}
+
+		//
+		pagesView.currentIndex = pagesView.count - 1;
+	}
+
 	function isTop() {
 		return pagesView.count - 1;
 	}
@@ -161,6 +198,9 @@ ApplicationWindow
 		//
 		var lComponent = null;
 		var lPage = null;
+
+		// pop no-stacked page(s)
+		popNonStacked();
 
 		// locate and activate
 		if (activatePage(buzzId)) return;
@@ -185,6 +225,9 @@ ApplicationWindow
 		var lComponent = null;
 		var lPage = null;
 
+		// pop no-stacked page(s)
+		popNonStacked();
+
 		// locate and activate
 		if (activatePage(buzzerName)) return;
 
@@ -206,6 +249,9 @@ ApplicationWindow
 		//
 		var lComponent = null;
 		var lPage = null;
+
+		// pop no-stacked page(s)
+		popNonStacked();
 
 		// locate and activate
 		if (activatePage(tag)) return;
@@ -229,6 +275,9 @@ ApplicationWindow
 		var lComponent = null;
 		var lPage = null;
 
+		// pop no-stacked page(s)
+		popNonStacked();
+
 		// locate and activate
 		if (activatePage(buzzer + "-endorsements")) return;
 
@@ -251,6 +300,9 @@ ApplicationWindow
 		var lComponent = null;
 		var lPage = null;
 
+		// pop no-stacked page(s)
+		popNonStacked();
+
 		// locate and activate
 		if (activatePage(buzzer + "-mistrusts")) return;
 
@@ -264,6 +316,42 @@ ApplicationWindow
 			lPage.updateStakedInfo(buzzer + "-mistrusts", buzzer, buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.mistrusters"));
 			lPage.start(buzzer);
 
+			addPage(lPage);
+		}
+	}
+
+	function openBuzzfeedBuzzerFollowers(buzzer) {
+		//
+		var lComponent = null;
+		var lPage = null;
+
+		lComponent = Qt.createComponent("qrc:/qml/buzzfeedfollowers.qml");
+		if (lComponent.status === Component.Error) {
+			showError(lComponent.errorString());
+		} else {
+			lPage = lComponent.createObject(window);
+			lPage.controller = window;
+			lPage.start(buzzer);
+
+			lPage.updateStakedInfo(buzzer + "-followers", buzzer, buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.followers"));
+			addPage(lPage);
+		}
+	}
+
+	function openBuzzfeedBuzzerFollowing(buzzer) {
+		//
+		var lComponent = null;
+		var lPage = null;
+
+		lComponent = Qt.createComponent("qrc:/qml/buzzfeedfollowing.qml");
+		if (lComponent.status === Component.Error) {
+			showError(lComponent.errorString());
+		} else {
+			lPage = lComponent.createObject(window);
+			lPage.controller = window;
+			lPage.start(buzzer);
+
+			lPage.updateStakedInfo(buzzer + "-following", buzzer, buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.following"));
 			addPage(lPage);
 		}
 	}

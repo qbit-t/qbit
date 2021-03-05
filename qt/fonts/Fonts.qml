@@ -225,5 +225,16 @@ Item
 	readonly property string expandedSym: "\uf107";
 
 	readonly property string globeSym: "\uf0ac";
+
+	readonly property string peopleEmojiSym: "\uf118";
+	readonly property string natureEmojiSym: "\uf708";
+	readonly property string foodEmojiSym: "\uf7f1";
+	readonly property string activityEmojiSym: "\uf45e";
+	readonly property string placesEmojiSym: "\uf82b";
+	readonly property string objectsEmojiSym: "\uf0eb";
+	readonly property string symbolsEmojiSym: "\uf004";
+	readonly property string flagsEmojiSym: "\uf74c";
+
+	readonly property string paperClipSym: "\uf0c6";
 }
 

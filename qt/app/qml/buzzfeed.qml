@@ -263,7 +263,8 @@ Item
 			var lComponent = null;
 			var lPage = null;
 
-			lComponent = Qt.createComponent("qrc:/qml/buzzeditor.qml");
+			lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzeditor-desktop.qml") :
+											   Qt.createComponent("qrc:/qml/buzzeditor.qml");
 			if (lComponent.status === Component.Error) {
 				showError(lComponent.errorString());
 			} else {

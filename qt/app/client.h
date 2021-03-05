@@ -49,6 +49,7 @@
 #include "websourceinfo.h"
 #include "wallettransactionslistmodel.h"
 #include "peerslistmodel.h"
+#include "emojidata.h"
 
 Q_DECLARE_METATYPE(qbit::Buzzfeed*)
 Q_DECLARE_METATYPE(qbit::BuzzfeedItem*)
@@ -201,6 +202,8 @@ public:
     Q_INVOKABLE bool hasPropertyBeginWith(QString);
     Q_INVOKABLE bool hasPropertyBeginWithAndValue(QString, QString);
 
+	Q_INVOKABLE void setFavEmoji(QString);
+
 	bool getCacheReady() { return cacheReady_; }
 	void setCacheReady() { cacheReady_ = true; emit cacheReadyChanged(); }
 	bool getNetworkReady() { return networkReady_; }
@@ -220,11 +223,14 @@ public:
 		}
 	}
 
+	void extractFavoriteEmojis(std::vector<std::string>&);
+
 	qbit::BuzzerPtr getBuzzer() { return buzzer_; }
 	qbit::LightComposerPtr getComposer() { return composer_; }
 	qbit::BuzzerLightComposerPtr getBuzzerComposer() { return buzzerComposer_; }
 	qbit::cubix::CubixLightComposerPtr getCubixComposer() { return cubixComposer_; }
 	qbit::IPeerManagerPtr getPeerManager() { return peerManager_; }
+	buzzer::EmojiData* emojiData() { return emojiData_; }
 
 	Q_INVOKABLE QVariant getGlobalBuzzfeedList() { return QVariant::fromValue(globalBuzzfeedList_); }
 	Q_INVOKABLE QVariant getBuzzfeedList() { return QVariant::fromValue(buzzfeedList_); }
@@ -649,6 +655,8 @@ private:
 	PeersActiveListModel* peersActive_ = nullptr;
 	PeersListModel* peersAll_ = nullptr;
 	PeersAddedListModel* peersAdded_ = nullptr;
+
+	EmojiData* emojiData_ = nullptr;
 };
 
 } // buzzer

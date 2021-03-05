@@ -533,6 +533,7 @@ Item {
 					buzzMediaItem_.calculatedWidth = bodyControl.width;
 					buzzMediaItem_.width = bodyControl.width;
 					buzzMediaItem_.controller_ = eventReplyRebuzzItem_.controller_;
+					buzzMediaItem_.buzzId_ = eventReplyRebuzzItem_.buzzId_;
 					buzzMediaItem_.buzzMedia_ = (buzzMedia_.length ? eventReplyRebuzzItem_.buzzMedia_ : eventInfos_[0].buzzMedia);
 					buzzMediaItem_.initialize();
 

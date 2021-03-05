@@ -80,6 +80,8 @@ SOURCES += \
     client.cpp \
     commandwrappers.cpp \
 	conversationsfeedlistmodel.cpp \
+    emojidata.cpp \
+    emojimodel.cpp \
     eventsfeedlistmodel.cpp \
 	imagelisting.cpp \
     main.cpp \
@@ -154,7 +156,11 @@ LIBS += "../../boost/stage/lib/libboost_filesystem.a"
 
 DISTFILES += \
     buzzer-app.config \
+    components/QuarkEmojiPopup.qml \
+    components/QuarkEmojiTable.qml \
     components/QuarkLabelRegular.qml \
+    emoji/emoji-google.json \
+    qml/buzzeditor-desktop.qml \
     qml/buzzer-desktop-app.qml \
     qml/buzzer-main-desktop.qml \
     qml/buzzer-stackview-desktop.qml \
@@ -175,6 +181,8 @@ HEADERS += \
     buzztexthighlighter.h \
     client.h \
 	conversationsfeedlistmodel.h \
+    emojidata.h \
+    emojimodel.h \
     error.h \
     eventsfeedlistmodel.h \
     iclient.h \
@@ -212,5 +220,7 @@ RESOURCES += \
     $$files(qml/*) \
     $$files(lib/*) \
     $$files(components/*) \
-    $$files(models/*)
+	$$files(models/*) \
+	$$files(emoji/*)
+
 

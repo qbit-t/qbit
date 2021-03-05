@@ -284,6 +284,8 @@ Item
 			searchTags.process(searchText);
 		} else if (searchText[0] === '@') {
 			searchBuzzers.process(searchText);
+		} else {
+			start();
 		}
 	}
 
@@ -422,7 +424,13 @@ Item
 
 		onClick: {
 			//
-			search.setText(key);
+			if (!buzzerApp.isDesktop) search.setText(key);
+			else {
+				controller.mainToolBar.setSearchText(
+					key,
+					buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.global.search"));
+			}
+
 			startWithBuzzer(key);
 		}
 

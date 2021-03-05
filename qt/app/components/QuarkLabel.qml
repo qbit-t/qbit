@@ -18,6 +18,6 @@ Label {
 	Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground");
 	Material.primary: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.primary");
 
-	antialiasing: buzzerApp.isDesktop ? false : antialiasing
+	//antialiasing: buzzerApp.isDesktop ? false : antialiasing
 	font.family: buzzerApp.isDesktop ? "Noto Color Emoji N" : font.family
 }
