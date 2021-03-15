@@ -648,6 +648,7 @@ bool TransactionStore::revertUtxo(const uint256& utxo) {
 			strprintf("remove utxo = %s, tx = %s/%s#", utxo.toHex(), lUtxoObj.out().tx().toHex(), chain_.toHex().substr(0, 10)));
 
 		utxo_.remove(utxo);
+		ltxo_.remove(utxo); // sanity
 		utxoBlock_.remove(utxo); // just for push
 		addressAssetUtxoIdx_.remove(lUtxoObj.address().id(), lUtxoObj.out().asset(), utxo);
 
@@ -711,6 +712,7 @@ void TransactionStore::removeBlocks(const uint256& from, const uint256& to, bool
 						strprintf("remove utxo = %s, tx = %s/%s#", lAction.utxo().toHex(), lUtxoObj.out().tx().toHex(), chain_.toHex().substr(0, 10)));
 
 					utxo_.remove(lAction.utxo());
+					ltxo_.remove(lAction.utxo()); // sanity
 					utxoBlock_.remove(lAction.utxo()); // just for push
 					addressAssetUtxoIdx_.remove(lUtxoObj.address().id(), lUtxoObj.out().asset(), lAction.utxo());
 				} else {
