@@ -110,7 +110,7 @@ QuarkPage
 					lPage = lComponent.createObject(window);
 					lPage.controller = controller;
 
-					addPage(lPage);
+					addPageLocal(lPage);
 				}
 			} else {
 				lComponent = Qt.createComponent("qrc:/qml/buzzerqbitkey.qml");
@@ -121,7 +121,7 @@ QuarkPage
 					lPage.controller = controller;
 					lPage.setupProcess = true;
 
-					addPage(lPage);
+					addPageLocal(lPage);
 				}
 			}
 		}

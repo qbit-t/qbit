@@ -49,6 +49,13 @@ Item
 		switchDataTimer.start();
 	}
 
+	function disconnect() {
+		if (buzzerApp.isDesktop) {
+			controller.mainToolBar.searchTextEdited.disconnect(startSearch);
+			controller.mainToolBar.searchTextCleared.disconnect(searchTextCleared);
+		}
+	}
+
 	function startWithTag(tag) {
 		//
 		stopFeed();

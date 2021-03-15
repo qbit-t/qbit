@@ -317,7 +317,7 @@ Item {
 		y: avatarImage.y
 		text: ago_
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 2)) : font.pointSize
 	}
 
 	QuarkSymbolLabel {
@@ -325,7 +325,7 @@ Item {
 		x: parent.width - width - spaceRightMenu_
 		y: avatarImage.y
 		symbol: Fonts.shevronDownSym
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : 12
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 7)) : 12
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 	}
 	MouseArea {

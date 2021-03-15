@@ -159,7 +159,7 @@ QuarkPage
 				lPage = lComponent.createObject(window);
 				lPage.controller = controller;
 
-				addPage(lPage);
+				addPageLocal(lPage);
 			}
 		}
 	}

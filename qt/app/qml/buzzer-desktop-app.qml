@@ -2,6 +2,7 @@ import QtQuick 2.12
 import QtQuick.Layouts 1.3
 import QtQuick.Controls 2.3
 import QtQuick.Controls 1.4
+import QtGraphicalEffects 1.15
 import QtQuick.Controls.Material 2.1
 import QtQuick.Controls.Universal 2.1
 import Qt.labs.settings 1.0
@@ -51,13 +52,248 @@ ApplicationWindow
     {
     }
 
-    flags: Qt.Window | Qt.MaximizeUsingFullscreenGeometryHint
+	flags: Qt.Window | Qt.MaximizeUsingFullscreenGeometryHint | Qt.FramelessWindowHint
 
 	Keys.onPressed: {
 		console.log("[event]: " + event);
 		if (event.key === Qt.Key_Escape)
 			closePage();
 	}
+
+	toolBar: Rectangle {
+		id: windowBar
+		width: parent.width
+		height: buzzerClient.scaleFactor * 25
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.background.transparent")
+
+		MouseArea {
+			id: topArea
+			height: 5
+			anchors {
+				top: parent.top
+				left: parent.left
+				right: parent.right
+			}
+
+			cursorShape: Qt.SizeVerCursor
+
+			property var fixedBottom;
+
+			onPressed: {
+				fixedBottom = window.y + window.height;
+			}
+
+			onMouseYChanged: {
+				var lPoint = mapToGlobal(mouse.x, mouse.y);
+				var lY = window.y;
+				window.setY(lPoint.y);
+
+				var lHeight = window.height - (lPoint.y - lY);
+				lHeight -= ((lY + lHeight) - fixedBottom);
+				window.setHeight(lHeight);
+			}
+		}
+
+		MouseArea {
+			id: moveArea
+			y: topArea.height
+			height: parent.height - topArea.height
+			width: parent.width
+
+			onPressed: {
+				previousX = mouseX;
+				previousY = mouseY;
+			}
+
+			onMouseXChanged: {
+				var dx = mouseX - previousX;
+				window.setX(window.x + dx);
+			}
+
+			onMouseYChanged: {
+				var dy = mouseY - previousY;
+				window.setY(window.y + dy);
+			}
+		}
+
+		Rectangle {
+			id: minButton
+			x: parent.width - (3 * parent.height)
+			width: parent.height
+			height: parent.height
+			color: "transparent"
+
+			QuarkSymbolLabel {
+				id: minButtonLabel
+				symbol: Fonts.minimizeSym
+				font.pointSize: buzzerClient.scaleFactor * 9
+				color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+
+				x: parent.width / 2 - width / 2
+				y: parent.height / 2 - height / 2
+
+				Connections {
+					target: buzzerClient
+					function onThemeChanged() {
+						minButtonLabel.color =
+								buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground");
+					}
+				}
+			}
+
+			MouseArea {
+				id: minButtonArea
+				anchors.fill: parent
+				hoverEnabled: true
+
+				onEntered: {
+					minButton.color = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.hidden")
+					minButtonLabel.color = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground");
+				}
+
+				onExited: {
+					minButton.color = "transparent"
+					minButtonLabel.color = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground");
+				}
+
+				onPressed: {
+					minButton.color = Qt.darker(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.hidden"), 1.1);
+				}
+
+				onReleased: {
+					minButton.color = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.hidden");
+				}
+
+				onClicked: {
+					window.showMinimized();
+				}
+			}
+		}
+
+		Rectangle {
+			id: maxButton
+			x: parent.width - (2 * parent.height)
+			width: parent.height
+			height: parent.height
+			color: "transparent"
+
+			QuarkSymbolLabel {
+				id: maxButtonLabel
+				symbol: window.visibility === Window.Maximized ? Fonts.restoreSym : Fonts.maximizeSym
+				font.pointSize: buzzerClient.scaleFactor * 9
+				color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+
+				x: parent.width / 2 - width / 2
+				y: parent.height / 2 - height / 2
+
+				Connections {
+					target: buzzerClient
+					function onThemeChanged() {
+						maxButtonLabel.color =
+								buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground");
+					}
+				}
+			}
+
+			MouseArea {
+				id: maxButtonArea
+				anchors.fill: parent
+				hoverEnabled: true
+
+				onEntered: {
+					maxButton.color = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.hidden")
+					maxButtonLabel.color = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground");
+				}
+
+				onExited: {
+					maxButton.color = "transparent"
+					maxButtonLabel.color = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground");
+				}
+
+				onPressed: {
+					maxButton.color = Qt.darker(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.hidden"), 1.1);
+				}
+
+				onReleased: {
+					maxButton.color = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.hidden");
+				}
+
+				onClicked: {
+					if (window.visibility === Window.Maximized) {
+						window.showNormal();
+					} else {
+						window.showMaximized();
+					}
+				}
+			}
+		}
+
+		Rectangle {
+			id: closeButton
+			x: parent.width - parent.height
+			width: parent.height
+			height: parent.height
+			color: "transparent"
+
+			QuarkSymbolLabel {
+				id: closeButtonLabel
+				symbol: Fonts.cancelSym
+				font.pointSize: buzzerClient.scaleFactor * 12
+				color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+
+				x: parent.width / 2 - width / 2
+				y: parent.height / 2 - height / 2
+
+				Connections {
+					target: buzzerClient
+					function onThemeChanged() {
+						closeButtonLabel.color =
+								buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground");
+					}
+				}
+			}
+
+			MouseArea {
+				id: closeButtonArea
+				anchors.fill: parent
+				hoverEnabled: true
+
+				onEntered: {
+					closeButton.color = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Price.downBackground")
+					closeButtonLabel.color = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground");
+				}
+
+				onExited: {
+					closeButton.color = "transparent"
+					closeButtonLabel.color = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground");
+				}
+
+				onPressed: {
+					closeButton.color = Qt.darker(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Price.downBackground"), 1.1);
+				}
+
+				onReleased: {
+					closeButton.color = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Price.downBackground");
+				}
+
+				onClicked: {
+					window.close();
+				}
+			}
+		}
+	}
+
+	/*
+	DropShadow {
+		anchors.fill: window
+		horizontalOffset: 3
+		verticalOffset: 3
+		radius: 5.0
+		samples: 10
+		color: "#80000000"
+		source: window
+	}
+	*/
 
     function createPage(source)
     {
@@ -191,7 +427,7 @@ ApplicationWindow
 	}
 
 	function isTop() {
-		return pagesView.count - 1;
+		return pagesViewLocal.depth - 1;
 	}
 
 	function openThread(buzzChainId, buzzId, buzzerAlias, buzzBody) {
@@ -213,7 +449,7 @@ ApplicationWindow
 			lPage = lComponent.createObject(window);
 			lPage.controller = window;
 
-			lPage.updateStakedInfo(buzzId, buzzerAlias, buzzBody);
+			lPage.updateStakedInfo(buzzId, buzzerAlias, buzzBody.replace(/(\r\n|\n|\r)/gm, ""));
 			lPage.start(buzzChainId, buzzId);
 
 			addPage(lPage);
@@ -325,6 +561,9 @@ ApplicationWindow
 		var lComponent = null;
 		var lPage = null;
 
+		// pop no-stacked page(s)
+		popNonStacked();
+
 		lComponent = Qt.createComponent("qrc:/qml/buzzfeedfollowers.qml");
 		if (lComponent.status === Component.Error) {
 			showError(lComponent.errorString());
@@ -343,6 +582,9 @@ ApplicationWindow
 		var lComponent = null;
 		var lPage = null;
 
+		// pop no-stacked page(s)
+		popNonStacked();
+
 		lComponent = Qt.createComponent("qrc:/qml/buzzfeedfollowing.qml");
 		if (lComponent.status === Component.Error) {
 			showError(lComponent.errorString());
@@ -356,6 +598,34 @@ ApplicationWindow
 		}
 	}
 
+	function openConversation(conversationId, conversation, conversationModel) {
+		//
+		var lComponent = null;
+		var lPage = null;
+
+		// pop no-stacked page(s)
+		popNonStacked();
+
+		lComponent = Qt.createComponent("qrc:/qml/conversationthread-desktop.qml");
+		if (lComponent.status === Component.Error) {
+			showError(lComponent.errorString());
+		} else {
+			lPage = lComponent.createObject(window);
+			lPage.controller = window;
+
+			//
+			var lCounterpart = conversation.counterpartyInfoId;
+			if (conversation.side === 0) {
+				lCounterpart = conversation.creatorInfoId;
+			}
+
+			lPage.updateStakedInfo(conversationId, buzzerClient.getBuzzerAlias(lCounterpart), buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.conversation.title"));
+			addPage(lPage);
+
+			lPage.start(conversationId, conversation, conversationModel);
+		}
+	}
+
 	//
 	// inner methods
 	//
@@ -365,6 +635,15 @@ ApplicationWindow
 		pagesViewLocal.push(page, StackView.Transition);
 		page.updateStatusBar();
 		if (page.activatePageHandler) page.activatePageHandler();
+	}
+
+	function popPageLocal(page)
+	{
+		pagesViewLocal.pop();
+
+		var lPage = pagesView.get(pagesView.depth - 1);
+		lPage.updateStatusBar();
+		if (lPage.activatePageHandler) lPage.activatePageHandler();
 	}
 
 	function errorDialogAccepted()
@@ -423,39 +702,6 @@ ApplicationWindow
 	property var lastErrorMessageDialog: "";
 	property bool suspended: false;
     property int extraPadding: 0;
-
-    Connections
-    {
-        target: Qt.application
-        onStateChanged:
-        {
-            if(Qt.application.state === 0 /* suspended */ ||
-               Qt.application.state === 1 /* hidden */ ||
-               Qt.application.state === 2 /* inactive */ )
-            {
-                console.log("Main window suspending...");
-				buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background"));
-				suspended = true;
-
-				//
-				//buzzerApp.resumeNotifications();
-            }
-            else if(Qt.application.state === 4 /* active */)
-            {
-                console.log("Main window waking up...");
-				buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background"));
-                suspended = false;
-
-                if (localNotificator) localNotificator.reset();
-
-				//
-				//buzzerApp.pauseNotifications();
-
-				// try to re-force change background
-				adjustTimer.start();
-			}
-        }
-    }
 
     StackView
     {
@@ -556,8 +802,9 @@ ApplicationWindow
 		Material.primary: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.primary");
 
 		id: drawer
-		width: 0.75 * window.width
+		width: buzzerClient.scaleFactor * 400
 		height: window.height
+		interactive: opened
 
 		BuzzerHeader {
 			id: myBuzzer
@@ -593,12 +840,15 @@ ApplicationWindow
 					//
 					drawer.close();
 
+					// pop no-stacked page(s)
+					popNonStacked();
+
 					//
 					var lComponent = null;
 					var lPage = null;
 
 					if (key === "createNewBuzzer" || key === "editBuzzer") {
-						lComponent = Qt.createComponent("qrc:/qml/buzzercreateupdate.qml");
+						lComponent = Qt.createComponent("qrc:/qml/buzzercreateupdate-desktop.qml");
 						if (lComponent.status === Component.Error) {
 							showError(lComponent.errorString());
 						} else {
@@ -619,16 +869,8 @@ ApplicationWindow
 							addPage(lPage);
 						}
 					} else if (key === "personalFeed") {
-						lComponent = Qt.createComponent("qrc:/qml/buzzfeedbuzzer.qml");
-						if (lComponent.status === Component.Error) {
-							showError(lComponent.errorString());
-						} else {
-							lPage = lComponent.createObject(window);
-							lPage.controller = window;
-							lPage.start(buzzerClient.name);
-
-							addPage(lPage);
-						}
+						//
+						window.openBuzzfeedByBuzzer(buzzerClient.name);
 					} else if (key === "network") {
 						lComponent = Qt.createComponent("qrc:/qml/peers.qml");
 						if (lComponent.status === Component.Error) {
@@ -668,26 +910,28 @@ ApplicationWindow
 
 					QuarkSymbolLabel {
 						id: symbolLabel
-						x: 15
+						x: 15 + leftOffset
 						y: parent.height / 2 - height / 2
 						verticalAlignment: Text.AlignVCenter
 						Material.background: "transparent"
 						Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 						visible: true
 						symbol: keySymbol
+						font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : defaultFontSize
 					}
 
 					QuarkLabelRegular {
 						id: textLabel
-						x: keySymbol ? 45 : 15
+						x: keySymbol ? (buzzerClient.scaleFactor * 40) : 15
 						y: parent.height / 2 - height / 2
-						width: drawerMenu.width - (symbolLabel.x + symbolLabel.width + 5 + 10)
+						width: drawerMenu.width - ((keySymbol ? (buzzerClient.scaleFactor * 40) : 15) + 10)
 						text: name
 						elide: Text.ElideRight
 						verticalAlignment: Text.AlignVCenter
 						Material.background: "transparent"
 						Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 						visible: true
+						font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 11) : font.pointSize
 					}
 				}
 			}
@@ -700,27 +944,33 @@ ApplicationWindow
 				menuModel_.append({
 					key: "createNewBuzzer",
 					keySymbol: Fonts.userPlusSym,
-					name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.create.new")});
+					name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.create.new"),
+					leftOffset: 0});
 				menuModel_.append({
 					key: "editBuzzer",
 					keySymbol: Fonts.userEditSym,
-					name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.edit.buzzer")});
+					name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.edit.buzzer"),
+					leftOffset: 0});
 				menuModel_.append({
 					key: "qbitKey",
 					keySymbol: Fonts.secretSym,
-					name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.qbit.key")});
+					name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.qbit.key"),
+					leftOffset: 0});
 				menuModel_.append({
 					key: "personalFeed",
 					keySymbol: Fonts.flashSym,
-					name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.personal.feed")});
+					name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.personal.feed"),
+					leftOffset: buzzerClient.scaleFactor * 2});
 				menuModel_.append({
 					key: "network",
 					keySymbol: Fonts.networkSym,
-					name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.network")});
+					name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.network"),
+					leftOffset: (-1) * (buzzerClient.scaleFactor * 2)});
 				menuModel_.append({
 					key: "quickHelp",
 					keySymbol: Fonts.helpSym,
-					name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.quick.help")});
+					name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.quick.help"),
+					leftOffset: 0});
 			}
 		}
 	}
@@ -786,5 +1036,79 @@ ApplicationWindow
 			}
         }
     }
+
+	//
+	// resizing
+	//
+
+	property int previousX;
+	property int previousY;
+
+	MouseArea {
+		id: bottomArea
+		height: 5
+		anchors {
+			bottom: parent.bottom
+			left: parent.left
+			right: parent.right
+		}
+		cursorShape: Qt.SizeVerCursor
+
+		onPressed: {
+		}
+
+		onMouseYChanged: {
+			var lPoint = mapToGlobal(mouse.x, mouse.y);
+			window.setHeight(lPoint.y - window.y);
+		}
+	}
+
+	MouseArea {
+		id: leftArea
+		width: 5
+		anchors {
+			top: parent.top
+			bottom: bottomArea.top
+			left: parent.left
+		}
+		cursorShape: Qt.SizeHorCursor
+
+		property var fixedLeft;
+
+		onPressed: {
+			fixedLeft = window.x + window.width;
+		}
+
+		onMouseXChanged: {
+			var lPoint = mapToGlobal(mouse.x, mouse.y);
+			var lX = window.x;
+			window.setX(lPoint.x);
+
+			var lWidth = window.width - (lPoint.x - lX);
+			lWidth -= ((lX + lWidth) - fixedLeft);
+			window.setWidth(lWidth);
+		}
+	}
+
+	MouseArea {
+		id: rightArea
+		width: 5
+		anchors {
+			top: parent.top
+			bottom: bottomArea.top
+			right: parent.right
+		}
+		cursorShape:  Qt.SizeHorCursor
+
+		onPressed: {
+		}
+
+		property var previousPoint;
+
+		onMouseXChanged: {
+			var lPoint = mapToGlobal(mouse.x, mouse.y);
+			window.setWidth(lPoint.x - window.x);
+		}
+	}
 }
 

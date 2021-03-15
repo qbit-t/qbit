@@ -236,5 +236,9 @@ Item
 	readonly property string flagsEmojiSym: "\uf74c";
 
 	readonly property string paperClipSym: "\uf0c6";
+
+	readonly property string maximizeSym: "\uf2d0";
+	readonly property string minimizeSym: "\uf2d1";
+	readonly property string restoreSym: "\uf2d2";
 }
 

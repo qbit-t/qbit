@@ -59,6 +59,7 @@ Item {
 	readonly property int spaceLine_: 4
 	readonly property int spaceThreaded_: 33
 	readonly property int spaceThreadedItems_: 4
+	readonly property real defaultFontSize: 11
 
 	signal calculatedHeightModified(var value);
 
@@ -124,7 +125,7 @@ Item {
 		x: spaceAction_ / 2 - width / 2
 		y: spaceTop_
 		symbol: Fonts.userAliasSym
-		font.pointSize: 22
+		font.pointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 14 : 22
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.event.subscribe")
 	}
 
@@ -188,9 +189,10 @@ Item {
 		width: avatarImage.displayWidth
 		height: avatarImage.displayHeight
 		fillMode: Image.PreserveAspectCrop
+		mipmap: true
 
 		property bool rounded: true
-		property int displayWidth: 30
+		property int displayWidth: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 30 : 30
 		property int displayHeight: displayWidth
 
 		autoTransform: true
@@ -250,6 +252,7 @@ Item {
 		y: avatarImage.y
 		text: getBuzzerAlias()
 		font.bold: true
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
 
 		function getBuzzerAlias() {
 			//
@@ -267,6 +270,7 @@ Item {
 		y: avatarImage.y
 		text: getBuzzerName()
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
 
 		function getBuzzerName() {
 			//
@@ -284,7 +288,7 @@ Item {
 		y: buzzerAliasControl.y + buzzerAliasControl.height + 3
 		width: parent.width - (x + spaceRight_)
 		elide: Text.ElideRight
-		font.pointSize: 14
+		font.pointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * defaultFontSize : 14
 		text: getText()
 
 		function getText() {
@@ -312,6 +316,7 @@ Item {
 		y: avatarImage.y
 		text: ago_
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 2)) : font.pointSize
 	}
 
 	QuarkSymbolLabel {
@@ -319,7 +324,7 @@ Item {
 		x: parent.width - width - spaceRightMenu_
 		y: avatarImage.y
 		symbol: Fonts.shevronDownSym
-		font.pointSize: 12
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 7)) : 12
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
 	}
 	MouseArea {
@@ -369,7 +374,7 @@ Item {
 		id: headerMenu
 		x: parent.width - width - spaceRight_
 		y: menuControl.y + menuControl.height + spaceItems_
-		width: 150
+		width: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 150 : 150
 		visible: false
 
 		model: ListModel { id: menuModel }

@@ -183,54 +183,29 @@ Item
 				if (type === buzzerClient.tx_BUZZER_SUBSCRIBE_TYPE() ||
 					type === buzzerClient.tx_BUZZER_ENDORSE_TYPE() ||
 					type === buzzerClient.tx_BUZZER_MISTRUST_TYPE()) {
-					lComponent = Qt.createComponent("qrc:/qml/buzzfeedbuzzer.qml");
-					if (lComponent.status === Component.Error) {
-						showError(lComponent.errorString());
-					} else {
-						lPage = lComponent.createObject(controller);
-						lPage.controller = controller;
-						addPage(lPage);
-
-						lPage.start(getBuzzerName());
-					}
+					//
+					controller.openBuzzfeedByBuzzer(getBuzzerName());
 				} else if (type === buzzerClient.tx_BUZZER_CONVERSATION() ||
 							type === buzzerClient.tx_BUZZER_ACCEPT_CONVERSATION() ||
 							type === buzzerClient.tx_BUZZER_DECLINE_CONVERSATION() ||
 							type === buzzerClient.tx_BUZZER_MESSAGE() ||
 							type === buzzerClient.tx_BUZZER_MESSAGE_REPLY()) {
-					lComponent = Qt.createComponent("qrc:/qml/conversationthread.qml");
-					if (lComponent.status === Component.Error) {
-						showError(lComponent.errorString());
-					} else {
-						lPage = lComponent.createObject(controller);
-						lPage.controller = controller;
-
-						var lConversationId = buzzId;
-						if (type === buzzerClient.tx_BUZZER_MESSAGE() || type === buzzerClient.tx_BUZZER_MESSAGE_REPLY()) {
-							if (eventInfos.length) {
-								var lInfo = eventInfos[0];
-								lConversationId = lInfo.eventId;
-							}
+					//
+					var lConversationId = buzzId;
+					if (type === buzzerClient.tx_BUZZER_MESSAGE() || type === buzzerClient.tx_BUZZER_MESSAGE_REPLY()) {
+						if (eventInfos.length) {
+							var lInfo = eventInfos[0];
+							lConversationId = lInfo.eventId;
 						}
-
-						var lConversation = buzzerClient.locateConversation(lConversationId);
-						if (lConversation) {
-							addPage(lPage);
-							lPage.start(lConversationId, lConversation, buzzerClient.getConversationsList());
-						}
+					}
+					//
+					var lConversation = buzzerClient.locateConversation(lConversationId);
+					if (lConversation) {
+						controller.openConversation(lConversationId, lConversation, buzzerClient.getConversationsList());
 					}
 				} else {
-					lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzfeedthread-desktop.qml") :
-													   Qt.createComponent("qrc:/qml/buzzfeedthread.qml");
-					if (lComponent.status === Component.Error) {
-						showError(lComponent.errorString());
-					} else {
-						lPage = lComponent.createObject(controller);
-						lPage.controller = controller;
-						addPage(lPage);
-
-						lPage.start(buzzChainId, buzzId);
-					}
+					//
+					controller.openThread(buzzChainId, buzzId, getBuzzerAlias(), buzzBodyFlat);
 				}
 			}
 
@@ -240,6 +215,14 @@ Item
 				}
 
 				return buzzerClient.getBuzzerName(publisherInfoId);
+			}
+
+			function getBuzzerAlias() {
+				if (eventInfos.length > 0) {
+					return buzzerClient.getBuzzerAlias(eventInfos[0].buzzerInfoId);
+				}
+
+				return buzzerClient.getBuzzerAlias(publisherInfoId);
 			}
 
 			onWidthChanged: {

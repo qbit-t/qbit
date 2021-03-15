@@ -1124,7 +1124,8 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 			bytesReceived_ += lMessage.dataSize() + Message::size();
 
 			// sanity check
-			if (peerManager_->existsBanned(key())) {
+			std::string lEndpoint = key();
+			if (peerManager_->existsBanned(lEndpoint)) {
 				// log
 				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: peer ") + key() + std::string(" is BANNED."));
 				eraseInData(lMsg);

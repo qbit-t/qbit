@@ -51,6 +51,8 @@
 #include "peerslistmodel.h"
 #include "emojidata.h"
 
+#include "notificator.h"
+
 Q_DECLARE_METATYPE(qbit::Buzzfeed*)
 Q_DECLARE_METATYPE(qbit::BuzzfeedItem*)
 Q_DECLARE_METATYPE(qbit::Eventsfeed*)
@@ -175,6 +177,14 @@ public:
 
 	void suspend();
 	void resume();
+
+	Q_INVOKABLE void activatePeersUpdates() {
+		peersModelUpdates_ = true;
+	}
+
+	Q_INVOKABLE void deactivatePeersUpdates() {
+		peersModelUpdates_ = false;
+	}
 
 	QString address() {
 		//
@@ -382,6 +392,10 @@ public:
 	Q_INVOKABLE unsigned short peer_BANNED() { return qbit::IPeer::BANNED; }
 	Q_INVOKABLE unsigned short peer_PENDING_STATE() { return qbit::IPeer::PENDING_STATE; }
 	Q_INVOKABLE unsigned short peer_POSTPONED() { return qbit::IPeer::POSTPONED; }
+
+	Q_INVOKABLE void criticalNotification(QString title, QString message) {
+		//
+	}
 
 	Q_INVOKABLE int getBuzzBodyMaxSize() { return TX_BUZZ_BODY_SIZE; }
 
@@ -592,8 +606,8 @@ signals:
 	void newEvents();
 	void newMessages();
 
-	void peerPushedSignal(const buzzer::PeerProxy& peer, bool update, int count);
-	void peerPoppedSignal(const buzzer::PeerProxy& peer, int count);
+	void peerPushedSignal(buzzer::PeerProxy peer, bool update, int count);
+	void peerPoppedSignal(buzzer::PeerProxy peer, int count);
 
 private:
     QString name_;
@@ -618,6 +632,7 @@ private:
 	bool suspended_ = false;
 	bool recallWallet_ = false;
 	bool opened_ = false;
+	bool peersModelUpdates_ = false;
 
 private:
 	qbit::IRequestProcessorPtr requestProcessor_ = nullptr;

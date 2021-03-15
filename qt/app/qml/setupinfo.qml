@@ -89,7 +89,10 @@ QuarkPage
 			lPage = lComponent.createObject(window);
 			lPage.controller = controller;
 
-			addPage(lPage);
+			if (buzzerApp.isDesktop)
+				addPageLocal(lPage);
+			else
+				addPage(lPage);
 		}
 	}
 }

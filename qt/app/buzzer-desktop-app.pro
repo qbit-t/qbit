@@ -89,7 +89,9 @@ SOURCES += \
     application.cpp \
     cameracontroler.cpp \
     applicationpath.cpp \
+    notificator.cpp \
     peerslistmodel.cpp \
+    pushdesktopnotification.cpp \
     settings.cpp \
     wallettransactionslistmodel.cpp \
     websourceinfo.cpp
@@ -164,10 +166,12 @@ DISTFILES += \
     qml/buzzer-desktop-app.qml \
     qml/buzzer-main-desktop.qml \
     qml/buzzer-stackview-desktop.qml \
+    qml/buzzercreateupdate-desktop.qml \
     qml/buzzerinfo-desktop.qml \
     qml/buzzertoolbar-desktop.qml \
     qml/buzzfeedthread-desktop.qml \
     qml/buzzitemurl-desktop.qml \
+    qml/conversationthread-desktop.qml \
     qml/setupaskqbit-desktop.qml \
     qml/setupbuzzer-desktop.qml \
     qml/setupinfo-desktop.qml \
@@ -191,6 +195,9 @@ HEADERS += \
     iapplication.h \
     applicationpath.h \
 	line.h \
+    notificator.h \
+    notificator_p.h \
+    pushdesktopnotification.h \
 	roundframe.h \
 	cameracontroler.h \
     peerslistmodel.h \
@@ -222,5 +229,7 @@ RESOURCES += \
     $$files(components/*) \
 	$$files(models/*) \
 	$$files(emoji/*)
+
+FORMS +=
 
 

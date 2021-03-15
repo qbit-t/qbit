@@ -30,6 +30,7 @@ public:
 
 public:
 	explicit WebSourceInfo(QObject* parent = nullptr);
+	virtual ~WebSourceInfo();
 
 	QString url() { return url_; }
 	void setUrl(QString url) { url_ = url; }
@@ -66,7 +67,7 @@ private:
 
 private:
 	QString url_;
-	QNetworkReply* reply_;
+	QNetworkReply* reply_ = nullptr;
 
 	Type type_ = INFO_EMPTY;
 	QString host_;

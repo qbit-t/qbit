@@ -17,6 +17,7 @@ QuarkPage
 {
 	id: peers_
 	key: "peers"
+	stacked: false
 
 	readonly property int spaceLeft_: 15
 	readonly property int spaceTop_: 12
@@ -33,6 +34,8 @@ QuarkPage
 	readonly property int spaceLine_: 4
 	readonly property int spaceThreaded_: 33
 	readonly property int spaceThreadedItems_: 4
+
+	property bool setup: false
 
 	property var activePeersModel;
 	property var networkPeersModel;
@@ -52,13 +55,21 @@ QuarkPage
 		//
 		stopPage();
 		destroy(1000);
-		controller.popPage();
+
+		if (!setup) controller.popPage(peers_);
+		else controller.popPageLocal();
 	}
 
 	function stopPage() {
+		//
+		buzzerClient.deactivatePeersUpdates();
+
 		peersActive.stop();
 		peersNetwork.stop();
 		peersManual.stop();
+
+		if (activePeersModel) activePeersModel.countChanged.disconnect(activePeersCountChanged);
+		if (networkPeersModel) networkPeersModel.countChanged.disconnect(networkPeersCountChanged);
 
 		activePeersModel = undefined;
 		networkPeersModel = undefined;
@@ -66,12 +77,25 @@ QuarkPage
 	}
 
 	function activatePage() {
+		//
 		buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background"));
 		toolBar.activate();
+		//
+		buzzerClient.activatePeersUpdates();
 	}
 
 	function onErrorCallback(error) {
 		controller.showError(error);
+	}
+
+	function activePeersCountChanged() {
+		//
+		peersBar.updateActivePeersCountChanged(activePeersModel.count);
+	}
+
+	function networkPeersCountChanged() {
+		//
+		peersBar.updateNetworkPeersCountChanged(networkPeersModel.count);
 	}
 
 	Timer {
@@ -82,9 +106,11 @@ QuarkPage
 
 		onTriggered: {
 			activePeersModel = buzzerClient.getPeersActive();
+			activePeersModel.countChanged.connect(activePeersCountChanged);
 			activePeersModel.feed(true);
 
 			networkPeersModel = buzzerClient.getPeersAll();
+			networkPeersModel.countChanged.connect(networkPeersCountChanged);
 			networkPeersModel.feed(true);
 
 			manualPeersModel = buzzerClient.getPeersAdded();
@@ -98,7 +124,7 @@ QuarkPage
 
 	QuarkToolBar {
 		id: toolBar
-		height: 45
+		height: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 50) : 45
 		width: parent.width
 
 		property int totalHeight: height
@@ -108,13 +134,14 @@ QuarkPage
 
 		QuarkToolButton	{
 			id: cancelButton
+			y: parent.height / 2 - height / 2
 			Material.background: "transparent"
 			visible: true
 			labelYOffset: buzzerApp.isDesktop ? 0 : 3
 			symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 			Layout.alignment: Qt.AlignHCenter
-			symbol: Fonts.leftArrowSym
-			x: buzzerApp.isDesktop ? 10 : 0
+			symbol: Fonts.cancelSym
+			symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 16) : symbolFontPointSize
 
 			onClicked: {
 				closePage();
@@ -127,8 +154,8 @@ QuarkPage
 			y: parent.height / 2 - height / 2
 			width: parent.width - (x)
 			elide: Text.ElideRight
-			text: "Peers"
-			font.pointSize: 18
+			text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.peers")
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 16) : 18
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link")
 		}
 
@@ -140,20 +167,31 @@ QuarkPage
 			y2: parent.height
 			penWidth: 1
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
-			visible: !buzzerApp.isDesktop
+			visible: buzzerApp.isDesktop && !setup
 		}
 	}
 
 	TabBar {
 		id: peersBar
 		x: 0
-		y: toolBar.y + toolBar.height
+		y: toolBar.y + toolBar.height + 1
 		width: parent.width
 		currentIndex: 0
 		position: TabBar.Header
 
+		function updateActivePeersCountChanged(count) {
+			//
+			activePeers.text = buzzerApp.getLocalization(buzzerClient.locale, "Peers.active") + " / " + count;
+		}
+
+		function updateNetworkPeersCountChanged(count) {
+			//
+			networkPeers.text = buzzerApp.getLocalization(buzzerClient.locale, "Peers.network") + " / " + count;
+		}
+
 		TabButton {
 			QuarkLabel {
+				id: activePeers
 				x: parent.width / 2 - width / 2
 				y: parent.height / 2 - height / 2
 				text: buzzerApp.getLocalization(buzzerClient.locale, "Peers.active")
@@ -162,6 +200,7 @@ QuarkPage
 		}
 		TabButton {
 			QuarkLabel {
+				id: networkPeers
 				x: parent.width / 2 - width / 2
 				y: parent.height / 2 - height / 2
 				text: buzzerApp.getLocalization(buzzerClient.locale, "Peers.network")

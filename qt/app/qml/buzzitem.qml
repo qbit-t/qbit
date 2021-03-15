@@ -476,7 +476,7 @@ Item {
 		y: avatarImage.y
 		text: ago_
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 2)) : font.pointSize
 	}
 
 	QuarkSymbolLabel {
@@ -484,7 +484,7 @@ Item {
 		x: parent.width - width - spaceRightMenu_
 		y: avatarImage.y
 		symbol: Fonts.shevronDownSym
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : 12
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 7)) : 12
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
 	}
 	MouseArea {
@@ -1266,23 +1266,10 @@ Item {
 	}
 
 	function openBuzzerConversation(conversationId) {
-		// open conversation
-		var lComponent = null;
-		var lPage = null;
-
 		//
-		lComponent = Qt.createComponent("qrc:/qml/conversationthread.qml");
-		if (lComponent.status === Component.Error) {
-			controller.showError(lComponent.errorString());
-		} else {
-			lPage = lComponent.createObject(controller);
-			lPage.controller = controller;
-
-			var lConversation = buzzerClient.locateConversation(conversationId);
-			if (lConversation) {
-				addPage(lPage);
-				lPage.start(conversationId, lConversation, buzzerClient.getConversationsList());
-			}
+		var lConversation = buzzerClient.locateConversation(conversationId);
+		if (lConversation) {
+			controller_.openConversation(conversationId, lConversation, buzzerClient.getConversationsList());
 		}
 	}
 

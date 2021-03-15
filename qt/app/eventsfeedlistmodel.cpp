@@ -60,6 +60,8 @@ QVariant EventsfeedListModel::data(const QModelIndex& index, int role) const {
 		// decorate @buzzers, #tags and urls
 		Client* lClient = static_cast<Client*>(gApplication->getClient());
 		return lClient->decorateBuzzBody(QString::fromStdString(lItem->buzzBodyString()));
+	} else if (role == BuzzBodyFlatRole) {
+		return QString::fromStdString(lItem->buzzBodyString());
 	} else if (role == ValueRole) {
 		return QVariant::fromValue(lItem->value());
 	} else if (role == BuzzMediaRole) {
@@ -107,6 +109,7 @@ QHash<int, QByteArray> EventsfeedListModel::roleNames() const {
 	lRoles[PublisherInfoIdRole] = "publisherInfoId";
 	lRoles[PublisherInfoChainIdRole] = "publisherInfoChainId";
 	lRoles[BuzzBodyRole] = "buzzBody";
+	lRoles[BuzzBodyFlatRole] = "buzzBodyFlat";
 	lRoles[BuzzMediaRole] = "buzzMedia";
 	lRoles[LastUrlRole] = "lastUrl";
 	lRoles[EventInfosRoles] = "eventInfos";
@@ -132,6 +135,11 @@ void EventsfeedListModel::eventsfeedItemUpdated(qbit::EventsfeedItemPtr) {
 void EventsfeedListModel::eventsfeedItemsUpdated(const std::vector<qbit::EventsfeedItem>&) {
 }
 
+//
+// TODO: make DESKTOP define
+//
+#include "pushdesktopnotification.h"
+
 void EventsfeedListModel::feed(qbit::EventsfeedPtr local, bool more, bool merge) {
 	//
 	if (merge) {
@@ -156,6 +164,11 @@ void EventsfeedListModel::feed(qbit::EventsfeedPtr local, bool more, bool merge)
 		// make index
 		for (int lItem = 0; lItem < (int)list_.size(); lItem++) {
 			index_[list_[lItem]->key()] = lItem;
+
+			//
+			// TODO: make DESKTOP define
+			//
+			PushNotification::instance(list_[lItem])->process();
 			//qInfo() << "Initial: " << QString::fromStdString(list_[lItem]->key().toString()) << QString::fromStdString(list_[lItem]->toString());
 		}
 

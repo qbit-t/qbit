@@ -843,23 +843,10 @@ Item {
 	}
 
 	function openBuzzerConversation(conversationId) {
-		// open conversation
-		var lComponent = null;
-		var lPage = null;
-
 		//
-		lComponent = Qt.createComponent("qrc:/qml/conversationthread.qml");
-		if (lComponent.status === Component.Error) {
-			controller_.showError(lComponent.errorString());
-		} else {
-			lPage = lComponent.createObject(controller_);
-			lPage.controller = controller_;
-
-			var lConversation = buzzerClient.locateConversation(conversationId);
-			if (lConversation) {
-				addPage(lPage);
-				lPage.start(conversationId, lConversation, buzzerClient.getConversationsList());
-			}
+		var lConversation = buzzerClient.locateConversation(conversationId);
+		if (lConversation) {
+			controller_.openConversation(conversationId, lConversation, buzzerClient.getConversationsList());
 		}
 	}
 

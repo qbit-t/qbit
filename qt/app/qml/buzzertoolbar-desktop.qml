@@ -275,6 +275,9 @@ QuarkToolBar
 			if (lComponent.status === Component.Error) {
 				showError(lComponent.errorString());
 			} else {
+				// pop no-stacked page(s)
+				popNonStacked();
+
 				lPage = lComponent.createObject(window);
 				lPage.controller = window;
 
@@ -299,6 +302,10 @@ QuarkToolBar
 
 		onClicked:
 		{
+			//
+			buzzerClient.criticalNotification("Ahtung!!!", "You pressed sun!");
+
+			//
 			if (symbol === Fonts.sunSym)
 			{
 				buzzerClient.setTheme("Nova", "light");

@@ -10,6 +10,8 @@
 #include <QHash>
 #include <QVariant>
 #include <QStandardPaths>
+#include <QDir>
+#include <QFile>
 
 #include <set>
 
@@ -68,7 +70,21 @@ public:
 		return QStandardPaths::writableLocation(QStandardPaths::TempLocation);
 	#endif
 
-		return qApp->applicationDirPath() + "/data";
+		QString lGlobalDataPath = qApp->applicationDirPath() + "/data";
+		QDir lDataDir(lGlobalDataPath);
+		if (!lDataDir.exists()) {
+			lDataDir.setPath(qApp->applicationDirPath());
+			lDataDir.mkdir("data");
+		}
+
+		QString lCacheDataPath = lGlobalDataPath + "/cache";
+		QDir lCacheDir(lCacheDataPath);
+		if (!lCacheDir.exists()) {
+			lCacheDir.setPath(lGlobalDataPath);
+			lCacheDir.mkdir("cache");
+		}
+
+		return lCacheDataPath;
 	}
 
 	static QString logsDirPath();

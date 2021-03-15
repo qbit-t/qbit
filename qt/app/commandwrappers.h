@@ -910,12 +910,16 @@ class DownloadMediaCommand: public QObject
 
 public:
 	explicit DownloadMediaCommand(QObject* parent = nullptr);
+	virtual ~DownloadMediaCommand();
 
 	Q_INVOKABLE void process() {
 		process(false);
 	}
 
 	Q_INVOKABLE void process(bool force) {
+		// TODO: potential leak, need "check list" to track such objects
+		QQmlEngine::setObjectOwnership(this, QQmlEngine::CppOwnership);
+
 		std::vector<std::string> lArgs;
 		lArgs.push_back(header_.toStdString() + "/" + chain_.toStdString());
 		lArgs.push_back(localFile_.toStdString());

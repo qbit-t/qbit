@@ -41,7 +41,7 @@ QuarkToolBar
 
 		onClicked: {
 			if (window.isTop() === 1) window.close();
-			window.popPage();
+			window.popPageLocal();
 		}
 	}
 
@@ -111,8 +111,9 @@ QuarkToolBar
 			} else {
 				lPage = lComponent.createObject(window);
 				lPage.controller = window;
+				lPage.setup = true;
 
-				addPage(lPage);
+				addPageLocal(lPage);
 			}
 		}
 	}

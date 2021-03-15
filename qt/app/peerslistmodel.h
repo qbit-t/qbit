@@ -11,6 +11,10 @@
 #include "transaction.h"
 #include "iwallet.h"
 
+#include <boost/thread/thread.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/recursive_mutex.hpp>
+
 namespace buzzer {
 
 //
@@ -158,8 +162,8 @@ public:
 	Q_INVOKABLE void remove(int);
 
 public slots:
-	void peerPushedSlot(const buzzer::PeerProxy& /*peer*/, bool /*update*/, int /*count*/);
-	void peerPoppedSlot(const buzzer::PeerProxy& /*peer*/, int /*count*/);
+	void peerPushedSlot(buzzer::PeerProxy /*peer*/, bool /*update*/, int /*count*/);
+	void peerPoppedSlot(buzzer::PeerProxy /*peer*/, int /*count*/);
 
 signals:
 	void countChanged();
@@ -176,6 +180,7 @@ protected:
 protected:
 	std::vector<PeerItemPtr> list_;
 	std::map<uint160 /*peer*/, int> index_;
+	mutable boost::recursive_mutex mutex_;
 };
 
 class PeersActiveListModel: public PeersListModel {

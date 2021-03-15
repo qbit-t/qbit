@@ -17,6 +17,7 @@ QuarkPage
 {
 	id: buzzerqbitkey_
 	key: "buzzerqbitkey"
+	stacked: false
 
 	property bool setupProcess: false
 
@@ -67,7 +68,7 @@ QuarkPage
 
 	QuarkToolBar {
 		id: toolBar
-		height: 45
+		height: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 50) : 45
 		width: parent.width
 
 		property int totalHeight: height
@@ -92,8 +93,9 @@ QuarkPage
 			labelYOffset: buzzerApp.isDesktop ? 0 : 3
 			symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 			Layout.alignment: Qt.AlignHCenter
-			symbol: Fonts.leftArrowSym
-			x: buzzerApp.isDesktop ? 10 : 0
+			symbol: Fonts.cancelSym
+			//x: buzzerApp.isDesktop ? 10 : 0
+			y: parent.height / 2 - height / 2
 
 			onClicked: {
 				closePage();
@@ -107,7 +109,7 @@ QuarkPage
 			width: parent.width - (x)
 			elide: Text.ElideRight
 			text: buzzerClient.name
-			font.pointSize: 18
+			font.pointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 14 : 18
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link")
 		}
 
@@ -144,7 +146,7 @@ QuarkPage
 			y: 10
 			width: parent.width-40
 			wrapMode: Label.Wrap
-			font.pointSize: buzzerApp.isDesktop ? 14 : 18
+			font.pointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 14 : 18
 
 			text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.qbitKeys.manage")
 		}
@@ -157,6 +159,8 @@ QuarkPage
 			symbol: Fonts.tagSym
 			clipboardButton: true
 			helpButton: true
+			textFontSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 14 : 16
+			symbolFontSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 16 : 20
 
 			text: !setupProcess ? buzzerClient.firstPKey() : ""
 
@@ -176,6 +180,8 @@ QuarkPage
 			clipboardButton: false
 			pasteButton: false
 			helpButton: true
+			textFontSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 14 : 16
+			symbolFontSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 16 : 20
 
 			text: !setupProcess ? buzzerClient.firstSKey() : ""
 
@@ -192,7 +198,7 @@ QuarkPage
 			y: keyBox.y + keyBox.height + 15
 			width: parent.width-40
 			wrapMode: Text.Wrap
-			font.pointSize: buzzerApp.isDesktop ? 14 : 18
+			font.pointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 14 : 18
 
 			text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.qbitSeed")
 		}
@@ -207,6 +213,8 @@ QuarkPage
 			helpButton: true
 			addButton: true
 			placeholderText: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.qbitKeys.word")
+			textFontSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 14 : 16
+			symbolFontSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 16 : 20
 
 			onTextChanged: {
 			}
@@ -235,7 +243,9 @@ QuarkPage
 			id: backRect
 			x: 21
 			y: wordEditBox.y + wordEditBox.height
-			height: 250 // nameEditBox.y - y - 15
+			height: buzzerqbitkey_.height - (y + toolBar.height + linkButton.height + nameEditBox.height + 15 + 15 + 10) < 200 ?
+						200 :
+						buzzerqbitkey_.height - (y + toolBar.height + linkButton.height + nameEditBox.height + 15 + 15 + 10)
 			width: parent.width - 43
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Box.background");
 		}
@@ -275,7 +285,7 @@ QuarkPage
 						text: name
 						x: 10
 						y: parent.height / 2 - height / 2
-						font.pointSize: buzzerApp.isDesktop ? 14 : font.pointSize
+						font.pointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 14 : font.pointSize
 					}
 				}
 
@@ -287,7 +297,7 @@ QuarkPage
 
 					QuarkSymbolLabel {
 						symbol: Fonts.trashSym
-						font.pointSize: 16
+						font.pointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 14 : 16
 						color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
 
 						x: parent.width / 2 - width / 2
@@ -340,6 +350,8 @@ QuarkPage
 			clipboardButton: false
 			helpButton: true
 			placeholderText: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.placeholder.name")
+			textFontSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 14 : 16
+			symbolFontSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 16 : 20
 
 			onHelpClicked:  {
 				if (enabled) {
@@ -384,7 +396,7 @@ QuarkPage
 			contentItem: QuarkText {
 				id: buttonText
 				text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.link")
-				font.pointSize: 16
+				font.pointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 16 : 16
 				color: linkButton.enabled ?
 						   buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground") :
 						   buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
@@ -490,7 +502,10 @@ QuarkPage
 							lPage = lComponent.createObject(controller);
 							lPage.controller = controller;
 
-							addPage(lPage);
+							if (buzzerApp.isDesktop)
+								addPageLocal(lPage);
+							else
+								addPage(lPage);
 						}
 					}
 				}
@@ -589,7 +604,10 @@ QuarkPage
 					lPage = lComponent.createObject(controller);
 					lPage.controller = controller;
 
-					addPage(lPage);
+					if (buzzerApp.isDesktop)
+						addPageLocal(lPage);
+					else
+						addPage(lPage);
 				}
 			}
 		}

@@ -53,12 +53,14 @@ Page
 		target: Qt.application
 		function onStateChanged()
 		{
-			if(Qt.application.state !== 4 /* inactive */) {
-				console.log("[Application]: suspend client");
-				buzzerApp.suspendClient();
-			} else {
-				console.log("[Application]: resume client");
-				buzzerApp.resumeClient();
+			if (!buzzerApp.isDesktop) {
+				if(Qt.application.state !== 4 /* inactive */) {
+					console.log("[Application]: suspend client");
+					buzzerApp.suspendClient();
+				} else {
+					console.log("[Application]: resume client");
+					buzzerApp.resumeClient();
+				}
 			}
 		}
 	}

@@ -34,6 +34,7 @@ public:
 		PublisherInfoIdRole,
 		PublisherInfoChainIdRole,
 		BuzzBodyRole,
+		BuzzBodyFlatRole,
 		BuzzMediaRole,
 		LastUrlRole,
 		EventInfosRoles,

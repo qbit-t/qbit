@@ -161,6 +161,7 @@ QuarkPage {
 
 		QuarkToolButton	{
 			id: cancelButton
+			y: topOffset + parent.height / 2 - height / 2
 			Material.background: "transparent"
 			visible: true
 			labelYOffset: buzzerApp.isDesktop ? 0 : 3

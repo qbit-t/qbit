@@ -86,7 +86,7 @@ QuarkPopup
 					id: textLabel
 					x: keySymbol ? (buzzerClient.scaleFactor * 40) : 15
 					y: parent.height / 2 - height / 2
-					width: popupBox.width - ((keySymbol ? (buzzerClient.scaleFactor * 40) : 15) + 10)
+					width: metrics.elideWidth // popupBox.width - ((keySymbol ? (buzzerClient.scaleFactor * 40) : 15) + 10)
 					text: metrics.elidedText
 					//maximumLineCount: 1
 					Material.background: "transparent"

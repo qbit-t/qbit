@@ -21,44 +21,108 @@ import "qrc:/qml"
 import "qrc:/lib/numberFunctions.js" as NumberFunctions
 
 QuarkPage {
-	id: buzzfeedthread_
-	key: "buzzfeedthread"
+	id: conversationthread_
+	key: "conversationthread"
+	stacked: true
 
 	property var infoDialog;
 	property var controller;
 	property bool listen: false;
 	property var buzzesThread_;
+	property var conversation_;
+	property var conversations_;
+
+	//
+	// TODO: recheck!
+	property bool accepted_: false;
 
 	readonly property int spaceLeft_: 15
 	readonly property int spaceTop_: 12
 	readonly property int spaceRight_: 15
 	readonly property int spaceBottom_: 12
 	readonly property int spaceItems_: 5
+	readonly property real defaultFontSize: 11
+
+	readonly property int conversationPending_: 0
+	readonly property int conversationAccepted_: 1
+	readonly property int conversationDeclined_: 2
+
+	readonly property int sideCreator_: 0
+	readonly property int sideCounterparty_: 1
 
 	property bool sending: false
 	property bool atTheBottom: false
+
+	property bool isCreator_: conversation_ !== undefined &&
+							  buzzerClient.getCurrentBuzzerId() === conversation_.creatorId
 
 	Connections {
 		target: buzzesThread_
 
 		function onCountChanged() {
+			console.log("[onCountChanged]: atTheBottom = " + atTheBottom);
 			if (atTheBottom) {
 				list.positionViewAtEnd();
 			}
 		}
 	}
 
-	function start(chain, buzzId) {
+	function start(conversationId, conversation, conversations) {
 		//
-		buzzesThread_ = buzzerClient.createBuzzesBuzzfeedList(); // buzzfeed regietered here to receive buzzes updates (likes, rebuzzes)
+		buzzesThread_ = buzzerClient.createConversationMessagesList();
 		//
-		modelLoader.buzzId = buzzId;
-		buzzSubscribeCommand.chain = chain;
-		buzzSubscribeCommand.buzzId = buzzId;
+		conversation_ = conversation;
+		conversations_ = conversations;
+		modelLoader.conversationId = conversationId;
+		console.log("[conversationthread/start]: conversationId = " + conversationId);
 
-		console.log("[buzzfeedthread/start]: chain = " + chain + ", buzzId = " + buzzId);
+		/*
+		if (conversationState() === conversationAccepted_ || buzzerClient.getCurrentBuzzerId() === conversation_.creatorId) {
+			console.log("[start]: try load pkey...");
+			keyLoader.process(conversationId);
+		}
+		*/
 
+		keyLoader.process(conversationId);
+
+		//
+		avatarDownloadCommand.process();
 		switchDataTimer.start();
+	}
+
+	function conversationState() {
+		//
+		if (accepted_) return conversationAccepted_;
+		//
+		if (conversation_ !== undefined && conversation_.eventInfos.length >= 1) {
+			var lInfo = conversation_.eventInfos[0];
+			if (lInfo.type === buzzerClient.tx_BUZZER_ACCEPT_CONVERSATION())
+				return conversationAccepted_;
+			else if (lInfo.type === buzzerClient.tx_BUZZER_DECLINE_CONVERSATION())
+				return conversationDeclined_;
+		}
+
+		return conversationPending_;
+	}
+
+	function getBuzzerInfoId() {
+		//
+		if (conversation_ === undefined) return "";
+
+		//
+		if (conversation_.side === sideCreator_) {
+			return conversation_.creatorInfoId;
+		}
+
+		return conversation_.counterpartyInfoId;
+	}
+
+	function getScore () {
+		//
+		if (conversation_ === undefined) return 0;
+
+		//
+		return conversation_.score;
 	}
 
 	Component.onCompleted: {
@@ -68,11 +132,12 @@ QuarkPage {
 
 	function closePage() {
 		stopPage();
-		controller.popPage(buzzfeedthread_);
+		controller.popPage();
 		destroy(1000);
 	}
 
 	function activatePage() {
+		buzzText.external_ = false;
 		buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background"));
 	}
 
@@ -81,11 +146,8 @@ QuarkPage {
 	}
 
 	function stopPage() {
-		// unsubscribe
-		buzzUnsubscribeCommand.process();
-		// unregister
-		if (buzzesThread_)
-			buzzerClient.unregisterBuzzfeed(buzzesThread_); // we should explicitly unregister buzzfeed
+		//
+		modelLoader.reset();
 	}
 
 	onWidthChanged: {
@@ -109,7 +171,7 @@ QuarkPage {
 
 		function onBuzzerDAppReadyChanged() {
 			if (listen && buzzerClient.buzzerDAppReady) {
-				modelLoader.start();
+				modelLoader.restart();
 				listen = false;
 			}
 		}
@@ -121,37 +183,36 @@ QuarkPage {
 		}
 	}
 
-	BuzzerCommands.BuzzSubscribeCommand {
-		id: buzzSubscribeCommand
-		model: buzzesThread_
+	BuzzerCommands.LoadCounterpartyKeyCommand {
+		id: keyLoader
 
 		onProcessed: {
-			//
-			console.log("[buzzSubscribeCommand]: processed");
-			var lPeers = buzzSubscribeCommand.peers();
-			for (var lIdx = 0; lIdx < lPeers.length; lIdx++) {
-				console.log(lPeers[lIdx]);
-			}
+			console.log("[keyLoader]: key loaded");
+		}
+
+		onError: {
+			console.log("[keyLoader/error]: " + message);
 		}
 	}
 
-	BuzzerCommands.BuzzUnsubscribeCommand {
-		id: buzzUnsubscribeCommand
-		subscribeCommand: buzzSubscribeCommand
-	}
-
-	BuzzerCommands.LoadBuzzfeedByBuzzCommand {
+	BuzzerCommands.LoadConversationMessagesCommand {
 		id: modelLoader
 		model: buzzesThread_
 
 		property bool dataReceived: false
 		property bool dataRequested: false
+		property bool initialFeed: false
 
 		onProcessed: {
 			console.log("[buzzfeed]: loaded");
 			dataReceived = true;
 			dataRequested = false;
 			waitDataTimer.done();
+
+			if (initialFeed) {
+				initialFeed = false;
+				editBuzzTimer.start();
+			}
 		}
 
 		onError: {
@@ -167,6 +228,7 @@ QuarkPage {
 			//
 			if (!dataReceived && !dataRequested) {
 				dataRequested = true;
+				initialFeed = true;
 				waitDataTimer.start();
 				modelLoader.process(false);
 				return true;
@@ -190,16 +252,78 @@ QuarkPage {
 		}
 	}
 
+	BuzzerCommands.AcceptConversationCommand {
+		id: acceptCommand
+		model: conversations_
+
+		onProcessed: {
+			//
+			accepted_ = true;
+			buzzThreadToolBar.height = buzzThreadToolBar.getHeight();
+			acceptButton.visible = false;
+			declineButton.visible = false;
+			// reset / refetch
+			buzzesThread_.resetModel();
+		}
+
+		onError: {
+			//
+			handleError(code, message);
+		}
+	}
+
+	BuzzerCommands.DeclineConversationCommand {
+		id: declineCommand
+		model: conversations_
+
+		onProcessed: {
+			//
+			accepted_ = false;
+			closePage();
+		}
+
+		onError: {
+			//
+			handleError(code, message);
+		}
+	}
+
+	//
+	// decline dialog
+	//
+
+	YesNoDialog	{
+		id: declineConversationDialog
+
+		onAccepted:	{
+			//
+			declineCommand.process(modelLoader.conversationId);
+		}
+
+		onRejected: {
+			declineConversationDialog.close();
+		}
+	}
+
 	//
 	// toolbar
 	//
 
 	QuarkToolBar {
+		property int defaultHeight_: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 50) : 45
+		property int buttonsHeight_: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 50) : 45
+
 		id: buzzThreadToolBar
-		height: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 50) : 45
+		height: getHeight()
 		width: parent.width
 
 		property int totalHeight: height
+
+		function getHeight() {
+			if (conversationState() === conversationPending_ && !isCreator_)
+				return defaultHeight_ + buttonsHeight_ + spaceBottom_;
+			return defaultHeight_;
+		}
 
 		Component.onCompleted: {
 		}
@@ -217,6 +341,183 @@ QuarkPage {
 
 			onClicked: {
 				closePage();
+			}
+		}
+
+		//
+		// avatar download
+		//
+		BuzzerCommands.DownloadMediaCommand {
+			id: avatarDownloadCommand
+			url: buzzerClient.getBuzzerAvatarUrl(getBuzzerInfoId())
+			localFile: buzzerClient.getTempFilesPath() + "/" +
+					   buzzerClient.getBuzzerAvatarUrlHeader(getBuzzerInfoId())
+			preview: true
+			skipIfExists: true
+
+			onProcessed: {
+				// tx, previewFile, originalFile
+				avatarImage.source = "file://" + previewFile
+			}
+		}
+
+		//
+		// score
+		//
+		QuarkRoundState {
+			id: imageFrame
+			x: avatarImage.x - 2
+			y: avatarImage.y - 2
+			size: avatarImage.displayWidth + 4
+			color: getColor()
+			background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
+
+			function getColor() {
+				var lScoreBase = buzzerClient.getTrustScoreBase() / 10;
+				var lIndex = getScore() / lScoreBase;
+
+				// TODO: consider to use 4 basic colours:
+				// 0 - red
+				// 1 - 4 - orange
+				// 5 - green
+				// 6 - 9 - teal
+				// 10 -
+
+				switch(Math.round(lIndex)) {
+					case 0: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.0");
+					case 1: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.1");
+					case 2: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.2");
+					case 3: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.3");
+					case 4: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.4");
+					case 5: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.5");
+					case 6: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.6");
+					case 7: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.7");
+					case 8: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.8");
+					case 9: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.9");
+					default: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.10");
+				}
+			}
+		}
+
+		Image {
+			id: avatarImage
+
+			x: cancelButton.x + cancelButton.width + spaceItems_
+			y: buzzThreadToolBar.defaultHeight_ / 2 - height / 2
+
+			width: avatarImage.displayWidth
+			height: avatarImage.displayHeight
+			fillMode: Image.PreserveAspectCrop
+			mipmap: true
+
+			property bool rounded: true
+			property int displayWidth: (buzzThreadToolBar.defaultHeight_ - buzzerClient.scaleFactor * 15)
+			property int displayHeight: displayWidth
+
+			autoTransform: true
+
+			layer.enabled: rounded
+			layer.effect: OpacityMask {
+				maskSource: Item {
+					width: avatarImage.displayWidth
+					height: avatarImage.displayHeight
+
+					Rectangle {
+						anchors.centerIn: parent
+						width: avatarImage.displayWidth
+						height: avatarImage.displayHeight
+						radius: avatarImage.displayWidth
+					}
+				}
+			}
+
+			MouseArea {
+				id: buzzerInfoClick
+				anchors.fill: parent
+
+				onClicked: {
+					//
+					controller.openBuzzfeedByBuzzer(buzzerClient.getBuzzerName(getBuzzerInfoId()));
+				}
+			}
+		}
+
+		QuarkLabel {
+			id: buzzerAliasControl
+			x: avatarImage.x + avatarImage.width + spaceLeft_
+			y: avatarImage.y + (avatarImage.height / 2 - height / 2)
+			text: buzzerClient.getBuzzerAlias(getBuzzerInfoId())
+			font.bold: true
+			width: parent.width - (x + spaceRight_)
+			elide: Text.ElideRight
+			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link")
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
+		}
+
+		//
+		// Accept
+		//
+
+		QuarkButton {
+			id: acceptButton
+			x: parent.width / 2 - ((parent.width / 2 - parent.width / 5) + spaceBottom_)
+			y: cancelButton.y + cancelButton.height
+			text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.conversation.accept")
+			Material.background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.4")
+			visible: conversationState() === conversationPending_ && !isCreator_
+			width: parent.width / 2 - parent.width / 5
+			height: buzzThreadToolBar.buttonsHeight_
+
+			Layout.alignment: Qt.AlignHCenter
+
+			enabled: true
+
+			contentItem: QuarkText {
+				text: acceptButton.text
+				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : 16
+				color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
+				horizontalAlignment: Text.AlignHCenter
+				verticalAlignment: Text.AlignVCenter
+				elide: Text.ElideRight
+			}
+
+			onClicked: {
+				//
+				console.log("[acceptButton]: clicked");
+				acceptCommand.process(modelLoader.conversationId);
+			}
+		}
+
+		//
+		// Decline
+		//
+
+		QuarkButton {
+			id: declineButton
+			x: parent.width / 2 + spaceItems_
+			y: cancelButton.y + cancelButton.height
+			text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.conversation.decline")
+			Material.background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.1")
+			visible: conversationState() === conversationPending_ && !isCreator_
+			width: parent.width / 2 - parent.width / 5
+			height: buzzThreadToolBar.buttonsHeight_
+
+			Layout.alignment: Qt.AlignHCenter
+
+			enabled: true
+
+			contentItem: QuarkText {
+				text: declineButton.text
+				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : 16
+				color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
+				horizontalAlignment: Text.AlignHCenter
+				verticalAlignment: Text.AlignVCenter
+				elide: Text.ElideRight
+			}
+
+			onClicked: {
+				//
+				declineConversationDialog.show(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.conversation.decline.confirm"));
 			}
 		}
 
@@ -259,7 +560,7 @@ QuarkPage {
 		x: 0
 		y: buzzThreadToolBar.y + buzzThreadToolBar.height
 		width: parent.width
-		height: parent.height - (buzzThreadToolBar.y + buzzThreadToolBar.height + replyContainer.height - 1)
+		height: parent.height - (buzzThreadToolBar.y + buzzThreadToolBar.height + messageContainer.height - 1)
 		//contentHeight: 1000
 		usePull: true
 		clip: true
@@ -298,105 +599,63 @@ QuarkPage {
 			modelLoader.feed();
 		}
 
-		DelegateChooser {
-			id: itemChooser
-			role: "index"
-			DelegateChoice {
-				index: 0
-				Item {
-					id: headDelegate
-
-					property var buzzItem;
-
-					onWidthChanged: {
-						if (buzzItem) {
-							buzzItem.width = list.width;
-							headDelegate.height = buzzItem.calculateHeight();
-						}
-					}
-
-					Component.onCompleted: {
-						var lSource = "qrc:/qml/buzzitemhead.qml";
-						var lComponent = Qt.createComponent(lSource);
-						buzzItem = lComponent.createObject(headDelegate);
-
-						buzzItem.width = list.width;
-						buzzItem.controller_ = buzzfeedthread_.controller;
-						buzzItem.buzzfeedModel_ = buzzesThread_;
-						buzzItem.listView_ = list;
-						buzzItem.rootId_ = modelLoader.buzzId;
-
-						headDelegate.height = buzzItem.calculateHeight();
-						headDelegate.width = list.width;
-
-						buzzItem.calculatedHeightModified.connect(headDelegate.calculatedHeightModified);
-					}
-
-					function calculatedHeightModified(value) {
-						headDelegate.height = value;
-					}
-				}
-			}
-
-			DelegateChoice {
-				ItemDelegate {
-					id: itemDelegate
-
-					property var buzzItem;
-
-					onClicked: {
-						//
-						if (index === 0) return;
-
-						// open thread
-						controller.openThread(buzzChainId, buzzId, buzzerAlias, buzzBodyFlat);
-					}
-
-					onWidthChanged: {
-						if (buzzItem) {
-							buzzItem.width = list.width;
-							itemDelegate.height = buzzItem.calculateHeight();
-						}
-					}
-
-					Component.onCompleted: {
-						var lSource = "qrc:/qml/buzzitem.qml";
-						if (type === buzzerClient.tx_BUZZER_ENDORSE_TYPE() ||
-								type === buzzerClient.tx_BUZZER_MISTRUST_TYPE()) {
-							lSource = "qrc:/qml/buzzendorseitem.qml";
-						}
-
-						var lComponent = Qt.createComponent(lSource);
-						buzzItem = lComponent.createObject(itemDelegate);
-
-						buzzItem.width = list.width;
-						buzzItem.controller_ = buzzfeedthread_.controller;
-						buzzItem.buzzfeedModel_ = buzzesThread_;
-						buzzItem.listView_ = list;
-						buzzItem.rootId_ = modelLoader.buzzId;
-
-						itemDelegate.height = buzzItem.calculateHeight();
-						itemDelegate.width = list.width;
-
-						buzzItem.calculatedHeightModified.connect(itemDelegate.calculatedHeightModified);
-					}
-
-					function calculatedHeightModified(value) {
-						itemDelegate.height = value;
-					}
-				}
-			}
+		Component.onCompleted: {
+			list.positionViewAtEnd();
+			atTheBottom = true;
 		}
 
-		delegate: itemChooser
+		delegate: Item {
+			id: itemDelegate
+
+			property var buzzItem;
+
+			/*
+			onClicked: {
+				// TODO: actions
+			}
+			*/
+
+			onWidthChanged: {
+				if (buzzItem) {
+					buzzItem.width = list.width;
+					itemDelegate.height = buzzItem.calculateHeight();
+				}
+			}
+
+			Component.onCompleted: {
+				var lSource = "qrc:/qml/conversationmessageitem.qml";
+				var lComponent = Qt.createComponent(lSource);
+				if (lComponent.status === Component.Error) {
+					controller.showError(lComponent.errorString());
+				} else {
+					buzzItem = lComponent.createObject(itemDelegate);
+
+					buzzItem.accepted_ = conversationState() === conversationAccepted_;
+					buzzItem.width = list.width;
+					buzzItem.controller_ = conversationthread_.controller;
+					buzzItem.listView_ = list;
+					buzzItem.model_ = buzzesThread_;
+					buzzItem.conversationId_ = modelLoader.conversationId;
+
+					itemDelegate.height = buzzItem.calculateHeight();
+					itemDelegate.width = list.width;
+
+					buzzItem.calculatedHeightModified.connect(itemDelegate.calculatedHeightModified);
+				}
+			}
+
+			function calculatedHeightModified(value) {
+				itemDelegate.height = value;
+			}
+		}
 	}
 
 	//
-	// reply
+	// write message
 	//
 
 	Rectangle {
-		id: replyContainer
+		id: messageContainer
 		x: 0
 		y: parent.height - (height) //buzzThreadToolBar.height +
 		width: parent.width
@@ -438,13 +697,18 @@ QuarkPage {
 					var lComponent = null;
 					var lPage = null;
 
+					//
+					buzzText.external_ = true;
+
 					lComponent = Qt.createComponent("qrc:/qml/buzzeditor-desktop.qml");
 					if (lComponent.status === Component.Error) {
 						showError(lComponent.errorString());
 					} else {
 						lPage = lComponent.createObject(controller);
 						lPage.controller = controller;
-						lPage.initializeReply(buzzesThread_.self(0), buzzesThread_, buzzerClient.getPlainText(buzzText.textDocument));
+						lPage.initializeMessage(buzzerClient.getPlainText(buzzText.textDocument),
+												buzzerClient.getCounterpartyKey(modelLoader.conversationId),
+												modelLoader.conversationId);
 						buzzText.clear();
 						addPage(lPage);
 					}
@@ -467,7 +731,7 @@ QuarkPage {
 			y: controller.bottomBarHeight / 2 - height / 2
 
 			onClicked: {
-				emojiPopup.popup(addEmojiButton.x, replyContainer.y - (emojiPopup.height));
+				emojiPopup.popup(addEmojiButton.x, messageContainer.y - (emojiPopup.height));
 			}
 		}
 
@@ -501,6 +765,8 @@ QuarkPage {
 				selectionColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.selected")
 				selectByMouse: true
 
+				property bool external_: false
+
 				onLengthChanged: {
 					countProgress.adjust(length + preeditText.length);
 					buzzersList.close();
@@ -514,6 +780,10 @@ QuarkPage {
 
 				onFocusChanged: {
 					editBuzzTimer.start();
+				}
+
+				onEditingFinished: {
+					// if (!external_) buzzText.forceActiveFocus();
 				}
 			}
 
@@ -564,9 +834,8 @@ QuarkPage {
 
 					//
 					sending = true;
-
-					var lBuzzId = buzzesThread_.buzzId(0);
-					createReply(lBuzzId);
+					//
+					createMessage();
 				}
 			}
 		}
@@ -617,12 +886,13 @@ QuarkPage {
 
 	Timer {
 		id: editBuzzTimer
-		interval: 500
+		interval: 200
 		repeat: false
 		running: false
 
 		onTriggered: {
 			list.positionViewAtEnd();
+			atTheBottom = true;
 		}
 	}
 
@@ -635,7 +905,6 @@ QuarkPage {
 		onTriggered: {
 			if (buzzerClient.buzzerDAppReady) {
 				modelLoader.restart();
-				buzzSubscribeCommand.process();
 			} else {
 				listen = true;
 			}
@@ -720,7 +989,7 @@ QuarkPage {
 
 	QuarkPopupMenu {
 		id: buzzersList
-		width: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 170) : 170
+		width: 170
 		visible: false
 
 		model: ListModel { id: buzzersModel }
@@ -740,7 +1009,7 @@ QuarkPage {
 			//
 			matched = match;
 			//
-			if (nx + replyEditorContainer.x + width > replyContainer.width) x = replyContainer.width - width;
+			if (nx + replyEditorContainer.x + width > messageContainer.width) x = messageContainer.width - width;
 			else x = nx + replyEditorContainer.x;
 
 			buzzersModel.clear();
@@ -752,7 +1021,7 @@ QuarkPage {
 					name: buzzers[lIdx]});
 			}
 
-			var lNewY = ny + replyContainer.y + spaceTop_;
+			var lNewY = ny + messageContainer.y + spaceTop_;
 			y = lNewY - ((buzzers.length) * 50 + spaceTop_);
 
 			open();
@@ -761,7 +1030,7 @@ QuarkPage {
 
 	QuarkPopupMenu {
 		id: tagsList
-		width: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 170) : 170
+		width: 170
 		visible: false
 
 		model: ListModel { id: tagsModel }
@@ -781,7 +1050,7 @@ QuarkPage {
 			//
 			matched = match;
 			//
-			if (nx + replyEditorContainer.x + width > replyContainer.width) x = replyContainer.width - width;
+			if (nx + replyEditorContainer.x + width > messageContainer.width) x = messageContainer.width - width;
 			else x = nx + replyEditorContainer.x;
 
 			tagsModel.clear();
@@ -793,7 +1062,7 @@ QuarkPage {
 					name: tags[lIdx]});
 			}
 
-			var lNewY = ny + replyContainer.y + spaceTop_;
+			var lNewY = ny + messageContainer.y + spaceTop_;
 			y = lNewY - ((tags.length) * 50 + spaceTop_);
 
 			open();
@@ -836,44 +1105,18 @@ QuarkPage {
 			// start, length, match
 			if (match.length) {
 				var lPosition = buzzText.cursorPosition;
-				if ((lPosition === start || lPosition === start + length) && buzzText.preeditText != " ") {
+				if (/*(lPosition === start || lPosition === start + length) &&*/ buzzText.preeditText != " ") {
 					if (match[0] === '@')
 						searchBuzzers.process(match);
 					else if (match[0] === '#')
 						searchTags.process(match);
-					else if (match.includes('/data/user/') || buzzerApp.isDesktop) {
-						var lParts = match.split(".");
-						if (lParts.length) {
-							if (lParts[lParts.length-1].toLowerCase() === "jpg" || lParts[lParts.length-1].toLowerCase() === "jpeg" ||
-								lParts[lParts.length-1].toLowerCase() === "png") {
-								// pop-up rich editor
-								if (!sending) {
-									//
-									var lComponent = null;
-									var lPage = null;
-
-									lComponent = Qt.createComponent("qrc:/qml/buzzeditor-desktop.qml");
-									if (lComponent.status === Component.Error) {
-										showError(lComponent.errorString());
-									} else {
-										lPage = lComponent.createObject(controller);
-										lPage.controller = controller;
-										lPage.initializeReply(buzzesThread_.self(0), buzzesThread_, buzzerClient.getPlainText(buzzText.textDocument));
-										buzzText.clear();
-										addPage(lPage);
-									}
-								}
-							}
-						}
-					}
 				}
 			}
 		}
 	}
 
-	BuzzerCommands.ReplyCommand {
-		id: replyCommand
-		model: buzzesThread_
+	BuzzerCommands.ConversationMessageCommand {
+		id: messageCommand
 
 		onProcessed: {
 			sending = false;
@@ -891,7 +1134,7 @@ QuarkPage {
 		}
 	}
 
-	function createReply(buzzId) {
+	function createMessage() {
 		//
 		var lText = buzzerClient.getPlainText(buzzText.textDocument);
 		if (lText.length === 0) {
@@ -905,16 +1148,15 @@ QuarkPage {
 		createProgressBar.visible = true;
 
 		//
-		replyCommand.buzzBody = lText;
-		var lBuzzers = buzzerClient.extractBuzzers(replyCommand.buzzBody);
+		messageCommand.conversation = modelLoader.conversationId;
+		messageCommand.messageBody = lText;
+		var lBuzzers = buzzerClient.extractBuzzers(messageCommand.messageBody);
 
 		for (var lIdx = 0; lIdx < lBuzzers.length; lIdx++) {
-			replyCommand.addBuzzer(lBuzzers[lIdx]);
+			messageCommand.addBuzzer(lBuzzers[lIdx]);
 		}
 
-		if (buzzId) replyCommand.buzzId = buzzId;
-
-		replyCommand.process();
+		messageCommand.process();
 	}
 
 	function handleError(code, message) {

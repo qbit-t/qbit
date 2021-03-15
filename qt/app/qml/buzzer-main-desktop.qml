@@ -48,11 +48,23 @@ QuarkPage
 
 	function activatePage() {
 		//
+		var lInitialize = controller.mainToolBar === undefined;
+		//
 		controller.pagesView = rightView;
 		controller.mainToolBar = headerBar;
 		//
 		buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background"));
 		headerBar.activate();
+
+		//
+		if (lInitialize) {
+			if (!buzzerClient.haveSubscriptions()) {
+				navigatorBar.currentIndex = 1; // global
+			}
+
+			//
+			conversations.start();
+		}
 	}
 
 	function onErrorCallback(error)	{
@@ -190,8 +202,8 @@ QuarkPage
 
 					Rectangle {
 						id: newEventsDot
-						x: eventsSymbol.x + eventsSymbol.width + buzzerApp.isDesktop ? buzzerClient.scaleFactor * 3 : 3
-						y: eventsSymbol.y - buzzerApp.isDesktop ? buzzerClient.scaleFactor * 3 : 3
+						x: eventsSymbol.x + eventsSymbol.width + (buzzerApp.isDesktop ? buzzerClient.scaleFactor * 3 : 3)
+						y: eventsSymbol.y - (buzzerApp.isDesktop ? buzzerClient.scaleFactor * 3 : 3)
 						width: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 6 : 6
 						height: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 6 : 6
 						radius: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 3 : 3
@@ -210,8 +222,8 @@ QuarkPage
 
 					Rectangle {
 						id: newMessagesDot
-						x: messagesSymbol.x + messagesSymbol.width + buzzerApp.isDesktop ? buzzerClient.scaleFactor * 3 : 3
-						y: messagesSymbol.y - buzzerApp.isDesktop ? buzzerClient.scaleFactor * 3 : 3
+						x: messagesSymbol.x + messagesSymbol.width + (buzzerApp.isDesktop ? buzzerClient.scaleFactor * 3 : 3)
+						y: messagesSymbol.y - (buzzerApp.isDesktop ? buzzerClient.scaleFactor * 3 : 3)
 						width: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 6 : 6
 						height: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 6 : 6
 						radius: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 3 : 3
@@ -233,6 +245,8 @@ QuarkPage
 					if (currentIndex == 0 /*feed*/) {
 						headerBar.showBottomLine = true;
 						headerBar.resetSearchText();
+						buzzfeedGlobal.disconnect();
+						conversations.disconnect();
 					}
 
 					//
@@ -240,6 +254,7 @@ QuarkPage
 						headerBar.showBottomLine = true; //false;
 						headerBar.resetSearchText();
 						buzzfeedGlobal.start();
+						conversations.disconnect();
 					}
 
 					//
@@ -247,13 +262,17 @@ QuarkPage
 						headerBar.showBottomLine = true;
 						newEventsDot.visible = false;
 						headerBar.resetSearchText();
+						buzzfeedGlobal.disconnect();
+						conversations.disconnect();
 					}
 
 					if (currentIndex == 3 /*conversations*/) {
 						headerBar.resetSearchText();
-						headerBar.showBottomLine = false;
+						headerBar.showBottomLine = true;
 						newMessagesDot.visible = false;
 						conversations.resetModel();
+						//conversations.start();
+						buzzfeedGlobal.disconnect();
 					}
 
 					if (currentIndex == 4 /*wallet*/) {
@@ -261,14 +280,10 @@ QuarkPage
 						headerBar.showBottomLine = false;
 						buzzerApp.lockPortraitOrientation();
 						walletQbit.init();
+						buzzfeedGlobal.disconnect();
+						conversations.disconnect();
 					} else {
 						buzzerApp.unlockOrientation();
-					}
-				}
-
-				Component.onCompleted: {
-					if (!buzzerClient.haveSubscriptions()) {
-						currentIndex = 1; // global
 					}
 				}
 

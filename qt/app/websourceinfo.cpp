@@ -8,10 +8,18 @@
 using namespace buzzer;
 
 WebSourceInfo::WebSourceInfo(QObject* /*parent*/) : QObject() {
+}
+
+WebSourceInfo::~WebSourceInfo() {
 	//
+	qInfo() << "WebSourceInfo::~WebSourceInfo()";
 }
 
 void WebSourceInfo::process() {
+	//
+	// TODO: potential leak, need "check list" to track such objects
+	QQmlEngine::setObjectOwnership(this, QQmlEngine::CppOwnership);
+
 	//
 	QNetworkAccessManager* lManager = gApplication->getNetworkManager();
 

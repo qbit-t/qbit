@@ -295,9 +295,11 @@ public:
 	// callbacks
 	void assetNamesLoaded(const std::string& name, const std::vector<IEntityStore::EntityName>& names) {
 		//
+		/*
 		for (std::vector<IEntityStore::EntityName>::const_iterator lName = names.begin(); lName != names.end(); lName++) {
 			std::cout << (*lName).data() << std::endl;
 		}
+		*/
 
 		done_(name, names, ProcessingError());
 	}

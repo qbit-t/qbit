@@ -185,21 +185,8 @@ Item
 			}
 
 			onClicked: {
-				// open thread
-				var lComponent = null;
-				var lPage = null;
-
-				lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzfeedthread-desktop.qml") :
-												   Qt.createComponent("qrc:/qml/buzzfeedthread.qml");
-				if (lComponent.status === Component.Error) {
-					showError(lComponent.errorString());
-				} else {
-					lPage = lComponent.createObject(controller);
-					lPage.controller = controller;
-					addPage(lPage);
-
-					lPage.start(buzzChainId, buzzId);
-				}
+				//
+				controller.openThread(buzzChainId, buzzId, buzzerAlias, buzzBodyFlat);
 			}
 
 			onWidthChanged: {

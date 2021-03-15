@@ -66,11 +66,10 @@ public:
 		{
 			boost::unique_lock<boost::recursive_mutex> lLock(peersIdxMutex_);
 			// check banned hosts
-			std::vector<std::string> lParts;
-			boost::split(lParts, endpoint, boost::is_any_of(":"), boost::token_compress_on);
+			std::string lHost = endpoint.substr(0, endpoint.find(":"));
 			//
-			if (lParts.size() == 2) {
-				if (bannedEndpoins_.find(lParts[0]) != bannedEndpoins_.end()) return true;
+			if (lHost.length()) {
+				if (bannedEndpoins_.find(lHost) != bannedEndpoins_.end()) return true;
 			}
 		}
 		
