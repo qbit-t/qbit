@@ -14,7 +14,7 @@ uint32_t getNextWorkRequired(ITransactionStorePtr store, BlockPtr current, uint6
 	lTargetLimit.SetCompact(lBitsLimit, &fNegative, &fOverflow);
 
 	// calculate time (24 blocks)
-	uint64_t lBlocks = 24;
+	uint64_t lBlocks = 24 * 4;
 	uint64_t lIdx = 0;
 	uint256 lBlockId = current->prev();
 	uint64_t lBlockTime = current->time(), lLastBlockTime = current->time();

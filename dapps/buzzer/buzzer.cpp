@@ -46,6 +46,7 @@ void Buzzer::collectPengingInfos(std::map<uint256 /*chain*/, std::set<uint256>/*
 	}
 }
 
+namespace qbit {
 template<>
 void Buzzer::broadcastUpdate<std::vector<BuzzfeedItemUpdate>>(const std::vector<BuzzfeedItemUpdate>& updates) {
 	std::set<BuzzfeedItemPtr> lUpdates;		
@@ -58,6 +59,7 @@ void Buzzer::broadcastUpdate<std::vector<BuzzfeedItemUpdate>>(const std::vector<
 		//
 		(*lItem)->merge(updates);
 	}
+}
 }
 
 bool Buzzer::processSubscriptions(const BuzzfeedItem& item, const uint160& peer) {
