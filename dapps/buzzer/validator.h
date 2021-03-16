@@ -77,8 +77,9 @@ public:
 
 		if (lOther.time() < lHeader.time() && const_cast<NetworkBlockHeader&>(blockHeader).height() > lCurrentHeight) {
 			if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[buzzer/checkBlockHeader]: proposed block time is less than median time ") + 
-				strprintf("current = %d, proposed = %d, height = %d, new = %s, our = %s, origin = %s/%s#", const_cast<NetworkBlockHeader&>(blockHeader).height(), 
+				strprintf("current = %d, proposed = %d, height = %d, new = %s, our = %s, origin = %s/%s#",
 					lHeader.time(), lOther.time(),
+					const_cast<NetworkBlockHeader&>(blockHeader).height(), 
 					lOther.hash().toHex(), lHeader.hash().toHex(), 
 						lOther.origin().toHex(), chain_.toHex().substr(0, 10)));
 			return IValidator::INTEGRITY_IS_INVALID;
@@ -93,8 +94,9 @@ public:
 				return IValidator::ORIGIN_NOT_ALLOWED;
 			} else if (lOther.time() < lHeader.time()) {
 				if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[buzzer/checkBlockHeader]: next block time is less than median time ") + 
-					strprintf("current = %d, proposed = %d, height = %d, new = %s, our = %s, origin = %s/%s#", const_cast<NetworkBlockHeader&>(blockHeader).height(), 
+					strprintf("current = %d, proposed = %d, height = %d, new = %s, our = %s, origin = %s/%s#",
 						lHeader.time(), lOther.time(),
+						const_cast<NetworkBlockHeader&>(blockHeader).height(), 
 						lOther.hash().toHex(), lHeader.hash().toHex(), 
 							lOther.origin().toHex(), chain_.toHex().substr(0, 10)));
 				return IValidator::INTEGRITY_IS_INVALID;
