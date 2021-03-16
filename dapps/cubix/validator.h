@@ -63,7 +63,8 @@ public:
 
 	IValidator::BlockCheckResult checkBlockHeader(const NetworkBlockHeader& blockHeader) {
 		//
-		BlockHeader lHeader = store_->currentBlockHeader();
+		BlockHeader lHeader;
+		uint64_t lCurrentHeight = store_->currentHeight(lHeader);
 		BlockHeader& lOther = const_cast<NetworkBlockHeader&>(blockHeader).blockHeader();
 
 		// check if work done
@@ -75,6 +76,15 @@ public:
 			return IValidator::INTEGRITY_IS_INVALID;
 		}
 
+		if (lOther.time() < lHeader.time() && const_cast<NetworkBlockHeader&>(blockHeader).height() > lCurrentHeight) {
+			if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[cubix/checkBlockHeader]: proposed block time is less than median time ") + 
+				strprintf("current = %d, proposed = %d, height = %d, new = %s, our = %s, origin = %s/%s#", const_cast<NetworkBlockHeader&>(blockHeader).height(), 
+					lHeader.time(), lOther.time(),
+					lOther.hash().toHex(), lHeader.hash().toHex(), 
+						lOther.origin().toHex(), chain_.toHex().substr(0, 10)));
+			return IValidator::INTEGRITY_IS_INVALID;
+		}
+
 		if (lOther.prev() == lHeader.hash()) {
 			if (lOther.origin() == lHeader.origin() && !consensus_->isSimpleNetwork()) {
 				if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[cubix/checkBlockHeader]: sequential blocks is not allowed ") + 
@@ -82,6 +92,13 @@ public:
 						lOther.hash().toHex(), lHeader.hash().toHex(), 
 							lOther.origin().toHex(), chain_.toHex().substr(0, 10)));
 				return IValidator::ORIGIN_NOT_ALLOWED;
+			} else if (lOther.time() < lHeader.time()) {
+				if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[cubix/checkBlockHeader]: next block time is less than median time ") + 
+					strprintf("current = %d, proposed = %d, height = %d, new = %s, our = %s, origin = %s/%s#", const_cast<NetworkBlockHeader&>(blockHeader).height(), 
+						lHeader.time(), lOther.time(),
+						lOther.hash().toHex(), lHeader.hash().toHex(), 
+							lOther.origin().toHex(), chain_.toHex().substr(0, 10)));
+				return IValidator::INTEGRITY_IS_INVALID;
 			}
 
 			if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[cubix/checkBlockHeader]: proposed header is correct ") + 
