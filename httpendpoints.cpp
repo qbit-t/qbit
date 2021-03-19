@@ -657,14 +657,14 @@ void HttpGetPeerInfo::process(const std::string& source, const HttpRequest& requ
 		json::Value lKeyObject = lReply.addObject("result");
 		json::Value lArrayObject = lKeyObject.addArray("peers");
 
-		// peer manager
-		json::Value lPeerManagerObject = lReply.addObject("manager");
-		lPeerManagerObject.addUInt("clients", peerManager_->clients());
-		lPeerManagerObject.addUInt("peers_count", peerManager_->peersCount());		
-
 		// get peers
 		std::list<IPeerPtr> lPeers;
 		peerManager_->allPeers(lPeers);
+
+		// peer manager
+		json::Value lPeerManagerObject = lReply.addObject("manager");
+		lPeerManagerObject.addUInt("clients", peerManager_->clients());
+		lPeerManagerObject.addUInt("peers_count", lPeers.size());
 
 		for (std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
 			//
@@ -1973,13 +1973,13 @@ void HttpGetState::process(const std::string& source, const HttpRequest& request
 		json::Value lKeyObject = lReply.addObject("result");
 		json::Value lStateObject = lKeyObject.addObject("state");
 
-		// peer manager
-		lStateObject.addUInt("clients", peerManager_->clients());
-		lStateObject.addUInt("peers_count", peerManager_->peersCount());		
-
 		// get peers
 		std::list<IPeerPtr> lPeers;
 		peerManager_->allPeers(lPeers);
+
+		// peer manager
+		lStateObject.addUInt("clients", peerManager_->clients());
+		lStateObject.addUInt("peers_count", lPeers.size());
 
 		uint64_t lInQueue = 0;
 		uint64_t lOutQueue = 0;
