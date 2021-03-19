@@ -149,13 +149,21 @@ public:
 	void updateMedianTime() {
 		// traverse
 		uint64_t lTime = 0;
+		uint64_t lOwnTime = getMicroseconds();
 		int lPeers = 0;
 
 		for (std::map<int, PeersMap>::iterator lChannel = peers_.begin(); lChannel != peers_.end(); lChannel++) {
 			boost::unique_lock<boost::recursive_mutex> lLock(contextMutex_[lChannel->first]);
 
 			for (std::map<std::string /*endpoint*/, IPeerPtr>::iterator lPeer = lChannel->second.begin(); lPeer != lChannel->second.end(); lPeer++) {
+				// only active peers
+				if (lPeer->second->status() != Peer::ACTIVE) continue;
+				// only NOT clients
 				if (lPeer->second->state()->client()) continue;
+				// time diff shoud not be greater than 100 blocks * 5000 ms
+				if (lPeer->second->time() > lOwnTime && lPeer->second->time() - lOwnTime > 100 * 5000) continue;
+				else if (lPeer->second->time() < lOwnTime && lOwnTime - lPeer->second->time() > 100 * 5000) continue;
+				// otherwise
 				lTime += lPeer->second->time() + (getMicroseconds() - lPeer->second->timestamp());
 				lPeers++;
 			}

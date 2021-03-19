@@ -13,7 +13,7 @@ uint32_t getNextWorkRequired(ITransactionStorePtr store, BlockPtr current, uint6
 	arith_uint256 lTargetLimit;
 	lTargetLimit.SetCompact(lBitsLimit, &fNegative, &fOverflow);
 
-	// calculate time (24 blocks)
+	// calculate time (100 blocks)
 	uint64_t lBlocks = 24 * 4;
 	uint64_t lIdx = 0;
 	uint256 lBlockId = current->prev();
@@ -38,11 +38,13 @@ uint32_t getNextWorkRequired(ITransactionStorePtr store, BlockPtr current, uint6
 				lBlockId = lPrev.prev();
 				lBits = lPrev.bits();
 			} else {
-				uint64_t lDelta = ((lBlockTime - lPrev.time()) * lCurrentTarget.getdouble()) / lTarget.getdouble();
-				lTimeSpan += lDelta;
-				// std::cout << "\tDelta = " << lDelta << std::endl;
-				lBlockTime = lPrev.time();
-				lBlockId = lPrev.prev();
+				if (lBlockTime >= lPrev.time() && lBlockTime - lPrev.time() <= lBlocks * blockTime) {
+					uint64_t lDelta = ((lBlockTime - lPrev.time()) * lCurrentTarget.getdouble()) / lTarget.getdouble();
+					lTimeSpan += lDelta;
+					// std::cout << "\tDelta = " << lDelta << std::endl;
+					lBlockTime = lPrev.time();
+					lBlockId = lPrev.prev();
+				}
 			}
 		} else break;
 
