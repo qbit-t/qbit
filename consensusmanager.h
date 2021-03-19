@@ -404,15 +404,6 @@ public:
 	// check block
 	IValidator::BlockCheckResult pushBlockHeader(const NetworkBlockHeader& blockHeader) {
 		//
-		if (!enqueueBlockHeader(blockHeader)) {
-			gLog().write(Log::CONSENSUS, "[pushBlockHeader]: block is already PROCESSED " + 
-				strprintf("%d/%s/%s#", const_cast<NetworkBlockHeader&>(blockHeader).height(), 
-					const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().hash().toHex(), 
-					const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().chain().toHex().substr(0, 10)));
-			return IValidator::ALREADY_PROCESSED;
-		}
-
-		//
 		IConsensusPtr lConsensus = nullptr;
 		{
 			boost::unique_lock<boost::recursive_mutex> lLock(consensusesMutex_);
@@ -422,21 +413,21 @@ public:
 
 		if (lConsensus) {
 			IValidatorPtr lValidator = validatorManager_->locate(const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().chain());
-			if (lValidator) return lConsensus->pushBlockHeader(blockHeader, lValidator);
-		}
+			if (lValidator) {
+				//
+				IValidator::BlockCheckResult lResult = lConsensus->pushBlockHeader(blockHeader, lValidator);
+				//
+				if (lResult == IValidator::SUCCESS && !enqueueBlockHeader(blockHeader)) {
+					gLog().write(Log::CONSENSUS, "[pushBlockHeader]: block is already PROCESSED " + 
+						strprintf("%d/%s/%s#", const_cast<NetworkBlockHeader&>(blockHeader).height(), 
+							const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().hash().toHex(), 
+							const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().chain().toHex().substr(0, 10)));
+					return IValidator::ALREADY_PROCESSED;
+				}
 
-		return IValidator::VALIDATOR_ABSENT;
-
-		/*
-		{
-			boost::unique_lock<boost::recursive_mutex> lLock(consensusesMutex_);
-
-			std::map<uint256, IConsensusPtr>::iterator lConsensusPtr = consensuses_.find(const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().chain());
-			if (lConsensusPtr != consensuses_.end()) {
-				return lConsensusPtr->second->pushBlockHeader(blockHeader, validatorManager_->locate(const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().chain()));
+				return lResult;
 			}
 		}
-		*/
 
 		return IValidator::VALIDATOR_ABSENT;
 	}
