@@ -6,17 +6,19 @@
 #include <QGraphicsOpacityEffect>
 
 namespace {
-	const float WINDOW_TRANSPARENT_OPACITY = 1.0;
+	const float WINDOW_TRANSPARENT_OPACITY = 0.9;
+	const float WINDOW_NONTRANSPARENT_OPACITY = 1.0;
 	const int NOTIFICATION_MARGIN = 10;
+	const int DEFAULT_MESSAGE_SHOW_TIME = 10000;
 }
 
-void buzzer::Notificator::showMessage(buzzer::PushNotificationPtr item) {
+void buzzer::Notificator::showMessage(buzzer::PushNotificationPtr item, bool autohide) {
 	//
 	if (!closeAllButton_) {
 		buzzer::Client* lClient = static_cast<buzzer::Client*>(buzzer::gApplication->getClient());
 
-		closeAllButton_ = new QPushButton("Close pending notifications"); // TODO: localization
-		closeAllButton_->setObjectName( "closeAllButton" );
+		closeAllButton_ = new QPushButton(buzzer::gApplication->getLocalization(lClient->locale(), "Buzzer.notifications.hide"));
+		closeAllButton_->setObjectName("closeAllButton");
 		closeAllButton_->setWindowFlags(Qt::ToolTip | Qt::FramelessWindowHint);
 		closeAllButton_->setFlat(true);
 
@@ -31,10 +33,17 @@ void buzzer::Notificator::showMessage(buzzer::PushNotificationPtr item) {
 		connect(closeAllButton_, &QPushButton::clicked, hideAll);
 	}
 
-	//
-	Notificator* lInstance = new Notificator(item);
-	bool lDisplay = configureInstance(lInstance);
-	lInstance->notify(item, lDisplay);
+	// check
+	if (index_.find(item->getKey()) == index_.end()) {
+		//
+		index_.insert(item->getKey());
+
+		//
+		Notificator* lInstance = new Notificator(item, autohide);
+		bool lDisplay = configureInstance(lInstance);
+		lInstance->notify(item, lDisplay);
+		if (autohide) QTimer::singleShot(DEFAULT_MESSAGE_SHOW_TIME, lInstance, SLOT(fadeOut()));
+	}
 }
 
 buzzer::Notificator::Notificator(buzzer::PushNotificationPtr item, bool autohide) :
@@ -100,6 +109,7 @@ void buzzer::Notificator::fadeOut() {
 	lAnimation->setEasingCurve(QEasingCurve::OutBack);
 	lAnimation->start(QPropertyAnimation::DeleteWhenStopped);
 	connect(lAnimation, SIGNAL(finished()), this, SLOT(hide()));
+	index_.erase(item_->getKey());
 }
 
 void buzzer::Notificator::hideAll() {
@@ -122,11 +132,14 @@ void buzzer::Notificator::hideAll() {
 }
 
 bool buzzer::Notificator::event(QEvent* event) {
+	//
+	buzzer::Client* lClient = static_cast<buzzer::Client*>(buzzer::gApplication->getClient());
+	//
 	if (event->type() == QEvent::HoverEnter) {
-		//setWindowOpacity(WINDOW_NONTRANSPARENT_OPACITY);
+		setWindowOpacity(WINDOW_NONTRANSPARENT_OPACITY);
 	} else if (event->type() == QEvent::HoverLeave) {
-		//setWindowOpacity(WINDOW_TRANSPARENT_OPACITY);
-	} else if (event->type() == QEvent::MouseButtonPress && d->autoHide()) {
+		setWindowOpacity(WINDOW_TRANSPARENT_OPACITY);
+	} else if (event->type() == QEvent::MouseButtonPress /*&& d->autoHide()*/) {
 		//
 		QMouseEvent* lMouseEvent = static_cast<QMouseEvent*>(event);
 		if (d->close()->x() <= lMouseEvent->pos().x() && d->close()->x() + d->close()->width() > lMouseEvent->pos().x() &&
@@ -135,6 +148,27 @@ bool buzzer::Notificator::event(QEvent* event) {
 			fadeOut();
 		} else {
 			// TODO: switch to message/thread/buzzer
+			if (item_->getType() == lClient->tx_BUZZER_SUBSCRIBE_TYPE() ||
+				item_->getType() == lClient->tx_BUZZER_ENDORSE_TYPE() ||
+				item_->getType() == lClient->tx_BUZZER_MISTRUST_TYPE()) {
+				//
+				lClient->openBuzzfeedByBuzzer(item_->getBuzzer());
+			} else if (item_->getType() == lClient->tx_BUZZER_CONVERSATION() ||
+						item_->getType() == lClient->tx_BUZZER_ACCEPT_CONVERSATION() ||
+						item_->getType() == lClient->tx_BUZZER_DECLINE_CONVERSATION() ||
+						item_->getType() == lClient->tx_BUZZER_MESSAGE() ||
+						item_->getType() == lClient->tx_BUZZER_MESSAGE_REPLY()) {
+				//
+				QString lConversationId = item_->getConversationId();
+				QVariant lConversation = lClient->locateConversation(lConversationId);
+				lClient->openConversation(item_->getId(), lConversationId, lConversation, lClient->getConversationsList());
+			} else {
+				//
+				lClient->openThread(item_->getChain(), item_->getId(), item_->getAlias(), item_->getText());
+			}
+
+			// fade out & close
+			fadeOut();
 		}
 	} else if (event->type() == QEvent::Hide) {
 		//
@@ -198,8 +232,7 @@ void buzzer::Notificator::initializeLayout() {
 		lLayout->addWidget(d->media(), 1, 26, 4, 4, Qt::AlignTop);
 }
 
-void buzzer::Notificator::initializeUI()
-{
+void buzzer::Notificator::initializeUI() {
 	QPalette lPalette = this->palette();
 	buzzer::Client* lClient = static_cast<buzzer::Client*>(buzzer::gApplication->getClient());
 	lPalette.setColor(QPalette::Background, QColor(buzzer::gApplication->getColor(lClient->theme(), lClient->themeSelector(), "Page.background")));
@@ -280,6 +313,7 @@ void buzzer::Notificator::correctPosition() {
 QList<buzzer::Notificator*> buzzer::Notificator::pending_;
 QList<buzzer::Notificator*> buzzer::Notificator::current_;
 QPushButton* buzzer::Notificator::closeAllButton_;
+std::set<qbit::EventsfeedItem::Key> buzzer::Notificator::index_;
 
 bool buzzer::Notificator::configureInstance(buzzer::Notificator* notificator) {
 	//

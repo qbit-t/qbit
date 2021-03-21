@@ -2581,6 +2581,9 @@ class DecryptMessageBodyCommand: public QObject
 
 public:
 	explicit DecryptMessageBodyCommand(QObject* parent = nullptr);
+	virtual ~DecryptMessageBodyCommand() {
+		if (command_) command_->terminate();
+	}
 
 	Q_INVOKABLE void process(QString conversation) {
 		//
@@ -2592,6 +2595,20 @@ public:
 		//
 		std::vector<std::string> lArgs;
 		lArgs.push_back(conversation.toStdString());
+		command_->process(lArgs);
+	}
+
+	Q_INVOKABLE void processBody(QString conversation, QString body) {
+		//
+		if (!conversationsfeedModel_) return;
+
+		// prepare command
+		prepare();
+
+		//
+		std::vector<std::string> lArgs;
+		lArgs.push_back(conversation.toStdString());
+		lArgs.push_back(body.toStdString());
 		command_->process(lArgs);
 	}
 
@@ -2627,6 +2644,9 @@ class DecryptBuzzerMessageCommand: public QObject
 
 public:
 	explicit DecryptBuzzerMessageCommand(QObject* parent = nullptr);
+	virtual ~DecryptBuzzerMessageCommand() {
+		if (command_) command_->terminate();
+	}
 
 	Q_INVOKABLE void process(QString id) {
 		//

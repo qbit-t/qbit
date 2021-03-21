@@ -52,6 +52,18 @@ const char APP_NAME[] = { "buzzer-app" };
 const char APP_NAME[] = { "buzzer-desktop-app" };
 #endif
 
+#include <QKeyEvent>
+class KeyEmitter : public QObject
+{
+	Q_OBJECT
+public:
+	KeyEmitter(QObject* parent=nullptr) : QObject(parent) {}
+	Q_INVOKABLE void keyPressed(QObject* tf, Qt::Key k) {
+		QKeyEvent keyPressEvent = QKeyEvent(QEvent::Type::KeyPress, k, Qt::NoModifier, QKeySequence(k).toString());
+		QCoreApplication::sendEvent(tf, &keyPressEvent);
+	}
+};
+
 class Helper : public QObject
 {
     Q_OBJECT
@@ -279,6 +291,7 @@ private:
 private:
     QApplication& app_;
     QQmlApplicationEngine engine_;
+	KeyEmitter keyEmitter_;
 
     QString style_;
     QString profile_;

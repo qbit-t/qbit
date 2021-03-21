@@ -347,15 +347,6 @@ Item {
 
 					buzzitemlight_.calculateHeight();
 				}
-
-				/*
-				TextMetrics {
-					id: buzzBodyMetrics
-					font.family: buzzText.font.family
-
-					text: buzzBody
-				}
-				*/
 			}
 
 			function expand() {

@@ -318,7 +318,7 @@ Item {
 		x: agoControl.x - (spaceItems_ + width)
 		y: avatarImage.y + 3
 		symbol: getSymbol()
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 1)) : 12
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 8)) : 12
 		color: getColor()
 		visible: getVisible()
 
@@ -348,7 +348,7 @@ Item {
 		x: agoControl.x + agoControl.width - width
 		y: stateSymbol.y + stateSymbol.height + spaceItems_
 		symbol: !onChain_ ? Fonts.clockSym : Fonts.checkedCircleSym //linkSym
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 1)) : 12
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 8)) : 12
 		color: !onChain_ ? buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzz.wait") :
 						   buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzz.done");
 
@@ -378,7 +378,7 @@ Item {
 
 		onProcessed: {
 			// pkey, body
-			bodyControl.text = body;
+			bodyControl.message = body;
 		}
 
 		onError: {
@@ -413,21 +413,22 @@ Item {
 	TextMetrics	{
 		id: bodyControlMetrics
 		elide: Text.ElideRight
-		text: bodyControl.getText()
-		elideWidth: parent.width - (bodyControl.x + spaceRight_)
+		text: bodyControl.message
+		elideWidth: parent.width - (bodyControl.x + (buzzerApp.isDesktop ? 2 * spaceRight_ : spaceRight_))
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
+		font.family: buzzerApp.isDesktop ? "Noto Color Emoji N" : font.family
 	}
 
 	QuarkLabel {
 		id: bodyControl
 		x: fromControl.x + fromControl.width + (fromControl.text === "" ? 0 : spaceItems_)
 		y: fromControl.y
-		width: parent.width - (x + spaceRight_)
-		elide: Text.ElideRight
-		text: bodyControlMetrics.elidedText //getText()
+		text: bodyControlMetrics.elidedText + (bodyControlMetrics.elidedText !== message && buzzerApp.isDesktop ? "..." : "")
 		font.italic: conversationState() === conversationPending_
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
+
+		property var message: getText()
 
 		function getText() {
 			//

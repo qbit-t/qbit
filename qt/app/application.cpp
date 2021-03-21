@@ -50,7 +50,8 @@ void Application::appQuit()
 
 void Application::appStateChanged(Qt::ApplicationState state)
 {
-    if (state == Qt::ApplicationState::ApplicationSuspended || state == Qt::ApplicationState::ApplicationHidden)
+	if (state == Qt::ApplicationState::ApplicationSuspended || state == Qt::ApplicationState::ApplicationHidden ||
+			state == Qt::ApplicationState::ApplicationInactive)
     {
 		qInfo() << "[appStateChanged]: suspended";
 		client_.suspend();
@@ -95,7 +96,8 @@ int Application::execute()
     engine_.rootContext()->setContextProperty("appHelper", &helper_);
     engine_.rootContext()->setContextProperty("cameraController", &cameraController_);
     engine_.rootContext()->setContextProperty("clipboard", clipboard_);
-    engine_.rootContext()->setContextProperty("localNotificator", nullptr);
+	engine_.rootContext()->setContextProperty("localNotificator", nullptr);
+	engine_.rootContext()->setContextProperty("keyEmitter", &keyEmitter_);
 
 #ifdef Q_OS_IOS
     localNotificator_ = LocalNotificator::instance();

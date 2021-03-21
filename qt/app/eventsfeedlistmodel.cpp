@@ -135,11 +135,6 @@ void EventsfeedListModel::eventsfeedItemUpdated(qbit::EventsfeedItemPtr) {
 void EventsfeedListModel::eventsfeedItemsUpdated(const std::vector<qbit::EventsfeedItem>&) {
 }
 
-//
-// TODO: make DESKTOP define
-//
-#include "pushdesktopnotification.h"
-
 void EventsfeedListModel::feed(qbit::EventsfeedPtr local, bool more, bool merge) {
 	//
 	if (merge) {
@@ -164,11 +159,6 @@ void EventsfeedListModel::feed(qbit::EventsfeedPtr local, bool more, bool merge)
 		// make index
 		for (int lItem = 0; lItem < (int)list_.size(); lItem++) {
 			index_[list_[lItem]->key()] = lItem;
-
-			//
-			// TODO: make DESKTOP define
-			//
-			PushNotification::instance(list_[lItem])->process();
 			//qInfo() << "Initial: " << QString::fromStdString(list_[lItem]->key().toString()) << QString::fromStdString(list_[lItem]->toString());
 		}
 
@@ -178,7 +168,7 @@ void EventsfeedListModel::feed(qbit::EventsfeedPtr local, bool more, bool merge)
 		//
 		emit countChanged();
 		if (list_.size()) {
-			emit eventsfeedUpdated(list_[0]->timestamp());
+			emit eventsfeedUpdated(list_[0]);
 		}
 	} else if (!noMoreData_) {
 		//
@@ -323,11 +313,12 @@ void EventsfeedListModel::eventsfeedItemNewSlot(const qbit::EventsfeedItemProxy&
 			endInsertRows();
 
 			emit countChanged();
-			emit eventsfeedUpdated(lEventsfeedItem->timestamp());
+			emit eventsfeedUpdated(event);
 		} else {
 			// qInfo() << "EventsfeedListModel::eventsfeedItemNewSlot -> update" << lIndex;
 			QModelIndex lModelIndex = createIndex(lIndex, lIndex);
 			emit dataChanged(lModelIndex, lModelIndex, QVector<int>() << TimestampRole << EventInfosRoles);
+			emit eventsfeedUpdated(event);
 		}
 	}
 }

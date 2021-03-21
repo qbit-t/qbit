@@ -265,10 +265,8 @@ Item {
 	Rectangle {
 		//
 		id: buzzItemContainer
-		//x: myMessage_ ? messageMetrics.getX() : spaceLeft_
 		y: spaceItems_
 		color: "transparent"
-		//width: messageMetrics.getWidth()
 		height: calculatedHeight - (spaceItems_ + spaceItems_)
 		radius: 8
 
@@ -293,7 +291,7 @@ Item {
 			x: parent.width - (width + (buzzerApp.isDesktop ? spaceHalfItems_ : spaceHalfItems_) + 1)
 			y: (buzzerApp.isDesktop ? spaceHalfItems_ : spaceHalfItems_)
 			symbol: !onChain_ ? Fonts.clockSym : Fonts.checkedCircleSym //linkSym
-			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 3)) : 12
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 8)) : 12
 			color: !onChain_ ? buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzz.wait") :
 							   buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzz.done");
 
@@ -398,15 +396,6 @@ Item {
 
 					conversationmessageitem_.calculateHeight();
 				}
-
-				/*
-				TextMetrics {
-					id: buzzBodyMetrics
-					font.family: buzzText.font.family
-
-					text: buzzBody
-				}
-				*/
 			}
 
 			function expand(key) {
@@ -526,6 +515,7 @@ Item {
 			}
 		}
 
+		/*
 		layer.enabled: true
 		layer.effect: OpacityMask {
 			maskSource: Item {
@@ -540,6 +530,7 @@ Item {
 				}
 			}
 		}
+		*/
 	}
 
 	//

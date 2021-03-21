@@ -31,6 +31,7 @@ QuarkPage {
 	property var buzzesThread_;
 	property var conversation_;
 	property var conversations_;
+	property var messageId_;
 
 	//
 	// TODO: recheck!
@@ -67,10 +68,11 @@ QuarkPage {
 		}
 	}
 
-	function start(conversationId, conversation, conversations) {
+	function start(conversationId, conversation, conversations, messageId) {
 		//
 		buzzesThread_ = buzzerClient.createConversationMessagesList();
 		//
+		messageId_ = messageId;
 		conversation_ = conversation;
 		conversations_ = conversations;
 		modelLoader.conversationId = conversationId;
@@ -88,6 +90,15 @@ QuarkPage {
 		//
 		avatarDownloadCommand.process();
 		switchDataTimer.start();
+	}
+
+	function showItem(messageId) {
+		if (messageId !== undefined) {
+			var lIndex = buzzesThread_.locateIndex(messageId);
+			if (lIndex !== -1) {
+				list.positionViewAtIndex(lIndex, ListView.Contain);
+			}
+		}
 	}
 
 	function conversationState() {
@@ -213,6 +224,15 @@ QuarkPage {
 				initialFeed = false;
 				editBuzzTimer.start();
 			}
+
+			if (messageId_ !== undefined) {
+				var lIndex = buzzesThread_.locateIndex(messageId_);
+				if (lIndex !== -1) {
+					list.positionViewAtIndex(lIndex, ListView.Contain);
+				}
+
+				messageId_ = undefined;
+			}
 		}
 
 		onError: {
@@ -321,7 +341,7 @@ QuarkPage {
 
 		function getHeight() {
 			if (conversationState() === conversationPending_ && !isCreator_)
-				return defaultHeight_ + buttonsHeight_ + spaceBottom_;
+				return defaultHeight_ + buttonsHeight_; // + spaceBottom_;
 			return defaultHeight_;
 		}
 
@@ -330,7 +350,7 @@ QuarkPage {
 
 		QuarkToolButton	{
 			id: cancelButton
-			y: parent.height / 2 - height / 2
+			y: buzzThreadToolBar.defaultHeight_ / 2 - height / 2
 			Material.background: "transparent"
 			visible: true
 			labelYOffset: buzzerApp.isDesktop ? 0 : 3
@@ -461,7 +481,7 @@ QuarkPage {
 		QuarkButton {
 			id: acceptButton
 			x: parent.width / 2 - ((parent.width / 2 - parent.width / 5) + spaceBottom_)
-			y: cancelButton.y + cancelButton.height
+			y: buzzThreadToolBar.defaultHeight_ + buzzThreadToolBar.buttonsHeight_ / 2 - height / 2
 			text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.conversation.accept")
 			Material.background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.4")
 			visible: conversationState() === conversationPending_ && !isCreator_
@@ -495,7 +515,7 @@ QuarkPage {
 		QuarkButton {
 			id: declineButton
 			x: parent.width / 2 + spaceItems_
-			y: cancelButton.y + cancelButton.height
+			y: buzzThreadToolBar.defaultHeight_ + buzzThreadToolBar.buttonsHeight_ / 2 - height / 2
 			text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.conversation.decline")
 			Material.background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.1")
 			visible: conversationState() === conversationPending_ && !isCreator_
@@ -524,7 +544,7 @@ QuarkPage {
 		QuarkToolButton {
 			id: menuControl
 			x: parent.width - width //- spaceItems_
-			y: parent.height / 2 - height / 2
+			y: buzzThreadToolBar.defaultHeight_ / 2 - height / 2
 			Material.background: "transparent"
 			symbol: Fonts.elipsisVerticalSym
 			visible: true
@@ -537,6 +557,17 @@ QuarkPage {
 				if (headerMenu.visible) headerMenu.close();
 				else { headerMenu.prepare(); headerMenu.open(); }
 			}
+		}
+
+		QuarkHLine {
+			id: middleLine
+			x1: 0
+			y1: buzzThreadToolBar.defaultHeight_
+			x2: parent.width
+			y2: buzzThreadToolBar.defaultHeight_
+			penWidth: 1
+			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
+			visible: conversationState() === conversationPending_ && !isCreator_
 		}
 
 		QuarkHLine {
@@ -755,11 +786,9 @@ QuarkPage {
 				id: buzzText
 				x: spaceItems_
 				y: spaceItems_
-				//height: 1000 //parent.height - spaceItems_
 				width: parent.width - spaceItems_
 				wrapMode: Text.Wrap
 				textFormat: Text.RichText
-				//focus: true
 				color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : font.pointSize
 				selectionColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.selected")
@@ -782,8 +811,21 @@ QuarkPage {
 					editBuzzTimer.start();
 				}
 
-				onEditingFinished: {
-					// if (!external_) buzzText.forceActiveFocus();
+				property bool ctrlEnter: false
+
+				Keys.onPressed: {
+					//
+					if (event.key === Qt.Key_Return && event.modifiers !== Qt.ControlModifier && !ctrlEnter) {
+						event.accepted = true;
+						ctrlEnter = false;
+						sendButton.send();
+					} else if (event.key === Qt.Key_Return && event.modifiers === Qt.ControlModifier) {
+						event.accepted = false;
+						ctrlEnter = true;
+						keyEmitter.keyPressed(buzzText, Qt.Key_Return);
+					} else {
+						ctrlEnter = false;
+					}
 				}
 			}
 
@@ -821,6 +863,10 @@ QuarkPage {
 			y: controller.bottomBarHeight / 2 - height / 2
 
 			onClicked: {
+				sendButton.send();
+			}
+
+			function send() {
 				if (!sending) {
 					//
 					if (buzzesThread_.count > 0) {

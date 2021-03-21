@@ -336,3 +336,31 @@ bool ConversationItem::decrypt(const PKey& pkey, std::string& body) {
 
 	return false;
 }
+
+bool ConversationItem::decrypt(const PKey& pkey, const std::string& hex, std::string& body) {
+	//
+	if (!events_.size()) return false;
+
+	//
+	bool lProcess = false;
+	ConversationItem::EventInfo lInfo = *events_.begin();
+	if (lInfo.type() == TX_BUZZER_ACCEPT_CONVERSATION) lProcess = true;
+	//
+	if (lProcess && buzzer()) {
+		//
+		std::vector<unsigned char> lBody = ParseHex(hex);
+		std::vector<unsigned char> lDecryptedBody;
+
+		SKeyPtr lSKey = buzzer()->wallet()->firstKey();
+		//
+		uint256 lNonce = lSKey->shared(pkey);
+		bool lResult = TxBuzzerMessage::decrypt(lNonce, lBody, lDecryptedBody);
+		if (lResult) {
+			body.insert(body.end(), lDecryptedBody.begin(), lDecryptedBody.end());
+		}
+
+		return lResult;
+	}
+
+	return false;
+}

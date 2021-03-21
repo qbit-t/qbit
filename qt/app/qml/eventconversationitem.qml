@@ -69,6 +69,14 @@ Item {
 
 	Component.onCompleted: {
 		avatarDownloadCommand.process();
+
+		if (/*buzzerApp.isDesktop &&*/
+				(type_ === buzzerClient.tx_BUZZER_MESSAGE() ||
+					type_ === buzzerClient.tx_BUZZER_MESSAGE_REPLY()) && eventInfos_.length > 0) {
+			var lHex = eventInfos_[0].buzzBodyHex;
+			if (lHex.length > 0)
+				decryptBodyCommand.processBody(eventInfos_[0].eventId, eventInfos_[0].buzzBodyHex);
+		}
 	}
 
 	function calculateHeightInternal() {
@@ -339,10 +347,44 @@ Item {
 				return buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.event.conversation.declined.one");
 			} else if (type_ === buzzerClient.tx_BUZZER_MESSAGE() ||
 					   type_ === buzzerClient.tx_BUZZER_MESSAGE_REPLY()) {
+				if (buzzerApp.isDesktop) {
+					//
+				}
+
 				return buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.event.conversation.message.one");
 			}
 
 			return "?";
+		}
+	}
+
+	TextMetrics	{
+		id: bodyControlMetrics
+		elide: Text.ElideRight
+		text: bodyControl.message
+		elideWidth: parent.width - (bodyControl.x + (buzzerApp.isDesktop ? 2 * spaceRight_ : spaceRight_))
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
+		font.family: buzzerApp.isDesktop ? "Noto Color Emoji N" : font.family
+	}
+
+	QuarkLabel {
+		id: bodyControl
+		x: buzzerInfoControl.x
+		y: buzzerInfoControl.y + buzzerInfoControl.height + spaceItems_
+		text: bodyControlMetrics.elidedText + (bodyControlMetrics.elidedText !== message && buzzerApp.isDesktop ? "..." : "")
+		// font.italic: conversationState() === conversationPending_
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
+		visible: message !== undefined && message !== ""
+
+		property var message;
+
+		function getY() {
+			return visible ? bodyControl.y : buzzerInfoControl.y;
+		}
+
+		function getHeight() {
+			return visible ? bodyControl.height : buzzerInfoControl.height;
 		}
 	}
 
@@ -398,8 +440,12 @@ Item {
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
 		visible: true
 
-		property var y_: ((avatarImage.y + avatarImage.height) > (buzzerInfoControl.y + buzzerInfoControl.height) ?
-						avatarImage.y + avatarImage.height : buzzerInfoControl.y + buzzerInfoControl.height) + spaceBottom_
+		property var y_: ((avatarImage.y + avatarImage.height) > (bodyControl.getY() + bodyControl.getHeight()) ?
+						avatarImage.y + avatarImage.height : bodyControl.getY() + bodyControl.getHeight()) + spaceBottom_
+
+		onY1Changed: {
+			eventconversationitem_.calculateHeight();
+		}
 	}
 
 	//
@@ -464,6 +510,17 @@ Item {
 			}
 
 			return publisherId_;
+		}
+	}
+
+	BuzzerCommands.DecryptMessageBodyCommand {
+		id: decryptBodyCommand
+		model: buzzerClient.getConversationsList()
+
+		onProcessed: {
+			// key, body
+			bodyControl.message = body;
+			eventconversationitem_.calculateHeight();
 		}
 	}
 

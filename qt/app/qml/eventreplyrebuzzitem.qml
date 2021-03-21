@@ -474,57 +474,12 @@ Item {
 
 				eventReplyRebuzzItem_.calculateHeight();
 			}
-
-			/*
-			TextMetrics {
-				id: buzzBodyMetrics
-				font.family: buzzText.font.family
-
-				text: buzzBody
-			}
-			*/
 		}
 
 		function expand() {
 			//
 			var lSource;
 			var lComponent;
-
-			//console.log("[EXPAND]: buzzMedia_.length = " + buzzMedia_.length + ", eventInfos_.length = " + eventInfos_.length);
-			//if (eventInfos_.length)
-			//	console.log("[EXPAND]: eventInfos_[0].buzzMedia.length = " + eventInfos_[0].buzzMedia.length);
-
-			/*
-			// if rebuzz and wapped
-			if (!wrappedItem_) {
-				// buzzText
-				lSource = "qrc:/qml/buzzitemlight.qml";
-				lComponent = Qt.createComponent(lSource);
-				wrappedItem_ = lComponent.createObject(bodyControl);
-				wrappedItem_.calculatedHeightModified.connect(innerHeightChanged);
-
-				wrappedItem_.x = 0;
-				wrappedItem_.y = bodyControl.getY();
-				wrappedItem_.width = bodyControl.width;
-				wrappedItem_.controller_ = eventReplyRebuzzItem_.controller_;
-
-				//console.log("[WRAPPED]: wrapped_.buzzerId = " + wrapped_.buzzerId + ", wrapped_.buzzerInfoId = " + wrapped_.buzzerInfoId);
-
-				wrappedItem_.timestamp_ = timestamp_;
-				wrappedItem_.score_ = score_;
-				wrappedItem_.buzzId_ = buzzId_;
-				wrappedItem_.buzzChainId_ = buzzChainId_;
-
-				wrappedItem_.buzzerId_ = publisherId_;
-				wrappedItem_.buzzerInfoId_ = publisherInfoId_;
-				wrappedItem_.buzzerInfoChainId_ = publisherInfoChainId_;
-
-				wrappedItem_.buzzBody_ = buzzerClient.decorateBuzzBody(buzzBody_);
-				wrappedItem_.buzzMedia_ = buzzMedia_;
-				wrappedItem_.lastUrl_ = buzzerClient.extractLastUrl(buzzBody_);
-				wrappedItem_.ago_ = buzzerClient.timestampAgo(timestamp_);
-			}
-			*/
 
 			// expand media
 			if (buzzMedia_.length || (eventInfos_.length && eventInfos_[0].buzzMedia.length)) {

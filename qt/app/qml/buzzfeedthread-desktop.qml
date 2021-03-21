@@ -491,11 +491,9 @@ QuarkPage {
 				id: buzzText
 				x: spaceItems_
 				y: spaceItems_
-				//height: 1000 //parent.height - spaceItems_
 				width: parent.width - spaceItems_
 				wrapMode: Text.Wrap
 				textFormat: Text.RichText
-				//focus: true
 				color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : font.pointSize
 				selectionColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.selected")
@@ -514,6 +512,23 @@ QuarkPage {
 
 				onFocusChanged: {
 					editBuzzTimer.start();
+				}
+
+				property bool ctrlEnter: false
+
+				Keys.onPressed: {
+					//
+					if (event.key === Qt.Key_Return && event.modifiers !== Qt.ControlModifier && !ctrlEnter) {
+						event.accepted = true;
+						ctrlEnter = false;
+						sendButton.send();
+					} else if (event.key === Qt.Key_Return && event.modifiers === Qt.ControlModifier) {
+						event.accepted = false;
+						ctrlEnter = true;
+						keyEmitter.keyPressed(buzzText, Qt.Key_Return);
+					} else {
+						ctrlEnter = false;
+					}
 				}
 			}
 
@@ -551,6 +566,10 @@ QuarkPage {
 			y: controller.bottomBarHeight / 2 - height / 2
 
 			onClicked: {
+				sendButton.send();
+			}
+
+			function send() {
 				if (!sending) {
 					//
 					if (buzzesThread_.count > 0) {

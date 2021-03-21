@@ -299,6 +299,7 @@ public:
 	}
 
 	bool decrypt(const PKey&, std::string&);
+	bool decrypt(const PKey&, const std::string&, std::string&);
 
 	std::string toString() {
 		//

@@ -2692,7 +2692,7 @@ void DecryptBuzzerMessageCommand::conversationLoaded(TransactionPtr conversation
 	BuzzfeedItemPtr lMessage = conversation_->locateBuzz(messageId_);
 	if (lMessage) {
 		if (lMessage->decrypt(lCounterpartyKey)) {
-			done_(lCounterpartyKey.toString(), lMessage->decryptedBuzzBodyString(), ProcessingError()); // pass pkey to the caller
+			if (done_) done_(lCounterpartyKey.toString(), lMessage->decryptedBuzzBodyString(), ProcessingError()); // pass pkey to the caller
 		} else {
 			error("E_MESSAGE_DECRYPTION_FAILED", "Message decryption failed");
 		}
@@ -2704,9 +2704,15 @@ void DecryptBuzzerMessageCommand::conversationLoaded(TransactionPtr conversation
 //
 void DecryptMessageBodyCommand::process(const std::vector<std::string>& args) {
 	//
-	if (args.size() == 1) {
+	if (args.size() >= 1) {
 		//
 		conversationId_.setHex(args[0]);
+
+		//
+		hexBody_ = "";
+		if (args.size() > 1) {
+			hexBody_ = args[1];
+		}
 
 		// locate counterpart pkey
 		PKey lPKey;
@@ -2716,8 +2722,10 @@ void DecryptMessageBodyCommand::process(const std::vector<std::string>& args) {
 			if (lConversationItem) {
 				//
 				std::string lBody;
-				if (lConversationItem->decrypt(lPKey, lBody)) {
-					done_(lPKey.toString(), lBody, ProcessingError()); // pass body
+				bool lResult = hexBody_.size() ? lConversationItem->decrypt(lPKey, hexBody_, lBody) :
+												 lConversationItem->decrypt(lPKey, lBody);
+				if (lResult) {
+					if (done_) done_(lPKey.toString(), lBody, ProcessingError()); // pass body
 				} else {
 					error("E_MESSAGE_DECRYPTION_FAILED", "Message decryption failed");
 				}
@@ -2766,9 +2774,12 @@ void DecryptMessageBodyCommand::conversationLoaded(TransactionPtr conversation) 
 
 	ConversationItemPtr lConversationItem = conversations_->locateItem(conversationId_);
 	if (lConversationItem) {
+		//
 		std::string lBody;
-		if (lConversationItem->decrypt(lCounterpartyKey, lBody)) {
-			done_(lCounterpartyKey.toString(), lBody, ProcessingError()); // pass pkey to the caller
+		bool lResult = hexBody_.size() ? lConversationItem->decrypt(lCounterpartyKey, hexBody_, lBody) :
+										 lConversationItem->decrypt(lCounterpartyKey, lBody);
+		if (lResult) {
+			if (done_) done_(lCounterpartyKey.toString(), lBody, ProcessingError()); // pass pkey to the caller
 		} else {
 			error("E_MESSAGE_DECRYPTION_FAILED", "Message decryption failed");
 		}

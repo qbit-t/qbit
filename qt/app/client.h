@@ -241,6 +241,7 @@ public:
 	qbit::cubix::CubixLightComposerPtr getCubixComposer() { return cubixComposer_; }
 	qbit::IPeerManagerPtr getPeerManager() { return peerManager_; }
 	buzzer::EmojiData* emojiData() { return emojiData_; }
+	ConversationsListModel* getConversationsModel() { return conversationsList_; }
 
 	Q_INVOKABLE QVariant getGlobalBuzzfeedList() { return QVariant::fromValue(globalBuzzfeedList_); }
 	Q_INVOKABLE QVariant getBuzzfeedList() { return QVariant::fromValue(buzzfeedList_); }
@@ -341,6 +342,9 @@ public:
 		// start re-sync
 		syncTimer_->start(500);
 	}
+	Q_INVOKABLE void setTopId(QString topId) {
+		topId_ = topId;
+	}
 
 	Q_INVOKABLE QString getPlainText(QQuickTextDocument* textDocument) {
 		return textDocument->textDocument()->toPlainText(); // toRawText
@@ -393,8 +397,20 @@ public:
 	Q_INVOKABLE unsigned short peer_PENDING_STATE() { return qbit::IPeer::PENDING_STATE; }
 	Q_INVOKABLE unsigned short peer_POSTPONED() { return qbit::IPeer::POSTPONED; }
 
-	Q_INVOKABLE void criticalNotification(QString title, QString message) {
+	//
+	// external open ...
+	//
+	Q_INVOKABLE void openThread(QString buzzChainId, QString buzzId, QString buzzerAlias, QString buzzBody) {
 		//
+		emit tryOpenThread(buzzChainId, buzzId, buzzerAlias, buzzBody);
+	}
+	Q_INVOKABLE void openBuzzfeedByBuzzer(QString buzzer) {
+		//
+		emit tryOpenBuzzfeedByBuzzer(buzzer);
+	}
+	Q_INVOKABLE void openConversation(QString id, QString conversationId, QVariant conversation, QVariant list) {
+		//
+		emit tryOpenConversation(id, conversationId, conversation, list);
 	}
 
 	Q_INVOKABLE int getBuzzBodyMaxSize() { return TX_BUZZ_BODY_SIZE; }
@@ -449,37 +465,10 @@ public:
 
 public slots:
 	// events feed updated
-	void eventsfeedUpdated(unsigned long long timestamp) {
-		//
-		QString lLastTimestamp = getProperty("Client.lastTimestamp");
-		if (lLastTimestamp.length()) {
-			if (lLastTimestamp.toULongLong() < timestamp) {
-				//qInfo() << "[eventsfeedUpdated]" << lLastTimestamp.toULongLong() << timestamp;
-				emit newEvents();
-				setProperty("Client.lastTimestamp", QString::number(timestamp));
-			}
-		} else {
-			emit newEvents();
-			setProperty("Client.lastTimestamp", QString::number(timestamp));
-		}
-	}
+	void eventsfeedUpdated(const qbit::EventsfeedItemProxy& /*event*/);
 
 	// conversations updated
-	void conversationsUpdated(unsigned long long timestamp) {
-		//
-		QString lLastTimestamp = getProperty("Client.conversationsLastTimestamp");
-		if (lLastTimestamp.length()) {
-			if (lLastTimestamp.toULongLong() < timestamp) {
-				qInfo() << "[conversationsUpdated]" << lLastTimestamp.toULongLong() << timestamp;
-				emit newMessages();
-				setProperty("Client.conversationsLastTimestamp", QString::number(timestamp));
-			}
-		} else {
-			qInfo() << "[conversationsUpdated]" << lLastTimestamp.toULongLong() << timestamp;
-			emit newMessages();
-			setProperty("Client.conversationsLastTimestamp", QString::number(timestamp));
-		}
-	}
+	void conversationsUpdated(const qbit::ConversationItemProxy& /*event*/);
 
 public:
 	// Wallet
@@ -609,6 +598,10 @@ signals:
 	void peerPushedSignal(buzzer::PeerProxy peer, bool update, int count);
 	void peerPoppedSignal(buzzer::PeerProxy peer, int count);
 
+	void tryOpenThread(QString buzzChainId, QString buzzId, QString buzzerAlias, QString buzzBody);
+	void tryOpenBuzzfeedByBuzzer(QString buzzer);
+	void tryOpenConversation(QString id, QString conversationId, QVariant conversation, QVariant list);
+
 private:
     QString name_;
 	QString alias_;
@@ -633,6 +626,7 @@ private:
 	bool recallWallet_ = false;
 	bool opened_ = false;
 	bool peersModelUpdates_ = false;
+	QString topId_ = "";
 
 private:
 	qbit::IRequestProcessorPtr requestProcessor_ = nullptr;

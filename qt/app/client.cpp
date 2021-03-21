@@ -54,6 +54,10 @@
 #include "imagelisting.h"
 #include "applicationpath.h"
 
+#if defined(DESKTOP_PLATFORM)
+#include "pushdesktopnotification.h"
+#endif
+
 using namespace buzzer;
 using namespace qbit;
 
@@ -265,15 +269,15 @@ int Client::open(QString secret) {
 	eventsfeedList_ = new EventsfeedListModelPersonal();
 	buzzer_->setEventsfeed(eventsfeedList_->eventsfeed());
 	// get event feed updates
-	connect(eventsfeedList_, SIGNAL(eventsfeedUpdated(unsigned long long)),
-								this, SLOT(eventsfeedUpdated(unsigned long long)));
+	connect(eventsfeedList_, SIGNAL(eventsfeedUpdated(const qbit::EventsfeedItemProxy&)),
+								this, SLOT(eventsfeedUpdated(const qbit::EventsfeedItemProxy&)));
 
 	// conversations feed
 	buzzer_->setConversations(conversationsList_->conversations());
 
 	// get conversation updates
-	connect(conversationsList_, SIGNAL(conversationsUpdated(unsigned long long)),
-								this, SLOT(conversationsUpdated(unsigned long long)));
+	connect(conversationsList_, SIGNAL(conversationsUpdated(const qbit::ConversationItemProxy&)),
+								this, SLOT(conversationsUpdated(const qbit::ConversationItemProxy&)));
 
 	// buzzer peer extention
 	PeerManager::registerPeerExtension(
@@ -439,6 +443,58 @@ int Client::open(QString secret) {
 	syncTimer_->start(500);
 
 	return 1;
+}
+
+// events feed updated
+void Client::eventsfeedUpdated(const qbit::EventsfeedItemProxy& event) {
+	//
+	qbit::EventsfeedItemPtr lEventsfeedItem(event.get());
+	QString lLastTimestamp = getProperty("Client.lastTimestamp");
+	if (lLastTimestamp.length()) {
+		if (lLastTimestamp.toULongLong() < lEventsfeedItem->timestamp()) {
+			emit newEvents();
+			setProperty("Client.lastTimestamp", QString::number(lEventsfeedItem->timestamp()));
+#if defined(DESKTOP_PLATFORM)
+			// notify			
+			if (QString::fromStdString(lEventsfeedItem->buzzId().toHex()) != topId_ &&
+					(!lEventsfeedItem->buzzers().size() ||
+					 QString::fromStdString(lEventsfeedItem->beginInfo()->eventId().toHex()) != topId_)) {
+				qInfo() << "[eventsfeedUpdated/0]" << lEventsfeedItem->timestamp() << !suspended_;
+				PushNotification::instance(lEventsfeedItem, !suspended_)->process();
+			}
+#endif
+		}
+	} else {
+		emit newEvents();
+		setProperty("Client.lastTimestamp", QString::number(lEventsfeedItem->timestamp()));
+#if defined(DESKTOP_PLATFORM)
+		// notify
+		if (QString::fromStdString(lEventsfeedItem->buzzId().toHex()) != topId_ &&
+				(!lEventsfeedItem->buzzers().size() ||
+				 QString::fromStdString(lEventsfeedItem->beginInfo()->eventId().toHex()) != topId_)) {
+			qInfo() << "[eventsfeedUpdated/1]" << lEventsfeedItem->timestamp() << !suspended_;
+			PushNotification::instance(lEventsfeedItem, !suspended_)->process();
+		}
+#endif
+	}
+}
+
+// conversations updated
+void Client::conversationsUpdated(const qbit::ConversationItemProxy& event) {
+	//
+	qbit::ConversationItemPtr lEventsfeedItem(event.get());
+	QString lLastTimestamp = getProperty("Client.conversationsLastTimestamp");
+	if (lLastTimestamp.length()) {
+		if (lLastTimestamp.toULongLong() < lEventsfeedItem->timestamp()) {
+			qInfo() << "[conversationsUpdated]" << lLastTimestamp.toULongLong() << lEventsfeedItem->timestamp();
+			emit newMessages();
+			setProperty("Client.conversationsLastTimestamp", QString::number(lEventsfeedItem->timestamp()));
+		}
+	} else {
+		qInfo() << "[conversationsUpdated]" << lLastTimestamp.toULongLong() << lEventsfeedItem->timestamp();
+		emit newMessages();
+		setProperty("Client.conversationsLastTimestamp", QString::number(lEventsfeedItem->timestamp()));
+	}
 }
 
 void Client::cleanUpBuzzerCache() {
@@ -781,6 +837,8 @@ void Client::prepareCache() {
 void Client::suspend() {
 	//
 	suspended_ = true;
+	//
+	if (gApplication->isDesktop()) return;
 
 	//
 	if (peerManager_) {
@@ -795,9 +853,11 @@ void Client::suspend() {
 void Client::resume() {
 	//
 	if (!opened_) return;
-
 	//
 	suspended_ = false;
+	//
+	if (gApplication->isDesktop()) return;
+
 	buzzerDAppReady_ = false;
 	recallWallet_ = true;
 

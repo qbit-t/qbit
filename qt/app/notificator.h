@@ -54,10 +54,12 @@ class Notificator : public QFrame {
 	Q_OBJECT
 
 public:
-	static void showMessage(buzzer::PushNotificationPtr);
+	static void showMessage(buzzer::PushNotificationPtr, bool);
+	static void hideAll();
+
+public slots:
 	void fadeIn();
 	void fadeOut();
-	static void hideAll();
 
 protected:
 	bool event(QEvent*);
@@ -79,6 +81,7 @@ private:
 	buzzer::PushNotificationPtr item_;
 
 	static bool configureInstance(Notificator* notificator);
+	static std::set<qbit::EventsfeedItem::Key> index_;
 	static QList<Notificator*> pending_;
 	static QList<Notificator*> current_;
 	static QPushButton* closeAllButton_;

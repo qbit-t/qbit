@@ -32,6 +32,8 @@ Page
 		page_.alias = alias;
 		page_.caption = caption;
 		page_.stacked = true;
+
+		buzzerClient.setTopId(key);
 	}
 
 	// reflect theme changes

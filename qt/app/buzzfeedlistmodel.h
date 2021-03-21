@@ -75,8 +75,10 @@ public:
 	Q_INVOKABLE QString buzzId(int index) const;
 	Q_INVOKABLE QVariant self(int index) const;
 	Q_INVOKABLE int childrenCount(int index) const;
-
+	//
 	Q_INVOKABLE void setOnChain(int index);
+	//
+	Q_INVOKABLE int locateIndex(QString key);
 
 	void buzzfeedLargeUpdated();
 	void buzzfeedItemNew(qbit::BuzzfeedItemPtr /*buzz*/);

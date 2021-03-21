@@ -28,6 +28,10 @@ int main(int argc, char *argv[]) {
 	// generic application
 	QApplication lApp(argc, argv);
 
+#if defined (DESKTOP_PLATFORM)
+	lApp.setWindowIcon(QIcon("qrc:/images/icon-high.png"));
+#endif
+
 	// buzzer global application
 	try {
 		buzzer::gApplication = new buzzer::Application(lApp);

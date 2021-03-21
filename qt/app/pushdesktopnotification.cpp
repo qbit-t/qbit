@@ -1,6 +1,7 @@
 #include "pushdesktopnotification.h"
 #include "client.h"
 #include "../../client/dapps/cubix/cubixcommands.h"
+#include "../../client/dapps/buzzer/buzzercommands.h"
 #include "applicationpath.h"
 #include "notificator.h"
 
@@ -10,6 +11,22 @@ std::map<qbit::EventsfeedItem::Key, PushNotificationPtr> PushNotification::insta
 
 QString PushNotification::getId() {
 	// unsigned
+	return QString::fromStdString(buzz_->buzzId().toHex());
+}
+
+QString PushNotification::getChain() {
+	// unsigned
+	return QString::fromStdString(buzz_->buzzChainId().toHex());
+}
+
+QString PushNotification::getConversationId() {
+	//
+	if (buzz_->type() == qbit::TX_BUZZER_MESSAGE || buzz_->type() == qbit::TX_BUZZER_MESSAGE_REPLY) {
+		if (buzz_->buzzers().size()) {
+			return QString::fromStdString(buzz_->buzzers()[0].eventId().toHex());
+		}
+	}
+
 	return QString::fromStdString(buzz_->buzzId().toHex());
 }
 
@@ -139,9 +156,9 @@ QString PushNotification::getComment() {
 
 QString PushNotification::getText() {
 	if (buzz_->type() == qbit::TX_BUZZER_MESSAGE || buzz_->type() == qbit::TX_BUZZER_MESSAGE_REPLY) {
-		Client* lClient = static_cast<Client*>(gApplication->getClient());
-		QString lString = gApplication->getLocalization(lClient->locale(), "Buzzer.event.conversation.message.encrypted.notification");
-		return lString;
+		// Client* lClient = static_cast<Client*>(gApplication->getClient());
+		// QString lString = gApplication->getLocalization(lClient->locale(), "Buzzer.event.conversation.message.encrypted.notification");
+		return message_;
 	}
 
 	return QString::fromStdString(buzz_->buzzBodyString());
@@ -149,7 +166,7 @@ QString PushNotification::getText() {
 
 void PushNotification::makeNotification() {
 	//
-	buzzer::Notificator::showMessage(shared_from_this());
+	buzzer::Notificator::showMessage(shared_from_this(), autohide_);
 	instances_.erase(buzz_->key());
 }
 
@@ -160,8 +177,14 @@ void PushNotification::avatarDownloadDone(qbit::TransactionPtr /*tx*/,
 	if (result.success()) {
 		//
 		avatarFile_ = previewFile;
-		// push notification
-		makeNotification();
+
+		if (buzz_->type() == qbit::TX_BUZZER_MESSAGE || buzz_->type() == qbit::TX_BUZZER_MESSAGE_REPLY) {
+			// try to decrypt
+			loadMessage();
+		} else {
+			// push notification
+			makeNotification();
+		}
 	} else {
 		qbit::gLog().write(qbit::Log::CLIENT, strprintf("[downloadAvatar/error]: %s - %s", result.error(), result.message()));
 	}
@@ -180,6 +203,19 @@ void PushNotification::mediaDownloadDone(qbit::TransactionPtr /*tx*/,
 
 	// anyway
 	loadAvatar();
+}
+
+void PushNotification::messageDone(const std::string& /*key*/, const std::string& body, const qbit::ProcessingError& result) {
+	//
+	if (!result.success()) {
+		Client* lClient = static_cast<Client*>(gApplication->getClient());
+		message_ = gApplication->getLocalization(lClient->locale(), "Buzzer.event.conversation.message.encrypted.notification");
+	} else {
+		message_ = QString::fromStdString(body);
+	}
+
+	// push notification
+	makeNotification();
 }
 
 void PushNotification::loadAvatar() {
@@ -247,6 +283,24 @@ void PushNotification::loadMedia() {
 	downloadMedia_->process(lArgs);
 }
 
+void PushNotification::loadMessage() {
+	//
+	Client* lClient = static_cast<Client*>(gApplication->getClient());
+
+	decryptMessage_ = qbit::DecryptMessageBodyCommand::instance(
+					lClient->getBuzzerComposer(),
+					lClient->getConversationsModel()->conversations(),
+					boost::bind(&PushNotification::messageDone, this, _1, _2, _3)
+	);
+
+	std::vector<std::string> lArgs;
+	if (buzz_->buzzers().size()) {
+		lArgs.push_back(buzz_->beginInfo()->eventId().toHex());
+		lArgs.push_back(buzz_->beginInfo()->buzzBodyHex());
+		decryptMessage_->process(lArgs);
+	}
+}
+
 void PushNotification::process() {
 	//
 	if ((buzz_->buzzMedia().size() || (buzz_->buzzers().size() && buzz_->buzzers()[0].buzzMedia().size())) &&
@@ -257,9 +311,9 @@ void PushNotification::process() {
 	}
 }
 
-PushNotificationPtr PushNotification::instance(qbit::EventsfeedItemPtr buzz) {
+PushNotificationPtr PushNotification::instance(qbit::EventsfeedItemPtr buzz, bool autohide) {
 	//
-	PushNotificationPtr lPush = std::make_shared<PushNotification>(buzz);
+	PushNotificationPtr lPush = std::make_shared<PushNotification>(buzz, autohide);
 	instances_[buzz->key()] = lPush;
 	return lPush;
 }

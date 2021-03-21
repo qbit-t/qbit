@@ -62,7 +62,7 @@ Item {
 	}
 
 	onCalculatedWidthChanged: {
-		if (!imageView_) {
+		if (!imageView_ /*&& !buzzerApp.isDesktop*/) {
 			mediaList.clear();
 			mediaList.prepare();
 		}
@@ -186,8 +186,8 @@ Item {
 				layer.effect: OpacityMask {
 					id: roundEffect
 					maskSource: Item {
-						width: roundEffect.getWidth()
-						height: roundEffect.getHeight()
+						width: mediaImage.width // roundEffect.getWidth()
+						height: mediaImage.height // roundEffect.getHeight()
 
 						Rectangle {
 							x: roundEffect.getX()

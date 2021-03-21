@@ -203,8 +203,8 @@ Item {
 		TextMetrics	{
 			id: bodyactionTextMetrics
 			elide: Text.ElideRight
-			text: actionText.getText()
-			elideWidth: parent.width - actionText.x - spaceRight_
+			text: actionText.actualText
+			elideWidth: parent.width - (actionText.x + (buzzerApp.isDesktop ? 2 * spaceRight_ : spaceRight_))
 			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
 		}
 
@@ -216,7 +216,10 @@ Item {
 			width: parent.width - x - spaceRight_
 			elide: Text.ElideRight
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
-			text: bodyactionTextMetrics.elidedText // getText()
+			text: bodyactionTextMetrics.elidedText +
+				  (bodyactionTextMetrics.elidedText !== actualText && buzzerApp.isDesktop ? "..." : "")
+
+			property var actualText: getText()
 
 			function getText() {
 				var lInfo;

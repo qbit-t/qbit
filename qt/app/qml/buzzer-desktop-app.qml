@@ -12,8 +12,7 @@ import "qrc:/fonts"
 import "qrc:/components"
 import "qrc:/qml"
 
-ApplicationWindow
-{
+ApplicationWindow {
     id: window
 	width: 920
 	height: 740
@@ -307,6 +306,25 @@ ApplicationWindow
 	// facade methods
 	//
 
+	Connections {
+		target: buzzerClient
+
+		function onTryOpenThread(buzzChainId, buzzId, buzzerAlias, buzzBody) {
+			//
+			openThread(buzzChainId, buzzId, buzzerAlias, buzzBody);
+		}
+
+		function onTryOpenBuzzfeedByBuzzer(buzzer) {
+			//
+			openBuzzfeedByBuzzer(buzzer);
+		}
+
+		function onTryOpenConversation(id, conversationId, conversation, list) {
+			//
+			openConversation(conversationId, conversation, list, id);
+		}
+	}
+
 	function getDepth() {
 		if (buzzerClient.configured()) {
 			for (var lIdx = pagesView.count - 1; lIdx >= 0; lIdx--) {
@@ -328,13 +346,17 @@ ApplicationWindow
 		if (page.activatePageHandler) page.activatePageHandler();
 	}
 
-	function activatePage(key) {
+	function activatePage(key, itemId) {
 		for (var lIdx = pagesView.count - 1; lIdx >= 0; lIdx--) {
 			var lPage = pagesView.itemAt(lIdx);
 			if (lPage.key === key) {
 				//
 				pagesView.currentIndex = lIdx;
+				buzzerClient.setTopId(key);
+				//
 				if (lPage.activatePageHandler) lPage.activatePageHandler();
+				if (itemId) lPage.showItem(itemId);
+				//
 				return true;
 			}
 		}
@@ -398,8 +420,11 @@ ApplicationWindow
 
 		var lNewPage = pagesView.itemAt(pagesView.currentIndex);
 		if (lNewPage) {
+			buzzerClient.setTopId(lNewPage.key); // reset
 			lNewPage.updateStatusBar();
 			if (lNewPage.activatePageHandler) lNewPage.activatePageHandler();
+		} else {
+			buzzerClient.setTopId(""); // reset
 		}
     }
 
@@ -424,6 +449,12 @@ ApplicationWindow
 
 		//
 		pagesView.currentIndex = pagesView.count - 1;
+		var lNewPage = pagesView.itemAt(pagesView.currentIndex);
+		if (lNewPage) {
+			buzzerClient.setTopId(lNewPage.key); // reset
+		} else {
+			buzzerClient.setTopId(""); // reset
+		}
 	}
 
 	function isTop() {
@@ -564,6 +595,9 @@ ApplicationWindow
 		// pop no-stacked page(s)
 		popNonStacked();
 
+		// locate and activate
+		if (activatePage(buzzer + "-followers")) return;
+
 		lComponent = Qt.createComponent("qrc:/qml/buzzfeedfollowers.qml");
 		if (lComponent.status === Component.Error) {
 			showError(lComponent.errorString());
@@ -585,6 +619,9 @@ ApplicationWindow
 		// pop no-stacked page(s)
 		popNonStacked();
 
+		// locate and activate
+		if (activatePage(buzzer + "-following")) return;
+
 		lComponent = Qt.createComponent("qrc:/qml/buzzfeedfollowing.qml");
 		if (lComponent.status === Component.Error) {
 			showError(lComponent.errorString());
@@ -598,13 +635,16 @@ ApplicationWindow
 		}
 	}
 
-	function openConversation(conversationId, conversation, conversationModel) {
+	function openConversation(conversationId, conversation, conversationModel, messageId) {
 		//
 		var lComponent = null;
 		var lPage = null;
 
 		// pop no-stacked page(s)
 		popNonStacked();
+
+		// locate and activate
+		if (activatePage(conversationId, messageId)) return;
 
 		lComponent = Qt.createComponent("qrc:/qml/conversationthread-desktop.qml");
 		if (lComponent.status === Component.Error) {
@@ -622,7 +662,7 @@ ApplicationWindow
 			lPage.updateStakedInfo(conversationId, buzzerClient.getBuzzerAlias(lCounterpart), buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.conversation.title"));
 			addPage(lPage);
 
-			lPage.start(conversationId, conversation, conversationModel);
+			lPage.start(conversationId, conversation, conversationModel, messageId);
 		}
 	}
 

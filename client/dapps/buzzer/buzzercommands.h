@@ -2793,13 +2793,18 @@ public:
 		return std::make_shared<DecryptBuzzerMessageCommand>(composer, conversations, conversation, done); 
 	}
 
+	void terminate() {
+		// reset callbacks
+		done_ = 0;
+	}
+
 	void timeout() {
 		error("E_TIMEOUT", "Timeout expired during message decryption.");
 	}
 
 	void error(const std::string& code, const std::string& message) {
 		gLog().writeClient(Log::CLIENT, strprintf(": %s | %s", code, message));
-		done_("", "", ProcessingError(code, message));
+		if (done_) done_("", "", ProcessingError(code, message));
 	}
 
 	void conversationLoaded(TransactionPtr);
@@ -2839,13 +2844,18 @@ public:
 		return std::make_shared<DecryptMessageBodyCommand>(composer, conversations, done); 
 	}
 
+	void terminate() {
+		// reset callbacks
+		done_ = 0;
+	}
+
 	void timeout() {
 		error("E_TIMEOUT", "Timeout expired during message decryption.");
 	}
 
 	void error(const std::string& code, const std::string& message) {
 		gLog().writeClient(Log::CLIENT, strprintf(": %s | %s", code, message));
-		done_("", "", ProcessingError(code, message));
+		if (done_) done_("", "", ProcessingError(code, message));
 	}
 
 	void conversationLoaded(TransactionPtr);
@@ -2857,6 +2867,7 @@ private:
 	doneStringStringWithErrorFunction done_;
 
 	uint256 conversationId_;
+	std::string hexBody_;
 };	
 
 class LoadCounterpartyKeyCommand;

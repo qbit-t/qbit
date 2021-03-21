@@ -303,9 +303,6 @@ QuarkToolBar
 		onClicked:
 		{
 			//
-			buzzerClient.criticalNotification("Ahtung!!!", "You pressed sun!");
-
-			//
 			if (symbol === Fonts.sunSym)
 			{
 				buzzerClient.setTheme("Nova", "light");

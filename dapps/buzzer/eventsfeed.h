@@ -127,6 +127,11 @@ public:
 			return lBody;
 		}
 
+		std::string buzzBodyHex() {
+			//
+			return HexStr(body_.begin(), body_.end());
+		}
+
 		ADD_SERIALIZE_METHODS;
 
 		template <typename Stream, typename Operation>
@@ -465,6 +470,14 @@ public:
 		//
 		bool lResolved = true;
 		for (std::vector<EventInfo>::const_iterator lBuzzer = buzzers_.begin(); lBuzzer != buzzers_.end(); lBuzzer++) {
+			//
+			if (publisherInfo_.isNull() && (type_ == TX_BUZZER_MESSAGE || type_ == TX_BUZZER_MESSAGE_REPLY)) {
+				//
+				publisher_ = lBuzzer->buzzerId();
+				publisherInfo_ = lBuzzer->buzzerInfoId();
+				publisherInfoChain_ = lBuzzer->buzzerInfoChainId();
+			}
+
 			// just first one for now
 			if (!buzzerInfoResolve_(
 					lBuzzer->buzzerInfoChainId(), 
@@ -484,7 +497,7 @@ public:
 				//
 				return false;
 			}
-		}
+		} else lResolved = false;
 
 		return lResolved;
 	}

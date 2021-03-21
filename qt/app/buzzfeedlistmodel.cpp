@@ -16,6 +16,16 @@ BuzzfeedListModel::BuzzfeedListModel() {
 	connect(this, SIGNAL(buzzfeedItemsUpdatedSignal(const qbit::BuzzfeedItemUpdatesProxy&)), this, SLOT(buzzfeedItemsUpdatedSlot(const qbit::BuzzfeedItemUpdatesProxy&)));
 }
 
+int BuzzfeedListModel::locateIndex(QString key) {
+	//
+	uint256 lId; lId.setHex(key.toStdString());
+	qbit::BuzzfeedItem::Key lKey(lId, qbit::Transaction::TX_BUZZER_MESSAGE);
+	std::map<qbit::BuzzfeedItem::Key, int>::iterator lIndex = index_.find(lKey);
+	if (lIndex == index_.end()) return lIndex->second;
+
+	return -1;
+}
+
 int BuzzfeedListModel::rowCount(const QModelIndex& parent) const {
 	Q_UNUSED(parent);
 	return list_.size();

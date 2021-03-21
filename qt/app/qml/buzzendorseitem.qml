@@ -398,15 +398,6 @@ Item {
 			text: buzzerClient.resolveBuzzerDescription(publisherBuzzerInfoId_)
 			wrapMode: Text.Wrap
 			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
-
-			/*
-			TextMetrics {
-				id: buzzBodyMetrics
-				font.family: buzzText.font.family
-
-				text: buzzBody
-			}
-			*/
 		}
 	}
 
