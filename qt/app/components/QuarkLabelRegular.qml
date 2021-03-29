@@ -19,4 +19,7 @@ Label {
 	Material.primary: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.primary");
 
 	antialiasing: buzzerApp.isDesktop ? false : antialiasing
+
+	property real defaultFontPointSize: buzzerApp.isDesktop ? 11 : 16
+	font.pointSize: defaultFontPointSize
 }

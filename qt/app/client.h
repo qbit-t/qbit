@@ -49,9 +49,11 @@
 #include "websourceinfo.h"
 #include "wallettransactionslistmodel.h"
 #include "peerslistmodel.h"
-#include "emojidata.h"
 
+#if defined(DESKTOP_PLATFORM)
+#include "emojidata.h"
 #include "notificator.h"
+#endif
 
 Q_DECLARE_METATYPE(qbit::Buzzfeed*)
 Q_DECLARE_METATYPE(qbit::BuzzfeedItem*)
@@ -240,7 +242,9 @@ public:
 	qbit::BuzzerLightComposerPtr getBuzzerComposer() { return buzzerComposer_; }
 	qbit::cubix::CubixLightComposerPtr getCubixComposer() { return cubixComposer_; }
 	qbit::IPeerManagerPtr getPeerManager() { return peerManager_; }
+#if defined(DESKTOP_PLATFORM)
 	buzzer::EmojiData* emojiData() { return emojiData_; }
+#endif
 	ConversationsListModel* getConversationsModel() { return conversationsList_; }
 
 	Q_INVOKABLE QVariant getGlobalBuzzfeedList() { return QVariant::fromValue(globalBuzzfeedList_); }
@@ -664,8 +668,9 @@ private:
 	PeersActiveListModel* peersActive_ = nullptr;
 	PeersListModel* peersAll_ = nullptr;
 	PeersAddedListModel* peersAdded_ = nullptr;
-
+#if defined(DESKTOP_PLATFORM)
 	EmojiData* emojiData_ = nullptr;
+#endif
 };
 
 } // buzzer

@@ -254,7 +254,7 @@ Item {
 		y: avatarImage.y
 		text: getBuzzerAlias()
 		font.bold: true
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 
 		function getBuzzerAlias() {
 			//
@@ -272,7 +272,7 @@ Item {
 		y: avatarImage.y
 		text: getBuzzerName()
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 
 		function getBuzzerName() {
 			//
@@ -326,7 +326,7 @@ Item {
 		y: avatarImage.y
 		text: getAgo()
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 2)) : font.pointSize
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 2)) : (defaultFontPointSize - 2)
 
 		function getAgo() {
 			//

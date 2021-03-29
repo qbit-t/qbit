@@ -78,7 +78,7 @@ QuarkPopup
 					elide: Text.ElideRight
 					text: name
 					elideWidth: popupBox.width - ((keySymbol ? (buzzerClient.scaleFactor * 40) : 15) + 10)
-					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 11) : font.pointSize
+					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 11) : 16
 				}
 
 				QuarkLabel
@@ -92,7 +92,7 @@ QuarkPopup
 					Material.background: "transparent"
 					Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
 					visible: true
-					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 11) : font.pointSize
+					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 11) : 16
 				}
 			}
 		}

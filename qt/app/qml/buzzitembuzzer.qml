@@ -380,7 +380,7 @@ Item {
 		elide: Text.ElideRight
 		text: alias_
 		font.bold: true
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 3)) : font.pointSize
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 3)) : (defaultFontPointSize + 2)
 	}
 
 	QuarkLabelRegular {
@@ -391,7 +391,7 @@ Item {
 		elide: Text.ElideRight
 		text: buzzer_
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 3)) : font.pointSize
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 3)) : (defaultFontPointSize + 2)
 	}
 
 	QuarkLabelRegular {
@@ -404,7 +404,7 @@ Item {
 		text: /*"0x" +*/ buzzerId_
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
 		//font.pointSize: 12
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 3)) : font.pointSize
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 3)) : (defaultFontPointSize + 2)
 	}
 	MouseArea {
 		x: buzzerIdControl.x - spaceItems_
@@ -498,7 +498,7 @@ Item {
 		x: endorseSymbol.x + endorseSymbol.width + buzzerClient.scaleFactor * spaceItems_ + Math.max(endorsementsNumber.width, mistrustsNumber.width) - width
 		y: endorseSymbol.y + endorseSymbol.height / 2 - height / 2 + buzzerClient.scaleFactor * 3
 		text: endorsements_ === undefined ? "00000000" : "" + endorsements_
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 3)) : font.pointSize
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 3)) : (defaultFontPointSize + 2)
 	}
 
 	QuarkSymbolLabel {
@@ -543,7 +543,7 @@ Item {
 		x: mistrustSymbol.x + mistrustSymbol.width + (buzzerClient.scaleFactor * spaceItems_) + Math.max(endorsementsNumber.width, mistrustsNumber.width) - width
 		y: mistrustSymbol.y + mistrustSymbol.height / 2 - height / 2 - buzzerClient.scaleFactor * 2
 		text: mistrusts_ === undefined ? "00000000" : "" + mistrusts_
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 3)) : font.pointSize
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 3)) : (defaultFontPointSize + 2)
 	}
 
 	QuarkSymbolLabel {
@@ -581,7 +581,7 @@ Item {
 		text: description_
 		wrapMode: Text.Wrap
 		textFormat: Text.RichText
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 4)) : font.pointSize
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 4)) : (defaultFontPointSize + 3)
 
 		MouseArea {
 			anchors.fill: parent
@@ -613,7 +613,7 @@ Item {
 		y: descriptionText.y + descriptionText.height + spaceTop_
 		text: NumberFunctions.numberToCompact(following_).toString()
 		// color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 3)) : font.pointSize
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 3)) : (defaultFontPointSize + 2)
 	}
 
 	QuarkLabel {
@@ -622,7 +622,7 @@ Item {
 		y: followingControl.y
 		text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.following")
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 3)) : font.pointSize
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 3)) : (defaultFontPointSize + 2)
 	}
 
 	MouseArea {
@@ -648,7 +648,7 @@ Item {
 		y: followingControl.y
 		text: NumberFunctions.numberToCompact(followers_).toString()
 		// color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 3)) : font.pointSize
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 3)) : (defaultFontPointSize + 2)
 	}
 
 	QuarkLabel {
@@ -657,7 +657,7 @@ Item {
 		y: followingControl.y
 		text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.followers")
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 3)) : font.pointSize
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 3)) : (defaultFontPointSize + 2)
 	}
 
 	MouseArea {

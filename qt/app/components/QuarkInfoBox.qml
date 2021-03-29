@@ -216,6 +216,7 @@ Rectangle
 
             symbol: Fonts.clipboardSym
             Material.background: "transparent"
+			font.pointSize: symbolFontSize
 
             onClicked:
             {
@@ -252,6 +253,7 @@ Rectangle
 
             symbol: Fonts.helpSym
             Material.background: "transparent"
+			font.pointSize: symbolFontSize
 
             onClicked:
             {
@@ -288,6 +290,7 @@ Rectangle
 
 			symbol: Fonts.pasteSym
 			Material.background: "transparent"
+			font.pointSize: symbolFontSize
 
 			onClicked:
 			{

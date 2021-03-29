@@ -2,6 +2,10 @@
 #include <QFile>
 #include <QScreen>
 
+#if defined(DESKTOP_PLATFORM)
+#include <QQuickWidget>
+#endif
+
 #include "application.h"
 #include "error.h"
 #include "line.h"
@@ -19,6 +23,28 @@ ClipboardAdapter::ClipboardAdapter(QObject *parent) : QObject(parent)
 
 int Application::load()
 {
+#if defined(DESKTOP_PLATFORM)
+	try
+	{
+		qInfo() << "Loading app-config:" << "qrc:/buzzer-app.config";
+
+		QFile lRawFile(":/buzzer-app.config");
+		lRawFile.open(QIODevice::ReadOnly | QIODevice::Text);
+
+		QByteArray lRawData = lRawFile.readAll();
+		std::string lRawStringData = lRawData.toStdString();
+
+		appConfig_.loadFromString(lRawStringData);
+
+		style_ = QString::fromStdString(appConfig_.operator []("style").getString());
+	}
+	catch(buzzer::Exception const& ex)
+	{
+		qCritical() << ex.message().c_str();
+		return -1;
+	}
+	return appConfig_.hasErrors() ? -1 : 1;
+#else
     try
     {
         QString lAppConfig = ApplicationPath::applicationDirPath() + "/" + APP_NAME + ".config";
@@ -38,8 +64,8 @@ int Application::load()
         qCritical() << ex.message().c_str();
         return -1;
     }
-
     return appConfig_.hasErrors() ? -1 : 1;
+#endif
 }
 
 void Application::appQuit()
@@ -135,13 +161,27 @@ int Application::execute()
         startNotificator();
     }
 
-    qInfo() << "Loading main qml:" <<  QString("qrc:/qml/") + APP_NAME + ".qml";
-    engine_.load(QString("qrc:/qml/") + APP_NAME + ".qml");
-    if (engine_.rootObjects().isEmpty())
-    {
+#if defined(DESKTOP_PLATFORM)
+	QQuickWindow::setDefaultAlphaBuffer(true);
+	// NOTICE: software rendeder lacks some functionality
+	// QQuickWindow::setSceneGraphBackend(QSGRendererInterface::OpenGL);
+#endif
+
+	qInfo() << "Loading main qml:" <<  QString("qrc:/qml/") + APP_NAME + ".qml";
+	engine_.load(QString("qrc:/qml/") + APP_NAME + ".qml");
+
+	/*
+	QQuickWidget *view = new QQuickWidget(&engine_, nullptr);
+	view->setSource(QString("qrc:/qml/") + APP_NAME + ".qml");
+	view->setAttribute(Qt::WA_OpaquePaintEvent);
+	view->setAttribute(Qt::WA_NoSystemBackground);
+	*/
+	//view->show();
+
+	if (engine_.rootObjects().isEmpty()) {
         qCritical() << "Root object is empty. Exiting...";
         return -1;
-    }
+	}
 
     qInfo() << "Executing app:" << APP_NAME;
     return app_.exec();

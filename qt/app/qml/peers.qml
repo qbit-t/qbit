@@ -195,7 +195,7 @@ QuarkPage
 				x: parent.width / 2 - width / 2
 				y: parent.height / 2 - height / 2
 				text: buzzerApp.getLocalization(buzzerClient.locale, "Peers.active")
-				font.pointSize: buzzerApp.isDesktop ? 14 : font.pointSize
+				font.pointSize: buzzerApp.isDesktop ? 14 : defaultFontPointSize
 			}
 		}
 		TabButton {
@@ -204,7 +204,7 @@ QuarkPage
 				x: parent.width / 2 - width / 2
 				y: parent.height / 2 - height / 2
 				text: buzzerApp.getLocalization(buzzerClient.locale, "Peers.network")
-				font.pointSize: buzzerApp.isDesktop ? 14 : font.pointSize
+				font.pointSize: buzzerApp.isDesktop ? 14 : defaultFontPointSize
 			}
 		}
 		TabButton {
@@ -212,7 +212,7 @@ QuarkPage
 				x: parent.width / 2 - width / 2
 				y: parent.height / 2 - height / 2
 				text: buzzerApp.getLocalization(buzzerClient.locale, "Peers.manual")
-				font.pointSize: buzzerApp.isDesktop ? 14 : font.pointSize
+				font.pointSize: buzzerApp.isDesktop ? 14 : defaultFontPointSize
 			}
 		}
 

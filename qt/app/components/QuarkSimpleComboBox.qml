@@ -30,6 +30,7 @@ ComboBox
     property int keyTopPadding: 0;
     property bool readOnly: false;
 
+	font.family: buzzerApp.isDesktop ? "Noto Color Emoji N" : font.family
 	font.pointSize: fontPointSize
 
     onPopUpWidthChanged:

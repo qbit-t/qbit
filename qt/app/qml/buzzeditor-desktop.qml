@@ -336,7 +336,7 @@ QuarkPage {
 			textFormat: Text.RichText
 			focus: true
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
-			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : font.pointSize
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : defaultFontPointSize
 			selectionColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.selected")
 			selectByMouse: true
 

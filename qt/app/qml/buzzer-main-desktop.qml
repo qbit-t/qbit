@@ -22,6 +22,8 @@ QuarkPage
 	id: buzzermain_
 	key: "buzzermain"
 
+	property bool globalFeedAdjusted: false
+
 	Component.onCompleted: {
 		//
 		buzzerApp.unlockOrientation();
@@ -58,8 +60,10 @@ QuarkPage
 
 		//
 		if (lInitialize) {
-			if (!buzzerClient.haveSubscriptions()) {
+			// common static check
+			if (!buzzerClient.haveSubscriptions() && !buzzermain_.globalFeedAdjusted) {
 				navigatorBar.currentIndex = 1; // global
+				buzzermain_.globalFeedAdjusted = true;
 			}
 
 			//
@@ -107,8 +111,15 @@ QuarkPage
 	BuzzerCommands.LoadBuzzerTrustScoreCommand {
 		id: loadTrustScoreCommand
 		onProcessed: {
+			// endorsements, mistrusts, following, followers
 			buzzerClient.setTrustScore(endorsements, mistrusts);
 			headerBar.adjustTrustScore();
+
+			// switch pages - dynamic check
+			if (following == 0 && !buzzermain_.globalFeedAdjusted) {
+				navigatorBar.currentIndex = 1; // switch to global
+				buzzermain_.globalFeedAdjusted = true;
+			}
 		}
 	}
 
@@ -180,7 +191,7 @@ QuarkPage
 						x: parent.width / 2 - width / 2
 						y: parent.height / 2 - height / 2
 						symbol: Fonts.homeSym
-						font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 16) : font.pointSize
+						font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 16) : (defaultFontPointSize + 2)
 					}
 				}
 				TabButton {
@@ -188,7 +199,7 @@ QuarkPage
 						x: parent.width / 2 - width / 2
 						y: parent.height / 2 - height / 2
 						symbol: Fonts.hashSym
-						font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 16) : font.pointSize
+						font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 16) : (defaultFontPointSize + 2)
 					}
 				}
 				TabButton {
@@ -197,7 +208,7 @@ QuarkPage
 						x: parent.width / 2 - width / 2
 						y: parent.height / 2 - height / 2
 						symbol: Fonts.bellSym
-						font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 16) : font.pointSize
+						font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 16) : (defaultFontPointSize + 2)
 					}
 
 					Rectangle {
@@ -217,7 +228,7 @@ QuarkPage
 						x: parent.width / 2 - width / 2
 						y: parent.height / 2 - height / 2
 						symbol: Fonts.chatsSym
-						font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 16) : font.pointSize
+						font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 16) : (defaultFontPointSize + 2)
 					}
 
 					Rectangle {
@@ -236,7 +247,7 @@ QuarkPage
 						x: parent.width / 2 - width / 2
 						y: parent.height / 2 - height / 2
 						symbol: Fonts.walletSym
-						font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 16) : font.pointSize
+						font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 16) : (defaultFontPointSize + 2)
 					}
 				}
 

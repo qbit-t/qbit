@@ -1,6 +1,6 @@
 TARGET = buzzer
 
-QT += qml quick quickcontrols2 multimedia multimediawidgets widgets
+QT += qml quick quickcontrols2 multimedia multimediawidgets widgets quickwidgets
 
 CONFIG += c++11
 CONFIG += static
@@ -14,6 +14,7 @@ DEFINES += CLIENT_PLATFORM
 DEFINES += DESKTOP_PLATFORM
 
 QMAKE_LFLAGS += -no-pie
+# QMAKE_LFLAGS += -static -s -Os
 
 # Version
 DEFINES += QBIT_VERSION_MAJOR=0
@@ -154,8 +155,8 @@ LIBS += "../../boost/stage/lib/libboost_thread.a"
 LIBS += "../../boost/stage/lib/libboost_chrono.a"
 LIBS += "../../boost/stage/lib/libboost_filesystem.a"
 
-#LIBS += -ljpeg
-#LIBS += -lpng
+LIBS += -ljpeg.a
+LIBS += -lpng.a
 
 DISTFILES += \
     buzzer-app.config \
@@ -178,7 +179,8 @@ DISTFILES += \
     qml/setupinfo-desktop.qml \
     qml/setupqbit-desktop.qml \
     qml/setupqbitaddress-desktop.qml \
-    qml/setuptoolbar-desktop.qml
+    qml/setuptoolbar-desktop.qml \
+    qml/walletreceivereceipt-desktop.qml
 
 HEADERS += \
     asiodispatcher.h \
@@ -229,7 +231,9 @@ RESOURCES += \
     $$files(lib/*) \
     $$files(components/*) \
 	$$files(models/*) \
-	$$files(emoji/*)
+	$$files(emoji/*) \
+	./buzzer-app.config \
+	./buzzer.desktop
 
 FORMS +=
 

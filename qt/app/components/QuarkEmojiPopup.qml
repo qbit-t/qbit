@@ -58,7 +58,7 @@ QuarkPopup {
 					x: parent.width / 2 - width / 2
 					y: parent.height / 2 - height / 2
 					symbol: Fonts.clockSym
-					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 18) : font.pointSize
+					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 18) : defaultFontPointSize
 				}
 			}
 			TabButton {
@@ -66,7 +66,7 @@ QuarkPopup {
 					x: parent.width / 2 - width / 2
 					y: parent.height / 2 - height / 2
 					symbol: Fonts.peopleEmojiSym
-					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 18) : font.pointSize
+					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 18) : defaultFontPointSize
 				}
 			}
 			TabButton {
@@ -74,7 +74,7 @@ QuarkPopup {
 					x: parent.width / 2 - width / 2
 					y: parent.height / 2 - height / 2
 					symbol: Fonts.natureEmojiSym
-					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 18) : font.pointSize
+					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 18) : defaultFontPointSize
 				}
 			}
 			TabButton {
@@ -83,7 +83,7 @@ QuarkPopup {
 					x: parent.width / 2 - width / 2
 					y: parent.height / 2 - height / 2
 					symbol: Fonts.foodEmojiSym
-					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 18) : font.pointSize
+					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 18) : defaultFontPointSize
 				}
 			}
 			TabButton {
@@ -92,7 +92,7 @@ QuarkPopup {
 					x: parent.width / 2 - width / 2
 					y: parent.height / 2 - height / 2
 					symbol: Fonts.activityEmojiSym
-					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 18) : font.pointSize
+					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 18) : defaultFontPointSize
 				}
 			}
 			TabButton {
@@ -100,7 +100,7 @@ QuarkPopup {
 					x: parent.width / 2 - width / 2
 					y: parent.height / 2 - height / 2
 					symbol: Fonts.placesEmojiSym
-					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 18) : font.pointSize
+					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 18) : defaultFontPointSize
 				}
 			}
 			TabButton {
@@ -108,7 +108,7 @@ QuarkPopup {
 					x: parent.width / 2 - width / 2
 					y: parent.height / 2 - height / 2
 					symbol: Fonts.objectsEmojiSym
-					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 18) : font.pointSize
+					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 18) : defaultFontPointSize
 				}
 			}
 			TabButton {
@@ -116,7 +116,7 @@ QuarkPopup {
 					x: parent.width / 2 - width / 2
 					y: parent.height / 2 - height / 2
 					symbol: Fonts.symbolsEmojiSym
-					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 18) : font.pointSize
+					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 18) : defaultFontPointSize
 				}
 			}
 			TabButton {
@@ -124,7 +124,7 @@ QuarkPopup {
 					x: parent.width / 2 - width / 2
 					y: parent.height / 2 - height / 2
 					symbol: Fonts.flagsEmojiSym
-					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 18) : font.pointSize
+					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 18) : defaultFontPointSize
 				}
 			}
 

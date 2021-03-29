@@ -51,7 +51,10 @@ ApplicationWindow {
     {
     }
 
-	flags: Qt.Window | Qt.MaximizeUsingFullscreenGeometryHint | Qt.FramelessWindowHint
+	flags: Qt.Window |
+		   Qt.MaximizeUsingFullscreenGeometryHint |
+		   Qt.FramelessWindowHint |
+		   Qt.WindowMinimizeButtonHint
 
 	Keys.onPressed: {
 		console.log("[event]: " + event);
@@ -311,15 +314,30 @@ ApplicationWindow {
 
 		function onTryOpenThread(buzzChainId, buzzId, buzzerAlias, buzzBody) {
 			//
+			window.requestActivate();
+			window.showNormal();
+			window.show();
+			window.raise();
+			//
 			openThread(buzzChainId, buzzId, buzzerAlias, buzzBody);
 		}
 
 		function onTryOpenBuzzfeedByBuzzer(buzzer) {
 			//
+			window.requestActivate();
+			window.showNormal();
+			window.show();
+			window.raise();
+			//
 			openBuzzfeedByBuzzer(buzzer);
 		}
 
 		function onTryOpenConversation(id, conversationId, conversation, list) {
+			//
+			window.requestActivate();
+			window.showNormal();
+			window.show();
+			window.raise();
 			//
 			openConversation(conversationId, conversation, list, id);
 		}
@@ -795,17 +813,6 @@ ApplicationWindow {
         {
             id: welcome
 
-            PropertyAnimation
-            {
-                id: apearing
-                target: welcomeRect
-                property: "opacity"
-                from: 0.0
-                to: 1.0
-                duration: 600
-                //easing.type: Easing.Linear
-            }
-
             Rectangle
             {
                 id: welcomeRect
@@ -827,7 +834,7 @@ ApplicationWindow {
 
                 Component.onCompleted:
                 {
-                    apearing.start();
+					// apearing.start();
                 }
             }
         }
@@ -971,7 +978,7 @@ ApplicationWindow {
 						Material.background: "transparent"
 						Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 						visible: true
-						font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 11) : font.pointSize
+						font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 11) : defaultFontPointSize
 					}
 				}
 			}

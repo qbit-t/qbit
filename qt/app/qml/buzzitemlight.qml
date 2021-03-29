@@ -239,7 +239,7 @@ Item {
 			y: avatarImage.y
 			text: buzzerClient.getBuzzerAlias(buzzerInfoId_)
 			font.bold: true
-			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 		}
 
 		QuarkLabelRegular {
@@ -250,7 +250,7 @@ Item {
 			elide: Text.ElideRight
 			text: buzzerClient.getBuzzerName(buzzerInfoId_)
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
-			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 		}
 
 		QuarkLabel {
@@ -259,7 +259,7 @@ Item {
 			y: avatarImage.y
 			text: ago_
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
-			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 		}
 
 		//
@@ -311,7 +311,7 @@ Item {
 				text: buzzBody_
 				wrapMode: Text.Wrap
 				textFormat: Text.RichText
-				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
+				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 				lineHeight: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 1.1) : lineHeight
 
 				MouseArea {

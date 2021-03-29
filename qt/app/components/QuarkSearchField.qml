@@ -59,6 +59,7 @@ Item
 
         placeholderText: searchField.placeHolder
 		text: searchText
+		mouseSelectionMode: TextInput.SelectCharacters
 
         onTextEdited:
         {

@@ -467,11 +467,4 @@ QuarkPage {
 			waitIndicator.visible = false;
 		}
 	}
-
-	/*
-	BusyIndicator {
-		id: waitIndicator
-		anchors { horizontalCenter: parent.horizontalCenter; verticalCenter: parent.verticalCenter; }
-	}
-	*/
 }

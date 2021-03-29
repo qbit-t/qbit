@@ -231,15 +231,15 @@ contains(ANDROID_TARGET_ARCH,armeabi-v7a) {
     DEPENDPATH += $$PWD/libjpeg/android/obj/local/armeabi-v7a
     DEPENDPATH += $$PWD/libpng/android/obj/local/armeabi-v7a
 
-    LIBS += -L../mobile/leveldb/android/obj/local/armeabi-v7a/ -lleveldb
-    LIBS += -L../mobile/boost/boost_1_73_0/stage/lib/ -lboost_random-clang-mt-s-a32-1_73
-    LIBS += -L../mobile/boost/boost_1_73_0/stage/lib/ -lboost_system-clang-mt-s-a32-1_73
-    LIBS += -L../mobile/boost/boost_1_73_0/stage/lib/ -lboost_thread-clang-mt-s-a32-1_73
-    LIBS += -L../mobile/boost/boost_1_73_0/stage/lib/ -lboost_chrono-clang-mt-s-a32-1_73
-    LIBS += -L../mobile/boost/boost_1_73_0/stage/lib/ -lboost_filesystem-clang-mt-s-a32-1_73
+    LIBS += -L$$PWD/leveldb/android/obj/local/armeabi-v7a/ -lleveldb
+	LIBS += -L$$PWD/boost/boost_1_73_0/stage/lib/ -lboost_random-clang-mt-s-a32-1_73
+	LIBS += -L$$PWD/boost/boost_1_73_0/stage/lib/ -lboost_system-clang-mt-s-a32-1_73
+	LIBS += -L$$PWD/boost/boost_1_73_0/stage/lib/ -lboost_thread-clang-mt-s-a32-1_73
+	LIBS += -L$$PWD/boost/boost_1_73_0/stage/lib/ -lboost_chrono-clang-mt-s-a32-1_73
+	LIBS += -L$$PWD/boost/boost_1_73_0/stage/lib/ -lboost_filesystem-clang-mt-s-a32-1_73
 
-    LIBS += -L../mobile/libjpeg/android/obj/local/armeabi-v7a/ -ljpeg
-    LIBS += -L../mobile/libpng/android/obj/local/armeabi-v7a/ -lpng
+    LIBS += -L$$PWD/libjpeg/android/obj/local/armeabi-v7a/ -ljpeg
+	LIBS += -L$$PWD/libpng/android/obj/local/armeabi-v7a/ -lpng
 
     # BUG: https://bugreports.qt.io/browse/QTBUG-81866
 	# ANDROID_EXTRA_LIBS = \
@@ -259,15 +259,15 @@ contains(ANDROID_TARGET_ARCH,arm64-v8a) {
     DEPENDPATH += $$PWD/libjpeg/android/obj/local/arm64-v8a
     DEPENDPATH += $$PWD/libpng/android/obj/local/arm64-v8a
 
-    LIBS += -L../mobile/leveldb/android/obj/local/arm64-v8a/ -lleveldb
-    LIBS += -L../mobile/boost/boost_64_1_73_0/stage/lib/ -lboost_random-clang-mt-s-a64-1_73
-    LIBS += -L../mobile/boost/boost_64_1_73_0/stage/lib/ -lboost_system-clang-mt-s-a64-1_73
-    LIBS += -L../mobile/boost/boost_64_1_73_0/stage/lib/ -lboost_thread-clang-mt-s-a64-1_73
-    LIBS += -L../mobile/boost/boost_64_1_73_0/stage/lib/ -lboost_chrono-clang-mt-s-a64-1_73
-    LIBS += -L../mobile/boost/boost_64_1_73_0/stage/lib/ -lboost_filesystem-clang-mt-s-a64-1_73
+    LIBS += -L$$PWD/leveldb/android/obj/local/arm64-v8a/ -lleveldb
+	LIBS += -L$$PWD/boost/boost_64_1_73_0/stage/lib/ -lboost_random-clang-mt-s-a64-1_73
+	LIBS += -L$$PWD/boost/boost_64_1_73_0/stage/lib/ -lboost_system-clang-mt-s-a64-1_73
+	LIBS += -L$$PWD/boost/boost_64_1_73_0/stage/lib/ -lboost_thread-clang-mt-s-a64-1_73
+	LIBS += -L$$PWD/boost/boost_64_1_73_0/stage/lib/ -lboost_chrono-clang-mt-s-a64-1_73
+	LIBS += -L$$PWD/boost/boost_64_1_73_0/stage/lib/ -lboost_filesystem-clang-mt-s-a64-1_73
 
-    LIBS += -L../mobile/libjpeg/android/obj/local/arm64-v8a/ -ljpeg
-    LIBS += -L../mobile/libpng/android/obj/local/arm64-v8a/ -lpng
+    LIBS += -L$$PWD/libjpeg/android/obj/local/arm64-v8a/ -ljpeg
+	LIBS += -L$$PWD/libpng/android/obj/local/arm64-v8a/ -lpng
 
     # BUG: https://bugreports.qt.io/browse/QTBUG-81866
 	# ANDROID_EXTRA_LIBS = \

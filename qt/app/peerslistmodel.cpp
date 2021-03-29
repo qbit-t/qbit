@@ -207,7 +207,7 @@ void PeersListModel::peerPushedInternal(const buzzer::PeerProxy& peer, bool /*up
 		PeerItemPtr lItem = list_[lIndex->second];
 		if (lItem) {
 			//
-			qInfo() << "[peerPushedInternal]" << QString::fromStdString(peer.get()->key()) << lIndex->second;
+			// qInfo() << "[peerPushedInternal]" << QString::fromStdString(peer.get()->key()) << lIndex->second;
 			//
 			if (lItem->status() != qbit::IPeer::ACTIVE && peer.get()->status() == qbit::IPeer::ACTIVE) {
 				// remove
@@ -249,7 +249,7 @@ void PeersListModel::peerPushedInternal(const buzzer::PeerProxy& peer, bool /*up
 		list_.push_back(lItem);
 		index_[lItem->id()] = list_.size()-1;
 
-		qInfo() << "[peerPushedInternal]" << QString::fromStdString(peer.get()->key()) << list_.size()-1;
+		// qInfo() << "[peerPushedInternal]" << QString::fromStdString(peer.get()->key()) << list_.size()-1;
 
 		beginInsertRows(QModelIndex(), list_.size()-1, list_.size()-1);
 		endInsertRows();
@@ -273,7 +273,7 @@ void PeersListModel::peerPoppedInternal(const buzzer::PeerProxy& peer, int /*cou
 			index_[list_[lIdxNew]->id()] = lIdxNew;
 		}
 
-		qInfo() << "[peerPoppedInternal]" << QString::fromStdString(peer.get()->key()) << lIdx;
+		// qInfo() << "[peerPoppedInternal]" << QString::fromStdString(peer.get()->key()) << lIdx;
 
 		beginRemoveRows(QModelIndex(), lIdx, lIdx);
 		endRemoveRows();

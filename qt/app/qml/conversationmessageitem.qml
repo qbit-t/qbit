@@ -213,7 +213,7 @@ Item {
 		id: messageMetrics
 		font.family: buzzText.font.family
 		text: conversationMessage()
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 
 		function getX(pwidth) {
 			//
@@ -348,7 +348,7 @@ Item {
 				wrapMode: Text.Wrap
 				textFormat: Text.RichText
 				font.italic: !accepted_
-				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
+				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 				// lineHeight: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 1.1) : lineHeight
 				readOnly: true
 				selectByMouse: true

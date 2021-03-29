@@ -22,6 +22,7 @@ Item
     Material.primary: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.primary");
 
 	property int fontPointSize: 12;
+	property int unitsFontPointSize: 10;
 	property int buzztonsFontPointSize: 14;
 	property int popUpWidth: editRect.width;
     property int itemRightPadding: -5;
@@ -163,7 +164,7 @@ Item
 
 			QuarkLabel {
 				id: unitsLabel
-				font.pointSize: 10
+				font.pointSize: unitsFontPointSize
 				x: numberLabel.calculatedWidth + 5
 				y: 0
 				text: units

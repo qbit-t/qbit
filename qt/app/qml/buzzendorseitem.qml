@@ -297,7 +297,7 @@ Item {
 		y: avatarImage.y
 		text: buzzerClient.resolveBuzzerAlias(publisherBuzzerInfoId_)
 		font.bold: true
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 	}
 
 	QuarkLabelRegular {
@@ -308,7 +308,7 @@ Item {
 		elide: Text.ElideRight
 		text: buzzerClient.resolveBuzzerName(publisherBuzzerInfoId_)
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 	}
 
 	QuarkLabel {
@@ -317,7 +317,7 @@ Item {
 		y: avatarImage.y
 		text: ago_
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 2)) : font.pointSize
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 2)) : (defaultFontPointSize - 2)
 	}
 
 	QuarkSymbolLabel {
@@ -397,7 +397,7 @@ Item {
 			width: parent.width
 			text: buzzerClient.resolveBuzzerDescription(publisherBuzzerInfoId_)
 			wrapMode: Text.Wrap
-			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 		}
 	}
 

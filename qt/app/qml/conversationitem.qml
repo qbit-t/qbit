@@ -290,7 +290,7 @@ Item {
 		y: avatarImage.y
 		text: buzzerClient.getBuzzerAlias(side_ === sideCreator_ ? creatorInfoId_ : counterpartyInfoId_)
 		font.bold: true
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 	}
 
 	QuarkLabelRegular {
@@ -301,7 +301,7 @@ Item {
 		elide: Text.ElideRight
 		text: buzzerClient.getBuzzerName(side_ === sideCreator_ ? creatorInfoId_ : counterpartyInfoId_)
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 	}
 
 	QuarkLabel {
@@ -310,7 +310,7 @@ Item {
 		y: avatarImage.y
 		text: ago_
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 	}
 
 	QuarkSymbolLabel {
@@ -378,7 +378,7 @@ Item {
 
 		onProcessed: {
 			// pkey, body
-			bodyControl.message = body;
+			bodyControl.message = body.replace(/(\r\n|\n|\r)/gm, "");
 		}
 
 		onError: {
@@ -407,7 +407,7 @@ Item {
 		y: buzzerAliasControl.y + buzzerAliasControl.height + spaceHeader_
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link")
 		text: conversationFrom()
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 	}
 
 	TextMetrics	{
@@ -415,7 +415,7 @@ Item {
 		elide: Text.ElideRight
 		text: bodyControl.message
 		elideWidth: parent.width - (bodyControl.x + (buzzerApp.isDesktop ? 2 * spaceRight_ : spaceRight_))
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 		font.family: buzzerApp.isDesktop ? "Noto Color Emoji N" : font.family
 	}
 
@@ -426,7 +426,7 @@ Item {
 		text: bodyControlMetrics.elidedText + (bodyControlMetrics.elidedText !== message && buzzerApp.isDesktop ? "..." : "")
 		font.italic: conversationState() === conversationPending_
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 
 		property var message: getText()
 

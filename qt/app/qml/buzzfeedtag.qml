@@ -420,7 +420,7 @@ QuarkPage {
 		}
 	}
 
-	BusyIndicator {
+	QuarkBusyIndicator {
 		id: waitIndicator
 		anchors { horizontalCenter: parent.horizontalCenter; verticalCenter: parent.verticalCenter; }
 	}

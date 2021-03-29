@@ -20,4 +20,7 @@ Label {
 
 	//antialiasing: buzzerApp.isDesktop ? false : antialiasing
 	font.family: buzzerApp.isDesktop ? "Noto Color Emoji N" : font.family
+
+	property real defaultFontPointSize: buzzerApp.isDesktop ? 11 : 16
+	font.pointSize: defaultFontPointSize
 }

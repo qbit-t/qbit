@@ -263,7 +263,7 @@ Item
 		}
 	}
 
-	BusyIndicator {
+	QuarkBusyIndicator {
 		anchors { horizontalCenter: parent.horizontalCenter; verticalCenter: parent.verticalCenter; }
 		running: !modelLoader.requestProcessed
 	}

@@ -495,7 +495,7 @@ QuarkPage {
 				wrapMode: Text.Wrap
 				textFormat: Text.RichText
 				color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
-				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : font.pointSize
+				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : (defaultFontPointSize + 1)
 				selectionColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.selected")
 				selectByMouse: true
 
@@ -677,7 +677,7 @@ QuarkPage {
 		}
 	}
 
-	BusyIndicator {
+	QuarkBusyIndicator {
 		id: waitIndicator
 		anchors { horizontalCenter: parent.horizontalCenter; verticalCenter: parent.verticalCenter; }
 	}

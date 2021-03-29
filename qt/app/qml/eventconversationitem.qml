@@ -298,7 +298,7 @@ Item {
 		y: avatarImage.y
 		text: getBuzzerAlias()
 		font.bold: true
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 
 		function getBuzzerAlias() {
 			//
@@ -316,7 +316,7 @@ Item {
 		y: avatarImage.y
 		text: getBuzzerName()
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 
 		function getBuzzerName() {
 			//
@@ -363,7 +363,7 @@ Item {
 		elide: Text.ElideRight
 		text: bodyControl.message
 		elideWidth: parent.width - (bodyControl.x + (buzzerApp.isDesktop ? 2 * spaceRight_ : spaceRight_))
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 		font.family: buzzerApp.isDesktop ? "Noto Color Emoji N" : font.family
 	}
 
@@ -374,7 +374,7 @@ Item {
 		text: bodyControlMetrics.elidedText + (bodyControlMetrics.elidedText !== message && buzzerApp.isDesktop ? "..." : "")
 		// font.italic: conversationState() === conversationPending_
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 		visible: message !== undefined && message !== ""
 
 		property var message;
@@ -394,7 +394,7 @@ Item {
 		y: avatarImage.y
 		text: ago_
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 2)) : font.pointSize
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 2)) : (defaultFontPointSize - 2)
 	}
 
 	QuarkSymbolLabel {
@@ -519,7 +519,7 @@ Item {
 
 		onProcessed: {
 			// key, body
-			bodyControl.message = body;
+			bodyControl.message = body.replace(/(\r\n|\n|\r)/gm, "");
 			eventconversationitem_.calculateHeight();
 		}
 	}

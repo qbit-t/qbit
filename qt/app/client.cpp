@@ -15,7 +15,10 @@
 
 #include "buzztexthighlighter.h"
 #include "wallettransactionslistmodel.h"
+
+#if defined(DESKTOP_PLATFORM)
 #include "emojimodel.h"
+#endif
 
 #include <QQuickImageProvider>
 
@@ -110,12 +113,14 @@ int Client::open(QString secret) {
 	}
 
 	//
+#if defined(DESKTOP_PLATFORM)
 	if (application_->isDesktop()) {
 		QFontDatabase::addApplicationFont(":/fonts-desktop/NotoColorEmojiN.ttf");
 
 		emojiData_ = new EmojiData();
 		emojiData_->open();
 	}
+#endif
 
 	// setup testnet
 	qbit::gTestNet = application_->getTestNet();
@@ -392,7 +397,9 @@ int Client::open(QString secret) {
 	qmlRegisterType<buzzer::ConversationsfeedListModel>("app.buzzer.commands", 1, 0, "ConversationsfeedListModel");
 	qmlRegisterType<buzzer::ConversationsListModel>("app.buzzer.commands", 1, 0, "ConversationsListModel");
 
+#if defined(DESKTOP_PLATFORM)
 	qmlRegisterType<buzzer::EmojiModel>("app.buzzer.commands", 1, 0, "EmojiModel");
+#endif
 
 	qRegisterMetaType<qbit::BuzzfeedProxy>("qbit::BuzzfeedProxy");
 	qRegisterMetaType<qbit::BuzzfeedItemProxy>("qbit::BuzzfeedItemProxy");
@@ -427,6 +434,12 @@ int Client::open(QString secret) {
 	peerManager_->addPeerExplicit("85.90.245.180:31416");
 	*/
 
+	// check bounds
+	QString lLastTimestamp = getProperty("Client.lastTimestamp");
+	if (!lLastTimestamp.length()) {
+		setProperty("Client.lastTimestamp", QString::number(qbit::getMicroseconds()));
+	}
+
 	// fill up peers
 	peerManager_->run();
 
@@ -455,10 +468,10 @@ void Client::eventsfeedUpdated(const qbit::EventsfeedItemProxy& event) {
 			emit newEvents();
 			setProperty("Client.lastTimestamp", QString::number(lEventsfeedItem->timestamp()));
 #if defined(DESKTOP_PLATFORM)
-			// notify			
-			if (QString::fromStdString(lEventsfeedItem->buzzId().toHex()) != topId_ &&
+			// notify
+			if (suspended_ || (QString::fromStdString(lEventsfeedItem->buzzId().toHex()) != topId_ &&
 					(!lEventsfeedItem->buzzers().size() ||
-					 QString::fromStdString(lEventsfeedItem->beginInfo()->eventId().toHex()) != topId_)) {
+					 QString::fromStdString(lEventsfeedItem->beginInfo()->eventId().toHex()) != topId_))) {
 				qInfo() << "[eventsfeedUpdated/0]" << lEventsfeedItem->timestamp() << !suspended_;
 				PushNotification::instance(lEventsfeedItem, !suspended_)->process();
 			}
@@ -469,9 +482,9 @@ void Client::eventsfeedUpdated(const qbit::EventsfeedItemProxy& event) {
 		setProperty("Client.lastTimestamp", QString::number(lEventsfeedItem->timestamp()));
 #if defined(DESKTOP_PLATFORM)
 		// notify
-		if (QString::fromStdString(lEventsfeedItem->buzzId().toHex()) != topId_ &&
+		if (suspended_ || (QString::fromStdString(lEventsfeedItem->buzzId().toHex()) != topId_ &&
 				(!lEventsfeedItem->buzzers().size() ||
-				 QString::fromStdString(lEventsfeedItem->beginInfo()->eventId().toHex()) != topId_)) {
+				 QString::fromStdString(lEventsfeedItem->beginInfo()->eventId().toHex()) != topId_))) {
 			qInfo() << "[eventsfeedUpdated/1]" << lEventsfeedItem->timestamp() << !suspended_;
 			PushNotification::instance(lEventsfeedItem, !suspended_)->process();
 		}
@@ -487,12 +500,16 @@ void Client::conversationsUpdated(const qbit::ConversationItemProxy& event) {
 	if (lLastTimestamp.length()) {
 		if (lLastTimestamp.toULongLong() < lEventsfeedItem->timestamp()) {
 			qInfo() << "[conversationsUpdated]" << lLastTimestamp.toULongLong() << lEventsfeedItem->timestamp();
-			emit newMessages();
+			if (lEventsfeedItem->events().size() &&
+					lEventsfeedItem->events()[0].buzzerId() != getBuzzerComposer()->buzzerId())
+				emit newMessages();
 			setProperty("Client.conversationsLastTimestamp", QString::number(lEventsfeedItem->timestamp()));
 		}
 	} else {
 		qInfo() << "[conversationsUpdated]" << lLastTimestamp.toULongLong() << lEventsfeedItem->timestamp();
-		emit newMessages();
+		if (lEventsfeedItem->events().size() &&
+				lEventsfeedItem->events()[0].buzzerId() != getBuzzerComposer()->buzzerId())
+			emit newMessages();
 		setProperty("Client.conversationsLastTimestamp", QString::number(lEventsfeedItem->timestamp()));
 	}
 }
@@ -870,7 +887,7 @@ void Client::resume() {
 
 void Client::setBuzzerDAppReady() {
 	//
-	if (suspended_) return;
+	if (!gApplication->isDesktop() && suspended_) return;
 
 	//
 	std::map<uint256, std::map<uint32_t, IPeerPtr>> lMap;
@@ -950,6 +967,9 @@ void Client::removeAllKeys() {
 	//
 	if (wallet_) {
 		wallet_->removeAllKeys();
+
+		buzzerDAppReady_ = false;
+		recallWallet_ = true;
 	}
 }
 
@@ -1130,5 +1150,7 @@ void Client::extractFavoriteEmojis(std::vector<std::string>& fav) {
 void Client::setFavEmoji(QString emoji) {
 	//
 	setProperty(QString("emoji.") + emoji, "true");
+#if defined(DESKTOP_PLATFORM)
 	emojiData_->updateFavEmojis();
+#endif
 }

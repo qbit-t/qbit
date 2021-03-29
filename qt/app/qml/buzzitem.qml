@@ -205,7 +205,7 @@ Item {
 			elide: Text.ElideRight
 			text: actionText.actualText
 			elideWidth: parent.width - (actionText.x + (buzzerApp.isDesktop ? 2 * spaceRight_ : spaceRight_))
-			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : 16
 		}
 
 		QuarkLabel {
@@ -459,7 +459,7 @@ Item {
 		y: avatarImage.y
 		text: buzzerAlias_
 		font.bold: true
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 	}
 
 	QuarkLabelRegular {
@@ -470,7 +470,7 @@ Item {
 		elide: Text.ElideRight
 		text: buzzerName_
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 	}
 
 	QuarkLabel {
@@ -479,7 +479,7 @@ Item {
 		y: avatarImage.y
 		text: ago_
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 2)) : font.pointSize
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 2)) : (defaultFontPointSize - 2)
 	}
 
 	QuarkSymbolLabel {
@@ -616,7 +616,7 @@ Item {
 			text: buzzBody_
 			wrapMode: Text.Wrap
 			textFormat: Text.RichText
-			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 			lineHeight: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 1.1) : lineHeight
 
 			MouseArea {
@@ -827,7 +827,7 @@ Item {
 		text: NumberFunctions.numberToCompact(replies_).toString()
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 		visible: replies_ > 0
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 	}
 
 	QuarkToolButton	{
@@ -855,7 +855,7 @@ Item {
 		text: NumberFunctions.numberToCompact(rebuzzes_).toString()
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 		visible: rebuzzes_ > 0
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 	}
 
 	QuarkToolButton	{
@@ -882,7 +882,7 @@ Item {
 		text: NumberFunctions.numberToCompact(likes_).toString()
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 		visible: likes_ > 0
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 	}
 
 	QuarkToolButton	{
@@ -910,7 +910,7 @@ Item {
 		text: NumberFunctions.numberToCompact(rewards_).toString()
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 		visible: rewards_ > 0
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 	}
 
 	//

@@ -37,12 +37,12 @@ void buzzer::Notificator::showMessage(buzzer::PushNotificationPtr item, bool aut
 	if (index_.find(item->getKey()) == index_.end()) {
 		//
 		index_.insert(item->getKey());
-
 		//
 		Notificator* lInstance = new Notificator(item, autohide);
 		bool lDisplay = configureInstance(lInstance);
 		lInstance->notify(item, lDisplay);
-		if (autohide) QTimer::singleShot(DEFAULT_MESSAGE_SHOW_TIME, lInstance, SLOT(fadeOut()));
+		if (autohide && QThread::currentThread() != nullptr)
+			QTimer::singleShot(DEFAULT_MESSAGE_SHOW_TIME, lInstance, SLOT(fadeOut()));
 	}
 }
 
@@ -108,8 +108,13 @@ void buzzer::Notificator::fadeOut() {
 	lAnimation->setEndValue(0);
 	lAnimation->setEasingCurve(QEasingCurve::OutBack);
 	lAnimation->start(QPropertyAnimation::DeleteWhenStopped);
-	connect(lAnimation, SIGNAL(finished()), this, SLOT(hide()));
+	connect(lAnimation, SIGNAL(finished()), this, SLOT(done()));
 	index_.erase(item_->getKey());
+}
+
+void buzzer::Notificator::done() {
+	//
+	hide();
 }
 
 void buzzer::Notificator::hideAll() {
@@ -192,6 +197,7 @@ bool buzzer::Notificator::event(QEvent* event) {
 		adjustGeometry();
 	} else if (event->type() == QEvent::Resize) {
 	} else if (event->type() == QEvent::Paint) {
+	} else if (event->type() == QEvent::Show) {
 	}
 
 	return QFrame::event(event);
@@ -240,7 +246,7 @@ void buzzer::Notificator::initializeUI() {
 	setPalette(lPalette);
 
 	setWindowFlags(Qt::ToolTip | Qt::FramelessWindowHint);
-	setAttribute(Qt::WA_Hover, true);
+	//setAttribute(Qt::WA_Hover, true);
 
 	// type
 	QString lTypeColor;

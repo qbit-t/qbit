@@ -285,7 +285,7 @@ QuarkPage
 						text: name
 						x: 10
 						y: parent.height / 2 - height / 2
-						font.pointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 14 : font.pointSize
+						font.pointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 14 : defaultFontPointSize
 					}
 				}
 

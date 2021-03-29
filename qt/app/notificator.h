@@ -60,6 +60,7 @@ public:
 public slots:
 	void fadeIn();
 	void fadeOut();
+	void done();
 
 protected:
 	bool event(QEvent*);

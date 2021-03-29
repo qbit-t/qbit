@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version={version}
+Name=Buzzer
+Comment=Decentralized microblogging platform
+Exec={path}/buzzer
+Icon=buzzer
+Terminal=false
+Type=Application
+Categories=Application;
+

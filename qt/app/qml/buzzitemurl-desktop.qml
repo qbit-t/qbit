@@ -131,7 +131,7 @@ Item {
 			text: sourceInfo.title
 			width: parent.width - (spaceLeft_ + spaceRight_)
 			elide: Text.ElideRight
-			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 			color: "transparent"
 		}
 
@@ -143,7 +143,7 @@ Item {
 			text: sourceInfo.description
 			wrapMode: Text.Wrap
 			color: "transparent"
-			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 			lineHeight: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 1.0) : lineHeight
 		}
 
@@ -165,7 +165,7 @@ Item {
 			text: sourceInfo.host
 			elide: Text.ElideRight
 			color: "transparent"
-			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 		}
 
 		layer.enabled: true
@@ -224,7 +224,7 @@ Item {
 			text: sourceInfo.title
 			width: parent.width - (spaceLeft_ + spaceRight_)
 			elide: Text.ElideRight
-			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 		}
 
 		QuarkLabel {
@@ -234,7 +234,7 @@ Item {
 			text: sourceInfo.description
 			wrapMode: Text.Wrap
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
-			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 			lineHeight: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 1.0) : lineHeight
 		}
 
@@ -254,7 +254,7 @@ Item {
 			text: sourceInfo.host
 			elide: Text.ElideRight
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
-			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : font.pointSize
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 		}
 
 		MouseArea {

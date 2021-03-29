@@ -72,7 +72,8 @@ ListView
                 text: Fonts.circleArrowUpSym
                 font.family: Fonts.icons
                 font.weight: Font.Normal
-                font.pixelSize: getPixelSize()
+				//font.pixelSize: getPixelSize()
+				font.pointSize: getPixelSize()
                 //renderType: Text.NativeRendering
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter

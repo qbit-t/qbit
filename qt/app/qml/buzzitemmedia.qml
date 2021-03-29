@@ -188,16 +188,6 @@ Item {
 				}
 			}
 
-			/*
-			BusyIndicator {
-				id: imageLoading
-				// anchors { horizontalCenter: mediaList.horizontalCenter; verticalCenter: mediaList.verticalCenter; }
-				x: mediaList.width / 2 - width / 2
-				y: mediaList.height / 2 - height / 2
-				running: false
-			}
-			*/
-
 			QuarkRoundProgress {
 				id: imageLoading
 				x: mediaList.width / 2 - width / 2
