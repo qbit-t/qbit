@@ -1171,8 +1171,8 @@ void Client::setFavEmoji(QString emoji) {
 void Client::setAvatar(const QString& avatar) {
 #ifdef Q_OS_WINDOWS
 	QString lAvatar = avatar;
-	lAvatar.replace(0, 1, lAvatar[0].toLower());
-	avatar_ = lAvatar;
+	//lAvatar.replace(0, 1, lAvatar[0].toLower());
+	avatar_ = lAvatar[0] != "/" ? ("/" + lAvatar) : lAvatar;
 #else
 	avatar_ = avatar;
 #endif
@@ -1182,8 +1182,8 @@ void Client::setAvatar(const QString& avatar) {
 void Client::setHeader(const QString& header) {
 #ifdef Q_OS_WINDOWS
 	QString lHeader = header;
-	lHeader.replace(0, 1, lHeader[0].toLower());
-	header_ = lHeader;
+	//lHeader.replace(0, 1, lHeader[0].toLower());
+	header_ = lHeader[0] != "/" ? ("/" + lHeader) : lHeader;
 #else
 	header_ = header;
 #endif
