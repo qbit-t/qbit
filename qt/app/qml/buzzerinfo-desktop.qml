@@ -286,7 +286,6 @@ Item
 			var lPath = fileUrl.toString();
 			if (Qt.platform.os == "windows") {
 				lPath = lPath.replace(/^(file:\/{3})/,"");
-				lPath = lPath.slice(0, 1) + ":" + lPath.slice(1); // C/path -> C:/path
 			} else {
 				lPath = lPath.replace(/^(file:\/{2})/,"");
 			}
@@ -462,7 +461,6 @@ Item
 			var lPath = fileUrl.toString();
 			if (Qt.platform.os == "windows") {
 				lPath = lPath.replace(/^(file:\/{3})/,"");
-				lPath = lPath.slice(0, 1) + ":" + lPath.slice(1); // C/path -> C:/path
 			} else {
 				lPath = lPath.replace(/^(file:\/{2})/,"");
 			}
