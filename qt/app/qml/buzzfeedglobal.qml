@@ -38,8 +38,8 @@ Item
 	function start() {
 		if (!buzzerApp.isDesktop) search.setText("");
 		else {
-			controller.mainToolBar.searchTextEdited.connect(startSearch);
-			controller.mainToolBar.searchTextCleared.connect(searchTextCleared);
+			controller.mainToolBar.searchTextEdited.connect(buzzfeed_.startSearch);
+			controller.mainToolBar.searchTextCleared.connect(buzzfeed_.searchTextCleared);
 			controller.mainToolBar.setSearchText("", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.global.search"));
 		}
 
@@ -51,8 +51,8 @@ Item
 
 	function disconnect() {
 		if (buzzerApp.isDesktop) {
-			controller.mainToolBar.searchTextEdited.disconnect(startSearch);
-			controller.mainToolBar.searchTextCleared.disconnect(searchTextCleared);
+			controller.mainToolBar.searchTextEdited.disconnect(buzzfeed_.startSearch);
+			controller.mainToolBar.searchTextCleared.disconnect(buzzfeed_.searchTextCleared);
 		}
 	}
 
@@ -422,7 +422,7 @@ Item
 
 	QuarkPopupMenu {
 		id: buzzersList
-		width: 170
+		width: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 170) : 170
 		visible: false
 
 		model: ListModel { id: buzzersModel }
@@ -442,6 +442,9 @@ Item
 		}
 
 		function popup(match, buzzers) {
+			//
+			if (buzzers.opened) buzzers.close();
+
 			//
 			if (buzzers.length === 0) return;
 			if (buzzers.length === 1 && match === buzzers[0]) return;
@@ -471,7 +474,7 @@ Item
 
 	QuarkPopupMenu {
 		id: tagsList
-		width: 170
+		width: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 170) : 170
 		visible: false
 
 		model: ListModel { id: tagsModel }
@@ -485,6 +488,9 @@ Item
 		}
 
 		function popup(match, tags) {
+			//
+			if (tagsList.opened) tagsList.close();
+
 			//
 			if (tags.length === 0) return;
 			if (tags.length === 1 && match === tags[0]) return;

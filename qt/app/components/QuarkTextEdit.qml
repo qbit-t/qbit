@@ -20,7 +20,8 @@ TextEdit
     Material.primary: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.primary");
 
 	antialiasing: buzzerApp.isDesktop ? false : antialiasing
-	font.family: buzzerApp.isDesktop ? "Noto Color Emoji N" : font.family
+    property var fontFamily: Qt.platform.os == "windows" ? "Segoe UI Emoji" : "Noto Color Emoji N"
+    font.family: buzzerApp.isDesktop ? fontFamily : font.family
 
 	property real defaultFontPointSize: buzzerApp.isDesktop ? 11 : 16
 	font.pointSize: defaultFontPointSize

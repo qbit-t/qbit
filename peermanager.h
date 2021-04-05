@@ -651,7 +651,7 @@ private:
 				peersContainer_.open();
 			}
 			catch(const std::exception& ex) {
-				gLog().write(Log::ERROR, std::string("[peerManager/run]: ") + ex.what());
+				gLog().write(Log::GENERAL_ERROR, std::string("[peerManager/run]: ") + ex.what());
 				return;
 			}
 		}
@@ -665,7 +665,7 @@ private:
 				break;
 			} 
 			catch(boost::system::system_error& ex) {
-				gLog().write(Log::ERROR, std::string("[peerManager]: context error -> ") + ex.what());
+				gLog().write(Log::GENERAL_ERROR, std::string("[peerManager]: context error -> ") + ex.what());
 			}
 		}
 		gLog().write(Log::INFO, std::string("[peerManager]: context stop."));
@@ -689,7 +689,7 @@ private:
 				}
 			} else {
 				// log
-				gLog().write(Log::ERROR, std::string("[peerManager/touch]: ") + error.message());
+				gLog().write(Log::GENERAL_ERROR, std::string("[peerManager/touch]: ") + error.message());
 			}
 		}
 

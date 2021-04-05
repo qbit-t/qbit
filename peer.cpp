@@ -113,7 +113,7 @@ void Peer::processError(const std::string& context, const boost::system::error_c
 	{
 		boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
 		//
-		socketStatus_ = ERROR;		
+		socketStatus_ = GENERAL_ERROR;
 		// try to deactivate peer
 		peerManager_->deactivatePeer(shared_from_this());
 		// close socket
@@ -126,7 +126,7 @@ void Peer::processError(const std::string& context, const boost::system::error_c
 //
 void Peer::ping() {
 	//
-	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
+	if (socketStatus_ == CLOSED || socketStatus_ == GENERAL_ERROR) { connect(); return; }
 	else if (socketStatus_ == CONNECTED && waitingForMessage_ &&
 									!hasPendingRequests() && !hasActiveJobs()) {
 
@@ -149,7 +149,7 @@ void Peer::ping() {
 //
 void Peer::internalSendState(StatePtr state, bool global) {
 	//
-	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
+	if (socketStatus_ == CLOSED || socketStatus_ == GENERAL_ERROR) { connect(); return; }
 	else if (socketStatus_ == CONNECTED) {
 
 		// new message
@@ -187,7 +187,7 @@ void Peer::synchronizeFullChain(IConsensusPtr consensus, SynchronizationJobPtr j
 	if (error == boost::asio::error::operation_aborted) return;
 
 	//
-	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
+	if (socketStatus_ == CLOSED || socketStatus_ == GENERAL_ERROR) { connect(); return; }
 	else if (socketStatus_ == CONNECTED) {
 		// register job
 		addJob(consensus->chain(), job);
@@ -253,7 +253,7 @@ void Peer::synchronizePartialTree(IConsensusPtr consensus, SynchronizationJobPtr
 	if (error == boost::asio::error::operation_aborted) return;
 
 	//
-	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
+	if (socketStatus_ == CLOSED || socketStatus_ == GENERAL_ERROR) { connect(); return; }
 	else if (socketStatus_ == CONNECTED) {
 		//
 		if (job->cancelled()) {
@@ -366,7 +366,7 @@ void Peer::synchronizePartialTree(IConsensusPtr consensus, SynchronizationJobPtr
 //
 void Peer::synchronizeLargePartialTree(IConsensusPtr consensus, SynchronizationJobPtr job) {
 	//
-	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
+	if (socketStatus_ == CLOSED || socketStatus_ == GENERAL_ERROR) { connect(); return; }
 	else if (socketStatus_ == CONNECTED) {
 		//
 		if (job->cancelled()) {
@@ -427,7 +427,7 @@ void Peer::synchronizePendingBlocks(IConsensusPtr consensus, SynchronizationJobP
 	if (error == boost::asio::error::operation_aborted) return;
 
 	//
-	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
+	if (socketStatus_ == CLOSED || socketStatus_ == GENERAL_ERROR) { connect(); return; }
 	else if (socketStatus_ == CONNECTED) {
 		//
 		if (job->cancelled()) {
@@ -559,7 +559,7 @@ void Peer::tryAskForQbits() {
 
 void Peer::tryAskForQbits(const PKey& pkey) {
 	//
-	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
+	if (socketStatus_ == CLOSED || socketStatus_ == GENERAL_ERROR) { connect(); return; }
 	else if (socketStatus_ == CONNECTED) {
 		
 		// new message
@@ -582,7 +582,7 @@ void Peer::tryAskForQbits(const PKey& pkey) {
 
 void Peer::requestState() {
 	//
-	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
+	if (socketStatus_ == CLOSED || socketStatus_ == GENERAL_ERROR) { connect(); return; }
 	else if (socketStatus_ == CONNECTED) {
 		
 		//
@@ -608,7 +608,7 @@ void Peer::requestState() {
 
 void Peer::acquireBlock(const NetworkBlockHeader& block) {
 	//
-	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
+	if (socketStatus_ == CLOSED || socketStatus_ == GENERAL_ERROR) { connect(); return; }
 	else if (socketStatus_ == CONNECTED) {
 		
 		// new message
@@ -633,7 +633,7 @@ void Peer::acquireBlock(const NetworkBlockHeader& block) {
 
 void Peer::acquireBlockHeaderWithCoinbase(const uint256& block, const uint256& chain, INetworkBlockHandlerWithCoinBasePtr handler) {
 	//
-	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
+	if (socketStatus_ == CLOSED || socketStatus_ == GENERAL_ERROR) { connect(); return; }
 	else if (socketStatus_ == CONNECTED) {
 		
 		// new message
@@ -663,7 +663,7 @@ void Peer::loadTransaction(const uint256& chain, const uint256& tx, ILoadTransac
 
 void Peer::loadTransaction(const uint256& chain, const uint256& tx, bool tryMempool, ILoadTransactionHandlerPtr handler) {
 	//
-	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
+	if (socketStatus_ == CLOSED || socketStatus_ == GENERAL_ERROR) { connect(); return; }
 	else if (socketStatus_ == CONNECTED) {
 		
 		// new message
@@ -689,7 +689,7 @@ void Peer::loadTransaction(const uint256& chain, const uint256& tx, bool tryMemp
 }
 
 void Peer::loadTransactions(const uint256& chain, const std::vector<uint256>& txs, ILoadTransactionsHandlerPtr handler) {
-	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
+	if (socketStatus_ == CLOSED || socketStatus_ == GENERAL_ERROR) { connect(); return; }
 	else if (socketStatus_ == CONNECTED) {
 		
 		// new message
@@ -715,7 +715,7 @@ void Peer::loadTransactions(const uint256& chain, const std::vector<uint256>& tx
 
 void Peer::loadEntity(const std::string& name, ILoadEntityHandlerPtr handler) {
 	//
-	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
+	if (socketStatus_ == CLOSED || socketStatus_ == GENERAL_ERROR) { connect(); return; }
 	else if (socketStatus_ == CONNECTED) {
 		
 		// new message
@@ -742,7 +742,7 @@ void Peer::loadEntity(const std::string& name, ILoadEntityHandlerPtr handler) {
 
 void Peer::sendTransaction(TransactionContextPtr ctx, ISentTransactionHandlerPtr handler) {
 	//
-	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; } // TODO: connect will skip current call
+	if (socketStatus_ == CLOSED || socketStatus_ == GENERAL_ERROR) { connect(); return; } // TODO: connect will skip current call
 	else if (socketStatus_ == CONNECTED) {
 		// new message
 		std::list<DataStream>::iterator lMsg = newOutMessage();
@@ -770,7 +770,7 @@ void Peer::sendTransaction(TransactionContextPtr ctx, ISentTransactionHandlerPtr
 
 void Peer::selectUtxoByAddress(const PKey& source, const uint256& chain, ISelectUtxoByAddressHandlerPtr handler) {
 	//
-	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
+	if (socketStatus_ == CLOSED || socketStatus_ == GENERAL_ERROR) { connect(); return; }
 	else if (socketStatus_ == CONNECTED) {
 		
 		// new message
@@ -796,7 +796,7 @@ void Peer::selectUtxoByAddress(const PKey& source, const uint256& chain, ISelect
 
 void Peer::selectUtxoByAddressAndAsset(const PKey& source, const uint256& chain, const uint256& asset, ISelectUtxoByAddressAndAssetHandlerPtr handler) {
 	//
-	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
+	if (socketStatus_ == CLOSED || socketStatus_ == GENERAL_ERROR) { connect(); return; }
 	else if (socketStatus_ == CONNECTED) {
 		
 		// new message
@@ -823,7 +823,7 @@ void Peer::selectUtxoByAddressAndAsset(const PKey& source, const uint256& chain,
 
 void Peer::selectUtxoByTransaction(const uint256& chain, const uint256& tx, ISelectUtxoByTransactionHandlerPtr handler) {
 	//
-	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
+	if (socketStatus_ == CLOSED || socketStatus_ == GENERAL_ERROR) { connect(); return; }
 	else if (socketStatus_ == CONNECTED) {
 		
 		// new message
@@ -849,7 +849,7 @@ void Peer::selectUtxoByTransaction(const uint256& chain, const uint256& tx, ISel
 
 void Peer::selectUtxoByEntity(const std::string& name, ISelectUtxoByEntityNameHandlerPtr handler) {
 	//
-	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
+	if (socketStatus_ == CLOSED || socketStatus_ == GENERAL_ERROR) { connect(); return; }
 	else if (socketStatus_ == CONNECTED) {
 		
 		// new message
@@ -876,7 +876,7 @@ void Peer::selectUtxoByEntity(const std::string& name, ISelectUtxoByEntityNameHa
 
 void Peer::selectUtxoByEntityNames(const std::vector<std::string>& entityNames, ISelectUtxoByEntityNamesHandlerPtr handler) {
 	//
-	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
+	if (socketStatus_ == CLOSED || socketStatus_ == GENERAL_ERROR) { connect(); return; }
 	else if (socketStatus_ == CONNECTED) {
 		
 		// new message
@@ -918,7 +918,7 @@ void Peer::selectUtxoByEntityNames(const std::vector<std::string>& entityNames, 
 
 void Peer::selectEntityCountByShards(const std::string& name, ISelectEntityCountByShardsHandlerPtr handler) {
 	//
-	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
+	if (socketStatus_ == CLOSED || socketStatus_ == GENERAL_ERROR) { connect(); return; }
 	else if (socketStatus_ == CONNECTED) {
 		
 		// new message
@@ -945,7 +945,7 @@ void Peer::selectEntityCountByShards(const std::string& name, ISelectEntityCount
 
 void Peer::selectEntityCountByDApp(const std::string& name, ISelectEntityCountByDAppHandlerPtr handler) {
 	//
-	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
+	if (socketStatus_ == CLOSED || socketStatus_ == GENERAL_ERROR) { connect(); return; }
 	else if (socketStatus_ == CONNECTED) {
 		
 		// new message
@@ -972,7 +972,7 @@ void Peer::selectEntityCountByDApp(const std::string& name, ISelectEntityCountBy
 
 void Peer::selectEntityNames(const std::string& pattern, ISelectEntityNamesHandlerPtr handler) {
 	//
-	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
+	if (socketStatus_ == CLOSED || socketStatus_ == GENERAL_ERROR) { connect(); return; }
 	else if (socketStatus_ == CONNECTED) {
 		
 		// new message
@@ -999,7 +999,7 @@ void Peer::selectEntityNames(const std::string& pattern, ISelectEntityNamesHandl
 
 void Peer::requestPeers() {	
 	//
-	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; }
+	if (socketStatus_ == CLOSED || socketStatus_ == GENERAL_ERROR) { connect(); return; }
 	else if (socketStatus_ == CONNECTED) {
 		// new message
 		std::list<DataStream>::iterator lMsg = newOutMessage();
@@ -1087,7 +1087,7 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 			//
 			gLog().write(Log::NET, "[peer/processMessage/error]: session is invalid, cancel reading...");
 			//
-			socketStatus_ = ERROR;
+			socketStatus_ = GENERAL_ERROR;
 			//
 			reading_ = false;
 			//
@@ -1132,7 +1132,7 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 				//
 				boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
 				//
-				socketStatus_ = ERROR;
+				socketStatus_ = GENERAL_ERROR;
 				// close socket
 				socket_->close();
 				return;
@@ -1533,7 +1533,7 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 				{
 					boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
 					//
-					socketStatus_ = ERROR;
+					socketStatus_ = GENERAL_ERROR;
 					// try to deactivate peer
 					peerManager_->deactivatePeer(shared_from_this());
 					// close socket
@@ -1558,7 +1558,7 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 			{
 				boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
 				//
-				socketStatus_ = ERROR;
+				socketStatus_ = GENERAL_ERROR;
 				// try to deactivate peer
 				peerManager_->deactivatePeer(shared_from_this());
 				// close socket
@@ -1801,8 +1801,8 @@ void Peer::processAskForQbits(std::list<DataStream>::iterator msg, const boost::
 									// rollback transaction
 									peerManager_->consensusManager()->wallet()->rollback(lCtx);
 									// error
-									if (gLog().isEnabled(Log::ERROR)) 
-										gLog().write(Log::ERROR, strprintf("[peer]: airdrop tx creation failed: E_TX_MEMORYPOOL - %s", *lCtx->errors().begin()));
+									if (gLog().isEnabled(Log::GENERAL_ERROR)) 
+										gLog().write(Log::GENERAL_ERROR, strprintf("[peer]: airdrop tx creation failed: E_TX_MEMORYPOOL - %s", *lCtx->errors().begin()));
 									//
 									lCtx = nullptr;
 								} else if (!lMempool->consensus()->broadcastTransaction(lCtx, peerManager_->consensusManager()->wallet()->firstKey()->createPKey().id())) {
@@ -1818,20 +1818,20 @@ void Peer::processAskForQbits(std::list<DataStream>::iterator msg, const boost::
 									lStorage->pushAirdropped(lAddress.id(), keyId(), lCtx->tx()->id());
 								}
 							} else {
-								if (gLog().isEnabled(Log::ERROR)) 
-									gLog().write(Log::ERROR, std::string("[peer]: airdrop tx creation failed: E_TX_EXISTS - Transaction already exists"));
+								if (gLog().isEnabled(Log::GENERAL_ERROR)) 
+									gLog().write(Log::GENERAL_ERROR, std::string("[peer]: airdrop tx creation failed: E_TX_EXISTS - Transaction already exists"));
 								// rollback transaction
 								peerManager_->consensusManager()->wallet()->rollback(lCtx);
 							}
 						}
 					}
 					catch(qbit::exception& ex) {
-						if (gLog().isEnabled(Log::ERROR)) 
-							gLog().write(Log::ERROR, strprintf("[peer]: airdrop tx creation failed: %s - %s", ex.code(), ex.what()));
+						if (gLog().isEnabled(Log::GENERAL_ERROR)) 
+							gLog().write(Log::GENERAL_ERROR, strprintf("[peer]: airdrop tx creation failed: %s - %s", ex.code(), ex.what()));
 					}
 				} else {
-					if (gLog().isEnabled(Log::ERROR)) 
-						gLog().write(Log::ERROR, strprintf("[peer]: already aidropped for: %s - %s", lAddress.id().toHex(), keyId().toHex()));
+					if (gLog().isEnabled(Log::GENERAL_ERROR)) 
+						gLog().write(Log::GENERAL_ERROR, strprintf("[peer]: already aidropped for: %s - %s", lAddress.id().toHex(), keyId().toHex()));
 				}
 			}
 
@@ -3084,7 +3084,7 @@ void Peer::processBlockById(std::list<DataStream>::iterator msg, const boost::sy
 		//
 		IConsensusPtr lConsensus = peerManager_->consensusManager()->locate(lBlock->chain());
 		if (!lConsensus) {
-			if (gLog().isEnabled(Log::ERROR)) gLog().write(Log::ERROR, std::string("[peer/error]: chain not found for block ") + strprintf("%s/%s#", lBlock->hash().toHex(), lBlock->chain().toHex().substr(0, 10)) + std::string("..."));
+			if (gLog().isEnabled(Log::GENERAL_ERROR)) gLog().write(Log::GENERAL_ERROR, std::string("[peer/error]: chain not found for block ") + strprintf("%s/%s#", lBlock->hash().toHex(), lBlock->chain().toHex().substr(0, 10)) + std::string("..."));
 			return;
 		}
 
@@ -3856,7 +3856,7 @@ void Peer::processTransaction(std::list<DataStream>::iterator msg, const boost::
 							strprintf("%s/%s#", lTx->id().toHex(), lTx->chain().toHex().substr(0, 10)));
 				} else if (lCtx->errors().size()) {
 					for (std::list<std::string>::iterator lErr = lCtx->errors().begin(); lErr != lCtx->errors().end(); lErr++) {
-						if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: transaction processing ERROR - ") + (*lErr) +
+						if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: transaction processing GENERAL_ERROR - ") + (*lErr) +
 								strprintf(" -> %s/%s#", lTx->id().toHex(), lTx->chain().toHex().substr(0, 10)));
 					}
 				} else {
@@ -3917,7 +3917,7 @@ void Peer::processPushTransaction(std::list<DataStream>::iterator msg, const boo
 							strprintf("%s/%s#", lTx->id().toHex(), lTx->chain().toHex().substr(0, 10)));
 				} else if (lCtx->errors().size()) {
 					for (std::list<std::string>::iterator lErr = lCtx->errors().begin(); lErr != lCtx->errors().end(); lErr++) {
-						if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: transaction processing ERROR - ") + (*lErr) +
+						if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: transaction processing GENERAL_ERROR - ") + (*lErr) +
 								strprintf(" -> %s/%s#", lTx->id().toHex(), lTx->chain().toHex().substr(0, 10)));
 					}
 
@@ -3963,7 +3963,7 @@ void Peer::processPushTransaction(std::list<DataStream>::iterator msg, const boo
 
 void Peer::broadcastBlockHeader(const NetworkBlockHeader& blockHeader) {
 	//
-	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; } // TODO: connect will skip current call
+	if (socketStatus_ == CLOSED || socketStatus_ == GENERAL_ERROR) { connect(); return; } // TODO: connect will skip current call
 	else if (socketStatus_ == CONNECTED) {
 
 		// new message
@@ -3987,7 +3987,7 @@ void Peer::broadcastBlockHeader(const NetworkBlockHeader& blockHeader) {
 
 void Peer::broadcastBlockHeaderAndState(const NetworkBlockHeader& blockHeader, StatePtr state) {
 	//
-	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; } // TODO: connect will skip current call
+	if (socketStatus_ == CLOSED || socketStatus_ == GENERAL_ERROR) { connect(); return; } // TODO: connect will skip current call
 	else if (socketStatus_ == CONNECTED) {
 
 		// new message
@@ -4019,7 +4019,7 @@ void Peer::broadcastBlockHeaderAndState(const NetworkBlockHeader& blockHeader, S
 
 void Peer::broadcastTransaction(TransactionContextPtr ctx) {
 	//
-	if (socketStatus_ == CLOSED || socketStatus_ == ERROR) { connect(); return; } // TODO: connect will skip current call
+	if (socketStatus_ == CLOSED || socketStatus_ == GENERAL_ERROR) { connect(); return; } // TODO: connect will skip current call
 	else if (socketStatus_ == CONNECTED) {
 		//
 		if (peerManager_->consensusManager()->storeManager()) {
@@ -4270,7 +4270,7 @@ void Peer::processState(std::list<DataStream>::iterator msg, bool broadcast, con
 				{
 					boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
 					//
-					socketStatus_ = ERROR;
+					socketStatus_ = GENERAL_ERROR;
 					// try to deactivate peer
 					peerManager_->deactivatePeer(shared_from_this());
 					// close socket
@@ -4296,7 +4296,7 @@ void Peer::connect() {
 	//
 	{
 		boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
-		if (socketType_ == CLIENT && (socketStatus_ == CLOSED || socketStatus_ == ERROR) && peerManager_) {
+		if (socketType_ == CLIENT && (socketStatus_ == CLOSED || socketStatus_ == GENERAL_ERROR) && peerManager_) {
 			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: connecting ") + key());
 
 			// change status
@@ -4328,7 +4328,7 @@ void Peer::resolved(const boost::system::error_code& error, tcp::resolver::itera
 				boost::asio::placeholders::error, ++endpoint_iterator)));
 	} else {
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/resolve]: resolve failed for ") + key() + " -> " + error.message());
-		socketStatus_ = ERROR;
+		socketStatus_ = GENERAL_ERROR;
 		socket_ = nullptr;
 	}
 }
@@ -4370,7 +4370,7 @@ void Peer::connected(const boost::system::error_code& error, tcp::resolver::iter
 				boost::asio::placeholders::error, ++endpoint_iterator)));
 	} else {
 		gLog().write(Log::NET, std::string("[peer/connect/error]: connection failed for ") + key() + " -> " + error.message());
-		socketStatus_ = ERROR;
+		socketStatus_ = GENERAL_ERROR;
 		socket_ = nullptr;
 	}
 }

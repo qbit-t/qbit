@@ -23,10 +23,12 @@ Item {
 
 	property int calculatedHeight: 400
 	property int calculatedWidth: 500
+	property int calculatedWidthInternal: 500
 	property var buzzId_: buzzId
 	property var buzzMedia_: buzzMedia
 	property var controller_: controller
 
+	readonly property int maxCalculatedWidth_: 600
 	readonly property int spaceLeft_: 15
 	readonly property int spaceTop_: 12
 	readonly property int spaceRight_: 15
@@ -42,7 +44,17 @@ Item {
 	property var pkey_: ""
 
 	signal calculatedHeightModified(var value);
+	
 	onCalculatedHeightChanged: calculatedHeightModified(calculatedHeight);
+
+	onCalculatedWidthChanged: {
+		//
+		if (calculatedWidth > maxCalculatedWidth_) {
+			calculatedWidth = maxCalculatedWidth_;
+		}
+
+		calculatedWidthInternal = calculatedWidth;
+	}
 
 	Component.onCompleted: {
 	}
@@ -60,7 +72,7 @@ Item {
 		id: mediaList
 		x: 0
 		y: 0
-		width: calculatedWidth
+		width: calculatedWidthInternal
 		height: calculatedHeight
 		clip: true
 		orientation: Qt.Horizontal
@@ -317,7 +329,7 @@ Item {
 		count: buzzMedia_ ? buzzMedia_.length : 0
 		currentIndex: mediaList.currentIndex
 
-		x: calculatedWidth / 2 - width / 2
+		x: calculatedWidthInternal / 2 - width / 2
 		y: spaceStats_ - height
 		visible: buzzMedia_ ? buzzMedia_.length > 1 : false
 

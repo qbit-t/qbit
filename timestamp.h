@@ -22,10 +22,6 @@
 #include <sys/time.h>
 #endif
 
-#ifdef WIN32
-#include <windows.h>
-#endif
-
 #include <cstdint>
 
 namespace qbit {

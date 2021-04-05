@@ -154,7 +154,7 @@ private:
 			context_.run();
 		} 
 		catch(boost::system::system_error& ex) {
-			gLog().write(Log::ERROR, std::string("[validator]: context error -> ") + ex.what());
+			gLog().write(Log::GENERAL_ERROR, std::string("[validator]: context error -> ") + ex.what());
 		}
 
 		// log
@@ -289,12 +289,12 @@ private:
 							if (lCurrentBlockContext->errors().size()) {
 								for (std::map<uint256, std::list<std::string>>::iterator lErrors = lCurrentBlockContext->errors().begin(); lErrors != lCurrentBlockContext->errors().end(); lErrors++) {
 									for (std::list<std::string>::iterator lError = lErrors->second.begin(); lError != lErrors->second.end(); lError++) {
-										gLog().write(Log::ERROR, std::string("[miner/error]: ") + (*lError));
+										gLog().write(Log::GENERAL_ERROR, std::string("[miner/error]: ") + (*lError));
 									}
 
 									// drop from mempool
 									mempool_->removeTransaction(lErrors->first);
-									if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::ERROR, std::string("[miner/error]: DROP transaction from mempool ") + lErrors->first.toHex());
+									if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::GENERAL_ERROR, std::string("[miner/error]: DROP transaction from mempool ") + lErrors->first.toHex());
 								}
 							}
 						}
@@ -358,7 +358,7 @@ private:
 				SynchronizationJobPtr lJob = consensus_->lastJob();
 				if (lJob && getTime() - lJob->timestamp() > consensus_->settings()->consensusSynchronizationLatency()) {
 					consensus_->finishJob(nullptr); // force and restart job
-					if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::ERROR, std::string("[validator/touch/error]: synchronization was stalled."));
+					if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::GENERAL_ERROR, std::string("[validator/touch/error]: synchronization was stalled."));
 				} else {
 					// in case of acquiring block is in progress
 					NetworkBlockHeader lEnqueuedBlock;

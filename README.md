@@ -13,8 +13,8 @@ Qbit is a multi-asset privacy oriented platform based on PoW/DPoS consensus with
 	- Multichain support with sharding principles (including different parametrized consensuses for each shard) 
 	- Smart contract support
 	- Fast virtual machine (QVM) with asm-based machine codes
-	- Cuckatoo PoW algorithm and corresponding consensus with 51% attack resistance (first stage - around 3-6 months)
-	- Local-to-Global DPoS consensus (second stage)
+	- Cuckatoo PoW algorithm and corresponding consensus with 51% attack resistance
+	- Local-to-Global DPoS consensus
 	- Full Bitcoin protocol support to archieve atomic swaps and trustless peer-to-peer orders processing
 	- Flexible integration infrastructure to support alts- and side- chains (gate-keepers)
 	- DApp making infrastructure
@@ -67,7 +67,7 @@ Prerequisites:
 5. sudo apt-get install libjpeg-dev
 6. sudo apt-get install libpng-dev
 
-Build:
+Build Linux:
 1. cd ./secp256k1
 2. ./autogen.sh
 3. ./configure --enable-experimental --enable-module-schnorrsig --enable-module-musig --enable-module-ecdh --enable-module-generator --enable-module-rangeproof --with-bignum=no
@@ -82,6 +82,14 @@ Build:
 Please, note - if make produces linking errors, do the following:
 1. cmake ./
 2. make
+
+Build Windows (on Linux with special toolset - https://mxe.cc):
+1. git clone https://github.com/mxe/mxe ~/mxe
+2. cd ~/mxe
+3. edit ./settings.mk and add MXE_TARGETS := x86_64-w64-mingw32.static
+4. make
+
+Please, note - it can take long time, very long and not all from the packages you need. During compilation you may experience building errors, consider to add to the EXCLUDE_PKGS and rerun make
 
 ## Requests
 

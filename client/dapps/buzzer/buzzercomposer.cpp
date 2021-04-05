@@ -212,8 +212,9 @@ bool BuzzerLightComposer::open() {
 		if (opened_) return true;
 		//
 		try {
+			gLog().write(Log::INFO, std::string("[buzzer/wallet/open]: checking buzzer wallet data directory..."));
 			if (mkpath(std::string(settings_->dataPath() + "/wallet/buzzer").c_str(), 0777)) return false;
-
+			
 			gLog().write(Log::INFO, std::string("[buzzer/wallet/open]: opening buzzer wallet data..."));
 			workingSettings_.open();
 			subscriptions_.open();
@@ -268,7 +269,7 @@ bool BuzzerLightComposer::open() {
 			writeWorkingSetings();
 		} catch(const qbit::db::exception& ex) {
 			//
-			gLog().write(Log::ERROR, std::string("[buzzer/wallet/open/error]: ") + ex.what());
+			gLog().write(Log::GENERAL_ERROR, std::string("[buzzer/wallet/open/error]: ") + ex.what());
 			//
 			return false;
 		}

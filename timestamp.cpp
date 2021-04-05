@@ -2,6 +2,10 @@
 #include "tinyformat.h"
 #include <ctime>
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 boost::atomic<uint64_t> qbit::gMedianTime(0);
 boost::atomic<uint64_t> qbit::gMedianMicroseconds(0);
 
@@ -21,15 +25,13 @@ uint64_t qbit::getMedianTime() {
 }
 
 uint64_t qbit::getMicroseconds() {
-#ifdef WIN32
-		FILETIME ft;
-		ULARGE_INTEGER ui;
-
-		GetSystemTimeAsFileTime(&ft);
-		ui.LowPart=ft.dwLowDateTime;
-		ui.HighPart=ft.dwHighDateTime;
-
-		return ui.QuadPart / 10;
+#ifdef _WIN32
+		FILETIME lFt;
+		// Get the amount of 100 nano seconds intervals elapsed since January 1, 1601 (UTC)
+		GetSystemTimeAsFileTime(&lFt);
+		uint64_t lMicroseconds = static_cast<uint64_t>(lFt.dwHighDateTime) << 32 | lFt.dwLowDateTime;
+		lMicroseconds -= 116444736000000000LL;
+    	return lMicroseconds / 10; // interval in microseconds
 #elif defined(__linux__)
 		struct timespec now;
 		clock_gettime(CLOCK_REALTIME, &now);
@@ -48,30 +50,32 @@ uint64_t qbit::getTime() {
 std::string qbit::formatISO8601DateTime(int64_t nTime) {
 	struct tm ts;
 	time_t time_val = nTime;
-#ifdef _MSC_VER
-	gmtime_s(&ts, &time_val);
+#ifdef _WIN32
+	_gmtime64_s(&ts, &time_val);
 #else
 	gmtime_r(&time_val, &ts);
 #endif
+
 	return strprintf("%04i-%02i-%02iT%02i:%02i:%02iZ", ts.tm_year + 1900, ts.tm_mon + 1, ts.tm_mday, ts.tm_hour, ts.tm_min, ts.tm_sec);
 }
 
 std::string qbit::formatISO8601Date(int64_t nTime) {
 	struct tm ts;
 	time_t time_val = nTime;
-#ifdef _MSC_VER
-	gmtime_s(&ts, &time_val);
+#ifdef _WIN32
+	_gmtime64_s(&ts, &time_val);
 #else
 	gmtime_r(&time_val, &ts);
 #endif
+
 	return strprintf("%04i-%02i-%02i", ts.tm_year + 1900, ts.tm_mon + 1, ts.tm_mday);
 }
 
 std::string qbit::formatLocalDateTime(int64_t nTime) {
 	struct tm ts;
 	time_t time_val = nTime;
-#ifdef _MSC_VER
-	localtime_s(&ts, &time_val);
+#ifdef _WIN32
+	_localtime64_s(&ts, &time_val);
 #else
 	localtime_r(&time_val, &ts);
 #endif
@@ -81,8 +85,8 @@ std::string qbit::formatLocalDateTime(int64_t nTime) {
 std::string qbit::formatLocalDateTimeLong(int64_t nTime) {
 	struct tm ts;
 	time_t time_val = nTime;
-#ifdef _MSC_VER
-	localtime_s(&ts, &time_val);
+#ifdef _WIN32
+	_localtime64_s(&ts, &time_val);
 #else
 	localtime_r(&time_val, &ts);
 #endif

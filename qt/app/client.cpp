@@ -1,4 +1,5 @@
 #include <QFileInfo>
+#include <QOperatingSystemVersion>
 
 #include <boost/function.hpp>
 
@@ -112,11 +113,26 @@ int Client::open(QString secret) {
 		qbit::gLog().enable(qbit::getLogCategory(*lCategory));
 	}
 
+	// rebind qapplication message handler to intercept qInfo(), qError() output messages
+	buzzer::gLogger.reset(new buzzer::Logger(!application_->getDebug()));
+
 	//
 #if defined(DESKTOP_PLATFORM)
 	if (application_->isDesktop()) {
-		QFontDatabase::addApplicationFont(":/fonts-desktop/NotoColorEmojiN.ttf");
+#if defined(Q_OS_WINDOWS)
+ 		auto lCurrent = QOperatingSystemVersion::current();
+ 		//QString lEmojiFontFile = ":/fonts-desktop/SeguiEmj.ttf";
+ 		//if (lCurrent >= QOperatingSystemVersion::Windows10)
+ 		//	lEmojiFontFile = ":/fonts-desktop/NotoColorEmoji_WindowsCompatible.ttf";
+		//if (QFontDatabase::addApplicationFont(lEmojiFontFile) == -1) {
+		//}
+#else
+		if (QFontDatabase::addApplicationFont(":/fonts-desktop/NotoColorEmojiN.ttf") == -1) {
+			if (gLog().isEnabled(Log::GENERAL_ERROR))
+				gLog().write(Log::GENERAL_ERROR, std::string("[Client::open]: font NotoColorEmojiN.ttf was not loaded"));
+		}
 
+#endif
 		emojiData_ = new EmojiData();
 		emojiData_->open();
 	}
@@ -128,9 +144,6 @@ int Client::open(QString secret) {
 	// intercept qbit log - only in debug mode
 	if (application_->getDebug())
 		qbit::gLog().setEcho(boost::bind(&Client::echoLog, this, _1, _2));
-
-	// rebind qapplication message handler to intercept qInfo(), qError() output messages
-	buzzer::gLogger.reset(new buzzer::Logger());
 
 	//
 	Transaction::registerTransactionType(Transaction::ASSET_TYPE, TxAssetTypeCreator::instance());
@@ -1153,4 +1166,26 @@ void Client::setFavEmoji(QString emoji) {
 #if defined(DESKTOP_PLATFORM)
 	emojiData_->updateFavEmojis();
 #endif
+}
+
+void Client::setAvatar(const QString& avatar) {
+#ifdef Q_OS_WINDOWS
+	QString lAvatar = avatar;
+	lAvatar.replace(0, 1, lAvatar[0].toLower());
+	avatar_ = lAvatar;
+#else
+	avatar_ = avatar;
+#endif
+	emit avatarChanged();
+}
+
+void Client::setHeader(const QString& header) {
+#ifdef Q_OS_WINDOWS
+	QString lHeader = header;
+	lHeader.replace(0, 1, lHeader[0].toLower());
+	header_ = lHeader;
+#else
+	header_ = header;
+#endif
+	emit headerChanged(); 
 }

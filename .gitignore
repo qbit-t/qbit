@@ -31,3 +31,14 @@ qt/fonts/fa-*
 qt/fonts-all/*
 *config.jam.*
 *.pro.*
+debug*
+release*
+*.exe
+*.dll
+Makefile.*
+*.Release
+*.Debug
+*.stash
+*_import.*
+*_resource.*
+

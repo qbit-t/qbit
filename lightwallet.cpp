@@ -115,11 +115,11 @@ bool LightWallet::open(const std::string& secret) {
 			opened_ = true;
 		}
 		catch(const qbit::db::exception& ex) {
-			gLog().write(Log::ERROR, std::string("[wallet/open]: ") + ex.what());
+			gLog().write(Log::GENERAL_ERROR, std::string("[wallet/open]: ") + ex.what());
 			return false;
 		}
 		catch(const std::exception& ex) {
-			gLog().write(Log::ERROR, std::string("[wallet/open]: ") + ex.what());
+			gLog().write(Log::GENERAL_ERROR, std::string("[wallet/open]: ") + ex.what());
 			return false;
 		}
 	}
@@ -661,7 +661,7 @@ void LightWallet::cleanUpData() {
 		utxo_.open();
 	}
 	catch(const std::exception& ex) {
-		gLog().write(Log::ERROR, std::string("[wallet/cleanUpData]: ") + ex.what());
+		gLog().write(Log::GENERAL_ERROR, std::string("[wallet/cleanUpData]: ") + ex.what());
 	}
 }
 
@@ -969,7 +969,7 @@ void LightWallet::updateOut(Transaction::NetworkUnlinkedOutPtr out, const uint25
 	//
 	out->setParent(parent);
 	out->setParentType(type);
-	out->setDirection(Transaction::NetworkUnlinkedOut::Direction::OUT);
+	out->setDirection(Transaction::NetworkUnlinkedOut::Direction::O_OUT);
 
 	//
 	Transaction::NetworkUnlinkedOut lOut;
@@ -987,7 +987,7 @@ void LightWallet::updateOut(Transaction::NetworkUnlinkedOutPtr out, const uint25
 		//
 		// TODO: only send, sendprivate?
 		//
-		value_.write(Transaction::NetworkUnlinkedOut::Direction::OUT, strprintf("%d", lTimestamp), out->utxo().hash());
+		value_.write(Transaction::NetworkUnlinkedOut::Direction::O_OUT, strprintf("%d", lTimestamp), out->utxo().hash());
 	} else {
 		out->setTimestamp(lOut.timestamp());
 	}
@@ -1042,7 +1042,7 @@ void LightWallet::updateIn(Transaction::NetworkUnlinkedOutPtr out) {
 		//
 		// TODO: only send, sendprivate?
 		//
-		value_.write(Transaction::NetworkUnlinkedOut::Direction::IN, strprintf("%d", lTimestamp), out->utxo().hash());
+		value_.write(Transaction::NetworkUnlinkedOut::Direction::O_IN, strprintf("%d", lTimestamp), out->utxo().hash());
 	} else {
 		out->setTimestamp(lOut.timestamp());
 	}
@@ -1050,7 +1050,7 @@ void LightWallet::updateIn(Transaction::NetworkUnlinkedOutPtr out) {
 	//
 	if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[updateIn]: timestamp = %d, confirms = %d", out->timestamp(), out->confirms()));
 	//
-	out->setDirection(Transaction::NetworkUnlinkedOut::Direction::IN);
+	out->setDirection(Transaction::NetworkUnlinkedOut::Direction::O_IN);
 	outs_.write(out->utxo().hash(), *out);
 	inUpdated(out);
 }
@@ -1094,7 +1094,7 @@ void LightWallet::selectIns(uint64_t from, std::vector<Transaction::NetworkUnlin
 		uint256 /*utxo*/>::Iterator lFrom;
 
 	if (!from) lFrom = value_.last();
-	else lFrom = value_.find(Transaction::NetworkUnlinkedOut::Direction::IN, strprintf("%d", from));
+	else lFrom = value_.find(Transaction::NetworkUnlinkedOut::Direction::O_IN, strprintf("%d", from));
 
 	uint256 lAsset = TxAssetType::qbitAsset(); // default
 
@@ -1102,7 +1102,7 @@ void LightWallet::selectIns(uint64_t from, std::vector<Transaction::NetworkUnlin
 	for (; items.size() < 10 && lFrom.valid(); --lFrom) {
 		//
 		unsigned short lDirection;
-		if (lFrom.first(lDirection) && lDirection != Transaction::NetworkUnlinkedOut::Direction::IN) {
+		if (lFrom.first(lDirection) && lDirection != Transaction::NetworkUnlinkedOut::Direction::O_IN) {
 			continue;
 		}
 
@@ -1127,7 +1127,7 @@ void LightWallet::selectOuts(uint64_t from, std::vector<Transaction::NetworkUnli
 		uint256 /*utxo*/>::Iterator lFrom;
 
 	if (!from) lFrom = value_.last();
-	else lFrom = value_.find(Transaction::NetworkUnlinkedOut::Direction::OUT, strprintf("%d", from));
+	else lFrom = value_.find(Transaction::NetworkUnlinkedOut::Direction::O_OUT, strprintf("%d", from));
 
 	uint256 lAsset = TxAssetType::qbitAsset(); // default
 
@@ -1135,7 +1135,7 @@ void LightWallet::selectOuts(uint64_t from, std::vector<Transaction::NetworkUnli
 	for (; items.size() < 10 && lFrom.valid(); --lFrom) {
 		//
 		unsigned short lDirection;
-		if (lFrom.first(lDirection) && lDirection != Transaction::NetworkUnlinkedOut::Direction::OUT) {
+		if (lFrom.first(lDirection) && lDirection != Transaction::NetworkUnlinkedOut::Direction::O_OUT) {
 			continue;
 		}
 		//

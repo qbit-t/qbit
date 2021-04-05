@@ -29,17 +29,14 @@
 int main(int argc, char *argv[]) {
 	//
 	QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
-	//
-#if defined(Q_OS_WINDOWS)
-	QCoreApplication::setAttribute(Qt::AA_UseOpenGLES);
-#endif
+	QCoreApplication::setAttribute(Qt::AA_UseDesktopOpenGL);
+
 	// generic application
 	QApplication lApp(argc, argv);
 
 #if defined(DESKTOP_PLATFORM)
 	// icon
 	lApp.setWindowIcon(QIcon("qrc:/images/icon-high.png"));
-	lApp.setAttribute(Qt::ApplicationAttribute::AA_UseDesktopOpenGL, true);
 
 	// check and deploy
 #if defined(Q_OS_LINUX)
@@ -99,10 +96,8 @@ int main(int argc, char *argv[]) {
 #endif
 
 #endif
-
-	qInfo() << "================ START ===================";
-
 	// buzzer global application
+	qInfo() << "====================== STARTING =========================";
 	try {
 		buzzer::gApplication = new buzzer::Application(lApp);
 		if (buzzer::gApplication->load() > 0) {

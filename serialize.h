@@ -429,12 +429,12 @@ I ReadVarInt(Stream& is)
 #define LIMITED_STRING(obj,n) LimitedString< n >(REF(obj))
 
 template<VarIntMode Mode, typename I>
-class VarInt
+class VarIntS
 {
 protected:
     I &n;
 public:
-    explicit VarInt(I& nIn) : n(nIn) { }
+    explicit VarIntS(I& nIn) : n(nIn) { }
 
     template<typename Stream>
     void Serialize(Stream &s) const {
@@ -529,7 +529,7 @@ public:
 };
 
 template<VarIntMode Mode=VarIntMode::DEFAULT, typename I>
-VarInt<Mode, I> WrapVarInt(I& n) { return VarInt<Mode, I>{n}; }
+VarIntS<Mode, I> WrapVarInt(I& n) { return VarIntS<Mode, I>{n}; }
 
 template<typename I>
 BigEndian<I> WrapBigEndian(I& n) { return BigEndian<I>(n); }

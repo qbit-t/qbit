@@ -5,17 +5,17 @@
 #include "lockedpool.h"
 #include "helpers/cleanse.h"
 
-#ifdef WIN32
-#define WIN32_LEAN_AND_MEAN 1
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#include <windows.h>
+#ifdef _WIN32
+    #define WIN32_LEAN_AND_MEAN 1
+    #ifndef NOMINMAX
+        #define NOMINMAX
+    #endif
+    #include <windows.h>
 #else
-#include <sys/mman.h> // for mmap
-#include <sys/resource.h> // for getrlimit
-#include <limits.h> // for PAGESIZE
-#include <unistd.h> // for sysconf
+    #include <sys/mman.h> // for mmap
+    #include <sys/resource.h> // for getrlimit
+    #include <limits.h> // for PAGESIZE
+    #include <unistd.h> // for sysconf
 #endif
 
 #include <algorithm>
@@ -153,7 +153,7 @@ void Arena::walk() const
 /*******************************************************************************/
 // Implementation: Win32LockedPageAllocator
 
-#ifdef WIN32
+#ifdef _WIN32
 /** LockedPageAllocator specialized for Windows.
  */
 class Win32LockedPageAllocator: public LockedPageAllocator
@@ -204,7 +204,7 @@ size_t Win32LockedPageAllocator::GetLimit()
 /*******************************************************************************/
 // Implementation: PosixLockedPageAllocator
 
-#ifndef WIN32
+#ifndef _WIN32
 /** LockedPageAllocator specialized for OSes that don't try to be
  * special snowflakes.
  */

@@ -216,7 +216,6 @@ set(CLIENT
 )
 
 add_definitions(-DHAVE_CONFIG_H)
-add_definitions(-DJM_MALLOC)
 
 add_definitions(-DBUZZER_MOD)
 add_definitions(-DCUBIX_MOD)
@@ -224,17 +223,34 @@ add_definitions(-DCUBIX_MOD)
 # uncomment and rebuild after initial deployment
 add_definitions(-DPRODUCTION_MOD)
 
-add_subdirectory(./jm)
 add_subdirectory(./leveldb)
 
-include_directories(./secp256k1/src ./secp256k1 ./secp256k1/include ./leveldb ./boost)
-link_directories(./boost/stage/lib)
+#
+# MinGW & Windows
+if(WIN32)
+	include_directories(./secp256k1/src ./secp256k1 ./secp256k1/include ./leveldb)
 
-add_executable(${PROJECT_NAME} ${SOURCES} ${SECP256K1})
-target_link_libraries(${PROJECT_NAME} jm leveldb boost_system boost_thread boost_chrono boost_random boost_filesystem jpeg png) #gmp
+	add_executable(${PROJECT_NAME} ${SOURCES} ${SECP256K1})
+	target_link_libraries(${PROJECT_NAME} leveldb boost_system-mt-x64 boost_thread-mt-x64 boost_chrono-mt-x64 boost_random-mt-x64 boost_filesystem-mt-x64 ws2_32 wsock32 jpeg png z) #gmp
 
-add_executable(qbit-cli ${CLIENT} ${SECP256K1})
-target_link_libraries(qbit-cli jm leveldb boost_system boost_thread boost_chrono boost_random boost_filesystem jpeg png) #gmp
+	add_executable(qbit-cli ${CLIENT} ${SECP256K1})
+	target_link_libraries(qbit-cli leveldb boost_system-mt-x64 boost_thread-mt-x64 boost_chrono-mt-x64 boost_random-mt-x64 boost_filesystem-mt-x64 ws2_32 wsock32 jpeg png z) #gmp
 
-#add_executable(qbit-unit-tests ${UNITTESTS} ${SECP256K1})
-#target_link_libraries(qbit-unit-tests jm leveldb boost_system boost_thread boost_chrono boost_random boost_filesystem jpeg png) #gmp
+	#add_executable(qbit-unit-tests ${UNITTESTS} ${SECP256K1})
+	#target_link_libraries(qbit-unit-tests leveldb boost_system-mt-x64 boost_thread-mt-x64 boost_chrono-mt-x64 boost_random-mt-x64 boost_filesystem-mt-x64 ws2_32 wsock32 jpeg png z) #gmp
+else()
+	add_subdirectory(./jm)
+	add_definitions(-DJM_MALLOC)
+
+	include_directories(./secp256k1/src ./secp256k1 ./secp256k1/include ./leveldb ./boost)
+	link_directories(./boost/stage/lib)
+
+	add_executable(${PROJECT_NAME} ${SOURCES} ${SECP256K1})
+	target_link_libraries(${PROJECT_NAME} jm leveldb boost_system boost_thread boost_chrono boost_random boost_filesystem jpeg png) #gmp
+
+	add_executable(qbit-cli ${CLIENT} ${SECP256K1})
+	target_link_libraries(qbit-cli jm leveldb boost_system boost_thread boost_chrono boost_random boost_filesystem jpeg png) #gmp
+
+	#add_executable(qbit-unit-tests ${UNITTESTS} ${SECP256K1})
+	#target_link_libraries(qbit-unit-tests jm leveldb boost_system boost_thread boost_chrono boost_random boost_filesystem jpeg png) #gmp
+endif()

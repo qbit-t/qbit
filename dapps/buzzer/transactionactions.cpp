@@ -76,16 +76,16 @@ TransactionAction::Result TxBuzzerTimelockOutsVerify::execute(TransactionContext
 					if (lVM.state() != VirtualMachine::FINISHED) {
 						std::string lError = _getVMStateText(lVM.state()) + " | " + 
 							qasm::_getCommandText(lVM.lastCommand()) + ":" + qasm::_getAtomText(lVM.lastAtom()); 
-						gLog().write(Log::ERROR, std::string("[TxBuzzerTimelockOutsVerify]: ") + lError);
+						gLog().write(Log::GENERAL_ERROR, std::string("[TxBuzzerTimelockOutsVerify]: ") + lError);
 						wrapper->tx()->setStatus(Transaction::DECLINED);
 						wrapper->addError(lError);
-						return TransactionAction::ERROR;
+						return TransactionAction::GENERAL_ERROR;
 					} else if (lVM.getR(qasm::QC1).getType() == qasm::QNONE) {
 						std::string lError = _getVMStateText(VirtualMachine::INVALID_RESULT) + " | check height was not reached";
 						wrapper->tx()->setStatus(Transaction::DECLINED);
 						wrapper->addError(lError);
-						gLog().write(Log::ERROR, std::string("[TxBuzzerTimelockOutsVerify]: ") + lError);
-						return TransactionAction::ERROR; 
+						gLog().write(Log::GENERAL_ERROR, std::string("[TxBuzzerTimelockOutsVerify]: ") + lError);
+						return TransactionAction::GENERAL_ERROR; 
 					} else if (lVM.getR(qasm::QR1).getType() != qasm::QNONE) {
 						//
 						uint64_t lTargetHeight;
@@ -100,17 +100,17 @@ TransactionAction::Result TxBuzzerTimelockOutsVerify::execute(TransactionContext
 							std::string lError = _getVMStateText(VirtualMachine::INVALID_RESULT) + " | locked height must be at least H+360";
 							wrapper->tx()->setStatus(Transaction::DECLINED);
 							wrapper->addError(lError);
-							gLog().write(Log::ERROR, std::string("[TxBuzzerTimelockOutsVerify]: ") + 
+							gLog().write(Log::GENERAL_ERROR, std::string("[TxBuzzerTimelockOutsVerify]: ") + 
 								strprintf("current = %d, target = %d, embedded = %d", lCurrentHeight, lTargetHeight, lVM.getR(qasm::QR1).to<uint64_t>()));
-							gLog().write(Log::ERROR, std::string("[TxBuzzerTimelockOutsVerify]: ") + lError);
-							return TransactionAction::ERROR;
+							gLog().write(Log::GENERAL_ERROR, std::string("[TxBuzzerTimelockOutsVerify]: ") + lError);
+							return TransactionAction::GENERAL_ERROR;
 						}
 					} else {
 						std::string lError = _getVMStateText(VirtualMachine::INVALID_RESULT) + " | height was not set";
 						wrapper->tx()->setStatus(Transaction::DECLINED);
 						wrapper->addError(lError);
-						gLog().write(Log::ERROR, std::string("[TxBuzzerTimelockOutsVerify]: ") + lError);
-						return TransactionAction::ERROR;
+						gLog().write(Log::GENERAL_ERROR, std::string("[TxBuzzerTimelockOutsVerify]: ") + lError);
+						return TransactionAction::GENERAL_ERROR;
 					}
 
 					return TransactionAction::CONTINUE; // continue any way
@@ -122,8 +122,8 @@ TransactionAction::Result TxBuzzerTimelockOutsVerify::execute(TransactionContext
 		std::string lError = _getVMStateText(VirtualMachine::INVALID_RESULT) + " | fee with locked amount was not found";
 		wrapper->tx()->setStatus(Transaction::DECLINED);
 		wrapper->addError(lError);
-		gLog().write(Log::ERROR, std::string("[TxBuzzerTimelockOutsVerify]: ") + lError);
-		return TransactionAction::ERROR; 
+		gLog().write(Log::GENERAL_ERROR, std::string("[TxBuzzerTimelockOutsVerify]: ") + lError);
+		return TransactionAction::GENERAL_ERROR; 
 	}
 
 	return TransactionAction::CONTINUE;

@@ -279,7 +279,12 @@ if(HAVE_TCMALLOC)
 endif(HAVE_TCMALLOC)
 
 link_directories(../)
-target_link_libraries(leveldb jm)
+
+if(WIN32)
+	target_link_libraries(leveldb)
+else()
+	target_link_libraries(leveldb jm)
+endif()
 
 # Needed by port_stdcxx.h
 find_package(Threads REQUIRED)

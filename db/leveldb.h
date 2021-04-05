@@ -176,7 +176,7 @@ public:
 	private:
 		void error(const leveldb::Status& status) {
 			const std::string lMessage = std::string("[Db/") + name_ + std::string("]: ") + status.ToString();
-			gLog().write(Log::ERROR, lMessage);
+			gLog().write(Log::GENERAL_ERROR, lMessage);
 			throw db::exception(lMessage);      
 		}
 
@@ -377,7 +377,7 @@ public:
 private:
 	void error(const leveldb::Status& status) {
 		const std::string lMessage = std::string("[Db/") + name_ + std::string("]: ") + status.ToString();
-		gLog().write(Log::ERROR, lMessage);
+		gLog().write(Log::GENERAL_ERROR, lMessage);
 		throw db::exception(lMessage);      
 	}
 

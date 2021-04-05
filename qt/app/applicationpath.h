@@ -27,66 +27,41 @@ namespace buzzer {
 class ApplicationPath
 {
 public:
-    static QString applicationDirPath();
-    static QString applicationUrlPath()
-    {
-    #ifdef Q_OS_ANDROID
-        return QString("assets:");
-    #endif
-
-        return qApp->applicationDirPath();
-    }
-    static  QString assetUrlPath()
-    {
-    #ifdef Q_OS_ANDROID
-        return QString("file:");
-    #endif
-
-    #ifdef Q_OS_LINUX
-        return QString("file:");
-    #else
-        return QString("file:///");
-    #endif
-    }
-    static QString dataDirPath()
-    {
-    #ifdef Q_OS_ANDROID
-        return QStandardPaths::writableLocation(QStandardPaths::DataLocation);
-    #endif
-
-    #ifdef Q_OS_IOS
-        return QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
-    #endif
-
-        return qApp->applicationDirPath() + "/data";
-    }
-	static QString tempFilesDir()
+	static QString applicationDirPath();
+	static QString applicationUrlPath()
 	{
 	#ifdef Q_OS_ANDROID
-		return QStandardPaths::writableLocation(QStandardPaths::TempLocation);
+		return QString("assets:");
+	#endif
+
+		return qApp->applicationDirPath();
+	}
+	static  QString assetUrlPath()
+	{
+	#ifdef Q_OS_ANDROID
+		return QString("file:");
+	#endif
+
+	#ifdef Q_OS_LINUX
+		return QString("file:");
+	#else
+		return QString("file:///");
+	#endif
+	}
+	static QString dataDirPath()
+	{
+	#ifdef Q_OS_ANDROID
+		return QStandardPaths::writableLocation(QStandardPaths::DataLocation);
 	#endif
 
 	#ifdef Q_OS_IOS
-		return QStandardPaths::writableLocation(QStandardPaths::TempLocation);
+		return QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
 	#endif
 
-		QString lGlobalDataPath = qApp->applicationDirPath() + "/data";
-		QDir lDataDir(lGlobalDataPath);
-		if (!lDataDir.exists()) {
-			lDataDir.setPath(qApp->applicationDirPath());
-			lDataDir.mkdir("data");
-		}
-
-		QString lCacheDataPath = lGlobalDataPath + "/cache";
-		QDir lCacheDir(lCacheDataPath);
-		if (!lCacheDir.exists()) {
-			lCacheDir.setPath(lGlobalDataPath);
-			lCacheDir.mkdir("cache");
-		}
-
-		return lCacheDataPath;
+		return qApp->applicationDirPath() + "/data";
 	}
-
+	
+	static QString tempFilesDir();
 	static QString logsDirPath();
 };
 

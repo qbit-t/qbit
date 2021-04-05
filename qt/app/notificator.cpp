@@ -525,7 +525,11 @@ QLabel* buzzer::NotificatorPrivate::alias() {
 		alias_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
 
 		buzzer::Client* lClient = static_cast<buzzer::Client*>(buzzer::gApplication->getClient());
+#if defined(Q_OS_WINDOWS)
+		QFont lFont("Segoe UI Emoji", lClient->scaleFactor() * 11, QFont::Bold);
+#else
 		QFont lFont("Noto Color Emoji N", lClient->scaleFactor() * 11, QFont::Bold);
+#endif
 		alias_->setFont(lFont);
 	}
 
@@ -559,7 +563,11 @@ QLabel* buzzer::NotificatorPrivate::text() {
 		text_->setWordWrap(true);
 
 		buzzer::Client* lClient = static_cast<buzzer::Client*>(buzzer::gApplication->getClient());
+#if defined(Q_OS_WINDOWS)
+		QFont lFont("Segoe UI Emoji", lClient->scaleFactor() * 11, QFont::Normal);
+#else
 		QFont lFont("Noto Color Emoji N", lClient->scaleFactor() * 11, QFont::Normal);
+#endif
 		text_->setFont(lFont);
 	}
 
@@ -577,7 +585,11 @@ QLabel* buzzer::NotificatorPrivate::caption() {
 		caption_->setWordWrap(true);
 
 		buzzer::Client* lClient = static_cast<buzzer::Client*>(buzzer::gApplication->getClient());
+#if defined(Q_OS_WINDOWS)		
+		QFont lFont("Segoe UI Emoji", lClient->scaleFactor() * 11, QFont::Normal);
+#else
 		QFont lFont("Noto Color Emoji N", lClient->scaleFactor() * 11, QFont::Normal);
+#endif
 		caption_->setFont(lFont);
 	}
 

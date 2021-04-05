@@ -32,8 +32,9 @@ Item
 	function start() {
 		if (!buzzerApp.isDesktop) search.setText("");
 		else {
-			controller.mainToolBar.searchTextEdited.connect(startSearch);
-			controller.mainToolBar.searchTextCleared.connect(searchTextCleared);
+			console.log("[conversations/start]: connecting");
+			controller.mainToolBar.searchTextEdited.connect(conversationsfeed_.startSearch);
+			controller.mainToolBar.searchTextCleared.connect(conversationsfeed_.searchTextCleared);
 			controller.mainToolBar.setSearchText("", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.global.search.add"));
 		}
 
@@ -42,8 +43,9 @@ Item
 
 	function disconnect() {
 		if (buzzerApp.isDesktop) {
-			controller.mainToolBar.searchTextEdited.disconnect(startSearch);
-			controller.mainToolBar.searchTextCleared.disconnect(searchTextCleared);
+			console.log("[conversations/disconnect]: disconnecting");
+			controller.mainToolBar.searchTextEdited.disconnect(conversationsfeed_.startSearch);
+			controller.mainToolBar.searchTextCleared.disconnect(conversationsfeed_.searchTextCleared);
 		}
 	}
 
@@ -359,6 +361,9 @@ Item
 
 		function popup(match, buzzers) {
 			//
+			if (buzzers.opened) buzzers.close();
+
+			//
 			if (buzzers.length === 0) return;
 			if (buzzers.length === 1 && match === buzzers[0]) return;
 			//
@@ -374,7 +379,7 @@ Item
 			}
 
 			x = (search.x + search.width) - width;
-			y = search.y + search.calculatedHeight;
+			y = !buzzerApp.isDesktop ? (search.y + search.calculatedHeight) : 0;
 
 			open();
 		}

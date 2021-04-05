@@ -168,10 +168,23 @@ void UploadMediaCommand::encrypt(const uint256& nonce, const std::vector<unsigne
 	cypher.resize(lLen);
 }
 
+#if defined(_WIN32)
+	#include <locale>
+	#include <codecvt>
+#endif
+
 void UploadMediaCommand::startSendData() {
 	//
 	boost::filesystem::path lFile(file_);
-	std::string lFileType = lFile.extension().native();
+	std::string lFileType;
+
+#if defined(_WIN32)
+	using lConvert = std::codecvt_utf8<wchar_t>;
+    std::wstring_convert<lConvert, wchar_t> lConverter;
+    lFileType = lConverter.to_bytes(lFile.extension().native());
+#else
+	lFileType = lFile.extension().native();
+#endif
 
 	std::string lType = boost::algorithm::to_lower_copy(lFileType);
 

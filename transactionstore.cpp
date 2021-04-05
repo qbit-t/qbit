@@ -93,7 +93,7 @@ bool TransactionStore::processBlockTransactions(ITransactionStorePtr store, IEnt
 		if (!lProcessor.process(lCtx)) {
 			lHasErrors = true;
 			for (std::list<std::string>::iterator lErr = lCtx->errors().begin(); lErr != lCtx->errors().end(); lErr++) {
-				gLog().write(Log::ERROR, std::string("[processBlockTransactions/error]: ") + (*lErr));
+				gLog().write(Log::GENERAL_ERROR, std::string("[processBlockTransactions/error]: ") + (*lErr));
 			}
 
 			lBlockCtx->addErrors(lCtx->tx()->id(), lCtx->errors());
@@ -146,7 +146,7 @@ bool TransactionStore::processBlockTransactions(ITransactionStorePtr store, IEnt
 		for (lAction = lBlockStore->actions().begin(); lAction != lBlockStore->actions().end(); lAction++) {
 			if (lAction->action() == TxBlockAction::PUSH) {
 				if (!pushUnlinkedOut(lAction->utxoPtr(), lAction->ctx())) {
-					gLog().write(Log::ERROR, std::string("[processBlockTransactions/push/error]: Block with utxo inconsistency - ") + 
+					gLog().write(Log::GENERAL_ERROR, std::string("[processBlockTransactions/push/error]: Block with utxo inconsistency - ") + 
 						strprintf("push: utxo = %s, tx = %s, block = %s", 
 							lAction->utxo().toHex(), lAction->ctx()->tx()->id().toHex(), ctx->block()->hash().toHex()));
 
@@ -158,7 +158,7 @@ bool TransactionStore::processBlockTransactions(ITransactionStorePtr store, IEnt
 				}
 			} else if (lAction->action() == TxBlockAction::POP) {
 				if (!popUnlinkedOut(lAction->utxo(), lAction->ctx())) {
-					gLog().write(Log::ERROR, std::string("[processBlockTransactions/pop/error]: Block with utxo inconsistency - ") + 
+					gLog().write(Log::GENERAL_ERROR, std::string("[processBlockTransactions/pop/error]: Block with utxo inconsistency - ") + 
 						strprintf("pop: utxo = %s, tx = %s, block = %s", 
 							lAction->utxo().toHex(), lAction->ctx()->tx()->id().toHex(), ctx->block()->hash().toHex()));
 
@@ -193,7 +193,7 @@ bool TransactionStore::processBlockTransactions(ITransactionStorePtr store, IEnt
 			if ((processWallet || lWalletAction->ctx()->tx()->type() == Transaction::COINBASE) && 
 				lWalletAction->action() == TxBlockAction::PUSH) {
 				if (!wallet_->pushUnlinkedOut(lWalletAction->utxoPtr(), lWalletAction->ctx())) {
-					gLog().write(Log::ERROR, std::string("[processBlockTransactions/wallet/push/error]: Block with utxo inconsistency - ") + 
+					gLog().write(Log::GENERAL_ERROR, std::string("[processBlockTransactions/wallet/push/error]: Block with utxo inconsistency - ") + 
 						strprintf("push: utxo = %s, tx = %s, block = %s", 
 							lWalletAction->utxo().toHex(), lWalletAction->ctx()->tx()->id().toHex(), ctx->block()->hash().toHex()));
 
@@ -207,7 +207,7 @@ bool TransactionStore::processBlockTransactions(ITransactionStorePtr store, IEnt
 
 			if (processWallet && lWalletAction->action() == TxBlockAction::POP) {
 				if (!wallet_->popUnlinkedOut(lWalletAction->utxo(), lWalletAction->ctx())) {
-					gLog().write(Log::ERROR, std::string("[processBlockTransactions/wallet/pop/error]: Block with utxo inconsistency - ") + 
+					gLog().write(Log::GENERAL_ERROR, std::string("[processBlockTransactions/wallet/pop/error]: Block with utxo inconsistency - ") + 
 						strprintf("pop: utxo = %s, tx = %s, block = %s", 
 							lWalletAction->utxo().toHex(), lWalletAction->ctx()->tx()->id().toHex(), ctx->block()->hash().toHex()));
 
@@ -1242,7 +1242,7 @@ bool TransactionStore::open() {
 			opened_ = true;
 		}
 		catch(const std::exception& ex) {
-			gLog().write(Log::ERROR, std::string("[open/error]: ") + ex.what());
+			gLog().write(Log::GENERAL_ERROR, std::string("[open/error]: ") + ex.what());
 			return false;
 		}
 	}

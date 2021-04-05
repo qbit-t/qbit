@@ -5,12 +5,14 @@
 #ifndef QBIT_IPEER_H
 #define QBIT_IPEER_H
 
+#include <boost/asio.hpp>
+#include <boost/atomic.hpp>
+using boost::asio::ip::tcp;
+
 #include "state.h"
 #include "key.h"
 #include "entity.h"
 #include "ientitystore.h"
-
-#include <boost/atomic.hpp>
 
 namespace qbit {
 	class IConsensus;
@@ -22,9 +24,6 @@ namespace qbit {
 #include "synchronizationjob.h"
 #include "iconsensus.h"
 #include "ipeerextension.h"
-
-#include <boost/asio.hpp>
-using boost::asio::ip::tcp;
 
 namespace qbit {
 

@@ -964,7 +964,11 @@ public:
 		if (result.success()) {
 			QString lTx;
 			if (tx) lTx = QString::fromStdString(tx->id().toHex());
-			emit processed(lTx, QString::fromStdString(previewFile), QString::fromStdString(originalFile), orientation);
+#ifdef Q_OS_WINDOWS
+			emit processed(lTx, QString("/") + QString::fromStdString(previewFile), QString("/") + QString::fromStdString(originalFile), orientation);
+#else
+			emit processed(lTx, QString::fromStdString(previewFile), QString::fromStdString(originalFile), orientation);			
+#endif
 		} else {
 			emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
 		}

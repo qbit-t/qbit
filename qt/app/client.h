@@ -133,10 +133,10 @@ public:
 	void setDescription(const QString& description) { description_ = description; emit descriptionChanged(); }
 	QString description() const { return description_; }
 
-	void setAvatar(const QString& avatar) { avatar_ = avatar; emit avatarChanged(); }
+	void setAvatar(const QString& avatar);
 	QString avatar() const { return avatar_; }
 
-	void setHeader(const QString& header) { header_ = header; emit headerChanged(); }
+	void setHeader(const QString& header);
 	QString header() const { return header_; }
 
 	void setLocale(const QString& locale) { locale_ = locale; emit localeChanged(); }
@@ -487,7 +487,8 @@ private:
 	//
 	void echoLog(unsigned int /*category*/, const std::string& message) {
 		// debug only
-		qInfo() << QString::fromStdString(message);
+		if (application_->getDebug())
+			qInfo() << QString::fromStdString(message);
 	}
 
 	//

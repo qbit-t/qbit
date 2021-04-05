@@ -1,6 +1,7 @@
 TARGET = buzzer
 
-QT += qml quick quickcontrols2 multimedia multimediawidgets widgets quickwidgets
+#QT += qml quick quickcontrols2 multimedia multimediawidgets widgets quickwidgets
+QT += qml quick quickcontrols2 widgets quickwidgets
 
 CONFIG += c++11
 CONFIG += static
@@ -12,9 +13,6 @@ DEFINES += HAVE_CONFIG_H
 DEFINES += MOBILE_PLATFORM
 DEFINES += CLIENT_PLATFORM
 DEFINES += DESKTOP_PLATFORM
-
-QMAKE_LFLAGS += -no-pie
-# QMAKE_LFLAGS += -static -s -Os
 
 # Version
 DEFINES += QBIT_VERSION_MAJOR=0
@@ -132,31 +130,50 @@ include(statusbar/statusbar.pri)
 TARGET.CAPABILITY += SwEvent
 
 INCLUDEPATH += $$PWD/../../leveldb/include
-#INCLUDEPATH += $$PWD/libjpeg/android/jni
-#INCLUDEPATH += $$PWD/libpng/android/jni
 INCLUDEPATH += $$PWD/../../secp256k1/include
 INCLUDEPATH += $$PWD/../../secp256k1/src
 INCLUDEPATH += $$PWD/../../secp256k1
 INCLUDEPATH += $$PWD/../..
 INCLUDEPATH += $$PWD/../
-INCLUDEPATH += $$PWD/../../boost
 
-#LIBS += -L../../leveldb/ -lleveldb
-#LIBS += -L../../boost/stage/lib/ -lboost_random
-#LIBS += -L../../boost/stage/lib/ -lboost_system
-#LIBS += -L../../boost/stage/lib/ -lboost_thread
-#LIBS += -L../../boost/stage/lib/ -lboost_chrono
-#LIBS += -L../../boost/stage/lib/ -lboost_filesystem
+unix {
+    INCLUDEPATH += $$PWD/../../boost
+    LIBS += "../../leveldb/libleveldb.a"
+    LIBS += "../../boost/stage/lib/libboost_random.a"
+    LIBS += "../../boost/stage/lib/libboost_system.a"
+    LIBS += "../../boost/stage/lib/libboost_thread.a"
+    LIBS += "../../boost/stage/lib/libboost_chrono.a"
+    LIBS += "../../boost/stage/lib/libboost_filesystem.a"
 
-LIBS += "../../leveldb/libleveldb.a"
-LIBS += "../../boost/stage/lib/libboost_random.a"
-LIBS += "../../boost/stage/lib/libboost_system.a"
-LIBS += "../../boost/stage/lib/libboost_thread.a"
-LIBS += "../../boost/stage/lib/libboost_chrono.a"
-LIBS += "../../boost/stage/lib/libboost_filesystem.a"
+    LIBS += -ljpeg.a
+    LIBS += -lpng.a
 
-LIBS += -ljpeg.a
-LIBS += -lpng.a
+    QMAKE_LFLAGS += -no-pie
+}
+
+win32 {
+    LIBS += "../../leveldb/libleveldb.a"
+
+    LIBS += -lboost_random-mt-x64
+    LIBS += -lboost_system-mt-x64
+    LIBS += -lboost_thread-mt-x64
+    LIBS += -lboost_chrono-mt-x64
+    LIBS += -lboost_filesystem-mt-x64
+
+    LIBS += -ljpeg
+    LIBS += -lpng
+
+    LIBS += -lws2_32
+    LIBS += -lwsock32
+    LIBS += -lz
+    LIBS += -lopengl32
+
+    QMAKE_CXXFLAGS += -std=c++11
+
+    DEFINES += WIN32_LEAN_AND_MEAN
+
+    RC_ICONS = $$PWD/../images/buzzer.ico
+}
 
 DISTFILES += \
     buzzer-app.config \

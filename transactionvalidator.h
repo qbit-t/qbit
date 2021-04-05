@@ -21,10 +21,10 @@ typedef std::shared_ptr<TransactionProcessor> TransactionProcessorPtr;
 class TransactionAction {
 public:
 	enum Result {
-		NONE		= 0x00,
-		ERROR		= 0x01,
-		SUCCESS		= 0x02,
-		CONTINUE	= 0x03
+		NONE			= 0x00,
+		GENERAL_ERROR	= 0x01,
+		SUCCESS			= 0x02,
+		CONTINUE		= 0x03
 	};
 public:
 	TransactionAction() {}
@@ -32,7 +32,7 @@ public:
 
 	void setTransactionProcessor(TransactionProcessorPtr);
 
-	virtual Result execute(TransactionContextPtr, ITransactionStorePtr, IWalletPtr, IEntityStorePtr) { return Result::ERROR; }
+	virtual Result execute(TransactionContextPtr, ITransactionStorePtr, IWalletPtr, IEntityStorePtr) { return Result::GENERAL_ERROR; }
 
 protected:
 	TransactionProcessorPtr processor_;
