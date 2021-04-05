@@ -192,6 +192,8 @@ public:
 		lArgs.push_back("160x100");
 		lArgs.push_back(header_.toStdString()); // full path
 
+		qInfo() << "create buzzer" << name_ << alias_ << avatar_ << header_;
+
 		command_->process(lArgs);
 	}
 
