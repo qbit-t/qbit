@@ -284,7 +284,13 @@ Item
 			avatarImage.source = fileUrl;
 
 			var lPath = fileUrl.toString();
-			lPath = lPath.replace(/^(file:\/{2})/,"");
+			if (Qt.platform.os == "windows") {
+				lPath = lPath.replace(/^(file:\/{3})/,"");
+				lPath = lPath.slice(0, 1) + ":" + lPath.slice(1); // C/path -> C:/path
+			} else {
+				lPath = lPath.replace(/^(file:\/{2})/,"");
+			}
+
 			buzzerAvatar_ = decodeURIComponent(lPath);
 
 			createBuzzer.enabled = createBuzzer.getEnabled();
@@ -454,7 +460,13 @@ Item
 			headerImage.source = fileUrl;
 
 			var lPath = fileUrl.toString();
-			lPath = lPath.replace(/^(file:\/{2})/,"");
+			if (Qt.platform.os == "windows") {
+				lPath = lPath.replace(/^(file:\/{3})/,"");
+				lPath = lPath.slice(0, 1) + ":" + lPath.slice(1); // C/path -> C:/path
+			} else {
+				lPath = lPath.replace(/^(file:\/{2})/,"");
+			}
+
 			buzzerHeader_ = decodeURIComponent(lPath);
 
 			createBuzzer.enabled = createBuzzer.getEnabled();

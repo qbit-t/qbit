@@ -137,7 +137,10 @@ INCLUDEPATH += $$PWD/../..
 INCLUDEPATH += $$PWD/../
 
 unix {
+    QMAKE_LFLAGS += -no-pie
+
     INCLUDEPATH += $$PWD/../../boost
+
     LIBS += "../../leveldb/libleveldb.a"
     LIBS += "../../boost/stage/lib/libboost_random.a"
     LIBS += "../../boost/stage/lib/libboost_system.a"
@@ -145,10 +148,8 @@ unix {
     LIBS += "../../boost/stage/lib/libboost_chrono.a"
     LIBS += "../../boost/stage/lib/libboost_filesystem.a"
 
-    LIBS += -ljpeg.a
-    LIBS += -lpng.a
-
-    QMAKE_LFLAGS += -no-pie
+    LIBS += -ljpeg
+	LIBS += -lpng
 }
 
 win32 {
@@ -241,7 +242,7 @@ HEADERS += \
 
 RESOURCES += \
     $$files(../fonts/*) \
-	$$files(../fonts-desktop/*) \
+#	$$files(../fonts-desktop/*) \
     $$files(../images/*) \
     $$files(backend/*) \
     $$files(qml/*) \
@@ -250,7 +251,8 @@ RESOURCES += \
 	$$files(models/*) \
 	$$files(emoji/*) \
 	./buzzer-app.config \
-	./buzzer.desktop
+	./buzzer.desktop \
+	../fonts-desktop/NotoColorEmojiN.ttf
 
 FORMS +=
 
