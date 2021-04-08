@@ -1,4 +1,5 @@
 #include <QFileInfo>
+#include <QOperatingSystemVersion>
 
 #include <boost/function.hpp>
 
@@ -15,6 +16,10 @@
 
 #include "buzztexthighlighter.h"
 #include "wallettransactionslistmodel.h"
+
+#if defined(DESKTOP_PLATFORM)
+#include "emojimodel.h"
+#endif
 
 #include <QQuickImageProvider>
 
@@ -52,6 +57,10 @@
 #include "commandwrappers.h"
 #include "imagelisting.h"
 #include "applicationpath.h"
+
+#if defined(DESKTOP_PLATFORM)
+#include "pushdesktopnotification.h"
+#endif
 
 using namespace buzzer;
 using namespace qbit;
@@ -104,15 +113,37 @@ int Client::open(QString secret) {
 		qbit::gLog().enable(qbit::getLogCategory(*lCategory));
 	}
 
+	// rebind qapplication message handler to intercept qInfo(), qError() output messages
+	buzzer::gLogger.reset(new buzzer::Logger(!application_->getDebug()));
+
+	//
+#if defined(DESKTOP_PLATFORM)
+	if (application_->isDesktop()) {
+#if defined(Q_OS_WINDOWS)
+ 		auto lCurrent = QOperatingSystemVersion::current();
+ 		//QString lEmojiFontFile = ":/fonts-desktop/SeguiEmj.ttf";
+ 		//if (lCurrent >= QOperatingSystemVersion::Windows10)
+ 		//	lEmojiFontFile = ":/fonts-desktop/NotoColorEmoji_WindowsCompatible.ttf";
+		//if (QFontDatabase::addApplicationFont(lEmojiFontFile) == -1) {
+		//}
+#else
+		if (QFontDatabase::addApplicationFont(":/fonts-desktop/NotoColorEmojiN.ttf") == -1) {
+			if (gLog().isEnabled(Log::GENERAL_ERROR))
+				gLog().write(Log::GENERAL_ERROR, std::string("[Client::open]: font NotoColorEmojiN.ttf was not loaded"));
+		}
+
+#endif
+		emojiData_ = new EmojiData();
+		emojiData_->open();
+	}
+#endif
+
 	// setup testnet
 	qbit::gTestNet = application_->getTestNet();
 
 	// intercept qbit log - only in debug mode
 	if (application_->getDebug())
 		qbit::gLog().setEcho(boost::bind(&Client::echoLog, this, _1, _2));
-
-	// rebind qapplication message handler to intercept qInfo(), qError() output messages
-	buzzer::gLogger.reset(new buzzer::Logger());
 
 	//
 	Transaction::registerTransactionType(Transaction::ASSET_TYPE, TxAssetTypeCreator::instance());
@@ -256,15 +287,15 @@ int Client::open(QString secret) {
 	eventsfeedList_ = new EventsfeedListModelPersonal();
 	buzzer_->setEventsfeed(eventsfeedList_->eventsfeed());
 	// get event feed updates
-	connect(eventsfeedList_, SIGNAL(eventsfeedUpdated(unsigned long long)),
-								this, SLOT(eventsfeedUpdated(unsigned long long)));
+	connect(eventsfeedList_, SIGNAL(eventsfeedUpdated(const qbit::EventsfeedItemProxy&)),
+								this, SLOT(eventsfeedUpdated(const qbit::EventsfeedItemProxy&)));
 
 	// conversations feed
 	buzzer_->setConversations(conversationsList_->conversations());
 
 	// get conversation updates
-	connect(conversationsList_, SIGNAL(conversationsUpdated(unsigned long long)),
-								this, SLOT(conversationsUpdated(unsigned long long)));
+	connect(conversationsList_, SIGNAL(conversationsUpdated(const qbit::ConversationItemProxy&)),
+								this, SLOT(conversationsUpdated(const qbit::ConversationItemProxy&)));
 
 	// buzzer peer extention
 	PeerManager::registerPeerExtension(
@@ -299,7 +330,9 @@ int Client::open(QString secret) {
 #endif
 
 	// registed command wrappers
+#ifdef Q_OS_ANDROID
 	qmlRegisterType<buzzer::ImageListing>("app.buzzer.components", 1, 0, "ImageListing");
+#endif
 	qmlRegisterType<buzzer::BuzzTextHighlighter>("app.buzzer.components", 1, 0, "BuzzTextHighlighter");
 	qmlRegisterType<buzzer::WebSourceInfo>("app.buzzer.components", 1, 0, "WebSourceInfo");
 
@@ -377,6 +410,10 @@ int Client::open(QString secret) {
 	qmlRegisterType<buzzer::ConversationsfeedListModel>("app.buzzer.commands", 1, 0, "ConversationsfeedListModel");
 	qmlRegisterType<buzzer::ConversationsListModel>("app.buzzer.commands", 1, 0, "ConversationsListModel");
 
+#if defined(DESKTOP_PLATFORM)
+	qmlRegisterType<buzzer::EmojiModel>("app.buzzer.commands", 1, 0, "EmojiModel");
+#endif
+
 	qRegisterMetaType<qbit::BuzzfeedProxy>("qbit::BuzzfeedProxy");
 	qRegisterMetaType<qbit::BuzzfeedItemProxy>("qbit::BuzzfeedItemProxy");
 	qRegisterMetaType<qbit::BuzzfeedItemUpdatesProxy>("qbit::BuzzfeedItemUpdatesProxy");
@@ -410,6 +447,12 @@ int Client::open(QString secret) {
 	peerManager_->addPeerExplicit("85.90.245.180:31416");
 	*/
 
+	// check bounds
+	QString lLastTimestamp = getProperty("Client.lastTimestamp");
+	if (!lLastTimestamp.length()) {
+		setProperty("Client.lastTimestamp", QString::number(qbit::getMicroseconds()));
+	}
+
 	// fill up peers
 	peerManager_->run();
 
@@ -426,6 +469,62 @@ int Client::open(QString secret) {
 	syncTimer_->start(500);
 
 	return 1;
+}
+
+// events feed updated
+void Client::eventsfeedUpdated(const qbit::EventsfeedItemProxy& event) {
+	//
+	qbit::EventsfeedItemPtr lEventsfeedItem(event.get());
+	QString lLastTimestamp = getProperty("Client.lastTimestamp");
+	if (lLastTimestamp.length()) {
+		if (lLastTimestamp.toULongLong() < lEventsfeedItem->timestamp()) {
+			emit newEvents();
+			setProperty("Client.lastTimestamp", QString::number(lEventsfeedItem->timestamp()));
+#if defined(DESKTOP_PLATFORM)
+			// notify
+			if (suspended_ || (QString::fromStdString(lEventsfeedItem->buzzId().toHex()) != topId_ &&
+					(!lEventsfeedItem->buzzers().size() ||
+					 QString::fromStdString(lEventsfeedItem->beginInfo()->eventId().toHex()) != topId_))) {
+				qInfo() << "[eventsfeedUpdated/0]" << lEventsfeedItem->timestamp() << !suspended_;
+				PushNotification::instance(lEventsfeedItem, !suspended_)->process();
+			}
+#endif
+		}
+	} else {
+		emit newEvents();
+		setProperty("Client.lastTimestamp", QString::number(lEventsfeedItem->timestamp()));
+#if defined(DESKTOP_PLATFORM)
+		// notify
+		if (suspended_ || (QString::fromStdString(lEventsfeedItem->buzzId().toHex()) != topId_ &&
+				(!lEventsfeedItem->buzzers().size() ||
+				 QString::fromStdString(lEventsfeedItem->beginInfo()->eventId().toHex()) != topId_))) {
+			qInfo() << "[eventsfeedUpdated/1]" << lEventsfeedItem->timestamp() << !suspended_;
+			PushNotification::instance(lEventsfeedItem, !suspended_)->process();
+		}
+#endif
+	}
+}
+
+// conversations updated
+void Client::conversationsUpdated(const qbit::ConversationItemProxy& event) {
+	//
+	qbit::ConversationItemPtr lEventsfeedItem(event.get());
+	QString lLastTimestamp = getProperty("Client.conversationsLastTimestamp");
+	if (lLastTimestamp.length()) {
+		if (lLastTimestamp.toULongLong() < lEventsfeedItem->timestamp()) {
+			qInfo() << "[conversationsUpdated]" << lLastTimestamp.toULongLong() << lEventsfeedItem->timestamp();
+			if (lEventsfeedItem->events().size() &&
+					lEventsfeedItem->events()[0].buzzerId() != getBuzzerComposer()->buzzerId())
+				emit newMessages();
+			setProperty("Client.conversationsLastTimestamp", QString::number(lEventsfeedItem->timestamp()));
+		}
+	} else {
+		qInfo() << "[conversationsUpdated]" << lLastTimestamp.toULongLong() << lEventsfeedItem->timestamp();
+		if (lEventsfeedItem->events().size() &&
+				lEventsfeedItem->events()[0].buzzerId() != getBuzzerComposer()->buzzerId())
+			emit newMessages();
+		setProperty("Client.conversationsLastTimestamp", QString::number(lEventsfeedItem->timestamp()));
+	}
 }
 
 void Client::cleanUpBuzzerCache() {
@@ -732,7 +831,7 @@ void Client::peerPushed(qbit::IPeerPtr peer, bool update, int count) {
 
 	setBuzzerDAppReady();
 
-	if (!suspended_)
+	if (!suspended_ && peersModelUpdates_)
 		emit peerPushedSignal(PeerProxy(peer), update, count);
 }
 
@@ -751,7 +850,7 @@ void Client::peerPopped(qbit::IPeerPtr peer, int count) {
 
 	setBuzzerDAppReady();
 
-	if (!suspended_)
+	if (!suspended_ && peersModelUpdates_)
 		emit peerPoppedSignal(PeerProxy(peer), count);
 }
 
@@ -768,6 +867,8 @@ void Client::prepareCache() {
 void Client::suspend() {
 	//
 	suspended_ = true;
+	//
+	if (gApplication->isDesktop()) return;
 
 	//
 	if (peerManager_) {
@@ -782,9 +883,11 @@ void Client::suspend() {
 void Client::resume() {
 	//
 	if (!opened_) return;
-
 	//
 	suspended_ = false;
+	//
+	if (gApplication->isDesktop()) return;
+
 	buzzerDAppReady_ = false;
 	recallWallet_ = true;
 
@@ -797,7 +900,7 @@ void Client::resume() {
 
 void Client::setBuzzerDAppReady() {
 	//
-	if (suspended_) return;
+	if (!gApplication->isDesktop() && suspended_) return;
 
 	//
 	std::map<uint256, std::map<uint32_t, IPeerPtr>> lMap;
@@ -877,6 +980,9 @@ void Client::removeAllKeys() {
 	//
 	if (wallet_) {
 		wallet_->removeAllKeys();
+
+		buzzerDAppReady_ = false;
+		recallWallet_ = true;
 	}
 }
 
@@ -947,7 +1053,8 @@ void Client::revertChanges() {
 		setLocale(QString::fromStdString(back_["locale"].getString()));
 		setTheme(QString::fromStdString(back_["theme"].getString()));
 		setThemeSelector(QString::fromStdString(back_["themeSelector"].getString()));
-    }
+		setScale(QString::fromStdString(back_["scale"].getString()));
+	}
 }
 
 void Client::settingsFromJSON(qbit::json::Value& root) {
@@ -959,6 +1066,7 @@ void Client::settingsFromJSON(qbit::json::Value& root) {
 	setLocale(QString::fromStdString(root["locale"].getString()));
 	setTheme(QString::fromStdString(root["theme"].getString()));
 	setThemeSelector(QString::fromStdString(root["themeSelector"].getString()));
+	setScale(QString::fromStdString(root["scale"].getString()));
 
     properties_.clear();
 
@@ -982,6 +1090,7 @@ void Client::settingsToJSON(qbit::json::Value& root) {
 	root.addString("locale", locale().toStdString());
 	root.addString("theme", theme().toStdString());
 	root.addString("themeSelector", themeSelector().toStdString());
+	root.addString("scale", scale().toStdString());
 
 	qbit::json::Value lProperties = root.addObject("properties");
 
@@ -1035,4 +1144,48 @@ bool Client::hasPropertyBeginWithAndValue(QString sub, QString val) {
     }
 
     return false;
+}
+
+void Client::extractFavoriteEmojis(std::vector<std::string>& fav) {
+	//
+	for(std::map<std::string, std::string>::iterator lProp = properties_.begin(); lProp != properties_.end(); lProp++) {
+		if (lProp->first.find("emoji.") == 0) {
+			std::vector<std::string> lParts;
+			boost::split(lParts, lProp->first, boost::is_any_of("."), boost::token_compress_on);
+
+			if (lParts.size() == 2) {
+				fav.push_back(lParts[1]);
+			}
+		}
+	}
+}
+
+void Client::setFavEmoji(QString emoji) {
+	//
+	setProperty(QString("emoji.") + emoji, "true");
+#if defined(DESKTOP_PLATFORM)
+	emojiData_->updateFavEmojis();
+#endif
+}
+
+void Client::setAvatar(const QString& avatar) {
+#ifdef Q_OS_WINDOWS
+	QString lAvatar = avatar;
+	//lAvatar.replace(0, 1, lAvatar[0].toLower());
+	avatar_ = lAvatar[0] != "/" ? ("/" + lAvatar) : lAvatar;
+#else
+	avatar_ = avatar;
+#endif
+	emit avatarChanged();
+}
+
+void Client::setHeader(const QString& header) {
+#ifdef Q_OS_WINDOWS
+	QString lHeader = header;
+	//lHeader.replace(0, 1, lHeader[0].toLower());
+	header_ = lHeader[0] != "/" ? ("/" + lHeader) : lHeader;
+#else
+	header_ = header;
+#endif
+	emit headerChanged(); 
 }

@@ -7,7 +7,9 @@ QRCode 1.0 qrcode.qml
 AddAddressDialog 1.0 addaddressdialog.qml
 ConfirmActionDialog 1.0 confirmactiondialog.qml
 SetupToolBar 1.0 setuptoolbar.qml
+SetupToolBarDesktop 1.0 setuptoolbar-desktop.qml
 BuzzerInfo 1.0 buzzerinfo.qml
+BuzzerInfoDesktop 1.0 buzzerinfo-desktop.qml
 BuzzerToolBar 1.0 buzzertoolbar.qml
 Buzzfeed 1.0 buzzfeed.qml
 BuzzfeedGlobal 1.0 buzzfeedglobal.qml
@@ -28,4 +30,5 @@ Conversations 1.0 conversationsfeed.qml
 BuzzerHeader 1.0 buzzerheader.qml
 PeersList 1.0 peerslist.qml
 PeersManualList 1.0 peersmanuallist.qml
-
+BuzzerStackView 1.0 buzzer-stackview-desktop.qml
+BuzzerDesktopToolBar 1.0 buzzertoolbar-desktop.qml

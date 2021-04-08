@@ -35,7 +35,7 @@ public:
 		CLOSED = 0,
 		CONNECTING = 1,
 		CONNECTED = 2,
-		ERROR = 3
+		GENERAL_ERROR = 3
 	};
 
 	enum SocketType {

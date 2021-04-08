@@ -34,6 +34,7 @@ QuarkPage {
 	readonly property int spaceRight_: 15
 	readonly property int spaceBottom_: 12
 	readonly property int spaceItems_: 5
+	readonly property int toolbarTotalHeight_: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 50) : 45
 
 	function start(tag) {
 		//
@@ -50,7 +51,7 @@ QuarkPage {
 
 	function closePage() {
 		stopPage();
-		controller.popPage();
+		controller.popPage(buzzfeedtag_);
 		destroy(1000);
 	}
 
@@ -150,15 +151,85 @@ QuarkPage {
 	}
 
 	//
+	// toolbar
+	//
+
+	QuarkToolBar {
+		id: buzzThreadToolBar
+		height: toolbarTotalHeight_
+		width: list.width
+
+		property int totalHeight: height
+
+		Component.onCompleted: {
+		}
+
+		QuarkToolButton	{
+			id: cancelButton
+			Material.background: "transparent"
+			visible: true
+			labelYOffset: buzzerApp.isDesktop ? 0 : 3
+			symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+			Layout.alignment: Qt.AlignHCenter
+			symbol: Fonts.leftArrowSym
+			symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 16) : symbolFontPointSize
+
+			onClicked: {
+				closePage();
+			}
+		}
+
+		QuarkLabelRegular {
+			id: tagControl
+			x: cancelButton.x + cancelButton.width + spaceItems_
+			y: parent.height / 2 - height / 2
+			width: parent.width - (x /*+ spaceRightMenu_*/)
+			elide: Text.ElideRight
+			text: modelLoader.tag
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 16) : 18
+			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link")
+		}
+
+		QuarkToolButton {
+			id: menuControl
+			x: parent.width - width //- spaceItems_
+			y: parent.height / 2 - height / 2
+			Material.background: "transparent"
+			symbol: Fonts.elipsisVerticalSym
+			visible: true
+			labelYOffset: buzzerApp.isDesktop ? 0 : 3
+			symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+			Layout.alignment: Qt.AlignHCenter
+			symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 16) : symbolFontPointSize
+
+			onClicked: {
+				if (headerMenu.visible) headerMenu.close();
+				else { headerMenu.prepare(); headerMenu.open(); }
+			}
+		}
+
+		QuarkHLine {
+			id: bottomLine
+			x1: 0
+			y1: parent.height
+			x2: parent.width
+			y2: parent.height
+			penWidth: 1
+			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
+			visible: true
+		}
+	}
+
+	//
 	// thread
 	//
 
 	QuarkListView {
 		id: list
 		x: 0
-		y: 0 //buzzThreadToolBar.y + buzzThreadToolBar.height
+		y: buzzThreadToolBar.y + buzzThreadToolBar.height
 		width: parent.width
-		height: parent.height // - (buzzThreadToolBar.y + buzzThreadToolBar.height + replyContainer.height - 1)
+		height: parent.height - (buzzThreadToolBar.y + buzzThreadToolBar.height)
 		usePull: true
 		clip: true
 
@@ -191,56 +262,11 @@ QuarkPage {
 			modelLoader.feed();
 		}
 
+		/*
 		headerPositioning: ListView.PullBackHeader
 		header: ItemDelegate {
-
-			QuarkToolBar {
-				id: buzzThreadToolBar
-				height: 45
-				width: list.width
-
-				property int totalHeight: height
-
-				Component.onCompleted: {
-				}
-
-				QuarkToolButton	{
-					id: cancelButton
-					Material.background: "transparent"
-					visible: true
-					labelYOffset: 3
-					symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
-					Layout.alignment: Qt.AlignHCenter
-					symbol: Fonts.leftArrowSym
-
-					onClicked: {
-						closePage();
-					}
-				}
-
-				QuarkLabel {
-					id: tagControl
-					x: cancelButton.x + cancelButton.width + spaceItems_
-					y: parent.height / 2 - height / 2
-					width: parent.width - (x + spaceRightMenu_)
-					elide: Text.ElideRight
-					text: modelLoader.tag
-					font.pointSize: 18
-					color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link")
-				}
-
-				QuarkHLine {
-					id: bottomLine
-					x1: 0
-					y1: parent.height
-					x2: parent.width
-					y2: parent.height
-					penWidth: 1
-					color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
-					visible: true
-				}
-			}
 		}
+		*/
 
 		delegate: ItemDelegate {
 			//
@@ -250,19 +276,7 @@ QuarkPage {
 
 			onClicked: {
 				// open thread
-				var lComponent = null;
-				var lPage = null;
-
-				lComponent = Qt.createComponent("qrc:/qml/buzzfeedthread.qml");
-				if (lComponent.status === Component.Error) {
-					showError(lComponent.errorString());
-				} else {
-					lPage = lComponent.createObject(controller);
-					lPage.controller = controller;
-					addPage(lPage);
-
-					lPage.start(buzzChainId, buzzId);
-				}
+				controller.openThread(buzzChainId, buzzId, buzzerAlias, buzzBodyFlat);
 			}
 
 			onWidthChanged: {
@@ -315,7 +329,8 @@ QuarkPage {
 		Image {
 			id: buzzImage
 			anchors.fill: parent
-			source: "../images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "buzzer.round")
+			source: "../images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector,
+					buzzerApp.isDesktop ? "buzzer.round.full" : "buzzer.round")
 			fillMode: Image.PreserveAspectFit
 		}
 
@@ -324,7 +339,8 @@ QuarkPage {
 			var lComponent = null;
 			var lPage = null;
 
-			lComponent = Qt.createComponent("qrc:/qml/buzzeditor.qml");
+			lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzeditor-desktop.qml") :
+											   Qt.createComponent("qrc:/qml/buzzeditor.qml");
 			if (lComponent.status === Component.Error) {
 				showError(lComponent.errorString());
 			} else {
@@ -340,6 +356,38 @@ QuarkPage {
 	//
 	// support
 	//
+
+	QuarkPopupMenu {
+		id: headerMenu
+		x: parent.width - width - spaceRight_
+		y: toolbarTotalHeight_ + spaceItems_
+		width: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 350) : 350
+		visible: false
+
+		model: ListModel { id: menuModel }
+
+		Component.onCompleted: prepare()
+
+		onClick: {
+			// key, activate
+			controller.activatePage(key);
+		}
+
+		function prepare() {
+			//
+			menuModel.clear();
+
+			//
+			var lArray = controller.enumStakedPages();
+			for (var lI = 0; lI < lArray.length; lI++) {
+				//
+				menuModel.append({
+					key: lArray[lI].key,
+					keySymbol: "",
+					name: lArray[lI].alias + " // " + lArray[lI].caption.substring(0, 100)});
+			}
+		}
+	}
 
 	Timer {
 		id: switchDataTimer
@@ -372,7 +420,7 @@ QuarkPage {
 		}
 	}
 
-	BusyIndicator {
+	QuarkBusyIndicator {
 		id: waitIndicator
 		anchors { horizontalCenter: parent.horizontalCenter; verticalCenter: parent.verticalCenter; }
 	}

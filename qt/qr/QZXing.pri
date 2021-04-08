@@ -291,19 +291,19 @@ win32-msvc*{
 
     INCLUDEPATH += $$PWD/zxing/win32/zxing \
 	            $$PWD/zxing/win32/zxing/msvc
-    HEADERS += $$PWD/zxing/win32/zxing/msvc/stdint.h \
-                $$PWD/zxing/win32/zxing/iconv.h
+    #HEADERS += $$PWD/zxing/win32/zxing/msvc/stdint.h \
+    #            $$PWD/zxing/win32/zxing/iconv.h
 
-    SOURCES += $$PWD/zxing/win32/zxing/win_iconv.c
+    #SOURCES += $$PWD/zxing/win32/zxing/win_iconv.c
 }
 
 win32-g++{
 
     INCLUDEPATH += $$PWD/zxing/win32/zxing
 
-    HEADERS += $$PWD/zxing/win32/zxing/iconv.h
+    # HEADERS += $$PWD/zxing/win32/zxing/iconv.h
 
-    SOURCES += $$PWD/zxing/win32/zxing/win_iconv.c
+    # SOURCES += $$PWD/zxing/win32/zxing/win_iconv.c
 }
 
 !win32{

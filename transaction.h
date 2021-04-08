@@ -425,8 +425,8 @@ public:
 	class NetworkUnlinkedOut {
 	public:
 		enum Direction {
-			IN = 1,
-			OUT = 2
+			O_IN = 1,
+			O_OUT = 2
 		};
 	public:
 		NetworkUnlinkedOut() {}

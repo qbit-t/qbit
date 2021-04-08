@@ -277,7 +277,7 @@ int main(int argv, char** argc) {
 
 	if (!lDebugFound) {
 		gLog().enable(Log::INFO);
-		gLog().enable(Log::ERROR);
+		gLog().enable(Log::GENERAL_ERROR);
 		gLog().enable(Log::CLIENT);
 	}
 
@@ -715,10 +715,10 @@ int main(int argv, char** argc) {
 			}
 		}
 		catch(qbit::exception& ex) {
-			gLog().writeClient(Log::ERROR, std::string(": ") + ex.code() + " | " + ex.what());
+			gLog().writeClient(Log::GENERAL_ERROR, std::string(": ") + ex.code() + " | " + ex.what());
 		}
 		catch(std::exception& ex) {
-			gLog().writeClient(Log::ERROR, std::string(": ") + ex.what());
+			gLog().writeClient(Log::GENERAL_ERROR, std::string(": ") + ex.what());
 		}
 	}
 

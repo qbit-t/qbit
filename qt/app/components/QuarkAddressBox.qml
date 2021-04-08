@@ -35,6 +35,8 @@ Rectangle
     property bool help: false
 	property bool editor: false
     property string innerAction: "dropDown"; // "add"
+	property int textFontSize: 16;
+	property int symbolFontSize: 14;
 
     property int highlightedIndex: -1
 
@@ -84,21 +86,22 @@ Rectangle
     {
         id: symbolRect
 
-        width: 50
-        height: 50
+		width: parent.height
+		height: parent.height
 
         border.color: borderColor
         color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.background")
 
         QuarkSymbolButton
         {
-            x: -5
-            y: -5
-            width: parent.width + 10
-            height: parent.height + 10
+			x: buzzerApp.isDesktop ? 0 : -5
+			y: -5
+			width: parent.width + (buzzerApp.isDesktop ? 0 : 10)
+			height: parent.height + 10
 
             symbol: Fonts.closeSym
             Material.background: "transparent"
+			font.pointSize: symbolFontSize
 
             onClicked:
             {
@@ -137,14 +140,14 @@ Rectangle
         id: addressRect
 
         x: symbolRect.width - 1
-        height: 50
+		height: parent.height
         width: addressBox.width - symbolRect.width - scanButton.width * scan - copyButton.width * copy - helpButton.width * help +
                scan*1 + copy*1 + help*1 + 1
 
         border.color: borderColor
         color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Box.background")
 
-        Label
+		QuarkLabelRegular
         {
             id: infoLabel
             x: 5 + textLeftPadding
@@ -154,6 +157,7 @@ Rectangle
 
             text: !addressBox.text.length ? addressBox.placeholderText : addressBox.text
             color: getColor()
+			font.pointSize: textFontSize
 
 			visible: !editor
 
@@ -186,6 +190,7 @@ Rectangle
 			x: 5 + textLeftPadding
 			y: parent.height / 2 - calculatedHeight / 2 + 5
 			width: parent.width - dropDownAction.width - (15 + textLeftPadding)
+			fontPointSize: textFontSize
 
 			onSearchTextChanged: {
 				//
@@ -203,7 +208,7 @@ Rectangle
             id: dropDownAction
             x: infoLabel.width + 9
             y: parent.height / 2 - height / 2
-            font.pointSize: 16
+			font.pointSize: symbolFontSize
             symbol: getSymbol()
 
             function getSymbol()
@@ -267,7 +272,7 @@ Rectangle
 
         x: addressRect.x + addressRect.width - 1
         width: getWidth()
-        height: 50
+		height: parent.height
         visible: scan
         clip: true
 
@@ -276,7 +281,7 @@ Rectangle
 
         function getWidth()
         {
-            if (scan) return 50;
+			if (scan) return parent.height;
             return 0;
         }
 
@@ -289,6 +294,7 @@ Rectangle
 
             symbol: Fonts.qrcodeSym
             Material.background: "transparent"
+			font.pointSize: symbolFontSize
 
             onClicked:
             {
@@ -303,7 +309,7 @@ Rectangle
 
         x: scanButton.x + scanButton.width - 1
         width: getWidth()
-        height: 50
+		height: parent.height
         visible: copy
         clip: true
 
@@ -312,7 +318,7 @@ Rectangle
 
         function getWidth()
         {
-            if (copy) return 50;
+			if (copy) return parent.height;
             return 0;
         }
 
@@ -325,6 +331,7 @@ Rectangle
 
             symbol: Fonts.pasteSym
             Material.background: "transparent"
+			font.pointSize: symbolFontSize
 
             onClicked:
             {
@@ -340,7 +347,7 @@ Rectangle
 
         x: copyButton.x + copyButton.width - 1
         width: getWidth()
-        height: 50
+		height: parent.height
         visible: help
         clip: true
 
@@ -349,7 +356,7 @@ Rectangle
 
         function getWidth()
         {
-            if (help) return 50;
+			if (help) return parent.height;
             return 0;
         }
 
@@ -362,6 +369,7 @@ Rectangle
 
             symbol: Fonts.helpSym
             Material.background: "transparent"
+			font.pointSize: symbolFontSize
 
             onClicked:
             {
@@ -404,7 +412,7 @@ Rectangle
             {
                 id: listDelegate
                 width: popUp.width
-                height: 48
+				height: addressBox.height - 2 //48
                 leftPadding: 0
                 rightPadding: 0
                 topPadding: 0
@@ -447,20 +455,21 @@ Rectangle
                     width: listDelegate.width
                     height: listDelegate.height
 
-                    QuarkLabel
+					QuarkLabelRegular
                     {
                         id: addressLabel
                         x: 10
                         y: 5
 						width: popUp.width - (10 + 5)
                         elide: Text.ElideRight
+						font.pointSize: addressBox.textFontSize
 
 						text: label
 
                         Material.background: "transparent"
                     }
 
-                    QuarkLabel
+					QuarkLabelRegular
                     {
                         id: labelLabel
                         x: 10
@@ -468,7 +477,7 @@ Rectangle
 						width: popUp.width - (10 + 5)
 						elide: Text.ElideRight
 
-						font.pointSize: 12
+						font.pointSize: addressBox.textFontSize - 2
 						text: address
                         color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.textDisabled")
                     }
@@ -507,7 +516,7 @@ Rectangle
                     QuarkSymbolLabel
                     {
                         symbol: Fonts.trashSym
-                        font.pointSize: 16
+						font.pointSize: addressBox.symbolFontSize
 
                         x: parent.width / 2 - width / 2
                         y: parent.height / 2 - height / 2

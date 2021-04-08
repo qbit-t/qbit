@@ -16,6 +16,16 @@ BuzzfeedListModel::BuzzfeedListModel() {
 	connect(this, SIGNAL(buzzfeedItemsUpdatedSignal(const qbit::BuzzfeedItemUpdatesProxy&)), this, SLOT(buzzfeedItemsUpdatedSlot(const qbit::BuzzfeedItemUpdatesProxy&)));
 }
 
+int BuzzfeedListModel::locateIndex(QString key) {
+	//
+	uint256 lId; lId.setHex(key.toStdString());
+	qbit::BuzzfeedItem::Key lKey(lId, qbit::Transaction::TX_BUZZER_MESSAGE);
+	std::map<qbit::BuzzfeedItem::Key, int>::iterator lIndex = index_.find(lKey);
+	if (lIndex == index_.end()) return lIndex->second;
+
+	return -1;
+}
+
 int BuzzfeedListModel::rowCount(const QModelIndex& parent) const {
 	Q_UNUSED(parent);
 	return list_.size();
@@ -110,6 +120,9 @@ QVariant BuzzfeedListModel::data(const QModelIndex& index, int role) const {
 		// decorate @buzzers, #tags and urls
 		Client* lClient = static_cast<Client*>(gApplication->getClient());
 		return lClient->decorateBuzzBody(QString::fromStdString(lItem->buzzBodyString()));
+	} else if (role == BuzzBodyFlatRole) {
+		// simple body
+		return QString::fromStdString(lItem->buzzBodyString());
 	} else if (role == LastUrlRole) {
 		Client* lClient = static_cast<Client*>(gApplication->getClient());
 		return lClient->extractLastUrl(QString::fromStdString(lItem->buzzBodyString()));
@@ -224,6 +237,7 @@ QHash<int, QByteArray> BuzzfeedListModel::roleNames() const {
 	lRoles[BuzzerInfoIdRole] = "buzzerInfoId";
 	lRoles[BuzzerInfoChainIdRole] = "buzzerInfoChainId";
 	lRoles[BuzzBodyRole] = "buzzBody";
+	lRoles[BuzzBodyFlatRole] = "buzzBodyFlat";
 	lRoles[BuzzMediaRole] = "buzzMedia";
 	lRoles[RepliesRole] = "replies";
 	lRoles[RebuzzesRole] = "rebuzzes";

@@ -146,7 +146,7 @@ int main(int argv, char** argc) {
 	gLog().enable(Log::WALLET);
 	gLog().enable(Log::HTTP);
 	gLog().enable(Log::WARNING);
-	gLog().enable(Log::ERROR);
+	gLog().enable(Log::GENERAL_ERROR);
 	gLog().enable(Log::VALIDATOR);
 	gLog().enable(Log::SHARDING);
 	gLog().enable(Log::NET);

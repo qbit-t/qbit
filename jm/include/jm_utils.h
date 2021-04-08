@@ -30,8 +30,10 @@ extern "C" {
 
 #ifdef _WIN32
 
+/*
 longlong_t _jm_get_time();
 void _jm_now(char* time);
+*/
 
 #endif
 

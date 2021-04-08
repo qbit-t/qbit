@@ -79,6 +79,7 @@ Item {
 	readonly property int spaceLine_: 4
 	readonly property real maxWidth: 0.8
 	readonly property real minSpace: 0.2
+	readonly property real defaultFontSize: 11
 
 	property bool myMessage_//: buzzerClient.getCurrentBuzzerId() === buzzerId_
 
@@ -212,10 +213,19 @@ Item {
 		id: messageMetrics
 		font.family: buzzText.font.family
 		text: conversationMessage()
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 
 		function getX(pwidth) {
 			//
-			if (buzzMedia_.length || lastUrl_ && lastUrl_.length) return pwidth * minSpace;
+			if (buzzMedia_.length || (lastUrl_ && lastUrl_.length)) {
+				var lWidth = pwidth * maxWidth - spaceRight_;
+				if (buzzMedia_.length && lWidth > 600)
+					return pwidth - (600 + spaceRight_);
+				else if (lastUrl_ && lastUrl_.length && lWidth > 500)
+					return pwidth - (500 + spaceRight_);
+
+				return pwidth * minSpace;
+			}
 
 			//
 			if (boundingRect.width > pwidth * maxWidth - (spaceLeft_ /*+ spaceRight_*/)) {
@@ -227,7 +237,12 @@ Item {
 
 		function getWidth(pwidth) {
 			//
-			if (buzzMedia_.length || lastUrl_ && lastUrl_.length) return pwidth * maxWidth - spaceRight_;
+			if (buzzMedia_.length || (lastUrl_ && lastUrl_.length)) {
+				var lWidth = pwidth * maxWidth - spaceRight_;
+				if (buzzMedia_.length && lWidth > 600) lWidth = 600;
+				else if (lastUrl_ && lastUrl_.length && lWidth > 500) lWidth = 500;
+				return lWidth;
+			}
 
 			//
 			if (boundingRect.width > (pwidth * maxWidth - (spaceLeft_ /*+ spaceRight_*/))) {
@@ -263,10 +278,8 @@ Item {
 	Rectangle {
 		//
 		id: buzzItemContainer
-		//x: myMessage_ ? messageMetrics.getX() : spaceLeft_
 		y: spaceItems_
 		color: "transparent"
-		//width: messageMetrics.getWidth()
 		height: calculatedHeight - (spaceItems_ + spaceItems_)
 		radius: 8
 
@@ -280,18 +293,18 @@ Item {
 		QuarkLabel {
 			id: agoControl
 			x: parent.width - (width + spaceItems_)
-			y: bodyControl.y + bodyControl.height + spaceHalfItems_
+			y: bodyControl.y + bodyControl.height + (buzzerApp.isDesktop ? spaceHalfItems_ : spaceHalfItems_)
 			text: ago_
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
-			font.pointSize: 14
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 3)) : 14
 		}
 
 		QuarkSymbolLabel {
 			id: onChainSymbol
-			x: parent.width - (width + spaceHalfItems_ + 1)
-			y: spaceHalfItems_
+			x: parent.width - (width + (buzzerApp.isDesktop ? spaceHalfItems_ : spaceHalfItems_) + 1)
+			y: (buzzerApp.isDesktop ? spaceHalfItems_ : spaceHalfItems_)
 			symbol: !onChain_ ? Fonts.clockSym : Fonts.checkedCircleSym //linkSym
-			font.pointSize: 12
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 10)) : 12
 			color: !onChain_ ? buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzz.wait") :
 							   buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzz.done");
 
@@ -339,7 +352,7 @@ Item {
 				conversationmessageitem_.calculateHeight();
 			}
 
-			QuarkLabel {
+			QuarkTextEdit {
 				id: buzzText
 				x: 0
 				y: 0
@@ -348,33 +361,36 @@ Item {
 				wrapMode: Text.Wrap
 				textFormat: Text.RichText
 				font.italic: !accepted_
+				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
+				// lineHeight: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 1.1) : lineHeight
+				readOnly: true
+				selectByMouse: true
+				color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+				selectionColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.selected")
+
+				MouseArea {
+					anchors.fill: parent
+					cursorShape: parent.hoveredLink ? Qt.PointingHandCursor : Qt.ArrowCursor
+					acceptedButtons: Qt.RightButton
+
+					onClicked: {
+						//
+						if (headerMenu.visible) headerMenu.close();
+						else {
+							headerMenu.prepare(buzzText.selectedText.length);
+							headerMenu.popup(buzzItemContainer.x + mouseX, mouseY);
+						}
+					}
+				}
 
 				onLinkActivated: {
-					var lComponent = null;
-					var lPage = null;
 					//
 					if (link[0] === '@') {
 						// buzzer
-						lComponent = Qt.createComponent("qrc:/qml/buzzfeedbuzzer.qml");
-						if (lComponent.status === Component.Error) {
-							showError(lComponent.errorString());
-						} else {
-							lPage = lComponent.createObject(controller);
-							lPage.controller = controller;
-							lPage.start(link);
-							addPage(lPage);
-						}
+						controller_.openBuzzfeedByBuzzer(link);
 					} else if (link[0] === '#') {
 						// tag
-						lComponent = Qt.createComponent("qrc:/qml/buzzfeedtag.qml");
-						if (lComponent.status === Component.Error) {
-							showError(lComponent.errorString());
-						} else {
-							lPage = lComponent.createObject(controller);
-							lPage.controller = controller;
-							lPage.start(link);
-							addPage(lPage);
-						}
+						controller_.openBuzzfeedByTag(link);
 					} else {
 						Qt.openUrlExternally(link);
 					}
@@ -393,15 +409,6 @@ Item {
 
 					conversationmessageitem_.calculateHeight();
 				}
-
-				/*
-				TextMetrics {
-					id: buzzBodyMetrics
-					font.family: buzzText.font.family
-
-					text: buzzBody
-				}
-				*/
 			}
 
 			function expand(key) {
@@ -426,6 +433,7 @@ Item {
 						buzzMediaItem_.calculatedWidth = bodyControl.width;
 						buzzMediaItem_.width = bodyControl.width;
 						buzzMediaItem_.controller_ = conversationmessageitem_.controller_;
+						buzzMediaItem_.buzzId_ = conversationmessageitem_.buzzId_;
 						buzzMediaItem_.buzzMedia_ = conversationmessageitem_.buzzMedia_;
 						buzzMediaItem_.initialize(key);
 
@@ -435,7 +443,7 @@ Item {
 				} else if (lastUrl_ && lastUrl_.length) {
 					//
 					if (!urlInfoItem_) {
-						lSource = "qrc:/qml/buzzitemurl.qml";
+						lSource = buzzerApp.isDesktop ? "qrc:/qml/buzzitemurl-desktop.qml" : "qrc:/qml/buzzitemurl.qml";
 						lComponent = Qt.createComponent(lSource);
 						urlInfoItem_ = lComponent.createObject(bodyControl);
 						urlInfoItem_.calculatedHeightModified.connect(innerHeightChanged);
@@ -455,9 +463,10 @@ Item {
 			}
 
 			function innerHeightChanged(value) {				
-				bodyControl.height = (buzzBody_.length > 0 ? buzzText.height : 0) + value +
-											(buzzBody_.length > 0 ? spaceMedia_ : spaceItems_) +
-											(buzzMedia_.length > 1 ? spaceMediaIndicator_ : 0);
+				//bodyControl.height = (buzzBody_.length > 0 ? buzzText.height : 0) + value +
+				//							(buzzBody_.length > 0 ? spaceMedia_ : spaceItems_) +
+				//							(buzzMedia_.length > 1 ? spaceMediaIndicator_ : 0);
+				bodyControl.height = bodyControl.getHeight();
 				conversationmessageitem_.calculateHeight();
 			}
 
@@ -468,9 +477,14 @@ Item {
 			}
 
 			function getHeight() {
-				return (buzzBody_.length > 0 || !accepted_ ? buzzText.height : 0) +
+				var lAdjust = 0;
+						//buzzMedia_.length > 0 ||
+						//buzzMediaItem_ ||
+						//urlInfoItem_ && urlInfoItem_.calculatedHeight > 0 ? 0 : (buzzerClient.scaleFactor * 12);
+
+				return (buzzBody_.length > 0 || !accepted_ ? buzzText.height - lAdjust : 0) +
 						(buzzMediaItem_ ? buzzMediaItem_.calculatedHeight : 0) +
-						(urlInfoItem_ ? urlInfoItem_.calculatedHeight : 0) +
+						(urlInfoItem_ ? urlInfoItem_.calculatedHeight + (buzzerApp.isDesktop ? spaceItems_ + 2 : 0) : 0) +
 						(buzzBody_.length > 0 && buzzMedia_.length ? spaceMedia_ : 0 /*spaceItems_*/) +
 						(buzzMedia_.length > 1 ? spaceMediaIndicator_ : 0 /*spaceBottom_*/);
 			}
@@ -481,6 +495,7 @@ Item {
 				y: 0
 				width: parent.width
 				height: parent.height
+				enabled: !buzzerApp.isDesktop
 
 				onClicked: {
 					//
@@ -501,10 +516,11 @@ Item {
 			symbol: Fonts.keySym
 			Material.background: "transparent"
 			visible: !accepted_ && buzzerClient.getCurrentBuzzerId() !== buzzerId_
-			labelYOffset: 3
+			labelYOffset: buzzerApp.isDesktop ? 0 : 3
 			symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 			Layout.alignment: Qt.AlignHCenter
 			font.family: Fonts.icons
+			symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 14) : symbolFontPointSize
 
 			onClicked: {
 				//
@@ -512,6 +528,7 @@ Item {
 			}
 		}
 
+		/*
 		layer.enabled: true
 		layer.effect: OpacityMask {
 			maskSource: Item {
@@ -526,6 +543,7 @@ Item {
 				}
 			}
 		}
+		*/
 	}
 
 	//
@@ -537,7 +555,7 @@ Item {
 		x: buzzItemContainer.x + width > parent.width ? parent.width - (width + spaceRight_ + spaceLeft_) :
 														buzzItemContainer.x + spaceLeft_
 		y: spaceTop_ + spaceItems_
-		width: 150
+		width: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 170) : 150
 		visible: false
 
 		model: ListModel { id: menuModel }
@@ -550,18 +568,36 @@ Item {
 				clipboard.setText(buzzText.text);
 			} else if (key === "copytx") {
 				clipboard.setText(buzzId_);
+			} else if (key === "copyselection") {
+				clipboard.setText(buzzText.selectedText);
 			}
 		}
 
-		function prepare() {
+		function popup(nx, ny) {
+			//
+			if (nx !== undefined && nx + width > parent.width) nx = parent.width - (width + spaceRight_);
+
+			x = (nx === undefined ? parent.width - width - spaceRight_ : nx);
+			y = (ny === undefined ? menuControl.y + menuControl.height + spaceItems_ : ny);
+			open();
+		}
+
+		function prepare(selection) {
 			//
 			menuModel.clear();
 
 			//
-			menuModel.append({
+			if (selection) menuModel.append({
+				key: "copyselection",
+				keySymbol: Fonts.copySym,
+				name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.copyselection")});
+
+			//
+			if (!selection) menuModel.append({
 				key: "copy",
 				keySymbol: Fonts.copySym,
 				name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.conversation.copy.message")});
+			//
 			menuModel.append({
 				key: "copytx",
 				keySymbol: Fonts.clipboardSym,

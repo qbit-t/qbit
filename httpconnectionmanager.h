@@ -100,7 +100,7 @@ private:
 			ctx->run();
 		} 
 		catch(boost::system::system_error& ex) {
-			gLog().write(Log::ERROR, std::string("[connectionManager]: context error -> ") + ex.what());
+			gLog().write(Log::GENERAL_ERROR, std::string("[connectionManager]: context error -> ") + ex.what());
 		}
 		gLog().write(Log::NET, std::string("[connectionManager]: context stop."));
 	}

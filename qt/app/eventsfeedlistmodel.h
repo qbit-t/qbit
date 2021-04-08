@@ -34,6 +34,7 @@ public:
 		PublisherInfoIdRole,
 		PublisherInfoChainIdRole,
 		BuzzBodyRole,
+		BuzzBodyFlatRole,
 		BuzzMediaRole,
 		LastUrlRole,
 		EventInfosRoles,
@@ -84,7 +85,7 @@ signals:
 	void countChanged();
 	void noMoreDataChanged();
 	void eventsfeedItemNewSignal(const qbit::EventsfeedItemProxy& buzz);
-	void eventsfeedUpdated(unsigned long long);
+	void eventsfeedUpdated(const qbit::EventsfeedItemProxy& event);
 
 protected:
 	QHash<int, QByteArray> roleNames() const;

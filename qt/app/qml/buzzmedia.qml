@@ -21,6 +21,7 @@ import "qrc:/lib/numberFunctions.js" as NumberFunctions
 QuarkPage {
 	id: buzzmedia_
 	key: "buzzmedia"
+	stacked: false
 
 	// mandatory
 	property var buzzMedia_;
@@ -58,7 +59,7 @@ QuarkPage {
 	}
 
 	function adjustToolBar() {
-		if (initialized_) {
+		if (initialized_ && !buzzerApp.isDesktop) {
 			//console.log("w = " + width + ", h = " + height);
 			if (width > height && height > 0) {
 				if (buzzMedia_.length === 1) {
@@ -117,7 +118,7 @@ QuarkPage {
 	//
 	QuarkToolBar {
 		id: buzzMediaToolBar
-		height: 45
+		height: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 50) : 45
 		width: parent.width
 
 		property int totalHeight: height
@@ -127,12 +128,14 @@ QuarkPage {
 
 		QuarkToolButton	{
 			id: cancelButton
+			y: parent.height / 2 - height / 2
 			Material.background: "transparent"
 			visible: true
-			labelYOffset: 3
+			labelYOffset: buzzerApp.isDesktop ? 0 : 3
 			symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 			Layout.alignment: Qt.AlignHCenter
-			symbol: Fonts.leftArrowSym
+			symbol: Fonts.cancelSym
+			symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 16) : symbolFontPointSize
 
 			onClicked: {
 				closePage();

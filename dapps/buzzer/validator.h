@@ -171,7 +171,7 @@ private:
 			context_.run();
 		} 
 		catch(boost::system::system_error& ex) {
-			gLog().write(Log::ERROR, std::string("[buzzer/validator]: context error -> ") + ex.what());
+			gLog().write(Log::GENERAL_ERROR, std::string("[buzzer/validator]: context error -> ") + ex.what());
 		}
 
 		// log
@@ -329,7 +329,7 @@ private:
 										if (lRewardPool->pushTransaction(lRewardTx)) {
 											// check for errors
 											if (lRewardTx->errors().size()) {
-												gLog().write(Log::ERROR, std::string("[buzzer/miner/error]: ") + strprintf("BLOCKBASE transaction push failed %s/%s#: %s", 
+												gLog().write(Log::GENERAL_ERROR, std::string("[buzzer/miner/error]: ") + strprintf("BLOCKBASE transaction push failed %s/%s#: %s", 
 													lRewardTx->tx()->id().toHex(), chain_.toHex().substr(0, 10), *lRewardTx->errors().begin()));
 											}
 
@@ -339,12 +339,12 @@ private:
 											}
 										}
 									} else {
-										gLog().write(Log::ERROR, std::string("[buzzer/miner/error]: ") + strprintf("memory pool was not found for BLOCKBASE transaction %s/%s#", 
+										gLog().write(Log::GENERAL_ERROR, std::string("[buzzer/miner/error]: ") + strprintf("memory pool was not found for BLOCKBASE transaction %s/%s#", 
 											lRewardTx->tx()->id().toHex(), chain_.toHex().substr(0, 10)));
 									}									
 								}
 							} catch(qbit::exception& ex) {
-								gLog().write(Log::ERROR, std::string("[buzzer/miner/error]: ") + strprintf("BLOCKBASE transaction creation failed - %s: %s", 
+								gLog().write(Log::GENERAL_ERROR, std::string("[buzzer/miner/error]: ") + strprintf("BLOCKBASE transaction creation failed - %s: %s", 
 									ex.code(), ex.what()));
 							}
 
@@ -353,12 +353,12 @@ private:
 							if (lCurrentBlockContext->errors().size()) {
 								for (std::map<uint256, std::list<std::string>>::iterator lErrors = lCurrentBlockContext->errors().begin(); lErrors != lCurrentBlockContext->errors().end(); lErrors++) {
 									for (std::list<std::string>::iterator lError = lErrors->second.begin(); lError != lErrors->second.end(); lError++) {
-										gLog().write(Log::ERROR, std::string("[buzzer/miner/error]: ") + (*lError));
+										gLog().write(Log::GENERAL_ERROR, std::string("[buzzer/miner/error]: ") + (*lError));
 									}
 
 									// drop from mempool
 									mempool_->removeTransaction(lErrors->first);
-									if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::ERROR, std::string("[buzzer/miner/error]: DROP transaction from mempool ") + lErrors->first.toHex());
+									if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::GENERAL_ERROR, std::string("[buzzer/miner/error]: DROP transaction from mempool ") + lErrors->first.toHex());
 								}
 							}
 						}
@@ -425,7 +425,7 @@ private:
 				SynchronizationJobPtr lJob = consensus_->lastJob();
 				if (lJob && getTime() - lJob->timestamp() > consensus_->settings()->consensusSynchronizationLatency()) {
 					consensus_->finishJob(nullptr); // force and restart job
-					if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::ERROR, std::string("[buzzer/validator/touch/error]: synchronization was stalled."));
+					if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::GENERAL_ERROR, std::string("[buzzer/validator/touch/error]: synchronization was stalled."));
 				} else {
 					// in case of acquiring block is in progress
 					NetworkBlockHeader lEnqueuedBlock;

@@ -97,17 +97,26 @@
 
 #include <ctime>
 #include <iostream>
-#include <syslog.h>
+
+#if defined(__linux__)
+	#include <syslog.h>
+	#include <pwd.h>
+#endif
+
 #include <unistd.h>
 #include <stdlib.h>
-#include <pwd.h>
 #include <stdio.h>
 
 namespace qbit {
 
 class NodeSettings: public ISettings {
 public:
-	NodeSettings(): NodeSettings(".qbit", nullptr) {}
+	NodeSettings(): 
+#if defined(__linux__)
+	NodeSettings(".qbit", nullptr) {}
+#else
+	NodeSettings("qbit", nullptr) {}
+#endif
 	NodeSettings(const std::string& dir, ISettingsPtr other) {
 #if defined(__linux__)
 		if (dir.find("/") == std::string::npos) {
@@ -125,6 +134,9 @@ public:
 		} else {
 			path_ = dir;
 		}
+#else
+		path_ = dir;
+		userName_ = "root";
 #endif
 		if (other) {
 			serverPort_ = other->serverPort();
@@ -607,7 +619,8 @@ int main(int argv, char** argc) {
 	}
 
 	//
-	//
+	// daemon options
+#if defined(__linux__)	
 	if (lDaemon) {
 		// Fork the process and have the parent exit. If the process was started
 		// from a shell, this returns control to the user. Forking a new process is
@@ -662,11 +675,12 @@ int main(int argv, char** argc) {
 		// The io_service can now be used normally.
 		syslog(LOG_INFO | LOG_USER, "Daemon started");
 	}
+#endif
 
 	if (!lDebugFound) {
 		gLog().enable(Log::INFO);
 		gLog().enable(Log::WARNING);
-		gLog().enable(Log::ERROR);
+		gLog().enable(Log::GENERAL_ERROR);
 	}
 
 	if (!lSettings->roles()) lSettings->addNodeRole();

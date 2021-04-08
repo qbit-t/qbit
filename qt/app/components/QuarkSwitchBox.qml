@@ -39,7 +39,7 @@ Rectangle
         }
     }
 
-    QuarkLabel
+	QuarkLabelRegular
     {
         id: label
         x: switchItem.x + switchItem.width + 5

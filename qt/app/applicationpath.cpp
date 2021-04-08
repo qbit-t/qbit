@@ -40,3 +40,35 @@ QString ApplicationPath::logsDirPath()
     return qApp->applicationDirPath() + "/logs";
 }
 
+QString ApplicationPath::tempFilesDir()
+{
+#ifdef Q_OS_ANDROID
+	return QStandardPaths::writableLocation(QStandardPaths::TempLocation);
+#endif
+
+#ifdef Q_OS_IOS
+	return QStandardPaths::writableLocation(QStandardPaths::TempLocation);
+#endif
+
+	QString lGlobalDataPath = qApp->applicationDirPath() + "/data";
+	QDir lDataDir(lGlobalDataPath);
+	if (!lDataDir.exists()) {
+		lDataDir.setPath(qApp->applicationDirPath());
+		lDataDir.mkdir("data");
+	}
+
+	QString lCacheDataPath = lGlobalDataPath + "/cache";
+	QDir lCacheDir(lCacheDataPath);
+	if (!lCacheDir.exists()) {
+		lCacheDir.setPath(lGlobalDataPath);
+		lCacheDir.mkdir("cache");
+	}
+
+#ifdef Q_OS_WINDOWS
+	lCacheDataPath.replace(0, 1, lCacheDataPath[0].toLower());
+
+	return lCacheDataPath;
+#endif
+
+	return lCacheDataPath;
+}

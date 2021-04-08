@@ -1115,7 +1115,13 @@ public:
 	bool haveSubscriptions() {
 		//
 		db::DbContainer<uint256 /*publisher*/, PKey /*pubkey*/>::Iterator lBegin = subscriptions_.begin();
-		if (lBegin.valid()) { lBegin++; if (lBegin.valid()) return true; }
+		if (lBegin.valid()) {
+			++lBegin;
+			if (lBegin.valid()) {
+				return true;
+			}
+		}
+
 		return false;
 	}
 

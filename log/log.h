@@ -14,6 +14,7 @@
 
 #include <boost/atomic.hpp>
 #include <boost/thread/mutex.hpp>
+#include <boost/thread/recursive_mutex.hpp>
 #include <boost/function.hpp>
 
 #include "../fs.h"
@@ -28,23 +29,23 @@ typedef boost::function<void (uint32_t, const std::string&)> logEchoFunction;
 class Log {
 public:
 	enum Category: uint32_t {
-		NONE		= 0,
-		INFO		= (1 <<  0),
-		WARNING		= (1 <<  1),
-		ERROR		= (1 <<  2),
-		DB 			= (1 <<  3),
-		POOL		= (1 <<  4),
-		WALLET		= (1 <<  5),
-		STORE		= (1 <<  6),
-		NET			= (1 <<  7),
-		VALIDATOR	= (1 <<  8),
-		CONSENSUS	= (1 <<  9),
-		HTTP		= (1 << 10),
-		BALANCE		= (1 << 11),
-		SHARDING	= (1 << 12),
-		CLIENT		= (1 << 13),
-		DEBUG		= (1 << 14),
-		ALL			= ~(uint32_t)0
+		NONE			= 0,
+		INFO			= (1 <<  0),
+		WARNING			= (1 <<  1),
+		GENERAL_ERROR 	= (1 <<  2),
+		DB 				= (1 <<  3),
+		POOL			= (1 <<  4),
+		WALLET			= (1 <<  5),
+		STORE			= (1 <<  6),
+		NET				= (1 <<  7),
+		VALIDATOR		= (1 <<  8),
+		CONSENSUS		= (1 <<  9),
+		HTTP			= (1 << 10),
+		BALANCE			= (1 << 11),
+		SHARDING		= (1 << 12),
+		CLIENT			= (1 << 13),
+		DEBUG			= (1 << 14),
+		ALL				= ~(uint32_t)0
 	};
 
 	Log(const std::string& name) : name_ (name) {}
@@ -73,7 +74,7 @@ private:
 
 private:	
 	FILE* out_ = nullptr;
-	boost::mutex mutex_;
+	boost::recursive_mutex mutex_;
 	std::atomic_bool startedNewLine_ {true};
 	std::atomic<uint32_t> categories_ {0};
 	bool console_ = false;

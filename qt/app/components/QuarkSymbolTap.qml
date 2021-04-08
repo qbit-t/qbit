@@ -27,7 +27,7 @@ Rectangle
 
     signal clicked()
 
-    Label
+	QuarkLabel
     {
         id: tapLabel
         anchors.fill: parent

@@ -23,6 +23,7 @@ Item
 	property string preeditText: "";
 	property string placeHolder: buzzerApp.getLocalization(buzzerClient.locale, "Markets.Filter.Search");
     property int calculatedHeight: 0;
+	property real fontPointSize: 14
 
     property bool clearButton: true;
 	property var innerField: field
@@ -52,12 +53,13 @@ Item
     QuarkTextField
     {
         id: field
-        font.pointSize: 14
+		font.pointSize: fontPointSize
         width: searchField.width - (searchField.clearButton ? cancel.width + 15 : 0)
         clip: true
 
         placeholderText: searchField.placeHolder
 		text: searchText
+		mouseSelectionMode: TextInput.SelectCharacters
 
         onTextEdited:
         {
@@ -98,7 +100,7 @@ Item
 
         font.family: Fonts.icons
         font.weight: Font.Normal
-        font.pointSize: 16
+		font.pointSize: fontPointSize + 2
 
         onHeightChanged:
         {

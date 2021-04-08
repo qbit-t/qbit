@@ -26,7 +26,11 @@ static int do_mkdir(const char *path, mode_t mode)
     if (stat(path, &st) != 0)
     {
         /* Directory does not exist. EEXIST for race condition */
+#ifdef _WIN32      
+        if (mkdir(path) != 0 && errno != EEXIST)
+#else
         if (mkdir(path, mode) != 0 && errno != EEXIST)
+#endif
             status = -1;
     }
     else if (!S_ISDIR(st.st_mode))

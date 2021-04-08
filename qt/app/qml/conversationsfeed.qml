@@ -30,12 +30,33 @@ Item
 	}
 
 	function start() {
-		search.setText("");
+		if (!buzzerApp.isDesktop) search.setText("");
+		else {
+			console.log("[conversations/start]: connecting");
+			controller.mainToolBar.searchTextEdited.connect(conversationsfeed_.startSearch);
+			controller.mainToolBar.searchTextCleared.connect(conversationsfeed_.searchTextCleared);
+			controller.mainToolBar.setSearchText("", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.global.search.add"));
+		}
+
 		switchDataTimer.start();
+	}
+
+	function disconnect() {
+		if (buzzerApp.isDesktop) {
+			console.log("[conversations/disconnect]: disconnecting");
+			controller.mainToolBar.searchTextEdited.disconnect(conversationsfeed_.startSearch);
+			controller.mainToolBar.searchTextCleared.disconnect(conversationsfeed_.searchTextCleared);
+		}
 	}
 
 	function resetModel() {
 		//
+		if (buzzerApp.isDesktop){
+			controller.mainToolBar.searchTextEdited.connect(startSearch);
+			controller.mainToolBar.searchTextCleared.connect(searchTextCleared);
+			controller.mainToolBar.setSearchText("", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.global.search.add"));
+		}
+
 		conversationModel_.resetModel();
 	}
 
@@ -151,6 +172,7 @@ Item
 		id: search
 		width: parent.width - x - 14
 		placeHolder: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.global.search.add")
+		visible: !buzzerApp.isDesktop
 
 		x: 15
 		y: 0
@@ -172,12 +194,28 @@ Item
 		}
 	}
 
+	function startSearch(searchText) {
+		if (searchText[0] === '@') {
+			// search buzzers on network
+			searchBuzzers.process(searchText);
+			// filter local feed
+			buzzerClient.getConversationsList().setFilter(searchText);
+		} else {
+			buzzerClient.getConversationsList().resetFilter();
+			start();
+		}
+	}
+
+	function searchTextCleared() {
+		start();
+	}
+
 	QuarkListView {
 		id: list
 		x: 0
-		y: search.y + search.calculatedHeight
+		y: buzzerApp.isDesktop ? 0 : search.y + search.calculatedHeight
 		width: parent.width
-		height: parent.height - (search.calculatedHeight)
+		height: parent.height - (buzzerApp.isDesktop ? 0 : search.calculatedHeight)
 		usePull: true
 		clip: true
 		model: conversationModel_
@@ -222,20 +260,8 @@ Item
 			}
 
 			onClicked: {
-				// open thread
-				var lComponent = null;
-				var lPage = null;
-
-				lComponent = Qt.createComponent("qrc:/qml/conversationthread.qml");
-				if (lComponent.status === Component.Error) {
-					controller.showError(lComponent.errorString());
-				} else {
-					lPage = lComponent.createObject(controller);
-					lPage.controller = controller;
-					addPage(lPage);
-
-					lPage.start(conversationId, self, conversationModel_);
-				}
+				//
+				controller.openConversation(conversationId, self, conversationModel_);
 			}
 
 			Component.onCompleted: {
@@ -295,7 +321,7 @@ Item
 		}
 	}
 
-	BusyIndicator {
+	QuarkBusyIndicator {
 		id: waitIndicator
 		anchors { horizontalCenter: parent.horizontalCenter; verticalCenter: parent.verticalCenter; }
 	}
@@ -306,7 +332,7 @@ Item
 
 	QuarkPopupMenu {
 		id: buzzersList
-		width: 170
+		width: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 170) : 170
 		visible: false
 
 		model: ListModel { id: buzzersModel }
@@ -322,23 +348,10 @@ Item
 			var lId = conversationModel_.locateConversation(key);
 			// conversation found
 			if (lId !== "") {
-				// open conversation
-				var lComponent = null;
-				var lPage = null;
-
 				//
-				lComponent = Qt.createComponent("qrc:/qml/conversationthread.qml");
-				if (lComponent.status === Component.Error) {
-					controller.showError(lComponent.errorString());
-				} else {
-					lPage = lComponent.createObject(controller);
-					lPage.controller = controller;
-
-					var lConversation = buzzerClient.locateConversation(lId);
-					if (lConversation) {
-						addPage(lPage);
-						lPage.start(lId, lConversation, buzzerClient.getConversationsList());
-					}
+				var lConversation = buzzerClient.locateConversation(lId);
+				if (lConversation) {
+					controller.openConversation(lId, lConversation, buzzerClient.getConversationsList());
 				}
 			} else {
 				// try to create conversation
@@ -347,6 +360,9 @@ Item
 		}
 
 		function popup(match, buzzers) {
+			//
+			if (buzzers.opened) buzzers.close();
+
 			//
 			if (buzzers.length === 0) return;
 			if (buzzers.length === 1 && match === buzzers[0]) return;
@@ -363,7 +379,7 @@ Item
 			}
 
 			x = (search.x + search.width) - width;
-			y = search.y + search.calculatedHeight;
+			y = !buzzerApp.isDesktop ? (search.y + search.calculatedHeight) : 0;
 
 			open();
 		}

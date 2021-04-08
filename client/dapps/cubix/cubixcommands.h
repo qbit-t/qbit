@@ -181,7 +181,13 @@ public:
 		std::cout << "\t[preview]	 - optional, download preview only" << std::endl;
 		std::cout << "\t[skip]	 	 - optional, skip if already exists" << std::endl;
 		std::cout << "\texample:\n\t\t>download 1a2b6913c6229d9a18cd7fd657f03c660dfe7d127cd98913bd41d145046a4d01/9f8b3cd91d2deae6209e0fef18e05e962002aceccfdd5da7cfdac85b74b4e7e8 \"./my_photo.png\" preview" << std::endl << std::endl;
-	}	
+	}
+
+	void terminate() {
+		// reset callbacks
+		done_ = 0;
+		progress_ = 0;
+	}
 
 	static ICommandPtr instance(CubixLightComposerPtr composer, progressFunction progress, doneDownloadWithErrorFunction done) { 
 		return std::make_shared<DownloadMediaCommand>(composer, progress, done); 
@@ -203,7 +209,7 @@ public:
 
 	void error(const std::string& code, const std::string& message) {
 		gLog().writeClient(Log::CLIENT, strprintf(": %s | %s", code, message));
-		done_(nullptr, std::string(), std::string(), 0, ProcessingError(code, message));
+		if (done_) done_(nullptr, std::string(), std::string(), 0, ProcessingError(code, message));
 	}
 
 	void decrypt(const uint256&, const std::vector<unsigned char>&, std::vector<unsigned char>&);

@@ -89,6 +89,9 @@ public class MainActivity extends QtActivity
     {
         instance_ = this;
         fingertipAuthState = 0;
+
+		Log.i("buzzer", "============ STARTING JAVA ============");
+		if (savedInstanceState == null) Log.i("buzzer", "============ NOT INSTANCE ============");
         super.onCreate(savedInstanceState);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN)

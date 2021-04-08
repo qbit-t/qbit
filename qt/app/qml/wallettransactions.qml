@@ -44,6 +44,7 @@ Item
 	readonly property int spaceLine_: 4
 	readonly property int spaceThreaded_: 33
 	readonly property int spaceThreadedItems_: 4
+	readonly property real defaultFontSize: 11
 
 	onWalletModelChanged: {
 		list.model = walletModel;
@@ -84,7 +85,7 @@ Item
 		height: parent.height
 		clip: true
 
-		property int fontPointSize: 14;
+		property int fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : 14;
 
 		onWidthChanged: {
 		}
@@ -256,7 +257,7 @@ Item
 					symbol: Fonts.hashSym
 				}
 
-				QuarkLabel {
+				QuarkLabelRegular {
 					id: txLabel
 					x: txSymbol.x + txSymbol.width + spaceItems_
 					y: txSymbol.y
@@ -411,7 +412,7 @@ Item
 					}
 				}
 
-				QuarkLabel {
+				QuarkLabelRegular {
 					id: parentTxLabel
 					x: parentTypeLabel.x + parentTypeLabel.width + spaceItems_
 					y: parentTypeLabel.y
@@ -465,7 +466,7 @@ Item
 					}
 				}
 
-				QuarkLabel {
+				QuarkLabelRegular {
 					id: addressLabel
 					x: addresSymbol.x + addresSymbol.width + spaceItems_
 					y: addresSymbol.y
@@ -496,7 +497,8 @@ Item
 					fillTo: 8
 					useSign: false
 					units: ""
-					font.pointSize: list.fontPointSize + 5
+					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 4)) :
+														  list.fontPointSize + 5
 
 					x: parent.width - (amountLabel.calculatedWidth + spaceItems_)
 					y: containerItem.getAmountY()
@@ -517,7 +519,8 @@ Item
 					x: amountLabel.x - (width + spaceItems_)
 					y: amountLabel.y
 					symbol: timelocked ? Fonts.lockedSym : (direction == 1 ? Fonts.inboxInSym : Fonts.inboxOutSym)
-					font.pointSize: list.fontPointSize + 5
+					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 2)) :
+														  list.fontPointSize + 5
 					color: getColor()
 
 					function getColor() {
@@ -559,14 +562,14 @@ Item
 					x: feeNumber.x - (width + spaceItems_)
 					y: feeNumber.y
 					text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.transactions.fee")
-					font.pointSize: 14
+					font.pointSize: list.fontPointSize
 					color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 					visible: feeNumber.isVisible()
 				}
 
 				QuarkLabel {
 					id: feeNumber
-					font.pointSize: 14
+					font.pointSize: list.fontPointSize
 					x: qBitLabel.x - (width + spaceItems_)
 					y: qBitLabel.y
 					text: "" + fee
@@ -589,7 +592,8 @@ Item
 
 				QuarkLabel {
 					id: qBitLabel
-					font.pointSize: 10
+					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 3)) :
+														  list.fontPointSize - 4
 					x: amountLabel.x + amountLabel.calculatedWidth - width
 					y: amountLabel.y + amountLabel.calculatedHeight + spaceItems_
 					text: "qBIT"
@@ -606,14 +610,14 @@ Item
 					x: timelockedNumber.x - (width + spaceItems_)
 					y: timelockedNumber.y
 					symbol: Fonts.targetMapSym
-					font.pointSize: 14
+					font.pointSize: list.fontPointSize
 					color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 					visible: timelockedNumber.isVisible()
 				}
 
 				QuarkLabel {
 					id: timelockedNumber
-					font.pointSize: 14
+					font.pointSize: list.fontPointSize
 					x: amountLabel.x + amountLabel.calculatedWidth - width
 					y: amountLabel.y + amountLabel.calculatedHeight + spaceItems_
 					text: "" + timelock

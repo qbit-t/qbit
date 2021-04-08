@@ -89,7 +89,7 @@ QuarkPage
 			}
 		}
 
-		QuarkLabel {
+		QuarkLabelRegular {
 			id: buzzerControl
 			x: cancelButton.x + cancelButton.width + 5
 			y: parent.height / 2 - height / 2

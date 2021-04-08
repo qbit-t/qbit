@@ -114,7 +114,7 @@ bool Wallet::open(const std::string& /*secret*/) {
 			pendingtxs_.open();
 		}
 		catch(const std::exception& ex) {
-			gLog().write(Log::ERROR, std::string("[wallet/open]: ") + ex.what());
+			gLog().write(Log::GENERAL_ERROR, std::string("[wallet/open]: ") + ex.what());
 			return false;
 		}
 
@@ -230,7 +230,7 @@ bool Wallet::prepareCache() {
 		opened_ = true;
 	}
 	catch(const std::exception& ex) {
-		gLog().write(Log::ERROR, std::string("[wallet/prepareCache]: ") + ex.what());
+		gLog().write(Log::GENERAL_ERROR, std::string("[wallet/prepareCache]: ") + ex.what());
 		opened_ = true; // half-opened
 	}
 
@@ -687,7 +687,7 @@ void Wallet::cleanUpData() {
 		assetEntities_.open();
 	}
 	catch(const std::exception& ex) {
-		gLog().write(Log::ERROR, std::string("[wallet/cleanUpData]: ") + ex.what());
+		gLog().write(Log::GENERAL_ERROR, std::string("[wallet/cleanUpData]: ") + ex.what());
 	}
 }
 

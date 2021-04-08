@@ -20,22 +20,22 @@ qbit::Log& qbit::gLog(const std::string& name) {
 
 std::string _getLogCategoryText(Log::Category category) {
 	switch(category) {
-		case Log::Category::INFO: 		return "info  ";
-		case Log::Category::WARNING: 	return "warn  ";
-		case Log::Category::ERROR: 		return "error ";
-		case Log::Category::DB: 		return "db    ";
-		case Log::Category::POOL: 		return "pool  ";
-		case Log::Category::WALLET: 	return "wallet";
-		case Log::Category::STORE: 		return "store ";
-		case Log::Category::NET: 		return "net   ";
-		case Log::Category::VALIDATOR:	return "val   ";
-		case Log::Category::CONSENSUS:	return "cons  ";
-		case Log::Category::HTTP:		return "http  ";
-		case Log::Category::BALANCE:	return "bal   ";
-		case Log::Category::SHARDING:	return "shard ";
-		case Log::Category::CLIENT:		return "client";
-		case Log::Category::DEBUG:		return "debug ";
-		case Log::Category::ALL: 		return "*     ";
+		case Log::Category::INFO: 			return "info  ";
+		case Log::Category::WARNING: 		return "warn  ";
+		case Log::Category::GENERAL_ERROR: 	return "error ";
+		case Log::Category::DB: 			return "db    ";
+		case Log::Category::POOL: 			return "pool  ";
+		case Log::Category::WALLET: 		return "wallet";
+		case Log::Category::STORE: 			return "store ";
+		case Log::Category::NET: 			return "net   ";
+		case Log::Category::VALIDATOR:		return "val   ";
+		case Log::Category::CONSENSUS:		return "cons  ";
+		case Log::Category::HTTP:			return "http  ";
+		case Log::Category::BALANCE:		return "bal   ";
+		case Log::Category::SHARDING:		return "shard ";
+		case Log::Category::CLIENT:			return "client";
+		case Log::Category::DEBUG:			return "debug ";
+		case Log::Category::ALL: 			return "*     ";
 	}
 
 	return "ECAT";
@@ -44,7 +44,7 @@ std::string _getLogCategoryText(Log::Category category) {
 Log::Category qbit::getLogCategory(const std::string& category) {
 	if (category == "info") return Log::Category::INFO;
 	else if (category == "warn")	return Log::Category::WARNING;
-	else if (category == "error")	return Log::Category::ERROR;
+	else if (category == "error")	return Log::Category::GENERAL_ERROR;
 	else if (category == "db")		return Log::Category::DB;
 	else if (category == "pool")	return Log::Category::POOL;
 	else if (category == "wallet")	return Log::Category::WALLET;
@@ -67,11 +67,11 @@ void qbit::Log::write(Log::Category category, const std::string& str) {
 	if (isEnabled(category)) {
 		//
 		if (open()) {
-			boost::unique_lock<boost::mutex> lLock(mutex_);
+			boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
 
 			uint64_t lMicroSeconds = getMicroseconds();
 			std::string lMessage = 
-				strprintf("[%d][%s.%06d][%s]%s", boost::this_thread::get_id(), 
+				strprintf("[%-12d][%s.%06d][%s]%s", boost::this_thread::get_id(), 
 					formatISO8601DateTime(lMicroSeconds / 1000000), lMicroSeconds % 1000000, _getLogCategoryText(category), str);
 
 			if (echoFunction_) echoFunction_(category, lMessage);
@@ -93,15 +93,15 @@ void qbit::Log::write(Log::Category category, const std::string& str) {
 void qbit::Log::writeClient(Log::Category category, const std::string& str) {
 	if (isEnabled(category)) {
 		if (open()) {
-			boost::unique_lock<boost::mutex> lLock(mutex_);
+			boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
 
 			uint64_t lMicroSeconds = getMicroseconds();
 			std::string lMessage = 
-				strprintf("[%d][%s.%06d][%s]%s", boost::this_thread::get_id(), 
+				strprintf("[%-12d][%s.%06d][%s]%s", boost::this_thread::get_id(), 
 					formatISO8601DateTime(lMicroSeconds / 1000000), lMicroSeconds % 1000000, _getLogCategoryText(category), str);
 
 			std::string lConsoleMessage = 
-				strprintf("[%d]%s", _getLogCategoryText(category), str);
+				strprintf("[%-12d]%s", _getLogCategoryText(category), str);
 
 			if (echoFunction_) echoFunction_(category, lMessage);	
 
@@ -126,7 +126,7 @@ std::string qbit::Log::timestamp() {
 bool qbit::Log::open() {
 	if (out_) return true;
 
-	boost::unique_lock<boost::mutex> lLock(mutex_);
+	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
 
 	out_ = fsbridge::fopen(name_, "a");
 	if (!out_) return false;

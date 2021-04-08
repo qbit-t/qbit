@@ -66,7 +66,7 @@ Rectangle
         border.color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Box.border");
         color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.background");
 
-        Label
+		QuarkLabel
         {
             id: symbolLabel
             anchors.fill: parent
@@ -151,7 +151,7 @@ Rectangle
 
 			property bool focusEnter_: false;
 
-			Label
+			QuarkLabelRegular
 			{
 				id: infoLabel
 				leftPadding: textLeftPadding

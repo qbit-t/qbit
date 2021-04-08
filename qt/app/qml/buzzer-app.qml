@@ -162,6 +162,154 @@ ApplicationWindow
         return false;
     }
 
+	function openThread(buzzChainId, buzzId, buzzerAlias, buzzBody) {
+		//
+		var lComponent = null;
+		var lPage = null;
+
+		lComponent = Qt.createComponent("qrc:/qml/buzzfeedthread.qml");
+		if (lComponent.status === Component.Error) {
+			showError(lComponent.errorString());
+		} else {
+			lPage = lComponent.createObject(window);
+			lPage.controller = window;
+
+			lPage.start(buzzChainId, buzzId);
+
+			addPage(lPage);
+		}
+	}
+
+	function openBuzzfeedByBuzzer(buzzerName) {
+		//
+		var lComponent = null;
+		var lPage = null;
+
+		lComponent = Qt.createComponent("qrc:/qml/buzzfeedbuzzer.qml");
+		if (lComponent.status === Component.Error) {
+			showError(lComponent.errorString());
+		} else {
+			lPage = lComponent.createObject(window);
+			lPage.controller = window;
+
+			lPage.start(buzzerName);
+
+			addPage(lPage);
+		}
+	}
+
+	function openBuzzfeedByTag(tag) {
+		//
+		var lComponent = null;
+		var lPage = null;
+
+		lComponent = Qt.createComponent("qrc:/qml/buzzfeedtag.qml");
+		if (lComponent.status === Component.Error) {
+			showError(lComponent.errorString());
+		} else {
+			lPage = lComponent.createObject(window);
+			lPage.controller = window;
+
+			lPage.start(tag);
+
+			addPage(lPage);
+		}
+	}
+
+	function openBuzzfeedBuzzerEndorsements(buzzer) {
+		//
+		var lComponent = null;
+		var lPage = null;
+
+		lComponent = Qt.createComponent("qrc:/qml/buzzfeedendorsements.qml");
+		if (lComponent.status === Component.Error) {
+			showError(lComponent.errorString());
+		} else {
+			lPage = lComponent.createObject(window);
+			lPage.controller = window;
+
+			lPage.start(buzzer);
+
+			addPage(lPage);
+		}
+	}
+
+	function openBuzzfeedBuzzerMistrusts(buzzer) {
+		//
+		var lComponent = null;
+		var lPage = null;
+
+		lComponent = Qt.createComponent("qrc:/qml/buzzfeedmistrusts.qml");
+		if (lComponent.status === Component.Error) {
+			showError(lComponent.errorString());
+		} else {
+			lPage = lComponent.createObject(window);
+			lPage.controller = window;
+
+			lPage.start(buzzer);
+
+			addPage(lPage);
+		}
+	}
+
+	function openBuzzfeedBuzzerFollowers(buzzer) {
+		//
+		var lComponent = null;
+		var lPage = null;
+
+		lComponent = Qt.createComponent("qrc:/qml/buzzfeedfollowers.qml");
+		if (lComponent.status === Component.Error) {
+			showError(lComponent.errorString());
+		} else {
+			lPage = lComponent.createObject(window);
+			lPage.controller = window;
+			lPage.start(buzzer);
+
+			addPage(lPage);
+		}
+	}
+
+	function openBuzzfeedBuzzerFollowing(buzzer) {
+		//
+		var lComponent = null;
+		var lPage = null;
+
+		lComponent = Qt.createComponent("qrc:/qml/buzzfeedfollowing.qml");
+		if (lComponent.status === Component.Error) {
+			showError(lComponent.errorString());
+		} else {
+			lPage = lComponent.createObject(window);
+			lPage.controller = window;
+			lPage.start(buzzer);
+
+			addPage(lPage);
+		}
+	}
+
+	function openConversation(conversationId, conversation, conversationModel, messageId) {
+		//
+		var lComponent = null;
+		var lPage = null;
+
+		lComponent = Qt.createComponent("qrc:/qml/conversationthread.qml");
+		if (lComponent.status === Component.Error) {
+			showError(lComponent.errorString());
+		} else {
+			lPage = lComponent.createObject(window);
+			lPage.controller = window;
+
+			//
+			var lCounterpart = conversation.counterpartyInfoId;
+			if (conversation.side === 0) {
+				lCounterpart = conversation.creatorInfoId;
+			}
+
+			addPage(lPage);
+
+			lPage.start(conversationId, conversation, conversationModel, messageId);
+		}
+	}
+
 	function openDrawer() {
 		myBuzzer.initialize();
 		drawerMenu.prepare();
@@ -450,7 +598,7 @@ ApplicationWindow
 						symbol: keySymbol
 					}
 
-					QuarkLabel {
+					QuarkLabelRegular {
 						id: textLabel
 						x: keySymbol ? 45 : 15
 						y: parent.height / 2 - height / 2

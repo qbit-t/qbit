@@ -17,6 +17,7 @@ QuarkPage
 {
 	id: buzzerquickhelp_
 	key: "buzzerquickhelp"
+	stacked: false
 
 	readonly property int spaceLeft_: 15
 	readonly property int spaceTop_: 12
@@ -33,6 +34,8 @@ QuarkPage
 	readonly property int spaceLine_: 4
 	readonly property int spaceThreaded_: 33
 	readonly property int spaceThreadedItems_: 4
+	readonly property var hederFontSize_: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 20) : 24
+	readonly property var bodyFontSize_: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 14) : 18
 
 	Component.onCompleted: {
 		buzzerApp.lockPortraitOrientation();
@@ -65,7 +68,7 @@ QuarkPage
 
 	QuarkToolBar {
 		id: toolBar
-		height: 45
+		height: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 50) : 45
 		width: parent.width
 
 		property int totalHeight: height
@@ -85,12 +88,14 @@ QuarkPage
 
 		QuarkToolButton	{
 			id: cancelButton
+			y: parent.height / 2 - height / 2
 			Material.background: "transparent"
 			visible: true
-			labelYOffset: 3
+			labelYOffset: buzzerApp.isDesktop ? 0 : 3
 			symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 			Layout.alignment: Qt.AlignHCenter
-			symbol: Fonts.leftArrowSym
+			symbol: Fonts.cancelSym
+			symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 16) : symbolFontPointSize
 
 			onClicked: {
 				closePage();
@@ -102,10 +107,9 @@ QuarkPage
 			x: cancelButton.x + cancelButton.width + 5
 			y: parent.height / 2 - height / 2
 			width: parent.width - (x)
-			elide: Text.ElideRight
-			text: "Help"
-			font.pointSize: 18
+			text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.help")
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link")
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 16) : 18
 		}
 
 		QuarkHLine {
@@ -152,7 +156,7 @@ QuarkPage
 			y: spaceTop_ + buzzerImage.height / 2 - height / 2
 			width: parent.width
 			text: "Buzzer v." + buzzerApp.getVersion()
-			font.pointSize: 24
+			font.pointSize: hederFontSize_
 			wrapMode: Text.Wrap
 
 			onLinkActivated: {
@@ -165,7 +169,7 @@ QuarkPage
 			y: buzzerImage.y + buzzerImage.height + spaceTop_
 			width: parent.width - (spaceLeft_ + spaceRight_)
 			text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.help.0")
-			font.pointSize: 18
+			font.pointSize: bodyFontSize_
 			wrapMode: Text.Wrap
 
 			onLinkActivated: {
@@ -178,7 +182,7 @@ QuarkPage
 			y: buzzerText0.y + buzzerText0.height + spaceTop_
 			width: parent.width - (spaceLeft_ + spaceRight_)
 			text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.help.1")
-			font.pointSize: 18
+			font.pointSize: bodyFontSize_
 			wrapMode: Text.Wrap
 
 			onLinkActivated: {
@@ -191,8 +195,14 @@ QuarkPage
 			y: buzzerText1.y + buzzerText1.height + spaceTop_
 			width: parent.width - (spaceLeft_ + spaceRight_)
 			text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.help.2")
-			font.pointSize: 18
+			font.pointSize: bodyFontSize_
 			wrapMode: Text.Wrap
+
+			MouseArea {
+				anchors.fill: parent
+				cursorShape: parent.hoveredLink ? Qt.PointingHandCursor : Qt.ArrowCursor
+				acceptedButtons: Qt.NoButton
+			}
 
 			onLinkActivated: {
 				//
@@ -214,8 +224,14 @@ QuarkPage
 			y: buzzerText2.y + buzzerText2.height + spaceTop_
 			width: parent.width - (spaceLeft_ + spaceRight_)
 			text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.help.3")
-			font.pointSize: 18
+			font.pointSize: bodyFontSize_
 			wrapMode: Text.Wrap
+
+			MouseArea {
+				anchors.fill: parent
+				cursorShape: parent.hoveredLink ? Qt.PointingHandCursor : Qt.ArrowCursor
+				acceptedButtons: Qt.NoButton
+			}
 
 			onLinkActivated: {
 				//
@@ -237,7 +253,7 @@ QuarkPage
 			y: buzzerText3.y + buzzerText3.height + spaceTop_
 			width: parent.width - (spaceLeft_ + spaceRight_)
 			text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.help.4")
-			font.pointSize: 18
+			font.pointSize: bodyFontSize_
 			wrapMode: Text.Wrap
 
 			onLinkActivated: {
@@ -250,7 +266,7 @@ QuarkPage
 			y: buzzerText4.y + buzzerText4.height + spaceTop_
 			width: parent.width - (spaceLeft_ + spaceRight_)
 			text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.help.5")
-			font.pointSize: 18
+			font.pointSize: bodyFontSize_
 			wrapMode: Text.Wrap
 
 			onLinkActivated: {
@@ -263,7 +279,7 @@ QuarkPage
 			y: buzzerText5.y + buzzerText5.height + spaceTop_
 			width: parent.width - (spaceLeft_ + spaceRight_)
 			text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.help.6")
-			font.pointSize: 18
+			font.pointSize: bodyFontSize_
 			wrapMode: Text.Wrap
 
 			onLinkActivated: {
@@ -276,7 +292,7 @@ QuarkPage
 			y: buzzerText6.y + buzzerText6.height + spaceTop_
 			width: parent.width - (spaceLeft_ + spaceRight_)
 			text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.help.7")
-			font.pointSize: 18
+			font.pointSize: bodyFontSize_
 			wrapMode: Text.Wrap
 
 			onLinkActivated: {
@@ -289,7 +305,7 @@ QuarkPage
 			y: buzzerText7.y + buzzerText7.height + spaceTop_
 			width: parent.width - (spaceLeft_ + spaceRight_)
 			text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.help.8")
-			font.pointSize: 18
+			font.pointSize: bodyFontSize_
 			font.italic: true
 			wrapMode: Text.Wrap
 
@@ -338,23 +354,10 @@ QuarkPage
 	}
 
 	function openBuzzerConversation(conversationId) {
-		// open conversation
-		var lComponent = null;
-		var lPage = null;
-
 		//
-		lComponent = Qt.createComponent("qrc:/qml/conversationthread.qml");
-		if (lComponent.status === Component.Error) {
-			controller.showError(lComponent.errorString());
-		} else {
-			lPage = lComponent.createObject(controller);
-			lPage.controller = controller;
-
-			var lConversation = buzzerClient.locateConversation(conversationId);
-			if (lConversation) {
-				addPage(lPage);
-				lPage.start(conversationId, lConversation, buzzerClient.getConversationsList());
-			}
+		var lConversation = buzzerClient.locateConversation(conversationId);
+		if (lConversation) {
+			controller.openConversation(conversationId, lConversation, buzzerClient.getConversationsList());
 		}
 	}
 

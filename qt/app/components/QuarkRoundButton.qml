@@ -60,6 +60,7 @@ Rectangle
 			//width: textMetrics.boundingRect.width
 			color: frame.textColor
 			text: frame.text
+			font.pointSize: fontPointSize
 		}
 
 		layer.enabled: true
@@ -83,6 +84,10 @@ Rectangle
 			width: frame.width
 			height: frame.height
 			enabled: true
+			hoverEnabled: true
+
+			//onEntered: item.hovered = true;
+			//onExited: item.hovered = false;
 
 			ItemDelegate {
 				id: item
@@ -106,16 +111,16 @@ Rectangle
 		{
 			Material.theme = buzzerClient.themeSelector == "dark" ? Material.Dark : Material.Light;
 			Material.accent = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.accent");
-			Material.background = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.background");
-			Material.foreground = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground");
+			Material.background = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.background");
+			Material.foreground = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground");
 			Material.primary = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.primary");
 		}
 	}
 
 	Material.theme: buzzerClient.themeSelector == "dark" ? Material.Dark : Material.Light;
 	Material.accent: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.accent");
-	Material.background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.background");
-	Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground");
+	Material.background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.background");
+	Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground");
 	Material.primary: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.primary");
 }
 

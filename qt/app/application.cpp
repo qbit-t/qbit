@@ -19,6 +19,28 @@ ClipboardAdapter::ClipboardAdapter(QObject *parent) : QObject(parent)
 
 int Application::load()
 {
+#if defined(DESKTOP_PLATFORM)
+	try
+	{
+		qInfo() << "Loading app-config:" << "qrc:/buzzer-app.config";
+
+		QFile lRawFile(":/buzzer-app.config");
+		lRawFile.open(QIODevice::ReadOnly | QIODevice::Text);
+
+		QByteArray lRawData = lRawFile.readAll();
+		std::string lRawStringData = lRawData.toStdString();
+
+		appConfig_.loadFromString(lRawStringData);
+
+		style_ = QString::fromStdString(appConfig_.operator []("style").getString());
+	}
+	catch(buzzer::Exception const& ex)
+	{
+		qCritical() << ex.message().c_str();
+		return -1;
+	}
+	return appConfig_.hasErrors() ? -1 : 1;
+#else
     try
     {
         QString lAppConfig = ApplicationPath::applicationDirPath() + "/" + APP_NAME + ".config";
@@ -38,8 +60,8 @@ int Application::load()
         qCritical() << ex.message().c_str();
         return -1;
     }
-
     return appConfig_.hasErrors() ? -1 : 1;
+#endif
 }
 
 void Application::appQuit()
@@ -50,7 +72,8 @@ void Application::appQuit()
 
 void Application::appStateChanged(Qt::ApplicationState state)
 {
-    if (state == Qt::ApplicationState::ApplicationSuspended || state == Qt::ApplicationState::ApplicationHidden)
+	if (state == Qt::ApplicationState::ApplicationSuspended || state == Qt::ApplicationState::ApplicationHidden ||
+			state == Qt::ApplicationState::ApplicationInactive)
     {
 		qInfo() << "[appStateChanged]: suspended";
 		client_.suspend();
@@ -74,6 +97,10 @@ void Application::deviceTokenChanged()
 #endif
 }
 
+#if defined(DESKTOP_PLATFORM)
+//
+#endif
+
 int Application::execute()
 {
     qInfo() << "========================BUZZER========================";
@@ -81,6 +108,9 @@ int Application::execute()
 
     QQuickStyle::setStyle(style_); // default style
 
+#if defined(DESKTOP_PLATFORM)
+	qmlRegisterType<buzzer::BuzzerWindow>("app.buzzer", 1, 0, "BuzzerWindow");
+#endif
 	qmlRegisterType<buzzer::Client>("app.buzzer.client", 1, 0, "Client");
     qmlRegisterType<buzzer::ClipboardAdapter>("app.buzzer.helpers", 1, 0, "Clipboard");
     qmlRegisterType<StatusBar>("StatusBar", 0, 1, "StatusBar");
@@ -95,7 +125,8 @@ int Application::execute()
     engine_.rootContext()->setContextProperty("appHelper", &helper_);
     engine_.rootContext()->setContextProperty("cameraController", &cameraController_);
     engine_.rootContext()->setContextProperty("clipboard", clipboard_);
-    engine_.rootContext()->setContextProperty("localNotificator", nullptr);
+	engine_.rootContext()->setContextProperty("localNotificator", nullptr);
+	engine_.rootContext()->setContextProperty("keyEmitter", &keyEmitter_);
 
 #ifdef Q_OS_IOS
     localNotificator_ = LocalNotificator::instance();
@@ -133,16 +164,22 @@ int Application::execute()
         startNotificator();
     }
 
-    qInfo() << "Loading main qml:" <<  QString("qrc:/qml/") + APP_NAME + ".qml";
-    engine_.load(QString("qrc:/qml/") + APP_NAME + ".qml");
-    if (engine_.rootObjects().isEmpty())
-    {
-        qCritical() << "Root object is empty. Exiting...";
-        return -1;
-    }
+#if defined(DESKTOP_PLATFORM)
+	QQuickWindow::setDefaultAlphaBuffer(true);
+	// NOTICE: software rendeder lacks some functionality
+	// QQuickWindow::setSceneGraphBackend(QSGRendererInterface::OpenGL);
+#endif
+
+	qInfo() << "Loading main qml:" <<  QString("qrc:/qml/") + APP_NAME + ".qml";
+	engine_.load(QString("qrc:/qml/") + APP_NAME + ".qml");
+
+	if (engine_.rootObjects().isEmpty()) {
+		qCritical() << "Root object is empty. Exiting...";
+		return -1;
+	}
 
     qInfo() << "Executing app:" << APP_NAME;
-    return app_.exec();
+	return app_.exec();
 }
 
 void Application::commitCurrentInput() {

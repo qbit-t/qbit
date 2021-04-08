@@ -60,6 +60,8 @@ QVariant EventsfeedListModel::data(const QModelIndex& index, int role) const {
 		// decorate @buzzers, #tags and urls
 		Client* lClient = static_cast<Client*>(gApplication->getClient());
 		return lClient->decorateBuzzBody(QString::fromStdString(lItem->buzzBodyString()));
+	} else if (role == BuzzBodyFlatRole) {
+		return QString::fromStdString(lItem->buzzBodyString());
 	} else if (role == ValueRole) {
 		return QVariant::fromValue(lItem->value());
 	} else if (role == BuzzMediaRole) {
@@ -107,6 +109,7 @@ QHash<int, QByteArray> EventsfeedListModel::roleNames() const {
 	lRoles[PublisherInfoIdRole] = "publisherInfoId";
 	lRoles[PublisherInfoChainIdRole] = "publisherInfoChainId";
 	lRoles[BuzzBodyRole] = "buzzBody";
+	lRoles[BuzzBodyFlatRole] = "buzzBodyFlat";
 	lRoles[BuzzMediaRole] = "buzzMedia";
 	lRoles[LastUrlRole] = "lastUrl";
 	lRoles[EventInfosRoles] = "eventInfos";
@@ -165,7 +168,7 @@ void EventsfeedListModel::feed(qbit::EventsfeedPtr local, bool more, bool merge)
 		//
 		emit countChanged();
 		if (list_.size()) {
-			emit eventsfeedUpdated(list_[0]->timestamp());
+			emit eventsfeedUpdated(list_[0]);
 		}
 	} else if (!noMoreData_) {
 		//
@@ -310,11 +313,12 @@ void EventsfeedListModel::eventsfeedItemNewSlot(const qbit::EventsfeedItemProxy&
 			endInsertRows();
 
 			emit countChanged();
-			emit eventsfeedUpdated(lEventsfeedItem->timestamp());
+			emit eventsfeedUpdated(event);
 		} else {
 			// qInfo() << "EventsfeedListModel::eventsfeedItemNewSlot -> update" << lIndex;
 			QModelIndex lModelIndex = createIndex(lIndex, lIndex);
 			emit dataChanged(lModelIndex, lModelIndex, QVector<int>() << TimestampRole << EventInfosRoles);
+			emit eventsfeedUpdated(event);
 		}
 	}
 }

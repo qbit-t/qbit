@@ -33,7 +33,9 @@ Item {
 	property var buzzerInfoId_//: buzzerInfoId
 	property var buzzerInfoChainId_//: buzzerInfoChainId
 	property var buzzBody_: buzzBody
+	property var buzzBodyFlat_: buzzBodyFlat
 	property var buzzMedia_: buzzMedia
+	property bool interactive_: true
 	//property var replies_: replies
 	//property var rebuzzes_: rebuzzes
 	//property var likes_: likes
@@ -72,6 +74,7 @@ Item {
 	readonly property int spaceRightMenu_: 15
 	readonly property int spaceStats_: -5
 	readonly property int spaceLine_: 4
+	readonly property real defaultFontSize: 11
 
 	signal calculatedHeightModified(var value);
 
@@ -129,7 +132,9 @@ Item {
 		visible: true
 
 		clip: true
+		radius: 8
 
+		/*
 		layer.enabled: true
 		layer.effect: OpacityMask {
 			maskSource: Item {
@@ -144,6 +149,7 @@ Item {
 				}
 			}
 		}
+		*/
 
 		QuarkRoundState {
 			id: imageFrame
@@ -188,9 +194,10 @@ Item {
 			width: avatarImage.displayWidth
 			height: avatarImage.displayHeight
 			fillMode: Image.PreserveAspectCrop
+			mipmap: true
 
 			property bool rounded: true
-			property int displayWidth: 20
+			property int displayWidth: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 20 : 20
 			property int displayHeight: displayWidth
 
 			autoTransform: true
@@ -209,6 +216,17 @@ Item {
 					}
 				}
 			}
+
+			MouseArea {
+				id: buzzerInfoClick
+				anchors.fill: parent
+				cursorShape: Qt.PointingHandCursor
+
+				onClicked: {
+					//
+					controller_.openBuzzfeedByBuzzer(buzzerClient.getBuzzerName(buzzerInfoId_));
+				}
+			}
 		}
 
 		//
@@ -221,9 +239,10 @@ Item {
 			y: avatarImage.y
 			text: buzzerClient.getBuzzerAlias(buzzerInfoId_)
 			font.bold: true
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 		}
 
-		QuarkLabel {
+		QuarkLabelRegular {
 			id: buzzerNameControl
 			x: buzzerAliasControl.x + buzzerAliasControl.width + spaceItems_
 			y: avatarImage.y
@@ -231,6 +250,7 @@ Item {
 			elide: Text.ElideRight
 			text: buzzerClient.getBuzzerName(buzzerInfoId_)
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 		}
 
 		QuarkLabel {
@@ -239,6 +259,7 @@ Item {
 			y: avatarImage.y
 			text: ago_
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 		}
 
 		//
@@ -248,7 +269,7 @@ Item {
 		Rectangle {
 			id: bodyControl
 			x: spaceLeft_
-			y: buzzerAliasControl.y + buzzerAliasControl.height + spaceHeader_
+			y: avatarImage.y + avatarImage.height + spaceHeader_
 			width: parent.width - (spaceLeft_ + spaceRight_)
 			height: getHeight() //buzzText.height
 
@@ -290,33 +311,24 @@ Item {
 				text: buzzBody_
 				wrapMode: Text.Wrap
 				textFormat: Text.RichText
+				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
+				lineHeight: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 1.1) : lineHeight
+
+				MouseArea {
+					anchors.fill: parent
+					cursorShape: parent.hoveredLink ? Qt.PointingHandCursor : Qt.ArrowCursor
+					acceptedButtons: Qt.NoButton
+					enabled: interactive_
+				}
 
 				onLinkActivated: {
-					var lComponent = null;
-					var lPage = null;
 					//
 					if (link[0] === '@') {
 						// buzzer
-						lComponent = Qt.createComponent("qrc:/qml/buzzfeedbuzzer.qml");
-						if (lComponent.status === Component.Error) {
-							showError(lComponent.errorString());
-						} else {
-							lPage = lComponent.createObject(controller);
-							lPage.controller = controller;
-							lPage.start(link);
-							addPage(lPage);
-						}
+						controller_.openBuzzfeedByBuzzer(link);
 					} else if (link[0] === '#') {
 						// tag
-						lComponent = Qt.createComponent("qrc:/qml/buzzfeedtag.qml");
-						if (lComponent.status === Component.Error) {
-							showError(lComponent.errorString());
-						} else {
-							lPage = lComponent.createObject(controller);
-							lPage.controller = controller;
-							lPage.start(link);
-							addPage(lPage);
-						}
+						controller_.openBuzzfeedByTag(link);
 					} else {
 						Qt.openUrlExternally(link);
 					}
@@ -335,15 +347,6 @@ Item {
 
 					buzzitemlight_.calculateHeight();
 				}
-
-				/*
-				TextMetrics {
-					id: buzzBodyMetrics
-					font.family: buzzText.font.family
-
-					text: buzzBody
-				}
-				*/
 			}
 
 			function expand() {
@@ -364,6 +367,7 @@ Item {
 						buzzMediaItem_.calculatedWidth = bodyControl.width;
 						buzzMediaItem_.width = bodyControl.width;
 						buzzMediaItem_.controller_ = buzzitemlight_.controller_;
+						buzzMediaItem_.buzzId_ = buzzitemlight_.buzzId_;
 						buzzMediaItem_.buzzMedia_ = buzzitemlight_.buzzMedia_;
 						buzzMediaItem_.initialize();
 
@@ -373,7 +377,7 @@ Item {
 				} else if (lastUrl_ && lastUrl_.length) {
 					//
 					if (!urlInfoItem_) {
-						lSource = "qrc:/qml/buzzitemurl.qml";
+						lSource = buzzerApp.isDesktop ? "qrc:/qml/buzzitemurl-desktop.qml" : "qrc:/qml/buzzitemurl.qml";
 						lComponent = Qt.createComponent(lSource);
 						urlInfoItem_ = lComponent.createObject(bodyControl);
 						urlInfoItem_.calculatedHeightModified.connect(innerHeightChanged);
@@ -393,20 +397,27 @@ Item {
 			}
 
 			function innerHeightChanged(value) {				
-				bodyControl.height = (buzzBody_.length > 0 ? buzzText.height : 0) + value +
-											(buzzBody_.length > 0 ? spaceMedia_ : spaceItems_) +
-											(buzzMedia_.length > 1 ? spaceMediaIndicator_ : 0);
+				//bodyControl.height = (buzzBody_.length > 0 ? buzzText.height : 0) + value +
+				//							(buzzBody_.length > 0 ? spaceMedia_ : spaceItems_) +
+				//							(buzzMedia_.length > 1 ? spaceMediaIndicator_ : 0);
+				bodyControl.height = bodyControl.getHeight();
 				buzzitemlight_.calculateHeight();
 			}
 
 			function getY() {
+				// var lAdjust = buzzMedia_.length > 0 ? 0 : (buzzerClient.scaleFactor * 12);
 				return (buzzBody_.length > 0 ? buzzText.height : 0) +
 						(buzzBody_.length > 0 ? spaceMedia_ : spaceItems_) +
 						(buzzMedia_.length > 1 ? spaceMediaIndicator_ : 0);
 			}
 
 			function getHeight() {
-				return (buzzBody_.length > 0 ? buzzText.height : 0) +
+				var lAdjust =
+						buzzMedia_.length > 0 ||
+						buzzMediaItem_ ||
+						urlInfoItem_ && urlInfoItem_.calculatedHeight > 0 ? 0 : (buzzerClient.scaleFactor * 12);
+
+				return (buzzBody_.length > 0 ? buzzText.height - lAdjust : 0) +
 						(buzzMediaItem_ ? buzzMediaItem_.calculatedHeight : 0) +
 						(urlInfoItem_ ? urlInfoItem_.calculatedHeight : 0) +
 						(buzzBody_.length > 0 && buzzMedia_.length ? spaceMedia_ : 0 /*spaceItems_*/) +
@@ -426,6 +437,7 @@ Item {
 		height: buzzItemContainer.height
 		visible: buzzItemContainer.visible
 		radius: 8
+		clip: true
 
 		ItemDelegate {
 			id: expandItem
@@ -433,22 +445,11 @@ Item {
 			y: parent.y
 			width: parent.width
 			height: parent.height
+			enabled: interactive_
 
 			onClicked: {
-				// open thread
-				var lComponent = null;
-				var lPage = null;
-
-				lComponent = Qt.createComponent("qrc:/qml/buzzfeedthread.qml");
-				if (lComponent.status === Component.Error) {
-					showError(lComponent.errorString());
-				} else {
-					lPage = lComponent.createObject(controller_);
-					lPage.controller = controller_;
-					addPage(lPage);
-
-					lPage.start(buzzChainId_, buzzId_);
-				}
+				//
+				controller_.openThread(buzzChainId_, buzzId_, buzzerClient.getBuzzerAlias(buzzerInfoId_), buzzBodyFlat_);
 			}
 		}
 	}

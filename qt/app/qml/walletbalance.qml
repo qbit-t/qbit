@@ -37,6 +37,7 @@ Item
 	readonly property int spaceLine_: 4
 	readonly property int spaceThreaded_: 33
 	readonly property int spaceThreadedItems_: 4
+	readonly property real defaultFontSize: 11
 
 	function init() {
 		balanceCommand.process();
@@ -128,7 +129,7 @@ Item
 			 QuarkNumberLabel {
 				 id: availableNumber
 				 number: 0.00000000
-				 font.pointSize: 30
+				 font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 22) : 30
 				 fillTo: 8
 				 mayCompact: true
 				 x: parent.width / 2 - calculatedWidth / 2
@@ -156,7 +157,7 @@ Item
 				 x: availableNumber.x + availableNumber.calculatedWidth + spaceItems_
 				 y: availableNumber.y
 				 text: "QBIT"
-				 font.pointSize: 16
+				 font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : 16
 				 color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
 			 }
 
@@ -176,13 +177,13 @@ Item
 				 x: parent.width / 2 - (width + pendingNumber.calculatedWidth + /*qbitText2.width + 2*/ + spaceItems_)/ 2
 				 y: middleLine.y1 + spaceItems_
 				 text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.balance.pending")
-				 font.pointSize: 14
+				 font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 1)) : 14
 				 color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
 
 				 QuarkNumberLabel {
 					 id: pendingNumber
 					 number: 0.00000000
-					 font.pointSize: 14
+					 font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 1)) : 14
 					 fillTo: 8
 					 x: pendingControl.width + spaceItems_
 					 y: 0
@@ -200,11 +201,12 @@ Item
 			 y: qbitBackImage.y + spaceItems_
 			 symbol: Fonts.rotateSym
 			 visible: true
-			 labelYOffset: 3
+			 labelYOffset: buzzerApp.isDesktop ? 1 : 3
 			 symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
 			 Material.background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.background");
 			 Layout.alignment: Qt.AlignHCenter
 			 opacity: 0.7
+			 symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 14) : symbolFontPointSize
 
 			 onClicked: {
 				 // refeed balance
@@ -222,7 +224,7 @@ Item
 			 id: heartBeatSymbol
 			 x: qbitBackImage.x
 			 y: qbitBackImage.y + qbitBackImage.height + spaceTop_
-			 font.pointSize: 22
+			 font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 3)) : 22
 			 symbol: Fonts.heartBeatSym
 
 			 function beat() {
@@ -237,7 +239,7 @@ Item
 				 properties: "scale"
 				 from: 1.0
 				 to: 1.3
-				 duration: 200
+				 duration: buzzerApp.isDesktop ? 600 : 200
 				 easing { type: Easing.InBack; }
 
 				 onStopped: {
@@ -251,7 +253,7 @@ Item
 				 properties: "scale"
 				 from: 1.3
 				 to: 1.0
-				 duration: 600
+				 duration: buzzerApp.isDesktop ? 1000 : 600
 				 easing { type: Easing.OutBack; }
 			 }
 		 }
@@ -260,7 +262,7 @@ Item
 			 id: blockSymbol
 			 x: qbitBackImage.x + 1
 			 y: blockControl.y - 1
-			 font.pointSize: 20
+			 font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 3)) : 20
 			 symbol: Fonts.blockSym
 		 }
 
@@ -268,7 +270,7 @@ Item
 			 id: blockTimeSymbol
 			 x: qbitBackImage.x + 1
 			 y: timeControl.y - 1
-			 font.pointSize: 20
+			 font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 3)) : 20
 			 symbol: Fonts.clockSym
 		 }
 
@@ -277,6 +279,7 @@ Item
 			 x: heartBeatSymbol.x + heartBeatSymbol.width + spaceLeft_
 			 y: heartBeatSymbol.y + 3
 			 text: "0000000000"
+			 font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : defaultFontPointSize
 
 			 onTextChanged: {
 				 transactions.updateAgo();
@@ -301,24 +304,27 @@ Item
 			 x: point0.x + point0.width + spaceItems_
 			 y: heightControl.y
 			 text: "0s"
+			 font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : defaultFontPointSize
 		 }
 
-		 QuarkLabel {
+		 QuarkLabelRegular {
 			 id: blockControl
 			 x: heartBeatSymbol.x + heartBeatSymbol.width + spaceLeft_
 			 y: heightControl.y + heightControl.height + spaceItems_
 			 width: parent.width - (x + spaceRight_)
 			 elide: Text.ElideRight
 			 text: "00000000000000000000000000000000000000000000000000"
+			 font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : defaultFontPointSize
 		 }
 
-		 QuarkLabel {
+		 QuarkLabelRegular {
 			 id: timeControl
 			 x: heartBeatSymbol.x + heartBeatSymbol.width + spaceLeft_
 			 y: blockControl.y + blockControl.height + spaceItems_
 			 width: parent.width - (x + spaceRight_)
 			 elide: Text.ElideRight
 			 text: "00:00:00 00/00/0000"
+			 font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : defaultFontPointSize
 		 }
 
 		 //
@@ -329,7 +335,7 @@ Item
 			 id: historyInfo
 			 x: spaceLeft_
 			 y: timeControl.y + timeControl.height + spaceTop_
-			 height: 35
+			 height: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 35) : 35
 			 width: parent.width - (spaceLeft_ + spaceRight_)
 			 color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Box.background")
 
@@ -338,7 +344,7 @@ Item
 				 x: spaceLeft_
 				 y: historyInfo.height / 2 - historyLabel.height / 2
 				 text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.wallet.transactions") //.toUpperCase();
-				 font.pointSize: 16
+				 font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 2)) : 16
 				 Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.altAccent");
 			 }
 		 }

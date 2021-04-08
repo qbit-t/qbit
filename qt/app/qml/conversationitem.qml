@@ -61,6 +61,7 @@ Item {
 	readonly property int spaceLine_: 4
 	readonly property int spaceThreaded_: 33
 	readonly property int spaceThreadedItems_: 4
+	readonly property real defaultFontSize: 11
 
 	readonly property int sideCreator_: 0
 	readonly property int sideCounterparty_: 1
@@ -234,9 +235,10 @@ Item {
 		width: avatarImage.displayWidth
 		height: avatarImage.displayHeight
 		fillMode: Image.PreserveAspectCrop
+		mipmap: true
 
 		property bool rounded: true
-		property int displayWidth: 50
+		property int displayWidth: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 50 : 50
 		property int displayHeight: displayWidth
 
 		autoTransform: true
@@ -288,9 +290,10 @@ Item {
 		y: avatarImage.y
 		text: buzzerClient.getBuzzerAlias(side_ === sideCreator_ ? creatorInfoId_ : counterpartyInfoId_)
 		font.bold: true
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 	}
 
-	QuarkLabel {
+	QuarkLabelRegular {
 		id: buzzerNameControl
 		x: buzzerAliasControl.x + buzzerAliasControl.width + spaceItems_
 		y: avatarImage.y
@@ -298,6 +301,7 @@ Item {
 		elide: Text.ElideRight
 		text: buzzerClient.getBuzzerName(side_ === sideCreator_ ? creatorInfoId_ : counterpartyInfoId_)
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 	}
 
 	QuarkLabel {
@@ -306,6 +310,7 @@ Item {
 		y: avatarImage.y
 		text: ago_
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 2)) : defaultFontPointSize
 	}
 
 	QuarkSymbolLabel {
@@ -313,7 +318,7 @@ Item {
 		x: agoControl.x - (spaceItems_ + width)
 		y: avatarImage.y + 3
 		symbol: getSymbol()
-		font.pointSize: 12
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 10)) : 12
 		color: getColor()
 		visible: getVisible()
 
@@ -343,7 +348,7 @@ Item {
 		x: agoControl.x + agoControl.width - width
 		y: stateSymbol.y + stateSymbol.height + spaceItems_
 		symbol: !onChain_ ? Fonts.clockSym : Fonts.checkedCircleSym //linkSym
-		font.pointSize: 12
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 10)) : 12
 		color: !onChain_ ? buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzz.wait") :
 						   buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzz.done");
 
@@ -373,7 +378,7 @@ Item {
 
 		onProcessed: {
 			// pkey, body
-			bodyControl.text = body;
+			bodyControl.message = body.replace(/(\r\n|\n|\r)/gm, "");
 		}
 
 		onError: {
@@ -402,17 +407,29 @@ Item {
 		y: buzzerAliasControl.y + buzzerAliasControl.height + spaceHeader_
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link")
 		text: conversationFrom()
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
+	}
+
+	TextMetrics	{
+		id: bodyControlMetrics
+		elide: Text.ElideRight
+		text: bodyControl.message
+		elideWidth: parent.width - (bodyControl.x + (buzzerApp.isDesktop ? 2 * spaceRight_ : spaceRight_))
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
+		property var fontFamily: Qt.platform.os == "windows" ? "Segoe UI Emoji" : "Noto Color Emoji N"
+		font.family: buzzerApp.isDesktop ? fontFamily : font.family
 	}
 
 	QuarkLabel {
 		id: bodyControl
 		x: fromControl.x + fromControl.width + (fromControl.text === "" ? 0 : spaceItems_)
 		y: fromControl.y
-		width: parent.width - (x + spaceRight_)
-		elide: Text.ElideRight
-		text: getText()
+		text: bodyControlMetrics.elidedText + (bodyControlMetrics.elidedText !== message && buzzerApp.isDesktop ? "..." : "")
 		font.italic: conversationState() === conversationPending_
-		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
+
+		property var message: getText()
 
 		function getText() {
 			//

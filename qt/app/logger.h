@@ -13,7 +13,7 @@ extern void LoggerMessageHandler(QtMsgType type, const QMessageLogContext &conte
 
 class Logger {
 public:
-	Logger();
+	Logger(bool enableQtLog = false);
     void Log(QtMsgType type, const QString& category, const QString& msg);
 };
 

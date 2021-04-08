@@ -52,6 +52,7 @@ Item {
 	readonly property int spaceLine_: 4
 	readonly property int spaceThreaded_: 33
 	readonly property int spaceThreadedItems_: 4
+	readonly property real defaultFontSize: 11
 
 	signal calculatedHeightModified(var value);
 
@@ -270,12 +271,12 @@ Item {
 			id: localeCombo
 			x: parent.width - width - 8
 			y: 0
-			width: 40
-			fontPointSize: 25
-			itemLeftPadding: 8
-			itemTopPadding: 8
+			width: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 50 : 40
+			fontPointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 22 : 24
+			itemLeftPadding: buzzerApp.isDesktop ? /*buzzerClient.scaleFactor * */12 : 8
+			itemTopPadding: buzzerApp.isDesktop ? /*buzzerClient.scaleFactor * */10 : 8
 			itemHorizontalAlignment: Text.AlignHCenter
-			leftPadding: -3
+			leftPadding: buzzerApp.isDesktop ? 0 : -3
 
 			Material.background: "transparent"
 
@@ -381,7 +382,7 @@ Item {
 		mipmap: true
 
 		property bool rounded: true
-		property int displayWidth: 120
+		property int displayWidth: buzzerClient.scaleFactor * 120
 		property int displayHeight: displayWidth
 
 		function getY() {
@@ -407,6 +408,81 @@ Item {
 		}
 	}
 
+	QuarkSymbolLabel {
+		id: uiZoomSymbol
+		x: scaleCombo.x - width
+		y: scaleCombo.y + scaleCombo.height / 2 - height / 2
+		symbol: Fonts.searchSym
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : (defaultFontPointSize + 1)
+		visible: buzzerApp.isDesktop
+	}
+
+	QuarkSimpleComboBox {
+		id: scaleCombo
+		x: parent.width - width - 8
+		y: avatarImage.y + avatarImage.displayHeight // headerContainer.y + headerContainer.height + height + spaceItems_
+		width: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 62 : 50
+		fontPointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 11 : 14
+		itemLeftPadding: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 12 : 8
+		itemTopPadding: buzzerApp.isDesktop ? /*buzzerClient.scaleFactor * */15 : 8
+		itemHorizontalAlignment: Text.AlignHCenter
+		visible: buzzerApp.isDesktop
+		leftPadding: buzzerClient.scaleFactor
+
+		Material.background: "transparent"
+
+		model: ListModel { id: scaleModel_ }
+
+		Component.onCompleted: {
+			prepare();
+		}
+
+		indicator: Canvas {
+		}
+
+		onActivated: {
+			var lEntry = scaleModel_.get(scaleCombo.currentIndex);
+			if (lEntry.id !== buzzerClient.scale) {
+				buzzerClient.scale = lEntry.id;
+				buzzerClient.save();
+			}
+		}
+
+		function activate() {
+			if (!scaleModel_.count) prepare();
+			else {
+				for (var lIdx = 0; lIdx < scaleModel_.count; lIdx++) {
+					if (scaleModel_.get(lIdx).id === buzzerClient.scale) {
+						scaleCombo.currentIndex = lIdx;
+						break;
+					}
+				}
+			}
+		}
+
+		function prepare() {
+			//
+			if (scaleModel_.count) return;
+			//
+			scaleModel_.append({ id: "100", name: "100%" });
+			scaleModel_.append({ id: "110", name: "110%" });
+			scaleModel_.append({ id: "115", name: "115%" });
+			scaleModel_.append({ id: "120", name: "120%" });
+			scaleModel_.append({ id: "125", name: "125%" });
+			scaleModel_.append({ id: "135", name: "135%" });
+			scaleModel_.append({ id: "150", name: "150%" });
+			scaleModel_.append({ id: "175", name: "175%" });
+			scaleModel_.append({ id: "200", name: "200%" });
+
+			for (var lIdx = 0; lIdx < scaleModel_.count; lIdx++) {
+				if (scaleModel_.get(lIdx).id === buzzerClient.scale) {
+					scaleCombo.currentIndex = lIdx;
+					break;
+				}
+			}
+		}
+	}
+
 	//
 	// buzzer info
 	//
@@ -416,16 +492,18 @@ Item {
 		x: spaceLeft_
 		y: avatarImage.y + avatarImage.displayHeight + spaceTop_
 		symbol: Fonts.userTagSym
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : (defaultFontPointSize + 1)
 	}
 
 	QuarkLabel {
 		id: buzzerAliasControl
 		x: aliasSymbol.x + aliasSymbol.width + spaceItems_
 		y: aliasSymbol.y
-		width: parent.width - (x + spaceRight_)
+		width: parent.width - (x + spaceRight_ + (uiZoomSymbol.visible ? (parent.width - uiZoomSymbol.x) : 0))
 		elide: Text.ElideRight
 		text: alias_
 		font.bold: true
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 	}
 
 	//
@@ -435,9 +513,10 @@ Item {
 		x: spaceLeft_
 		y: aliasSymbol.y + aliasSymbol.height + spaceItems_
 		symbol: Fonts.userAliasSym
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : (defaultFontPointSize + 1)
 	}
 
-	QuarkLabel {
+	QuarkLabelRegular {
 		id: buzzerNameControl
 		x: aliasSymbol.x + aliasSymbol.width + spaceItems_
 		y: nameSymbol.y
@@ -445,6 +524,7 @@ Item {
 		elide: Text.ElideRight
 		text: buzzer_
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 	}
 
 	//
@@ -454,9 +534,10 @@ Item {
 		x: spaceLeft_
 		y: nameSymbol.y + nameSymbol.height + spaceItems_
 		symbol: Fonts.hashSym
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : (defaultFontPointSize + 1)
 	}
 
-	QuarkLabel {
+	QuarkLabelRegular {
 		id: buzzerIdControl
 		x: aliasSymbol.x + aliasSymbol.width + spaceItems_
 		y: idSymbol.y
@@ -465,6 +546,7 @@ Item {
 
 		text: /*"0x" +*/ buzzerId_
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 	}
 
 	QuarkSymbolLabel {
@@ -472,6 +554,7 @@ Item {
 		x: parent.width - (spaceRight_ + width)
 		y: buzzerIdControl.y - 2
 		symbol: Fonts.clipboardSym
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : (defaultFontPointSize + 1)
 	}
 	MouseArea {
 		x: copySymbol.x - spaceItems_
@@ -491,6 +574,7 @@ Item {
 		x: spaceLeft_
 		y: idSymbol.y + idSymbol.height + spaceItems_
 		symbol: Fonts.walletSym
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : (defaultFontPointSize + 1)
 	}
 
 	QuarkNumberLabel {
@@ -506,6 +590,7 @@ Item {
 		mantissaColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 		zeroesColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 		unitsColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 	}
 
 	MouseArea {
@@ -524,7 +609,7 @@ Item {
 		x: availableNumber.x + availableNumber.calculatedWidth + spaceItems_
 		y: availableNumber.y
 		text: "QBIT"
-		font.pointSize: 10
+		font.pointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 7 : 10
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 	}
 
@@ -556,6 +641,7 @@ Item {
 		mantissaColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 		zeroesColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 		unitsColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 	}
 
 	MouseArea {
@@ -574,7 +660,7 @@ Item {
 		x: sharesNumber.x + sharesNumber.calculatedWidth + spaceItems_
 		y: sharesNumber.y
 		text: "QTT"
-		font.pointSize: 10
+		font.pointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 7 : 10
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 	}
 
@@ -583,6 +669,7 @@ Item {
 		x: qbitText2.x + qbitText2.width + spaceItems_
 		y: qbitText2.y
 		symbol: Fonts.questionCircleSym
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : (defaultFontPointSize + 1)
 	}
 
 	MouseArea {

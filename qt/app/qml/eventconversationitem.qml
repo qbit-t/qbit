@@ -59,6 +59,7 @@ Item {
 	readonly property int spaceLine_: 4
 	readonly property int spaceThreaded_: 33
 	readonly property int spaceThreadedItems_: 4
+	readonly property real defaultFontSize: 11
 
 	signal calculatedHeightModified(var value);
 
@@ -68,6 +69,14 @@ Item {
 
 	Component.onCompleted: {
 		avatarDownloadCommand.process();
+
+		if (/*buzzerApp.isDesktop &&*/
+				(type_ === buzzerClient.tx_BUZZER_MESSAGE() ||
+					type_ === buzzerClient.tx_BUZZER_MESSAGE_REPLY()) && eventInfos_.length > 0) {
+			var lHex = eventInfos_[0].buzzBodyHex;
+			if (lHex.length > 0)
+				decryptBodyCommand.processBody(eventInfos_[0].eventId, eventInfos_[0].buzzBodyHex);
+		}
 	}
 
 	function calculateHeightInternal() {
@@ -124,7 +133,7 @@ Item {
 		x: spaceAction_ / 2 - width / 2 + getDelta()
 		y: spaceTop_
 		symbol: getSymbol()
-		font.pointSize: 22
+		font.pointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 14 : 22
 		color: getColor()
 
 		function getSymbol() {
@@ -226,9 +235,10 @@ Item {
 		width: avatarImage.displayWidth
 		height: avatarImage.displayHeight
 		fillMode: Image.PreserveAspectCrop
+		mipmap: true
 
 		property bool rounded: true
-		property int displayWidth: 30
+		property int displayWidth: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 30 : 30
 		property int displayHeight: displayWidth
 
 		autoTransform: true
@@ -288,6 +298,7 @@ Item {
 		y: avatarImage.y
 		text: getBuzzerAlias()
 		font.bold: true
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 
 		function getBuzzerAlias() {
 			//
@@ -305,6 +316,7 @@ Item {
 		y: avatarImage.y
 		text: getBuzzerName()
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 
 		function getBuzzerName() {
 			//
@@ -316,13 +328,13 @@ Item {
 		}
 	}
 
-	QuarkLabel {
+	QuarkLabelRegular {
 		id: buzzerInfoControl
 		x: buzzerAliasControl.x
 		y: buzzerAliasControl.y + buzzerAliasControl.height + 3
 		width: parent.width - (x + spaceRight_)
 		elide: Text.ElideRight
-		font.pointSize: 14
+		font.pointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * defaultFontSize : 14
 		text: getText()
 
 		function getText() {
@@ -335,10 +347,45 @@ Item {
 				return buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.event.conversation.declined.one");
 			} else if (type_ === buzzerClient.tx_BUZZER_MESSAGE() ||
 					   type_ === buzzerClient.tx_BUZZER_MESSAGE_REPLY()) {
+				if (buzzerApp.isDesktop) {
+					//
+				}
+
 				return buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.event.conversation.message.one");
 			}
 
 			return "?";
+		}
+	}
+
+	TextMetrics	{
+		id: bodyControlMetrics
+		elide: Text.ElideRight
+		text: bodyControl.message
+		elideWidth: parent.width - (bodyControl.x + (buzzerApp.isDesktop ? 2 * spaceRight_ : spaceRight_))
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
+		property var fontFamily: Qt.platform.os == "windows" ? "Segoe UI Emoji" : "Noto Color Emoji N"
+		font.family: buzzerApp.isDesktop ? fontFamily : font.family
+	}
+
+	QuarkLabel {
+		id: bodyControl
+		x: buzzerInfoControl.x
+		y: buzzerInfoControl.y + buzzerInfoControl.height + spaceItems_
+		text: bodyControlMetrics.elidedText + (bodyControlMetrics.elidedText !== message && buzzerApp.isDesktop ? "..." : "")
+		// font.italic: conversationState() === conversationPending_
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
+		visible: message !== undefined && message !== ""
+
+		property var message;
+
+		function getY() {
+			return visible ? bodyControl.y : buzzerInfoControl.y;
+		}
+
+		function getHeight() {
+			return visible ? bodyControl.height : buzzerInfoControl.height;
 		}
 	}
 
@@ -348,6 +395,7 @@ Item {
 		y: avatarImage.y
 		text: ago_
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 2)) : (defaultFontPointSize - 2)
 	}
 
 	QuarkSymbolLabel {
@@ -355,7 +403,7 @@ Item {
 		x: parent.width - width - spaceRightMenu_
 		y: avatarImage.y
 		symbol: Fonts.shevronDownSym
-		font.pointSize: 12
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 7)) : 12
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
 	}
 	MouseArea {
@@ -393,8 +441,12 @@ Item {
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
 		visible: true
 
-		property var y_: ((avatarImage.y + avatarImage.height) > (buzzerInfoControl.y + buzzerInfoControl.height) ?
-						avatarImage.y + avatarImage.height : buzzerInfoControl.y + buzzerInfoControl.height) + spaceBottom_
+		property var y_: ((avatarImage.y + avatarImage.height) > (bodyControl.getY() + bodyControl.getHeight()) ?
+						avatarImage.y + avatarImage.height : bodyControl.getY() + bodyControl.getHeight()) + spaceBottom_
+
+		onY1Changed: {
+			eventconversationitem_.calculateHeight();
+		}
 	}
 
 	//
@@ -405,7 +457,7 @@ Item {
 		id: headerMenu
 		x: parent.width - width - spaceRight_
 		y: menuControl.y + menuControl.height + spaceItems_
-		width: 150
+		width: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 150 : 150
 		visible: false
 
 		model: ListModel { id: menuModel }
@@ -459,6 +511,17 @@ Item {
 			}
 
 			return publisherId_;
+		}
+	}
+
+	BuzzerCommands.DecryptMessageBodyCommand {
+		id: decryptBodyCommand
+		model: buzzerClient.getConversationsList()
+
+		onProcessed: {
+			// key, body
+			bodyControl.message = body.replace(/(\r\n|\n|\r)/gm, "");
+			eventconversationitem_.calculateHeight();
 		}
 	}
 

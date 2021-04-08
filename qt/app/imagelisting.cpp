@@ -1,5 +1,7 @@
 #include "imagelisting.h"
 
+#ifdef Q_OS_ANDROID
+
 using namespace buzzer;
 
 ImageListing::ImageListing() {
@@ -62,3 +64,5 @@ void ImageListing::handleActivityResult(int receiverRequestCode, int resultCode,
 		*/
 	}
 }
+
+#endif

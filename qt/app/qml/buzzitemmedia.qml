@@ -23,9 +23,12 @@ Item {
 
 	property int calculatedHeight: 400
 	property int calculatedWidth: 500
+	property int calculatedWidthInternal: 500
+	property var buzzId_: buzzId
 	property var buzzMedia_: buzzMedia
 	property var controller_: controller
 
+	readonly property int maxCalculatedWidth_: 600
 	readonly property int spaceLeft_: 15
 	readonly property int spaceTop_: 12
 	readonly property int spaceRight_: 15
@@ -36,11 +39,22 @@ Item {
 	readonly property int spaceRightMenu_: 15
 	readonly property int spaceStats_: -5
 	readonly property int spaceLine_: 4
+	readonly property real defaultFontSize: 11
 
 	property var pkey_: ""
 
 	signal calculatedHeightModified(var value);
+	
 	onCalculatedHeightChanged: calculatedHeightModified(calculatedHeight);
+
+	onCalculatedWidthChanged: {
+		//
+		if (calculatedWidth > maxCalculatedWidth_) {
+			calculatedWidth = maxCalculatedWidth_;
+		}
+
+		calculatedWidthInternal = calculatedWidth;
+	}
 
 	Component.onCompleted: {
 	}
@@ -58,7 +72,7 @@ Item {
 		id: mediaList
 		x: 0
 		y: 0
-		width: calculatedWidth
+		width: calculatedWidthInternal
 		height: calculatedHeight
 		clip: true
 		orientation: Qt.Horizontal
@@ -119,6 +133,7 @@ Item {
 					width: mediaImage.width
 					height: mediaImage.height
 					enabled: true
+					cursorShape: Qt.PointingHandCursor
 
 					ItemDelegate {
 						id: linkClicked
@@ -185,12 +200,34 @@ Item {
 				}
 			}
 
-			BusyIndicator {
+			QuarkRoundProgress {
 				id: imageLoading
-				// anchors { horizontalCenter: mediaList.horizontalCenter; verticalCenter: mediaList.verticalCenter; }
 				x: mediaList.width / 2 - width / 2
 				y: mediaList.height / 2 - height / 2
-				running: false
+				size: buzzerClient.scaleFactor * 50
+				colorCircle: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link");
+				colorBackground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link");
+				arcBegin: 0
+				arcEnd: 0
+				lineWidth: buzzerClient.scaleFactor * 3
+				visible: false
+
+				QuarkSymbolLabel {
+					id: waitSymbol
+					anchors.fill: parent
+					symbol: Fonts.clockSym
+					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (imageLoading.size-10)) : (imageLoading.size-10)
+					color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link")
+					visible: imageLoading.visible
+				}
+
+				function progress(pos, size) {
+					//
+					waitSymbol.visible = false;
+					//
+					var lPercent = (pos * 100) / size;
+					arcEnd = (360 * lPercent) / 100;
+				}
 			}
 
 			BuzzerCommands.DownloadMediaCommand {
@@ -203,6 +240,11 @@ Item {
 
 				property int tryCount_: 0;
 
+				onProgress: {
+					//
+					imageLoading.progress(pos, size);
+				}
+
 				onProcessed: {
 					// tx, previewFile, originalFile, orientation
 					// stop timer
@@ -213,7 +255,7 @@ Item {
 					// set original orientation
 					orientation_ = orientation;
 					// stop spinning
-					imageLoading.running = false;
+					imageLoading.visible = false;
 					// reset height
 					mediaList.height = Math.max(buzzitemmedia_.calculatedHeight, mediaImage.height);
 					buzzitemmedia_.calculatedHeight = mediaList.height;
@@ -227,7 +269,7 @@ Item {
 						if (tryCount_ < 15) {
 							downloadTimer.start();
 						} else {
-							imageLoading.running = false;
+							imageLoading.visible = false;
 							mediaImage.source = "../images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "blur.one")
 							// reset height
 							mediaList.height = Math.max(buzzitemmedia_.calculatedHeight, mediaImage.height);
@@ -255,7 +297,7 @@ Item {
 				running: false
 
 				onTriggered: {
-					imageLoading.running = true;
+					imageLoading.visible = true;
 				}
 			}
 
@@ -287,7 +329,7 @@ Item {
 		count: buzzMedia_ ? buzzMedia_.length : 0
 		currentIndex: mediaList.currentIndex
 
-		x: calculatedWidth / 2 - width / 2
+		x: calculatedWidthInternal / 2 - width / 2
 		y: spaceStats_ - height
 		visible: buzzMedia_ ? buzzMedia_.length > 1 : false
 

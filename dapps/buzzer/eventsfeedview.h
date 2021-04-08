@@ -32,6 +32,7 @@ class QEventInfo: public QObject, public EventsfeedItem::EventInfo {
 	Q_PROPERTY(QString buzzerInfoId READ q_buzzerInfoId NOTIFY q_buzzerInfoIdChanged)
 	Q_PROPERTY(QString buzzerInfoChainId READ q_buzzerInfoChainId NOTIFY q_buzzerInfoChainIdChanged)
 	Q_PROPERTY(QString buzzBody READ q_buzzBody NOTIFY q_buzzBodyChanged)
+	Q_PROPERTY(QString buzzBodyHex READ q_buzzBodyHex NOTIFY q_buzzBodyHexChanged)
 	Q_PROPERTY(QList<qbit::QBuzzerMediaPointer*> buzzMedia READ q_buzzMedia)
 
 public:
@@ -70,6 +71,7 @@ public:
 	QString q_buzzerInfoId() { return QString::fromStdString(buzzerInfoId_.toHex()); }
 	QString q_buzzerInfoChainId() { return QString::fromStdString(buzzerInfoChainId_.toHex()); }
 	QString q_buzzBody() { return QString::fromStdString(buzzBodyString()); }
+	QString q_buzzBodyHex() { return QString::fromStdString(buzzBodyHex());	}
 	QList<qbit::QBuzzerMediaPointer*> q_buzzMedia() {
 		//
 		QList<qbit::QBuzzerMediaPointer*> lMediaPointers;
@@ -90,6 +92,7 @@ signals:
 	void q_buzzerInfoIdChanged();
 	void q_buzzerInfoChainIdChanged();
 	void q_buzzBodyChanged();
+	void q_buzzBodyHexChanged();
 };
 
 class QEventsfeedItem: public QObject {

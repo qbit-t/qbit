@@ -17,6 +17,7 @@ QuarkPage
 {
 	id: buzzerqbitkey_
 	key: "buzzerqbitkey"
+	stacked: false
 
 	property bool setupProcess: false
 
@@ -67,7 +68,7 @@ QuarkPage
 
 	QuarkToolBar {
 		id: toolBar
-		height: 45
+		height: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 50) : 45
 		width: parent.width
 
 		property int totalHeight: height
@@ -89,24 +90,26 @@ QuarkPage
 			id: cancelButton
 			Material.background: "transparent"
 			visible: true
-			labelYOffset: 3
+			labelYOffset: buzzerApp.isDesktop ? 0 : 3
 			symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 			Layout.alignment: Qt.AlignHCenter
-			symbol: Fonts.leftArrowSym
+			symbol: Fonts.cancelSym
+			//x: buzzerApp.isDesktop ? 10 : 0
+			y: parent.height / 2 - height / 2
 
 			onClicked: {
 				closePage();
 			}
 		}
 
-		QuarkLabel {
+		QuarkLabelRegular {
 			id: buzzerControl
 			x: cancelButton.x + cancelButton.width + 5
 			y: parent.height / 2 - height / 2
 			width: parent.width - (x)
 			elide: Text.ElideRight
 			text: buzzerClient.name
-			font.pointSize: 18
+			font.pointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 14 : 18
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link")
 		}
 
@@ -118,7 +121,7 @@ QuarkPage
 			y2: parent.height
 			penWidth: 1
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
-			visible: true
+			visible: buzzerApp.isDesktop ? false : true
 		}
 	}
 
@@ -143,7 +146,7 @@ QuarkPage
 			y: 10
 			width: parent.width-40
 			wrapMode: Label.Wrap
-			font.pointSize: 18
+			font.pointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 14 : 18
 
 			text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.qbitKeys.manage")
 		}
@@ -156,6 +159,8 @@ QuarkPage
 			symbol: Fonts.tagSym
 			clipboardButton: true
 			helpButton: true
+			textFontSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 14 : 16
+			symbolFontSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 16 : 20
 
 			text: !setupProcess ? buzzerClient.firstPKey() : ""
 
@@ -175,6 +180,8 @@ QuarkPage
 			clipboardButton: false
 			pasteButton: false
 			helpButton: true
+			textFontSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 14 : 16
+			symbolFontSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 16 : 20
 
 			text: !setupProcess ? buzzerClient.firstSKey() : ""
 
@@ -191,7 +198,7 @@ QuarkPage
 			y: keyBox.y + keyBox.height + 15
 			width: parent.width-40
 			wrapMode: Text.Wrap
-			font.pointSize: 18
+			font.pointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 14 : 18
 
 			text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.qbitSeed")
 		}
@@ -206,6 +213,8 @@ QuarkPage
 			helpButton: true
 			addButton: true
 			placeholderText: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.qbitKeys.word")
+			textFontSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 14 : 16
+			symbolFontSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 16 : 20
 
 			onTextChanged: {
 			}
@@ -234,7 +243,9 @@ QuarkPage
 			id: backRect
 			x: 21
 			y: wordEditBox.y + wordEditBox.height
-			height: 250 // nameEditBox.y - y - 15
+			height: buzzerqbitkey_.height - (y + toolBar.height + linkButton.height + nameEditBox.height + 15 + 15 + 10) < 200 ?
+						200 :
+						buzzerqbitkey_.height - (y + toolBar.height + linkButton.height + nameEditBox.height + 15 + 15 + 10)
 			width: parent.width - 43
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Box.background");
 		}
@@ -274,6 +285,7 @@ QuarkPage
 						text: name
 						x: 10
 						y: parent.height / 2 - height / 2
+						font.pointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 14 : defaultFontPointSize
 					}
 				}
 
@@ -285,7 +297,7 @@ QuarkPage
 
 					QuarkSymbolLabel {
 						symbol: Fonts.trashSym
-						font.pointSize: 16
+						font.pointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 14 : 16
 						color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
 
 						x: parent.width / 2 - width / 2
@@ -338,6 +350,8 @@ QuarkPage
 			clipboardButton: false
 			helpButton: true
 			placeholderText: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.placeholder.name")
+			textFontSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 14 : 16
+			symbolFontSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 16 : 20
 
 			onHelpClicked:  {
 				if (enabled) {
@@ -382,13 +396,12 @@ QuarkPage
 			contentItem: QuarkText {
 				id: buttonText
 				text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.link")
-				font.pointSize: 16
+				font.pointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 16 : 16
 				color: linkButton.enabled ?
 						   buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground") :
 						   buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 				horizontalAlignment: Text.AlignHCenter
 				verticalAlignment: Text.AlignVCenter
-				elide: Text.ElideRight
 
 				function adjust(val) {
 					color = val ?
@@ -482,14 +495,17 @@ QuarkPage
 						var lComponent = null;
 						var lPage = null;
 
-						lComponent = Qt.createComponent("qrc:/qml/buzzer-main.qml");
+						lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzer-main-desktop.qml") : Qt.createComponent("qrc:/qml/buzzer-main.qml");
 						if (lComponent.status === Component.Error) {
 							controller.showError(lComponent.errorString());
 						} else {
 							lPage = lComponent.createObject(controller);
 							lPage.controller = controller;
 
-							addPage(lPage);
+							if (buzzerApp.isDesktop)
+								addPageLocal(lPage);
+							else
+								addPage(lPage);
 						}
 					}
 				}
@@ -581,14 +597,17 @@ QuarkPage
 				var lComponent = null;
 				var lPage = null;
 
-				lComponent = Qt.createComponent("qrc:/qml/buzzer-main.qml");
+				lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzer-main-desktop.qml") : Qt.createComponent("qrc:/qml/buzzer-main.qml");
 				if (lComponent.status === Component.Error) {
 					controller.showError(lComponent.errorString());
 				} else {
 					lPage = lComponent.createObject(controller);
 					lPage.controller = controller;
 
-					addPage(lPage);
+					if (buzzerApp.isDesktop)
+						addPageLocal(lPage);
+					else
+						addPage(lPage);
 				}
 			}
 		}

@@ -168,10 +168,23 @@ void UploadMediaCommand::encrypt(const uint256& nonce, const std::vector<unsigne
 	cypher.resize(lLen);
 }
 
+#if defined(_WIN32)
+	#include <locale>
+	#include <codecvt>
+#endif
+
 void UploadMediaCommand::startSendData() {
 	//
 	boost::filesystem::path lFile(file_);
-	std::string lFileType = lFile.extension().native();
+	std::string lFileType;
+
+#if defined(_WIN32)
+	using lConvert = std::codecvt_utf8<wchar_t>;
+    std::wstring_convert<lConvert, wchar_t> lConverter;
+    lFileType = lConverter.to_bytes(lFile.extension().native());
+#else
+	lFileType = lFile.extension().native();
+#endif
 
 	std::string lType = boost::algorithm::to_lower_copy(lFileType);
 
@@ -594,7 +607,7 @@ void DownloadMediaCommand::process(const std::vector<std::string>& args) {
 					gLog().write(Log::CLIENT, strprintf("[downloadMediaCommand/EXISTS/%X]: header = %s/%s, file = %s", 
 								this, headerTx_.toHex(), chain_.toHex(), localPreviewFileName_));
 				*/
-				done_(nullptr, localPreviewFileName_, localFileName_, lOrientation, ProcessingError());
+				if (done_) done_(nullptr, localPreviewFileName_, localFileName_, lOrientation, ProcessingError());
 				return;
 			}
 		}
@@ -689,7 +702,7 @@ void DownloadMediaCommand::headerLoaded(TransactionPtr tx) {
 
 		//
 		if (previewOnly_ && header_->size() > CUBIX_MAX_DATA_CHUNK) {
-			done_(header_, localPreviewFileName_, std::string(), header_->orientation(), ProcessingError());
+			if (done_) done_(header_, localPreviewFileName_, std::string(), header_->orientation(), ProcessingError());
 		} else {
 			// load data
 			if (header_->size() > CUBIX_MAX_DATA_CHUNK || lFirstSize != header_->size()) {
@@ -712,7 +725,7 @@ void DownloadMediaCommand::headerLoaded(TransactionPtr tx) {
 							boost::bind(&DownloadMediaCommand::timeout, shared_from_this()))
 					))	error("E_MEDIA_DATA_NOT_LOADED", "Media data was not loaded.");
 			} else {
-				done_(header_, localPreviewFileName_, localPreviewFileName_, header_->orientation(), ProcessingError());
+				if (done_) done_(header_, localPreviewFileName_, localPreviewFileName_, header_->orientation(), ProcessingError());
 			}
 		}
 	} else {
@@ -734,7 +747,7 @@ void DownloadMediaCommand::dataLoaded(TransactionPtr tx) {
 			// done
 			std::cout << "           summary: " << tx->id().toHex() << std::endl;		
 			outLocalFile_.close();
-			done_(header_, localPreviewFileName_, localFileName_, header_->orientation(), ProcessingError());
+			if (done_) done_(header_, localPreviewFileName_, localFileName_, header_->orientation(), ProcessingError());
 		} else {
 			//
 			TxMediaDataPtr lData = TransactionHelper::to<TxMediaData>(tx);

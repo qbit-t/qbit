@@ -45,7 +45,7 @@ ComboBox
         popup.adjustPosition();
     }
 
-    contentItem: QuarkLabel
+	contentItem: QuarkLabelRegular
     {
         leftPadding: itemLeftPadding
         rightPadding: itemRightPadding
@@ -211,7 +211,7 @@ ComboBox
                 }
             }
 
-            QuarkLabel
+			QuarkLabelRegular
             {
                 id: textLabel
                 anchors.fill: parent

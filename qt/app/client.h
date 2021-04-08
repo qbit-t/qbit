@@ -50,6 +50,11 @@
 #include "wallettransactionslistmodel.h"
 #include "peerslistmodel.h"
 
+#if defined(DESKTOP_PLATFORM)
+#include "emojidata.h"
+#include "notificator.h"
+#endif
+
 Q_DECLARE_METATYPE(qbit::Buzzfeed*)
 Q_DECLARE_METATYPE(qbit::BuzzfeedItem*)
 Q_DECLARE_METATYPE(qbit::Eventsfeed*)
@@ -100,6 +105,8 @@ class Client: public QObject, public IClient
 	Q_PROPERTY(ulong mistrusts READ getMistrusts NOTIFY mistrustsChanged)
 	Q_PROPERTY(QString address READ address NOTIFY addressChanged)
 	Q_PROPERTY(QList<buzzer::Contact*> contacts READ selectContacts NOTIFY contactsChanged)
+	Q_PROPERTY(QString scale READ scale WRITE setScale NOTIFY scaleChanged)
+	Q_PROPERTY(double scaleFactor READ scaleFactor NOTIFY scaleFactorChanged)
 
 public:
 	Client(QObject *parent = nullptr);
@@ -126,10 +133,10 @@ public:
 	void setDescription(const QString& description) { description_ = description; emit descriptionChanged(); }
 	QString description() const { return description_; }
 
-	void setAvatar(const QString& avatar) { avatar_ = avatar; emit avatarChanged(); }
+	void setAvatar(const QString& avatar);
 	QString avatar() const { return avatar_; }
 
-	void setHeader(const QString& header) { header_ = header; emit headerChanged(); }
+	void setHeader(const QString& header);
 	QString header() const { return header_; }
 
 	void setLocale(const QString& locale) { locale_ = locale; emit localeChanged(); }
@@ -141,7 +148,30 @@ public:
     void setThemeSelector(const QString& themeSelector) { themeSelector_ = themeSelector; emit themeSelectorChanged(); }
     QString themeSelector() const { return themeSelector_; }
 
-    Q_INVOKABLE int open(QString);
+	void setScale(const QString& scale) {
+		scale_ = scale;
+
+		if (scale_ == "100") scaleFactor_ = 1.00;
+		else if (scale_ == "110") scaleFactor_ = 1.10;
+		else if (scale_ == "115") scaleFactor_ = 1.15;
+		else if (scale_ == "120") scaleFactor_ = 1.20;
+		else if (scale_ == "125") scaleFactor_ = 1.25;
+		else if (scale_ == "135") scaleFactor_ = 1.35;
+		else if (scale_ == "150") scaleFactor_ = 1.50;
+		else if (scale_ == "175") scaleFactor_ = 1.75;
+		else if (scale_ == "200") scaleFactor_ = 2.00;
+		else if (scale_ == "250") scaleFactor_ = 2.50;
+		else if (scale_ == "300") scaleFactor_ = 3.00;
+
+		emit scaleChanged();
+		emit scaleFactorChanged();
+	}
+
+	QString scale() const { return scale_; }
+
+	double scaleFactor() const { return scaleFactor_; }
+
+	Q_INVOKABLE int open(QString);
     Q_INVOKABLE int openSettings();
     Q_INVOKABLE void revertChanges();
     Q_INVOKABLE bool configured();
@@ -149,6 +179,14 @@ public:
 
 	void suspend();
 	void resume();
+
+	Q_INVOKABLE void activatePeersUpdates() {
+		peersModelUpdates_ = true;
+	}
+
+	Q_INVOKABLE void deactivatePeersUpdates() {
+		peersModelUpdates_ = false;
+	}
 
 	QString address() {
 		//
@@ -176,6 +214,8 @@ public:
     Q_INVOKABLE bool hasPropertyBeginWith(QString);
     Q_INVOKABLE bool hasPropertyBeginWithAndValue(QString, QString);
 
+	Q_INVOKABLE void setFavEmoji(QString);
+
 	bool getCacheReady() { return cacheReady_; }
 	void setCacheReady() { cacheReady_ = true; emit cacheReadyChanged(); }
 	bool getNetworkReady() { return networkReady_; }
@@ -195,11 +235,17 @@ public:
 		}
 	}
 
+	void extractFavoriteEmojis(std::vector<std::string>&);
+
 	qbit::BuzzerPtr getBuzzer() { return buzzer_; }
 	qbit::LightComposerPtr getComposer() { return composer_; }
 	qbit::BuzzerLightComposerPtr getBuzzerComposer() { return buzzerComposer_; }
 	qbit::cubix::CubixLightComposerPtr getCubixComposer() { return cubixComposer_; }
 	qbit::IPeerManagerPtr getPeerManager() { return peerManager_; }
+#if defined(DESKTOP_PLATFORM)
+	buzzer::EmojiData* emojiData() { return emojiData_; }
+#endif
+	ConversationsListModel* getConversationsModel() { return conversationsList_; }
 
 	Q_INVOKABLE QVariant getGlobalBuzzfeedList() { return QVariant::fromValue(globalBuzzfeedList_); }
 	Q_INVOKABLE QVariant getBuzzfeedList() { return QVariant::fromValue(buzzfeedList_); }
@@ -300,6 +346,9 @@ public:
 		// start re-sync
 		syncTimer_->start(500);
 	}
+	Q_INVOKABLE void setTopId(QString topId) {
+		topId_ = topId;
+	}
 
 	Q_INVOKABLE QString getPlainText(QQuickTextDocument* textDocument) {
 		return textDocument->textDocument()->toPlainText(); // toRawText
@@ -351,6 +400,22 @@ public:
 	Q_INVOKABLE unsigned short peer_BANNED() { return qbit::IPeer::BANNED; }
 	Q_INVOKABLE unsigned short peer_PENDING_STATE() { return qbit::IPeer::PENDING_STATE; }
 	Q_INVOKABLE unsigned short peer_POSTPONED() { return qbit::IPeer::POSTPONED; }
+
+	//
+	// external open ...
+	//
+	Q_INVOKABLE void openThread(QString buzzChainId, QString buzzId, QString buzzerAlias, QString buzzBody) {
+		//
+		emit tryOpenThread(buzzChainId, buzzId, buzzerAlias, buzzBody);
+	}
+	Q_INVOKABLE void openBuzzfeedByBuzzer(QString buzzer) {
+		//
+		emit tryOpenBuzzfeedByBuzzer(buzzer);
+	}
+	Q_INVOKABLE void openConversation(QString id, QString conversationId, QVariant conversation, QVariant list) {
+		//
+		emit tryOpenConversation(id, conversationId, conversation, list);
+	}
 
 	Q_INVOKABLE int getBuzzBodyMaxSize() { return TX_BUZZ_BODY_SIZE; }
 
@@ -404,37 +469,10 @@ public:
 
 public slots:
 	// events feed updated
-	void eventsfeedUpdated(unsigned long long timestamp) {
-		//
-		QString lLastTimestamp = getProperty("Client.lastTimestamp");
-		if (lLastTimestamp.length()) {
-			if (lLastTimestamp.toULongLong() < timestamp) {
-				//qInfo() << "[eventsfeedUpdated]" << lLastTimestamp.toULongLong() << timestamp;
-				emit newEvents();
-				setProperty("Client.lastTimestamp", QString::number(timestamp));
-			}
-		} else {
-			emit newEvents();
-			setProperty("Client.lastTimestamp", QString::number(timestamp));
-		}
-	}
+	void eventsfeedUpdated(const qbit::EventsfeedItemProxy& /*event*/);
 
 	// conversations updated
-	void conversationsUpdated(unsigned long long timestamp) {
-		//
-		QString lLastTimestamp = getProperty("Client.conversationsLastTimestamp");
-		if (lLastTimestamp.length()) {
-			if (lLastTimestamp.toULongLong() < timestamp) {
-				qInfo() << "[conversationsUpdated]" << lLastTimestamp.toULongLong() << timestamp;
-				emit newMessages();
-				setProperty("Client.conversationsLastTimestamp", QString::number(timestamp));
-			}
-		} else {
-			qInfo() << "[conversationsUpdated]" << lLastTimestamp.toULongLong() << timestamp;
-			emit newMessages();
-			setProperty("Client.conversationsLastTimestamp", QString::number(timestamp));
-		}
-	}
+	void conversationsUpdated(const qbit::ConversationItemProxy& /*event*/);
 
 public:
 	// Wallet
@@ -449,7 +487,8 @@ private:
 	//
 	void echoLog(unsigned int /*category*/, const std::string& message) {
 		// debug only
-		qInfo() << QString::fromStdString(message);
+		if (application_->getDebug())
+			qInfo() << QString::fromStdString(message);
 	}
 
 	//
@@ -534,7 +573,9 @@ signals:
 	void headerChanged();
 	void localeChanged();
 	void themeChanged();
-    void themeSelectorChanged();
+	void scaleChanged();
+	void scaleFactorChanged();
+	void themeSelectorChanged();
 	void cacheReadyChanged();
 	void networkReadyChanged();
 	void buzzerDAppReadyChanged();
@@ -559,8 +600,12 @@ signals:
 	void newEvents();
 	void newMessages();
 
-	void peerPushedSignal(const buzzer::PeerProxy& peer, bool update, int count);
-	void peerPoppedSignal(const buzzer::PeerProxy& peer, int count);
+	void peerPushedSignal(buzzer::PeerProxy peer, bool update, int count);
+	void peerPoppedSignal(buzzer::PeerProxy peer, int count);
+
+	void tryOpenThread(QString buzzChainId, QString buzzId, QString buzzerAlias, QString buzzBody);
+	void tryOpenBuzzfeedByBuzzer(QString buzzer);
+	void tryOpenConversation(QString id, QString conversationId, QVariant conversation, QVariant list);
 
 private:
     QString name_;
@@ -571,6 +616,8 @@ private:
 	QString locale_;
     QString theme_;
     QString themeSelector_;
+	QString scale_ = "100";
+	double scaleFactor_ = 1.00;
 	std::map<std::string, std::string> properties_;
 	qbit::json::Document back_;
 	qbit::json::Document appConfig_;
@@ -583,6 +630,8 @@ private:
 	bool suspended_ = false;
 	bool recallWallet_ = false;
 	bool opened_ = false;
+	bool peersModelUpdates_ = false;
+	QString topId_ = "";
 
 private:
 	qbit::IRequestProcessorPtr requestProcessor_ = nullptr;
@@ -620,6 +669,9 @@ private:
 	PeersActiveListModel* peersActive_ = nullptr;
 	PeersListModel* peersAll_ = nullptr;
 	PeersAddedListModel* peersAdded_ = nullptr;
+#if defined(DESKTOP_PLATFORM)
+	EmojiData* emojiData_ = nullptr;
+#endif
 };
 
 } // buzzer

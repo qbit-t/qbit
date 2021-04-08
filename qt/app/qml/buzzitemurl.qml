@@ -21,7 +21,7 @@ import "qrc:/lib/numberFunctions.js" as NumberFunctions
 Item {
 	id: buzzitemurl_
 
-	property int calculatedHeight: spaceItems_;
+	property int calculatedHeight: 0 //spaceItems_;
 	property int calculatedWidth: 500
 	property var lastUrl_: lastUrl
 	property var controller_: controller
@@ -67,9 +67,11 @@ Item {
 		height: getHeight()
 
 		function getHeight() {
-			if (!infoContainer.visible) return spaceItems_;
-			return infoImage.height + spaceTop_ + infoTitle.height + spaceItems_ +
-					infoDescription.height + spaceItems_ + infoSite.height + spaceBottom_;
+			if (!infoContainer.visible) return 0; //spaceItems_;
+			return infoImage.height + spaceTop_ +
+					infoTitle.height + spaceItems_ +
+					(sourceInfo && sourceInfo.description !== "" ? (infoDescription.height + spaceItems_) : 0) +
+					infoSite.height + spaceBottom_;
 		}
 
 		Image {
@@ -106,7 +108,7 @@ Item {
 			}
 		}
 
-		QuarkLabel {
+		QuarkLabelRegular {
 			id: infoTitle
 			x: spaceLeft_
 			y: spaceTop_ + infoImage.y + infoImage.height
@@ -123,21 +125,29 @@ Item {
 			text: sourceInfo.description
 			wrapMode: Text.Wrap
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
+
+			function getHeight() {
+				return (sourceInfo && sourceInfo.description !== "" ? (infoDescription.height) : 0);
+			}
 		}
 
 		QuarkSymbolLabel {
 			id: infoLink
 			x: spaceLeft_
-			y: infoDescription.y + infoDescription.height + spaceItems_ + 3
+			y: infoDescription.getHeight() > 0 ?
+				   (infoDescription.y + infoDescription.height + spaceItems_ + 3) :
+				   (infoTitle.y + infoTitle.height + spaceItems_ + 3)
 			symbol: Fonts.externalLinkSym
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 			font.pointSize: 12
 		}
 
-		QuarkLabel {
+		QuarkLabelRegular {
 			id: infoSite
 			x: infoLink.x + infoLink.width + spaceItems_
-			y: infoDescription.y + infoDescription.height + spaceItems_
+			y: infoDescription.getHeight() > 0 ?
+				   (infoDescription.y + infoDescription.height + spaceItems_) :
+				   (infoTitle.y + infoTitle.height + spaceItems_)
 			width: parent.width - (spaceRight_ + x)
 			text: sourceInfo.host
 			elide: Text.ElideRight

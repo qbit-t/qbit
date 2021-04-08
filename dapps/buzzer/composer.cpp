@@ -38,7 +38,7 @@ bool BuzzerComposer::open() {
 			opened_ = true;
 		}
 		catch(const std::exception& ex) {
-			gLog().write(Log::ERROR, std::string("[buzzer/wallet/open/error]: ") + ex.what());
+			gLog().write(Log::GENERAL_ERROR, std::string("[buzzer/wallet/open/error]: ") + ex.what());
 			return false;
 		}
 	}

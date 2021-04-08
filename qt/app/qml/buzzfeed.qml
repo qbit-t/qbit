@@ -185,20 +185,8 @@ Item
 			}
 
 			onClicked: {
-				// open thread
-				var lComponent = null;
-				var lPage = null;
-
-				lComponent = Qt.createComponent("qrc:/qml/buzzfeedthread.qml");
-				if (lComponent.status === Component.Error) {
-					showError(lComponent.errorString());
-				} else {
-					lPage = lComponent.createObject(controller);
-					lPage.controller = controller;
-					addPage(lPage);
-
-					lPage.start(buzzChainId, buzzId);
-				}
+				//
+				controller.openThread(buzzChainId, buzzId, buzzerAlias, buzzBodyFlat);
 			}
 
 			onWidthChanged: {
@@ -252,7 +240,8 @@ Item
 		Image {
 			id: buzzImage
 			anchors.fill: parent
-			source: "../images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "buzzer.round")
+			source: "../images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector,
+					buzzerApp.isDesktop ? "buzzer.round.full" : "buzzer.round")
 			fillMode: Image.PreserveAspectFit
 		}
 
@@ -261,7 +250,8 @@ Item
 			var lComponent = null;
 			var lPage = null;
 
-			lComponent = Qt.createComponent("qrc:/qml/buzzeditor.qml");
+			lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzeditor-desktop.qml") :
+											   Qt.createComponent("qrc:/qml/buzzeditor.qml");
 			if (lComponent.status === Component.Error) {
 				showError(lComponent.errorString());
 			} else {
@@ -273,7 +263,7 @@ Item
 		}
 	}
 
-	BusyIndicator {
+	QuarkBusyIndicator {
 		anchors { horizontalCenter: parent.horizontalCenter; verticalCenter: parent.verticalCenter; }
 		running: !modelLoader.requestProcessed
 	}

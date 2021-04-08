@@ -36,11 +36,24 @@ Item
 	}
 
 	function start() {
-		search.setText("");
+		if (!buzzerApp.isDesktop) search.setText("");
+		else {
+			controller.mainToolBar.searchTextEdited.connect(buzzfeed_.startSearch);
+			controller.mainToolBar.searchTextCleared.connect(buzzfeed_.searchTextCleared);
+			controller.mainToolBar.setSearchText("", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.global.search"));
+		}
+
 		modelLoader_ = globalModelLoader;
 		buzzfeedModel_ = globalBuzzfeedModel_;
 		list.model = globalBuzzfeedModel_;
 		switchDataTimer.start();
+	}
+
+	function disconnect() {
+		if (buzzerApp.isDesktop) {
+			controller.mainToolBar.searchTextEdited.disconnect(buzzfeed_.startSearch);
+			controller.mainToolBar.searchTextCleared.disconnect(buzzfeed_.searchTextCleared);
+		}
 	}
 
 	function startWithTag(tag) {
@@ -255,36 +268,46 @@ Item
 
 	QuarkSearchField {
 		id: search
-		width: parent.width - x - 14
+		width: buzzerApp.isDesktop ? parent.width - x - 5 : parent.width - x - 14
 		placeHolder: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.global.search")
+		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : fontPointSize
+		visible: !buzzerApp.isDesktop
 
 		x: 15
 		y: 0
 
 		onSearchTextChanged: {
 			//
-			if (searchText[0] === '#') {
-				searchTags.process(searchText);
-			} else if (searchText[0] === '@') {
-				searchBuzzers.process(searchText);
-			}
+			startSearch(searchText);
 		}
 
 		onTextCleared: {
+			searchTextCleared();
+		}
+	}
+
+	function startSearch(searchText) {
+		if (searchText[0] === '#') {
+			searchTags.process(searchText);
+		} else if (searchText[0] === '@') {
+			searchBuzzers.process(searchText);
+		} else {
 			start();
 		}
+	}
+
+	function searchTextCleared() {
+		start();
 	}
 
 	QuarkListView {
 		id: list
 		x: 0
-		y: search.y + search.calculatedHeight
+		y: buzzerApp.isDesktop ? 0 : search.y + search.calculatedHeight
 		width: parent.width
-		height: parent.height - (search.calculatedHeight)
+		height: parent.height - (buzzerApp.isDesktop ? 0 : search.calculatedHeight)
 		usePull: true
 		clip: true
-
-		//model: buzzfeedModel_
 
 		function adjust() {
 			//
@@ -326,20 +349,8 @@ Item
 			}
 
 			onClicked: {
-				// open thread
-				var lComponent = null;
-				var lPage = null;
-
-				lComponent = Qt.createComponent("qrc:/qml/buzzfeedthread.qml");
-				if (lComponent.status === Component.Error) {
-					showError(lComponent.errorString());
-				} else {
-					lPage = lComponent.createObject(controller);
-					lPage.controller = controller;
-					addPage(lPage);
-
-					lPage.start(buzzChainId, buzzId);
-				}
+				//
+				controller.openThread(buzzChainId, buzzId, buzzerAlias, buzzBodyFlat);
 			}
 
 			Component.onCompleted: {
@@ -400,7 +411,7 @@ Item
 		}
 	}
 
-	BusyIndicator {
+	QuarkBusyIndicator {
 		id: waitIndicator
 		anchors { horizontalCenter: parent.horizontalCenter; verticalCenter: parent.verticalCenter; }
 	}
@@ -411,7 +422,7 @@ Item
 
 	QuarkPopupMenu {
 		id: buzzersList
-		width: 170
+		width: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 170) : 170
 		visible: false
 
 		model: ListModel { id: buzzersModel }
@@ -420,11 +431,20 @@ Item
 
 		onClick: {
 			//
-			search.setText(key);
+			if (!buzzerApp.isDesktop) search.setText(key);
+			else {
+				controller.mainToolBar.setSearchText(
+					key,
+					buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.global.search"));
+			}
+
 			startWithBuzzer(key);
 		}
 
 		function popup(match, buzzers) {
+			//
+			if (buzzers.opened) buzzers.close();
+
 			//
 			if (buzzers.length === 0) return;
 			if (buzzers.length === 1 && match === buzzers[0]) return;
@@ -440,8 +460,13 @@ Item
 					name: buzzers[lIdx]});
 			}
 
-			x = search.x;
-			y = search.y + search.calculatedHeight;
+			if (!buzzerApp.isDesktop) {
+				x = search.x;
+				y = search.y + search.calculatedHeight;
+			} else {
+				x = 10;
+				y = -10;
+			}
 
 			open();
 		}
@@ -449,7 +474,7 @@ Item
 
 	QuarkPopupMenu {
 		id: tagsList
-		width: 170
+		width: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 170) : 170
 		visible: false
 
 		model: ListModel { id: tagsModel }
@@ -463,6 +488,9 @@ Item
 		}
 
 		function popup(match, tags) {
+			//
+			if (tagsList.opened) tagsList.close();
+
 			//
 			if (tags.length === 0) return;
 			if (tags.length === 1 && match === tags[0]) return;
@@ -478,8 +506,13 @@ Item
 					name: tags[lIdx]});
 			}
 
-			x = search.x;
-			y = search.y + search.calculatedHeight;
+			if (!buzzerApp.isDesktop) {
+				x = search.x;
+				y = search.y + search.calculatedHeight;
+			} else {
+				x = 10;
+				y = -10;
+			}
 
 			open();
 		}

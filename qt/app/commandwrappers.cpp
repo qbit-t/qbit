@@ -277,6 +277,14 @@ DownloadMediaCommand::DownloadMediaCommand(QObject* /*parent*/) : QObject() {
 			lClient->getCubixComposer(),
 			boost::bind(&DownloadMediaCommand::downloadProgress, this, _1, _2),
 			boost::bind(&DownloadMediaCommand::done, this, _1, _2, _3, _4, _5));
+
+	// TODO: potential leak, need "check list" to track such objects
+	QQmlEngine::setObjectOwnership(this, QQmlEngine::CppOwnership);
+}
+
+DownloadMediaCommand::~DownloadMediaCommand() {
+	//
+	command_->terminate();
 }
 
 UploadMediaCommand::UploadMediaCommand(QObject* /*parent*/) : QObject() {
@@ -287,6 +295,9 @@ UploadMediaCommand::UploadMediaCommand(QObject* /*parent*/) : QObject() {
 			lClient->getCubixComposer(),
 			boost::bind(&UploadMediaCommand::uploadProgress, this, _1, _2, _3),
 			boost::bind(&UploadMediaCommand::done, this, _1, _2));
+
+	// TODO: potential leak, need "check list" to track such objects
+	QQmlEngine::setObjectOwnership(this, QQmlEngine::CppOwnership);
 }
 
 BuzzLikeCommand::BuzzLikeCommand(QObject* /*parent*/) : QObject() {

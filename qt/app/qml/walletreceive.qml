@@ -37,6 +37,7 @@ Item
 	readonly property int spaceLine_: 4
 	readonly property int spaceThreaded_: 33
 	readonly property int spaceThreadedItems_: 4
+	readonly property real defaultFontSize: 11
 
 	function init() {
 	}
@@ -126,7 +127,10 @@ Item
 			width: parent.width - (spaceLeft_ + spaceRight_) + 2
 			symbol: Fonts.tagSym
 			clipboardButton: true
-			height: 42
+			height: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 37) : 42
+			textFontSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 16
+			symbolFontSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 2)) : 20
+
 
 			text: buzzerClient.address // default
 		}
@@ -136,7 +140,7 @@ Item
 
 			x: spaceLeft_
 			y: addressBox.y + addressBox.height + 2*spaceItems_
-			height: 40 //amountEdit.height
+			height: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 35) : 40 //amountEdit.height
 			width: (addressBox.width-2) / 3 * 2
 			color: "transparent"
 			clip: true
@@ -149,7 +153,7 @@ Item
 				border.color: "transparent"
 				labelColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Price.zeroes");
 				width: amountInfo.height - 1
-				fontPointSize: 20
+				fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 1)) : 20
 
 				color: "transparent"
 
@@ -166,12 +170,12 @@ Item
 				x: 0 //privateButton.width + 1
 				y: 0
 				width: parent.width - privateButton.width - 1
-				height: 40
+				height: amountInfo.height //40
 				fillTo: getFixed()
 				xButtons: false
 
-				fontPointSize: 18
-				buzztonsFontPointSize: 20
+				fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 2)) : 18
+				buzztonsFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 4)) : 20
 
 				function getFixed() {
 					return 4; //
@@ -204,7 +208,7 @@ Item
 			contentItem: QuarkText {
 				id: buttonText
 				text: receiptButton.text
-				font.pointSize: 16
+				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 1)) : 16
 				color: receiptButton.enabled ?
 						   buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground") :
 						   buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
@@ -237,7 +241,8 @@ Item
 					var lSource;
 					var lComponent;
 
-					lSource = "qrc:/qml/walletreceivereceipt.qml";
+					lSource = buzzerApp.isDesktop ? "qrc:/qml/walletreceivereceipt-desktop.qml" :
+													"qrc:/qml/walletreceivereceipt.qml";
 					lComponent = Qt.createComponent(lSource);
 					if (lComponent.status === Component.Error) {
 						controller.showError(lComponent.errorString());
@@ -263,7 +268,7 @@ Item
 			id: historyInfo
 			x: spaceLeft_
 			y: amountInfo.y + amountInfo.height + spaceTop_
-			height: 35
+			height: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 35) : 35
 			width: parent.width - (spaceLeft_ + spaceRight_)
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Box.background")
 
@@ -272,7 +277,7 @@ Item
 				x: spaceLeft_
 				y: historyInfo.height / 2 - historyLabel.height / 2
 				text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.wallet.transactions") //.toUpperCase();
-				font.pointSize: 16
+				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 2)) : 16
 				Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.altAccent");
 			}
 		}

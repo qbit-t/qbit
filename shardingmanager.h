@@ -113,7 +113,7 @@ private:
 			context_.run();
 		} 
 		catch(boost::system::system_error& ex) {
-			gLog().write(Log::ERROR, std::string("[sharding]: context error -> ") + ex.what());
+			gLog().write(Log::GENERAL_ERROR, std::string("[sharding]: context error -> ") + ex.what());
 		}
 
 		// log

@@ -172,6 +172,7 @@ Label
         id: significant
         x: 0
         y: 0
+		font.pointSize: parent.font.pointSize
 
         onWidthChanged:
         {
@@ -191,6 +192,7 @@ Label
         id: mantissa
         x: significant.x + significant.width
         y: 0
+		font.pointSize: parent.font.pointSize
 
         onWidthChanged:
         {
@@ -210,6 +212,7 @@ Label
         id: zeroes
         x: mantissa.x + mantissa.width
         y: 0
+		font.pointSize: parent.font.pointSize
 
         onWidthChanged:
         {
@@ -229,6 +232,7 @@ Label
         id: units
 		x: zeroes.x + zeroes.width + unitsGap
         y: 0
+		font.pointSize: parent.font.pointSize
 
         text: numberLabel.units
 

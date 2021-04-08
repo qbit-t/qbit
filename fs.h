@@ -7,7 +7,7 @@
 
 #include <stdio.h>
 #include <string>
-#if defined WIN32 && defined __GLIBCXX__
+#if defined _WIN32 && defined __GLIBCXX__
 #include <ext/stdio_filebuf.h>
 #endif
 
@@ -34,7 +34,7 @@ namespace fsbridge {
 
     private:
         std::string reason;
-#ifndef WIN32
+#ifndef _WIN32
         int fd = -1;
 #else
         void* hFile = (void*)-1; // INVALID_HANDLE_VALUE
@@ -57,7 +57,7 @@ namespace fsbridge {
     // with an upgrade to C++17, where streams can be constructed directly from
     // `std::filesystem::path` objects.
 
-#if defined WIN32 && defined __GLIBCXX__
+#if defined _WIN32 && defined __GLIBCXX__
     class ifstream : public std::istream
     {
     public:
@@ -86,10 +86,10 @@ namespace fsbridge {
         __gnu_cxx::stdio_filebuf<char> m_filebuf;
         FILE* m_file = nullptr;
     };
-#else  // !(WIN32 && __GLIBCXX__)
+#else  // !(_WIN32 && __GLIBCXX__)
     typedef fs::ifstream ifstream;
     typedef fs::ofstream ofstream;
-#endif // WIN32 && __GLIBCXX__
+#endif // _WIN32 && __GLIBCXX__
 };
 
 #endif // BITCOIN_FS_H

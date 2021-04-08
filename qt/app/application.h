@@ -30,6 +30,10 @@
 #include <QtAndroid>
 #endif
 
+#if defined(DESKTOP_PLATFORM)
+#include <QQuickWindow>
+#endif
+
 #include "json.h"
 #include "client.h"
 #include "iapplication.h"
@@ -46,7 +50,23 @@
 
 namespace buzzer {
 
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
 const char APP_NAME[] = { "buzzer-app" };
+#else
+const char APP_NAME[] = { "buzzer-desktop-app" };
+#endif
+
+#include <QKeyEvent>
+class KeyEmitter : public QObject
+{
+	Q_OBJECT
+public:
+	KeyEmitter(QObject* parent=nullptr) : QObject(parent) {}
+	Q_INVOKABLE void keyPressed(QObject* tf, Qt::Key k) {
+		QKeyEvent keyPressEvent = QKeyEvent(QEvent::Type::KeyPress, k, Qt::NoModifier, QKeySequence(k).toString());
+		QCoreApplication::sendEvent(tf, &keyPressEvent);
+	}
+};
 
 class Helper : public QObject
 {
@@ -94,6 +114,16 @@ private:
     QClipboard* clipboard_;
 };
 
+#if defined(DESKTOP_PLATFORM)
+class BuzzerWindow : public QQuickWindow {
+	Q_OBJECT
+public:
+	BuzzerWindow() {}
+	BuzzerWindow(QWindow *parent) : QQuickWindow(parent) {
+	}
+};
+#endif
+
 /**
  * @brief The Application class
  * Entry point to the buzzer.app
@@ -106,6 +136,7 @@ class Application : public QQuickItem, public IApplication
     Q_PROPERTY(QString assetsPath READ assetsPath)
 	Q_PROPERTY(QStringList picturesLocation READ picturesLocation)
 	Q_PROPERTY(QString filesLocation READ filesLocation)
+	Q_PROPERTY(bool isDesktop READ isDesktop NOTIFY isDesktopChanged)
 
 public:
     Application(QApplication& app) : app_(app)
@@ -164,6 +195,14 @@ public:
 		QAndroidJniObject lMediaPath = lPath.callObjectMethod( "getAbsolutePath", "()Ljava/lang/String;" );
 
 		return QString("file://") + lMediaPath.toString();
+#endif
+	}
+
+	bool isDesktop() {
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
+		return false;
+#else
+		return true;
 #endif
 	}
 
@@ -257,6 +296,7 @@ signals:
     void fingertipAuthFailed();
     void deviceTokenUpdated(QString token);
 	void fileSelected(QString file);
+	void isDesktopChanged();
 
 private:
     void setAndroidOrientation(int);
@@ -265,6 +305,7 @@ private:
 private:
     QApplication& app_;
     QQmlApplicationEngine engine_;
+	KeyEmitter keyEmitter_;
 
     QString style_;
     QString profile_;

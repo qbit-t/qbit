@@ -1,6 +1,6 @@
 #include "fs.h"
 
-#ifndef WIN32
+#ifndef _WIN32
 #include <fcntl.h>
 #else
 #ifndef NOMINMAX
@@ -14,7 +14,7 @@ namespace fsbridge {
 
 FILE *fopen(const fs::path& p, const char *mode)
 {
-#ifndef WIN32
+#ifndef _WIN32
     return ::fopen(p.string().c_str(), mode);
 #else
     std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>,wchar_t> utf8_cvt;
@@ -22,7 +22,7 @@ FILE *fopen(const fs::path& p, const char *mode)
 #endif
 }
 
-#ifndef WIN32
+#ifndef _WIN32
 
 static std::string GetErrorReason() {
     return std::strerror(errno);
@@ -102,7 +102,7 @@ bool FileLock::TryLock()
 
 std::string get_filesystem_error_message(const fs::filesystem_error& e)
 {
-#ifndef WIN32
+#ifndef _WIN32
     return e.what();
 #else
     // Convert from Multi Byte to utf-16
@@ -116,7 +116,7 @@ std::string get_filesystem_error_message(const fs::filesystem_error& e)
 #endif
 }
 
-#ifdef WIN32
+#ifdef _WIN32
 #ifdef __GLIBCXX__
 
 // reference: https://github.com/gcc-mirror/gcc/blob/gcc-7_3_0-release/libstdc%2B%2B-v3/include/std/fstream#L270
@@ -218,6 +218,6 @@ static_assert(sizeof(*fs::path().BOOST_FILESYSTEM_C_STR) == sizeof(wchar_t),
     "a more complicated workaround has been implemented above).");
 
 #endif // __GLIBCXX__
-#endif // WIN32
+#endif // _WIN32
 
 } // fsbridge

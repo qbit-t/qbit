@@ -20,9 +20,7 @@
     </array>
 
     <array name="bundled_in_lib">
-        <!-- %%INSERT_BUNDLED_IN_LIB%% -->
     </array>
     <array name="bundled_in_assets">
-        <!-- %%INSERT_BUNDLED_IN_ASSETS%% -->
     </array>
 </resources>

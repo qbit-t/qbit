@@ -8,10 +8,18 @@
 using namespace buzzer;
 
 WebSourceInfo::WebSourceInfo(QObject* /*parent*/) : QObject() {
+}
+
+WebSourceInfo::~WebSourceInfo() {
 	//
+	qInfo() << "WebSourceInfo::~WebSourceInfo()";
 }
 
 void WebSourceInfo::process() {
+	//
+	// TODO: potential leak, need "check list" to track such objects
+	QQmlEngine::setObjectOwnership(this, QQmlEngine::CppOwnership);
+
 	//
 	QNetworkAccessManager* lManager = gApplication->getNetworkManager();
 
@@ -74,11 +82,11 @@ bool WebSourceInfo::extractFullInfo(const QRegularExpression& expression, const 
 		if (lCapture.captured(3) == "property") {
 			QString lCaptured = lCapture.captured(4);
 			if (lCaptured == "twitter:title" || lCaptured == "og:title") {
-				title_ = lCapture.captured(2); lTitleFound = true;
+				if (!title_.length()) title_ = lCapture.captured(2); lTitleFound = true;
 			} else if (lCaptured == "twitter:image" || lCaptured == "og:image") {
-				image_ = lCapture.captured(2); lDescriptionFound = true;
+				if (!image_.length()) image_ = lCapture.captured(2); lImageFound = true;
 			} else if (lCaptured == "twitter:description" || lCaptured == "og:description") {
-				description_ = lCapture.captured(2); lImageFound = true;
+				if (!description_.length()) description_ = lCapture.captured(2); lDescriptionFound = true;
 			}
 		}
 	}
@@ -136,7 +144,7 @@ void WebSourceInfo::processCommon(QNetworkReply* reply) {
 		if (!lDescriptionFound) lDescriptionFound = extractInfo(lOgDescription, lRawSource, description_);
 		if (!lImageFound) lImageFound = extractInfo(lOgImage, lRawSource, image_);
 
-		if (lTitleFound && lDescriptionFound && lImageFound) {
+		if (lTitleFound && /*lDescriptionFound &&*/ lImageFound) {
 			lFound = true;
 		}
 	}
@@ -146,8 +154,8 @@ void WebSourceInfo::processCommon(QNetworkReply* reply) {
 	}
 
 	if (lFound) {
-		title_ = title_.replace("&quot;", "\"").replace("&amp;", "&").replace("&#x27;", "'").replace("&#x39;", "'").replace("&#39;", "'");
-		description_ = description_.replace("&quot;", "\"").replace("&amp;", "&").replace("&#x27;", "'").replace("&#x39;", "'").replace("&#39;", "'");
+		title_ = title_.replace("&quot;", "\"").replace("&amp;", "&").replace("&#x27;", "'").replace("&#x39;", "'").replace("&#39;", "'").replace("&#039;", "'");
+		description_ = description_.replace("&quot;", "\"").replace("&amp;", "&").replace("&#x27;", "'").replace("&#x39;", "'").replace("&#39;", "'").replace("&#039;", "'");
 		image_ = image_.replace("&amp;", "&");
 		type_ = INFO_RICH;
 

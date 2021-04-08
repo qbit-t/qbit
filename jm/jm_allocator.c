@@ -1576,9 +1576,10 @@ JET_MALLOC_DEF void _jm_initialize()
 #else
 	#include <fcntl.h>
 	#include <io.h>
-	#include <sys\types.h>
-	#include <sys\stat.h>
-
+	//#include <sys\types.h>
+	//#include <sys\stat.h>
+	#define _S_IREAD 0x0100
+	#define _S_IWRITE 0x0080
 	#define _jm_file_open(file) open(file, O_CREAT | O_RDWR, _S_IREAD | _S_IWRITE)
 	#define _jm_file_close(h) close(h)
 	#define _jm_file_write(h, buf, size) write(h, buf, size)

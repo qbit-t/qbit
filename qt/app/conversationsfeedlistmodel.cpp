@@ -217,7 +217,7 @@ void ConversationsfeedListModel::feed(qbit::ConversationsfeedPtr local, bool mor
 		//
 		emit countChanged();
 		if (list_.size()) {
-			emit conversationsUpdated(list_[0]->timestamp());
+			emit conversationsUpdated(list_[0]);
 		}
 	} else if (!noMoreData_) {
 		//
@@ -371,7 +371,7 @@ void ConversationsfeedListModel::conversationItemNewSlot(const qbit::Conversatio
 				endInsertRows();
 
 				emit countChanged();
-				emit conversationsUpdated(lItem->timestamp());
+				emit conversationsUpdated(lItem);
 			}
 		} else {
 			conversationItemUpdatedSlot(buzz);
@@ -412,14 +412,14 @@ void ConversationsfeedListModel::conversationItemUpdatedSlot(const qbit::Convers
 			emit dataChanged(lModelIndex, lModelIndex, QVector<int>()
 					<< AgoRole
 					<< EventsRole);
-			emit conversationsUpdated(lItem->timestamp());
+			emit conversationsUpdated(lItem);
 		} else if (lIndex >= 0 && lIndex < (int)list_.size() && !filtered_) {
 			qInfo() << "ConversationsfeedListModel::conversationItemUpdatedSlot -> update" << lIndex;
 			QModelIndex lModelIndex = createIndex(lIndex, lIndex);
 			emit dataChanged(lModelIndex, lModelIndex, QVector<int>()
 					<< AgoRole
 					<< EventsRole);
-			emit conversationsUpdated(lItem->timestamp());
+			emit conversationsUpdated(lItem);
 		}
 	}
 }

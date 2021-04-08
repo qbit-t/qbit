@@ -30,6 +30,8 @@ ComboBox
     property int keyTopPadding: 0;
     property bool readOnly: false;
 
+    property var fontFamily: Qt.platform.os == "windows" ? "Segoe UI Emoji" : "Noto Color Emoji N"
+    font.family: buzzerApp.isDesktop ? fontFamily : font.family
 	font.pointSize: fontPointSize
 
     onPopUpWidthChanged:

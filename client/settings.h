@@ -8,17 +8,26 @@
 #include "../isettings.h"
 #include <unistd.h>
 #include <stdlib.h>
-#include <pwd.h>
+
+#if defined(__linux__)
+	#include <pwd.h>
+#endif
+
 #include <stdio.h>
 
 namespace qbit {
 
 class ClientSettings: public ISettings {
 public:
-	ClientSettings(): ClientSettings(".qbit-cli") {}
+	ClientSettings(): 
+#if defined(__linux__)
+	ClientSettings(".qbit-cli") {}
+#else
+	ClientSettings("qbit-cli") {}
+#endif
 	ClientSettings(const std::string& dir) {
 #if defined(__linux__)
-#ifndef MOBILE_PLATFORM
+	#ifndef MOBILE_PLATFORM
 		if (dir.find("/") == std::string::npos) {
 			uid_t lUid = geteuid();
 			struct passwd *lPw = getpwuid(lUid);
@@ -34,7 +43,9 @@ public:
 		} else {
 			path_ = dir;
 		}
-#endif
+	#endif
+#else
+		path_ = dir;
 #endif
 	}
 

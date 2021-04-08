@@ -42,16 +42,16 @@ TransactionAction::Result TxCoinBaseVerify::execute(TransactionContextPtr wrappe
 			if (lVM.state() != VirtualMachine::FINISHED) {
 				std::string lError = _getVMStateText(lVM.state()) + " | " + 
 					qasm::_getCommandText(lVM.lastCommand()) + ":" + qasm::_getAtomText(lVM.lastAtom()); 
-				gLog().write(Log::ERROR, std::string("[TxCoinBaseVerify]: ") + lError);
+				gLog().write(Log::GENERAL_ERROR, std::string("[TxCoinBaseVerify]: ") + lError);
 				wrapper->tx()->setStatus(Transaction::DECLINED);
 				wrapper->addError(lError);
-				return TransactionAction::ERROR; 
+				return TransactionAction::GENERAL_ERROR; 
 			} else if (lVM.getR(qasm::QA7).to<unsigned char>() != 0x01) {
 				std::string lError = "INVALID_COINBASE";
-				gLog().write(Log::ERROR, std::string("[TxCoinBaseVerify]: ") + lError);
+				gLog().write(Log::GENERAL_ERROR, std::string("[TxCoinBaseVerify]: ") + lError);
 				wrapper->tx()->setStatus(Transaction::DECLINED);
 				wrapper->addError(lError);
-				return TransactionAction::ERROR; 
+				return TransactionAction::GENERAL_ERROR;
 			}
 
 			//
@@ -61,10 +61,10 @@ TransactionAction::Result TxCoinBaseVerify::execute(TransactionContextPtr wrappe
 			return TransactionAction::SUCCESS;
 		} else {
 			std::string lError = "INCONSISTENT_INOUTS";
-			gLog().write(Log::ERROR, std::string("[TxCoinBaseVerify]: ") + lError);
+			gLog().write(Log::GENERAL_ERROR, std::string("[TxCoinBaseVerify]: ") + lError);
 			wrapper->tx()->setStatus(Transaction::DECLINED);
 			wrapper->addError(lError);
-			return TransactionAction::ERROR;
+			return TransactionAction::GENERAL_ERROR;
 		}
 	}
 
@@ -79,10 +79,10 @@ TransactionAction::Result TxSpendVerify::execute(TransactionContextPtr wrapper, 
 		std::vector<Transaction::In>& lIns = wrapper->tx()->in();
 		if (!lIns.size()) {
 			std::string lError = "tx should contain at least one input";
-			gLog().write(Log::ERROR, std::string("[TxSpendVerify]: ") + lError);
+			gLog().write(Log::GENERAL_ERROR, std::string("[TxSpendVerify]: ") + lError);
 			wrapper->tx()->setStatus(Transaction::DECLINED);
 			wrapper->addError(lError);
-			return TransactionAction::ERROR;
+			return TransactionAction::GENERAL_ERROR;
 		}
 
 		BlockHeader lCurrentBlock;
@@ -105,16 +105,16 @@ TransactionAction::Result TxSpendVerify::execute(TransactionContextPtr wrapper, 
 				// check maturity
 				if (lCoinbase && lConfirms < wallet->mempoolManager()->locate(lIn.out().chain())->consensus()->coinbaseMaturity()) {
 					std::string lError = strprintf("coinbase tx is not MATURE %d/%s", lConfirms, lIn.out().tx().toHex());
-					gLog().write(Log::ERROR, std::string("[TxSpendVerify]: ") + lError);
+					gLog().write(Log::GENERAL_ERROR, std::string("[TxSpendVerify]: ") + lError);
 					wrapper->tx()->setStatus(Transaction::DECLINED);
 					wrapper->addError(lError);
-					return TransactionAction::ERROR;
+					return TransactionAction::GENERAL_ERROR;
 				} else if (!lCoinbase && lConfirms < wallet->mempoolManager()->locate(lIn.out().chain())->consensus()->maturity()) {
 					std::string lError = strprintf("tx is not MATURE %d/%s", lConfirms, lIn.out().tx().toHex());
-					gLog().write(Log::ERROR, std::string("[TxSpendVerify]: ") + lError);
+					gLog().write(Log::GENERAL_ERROR, std::string("[TxSpendVerify]: ") + lError);
 					wrapper->tx()->setStatus(Transaction::DECLINED);
 					wrapper->addError(lError);
-					return TransactionAction::ERROR;
+					return TransactionAction::GENERAL_ERROR;
 				}
 			}
 
@@ -157,10 +157,10 @@ TransactionAction::Result TxSpendVerify::execute(TransactionContextPtr wrapper, 
 					if (lVM.state() != VirtualMachine::FINISHED) {
 						std::string lError = _getVMStateText(lVM.state()) + " | " + 
 							qasm::_getCommandText(lVM.lastCommand()) + ":" + qasm::_getAtomText(lVM.lastAtom()); 
-						gLog().write(Log::ERROR, std::string("[TxSpendVerify]: ") + lError);
+						gLog().write(Log::GENERAL_ERROR, std::string("[TxSpendVerify]: ") + lError);
 						wrapper->tx()->setStatus(Transaction::DECLINED);
 						wrapper->addError(lError);
-						return TransactionAction::ERROR; 
+						return TransactionAction::GENERAL_ERROR; 
 					} 
 					else if (
 								lVM.getR(qasm::QE0).getType() != qasm::QNONE && 
@@ -169,7 +169,7 @@ TransactionAction::Result TxSpendVerify::execute(TransactionContextPtr wrapper, 
 						std::string lError = _getVMStateText(VirtualMachine::INVALID_SIGNATURE);
 						wrapper->tx()->setStatus(Transaction::DECLINED);
 						wrapper->addError(lError);
-						gLog().write(Log::ERROR, std::string("[TxSpendVerify]: ") + lError);
+						gLog().write(Log::GENERAL_ERROR, std::string("[TxSpendVerify]: ") + lError);
 					} 
 					else if (lVM.getR(qasm::QA7).to<unsigned char>() != 0x01 && 
 						(
@@ -183,13 +183,13 @@ TransactionAction::Result TxSpendVerify::execute(TransactionContextPtr wrapper, 
 						std::string lError = _getVMStateText(VirtualMachine::INVALID_AMOUNT);
 						wrapper->tx()->setStatus(Transaction::DECLINED);
 						wrapper->addError(lError);
-						gLog().write(Log::ERROR, std::string("[TxSpendVerify]: ") + lError);
+						gLog().write(Log::GENERAL_ERROR, std::string("[TxSpendVerify]: ") + lError);
 					} 
 					else if (lVM.getR(qasm::QP0).to<unsigned char>() != 0x01) {
 						std::string lError = _getVMStateText(VirtualMachine::INVALID_UTXO);
 						wrapper->tx()->setStatus(Transaction::DECLINED);
 						wrapper->addError(lError);
-						gLog().write(Log::ERROR, std::string("[TxSpendVerify]: ") + lError);
+						gLog().write(Log::GENERAL_ERROR, std::string("[TxSpendVerify]: ") + lError);
 					}
 					else if (lVM.getR(qasm::QE0).to<unsigned char>() != 0x01 && 
 						(
@@ -203,21 +203,21 @@ TransactionAction::Result TxSpendVerify::execute(TransactionContextPtr wrapper, 
 						std::string lError = _getVMStateText(VirtualMachine::INVALID_ADDRESS);
 						wrapper->tx()->setStatus(Transaction::DECLINED);
 						wrapper->addError(lError);
-						gLog().write(Log::ERROR, std::string("[TxSpendVerify]: ") + lError);
+						gLog().write(Log::GENERAL_ERROR, std::string("[TxSpendVerify]: ") + lError);
 					}
 					else if (lVM.getR(qasm::QR0).to<unsigned char>() != 0x01) {
 						std::string lError = _getVMStateText(VirtualMachine::INVALID_RESULT);
 						wrapper->tx()->setStatus(Transaction::DECLINED);
 						wrapper->addError(lError);
-						gLog().write(Log::ERROR, std::string("[TxSpendVerify]: ") + lError);
+						gLog().write(Log::GENERAL_ERROR, std::string("[TxSpendVerify]: ") + lError);
 
 						std::stringstream lS;
 						lVM.dumpState(lS);
-						gLog().write(Log::ERROR, "[State]: " + lS.str());
+						gLog().write(Log::GENERAL_ERROR, "[State]: " + lS.str());
 					}
 
 					if (wrapper->errors().size())
-						return TransactionAction::ERROR;
+						return TransactionAction::GENERAL_ERROR;
 					
 					// extract commit
 					if (lVM.getR(qasm::QA1).getType() != qasm::QNONE)
@@ -227,17 +227,17 @@ TransactionAction::Result TxSpendVerify::execute(TransactionContextPtr wrapper, 
 					store->addLink(lInTx->id(), wrapper->tx()->id());
 				} else {
 					std::string lError = "INCONSISTENT_INOUTS";
-					gLog().write(Log::ERROR, std::string("[TxSpendVerify]: ") + lError);
+					gLog().write(Log::GENERAL_ERROR, std::string("[TxSpendVerify]: ") + lError);
 					wrapper->tx()->setStatus(Transaction::DECLINED);
 					wrapper->addError(lError);
-					return TransactionAction::ERROR;					
+					return TransactionAction::GENERAL_ERROR;					
 				}
 			} else {
 				std::string lError = _getVMStateText(VirtualMachine::UNKNOWN_REFTX);
-				gLog().write(Log::ERROR, strprintf("[TxSpendVerify]: %s - %s/%s#", lError, lIn.out().tx().toHex(), lIn.out().chain().toHex().substr(0, 10)));
+				gLog().write(Log::GENERAL_ERROR, strprintf("[TxSpendVerify]: %s - %s/%s#", lError, lIn.out().tx().toHex(), lIn.out().chain().toHex().substr(0, 10)));
 				wrapper->tx()->setStatus(Transaction::DECLINED);
 				wrapper->addError(lError);
-				return TransactionAction::ERROR;
+				return TransactionAction::GENERAL_ERROR;
 			}
 		}
 
@@ -280,10 +280,10 @@ TransactionAction::Result TxSpendOutVerify::execute(TransactionContextPtr wrappe
 					!(wrapper->tx()->type() == Transaction::FEE && lVM.state() == VirtualMachine::INVALID_CHAIN)) {
 				std::string lError = _getVMStateText(lVM.state()) + " | " + 
 					qasm::_getCommandText(lVM.lastCommand()) + ":" + qasm::_getAtomText(lVM.lastAtom()); 
-				gLog().write(Log::ERROR, std::string("[TxSpendOutVerify]: ") + lError);
+				gLog().write(Log::GENERAL_ERROR, std::string("[TxSpendOutVerify]: ") + lError);
 				wrapper->tx()->setStatus(Transaction::DECLINED);
 				wrapper->addError(lError);
-				return TransactionAction::ERROR; 
+				return TransactionAction::GENERAL_ERROR; 
 			} else if (lVM.getR(qasm::QA7).to<unsigned char>() != 0x01 &&
 				(
 					wrapper->tx()->type() == Transaction::SPEND || 
@@ -295,11 +295,11 @@ TransactionAction::Result TxSpendOutVerify::execute(TransactionContextPtr wrappe
 				std::string lError = _getVMStateText(VirtualMachine::INVALID_AMOUNT);
 				wrapper->tx()->setStatus(Transaction::DECLINED);
 				wrapper->addError(lError);
-				gLog().write(Log::ERROR, std::string("[TxSpendOutVerify]: ") + lError);
+				gLog().write(Log::GENERAL_ERROR, std::string("[TxSpendOutVerify]: ") + lError);
 			} 
 
 			if (wrapper->errors().size())
-				return TransactionAction::ERROR;
+				return TransactionAction::GENERAL_ERROR;
 			
 			// extract commit
 			if (lVM.getR(qasm::QA1).getType() != qasm::QNONE)
@@ -313,10 +313,10 @@ TransactionAction::Result TxSpendOutVerify::execute(TransactionContextPtr wrappe
 
 		if (!wrapper->tx()->isFeeFee() && wrapper->fee() == 0) {
 			std::string lError = "Fee is absent";
-			gLog().write(Log::ERROR, std::string("[TxSpendOutVerify]: ") + lError);
+			gLog().write(Log::GENERAL_ERROR, std::string("[TxSpendOutVerify]: ") + lError);
 			wrapper->tx()->setStatus(Transaction::DECLINED);
 			wrapper->addError(lError);
-			return TransactionAction::ERROR;
+			return TransactionAction::GENERAL_ERROR;
 		}
 
 		return TransactionAction::CONTINUE; // continue any way
@@ -340,15 +340,15 @@ TransactionAction::Result TxBalanceVerify::execute(TransactionContextPtr wrapper
 					std::string lError = _getVMStateText(VirtualMachine::INVALID_BALANCE);
 					wrapper->tx()->setStatus(Transaction::DECLINED);
 					wrapper->addError(lError);
-					gLog().write(Log::ERROR, std::string("[TxSpendBalanceVerify]: ") + lError);
-					return TransactionAction::ERROR;	
+					gLog().write(Log::GENERAL_ERROR, std::string("[TxSpendBalanceVerify]: ") + lError);
+					return TransactionAction::GENERAL_ERROR;	
 				}
 			} else {
 				std::string lError = strprintf("%s: for %s", _getVMStateText(VirtualMachine::INVALID_AMOUNT), lInPtr->first.toHex());
 				wrapper->tx()->setStatus(Transaction::DECLINED);
 				wrapper->addError(lError);
-				gLog().write(Log::ERROR, std::string("[TxSpendBalanceVerify]: ") + lError);
-				return TransactionAction::ERROR;				
+				gLog().write(Log::GENERAL_ERROR, std::string("[TxSpendBalanceVerify]: ") + lError);
+				return TransactionAction::GENERAL_ERROR;				
 			}
 		}
 
@@ -356,8 +356,8 @@ TransactionAction::Result TxBalanceVerify::execute(TransactionContextPtr wrapper
 			std::string lError = _getVMStateText(VirtualMachine::INVALID_FEE);
 			wrapper->tx()->setStatus(Transaction::DECLINED);
 			wrapper->addError(lError);
-			gLog().write(Log::ERROR, std::string("[TxSpendBalanceVerify]: ") + lError);
-			return TransactionAction::ERROR;			
+			gLog().write(Log::GENERAL_ERROR, std::string("[TxSpendBalanceVerify]: ") + lError);
+			return TransactionAction::GENERAL_ERROR;			
 		}
 
 		return TransactionAction::SUCCESS;
@@ -395,22 +395,22 @@ TransactionAction::Result TxAssetTypeVerify::execute(TransactionContextPtr wrapp
 			if (lVM.state() != VirtualMachine::FINISHED) {
 				std::string lError = _getVMStateText(lVM.state()) + " | " + 
 					qasm::_getCommandText(lVM.lastCommand()) + ":" + qasm::_getAtomText(lVM.lastAtom()); 
-				gLog().write(Log::ERROR, std::string("[TxAssetTypeVerify]: ") + lError);
+				gLog().write(Log::GENERAL_ERROR, std::string("[TxAssetTypeVerify]: ") + lError);
 				wrapper->tx()->setStatus(Transaction::DECLINED);
 				wrapper->addError(lError);
-				return TransactionAction::ERROR; 
+				return TransactionAction::GENERAL_ERROR; 
 			} 
 			else if (lVM.getR(qasm::QA7).to<unsigned char>() != 0x01) {
 				if (lTx->emission() == TxAssetType::LIMITED) {
 					std::string lError = _getVMStateText(VirtualMachine::INVALID_AMOUNT);
 					wrapper->tx()->setStatus(Transaction::DECLINED);
 					wrapper->addError(lError);
-					gLog().write(Log::ERROR, std::string("[TxAssetTypeVerify]: ") + lError);
+					gLog().write(Log::GENERAL_ERROR, std::string("[TxAssetTypeVerify]: ") + lError);
 				}
 			} 
 
 			if (wrapper->errors().size())
-				return TransactionAction::ERROR;
+				return TransactionAction::GENERAL_ERROR;
 			
 			// extract commit
 			if (lVM.getR(qasm::QA7).to<unsigned char>() == 0x01)
@@ -424,10 +424,10 @@ TransactionAction::Result TxAssetTypeVerify::execute(TransactionContextPtr wrapp
 
 		if (!wrapper->tx()->isFeeFee() && wrapper->fee() == 0) {
 			std::string lError = "Fee is absent";
-			gLog().write(Log::ERROR, std::string("[TxSpendOutVerify]: ") + lError);
+			gLog().write(Log::GENERAL_ERROR, std::string("[TxSpendOutVerify]: ") + lError);
 			wrapper->tx()->setStatus(Transaction::DECLINED);
 			wrapper->addError(lError);
-			return TransactionAction::ERROR;
+			return TransactionAction::GENERAL_ERROR;
 		}
 
 		return TransactionAction::CONTINUE; // continue any way

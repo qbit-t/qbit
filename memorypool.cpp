@@ -261,12 +261,12 @@ void MemoryPool::processCandidates() {
 			// check
 			if ((*lCandidate)->errors().size()) {
 				for (std::list<std::string>::iterator lErr = (*lCandidate)->errors().begin(); lErr != (*lCandidate)->errors().end(); lErr++) {
-					if (gLog().isEnabled(Log::ERROR)) gLog().write(Log::ERROR, std::string("[processCandidates/error]: transaction re-processing ERROR - ") + (*lErr) +
+					if (gLog().isEnabled(Log::GENERAL_ERROR)) gLog().write(Log::GENERAL_ERROR, std::string("[processCandidates/error]: transaction re-processing ERROR - ") + (*lErr) +
 							strprintf(" -> %d/%s/%s#", lReporocessed, (*lCandidate)->tx()->id().toHex(), (*lCandidate)->tx()->chain().toHex().substr(0, 10)));
 				}
 
 				if ((*lCandidate)->reprocessTimedout()) {
-					if (gLog().isEnabled(Log::ERROR)) gLog().write(Log::ERROR, std::string("[processCandidates]: transaction re-processing SKIPPED due to wait timeout") +
+					if (gLog().isEnabled(Log::GENERAL_ERROR)) gLog().write(Log::GENERAL_ERROR, std::string("[processCandidates]: transaction re-processing SKIPPED due to wait timeout") +
 							strprintf(" -> %s/%s#", (*lCandidate)->tx()->id().toHex(), (*lCandidate)->tx()->chain().toHex().substr(0, 10)));					
 					lPool->removeCandidate(*lCandidate);
 				}
@@ -566,7 +566,7 @@ BlockContextPtr MemoryPool::beginBlock(BlockPtr block) {
 									if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[fillBlock]: approving blockbase transaction - ") + 
 											strprintf("%s/%s#", lBlockBaseTx->id().toHex(), lBlockInfo.base()->chain().toHex().substr(0, 10)));
 								} else {
-									if (gLog().isEnabled(Log::ERROR)) gLog().write(Log::ERROR, std::string("[fillBlock]: amounts/addresses are NOT EQUALS - ") + 
+									if (gLog().isEnabled(Log::GENERAL_ERROR)) gLog().write(Log::GENERAL_ERROR, std::string("[fillBlock]: amounts/addresses are NOT EQUALS - ") + 
 											strprintf("base(%d/%s), blockbase(%d/%s)", lBaseAmount, lBaseKey.id().toHex(), lBlockBaseAmount, lBlockBaseKey.id().toHex()));
 									// remove request
 									removeConfirmedBlock(lBlockHash);
@@ -577,7 +577,7 @@ BlockContextPtr MemoryPool::beginBlock(BlockPtr block) {
 									continue;
 								}
 							} else {
-								if (gLog().isEnabled(Log::ERROR)) gLog().write(Log::ERROR, std::string("[fillBlock]: amount for blockbase tx IN UNDEFINED - ") + 
+								if (gLog().isEnabled(Log::GENERAL_ERROR)) gLog().write(Log::GENERAL_ERROR, std::string("[fillBlock]: amount for blockbase tx IN UNDEFINED - ") + 
 										strprintf("%s/%s#", lBlockBaseTx->id().toHex(), lBlockInfo.base()->chain().toHex().substr(0, 10)));
 								// remove request
 								removeConfirmedBlock(lBlockHash);
@@ -588,7 +588,7 @@ BlockContextPtr MemoryPool::beginBlock(BlockPtr block) {
 								continue;
 							}
 						} else {
-							if (gLog().isEnabled(Log::ERROR)) gLog().write(Log::ERROR, std::string("[fillBlock]: amount for base tx IN UNDEFINED - ") + 
+							if (gLog().isEnabled(Log::GENERAL_ERROR)) gLog().write(Log::GENERAL_ERROR, std::string("[fillBlock]: amount for base tx IN UNDEFINED - ") + 
 									strprintf("%s/%s/%s#", lBlockInfo.base()->id().toHex(), lBlockHash.toHex(), lBlockInfo.base()->chain().toHex().substr(0, 10)));
 							// remove request
 							removeConfirmedBlock(lBlockHash);
@@ -674,7 +674,7 @@ BlockContextPtr MemoryPool::beginBlock(BlockPtr block) {
 			}
 
 			if (lTx->tx()->type() != Transaction::BLOCKBASE) {
-				gLog().write(Log::ERROR, std::string("[fillBlock]: partial tree has broken for -> \n") + lTx->tx()->toString());
+				gLog().write(Log::GENERAL_ERROR, std::string("[fillBlock]: partial tree has broken for -> \n") + lTx->tx()->toString());
 				removeTx(lEntry->second);
 				reverseMap_.erase(lEntry->second);
 				map_.erase(std::next(lEntry).base()); // remove from pool if there is no such tx
@@ -684,7 +684,7 @@ BlockContextPtr MemoryPool::beginBlock(BlockPtr block) {
 
 		// traverse right
 		if (!traverseRight(lTx, lPartialTree)) {
-			gLog().write(Log::ERROR, std::string("[fillBlock]: partial tree too deep for -> \n") + lTx->tx()->toString());
+			gLog().write(Log::GENERAL_ERROR, std::string("[fillBlock]: partial tree too deep for -> \n") + lTx->tx()->toString());
 			removeTx(lEntry->second);
 			reverseMap_.erase(lEntry->second);
 			map_.erase(std::next(lEntry).base()); // remove from pool if there is no such tx

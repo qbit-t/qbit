@@ -1,6 +1,7 @@
 import QtQuick 2.9
 import QtQuick.Layouts 1.3
 import QtQuick.Controls 2.2
+import QtQuick.Controls 2.15
 import QtQuick.Controls.Material 2.1
 import QtQuick.Controls.Universal 2.1
 import Qt.labs.settings 1.0
@@ -39,7 +40,7 @@ Dialog {
 
 		QuarkLabel {
 			id: textLabel
-			font.pixelSize: 16
+			font.pixelSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : 16
 			wrapMode: Label.Wrap
 			width: confirmSendDialog_.availableWidth
 		}

@@ -192,6 +192,8 @@ public:
 		lArgs.push_back("160x100");
 		lArgs.push_back(header_.toStdString()); // full path
 
+		qInfo() << "create buzzer" << name_ << alias_ << avatar_ << header_;
+
 		command_->process(lArgs);
 	}
 
@@ -910,12 +912,16 @@ class DownloadMediaCommand: public QObject
 
 public:
 	explicit DownloadMediaCommand(QObject* parent = nullptr);
+	virtual ~DownloadMediaCommand();
 
 	Q_INVOKABLE void process() {
 		process(false);
 	}
 
 	Q_INVOKABLE void process(bool force) {
+		// TODO: potential leak, need "check list" to track such objects
+		QQmlEngine::setObjectOwnership(this, QQmlEngine::CppOwnership);
+
 		std::vector<std::string> lArgs;
 		lArgs.push_back(header_.toStdString() + "/" + chain_.toStdString());
 		lArgs.push_back(localFile_.toStdString());
@@ -960,7 +966,11 @@ public:
 		if (result.success()) {
 			QString lTx;
 			if (tx) lTx = QString::fromStdString(tx->id().toHex());
-			emit processed(lTx, QString::fromStdString(previewFile), QString::fromStdString(originalFile), orientation);
+#ifdef Q_OS_WINDOWS
+			emit processed(lTx, QString("/") + QString::fromStdString(previewFile), QString("/") + QString::fromStdString(originalFile), orientation);
+#else
+			emit processed(lTx, QString::fromStdString(previewFile), QString::fromStdString(originalFile), orientation);			
+#endif
 		} else {
 			emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
 		}
@@ -2577,6 +2587,9 @@ class DecryptMessageBodyCommand: public QObject
 
 public:
 	explicit DecryptMessageBodyCommand(QObject* parent = nullptr);
+	virtual ~DecryptMessageBodyCommand() {
+		if (command_) command_->terminate();
+	}
 
 	Q_INVOKABLE void process(QString conversation) {
 		//
@@ -2588,6 +2601,20 @@ public:
 		//
 		std::vector<std::string> lArgs;
 		lArgs.push_back(conversation.toStdString());
+		command_->process(lArgs);
+	}
+
+	Q_INVOKABLE void processBody(QString conversation, QString body) {
+		//
+		if (!conversationsfeedModel_) return;
+
+		// prepare command
+		prepare();
+
+		//
+		std::vector<std::string> lArgs;
+		lArgs.push_back(conversation.toStdString());
+		lArgs.push_back(body.toStdString());
 		command_->process(lArgs);
 	}
 
@@ -2623,6 +2650,9 @@ class DecryptBuzzerMessageCommand: public QObject
 
 public:
 	explicit DecryptBuzzerMessageCommand(QObject* parent = nullptr);
+	virtual ~DecryptBuzzerMessageCommand() {
+		if (command_) command_->terminate();
+	}
 
 	Q_INVOKABLE void process(QString id) {
 		//

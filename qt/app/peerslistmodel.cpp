@@ -12,20 +12,25 @@ PeersListModel::PeersListModel() {
 	Client* lClient = static_cast<Client*>(gApplication->getClient());
 
 	//
-	connect(lClient, SIGNAL(peerPushedSignal(const buzzer::PeerProxy&, bool, int)),
-			this,  SLOT(peerPushedSlot(const buzzer::PeerProxy&, bool, int)));
-	connect(lClient, SIGNAL(peerPoppedSignal(const buzzer::PeerProxy&, int)),
-			this,  SLOT(peerPoppedSlot(const buzzer::PeerProxy&, int)));
+	connect(lClient, SIGNAL(peerPushedSignal(buzzer::PeerProxy, bool, int)),
+			this,  SLOT(peerPushedSlot(buzzer::PeerProxy, bool, int)));
+	connect(lClient, SIGNAL(peerPoppedSignal(buzzer::PeerProxy, int)),
+			this,  SLOT(peerPoppedSlot(buzzer::PeerProxy, int)));
 
 	QQmlEngine::setObjectOwnership(this, QQmlEngine::CppOwnership);
 }
 
 int PeersListModel::rowCount(const QModelIndex& parent) const {
 	Q_UNUSED(parent);
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
 	return list_.size();
 }
 
 QVariant PeersListModel::data(const QModelIndex& index, int role) const {
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
+
 	//
 	if (index.row() < 0 || index.row() >= (int)list_.size()) {
 		return QVariant();
@@ -117,6 +122,8 @@ QHash<int, QByteArray> PeersListModel::roleNames() const {
 
 void PeersListModel::update() {
 	//
+	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
+	//
 	std::list<qbit::IPeerPtr> lItems;
 	feedRawInternal(lItems);
 
@@ -126,6 +133,8 @@ void PeersListModel::update() {
 }
 
 void PeersListModel::remove(int idx) {
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
 	//
 	if (idx < 0 || idx >= (int)list_.size()) {
 		return;
@@ -140,6 +149,8 @@ void PeersListModel::remove(int idx) {
 
 void PeersListModel::feedRawInternal(std::list<qbit::IPeerPtr>& items) {
 	//
+	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
+	//
 	Client* lClient = static_cast<Client*>(gApplication->getClient());
 
 	// get peers
@@ -148,6 +159,8 @@ void PeersListModel::feedRawInternal(std::list<qbit::IPeerPtr>& items) {
 }
 
 void PeersListModel::feedInternal(std::vector<PeerItemPtr>& items) {
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
 	//
 	Client* lClient = static_cast<Client*>(gApplication->getClient());
 
@@ -164,6 +177,8 @@ void PeersListModel::feedInternal(std::vector<PeerItemPtr>& items) {
 }
 
 void PeersListModel::feed(bool /*more*/) {
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
 	//
 	beginResetModel();
 
@@ -185,10 +200,14 @@ void PeersListModel::feed(bool /*more*/) {
 
 void PeersListModel::peerPushedInternal(const buzzer::PeerProxy& peer, bool /*update*/, int /*count*/) {
 	//
+	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
+	//
 	std::map<uint160 /*peer*/, int>::iterator lIndex = index_.find(peer.get()->addressId());
-	if (lIndex != index_.end()) {
+	if (lIndex != index_.end() && lIndex->second < (int)list_.size()) {
 		PeerItemPtr lItem = list_[lIndex->second];
 		if (lItem) {
+			//
+			// qInfo() << "[peerPushedInternal]" << QString::fromStdString(peer.get()->key()) << lIndex->second;
 			//
 			if (lItem->status() != qbit::IPeer::ACTIVE && peer.get()->status() == qbit::IPeer::ACTIVE) {
 				// remove
@@ -199,6 +218,8 @@ void PeersListModel::peerPushedInternal(const buzzer::PeerProxy& peer, bool /*up
 				lItem->assign(peer.get());
 				beginInsertRows(QModelIndex(), lIndex->second, lIndex->second);
 				endInsertRows();
+
+				emit countChanged();
 			} else {
 				lItem->assign(peer.get());
 				QModelIndex lModelIndex = createIndex(lIndex->second, lIndex->second);
@@ -228,39 +249,45 @@ void PeersListModel::peerPushedInternal(const buzzer::PeerProxy& peer, bool /*up
 		list_.push_back(lItem);
 		index_[lItem->id()] = list_.size()-1;
 
-		//qInfo() << "[peerPushedInternal]" << QString::fromStdString(peer.get()->key()) << list_.size()-1;
+		// qInfo() << "[peerPushedInternal]" << QString::fromStdString(peer.get()->key()) << list_.size()-1;
 
 		beginInsertRows(QModelIndex(), list_.size()-1, list_.size()-1);
 		endInsertRows();
+
+		emit countChanged();
 	}
 }
 
 void PeersListModel::peerPoppedInternal(const buzzer::PeerProxy& peer, int /*count*/) {
 	//
+	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
+	//
 	std::map<uint160 /*peer*/, int>::iterator lIndex = index_.find(peer.get()->addressId());
-	if (lIndex != index_.end()) {
+	if (lIndex != index_.end() && lIndex->second < (int)list_.size()) {
 		int lIdx = lIndex->second;
-		list_.erase(list_.begin() + lIndex->second);
+		list_.erase(list_.begin() + lIdx);
 		index_.clear();
 
 		// rebuild index
-		for (int lIdx = 0; lIdx < (int)list_.size(); lIdx++) {
-			index_[list_[lIdx]->id()] = lIdx;
+		for (int lIdxNew = 0; lIdxNew < (int)list_.size(); lIdxNew++) {
+			index_[list_[lIdxNew]->id()] = lIdxNew;
 		}
 
-		//qInfo() << "[peerPoppedInternal]" << QString::fromStdString(peer.get()->key()) << lIdx;
+		// qInfo() << "[peerPoppedInternal]" << QString::fromStdString(peer.get()->key()) << lIdx;
 
 		beginRemoveRows(QModelIndex(), lIdx, lIdx);
 		endRemoveRows();
+
+		emit countChanged();
 	}
 }
 
-void PeersListModel::peerPushedSlot(const buzzer::PeerProxy& peer, bool update, int count) {
+void PeersListModel::peerPushedSlot(buzzer::PeerProxy peer, bool update, int count) {
 	peerPushedInternal(peer, update, count);
 }
 
-void PeersListModel::peerPoppedSlot(const buzzer::PeerProxy& peer, int count) {
-	qInfo() << "[peerPoppedSlot]" << QString::fromStdString(peer.get()->key());
+void PeersListModel::peerPoppedSlot(buzzer::PeerProxy peer, int count) {
+	// qInfo() << "[peerPoppedSlot]" << QString::fromStdString(peer.get()->key());
 	peerPoppedInternal(peer, count);
 }
 
@@ -269,6 +296,8 @@ void PeersListModel::peerPoppedSlot(const buzzer::PeerProxy& peer, int count) {
 //
 
 void PeersActiveListModel::feedInternal(std::vector<PeerItemPtr>& items) {
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
 	//
 	Client* lClient = static_cast<Client*>(gApplication->getClient());
 
@@ -287,6 +316,8 @@ void PeersActiveListModel::feedInternal(std::vector<PeerItemPtr>& items) {
 }
 
 void PeersActiveListModel::feedRawInternal(std::list<qbit::IPeerPtr>& items) {
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
 	//
 	Client* lClient = static_cast<Client*>(gApplication->getClient());
 
@@ -323,6 +354,8 @@ PeersAddedListModel::PeersAddedListModel() {
 
 void PeersAddedListModel::feedInternal(std::vector<PeerItemPtr>& items) {
 	//
+	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
+	//
 	Client* lClient = static_cast<Client*>(gApplication->getClient());
 
 	// get peers
@@ -337,6 +370,8 @@ void PeersAddedListModel::feedInternal(std::vector<PeerItemPtr>& items) {
 }
 
 void PeersAddedListModel::feedRawInternal(std::list<qbit::IPeerPtr>& items) {
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
 	//
 	Client* lClient = static_cast<Client*>(gApplication->getClient());
 

@@ -66,11 +66,10 @@ public:
 		{
 			boost::unique_lock<boost::recursive_mutex> lLock(peersIdxMutex_);
 			// check banned hosts
-			std::vector<std::string> lParts;
-			boost::split(lParts, endpoint, boost::is_any_of(":"), boost::token_compress_on);
+			std::string lHost = endpoint.substr(0, endpoint.find(":"));
 			//
-			if (lParts.size() == 2) {
-				if (bannedEndpoins_.find(lParts[0]) != bannedEndpoins_.end()) return true;
+			if (lHost.length()) {
+				if (bannedEndpoins_.find(lHost) != bannedEndpoins_.end()) return true;
 			}
 		}
 		
@@ -707,7 +706,7 @@ private:
 				peersContainer_.open();
 			}
 			catch(const std::exception& ex) {
-				gLog().write(Log::ERROR, std::string("[peerManager/run]: ") + ex.what());
+				gLog().write(Log::GENERAL_ERROR, std::string("[peerManager/run]: ") + ex.what());
 				return;
 			}
 		}
@@ -721,7 +720,7 @@ private:
 				break;
 			} 
 			catch(boost::system::system_error& ex) {
-				gLog().write(Log::ERROR, std::string("[peerManager]: context error -> ") + ex.what());
+				gLog().write(Log::GENERAL_ERROR, std::string("[peerManager]: context error -> ") + ex.what());
 			}
 		}
 		gLog().write(Log::INFO, std::string("[peerManager]: context stop."));
@@ -745,7 +744,7 @@ private:
 				}
 			} else {
 				// log
-				gLog().write(Log::ERROR, std::string("[peerManager/touch]: ") + error.message());
+				gLog().write(Log::GENERAL_ERROR, std::string("[peerManager/touch]: ") + error.message());
 			}
 		}
 

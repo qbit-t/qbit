@@ -27,6 +27,7 @@ struct _jm_mutex
 
 #ifdef _WIN32
 
+/*
 void _jm_mutex_init(struct _jm_mutex* mutex);
 void _jm_mutex_free(struct _jm_mutex* mutex);
 void _jm_mutex_lock(struct _jm_mutex* mutex);
@@ -36,6 +37,7 @@ size_t _jm_get_current_thread_id();
 void _jm_interlocked_increment(volatile size_t* number);
 void _jm_interlocked_decrement(volatile size_t* number);
 void _jm_interlocked_exchange(volatile size_t* number, volatile size_t dest);
+*/
 
 #endif
 

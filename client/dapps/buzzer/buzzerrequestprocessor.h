@@ -162,6 +162,9 @@ public:
 			for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::reverse_iterator lPeer = lOrder.rbegin(); lPeer != lOrder.rend(); lPeer++) {
 				IPeerExtensionPtr lExtension = lPeer->second->extension("buzzer");
 				if (lExtension) {
+					//
+					gLog().writeClient(Log::CLIENT, strprintf("[buzzfeed]: requesting buzzfeed for %s, chain = %s#", subscriber.toHex(), chain.toHex().substr(0, 10)));
+					//
 					std::static_pointer_cast<BuzzerPeerExtension>(lExtension)->selectBuzzfeed(chain, from, subscriber, handler);
 					// for now just 1 active feed
 					if (++lCount == requests /*may be 2/3 nearest - but it doubles traffic*/) break;
@@ -169,6 +172,9 @@ public:
 			}
 		}
 
+		//
+		gLog().writeClient(Log::CLIENT, strprintf("[buzzfeed]: buzzfeed reguested %d, for %s, chain = %s#", lCount, subscriber.toHex(), chain.toHex().substr(0, 10)));
+		//
 		return lCount;
 	}
 

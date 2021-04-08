@@ -92,7 +92,7 @@ signals:
 	void rootIdChanged();
 	void conversationItemNewSignal(const qbit::ConversationItemProxy& buzz);
 	void conversationItemUpdatedSignal(const qbit::ConversationItemProxy& buzz);
-	void conversationsUpdated(unsigned long long);
+	void conversationsUpdated(const qbit::ConversationItemProxy&);
 
 protected:
 	QHash<int, QByteArray> roleNames() const;

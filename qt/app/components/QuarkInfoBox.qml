@@ -58,7 +58,7 @@ Rectangle
         border.color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Box.border");
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.background");
 
-        Label
+		QuarkLabel
         {
             id: symbolLabel
             anchors.fill: parent
@@ -122,7 +122,7 @@ Rectangle
         border.color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Box.border");
         color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Box.background");
 
-        Label
+		QuarkLabelRegular
         {
             id: infoLabel
             leftPadding: textLeftPadding
@@ -216,6 +216,7 @@ Rectangle
 
             symbol: Fonts.clipboardSym
             Material.background: "transparent"
+			font.pointSize: symbolFontSize
 
             onClicked:
             {
@@ -252,6 +253,7 @@ Rectangle
 
             symbol: Fonts.helpSym
             Material.background: "transparent"
+			font.pointSize: symbolFontSize
 
             onClicked:
             {
@@ -288,6 +290,7 @@ Rectangle
 
 			symbol: Fonts.pasteSym
 			Material.background: "transparent"
+			font.pointSize: symbolFontSize
 
 			onClicked:
 			{
