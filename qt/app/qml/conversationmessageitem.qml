@@ -217,7 +217,15 @@ Item {
 
 		function getX(pwidth) {
 			//
-			if (buzzMedia_.length || lastUrl_ && lastUrl_.length) return pwidth * minSpace;
+			if (buzzMedia_.length || (lastUrl_ && lastUrl_.length)) {
+				var lWidth = pwidth * maxWidth - spaceRight_;
+				if (buzzMedia_.length && lWidth > 600)
+					return pwidth - (600 + spaceRight_);
+				else if (lastUrl_ && lastUrl_.length && lWidth > 500)
+					return pwidth - (500 + spaceRight_);
+
+				return pwidth * minSpace;
+			}
 
 			//
 			if (boundingRect.width > pwidth * maxWidth - (spaceLeft_ /*+ spaceRight_*/)) {
@@ -229,7 +237,12 @@ Item {
 
 		function getWidth(pwidth) {
 			//
-			if (buzzMedia_.length || lastUrl_ && lastUrl_.length) return pwidth * maxWidth - spaceRight_;
+			if (buzzMedia_.length || (lastUrl_ && lastUrl_.length)) {
+				var lWidth = pwidth * maxWidth - spaceRight_;
+				if (buzzMedia_.length && lWidth > 600) lWidth = 600;
+				else if (lastUrl_ && lastUrl_.length && lWidth > 500) lWidth = 500;
+				return lWidth;
+			}
 
 			//
 			if (boundingRect.width > (pwidth * maxWidth - (spaceLeft_ /*+ spaceRight_*/))) {
@@ -291,7 +304,7 @@ Item {
 			x: parent.width - (width + (buzzerApp.isDesktop ? spaceHalfItems_ : spaceHalfItems_) + 1)
 			y: (buzzerApp.isDesktop ? spaceHalfItems_ : spaceHalfItems_)
 			symbol: !onChain_ ? Fonts.clockSym : Fonts.checkedCircleSym //linkSym
-			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 8)) : 12
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 10)) : 12
 			color: !onChain_ ? buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzz.wait") :
 							   buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzz.done");
 
@@ -471,7 +484,7 @@ Item {
 
 				return (buzzBody_.length > 0 || !accepted_ ? buzzText.height - lAdjust : 0) +
 						(buzzMediaItem_ ? buzzMediaItem_.calculatedHeight : 0) +
-						(urlInfoItem_ ? urlInfoItem_.calculatedHeight : 0) +
+						(urlInfoItem_ ? urlInfoItem_.calculatedHeight + (buzzerApp.isDesktop ? spaceItems_ + 2 : 0) : 0) +
 						(buzzBody_.length > 0 && buzzMedia_.length ? spaceMedia_ : 0 /*spaceItems_*/) +
 						(buzzMedia_.length > 1 ? spaceMediaIndicator_ : 0 /*spaceBottom_*/);
 			}

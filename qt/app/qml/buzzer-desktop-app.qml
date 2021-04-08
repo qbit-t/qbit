@@ -48,8 +48,8 @@ ApplicationWindow {
 	}
 
 	onClosing:
-    {
-    }
+	{
+	}
 
 	flags: Qt.Window |
 		   Qt.MaximizeUsingFullscreenGeometryHint |
@@ -283,19 +283,44 @@ ApplicationWindow {
 				}
 			}
 		}
-	}
 
-	/*
-	DropShadow {
-		anchors.fill: window
-		horizontalOffset: 3
-		verticalOffset: 3
-		radius: 5.0
-		samples: 10
-		color: "#80000000"
-		source: window
+		//
+		// work-a-round: frame for frameless window
+		//
+
+		QuarkVLine {
+			id: headerLeftLine
+			x1: 0
+			y1: 0
+			y2: parent.height
+			x2: 0
+			penWidth: 1
+			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
+			visible: true
+		}
+
+		QuarkVLine {
+			id: headerRightLine
+			x1: parent.width-1
+			y1: 0
+			y2: parent.height
+			x2: parent.width-1
+			penWidth: 1
+			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
+			visible: true
+		}
+
+		QuarkHLine {
+			id: headerTopLine
+			x1: 0
+			y1: 0
+			y2: 0
+			x2: parent.width
+			penWidth: 1
+			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
+			visible: true
+		}
 	}
-	*/
 
     function createPage(source)
     {
@@ -1156,6 +1181,43 @@ ApplicationWindow {
 			var lPoint = mapToGlobal(mouse.x, mouse.y);
 			window.setWidth(lPoint.x - window.x);
 		}
+	}
+
+	//
+	// work-a-round: frame for frameless window
+	//
+
+	QuarkVLine {
+		id: leftLine
+		x1: 0
+		y1: 0
+		x2: 0
+		y2: parent.height
+		penWidth: 1
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
+		visible: true
+	}
+
+	QuarkVLine {
+		id: rightLine
+		x1: parent.width-1
+		y1: 0
+		x2: parent.width-1
+		y2: parent.height
+		penWidth: 1
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
+		visible: true
+	}
+
+	QuarkHLine {
+		id: bottomLine
+		x1: 0
+		y1: parent.height-1
+		x2: parent.width
+		y2: parent.height-1
+		penWidth: 1
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
+		visible: true
 	}
 }
 

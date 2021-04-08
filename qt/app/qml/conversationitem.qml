@@ -310,7 +310,7 @@ Item {
 		y: avatarImage.y
 		text: ago_
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 2)) : defaultFontPointSize
 	}
 
 	QuarkSymbolLabel {
@@ -318,7 +318,7 @@ Item {
 		x: agoControl.x - (spaceItems_ + width)
 		y: avatarImage.y + 3
 		symbol: getSymbol()
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 8)) : 12
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 10)) : 12
 		color: getColor()
 		visible: getVisible()
 
@@ -348,7 +348,7 @@ Item {
 		x: agoControl.x + agoControl.width - width
 		y: stateSymbol.y + stateSymbol.height + spaceItems_
 		symbol: !onChain_ ? Fonts.clockSym : Fonts.checkedCircleSym //linkSym
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 8)) : 12
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 10)) : 12
 		color: !onChain_ ? buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzz.wait") :
 						   buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzz.done");
 

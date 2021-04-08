@@ -97,7 +97,6 @@ int main(int argc, char *argv[]) {
 
 #endif
 	// buzzer global application
-	qInfo() << "====================== STARTING =========================";
 	try {
 		buzzer::gApplication = new buzzer::Application(lApp);
 		if (buzzer::gApplication->load() > 0) {

@@ -68,8 +68,10 @@ Item {
 
 		function getHeight() {
 			if (!infoContainer.visible) return 0; //spaceItems_;
-			return infoImage.height + spaceTop_ + infoTitle.height + spaceItems_ +
-					infoDescription.height + spaceItems_ + infoSite.height + spaceBottom_;
+			return infoImage.height + spaceTop_ +
+					infoTitle.height + spaceItems_ +
+					(sourceInfo && sourceInfo.description !== "" ? (infoDescription.height + spaceItems_) : 0) +
+					infoSite.height + spaceBottom_;
 		}
 
 		Image {
@@ -123,12 +125,18 @@ Item {
 			text: sourceInfo.description
 			wrapMode: Text.Wrap
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
+
+			function getHeight() {
+				return (sourceInfo && sourceInfo.description !== "" ? (infoDescription.height) : 0);
+			}
 		}
 
 		QuarkSymbolLabel {
 			id: infoLink
 			x: spaceLeft_
-			y: infoDescription.y + infoDescription.height + spaceItems_ + 3
+			y: infoDescription.getHeight() > 0 ?
+				   (infoDescription.y + infoDescription.height + spaceItems_ + 3) :
+				   (infoTitle.y + infoTitle.height + spaceItems_ + 3)
 			symbol: Fonts.externalLinkSym
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 			font.pointSize: 12
@@ -137,7 +145,9 @@ Item {
 		QuarkLabelRegular {
 			id: infoSite
 			x: infoLink.x + infoLink.width + spaceItems_
-			y: infoDescription.y + infoDescription.height + spaceItems_
+			y: infoDescription.getHeight() > 0 ?
+				   (infoDescription.y + infoDescription.height + spaceItems_) :
+				   (infoTitle.y + infoTitle.height + spaceItems_)
 			width: parent.width - (spaceRight_ + x)
 			text: sourceInfo.host
 			elide: Text.ElideRight

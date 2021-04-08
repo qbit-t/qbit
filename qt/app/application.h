@@ -30,6 +30,10 @@
 #include <QtAndroid>
 #endif
 
+#if defined(DESKTOP_PLATFORM)
+#include <QQuickWindow>
+#endif
+
 #include "json.h"
 #include "client.h"
 #include "iapplication.h"
@@ -109,6 +113,16 @@ public:
 private:
     QClipboard* clipboard_;
 };
+
+#if defined(DESKTOP_PLATFORM)
+class BuzzerWindow : public QQuickWindow {
+	Q_OBJECT
+public:
+	BuzzerWindow() {}
+	BuzzerWindow(QWindow *parent) : QQuickWindow(parent) {
+	}
+};
+#endif
 
 /**
  * @brief The Application class

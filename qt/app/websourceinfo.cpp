@@ -82,11 +82,11 @@ bool WebSourceInfo::extractFullInfo(const QRegularExpression& expression, const 
 		if (lCapture.captured(3) == "property") {
 			QString lCaptured = lCapture.captured(4);
 			if (lCaptured == "twitter:title" || lCaptured == "og:title") {
-				title_ = lCapture.captured(2); lTitleFound = true;
+				if (!title_.length()) title_ = lCapture.captured(2); lTitleFound = true;
 			} else if (lCaptured == "twitter:image" || lCaptured == "og:image") {
-				image_ = lCapture.captured(2); lDescriptionFound = true;
+				if (!image_.length()) image_ = lCapture.captured(2); lImageFound = true;
 			} else if (lCaptured == "twitter:description" || lCaptured == "og:description") {
-				description_ = lCapture.captured(2); lImageFound = true;
+				if (!description_.length()) description_ = lCapture.captured(2); lDescriptionFound = true;
 			}
 		}
 	}
@@ -144,7 +144,7 @@ void WebSourceInfo::processCommon(QNetworkReply* reply) {
 		if (!lDescriptionFound) lDescriptionFound = extractInfo(lOgDescription, lRawSource, description_);
 		if (!lImageFound) lImageFound = extractInfo(lOgImage, lRawSource, image_);
 
-		if (lTitleFound && lDescriptionFound && lImageFound) {
+		if (lTitleFound && /*lDescriptionFound &&*/ lImageFound) {
 			lFound = true;
 		}
 	}

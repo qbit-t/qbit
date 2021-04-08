@@ -2,10 +2,6 @@
 #include <QFile>
 #include <QScreen>
 
-#if defined(DESKTOP_PLATFORM)
-#include <QQuickWidget>
-#endif
-
 #include "application.h"
 #include "error.h"
 #include "line.h"
@@ -101,6 +97,10 @@ void Application::deviceTokenChanged()
 #endif
 }
 
+#if defined(DESKTOP_PLATFORM)
+//
+#endif
+
 int Application::execute()
 {
     qInfo() << "========================BUZZER========================";
@@ -108,6 +108,9 @@ int Application::execute()
 
     QQuickStyle::setStyle(style_); // default style
 
+#if defined(DESKTOP_PLATFORM)
+	qmlRegisterType<buzzer::BuzzerWindow>("app.buzzer", 1, 0, "BuzzerWindow");
+#endif
 	qmlRegisterType<buzzer::Client>("app.buzzer.client", 1, 0, "Client");
     qmlRegisterType<buzzer::ClipboardAdapter>("app.buzzer.helpers", 1, 0, "Clipboard");
     qmlRegisterType<StatusBar>("StatusBar", 0, 1, "StatusBar");
@@ -170,21 +173,13 @@ int Application::execute()
 	qInfo() << "Loading main qml:" <<  QString("qrc:/qml/") + APP_NAME + ".qml";
 	engine_.load(QString("qrc:/qml/") + APP_NAME + ".qml");
 
-	/*
-	QQuickWidget *view = new QQuickWidget(&engine_, nullptr);
-	view->setSource(QString("qrc:/qml/") + APP_NAME + ".qml");
-	view->setAttribute(Qt::WA_OpaquePaintEvent);
-	view->setAttribute(Qt::WA_NoSystemBackground);
-	*/
-	//view->show();
-
 	if (engine_.rootObjects().isEmpty()) {
-        qCritical() << "Root object is empty. Exiting...";
-        return -1;
+		qCritical() << "Root object is empty. Exiting...";
+		return -1;
 	}
 
     qInfo() << "Executing app:" << APP_NAME;
-    return app_.exec();
+	return app_.exec();
 }
 
 void Application::commitCurrentInput() {

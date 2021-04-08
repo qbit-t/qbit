@@ -506,10 +506,10 @@ Item {
 
 	QuarkSymbolLabel {
 		id: onChainSymbol
-		x: menuControl.x
-		y: menuControl.y + menuControl.height + spaceItems_
+		x: menuControl.x + 1
+		y: menuControl.y + menuControl.height + (spaceItems_ - 2)
 		symbol: !onChain_ ? Fonts.clockSym : Fonts.checkedCircleSym //linkSym
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : 12
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 8) : 12
 		color: !onChain_ ? buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzz.wait") :
 						   buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzz.done");
 

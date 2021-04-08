@@ -86,8 +86,10 @@ Item {
 
 		function getHeight() {
 			if (!infoContainer.visible) return 0; //spaceItems_;
-			return infoImage.height + spaceTop_ + infoTitle.height + spaceItems_ +
-					infoDescription.height + spaceItems_ + infoSite.height + spaceBottom_;
+			return infoImage.height + spaceTop_ +
+					infoTitle.height + spaceItems_ +
+					(sourceInfo && sourceInfo.description !== "" ? (infoDescription.height + spaceItems_) : 0) +
+					infoSite.height + spaceBottom_;
 		}
 
 		Image {
@@ -145,12 +147,18 @@ Item {
 			color: "transparent"
 			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 			lineHeight: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 1.0) : lineHeight
+
+			function getHeight() {
+				return (sourceInfo && sourceInfo.description !== "" ? (infoDescription.height) : 0);
+			}
 		}
 
 		QuarkSymbolLabel {
 			id: infoLink
 			x: spaceLeft_
-			y: infoDescription.y + infoDescription.height + spaceItems_ + 3
+			y: infoDescription.getHeight() > 0 ?
+				   (infoDescription.y + infoDescription.height + spaceItems_ + 3) :
+				   (infoTitle.y + infoTitle.height + spaceItems_ + 3)
 			symbol: Fonts.externalLinkSym
 			color: "transparent"
 			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 11) : 12
@@ -159,8 +167,7 @@ Item {
 		QuarkLabelRegular {
 			id: infoSite
 			x: infoLink.x + infoLink.width + spaceItems_
-			y: buzzerApp.isDesktop ? infoLink.y + infoLink.height / 2 - height / 2 + 2:
-									 infoDescription.y + infoDescription.height + spaceItems_
+			y: infoLink.y + infoLink.height / 2 - height / 2 + 2
 			width: parent.width - (spaceRight_ + x)
 			text: sourceInfo.host
 			elide: Text.ElideRight
@@ -240,7 +247,9 @@ Item {
 
 		QuarkSymbolLabel {
 			x: spaceLeft_
-			y: infoDescription.y + infoDescription.height + spaceItems_ + 3
+			y: infoDescription.getHeight() > 0 ?
+				   (infoDescription.y + infoDescription.height + spaceItems_ + 3) :
+				   (infoTitle.y + infoTitle.height + spaceItems_ + 3)
 			symbol: Fonts.externalLinkSym
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 11) : 12
@@ -248,8 +257,7 @@ Item {
 
 		QuarkLabelRegular {
 			x: infoLink.x + infoLink.width + spaceItems_
-			y: buzzerApp.isDesktop ? infoLink.y + infoLink.height / 2 - height / 2 + 2:
-									 infoDescription.y + infoDescription.height + spaceItems_
+			y: infoLink.y + infoLink.height / 2 - height / 2 + 2
 			width: parent.width - (spaceRight_ + x)
 			text: sourceInfo.host
 			elide: Text.ElideRight

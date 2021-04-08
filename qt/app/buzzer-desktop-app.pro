@@ -94,7 +94,7 @@ SOURCES += \
     pushdesktopnotification.cpp \
     settings.cpp \
     wallettransactionslistmodel.cpp \
-    websourceinfo.cpp
+	websourceinfo.cpp
 
 SUBDIRS += \
     ../../client \
@@ -238,7 +238,7 @@ HEADERS += \
 	../../client/dapps/cubix/cubixcomposer.h \
 	../../client/commands.h \
     wallettransactionslistmodel.h \
-    websourceinfo.h
+	websourceinfo.h
 
 RESOURCES += \
     $$files(../fonts/*) \
