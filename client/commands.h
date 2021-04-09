@@ -378,7 +378,7 @@ public:
 	}
 
 	void transactionLoaded(TransactionPtr tx) {
-		done_(tx, ProcessingError());
+		if (done_) done_(tx, ProcessingError());
 	}
 
 	// 
@@ -392,8 +392,13 @@ public:
 
 	void error(const std::string& code, const std::string& message) {
 		gLog().writeClient(Log::CLIENT, strprintf(": %s | %s", code, message));
-		done_(nullptr, ProcessingError(code, message));
+		if (done_) done_(nullptr, ProcessingError(code, message));
 	}	
+
+	void terminate() {
+		// reset callbacks
+		done_ = 0;
+	}
 
 private:
 	LightComposerPtr composer_;

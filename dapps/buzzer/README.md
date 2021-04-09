@@ -1,10 +1,10 @@
-### Buzz - Distributed microblogging platform
+### Buzzer - Distributed microblogging platform
 
-Buzz built on the top of the Qbit technology as DApp.
+Buzzer built on the top of the Qbit technology as DApp.
 
 ## Architecture
 
-To start using Buzz DApp user _must_ own a little amount of qbits. Starting Buzz client app for the first time she/he can send a request to the network make a little donation to his primary qbit address.
+To start using Buzzer DApp user _must_ own a little amount of qbits. Starting Buzzer client app for the first time she/he can send a request to the network make a little donation to his primary qbit address.
 
 Each microblog starts with the special entity type - transaction TxBuzzer. Buzzer - contains attributes:
  - @name - human-readable buzzer unique name
@@ -39,11 +39,32 @@ Mempool - dynamic. TxValidator - subscription lists -> broadcasting to subscribe
 TransactionStorage - static. Indexing. (TransactionStorageExtention - register withing TransactionStorage and re-process transactions to build appropriate indexes)
  - ITransactionStoreExtention
 
-BuzzComposer - making buzz, subscribe, unsubscribe, endorse, mistrust transactions
- - IBuzzComposer - a-la wallet
+BuzzerComposer - making buzz, subscribe, unsubscribe, endorse, mistrust transactions
+ - IBuzzerComposer - a-la wallet
 
 Peer - we need peer protocol extention to process dapps requests
  - IPeerExtention
+
+## How to build (Linux Desktop)
+
+1. You need to clone qt-5.15.2
+2. Build Qt STATIC version
+2.1. Make, for example ~/qt-static-release
+2.2. Create ./build.sh file with contents (check your directories before start):
+
+	export PATH=$JAVA_HOME/bin:$PATH
+	../qt5/configure -static -release -disable-rpath -nomake tests -nomake examples -no-warnings-are-errors -skip qtdocgallery -prefix /usr/local/Qt-5.15.2-desktop -bundled-xcb-xinput -opengl desktop -qt-libpng -qt-libjpeg
+
+2.3. Execute ./build.sh
+2.4. Run ./make (it can take long time)
+3. Go to ./qt/app directory
+4. Run /usr/local/Qt-5.15.2-desktop/qmake ./buzzer-desktop.pro
+5. Run make
+6. Executable will be in ./release folder
+
+## How to build (Windows Desktop)
+
+1. See section in root README.MD on how to build for Windows
 
 ## Requests
 

@@ -352,6 +352,9 @@ class LoadBuzzerTrustScoreCommand: public QObject
 
 public:
 	explicit LoadBuzzerTrustScoreCommand(QObject* parent = nullptr);
+	virtual ~LoadBuzzerTrustScoreCommand() {
+		if (command_) command_->terminate();
+	}
 
 	Q_INVOKABLE void process() {
 		command_->process(std::vector<std::string>());
@@ -2197,6 +2200,9 @@ class LoadTransactionCommand: public QObject
 
 public:
 	explicit LoadTransactionCommand(QObject* parent = nullptr);
+	virtual ~LoadTransactionCommand() {
+		if (command_) command_->terminate();
+	}
 
 	Q_INVOKABLE void process(QString tx, QString chain) {
 		QString lArg = tx + "/" + chain;
