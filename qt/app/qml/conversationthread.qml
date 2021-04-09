@@ -591,7 +591,7 @@ QuarkPage {
 			atTheBottom = true;
 		}
 
-		delegate: ItemDelegate {
+		delegate: Item {
 			id: itemDelegate
 
 			property var buzzItem;

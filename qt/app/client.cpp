@@ -1053,7 +1053,9 @@ void Client::revertChanges() {
 		setLocale(QString::fromStdString(back_["locale"].getString()));
 		setTheme(QString::fromStdString(back_["theme"].getString()));
 		setThemeSelector(QString::fromStdString(back_["themeSelector"].getString()));
+#if defined(DESKTOP_PLATFORM)
 		setScale(QString::fromStdString(back_["scale"].getString()));
+#endif
 	}
 }
 
@@ -1066,7 +1068,9 @@ void Client::settingsFromJSON(qbit::json::Value& root) {
 	setLocale(QString::fromStdString(root["locale"].getString()));
 	setTheme(QString::fromStdString(root["theme"].getString()));
 	setThemeSelector(QString::fromStdString(root["themeSelector"].getString()));
+#if defined(DESKTOP_PLATFORM)
 	setScale(QString::fromStdString(root["scale"].getString()));
+#endif
 
     properties_.clear();
 
@@ -1090,7 +1094,9 @@ void Client::settingsToJSON(qbit::json::Value& root) {
 	root.addString("locale", locale().toStdString());
 	root.addString("theme", theme().toStdString());
 	root.addString("themeSelector", themeSelector().toStdString());
+#if defined(DESKTOP_PLATFORM)
 	root.addString("scale", scale().toStdString());
+#endif
 
 	qbit::json::Value lProperties = root.addObject("properties");
 

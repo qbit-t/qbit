@@ -484,7 +484,7 @@ Item {
 
 				return (buzzBody_.length > 0 || !accepted_ ? buzzText.height - lAdjust : 0) +
 						(buzzMediaItem_ ? buzzMediaItem_.calculatedHeight : 0) +
-						(urlInfoItem_ ? urlInfoItem_.calculatedHeight + (buzzerApp.isDesktop ? spaceItems_ + 2 : 0) : 0) +
+						(urlInfoItem_ ? urlInfoItem_.calculatedHeight + (buzzerApp.isDesktop ? spaceItems_ + 2 : spaceItems_) : 0) +
 						(buzzBody_.length > 0 && buzzMedia_.length ? spaceMedia_ : 0 /*spaceItems_*/) +
 						(buzzMedia_.length > 1 ? spaceMediaIndicator_ : 0 /*spaceBottom_*/);
 			}
