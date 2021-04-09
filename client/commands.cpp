@@ -96,9 +96,9 @@ void BalanceCommand::process(const std::vector<std::string>& args) {
 
 	// prepare
 	IComposerMethodPtr lBalance = LightComposer::Balance::instance(composer_, lAsset, 
-		boost::bind(&BalanceCommand::balance, shared_from_this(), _1, _2, _3));
+		boost::bind(&BalanceCommand::balance, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 	// async process
-	lBalance->process(boost::bind(&BalanceCommand::error, shared_from_this(), _1, _2));
+	lBalance->process(boost::bind(&BalanceCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
 }
 
 void SendToAddressCommand::process(const std::vector<std::string>& args) {
@@ -128,12 +128,12 @@ void SendToAddressCommand::process(const std::vector<std::string>& args) {
 		IComposerMethodPtr lSendToAddress;
 		if (lFeeRate == -1) 
 			lSendToAddress = LightComposer::SendToAddress::instance(composer_, lAsset, lAddress, lAmount,
-				boost::bind(&SendToAddressCommand::created, shared_from_this(), _1));
+				boost::bind(&SendToAddressCommand::created, shared_from_this(), boost::placeholders::_1));
 		else
 			lSendToAddress = LightComposer::SendToAddress::instance(composer_, lAsset, lAddress, lAmount, lFeeRate,
-				boost::bind(&SendToAddressCommand::created, shared_from_this(), _1));
+				boost::bind(&SendToAddressCommand::created, shared_from_this(), boost::placeholders::_1));
 		// async process
-		lSendToAddress->process(boost::bind(&SendToAddressCommand::error, shared_from_this(), _1, _2));
+		lSendToAddress->process(boost::bind(&SendToAddressCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
 		
 	} else {
 		gLog().writeClient(Log::CLIENT, std::string(": incorrect number of arguments"));
@@ -167,12 +167,12 @@ void SendPrivateToAddressCommand::process(const std::vector<std::string>& args) 
 		IComposerMethodPtr lSendToAddress;
 		if (lFeeRate == -1) 
 			lSendToAddress = LightComposer::SendPrivateToAddress::instance(composer_, lAsset, lAddress, lAmount,
-				boost::bind(&SendToAddressCommand::created, shared_from_this(), _1));
+				boost::bind(&SendToAddressCommand::created, shared_from_this(), boost::placeholders::_1));
 		else
 			lSendToAddress = LightComposer::SendPrivateToAddress::instance(composer_, lAsset, lAddress, lAmount, lFeeRate,
-				boost::bind(&SendToAddressCommand::created, shared_from_this(), _1));
+				boost::bind(&SendToAddressCommand::created, shared_from_this(), boost::placeholders::_1));
 		// async process
-		lSendToAddress->process(boost::bind(&SendToAddressCommand::error, shared_from_this(), _1, _2));
+		lSendToAddress->process(boost::bind(&SendToAddressCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
 		
 	} else {
 		gLog().writeClient(Log::CLIENT, std::string(": incorrect number of arguments"));
@@ -185,7 +185,7 @@ void SearchEntityNamesCommand::process(const std::vector<std::string>& args) {
 		//
 		composer_->requestProcessor()->selectEntityNames(args[0], 
 			SelectEntityNames::instance(
-				boost::bind(&SearchEntityNamesCommand::assetNamesLoaded, shared_from_this(), _1, _2),
+				boost::bind(&SearchEntityNamesCommand::assetNamesLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 				boost::bind(&SearchEntityNamesCommand::timeout, shared_from_this()))
 		);		
 	} else {
@@ -224,7 +224,7 @@ void LoadTransactionCommand::process(const std::vector<std::string>& args) {
 
 		if (!composer_->requestProcessor()->loadTransaction(lChain, lTx, 
 				LoadTransaction::instance(
-					boost::bind(&LoadTransactionCommand::transactionLoaded, shared_from_this(), _1),
+					boost::bind(&LoadTransactionCommand::transactionLoaded, shared_from_this(), boost::placeholders::_1),
 					boost::bind(&LoadTransactionCommand::timeout, shared_from_this()))
 			))	error("E_TRANSACTION_NOT_LOADED", "Transaction is not loaded.");
 	} else {
@@ -239,7 +239,7 @@ void LoadEntityCommand::process(const std::vector<std::string>& args) {
 		//
 		if (!composer_->requestProcessor()->loadEntity(args[0], 
 				LoadEntity::instance(
-					boost::bind(&LoadEntityCommand::entityLoaded, shared_from_this(), _1),
+					boost::bind(&LoadEntityCommand::entityLoaded, shared_from_this(), boost::placeholders::_1),
 					boost::bind(&LoadEntityCommand::timeout, shared_from_this()))
 			))	error("E_ENTITY_NOT_FOUND", "Entity was not found.");
 	} else {

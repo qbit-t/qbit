@@ -28,7 +28,7 @@ public:
 				//
 				composer_->requestProcessor()->loadTransaction(MainChain::id(), asset_, 
 					LoadTransaction::instance(
-						boost::bind(&LightComposer::Balance::assetLoaded, shared_from_this(), _1),
+				        boost::bind(&LightComposer::Balance::assetLoaded, shared_from_this(), boost::placeholders::_1),
 						boost::bind(&LightComposer::Balance::timeout, shared_from_this()))
 				);
 			} else {
@@ -84,7 +84,7 @@ public:
 				//
 				composer_->requestProcessor()->loadTransaction(MainChain::id(), asset_, 
 					LoadTransaction::instance(
-						boost::bind(&LightComposer::SendToAddress::assetLoaded, shared_from_this(), _1),
+				        boost::bind(&LightComposer::SendToAddress::assetLoaded, shared_from_this(), boost::placeholders::_1),
 						boost::bind(&LightComposer::SendToAddress::timeout, shared_from_this()))
 				);
 			} else {
@@ -161,7 +161,7 @@ public:
 				//
 				composer_->requestProcessor()->loadTransaction(MainChain::id(), asset_, 
 					LoadTransaction::instance(
-						boost::bind(&LightComposer::SendPrivateToAddress::assetLoaded, shared_from_this(), _1),
+				        boost::bind(&LightComposer::SendPrivateToAddress::assetLoaded, shared_from_this(), boost::placeholders::_1),
 						boost::bind(&LightComposer::SendPrivateToAddress::timeout, shared_from_this()))
 				);
 			} else {

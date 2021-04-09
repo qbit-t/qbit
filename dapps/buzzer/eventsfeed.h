@@ -483,7 +483,7 @@ public:
 					lBuzzer->buzzerInfoChainId(), 
 					lBuzzer->buzzerId(), 
 					lBuzzer->buzzerInfoId(),
-					boost::bind(&EventsfeedItem::buzzerInfoReady, shared_from_this(), _1))) {
+					boost::bind(&EventsfeedItem::buzzerInfoReady, shared_from_this(), boost::placeholders::_1))) {
 				lResolved = false;
 			}
 		}
@@ -493,7 +493,7 @@ public:
 					publisherInfoChain_, 
 					publisher_, 
 					publisherInfo_,
-					boost::bind(&EventsfeedItem::buzzerInfoReady, shared_from_this(), _1))) {
+					boost::bind(&EventsfeedItem::buzzerInfoReady, shared_from_this(), boost::placeholders::_1))) {
 				//
 				return false;
 			}
@@ -721,8 +721,8 @@ public:
 	EventsfeedItemPtr parent() { return toItem(); }
 
 	void prepare() {
-		buzzerInfo_ = boost::bind(&Buzzer::locateBuzzerInfo, buzzer_, _1, _2, _3);
-		buzzerInfoResolve_ = boost::bind(&Buzzer::enqueueBuzzerInfoResolve, buzzer_, _1, _2, _3, _4);		
+		buzzerInfo_ = boost::bind(&Buzzer::locateBuzzerInfo, buzzer_, boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3);
+		buzzerInfoResolve_ = boost::bind(&Buzzer::enqueueBuzzerInfoResolve, buzzer_, boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3, boost::placeholders::_4);
 	}
 
 	BuzzerPtr buzzer() { return buzzer_; }

@@ -26,7 +26,7 @@ void Buzzer::resolveBuzzerInfos() {
 		if (loadingPendingInfos_.find(lItem->first) == loadingPendingInfos_.end()) {
 			requestProcessor_->loadTransaction(lItem->second.chain(), lItem->first,
 				LoadTransaction::instance(
-					boost::bind(&Buzzer::buzzerInfoLoaded, shared_from_this(), _1),
+					boost::bind(&Buzzer::buzzerInfoLoaded, shared_from_this(), boost::placeholders::_1),
 					boost::bind(&Buzzer::timeout, shared_from_this()))
 			);
 
@@ -91,7 +91,7 @@ void Buzzer::resolvePendingItems() {
 			std::vector<uint256> lBuzzes(lChain->second.begin(), lChain->second.end());
 			buzzerRequestProcessor_->selectBuzzes(lChain->first, lBuzzes, 
 				SelectBuzzFeed::instance(
-					boost::bind(&Buzzer::pendingItemsLoaded, shared_from_this(), _1, _2),
+					boost::bind(&Buzzer::pendingItemsLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 					boost::bind(&Buzzer::timeout, shared_from_this()))
 			);
 		}
@@ -112,7 +112,7 @@ void Buzzer::resolvePendingEventsItems() {
 			std::vector<uint256> lBuzzes(lChain->second.begin(), lChain->second.end());
 			buzzerRequestProcessor_->selectBuzzes(lChain->first, lBuzzes, 
 				SelectBuzzFeed::instance(
-					boost::bind(&Buzzer::pendingEventItemsLoaded, shared_from_this(), _1, _2),
+					boost::bind(&Buzzer::pendingEventItemsLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 					boost::bind(&Buzzer::timeout, shared_from_this()))
 			);
 		}

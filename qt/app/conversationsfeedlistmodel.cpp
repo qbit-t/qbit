@@ -429,11 +429,11 @@ ConversationsListModel::ConversationsListModel() {
 	Client* lClient = static_cast<Client*>(gApplication->getClient());
 	//
 	conversations_ = qbit::Conversationsfeed::instance(lClient->getBuzzer(),
-		boost::bind(&qbit::BuzzerLightComposer::verifyConversationPublisher, lClient->getBuzzerComposer(), _1),
+		boost::bind(&qbit::BuzzerLightComposer::verifyConversationPublisher, lClient->getBuzzerComposer(), boost::placeholders::_1),
 		boost::bind(&ConversationsfeedListModel::conversationsLargeUpdated, this),
-		boost::bind(&ConversationsfeedListModel::conversationItemNew, this, _1),
-		boost::bind(&ConversationsfeedListModel::conversationItemUpdated, this, _1),
-		boost::bind(&ConversationsfeedListModel::conversationsfeedItemsUpdated, this, _1)
+		boost::bind(&ConversationsfeedListModel::conversationItemNew, this, boost::placeholders::_1),
+		boost::bind(&ConversationsfeedListModel::conversationItemUpdated, this, boost::placeholders::_1),
+		boost::bind(&ConversationsfeedListModel::conversationsfeedItemsUpdated, this, boost::placeholders::_1)
 	);
 
 	conversations_->prepare();

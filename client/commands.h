@@ -180,7 +180,7 @@ public:
 		//
 		if (!composer_->requestProcessor()->sendTransaction(ctx_,
 				SentTransaction::instance(
-					boost::bind(&SendToAddressCommand::sent, shared_from_this(), _1, _2),
+					boost::bind(&SendToAddressCommand::sent, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 					boost::bind(&SendToAddressCommand::timeout, shared_from_this())))) {
 			gLog().writeClient(Log::CLIENT, std::string(": tx was not broadcasted, wallet re-init..."));
 			composer_->wallet()->resetCache();

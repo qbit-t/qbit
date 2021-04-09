@@ -21,9 +21,9 @@ void CreateBuzzerCommand::process(const std::vector<std::string>& args) {
 		// prepare
 		IComposerMethodPtr lCommander = BuzzerLightComposer::CreateTxBuzzer::instance(composer_, 
 			std::string(args[0]),
-			boost::bind(&CreateBuzzerCommand::buzzerCreated, shared_from_this(), _1, _2));
+			boost::bind(&CreateBuzzerCommand::buzzerCreated, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
 		// async process
-		lCommander->process(boost::bind(&CreateBuzzerCommand::error, shared_from_this(), _1, _2));
+		lCommander->process(boost::bind(&CreateBuzzerCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
 	} else {
 		error("E_INCORRECT_AGRS", "Incorrect number of arguments");
 		return;
@@ -37,7 +37,7 @@ void CreateBuzzerCommand::buzzerCreated(TransactionContextPtr ctx, Transaction::
 	//
 	if (!composer_->requestProcessor()->sendTransaction(ctx,
 			SentTransaction::instance(
-				boost::bind(&CreateBuzzerCommand::buzzerSent, shared_from_this(), _1, _2),
+				boost::bind(&CreateBuzzerCommand::buzzerSent, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 				boost::bind(&CreateBuzzerCommand::timeout, shared_from_this())))) {
 		composer_->wallet()->resetCache();
 		composer_->wallet()->prepareCache();
@@ -124,9 +124,9 @@ void CreateBuzzerCommand::createBuzzerInfo() {
 	// prepare
 	IComposerMethodPtr lCommanderInfo = BuzzerLightComposer::CreateTxBuzzerInfo::instance(
 		composer_, buzzerOut_, args_[1], args_[2], lAvatar, lHeader,
-		boost::bind(&CreateBuzzerCommand::buzzerInfoCreated, shared_from_this(), _1));
+		boost::bind(&CreateBuzzerCommand::buzzerInfoCreated, shared_from_this(), boost::placeholders::_1));
 	// async process
-	lCommanderInfo->process(boost::bind(&CreateBuzzerCommand::error, shared_from_this(), _1, _2));
+	lCommanderInfo->process(boost::bind(&CreateBuzzerCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
 }
 
 void CreateBuzzerCommand::buzzerInfoCreated(TransactionContextPtr ctx) {
@@ -135,7 +135,7 @@ void CreateBuzzerCommand::buzzerInfoCreated(TransactionContextPtr ctx) {
 	//
 	if (!composer_->requestProcessor()->sendTransaction(ctx->tx()->chain(), ctx, 
 			SentTransaction::instance(
-				boost::bind(&CreateBuzzerCommand::buzzerInfoSent, shared_from_this(), _1, _2),
+				boost::bind(&CreateBuzzerCommand::buzzerInfoSent, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 				boost::bind(&CreateBuzzerCommand::timeout, shared_from_this())))) {
 		composer_->wallet()->resetCache();
 		composer_->wallet()->prepareCache();
@@ -237,9 +237,9 @@ void CreateBuzzerInfoCommand::createBuzzerInfo() {
 	// prepare
 	IComposerMethodPtr lCommanderInfo = BuzzerLightComposer::CreateTxBuzzerInfo::instance(
 		composer_, Transaction::UnlinkedOut::instance(composer_->buzzerUtxo()[0]), args_[0], args_[1], lAvatar, lHeader,
-		boost::bind(&CreateBuzzerInfoCommand::buzzerInfoCreated, shared_from_this(), _1));
+		boost::bind(&CreateBuzzerInfoCommand::buzzerInfoCreated, shared_from_this(), boost::placeholders::_1));
 	// async process
-	lCommanderInfo->process(boost::bind(&CreateBuzzerInfoCommand::error, shared_from_this(), _1, _2));
+	lCommanderInfo->process(boost::bind(&CreateBuzzerInfoCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
 }
 
 void CreateBuzzerInfoCommand::buzzerInfoCreated(TransactionContextPtr ctx) {
@@ -248,7 +248,7 @@ void CreateBuzzerInfoCommand::buzzerInfoCreated(TransactionContextPtr ctx) {
 	//
 	if (!composer_->requestProcessor()->sendTransaction(ctx->tx()->chain(), ctx, 
 			SentTransaction::instance(
-				boost::bind(&CreateBuzzerInfoCommand::buzzerInfoSent, shared_from_this(), _1, _2),
+				boost::bind(&CreateBuzzerInfoCommand::buzzerInfoSent, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 				boost::bind(&CreateBuzzerInfoCommand::timeout, shared_from_this())))) {
 		composer_->wallet()->resetCache();
 		composer_->wallet()->prepareCache();
@@ -305,9 +305,9 @@ void CreateBuzzCommand::process(const std::vector<std::string>& args) {
 void CreateBuzzCommand::createBuzz() {
 	// prepare
 	IComposerMethodPtr lCommand = BuzzerLightComposer::CreateTxBuzz::instance(composer_, body_, buzzers_, mediaPointers_,
-		boost::bind(&CreateBuzzCommand::created, shared_from_this(), _1));
+		boost::bind(&CreateBuzzCommand::created, shared_from_this(), boost::placeholders::_1));
 	// async process
-	lCommand->process(boost::bind(&CreateBuzzCommand::error, shared_from_this(), _1, _2));
+	lCommand->process(boost::bind(&CreateBuzzCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
 }
 
 void CreateBuzzCommand::uploadNextMedia() {
@@ -347,9 +347,9 @@ void BuzzerSubscribeCommand::process(const std::vector<std::string>& args) {
 	if (args.size() == 1) {
 		// prepare
 		IComposerMethodPtr lCommand = BuzzerLightComposer::CreateTxBuzzerSubscribe::instance(composer_, args[0],
-			boost::bind(&BuzzerSubscribeCommand::created, shared_from_this(), _1));
+			boost::bind(&BuzzerSubscribeCommand::created, shared_from_this(), boost::placeholders::_1));
 		// async process
-		lCommand->process(boost::bind(&BuzzerSubscribeCommand::error, shared_from_this(), _1, _2));
+		lCommand->process(boost::bind(&BuzzerSubscribeCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
 	} else {
 		error("E_INCORRECT_AGRS", "Incorrect number of arguments.");
 	}
@@ -362,9 +362,9 @@ void BuzzerUnsubscribeCommand::process(const std::vector<std::string>& args) {
 	if (args.size() == 1) {
 		// prepare
 		IComposerMethodPtr lCommand = BuzzerLightComposer::CreateTxBuzzerUnsubscribe::instance(composer_, args[0],
-			boost::bind(&BuzzerUnsubscribeCommand::created, shared_from_this(), _1));
+			boost::bind(&BuzzerUnsubscribeCommand::created, shared_from_this(), boost::placeholders::_1));
 		// async process
-		lCommand->process(boost::bind(&BuzzerUnsubscribeCommand::error, shared_from_this(), _1, _2));
+		lCommand->process(boost::bind(&BuzzerUnsubscribeCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
 	} else {
 		error("E_INCORRECT_AGRS", "Incorrect number of arguments.");
 	}
@@ -409,9 +409,9 @@ void LoadHashTagsCommand::process(const std::vector<std::string>& args) {
 			*lChain, 
 			tag_,
 			2 /*to be sure that the feed is not doctored*/,
-			boost::bind(&LoadHashTagsCommand::tagsLoaded, shared_from_this(), _1, _2, _3));
+			boost::bind(&LoadHashTagsCommand::tagsLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 		// async process
-		lCommand->process(boost::bind(&LoadHashTagsCommand::error, shared_from_this(), _1, _2));
+		lCommand->process(boost::bind(&LoadHashTagsCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
 	}
 }
 
@@ -512,9 +512,9 @@ void LoadBuzzfeedByTagCommand::process(const std::vector<std::string>& args) {
 			*lChain, 
 			lTag, lTimeframeFrom, lScoreFrom, lTimestampFrom, lPublisher,
 			2 /*to be sure that the feed is not doctored*/,
-			boost::bind(&LoadBuzzfeedByTagCommand::buzzfeedLoaded, shared_from_this(), _1, _2, _3));
+			boost::bind(&LoadBuzzfeedByTagCommand::buzzfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 		// async process
-		lCommand->process(boost::bind(&LoadBuzzfeedByTagCommand::error, shared_from_this(), _1, _2));
+		lCommand->process(boost::bind(&LoadBuzzfeedByTagCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
 	}
 }
 
@@ -573,9 +573,9 @@ void LoadBuzzesGlobalCommand::process(const std::vector<std::string>& args) {
 			*lChain, 
 			lTimeframeFrom, lScoreFrom, lTimestampFrom, lPublisher,
 			2 /*to be sure that the feed is not doctored*/,
-			boost::bind(&LoadBuzzesGlobalCommand::buzzfeedLoaded, shared_from_this(), _1, _2, _3));
+			boost::bind(&LoadBuzzesGlobalCommand::buzzfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 		// async process
-		lCommand->process(boost::bind(&LoadBuzzesGlobalCommand::error, shared_from_this(), _1, _2));
+		lCommand->process(boost::bind(&LoadBuzzesGlobalCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
 	}
 }
 
@@ -635,9 +635,9 @@ void LoadBuzzfeedByBuzzerCommand::process(const std::vector<std::string>& args) 
 			lFrom,
 			lBuzzer,
 			2 /*to be sure that the feed is not doctored*/,
-			boost::bind(&LoadBuzzfeedByBuzzerCommand::buzzfeedLoaded, shared_from_this(), _1, _2, _3));
+			boost::bind(&LoadBuzzfeedByBuzzerCommand::buzzfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 		// async process
-		lCommand->process(boost::bind(&LoadBuzzfeedByBuzzerCommand::error, shared_from_this(), _1, _2));
+		lCommand->process(boost::bind(&LoadBuzzfeedByBuzzerCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
 	}
 }
 
@@ -693,9 +693,9 @@ void LoadBuzzfeedByBuzzCommand::process(const std::vector<std::string>& args) {
 			from_,
 			lBuzzId,
 			2 /*to be sure that the feed is not doctored*/,
-			boost::bind(&LoadBuzzfeedByBuzzCommand::buzzfeedLoaded, shared_from_this(), _1, _2, _3));
+			boost::bind(&LoadBuzzfeedByBuzzCommand::buzzfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 		// async process
-		lCommand->process(boost::bind(&LoadBuzzfeedByBuzzCommand::error, shared_from_this(), _1, _2));
+		lCommand->process(boost::bind(&LoadBuzzfeedByBuzzCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
 	}
 }
 
@@ -751,9 +751,9 @@ void LoadMessagesCommand::process(const std::vector<std::string>& args) {
 			from_,
 			lConversationId,
 			2 /*to be sure that the feed is not doctored*/,
-			boost::bind(&LoadMessagesCommand::buzzfeedLoaded, shared_from_this(), _1, _2, _3));
+			boost::bind(&LoadMessagesCommand::buzzfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 		// async process
-		lCommand->process(boost::bind(&LoadMessagesCommand::error, shared_from_this(), _1, _2));
+		lCommand->process(boost::bind(&LoadMessagesCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
 	}
 }
 
@@ -810,9 +810,9 @@ void LoadBuzzfeedCommand::process(const std::vector<std::string>& args) {
 			*lChain, 
 			lFrom, 
 			2 /*to be sure that the feed is not doctored*/,
-			boost::bind(&LoadBuzzfeedCommand::buzzfeedLoaded, shared_from_this(), _1, _2, _3));
+			boost::bind(&LoadBuzzfeedCommand::buzzfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 		// async process
-		lCommand->process(boost::bind(&LoadBuzzfeedCommand::error, shared_from_this(), _1, _2));
+		lCommand->process(boost::bind(&LoadBuzzfeedCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
 	}
 }
 
@@ -874,7 +874,7 @@ void LoadBuzzfeedCommand::buzzfeedLoaded(const std::vector<BuzzfeedItem>& feed, 
 				std::vector<uint256> lBuzzes(lChain->second.begin(), lChain->second.end());
 				if (!composer_->buzzerRequestProcessor()->selectBuzzes(lChain->first, lBuzzes, 
 					SelectBuzzFeed::instance(
-						boost::bind(&LoadBuzzfeedCommand::buzzesLoaded, shared_from_this(), _1, _2),
+						boost::bind(&LoadBuzzfeedCommand::buzzesLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 						boost::bind(&LoadBuzzfeedCommand::timeout, shared_from_this()))
 				)) { 
 					warning("E_LOAD_PENDING_BUZZFEED", "Buzzfeed pending items loading failed."); 
@@ -904,7 +904,7 @@ void LoadBuzzfeedCommand::processPengingInfos() {
 			std::vector<uint256> lInfos(lChain->second.begin(), lChain->second.end());
 			if (!composer_->requestProcessor()->loadTransactions(lChain->first, lInfos,
 				LoadTransactions::instance(
-					boost::bind(&LoadBuzzfeedCommand::buzzerInfoLoaded, shared_from_this(), _1),
+					boost::bind(&LoadBuzzfeedCommand::buzzerInfoLoaded, shared_from_this(), boost::placeholders::_1),
 					boost::bind(&LoadBuzzfeedCommand::timeout, shared_from_this()))
 			)) { 
 				warning("E_LOAD_PENDING_BUZZER_INFOS", "Buzzer infos failed to load."); 
@@ -1023,7 +1023,7 @@ void LoadEndorsementsByBuzzerCommand::process(const std::vector<std::string>& ar
 				fromBuzzer_, 
 				lBuzzerId, 
 				2,
-				boost::bind(&LoadEndorsementsByBuzzerCommand::eventsfeedLoaded, shared_from_this(), _1, _2, _3));
+				boost::bind(&LoadEndorsementsByBuzzerCommand::eventsfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 		else
 			lCommand = BuzzerLightComposer::LoadEndorsementsByBuzzer::instance(
 				composer_, 
@@ -1031,10 +1031,10 @@ void LoadEndorsementsByBuzzerCommand::process(const std::vector<std::string>& ar
 				fromBuzzer_, 
 				lBuzzer, 
 				2,
-				boost::bind(&LoadEndorsementsByBuzzerCommand::eventsfeedLoaded, shared_from_this(), _1, _2, _3));
+				boost::bind(&LoadEndorsementsByBuzzerCommand::eventsfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 
 		// async process
-		lCommand->process(boost::bind(&LoadEndorsementsByBuzzerCommand::error, shared_from_this(), _1, _2));
+		lCommand->process(boost::bind(&LoadEndorsementsByBuzzerCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
 	}
 }
 
@@ -1093,7 +1093,7 @@ void LoadMistrustsByBuzzerCommand::process(const std::vector<std::string>& args)
 				fromBuzzer_, 
 				lBuzzerId,
 				2,
-				boost::bind(&LoadMistrustsByBuzzerCommand::eventsfeedLoaded, shared_from_this(), _1, _2, _3));
+				boost::bind(&LoadMistrustsByBuzzerCommand::eventsfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 		else
 			 lCommand = BuzzerLightComposer::LoadMistrustsByBuzzer::instance(
 				composer_, 
@@ -1101,10 +1101,10 @@ void LoadMistrustsByBuzzerCommand::process(const std::vector<std::string>& args)
 				fromBuzzer_, 
 				lBuzzer,
 				2,
-				boost::bind(&LoadMistrustsByBuzzerCommand::eventsfeedLoaded, shared_from_this(), _1, _2, _3));
+				boost::bind(&LoadMistrustsByBuzzerCommand::eventsfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 
 		// async process
-		lCommand->process(boost::bind(&LoadMistrustsByBuzzerCommand::error, shared_from_this(), _1, _2));
+		lCommand->process(boost::bind(&LoadMistrustsByBuzzerCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
 	}
 }
 
@@ -1165,7 +1165,7 @@ void LoadSubscriptionsByBuzzerCommand::process(const std::vector<std::string>& a
 				fromBuzzer_, 
 				lBuzzerId,
 				2,
-				boost::bind(&LoadSubscriptionsByBuzzerCommand::eventsfeedLoaded, shared_from_this(), _1, _2, _3));
+				boost::bind(&LoadSubscriptionsByBuzzerCommand::eventsfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 		else
 			lCommand = BuzzerLightComposer::LoadSubscriptionsByBuzzer::instance(
 				composer_, 
@@ -1173,10 +1173,10 @@ void LoadSubscriptionsByBuzzerCommand::process(const std::vector<std::string>& a
 				fromBuzzer_, 
 				lBuzzer,
 				2,
-				boost::bind(&LoadSubscriptionsByBuzzerCommand::eventsfeedLoaded, shared_from_this(), _1, _2, _3));
+				boost::bind(&LoadSubscriptionsByBuzzerCommand::eventsfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 
 		// async process
-		lCommand->process(boost::bind(&LoadSubscriptionsByBuzzerCommand::error, shared_from_this(), _1, _2));
+		lCommand->process(boost::bind(&LoadSubscriptionsByBuzzerCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
 	}
 }
 
@@ -1237,7 +1237,7 @@ void LoadFollowersByBuzzerCommand::process(const std::vector<std::string>& args)
 				fromBuzzer_, 
 				lBuzzerId,
 				2,
-				boost::bind(&LoadFollowersByBuzzerCommand::eventsfeedLoaded, shared_from_this(), _1, _2, _3));
+				boost::bind(&LoadFollowersByBuzzerCommand::eventsfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 		else
 			lCommand = BuzzerLightComposer::LoadFollowersByBuzzer::instance(
 				composer_, 
@@ -1245,10 +1245,10 @@ void LoadFollowersByBuzzerCommand::process(const std::vector<std::string>& args)
 				fromBuzzer_, 
 				lBuzzer,
 				2,
-				boost::bind(&LoadFollowersByBuzzerCommand::eventsfeedLoaded, shared_from_this(), _1, _2, _3));
+				boost::bind(&LoadFollowersByBuzzerCommand::eventsfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 
 		// async process
-		lCommand->process(boost::bind(&LoadFollowersByBuzzerCommand::error, shared_from_this(), _1, _2));
+		lCommand->process(boost::bind(&LoadFollowersByBuzzerCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
 	}
 }
 
@@ -1290,9 +1290,9 @@ void LoadEventsfeedCommand::process(const std::vector<std::string>& args) {
 	for (std::vector<uint256>::iterator lChain = chains_.begin(); lChain != chains_.end(); lChain++) {
 		//
 		IComposerMethodPtr lCommand = BuzzerLightComposer::LoadEventsfeed::instance(composer_, *lChain, from_, 2,
-			boost::bind(&LoadEventsfeedCommand::eventsfeedLoaded, shared_from_this(), _1, _2, _3));
+			boost::bind(&LoadEventsfeedCommand::eventsfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 		// async process
-		lCommand->process(boost::bind(&LoadEventsfeedCommand::error, shared_from_this(), _1, _2));
+		lCommand->process(boost::bind(&LoadEventsfeedCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
 	}
 }
 
@@ -1351,7 +1351,7 @@ void LoadEventsfeedCommand::eventsfeedLoaded(const std::vector<EventsfeedItem>& 
 				std::vector<uint256> lBuzzes(lChain->second.begin(), lChain->second.end());
 				if (!composer_->buzzerRequestProcessor()->selectBuzzes(lChain->first, lBuzzes, 
 					SelectBuzzFeed::instance(
-						boost::bind(&LoadEventsfeedCommand::buzzesLoaded, shared_from_this(), _1, _2),
+						boost::bind(&LoadEventsfeedCommand::buzzesLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 						boost::bind(&LoadEventsfeedCommand::timeout, shared_from_this()))
 				)) error("E_LOAD_PENDING_EVENTSFEED", "Eventsfeed pending items loading failed.");	
 			}
@@ -1372,7 +1372,7 @@ void LoadEventsfeedCommand::processPengingInfos() {
 			std::vector<uint256> lInfos(lChain->second.begin(), lChain->second.end());
 			if (!composer_->requestProcessor()->loadTransactions(lChain->first, lInfos, 
 				LoadTransactions::instance(
-					boost::bind(&LoadEventsfeedCommand::buzzerInfoLoaded, shared_from_this(), _1),
+					boost::bind(&LoadEventsfeedCommand::buzzerInfoLoaded, shared_from_this(), boost::placeholders::_1),
 					boost::bind(&LoadEventsfeedCommand::timeout, shared_from_this()))
 			)) error("E_LOAD_PENDING_BUZZER_INFOS", "Buzzer infos failed to load.");
 		}
@@ -1480,10 +1480,10 @@ void LoadConversationsCommand::process(const std::vector<std::string>& args) {
 			lBuzzerId, 
 			from_,
 			2,
-			boost::bind(&LoadConversationsCommand::eventsfeedLoaded, shared_from_this(), _1, _2, _3));
+			boost::bind(&LoadConversationsCommand::eventsfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 
 		// async process
-		lCommand->process(boost::bind(&LoadConversationsCommand::error, shared_from_this(), _1, _2));
+		lCommand->process(boost::bind(&LoadConversationsCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
 	}
 }
 
@@ -1546,7 +1546,7 @@ void LoadConversationsCommand::eventsfeedLoaded(const std::vector<ConversationIt
 				std::vector<uint256> lBuzzes(lChain->second.begin(), lChain->second.end());
 				if (!composer_->buzzerRequestProcessor()->selectBuzzes(lChain->first, lBuzzes, 
 					SelectBuzzFeed::instance(
-						boost::bind(&LoadConversationsCommand::buzzesLoaded, shared_from_this(), _1, _2),
+						boost::bind(&LoadConversationsCommand::buzzesLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 						boost::bind(&LoadConversationsCommand::timeout, shared_from_this()))
 				)) error("E_LOAD_PENDING_EVENTSFEED", "Eventsfeed pending items loading failed.");	
 			}
@@ -1567,7 +1567,7 @@ void LoadConversationsCommand::processPengingInfos() {
 			std::vector<uint256> lInfos(lChain->second.begin(), lChain->second.end());
 			if (!composer_->requestProcessor()->loadTransactions(lChain->first, lInfos, 
 				LoadTransactions::instance(
-					boost::bind(&LoadConversationsCommand::buzzerInfoLoaded, shared_from_this(), _1),
+					boost::bind(&LoadConversationsCommand::buzzerInfoLoaded, shared_from_this(), boost::placeholders::_1),
 					boost::bind(&LoadConversationsCommand::timeout, shared_from_this()))
 			)) error("E_LOAD_PENDING_BUZZER_INFOS", "Buzzer infos failed to load.");
 		}
@@ -1664,7 +1664,7 @@ void BuzzfeedListCommand::process(const std::vector<std::string>& args) {
 			std::vector<uint256> lBuzzes(lChain->second.begin(), lChain->second.end());
 			if (!composer_->buzzerRequestProcessor()->selectBuzzes(lChain->first, lBuzzes, 
 				SelectBuzzFeed::instance(
-					boost::bind(&BuzzfeedListCommand::buzzesLoaded, shared_from_this(), _1, _2),
+					boost::bind(&BuzzfeedListCommand::buzzesLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 					boost::bind(&BuzzfeedListCommand::timeout, shared_from_this()))
 			)) error("E_LOAD_PENDING_BUZZFEED", "Buzzfeed pending items loading failed.");	
 		}
@@ -1685,7 +1685,7 @@ void BuzzfeedListCommand::processPengingInfos() {
 			std::vector<uint256> lInfos(lChain->second.begin(), lChain->second.end());
 			if (!composer_->requestProcessor()->loadTransactions(lChain->first, lInfos, 
 				LoadTransactions::instance(
-					boost::bind(&BuzzfeedListCommand::buzzerInfoLoaded, shared_from_this(), _1),
+					boost::bind(&BuzzfeedListCommand::buzzerInfoLoaded, shared_from_this(), boost::placeholders::_1),
 					boost::bind(&BuzzfeedListCommand::timeout, shared_from_this()))
 			)) error("E_LOAD_PENDING_BUZZER_INFOS", "Buzzer infos failed to load.");	
 		}
@@ -1782,7 +1782,7 @@ void EventsfeedListCommand::process(const std::vector<std::string>& args) {
 			std::vector<uint256> lBuzzes(lChain->second.begin(), lChain->second.end());
 			if (!composer_->buzzerRequestProcessor()->selectBuzzes(lChain->first, lBuzzes, 
 				SelectBuzzFeed::instance(
-					boost::bind(&EventsfeedListCommand::buzzesLoaded, shared_from_this(), _1, _2),
+					boost::bind(&EventsfeedListCommand::buzzesLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 					boost::bind(&EventsfeedListCommand::timeout, shared_from_this()))
 			)) error("E_LOAD_PENDING_BUZZFEED", "Buzzfeed pending items loading failed.");	
 		}
@@ -1849,7 +1849,7 @@ void ConversationsListCommand::process(const std::vector<std::string>& args) {
 			std::vector<uint256> lBuzzes(lChain->second.begin(), lChain->second.end());
 			if (!composer_->buzzerRequestProcessor()->selectBuzzes(lChain->first, lBuzzes, 
 				SelectBuzzFeed::instance(
-					boost::bind(&ConversationsListCommand::buzzesLoaded, shared_from_this(), _1, _2),
+					boost::bind(&ConversationsListCommand::buzzesLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 					boost::bind(&ConversationsListCommand::timeout, shared_from_this()))
 			)) error("E_LOAD_PENDING_BUZZFEED", "Buzzfeed pending items loading failed.");	
 		}
@@ -1875,9 +1875,9 @@ void BuzzLikeCommand::process(const std::vector<std::string>& args) {
 		//
 		if (lItem) {
 			IComposerMethodPtr lCommand = BuzzerLightComposer::CreateTxBuzzLike::instance(composer_, lItem->buzzChainId(), lItem->buzzId(),
-				boost::bind(&BuzzLikeCommand::created, shared_from_this(), _1));
+				boost::bind(&BuzzLikeCommand::created, shared_from_this(), boost::placeholders::_1));
 			// async process
-			lCommand->process(boost::bind(&BuzzLikeCommand::error, shared_from_this(), _1, _2));
+			lCommand->process(boost::bind(&BuzzLikeCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
 		} else {
 			error("E_BUZZ_NOT_FOUND_IN_FEED", "Buzz was not found in local feed");
 			return;
@@ -1922,9 +1922,9 @@ void BuzzRewardCommand::process(const std::vector<std::string>& args) {
 			//
 			IComposerMethodPtr lCommand = BuzzerLightComposer::CreateTxBuzzReward::instance(composer_, 
 				lItem->buzzChainId(), lItem->buzzId(), lAddress, lReward,
-				boost::bind(&BuzzRewardCommand::created, shared_from_this(), _1));
+				boost::bind(&BuzzRewardCommand::created, shared_from_this(), boost::placeholders::_1));
 			// async process
-			lCommand->process(boost::bind(&BuzzRewardCommand::error, shared_from_this(), _1, _2));
+			lCommand->process(boost::bind(&BuzzRewardCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
 		} else {
 			error("E_BUZZ_NOT_FOUND_IN_FEED", "Buzz was not found in local feed");
 			return;
@@ -1976,9 +1976,9 @@ void CreateBuzzReplyCommand::createBuzz() {
 	//
 	if (lItem) {
 		IComposerMethodPtr lCommand = BuzzerLightComposer::CreateTxBuzzReply::instance(composer_, lItem->buzzChainId(), lItem->buzzId(), body_, buzzers_, mediaPointers_,
-			boost::bind(&CreateBuzzReplyCommand::created, shared_from_this(), _1));
+			boost::bind(&CreateBuzzReplyCommand::created, shared_from_this(), boost::placeholders::_1));
 		// async process
-		lCommand->process(boost::bind(&CreateBuzzReplyCommand::error, shared_from_this(), _1, _2));
+		lCommand->process(boost::bind(&CreateBuzzReplyCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
 	} else {
 		error("E_BUZZ_NOT_FOUND_IN_FEED", "Buzz was not found in local feed");
 	}
@@ -2058,9 +2058,9 @@ void CreateReBuzzCommand::createBuzz() {
 	if (lItem) {
 		IComposerMethodPtr lCreateReBuzz = BuzzerLightComposer::CreateTxRebuzz::instance(
 			composer_, lItem->buzzChainId(), lItem->buzzId(), body_, buzzers_, mediaPointers_,
-			boost::bind(&CreateReBuzzCommand::created, shared_from_this(), _1));
+			boost::bind(&CreateReBuzzCommand::created, shared_from_this(), boost::placeholders::_1));
 		// async process
-		lCreateReBuzz->process(boost::bind(&CreateReBuzzCommand::error, shared_from_this(), _1, _2));
+		lCreateReBuzz->process(boost::bind(&CreateReBuzzCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
 	} else {
 		error("E_BUZZ_NOT_FOUND_IN_FEED", "Buzz was not found in local feed");
 	}
@@ -2120,7 +2120,7 @@ void LoadBuzzerTrustScoreCommand::process(const std::vector<std::string>& args) 
 
 	if (!composer_->buzzerRequestProcessor()->loadTrustScore(lBuzzerChain, lBuzzer, 
 		LoadTrustScore::instance(
-			boost::bind(&LoadBuzzerTrustScoreCommand::trustScoreLoaded, shared_from_this(), _1, _2, _3, _4),
+			boost::bind(&LoadBuzzerTrustScoreCommand::trustScoreLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3, boost::placeholders::_4),
 			boost::bind(&LoadBuzzerTrustScoreCommand::timeout, shared_from_this()))
 	)) error("E_LOAD_TRUSTSCORE", "Trust score loading failed.");	
 }
@@ -2140,9 +2140,9 @@ void BuzzerEndorseCommand::process(const std::vector<std::string>& args) {
 
 		// prepare
 		IComposerMethodPtr lCommand = BuzzerLightComposer::CreateTxBuzzerEndorse::instance(composer_, args[0], lPoints,
-			boost::bind(&BuzzerEndorseCommand::created, shared_from_this(), _1));
+			boost::bind(&BuzzerEndorseCommand::created, shared_from_this(), boost::placeholders::_1));
 		// async process
-		lCommand->process(boost::bind(&BuzzerEndorseCommand::error, shared_from_this(), _1, _2));
+		lCommand->process(boost::bind(&BuzzerEndorseCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
 	} else {
 		error("E_INCORRECT_AGRS", "Incorrect number of arguments");
 	}
@@ -2163,9 +2163,9 @@ void BuzzerMistrustCommand::process(const std::vector<std::string>& args) {
 
 		// prepare
 		IComposerMethodPtr lCommand = BuzzerLightComposer::CreateTxBuzzerMistrust::instance(composer_, args[0], lPoints,
-			boost::bind(&BuzzerMistrustCommand::created, shared_from_this(), _1));
+			boost::bind(&BuzzerMistrustCommand::created, shared_from_this(), boost::placeholders::_1));
 		// async process
-		lCommand->process(boost::bind(&BuzzerMistrustCommand::error, shared_from_this(), _1, _2));
+		lCommand->process(boost::bind(&BuzzerMistrustCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
 	} else {
 		error("E_INCORRECT_AGRS", "Incorrect number of arguments");
 	}
@@ -2257,10 +2257,10 @@ void LoadBuzzerInfoCommand::process(const std::vector<std::string>& args) {
 		IComposerMethodPtr lCommand = BuzzerLightComposer::LoadBuzzerInfo::instance(
 			composer_, 
 			lBuzzer,
-			boost::bind(&LoadBuzzerInfoCommand::buzzerAndInfoLoaded, shared_from_this(), _1, _2, _3));
+			boost::bind(&LoadBuzzerInfoCommand::buzzerAndInfoLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 		
 		// async process
-		lCommand->process(boost::bind(&LoadBuzzerInfoCommand::error, shared_from_this(), _1, _2));
+		lCommand->process(boost::bind(&LoadBuzzerInfoCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
 	} else {
 		error("E_INCORRECT_AGRS", "Incorrect number of arguments");
 		return;
@@ -2283,7 +2283,7 @@ void LoadBuzzerInfoCommand::buzzerAndInfoLoaded(EntityPtr buzzer, TransactionPtr
 		// 
 		if (!composer_->requestProcessor()->selectUtxoByTransaction(buzzer_->chain(), buzzer_->id(), 
 			SelectUtxoByTransaction::instance(
-				boost::bind(&LoadBuzzerInfoCommand::utxoByBuzzerLoaded, shared_from_this(), _1, _2),
+				boost::bind(&LoadBuzzerInfoCommand::utxoByBuzzerLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 				boost::bind(&LoadBuzzerInfoCommand::timeout, shared_from_this()))
 		)) { error("E_LOAD_UTXO_BY_BUZZER", "Buzzer loading failed."); return; }
 	}
@@ -2310,9 +2310,9 @@ void CreateBuzzerConversationCommand::process(const std::vector<std::string>& ar
 	if (args.size() == 1) {
 		// prepare
 		IComposerMethodPtr lCommand = BuzzerLightComposer::CreateTxBuzzerConversation::instance(composer_, args[0],
-			boost::bind(&CreateBuzzerConversationCommand::created, shared_from_this(), _1));
+			boost::bind(&CreateBuzzerConversationCommand::created, shared_from_this(), boost::placeholders::_1));
 		// async process
-		lCommand->process(boost::bind(&CreateBuzzerConversationCommand::error, shared_from_this(), _1, _2));
+		lCommand->process(boost::bind(&CreateBuzzerConversationCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
 	} else {
 		error("E_INCORRECT_AGRS", "Incorrect number of arguments");
 	}
@@ -2337,9 +2337,9 @@ void AcceptConversationCommand::process(const std::vector<std::string>& args) {
 				composer_, 
 				lConversation->conversationChainId(),
 				lConversation->conversationId(),
-				boost::bind(&AcceptConversationCommand::created, shared_from_this(), _1));
+				boost::bind(&AcceptConversationCommand::created, shared_from_this(), boost::placeholders::_1));
 			// async process
-			lCommand->process(boost::bind(&AcceptConversationCommand::error, shared_from_this(), _1, _2));
+			lCommand->process(boost::bind(&AcceptConversationCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
 		} else {
 			error("E_CONVERSATION_NOT_FOUND_IN_FEED", "Conversation was not found in local feed");
 			return;
@@ -2367,9 +2367,9 @@ void DeclineConversationCommand::process(const std::vector<std::string>& args) {
 				composer_, 
 				lConversation->conversationChainId(),
 				lConversation->conversationId(),
-				boost::bind(&DeclineConversationCommand::created, shared_from_this(), _1));
+				boost::bind(&DeclineConversationCommand::created, shared_from_this(), boost::placeholders::_1));
 			// async process
-			lCommand->process(boost::bind(&DeclineConversationCommand::error, shared_from_this(), _1, _2));
+			lCommand->process(boost::bind(&DeclineConversationCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
 		} else {
 			error("E_CONVERSATION_NOT_FOUND_IN_FEED", "Conversation was not found in local feed");
 			return;
@@ -2417,7 +2417,7 @@ void CreateBuzzerMessageCommand::process(const std::vector<std::string>& args) {
 			// load conversation and extract counterparty key
 			if (!composer_->requestProcessor()->loadTransaction(lItem->conversationChainId(), conversationId_, 
 				LoadTransaction::instance(
-					boost::bind(&CreateBuzzerMessageCommand::conversationLoaded, shared_from_this(), _1),
+					boost::bind(&CreateBuzzerMessageCommand::conversationLoaded, shared_from_this(), boost::placeholders::_1),
 					boost::bind(&CreateBuzzerMessageCommand::timeout, shared_from_this()))
 			)) { error("E_LOAD_UTXO_BY_CONVERSATION", "Conversation loading failed."); return; }
 		} else {
@@ -2469,9 +2469,9 @@ void CreateBuzzerMessageCommand::createBuzz(const PKey& pkey) {
 			lItem->conversationId(), 
 			body_, 
 			mediaPointers_,
-			boost::bind(&CreateBuzzerMessageCommand::created, shared_from_this(), _1));
+			boost::bind(&CreateBuzzerMessageCommand::created, shared_from_this(), boost::placeholders::_1));
 		// async process
-		lCommand->process(boost::bind(&CreateBuzzerMessageCommand::error, shared_from_this(), _1, _2));
+		lCommand->process(boost::bind(&CreateBuzzerMessageCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
 	} else {
 		error("E_CONVERSATION_NOT_FOUND_IN_FEED", "Conversation was not found in local feed");
 	}
@@ -2573,7 +2573,7 @@ void ConversationListCommand::process(const std::vector<std::string>& args) {
 			std::vector<uint256> lBuzzes(lChain->second.begin(), lChain->second.end());
 			if (!composer_->buzzerRequestProcessor()->selectBuzzes(lChain->first, lBuzzes, 
 				SelectBuzzFeed::instance(
-					boost::bind(&ConversationListCommand::buzzesLoaded, shared_from_this(), _1, _2),
+					boost::bind(&ConversationListCommand::buzzesLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 					boost::bind(&ConversationListCommand::timeout, shared_from_this()))
 			)) error("E_LOAD_PENDING_BUZZFEED", "Buzzfeed pending items loading failed.");	
 		}
@@ -2594,9 +2594,9 @@ void ConversationListCommand::processPengingInfos() {
 			std::vector<uint256> lInfos(lChain->second.begin(), lChain->second.end());
 			if (!composer_->requestProcessor()->loadTransactions(lChain->first, lInfos, 
 				LoadTransactions::instance(
-					boost::bind(&ConversationListCommand::buzzerInfoLoaded, shared_from_this(), _1),
+					boost::bind(&ConversationListCommand::buzzerInfoLoaded, shared_from_this(), boost::placeholders::_1),
 					boost::bind(&ConversationListCommand::timeout, shared_from_this()))
-			)) error("E_LOAD_PENDING_BUZZER_INFOS", "Buzzer infos failed to load.");	
+			)) error("E_LOAD_PENDING_BUZZER_INFOS", "Buzzer infos failed to load.");
 		}
 	} else {
 		// show
@@ -2659,7 +2659,7 @@ void DecryptBuzzerMessageCommand::process(const std::vector<std::string>& args) 
 				// load conversation and extract counterparty key
 				if (!composer_->requestProcessor()->loadTransaction(lConversation->conversationChainId(), lConversation->conversationId(), 
 					LoadTransaction::instance(
-						boost::bind(&DecryptBuzzerMessageCommand::conversationLoaded, shared_from_this(), _1),
+						boost::bind(&DecryptBuzzerMessageCommand::conversationLoaded, shared_from_this(), boost::placeholders::_1),
 						boost::bind(&DecryptBuzzerMessageCommand::timeout, shared_from_this()))
 				)) { error("E_LOAD_UTXO_BY_CONVERSATION", "Conversation loading failed."); return; }
 
@@ -2742,7 +2742,7 @@ void DecryptMessageBodyCommand::process(const std::vector<std::string>& args) {
 					lConversation->conversationId(),
 					true, // try mempool
 					LoadTransaction::instance(
-						boost::bind(&DecryptMessageBodyCommand::conversationLoaded, shared_from_this(), _1),
+						boost::bind(&DecryptMessageBodyCommand::conversationLoaded, shared_from_this(), boost::placeholders::_1),
 						boost::bind(&DecryptMessageBodyCommand::timeout, shared_from_this()))
 				)) { error("E_LOAD_UTXO_BY_CONVERSATION", "Conversation loading failed."); return; }
 
@@ -2807,7 +2807,7 @@ void LoadCounterpartyKeyCommand::process(const std::vector<std::string>& args) {
 					lConversation->conversationId(),
 					true, // try mempool
 					LoadTransaction::instance(
-						boost::bind(&LoadCounterpartyKeyCommand::conversationLoaded, shared_from_this(), _1),
+						boost::bind(&LoadCounterpartyKeyCommand::conversationLoaded, shared_from_this(), boost::placeholders::_1),
 						boost::bind(&LoadCounterpartyKeyCommand::timeout, shared_from_this()))
 				)) { error("E_LOAD_UTXO_BY_CONVERSATION", "Conversation loading failed."); return; }
 

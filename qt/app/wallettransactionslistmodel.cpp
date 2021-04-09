@@ -11,9 +11,9 @@ WalletTransactionsListModel::WalletTransactionsListModel() {
 
 WalletTransactionsListModel::WalletTransactionsListModel(const std::string& key, qbit::IWalletPtr wallet) : wallet_(wallet) {
 	//
-	wallet_->setWalletReceiveTransactionFunction(key, boost::bind(&WalletTransactionsListModel::walletReceiveTransaction, this, _1, _2));
-	wallet_->setWalletOutUpdatedFunction(key, boost::bind(&WalletTransactionsListModel::outUpdated, this, _1));
-	wallet_->setWalletInUpdatedFunction(key, boost::bind(&WalletTransactionsListModel::inUpdated, this, _1));
+	wallet_->setWalletReceiveTransactionFunction(key, boost::bind(&WalletTransactionsListModel::walletReceiveTransaction, this, boost::placeholders::_1, boost::placeholders::_2));
+	wallet_->setWalletOutUpdatedFunction(key, boost::bind(&WalletTransactionsListModel::outUpdated, this, boost::placeholders::_1));
+	wallet_->setWalletInUpdatedFunction(key, boost::bind(&WalletTransactionsListModel::inUpdated, this, boost::placeholders::_1));
 
 	//
 	connect(this, SIGNAL(walletReceiveTransactionSignal(const buzzer::UnlinkedOutProxy&, const buzzer::TransactionProxy&)),

@@ -336,7 +336,7 @@ void BuzzerLightComposer::checkSubscription(const uint256& chain, const uint256&
 	//
 	buzzerRequestProcessor()->loadSubscription(chain, buzzerTx()->id(), publisher, 
 		LoadTransaction::instance(
-			boost::bind(&BuzzerLightComposer::subscriptionLoaded, shared_from_this(), _1),
+			boost::bind(&BuzzerLightComposer::subscriptionLoaded, shared_from_this(), boost::placeholders::_1),
 			boost::bind(&BuzzerLightComposer::timeout, shared_from_this())));
 }
 
@@ -360,7 +360,7 @@ void BuzzerLightComposer::subscriptionLoaded(TransactionPtr subscription) {
 			//
 			requestProcessor()->loadTransaction(MainChain::id(), lPublisher, 
 				LoadTransaction::instance(
-					boost::bind(&BuzzerLightComposer::publisherLoaded, shared_from_this(), _1),
+					boost::bind(&BuzzerLightComposer::publisherLoaded, shared_from_this(), boost::placeholders::_1),
 					boost::bind(&BuzzerLightComposer::timeout, shared_from_this()))
 			);
 		}
@@ -964,7 +964,7 @@ void BuzzerLightComposer::CreateTxBuzzer::process(errorFunction error) {
 	//
 	composer_->requestProcessor()->selectEntityNames(buzzerName_, 
 		SelectEntityNames::instance(
-			boost::bind(&BuzzerLightComposer::CreateTxBuzzer::assetNamesLoaded, shared_from_this(), _1, _2),
+			boost::bind(&BuzzerLightComposer::CreateTxBuzzer::assetNamesLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 			boost::bind(&BuzzerLightComposer::CreateTxBuzzer::timeout, shared_from_this()))
 	);
 }
@@ -1018,7 +1018,7 @@ void BuzzerLightComposer::CreateTxBuzzer::assetNamesLoaded(const std::string& na
 
 	composer_->requestProcessor()->selectUtxoByEntity(composer_->dAppName(), 
 		SelectUtxoByEntityName::instance(
-			boost::bind(&BuzzerLightComposer::CreateTxBuzzer::utxoByDAppLoaded, shared_from_this(), _1, _2),
+			boost::bind(&BuzzerLightComposer::CreateTxBuzzer::utxoByDAppLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 			boost::bind(&BuzzerLightComposer::CreateTxBuzzer::timeout, shared_from_this()))
 	);
 }
@@ -1079,7 +1079,7 @@ void BuzzerLightComposer::CreateTxBuzzer::utxoByDAppLoaded(const std::vector<Tra
 	//
 	composer_->requestProcessor()->selectEntityCountByShards(composer_->dAppName(), 
 		SelectEntityCountByShards::instance(
-			boost::bind(&BuzzerLightComposer::CreateTxBuzzer::dAppInstancesCountByShardsLoaded, shared_from_this(), _1, _2),
+			boost::bind(&BuzzerLightComposer::CreateTxBuzzer::dAppInstancesCountByShardsLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 			boost::bind(&BuzzerLightComposer::CreateTxBuzzer::timeout, shared_from_this()))
 	);
 }
@@ -1089,7 +1089,7 @@ void BuzzerLightComposer::CreateTxBuzzer::dAppInstancesCountByShardsLoaded(const
 	if (info.size()) {
 		composer_->requestProcessor()->loadTransaction(MainChain::id(), info.begin()->second, 
 			LoadTransaction::instance(
-				boost::bind(&BuzzerLightComposer::CreateTxBuzzer::shardLoaded, shared_from_this(), _1),
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzer::shardLoaded, shared_from_this(), boost::placeholders::_1),
 				boost::bind(&BuzzerLightComposer::CreateTxBuzzer::timeout, shared_from_this()))
 		);
 	} else {
@@ -1107,7 +1107,7 @@ void BuzzerLightComposer::CreateTxBuzzer::shardLoaded(TransactionPtr shard) {
 
 	composer_->requestProcessor()->selectUtxoByEntity(shardTx_->entityName(), 
 		SelectUtxoByEntityName::instance(
-			boost::bind(&BuzzerLightComposer::CreateTxBuzzer::utxoByShardLoaded, shared_from_this(), _1, _2),
+			boost::bind(&BuzzerLightComposer::CreateTxBuzzer::utxoByShardLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 			boost::bind(&BuzzerLightComposer::CreateTxBuzzer::timeout, shared_from_this()))
 	);
 }
@@ -1204,7 +1204,7 @@ void BuzzerLightComposer::CreateTxBuzzerInfo::process(errorFunction error) {
 			if (!lMyBuzzerUtxos.size() && !buzzer_) {
 				composer_->requestProcessor()->selectUtxoByEntity(lMyBuzzer->myName(), 
 					SelectUtxoByEntityName::instance(
-						boost::bind(&BuzzerLightComposer::CreateTxBuzzerInfo::saveBuzzerUtxo, shared_from_this(), _1, _2),
+						boost::bind(&BuzzerLightComposer::CreateTxBuzzerInfo::saveBuzzerUtxo, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 						boost::bind(&BuzzerLightComposer::CreateTxBuzzerInfo::timeout, shared_from_this()))
 				);
 			} else {
@@ -1290,7 +1290,7 @@ void BuzzerLightComposer::CreateTxBuzz::process(errorFunction error) {
 			if (!lMyBuzzerUtxos.size()) {
 				composer_->requestProcessor()->selectUtxoByEntity(lMyBuzzer->myName(), 
 					SelectUtxoByEntityName::instance(
-						boost::bind(&BuzzerLightComposer::CreateTxBuzz::saveBuzzerUtxo, shared_from_this(), _1, _2),
+						boost::bind(&BuzzerLightComposer::CreateTxBuzz::saveBuzzerUtxo, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 						boost::bind(&BuzzerLightComposer::CreateTxBuzz::timeout, shared_from_this()))
 				);
 			} else {
@@ -1340,7 +1340,7 @@ void BuzzerLightComposer::CreateTxBuzz::utxoByBuzzerLoaded(const std::vector<Tra
 	if (!buzzers_.size()) {
 		composer_->requestProcessor()->selectUtxoByEntityNames(buzzers_, 
 			SelectUtxoByEntityNames::instance(
-				boost::bind(&BuzzerLightComposer::CreateTxBuzz::utxoByBuzzersListLoaded, shared_from_this(), _1),
+				boost::bind(&BuzzerLightComposer::CreateTxBuzz::utxoByBuzzersListLoaded, shared_from_this(), boost::placeholders::_1),
 				boost::bind(&BuzzerLightComposer::CreateTxBuzz::timeout, shared_from_this()))
 		);
 	} else {
@@ -1419,7 +1419,7 @@ void BuzzerLightComposer::CreateTxBuzzerSubscribe::process(errorFunction error) 
 
 		composer_->requestProcessor()->loadEntity(publisher_, 
 			LoadEntity::instance(
-				boost::bind(&BuzzerLightComposer::CreateTxBuzzerSubscribe::publisherLoaded, shared_from_this(), _1),
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzerSubscribe::publisherLoaded, shared_from_this(), boost::placeholders::_1),
 				boost::bind(&BuzzerLightComposer::CreateTxBuzzerSubscribe::timeout, shared_from_this()))
 		);
 	} else {
@@ -1454,7 +1454,7 @@ void BuzzerLightComposer::CreateTxBuzzerSubscribe::publisherLoaded(EntityPtr pub
 
 		composer_->requestProcessor()->selectUtxoByEntity(publisher_, 
 			SelectUtxoByEntityName::instance(
-				boost::bind(&BuzzerLightComposer::CreateTxBuzzerSubscribe::utxoByPublisherLoaded, shared_from_this(), _1, _2),
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzerSubscribe::utxoByPublisherLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 				boost::bind(&BuzzerLightComposer::CreateTxBuzzerSubscribe::timeout, shared_from_this()))
 		);
 	} else {
@@ -1482,7 +1482,7 @@ void BuzzerLightComposer::CreateTxBuzzerSubscribe::utxoByPublisherLoaded(const s
 	if (!lMyBuzzerUtxos.size()) {
 		composer_->requestProcessor()->selectUtxoByEntity(composer_->buzzerTx()->myName(), 
 			SelectUtxoByEntityName::instance(
-				boost::bind(&BuzzerLightComposer::CreateTxBuzzerSubscribe::saveBuzzerUtxo, shared_from_this(), _1, _2),
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzerSubscribe::saveBuzzerUtxo, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 				boost::bind(&BuzzerLightComposer::CreateTxBuzzerSubscribe::timeout, shared_from_this()))
 		);
 	} else {
@@ -1544,7 +1544,7 @@ void BuzzerLightComposer::CreateTxBuzzerUnsubscribe::process(errorFunction error
 
 		composer_->requestProcessor()->loadEntity(publisher_, 
 			LoadEntity::instance(
-				boost::bind(&BuzzerLightComposer::CreateTxBuzzerUnsubscribe::publisherLoaded, shared_from_this(), _1),
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzerUnsubscribe::publisherLoaded, shared_from_this(), boost::placeholders::_1),
 				boost::bind(&BuzzerLightComposer::CreateTxBuzzerUnsubscribe::timeout, shared_from_this()))
 		);
 	} else {
@@ -1570,7 +1570,7 @@ void BuzzerLightComposer::CreateTxBuzzerUnsubscribe::publisherLoaded(EntityPtr p
 		// composer_->buzzerTx() already checked
 		if (!composer_->buzzerRequestProcessor()->loadSubscription(shardTx_, composer_->buzzerTx()->id(), publisher->id(), 
 			LoadTransaction::instance(
-				boost::bind(&BuzzerLightComposer::CreateTxBuzzerUnsubscribe::subscriptionLoaded, shared_from_this(), _1),
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzerUnsubscribe::subscriptionLoaded, shared_from_this(), boost::placeholders::_1),
 				boost::bind(&BuzzerLightComposer::CreateTxBuzzerUnsubscribe::timeout, shared_from_this()))
 		)) error_("E_LOAD_SUBSCRIPTION", "Load subscription failed.");
 	} else {
@@ -1585,7 +1585,7 @@ void BuzzerLightComposer::CreateTxBuzzerUnsubscribe::subscriptionLoaded(Transact
 	// composer_->buzzerTx() already checked
 	composer_->requestProcessor()->selectUtxoByTransaction(shardTx_, subscription->id(), 
 		SelectUtxoByTransaction::instance(
-			boost::bind(&BuzzerLightComposer::CreateTxBuzzerUnsubscribe::utxoBySubscriptionLoaded, shared_from_this(), _1, _2),
+			boost::bind(&BuzzerLightComposer::CreateTxBuzzerUnsubscribe::utxoBySubscriptionLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 			boost::bind(&BuzzerLightComposer::CreateTxBuzzerUnsubscribe::timeout, shared_from_this()))
 	);
 }
@@ -1619,7 +1619,7 @@ void BuzzerLightComposer::LoadBuzzfeed::process(errorFunction error) {
 	// 
 	if (!(count_ = composer_->buzzerRequestProcessor()->selectBuzzfeed(chain_, from_, composer_->buzzerTx()->id(), requests_,
 		SelectBuzzFeed::instance(
-			boost::bind(&BuzzerLightComposer::LoadBuzzfeed::buzzfeedLoaded, shared_from_this(), _1, _2),
+			boost::bind(&BuzzerLightComposer::LoadBuzzfeed::buzzfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 			boost::bind(&BuzzerLightComposer::LoadBuzzfeed::timeout, shared_from_this()))
 	))) error_("E_LOAD_BUZZFEED", "Buzzfeed loading failed.");
 }
@@ -1634,7 +1634,7 @@ void BuzzerLightComposer::LoadBuzzesByBuzz::process(errorFunction error) {
 	// 
 	if (!(count_ = composer_->buzzerRequestProcessor()->selectBuzzfeedByBuzz(chain_, from_, buzz_, requests_,
 		SelectBuzzFeedByEntity::instance(
-			boost::bind(&BuzzerLightComposer::LoadBuzzesByBuzz::buzzfeedLoaded, shared_from_this(), _1, _2, _3),
+			boost::bind(&BuzzerLightComposer::LoadBuzzesByBuzz::buzzfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3),
 			boost::bind(&BuzzerLightComposer::LoadBuzzesByBuzz::timeout, shared_from_this()))
 	))) error_("E_LOAD_BUZZFEED", "Buzzfeed for buzz loading failed.");
 }
@@ -1649,7 +1649,7 @@ void BuzzerLightComposer::LoadMessages::process(errorFunction error) {
 	// 
 	if (!(count_ = composer_->buzzerRequestProcessor()->selectMessages(chain_, from_, conversation_, requests_,
 		SelectBuzzFeedByEntity::instance(
-			boost::bind(&BuzzerLightComposer::LoadMessages::messagesLoaded, shared_from_this(), _1, _2, _3),
+			boost::bind(&BuzzerLightComposer::LoadMessages::messagesLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3),
 			boost::bind(&BuzzerLightComposer::LoadMessages::timeout, shared_from_this()))
 	))) error_("E_LOAD_MESSAGES", "Messages for conversation loading failed.");
 }
@@ -1664,7 +1664,7 @@ void BuzzerLightComposer::LoadBuzzesByBuzzer::process(errorFunction error) {
 	if (buzzerId_.isNull()) {
 		if (!composer_->requestProcessor()->loadEntity(buzzer_, 
 			LoadEntity::instance(
-				boost::bind(&BuzzerLightComposer::LoadBuzzesByBuzzer::publisherLoaded, shared_from_this(), _1),
+				boost::bind(&BuzzerLightComposer::LoadBuzzesByBuzzer::publisherLoaded, shared_from_this(), boost::placeholders::_1),
 				boost::bind(&BuzzerLightComposer::LoadBuzzesByBuzzer::timeout, shared_from_this()))
 		)) error_("E_LOAD_BUZZER", "Buzzer loading failed.");
 	} else {
@@ -1675,7 +1675,7 @@ void BuzzerLightComposer::LoadBuzzesByBuzzer::process(errorFunction error) {
 				if (lPublisher->publisher() == buzzerId_) {
 					if (!(count_ = composer_->buzzerRequestProcessor()->selectBuzzfeedByBuzzer(chain_, lPublisher->from(), buzzerId_, requests_,
 						SelectBuzzFeedByEntity::instance(
-							boost::bind(&BuzzerLightComposer::LoadBuzzesByBuzzer::buzzfeedLoaded, shared_from_this(), _1, _2, _3),
+							boost::bind(&BuzzerLightComposer::LoadBuzzesByBuzzer::buzzfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3),
 							boost::bind(&BuzzerLightComposer::LoadBuzzesByBuzzer::timeout, shared_from_this()))
 					))) error_("E_LOAD_BUZZFEED", "Buzzfeed for buzzer loading failed.");
 					lSent = true;
@@ -1688,7 +1688,7 @@ void BuzzerLightComposer::LoadBuzzesByBuzzer::process(errorFunction error) {
 		} else {
 			if (!(count_ = composer_->buzzerRequestProcessor()->selectBuzzfeedByBuzzer(chain_, 0, buzzerId_, requests_,
 				SelectBuzzFeedByEntity::instance(
-					boost::bind(&BuzzerLightComposer::LoadBuzzesByBuzzer::buzzfeedLoaded, shared_from_this(), _1, _2, _3),
+					boost::bind(&BuzzerLightComposer::LoadBuzzesByBuzzer::buzzfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3),
 					boost::bind(&BuzzerLightComposer::LoadBuzzesByBuzzer::timeout, shared_from_this()))
 			))) error_("E_LOAD_BUZZFEED", "Buzzfeed for buzzer loading failed.");			
 		}
@@ -1709,7 +1709,7 @@ void BuzzerLightComposer::LoadBuzzesByBuzzer::publisherLoaded(EntityPtr publishe
 			if (lPublisher->publisher() == publisher->id()) {
 				if (!(count_ = composer_->buzzerRequestProcessor()->selectBuzzfeedByBuzzer(chain_, lPublisher->from(), publisher->id(), requests_,
 					SelectBuzzFeedByEntity::instance(
-						boost::bind(&BuzzerLightComposer::LoadBuzzesByBuzzer::buzzfeedLoaded, shared_from_this(), _1, _2, _3),
+						boost::bind(&BuzzerLightComposer::LoadBuzzesByBuzzer::buzzfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3),
 						boost::bind(&BuzzerLightComposer::LoadBuzzesByBuzzer::timeout, shared_from_this()))
 				))) error_("E_LOAD_BUZZFEED", "Buzzfeed for buzzer loading failed.");
 				lSent = true;
@@ -1722,7 +1722,7 @@ void BuzzerLightComposer::LoadBuzzesByBuzzer::publisherLoaded(EntityPtr publishe
 	} else {
 		if (!(count_ = composer_->buzzerRequestProcessor()->selectBuzzfeedByBuzzer(chain_, 0, publisher->id(), requests_,
 			SelectBuzzFeedByEntity::instance(
-				boost::bind(&BuzzerLightComposer::LoadBuzzesByBuzzer::buzzfeedLoaded, shared_from_this(), _1, _2, _3),
+				boost::bind(&BuzzerLightComposer::LoadBuzzesByBuzzer::buzzfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3),
 				boost::bind(&BuzzerLightComposer::LoadBuzzesByBuzzer::timeout, shared_from_this()))
 		))) error_("E_LOAD_BUZZFEED", "Buzzfeed for buzzer loading failed.");		
 	}
@@ -1744,7 +1744,7 @@ void BuzzerLightComposer::LoadBuzzesGlobal::process(errorFunction error) {
 		publisher_, 
 		requests_,
 		SelectBuzzFeed::instance(
-			boost::bind(&BuzzerLightComposer::LoadBuzzesGlobal::buzzfeedLoaded, shared_from_this(), _1, _2),
+			boost::bind(&BuzzerLightComposer::LoadBuzzesGlobal::buzzfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 			boost::bind(&BuzzerLightComposer::LoadBuzzesGlobal::timeout, shared_from_this()))
 	))) error_("E_LOAD_BUZZFEED", "Buzzfeed for buzzer loading failed.");
 }
@@ -1766,7 +1766,7 @@ void BuzzerLightComposer::LoadBuzzesByTag::process(errorFunction error) {
 		publisher_, 
 		requests_,
 		SelectBuzzFeed::instance(
-			boost::bind(&BuzzerLightComposer::LoadBuzzesByTag::buzzfeedLoaded, shared_from_this(), _1, _2),
+			boost::bind(&BuzzerLightComposer::LoadBuzzesByTag::buzzfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 			boost::bind(&BuzzerLightComposer::LoadBuzzesByTag::timeout, shared_from_this()))
 	))) error_("E_LOAD_BUZZFEED", "Buzzfeed for buzzer loading failed.");
 }
@@ -1784,7 +1784,7 @@ void BuzzerLightComposer::LoadHashTags::process(errorFunction error) {
 		tag_,
 		requests_,
 		SelectHashTags::instance(
-			boost::bind(&BuzzerLightComposer::LoadHashTags::loaded, shared_from_this(), _1, _2),
+			boost::bind(&BuzzerLightComposer::LoadHashTags::loaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 			boost::bind(&BuzzerLightComposer::LoadHashTags::timeout, shared_from_this()))
 	))) error_("E_LOAD_BUZZFEED", "Hash tags loading failed.");
 }
@@ -1799,7 +1799,7 @@ void BuzzerLightComposer::LoadEventsfeed::process(errorFunction error) {
 	// 
 	if (!(count_ = composer_->buzzerRequestProcessor()->selectEventsfeed(chain_, from_, composer_->buzzerTx()->id(), requests_,
 		SelectEventsFeed::instance(
-			boost::bind(&BuzzerLightComposer::LoadEventsfeed::eventsfeedLoaded, shared_from_this(), _1, _2),
+			boost::bind(&BuzzerLightComposer::LoadEventsfeed::eventsfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 			boost::bind(&BuzzerLightComposer::LoadEventsfeed::timeout, shared_from_this()))
 	))) error_("E_LOAD_CONVERSATIONS", "Conversations loading failed.");
 }
@@ -1814,7 +1814,7 @@ void BuzzerLightComposer::LoadConversations::process(errorFunction error) {
 	// 
 	if (!(count_ = composer_->buzzerRequestProcessor()->selectConversations(chain_, from_, composer_->buzzerTx()->id(), requests_,
 		SelectConversationsFeedByEntity::instance(
-			boost::bind(&BuzzerLightComposer::LoadConversations::conversationsLoaded, shared_from_this(), _1, _2, _3),
+			boost::bind(&BuzzerLightComposer::LoadConversations::conversationsLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3),
 			boost::bind(&BuzzerLightComposer::LoadConversations::timeout, shared_from_this()))
 	))) error_("E_LOAD_EVENTSFEED", "Eventsfeed loading failed.");
 }
@@ -1830,13 +1830,13 @@ void BuzzerLightComposer::LoadMistrustsByBuzzer::process(errorFunction error) {
 	if (!buzzer_.isNull()) { 
 		if (!(count_ = composer_->buzzerRequestProcessor()->selectMistrustsByBuzzer(chain_, from_, buzzer_, requests_,
 			SelectEventsFeedByEntity::instance(
-				boost::bind(&BuzzerLightComposer::LoadMistrustsByBuzzer::eventsfeedLoaded, shared_from_this(), _1, _2, _3),
+				boost::bind(&BuzzerLightComposer::LoadMistrustsByBuzzer::eventsfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3),
 				boost::bind(&BuzzerLightComposer::LoadMistrustsByBuzzer::timeout, shared_from_this()))
 		))) error_("E_LOAD_EVENTSFEED", "Endorsements by buzzer loading failed.");
 	} else {
 		if (!composer_->requestProcessor()->loadEntity(buzzerName_, 
 			LoadEntity::instance(
-				boost::bind(&BuzzerLightComposer::LoadMistrustsByBuzzer::publisherLoaded, shared_from_this(), _1),
+				boost::bind(&BuzzerLightComposer::LoadMistrustsByBuzzer::publisherLoaded, shared_from_this(), boost::placeholders::_1),
 				boost::bind(&BuzzerLightComposer::LoadMistrustsByBuzzer::timeout, shared_from_this()))
 		)) error_("E_LOAD_BUZZER", "Buzzer loading failed.");
 	}
@@ -1851,7 +1851,7 @@ void BuzzerLightComposer::LoadMistrustsByBuzzer::publisherLoaded(EntityPtr publi
 
 	if (!(count_ = composer_->buzzerRequestProcessor()->selectMistrustsByBuzzer(chain_, from_, publisher->id(), requests_,
 		SelectEventsFeedByEntity::instance(
-			boost::bind(&BuzzerLightComposer::LoadMistrustsByBuzzer::eventsfeedLoaded, shared_from_this(), _1, _2, _3),
+			boost::bind(&BuzzerLightComposer::LoadMistrustsByBuzzer::eventsfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3),
 			boost::bind(&BuzzerLightComposer::LoadMistrustsByBuzzer::timeout, shared_from_this()))
 	))) error_("E_LOAD_EVENTSFEED", "Endorsements by buzzer loading failed.");
 }
@@ -1867,13 +1867,13 @@ void BuzzerLightComposer::LoadSubscriptionsByBuzzer::process(errorFunction error
 	if (!buzzer_.isNull()) { 
 		if (!(count_ = composer_->buzzerRequestProcessor()->selectSubscriptionsByBuzzer(chain_, from_, buzzer_, requests_,
 			SelectEventsFeedByEntity::instance(
-				boost::bind(&BuzzerLightComposer::LoadSubscriptionsByBuzzer::eventsfeedLoaded, shared_from_this(), _1, _2, _3),
+				boost::bind(&BuzzerLightComposer::LoadSubscriptionsByBuzzer::eventsfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3),
 				boost::bind(&BuzzerLightComposer::LoadSubscriptionsByBuzzer::timeout, shared_from_this()))
 		))) error_("E_LOAD_EVENTSFEED", "Subscriptions by buzzer loading failed.");
 	} else {
 		if (!composer_->requestProcessor()->loadEntity(buzzerName_, 
 			LoadEntity::instance(
-				boost::bind(&BuzzerLightComposer::LoadSubscriptionsByBuzzer::publisherLoaded, shared_from_this(), _1),
+				boost::bind(&BuzzerLightComposer::LoadSubscriptionsByBuzzer::publisherLoaded, shared_from_this(), boost::placeholders::_1),
 				boost::bind(&BuzzerLightComposer::LoadSubscriptionsByBuzzer::timeout, shared_from_this()))
 		)) error_("E_LOAD_BUZZER", "Buzzer loading failed.");
 	}
@@ -1888,7 +1888,7 @@ void BuzzerLightComposer::LoadSubscriptionsByBuzzer::publisherLoaded(EntityPtr p
 
 	if (!(count_ = composer_->buzzerRequestProcessor()->selectSubscriptionsByBuzzer(chain_, from_, publisher->id(), requests_,
 		SelectEventsFeedByEntity::instance(
-			boost::bind(&BuzzerLightComposer::LoadSubscriptionsByBuzzer::eventsfeedLoaded, shared_from_this(), _1, _2, _3),
+			boost::bind(&BuzzerLightComposer::LoadSubscriptionsByBuzzer::eventsfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3),
 			boost::bind(&BuzzerLightComposer::LoadSubscriptionsByBuzzer::timeout, shared_from_this()))
 	))) error_("E_LOAD_EVENTSFEED", "Endorsements by buzzer loading failed.");
 }
@@ -1904,13 +1904,13 @@ void BuzzerLightComposer::LoadFollowersByBuzzer::process(errorFunction error) {
 	if (!buzzer_.isNull()) { 
 		if (!(count_ = composer_->buzzerRequestProcessor()->selectFollowersByBuzzer(chain_, from_, buzzer_, requests_,
 			SelectEventsFeedByEntity::instance(
-				boost::bind(&BuzzerLightComposer::LoadFollowersByBuzzer::eventsfeedLoaded, shared_from_this(), _1, _2, _3),
+				boost::bind(&BuzzerLightComposer::LoadFollowersByBuzzer::eventsfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3),
 				boost::bind(&BuzzerLightComposer::LoadFollowersByBuzzer::timeout, shared_from_this()))
 		))) error_("E_LOAD_EVENTSFEED", "Followers by buzzer loading failed.");
 	} else {
 		if (!composer_->requestProcessor()->loadEntity(buzzerName_, 
 			LoadEntity::instance(
-				boost::bind(&BuzzerLightComposer::LoadFollowersByBuzzer::publisherLoaded, shared_from_this(), _1),
+				boost::bind(&BuzzerLightComposer::LoadFollowersByBuzzer::publisherLoaded, shared_from_this(), boost::placeholders::_1),
 				boost::bind(&BuzzerLightComposer::LoadFollowersByBuzzer::timeout, shared_from_this()))
 		)) error_("E_LOAD_BUZZER", "Buzzer loading failed.");
 	}
@@ -1925,7 +1925,7 @@ void BuzzerLightComposer::LoadFollowersByBuzzer::publisherLoaded(EntityPtr publi
 
 	if (!(count_ = composer_->buzzerRequestProcessor()->selectFollowersByBuzzer(chain_, from_, publisher->id(), requests_,
 		SelectEventsFeedByEntity::instance(
-			boost::bind(&BuzzerLightComposer::LoadFollowersByBuzzer::eventsfeedLoaded, shared_from_this(), _1, _2, _3),
+			boost::bind(&BuzzerLightComposer::LoadFollowersByBuzzer::eventsfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3),
 			boost::bind(&BuzzerLightComposer::LoadFollowersByBuzzer::timeout, shared_from_this()))
 	))) error_("E_LOAD_EVENTSFEED", "Endorsements by buzzer loading failed.");
 }
@@ -1941,13 +1941,13 @@ void BuzzerLightComposer::LoadEndorsementsByBuzzer::process(errorFunction error)
 	if (!buzzer_.isNull()) { 
 		if (!(count_ = composer_->buzzerRequestProcessor()->selectEndorsementsByBuzzer(chain_, from_, buzzer_, requests_,
 			SelectEventsFeedByEntity::instance(
-				boost::bind(&BuzzerLightComposer::LoadEndorsementsByBuzzer::eventsfeedLoaded, shared_from_this(), _1, _2, _3),
+				boost::bind(&BuzzerLightComposer::LoadEndorsementsByBuzzer::eventsfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3),
 				boost::bind(&BuzzerLightComposer::LoadEndorsementsByBuzzer::timeout, shared_from_this()))
 		))) error_("E_LOAD_EVENTSFEED", "Endorsements by buzzer loading failed.");
 	} else {
 		if (!composer_->requestProcessor()->loadEntity(buzzerName_, 
 			LoadEntity::instance(
-				boost::bind(&BuzzerLightComposer::LoadEndorsementsByBuzzer::publisherLoaded, shared_from_this(), _1),
+				boost::bind(&BuzzerLightComposer::LoadEndorsementsByBuzzer::publisherLoaded, shared_from_this(), boost::placeholders::_1),
 				boost::bind(&BuzzerLightComposer::LoadEndorsementsByBuzzer::timeout, shared_from_this()))
 		)) error_("E_LOAD_BUZZER", "Buzzer loading failed.");
 	}
@@ -1962,7 +1962,7 @@ void BuzzerLightComposer::LoadEndorsementsByBuzzer::publisherLoaded(EntityPtr pu
 
 	if (!(count_ = composer_->buzzerRequestProcessor()->selectEndorsementsByBuzzer(chain_, from_, publisher->id(), requests_,
 		SelectEventsFeedByEntity::instance(
-			boost::bind(&BuzzerLightComposer::LoadEndorsementsByBuzzer::eventsfeedLoaded, shared_from_this(), _1, _2, _3),
+			boost::bind(&BuzzerLightComposer::LoadEndorsementsByBuzzer::eventsfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3),
 			boost::bind(&BuzzerLightComposer::LoadEndorsementsByBuzzer::timeout, shared_from_this()))
 	))) error_("E_LOAD_EVENTSFEED", "Endorsements by buzzer loading failed.");
 }
@@ -1978,7 +1978,7 @@ void BuzzerLightComposer::CreateTxBuzzLike::process(errorFunction error) {
 	// 
 	if (!composer_->requestProcessor()->selectUtxoByTransaction(chain_, buzz_, 
 		SelectUtxoByTransaction::instance(
-			boost::bind(&BuzzerLightComposer::CreateTxBuzzLike::utxoByBuzzLoaded, shared_from_this(), _1, _2),
+			boost::bind(&BuzzerLightComposer::CreateTxBuzzLike::utxoByBuzzLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 			boost::bind(&BuzzerLightComposer::CreateTxBuzzLike::timeout, shared_from_this()))
 	)) { error_("E_LOAD_UTXO_BY_BUZZ", "Buzz loading failed."); return; }
 }
@@ -1992,7 +1992,7 @@ void BuzzerLightComposer::CreateTxBuzzLike::utxoByBuzzLoaded(const std::vector<T
 	if (!lMyBuzzerUtxos.size()) {
 		composer_->requestProcessor()->selectUtxoByEntity(composer_->buzzerTx()->myName(), 
 			SelectUtxoByEntityName::instance(
-				boost::bind(&BuzzerLightComposer::CreateTxBuzzLike::saveBuzzerUtxo, shared_from_this(), _1, _2),
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzLike::saveBuzzerUtxo, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 				boost::bind(&BuzzerLightComposer::CreateTxBuzzLike::timeout, shared_from_this()))
 		);
 	} else {
@@ -2055,7 +2055,7 @@ void BuzzerLightComposer::CreateTxBuzzReward::process(errorFunction error) {
 	// 
 	if (!composer_->requestProcessor()->selectUtxoByTransaction(chain_, buzz_, 
 		SelectUtxoByTransaction::instance(
-			boost::bind(&BuzzerLightComposer::CreateTxBuzzReward::utxoByBuzzLoaded, shared_from_this(), _1, _2),
+			boost::bind(&BuzzerLightComposer::CreateTxBuzzReward::utxoByBuzzLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 			boost::bind(&BuzzerLightComposer::CreateTxBuzzReward::timeout, shared_from_this()))
 	)) { error_("E_LOAD_UTXO_BY_BUZZ", "Buzz loading failed."); return; }
 }
@@ -2069,7 +2069,7 @@ void BuzzerLightComposer::CreateTxBuzzReward::utxoByBuzzLoaded(const std::vector
 	if (!lMyBuzzerUtxos.size()) {
 		composer_->requestProcessor()->selectUtxoByEntity(composer_->buzzerTx()->myName(), 
 			SelectUtxoByEntityName::instance(
-				boost::bind(&BuzzerLightComposer::CreateTxBuzzReward::saveBuzzerUtxo, shared_from_this(), _1, _2),
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzReward::saveBuzzerUtxo, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 				boost::bind(&BuzzerLightComposer::CreateTxBuzzReward::timeout, shared_from_this()))
 		);
 	} else {
@@ -2153,7 +2153,7 @@ void BuzzerLightComposer::CreateTxBuzzReply::process(errorFunction error) {
 	// 
 	if (!composer_->requestProcessor()->selectUtxoByTransaction(chain_, buzz_, 
 		SelectUtxoByTransaction::instance(
-			boost::bind(&BuzzerLightComposer::CreateTxBuzzReply::utxoByBuzzLoaded, shared_from_this(), _1, _2),
+			boost::bind(&BuzzerLightComposer::CreateTxBuzzReply::utxoByBuzzLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 			boost::bind(&BuzzerLightComposer::CreateTxBuzzReply::timeout, shared_from_this()))
 	)) { error_("E_LOAD_UTXO_BY_BUZZ", "Buzz loading failed."); return; }
 }
@@ -2196,7 +2196,7 @@ void BuzzerLightComposer::CreateTxBuzzReply::utxoByBuzzLoaded(const std::vector<
 			if (!lMyBuzzerUtxos.size()) {
 				composer_->requestProcessor()->selectUtxoByEntity(lMyBuzzer->myName(), 
 					SelectUtxoByEntityName::instance(
-						boost::bind(&BuzzerLightComposer::CreateTxBuzzReply::saveBuzzerUtxo, shared_from_this(), _1, _2),
+						boost::bind(&BuzzerLightComposer::CreateTxBuzzReply::saveBuzzerUtxo, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 						boost::bind(&BuzzerLightComposer::CreateTxBuzzReply::timeout, shared_from_this()))
 				);
 			} else {
@@ -2250,7 +2250,7 @@ void BuzzerLightComposer::CreateTxBuzzReply::utxoByBuzzerLoaded(const std::vecto
 	if (!buzzers_.size()) {
 		composer_->requestProcessor()->selectUtxoByEntityNames(buzzers_, 
 			SelectUtxoByEntityNames::instance(
-				boost::bind(&BuzzerLightComposer::CreateTxBuzzReply::utxoByBuzzersListLoaded, shared_from_this(), _1),
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzReply::utxoByBuzzersListLoaded, shared_from_this(), boost::placeholders::_1),
 				boost::bind(&BuzzerLightComposer::CreateTxBuzzReply::timeout, shared_from_this()))
 		);
 	} else {
@@ -2317,7 +2317,7 @@ void BuzzerLightComposer::CreateTxRebuzz::process(errorFunction error) {
 
 	if (!composer_->requestProcessor()->loadTransaction(chain_, buzz_, 
 			LoadTransaction::instance(
-				boost::bind(&BuzzerLightComposer::CreateTxRebuzz::buzzLoaded, shared_from_this(), _1),
+				boost::bind(&BuzzerLightComposer::CreateTxRebuzz::buzzLoaded, shared_from_this(), boost::placeholders::_1),
 				boost::bind(&BuzzerLightComposer::CreateTxRebuzz::timeout, shared_from_this()))
 		))	error_("E_BUZZ_NOT_LOADED", "Buzz not loaded.");
 }
@@ -2368,7 +2368,7 @@ void BuzzerLightComposer::CreateTxRebuzz::buzzLoaded(TransactionPtr tx) {
 			if (!lMyBuzzerUtxos.size()) {
 				composer_->requestProcessor()->selectUtxoByEntity(lMyBuzzer->myName(), 
 					SelectUtxoByEntityName::instance(
-						boost::bind(&BuzzerLightComposer::CreateTxRebuzz::saveBuzzerUtxo, shared_from_this(), _1, _2),
+						boost::bind(&BuzzerLightComposer::CreateTxRebuzz::saveBuzzerUtxo, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 						boost::bind(&BuzzerLightComposer::CreateTxRebuzz::timeout, shared_from_this()))
 				);
 			} else {
@@ -2429,7 +2429,7 @@ void BuzzerLightComposer::CreateTxRebuzz::utxoByBuzzerLoaded(const std::vector<T
 	if (!buzzers_.size()) {
 		composer_->requestProcessor()->selectUtxoByEntityNames(buzzers_, 
 			SelectUtxoByEntityNames::instance(
-				boost::bind(&BuzzerLightComposer::CreateTxRebuzz::utxoByBuzzersListLoaded, shared_from_this(), _1),
+				boost::bind(&BuzzerLightComposer::CreateTxRebuzz::utxoByBuzzersListLoaded, shared_from_this(), boost::placeholders::_1),
 				boost::bind(&BuzzerLightComposer::CreateTxRebuzz::timeout, shared_from_this()))
 		);
 	} else {
@@ -2516,7 +2516,7 @@ void BuzzerLightComposer::CreateTxBuzzerEndorse::process(errorFunction error) {
 
 		composer_->requestProcessor()->loadEntity(publisher_, 
 			LoadEntity::instance(
-				boost::bind(&BuzzerLightComposer::CreateTxBuzzerEndorse::publisherLoaded, shared_from_this(), _1),
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzerEndorse::publisherLoaded, shared_from_this(), boost::placeholders::_1),
 				boost::bind(&BuzzerLightComposer::CreateTxBuzzerEndorse::timeout, shared_from_this()))
 		);
 	} else {
@@ -2544,7 +2544,7 @@ void BuzzerLightComposer::CreateTxBuzzerEndorse::publisherLoaded(EntityPtr publi
 		// check endorsement
 		composer_->buzzerRequestProcessor()->selectBuzzerEndorse(lShardIn.out().tx(), composer_->buzzerId(), publisher->id(),
 			LoadEndorse::instance(
-				boost::bind(&BuzzerLightComposer::CreateTxBuzzerEndorse::endorseTxLoaded, shared_from_this(), _1),
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzerEndorse::endorseTxLoaded, shared_from_this(), boost::placeholders::_1),
 				boost::bind(&BuzzerLightComposer::CreateTxBuzzerEndorse::timeout, shared_from_this()))
 		);
 	} else {
@@ -2557,7 +2557,7 @@ void BuzzerLightComposer::CreateTxBuzzerEndorse::endorseTxLoaded(const uint256& 
 	if (tx.isNull()) {
 		composer_->requestProcessor()->selectUtxoByEntity(publisher_, 
 			SelectUtxoByEntityName::instance(
-				boost::bind(&BuzzerLightComposer::CreateTxBuzzerEndorse::utxoByPublisherLoaded, shared_from_this(), _1, _2),
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzerEndorse::utxoByPublisherLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 				boost::bind(&BuzzerLightComposer::CreateTxBuzzerEndorse::timeout, shared_from_this()))
 		);
 	} else {
@@ -2583,7 +2583,7 @@ void BuzzerLightComposer::CreateTxBuzzerEndorse::utxoByPublisherLoaded(const std
 	if (!lMyBuzzerUtxos.size()) {
 		composer_->requestProcessor()->selectUtxoByEntity(composer_->buzzerTx()->myName(), 
 			SelectUtxoByEntityName::instance(
-				boost::bind(&BuzzerLightComposer::CreateTxBuzzerEndorse::saveBuzzerUtxo, shared_from_this(), _1, _2),
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzerEndorse::saveBuzzerUtxo, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 				boost::bind(&BuzzerLightComposer::CreateTxBuzzerEndorse::timeout, shared_from_this()))
 		);
 	} else {
@@ -2682,7 +2682,7 @@ void BuzzerLightComposer::CreateTxBuzzerMistrust::process(errorFunction error) {
 
 		composer_->requestProcessor()->loadEntity(publisher_, 
 			LoadEntity::instance(
-				boost::bind(&BuzzerLightComposer::CreateTxBuzzerMistrust::publisherLoaded, shared_from_this(), _1),
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzerMistrust::publisherLoaded, shared_from_this(), boost::placeholders::_1),
 				boost::bind(&BuzzerLightComposer::CreateTxBuzzerMistrust::timeout, shared_from_this()))
 		);
 	} else {
@@ -2710,7 +2710,7 @@ void BuzzerLightComposer::CreateTxBuzzerMistrust::publisherLoaded(EntityPtr publ
 		// check endorsement
 		composer_->buzzerRequestProcessor()->selectBuzzerMistrust(lShardIn.out().tx(), composer_->buzzerId(), publisher->id(),
 			LoadMistrust::instance(
-				boost::bind(&BuzzerLightComposer::CreateTxBuzzerMistrust::mistrustTxLoaded, shared_from_this(), _1),
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzerMistrust::mistrustTxLoaded, shared_from_this(), boost::placeholders::_1),
 				boost::bind(&BuzzerLightComposer::CreateTxBuzzerMistrust::timeout, shared_from_this()))
 		);
 	} else {
@@ -2723,7 +2723,7 @@ void BuzzerLightComposer::CreateTxBuzzerMistrust::mistrustTxLoaded(const uint256
 	if (tx.isNull()) {
 		composer_->requestProcessor()->selectUtxoByEntity(publisher_, 
 			SelectUtxoByEntityName::instance(
-				boost::bind(&BuzzerLightComposer::CreateTxBuzzerMistrust::utxoByPublisherLoaded, shared_from_this(), _1, _2),
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzerMistrust::utxoByPublisherLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 				boost::bind(&BuzzerLightComposer::CreateTxBuzzerMistrust::timeout, shared_from_this()))
 		);
 	} else {
@@ -2749,7 +2749,7 @@ void BuzzerLightComposer::CreateTxBuzzerMistrust::utxoByPublisherLoaded(const st
 	if (!lMyBuzzerUtxos.size()) {
 		composer_->requestProcessor()->selectUtxoByEntity(composer_->buzzerTx()->myName(), 
 			SelectUtxoByEntityName::instance(
-				boost::bind(&BuzzerLightComposer::CreateTxBuzzerMistrust::saveBuzzerUtxo, shared_from_this(), _1, _2),
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzerMistrust::saveBuzzerUtxo, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 				boost::bind(&BuzzerLightComposer::CreateTxBuzzerMistrust::timeout, shared_from_this()))
 		);
 	} else {
@@ -2833,7 +2833,7 @@ void BuzzerLightComposer::LoadBuzzerInfo::process(errorFunction error) {
 
 	if (!composer_->buzzerRequestProcessor()->loadBuzzerAndInfo(buzzer_, 
 		LoadBuzzerAndInfo::instance(
-			boost::bind(&BuzzerLightComposer::LoadBuzzerInfo::transactionLoaded, shared_from_this(), _1, _2),
+			boost::bind(&BuzzerLightComposer::LoadBuzzerInfo::transactionLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 			boost::bind(&BuzzerLightComposer::LoadBuzzerInfo::timeout, shared_from_this()))
 	)) error_("E_LOAD_BUZZER", "Buzzer load failed.");
 }
@@ -2867,7 +2867,7 @@ void BuzzerLightComposer::CreateTxBuzzerConversation::process(errorFunction erro
 
 		composer_->requestProcessor()->loadEntity(counterparty_, 
 			LoadEntity::instance(
-				boost::bind(&BuzzerLightComposer::CreateTxBuzzerConversation::counterpartyLoaded, shared_from_this(), _1),
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzerConversation::counterpartyLoaded, shared_from_this(), boost::placeholders::_1),
 				boost::bind(&BuzzerLightComposer::CreateTxBuzzerConversation::timeout, shared_from_this()))
 		);
 	} else {
@@ -2892,7 +2892,7 @@ void BuzzerLightComposer::CreateTxBuzzerConversation::counterpartyLoaded(EntityP
 		//
 		composer_->requestProcessor()->selectUtxoByEntity(counterparty_, 
 			SelectUtxoByEntityName::instance(
-				boost::bind(&BuzzerLightComposer::CreateTxBuzzerConversation::utxoByCounterpartyLoaded, shared_from_this(), _1, _2),
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzerConversation::utxoByCounterpartyLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 				boost::bind(&BuzzerLightComposer::CreateTxBuzzerConversation::timeout, shared_from_this()))
 		);
 	} else {
@@ -2920,7 +2920,7 @@ void BuzzerLightComposer::CreateTxBuzzerConversation::utxoByCounterpartyLoaded(c
 	if (!lMyBuzzerUtxos.size()) {
 		composer_->requestProcessor()->selectUtxoByEntity(composer_->buzzerTx()->myName(), 
 			SelectUtxoByEntityName::instance(
-				boost::bind(&BuzzerLightComposer::CreateTxBuzzerConversation::saveBuzzerUtxo, shared_from_this(), _1, _2),
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzerConversation::saveBuzzerUtxo, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 				boost::bind(&BuzzerLightComposer::CreateTxBuzzerConversation::timeout, shared_from_this()))
 		);
 	} else {
@@ -3015,7 +3015,7 @@ void BuzzerLightComposer::CreateTxBuzzerAcceptConversation::process(errorFunctio
 	// 
 	if (!composer_->requestProcessor()->selectUtxoByTransaction(chain_, conversation_, 
 		SelectUtxoByTransaction::instance(
-			boost::bind(&BuzzerLightComposer::CreateTxBuzzerAcceptConversation::utxoByConversationLoaded, shared_from_this(), _1, _2),
+			boost::bind(&BuzzerLightComposer::CreateTxBuzzerAcceptConversation::utxoByConversationLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 			boost::bind(&BuzzerLightComposer::CreateTxBuzzerAcceptConversation::timeout, shared_from_this()))
 	)) { error_("E_LOAD_UTXO_BY_CONVERSATION", "Conversation loading failed."); return; }
 }
@@ -3059,7 +3059,7 @@ void BuzzerLightComposer::CreateTxBuzzerAcceptConversation::utxoByConversationLo
 		// load conversation and extract counterparty key
 		if (!composer_->requestProcessor()->loadTransaction(chain_, conversation_, 
 			LoadTransaction::instance(
-				boost::bind(&BuzzerLightComposer::CreateTxBuzzerAcceptConversation::conversationLoaded, shared_from_this(), _1),
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzerAcceptConversation::conversationLoaded, shared_from_this(), boost::placeholders::_1),
 				boost::bind(&BuzzerLightComposer::CreateTxBuzzerAcceptConversation::timeout, shared_from_this()))
 		)) { error_("E_LOAD_UTXO_BY_CONVERSATION", "Conversation loading failed."); return; }
 	} else {
@@ -3096,7 +3096,7 @@ void BuzzerLightComposer::CreateTxBuzzerAcceptConversation::createMessage(const 
 	if (!lMyBuzzerUtxos.size()) {
 		composer_->requestProcessor()->selectUtxoByEntity(lMyBuzzer->myName(), 
 			SelectUtxoByEntityName::instance(
-				boost::bind(&BuzzerLightComposer::CreateTxBuzzerAcceptConversation::saveBuzzerUtxo, shared_from_this(), _1, _2),
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzerAcceptConversation::saveBuzzerUtxo, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 				boost::bind(&BuzzerLightComposer::CreateTxBuzzerAcceptConversation::timeout, shared_from_this()))
 		);
 	} else {
@@ -3145,7 +3145,7 @@ void BuzzerLightComposer::CreateTxBuzzerDeclineConversation::process(errorFuncti
 	// 
 	if (!composer_->requestProcessor()->selectUtxoByTransaction(chain_, conversation_, 
 		SelectUtxoByTransaction::instance(
-			boost::bind(&BuzzerLightComposer::CreateTxBuzzerDeclineConversation::utxoByConversationLoaded, shared_from_this(), _1, _2),
+			boost::bind(&BuzzerLightComposer::CreateTxBuzzerDeclineConversation::utxoByConversationLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 			boost::bind(&BuzzerLightComposer::CreateTxBuzzerDeclineConversation::timeout, shared_from_this()))
 	)) { error_("E_LOAD_UTXO_BY_CONVERSATION", "Conversation loading failed."); return; }
 }
@@ -3180,7 +3180,7 @@ void BuzzerLightComposer::CreateTxBuzzerDeclineConversation::utxoByConversationL
 			if (!lMyBuzzerUtxos.size()) {
 				composer_->requestProcessor()->selectUtxoByEntity(lMyBuzzer->myName(), 
 					SelectUtxoByEntityName::instance(
-						boost::bind(&BuzzerLightComposer::CreateTxBuzzerDeclineConversation::saveBuzzerUtxo, shared_from_this(), _1, _2),
+						boost::bind(&BuzzerLightComposer::CreateTxBuzzerDeclineConversation::saveBuzzerUtxo, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 						boost::bind(&BuzzerLightComposer::CreateTxBuzzerDeclineConversation::timeout, shared_from_this()))
 				);
 			} else {
@@ -3236,7 +3236,7 @@ void BuzzerLightComposer::CreateTxBuzzerMessage::process(errorFunction error) {
 	//
 	if (!composer_->requestProcessor()->selectUtxoByTransaction(chain_, conversation_, 
 		SelectUtxoByTransaction::instance(
-			boost::bind(&BuzzerLightComposer::CreateTxBuzzerMessage::utxoByConversationLoaded, shared_from_this(), _1, _2),
+			boost::bind(&BuzzerLightComposer::CreateTxBuzzerMessage::utxoByConversationLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 			boost::bind(&BuzzerLightComposer::CreateTxBuzzerMessage::timeout, shared_from_this()))
 	)) { error_("E_LOAD_UTXO_BY_CONVERSATION", "Conversation loading failed."); return; }
 }
@@ -3280,7 +3280,7 @@ void BuzzerLightComposer::CreateTxBuzzerMessage::utxoByConversationLoaded(const 
 			if (!lMyBuzzerUtxos.size()) {
 				composer_->requestProcessor()->selectUtxoByEntity(lMyBuzzer->myName(), 
 					SelectUtxoByEntityName::instance(
-						boost::bind(&BuzzerLightComposer::CreateTxBuzzerMessage::saveBuzzerUtxo, shared_from_this(), _1, _2),
+						boost::bind(&BuzzerLightComposer::CreateTxBuzzerMessage::saveBuzzerUtxo, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 						boost::bind(&BuzzerLightComposer::CreateTxBuzzerMessage::timeout, shared_from_this()))
 				);
 			} else {

@@ -2359,12 +2359,12 @@ private:
 		if (!privateSend_) {
 			command_ = std::static_pointer_cast<qbit::SendToAddressCommand>(qbit::SendToAddressCommand::instance(
 				lClient->getComposer(), manualProcessing_,
-				boost::bind(&SendToAddressCommand::done, this, _1, _2))
+				boost::bind(&SendToAddressCommand::done, this, boost::placeholders::_1, boost::placeholders::_2))
 			);
 		} else {
 			command_ = std::static_pointer_cast<qbit::SendToAddressCommand>(qbit::SendPrivateToAddressCommand::instance(
 				lClient->getComposer(), manualProcessing_,
-				boost::bind(&SendToAddressCommand::done, this, _1, _2))
+				boost::bind(&SendToAddressCommand::done, this, boost::placeholders::_1, boost::placeholders::_2))
 			);
 		}
 	}

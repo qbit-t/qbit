@@ -328,12 +328,12 @@ EventsfeedListModelPersonal::EventsfeedListModelPersonal() {
 	Client* lClient = static_cast<Client*>(gApplication->getClient());
 	//
 	eventsfeed_ = qbit::Eventsfeed::instance(lClient->getBuzzer(),
-		boost::bind(&qbit::BuzzerLightComposer::verifyEventPublisher, lClient->getBuzzerComposer(), _1),
-		boost::bind(&qbit::BuzzerLightComposer::verifyPublisherStrict, lClient->getBuzzerComposer(), _1),
+		boost::bind(&qbit::BuzzerLightComposer::verifyEventPublisher, lClient->getBuzzerComposer(), boost::placeholders::_1),
+		boost::bind(&qbit::BuzzerLightComposer::verifyPublisherStrict, lClient->getBuzzerComposer(), boost::placeholders::_1),
 		boost::bind(&EventsfeedListModel::eventsfeedLargeUpdated, this),
-		boost::bind(&EventsfeedListModel::eventsfeedItemNew, this, _1),
-		boost::bind(&EventsfeedListModel::eventsfeedItemUpdated, this, _1),
-		boost::bind(&EventsfeedListModel::eventsfeedItemsUpdated, this, _1),
+		boost::bind(&EventsfeedListModel::eventsfeedItemNew, this, boost::placeholders::_1),
+		boost::bind(&EventsfeedListModel::eventsfeedItemUpdated, this, boost::placeholders::_1),
+		boost::bind(&EventsfeedListModel::eventsfeedItemsUpdated, this, boost::placeholders::_1),
 		qbit::EventsfeedItem::Merge::UNION
 	);
 
@@ -347,12 +347,12 @@ EventsfeedListModelEndorsements::EventsfeedListModelEndorsements() {
 	Client* lClient = static_cast<Client*>(gApplication->getClient());
 	//
 	eventsfeed_ = qbit::Eventsfeed::instance(lClient->getBuzzer(),
-		boost::bind(&qbit::BuzzerLightComposer::verifyEventPublisher, lClient->getBuzzerComposer(), _1),
-		boost::bind(&qbit::BuzzerLightComposer::verifyPublisherLazy, lClient->getBuzzerComposer(), _1),
+		boost::bind(&qbit::BuzzerLightComposer::verifyEventPublisher, lClient->getBuzzerComposer(), boost::placeholders::_1),
+		boost::bind(&qbit::BuzzerLightComposer::verifyPublisherLazy, lClient->getBuzzerComposer(), boost::placeholders::_1),
 		boost::bind(&EventsfeedListModel::eventsfeedLargeUpdated, this),
-		boost::bind(&EventsfeedListModel::eventsfeedItemNew, this, _1),
-		boost::bind(&EventsfeedListModel::eventsfeedItemUpdated, this, _1),
-		boost::bind(&EventsfeedListModel::eventsfeedItemsUpdated, this, _1),
+		boost::bind(&EventsfeedListModel::eventsfeedItemNew, this, boost::placeholders::_1),
+		boost::bind(&EventsfeedListModel::eventsfeedItemUpdated, this, boost::placeholders::_1),
+		boost::bind(&EventsfeedListModel::eventsfeedItemsUpdated, this, boost::placeholders::_1),
 		qbit::EventsfeedItem::Merge::INTERSECT
 	);
 
@@ -364,12 +364,12 @@ EventsfeedListModelMistrusts::EventsfeedListModelMistrusts() {
 	Client* lClient = static_cast<Client*>(gApplication->getClient());
 	//
 	eventsfeed_ = qbit::Eventsfeed::instance(lClient->getBuzzer(),
-		boost::bind(&qbit::BuzzerLightComposer::verifyEventPublisher, lClient->getBuzzerComposer(), _1),
-		boost::bind(&qbit::BuzzerLightComposer::verifyPublisherLazy, lClient->getBuzzerComposer(), _1),
+		boost::bind(&qbit::BuzzerLightComposer::verifyEventPublisher, lClient->getBuzzerComposer(), boost::placeholders::_1),
+		boost::bind(&qbit::BuzzerLightComposer::verifyPublisherLazy, lClient->getBuzzerComposer(), boost::placeholders::_1),
 		boost::bind(&EventsfeedListModel::eventsfeedLargeUpdated, this),
-		boost::bind(&EventsfeedListModel::eventsfeedItemNew, this, _1),
-		boost::bind(&EventsfeedListModel::eventsfeedItemUpdated, this, _1),
-		boost::bind(&EventsfeedListModel::eventsfeedItemsUpdated, this, _1),
+		boost::bind(&EventsfeedListModel::eventsfeedItemNew, this, boost::placeholders::_1),
+		boost::bind(&EventsfeedListModel::eventsfeedItemUpdated, this, boost::placeholders::_1),
+		boost::bind(&EventsfeedListModel::eventsfeedItemsUpdated, this, boost::placeholders::_1),
 		qbit::EventsfeedItem::Merge::INTERSECT
 	);
 
@@ -381,12 +381,12 @@ EventsfeedListModelFollowing::EventsfeedListModelFollowing() {
 	Client* lClient = static_cast<Client*>(gApplication->getClient());
 	//
 	eventsfeed_ = qbit::Eventsfeed::instance(lClient->getBuzzer(),
-		boost::bind(&qbit::BuzzerLightComposer::verifyEventPublisher, lClient->getBuzzerComposer(), _1),
-		boost::bind(&qbit::BuzzerLightComposer::verifyPublisherLazy, lClient->getBuzzerComposer(), _1),
+		boost::bind(&qbit::BuzzerLightComposer::verifyEventPublisher, lClient->getBuzzerComposer(), boost::placeholders::_1),
+		boost::bind(&qbit::BuzzerLightComposer::verifyPublisherLazy, lClient->getBuzzerComposer(), boost::placeholders::_1),
 		boost::bind(&EventsfeedListModel::eventsfeedLargeUpdated, this),
-		boost::bind(&EventsfeedListModel::eventsfeedItemNew, this, _1),
-		boost::bind(&EventsfeedListModel::eventsfeedItemUpdated, this, _1),
-		boost::bind(&EventsfeedListModel::eventsfeedItemsUpdated, this, _1),
+		boost::bind(&EventsfeedListModel::eventsfeedItemNew, this, boost::placeholders::_1),
+		boost::bind(&EventsfeedListModel::eventsfeedItemUpdated, this, boost::placeholders::_1),
+		boost::bind(&EventsfeedListModel::eventsfeedItemsUpdated, this, boost::placeholders::_1),
 		qbit::EventsfeedItem::Merge::INTERSECT
 	);
 
@@ -398,12 +398,12 @@ EventsfeedListModelFollowers::EventsfeedListModelFollowers() {
 	Client* lClient = static_cast<Client*>(gApplication->getClient());
 	//
 	eventsfeed_ = qbit::Eventsfeed::instance(lClient->getBuzzer(),
-		boost::bind(&qbit::BuzzerLightComposer::verifyEventPublisher, lClient->getBuzzerComposer(), _1),
-		boost::bind(&qbit::BuzzerLightComposer::verifyPublisherLazy, lClient->getBuzzerComposer(), _1),
+		boost::bind(&qbit::BuzzerLightComposer::verifyEventPublisher, lClient->getBuzzerComposer(), boost::placeholders::_1),
+		boost::bind(&qbit::BuzzerLightComposer::verifyPublisherLazy, lClient->getBuzzerComposer(), boost::placeholders::_1),
 		boost::bind(&EventsfeedListModel::eventsfeedLargeUpdated, this),
-		boost::bind(&EventsfeedListModel::eventsfeedItemNew, this, _1),
-		boost::bind(&EventsfeedListModel::eventsfeedItemUpdated, this, _1),
-		boost::bind(&EventsfeedListModel::eventsfeedItemsUpdated, this, _1),
+		boost::bind(&EventsfeedListModel::eventsfeedItemNew, this, boost::placeholders::_1),
+		boost::bind(&EventsfeedListModel::eventsfeedItemUpdated, this, boost::placeholders::_1),
+		boost::bind(&EventsfeedListModel::eventsfeedItemsUpdated, this, boost::placeholders::_1),
 		qbit::EventsfeedItem::Merge::INTERSECT
 	);
 

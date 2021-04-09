@@ -593,13 +593,13 @@ BuzzfeedListModelPersonal::BuzzfeedListModelPersonal() {
 	Client* lClient = static_cast<Client*>(gApplication->getClient());
 	//
 	buzzfeed_ = qbit::Buzzfeed::instance(lClient->getBuzzer(),
-		boost::bind(&qbit::BuzzerLightComposer::verifyPublisherStrict, lClient->getBuzzerComposer(), _1),
-		boost::bind(&qbit::BuzzerLightComposer::verifyPublisherLazy, lClient->getBuzzerComposer(), _1),
+		boost::bind(&qbit::BuzzerLightComposer::verifyPublisherStrict, lClient->getBuzzerComposer(), boost::placeholders::_1),
+		boost::bind(&qbit::BuzzerLightComposer::verifyPublisherLazy, lClient->getBuzzerComposer(), boost::placeholders::_1),
 		boost::bind(&BuzzfeedListModel::buzzfeedLargeUpdated, this),
-		boost::bind(&BuzzfeedListModel::buzzfeedItemNew, this, _1),
-		boost::bind(&BuzzfeedListModel::buzzfeedItemUpdated, this, _1),
-		boost::bind(&BuzzfeedListModel::buzzfeedItemsUpdated, this, _1),
-		boost::bind(&BuzzfeedListModel::buzzfeedItemAbsent, this, _1, _2),
+		boost::bind(&BuzzfeedListModel::buzzfeedItemNew, this, boost::placeholders::_1),
+		boost::bind(&BuzzfeedListModel::buzzfeedItemUpdated, this, boost::placeholders::_1),
+		boost::bind(&BuzzfeedListModel::buzzfeedItemsUpdated, this, boost::placeholders::_1),
+		boost::bind(&BuzzfeedListModel::buzzfeedItemAbsent, this, boost::placeholders::_1, boost::placeholders::_2),
 		qbit::BuzzfeedItem::Merge::UNION,
 		qbit::BuzzfeedItem::Expand::FULL
 	);
@@ -614,12 +614,12 @@ BuzzfeedListModelGlobal::BuzzfeedListModelGlobal() {
 	Client* lClient = static_cast<Client*>(gApplication->getClient());
 	//
 	buzzfeed_ = qbit::Buzzfeed::instance(lClient->getBuzzer(),
-		boost::bind(&qbit::BuzzerLightComposer::verifyPublisherLazy, lClient->getBuzzerComposer(), _1),
+		boost::bind(&qbit::BuzzerLightComposer::verifyPublisherLazy, lClient->getBuzzerComposer(), boost::placeholders::_1),
 		boost::bind(&BuzzfeedListModel::buzzfeedLargeUpdated, this),
-		boost::bind(&BuzzfeedListModel::buzzfeedItemNew, this, _1),
-		boost::bind(&BuzzfeedListModel::buzzfeedItemUpdated, this, _1),
-		boost::bind(&BuzzfeedListModel::buzzfeedItemsUpdated, this, _1),
-		boost::bind(&BuzzfeedListModel::buzzfeedItemAbsent, this, _1, _2),
+		boost::bind(&BuzzfeedListModel::buzzfeedItemNew, this, boost::placeholders::_1),
+		boost::bind(&BuzzfeedListModel::buzzfeedItemUpdated, this, boost::placeholders::_1),
+		boost::bind(&BuzzfeedListModel::buzzfeedItemsUpdated, this, boost::placeholders::_1),
+		boost::bind(&BuzzfeedListModel::buzzfeedItemAbsent, this, boost::placeholders::_1, boost::placeholders::_2),
 		qbit::BuzzfeedItem::Merge::INTERSECT
 	);
 
@@ -633,12 +633,12 @@ BuzzfeedListModelBuzzer::BuzzfeedListModelBuzzer() {
 	Client* lClient = static_cast<Client*>(gApplication->getClient());
 	//
 	buzzfeed_ = qbit::Buzzfeed::instance(lClient->getBuzzer(),
-		boost::bind(&qbit::BuzzerLightComposer::verifyPublisherLazy, lClient->getBuzzerComposer(), _1),
+		boost::bind(&qbit::BuzzerLightComposer::verifyPublisherLazy, lClient->getBuzzerComposer(), boost::placeholders::_1),
 		boost::bind(&BuzzfeedListModel::buzzfeedLargeUpdated, this),
-		boost::bind(&BuzzfeedListModel::buzzfeedItemNew, this, _1),
-		boost::bind(&BuzzfeedListModel::buzzfeedItemUpdated, this, _1),
-		boost::bind(&BuzzfeedListModel::buzzfeedItemsUpdated, this, _1),
-		boost::bind(&BuzzfeedListModel::buzzfeedItemAbsent, this, _1, _2),
+		boost::bind(&BuzzfeedListModel::buzzfeedItemNew, this, boost::placeholders::_1),
+		boost::bind(&BuzzfeedListModel::buzzfeedItemUpdated, this, boost::placeholders::_1),
+		boost::bind(&BuzzfeedListModel::buzzfeedItemsUpdated, this, boost::placeholders::_1),
+		boost::bind(&BuzzfeedListModel::buzzfeedItemAbsent, this, boost::placeholders::_1, boost::placeholders::_2),
 		qbit::BuzzfeedItem::Merge::UNION
 	);
 
@@ -650,14 +650,14 @@ BuzzfeedListModelBuzzes::BuzzfeedListModelBuzzes() {
 	Client* lClient = static_cast<Client*>(gApplication->getClient());
 	//
 	buzzfeed_ = qbit::Buzzfeed::instance(lClient->getBuzzer(),
-		boost::bind(&qbit::BuzzerLightComposer::verifyPublisherLazy, lClient->getBuzzerComposer(), _1),
-		boost::bind(&qbit::BuzzerLightComposer::verifyPublisherLazy, lClient->getBuzzerComposer(), _1),
-		boost::bind(&qbit::BuzzerLightComposer::verifyMyThreadUpdates, lClient->getBuzzerComposer(), _1, _2, _3),
+		boost::bind(&qbit::BuzzerLightComposer::verifyPublisherLazy, lClient->getBuzzerComposer(), boost::placeholders::_1),
+		boost::bind(&qbit::BuzzerLightComposer::verifyPublisherLazy, lClient->getBuzzerComposer(), boost::placeholders::_1),
+		boost::bind(&qbit::BuzzerLightComposer::verifyMyThreadUpdates, lClient->getBuzzerComposer(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3),
 		boost::bind(&BuzzfeedListModel::buzzfeedLargeUpdated, this),
-		boost::bind(&BuzzfeedListModel::buzzfeedItemNew, this, _1),
-		boost::bind(&BuzzfeedListModel::buzzfeedItemUpdated, this, _1),
-		boost::bind(&BuzzfeedListModel::buzzfeedItemsUpdated, this, _1),
-		boost::bind(&BuzzfeedListModel::buzzfeedItemAbsent, this, _1, _2),
+		boost::bind(&BuzzfeedListModel::buzzfeedItemNew, this, boost::placeholders::_1),
+		boost::bind(&BuzzfeedListModel::buzzfeedItemUpdated, this, boost::placeholders::_1),
+		boost::bind(&BuzzfeedListModel::buzzfeedItemsUpdated, this, boost::placeholders::_1),
+		boost::bind(&BuzzfeedListModel::buzzfeedItemAbsent, this, boost::placeholders::_1, boost::placeholders::_2),
 		qbit::BuzzfeedItem::Merge::INTERSECT,
 		qbit::BuzzfeedItem::Order::FORWARD,
 		qbit::BuzzfeedItem::Group::TIMESTAMP,
@@ -672,12 +672,12 @@ BuzzfeedListModelTag::BuzzfeedListModelTag() {
 	Client* lClient = static_cast<Client*>(gApplication->getClient());
 	//
 	buzzfeed_ = qbit::Buzzfeed::instance(lClient->getBuzzer(),
-		boost::bind(&qbit::BuzzerLightComposer::verifyPublisherLazy, lClient->getBuzzerComposer(), _1),
+		boost::bind(&qbit::BuzzerLightComposer::verifyPublisherLazy, lClient->getBuzzerComposer(), boost::placeholders::_1),
 		boost::bind(&BuzzfeedListModel::buzzfeedLargeUpdated, this),
-		boost::bind(&BuzzfeedListModel::buzzfeedItemNew, this, _1),
-		boost::bind(&BuzzfeedListModel::buzzfeedItemUpdated, this, _1),
-		boost::bind(&BuzzfeedListModel::buzzfeedItemsUpdated, this, _1),
-		boost::bind(&BuzzfeedListModel::buzzfeedItemAbsent, this, _1, _2),
+		boost::bind(&BuzzfeedListModel::buzzfeedItemNew, this, boost::placeholders::_1),
+		boost::bind(&BuzzfeedListModel::buzzfeedItemUpdated, this, boost::placeholders::_1),
+		boost::bind(&BuzzfeedListModel::buzzfeedItemsUpdated, this, boost::placeholders::_1),
+		boost::bind(&BuzzfeedListModel::buzzfeedItemAbsent, this, boost::placeholders::_1, boost::placeholders::_2),
 		qbit::BuzzfeedItem::Merge::INTERSECT
 	);
 
@@ -689,13 +689,13 @@ ConversationMessagesList::ConversationMessagesList() {
 	Client* lClient = static_cast<Client*>(gApplication->getClient());
 	//
 	buzzfeed_ = qbit::Buzzfeed::instance(lClient->getBuzzer(),
-		boost::bind(&qbit::BuzzerLightComposer::getCounterparty, lClient->getBuzzerComposer(), _1, _2),
-		boost::bind(&qbit::BuzzerLightComposer::verifyPublisherLazy, lClient->getBuzzerComposer(), _1),
+		boost::bind(&qbit::BuzzerLightComposer::getCounterparty, lClient->getBuzzerComposer(), boost::placeholders::_1, boost::placeholders::_2),
+		boost::bind(&qbit::BuzzerLightComposer::verifyPublisherLazy, lClient->getBuzzerComposer(), boost::placeholders::_1),
 		boost::bind(&BuzzfeedListModel::buzzfeedLargeUpdated, this),
-		boost::bind(&BuzzfeedListModel::buzzfeedItemNew, this, _1),
-		boost::bind(&BuzzfeedListModel::buzzfeedItemUpdated, this, _1),
-		boost::bind(&BuzzfeedListModel::buzzfeedItemsUpdated, this, _1),
-		boost::bind(&BuzzfeedListModel::buzzfeedItemAbsent, this, _1, _2),
+		boost::bind(&BuzzfeedListModel::buzzfeedItemNew, this, boost::placeholders::_1),
+		boost::bind(&BuzzfeedListModel::buzzfeedItemUpdated, this, boost::placeholders::_1),
+		boost::bind(&BuzzfeedListModel::buzzfeedItemsUpdated, this, boost::placeholders::_1),
+		boost::bind(&BuzzfeedListModel::buzzfeedItemAbsent, this, boost::placeholders::_1, boost::placeholders::_2),
 		qbit::BuzzfeedItem::Merge::INTERSECT,
 		qbit::BuzzfeedItem::Order::FORWARD,
 		qbit::BuzzfeedItem::Group::TIMESTAMP

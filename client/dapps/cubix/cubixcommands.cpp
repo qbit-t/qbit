@@ -90,9 +90,9 @@ void UploadMediaCommand::process(const std::vector<std::string>& args) {
 
 		// prepare
 		IComposerMethodPtr lCreateSummary = CubixLightComposer::CreateTxMediaSummary::instance(composer_, 
-			size_, boost::bind(&UploadMediaCommand::summaryCreated, shared_from_this(), _1, _2));
+			size_, boost::bind(&UploadMediaCommand::summaryCreated, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
 		// async process
-		lCreateSummary->process(boost::bind(&UploadMediaCommand::error, shared_from_this(), _1, _2));
+		lCreateSummary->process(boost::bind(&UploadMediaCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
 	} else {
 		error("E_INCORRECT_AGRS", "Incorrect number of arguments.");
 		return;
@@ -109,7 +109,7 @@ void UploadMediaCommand::summaryCreated(TransactionContextPtr ctx, Transaction::
 	// send tx and define peer to interact with
 	if (!(peer_ = composer_->requestProcessor()->sendTransaction(ctx->tx()->chain(), lFee,
 			SentTransaction::instance(
-				boost::bind(&UploadMediaCommand::feeSent, shared_from_this(), _1, _2),
+				boost::bind(&UploadMediaCommand::feeSent, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 				boost::bind(&UploadMediaCommand::timeout, shared_from_this()))))) {
 		composer_->wallet()->resetCache();
 		composer_->wallet()->prepareCache();
@@ -136,7 +136,7 @@ void UploadMediaCommand::feeSent(const uint256& tx, const std::vector<Transactio
 	//
 	composer_->requestProcessor()->sendTransaction(peer_, ctx_,
 			SentTransaction::instance(
-				boost::bind(&UploadMediaCommand::summarySent, shared_from_this(), _1, _2),
+				boost::bind(&UploadMediaCommand::summarySent, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 				boost::bind(&UploadMediaCommand::timeout, shared_from_this())));
 
 	if (summarySent_ && feeSent_) {
@@ -415,9 +415,9 @@ void UploadMediaCommand::startSendData() {
 		uint256 lNamePart = Random::generate(*lSKey);
 		IComposerMethodPtr lCreateHeader = CubixLightComposer::CreateTxMediaHeader::instance(composer_, 
 			size_, previewData_, orientation_, lNamePart.toHex(), description_, mediaType_, summary_->chain(), prev_,
-			boost::bind(&UploadMediaCommand::headerCreated, shared_from_this(), _1));
+			boost::bind(&UploadMediaCommand::headerCreated, shared_from_this(), boost::placeholders::_1));
 		// async process
-		lCreateHeader->process(boost::bind(&UploadMediaCommand::error, shared_from_this(), _1, _2));
+		lCreateHeader->process(boost::bind(&UploadMediaCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
 	} else {
 		// make media data & continue
 		mediaFile_ = std::ifstream(file_, std::ios::binary);
@@ -447,9 +447,9 @@ void UploadMediaCommand::continueSendData() {
 		uint256 lNamePart = Random::generate(*lSKey);
 		IComposerMethodPtr lCreateHeader = CubixLightComposer::CreateTxMediaHeader::instance(composer_, 
 			size_, previewData_, orientation_, lNamePart.toHex(), description_, mediaType_, summary_->chain(), prev_,
-			boost::bind(&UploadMediaCommand::headerCreated, shared_from_this(), _1));
+			boost::bind(&UploadMediaCommand::headerCreated, shared_from_this(), boost::placeholders::_1));
 		// async process
-		lCreateHeader->process(boost::bind(&UploadMediaCommand::error, shared_from_this(), _1, _2));
+		lCreateHeader->process(boost::bind(&UploadMediaCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
 	} else {
 		//
 		std::vector<unsigned char> lData;
@@ -468,9 +468,9 @@ void UploadMediaCommand::continueSendData() {
 		//
 		IComposerMethodPtr lCreateData = CubixLightComposer::CreateTxMediaData::instance(composer_, 
 			lData, summary_->chain(), prev_,
-			boost::bind(&UploadMediaCommand::dataCreated, shared_from_this(), _1, _2));
+			boost::bind(&UploadMediaCommand::dataCreated, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
 		// async process
-		lCreateData->process(boost::bind(&UploadMediaCommand::error, shared_from_this(), _1, _2));		
+		lCreateData->process(boost::bind(&UploadMediaCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
 	}
 }
 
@@ -480,7 +480,7 @@ void UploadMediaCommand::dataCreated(TransactionContextPtr ctx, Transaction::Unl
 
 	composer_->requestProcessor()->sendTransaction(peer_, ctx,
 			SentTransaction::instance(
-				boost::bind(&UploadMediaCommand::dataSent, shared_from_this(), _1, _2),
+				boost::bind(&UploadMediaCommand::dataSent, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 				boost::bind(&UploadMediaCommand::timeout, shared_from_this())));
 }
 
@@ -501,7 +501,7 @@ void UploadMediaCommand::headerCreated(TransactionContextPtr ctx) {
 
 	composer_->requestProcessor()->sendTransaction(peer_, ctx,
 			SentTransaction::instance(
-				boost::bind(&UploadMediaCommand::headerSent, shared_from_this(), _1, _2),
+				boost::bind(&UploadMediaCommand::headerSent, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 				boost::bind(&UploadMediaCommand::timeout, shared_from_this())));
 }
 
@@ -614,7 +614,7 @@ void DownloadMediaCommand::process(const std::vector<std::string>& args) {
 
 		if (!composer_->requestProcessor()->loadTransaction(chain_, headerTx_, true /*try mempool*/,
 				LoadTransaction::instance(
-					boost::bind(&DownloadMediaCommand::headerLoaded, shared_from_this(), _1),
+					boost::bind(&DownloadMediaCommand::headerLoaded, shared_from_this(), boost::placeholders::_1),
 					boost::bind(&DownloadMediaCommand::timeout, shared_from_this()))
 			))	error("E_MEDIA_NOT_LOADED", "Header was not loaded.");
 
@@ -721,7 +721,7 @@ void DownloadMediaCommand::headerLoaded(TransactionPtr tx) {
 				nextDataTx_ = header_->in()[0].out().tx();
 				if (!composer_->requestProcessor()->loadTransaction(chain_, nextDataTx_, true /*try mempool*/,
 						LoadTransaction::instance(
-							boost::bind(&DownloadMediaCommand::dataLoaded, shared_from_this(), _1),
+							boost::bind(&DownloadMediaCommand::dataLoaded, shared_from_this(), boost::placeholders::_1),
 							boost::bind(&DownloadMediaCommand::timeout, shared_from_this()))
 					))	error("E_MEDIA_DATA_NOT_LOADED", "Media data was not loaded.");
 			} else {
@@ -781,7 +781,7 @@ void DownloadMediaCommand::dataLoaded(TransactionPtr tx) {
 			nextDataTx_ = lData->in()[0].out().tx();
 			if (!composer_->requestProcessor()->loadTransaction(chain_, nextDataTx_, true /*try mempool*/, 
 					LoadTransaction::instance(
-						boost::bind(&DownloadMediaCommand::dataLoaded, shared_from_this(), _1),
+						boost::bind(&DownloadMediaCommand::dataLoaded, shared_from_this(), boost::placeholders::_1),
 						boost::bind(&DownloadMediaCommand::timeout, shared_from_this()))
 				))	error("E_MEDIA_DATA_NOT_LOADED", "Media data was not loaded.");
 		}

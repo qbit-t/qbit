@@ -30,7 +30,7 @@ void CubixLightComposer::CreateTxMediaSummary::process(errorFunction error) {
 	int lDestinations;
 	if (!composer_->requestProcessor()->selectEntityCountByDApp(composer_->dAppName(), 
 		SelectEntityCountByDApp::instance(
-			boost::bind(&CubixLightComposer::CreateTxMediaSummary::entitiesCountByDAppLoaded, shared_from_this(), _1, _2),
+			boost::bind(&CubixLightComposer::CreateTxMediaSummary::entitiesCountByDAppLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 			boost::bind(&CubixLightComposer::CreateTxMediaSummary::timeout, shared_from_this())), destinations_)
 	) { 
 		error_("E_ENTITY_COUNT_REQUEST", "Entity count for cubix was not collected. Retry, please.");
