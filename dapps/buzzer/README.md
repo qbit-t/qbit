@@ -64,7 +64,11 @@ Peer - we need peer protocol extention to process dapps requests
 
 ## How to build (Windows Desktop)
 
-1. See section in root README.MD on how to build for Windows
+1. See section in root README.MD on how to build qbit for Windows
+2. Go to ./qt/app directory
+3. Run <directory_where_MXE_installed>/x86_64-w64-mingw32.static/qt5/bin/qmake ./buzzer-desktop.pro
+4. Run make
+5. Executable will be in ./release folder
 
 ## Requests
 

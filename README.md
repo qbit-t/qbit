@@ -88,8 +88,16 @@ Build Windows (on Linux with special toolset - https://mxe.cc):
 2. cd ~/mxe
 3. edit ./settings.mk and add MXE_TARGETS := x86_64-w64-mingw32.static
 4. make
+5. add path to MXE binaries to your PATH (edit .bashrc, for example)
+6. cd ./secp256k1
+7. ./autogen.sh
+8. ./configure --enable-experimental --enable-module-schnorrsig --enable-module-musig --enable-module-ecdh --enable-module-generator --enable-module-rangeproof --with-bignum=no --host=x86_64-w64-mingw32.static
+9. cd ..
+10. x86_64-w64-mingw32.static-cmake -DCMAKE_BUILD_TYPE=Release
+11. x86_64-w64-mingw32.static-cmake ./
+12. make
 
-Please, note - it can take long time, very long and not all from the packages you need. During compilation you may experience building errors, consider to add to the EXCLUDE_PKGS and rerun make
+Please, note - (4) it can take long time, very long and not all from the packages you need. During compilation you may experience building errors, consider to add to the EXCLUDE_PKGS and rerun make
 
 ## Requests
 
