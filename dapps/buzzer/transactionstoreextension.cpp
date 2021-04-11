@@ -166,7 +166,9 @@ bool BuzzerTransactionStoreExtension::isAllowed(TransactionContextPtr ctx) {
 			return false; // not allowed to make any actions
 		}
 
-		if (lScore.score() < lEvent->score()) {
+		// TODO: consider to remove this check
+		// for now: if event ts and current ts differs more than 2 steps
+		if (lScore.score() < lEvent->score() && (lEvent->score() - lScore.score()) > 20000000) {
 			//
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/is_allowed]: publisher score is INCONSISTENT ") +
 				strprintf("%s/%d/%d", lPublisher.toHex(), lScore.score(), lEvent->score()));
