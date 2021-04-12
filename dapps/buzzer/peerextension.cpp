@@ -3243,7 +3243,8 @@ void BuzzerPeerExtension::processGetBuzzerAndInfo(std::list<DataStream>::iterato
 				DataStream lStream(SER_NETWORK, PROTOCOL_VERSION);
 				lStream << lRequestId;
 				Transaction::Serializer::serialize<DataStream>(lStream, lTx); // buzzer
-				Transaction::Serializer::serialize<DataStream>(lStream, lInfo); // info
+				if (lInfo != nullptr)
+					Transaction::Serializer::serialize<DataStream>(lStream, lInfo); // info
 
 				// prepare message
 				Message lMessage(BUZZER_AND_INFO, lStream.size(), Hash160(lStream.begin(), lStream.end()));

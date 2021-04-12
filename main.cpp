@@ -416,6 +416,7 @@ public:
 		httpRequestHandler_->push(HttpGetBlockHeader::instance());
 		httpRequestHandler_->push(HttpGetBlockHeaderByHeight::instance());
 		httpRequestHandler_->push(HttpGetTransaction::instance());
+		httpRequestHandler_->push(HttpGetEntity::instance());
 		httpRequestHandler_->push(HttpGetUnconfirmedTransactions::instance());
 		httpRequestHandler_->push(HttpCreateAsset::instance());
 		httpRequestHandler_->push(HttpCreateAssetEmission::instance());

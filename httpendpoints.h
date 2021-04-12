@@ -154,6 +154,18 @@ public:
 	}
 };
 
+class HttpGetEntity: public IHttpCallEnpoint {
+public:
+	HttpGetEntity() {}
+
+	void process(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
+	std::string method() { return std::string("getentity"); }
+
+	static IHttpCallEnpointPtr instance() {
+		return std::make_shared<HttpGetEntity>();
+	}
+};
+
 class HttpGetBlock: public IHttpCallEnpoint {
 public:
 	HttpGetBlock() {}
