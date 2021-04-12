@@ -108,9 +108,11 @@ Item {
 		function getAvatar() {
 			//
 			if (eventInfos_.length > 0) {
+				console.log("[getAvatar]: buzzerInfoId = " + eventInfos_[0].buzzerInfoId);
 				return buzzerClient.getBuzzerAvatarUrl(eventInfos_[0].buzzerInfoId);
 			}
 
+			console.log("[getAvatar]: publisherInfoId = " + eventInfos_[0].buzzerInfoId);
 			return buzzerClient.getBuzzerAvatarUrl(publisherInfoId_);
 		}
 	}
