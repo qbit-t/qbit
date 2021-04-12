@@ -423,6 +423,7 @@ public:
 		httpRequestHandler_->push(HttpGetEntitiesCount::instance());		
 		httpRequestHandler_->push(HttpCreateBuzzer::instance(buzzerComposer_)); // custom
 		httpRequestHandler_->push(HttpAttachBuzzer::instance(buzzerComposer_)); // custom
+		httpRequestHandler_->push(HttpGetBuzzerInfo::instance(buzzerComposer_)); // custom
 		httpRequestHandler_->push(HttpBuzz::instance(buzzerComposer_)); // custom
 		httpRequestHandler_->push(HttpBuzzerSubscribe::instance(buzzerComposer_)); // custom
 		httpRequestHandler_->push(HttpBuzzerUnsubscribe::instance(buzzerComposer_)); // custom

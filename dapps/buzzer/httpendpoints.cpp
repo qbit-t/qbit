@@ -6,7 +6,10 @@
 #include "../../tinyformat.h"
 #include "httpendpoints.h"
 #include "../../vm/vm.h"
+#include "transactionstoreextension.h"
+
 #include "txbuzzer.h"
+#include "txbuzzerinfo.h"
 
 #include <boost/lexical_cast.hpp>
 #include <iostream>
@@ -720,6 +723,172 @@ void HttpBuzzerUnsubscribe::process(const std::string& source, const HttpRequest
 		}
 
 		if (lCtx != nullptr) lReply.addString("result", lCtx->tx()->hash().toHex());
+		if (!lCode.size() && !lMessage.size()) lReply.addObject("error").toNull();
+		else {
+			json::Value lError = lReply.addObject("error");
+			lError.addString("code", lCode);
+			lError.addString("message", lMessage);
+		}
+		lReply.addString("id", lId.getString());
+
+		// pack
+		pack(reply, lReply);
+		// finalize
+		finalize(reply);
+	} else {
+		reply = HttpReply::stockReply(HttpReply::bad_request);
+		return;
+	}
+}
+
+void HttpGetBuzzerInfo::process(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
+	/* request
+	{
+		"jsonrpc": "1.0",
+		"id": "curltext",
+		"method": "getbuzzerinfo",
+		"params": [
+			"<entity_name>" 			-- (string) entity name
+		]
+	}
+	*/
+	/* reply
+	{
+		"result": {
+			"id": "<tx_id>",				-- (string) tx hash (id)
+			"chain": "<chain_id>",			-- (string) chain / shard hash (id)
+			"type": "<tx_type>",			-- (string) tx type: COINBASE, SPEND, SPEND_PRIVATE & etc.
+			"version": <version>,			-- (int) version (0-256)  
+			"timelock: <lock_time>,			-- (int64) lock time (future block)
+			"block": "<block_id>",			-- (string) block hash (id), optional
+			"height": <height>,				-- (int64) block height, optional
+			"index": <index>,				-- (int) tx block index
+			"mempool": false|true,			-- (bool) mempool presence, optional
+			"properties": {
+				...							-- (object) tx type-specific properties
+			},
+			"in": [
+				{
+					"chain": "<chain_id>",	-- (string) source chain/shard hash (id)
+					"asset": "<asset_id>",	-- (string) source asset hash (id)
+					"tx": "<tx_id>",		-- (string) source tx hash (id)
+					"index": <index>,		-- (int) source tx out index
+					"ownership": {
+						"raw": "<hex>",		-- (string) ownership script (hex)
+						"qasm": [			-- (array, string) ownership script disassembly
+							"<qasm> <p0>, ... <pn>",
+							...
+						]
+					}
+				}
+			],
+			"out": [
+				{
+					"asset": "<asset_id>",	-- (string) destination asset hash (id)
+					"destination": {
+						"raw": "<hex>",		-- (string) destination script (hex)
+						"qasm": [			-- (array, string) destination script disassembly
+							"<qasm> <p0>, ... <pn>",
+							...
+						]
+					}
+				}
+			]
+		},
+		"error":								-- (object or null) error description
+		{
+			"code": "EFAIL", 
+			"message": "<explanation>" 
+		},
+		"id": "curltext"						-- (string) request id
+	}
+	*/
+
+	// id
+	json::Value lId;
+	if (!(const_cast<json::Document&>(data).find("id", lId) && lId.isString())) {
+		reply = HttpReply::stockReply(HttpReply::bad_request);
+		return;
+	}
+
+	// params
+	json::Value lParams;
+	if (const_cast<json::Document&>(data).find("params", lParams) && lParams.isArray()) {
+		// extract parameters
+		std::string lName; // 0
+
+		if (lParams.size() == 1) {
+			// param[0]
+			json::Value lP0 = lParams[0];
+			if (lP0.isString()) lName = lP0.getString();
+			else { reply = HttpReply::stockReply(HttpReply::bad_request); return; }
+
+		} else {
+			reply = HttpReply::stockReply("E_PARAMS", "Insufficient or extra parameters"); 
+			return;
+		}
+
+		// prepare reply
+		json::Document lReply;
+		lReply.loadFromString("{}");
+
+		// process
+		TransactionPtr lTx;
+		std::string lCode, lMessage;
+
+		// try to lookup transaction
+		ITransactionStoreManagerPtr lStoreManager = wallet_->storeManager();
+		IMemoryPoolManagerPtr lMempoolManager = wallet_->mempoolManager();
+		if (lStoreManager && lMempoolManager) {
+			//
+			uint256 lBlock;
+			uint64_t lHeight = 0;
+			uint64_t lConfirms = 0;
+			uint32_t lIndex = 0;
+			bool lCoinbase = false;
+			bool lMempool = false;
+
+			ITransactionStorePtr lStorage = lStoreManager->locate(MainChain::id());
+			EntityPtr lTx = lStorage->entityStore()->locateEntity(lName);
+
+			// try mempool
+			if (!lTx) {
+				IMemoryPoolPtr lMainpool = lMempoolManager->locate(MainChain::id());
+				lTx = lMainpool->locateEntity(lName);
+				if (lTx) {
+					lMempool = true;
+				}
+			}
+
+			if (lTx) {
+				//
+				ITransactionStorePtr lStorage = lStoreManager->locate(lTx->in()[TX_BUZZER_SHARD_IN].out().tx());
+				if (lStorage && lStorage->extension()) {
+					//
+					BuzzerTransactionStoreExtensionPtr lExtension = std::static_pointer_cast<BuzzerTransactionStoreExtension>(lStorage->extension());
+					//
+					// load info
+					TxBuzzerInfoPtr lInfo = lExtension->readBuzzerInfo(lTx->id());
+					if (lInfo) {
+						//
+						lStorage->transactionInfo(lInfo->id(), lBlock, lHeight, lConfirms, lIndex, lCoinbase);
+						//
+						if (!unpackTransaction(lInfo, lBlock, lHeight, lConfirms, lIndex, lCoinbase, lMempool, lReply, reply)) 
+							return;						
+					} else {
+						reply = HttpReply::stockReply("E_TX_NOT_FOUND", "Transaction not found"); 
+						return;
+					}
+				}
+			} else {
+				reply = HttpReply::stockReply("E_TX_NOT_FOUND", "Transaction not found"); 
+				return;
+			}
+		} else {
+			reply = HttpReply::stockReply("E_STOREMANAGER", "Transactions store manager not found"); 
+			return;
+		}
+
 		if (!lCode.size() && !lMessage.size()) lReply.addObject("error").toNull();
 		else {
 			json::Value lError = lReply.addObject("error");

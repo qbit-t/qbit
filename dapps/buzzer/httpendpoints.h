@@ -89,6 +89,20 @@ public:
 	}
 };
 
+class HttpGetBuzzerInfo: public IHttpBuzzerCallEnpoint {
+public:
+	HttpGetBuzzerInfo() {}
+	HttpGetBuzzerInfo(BuzzerComposerPtr composer) : IHttpBuzzerCallEnpoint(composer) {}
+
+	void process(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
+	std::string method() { return std::string("getbuzzerinfo"); }
+
+	static IHttpCallEnpointPtr instance(BuzzerComposerPtr composer) {
+		return std::make_shared<HttpGetBuzzerInfo>(composer);
+	}
+};
+
+
 } // qbit
 
 #endif

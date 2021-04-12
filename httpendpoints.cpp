@@ -1315,6 +1315,8 @@ void HttpGetEntity::process(const std::string& source, const HttpRequest& reques
 				if (lTx) {
 					lMempool = true;
 				}
+			} else {
+				lStorage->transactionInfo(lTx->id(), lBlock, lHeight, lConfirms, lIndex, lCoinbase);
 			}
 
 			if (lTx) {
