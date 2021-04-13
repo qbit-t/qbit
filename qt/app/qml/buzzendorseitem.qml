@@ -127,6 +127,12 @@ Item {
 			// tx, previewFile, originalFile
 			avatarImage.source = "file://" + previewFile
 		}
+
+		onError: {
+			//
+			console.log("[avatarDownloadCommand\error]: forcing to resolve buzzer infos");
+			buzzerClient.forceResolveBuzzerInfos();
+		}
 	}
 
 	//

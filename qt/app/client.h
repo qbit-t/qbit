@@ -263,6 +263,10 @@ public:
 
 	Q_INVOKABLE long getQbitRate();
 
+	Q_INVOKABLE void forceResolveBuzzerInfos() {
+		buzzer_->resolveBuzzerInfos();
+	}
+
 	Q_INVOKABLE QVariant createBuzzesBuzzfeedList() {
 		BuzzfeedListModelBuzzes* lBuzzesBuzzfeedList = new BuzzfeedListModelBuzzes();
 		buzzer_->registerUpdate(lBuzzesBuzzfeedList->buzzfeed());

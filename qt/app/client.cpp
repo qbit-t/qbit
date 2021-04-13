@@ -907,8 +907,18 @@ void Client::setBuzzerDAppReady() {
 	requestProcessor_->collectPeersByDApp("buzzer", lMap);
 
 	//
+	std::map<uint256, std::map<uint32_t, IPeerPtr>> lMap2;
+	requestProcessor_->collectPeersByDApp("cubix", lMap2);
+
+	//
 	int lSupportNodes = 0;
 	for (std::map<uint256, std::map<uint32_t, IPeerPtr>>::iterator lChain = lMap.begin(); lChain != lMap.end(); lChain++) {
+		//if (gLog().isEnabled(Log::CLIENT))
+		//	gLog().write(Log::CLIENT, strprintf("[Client::setBuzzerDAppReady]: chain = %s, count = %d", lChain->first.toHex(), lChain->second.size()));
+		if (lChain->second.size() > 1) lSupportNodes += lChain->second.size();
+	}
+
+	for (std::map<uint256, std::map<uint32_t, IPeerPtr>>::iterator lChain = lMap2.begin(); lChain != lMap2.end(); lChain++) {
 		//if (gLog().isEnabled(Log::CLIENT))
 		//	gLog().write(Log::CLIENT, strprintf("[Client::setBuzzerDAppReady]: chain = %s, count = %d", lChain->first.toHex(), lChain->second.size()));
 		if (lChain->second.size() > 1) lSupportNodes += lChain->second.size();
@@ -917,7 +927,7 @@ void Client::setBuzzerDAppReady() {
 	// if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[Client::setBuzzerDAppReady]: peers %d/%d", lSupportNodes, lMap.size()));
 
 	// at least two nodes
-	if (lSupportNodes / lMap.size() > 1) {
+	if (lSupportNodes / (lMap.size() + lMap2.size()) > 1) {
 		bool lNotify = !buzzerDAppReady_;
 		buzzerDAppReady_ = true;
 		if (lNotify) {

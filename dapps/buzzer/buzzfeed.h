@@ -617,16 +617,16 @@ public:
 	}
 
 	bool resolve() {
+		bool lResolved = true;
 		if (!buzzerInfoResolve_(
 				buzzerInfoChainId_, 
 				buzzerId_, 
 				buzzerInfoId_,
 				boost::bind(&BuzzfeedItem::buzzerInfoReady, shared_from_this(), boost::placeholders::_1))) {
 			//
-			return false;
+			lResolved = false;
 		}
 
-		bool lResolved = true;
 		if (type_ == TX_REBUZZ || type_ == TX_BUZZ_LIKE || type_ == TX_BUZZ_REWARD || type_ == TX_BUZZER_MISTRUST || type_ == TX_BUZZER_ENDORSE) {
 			for (std::vector<ItemInfo>::const_iterator lItem = infos_.begin(); lItem != infos_.end(); lItem++) {
 				if (!buzzerInfoResolve_(

@@ -13,6 +13,8 @@ void Buzzer::buzzerInfoLoaded(TransactionPtr tx) {
 				lInfo->in()[TX_BUZZER_INFO_MY_IN].out().tx() == lItem->second.id()) { // ... expected buzzer is match
 			pushBuzzerInfo(lInfo);
 		}
+	} else {
+		loadingPendingInfos_.clear();
 	}
 }
 
@@ -24,14 +26,22 @@ void Buzzer::resolveBuzzerInfos() {
 																			lItem != pendingInfos_.end(); lItem++) {
 		//
 		if (loadingPendingInfos_.find(lItem->first) == loadingPendingInfos_.end()) {
-			requestProcessor_->loadTransaction(lItem->second.chain(), lItem->first,
+			//
+			//if (gLog().isEnabled(Log::CLIENT))
+			//	gLog().write(Log::CLIENT, strprintf("[resolveBuzzerInfos]: requesting info = %s, chain = %d", 
+			//		lItem->first.toHex(), lItem->second.chain().toHex()));
+			//
+			if (requestProcessor_->loadTransaction(lItem->second.chain(), lItem->first,
 				LoadTransaction::instance(
 					boost::bind(&Buzzer::buzzerInfoLoaded, shared_from_this(), boost::placeholders::_1),
 					boost::bind(&Buzzer::timeout, shared_from_this()))
-			);
-
-			//
-			loadingPendingInfos_.insert(lItem->first);
+			)) {
+				loadingPendingInfos_.insert(lItem->first);
+			} else {
+				//if (gLog().isEnabled(Log::CLIENT))
+				//	gLog().write(Log::CLIENT, strprintf("[resolveBuzzerInfos]: NOT RESOLVED for info = %s, chain = %d", 
+				//		lItem->first.toHex(), lItem->second.chain().toHex()));
+			}
 		}
 	}
 }
