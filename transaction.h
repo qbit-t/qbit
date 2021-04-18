@@ -843,12 +843,12 @@ public:
 							OP(QMOV) 		<< REG(QA1) << CVAR(lCommitment) <<	
 							OP(QMOV) 		<< REG(QA2) << CU256(lBlind) <<	
 							OP(QCHECKA) 	<<
+							OP(QEQADDR) 	<< // should be there
 							// NOTE: QR1 and CHECKH _should_ be called prior to any ATXO instructions
 							OP(QMOV) 		<< REG(QR1) << CU64(height) <<	
 							OP(QCHECKH) 	<< REG(QR1) <<	// check height: height < th4, set c0 & c1
 							OP(QATXOA) 		<<				// make utxo (push)
 							OP(QJMPT) 		<< TO(1000) <<	// if true - return (goto), false - continue
-							OP(QEQADDR) 	<<
 							OP(QMOV) 		<< REG(QR0) << CU8(0x01) <<	
 			LAB(1000) <<	OP(QRET));
 
