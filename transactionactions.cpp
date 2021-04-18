@@ -87,7 +87,7 @@ TransactionAction::Result TxSpendVerify::execute(TransactionContextPtr wrapper, 
 
 		BlockHeader lCurrentBlock;
 		uint64_t lCurrentHeight = store->currentHeight(lCurrentBlock);
-		if (store->synchronizing() && lCurrentHeight < 1922168) lCurrentHeight = ULONG_MAX; // special case
+		if (store->synchronizing() && lCurrentHeight < 1991288) lCurrentHeight = ULONG_MAX; // special case from height
 
 		for(std::vector<Transaction::In>::iterator lInPtr = lIns.begin(); lInPtr != lIns.end(); lInPtr++, lIdx++) {
 			//
