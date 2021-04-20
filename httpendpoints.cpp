@@ -2130,6 +2130,8 @@ void HttpGetState::process(const std::string& source, const HttpRequest& request
 		peerManager_->allPeers(lPeers);
 
 		// peer manager
+		lStateObject.addString("version", strprintf("%d.%d.%d.%d", 
+			QBIT_VERSION_MAJOR, QBIT_VERSION_MINOR, QBIT_VERSION_REVISION, QBIT_VERSION_BUILD));
 		lStateObject.addUInt("clients", peerManager_->clients());
 		lStateObject.addUInt("peers_count", lPeers.size());
 
