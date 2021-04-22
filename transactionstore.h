@@ -470,12 +470,12 @@ public:
 private:
 	bool processBlockTransactions(ITransactionStorePtr /*tempStore*/, IEntityStorePtr /*tempEntityStore*/, BlockContextPtr /*block*/, BlockTransactionsPtr /*transactions*/, uint64_t /*approxHeight*/, bool /*processWallet*/);
 	bool processBlock(BlockContextPtr, uint64_t& /*new height*/, bool /*processWallet*/);
-	void removeBlocks(const uint256& /*from*/, const uint256& /*to*/, bool /*removeData*/);
+	void removeBlocks(const uint256& /*from*/, const uint256& /*to*/, bool /*removeData*/, uint64_t /*limit*/);
 	void writeLastBlock(const uint256&);
 	uint64_t pushNewHeight(const uint256&);
 	uint64_t top();
 	uint64_t calcHeight(const uint256&);
-	bool isHeaderReachable(const uint256&, const uint256&);
+	bool isHeaderReachable(const uint256&, const uint256&, uint64_t&, uint64_t /*limit*/);
 
 private:
 	class SynchronizingGuard {

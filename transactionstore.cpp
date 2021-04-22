@@ -419,7 +419,7 @@ bool TransactionStore::setLastBlock(const uint256& block) {
 	return false;
 }
 
-bool TransactionStore::isHeaderReachable(const uint256& from, const uint256& to) {
+bool TransactionStore::isHeaderReachable(const uint256& from, const uint256& to, uint64_t& diff, uint64_t limit) {
 	//
 	BlockHeader lHeader;
 	uint256 lHash = from;
@@ -429,7 +429,7 @@ bool TransactionStore::isHeaderReachable(const uint256& from, const uint256& to)
 
 	//
 	bool lTraced = true;
-	while (headers_.read(lHash, lHeader)) {
+	while (headers_.read(lHash, lHeader) && diff++ < limit) {
 		// reached
 		bool lReached = (lHash == to);
 		// check block data
@@ -678,28 +678,29 @@ bool TransactionStore::revertLtxo(const uint256& ltxo, const uint256& hash) {
 
 //
 // [..)
-void TransactionStore::removeBlocks(const uint256& from, const uint256& to, bool removeData) {
+void TransactionStore::removeBlocks(const uint256& from, const uint256& to, bool removeData, uint64_t limit) {
 	// remove indexed data
 	uint256 lHash = from;
 	//
 	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[removeBlocks]: ") +
 		strprintf("removing blocks data [%s-%s]/%s#", from.toHex(), to.toHex(), chain_.toHex().substr(0, 10)));		
 	//
+	uint64_t lLimit = 0;
 	BlockHeader lHeader;
-	while(lHash != to && headers_.read(lHash, lHeader)) {
-		//
-		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[removeBlocks]: ") +
-			strprintf("removing block data for %s/%s#", lHash.toHex(), chain_.toHex().substr(0, 10)));		
+	while(lHash != to && headers_.read(lHash, lHeader) && (!limit || lLimit++ < limit)) {
 		// begin transaction
 		db::DbMultiContainer<uint256 /*block*/, TxBlockAction /*utxo action*/>::Transaction lBlockIdxTransaction = blockUtxoIdx_.transaction();
 		// prepare reverse queue
-		std::list<TxBlockAction> lQueue;		
+		std::list<TxBlockAction> lQueue;
 		// iterate
 		for (db::DbMultiContainer<uint256 /*block*/, TxBlockAction /*utxo action*/>::Iterator lUtxo = blockUtxoIdx_.find(lHash); lUtxo.valid(); ++lUtxo) {
 			lQueue.push_back(*lUtxo);
 			// mark to remove
 			lBlockIdxTransaction.remove(lUtxo);
 		}
+		//
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[removeBlocks]: ") +
+			strprintf("removing block data for %d/%s/%s#", lQueue.size(), lHash.toHex(), chain_.toHex().substr(0, 10)));		
 		// reverse traverse
 		for (std::list<TxBlockAction>::reverse_iterator lUtxo = lQueue.rbegin(); lUtxo != lQueue.rend(); lUtxo++) {
 			// reconstruct utxo
@@ -709,7 +710,9 @@ void TransactionStore::removeBlocks(const uint256& from, const uint256& to, bool
 				Transaction::UnlinkedOut lUtxoObj;
 				if (utxo_.read(lAction.utxo(), lUtxoObj)) {
 					if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[removeBlocks]: ") +
-						strprintf("remove utxo = %s, tx = %s/%s#", lAction.utxo().toHex(), lUtxoObj.out().tx().toHex(), chain_.toHex().substr(0, 10)));
+						strprintf("remove utxo = %s, tx = %s/%s/%s#",
+							lAction.utxo().toHex(), lUtxoObj.out().tx().toHex(), lHash.toHex(),
+							chain_.toHex().substr(0, 10)));
 
 					utxo_.remove(lAction.utxo());
 					ltxo_.remove(lAction.utxo()); // sanity
@@ -738,7 +741,10 @@ void TransactionStore::removeBlocks(const uint256& from, const uint256& to, bool
 					ltxo_.remove(lAction.utxo());
 
 					if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[removeBlocks]: ") +
-						strprintf("remove/add ltxo/utxo = %s, tx = %s/%s#", lAction.utxo().toHex(), lUtxoObj.out().tx().toHex(), chain_.toHex().substr(0, 10)));
+						strprintf("remove/add ltxo/utxo = %s, tx = %s/%s/%s#",
+							lAction.utxo().toHex(),
+							lUtxoObj.out().tx().toHex(), lHash.toHex(),
+							chain_.toHex().substr(0, 10)));
 				} else {
 					// try main chain 
 					if (chain_ != MainChain::id()) {
@@ -822,7 +828,7 @@ void TransactionStore::removeBlocks(const uint256& from, const uint256& to, bool
 
 		// next
 		lHash = lHeader.prev();
-	}	
+	}
 }
 
 //
@@ -1735,7 +1741,7 @@ void TransactionStore::reindexFull(const uint256& from, IMemoryPoolPtr pool) {
 		strprintf("%s#", chain_.toHex().substr(0, 10)));
 
 	// remove index, DO WE need really this? - that is totally new chain
-	removeBlocks(from, BlockHeader().hash(), false);
+	removeBlocks(from, BlockHeader().hash(), false, 0);
 
 	//
 	uint256 lLastBlock = lastBlock_;
@@ -1783,6 +1789,9 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 	gLog().write(Log::STORE, std::string("[reindex]: STARTING reindex for ") + 
 		strprintf("from = %s, to = %s, %s#", from.toHex(), to.toHex(), chain_.toHex().substr(0, 10)));
 
+	// params
+	uint64_t /*lLastHeight = 0, lToHeight = 0,*/ lLastBlockDiff = 0, lFromDiff = 0, lLimit = (60/5)*60*24*3; // far check distance
+
 	// clean-up from lastBlock_
 	bool lCleanUpLastBlock = true;
 
@@ -1802,13 +1811,13 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 		}
 
 		// check is block headers are traceable from the root
-		if (!(lCleanUpLastBlock = isHeaderReachable(lastBlock_, to))) {
+		if (!(lCleanUpLastBlock = isHeaderReachable(lastBlock_, to, lLastBlockDiff, lLimit))) {
 			//
-			gLog().write(Log::STORE, std::string("[reindex/warning]: partial reindex is POSSIBLE for ") + 
+			gLog().write(Log::STORE, std::string("[reindex/warning]: limited clean-up with partial reindex is POSSIBLE for ") + 
 				strprintf("lastBlock = %s, to = %s/%s#", lastBlock_.toHex(), to.toHex(), chain_.toHex().substr(0, 10)));
 		}
 
-		if (!isHeaderReachable(from, to)) {
+		if (!isHeaderReachable(from, to, lFromDiff, lLimit)) {
 			//
 			gLog().write(Log::STORE, std::string("[reindex]: partial reindex is NOT POSSIBLE for ") + 
 				strprintf("from = %s, to = %s/%s#", from.toHex(), to.toHex(), chain_.toHex().substr(0, 10)));
@@ -1830,10 +1839,10 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 		boost::unique_lock<boost::recursive_mutex> lLock(storageCommitMutex_);
 		// synchronizing
 		SynchronizingGuard lGuard(shared_from_this());
-		// remove old index
-		if (lCleanUpLastBlock) removeBlocks(lastBlock_, to, false);
+		// remove old index (limited)
+		removeBlocks(lastBlock_, to, false, lLastBlockDiff < lLimit ? 0 : lLimit /*limit depth or 0*/);
 		// remove new index
-		removeBlocks(from, to, false); // in case of wrapped restarts (re-process blocks may occur)
+		removeBlocks(from, to, false, lFromDiff < lLimit ? 0 : lLimit); // in case of wrapped restarts (re-process blocks may occur)
 		// process blocks
 		if (!(lResult = processBlocks(from, to, pool))) {
 			setLastBlock(lLastBlock);
