@@ -480,32 +480,23 @@ bool TransactionStore::isRootExists(const uint256& lastRoot, const uint256& newR
 			//
 			commonRoot = lHashLeft;
 			break;
-		} else if (!lThread.insert(lHashRight).second) {
+		}
+
+		if (!lThread.insert(lHashRight).second) {
 			//
 			commonRoot = lHashRight;
 			break;
 		}
 
-		// reached
-		bool lReached = (lHashLeft == lHashRight);
-		// check block data
-		//if (blockExists(lHashLeft) && blockExists(lHashRight)) 
-		{
-			// check
-			if (lReached) {
-				commonRoot = lHashLeft;
-				break; // we found hard link
-			}
-			// push
-			lHashLeft = lHeaderLeft.prev();
-			lHashRight = lHeaderRight.prev();
-		}
-		/*
-		else {
-			lTraced = false;
+		// check
+		if (lHashLeft == lHashRight) {
+			commonRoot = lHashLeft;
 			break;
 		}
-		*/
+
+		// push
+		lHashLeft = lHeaderLeft.prev();
+		lHashRight = lHeaderRight.prev();
 
 		if (lHashLeft == lNull || lHashRight == lNull) {
 			lTraced = false;
@@ -518,10 +509,7 @@ bool TransactionStore::isRootExists(const uint256& lastRoot, const uint256& newR
 		}
 	}
 
-	if (!lTraced) return false;
-	if (lHashLeft == lHashRight) return true;
-
-	return false;	
+	return lTraced;	
 }
 
 bool TransactionStore::resyncHeight() {
