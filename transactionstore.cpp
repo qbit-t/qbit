@@ -692,6 +692,7 @@ void TransactionStore::removeBlocks(const uint256& from, const uint256& to, bool
 		db::DbMultiContainer<uint256 /*block*/, TxBlockAction /*utxo action*/>::Transaction lBlockIdxTransaction = blockUtxoIdx_.transaction();
 		// prepare reverse queue
 		std::list<TxBlockAction> lQueue;
+		std::set<uint256> lTouchedTxs;
 		// iterate
 		for (db::DbMultiContainer<uint256 /*block*/, TxBlockAction /*utxo action*/>::Iterator lUtxo = blockUtxoIdx_.find(lHash); lUtxo.valid(); ++lUtxo) {
 			lQueue.push_back(*lUtxo);
@@ -718,6 +719,7 @@ void TransactionStore::removeBlocks(const uint256& from, const uint256& to, bool
 					ltxo_.remove(lAction.utxo()); // sanity
 					utxoBlock_.remove(lAction.utxo()); // just for push
 					addressAssetUtxoIdx_.remove(lUtxoObj.address().id(), lUtxoObj.out().asset(), lAction.utxo());
+					lTouchedTxs.insert(lUtxoObj.out().tx()); // mark as visited
 				} else {
 					// try main chain 
 					if (chain_ != MainChain::id()) {
@@ -739,6 +741,7 @@ void TransactionStore::removeBlocks(const uint256& from, const uint256& to, bool
 					addressAssetUtxoIdx_.write(lUtxoObj.address().id(), lUtxoObj.out().asset(), lAction.utxo(), lUtxoObj.out().tx());
 					utxoBlock_.write(lAction.utxo(), lHash);
 					ltxo_.remove(lAction.utxo());
+					lTouchedTxs.insert(lUtxoObj.out().tx()); // mark as visited
 
 					if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[removeBlocks]: ") +
 						strprintf("remove/add ltxo/utxo = %s, tx = %s/%s/%s#",
@@ -761,9 +764,6 @@ void TransactionStore::removeBlocks(const uint256& from, const uint256& to, bool
 				}
 			}
 		}
-
-		// commit changes
-		lBlockIdxTransaction.commit();
 
 		// clear transactions
 		BlockTransactionsPtr lTransactions = transactions_.read(lHash);
@@ -790,6 +790,13 @@ void TransactionStore::removeBlocks(const uint256& from, const uint256& to, bool
 				db::DbMultiContainer<uint256 /*tx*/, uint256 /*utxo*/>::Transaction lTxUtxoTransaction = txUtxo_.transaction();
 				for (db::DbMultiContainer<uint256 /*tx*/, uint256 /*utxo*/>::Iterator lTxUtxo = txUtxo_.find((*lTx)->id()); lTxUtxo.valid(); ++lTxUtxo) {
 					lTxUtxoTransaction.remove(lTxUtxo);
+
+					// double check for the "lost" utxo's
+					uint256 lTxId;
+					if (lTxUtxo.first(lTxId) && lTouchedTxs.find(lTxId) != lTouchedTxs.end()) {
+						utxo_.remove(*lTxUtxo);
+						ltxo_.remove(*lTxUtxo);
+					}
 				}
 
 				lTxUtxoTransaction.commit();			
@@ -819,6 +826,9 @@ void TransactionStore::removeBlocks(const uint256& from, const uint256& to, bool
 				}
 			}
 		}
+
+		// commit changes
+		lBlockIdxTransaction.commit();
 
 		// remove data
 		if (removeData) {
