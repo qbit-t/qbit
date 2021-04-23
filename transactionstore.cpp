@@ -429,7 +429,7 @@ bool TransactionStore::isHeaderReachable(const uint256& from, const uint256& to,
 
 	//
 	bool lTraced = true;
-	while (headers_.read(lHash, lHeader) && diff++ < limit) {
+	while (headers_.read(lHash, lHeader)) {
 		// reached
 		bool lReached = (lHash == to);
 		// check block data
@@ -447,12 +447,63 @@ bool TransactionStore::isHeaderReachable(const uint256& from, const uint256& to,
 			lTraced = false;
 			break;
 		}
+
+		if (diff++ >= limit) {
+			lTraced = false;
+			break;
+		}
 	}
 
 	if (!lTraced) return false;
 	if (lHash == to) return true;
 
 	return false;
+}
+
+bool TransactionStore::isRootExists(const uint256& lastRoot, const uint256& newRoot, uint256& commonRoot, uint64_t& depth, uint64_t limit) {
+	//
+	BlockHeader lHeaderLeft, lHeaderRight;
+	uint256 lHashLeft = lastRoot;
+	uint256 lHashRight = newRoot;
+
+	//
+	uint256 lNull = BlockHeader().hash();
+
+	//
+	bool lTraced = true;
+	while (headers_.read(lHashLeft, lHeaderLeft) && headers_.read(lHashRight, lHeaderRight)) {
+		// reached
+		bool lReached = (lHashLeft == lHashRight);
+		// check block data
+		if (blockExists(lHashLeft) && blockExists(lHashRight)) {
+			// check
+			if (lReached) {
+				commonRoot = lHashLeft;
+				break; // we found hard link
+			}
+			// push
+			lHashLeft = lHeaderLeft.prev();
+			lHashRight = lHeaderRight.prev();
+		} else {
+			lTraced = false;
+			break;
+		}
+
+		if (lHashLeft == lNull || lHashRight == lNull) {
+			lTraced = false;
+			break;
+		}
+
+		if (depth++ >= limit) {
+			lTraced = false;
+			break;
+		}
+	}
+
+	if (!lTraced) return false;
+	if (lHashLeft == lHashRight) return true;
+
+	return false;	
 }
 
 bool TransactionStore::resyncHeight() {
@@ -1799,7 +1850,8 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 		strprintf("from = %s, to = %s, %s#", from.toHex(), to.toHex(), chain_.toHex().substr(0, 10)));
 
 	// params
-	uint64_t /*lLastHeight = 0, lToHeight = 0,*/ lLastBlockDiff = 0, lFromDiff = 0, lLimit = (60/5)*60*24*3; // far check distance
+	uint64_t /*lLastHeight = 0, lToHeight = 0,*/ lLastBlockDiff = 0, lFromDiff = 0, lLimit = (60/5)*60*24*5; // far check distance
+	uint256 lCommonRoot;
 
 	// clean-up from lastBlock_
 	bool lCleanUpLastBlock = true;
@@ -1820,10 +1872,14 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 		}
 
 		// check is block headers are traceable from the root
-		if (!(lCleanUpLastBlock = isHeaderReachable(lastBlock_, to, lLastBlockDiff, lLimit))) {
+		if ((lCleanUpLastBlock = isRootExists(lastBlock_, from, lCommonRoot, lLastBlockDiff, lLimit))) {
 			//
 			gLog().write(Log::STORE, std::string("[reindex/warning]: limited clean-up with partial reindex is POSSIBLE for ") + 
 				strprintf("lastBlock = %s, to = %s/%s#", lastBlock_.toHex(), to.toHex(), chain_.toHex().substr(0, 10)));
+		} else {
+			//
+			gLog().write(Log::STORE, std::string("[reindex/warning]: removing OLD data is not possible, because NO common root is found for ") + 
+				strprintf("lastBlock = %s, from = %s/%s#", lastBlock_.toHex(), from.toHex(), chain_.toHex().substr(0, 10)));
 		}
 
 		if (!isHeaderReachable(from, to, lFromDiff, lLimit)) {
@@ -1849,9 +1905,9 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 		// synchronizing
 		SynchronizingGuard lGuard(shared_from_this());
 		// remove old index (limited)
-		removeBlocks(lastBlock_, to, false, lLastBlockDiff < lLimit ? 0 : lLimit /*limit depth or 0*/);
+		if (lCleanUpLastBlock) removeBlocks(lastBlock_, lCommonRoot, false, 0);
 		// remove new index
-		removeBlocks(from, to, false, lFromDiff < lLimit ? 0 : lLimit); // in case of wrapped restarts (re-process blocks may occur)
+		removeBlocks(from, to, false, 0); // in case of wrapped restarts (re-process blocks may occur)
 		// process blocks
 		if (!(lResult = processBlocks(from, to, pool))) {
 			setLastBlock(lLastBlock);

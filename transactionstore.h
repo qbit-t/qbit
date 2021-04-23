@@ -476,6 +476,7 @@ private:
 	uint64_t top();
 	uint64_t calcHeight(const uint256&);
 	bool isHeaderReachable(const uint256&, const uint256&, uint64_t&, uint64_t /*limit*/);
+	bool isRootExists(const uint256&, const uint256&, uint256&, uint64_t&, uint64_t /*limit*/);
 
 private:
 	class SynchronizingGuard {
