@@ -792,8 +792,7 @@ void TransactionStore::removeBlocks(const uint256& from, const uint256& to, bool
 					lTxUtxoTransaction.remove(lTxUtxo);
 
 					// double check for the "lost" utxo's
-					uint256 lTxId;
-					if (lTxUtxo.first(lTxId) && lTouchedTxs.find(lTxId) != lTouchedTxs.end()) {
+					if (lTouchedTxs.find((*lTx)->id()) == lTouchedTxs.end()) {
 						utxo_.remove(*lTxUtxo);
 						ltxo_.remove(*lTxUtxo);
 					}
