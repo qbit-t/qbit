@@ -473,24 +473,27 @@ bool TransactionStore::isRootExists(const uint256& lastRoot, const uint256& newR
 	std::set<uint256> lThread;
 
 	//
-	bool lTraced = true;
+	bool lTraced = false;
 	while (headers_.read(lHashLeft, lHeaderLeft) && headers_.read(lHashRight, lHeaderRight)) {
 		// check
 		if (!lThread.insert(lHashLeft).second){
 			//
 			commonRoot = lHashLeft;
+			lTraced = true;
 			break;
 		}
 
 		if (!lThread.insert(lHashRight).second) {
 			//
 			commonRoot = lHashRight;
+			lTraced = true;
 			break;
 		}
 
 		// check
 		if (lHashLeft == lHashRight) {
 			commonRoot = lHashLeft;
+			lTraced = true;
 			break;
 		}
 
@@ -499,12 +502,10 @@ bool TransactionStore::isRootExists(const uint256& lastRoot, const uint256& newR
 		lHashRight = lHeaderRight.prev();
 
 		if (lHashLeft == lNull || lHashRight == lNull) {
-			lTraced = false;
 			break;
 		}
 
 		if (depth++ >= limit) {
-			lTraced = false;
 			break;
 		}
 	}
@@ -1881,11 +1882,11 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 		if ((lCleanUpLastBlock = isRootExists(lastBlock_, from, lCommonRoot, lLastBlockDiff, lLimit))) {
 			//
 			gLog().write(Log::STORE, std::string("[reindex/warning]: limited clean-up with partial reindex is POSSIBLE for ") + 
-				strprintf("lastBlock = %s, to = %s/%s#", lastBlock_.toHex(), to.toHex(), chain_.toHex().substr(0, 10)));
+				strprintf("depth = %d, lastBlock = %s, to = %s/%s#", lLastBlockDiff, lastBlock_.toHex(), to.toHex(), chain_.toHex().substr(0, 10)));
 		} else {
 			//
 			gLog().write(Log::STORE, std::string("[reindex/warning]: removing OLD data is not possible, because NO common root is found for ") + 
-				strprintf("lastBlock = %s, from = %s/%s#", lastBlock_.toHex(), from.toHex(), chain_.toHex().substr(0, 10)));
+				strprintf("depth = %d, lastBlock = %s, from = %s/%s#", lLastBlockDiff, lastBlock_.toHex(), from.toHex(), chain_.toHex().substr(0, 10)));
 		}
 
 		if (!isHeaderReachable(from, to, lFromDiff, lLimit)) {
