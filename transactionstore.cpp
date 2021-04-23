@@ -470,12 +470,27 @@ bool TransactionStore::isRootExists(const uint256& lastRoot, const uint256& newR
 	uint256 lNull = BlockHeader().hash();
 
 	//
+	std::set<uint256> lThread;
+
+	//
 	bool lTraced = true;
 	while (headers_.read(lHashLeft, lHeaderLeft) && headers_.read(lHashRight, lHeaderRight)) {
+		// check
+		if (!lThread.insert(lHashLeft).second){
+			//
+			commonRoot = lHashLeft;
+			break;
+		} else if (!lThread.insert(lHashRight).second) {
+			//
+			commonRoot = lHashRight;
+			break;
+		}
+
 		// reached
 		bool lReached = (lHashLeft == lHashRight);
 		// check block data
-		if (blockExists(lHashLeft) && blockExists(lHashRight)) {
+		//if (blockExists(lHashLeft) && blockExists(lHashRight)) 
+		{
 			// check
 			if (lReached) {
 				commonRoot = lHashLeft;
@@ -484,10 +499,13 @@ bool TransactionStore::isRootExists(const uint256& lastRoot, const uint256& newR
 			// push
 			lHashLeft = lHeaderLeft.prev();
 			lHashRight = lHeaderRight.prev();
-		} else {
+		}
+		/*
+		else {
 			lTraced = false;
 			break;
 		}
+		*/
 
 		if (lHashLeft == lNull || lHashRight == lNull) {
 			lTraced = false;
@@ -1850,7 +1868,7 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 		strprintf("from = %s, to = %s, %s#", from.toHex(), to.toHex(), chain_.toHex().substr(0, 10)));
 
 	// params
-	uint64_t /*lLastHeight = 0, lToHeight = 0,*/ lLastBlockDiff = 0, lFromDiff = 0, lLimit = (60/5)*60*24*5; // far check distance
+	uint64_t /*lLastHeight = 0, lToHeight = 0,*/ lLastBlockDiff = 0, lFromDiff = 0, lLimit = (60/5)*60*24*3; // far check distance
 	uint256 lCommonRoot;
 
 	// clean-up from lastBlock_
