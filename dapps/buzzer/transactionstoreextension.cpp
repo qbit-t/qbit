@@ -949,8 +949,9 @@ void BuzzerTransactionStoreExtension::processEvent(const uint256& id, Transactio
 			//
 			Transaction::In& lIn = (*lInPtr);
 			ITransactionStorePtr lLocalStore = store_->storeManager()->locate(lIn.out().chain());
-			TransactionPtr lInTx = lLocalStore->locateTransaction(lIn.out().tx());
+			if (!lLocalStore) continue;
 
+			TransactionPtr lInTx = lLocalStore->locateTransaction(lIn.out().tx());
 			if (lInTx != nullptr) {
 				if (lInTx->type() == TX_BUZZER) {
 					// direct events - mentions
@@ -2183,6 +2184,7 @@ void BuzzerTransactionStoreExtension::selectConversations(uint64_t from, const u
 					strprintf("conversation = %s, chain = %s#", lConversation.toHex(), store_->chain().toHex().substr(0, 10)));
 				//
 				ITransactionStorePtr lConversationStore = store_->storeManager()->locate(lInfo.chain()); // conversation store
+				if (!lConversationStore) continue;
 				TransactionPtr lTx = lConversationStore->locateTransaction(lInfo.id());
 				if (!lTx) continue;
 				TxBuzzerConversationPtr lConversationTx = TransactionHelper::to<TxBuzzerConversation>(lTx);
@@ -2857,6 +2859,8 @@ void BuzzerTransactionStoreExtension::makeEventsfeedLikeItem(TransactionPtr tx, 
 
 	bool lAdd = true;
 	ITransactionStorePtr lStore = store_->storeManager()->locate(lBuzzChainId);
+	if (!lStore) return;
+	
 	TransactionPtr lBuzzTx = lStore->locateTransaction(lBuzzId);
 	if (lBuzzTx) {
 		//
