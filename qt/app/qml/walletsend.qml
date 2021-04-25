@@ -110,9 +110,9 @@ Item
 			width: parent.width - (spaceLeft_ + spaceRight_) + 2
 			placeholderText: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.wallet.address")
 			editor: true
-			scan: false
+			scan: buzzerApp.isDesktop ? false : true
 			textFontSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 1)) : 16
-			symbolFontSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 4)) : 20
+			symbolFontSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 4)) : 18 //20
 			height: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 50) : 50
 
 			model: ListModel { id: contactsModel_ }
@@ -124,6 +124,10 @@ Item
 					//balanceCommand.process();
 				}
 
+				sendButton.adjust();
+			}
+
+			onAdjustAddress: {
 				sendButton.adjust();
 			}
 
@@ -172,6 +176,7 @@ Item
 					amountInfo.prepare();
 				} else {
 					addressBox.text = data; // address
+					amountInfo.prepare();
 				}
 			}
 

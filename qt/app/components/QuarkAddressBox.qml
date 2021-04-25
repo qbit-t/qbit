@@ -37,6 +37,7 @@ Rectangle
     property string innerAction: "dropDown"; // "add"
 	property int textFontSize: 16;
 	property int symbolFontSize: 14;
+	property int itemSpacing: 5;
 
     property int highlightedIndex: -1
 
@@ -47,6 +48,7 @@ Rectangle
     signal addAddress(var address);
     signal removeAddress(var id);
 	signal addressTextChanged(var address);
+	signal adjustAddress();
 	signal cleared();
 
     function synchronize()
@@ -105,9 +107,10 @@ Rectangle
 
             onClicked:
             {
-				addressBox.address = "";
-				addressBox.text = "";
-                infoLabel.text = addressBox.placeholderText;
+				reset();
+				//addressBox.address = "";
+				//addressBox.text = "";
+				//infoLabel.text = addressBox.placeholderText;
 				cleared();
             }
         }
@@ -152,7 +155,7 @@ Rectangle
             id: infoLabel
             x: 5 + textLeftPadding
             y: parent.height / 2 - height / 2
-            width: parent.width - dropDownAction.width - (15 + textLeftPadding)
+			width: parent.width - dropDownAction.width - (15 + textLeftPadding + itemSpacing)
             elide: Text.ElideRight
 
             text: !addressBox.text.length ? addressBox.placeholderText : addressBox.text
@@ -189,13 +192,19 @@ Rectangle
 
 			x: 5 + textLeftPadding
 			y: parent.height / 2 - calculatedHeight / 2 + 5
-			width: parent.width - dropDownAction.width - (15 + textLeftPadding)
+			width: parent.width - dropDownAction.width - (15 + textLeftPadding + itemSpacing)
 			fontPointSize: textFontSize
 
 			onSearchTextChanged: {
 				//
 				search.setText(searchText);
 				addressTextChanged(searchText);
+			}
+
+			onInnerTextChanged: {
+				//
+				search.setText(text);
+				adjustAddress();
 			}
 
 			function makeText() {
@@ -206,7 +215,7 @@ Rectangle
         QuarkSymbolLabel
         {
             id: dropDownAction
-            x: infoLabel.width + 9
+			x: infoLabel.width + 9 + itemSpacing
             y: parent.height / 2 - height / 2
 			font.pointSize: symbolFontSize
             symbol: getSymbol()
@@ -336,7 +345,6 @@ Rectangle
             onClicked:
             {
                 addressBox.text = clipboard.getText();
-
             }
         }
     }

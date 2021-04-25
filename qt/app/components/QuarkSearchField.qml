@@ -24,11 +24,13 @@ Item
 	property string placeHolder: buzzerApp.getLocalization(buzzerClient.locale, "Markets.Filter.Search");
     property int calculatedHeight: 0;
 	property real fontPointSize: 14
+	property int itemSpacing: 3;
 
     property bool clearButton: true;
 	property var innerField: field
 
     signal textCleared();
+	signal innerTextChanged(var text);
 
 	function toBegin() {
 		field.ensureVisible(0);
@@ -47,14 +49,14 @@ Item
 
     onWidthChanged:
     {
-        field.width = searchField.width - (clearButton ? cancel.width + 15 : 0);
+		field.width = searchField.width - (clearButton ? cancel.width + 15 : 0);
     }
 
     QuarkTextField
     {
         id: field
 		font.pointSize: fontPointSize
-        width: searchField.width - (searchField.clearButton ? cancel.width + 15 : 0)
+		width: searchField.width - (searchField.clearButton ? cancel.width + 15 : 0)
         clip: true
 
         placeholderText: searchField.placeHolder
@@ -69,6 +71,7 @@ Item
 
         onTextChanged:
         {
+			innerTextChanged(text);
             //searchText = text;
 			//console.log("inner/textChanged = " + text);
         }

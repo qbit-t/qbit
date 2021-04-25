@@ -24,7 +24,7 @@ QuarkPage
     width: parent.width
     height: parent.height
 
-    property string caption: buzzerApp.getLocalization(buzzerClient.locale, "LinkAccount.QRCode")
+	property string caption: ""; //buzzerApp.getLocalization(buzzerClient.locale, "LinkAccount.QRCode")
 
     Component.onCompleted:
     {
@@ -81,7 +81,7 @@ QuarkPage
     {
         id: cameraDevice
 
-        imageProcessing.whiteBalanceMode: CameraImageProcessing.WhiteBalanceFlash
+		//imageProcessing.whiteBalanceMode: CameraImageProcessing.WhiteBalanceFlash
 
         focus.focusMode: Camera.FocusContinuous
         captureMode: Camera.CaptureStillImage
@@ -101,7 +101,8 @@ QuarkPage
             exposureCompensation: expoSlider.value
         }
 
-        digitalZoom: zoomSlider.value
+		flash.mode: Camera.FlashOff
+		digitalZoom: zoomSlider.value
     }
 
     VideoOutput
