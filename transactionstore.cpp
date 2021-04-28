@@ -1060,11 +1060,11 @@ bool TransactionStore::processBlocks(const uint256& from, const uint256& to, IMe
 
 			//
 			lBlockCtx->block()->compact(); // compact txs to just ids
-			pool->removeTransactions(lBlockCtx->block());
+			if (pool) pool->removeTransactions(lBlockCtx->block());
 		} else {
 			//
 			lBlockCtx->block()->compact(); // compact txs to just ids
-			pool->removeTransactions(lBlockCtx->block());
+			if (pool) pool->removeTransactions(lBlockCtx->block());
 			return false;
 		}
 	}
@@ -1209,6 +1209,14 @@ void TransactionStore::writeLastBlock(const uint256& block) {
 	workingSettings_.write("lastBlock", lHex);
 }
 
+void TransactionStore::writeLastReindex(const uint256& from, const uint256& to) {
+	//
+	if (!opened_) return;
+
+	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
+	workingSettings_.write("lastReindex", strprintf("%s|%s", from.toHex(), to.toHex()));
+}
+
 BlockPtr TransactionStore::block(uint64_t height) {
 	//
 	BlockHeader lHeader;
@@ -1298,7 +1306,30 @@ bool TransactionStore::open() {
 
 			gLog().write(Log::INFO, std::string("[open]: lastBlock = ") + strprintf("%s/%s#", lastBlock_.toHex(), chain_.toHex().substr(0, 10)));
 
+			// make height index
 			resyncHeight();
+
+			// check interrupted reindex and re-process
+			std::string lLastReindex;
+			if (workingSettings_.read("lastReindex", lLastReindex)) {
+				std::vector<std::string> lParts;
+				boost::split(lParts, lLastReindex, boost::is_any_of("|"), boost::token_compress_on);
+				if (lParts.size() == 2) {
+					//
+					uint256 lFrom; lFrom.setHex(lParts[0]);
+					uint256 lTo; lTo.setHex(lParts[1]);
+
+					//
+					if (lFrom != uint256() && lTo != uint256()) {
+						// reprocess last reindex
+						gLog().write(Log::INFO, strprintf("[open]: reprocessing last reindex from = %s, to = %s/%s#",
+							lFrom.toHex(), lTo.toHex(), chain_.toHex().substr(0, 10)));
+
+						//
+						reindex(lFrom, lTo, nullptr);
+					}
+				}
+			}
 
 			// push shards
 			for (db::DbMultiContainer<uint256 /*entity*/, uint256 /*shard*/>::Iterator lShard = shards_.begin(); lShard.valid(); ++lShard) {
@@ -1882,7 +1913,8 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 		if ((lCleanUpLastBlock = isRootExists(lastBlock_, from, lCommonRoot, lLastBlockDiff, lLimit))) {
 			//
 			gLog().write(Log::STORE, std::string("[reindex/warning]: limited clean-up with partial reindex is POSSIBLE for ") + 
-				strprintf("depth = %d, lastBlock = %s, to = %s/%s#", lLastBlockDiff, lastBlock_.toHex(), to.toHex(), chain_.toHex().substr(0, 10)));
+				strprintf("depth = %d, lastBlock = %s, from = %s, root = %s/%s#",
+					lLastBlockDiff, lastBlock_.toHex(), from.toHex(), lCommonRoot.toHex(), chain_.toHex().substr(0, 10)));
 		} else {
 			//
 			gLog().write(Log::STORE, std::string("[reindex/warning]: removing OLD data is not possible, because NO common root is found for ") + 
@@ -1911,6 +1943,8 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 		boost::unique_lock<boost::recursive_mutex> lLock(storageCommitMutex_);
 		// synchronizing
 		SynchronizingGuard lGuard(shared_from_this());
+		// mark last reindex
+		writeLastReindex(from, to);
 		// remove old index (limited)
 		if (lCleanUpLastBlock) removeBlocks(lastBlock_, lCommonRoot, false, 0);
 		// remove new index
@@ -1938,6 +1972,8 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 		}
 	}
 
+	// umark last reindex
+	writeLastReindex(uint256(), uint256());
 	//
 	gLog().write(Log::STORE, std::string("[reindex]: reindex FINISHED for ") + 
 		strprintf("%s#", chain_.toHex().substr(0, 10)));

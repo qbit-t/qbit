@@ -472,6 +472,7 @@ private:
 	bool processBlock(BlockContextPtr, uint64_t& /*new height*/, bool /*processWallet*/);
 	void removeBlocks(const uint256& /*from*/, const uint256& /*to*/, bool /*removeData*/, uint64_t /*limit*/);
 	void writeLastBlock(const uint256&);
+	void writeLastReindex(const uint256&, const uint256&);
 	uint64_t pushNewHeight(const uint256&);
 	uint64_t top();
 	uint64_t calcHeight(const uint256&);
