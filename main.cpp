@@ -372,7 +372,7 @@ public:
 		std::static_pointer_cast<TransactionStoreManager>(storeManager_)->setWallet(wallet_);
 		std::static_pointer_cast<TransactionStoreManager>(storeManager_)->setShardingManager(shardingManager_);
 		// push main chain to store manager
-		ITransactionStorePtr lMainStore = storeManager_->create(MainChain::id());
+		storeManager_->create(MainChain::id());
 
 		// consensus
 		std::static_pointer_cast<ConsensusManager>(consensusManager_)->setStoreManager(storeManager_);
@@ -393,9 +393,6 @@ public:
 		consensusManager_->push(MainChain::id(), nullptr);
 		mempoolManager_->push(MainChain::id());
 		validatorManager_->push(MainChain::id(), nullptr);
-
-		//
-		if (lMainStore) lMainStore->prepare();
 
 		// buzzer
 		buzzerComposer_ = BuzzerComposer::instance(settings_, wallet_);
@@ -707,6 +704,9 @@ int main(int argv, char** argc) {
 
 	// initialize first key (if absent - create it)
 	lNode->wallet()->firstKey();
+
+	// prepare main storage, warm-up
+	lNode->storeManager()->locate(MainChain::id())->prepare();
 
 	// add nodes
 	for (std::vector<std::string>::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
