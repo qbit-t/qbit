@@ -148,7 +148,7 @@ private:
 
 	void startMiner() {
 		// start miner
-		if (consensus_->settings()->isMiner() && !minerRunning_) {
+		if (consensus_->settings()->isMiner() && !minerRunning_ && !store_->synchronizing()) {
 			BlockHeader lHeader = store_->currentBlockHeader();
 			if (currentBlockHeader_.origin() != lHeader.origin() && !consensus_->isSimpleNetwork() || 
 					consensus_->isSimpleNetwork()
@@ -406,7 +406,7 @@ private:
 			//
 			IConsensus::ChainState lState = consensus_->chainState();
 			if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[buzzer/touch]: chain state = ") + strprintf("%s/%s#", consensus_->chainStateString(), chain_.toHex().substr(0, 10)));
-			if (lState != IConsensus::SYNCHRONIZED) {
+			if (lState != IConsensus::SYNCHRONIZED || store_->synchronizing()) {
 				// stop miner
 				stopMiner();
 			}
