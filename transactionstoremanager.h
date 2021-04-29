@@ -51,6 +51,22 @@ public:
 			std::static_pointer_cast<TransactionStore>(lStore)->setWallet(wallet_);
 			storages_[chain] = lStore;
 			lStore->open();
+			lStore->prepare();
+			return lStore;
+		}
+
+		return nullptr;
+	}
+
+	ITransactionStorePtr create(const uint256& chain) {
+		//
+		boost::unique_lock<boost::mutex> lLock(storagesMutex_);
+		if (storages_.find(chain) == storages_.end()) {
+			ITransactionStorePtr lStore = TransactionStore::instance(chain, settings_, shared_from_this());
+
+			std::static_pointer_cast<TransactionStore>(lStore)->setWallet(wallet_);
+			storages_[chain] = lStore;
+			lStore->open();
 			return lStore;
 		}
 

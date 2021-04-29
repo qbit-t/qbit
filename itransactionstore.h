@@ -105,6 +105,9 @@ public:
 	//
 	virtual bool airdropped(const uint160& /*address*/, const uint160& /*peer*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::airdropped - not implemeted."); }
 	virtual void pushAirdropped(const uint160& /*address*/, const uint160& /*peer*/, const uint256& /*tx*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::pushAirdropped - not implemeted."); }
+
+	//
+	virtual void prepare() { throw qbit::exception("NOT_IMPL", "ITransactionStore::prepare - not implemeted."); }
 };
 
 typedef std::shared_ptr<ITransactionStore> ITransactionStorePtr;

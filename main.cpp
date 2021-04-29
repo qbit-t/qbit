@@ -372,7 +372,7 @@ public:
 		std::static_pointer_cast<TransactionStoreManager>(storeManager_)->setWallet(wallet_);
 		std::static_pointer_cast<TransactionStoreManager>(storeManager_)->setShardingManager(shardingManager_);
 		// push main chain to store manager
-		storeManager_->push(MainChain::id());
+		ITransactionStorePtr lMainStore = storeManager_->create(MainChain::id());
 
 		// consensus
 		std::static_pointer_cast<ConsensusManager>(consensusManager_)->setStoreManager(storeManager_);
@@ -393,6 +393,9 @@ public:
 		consensusManager_->push(MainChain::id(), nullptr);
 		mempoolManager_->push(MainChain::id());
 		validatorManager_->push(MainChain::id(), nullptr);
+
+		//
+		if (lMainStore) lMainStore->prepare();
 
 		// buzzer
 		buzzerComposer_ = BuzzerComposer::instance(settings_, wallet_);

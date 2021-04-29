@@ -987,10 +987,13 @@ void TransactionStore::erase(const uint256& from, const uint256& to) {
 
 //
 // interval [..)
-bool TransactionStore::processBlocks(const uint256& from, const uint256& to, IMemoryPoolPtr pool) {
+bool TransactionStore::processBlocks(const uint256& from, const uint256& to, IMemoryPoolPtr pool, uint256& last) {
 	//
 	std::list<BlockHeader> lHeadersSeq;
 	uint256 lHash = from;
+
+	//
+	if (!wallet_->mempoolManager()) return false;
 	IMemoryPoolPtr lMempool = wallet_->mempoolManager()->locate(chain_);
 
 	//
@@ -1065,6 +1068,7 @@ bool TransactionStore::processBlocks(const uint256& from, const uint256& to, IMe
 			//
 			lBlockCtx->block()->compact(); // compact txs to just ids
 			if (pool) pool->removeTransactions(lBlockCtx->block());
+			last = (*lBlock).prev(); // suppose, that the previous one is good enouht
 			return false;
 		}
 	}
@@ -1309,28 +1313,6 @@ bool TransactionStore::open() {
 			// make height index
 			resyncHeight();
 
-			// check interrupted reindex and re-process
-			std::string lLastReindex;
-			if (workingSettings_.read("lastReindex", lLastReindex)) {
-				std::vector<std::string> lParts;
-				boost::split(lParts, lLastReindex, boost::is_any_of("|"), boost::token_compress_on);
-				if (lParts.size() == 2) {
-					//
-					uint256 lFrom; lFrom.setHex(lParts[0]);
-					uint256 lTo; lTo.setHex(lParts[1]);
-
-					//
-					if (lFrom != uint256() && lTo != uint256()) {
-						// reprocess last reindex
-						gLog().write(Log::INFO, strprintf("[open]: reprocessing last reindex from = %s, to = %s/%s#",
-							lFrom.toHex(), lTo.toHex(), chain_.toHex().substr(0, 10)));
-
-						//
-						reindex(lFrom, lTo, nullptr);
-					}
-				}
-			}
-
 			// push shards
 			for (db::DbMultiContainer<uint256 /*entity*/, uint256 /*shard*/>::Iterator lShard = shards_.begin(); lShard.valid(); ++lShard) {
 				//
@@ -1355,6 +1337,35 @@ bool TransactionStore::open() {
 	}
 
 	return opened_;
+}
+
+void TransactionStore::prepare() {
+	//
+	if (opened_) {
+		gLog().write(Log::INFO, std::string("[prepare]: preparing store for ") + strprintf("%s", chain_.toHex()));
+
+		// check interrupted reindex and re-process
+		std::string lLastReindex;
+		if (workingSettings_.read("lastReindex", lLastReindex)) {
+			std::vector<std::string> lParts;
+			boost::split(lParts, lLastReindex, boost::is_any_of("|"), boost::token_compress_on);
+			if (lParts.size() == 2) {
+				//
+				uint256 lFrom; lFrom.setHex(lParts[0]);
+				uint256 lTo; lTo.setHex(lParts[1]);
+
+				//
+				if (lFrom != uint256() && lTo != uint256()) {
+					// reprocess last reindex
+					gLog().write(Log::INFO, strprintf("[prepare]: reprocessing last reindex from = %s, to = %s/%s#",
+						lFrom.toHex(), lTo.toHex(), chain_.toHex().substr(0, 10)));
+
+					//
+					reindex(lFrom, lTo, nullptr);
+				}
+			}
+		}
+	}
 }
 
 bool TransactionStore::close() {
@@ -1855,11 +1866,15 @@ void TransactionStore::reindexFull(const uint256& from, IMemoryPoolPtr pool) {
 	wallet_->cleanUpData();
 	*/
 
+	// probably last block
+	uint256 lLastPrev;
 	// process blocks
-	if (!processBlocks(from, BlockHeader().hash(), pool)) {
+	if (!processBlocks(from, BlockHeader().hash(), pool, lLastPrev)) {
 		// try to rollback
-		setLastBlock(lLastBlock);
-		resyncHeight();
+		if (lLastPrev != uint256()) {
+			setLastBlock(lLastPrev);
+			resyncHeight();
+		}
 	} else {
 		// new last
 		setLastBlock(from);
@@ -1949,11 +1964,23 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 		if (lCleanUpLastBlock) removeBlocks(lastBlock_, lCommonRoot, false, 0);
 		// remove new index
 		removeBlocks(from, to, false, 0); // in case of wrapped restarts (re-process blocks may occur)
+		// probably last block
+		uint256 lLastPrev;
 		// process blocks
-		if (!(lResult = processBlocks(from, to, pool))) {
-			setLastBlock(lLastBlock);
+		if (!(lResult = processBlocks(from, to, pool, lLastPrev))) {
+			// setLastBlock(lLastBlock);
 			// NOTICE: height map was not changed
 			// resyncHeight();
+
+			// try to rollback to in-sequence last known block
+			if (lLastPrev != uint256()) {
+				//
+				gLog().write(Log::STORE, std::string("[reindex]: re-syncing to ") + 
+					strprintf("%s/%s#", lLastPrev.toHex(), chain_.toHex().substr(0, 10)));
+				//
+				setLastBlock(lLastPrev);
+				resyncHeight();
+			}	
 		} else {
 			//
 			gLog().write(Log::STORE, std::string("[reindex]: blocks processed for ") + 

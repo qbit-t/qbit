@@ -21,6 +21,7 @@ public:
 
 	virtual bool add(ITransactionStorePtr /*store*/) { throw qbit::exception("NOT_IMPL", "ITransactionStoreManager::add - not implemented."); }
 	virtual ITransactionStorePtr push(const uint256& /*chain*/) { throw qbit::exception("NOT_IMPL", "ITransactionStoreManager::push - not implemented."); }
+	virtual ITransactionStorePtr create(const uint256& /*chain*/) { throw qbit::exception("NOT_IMPL", "ITransactionStoreManager::create - not implemented."); }
 	virtual void pop(const uint256& /*chain*/) { throw qbit::exception("NOT_IMPL", "ITransactionStoreManager::pop - not implemented."); }		
 	virtual std::vector<ITransactionStorePtr> storages() { throw qbit::exception("NOT_IMPL", "ITransactionStoreManager::storages - not implemented."); }
 	virtual TransactionPtr locateTransaction(const uint256& /*tx*/, ITransactionStorePtr /*except*/) { throw qbit::exception("NOT_IMPL", "ITransactionStoreManager::locateTransaction - not implemented."); }

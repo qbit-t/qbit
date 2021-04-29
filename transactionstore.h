@@ -396,8 +396,9 @@ public:
 
 	// store management
 	bool open();
+	void prepare();
 	bool close();
-	bool isOpened() { return opened_; }	
+	bool isOpened() { return opened_; }
 
 	bool pushUnlinkedOut(Transaction::UnlinkedOutPtr, TransactionContextPtr);
 	bool popUnlinkedOut(const uint256&, TransactionContextPtr);
@@ -422,7 +423,7 @@ public:
 
 	void erase(const uint256& /*from*/, const uint256& /*to*/); // erase indexes, reverse order (native)
 	void remove(const uint256& /*from*/, const uint256& /*to*/); // remove indexes with data (headers, transactions), reverse order (native)
-	bool processBlocks(const uint256& /*from*/, const uint256& /*to*/, IMemoryPoolPtr /*pool*/);	// re\process blocks, forward order
+	bool processBlocks(const uint256& /*from*/, const uint256& /*to*/, IMemoryPoolPtr /*pool*/, uint256& /*last*/);	// re\process blocks, forward order
 
 	BlockPtr block(uint64_t /*height*/);
 	BlockPtr block(const uint256& /*id*/);
