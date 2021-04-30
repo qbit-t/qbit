@@ -1000,8 +1000,9 @@ bool TransactionStore::processBlocks(const uint256& from, const uint256& to, IMe
 	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlocks]: ") +
 		strprintf("processing blocks data [%s-%s]/%s#", from.toHex(), to.toHex(), chain_.toHex().substr(0, 10)));		
 	//
+	bool lDone = false;
 	BlockHeader lHeader;
-	while(lHash != to && headers_.read(lHash, lHeader)) {
+	while(!lDone && headers_.read(lHash, lHeader)) {
 		// check sequence consistency
 		if (lMempool && !lMempool->consensus()->checkSequenceConsistency(lHeader)) {
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlocks/error]: check sequence consistency FAILED ") +
@@ -1009,10 +1010,19 @@ bool TransactionStore::processBlocks(const uint256& from, const uint256& to, IMe
 			return false;
 		}
 
-		//
-		lHeadersSeq.push_back(lHeader);
-		// next
-		lHash = lHeader.prev();
+		if (lHash == to) { 
+			lDone = true;
+
+			uint64_t lHeight;
+			if (!blockHeight(lHash, lHeight)) {
+				lHeadersSeq.push_back(lHeader); // re-process "to" in case of fast and cross clean-ups 
+			}
+		} else {
+			//
+			lHeadersSeq.push_back(lHeader);
+			// next
+			lHash = lHeader.prev();
+		}
 	}
 
 	// traverse
