@@ -2955,6 +2955,7 @@ void Peer::processBlockAbsent(std::list<DataStream>::iterator msg, const boost::
 		SynchronizationJobPtr lJob = locateJob(lChain);
 		if (lJob) {
 			if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: block is absent for ") + strprintf("%s/%s#", lId.toHex(), lChain.toHex().substr(0, 10)));
+			lJob->releasePendingBlockJob(lId);
 			lJob->pushPendingBlock(lId);
 		}
 
