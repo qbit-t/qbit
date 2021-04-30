@@ -2930,6 +2930,16 @@ void Peer::processBlockHeaderAbsent(std::list<DataStream>::iterator msg, const b
 		
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: block header is absent for ") + strprintf("%s/%s#", lId.toHex(), lChain.toHex().substr(0, 10)));
 
+		// TODO: this peer has no ability to support continuous header data, switch to another?
+		/*
+		SynchronizationJobPtr lJob = locateJob(lChain);
+		if (lJob) {
+			if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: block header is absent for ") + strprintf("%s/%s#", lId.toHex(), lChain.toHex().substr(0, 10)));
+			lJob->releasePendingBlockJob(lId);
+			lJob->pushPendingBlock(lId);
+		}
+		*/
+
 		//
 		processed();
 	} else {
