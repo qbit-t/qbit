@@ -3645,7 +3645,7 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 		eraseInData(msg);
 
 		if (!lHeaders.size()) { 
-			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: block header(s) is EMPTY from ") + key() + " -> " + HexStr(msg->begin(), msg->end()));
+			if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: block header(s) is EMPTY from ") + key() + " -> " + HexStr(msg->begin(), msg->end()));
 			processed();
 			return;
 		}
@@ -3670,7 +3670,7 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 				lLast = lId;
 
 				// log
-				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: process block header from ") + key() + " -> " + 
+				if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: process block header from ") + key() + " -> " + 
 					strprintf("%s/%s#", lId.toHex(), lBlockHeader.chain().toHex().substr(0, 10)));
 
 				// check
@@ -3735,6 +3735,10 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 			}
 
 			if (lConsensus != nullptr && lJob != nullptr) synchronizeLargePartialTree(lConsensus, lJob);
+		} else {
+			// log
+			if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: job was not found ") + key() + " -> " + 
+				strprintf("%s#", lHeaders.begin()->blockHeader().chain().toHex().substr(0, 10)));
 		}
 	} else {
 		processError("processBlockHeader", error);
