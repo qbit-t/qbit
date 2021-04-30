@@ -2828,7 +2828,7 @@ void Peer::processBlockByHeightAbsent(std::list<DataStream>::iterator msg, const
 		(*msg) >> lHeight;
 		eraseInData(msg);
 		
-		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: block is absent for ") + strprintf("%d/%s#", lHeight, lChain.toHex().substr(0, 10)));
+		if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: block by height is absent for ") + strprintf("%d/%s#", lHeight, lChain.toHex().substr(0, 10)));
 
 		//
 		processed();
@@ -2856,7 +2856,7 @@ void Peer::processBlockByIdAbsent(std::list<DataStream>::iterator msg, const boo
 			lJob->pushPendingBlock(lId);
 		}
 		
-		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: block is absent for ") + strprintf("%s/%s#", lId.toHex(), lChain.toHex().substr(0, 10)));
+		if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: block is absent for ") + strprintf("%s/%s#", lId.toHex(), lChain.toHex().substr(0, 10)));
 
 		//
 		processed();
@@ -2877,7 +2877,7 @@ void Peer::processNetworkBlockAbsent(std::list<DataStream>::iterator msg, const 
 		(*msg) >> lId;
 		eraseInData(msg);
 		
-		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: network block is absent for ") + strprintf("%s/%s#", lId.toHex(), lChain.toHex().substr(0, 10)));
+		if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: network block is absent for ") + strprintf("%s/%s#", lId.toHex(), lChain.toHex().substr(0, 10)));
 
 		//
 		processed();
@@ -2908,7 +2908,7 @@ void Peer::processNetworkBlockHeaderAbsent(std::list<DataStream>::iterator msg, 
 		// clean-up
 		removeRequest(lRequestId);
 		
-		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: network block header is absent for ") + strprintf("%s/%s#", lId.toHex(), lChain.toHex().substr(0, 10)));
+		if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: network block header is absent for ") + strprintf("%s/%s#", lId.toHex(), lChain.toHex().substr(0, 10)));
 	} else {
 		processError("processNetworkBlockHeaderAbsent", error);
 	}	
@@ -2928,17 +2928,14 @@ void Peer::processBlockHeaderAbsent(std::list<DataStream>::iterator msg, const b
 		(*msg) >> lId;
 		eraseInData(msg);
 		
-		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: block header is absent for ") + strprintf("%s/%s#", lId.toHex(), lChain.toHex().substr(0, 10)));
+		if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: block header is absent for ") + strprintf("%s/%s#", lId.toHex(), lChain.toHex().substr(0, 10)));
 
-		// TODO: this peer has no ability to support continuous header data, switch to another?
-		/*
 		SynchronizationJobPtr lJob = locateJob(lChain);
 		if (lJob) {
 			if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: block header is absent for ") + strprintf("%s/%s#", lId.toHex(), lChain.toHex().substr(0, 10)));
 			lJob->releasePendingBlockJob(lId);
 			lJob->pushPendingBlock(lId);
 		}
-		*/
 
 		//
 		processed();
@@ -2969,7 +2966,7 @@ void Peer::processBlockAbsent(std::list<DataStream>::iterator msg, const boost::
 			lJob->pushPendingBlock(lId);
 		}
 
-		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: block is absent for ") + strprintf("%s/%s#", lId.toHex(), lChain.toHex().substr(0, 10)));
+		if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: block is absent for ") + strprintf("%s/%s#", lId.toHex(), lChain.toHex().substr(0, 10)));
 
 		//
 		processed();
@@ -3003,7 +3000,7 @@ void Peer::processBlockByHeight(std::list<DataStream>::iterator msg, const boost
 			peerManager_->consensusManager()->locate(lBlock->chain())->store()->saveBlock(lBlock);
 		} else {
 			// log
-			if (gLog().isEnabled(Log::NET)) gLog().write(Log::WARNING, std::string("[peer]: local job was not found for ") + strprintf("%d/%s#", lHeight, lBlock->chain().toHex().substr(0, 10)));
+			if (gLog().isEnabled(Log::WARNING)) gLog().write(Log::WARNING, std::string("[peer]: local job was not found for ") + strprintf("%d/%s#", lHeight, lBlock->chain().toHex().substr(0, 10)));
 		}
 
 		// go do next job

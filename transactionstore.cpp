@@ -1881,10 +1881,8 @@ void TransactionStore::reindexFull(const uint256& from, IMemoryPoolPtr pool) {
 	// process blocks
 	if (!processBlocks(from, BlockHeader().hash(), pool, lLastPrev)) {
 		// try to rollback
-		if (lLastPrev != uint256()) {
-			setLastBlock(lLastPrev);
-			resyncHeight();
-		}
+		setLastBlock(lLastBlock);
+		resyncHeight();
 	} else {
 		// new last
 		setLastBlock(from);
@@ -1978,11 +1976,12 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 		uint256 lLastPrev;
 		// process blocks
 		if (!(lResult = processBlocks(from, to, pool, lLastPrev))) {
-			// setLastBlock(lLastBlock);
+			setLastBlock(lLastBlock);
 			// NOTICE: height map was not changed
 			// resyncHeight();
 
 			// try to rollback to in-sequence last known block
+			/*
 			if (lLastPrev != uint256()) {
 				//
 				gLog().write(Log::STORE, std::string("[reindex]: re-syncing to ") + 
@@ -1990,7 +1989,8 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 				//
 				setLastBlock(lLastPrev);
 				resyncHeight();
-			}	
+			}
+			*/	
 		} else {
 			//
 			gLog().write(Log::STORE, std::string("[reindex]: blocks processed for ") + 
