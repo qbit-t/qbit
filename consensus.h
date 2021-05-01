@@ -738,8 +738,8 @@ public:
 			bool lFound = false;
 			for (HeightMap::reverse_iterator lHeightPos = heightMap_.rbegin(); !lFound && lHeightPos != heightMap_.rend(); lHeightPos++) {
 				gLog().write(Log::CONSENSUS, 
-					strprintf("[locateSynchronizedRoot]: try [%d]/%d/%s#", 
-						lHeightPos->first, lHeightPos->second.size(), chain_.toHex().substr(0, 10)));
+					strprintf("[locateSynchronizedRoot]: try [%d:%d]/%d/%s#", 
+						lHeightPos->first, lHeight, lHeightPos->second.size(), chain_.toHex().substr(0, 10)));
 				for (StateMap::iterator lState = lHeightPos->second.begin(); lState != lHeightPos->second.end(); lState++) {
 					if (lHeightPos->first > lHeight) {
 						// collect known peers for the synchronized root
@@ -750,8 +750,8 @@ public:
 						block = lState->first;
 
 						gLog().write(Log::CONSENSUS, 
-							strprintf("[locateSynchronizedRoot]: ROOT [%d]/%s/%s#", 
-								lResultHeight, block.toHex(), chain_.toHex().substr(0, 10)));
+							strprintf("[locateSynchronizedRoot]: ROOT [%d:%d]/%s/%s#", 
+								lResultHeight, lHeight, block.toHex(), chain_.toHex().substr(0, 10)));
 
 						lFound = true;
 
@@ -835,10 +835,37 @@ public:
 		//
 		std::list<IPeerPtr> lPeers;
 		uint256 lBlock, lLast;
-		locateSynchronizedRoot(lPeers, lBlock, lLast); // get peers, height and block
+		uint64_t lHeight = locateSynchronizedRoot(lPeers, lBlock, lLast); // get peers, height and block
 
 		// force
-		if (job == nullptr) job_->cancel();
+		if (job == nullptr) {
+			// TODO: check if we on GET_BLOCK_HEADER stage
+			if (job_->currentBlock() != uint256()) {
+				// job stalled, try to restart
+				if (lPeers.size()) {
+					// 1. clean-up
+					if (settings_->isFullNode() || settings_->isNode()) {
+						for(std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
+								gLog().write(Log::CONSENSUS, strprintf("[finishJob]: cleaning up for %s# from %s/%d", chain_.toHex().substr(0, 10), (*lPeer)->key(), lPeers.size()));
+								(*lPeer)->removeJob(chain_); // last job
+						}
+					}
+
+					// 2. push
+					if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[finishJob]: continue LARGE PARTIAL tree synchronization ") + 
+						strprintf("%d/%s-%s/%s#", lHeight, lBlock.toHex(), lLast.toHex(), chain_.toHex().substr(0, 10)));
+
+					std::list<IPeerPtr>::iterator lPeer = lPeers.begin();
+					job_->setNextBlock(job_->currentBlock());
+					(*lPeer)->synchronizeLargePartialTree(shared_from_this(), job_);
+
+					// 3. jump out
+					return;
+				}
+			} else {
+				job_->cancel();
+			}
+		}
 
 		// add more peers to enforce sync job
 		if (lPeers.size()) {
@@ -958,14 +985,17 @@ public:
 							std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); // just first?
 							if (!job_ || job_->nextBlockInstant().isNull()) { 
 								//
+								bool lVeryLast = (lLast == BlockHeader().hash());
 								BlockHeader lConfirmed;
 								if (store_->blockHeader(lOurHeight - coinbaseMaturity(), lConfirmed)) {
 									lLast = lConfirmed.hash();
 									lOurHeight -= coinbaseMaturity();
+									lVeryLast = (lLast == BlockHeader().hash());
 								}
 								//
 								if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[doSynchronize]: starting LARGE PARTIAL tree synchronization ") + 
-									strprintf("%d/%s-%s/%s#", lHeight, lBlock.toHex(), lLast.toHex(), chain_.toHex().substr(0, 10)));
+									strprintf("%d:%d/%s-%s/%s#", lHeight, lOurHeight, lBlock.toHex(), 
+										(lVeryLast ? "LAST" : lLast.toHex()), chain_.toHex().substr(0, 10)));
 
 								job_ = SynchronizationJob::instance(
 									lBlock,

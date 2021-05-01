@@ -28,7 +28,7 @@ public:
 
 	virtual size_t threadPoolSize() { if (!isClient()) return 4; return 1; } // tread pool size
 
-	virtual uint64_t consensusSynchronizationLatency() { return 300; } // latency in seconds
+	virtual uint64_t consensusSynchronizationLatency() { return 30; } // latency in seconds
 
 	virtual uint32_t roles() { return State::PeerRoles::FULLNODE|State::PeerRoles::MINER; } // default role	
 

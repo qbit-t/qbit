@@ -97,13 +97,15 @@ public:
 	void setNextBlock(const uint256& block) {
 		boost::unique_lock<boost::mutex> lLock(jobMutex_);
 		time_ = getTime(); // timestamp
-		nextBlock_ = block; 
+		nextBlock_ = block;
+		currentBlock_.setNull();
 	}
 
 	void setLastBlock(const uint256& block) {
 		boost::unique_lock<boost::mutex> lLock(jobMutex_);
 		lastBlock_ = block; 
 		nextBlock_.setNull();
+		currentBlock_.setNull();
 		time_ = getTime(); // timestamp
 	}
 
@@ -124,12 +126,18 @@ public:
 		// time_ = getTime(); // timestamp
 		uint256 lBlock = nextBlock_;
 		nextBlock_.setNull();
+		currentBlock_ = lBlock;
 		return lBlock;
 	}
 
 	uint256 lastBlock() {
 		boost::unique_lock<boost::mutex> lLock(jobMutex_);
 		return lastBlock_;
+	}
+
+	uint256 currentBlock() {
+		boost::unique_lock<boost::mutex> lLock(jobMutex_);
+		return currentBlock_;
 	}
 
 	uint256 nextBlockInstant() {
@@ -256,6 +264,7 @@ private:
 	uint256 block_;
 	uint256 nextBlock_;
 	uint256 lastBlock_;
+	uint256 currentBlock_;
 	uint64_t time_;
 	std::map<uint64_t, Agent> workers_; // TODO: add timeout & check
 	std::map<uint256, Agent> txWorkers_; // TODO: add timeout & check

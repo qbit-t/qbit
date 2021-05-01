@@ -584,6 +584,18 @@ private:
 		return nullptr;
 	}
 
+	std::vector<SynchronizationJobPtr> synchronizationJobs() {
+		//
+		std::vector<SynchronizationJobPtr> lResult;
+		boost::unique_lock<boost::mutex> lLock(jobsMutex_);
+		for (std::map<uint256, SynchronizationJobPtr>::iterator lJob = jobs_.begin(); lJob != jobs_.end(); lJob++) {
+			//
+			lResult.push_back(lJob->second);
+		}
+
+		return lResult;
+	}
+
 	uint32_t inQueueLength() {
 		boost::unique_lock<boost::mutex> lLock(rawInMutex_);
 		return rawInMessages_.size();
