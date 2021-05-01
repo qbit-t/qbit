@@ -2527,6 +2527,7 @@ void BuzzerTransactionStoreExtension::selectEventsfeed(uint64_t from, const uint
 					TxBuzzerPtr lBuzzer = nullptr;
 					TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lSubscriber);
 					if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
+					else continue;
 					//
 					lItem->setType(TX_BUZZER_SUBSCRIBE);
 					lItem->setTimestamp(lSubscribeTx->timestamp());
@@ -2860,7 +2861,7 @@ void BuzzerTransactionStoreExtension::makeEventsfeedLikeItem(TransactionPtr tx, 
 	bool lAdd = true;
 	ITransactionStorePtr lStore = store_->storeManager()->locate(lBuzzChainId);
 	if (!lStore) return;
-	
+
 	TransactionPtr lBuzzTx = lStore->locateTransaction(lBuzzId);
 	if (lBuzzTx) {
 		//
