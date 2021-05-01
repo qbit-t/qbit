@@ -487,6 +487,7 @@ int main(int argv, char** argc) {
 	// command line
 	bool lDaemon = false;
 	bool lDebugFound = false;
+	bool lExplicitPeersOnly = false;
 	std::string lEndpointV4;
 	std::vector<std::string> lPeers;
 	for (int lIdx = 1; lIdx < argv; lIdx++) {
@@ -578,6 +579,9 @@ int main(int argv, char** argc) {
 		} else if (std::string(argc[lIdx]) == std::string("-resync")) {
 			//
 			lSettings->setResync();
+		} else if (std::string(argc[lIdx]) == std::string("-explicit-peers-only")) {
+			//
+			lExplicitPeersOnly = true;
 		} else if (std::string(argc[lIdx]) == std::string("-roles")) {
 			//
 			std::vector<std::string> lRoles;
@@ -707,6 +711,9 @@ int main(int argv, char** argc) {
 
 	// prepare main storage, warm-up
 	lNode->storeManager()->locate(MainChain::id())->prepare();
+
+	// work with explicit peers
+	if (lExplicitPeersOnly) lNode->peerManager()->useExplicitPeersOnly();
 
 	// add nodes
 	for (std::vector<std::string>::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {

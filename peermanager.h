@@ -515,7 +515,7 @@ public:
 
 		// load peers
 		gLog().write(Log::INFO, std::string("[peerManager]: loading peers..."));
-		if (!gLightDaemon) {
+		if (!gLightDaemon && !explicitPeersOnly_) {
 			for (db::DbContainer<std::string /*endpoint*/, Peer::PersistentState>::Iterator lState = peersContainer_.begin(); lState.valid(); ++lState) {
 				// process state
 				std::string lKey;
@@ -556,7 +556,6 @@ public:
 			timers_.push_back(lTimer);
 		}
 
-//#ifndef MOBILE_PLATFORM
 		// create a pool of threads to run all of the io_contexts
 		gLog().write(Log::INFO, std::string("[peerManager]: starting contexts..."));
 		for (std::vector<IOContextPtr>::iterator lCtx = contexts_.begin(); lCtx != contexts_.end(); lCtx++)	{
@@ -565,7 +564,6 @@ public:
 					boost::bind(&PeerManager::processor, shared_from_this(), *lCtx)));
 			threads_.push_back(lThread);
 		}
-//#endif
 
 		if (!settings_->isClient()) {
 			// wait for all threads in the pool to exit
@@ -694,6 +692,9 @@ public:
 			}
 		}
 	}
+
+	void useExplicitPeersOnly() { explicitPeersOnly_ = true; }
+	bool explicitPeersOnly() { return explicitPeersOnly_; }
 
 private:
 	void openPeersContainer() {
@@ -1203,6 +1204,7 @@ private:
 	std::map<uint160, uint512> peerStateSent_;
 
 	bool paused_ = false;
+	bool explicitPeersOnly_ = false;
 };
 
 }

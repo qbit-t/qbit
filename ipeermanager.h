@@ -45,6 +45,8 @@ public:
 	virtual void poll() { throw qbit::exception("NOT_IMPL", "IPeerManager::poll - not implemented."); }
 	virtual void suspend() { throw qbit::exception("NOT_IMPL", "IPeerManager::suspend - not implemented."); }
 	virtual void resume() { throw qbit::exception("NOT_IMPL", "IPeerManager::resume - not implemented."); }
+	virtual void useExplicitPeersOnly() { throw qbit::exception("NOT_IMPL", "IPeerManager::useExplicitPeersOnly - not implemented."); }
+	virtual bool explicitPeersOnly() { throw qbit::exception("NOT_IMPL", "IPeerManager::explicitPeersOnly - not implemented."); }
 
 	virtual void updateMedianTime() { throw qbit::exception("NOT_IMPL", "IPeerManager::updateMedianTime - not implemented."); }
 
