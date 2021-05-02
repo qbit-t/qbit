@@ -2928,13 +2928,15 @@ void Peer::processBlockHeaderAbsent(std::list<DataStream>::iterator msg, const b
 		(*msg) >> lId;
 		eraseInData(msg);
 		
-		if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: block header is absent for ") + strprintf("%s/%s#", lId.toHex(), lChain.toHex().substr(0, 10)));
-
 		SynchronizationJobPtr lJob = locateJob(lChain);
 		if (lJob) {
+			//
 			if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: block header is absent for ") + strprintf("%s/%s#", lId.toHex(), lChain.toHex().substr(0, 10)));
-			lJob->releasePendingBlockJob(lId);
-			lJob->pushPendingBlock(lId);
+			//
+			lJob->cancel();
+
+			IConsensusPtr lConsensus = peerManager_->consensusManager()->locate(lChain);
+			if (lConsensus) synchronizeLargePartialTree(lConsensus, lJob); // clean-up and try to restart
 		}
 
 		//
