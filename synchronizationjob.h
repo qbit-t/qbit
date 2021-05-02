@@ -34,6 +34,14 @@ public:
 		Agent(IPeerPtr peer, uint64_t time) : peer_(peer), time_(time) {}
 	};
 
+	struct Chunk {
+		uint256 block_;
+		bool frameExists_ = false;
+		bool indexed_ = false;
+
+		Chunk(const uint256& block, bool frameExists, bool indexed) : block_(block), frameExists_(frameExists), indexed_(indexed) {}
+	};
+
 	enum Type {
 		UNDEFINED,
 		FULL,
@@ -257,6 +265,25 @@ public:
 	void setResync() { resync_ = true; }
 	bool resync() { return resync_; }
 
+	void pushChunk(const uint256& block, bool frameExists, bool indexed) {
+		//
+		boost::unique_lock<boost::mutex> lLock(jobMutex_);
+		chunks_.push_back(Chunk(block, frameExists, indexed));
+	}
+
+	uint256 analyzeLinkedChunks() {
+		//
+		boost::unique_lock<boost::mutex> lLock(jobMutex_);
+		for (std::list<Chunk>::reverse_iterator lChunk = chunks_.rbegin(); lChunk != chunks_.rend(); lChunk++) {
+			//
+			if (!lChunk->indexed_) {
+				return lChunk->block_;
+			}
+		}
+
+		return uint256();
+	}
+
 private:
 	boost::mutex jobMutex_;
 	uint64_t height_;
@@ -270,6 +297,7 @@ private:
 	std::map<uint256, Agent> txWorkers_; // TODO: add timeout & check
 	std::list<uint256> pendingBlocks_;
 	std::set<uint256> pendingBlocksIndex_;
+	std::list<Chunk> chunks_;
 	Type type_;
 	bool cancelled_ = false;
 	bool resync_ = false;

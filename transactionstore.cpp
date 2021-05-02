@@ -1837,6 +1837,12 @@ bool TransactionStore::blockExists(const uint256& id) {
 	return transactions_.exists(id);
 }
 
+bool TransactionStore::blockIndexed(const uint256& id) {
+	//
+	db::DbMultiContainer<uint256 /*block*/, TxBlockAction /*utxo action*/>::Iterator lAction = blockUtxoIdx_.find(id);
+	return lAction.valid();
+}
+
 bool TransactionStore::blockHeader(const uint256& id, BlockHeader& header) {
 	//
 	if (headers_.read(id, header))

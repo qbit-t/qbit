@@ -1043,6 +1043,14 @@ public:
 			uint256 lBlock, lLast;
 			locateSynchronizedRoot(lPeers, lBlock, lLast); // get peers, height and block
 			if (lPeers.size()) {
+				// adjust job parameters
+				uint256 lActualLastBlock = job->analyzeLinkedChunks();
+				if (lActualLastBlock != uint256()) {
+					//
+					gLog().write(Log::CONSENSUS, strprintf("[processPartialTreeHeaders]: adjust last block to %s/%s#", lActualLastBlock.toHex(), chain_.toHex().substr(0, 10)));
+					job->setLastBlock(lActualLastBlock);
+				}
+
 				if (settings_->isFullNode() || settings_->isNode()) {
 					for(std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
 						gLog().write(Log::CONSENSUS, strprintf("[processPartialTreeHeaders]: starting block feed for %s# from %s/%d", chain_.toHex().substr(0, 10), (*lPeer)->key(), lPeers.size()));

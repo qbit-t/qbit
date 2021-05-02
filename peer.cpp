@@ -3659,6 +3659,7 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 		IConsensusPtr lConsensus = peerManager_->consensusManager()->locate(lHeaders.begin()->blockHeader().chain());
 		if (lJob && lConsensus) {
 			//
+			bool lIndexed = true;
 			bool lFrameExists = true;
 			bool lChainFound = false;
 			uint256 lNull = BlockHeader().hash();
@@ -3700,6 +3701,14 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 
 				// save
 				lConsensus->store()->saveBlockHeader(lBlockHeader);
+
+				// check if block is already iindexed
+				if (!peerManager_->consensusManager()->locate(lBlockHeader.chain())->store()->blockIndexed(lId)) {
+					//
+					if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: block data IS NOT INDEXED from ") + key() + " -> " + 
+						strprintf("%s/%s#", lId.toHex(), lBlockHeader.chain().toHex().substr(0, 10)));
+					lIndexed = false;
+				}
 
 				// if not exists -> schedule
 				if (!peerManager_->consensusManager()->locate(lBlockHeader.chain())->store()->blockExists(lId)) {
@@ -3746,9 +3755,8 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 				lJob->setNextBlock(lLast);
 			}
 
-			if (lJob && lFrameExists) {
-				lJob->setLastBlock(lLast);
-			}
+			// push chunk information to detect _real_ "to"
+			lJob->pushChunk(lLast, lFrameExists, lIndexed);
 
 			if (lConsensus != nullptr && lJob != nullptr) synchronizeLargePartialTree(lConsensus, lJob);
 		} else {
