@@ -3659,6 +3659,7 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 		IConsensusPtr lConsensus = peerManager_->consensusManager()->locate(lHeaders.begin()->blockHeader().chain());
 		if (lJob && lConsensus) {
 			//
+			bool lFrameExists = true;
 			bool lChainFound = false;
 			uint256 lNull = BlockHeader().hash();
 			// uint256 lFirst = lNull; 
@@ -3687,6 +3688,16 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 					}
 				}
 
+				// check
+				/*
+				BlockHeader lHeaderExists;
+				if (lConsensus->store()->blockHeader(lId, lHeaderExists)) {
+					//
+					lJob->setLastBlock(lId);
+					lChainFound = true;
+				}
+				*/
+
 				// save
 				lConsensus->store()->saveBlockHeader(lBlockHeader);
 
@@ -3695,6 +3706,7 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 					if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: process block data MISSING from ") + key() + " -> " + 
 						strprintf("%s/%s#", lId.toHex(), lBlockHeader.chain().toHex().substr(0, 10)));
 					lJob->pushPendingBlock(lId);
+					lFrameExists = false;
 				} else {
 					lJob->registerPendingBlock(lId);
 					/*
@@ -3732,6 +3744,10 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 			// finalize & continue
 			if (lJob && !lChainFound) {
 				lJob->setNextBlock(lLast);
+			}
+
+			if (lJob && lFrameExists) {
+				lJob->setLastBlock(lLast);
 			}
 
 			if (lConsensus != nullptr && lJob != nullptr) synchronizeLargePartialTree(lConsensus, lJob);
