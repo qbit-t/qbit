@@ -1898,7 +1898,7 @@ void TransactionStore::reindexFull(const uint256& from, IMemoryPoolPtr pool) {
 		// try to rollback
 		//setLastBlock(lLastBlock);
 		//resyncHeight();
-		
+
 		//
 		// NOTICE: reset to NULL block and invalidate height map
 		// we have consistency errors and let sync procedure will decide
@@ -1967,6 +1967,10 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 				strprintf("depth = %d, lastBlock = %s, from = %s/%s#", lLastBlockDiff, lastBlock_.toHex(), from.toHex(), chain_.toHex().substr(0, 10)));
 		}
 
+		// NOTICE: block data is checked in processBlocks, so we do not need to control here
+		// if data is absent - that is the error and we need to get synchronized block headers, go through data and load absent
+
+		/*
 		if (!isHeaderReachable(from, to, lFromDiff, lLimit)) {
 			//
 			gLog().write(Log::STORE, std::string("[reindex]: partial reindex is NOT POSSIBLE for ") + 
@@ -1974,6 +1978,7 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 
 			return false;
 		}
+		*/
 	}
 
 	//
