@@ -339,6 +339,10 @@ bool TransactionStore::processBlock(BlockContextPtr ctx, uint64_t& height, bool 
 			else utxoBlock_.remove(lAction->utxo());
 		}
 
+		//
+		// mark processed
+		blockUtxoIdx_.write(lHash, TxBlockAction(TxBlockAction::UNDEFINED, uint256(), nullptr));
+
 		// mark as last
 		writeLastBlock(lHash);
 
@@ -760,9 +764,11 @@ void TransactionStore::removeBlocks(const uint256& from, const uint256& to, bool
 		// prepare reverse queue
 		std::list<TxBlockAction> lQueue;
 		std::set<uint256> lTouchedTxs;
+		uint256 lNullUtxo;
 		// iterate
 		for (db::DbMultiContainer<uint256 /*block*/, TxBlockAction /*utxo action*/>::Iterator lUtxo = blockUtxoIdx_.find(lHash); lUtxo.valid(); ++lUtxo) {
-			lQueue.push_back(*lUtxo);
+			// check & push
+			if ((*lUtxo).utxo() != lNullUtxo) lQueue.push_back(*lUtxo);
 			// mark to remove
 			lBlockIdxTransaction.remove(lUtxo);
 		}
@@ -1079,6 +1085,10 @@ bool TransactionStore::processBlocks(const uint256& from, const uint256& to, IMe
 				if (lAction->action() == TxBlockAction::PUSH) utxoBlock_.write(lAction->utxo(), lBlockHash);
 				else utxoBlock_.remove(lAction->utxo());
 			}
+
+			//
+			// mark processed
+			blockUtxoIdx_.write(lBlockHash, TxBlockAction(TxBlockAction::UNDEFINED, uint256(), nullptr));
 
 			//
 			lBlockCtx->block()->compact(); // compact txs to just ids
