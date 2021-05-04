@@ -293,7 +293,7 @@ bool BuzzerPeerExtension::processBuzzCommon(TransactionContextPtr ctx) {
 
 							TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lOriginalPublisher);
 							if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
-							continue;
+							else continue;
 
 							prepareBuzzfeedItem(lItem, lBuzz, lBuzzer, lExtension);
 
