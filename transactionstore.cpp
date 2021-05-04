@@ -1386,11 +1386,14 @@ void TransactionStore::prepare() {
 				//
 				if (lFrom != uint256() && lTo != uint256()) {
 					// reprocess last reindex
-					gLog().write(Log::INFO, strprintf("[prepare]: reprocessing last reindex from = %s, to = %s/%s#",
+					gLog().write(Log::INFO, strprintf("[prepare/warning]: last reindex remains from = %s, to = %s/%s#",
 						lFrom.toHex(), lTo.toHex(), chain_.toHex().substr(0, 10)));
 
 					//
-					reindex(lFrom, lTo, nullptr);
+					// NOTICE: due to new error procesing technique during reindexing we eventually can find out that
+					// we need full chain analyzis
+					//
+					// reindex(lFrom, lTo, nullptr);
 				}
 			}
 		}
