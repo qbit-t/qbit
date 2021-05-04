@@ -1743,6 +1743,7 @@ bool BuzzerTransactionStoreExtension::selectBuzzItem(const uint256& buzzId, Buzz
 		uint256 lTxPublisher = lTx->in()[TX_BUZZ_MY_IN].out().tx(); // buzzer allways is the first in
 		TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lTxPublisher);
 		if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
+		else return false;
 
 		prepareBuzzfeedItem(item, lBuzz, lBuzzer);
 
@@ -3767,6 +3768,7 @@ void BuzzerTransactionStoreExtension::makeBuzzfeedLikeItem(TransactionPtr tx, IT
 	TxBuzzerPtr lPublisher;
 	TransactionPtr lPublisherTx = mainStore->locateTransaction(lPublisherId);
 	if (lPublisherTx) lPublisher = TransactionHelper::to<TxBuzzer>(lPublisherTx);
+	else return;
 
 	// if buzz is already in the feed
 	std::map<BuzzfeedItem::Key, BuzzfeedItemPtr>::iterator lExisting = buzzes.find(BuzzfeedItem::Key(lBuzzId, TX_BUZZ));
@@ -3793,6 +3795,7 @@ void BuzzerTransactionStoreExtension::makeBuzzfeedLikeItem(TransactionPtr tx, IT
 			uint256 lTxPublisher = lBuzzTx->in()[TX_BUZZ_MY_IN].out().tx(); // buzzer allways is the first in
 			TransactionPtr lBuzzerTx = mainStore->locateTransaction(lTxPublisher);
 			if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
+			else return;
 			//
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/makeBuzzfeedLikeItem]: try to add item ") +
 				strprintf("buzzer = %s/%s, %s/%s#", lBuzzer->id().toHex(), lTxPublisher.toHex(), lBuzzTx->id().toHex(), store_->chain().toHex().substr(0, 10)));
@@ -3821,6 +3824,7 @@ void BuzzerTransactionStoreExtension::makeBuzzfeedLikeItem(TransactionPtr tx, IT
 			//
 			TransactionPtr lBuzzerTx = mainStore->locateTransaction(lBuzzerId);
 			if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
+			else return;
 
 			//
 			BuzzfeedItemPtr lItem = BuzzfeedItem::instance();
@@ -3856,6 +3860,7 @@ void BuzzerTransactionStoreExtension::makeBuzzfeedRewardItem(TransactionPtr tx, 
 	TxBuzzerPtr lPublisher;
 	TransactionPtr lPublisherTx = mainStore->locateTransaction(lPublisherId);
 	if (lPublisherTx) lPublisher = TransactionHelper::to<TxBuzzer>(lPublisherTx);
+	else return;
 
 	// if buzz is already in the feed
 	std::map<BuzzfeedItem::Key, BuzzfeedItemPtr>::iterator lExisting = buzzes.find(BuzzfeedItem::Key(lBuzzId, TX_BUZZ));
@@ -3882,6 +3887,7 @@ void BuzzerTransactionStoreExtension::makeBuzzfeedRewardItem(TransactionPtr tx, 
 			uint256 lTxPublisher = lBuzzTx->in()[TX_BUZZ_MY_IN].out().tx(); // buzzer allways is the first in
 			TransactionPtr lBuzzerTx = mainStore->locateTransaction(lTxPublisher);
 			if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
+			else return;
 			//
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/makeBuzzfeedRewardItem]: try to add item ") +
 				strprintf("buzzer = %s/%s, %s/%s#", lBuzzer->id().toHex(), lTxPublisher.toHex(), lBuzzTx->id().toHex(), store_->chain().toHex().substr(0, 10)));
@@ -3911,6 +3917,7 @@ void BuzzerTransactionStoreExtension::makeBuzzfeedRewardItem(TransactionPtr tx, 
 			//
 			TransactionPtr lBuzzerTx = mainStore->locateTransaction(lBuzzerId);
 			if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
+			else return;
 
 			//
 			BuzzfeedItemPtr lItem = BuzzfeedItem::instance();
@@ -3950,6 +3957,7 @@ void BuzzerTransactionStoreExtension::makeBuzzfeedRebuzzItem(TransactionPtr tx, 
 	TxBuzzerPtr lPublisher;
 	TransactionPtr lPublisherTx = mainStore->locateTransaction(lPublisherId);
 	if (lPublisherTx) lPublisher = TransactionHelper::to<TxBuzzer>(lPublisherTx);
+	else return;
 
 	// if buzz is already in the feed
 	std::map<BuzzfeedItem::Key, BuzzfeedItemPtr>::iterator lExisting = buzzes.find(BuzzfeedItem::Key(lBuzzId, TX_BUZZ));
@@ -3978,6 +3986,7 @@ void BuzzerTransactionStoreExtension::makeBuzzfeedRebuzzItem(TransactionPtr tx, 
 			uint256 lTxPublisher = lBuzzTx->in()[TX_BUZZ_MY_IN].out().tx(); // buzzer allways is the first in
 			TransactionPtr lBuzzerTx = mainStore->locateTransaction(lTxPublisher);
 			if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
+			else return;
 			//
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/makeBuzzfeedRebuzzItem]: try to add item ") +
 				strprintf("buzzer = %s/%s, %s/%s#", lBuzzer->id().toHex(), lTxPublisher.toHex(), lBuzzTx->id().toHex(), store_->chain().toHex().substr(0, 10)));
@@ -4007,6 +4016,7 @@ void BuzzerTransactionStoreExtension::makeBuzzfeedRebuzzItem(TransactionPtr tx, 
 			//
 			TransactionPtr lBuzzerTx = mainStore->locateTransaction(lBuzzerId);
 			if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
+			else return;
 
 			//
 			BuzzfeedItemPtr lItem = BuzzfeedItem::instance();
@@ -4111,6 +4121,7 @@ bool BuzzerTransactionStoreExtension::makeBuzzfeedItem(int& context, TxBuzzerPtr
 				uint256 lBuzzerId = lOriginalTx->in()[TX_BUZZ_REPLY_MY_IN].out().tx();
 				TransactionPtr lBuzzerTx = mainStore->locateTransaction(lBuzzerId);
 				if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
+				else return true;
 
 				// add buzz
 				makeBuzzfeedItem(++context, lBuzzer, lOriginalTx, mainStore, rawBuzzfeed, buzzes);
