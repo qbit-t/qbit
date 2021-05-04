@@ -174,6 +174,7 @@ bool BuzzerPeerExtension::processBuzzCommon(TransactionContextPtr ctx) {
 
 				TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lPublisher);
 				if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
+				else return true;
 
 				prepareBuzzfeedItem(lItem, lBuzz, lBuzzer, lExtension);
 
@@ -219,6 +220,7 @@ bool BuzzerPeerExtension::processBuzzCommon(TransactionContextPtr ctx) {
 				//
 				Transaction::In& lIn = (*lInPtr);
 				ITransactionStorePtr lLocalStore = peerManager_->consensusManager()->storeManager()->locate(lIn.out().chain());
+				if (!lLocalStore) continue;
 				TransactionPtr lInTx = lLocalStore->locateTransaction(lIn.out().tx());
 
 				if (lInTx != nullptr) {
@@ -235,6 +237,7 @@ bool BuzzerPeerExtension::processBuzzCommon(TransactionContextPtr ctx) {
 
 							TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lPublisher);
 							if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
+							else continue;
 
 							prepareBuzzfeedItem(lItem, lBuzz, lBuzzer, lExtension);
 
@@ -290,6 +293,7 @@ bool BuzzerPeerExtension::processBuzzCommon(TransactionContextPtr ctx) {
 
 							TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lOriginalPublisher);
 							if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
+							continue;
 
 							prepareBuzzfeedItem(lItem, lBuzz, lBuzzer, lExtension);
 
@@ -309,6 +313,7 @@ bool BuzzerPeerExtension::processBuzzCommon(TransactionContextPtr ctx) {
 							while (true) {
 								//
 								lLocalStore = peerManager_->consensusManager()->storeManager()->locate(lReChainId);
+								if (!lLocalStore) break;
 								TransactionPtr lReTx = lLocalStore->locateTransaction(lReTxId);
 
 								if (lReTx && (lReTx->type() == TX_BUZZ_REPLY || lReTx->type() == TX_REBUZZ ||
@@ -343,6 +348,7 @@ bool BuzzerPeerExtension::processBuzzCommon(TransactionContextPtr ctx) {
 
 										TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lOriginalPublisher);
 										if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
+										else break;
 
 										prepareBuzzfeedItem(lItem, lBuzz, lBuzzer, lExtension);
 
@@ -450,7 +456,7 @@ bool BuzzerPeerExtension::processBuzzLike(TransactionContextPtr ctx) {
 			//
 			lPublisher = (*lTx->in().begin()).out().tx(); // allways first
 			//
-			if (!lSent && (lExtension->checkSubscription(dapp_.instance(), lPublisher) ||
+			if (!lSent && lBuzz && (lExtension->checkSubscription(dapp_.instance(), lPublisher) ||
 																	dapp_.instance() == lPublisher)) {
 				//
 				TxBuzzPtr lBuzzTx = TransactionHelper::to<TxBuzz>(lBuzz);
@@ -461,6 +467,7 @@ bool BuzzerPeerExtension::processBuzzLike(TransactionContextPtr ctx) {
 					TxBuzzerPtr lBuzzer = nullptr;
 					TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lBuzzerId);
 					if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
+					else return true;
 
 					if (!lExtension->checkLike(lTx->in()[TX_BUZZ_LIKE_IN].out().tx(), lTx->in()[TX_BUZZ_MY_BUZZER_IN].out().tx())) {
 						//
@@ -553,7 +560,7 @@ bool BuzzerPeerExtension::processBuzzReward(TransactionContextPtr ctx) {
 			//
 			lPublisher = (*lTx->in().begin()).out().tx(); // allways first
 			//
-			if (!lSent && (lExtension->checkSubscription(dapp_.instance(), lPublisher) ||
+			if (!lSent && lBuzz && (lExtension->checkSubscription(dapp_.instance(), lPublisher) ||
 																	dapp_.instance() == lPublisher)) {
 				//
 				TxBuzzPtr lBuzzTx = TransactionHelper::to<TxBuzz>(lBuzz);
@@ -565,6 +572,7 @@ bool BuzzerPeerExtension::processBuzzReward(TransactionContextPtr ctx) {
 					TxBuzzerPtr lBuzzer = nullptr;
 					TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lBuzzerId);
 					if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
+					else return true;
 
 					//
 					BuzzfeedItem lItem;
@@ -653,11 +661,12 @@ bool BuzzerPeerExtension::processRebuzz(TransactionContextPtr ctx) {
 			//
 			// if we have direct subscription
 			//
-			if (!lSent && lRebuzz->simpleRebuzz()) {
+			if (!lSent && lBuzz && lRebuzz->simpleRebuzz()) {
 				//
 				lPublisher = (*lTx->in().begin()).out().tx(); // allways first
 				// original store
 				ITransactionStorePtr lOriginalStore = peerManager_->consensusManager()->storeManager()->locate(lTx->chain());
+				if (!lOriginalStore) return true;
 				BuzzerTransactionStoreExtensionPtr lOriginalExtension = 
 					std::static_pointer_cast<BuzzerTransactionStoreExtension>(lOriginalStore->extension());
 
@@ -672,6 +681,7 @@ bool BuzzerPeerExtension::processRebuzz(TransactionContextPtr ctx) {
 					TxBuzzerPtr lBuzzer = nullptr;
 					TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lBuzzerId);
 					if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
+					else return true;
 
 					//
 					BuzzfeedItem lItem;
@@ -755,6 +765,7 @@ bool BuzzerPeerExtension::processEventCommon(TransactionContextPtr ctx) {
 						TxBuzzerPtr lBuzzer = nullptr;
 						TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lOriginalPublisher);
 						if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
+						else continue;
 
 						// TODO: need to somehow identify that is the mention
 						prepareEventsfeedItem(lItem, lBuzz, lBuzzer, lBuzz->chain(), lBuzz->id(), 
@@ -783,6 +794,7 @@ bool BuzzerPeerExtension::processEventCommon(TransactionContextPtr ctx) {
 						TxBuzzerPtr lBuzzer = nullptr;
 						TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lOriginalPublisher);
 						if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
+						else continue;
 
 						prepareEventsfeedItem(lItem, lBuzz, lBuzzer, lBuzz->chain(), lBuzz->id(), 
 							lBuzz->timestamp(), lBuzz->buzzerInfoChain(), lBuzz->buzzerInfo(), lBuzz->score(), lBuzz->signature());
@@ -813,6 +825,8 @@ bool BuzzerPeerExtension::processEventCommon(TransactionContextPtr ctx) {
 									TxBuzzerPtr lBuzzer = nullptr;
 									TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lOriginalPublisher);
 									if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
+									else break;
+
 									prepareEventsfeedItem(lItem, lBuzz, lBuzzer, lBuzz->chain(), lBuzz->id(), 
 										lBuzz->timestamp(), lBuzz->buzzerInfoChain(), lBuzz->buzzerInfo(), lBuzz->score(), lBuzz->signature());
 
@@ -876,6 +890,7 @@ bool BuzzerPeerExtension::processEventLike(TransactionContextPtr ctx) {
 					TxBuzzerPtr lBuzzer = nullptr;
 					TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lOriginalPublisher);
 					if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
+					else return true;
 					//
 					prepareEventsfeedItem(lItem, lBuzzTx, lBuzzer, lTx->chain(), lTx->id(), 
 						lLikeTx->timestamp(), lLikeTx->buzzerInfoChain(), lLikeTx->buzzerInfo(), lLikeTx->score(), lLikeTx->signature());
@@ -920,6 +935,7 @@ bool BuzzerPeerExtension::processEventReward(TransactionContextPtr ctx) {
 					TxBuzzerPtr lBuzzer = nullptr;
 					TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lOriginalPublisher);
 					if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
+					else return true;
 					//
 					prepareEventsfeedItem(lItem, lBuzzTx, lBuzzer, lTx->chain(), lTx->id(), 
 						lRewardTx->timestamp(), lRewardTx->buzzerInfoChain(), lRewardTx->buzzerInfo(), lRewardTx->score(), lRewardTx->signature());
@@ -969,6 +985,7 @@ bool BuzzerPeerExtension::processEndorse(TransactionContextPtr ctx) {
 				//
 				if (lMainStore && lTx->in().size() > TX_BUZZER_ENDORSE_FEE_IN) {
 					TransactionPtr lFeeTx = lMainStore->locateTransaction(lTx->in()[TX_BUZZER_ENDORSE_FEE_IN].out().tx());
+					if (!lFeeTx) return true;
 					//
 					if (lBuzzer == dapp_.instance()) {
 						//
@@ -1083,6 +1100,7 @@ bool BuzzerPeerExtension::processMistrust(TransactionContextPtr ctx) {
 				//
 				if (lMainStore && lTx->in().size() > TX_BUZZER_MISTRUST_FEE_IN) {
 					TransactionPtr lFeeTx = lMainStore->locateTransaction(lTx->in()[TX_BUZZER_MISTRUST_FEE_IN].out().tx());
+					if (!lFeeTx) return true;
 
 					if (lBuzzer == dapp_.instance()) {
 						//
@@ -1188,6 +1206,7 @@ bool BuzzerPeerExtension::processEventSubscribe(TransactionContextPtr ctx) {
 				TxBuzzerPtr lBuzzer = nullptr;
 				TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lSubscriber);
 				if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
+				else return true;
 				//
 				lItem.setType(TX_BUZZER_SUBSCRIBE);
 				lItem.setTimestamp(lSubscribeTx->timestamp());
@@ -1602,6 +1621,7 @@ bool BuzzerPeerExtension::processConversationMessage(TransactionContextPtr ctx) 
 			BuzzfeedItem lItem;
 			TxBuzzerPtr lBuzzer = nullptr;
 			if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
+			else return true;
 
 			//
 			// send new message
