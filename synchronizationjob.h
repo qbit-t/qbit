@@ -102,11 +102,25 @@ public:
 		return workers_;
 	}
 
-	void setNextBlock(const uint256& block) {
+	bool setNextBlock(const uint256& block) {
+		//
 		boost::unique_lock<boost::mutex> lLock(jobMutex_);
 		time_ = getTime(); // timestamp
-		nextBlock_ = block;
-		currentBlock_.setNull();
+		if (((type_ == SynchronizationJob::LARGE_PARTIAL || type_ == SynchronizationJob::FULL) &&
+					queuedChunks_.find(block) == queuedChunks_.end()) || type_ == SynchronizationJob::PARTIAL) {
+			nextBlock_ = block;
+			currentBlock_.setNull();
+			return true;
+		}
+
+		return false;
+	}
+
+	void setCurrentBlock(const uint256& block) {
+		//
+		boost::unique_lock<boost::mutex> lLock(jobMutex_);
+		time_ = getTime(); // timestamp
+		currentBlock_ = block;
 	}
 
 	void setLastBlock(const uint256& block) {

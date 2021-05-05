@@ -3754,7 +3754,14 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 
 			// finalize & continue
 			if (lJob && !lChainFound) {
-				lJob->setNextBlock(lLast);
+				if (!lJob->setNextBlock(lLast)) {
+					if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: SKIPPING block chunk, reason 'already processed' for ") + key() + " -> " + 
+						strprintf("%s", lLast.toHex()));
+					//
+					// TODO: consider to reset current point
+					// lJob->setCurrentBlock(lLast); // reset current block
+					return;
+				}
 			}
 
 			// push chunk information to detect _real_ "to"
