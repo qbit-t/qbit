@@ -300,6 +300,13 @@ public:
 		return uint256();
 	}
 
+	void clearChunks() {
+		//
+		boost::unique_lock<boost::mutex> lLock(jobMutex_);
+		chunks_.clear();
+		queuedChunks_.clear();
+	}
+
 private:
 	boost::mutex jobMutex_;
 	uint64_t height_;

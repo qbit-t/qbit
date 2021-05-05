@@ -3664,6 +3664,7 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 			bool lIndexed = true;
 			bool lFrameExists = true;
 			bool lChainFound = false;
+			bool lRootFound = false;
 			uint256 lNull = BlockHeader().hash();
 			// uint256 lFirst = lNull; 
 			uint256 lLast = lNull;
@@ -3741,6 +3742,7 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 						strprintf("head = %s, root = %s/%s#", lBlockHeader.hash().toHex(), lJob->block().toHex(), lBlockHeader.chain().toHex().substr(0, 10)) + std::string("..."));
 					lJob->setLastBlock(lPrev);
 					lChainFound = true;
+					lRootFound = true;
 					break;
 				}
 
@@ -3764,8 +3766,13 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 				}
 			}
 
-			// push chunk information to detect _real_ "to"
-			lJob->pushChunk(lLast, lFrameExists, lIndexed);
+			if (!lChainFound) {
+				// push chunk information to detect _real_ "to"
+				lJob->pushChunk(lLast, lFrameExists, lIndexed);
+			} else {
+				// if we found chain or reach the "last"
+				if (!lRootFound) lJob->clearChunks();
+			}
 
 			if (lConsensus != nullptr && lJob != nullptr) synchronizeLargePartialTree(lConsensus, lJob);
 		} else {
