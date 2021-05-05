@@ -268,7 +268,9 @@ public:
 	void pushChunk(const uint256& block, bool frameExists, bool indexed) {
 		//
 		boost::unique_lock<boost::mutex> lLock(jobMutex_);
-		chunks_.push_back(Chunk(block, frameExists, indexed));
+		if (queuedChunks_.insert(block).second) {
+			chunks_.push_back(Chunk(block, frameExists, indexed));
+		}
 	}
 
 	uint256 analyzeLinkedChunks() {
@@ -298,6 +300,7 @@ private:
 	std::list<uint256> pendingBlocks_;
 	std::set<uint256> pendingBlocksIndex_;
 	std::list<Chunk> chunks_;
+	std::set<uint256> queuedChunks_;
 	Type type_;
 	bool cancelled_ = false;
 	bool resync_ = false;
