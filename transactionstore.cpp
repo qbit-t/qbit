@@ -2017,6 +2017,7 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 		uint256 lLastPrev;
 		// process blocks
 		if (!(lResult = processBlocks(from, to, pool, lLastPrev))) {
+			/*
 			//
 			// NOTICE: reset to NULL block and invalidate height map
 			// we have consistency errors and let sync procedure will decide
@@ -2024,6 +2025,15 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 			BlockHeader lNull;
 			setLastBlock(lNull.hash());
 			invalidateHeightMap();
+			*/
+
+			// 1. clean-up newly created indexes if any
+			removeBlocks(from, to, false, 0);
+			// 2. re-process index from last-known good branch
+			processBlocks(lLastBlock, lCleanUpLastBlock ? lCommonRoot : to, pool, lLastPrev);
+			// 3. set last block
+			setLastBlock(lLastBlock);
+			// 4. height should be intact
 		} else {
 			//
 			gLog().write(Log::STORE, std::string("[reindex]: blocks processed for ") + 
