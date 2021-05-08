@@ -1612,9 +1612,11 @@ void Peer::processGetTransactionData(std::list<DataStream>::iterator msg, const 
 			}
 		} else {
 			ITransactionStorePtr lStorage = peerManager_->consensusManager()->storeManager()->locate(lChain);
-			lTx = lStorage->locateTransaction(lTxId);
-			if (lTx) {
-				lStorage->transactionInfo(lTxId, lBlock, lHeight, lConfirms, lIndex, lCoinbase);
+			if (lStorage) {
+				lTx = lStorage->locateTransaction(lTxId);
+				if (lTx) {
+					lStorage->transactionInfo(lTxId, lBlock, lHeight, lConfirms, lIndex, lCoinbase);
+				}
 			}
 		}
 
@@ -1708,7 +1710,7 @@ void Peer::processGetTransactionsData(std::list<DataStream>::iterator msg, const
 			for (std::vector<uint256>::iterator lTx = lTxs.begin(); lTx != lTxs.end(); lTx++) {
 				//
 				TransactionPtr lTransaction = lStorage->locateTransaction(*lTx);
-				lTransactions->append(lTransaction);
+				if (lTransaction) lTransactions->append(lTransaction);
 			}
 		}
 

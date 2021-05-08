@@ -1266,8 +1266,8 @@ BlockPtr TransactionStore::block(uint64_t height) {
 
 	if (headers_.read(lHash, lHeader)) {
 		BlockTransactionsPtr lTransactions = transactions_.read(lHash);
-
-		return Block::instance(lHeader, lTransactions);
+		if (lTransactions)
+			return Block::instance(lHeader, lTransactions);
 	}
 
 	return nullptr;
@@ -1296,8 +1296,8 @@ BlockPtr TransactionStore::block(const uint256& id) {
 
 	if (headers_.read(lHash, lHeader)) {
 		BlockTransactionsPtr lTransactions = transactions_.read(lHash);
-
-		return Block::instance(lHeader, lTransactions);
+		if (lTransactions)
+			return Block::instance(lHeader, lTransactions);
 	}
 
 	return nullptr;	

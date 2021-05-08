@@ -3252,32 +3252,32 @@ void BuzzerPeerExtension::processGetBuzzerAndInfo(std::list<DataStream>::iterato
 			if (lStorage && lStorage->extension()) {
 				//
 				BuzzerTransactionStoreExtensionPtr lExtension = std::static_pointer_cast<BuzzerTransactionStoreExtension>(lStorage->extension());
-				//
 				// load info
 				TxBuzzerInfoPtr lInfo = lExtension->readBuzzerInfo(lTx->id());
+				if (lInfo) {
+					// make message, serialize, send back
+					std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
 
-				// make message, serialize, send back
-				std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
+					// fill data
+					DataStream lStream(SER_NETWORK, PROTOCOL_VERSION);
+					lStream << lRequestId;
+					Transaction::Serializer::serialize<DataStream>(lStream, lTx); // buzzer
+					if (lInfo != nullptr)
+						Transaction::Serializer::serialize<DataStream>(lStream, lInfo); // info
 
-				// fill data
-				DataStream lStream(SER_NETWORK, PROTOCOL_VERSION);
-				lStream << lRequestId;
-				Transaction::Serializer::serialize<DataStream>(lStream, lTx); // buzzer
-				if (lInfo != nullptr)
-					Transaction::Serializer::serialize<DataStream>(lStream, lInfo); // info
+					// prepare message
+					Message lMessage(BUZZER_AND_INFO, lStream.size(), Hash160(lStream.begin(), lStream.end()));
+					(*lMsg) << lMessage;
+					lMsg->write(lStream.data(), lStream.size());
 
-				// prepare message
-				Message lMessage(BUZZER_AND_INFO, lStream.size(), Hash160(lStream.begin(), lStream.end()));
-				(*lMsg) << lMessage;
-				lMsg->write(lStream.data(), lStream.size());
+					// log
+					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: sending buzzer and info for ") + strprintf("%s, buzzer = %s, info = %s", lBuzzer, lTx->id().toHex(), lInfo->id().toHex()) + std::string(" for ") + peer_->key());
 
-				// log
-				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: sending buzzer and info for ") + strprintf("%s, buzzer = %s, info = %s", lBuzzer, lTx->id().toHex(), lInfo->id().toHex()) + std::string(" for ") + peer_->key());
-
-				// write
-				peer_->sendMessage(lMsg);
-				//
-				lSent = true;
+					// write
+					peer_->sendMessage(lMsg);
+					//
+					lSent = true;
+				}
 			}
 		}
 
