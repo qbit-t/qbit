@@ -294,7 +294,7 @@ public:
 	//
 	// mini-tree for sync
 	// TODO: settings
-	virtual uint32_t partialTreeThreshold() { return 10; }
+	virtual uint32_t partialTreeThreshold() { return 30; }
 
 	//
 	// use peer for network participation
