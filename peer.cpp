@@ -3665,6 +3665,7 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 			//
 			bool lIndexed = true;
 			bool lFrameExists = true;
+			bool lHeightReached = false;
 			bool lChainFound = false;
 			bool lRootFound = false;
 			uint256 lNull = BlockHeader().hash();
@@ -3748,6 +3749,10 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 					break;
 				}
 
+				if (lJob->lastHeight() > (*lHeader).height()) { // we found intersection
+					lHeightReached = true;
+				}
+
 				if (lJob->lastBlock() == lLast) {
 					lJob->setLastBlock(lLast);
 					lChainFound = true;
@@ -3766,6 +3771,11 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 					// lJob->setCurrentBlock(lLast); // reset current block
 					return;
 				}
+			}
+
+			if (!lChainFound && lHeightReached && lFrameExists && lIndexed && !lRootFound) { // found common bottom point
+				lJob->setLastBlock(lLast);
+				lChainFound = true;
 			}
 
 			if (!lChainFound) {

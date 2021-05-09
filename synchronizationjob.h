@@ -51,7 +51,7 @@ public:
 
 public:
 	SynchronizationJob(const uint256& block, uint64_t delta, Type type) : height_(0), delta_(delta), block_(block), nextBlock_(block), type_(type) { time_ = getTime(); }
-	SynchronizationJob(const uint256& block, const uint256& lastBlock, uint64_t delta, Type type) : height_(0), delta_(delta), block_(block), nextBlock_(block), lastBlock_(lastBlock), type_(type) { time_ = getTime(); }
+	SynchronizationJob(const uint256& block, const uint256& lastBlock, uint64_t delta, uint64_t lastHeight, Type type) : height_(0), delta_(delta), block_(block), nextBlock_(block), lastBlock_(lastBlock), lastHeight_(lastHeight), type_(type) { time_ = getTime(); }
 	SynchronizationJob(uint64_t height, const uint256& block, Type type) : height_(height), delta_(0), block_(block), type_() { time_ = getTime(); }
 
 	Type type() { return type_; }
@@ -157,6 +157,10 @@ public:
 		return lastBlock_;
 	}
 
+	uint64_t lastHeight() {
+		return lastHeight_;
+	}
+
 	uint256 currentBlock() {
 		boost::unique_lock<boost::mutex> lLock(jobMutex_);
 		return currentBlock_;
@@ -174,8 +178,8 @@ public:
 
 	static SynchronizationJobPtr instance(uint64_t height, const uint256& block, Type type) { return std::make_shared<SynchronizationJob>(height, block, type); }
 	static SynchronizationJobPtr instance(const uint256& block, uint64_t delta, Type type) { return std::make_shared<SynchronizationJob>(block, delta, type); }
-	static SynchronizationJobPtr instance(const uint256& block, const uint256& lastBlock, uint64_t delta, Type type) 
-	{ return std::make_shared<SynchronizationJob>(block, lastBlock, delta, type); }
+	static SynchronizationJobPtr instance(const uint256& block, const uint256& lastBlock, uint64_t delta, uint64_t lastHeight, Type type) 
+	{ return std::make_shared<SynchronizationJob>(block, lastBlock, delta, lastHeight, type); }
 
 	//
 	// pending blocks
@@ -314,6 +318,7 @@ private:
 	uint256 block_;
 	uint256 nextBlock_;
 	uint256 lastBlock_;
+	uint64_t lastHeight_;
 	uint256 currentBlock_;
 	uint64_t time_;
 	std::map<uint64_t, Agent> workers_; // TODO: add timeout & check

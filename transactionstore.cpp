@@ -2027,6 +2027,10 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 			invalidateHeightMap();
 			*/
 
+			gLog().write(Log::STORE, std::string("[reindex/warning]: rollback to ") + 
+				strprintf("lastBlock = %s, from = %s, to = %s, root = %s/%s#",
+					lLastBlock.toHex(), from.toHex(), to.toHex(), lCommonRoot.toHex(), chain_.toHex().substr(0, 10)));
+
 			// 1. clean-up newly created indexes if any
 			removeBlocks(from, to, false, 0);
 			// 2. re-process index from last-known good branch
