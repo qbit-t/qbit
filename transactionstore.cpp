@@ -1026,12 +1026,18 @@ bool TransactionStore::processBlocks(const uint256& from, const uint256& to, IMe
 		}
 
 		if (lHash == to) { 
-			lDone = true;
+			// ONLY in case that the block is indexed, otherwise - go forward
+			if (blockIndexed(lHash)) {
+				lDone = true;
+			}
 
+			// TODO: postpone for now
+			/*
 			uint64_t lHeight;
 			if (!blockHeight(lHash, lHeight)) {
 				lHeadersSeq.push_back(lHeader); // re-process "to" in case of fast and cross clean-ups 
 			}
+			*/
 		} else {
 			//
 			lHeadersSeq.push_back(lHeader);
@@ -1039,6 +1045,10 @@ bool TransactionStore::processBlocks(const uint256& from, const uint256& to, IMe
 			lHash = lHeader.prev();
 		}
 	}
+
+	//
+	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlocks]: processing depth = ") +
+		strprintf("%d, %s-%s/%s#", lHeadersSeq.size(), from.toHex(), to.toHex(), chain_.toHex().substr(0, 10)));
 
 	// traverse
 	for (std::list<BlockHeader>::reverse_iterator lBlock = lHeadersSeq.rbegin(); lBlock != lHeadersSeq.rend(); lBlock++) {
