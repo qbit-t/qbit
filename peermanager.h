@@ -720,8 +720,14 @@ private:
 				ctx->run();
 				break;
 			} 
+			catch(qbit::exception& ex) {
+				gLog().write(Log::GENERAL_ERROR, std::string("[peerManager]: qbit error -> ") + ex.what());
+			}
 			catch(boost::system::system_error& ex) {
 				gLog().write(Log::GENERAL_ERROR, std::string("[peerManager]: context error -> ") + ex.what());
+			}
+			catch(std::runtime_error& ex) {
+				gLog().write(Log::GENERAL_ERROR, std::string("[peerManager]: runtime error -> ") + ex.what());
 			}
 		}
 		gLog().write(Log::INFO, std::string("[peerManager]: context stop."));

@@ -170,8 +170,14 @@ private:
 		try {
 			context_.run();
 		} 
+		catch(qbit::exception& ex) {
+			gLog().write(Log::GENERAL_ERROR, std::string("[peerManager]: qbit error -> ") + ex.what());
+		}
 		catch(boost::system::system_error& ex) {
 			gLog().write(Log::GENERAL_ERROR, std::string("[cubix/validator]: context error -> ") + ex.what());
+		}
+		catch(std::runtime_error& ex) {
+			gLog().write(Log::GENERAL_ERROR, std::string("[peerManager]: runtime error -> ") + ex.what());
 		}
 
 		// log
