@@ -1029,6 +1029,11 @@ bool TransactionStore::processBlocks(const uint256& from, const uint256& to, IMe
 			// ONLY in case that the block is indexed, otherwise - go forward
 			if (blockIndexed(lHash)) {
 				lDone = true;
+			} else {
+				//
+				lHeadersSeq.push_back(lHeader);
+				// next
+				lHash = lHeader.prev();				
 			}
 
 			// TODO: postpone for now
