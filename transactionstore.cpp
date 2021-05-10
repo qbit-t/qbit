@@ -91,12 +91,17 @@ bool TransactionStore::processBlockTransactions(ITransactionStorePtr store, IEnt
 			strprintf("%s/%s/%s#", lCtx->tx()->id().toHex(), ctx->block()->hash().toHex(), chain_.toHex().substr(0, 10)));
 		//
 		if (!lProcessor.process(lCtx)) {
-			lHasErrors = true;
-			for (std::list<std::string>::iterator lErr = lCtx->errors().begin(); lErr != lCtx->errors().end(); lErr++) {
-				gLog().write(Log::GENERAL_ERROR, std::string("[processBlockTransactions/error]: ") + (*lErr));
-			}
+			//
+			// WORK-A-ROUND: tx was removed during numerous sync errors and debugging
+			//
+			if (!lCtx->errorsContains("57a7eeaa09f9ecaf49ab1b8bf79329cd2ef64b42d9aa7c4f7e60c76826134d06")) {
+				lHasErrors = true;
+				for (std::list<std::string>::iterator lErr = lCtx->errors().begin(); lErr != lCtx->errors().end(); lErr++) {
+					gLog().write(Log::GENERAL_ERROR, std::string("[processBlockTransactions/error]: ") + (*lErr));
+				}
 
-			lBlockCtx->addErrors(lCtx->tx()->id(), lCtx->errors());
+				lBlockCtx->addErrors(lCtx->tx()->id(), lCtx->errors());
+			}
 		} else {
 			lTransactionStore->pushTransaction(lCtx);
 
