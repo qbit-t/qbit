@@ -423,7 +423,7 @@ public:
 
 	void erase(const uint256& /*from*/, const uint256& /*to*/); // erase indexes, reverse order (native)
 	void remove(const uint256& /*from*/, const uint256& /*to*/); // remove indexes with data (headers, transactions), reverse order (native)
-	bool processBlocks(const uint256& /*from*/, const uint256& /*to*/, IMemoryPoolPtr /*pool*/, uint256& /*last*/);	// re\process blocks, forward order
+	bool processBlocks(const uint256& /*from*/, const uint256& /*to*/, IMemoryPoolPtr /*pool*/, uint256& /*last*/, int& /*error_reason*/);	// re\process blocks, forward order
 
 	BlockPtr block(uint64_t /*height*/);
 	BlockPtr block(const uint256& /*id*/);
@@ -465,6 +465,8 @@ public:
 	void setSynchronizing() { synchronizing_ = true; }
 	void resetSynchronizing() { synchronizing_ = false; }
 
+	bool isRootExists(const uint256&, const uint256&, uint256&, uint64_t&, uint64_t /*limit*/);
+
 	// airdrop
 	bool airdropped(const uint160& /*address*/, const uint160& /*peer*/);
 	void pushAirdropped(const uint160& /*address*/, const uint160& /*peer*/, const uint256& /*tx*/);
@@ -479,7 +481,6 @@ private:
 	uint64_t top();
 	uint64_t calcHeight(const uint256&);
 	bool isHeaderReachable(const uint256&, const uint256&, uint64_t&, uint64_t /*limit*/);
-	bool isRootExists(const uint256&, const uint256&, uint256&, uint64_t&, uint64_t /*limit*/);
 	void invalidateHeightMap();
 
 private:

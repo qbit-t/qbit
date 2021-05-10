@@ -3669,13 +3669,17 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 			bool lChainFound = false;
 			bool lRootFound = false;
 			uint256 lNull = BlockHeader().hash();
-			// uint256 lFirst = lNull; 
+			uint256 lFirst = lNull; 
 			uint256 lLast = lNull;
+			uint256 lChain;
 			for (std::vector<NetworkBlockHeader>::iterator lHeader = lHeaders.begin(); lHeader != lHeaders.end(); lHeader++) {
 				//
 				BlockHeader lBlockHeader = (*lHeader).blockHeader();
 				uint256 lId = lBlockHeader.hash();
 				lLast = lId;
+				lChain = lBlockHeader.chain();
+
+				if (lFirst == lNull) lFirst = lId;
 
 				// log
 				if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: process block header from ") + key() + " -> " + 
@@ -3695,21 +3699,19 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 					}
 				}
 
-				// check
 				/*
-				BlockHeader lHeaderExists;
-				if (lConsensus->store()->blockHeader(lId, lHeaderExists)) {
+				// check if exists
+				BlockHeader lExists;
+				if (lConsensus->store()->blockHeader(lId, lExists)) {
 					//
-					lJob->setLastBlock(lId);
-					lChainFound = true;
 				}
 				*/
 
 				// save
 				lConsensus->store()->saveBlockHeader(lBlockHeader);
 
-				// check if block is already iindexed
-				if (!peerManager_->consensusManager()->locate(lBlockHeader.chain())->store()->blockIndexed(lId)) {
+				// check if block is already indexed
+				if (!lConsensus->store()->blockIndexed(lId)) {
 					//
 					if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: block data IS NOT INDEXED from ") + key() + " -> " + 
 						strprintf("%s/%s#", lId.toHex(), lBlockHeader.chain().toHex().substr(0, 10)));
@@ -3717,7 +3719,7 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 				}
 
 				// if not exists -> schedule
-				if (!peerManager_->consensusManager()->locate(lBlockHeader.chain())->store()->blockExists(lId)) {
+				if (!lConsensus->store()->blockExists(lId)) {
 					if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: process block data MISSING from ") + key() + " -> " + 
 						strprintf("%s/%s#", lId.toHex(), lBlockHeader.chain().toHex().substr(0, 10)));
 					lJob->pushPendingBlock(lId);
@@ -3749,9 +3751,11 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 					break;
 				}
 
+				/*
 				if (lJob->lastHeight() > (*lHeader).height()) { // we found intersection
 					lHeightReached = true;
 				}
+				*/
 
 				if (lJob->lastBlock() == lLast) {
 					lJob->setLastBlock(lLast);
@@ -3773,9 +3777,23 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 				}
 			}
 
+			/*
 			if (!lChainFound && lHeightReached && lFrameExists && lIndexed && !lRootFound) { // found common bottom point
 				lJob->setLastBlock(lLast);
 				lChainFound = true;
+			}
+			*/
+
+			// try to locate common root
+			if (!lChainFound) {
+				uint256 lCommonRoot;
+				uint64_t lLastBlockDiff = 0, lFromDiff = 0, lLimit = (60/5)*60*24*1; // 1 day
+				if (lConsensus->store()->isRootExists(lJob->lastBlock(), lFirst, lCommonRoot, lLastBlockDiff, lLimit)) {
+					if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: common root found for ") + 
+						strprintf("last = %s, current = %s, root = %s/%s#", lJob->lastBlock().toHex(), lFirst.toHex(), lCommonRoot.toHex(), lChain.toHex().substr(0, 10)));
+					lJob->setLastBlock(lCommonRoot);
+					lChainFound = true;
+				}
 			}
 
 			if (!lChainFound) {

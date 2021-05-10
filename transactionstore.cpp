@@ -1000,9 +1000,12 @@ void TransactionStore::remove(const uint256& from, const uint256& to) {
 void TransactionStore::erase(const uint256& from, const uint256& to) {
 }
 
+#define ERROR_REASON_TX_DATA_MISSING 1
+#define ERROR_REASON_INTEGRITY_ERROR 2
+
 //
 // interval [..)
-bool TransactionStore::processBlocks(const uint256& from, const uint256& to, IMemoryPoolPtr pool, uint256& last) {
+bool TransactionStore::processBlocks(const uint256& from, const uint256& to, IMemoryPoolPtr pool, uint256& last, int& errorReason) {
 	//
 	std::list<BlockHeader> lHeadersSeq;
 	uint256 lHash = from;
@@ -1023,6 +1026,7 @@ bool TransactionStore::processBlocks(const uint256& from, const uint256& to, IMe
 		if (lMempool && !lMempool->consensus()->checkSequenceConsistency(lHeader)) {
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlocks/error]: check sequence consistency FAILED ") +
 				strprintf("block = %s, prev = %s, chain = %s#", lHash.toHex(), lHeader.prev().toHex(), chain_.toHex().substr(0, 10)));
+			errorReason = ERROR_REASON_INTEGRITY_ERROR;
 			return false;
 		}
 
@@ -1070,6 +1074,7 @@ bool TransactionStore::processBlocks(const uint256& from, const uint256& to, IMe
 		if (!lTransactions) {
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlocks/error]: transaction DATA is ABSENT for ") +
 				strprintf("block = %s, prev = %s, chain = %s#", lBlockHash.toHex(), (*lBlock).prev().toHex(), chain_.toHex().substr(0, 10)));
+			errorReason = ERROR_REASON_TX_DATA_MISSING;
 			return false;
 		}
 
@@ -1116,6 +1121,7 @@ bool TransactionStore::processBlocks(const uint256& from, const uint256& to, IMe
 			lBlockCtx->block()->compact(); // compact txs to just ids
 			if (pool) pool->removeTransactions(lBlockCtx->block());
 			last = (*lBlock).prev(); // suppose, that the previous one is good enouht
+			errorReason = ERROR_REASON_INTEGRITY_ERROR;
 			return false;
 		}
 	}
@@ -1924,8 +1930,10 @@ void TransactionStore::reindexFull(const uint256& from, IMemoryPoolPtr pool) {
 
 	// probably last block
 	uint256 lLastPrev;
+	// error reason if any
+	int lErrorReason = 0;
 	// process blocks
-	if (!processBlocks(from, BlockHeader().hash(), pool, lLastPrev)) {
+	if (!processBlocks(from, BlockHeader().hash(), pool, lLastPrev, lErrorReason)) {
 		// try to rollback
 		//setLastBlock(lLastBlock);
 		//resyncHeight();
@@ -2033,8 +2041,10 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 		removeBlocks(from, to, false, 0); // in case of wrapped restarts (re-process blocks may occur)
 		// probably last block
 		uint256 lLastPrev;
+		// error reason if any
+		int lErrorReason = 0;
 		// process blocks
-		if (!(lResult = processBlocks(from, to, pool, lLastPrev))) {
+		if (!(lResult = processBlocks(from, to, pool, lLastPrev, lErrorReason))) {
 			/*
 			//
 			// NOTICE: reset to NULL block and invalidate height map
@@ -2045,17 +2055,28 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 			invalidateHeightMap();
 			*/
 
-			gLog().write(Log::STORE, std::string("[reindex/warning]: rollback to ") + 
-				strprintf("lastBlock = %s, from = %s, to = %s, root = %s/%s#",
-					lLastBlock.toHex(), from.toHex(), to.toHex(), lCommonRoot.toHex(), chain_.toHex().substr(0, 10)));
+			if (lErrorReason == ERROR_REASON_TX_DATA_MISSING) {
+				//
+				gLog().write(Log::STORE, std::string("[reindex/warning]: fallback to ") + 
+					strprintf("block = %s/%s#",
+						lLastPrev.toHex(), chain_.toHex().substr(0, 10)));
+				// rollback
+				setLastBlock(lLastPrev);
+				resyncHeight();
+			} else {
+				//
+				gLog().write(Log::STORE, std::string("[reindex/warning]: rollback to ") + 
+					strprintf("lastBlock = %s, from = %s, to = %s, root = %s/%s#",
+						lLastBlock.toHex(), from.toHex(), to.toHex(), lCommonRoot.toHex(), chain_.toHex().substr(0, 10)));
 
-			// 1. clean-up newly created indexes if any
-			removeBlocks(from, to, false, 0);
-			// 2. re-process index from last-known good branch
-			processBlocks(lLastBlock, lCleanUpLastBlock ? lCommonRoot : to, pool, lLastPrev);
-			// 3. set last block
-			setLastBlock(lLastBlock);
-			// 4. height should be intact
+				// 1. clean-up newly created indexes if any
+				removeBlocks(from, to, false, 0);
+				// 2. re-process index from last-known good branch
+				processBlocks(lLastBlock, lCleanUpLastBlock ? lCommonRoot : to, pool, lLastPrev, lErrorReason);
+				// 3. set last block
+				setLastBlock(lLastBlock);
+				// 4. height should be intact
+			}
 		} else {
 			//
 			gLog().write(Log::STORE, std::string("[reindex]: blocks processed for ") + 

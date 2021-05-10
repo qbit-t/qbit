@@ -3974,7 +3974,7 @@ void BuzzerTransactionStoreExtension::makeBuzzfeedRebuzzItem(TransactionPtr tx, 
 
 	TransactionPtr lBuzzTx = lStore->locateTransaction(lBuzzId);
 	// check direct subscription
-	if (!subscriber.isNull()) {
+	if (!subscriber.isNull() && lBuzzTx) {
 		uint256 lBuzzerId = lBuzzTx->in()[TX_BUZZ_REPLY_MY_IN].out().tx();
 
 		db::DbTwoKeyContainer<
