@@ -351,7 +351,7 @@ private:
 		// life control
 		if(!error) {
 			//
-			if (consensus_->settings()->reindex() && !reindexed_) {
+			if ((consensus_->settings()->reindex() || consensus_->settings()->reindexShard() == chain_) && !reindexed_) {
 				// stop miner
 				stopMiner();
 				//
