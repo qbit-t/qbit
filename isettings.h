@@ -78,6 +78,9 @@ public:
 	virtual bool reindex() { return false; }
 	virtual void setReindex() {}
 
+	virtual uint256 reindexShard() { return uint256(); }
+	virtual void setReindexShard(const uint256&) {}
+
 	virtual bool resync() { return false; }
 	virtual void setResync() {}
 

@@ -171,13 +171,13 @@ private:
 			context_.run();
 		} 
 		catch(qbit::exception& ex) {
-			gLog().write(Log::GENERAL_ERROR, std::string("[peerManager]: qbit error -> ") + ex.what());
+			gLog().write(Log::GENERAL_ERROR, std::string("[buzzer/validator]: qbit error -> ") + ex.what());
 		}
 		catch(boost::system::system_error& ex) {
 			gLog().write(Log::GENERAL_ERROR, std::string("[buzzer/validator]: context error -> ") + ex.what());
 		}
 		catch(std::runtime_error& ex) {
-			gLog().write(Log::GENERAL_ERROR, std::string("[peerManager]: runtime error -> ") + ex.what());
+			gLog().write(Log::GENERAL_ERROR, std::string("[buzzer/validator]: runtime error -> ") + ex.what());
 		}
 
 		// log

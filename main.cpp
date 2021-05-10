@@ -189,6 +189,11 @@ public:
 		resync_ = true;
 	}
 
+	uint256 reindexShard() { return reindexShard_; }
+	void setReindexShard(const uint256& shard) {
+		reindexShard_ = shard;
+	}
+
 	void notifyTransaction(const uint256& tx) {
 		//
 		if (notifyTransaction_.size()) {
@@ -228,6 +233,7 @@ private:
 	bool reindex_ = false;
 	bool resync_ = false;
 	std::string userName_;
+	uint256 reindexShard_;
 };
 
 class Node;
@@ -576,6 +582,10 @@ int main(int argv, char** argc) {
 		} else if (std::string(argc[lIdx]) == std::string("-reindex")) {
 			//
 			lSettings->setReindex();
+		} else if (std::string(argc[lIdx]) == std::string("-reindex-shard")) {
+			//
+			uint256 lShard; lShard.setHex(std::string(argc[++lIdx]));
+			lSettings->setReindexShard(lShard);
 		} else if (std::string(argc[lIdx]) == std::string("-resync")) {
 			//
 			lSettings->setResync();
