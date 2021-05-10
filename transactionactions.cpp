@@ -235,9 +235,10 @@ TransactionAction::Result TxSpendVerify::execute(TransactionContextPtr wrapper, 
 				}
 			} else {
 				std::string lError = _getVMStateText(VirtualMachine::UNKNOWN_REFTX);
-				gLog().write(Log::GENERAL_ERROR, strprintf("[TxSpendVerify]: %s - %s/%s#", lError, lIn.out().tx().toHex(), lIn.out().chain().toHex().substr(0, 10)));
+				std::string lErrorText = strprintf("[TxSpendVerify]: %s - %s/%s#", lError, lIn.out().tx().toHex(), lIn.out().chain().toHex().substr(0, 10));
+				gLog().write(Log::GENERAL_ERROR, lErrorText);
 				wrapper->tx()->setStatus(Transaction::DECLINED);
-				wrapper->addError(lError);
+				wrapper->addError(lErrorText);
 				return TransactionAction::GENERAL_ERROR;
 			}
 		}
