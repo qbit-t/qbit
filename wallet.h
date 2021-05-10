@@ -178,6 +178,8 @@ public:
 
 	void collectPendingTransactions(std::list<TransactionPtr>& list) {
 		//
+		if (!opened_) return;
+		//
 		db::DbEntityContainer<uint256 /*tx*/, Transaction /*data*/>::Transaction lDbTx = pendingtxs_.transaction();
 		for (db::DbEntityContainer<uint256 /*tx*/, Transaction /*data*/>::Iterator lTx = pendingtxs_.begin(); lTx.valid(); lTx++) {
 			//
@@ -196,6 +198,7 @@ public:
 	}
 
 	void writePendingTransaction(const uint256& id, TransactionPtr tx) {
+		if (!opened_) return;
 		pendingtxs_.write(id, tx);
 	}
 
