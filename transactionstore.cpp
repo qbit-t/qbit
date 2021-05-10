@@ -1016,6 +1016,7 @@ bool TransactionStore::processBlocks(const uint256& from, const uint256& to, IMe
 		strprintf("processing blocks data [%s-%s]/%s#", from.toHex(), to.toHex(), chain_.toHex().substr(0, 10)));		
 	//
 	bool lDone = false;
+	bool lFound = false;
 	BlockHeader lHeader;
 	while(!lDone && headers_.read(lHash, lHeader)) {
 		// check sequence consistency
@@ -1025,7 +1026,9 @@ bool TransactionStore::processBlocks(const uint256& from, const uint256& to, IMe
 			return false;
 		}
 
-		if (lHash == to) { 
+		lFound = lFound ? lFound : lHash == to;
+
+		if (lFound) { 
 			// ONLY in case that the block is indexed, otherwise - go forward
 			if (blockIndexed(lHash)) {
 				lDone = true;
