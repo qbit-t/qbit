@@ -2078,6 +2078,7 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 				setLastBlock(lLastPrev);
 				resyncHeight();
 			} else {
+				/*
 				//
 				gLog().write(Log::STORE, std::string("[reindex/warning]: rollback to ") + 
 					strprintf("lastBlock = %s, from = %s, to = %s, root = %s/%s#",
@@ -2090,6 +2091,17 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 				// 3. set last block
 				setLastBlock(lLastBlock);
 				// 4. height should be intact
+				*/
+
+				gLog().write(Log::STORE, std::string("[reindex/warning]: reset to end for ") + 
+					strprintf("%s#", chain_.toHex().substr(0, 10)));
+				//
+				// NOTICE: reset to NULL block and invalidate height map
+				// we have inner consistency errors and let sync procedure will decide
+				//
+				BlockHeader lNull;
+				setLastBlock(lNull.hash());
+				invalidateHeightMap();				
 			}
 		} else {
 			//
