@@ -298,6 +298,10 @@ void Peer::synchronizePartialTree(IConsensusPtr consensus, SynchronizationJobPtr
 				consensus->toNonSynchronized(true);
 			}
 
+			// cancel job, finish
+			job->cancel();
+
+			// we are domne
 			return;
 		}
 
@@ -484,6 +488,10 @@ void Peer::synchronizePendingBlocks(IConsensusPtr consensus, SynchronizationJobP
 					consensus->toNonSynchronized(true);
 				}
 
+				// cancel job
+				job->cancel();
+
+				// we are done
 				return;
 			}
 		}

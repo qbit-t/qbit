@@ -838,7 +838,7 @@ public:
 		uint64_t lHeight = locateSynchronizedRoot(lPeers, lBlock, lLast); // get peers, height and block
 
 		// force
-		if (job == nullptr) {
+		if (job == nullptr && job_) {
 			// TODO: check if we on GET_BLOCK_HEADER stage
 			if (job_->currentBlock() != uint256()) {
 				// job stalled, try to restart

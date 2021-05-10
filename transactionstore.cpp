@@ -1999,7 +1999,9 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 		gLog().write(Log::STORE, std::string("[reindex]: performing FULL reindex for new chain ") + 
 			strprintf("%s/%s/%s#", from.toHex(), to.toHex(), chain_.toHex().substr(0, 10)));
 	} else {
+		// NOTICE: not relevant
 		// WARNING: lastBlock AND to MUST be in current chain - otherwise all indexes will be invalidated
+		/*
 		if (!blockExists(lastBlock_) || !blockExists(to)) {
 			//
 			gLog().write(Log::STORE, std::string("[reindex]: partial reindex is NOT POSSIBLE for ") + 
@@ -2007,6 +2009,7 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 
 			return false;
 		}
+		*/
 
 		// check is block headers are traceable from the root
 		if ((lCleanUpLastBlock = isRootExists(lastBlock_, from, lCommonRoot, lLastBlockDiff, lLimit))) {
