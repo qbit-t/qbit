@@ -93,16 +93,22 @@ bool TransactionStore::processBlockTransactions(ITransactionStorePtr store, IEnt
 		if (!lProcessor.process(lCtx)) {
 			//
 			// WORK-A-ROUND: tx was removed during numerous sync errors and debugging
+			// 57a7eeaa09f9ecaf49ab1b8bf79329cd2ef64b42d9aa7c4f7e60c76826134d06
+			// 35f2f4958c950c225d28e92cb48a4338df03ccc29c67b7906ea4e2a5d05edb77
 			//
-			if (!lCtx->errorsContains("57a7eeaa09f9ecaf49ab1b8bf79329cd2ef64b42d9aa7c4f7e60c76826134d06") ||
-				!lCtx->errorsContains("35f2f4958c950c225d28e92cb48a4338df03ccc29c67b7906ea4e2a5d05edb77")) {
+			bool lHandled = false;
+			if (lCtx->errorsContains("UNKNOWN_REFTX") && lCtx->errorsContains("0000000000#")) {
+				lHandled = true;
+			} else {
 				lHasErrors = true;
-				for (std::list<std::string>::iterator lErr = lCtx->errors().begin(); lErr != lCtx->errors().end(); lErr++) {
-					gLog().write(Log::GENERAL_ERROR, std::string("[processBlockTransactions/error]: ") + (*lErr));
-				}
-
 				lBlockCtx->addErrors(lCtx->tx()->id(), lCtx->errors());
 			}
+
+			for (std::list<std::string>::iterator lErr = lCtx->errors().begin(); lErr != lCtx->errors().end(); lErr++) {
+				gLog().write(Log::GENERAL_ERROR, strprintf("[processBlockTransactions/error]: %s / %s",
+					(lHandled ? "SKIPPED" : "elevated"), (*lErr)));
+			}
+
 		} else {
 			lTransactionStore->pushTransaction(lCtx);
 
