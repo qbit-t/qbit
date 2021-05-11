@@ -3801,6 +3801,26 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 						strprintf("last = %s, current = %s, root = %s/%s#", lJob->lastBlock().toHex(), lFirst.toHex(), lCommonRoot.toHex(), lChain.toHex().substr(0, 10)));
 					lJob->setLastBlock(lCommonRoot);
 					lChainFound = true;
+
+					// check if block data exists
+					bool lProcesed = false;
+					BlockHeader lExists;
+					uint256 lCurrent = lJob->lastBlock();
+					while (lConsensus->store()->blockHeader(lCurrent, lExists)) {
+						//
+						if (!lConsensus->store()->blockExists(lCurrent)) {
+							if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: process block data MISSING from ") + key() + " -> " + 
+								strprintf("%s/%s#", lCurrent.toHex(), lExists.chain().toHex().substr(0, 10)));
+							lJob->pushPendingBlock(lCurrent);
+						}
+
+						//
+						if (lCurrent == lCommonRoot) break;
+
+						//
+						lCurrent = lExists.prev();
+					}
+
 				}
 			}
 
