@@ -3799,13 +3799,11 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 				if (lConsensus->store()->isRootExists(lJob->lastBlock(), lFirst, lCommonRoot, lLastBlockDiff, lLimit)) {
 					if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: common root found for ") + 
 						strprintf("last = %s, current = %s, root = %s/%s#", lJob->lastBlock().toHex(), lFirst.toHex(), lCommonRoot.toHex(), lChain.toHex().substr(0, 10)));
-					lJob->setLastBlock(lCommonRoot);
-					lChainFound = true;
 
 					// check if block data exists
 					bool lProcesed = false;
 					BlockHeader lExists;
-					uint256 lCurrent = lJob->lastBlock();
+					uint256 lCurrent = lJob->block();
 					while (lConsensus->store()->blockHeader(lCurrent, lExists)) {
 						//
 						if (!lConsensus->store()->blockExists(lCurrent)) {
@@ -3821,6 +3819,9 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 						lCurrent = lExists.prev();
 					}
 
+					// reset last block
+					lJob->setLastBlock(lCommonRoot);
+					lChainFound = true;	
 				}
 			}
 
