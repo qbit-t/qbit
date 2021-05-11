@@ -1021,6 +1021,7 @@ bool TransactionStore::processBlocks(const uint256& from, const uint256& to, IMe
 	//
 	std::list<BlockHeader> lHeadersSeq;
 	uint256 lHash = from;
+	uint256 lPrev = from;
 
 	//
 	if (!wallet_->mempoolManager()) return false;
@@ -1039,7 +1040,7 @@ bool TransactionStore::processBlocks(const uint256& from, const uint256& to, IMe
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlocks/error]: check sequence consistency FAILED ") +
 				strprintf("block = %s, prev = %s, chain = %s#", lHash.toHex(), lHeader.prev().toHex(), chain_.toHex().substr(0, 10)));
 			errorReason = ERROR_REASON_INTEGRITY_ERROR;
-			last = lHash;
+			last = lPrev;
 			return false;
 		}
 
@@ -1053,6 +1054,7 @@ bool TransactionStore::processBlocks(const uint256& from, const uint256& to, IMe
 				//
 				lHeadersSeq.push_back(lHeader);
 				// next
+				lPrev = lHash;
 				lHash = lHeader.prev();				
 			}
 
@@ -1067,6 +1069,7 @@ bool TransactionStore::processBlocks(const uint256& from, const uint256& to, IMe
 			//
 			lHeadersSeq.push_back(lHeader);
 			// next
+			lPrev = lHash;
 			lHash = lHeader.prev();
 		}
 	}
@@ -1088,7 +1091,7 @@ bool TransactionStore::processBlocks(const uint256& from, const uint256& to, IMe
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlocks/error]: transaction DATA is ABSENT for ") +
 				strprintf("block = %s, prev = %s, chain = %s#", lBlockHash.toHex(), (*lBlock).prev().toHex(), chain_.toHex().substr(0, 10)));
 			errorReason = ERROR_REASON_TX_DATA_MISSING;
-			last = lBlockHash;
+			last = (*lBlock).prev(); // suppose, that the previous one is good enouht
 			return false;
 		}
 
