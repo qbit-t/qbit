@@ -329,6 +329,13 @@ bool MemoryPool::pushTransaction(TransactionContextPtr ctx) {
 		if (!poolStore_->pushTransaction(ctx))
 			return true; // check ctx->errors() for details
 
+		// 4. try to locate functional parent links
+		/*
+		if () {
+
+		}
+		*/
+
 		{
 			boost::unique_lock<boost::recursive_mutex> lLock(mempoolMutex_);
 			// 4. add tx to pool map

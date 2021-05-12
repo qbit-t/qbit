@@ -97,7 +97,7 @@ bool TransactionStore::processBlockTransactions(ITransactionStorePtr store, IEnt
 			// 35f2f4958c950c225d28e92cb48a4338df03ccc29c67b7906ea4e2a5d05edb77
 			//
 			bool lHandled = false;
-			if (lCtx->errorsContains("UNKNOWN_REFTX") && lCtx->errorsContains("0000000000#")) {
+			if (lCtx->errorsContains("UNKNOWN_REFTX") && lCtx->errorsContains("0000000000#") && chain_ != MainChain::id()) {
 				lHandled = true;
 			} else {
 				lHasErrors = true;

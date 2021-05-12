@@ -103,6 +103,7 @@ public:
 	
 	virtual bool isAllowed(TransactionContextPtr) { throw qbit::exception("NOT_IMPL", "ITransactionStore::isAllowed - not implemeted."); }
 	virtual bool isRootExists(const uint256&, const uint256&, uint256&, uint64_t&, uint64_t /*limit*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::isRootExists - not implemeted."); }
+	virtual bool locateParents(TransactionContextPtr /*root*/, std::list<uint256>& /*parents*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::locateParents - not implemeted."); }
 
 	//
 	virtual bool airdropped(const uint160& /*address*/, const uint160& /*peer*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::airdropped - not implemeted."); }

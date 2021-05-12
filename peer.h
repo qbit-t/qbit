@@ -228,7 +228,7 @@ public:
 	void toPendingState() { status_ = IPeer::PENDING_STATE; }
 	void toPostponed() {
 		status_ = IPeer::POSTPONED;
-		postponeTime_ = 5; // TODO: settings!
+		postponeTime_ = 30; // TODO: settings!
 	}
 
 	bool postponedTick() {

@@ -571,9 +571,11 @@ public:
 	}
 
 	//
-	// TODO: maybe we need to take in account chain height for the given peer?
-	// probably nearest node has to be fully synchronized
 	void collectPeersByChain(const uint256& chain, std::map<IRequestProcessor::KeyOrder, IPeerPtr>& order) {
+		collectPeersByChain(chain, order, true);
+	}
+
+	void collectPeersByChain(const uint256& chain, std::map<IRequestProcessor::KeyOrder, IPeerPtr>& order, bool mostSuitable) {
 		//
 		boost::unique_lock<boost::recursive_mutex> lLock(peersMutex_);
 		std::map<uint256 /*chain*/, std::set<uint160>>::iterator lPeers = chainPeers_.find(chain);
@@ -584,12 +586,18 @@ public:
 				if (lLatency != latencyMap_.end() && lPeer != peers_.end()) {
 					//
 					State::BlockInfo lInfo;
-					if (lPeer->second->state()->locateChain(chain, lInfo)) {
+					if (((mostSuitable && lPeer->second->state()->infos().size() > 1) || !mostSuitable) && // NOTICE: only nodes with multiple shards support
+							lPeer->second->state()->locateChain(chain, lInfo)) {
+						//
 						order.insert(std::map<IRequestProcessor::KeyOrder, IPeerPtr>::value_type(
 							IRequestProcessor::KeyOrder(lInfo.height(), lLatency->second), lPeer->second));
 					}
 				}
 			}
+		}
+
+		if (chain == MainChain::id() && !order.size() && mostSuitable) {
+			collectPeersByChain(chain, order, false);
 		}
 	}
 

@@ -510,6 +510,8 @@ private:
 	std::map<uint256 /*tx*/, std::multimap<qunit_t /*fee rate*/, uint256 /*tx*/>::iterator> reverseMap_;
 	// qbit txs
 	std::map<uint256, TransactionContextPtr> qbitTxs_;
+	// threads
+	std::map<uint256 /*root*/, std::set<uint256 /*branch*/>> threads_;
 	// lock
 	boost::recursive_mutex mempoolMutex_;
 };

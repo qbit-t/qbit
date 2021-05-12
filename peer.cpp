@@ -1501,6 +1501,7 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 				// postpone peer
 				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/msg]: node sessions exceeded, postponing connections for ") + key());
 				peerManager_->postpone(shared_from_this());
+				peerManager_->deactivatePeer(shared_from_this()); // drop from active peers
 				eraseInData(lMsg);
 				processed();
 			} else if (lMessage.type() == Message::PEER_EXISTS) {
