@@ -140,7 +140,7 @@ Item
 
 				Component.onCompleted: {
 					//
-					if (!confirmed && direction === 2 /*out*/) {
+					if (!confirmed /*&& direction === 2*//*out*/) {
 						checkOnChain.start();
 					}
 				}
