@@ -264,6 +264,7 @@ void WalletTransactionsListModel::updatedInternal(const buzzer::NetworkUnlinkedO
 		std::map<uint256, int>::iterator lTxIdx = txIndex_.find(lOut->utxo().out().hash());
 		if (lTxIdx != txIndex_.end()) {
 			QModelIndex lModelIndex = createIndex(lTxIdx->second, lTxIdx->second);
+			qInfo() << "Update" << lTxIdx->second;
 			emit dataChanged(lModelIndex, lModelIndex, QVector<int>() << TimestampRole << ConfirmsRole << ConfirmedRole
 																								<< AgoRole << LocalDateTimeRole);
 		}
