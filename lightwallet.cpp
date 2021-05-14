@@ -291,7 +291,8 @@ bool LightWallet::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, TransactionC
 
 		lItem->second->setUtxo(*utxo);
 		if (opened_) {
-			lItem->second->setConfirms(ctx->tx()->confirms() /*updated*/);
+			if (lItem->second->confirms() < ctx->tx()->confirms())
+				lItem->second->setConfirms(ctx->tx()->confirms() /*updated*/);
 			utxo_.write(lUtxoId, *lItem->second);
 			updateIn(lItem->second);
 		}
@@ -1017,7 +1018,7 @@ void LightWallet::updateOuts(TransactionPtr tx) {
 
 		Transaction::NetworkUnlinkedOut lPersistedOut;
 		if (outs_.read(lUTXO->hash(), lPersistedOut)) {
-			lPersistedOut.setConfirms(1); // trick
+			if (lPersistedOut.confirms() < 1) lPersistedOut.setConfirms(1); // trick
 			outs_.write(lUTXO->hash(), lPersistedOut); // update
 			outUpdated(Transaction::NetworkUnlinkedOut::instance(lPersistedOut));
 		}

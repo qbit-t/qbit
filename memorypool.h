@@ -315,6 +315,18 @@ public:
 			return pool_->persistentStore()->currentHeight(block);
 		}
 
+		size_t txCount() {
+			return tx_.size(); 
+		}
+
+		size_t candidateTxCount() {
+			return candidateTx_.size(); 
+		}
+
+		size_t postponedTxCount() {
+			return postponedTx_.size(); 
+		}
+
 	private:
 		IMemoryPoolPtr pool_;
 
@@ -463,6 +475,14 @@ public:
 		return lPoolEntityStore->locatePoolEntity(name);
 	}
 
+	void statistics(size_t& txs, size_t& candidates, size_t& postponed) {
+		//
+		PoolStorePtr lPoolStore = PoolStore::toStore(poolStore_);
+		txs = lPoolStore->txCount();
+		candidates = lPoolStore->candidateTxCount();
+		postponed = lPoolStore->postponedTxCount();
+	}
+
 private:
 	inline qunit_t getTop() {
 		boost::unique_lock<boost::recursive_mutex> lLock(mempoolMutex_);
@@ -484,6 +504,11 @@ private:
 		TransactionContextPtr lCtx = poolStore_->locateTransactionContext(tx);
 		if (lCtx) {
 			lPoolStore->remove(lCtx);
+
+			{
+				boost::unique_lock<boost::recursive_mutex> lLock(mempoolMutex_);
+				qbitTxs_.erase(lCtx->tx()->id());
+			}
 		}
 	}
 

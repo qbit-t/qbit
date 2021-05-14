@@ -93,12 +93,28 @@ Item
 			// amount, pending, scale
 			availableNumber.number = amount;
 			pendingNumber.number = pending;
+
+			if (amount < 0.00000001)
+				checkBalance.start();
 		}
 
 		onError: {
 			controller.showError({ code: code, message: message, component: "Balance" });
 		}
 	}
+
+	//
+	Timer {
+		id: checkBalance
+		interval: 2000
+		repeat: false
+		running: false
+
+		onTriggered: {
+			balanceCommand.process();
+		}
+	}
+
 
 	//
 	// QBIT balance

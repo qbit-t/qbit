@@ -264,7 +264,7 @@ void WalletTransactionsListModel::updatedInternal(const buzzer::NetworkUnlinkedO
 		std::map<uint256, int>::iterator lTxIdx = txIndex_.find(lOut->utxo().out().hash());
 		if (lTxIdx != txIndex_.end()) {
 			QModelIndex lModelIndex = createIndex(lTxIdx->second, lTxIdx->second);
-			qInfo() << "Update" << lTxIdx->second;
+			// qInfo() << "Update" << lTxIdx->second << QString::fromStdString(lOut->utxo().out().hash().toHex());
 			emit dataChanged(lModelIndex, lModelIndex, QVector<int>() << TimestampRole << ConfirmsRole << ConfirmedRole
 																								<< AgoRole << LocalDateTimeRole);
 		}
@@ -274,6 +274,7 @@ void WalletTransactionsListModel::updatedInternal(const buzzer::NetworkUnlinkedO
 		order_.insert(std::multimap<uint64_t, uint256>::
 					  value_type(lOut->timestamp(), lOut->utxo().out().hash()));
 		// make index
+		bool lFound = false;
 		int lIntIdx = 0;
 		for (std::multimap<uint64_t, uint256>::reverse_iterator lIdx = order_.rbegin(); lIdx != order_.rend(); lIdx++, lIntIdx++) {
 			//
@@ -285,7 +286,12 @@ void WalletTransactionsListModel::updatedInternal(const buzzer::NetworkUnlinkedO
 				beginInsertRows(QModelIndex(), lIntIdx, lIntIdx);
 				endInsertRows();
 
-				break;
+				lFound = true;
+			}
+
+			if (lFound) {
+				txIndex_.erase(lIdx->second);
+				txIndex_[lIdx->second] = lIntIdx;				
 			}
 		}
 	}

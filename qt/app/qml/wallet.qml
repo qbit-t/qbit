@@ -63,6 +63,7 @@ Item
 		}
 
 		onCurrentIndexChanged: {
+			wallet_.init(); // try to refill balances
 		}
 
 		Component.onCompleted: {

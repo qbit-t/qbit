@@ -803,6 +803,9 @@ void MemoryPool::removeTransactions(BlockPtr block) {
 					map_.erase(lEntry->second);
 					reverseMap_.erase(lEntry);
 				}
+
+				// clean-up qbit txs
+				qbitTxs_.erase(*lTx);
 			}
 
 			//
@@ -837,6 +840,9 @@ void MemoryPool::removeTransactions(BlockPtr block) {
 					map_.erase(lEntry->second);
 					reverseMap_.erase(lEntry);
 				}
+
+				// clean-up qbit txs
+				qbitTxs_.erase((*lTx)->id());
 			}
 
 			//

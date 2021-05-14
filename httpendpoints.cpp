@@ -2200,6 +2200,18 @@ void HttpGetState::process(const std::string& source, const HttpRequest& request
 				lChain.addString("state", lConsensus->chainStateString());
 			}
 
+			// get mempool
+			IMemoryPoolPtr lMempool = peerManager_->memoryPoolManager()->locate(lInfo->chain());
+			if (lMempool) {
+				//
+				json::Value lMempoolObject = lChain.addObject("mempool");
+				size_t lTx = 0, lCandidatesTx = 0, lPostponedTx = 0;
+				lMempool->statistics(lTx, lCandidatesTx, lPostponedTx);
+				lChain.addUInt64("txs", lTx);
+				lChain.addUInt64("candidates", lCandidatesTx);
+				lChain.addUInt64("postponed", lPostponedTx);
+			}
+
 			// sync job
 			IConsensus::ChainState lState = lConsensus->chainState();
 			if (lState == IConsensus::SYNCHRONIZING) {
