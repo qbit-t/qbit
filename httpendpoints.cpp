@@ -2207,9 +2207,9 @@ void HttpGetState::process(const std::string& source, const HttpRequest& request
 				json::Value lMempoolObject = lChain.addObject("mempool");
 				size_t lTx = 0, lCandidatesTx = 0, lPostponedTx = 0;
 				lMempool->statistics(lTx, lCandidatesTx, lPostponedTx);
-				lChain.addUInt64("txs", lTx);
-				lChain.addUInt64("candidates", lCandidatesTx);
-				lChain.addUInt64("postponed", lPostponedTx);
+				lMempoolObject.addUInt64("txs", lTx);
+				lMempoolObject.addUInt64("candidates", lCandidatesTx);
+				lMempoolObject.addUInt64("postponed", lPostponedTx);
 			}
 
 			// sync job
