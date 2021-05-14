@@ -264,12 +264,12 @@ void MemoryPool::processCandidates() {
 					if (gLog().isEnabled(Log::GENERAL_ERROR)) gLog().write(Log::GENERAL_ERROR, std::string("[processCandidates/error]: transaction re-processing ERROR - ") + (*lErr) +
 							strprintf(" -> %d/%s/%s#", lReporocessed, (*lCandidate)->tx()->id().toHex(), (*lCandidate)->tx()->chain().toHex().substr(0, 10)));
 				}
-
-				if ((*lCandidate)->reprocessTimedout()) {
-					if (gLog().isEnabled(Log::GENERAL_ERROR)) gLog().write(Log::GENERAL_ERROR, std::string("[processCandidates]: transaction re-processing SKIPPED due to wait timeout") +
-							strprintf(" -> %s/%s#", (*lCandidate)->tx()->id().toHex(), (*lCandidate)->tx()->chain().toHex().substr(0, 10)));					
-					lPool->removeCandidate(*lCandidate);
-				}
+			}
+			// check for timeout
+			if ((*lCandidate)->reprocessTimedout()) {
+				if (gLog().isEnabled(Log::GENERAL_ERROR)) gLog().write(Log::GENERAL_ERROR, std::string("[processCandidates]: transaction re-processing SKIPPED due to wait timeout") +
+						strprintf(" -> %s/%s#", (*lCandidate)->tx()->id().toHex(), (*lCandidate)->tx()->chain().toHex().substr(0, 10)));					
+				lPool->removeCandidate(*lCandidate);
 			}
 		}
 	}
@@ -298,6 +298,7 @@ bool MemoryPool::pushTransaction(TransactionContextPtr ctx) {
 					ctx->tx()->hash().toHex(), ctx->tx()->chain().toHex().substr(0, 10)));
 
 			ctx->addError("Transaction was DECLINED by store extension rules");
+			lPool->removeCandidate(ctx); // if any
 			return true; // declined
 		}
 
@@ -309,6 +310,7 @@ bool MemoryPool::pushTransaction(TransactionContextPtr ctx) {
 			if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[pushTransaction]: ") + 
 				strprintf("transaction is ALREADY processed: %s/%s#",
 					ctx->tx()->hash().toHex(), ctx->tx()->chain().toHex().substr(0, 10)));
+			lPool->removeCandidate(ctx); // if any
 			return false; // already exists
 		}
 
@@ -326,8 +328,7 @@ bool MemoryPool::pushTransaction(TransactionContextPtr ctx) {
 		}
 
 		// 3. push transaction to the pool store
-		if (!poolStore_->pushTransaction(ctx))
-			return true; // check ctx->errors() for details
+		poolStore_->pushTransaction(ctx);
 
 		// 4. try to locate functional parent links
 		/*
