@@ -3642,8 +3642,8 @@ void BuzzerTransactionStoreExtension::selectBuzzfeed(const std::vector<BuzzfeedP
 					TxReBuzzPtr lRebuzz = TransactionHelper::to<TxReBuzz>(lTx);
 					if (lRebuzz->simpleRebuzz()) {
 						//
-						if (subscriber != lTxPublisher) 
-							makeBuzzfeedRebuzzItem(lTx, lMainStore, lRawBuzzfeed, lBuzzItems, subscriber);
+						// if (subscriber != lTxPublisher) 
+						makeBuzzfeedRebuzzItem(lTx, lMainStore, lRawBuzzfeed, lBuzzItems, subscriber);
 						lProcessed = true;
 					}
 				}

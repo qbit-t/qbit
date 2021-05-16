@@ -195,6 +195,15 @@ bool BuzzerPeerExtension::processBuzzCommon(TransactionContextPtr ctx) {
 					if (!lRebuzz->simpleRebuzz()) {
 						lItem.setOriginalBuzzId(lRebuzz->buzzId());
 						lItem.setOriginalBuzzChainId(lRebuzz->buzzChainId());
+						//
+						/*
+						lItem.setRebuzzes(lItem.rebuzzes() + 1); // increment rebuzzes
+						lItem.addItemInfo(BuzzfeedItem::ItemInfo(
+							lRebuzz->timestamp(), lRebuzz->score(), lPublisher, lRebuzz->buzzerInfoChain(), lRebuzz->buzzerInfo(), lRebuzz->chain(), lRebuzz->id(),
+							lRebuzz->signature()
+						));
+						*/
+
 					} else {
 						lNotify = false; // will be done at processRebuzz
 					}
@@ -661,7 +670,7 @@ bool BuzzerPeerExtension::processRebuzz(TransactionContextPtr ctx) {
 			//
 			// if we have direct subscription
 			//
-			if (!lSent && lBuzz && lRebuzz->simpleRebuzz()) {
+			if (/*!lSent &&*/ lBuzz && lRebuzz->simpleRebuzz()) {
 				//
 				lPublisher = (*lTx->in().begin()).out().tx(); // allways first
 				// original store

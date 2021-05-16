@@ -175,7 +175,7 @@ Item {
 		function getVisible() {
 			return type_ === buzzerClient.tx_BUZZ_LIKE_TYPE() ||
 					type_ === buzzerClient.tx_BUZZ_REWARD_TYPE() ||
-					(type_ === buzzerClient.tx_REBUZZ_TYPE() && !wrapped_); // if rebuzz without comments
+					(type_ === buzzerClient.tx_REBUZZ_TYPE() && (!wrapped_ || buzzBody_.length === 0)); // if rebuzz without comments
 		}
 
 		function getHeight() {
