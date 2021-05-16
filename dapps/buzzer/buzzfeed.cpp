@@ -396,7 +396,7 @@ bool BuzzfeedItem::mergeInternal(BuzzfeedItemPtr buzz, bool checkSize, bool noti
 									std::multimap<OrderKey /*order*/, Key /*buzz*/>::iterator lNext = lSibling;
 									if ((--lPrev) != index_.end()) {
 										BuzzfeedItemPtr lSiblingItem = items_[lPrev->second];
-										if (lSiblingItem) {
+										if (lSiblingItem && !(lSiblingItem->key() == lBuzz->key())) {
 											lSiblingItem->setHasNextLink(true);
 											lUpdated.push_back(BuzzfeedItemUpdate(lSiblingItem->buzzId(),
 																				  uint256(), BuzzfeedItemUpdate::Field::REPLIES, 0));
@@ -406,7 +406,7 @@ bool BuzzfeedItem::mergeInternal(BuzzfeedItemPtr buzz, bool checkSize, bool noti
 									// next sibling
 									if ((++lNext) != index_.end()) {
 										BuzzfeedItemPtr lSiblingItem = items_[lNext->second];
-										if (lSiblingItem) {
+										if (lSiblingItem && !(lSiblingItem->key() == lBuzz->key())) {
 											lSiblingItem->setHasPrevLink(true);
 											lBuzz->setHasNextLink(true);
 											lUpdated.push_back(BuzzfeedItemUpdate(lSiblingItem->buzzId(),

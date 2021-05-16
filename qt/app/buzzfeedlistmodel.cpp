@@ -218,6 +218,8 @@ QVariant BuzzfeedListModel::data(const QModelIndex& index, int role) const {
 		return lItem->isOnChain();
 	} else if (role == DynamicRole) {
 		return lItem->isDynamic();
+	} else if (role == FeedingRole) {
+		return feeding_;
 	}
 
 	return QVariant();
@@ -264,6 +266,7 @@ QHash<int, QByteArray> BuzzfeedListModel::roleNames() const {
 	lRoles[HasNextLinkRole] = "hasNextLink";
 	lRoles[OnChainRole] = "onChain";
 	lRoles[DynamicRole] = "dynamic";
+	lRoles[FeedingRole] = "feeding";
 
 	return lRoles;
 }
@@ -297,6 +300,8 @@ void BuzzfeedListModel::feed(qbit::BuzzfeedPtr local, bool more, bool merge) {
 		BuzzfeedListModel::merge();
 		return;
 	}
+
+	feeding_ = true;
 
 	if (!more) {
 		//
@@ -398,6 +403,8 @@ void BuzzfeedListModel::feed(qbit::BuzzfeedPtr local, bool more, bool merge) {
 			noMoreData_ = true;
 		}
 	}
+
+	feeding_ = false;
 }
 
 void BuzzfeedListModel::merge() {

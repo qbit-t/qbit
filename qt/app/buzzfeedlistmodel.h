@@ -61,7 +61,8 @@ public:
 		HasPrevLinkRole,
 		HasNextLinkRole,
 		OnChainRole,
-		DynamicRole
+		DynamicRole,
+		FeedingRole
 	};
 
 public:
@@ -79,6 +80,8 @@ public:
 	Q_INVOKABLE void setOnChain(int index);
 	//
 	Q_INVOKABLE int locateIndex(QString key);
+	//
+	Q_INVOKABLE bool feeding() { return feeding_; }
 
 	void buzzfeedLargeUpdated();
 	void buzzfeedItemNew(qbit::BuzzfeedItemPtr /*buzz*/);
@@ -144,6 +147,7 @@ protected:
 	std::map<qbit::BuzzfeedItem::Key, int> index_;
 	bool noMoreData_ = false;
 	uint256 rootId_;
+	bool feeding_ = false;
 };
 
 class BuzzfeedListModelPersonal: public BuzzfeedListModel {

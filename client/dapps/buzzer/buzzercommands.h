@@ -1417,6 +1417,8 @@ public:
 	// callbacks
 	void created(TransactionContextPtr ctx) {
 		//
+		ctx_ = ctx;
+		//
 		if (!composer_->requestProcessor()->sendTransaction(ctx,
 				SentTransaction::instance(
 					boost::bind(&BuzzLikeCommand::sent, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
@@ -1434,7 +1436,13 @@ public:
 			for (std::vector<TransactionContext::Error>::iterator lError = const_cast<std::vector<TransactionContext::Error>&>(errors).begin(); 
 					lError != const_cast<std::vector<TransactionContext::Error>&>(errors).end(); lError++) {
 				gLog().writeClient(Log::CLIENT, strprintf("[error]: %s", lError->data()));
+
+				composer_->wallet()->rollback(ctx_); // rollback tx
+				composer_->wallet()->resetCache();
+				composer_->wallet()->prepareCache();
+
 				done_(ProcessingError("E_SENT_TX", lError->data()));
+				break;
 			}
 
 			return;
@@ -1458,6 +1466,7 @@ private:
 	BuzzerLightComposerPtr composer_;
 	BuzzfeedPtr buzzFeed_;
 	doneWithErrorFunction done_;
+	TransactionContextPtr ctx_;
 };
 
 class BuzzRewardCommand;

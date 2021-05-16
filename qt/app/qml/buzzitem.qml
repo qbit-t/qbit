@@ -21,7 +21,7 @@ import "qrc:/lib/numberFunctions.js" as NumberFunctions
 Item {
 	id: buzzitem_
 
-	property int calculatedHeight: calculateHeightInternal()
+	property int calculatedHeight: 0 //calculateHeightInternal()
 	property var type_: type
 	property var buzzId_: buzzId
 	property var buzzChainId_: buzzChainId
@@ -62,9 +62,11 @@ Item {
 	property bool hasPrevLink_: hasPrevLink
 	property bool hasNextLink_: hasNextLink
 	property bool dynamic_: dynamic
+	property bool feeding_: feeding
 	property bool onChain_: onChain
 	property bool mistrusted_: false
 	property bool endorsed_: false
+	property bool hasMore_: false
 
 	property var controller_: controller
 	property var buzzfeedModel_: buzzfeedModel
@@ -94,9 +96,16 @@ Item {
 	}
 
 	Component.onCompleted: {
+		//
 		avatarDownloadCommand.process();
 
 		if (!onChain_ && dynamic_) checkOnChain.start();
+
+		// intial placement; dynamic "more" behaves strange
+		if (replies_ > 0) {
+			if (childrenCount_ < replies_)
+				hasMore_ = true;
+		}
 	}
 
 	/*
@@ -937,12 +946,15 @@ Item {
 			//
 			if (dynamic_) return false;
 
+			return hasMore_;
+			/*
 			if (replies_ > 0) {
-				if (/*buzzfeedModel_ && buzzfeedModel_.childrenCount(index)*/ childrenCount_ < replies_)
+				if (childrenCount_ < replies_)
 					return true;
 			}
 
 			return false;
+			*/
 		}
 
 		function getHeight() {

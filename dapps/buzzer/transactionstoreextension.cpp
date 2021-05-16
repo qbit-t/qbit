@@ -1743,7 +1743,7 @@ bool BuzzerTransactionStoreExtension::selectBuzzItem(const uint256& buzzId, Buzz
 		uint256 lTxPublisher = lTx->in()[TX_BUZZ_MY_IN].out().tx(); // buzzer allways is the first in
 		TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lTxPublisher);
 		if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
-		else return false;
+		//else return false;
 
 		prepareBuzzfeedItem(item, lBuzz, lBuzzer);
 
@@ -3768,7 +3768,7 @@ void BuzzerTransactionStoreExtension::makeBuzzfeedLikeItem(TransactionPtr tx, IT
 	TxBuzzerPtr lPublisher;
 	TransactionPtr lPublisherTx = mainStore->locateTransaction(lPublisherId);
 	if (lPublisherTx) lPublisher = TransactionHelper::to<TxBuzzer>(lPublisherTx);
-	else return;
+	// else return;
 
 	// if buzz is already in the feed
 	std::map<BuzzfeedItem::Key, BuzzfeedItemPtr>::iterator lExisting = buzzes.find(BuzzfeedItem::Key(lBuzzId, TX_BUZZ));
@@ -3860,7 +3860,7 @@ void BuzzerTransactionStoreExtension::makeBuzzfeedRewardItem(TransactionPtr tx, 
 	TxBuzzerPtr lPublisher;
 	TransactionPtr lPublisherTx = mainStore->locateTransaction(lPublisherId);
 	if (lPublisherTx) lPublisher = TransactionHelper::to<TxBuzzer>(lPublisherTx);
-	else return;
+	// else return;
 
 	// if buzz is already in the feed
 	std::map<BuzzfeedItem::Key, BuzzfeedItemPtr>::iterator lExisting = buzzes.find(BuzzfeedItem::Key(lBuzzId, TX_BUZZ));
@@ -3887,10 +3887,11 @@ void BuzzerTransactionStoreExtension::makeBuzzfeedRewardItem(TransactionPtr tx, 
 			uint256 lTxPublisher = lBuzzTx->in()[TX_BUZZ_MY_IN].out().tx(); // buzzer allways is the first in
 			TransactionPtr lBuzzerTx = mainStore->locateTransaction(lTxPublisher);
 			if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
-			else return;
+			// else return;
+
 			//
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/makeBuzzfeedRewardItem]: try to add item ") +
-				strprintf("buzzer = %s/%s, %s/%s#", lBuzzer->id().toHex(), lTxPublisher.toHex(), lBuzzTx->id().toHex(), store_->chain().toHex().substr(0, 10)));
+				strprintf("publisher = %s, %s/%s#", lTxPublisher.toHex(), lBuzzTx->id().toHex(), store_->chain().toHex().substr(0, 10)));
 
 			int lContext = 0;
 			makeBuzzfeedItem(lContext, lBuzzer, lBuzzTx, mainStore, buzzFeed, buzzes);
@@ -3917,7 +3918,7 @@ void BuzzerTransactionStoreExtension::makeBuzzfeedRewardItem(TransactionPtr tx, 
 			//
 			TransactionPtr lBuzzerTx = mainStore->locateTransaction(lBuzzerId);
 			if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
-			else return;
+			// else return;
 
 			//
 			BuzzfeedItemPtr lItem = BuzzfeedItem::instance();
@@ -3934,7 +3935,7 @@ void BuzzerTransactionStoreExtension::makeBuzzfeedRewardItem(TransactionPtr tx, 
 			buzzes.insert(std::map<BuzzfeedItem::Key, BuzzfeedItemPtr>::value_type(lItem->key(), lItem));
 			
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectBuzzfeed]: rewarded item added ") +
-				strprintf("(%d/%d), buzzer = %s, %s/%s#", buzzes.size(), buzzFeed.size(), lBuzzer->id().toHex(), lBuzz->id().toHex(), store_->chain().toHex().substr(0, 10)));
+				strprintf("(%d/%d), %s/%s#", buzzes.size(), buzzFeed.size(), lBuzz->id().toHex(), store_->chain().toHex().substr(0, 10)));
 
 		}
 	} else {
@@ -3957,7 +3958,7 @@ void BuzzerTransactionStoreExtension::makeBuzzfeedRebuzzItem(TransactionPtr tx, 
 	TxBuzzerPtr lPublisher;
 	TransactionPtr lPublisherTx = mainStore->locateTransaction(lPublisherId);
 	if (lPublisherTx) lPublisher = TransactionHelper::to<TxBuzzer>(lPublisherTx);
-	else return;
+	// else return;
 
 	// if buzz is already in the feed
 	std::map<BuzzfeedItem::Key, BuzzfeedItemPtr>::iterator lExisting = buzzes.find(BuzzfeedItem::Key(lBuzzId, TX_BUZZ));
@@ -3986,10 +3987,10 @@ void BuzzerTransactionStoreExtension::makeBuzzfeedRebuzzItem(TransactionPtr tx, 
 			uint256 lTxPublisher = lBuzzTx->in()[TX_BUZZ_MY_IN].out().tx(); // buzzer allways is the first in
 			TransactionPtr lBuzzerTx = mainStore->locateTransaction(lTxPublisher);
 			if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
-			else return;
+			// else return;
 			//
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/makeBuzzfeedRebuzzItem]: try to add item ") +
-				strprintf("buzzer = %s/%s, %s/%s#", lBuzzer->id().toHex(), lTxPublisher.toHex(), lBuzzTx->id().toHex(), store_->chain().toHex().substr(0, 10)));
+				strprintf("publisher = %s, %s/%s#", lTxPublisher.toHex(), lBuzzTx->id().toHex(), store_->chain().toHex().substr(0, 10)));
 
 			int lContext = 0;
 			makeBuzzfeedItem(lContext, lBuzzer, lBuzzTx, mainStore, buzzFeed, buzzes);
@@ -4016,7 +4017,7 @@ void BuzzerTransactionStoreExtension::makeBuzzfeedRebuzzItem(TransactionPtr tx, 
 			//
 			TransactionPtr lBuzzerTx = mainStore->locateTransaction(lBuzzerId);
 			if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
-			else return;
+			// else return;
 
 			//
 			BuzzfeedItemPtr lItem = BuzzfeedItem::instance();
@@ -4033,7 +4034,7 @@ void BuzzerTransactionStoreExtension::makeBuzzfeedRebuzzItem(TransactionPtr tx, 
 			buzzes.insert(std::map<BuzzfeedItem::Key, BuzzfeedItemPtr>::value_type(lItem->key(), lItem));
 			
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectBuzzfeed]: rebuzzed item added ") +
-				strprintf("(%d/%d), buzzer = %s, %s/%s#", buzzes.size(), buzzFeed.size(), lBuzzer->id().toHex(), lBuzz->id().toHex(), store_->chain().toHex().substr(0, 10)));
+				strprintf("(%d/%d), %s/%s#", buzzes.size(), buzzFeed.size(), lBuzz->id().toHex(), store_->chain().toHex().substr(0, 10)));
 
 		}
 	} else {
@@ -4137,7 +4138,7 @@ bool BuzzerTransactionStoreExtension::makeBuzzfeedItem(int& context, TxBuzzerPtr
 		buzzes.insert(std::map<BuzzfeedItem::Key, BuzzfeedItemPtr>::value_type(lItem->key(), lItem));
 
 		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/makeBuzzfeedItem]: item added ") +
-			strprintf("(%d/%d), buzzer = %s, %d/%s/%s#", buzzes.size(), rawBuzzfeed.size(), buzzer->id().toHex(), lBuzz->timestamp(), lBuzz->id().toHex(), store_->chain().toHex().substr(0, 10)));
+			strprintf("(%d/%d), %d/%s/%s#", buzzes.size(), rawBuzzfeed.size(), lBuzz->timestamp(), lBuzz->id().toHex(), store_->chain().toHex().substr(0, 10)));
 
 		return true;
 	}
