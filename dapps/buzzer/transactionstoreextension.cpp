@@ -3218,7 +3218,7 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedByBuzzer(uint64_t from, cons
 
 	bool lContinue = false;
 	std::set<BuzzfeedItem::Key> lAdded;
-	for (std::multimap<uint64_t, BuzzfeedItem::Key>::iterator lItem = lRawBuzzfeed.begin(); lItem != lRawBuzzfeed.end(); lItem++) {
+	for (std::multimap<uint64_t, BuzzfeedItem::Key>::reverse_iterator lItem = lRawBuzzfeed.rbegin(); lItem != lRawBuzzfeed.rend(); lItem++) {
 		//
 		if (!lContinue && feed.size() < 30 /*max last mixed events*/ || lContinue && feed.size() < 100) {
 			std::map<BuzzfeedItem::Key, BuzzfeedItemPtr>::iterator lBuzzItem = lBuzzItems.find(lItem->second);

@@ -61,7 +61,8 @@ public:
 		REBUZZES = 2,
 		REPLIES = 3,
 		REWARDS = 4,
-		LINKS = 5
+		LINKS = 5,
+		WRAPPED = 6
 	};
 public:
 	BuzzfeedItemUpdate() { field_ = NONE; count_ = 0; }
@@ -97,6 +98,7 @@ public:
 		else if (field_ == REPLIES) return "REPLIES";
 		else if (field_ == REWARDS) return "REWARDS";
 		else if (field_ == LINKS) return "LINKS";
+		else if (field_ == WRAPPED) return "WRAPPED";
 		return "NONE";
 	}
 	uint64_t count() const { return count_; }
@@ -821,7 +823,9 @@ public:
 	virtual void locateLastTimestamp(std::map<uint256 /*chain*/, std::vector<BuzzfeedPublisherFrom>>&);
 	virtual void collectPendingItems(std::map<uint256 /*chain*/, std::set<uint256>/*items*/>&);
 	virtual void crossMerge(bool notify = false);
-	virtual void wrap(BuzzfeedItemPtr item) { wrapped_ = item; }
+	virtual void wrap(BuzzfeedItemPtr item) {
+		wrapped_ = item;
+	}
 	virtual BuzzfeedItemPtr wrapped() { return wrapped_; }
 	virtual BuzzfeedItemPtr root() { return root_; }
 	void wasSuspicious() { wasSuspicious_ = true; }

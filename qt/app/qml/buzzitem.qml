@@ -143,6 +143,12 @@ Item {
 		calculateHeight();
 	}
 
+	onWrapped_Changed: {
+		if (wrapped_) {
+			expandBody.start();
+		}
+	}
+
 	//
 	// avatar download
 	//
@@ -175,7 +181,7 @@ Item {
 		function getVisible() {
 			return type_ === buzzerClient.tx_BUZZ_LIKE_TYPE() ||
 					type_ === buzzerClient.tx_BUZZ_REWARD_TYPE() ||
-					(type_ === buzzerClient.tx_REBUZZ_TYPE() && (!wrapped_ || buzzBody_.length === 0)); // if rebuzz without comments
+					(type_ === buzzerClient.tx_REBUZZ_TYPE() && (/*!wrapped_ ||*/ buzzBody_.length === 0)); // if rebuzz without comments
 		}
 
 		function getHeight() {
@@ -554,6 +560,17 @@ Item {
 	}
 
 	Timer {
+		id: expandBody
+		interval: 500
+		repeat: false
+		running: false
+
+		onTriggered: {
+			bodyControl.expand();
+		}
+	}
+
+	Timer {
 		id: openConversation
 		interval: 500
 		repeat: false
@@ -711,6 +728,9 @@ Item {
 				wrappedItem_.buzzMedia_ = wrapped_.buzzMedia;
 				wrappedItem_.lastUrl_ = buzzerClient.extractLastUrl(wrapped_.buzzBody);
 				wrappedItem_.ago_ = buzzerClient.timestampAgo(wrapped_.timestamp);
+
+				bodyControl.height = bodyControl.getHeight();
+				buzzitem_.calculateHeight();
 			}
 
 			// expand media

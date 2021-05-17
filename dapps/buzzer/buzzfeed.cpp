@@ -240,6 +240,7 @@ bool BuzzfeedItem::mergeInternal(BuzzfeedItemPtr buzz, bool checkSize, bool noti
 		bool lAdd = true;
 
 		// pending
+		std::vector<BuzzfeedItemUpdate> lUpdatedPendings;
 		std::map<uint256 /*originalBuzz*/, std::map<Key, BuzzfeedItemPtr>>::iterator lPenging = pendings_.find(lBuzz->buzzId());
 		if (lPenging != pendings_.end()) {
 			for (std::map<Key, BuzzfeedItemPtr>::iterator lItem = lPenging->second.begin(); lItem != lPenging->second.end(); lItem++) {
@@ -247,6 +248,9 @@ bool BuzzfeedItem::mergeInternal(BuzzfeedItemPtr buzz, bool checkSize, bool noti
 					//
 					lItem->second->wrap(lBuzz);
 					lAdd = false;
+					//
+					lUpdatedPendings.push_back(BuzzfeedItemUpdate(lItem->second->buzzId(),
+														  uint256(), BuzzfeedItemUpdate::Field::REBUZZES, 0));
 				} else {
 					lItem->second->setSortOrder(Order::FORWARD);
 					lItemAdded |= lItem->second->mergeInternal(lBuzz, checkSize, notify);
@@ -256,6 +260,9 @@ bool BuzzfeedItem::mergeInternal(BuzzfeedItemPtr buzz, bool checkSize, bool noti
 
 			pendings_.erase(lPenging);
 		}
+
+		// 
+		if (lUpdatedPendings.size()) itemsUpdated(lUpdatedPendings);
 
 		// force load...
 		if (buzz->type() == TX_BUZZ_REPLY) {
@@ -997,6 +1004,7 @@ void BuzzfeedItem::collectPendingItems(std::map<uint256 /*chain*/, std::set<uint
 void BuzzfeedItem::crossMerge(bool notify) {
 	//
 	Guard lLock(this);
+	std::vector<BuzzfeedItemUpdate> lUpdatedPendings;
 	std::map<uint256 /*originalBuzz*/, std::map<Key, BuzzfeedItemPtr>> lPendings = pendings_;
 	for (std::map<uint256 /*originalBuzz*/, std::map<Key, BuzzfeedItemPtr>>::iterator lPending = lPendings.begin(); lPending != lPendings.end(); lPending++) {
 		//
@@ -1005,6 +1013,9 @@ void BuzzfeedItem::crossMerge(bool notify) {
 			for (std::map<Key, BuzzfeedItemPtr>::iterator lItem = lPending->second.begin(); lItem != lPending->second.end(); lItem++) {
 				if (lItem->second->type() == TX_REBUZZ) {
 					lItem->second->wrap(lParent->second);
+					lUpdatedPendings.push_back(BuzzfeedItemUpdate(lItem->second->buzzId(),
+														  uint256(), BuzzfeedItemUpdate::Field::REBUZZES, 0));
+
 				} else {
 					lItem->second->merge(*(lParent->second), true, notify);
 				}
@@ -1013,6 +1024,8 @@ void BuzzfeedItem::crossMerge(bool notify) {
 			pendings_.erase(lPending->first);
 		}
 	}
+	// 
+	if (lUpdatedPendings.size()) itemsUpdated(lUpdatedPendings);
 }
 
 const std::vector<unsigned char>& BuzzfeedItem::buzzBody() const {

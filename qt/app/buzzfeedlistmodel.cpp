@@ -453,7 +453,8 @@ void BuzzfeedListModel::merge() {
 					<< LikesRole
 					<< RebuzzesRole
 					<< RepliesRole
-					<< RewardsRole);
+					<< RewardsRole
+					<< WrappedRole);
 
 			//qInfo() << "-> modified" << lNewIdx->second;
 		}
@@ -557,7 +558,8 @@ bool BuzzfeedListModel::buzzfeedItemUpdatedProcess(qbit::BuzzfeedItemPtr item, u
 					<< NextSiblingIdRole
 					<< PrevSiblingIdRole
 					<< HasPrevLinkRole
-					<< HasNextLinkRole);
+					<< HasNextLinkRole
+					<< WrappedRole);
 
 			return true;
 		}
@@ -583,7 +585,7 @@ bool BuzzfeedListModel::buzzfeedItemsUpdatedProcess(const qbit::BuzzfeedItemUpda
 		if (lField == qbit::BuzzfeedItemUpdate::Field::LIKES)
 			emit dataChanged(lModelIndex, lModelIndex, QVector<int>() << LikesRole << HasParentRole << HasNextSiblingRole << HasPrevSiblingRole << ChildrenCountRole << FirstChildIdRole << NextSiblingIdRole << PrevSiblingIdRole << HasPrevLinkRole << HasNextLinkRole);
 		else if (lField == qbit::BuzzfeedItemUpdate::Field::REBUZZES)
-			emit dataChanged(lModelIndex, lModelIndex, QVector<int>() << RebuzzesRole << HasParentRole << HasNextSiblingRole << HasPrevSiblingRole << ChildrenCountRole << FirstChildIdRole << NextSiblingIdRole << PrevSiblingIdRole << HasPrevLinkRole << HasNextLinkRole);
+			emit dataChanged(lModelIndex, lModelIndex, QVector<int>() << RebuzzesRole << HasParentRole << HasNextSiblingRole << HasPrevSiblingRole << ChildrenCountRole << FirstChildIdRole << NextSiblingIdRole << PrevSiblingIdRole << HasPrevLinkRole << HasNextLinkRole << WrappedRole);
 		else if (lField == qbit::BuzzfeedItemUpdate::Field::REPLIES)
 			emit dataChanged(lModelIndex, lModelIndex, QVector<int>() << RepliesRole << HasParentRole << HasNextSiblingRole << HasPrevSiblingRole << ChildrenCountRole << FirstChildIdRole << NextSiblingIdRole << PrevSiblingIdRole << HasPrevLinkRole << HasNextLinkRole);
 		else if (lField == qbit::BuzzfeedItemUpdate::Field::REWARDS)
