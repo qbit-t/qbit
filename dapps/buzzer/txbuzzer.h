@@ -39,8 +39,8 @@ typedef LimitedString<64> buzzer_name_t;
 #define TX_BUZZER_MESSAGE				Transaction::CUSTOM_17 //
 #define TX_BUZZER_MESSAGE_REPLY			Transaction::CUSTOM_18 //
 
-#define TX_BUZZER_ALIAS_SIZE 64 
-#define TX_BUZZER_DESCRIPTION_SIZE 256 
+#define TX_BUZZER_ALIAS_SIZE 128 
+#define TX_BUZZER_DESCRIPTION_SIZE 512
 
 #define TX_BUZZER_SHARD_IN 1
 

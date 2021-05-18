@@ -331,12 +331,17 @@ bool MemoryPool::pushTransaction(TransactionContextPtr ctx) {
 		poolStore_->pushTransaction(ctx);
 
 		// 4. try to locate functional parent links
-		/*
-		if () {
-
+		std::list<uint256> lLinks;
+		if (!ctx->errors().size() && persistentStore_->locateParents(ctx, lLinks)) {
+			//
+			boost::unique_lock<boost::recursive_mutex> lLock(mempoolMutex_);
+			for (std::list<uint256>::iterator lParent = lLinks.begin(); lParent != lLinks.end(); lParent++) {
+				threads_[*lParent].insert(ctx->tx()->id());
+				reverseThreads_[ctx->tx()->id()].insert(*lParent);
+			}
 		}
-		*/
 
+		//
 		{
 			boost::unique_lock<boost::recursive_mutex> lLock(mempoolMutex_);
 			// 4. add tx to pool map
@@ -771,6 +776,20 @@ void MemoryPool::selectTransactions(std::list<uint256>& txs, uint64_t& total, si
 	}
 }
 
+void MemoryPool::selectTransactions(const uint256& parent, std::list<TransactionContextPtr>& txs) {
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(mempoolMutex_);
+	//
+	std::map<uint256 /*root*/, std::set<uint256 /*txs*/>>::iterator lRoot = threads_.find(parent);
+	if (lRoot != threads_.end()) {
+		for (std::set<uint256 /*txs*/>::iterator lTx = lRoot->second.begin(); lTx != lRoot->second.end(); lTx++) {
+			//
+			TransactionContextPtr lCtx = poolStore_->locateTransactionContext(*lTx);
+			txs.push_back(lCtx);
+		}
+	}
+}
+
 void MemoryPool::commit(BlockContextPtr ctx) {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(mempoolMutex_);
@@ -778,6 +797,20 @@ void MemoryPool::commit(BlockContextPtr ctx) {
 		qbitTxs_.erase((*lEntry)->second);
 		reverseMap_.erase((*lEntry)->second);
 		map_.erase(std::next(*lEntry).base());
+		//
+		std::map<uint256 /*tx*/, std::set<uint256 /*root*/>>::iterator lRoot = reverseThreads_.find((*lEntry)->second);
+		if (lRoot != reverseThreads_.end()) {
+			for (std::set<uint256 /*roots*/>::iterator lTx = lRoot->second.begin(); lTx != lRoot->second.end(); lTx++) {
+				//
+				std::map<uint256 /*tx*/, std::set<uint256 /*root*/>>::iterator lTop = threads_.find(*lTx);
+				if (lTop != threads_.end()) {
+					lTop->second.erase((*lEntry)->second);
+					if (!lTop->second.size()) threads_.erase(lTop);
+				}
+			}
+
+			reverseThreads_.erase(lRoot);
+		}
 	}
 }
 
@@ -803,6 +836,21 @@ void MemoryPool::removeTransactions(BlockPtr block) {
 				if (lEntry != reverseMap_.end()) {
 					map_.erase(lEntry->second);
 					reverseMap_.erase(lEntry);
+
+					std::map<uint256 /*tx*/, std::set<uint256 /*root*/>>::iterator lRoot = reverseThreads_.find(lEntry->first);
+					if (lRoot != reverseThreads_.end()) {
+						for (std::set<uint256 /*roots*/>::iterator lInnerTx = lRoot->second.begin(); lInnerTx != lRoot->second.end(); lInnerTx++) {
+							//
+							std::map<uint256 /*tx*/, std::set<uint256 /*root*/>>::iterator lTop = threads_.find(*lInnerTx);
+							if (lTop != threads_.end()) {
+								lTop->second.erase(lEntry->first);
+								if (!lTop->second.size()) threads_.erase(lTop);
+							}
+						}
+
+						reverseThreads_.erase(lRoot);
+					}
+
 				}
 
 				// clean-up qbit txs
@@ -840,6 +888,20 @@ void MemoryPool::removeTransactions(BlockPtr block) {
 				if (lEntry != reverseMap_.end()) {
 					map_.erase(lEntry->second);
 					reverseMap_.erase(lEntry);
+
+					std::map<uint256 /*tx*/, std::set<uint256 /*root*/>>::iterator lRoot = reverseThreads_.find(lEntry->first);
+					if (lRoot != reverseThreads_.end()) {
+						for (std::set<uint256 /*roots*/>::iterator lInnerTx = lRoot->second.begin(); lInnerTx != lRoot->second.end(); lInnerTx++) {
+							//
+							std::map<uint256 /*tx*/, std::set<uint256 /*root*/>>::iterator lTop = threads_.find(*lInnerTx);
+							if (lTop != threads_.end()) {
+								lTop->second.erase(lEntry->first);
+								if (!lTop->second.size()) threads_.erase(lTop);
+							}
+						}
+
+						reverseThreads_.erase(lRoot);
+					}
 				}
 
 				// clean-up qbit txs

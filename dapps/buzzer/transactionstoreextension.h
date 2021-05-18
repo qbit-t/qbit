@@ -222,6 +222,7 @@ public:
 	bool popUnlinkedOut(const uint256&, TransactionContextPtr) {}
 	bool pushEntity(const uint256&, TransactionContextPtr);
 	bool isAllowed(TransactionContextPtr);
+	bool locateParents(TransactionContextPtr /*root*/, std::list<uint256>& /*parents*/);	
 
 	TransactionPtr locateSubscription(const uint256& /*subscriber*/, const uint256& /*publisher*/);
 	void selectBuzzfeed(const std::vector<BuzzfeedPublisherFrom>& /*from*/, const uint256& /*subscriber*/, std::vector<BuzzfeedItem>& /*feed*/);

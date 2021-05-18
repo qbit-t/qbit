@@ -119,6 +119,10 @@ public:
 		return nullptr;
 	}
 
+	IMemoryPoolPtr locateMempool(const uint256& chain) {
+		return wallet_->mempoolManager()->locate(chain);
+	}
+
 private:
 	boost::mutex storagesMutex_;
 	std::map<uint256, ITransactionStorePtr> storages_;

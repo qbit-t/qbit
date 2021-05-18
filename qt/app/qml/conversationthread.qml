@@ -724,7 +724,9 @@ QuarkPage {
 				property bool external_: false
 
 				onLengthChanged: {
-					countProgress.adjust(length + preeditText.length);
+					// TODO: may by too expensive
+					var lText = buzzerClient.getPlainText(buzzText.textDocument);
+					countProgress.adjust(buzzerClient.getBuzzBodySize(lText) + preeditText.length);
 					buzzersList.close();
 					tagsList.close();
 				}
@@ -1042,6 +1044,12 @@ QuarkPage {
 		var lText = buzzerClient.getPlainText(buzzText.textDocument);
 		if (lText.length === 0) {
 			handleError("E_BUZZ_IS_EMPTY", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZ_IS_EMPTY"));
+			sending = false;
+			return;
+		}
+
+		if (buzzerClient.getBuzzBodySize(lText) >= buzzerClient.getBuzzBodyMaxSize()) {
+			handleError("E_BUZZ_IS_TOO_BIG", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZ_IS_TOO_BIG"));
 			sending = false;
 			return;
 		}

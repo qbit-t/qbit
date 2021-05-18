@@ -35,6 +35,7 @@ public:
 	virtual uint256 chain() { throw qbit::exception("NOT_IMPL", "ITransactionStore::chain - not implemented."); }
 
 	virtual TransactionPtr locateTransaction(const uint256&) { throw qbit::exception("NOT_IMPL", "ITransactionStore::locateTransaction - not implemented."); }
+	virtual TransactionPtr locateMempoolTransaction(const uint256&) { throw qbit::exception("NOT_IMPL", "ITransactionStore::locateMempoolTransaction - not implemented."); }
 	virtual TransactionContextPtr locateTransactionContext(const uint256&) { throw qbit::exception("NOT_IMPL", "ITransactionStore::locateTransactionContext - not implemented."); }
 	virtual bool pushTransaction(TransactionContextPtr) { throw qbit::exception("NOT_IMPL", "ITransactionStore::pushTransaction - not implemented."); }
 	virtual BlockContextPtr pushBlock(BlockPtr) { throw qbit::exception("NOT_IMPL", "ITransactionStore::pushBlock - not implemented."); }

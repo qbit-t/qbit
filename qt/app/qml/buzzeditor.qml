@@ -351,7 +351,9 @@ QuarkPage {
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 
 			onLengthChanged: {
-				countProgress.adjust(length + preeditText.length);
+				// TODO: may by too expensive
+				var lText = buzzerClient.getPlainText(buzzText.textDocument);
+				countProgress.adjust(buzzerClient.getBuzzBodySize(lText) + preeditText.length);
 				buzzersList.close();
 				tagsList.close();
 			}
@@ -1020,6 +1022,12 @@ QuarkPage {
 			return;
 		}
 
+		if (buzzerClient.getBuzzBodySize(lText) >= buzzerClient.getBuzzBodyMaxSize()) {
+			handleError("E_BUZZ_IS_TOO_BIG", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZ_IS_TOO_BIG"));
+			sending = false;
+			return;
+		}
+
 		//
 		createProgressBar.indeterminate = true;
 		createProgressBar.visible = true;
@@ -1043,6 +1051,12 @@ QuarkPage {
 		//
 		var lText = buzzerClient.getPlainText(buzzText.textDocument);
 		if (lText.length === 0) lText = buzzText.preeditText;
+
+		if (buzzerClient.getBuzzBodySize(lText) >= buzzerClient.getBuzzBodyMaxSize()) {
+			handleError("E_BUZZ_IS_TOO_BIG", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZ_IS_TOO_BIG"));
+			sending = false;
+			return;
+		}
 
 		//
 		createProgressBar.indeterminate = true;
@@ -1076,6 +1090,12 @@ QuarkPage {
 			return;
 		}
 
+		if (buzzerClient.getBuzzBodySize(lText) >= buzzerClient.getBuzzBodyMaxSize()) {
+			handleError("E_BUZZ_IS_TOO_BIG", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZ_IS_TOO_BIG"));
+			sending = false;
+			return;
+		}
+
 		//
 		createProgressBar.indeterminate = true;
 		createProgressBar.visible = true;
@@ -1105,6 +1125,12 @@ QuarkPage {
 
 		if (lText.length === 0 && mediaModel.count === 0) {
 			handleError("E_BUZZ_IS_EMPTY", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZ_IS_EMPTY"));
+			sending = false;
+			return;
+		}
+
+		if (buzzerClient.getBuzzBodySize(lText) >= buzzerClient.getBuzzBodyMaxSize()) {
+			handleError("E_BUZZ_IS_TOO_BIG", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZ_IS_TOO_BIG"));
 			sending = false;
 			return;
 		}

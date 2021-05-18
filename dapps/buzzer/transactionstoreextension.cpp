@@ -392,6 +392,55 @@ bool BuzzerTransactionStoreExtension::isAllowed(TransactionContextPtr ctx) {
 	return true;
 }
 
+bool BuzzerTransactionStoreExtension::locateParents(TransactionContextPtr ctx, std::list<uint256>& parents) {
+	//	
+	if (ctx->tx()->type() == TX_BUZZ_REPLY) {
+		// that should be tx_event object
+		TxEventPtr lEvent = TransactionHelper::to<TxEvent>(ctx->tx());
+		//
+		uint256 lTxId = lEvent->in()[TX_BUZZ_REPLY_BUZZ_IN].out().tx();
+		uint256 lChainId = lEvent->in()[TX_BUZZ_REPLY_BUZZ_IN].out().chain();
+		//
+		size_t lDeep = 0;
+		while (lDeep++ < 100) {
+			//
+			ITransactionStorePtr lLocalStore = store_->storeManager()->locate(lChainId);
+			if (!lLocalStore) break;
+			//
+			TransactionPtr lTx = lLocalStore->locateTransaction(lTxId);
+			if (lTx && (lTx->type() == TX_BUZZ_REPLY || lTx->type() == TX_REBUZZ ||
+																lTx->type() == TX_BUZZ)) {
+
+				//
+				parents.push_back(lTxId);
+
+				if (lTx->type() == TX_BUZZ || lTx->type() == TX_REBUZZ) {
+					break;
+				}
+
+				if (lTx->in().size() > TX_BUZZ_REPLY_BUZZ_IN) { // move up-next
+					lTxId = lTx->in()[TX_BUZZ_REPLY_BUZZ_IN].out().tx();
+					lChainId = lTx->in()[TX_BUZZ_REPLY_BUZZ_IN].out().chain();
+				}
+			} else break;
+		}
+		//
+		if (parents.size() > 0) return true;
+		return false;
+		//
+	} else if (ctx->tx()->type() == TX_BUZZER_MESSAGE) {
+		//
+		// that should be tx_event object
+		TxEventPtr lEvent = TransactionHelper::to<TxEvent>(ctx->tx());
+		//
+		uint256 lConversationId = lEvent->in()[TX_BUZZER_CONVERSATION_IN].out().tx();
+		parents.push_back(lConversationId);
+		return true;
+	}
+
+	return false;
+}
+
 bool BuzzerTransactionStoreExtension::pushEntity(const uint256& id, TransactionContextPtr ctx) {
 	//
 	processEvent(id, ctx);
@@ -976,7 +1025,9 @@ void BuzzerTransactionStoreExtension::processEvent(const uint256& id, Transactio
 							while (true) {
 								//
 								lLocalStore = store_->storeManager()->locate(lReChainId);
-								TransactionPtr lReTx = store_->locateTransaction(lReTxId);
+								if (!lLocalStore) break;
+
+								TransactionPtr lReTx = lLocalStore->locateTransaction(lReTxId);
 								if (lReTx && (lReTx->type() == TX_BUZZ_REPLY || lReTx->type() == TX_REBUZZ ||
 																					lReTx->type() == TX_BUZZ)) {
 									// inc replies
@@ -2337,6 +2388,38 @@ void BuzzerTransactionStoreExtension::selectMessages(uint64_t from, const uint25
 			timeline_.transaction();
 	lFrom.setKey2Empty();
 
+	// 0. try mempool
+	if (from) {
+		IMemoryPoolPtr lMempool = store_->storeManager()->locateMempool(store_->chain());
+		if (lMempool) {
+			std::list<TransactionContextPtr> lPending;
+			lMempool->selectTransactions(conversation, lPending);
+			//
+			if (lPending.size()) {
+				for (std::list<TransactionContextPtr>::iterator lCtx = lPending.begin(); lCtx != lPending.end(); lCtx++) {
+					//
+					TxEventPtr lTx = TransactionHelper::to<TxEvent>((*lCtx)->tx());
+					if ((lTx->type() == TX_BUZZER_MESSAGE || lTx->type() == TX_BUZZER_MESSAGE_REPLY) && 
+						lTx->timestamp() < from) {
+						//
+						TxBuzzerPtr lBuzzer;
+						uint256 lTxPublisher = lTx->in()[TX_BUZZER_MY_IN].out().tx(); // buzzer allways is the first in
+						TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lTxPublisher);
+						if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
+						else continue;
+						//
+						if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectMessages]: try to added item ") +
+							strprintf("buzzer = %s/%s, %s/%s#", lBuzzer->id().toHex(), lTxPublisher.toHex(), lTx->id().toHex(), store_->chain().toHex().substr(0, 10)));
+
+						//
+						int lContext = 0;
+						makeBuzzfeedItem(lContext, lBuzzer, lTx, lMainStore, lRawBuzzfeed, lBuzzItems);
+					}
+				}
+			}
+		}
+	}
+
 	// 1. select
 	for (;lBuzzItems.size() < 50 /*TODO: settings?*/ && lFrom.valid(); --lFrom) {
 		//
@@ -3003,6 +3086,45 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedByBuzz(uint64_t from, const 
 					strprintf("buzzer = %s/%s, %s/%s#", lBuzzer->id().toHex(), lTxPublisher.toHex(), lTx->id().toHex(), store_->chain().toHex().substr(0, 10)));
 
 				makeBuzzfeedItem(lContext, lBuzzer, lTx, lMainStore, lRawBuzzfeed, lBuzzItems);
+			}
+		}
+	}
+
+	// try mempool
+	if (from) {
+		IMemoryPoolPtr lMempool = store_->storeManager()->locateMempool(store_->chain());
+		if (lMempool) {
+			std::list<TransactionContextPtr> lPending;
+			lMempool->selectTransactions(buzz, lPending);
+			//
+			if (lPending.size()) {
+				for (std::list<TransactionContextPtr>::iterator lCtx = lPending.begin(); lCtx != lPending.end(); lCtx++) {
+					//
+					TxEventPtr lTx = TransactionHelper::to<TxEvent>((*lCtx)->tx());
+					if (lTx->type() == TX_BUZZ_REPLY && lTx->timestamp() >= from) {
+						//
+						TxBuzzerPtr lBuzzer;
+						uint256 lTxPublisher = lTx->in()[TX_BUZZ_MY_IN].out().tx(); // buzzer allways is the first in
+						TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lTxPublisher);
+						if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
+						else continue;
+						// check for "trusted"
+						BuzzerTransactionStoreExtensionPtr lPublisherExtension = locateBuzzerExtension(lTxPublisher);
+						if (lPublisherExtension) {
+							BuzzerInfo lPublisherInfo;
+							lPublisherExtension->readBuzzerStat(lTxPublisher, lPublisherInfo);
+							if (!lPublisherInfo.trusted()) continue;
+						}
+						//
+						if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectBuzzfeedByBuzz]: try to added item ") +
+							strprintf("buzzer = %s/%s, %s/%s#", lBuzzer->id().toHex(), lTxPublisher.toHex(), lTx->id().toHex(), store_->chain().toHex().substr(0, 10)));
+
+						//
+						// TODO: consider to limit uplinkage for parents (at least when from != 0)
+						int lContext = 0;
+						makeBuzzfeedItem(lContext, lBuzzer, lTx, lMainStore, lRawBuzzfeed, lBuzzItems, !from);
+					}
+				}
 			}
 		}
 	}

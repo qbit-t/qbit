@@ -468,6 +468,7 @@ public:
 
 	void processCandidates();
 	void selectTransactions(std::list<uint256>& /*txs*/, uint64_t& /*total*/, size_t /*limit*/);
+	void selectTransactions(const uint256& /*parent*/, std::list<TransactionContextPtr>& /*txs*/);
 
 	EntityPtr locateEntity(const std::string& name) {
 		//
@@ -537,6 +538,7 @@ private:
 	std::map<uint256, TransactionContextPtr> qbitTxs_;
 	// threads
 	std::map<uint256 /*root*/, std::set<uint256 /*branch*/>> threads_;
+	std::map<uint256 /*branch*/, std::set<uint256 /*roots*/>> reverseThreads_;
 	// lock
 	boost::recursive_mutex mempoolMutex_;
 };

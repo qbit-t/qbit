@@ -422,6 +422,10 @@ public:
 	}
 
 	Q_INVOKABLE int getBuzzBodyMaxSize() { return TX_BUZZ_BODY_SIZE; }
+	Q_INVOKABLE int getBuzzBodySize(const QString& body) {
+		std::string lStr = body.toStdString();
+		return lStr.length();
+	}
 
 	Q_INVOKABLE bool addPeerExplicit(QString);
 	Q_INVOKABLE void removePeer(QString);

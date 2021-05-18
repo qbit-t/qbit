@@ -371,6 +371,7 @@ public:
 	// ITransactionStore implementation
 	TransactionContextPtr locateTransactionContext(const uint256&);
 	TransactionPtr locateTransaction(const uint256&);
+	TransactionPtr locateMempoolTransaction(const uint256&);
 	void setWallet(IWalletPtr wallet) { wallet_ = wallet; }
 	
 	BlockContextPtr pushBlock(BlockPtr); // sync blocks
@@ -380,6 +381,12 @@ public:
 	void saveBlockHeader(const BlockHeader& /*header*/);
 	void reindexFull(const uint256&, IMemoryPoolPtr /*pool*/); // rescan and re-fill indexes and local wallet
 	bool reindex(const uint256&, const uint256&, IMemoryPoolPtr /*pool*/); // rescan and re-fill indexes and local wallet
+
+	bool locateParents(TransactionContextPtr root, std::list<uint256>& parents) {
+		//
+		if (extension_) return extension_->locateParents(root, parents);
+		return false;
+	}
 
 	IEntityStorePtr entityStore() {
 		return std::static_pointer_cast<IEntityStore>(shared_from_this());

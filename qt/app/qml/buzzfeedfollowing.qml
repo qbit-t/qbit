@@ -219,9 +219,9 @@ QuarkPage {
 	QuarkListView {
 		id: list
 		x: 0
-		y: 0
+		y: buzzThreadToolBar.y + buzzThreadToolBar.height
 		width: parent.width
-		height: parent.height
+		height: parent.height - (buzzThreadToolBar.y + buzzThreadToolBar.height)
 		usePull: true
 		clip: true
 

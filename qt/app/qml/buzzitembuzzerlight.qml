@@ -171,7 +171,7 @@ Item {
 		id: avatarImage
 
 		x: spaceLeft_
-		y: spaceTop_ + headerInfo.getHeight()
+		y: spaceTop_ // + headerInfo.getHeight()
 		width: avatarImage.displayWidth
 		height: avatarImage.displayHeight
 		fillMode: Image.PreserveAspectCrop
@@ -395,13 +395,13 @@ Item {
 		onClick: {
 			//
 			if (key === "subscribe") {
-				buzzerSubscribeCommand.process(buzzerName_);
+				buzzerSubscribeCommand.process(buzzerNameControl.getBuzzerName());
 			} else if (key === "unsubscribe") {
-				buzzerUnsubscribeCommand.process(buzzerName_);
+				buzzerUnsubscribeCommand.process(buzzerNameControl.getBuzzerName());
 			} else if (key === "endorse") {
-				buzzerEndorseCommand.process(buzzerName_);
+				buzzerEndorseCommand.process(buzzerNameControl.getBuzzerName());
 			} else if (key === "mistrust") {
-				buzzerMistrustCommand.process(buzzerName_);
+				buzzerMistrustCommand.process(buzzerNameControl.getBuzzerName());
 			}
 		}
 
@@ -419,7 +419,7 @@ Item {
 				keySymbol: Fonts.mistrustSym,
 				name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.mistrust")});
 
-			if (!buzzerClient.subscriptionExists(buzzerId_)) {
+			if (!buzzerClient.subscriptionExists(buzzerIdControl.getBuzzerId())) {
 				menuModel.append({
 					key: "subscribe",
 					keySymbol: Fonts.subscribeSym,

@@ -56,12 +56,15 @@ QuarkToolBar
 
 		function onCacheReadyChanged() {
 			openDrawer.enabled = buzzerClient.buzzerDAppReady === true;
+			networkButton.ready(buzzerClient.buzzerDAppReady);
 		}
 
 		function onBuzzerDAppReadyChanged() {
 			if (buzzerClient.buzzerDAppReady) {
 				openDrawer.enabled = buzzerClient.buzzerDAppReady === true;
 			}
+
+			networkButton.ready(buzzerClient.buzzerDAppReady);
 		}
 	}
 
@@ -224,7 +227,7 @@ QuarkToolBar
 		Material.background: "transparent"
 		visible: true
 		labelYOffset: 3
-		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.peer.pending")
 		Layout.alignment: Qt.AlignHCenter
 
 		x: themeButton.x - width + 5
@@ -243,6 +246,11 @@ QuarkToolBar
 
 				addPage(lPage);
 			}
+		}
+
+		function ready(isReady) {
+			if (isReady) symbolColor = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground");
+			else symbolColor = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.peer.pending");
 		}
 	}
 

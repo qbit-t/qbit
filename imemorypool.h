@@ -60,6 +60,7 @@ public:
 	virtual void processCandidates() { throw qbit::exception("NOT_IMPL", "IMemoryPool::processCandidates - not implemented."); }	
 
 	virtual void selectTransactions(std::list<uint256>& /*txs*/, uint64_t& /*total*/, size_t /*limit*/) { throw qbit::exception("NOT_IMPL", "IMemoryPool::selectTransactions - not implemented."); }
+	virtual void selectTransactions(const uint256& /*parent*/, std::list<TransactionContextPtr>& /*txs*/) { throw qbit::exception("NOT_IMPL", "IMemoryPool::selectTransactions - not implemented."); }
 
 	virtual void statistics(size_t& /*txs*/, size_t& /*candidates*/, size_t& /*postponed*/) { throw qbit::exception("NOT_IMPL", "IMemoryPool::statistics - not implemented."); }
 };

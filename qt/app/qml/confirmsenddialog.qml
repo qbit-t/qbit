@@ -40,7 +40,7 @@ Dialog {
 
 		QuarkLabel {
 			id: textLabel
-			font.pixelSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : 16
+			font.pixelSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 14) : 16
 			wrapMode: Label.Wrap
 			width: confirmSendDialog_.availableWidth
 		}

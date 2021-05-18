@@ -33,6 +33,8 @@ public:
 	virtual void removeTransaction(TransactionPtr) { throw qbit::exception("NOT_IMPL", "ITransactionStoreExtension::removeTransaction - not implemented."); }
 
 	virtual bool isAllowed(TransactionContextPtr) { throw qbit::exception("NOT_IMPL", "ITransactionStoreExtension::isAllowed - not implemented."); }
+
+	virtual bool locateParents(TransactionContextPtr /*root*/, std::list<uint256>& /*parents*/) { throw qbit::exception("NOT_IMPL", "ITransactionStoreExtension::locateParents - not implemeted."); }
 };
 
 typedef std::shared_ptr<ITransactionStoreExtension> ITransactionStoreExtensionPtr;

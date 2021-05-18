@@ -45,6 +45,25 @@ TransactionPtr TransactionStore::locateTransaction(const uint256& tx) {
 	return nullptr;
 }
 
+TransactionPtr TransactionStore::locateMempoolTransaction(const uint256& tx) {
+	//
+	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[locateMempoolTransaction]: try to load transaction from mempool ") + 
+		strprintf("%s/%s#", 
+			tx.toHex(), chain_.toHex().substr(0, 10)));
+
+	IMemoryPoolPtr lMempool = wallet_->mempoolManager()->locate(chain_);
+	if (lMempool) {
+		//
+		return lMempool->locateTransaction(tx);
+	} else {
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[locateMempoolTransaction]: mempool was not found ") +
+			strprintf("%s/%s#",tx.toHex(), chain_.toHex().substr(0, 10)));
+		return nullptr;
+	}
+
+	return nullptr;
+}
+
 TransactionContextPtr TransactionStore::locateTransactionContext(const uint256& tx) {
 	TransactionPtr lTx = locateTransaction(tx);
 	if (lTx) return TransactionContext::instance(lTx);
