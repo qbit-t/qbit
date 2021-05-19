@@ -332,7 +332,7 @@ bool MemoryPool::pushTransaction(TransactionContextPtr ctx) {
 
 		// 4. try to locate functional parent links
 		std::list<uint256> lLinks;
-		if (!ctx->errors().size() && persistentStore_->locateParents(ctx, lLinks)) {
+		if (/*!ctx->errors().size() &&*/ persistentStore_->locateParents(ctx, lLinks)) {
 			//
 			boost::unique_lock<boost::recursive_mutex> lLock(mempoolMutex_);
 			for (std::list<uint256>::iterator lParent = lLinks.begin(); lParent != lLinks.end(); lParent++) {
@@ -785,7 +785,7 @@ void MemoryPool::selectTransactions(const uint256& parent, std::list<Transaction
 		for (std::set<uint256 /*txs*/>::iterator lTx = lRoot->second.begin(); lTx != lRoot->second.end(); lTx++) {
 			//
 			TransactionContextPtr lCtx = poolStore_->locateTransactionContext(*lTx);
-			txs.push_back(lCtx);
+			if (lCtx) txs.push_back(lCtx);
 		}
 	}
 }

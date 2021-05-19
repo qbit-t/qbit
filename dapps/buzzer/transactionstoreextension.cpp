@@ -413,6 +413,8 @@ bool BuzzerTransactionStoreExtension::locateParents(TransactionContextPtr ctx, s
 
 				//
 				parents.push_back(lTxId);
+				if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/locateParents]: adding parent ") +
+					strprintf("%s for %s/%s#", lTxId.toHex(), lEvent->id().toHex(), lChainId.toHex().substr(0, 10)));
 
 				if (lTx->type() == TX_BUZZ || lTx->type() == TX_REBUZZ) {
 					break;
@@ -3116,7 +3118,7 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedByBuzz(uint64_t from, const 
 							if (!lPublisherInfo.trusted()) continue;
 						}
 						//
-						if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectBuzzfeedByBuzz]: try to added item ") +
+						if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectBuzzfeedByBuzz(*)]: try to added item ") +
 							strprintf("buzzer = %s/%s, %s/%s#", lBuzzer->id().toHex(), lTxPublisher.toHex(), lTx->id().toHex(), store_->chain().toHex().substr(0, 10)));
 
 						//
@@ -3125,6 +3127,10 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedByBuzz(uint64_t from, const 
 						makeBuzzfeedItem(lContext, lBuzzer, lTx, lMainStore, lRawBuzzfeed, lBuzzItems, !from);
 					}
 				}
+			} else {
+				//
+				if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectBuzzfeedByBuzz(*)]: NO pending items for ") +
+					strprintf("buzz = %s, from = %d, chain = %s#", buzz.toHex(), from, store_->chain().toHex().substr(0, 10)));
 			}
 		}
 	}
