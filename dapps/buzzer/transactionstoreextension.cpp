@@ -3093,45 +3093,43 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedByBuzz(uint64_t from, const 
 	}
 
 	// try mempool
-	if (from) {
-		IMemoryPoolPtr lMempool = store_->storeManager()->locateMempool(store_->chain());
-		if (lMempool) {
-			std::list<TransactionContextPtr> lPending;
-			lMempool->selectTransactions(buzz, lPending);
-			//
-			if (lPending.size()) {
-				for (std::list<TransactionContextPtr>::iterator lCtx = lPending.begin(); lCtx != lPending.end(); lCtx++) {
-					//
-					TxEventPtr lTx = TransactionHelper::to<TxEvent>((*lCtx)->tx());
-					if (lTx->type() == TX_BUZZ_REPLY && lTx->timestamp() >= from) {
-						//
-						TxBuzzerPtr lBuzzer;
-						uint256 lTxPublisher = lTx->in()[TX_BUZZ_MY_IN].out().tx(); // buzzer allways is the first in
-						TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lTxPublisher);
-						if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
-						else continue;
-						// check for "trusted"
-						BuzzerTransactionStoreExtensionPtr lPublisherExtension = locateBuzzerExtension(lTxPublisher);
-						if (lPublisherExtension) {
-							BuzzerInfo lPublisherInfo;
-							lPublisherExtension->readBuzzerStat(lTxPublisher, lPublisherInfo);
-							if (!lPublisherInfo.trusted()) continue;
-						}
-						//
-						if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectBuzzfeedByBuzz(*)]: try to added item ") +
-							strprintf("buzzer = %s/%s, %s/%s#", lBuzzer->id().toHex(), lTxPublisher.toHex(), lTx->id().toHex(), store_->chain().toHex().substr(0, 10)));
-
-						//
-						// TODO: consider to limit uplinkage for parents (at least when from != 0)
-						int lContext = 0;
-						makeBuzzfeedItem(lContext, lBuzzer, lTx, lMainStore, lRawBuzzfeed, lBuzzItems, !from);
-					}
-				}
-			} else {
+	IMemoryPoolPtr lMempool = store_->storeManager()->locateMempool(store_->chain());
+	if (lMempool) {
+		std::list<TransactionContextPtr> lPending;
+		lMempool->selectTransactions(buzz, lPending);
+		//
+		if (lPending.size()) {
+			for (std::list<TransactionContextPtr>::iterator lCtx = lPending.begin(); lCtx != lPending.end(); lCtx++) {
 				//
-				if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectBuzzfeedByBuzz(*)]: NO pending items for ") +
-					strprintf("buzz = %s, from = %d, chain = %s#", buzz.toHex(), from, store_->chain().toHex().substr(0, 10)));
+				TxEventPtr lTx = TransactionHelper::to<TxEvent>((*lCtx)->tx());
+				if (lTx->type() == TX_BUZZ_REPLY && lTx->timestamp() >= from) {
+					//
+					TxBuzzerPtr lBuzzer;
+					uint256 lTxPublisher = lTx->in()[TX_BUZZ_MY_IN].out().tx(); // buzzer allways is the first in
+					TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lTxPublisher);
+					if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
+					else continue;
+					// check for "trusted"
+					BuzzerTransactionStoreExtensionPtr lPublisherExtension = locateBuzzerExtension(lTxPublisher);
+					if (lPublisherExtension) {
+						BuzzerInfo lPublisherInfo;
+						lPublisherExtension->readBuzzerStat(lTxPublisher, lPublisherInfo);
+						if (!lPublisherInfo.trusted()) continue;
+					}
+					//
+					if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectBuzzfeedByBuzz(*)]: try to added item ") +
+						strprintf("buzzer = %s/%s, %s/%s#", lBuzzer->id().toHex(), lTxPublisher.toHex(), lTx->id().toHex(), store_->chain().toHex().substr(0, 10)));
+
+					//
+					// TODO: consider to limit uplinkage for parents (at least when from != 0)
+					int lContext = 0;
+					makeBuzzfeedItem(lContext, lBuzzer, lTx, lMainStore, lRawBuzzfeed, lBuzzItems, !from);
+				}
 			}
+		} else {
+			//
+			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectBuzzfeedByBuzz(*)]: NO pending items for ") +
+				strprintf("buzz = %s, from = %d, chain = %s#", buzz.toHex(), from, store_->chain().toHex().substr(0, 10)));
 		}
 	}
 
