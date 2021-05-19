@@ -88,6 +88,30 @@ void BuzzfeedListModel::setOnChain(int index) {
 	emit dataChanged(lModelIndex, lModelIndex, QVector<int>() << OnChainRole);
 }
 
+void BuzzfeedListModel::setHasLike(int index) {
+	if (index < 0 || index >= (int)list_.size()) {
+		return;
+	}
+
+	qbit::BuzzfeedItemPtr lItem = list_[index];
+	lItem->setLike();
+
+	QModelIndex lModelIndex = createIndex(index, index);
+	emit dataChanged(lModelIndex, lModelIndex, QVector<int>() << OwnLikeRole);
+}
+
+void BuzzfeedListModel::setHasRebuzz(int index) {
+	if (index < 0 || index >= (int)list_.size()) {
+		return;
+	}
+
+	qbit::BuzzfeedItemPtr lItem = list_[index];
+	lItem->setRebuzz();
+
+	QModelIndex lModelIndex = createIndex(index, index);
+	emit dataChanged(lModelIndex, lModelIndex, QVector<int>() << OwnRebuzzRole);
+}
+
 QVariant BuzzfeedListModel::data(const QModelIndex& index, int role) const {
 	//
 	if (index.row() < 0 || index.row() >= (int)list_.size()) {
@@ -220,6 +244,10 @@ QVariant BuzzfeedListModel::data(const QModelIndex& index, int role) const {
 		return lItem->isDynamic();
 	} else if (role == FeedingRole) {
 		return feeding_;
+	} else if (role == OwnLikeRole) {
+		return lItem->hasLike();
+	} else if (role == OwnRebuzzRole) {
+		return lItem->hasRebuzz();
 	}
 
 	return QVariant();
@@ -267,6 +295,8 @@ QHash<int, QByteArray> BuzzfeedListModel::roleNames() const {
 	lRoles[OnChainRole] = "onChain";
 	lRoles[DynamicRole] = "dynamic";
 	lRoles[FeedingRole] = "feeding";
+	lRoles[OwnLikeRole] = "ownLike";
+	lRoles[OwnRebuzzRole] = "ownRebuzz";
 
 	return lRoles;
 }
@@ -454,7 +484,9 @@ void BuzzfeedListModel::merge() {
 					<< RebuzzesRole
 					<< RepliesRole
 					<< RewardsRole
-					<< WrappedRole);
+					<< WrappedRole
+					<< OwnLikeRole
+					<< OwnRebuzzRole);
 
 			//qInfo() << "-> modified" << lNewIdx->second;
 		}
@@ -560,7 +592,6 @@ bool BuzzfeedListModel::buzzfeedItemUpdatedProcess(qbit::BuzzfeedItemPtr item, u
 					<< HasPrevLinkRole
 					<< HasNextLinkRole
 					<< WrappedRole);
-
 			return true;
 		}
 	}

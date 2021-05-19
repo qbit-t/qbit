@@ -67,6 +67,8 @@ Item {
 	property bool mistrusted_: false
 	property bool endorsed_: false
 	property bool hasMore_: false
+	property bool ownLike_: ownLike
+	property bool ownRebuzz_: ownRebuzz
 
 	property var controller_: controller
 	property var buzzfeedModel_: buzzfeedModel
@@ -867,7 +869,9 @@ Item {
 		Material.background: "transparent"
 		visible: true
 		labelYOffset: /*buzzerApp.isDesktop ? 0 :*/ buzzerClient.scaleFactor * 2
-		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
+		symbolColor: ownRebuzz_ ?
+			buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.event.rebuzz") :
+			buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 		Layout.alignment: Qt.AlignHCenter
 		symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 14) : symbolFontPointSize
 
@@ -895,7 +899,9 @@ Item {
 		Material.background: "transparent"
 		visible: true
 		labelYOffset: 3
-		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
+		symbolColor: ownLike_ ?
+			buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.event.like") :
+			buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 		Layout.alignment: Qt.AlignHCenter
 		symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 14) : symbolFontPointSize
 
@@ -1252,7 +1258,9 @@ Item {
 		model: buzzfeedModel_
 
 		onProcessed: {
+			buzzfeedModel_.setHasLike(index);
 		}
+
 		onError: {
 			if (code === "E_CHAINS_ABSENT") return;
 			if (message === "UNKNOWN_REFTX" || code == "E_TX_NOT_SENT") {
@@ -1280,7 +1288,9 @@ Item {
 		uploadCommand: uploadMediaCommand_
 
 		onProcessed: {
+			buzzfeedModel_.setHasRebuzz(index);
 		}
+
 		onError: {
 			handleError(code, message);
 		}

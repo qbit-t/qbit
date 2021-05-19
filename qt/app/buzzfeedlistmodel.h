@@ -62,7 +62,9 @@ public:
 		HasNextLinkRole,
 		OnChainRole,
 		DynamicRole,
-		FeedingRole
+		FeedingRole,
+		OwnLikeRole,
+		OwnRebuzzRole
 	};
 
 public:
@@ -78,6 +80,8 @@ public:
 	Q_INVOKABLE int childrenCount(int index) const;
 	//
 	Q_INVOKABLE void setOnChain(int index);
+	Q_INVOKABLE void setHasLike(int index);
+	Q_INVOKABLE void setHasRebuzz(int index);
 	//
 	Q_INVOKABLE int locateIndex(QString key);
 	//

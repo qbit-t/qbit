@@ -295,7 +295,7 @@ private:
 	void updateBuzzerInfo(const uint256&, const uint256&);
 
 	void prepareBuzzfeedItem(BuzzfeedItem&, TxBuzzPtr, TxBuzzerPtr);
-	bool makeBuzzfeedItem(int&, TxBuzzerPtr, TransactionPtr, ITransactionStorePtr, std::multimap<uint64_t, BuzzfeedItem::Key>&, std::map<BuzzfeedItem::Key, BuzzfeedItemPtr>&, bool expand = true);
+	BuzzfeedItemPtr makeBuzzfeedItem(int&, TxBuzzerPtr, TransactionPtr, ITransactionStorePtr, std::multimap<uint64_t, BuzzfeedItem::Key>&, std::map<BuzzfeedItem::Key, BuzzfeedItemPtr>&, const uint256&, bool expand = true);
 	void makeBuzzfeedLikeItem(TransactionPtr, ITransactionStorePtr, std::multimap<uint64_t, BuzzfeedItem::Key>&, std::map<BuzzfeedItem::Key, BuzzfeedItemPtr>&, const uint256&);
 	void makeBuzzfeedRewardItem(TransactionPtr, ITransactionStorePtr, std::multimap<uint64_t, BuzzfeedItem::Key>&, std::map<BuzzfeedItem::Key, BuzzfeedItemPtr>&, const uint256&);
 	void makeBuzzfeedRebuzzItem(TransactionPtr, ITransactionStorePtr, std::multimap<uint64_t, BuzzfeedItem::Key>&, std::map<BuzzfeedItem::Key, BuzzfeedItemPtr>&, const uint256&);

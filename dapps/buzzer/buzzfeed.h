@@ -52,6 +52,14 @@ typedef boost::function<Buzzer::VerificationResult (const uint256&, uint64_t, co
 typedef boost::function<bool (const uint256&, PKey&)> buzzfeedItemResolvePKeyFunction;
 
 //
+// item info
+#define BUZZ_PROPERY_REPLY   0x01
+#define BUZZ_PROPERY_LIKE    0x02
+#define BUZZ_PROPERY_REBUZZ  0x04
+#define BUZZ_PROPERY_REWARD  0x08
+#define BUZZ_PROPERY_MEMPOOL 0x10
+
+//
 // buzzfeed item update
 class BuzzfeedItemUpdate {
 public:
@@ -545,6 +553,36 @@ public:
 		return confirmed_.size();
 	}
 
+	void setReply() {
+		checkProperties();
+		properties_[0] |= BUZZ_PROPERY_REPLY;
+	}
+	bool hasReply() { checkProperties(); return (properties_[0] & BUZZ_PROPERY_REPLY) != 0; }
+
+	void setRebuzz() {
+		checkProperties();
+		properties_[0] |= BUZZ_PROPERY_REBUZZ;
+	}
+	bool hasRebuzz() { checkProperties(); return (properties_[0] & BUZZ_PROPERY_REBUZZ) != 0; }
+
+	void setLike() {
+		checkProperties();
+		properties_[0] |= BUZZ_PROPERY_LIKE;
+	}
+	bool hasLike() { checkProperties(); return (properties_[0] & BUZZ_PROPERY_LIKE) != 0; }
+
+	void setReward() {
+		checkProperties();
+		properties_[0] |= BUZZ_PROPERY_REWARD;
+	}
+	bool hasReward() { checkProperties(); return (properties_[0] & BUZZ_PROPERY_REWARD) != 0; }
+
+	void setMempool() {
+		checkProperties();
+		properties_[0] |= BUZZ_PROPERY_MEMPOOL;
+	}
+	bool hasMempool() { checkProperties(); return (properties_[0] & BUZZ_PROPERY_MEMPOOL) != 0; }
+
 	void setNonce(uint64_t nonce) { nonce_ = nonce; }
 	void setRootBuzzId(const uint256& root) { rootBuzzId_ = root; }
 	const uint256& rootBuzzId() const { return rootBuzzId_; }
@@ -845,7 +883,10 @@ public:
 	void notOnChain() { onChain_ = false; }
 	void setOnChain() { onChain_ = true; }
 
-	bool isDynamic() { return dynamic_; }
+	bool isDynamic() {
+		if (dynamic_) return true;
+		return hasMempool();
+	}
 	void setDynamic() { dynamic_ = true; }
 
 	bool resolvePKey(PKey&);
@@ -957,6 +998,11 @@ protected:
 	void updateTimestamp(const uint256& publisher, const uint256& chain, uint64_t timestamp);
 	bool locateIndex(BuzzfeedItemPtr, int&, uint256&, bool expanded = false);
 	BuzzfeedItemPtr locateBuzzInternal(const uint256&);
+
+	void checkProperties() {
+		//
+		if (!properties_.size()) properties_.resize(1, 0);
+	}
 
 protected:
 	class Guard {
