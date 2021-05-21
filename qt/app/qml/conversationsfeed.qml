@@ -30,17 +30,17 @@ Item
 	}
 
 	function start() {
-		if (!buzzerApp.isDesktop) search.setText("");
-		else {
-			/*
-			console.log("[conversations/start]: connecting");
-			controller.mainToolBar.searchTextEdited.connect(conversationsfeed_.startSearch);
-			controller.mainToolBar.searchTextCleared.connect(conversationsfeed_.searchTextCleared);
-			controller.mainToolBar.setSearchText("", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.global.search.add"));
-			*/
-		}
-
+		restart();
 		switchDataTimer.start();
+	}
+
+	function restart() {
+		if (!buzzerApp.isDesktop) {
+			search.prevText_ = "";
+			search.setText("");
+		} else {
+			controller.mainToolBar.setSearchText("", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.global.search.add"));
+		}
 	}
 
 	function disconnect() {
@@ -185,7 +185,7 @@ Item
 			//
 			if (prevText_ !== searchText) {
 				prevText_ = searchText;
-				searchTextEdited(searchText);
+				startSearch(searchText);
 			}
 
 			if (searchText === "")
@@ -349,7 +349,7 @@ Item
 
 		onClick: {
 			//
-			search.setText("");
+			conversationsfeed_.restart();
 			conversationModel_.resetFilter();
 
 			//

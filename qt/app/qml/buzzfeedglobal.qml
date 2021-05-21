@@ -283,7 +283,7 @@ Item
 			//
 			if (prevText_ !== searchText) {
 				prevText_ = searchText;
-				searchTextEdited(searchText);
+				startSearch(searchText);
 			}
 
 			if (searchText === "")
@@ -446,8 +446,10 @@ Item
 
 		onClick: {
 			//
-			if (!buzzerApp.isDesktop) search.setText(key);
-			else {
+			if (!buzzerApp.isDesktop) {
+				search.prevText_ = key;
+				search.setText(key);
+			} else {
 				controller.mainToolBar.setSearchText(
 					key,
 					buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.global.search"));
@@ -498,8 +500,10 @@ Item
 
 		onClick: {
 			//
-			if (!buzzerApp.isDesktop) search.setText(key);
-			else {
+			if (!buzzerApp.isDesktop) {
+				search.prevText_ = key;
+				search.setText(key);
+			} else {
 				controller.mainToolBar.setSearchText(
 					key,
 					buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.global.search"));
