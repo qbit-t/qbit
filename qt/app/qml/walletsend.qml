@@ -46,6 +46,11 @@ Item
 		balanceCommand.process();
 	}
 
+	function initSendTo(buzzer) {
+		addressBox.prevText_ = buzzer;
+		addressBox.text = buzzer;
+	}
+
 	Component.onCompleted: {
 		//
 		if (buzzerClient.buzzerDAppReady) {
@@ -117,14 +122,21 @@ Item
 
 			model: ListModel { id: contactsModel_ }
 
+			property var prevText_: ""
+
 			onAddressTextChanged: {
-				if (address[0] === '@') {
+				//
+				if (address[0] === '@' && prevText_ !== address) {
+					prevText_ = address;
 					searchBuzzers.process(address);
-				} else {
-					//balanceCommand.process();
 				}
 
 				sendButton.adjust();
+			}
+
+			onEditTextChanged: {
+				prevText_ = address;
+				if (address === "") addressBox.address = "";
 			}
 
 			onAdjustAddress: {
@@ -223,8 +235,12 @@ Item
 				}
 
 				onNumberStringModified: {
-					amountInfo.prepare();
-					//balanceCommand.process();
+					//console.log("text = '" + addressBox.text + "', address = '" + addressBox.address + "'");
+					if (addressBox.text !== "" && addressBox.text[0] === '@') {
+						loadEntity.process(addressBox.text);
+					} else {
+						amountInfo.prepare();
+					}
 				}
 
 				onPopupClosed: {
@@ -417,8 +433,10 @@ Item
 			}
 
 			function ready() {
+				//console.log("[sendReady]: text = '" + addressBox.text + "', address = '" + addressBox.address + "'");
 				var lAddress = addressBox.text;
 				if (addressBox.address !== "") lAddress = addressBox.address;
+				if (lAddress !== "" && lAddress[0] === '@') lAddress = "";
 				var lEnabled = (lAddress !== "" && !isNaN(amountEdit.numberString) && amountEdit.numberString.length &&
 						NumberFunctions.scientificToDecimal(amountEdit.numberString) > 0.0 &&
 					!isNaN(feeRateEdit.numberString) && feeRateEdit.numberString.length &&
@@ -580,7 +598,12 @@ Item
 			amountInfo.prepare();
 		}
 
+		onTransactionNotFound: {
+			amountInfo.prepare();
+		}
+
 		onError: {
+			amountInfo.prepare();
 			if (code === "E_CHAINS_ABSENT") return;
 			if (message === "UNKNOWN_REFTX" || code === "E_TX_NOT_SENT") {
 				buzzerClient.resync();
@@ -637,11 +660,21 @@ Item
 
 		onClick: {
 			//
+			addressBox.prevText_ = key;
 			addressBox.text = key;
 			loadEntity.process(key);
 		}
 
+		onClosed: {
+			//
+			if (addressBox.address === "")
+				loadEntity.process(addressBox.text);
+		}
+
 		function popup(match, buzzers) {
+			//
+			addressBox.address = "";
+			amountInfo.prepare();
 			//
 			if (buzzers.length === 0) return;
 			if (buzzers.length === 1 && match === buzzers[0]) return;

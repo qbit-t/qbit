@@ -2156,7 +2156,12 @@ void BuzzerPeerExtension::processGetBuzzerTrustScore(std::list<DataStream>::iter
 		if (lStorage && lStorage->extension()) {
 			BuzzerTransactionStoreExtensionPtr lExtension = std::static_pointer_cast<BuzzerTransactionStoreExtension>(lStorage->extension());
 			BuzzerTransactionStoreExtension::BuzzerInfo lScore;
-			lExtension->readBuzzerStat(lBuzzer, lScore);
+			if (!lExtension->readBuzzerStat(lBuzzer, lScore)) {
+				// try to reconstruct
+				lExtension->processBuzzerStat(lBuzzer);
+				// re-read
+				lExtension->readBuzzerStat(lBuzzer, lScore);
+			}
 
 			// make message, serialize, send back
 			std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
@@ -2580,12 +2585,15 @@ void BuzzerPeerExtension::processGetBuzzfeedGlobal(std::list<DataStream>::iterat
 		uint64_t lScoreFrom;
 		uint64_t lTimestampFrom;
 		uint256 lPublisher;
+		uint256 lSubscriber;
+
 		(*msg) >> lRequestId;
 		(*msg) >> lChain;
 		(*msg) >> lTimeframeFrom;
 		(*msg) >> lScoreFrom;
 		(*msg) >> lTimestampFrom;
 		(*msg) >> lPublisher;
+		if ((*msg).size() >= uint256().size()) (*msg) >> lSubscriber;
 		peer_->eraseInData(msg);
 
 		// locate subscription
@@ -2595,7 +2603,7 @@ void BuzzerPeerExtension::processGetBuzzfeedGlobal(std::list<DataStream>::iterat
 			//
 			BuzzerTransactionStoreExtensionPtr lExtension = std::static_pointer_cast<BuzzerTransactionStoreExtension>(lStorage->extension());
 			std::vector<BuzzfeedItem> lFeed;
-			lExtension->selectBuzzfeedGlobal(lTimeframeFrom, lScoreFrom, lTimestampFrom, lPublisher, lFeed);
+			lExtension->selectBuzzfeedGlobal(lTimeframeFrom, lScoreFrom, lTimestampFrom, lPublisher, lSubscriber, lFeed);
 
 			// make message, serialize, send back
 			std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
@@ -2644,6 +2652,8 @@ void BuzzerPeerExtension::processGetBuzzfeedByTag(std::list<DataStream>::iterato
 		uint64_t lScoreFrom;
 		uint64_t lTimestampFrom;
 		uint256 lPublisher;
+		uint256 lSubscriber;
+
 		(*msg) >> lRequestId;
 		(*msg) >> lChain;
 		(*msg) >> lTag;		
@@ -2651,6 +2661,7 @@ void BuzzerPeerExtension::processGetBuzzfeedByTag(std::list<DataStream>::iterato
 		(*msg) >> lScoreFrom;
 		(*msg) >> lTimestampFrom;
 		(*msg) >> lPublisher;
+		if ((*msg).size() >= uint256().size()) (*msg) >> lSubscriber;
 		peer_->eraseInData(msg);
 
 		// locate subscription
@@ -2660,7 +2671,7 @@ void BuzzerPeerExtension::processGetBuzzfeedByTag(std::list<DataStream>::iterato
 			//
 			BuzzerTransactionStoreExtensionPtr lExtension = std::static_pointer_cast<BuzzerTransactionStoreExtension>(lStorage->extension());
 			std::vector<BuzzfeedItem> lFeed;
-			lExtension->selectBuzzfeedByTag(lTag, lTimeframeFrom, lScoreFrom, lTimestampFrom, lPublisher, lFeed);
+			lExtension->selectBuzzfeedByTag(lTag, lTimeframeFrom, lScoreFrom, lTimestampFrom, lPublisher, lSubscriber, lFeed);
 
 			// make message, serialize, send back
 			std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
@@ -2763,10 +2774,13 @@ void BuzzerPeerExtension::processGetBuzzfeedByBuzz(std::list<DataStream>::iterat
 		uint256 lChain;
 		uint64_t lFrom;
 		uint256 lBuzz;
+		uint256 lSubscriber;
+
 		(*msg) >> lRequestId;
 		(*msg) >> lChain;
 		(*msg) >> lFrom;
 		(*msg) >> lBuzz;
+		if ((*msg).size() >= uint256().size()) (*msg) >> lSubscriber;
 		peer_->eraseInData(msg);
 
 		// locate subscription
@@ -2776,7 +2790,7 @@ void BuzzerPeerExtension::processGetBuzzfeedByBuzz(std::list<DataStream>::iterat
 			//
 			BuzzerTransactionStoreExtensionPtr lExtension = std::static_pointer_cast<BuzzerTransactionStoreExtension>(lStorage->extension());
 			std::vector<BuzzfeedItem> lFeed;
-			lExtension->selectBuzzfeedByBuzz(lFrom, lBuzz, lFeed);
+			lExtension->selectBuzzfeedByBuzz(lFrom, lBuzz, lSubscriber, lFeed);
 
 			// make message, serialize, send back
 			std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
@@ -2823,10 +2837,13 @@ void BuzzerPeerExtension::processGetBuzzfeedByBuzzer(std::list<DataStream>::iter
 		uint256 lChain;
 		uint64_t lFrom;
 		uint256 lBuzzer;
+		uint256 lSubscriber;
+
 		(*msg) >> lRequestId;
 		(*msg) >> lChain;
 		(*msg) >> lFrom;
 		(*msg) >> lBuzzer;
+		if ((*msg).size() >= uint256().size()) (*msg) >> lSubscriber;
 		peer_->eraseInData(msg);
 
 		// locate subscription
@@ -2836,7 +2853,7 @@ void BuzzerPeerExtension::processGetBuzzfeedByBuzzer(std::list<DataStream>::iter
 			//
 			BuzzerTransactionStoreExtensionPtr lExtension = std::static_pointer_cast<BuzzerTransactionStoreExtension>(lStorage->extension());
 			std::vector<BuzzfeedItem> lFeed;
-			lExtension->selectBuzzfeedByBuzzer(lFrom, lBuzzer, lFeed);
+			lExtension->selectBuzzfeedByBuzzer(lFrom, lBuzzer, lSubscriber, lFeed);
 
 			// make message, serialize, send back
 			std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
@@ -4473,7 +4490,7 @@ bool BuzzerPeerExtension::selectHashTags(const uint256& chain, const std::string
 	return false;
 }
 
-bool BuzzerPeerExtension::selectBuzzfeedGlobal(const uint256& chain, uint64_t timeframeFrom, uint64_t scoreFrom, uint64_t timestampFrom, const uint256& publisher, ISelectBuzzFeedHandlerPtr handler) {
+bool BuzzerPeerExtension::selectBuzzfeedGlobal(const uint256& chain, uint64_t timeframeFrom, uint64_t scoreFrom, uint64_t timestampFrom, const uint256& publisher, const uint256& subscriber, ISelectBuzzFeedHandlerPtr handler) {
 	//
 	if (peer_->status() == IPeer::ACTIVE) {
 		
@@ -4488,6 +4505,7 @@ bool BuzzerPeerExtension::selectBuzzfeedGlobal(const uint256& chain, uint64_t ti
 		lStateStream << scoreFrom;
 		lStateStream << timestampFrom;
 		lStateStream << publisher;
+		lStateStream << subscriber;
 		Message lMessage(GET_BUZZ_FEED_GLOBAL, lStateStream.size(), Hash160(lStateStream.begin(), lStateStream.end()));
 
 		(*lMsg) << lMessage;
@@ -4504,7 +4522,7 @@ bool BuzzerPeerExtension::selectBuzzfeedGlobal(const uint256& chain, uint64_t ti
 	return false;
 }
 
-bool BuzzerPeerExtension::selectBuzzfeedByTag(const uint256& chain, const std::string& tag, uint64_t timeframeFrom, uint64_t scoreFrom, uint64_t timestampFrom, const uint256& publisher, ISelectBuzzFeedHandlerPtr handler) {
+bool BuzzerPeerExtension::selectBuzzfeedByTag(const uint256& chain, const std::string& tag, uint64_t timeframeFrom, uint64_t scoreFrom, uint64_t timestampFrom, const uint256& publisher, const uint256& subscriber, ISelectBuzzFeedHandlerPtr handler) {
 	//
 	if (peer_->status() == IPeer::ACTIVE || tag.size() < 256 /*sanity*/) {
 		
@@ -4519,7 +4537,8 @@ bool BuzzerPeerExtension::selectBuzzfeedByTag(const uint256& chain, const std::s
 		lStateStream << timeframeFrom;
 		lStateStream << scoreFrom;
 		lStateStream << timestampFrom;
-		lStateStream << publisher;
+		lStateStream << publisher; //?, check remaining size
+		lStateStream << subscriber;
 		Message lMessage(GET_BUZZ_FEED_BY_TAG, lStateStream.size(), Hash160(lStateStream.begin(), lStateStream.end()));
 
 		(*lMsg) << lMessage;
@@ -4536,7 +4555,7 @@ bool BuzzerPeerExtension::selectBuzzfeedByTag(const uint256& chain, const std::s
 	return false;
 }
 
-bool BuzzerPeerExtension::selectBuzzfeedByBuzz(const uint256& chain, uint64_t from, const uint256& buzz, ISelectBuzzFeedByEntityHandlerPtr handler) {
+bool BuzzerPeerExtension::selectBuzzfeedByBuzz(const uint256& chain, uint64_t from, const uint256& buzz, const uint256& subscriber, ISelectBuzzFeedByEntityHandlerPtr handler) {
 	//
 	if (peer_->status() == IPeer::ACTIVE) {
 		
@@ -4548,7 +4567,8 @@ bool BuzzerPeerExtension::selectBuzzfeedByBuzz(const uint256& chain, uint64_t fr
 		lStateStream << lRequestId;
 		lStateStream << chain;
 		lStateStream << from;
-		lStateStream << buzz;
+		lStateStream << buzz; // 32+32+8+32
+		lStateStream << subscriber;
 		Message lMessage(GET_BUZZ_FEED_BY_BUZZ, lStateStream.size(), Hash160(lStateStream.begin(), lStateStream.end()));
 
 		(*lMsg) << lMessage;
@@ -4565,7 +4585,7 @@ bool BuzzerPeerExtension::selectBuzzfeedByBuzz(const uint256& chain, uint64_t fr
 	return false;
 }
 
-bool BuzzerPeerExtension::selectBuzzfeedByBuzzer(const uint256& chain, uint64_t from, const uint256& buzzer, ISelectBuzzFeedByEntityHandlerPtr handler) {
+bool BuzzerPeerExtension::selectBuzzfeedByBuzzer(const uint256& chain, uint64_t from, const uint256& buzzer, const uint256& subscriber, ISelectBuzzFeedByEntityHandlerPtr handler) {
 	//
 	if (peer_->status() == IPeer::ACTIVE) {
 		
@@ -4577,7 +4597,8 @@ bool BuzzerPeerExtension::selectBuzzfeedByBuzzer(const uint256& chain, uint64_t 
 		lStateStream << lRequestId;
 		lStateStream << chain;
 		lStateStream << from;
-		lStateStream << buzzer;
+		lStateStream << buzzer; // 32+32+8+32
+		lStateStream << subscriber;
 		Message lMessage(GET_BUZZ_FEED_BY_BUZZER, lStateStream.size(), Hash160(lStateStream.begin(), lStateStream.end()));
 
 		(*lMsg) << lMessage;

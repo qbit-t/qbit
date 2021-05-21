@@ -38,6 +38,7 @@ Item
 	function start() {
 		if (!buzzerApp.isDesktop) search.setText("");
 		else {
+			disconnect();
 			controller.mainToolBar.searchTextEdited.connect(buzzfeed_.startSearch);
 			controller.mainToolBar.searchTextCleared.connect(buzzfeed_.searchTextCleared);
 			controller.mainToolBar.setSearchText("", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.global.search"));
@@ -276,9 +277,21 @@ Item
 		x: 15
 		y: 0
 
+		property var prevText_: ""
+
 		onSearchTextChanged: {
 			//
-			startSearch(searchText);
+			if (prevText_ !== searchText) {
+				prevText_ = searchText;
+				searchTextEdited(searchText);
+			}
+
+			if (searchText === "")
+				searchTextCleared();
+		}
+
+		onInnerTextChanged: {
+			if (text === "") searchTextCleared();
 		}
 
 		onTextCleared: {
@@ -288,8 +301,10 @@ Item
 
 	function startSearch(searchText) {
 		if (searchText[0] === '#') {
+			buzzersList.close();
 			searchTags.process(searchText);
 		} else if (searchText[0] === '@') {
+			tagsList.close();
 			searchBuzzers.process(searchText);
 		} else {
 			start();
@@ -443,7 +458,7 @@ Item
 
 		function popup(match, buzzers) {
 			//
-			if (buzzers.opened) buzzers.close();
+			if (buzzersList.opened) buzzersList.close();
 
 			//
 			if (buzzers.length === 0) return;
@@ -483,7 +498,13 @@ Item
 
 		onClick: {
 			//
-			search.setText(key);
+			if (!buzzerApp.isDesktop) search.setText(key);
+			else {
+				controller.mainToolBar.setSearchText(
+					key,
+					buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.global.search"));
+			}
+
 			startWithTag(key);
 		}
 

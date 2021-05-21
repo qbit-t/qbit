@@ -14,7 +14,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
 add_definitions(-DQBIT_VERSION_MAJOR=0)
 add_definitions(-DQBIT_VERSION_MINOR=1)
 add_definitions(-DQBIT_VERSION_REVISION=3)
-add_definitions(-DQBIT_VERSION_BUILD=17)
+add_definitions(-DQBIT_VERSION_BUILD=18)
 
 # Daemon
 project(qbitd)
@@ -79,7 +79,7 @@ set(SOURCES
 	./dapps/buzzer/conversationsfeed.cpp
 	./itransactionstoreextension.cpp
 	./seedwords.cpp
-	./message.cpp	
+	./message.cpp
 	./pow.cpp
 )
 
@@ -135,8 +135,8 @@ set(UNITTESTS
 	./dapps/buzzer/composer.cpp
 	./dapps/buzzer/httpendpoints.cpp
 	./dapps/buzzer/transactionstoreextension.cpp
-	./dapps/buzzer/transactionactions.cpp	
-	./dapps/buzzer/peerextension.cpp	
+	./dapps/buzzer/transactionactions.cpp
+	./dapps/buzzer/peerextension.cpp
 	./dapps/buzzer/buzzfeed.cpp
 	./dapps/buzzer/eventsfeed.cpp
 	./dapps/buzzer/conversationsfeed.cpp
@@ -200,11 +200,11 @@ set(CLIENT
 	./json.cpp
 	./dapps/buzzer/buzzer.cpp
 	./dapps/buzzer/buzzfeed.cpp
-	./dapps/buzzer/eventsfeed.cpp	
+	./dapps/buzzer/eventsfeed.cpp
 	./dapps/buzzer/conversationsfeed.cpp
 	./dapps/buzzer/peerextension.cpp
 	./dapps/buzzer/transactionstoreextension.cpp
-	./dapps/buzzer/transactionactions.cpp	
+	./dapps/buzzer/transactionactions.cpp
 	./client/dapps/buzzer/buzzercommands.cpp
 	./client/dapps/buzzer/buzzercomposer.cpp
 	./client/dapps/cubix/cubixcommands.cpp

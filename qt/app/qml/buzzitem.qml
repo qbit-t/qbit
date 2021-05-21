@@ -377,7 +377,7 @@ Item {
 		x: avatarImage.x + avatarImage.displayWidth / 2 - width / 2
 		y: avatarImage.y + avatarImage.displayHeight + spaceItems_
 		symbol: endorsed_ ? Fonts.endorseSym : Fonts.mistrustSym
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 2)) : 14
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzitem_.defaultFontSize + 2)) : 14
 		color: endorsed_ ? buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.endorsed") :
 						   buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.mistrusted");
 

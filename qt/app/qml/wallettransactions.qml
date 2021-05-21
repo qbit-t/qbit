@@ -526,7 +526,7 @@ Item
 					function getColor() {
 						//
 						if (timelocked) {
-							console.log("[directionLabel]: utxo = " + utxo);
+							//console.log("[directionLabel]: utxo = " + utxo);
 							if (buzzerClient.isTimelockReached(utxo)) {
 								timelockChecher.stop();
 								return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.4");

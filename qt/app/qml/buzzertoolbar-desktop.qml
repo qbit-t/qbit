@@ -38,6 +38,7 @@ QuarkToolBar
 
 	function setSearchText(text, placeholder) {
 		//
+		search.prevText_ = text;
 		searchText = text;
 		searchPlaceHolder = placeholder;
 		searchVisible = true;
@@ -245,9 +246,22 @@ QuarkToolBar
 		x: avatarImage.x + avatarImage.width + 15
 		y: avatarImage.y + avatarImage.height / 2 - calculatedHeight / 2
 
+		property var prevText_: ""
+
 		onSearchTextChanged: {
 			//
-			searchTextEdited(searchText);
+			// console.log("[onSearchTextChanged]: prev = '" + prevText_ + "', text = '" + searchText + "'");
+			if (prevText_ !== searchText) {
+				prevText_ = searchText;
+				searchTextEdited(searchText);
+			}
+
+			if (searchText === "")
+				searchTextCleared();
+		}
+
+		onInnerTextChanged: {
+			if (text === "") searchTextCleared();
 		}
 
 		onTextCleared: {

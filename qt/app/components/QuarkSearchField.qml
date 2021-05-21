@@ -71,8 +71,8 @@ Item
 
         onTextChanged:
         {
+			searchText = text;
 			innerTextChanged(text);
-            //searchText = text;
 			//console.log("inner/textChanged = " + text);
         }
 
@@ -83,9 +83,6 @@ Item
 
 		onPreeditTextChanged:
 		{
-			//console.log("inner/preeditTextChanged = " + preeditText);
-			//searchText = text;
-			//searchField.preeditText = preeditText;
 		}
     }
 

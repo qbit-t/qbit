@@ -48,6 +48,7 @@ Rectangle
     signal addAddress(var address);
     signal removeAddress(var id);
 	signal addressTextChanged(var address);
+	signal editTextChanged(var address);
 	signal adjustAddress();
 	signal cleared();
 
@@ -203,9 +204,20 @@ Rectangle
 
 			onInnerTextChanged: {
 				//
+				if (text === "") addressBox.text = "";
+				//
+				addressBox.text = text;
 				search.setText(text);
+				editTextChanged(text);
 				adjustAddress();
 			}
+
+			/*
+			onEditTextChanged: {
+				//
+				searchTextChanged(text);
+			}
+			*/
 
 			function makeText() {
 				searchText = addressBox.text;// + (addressBox.address !== "" ? (" / " + addressBox.address) : "");

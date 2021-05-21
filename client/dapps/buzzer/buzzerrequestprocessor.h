@@ -220,7 +220,7 @@ public:
 		return lCount;
 	}
 
-	int selectBuzzfeedByBuzz(const uint256& chain, uint64_t from, const uint256& buzz, int requests, ISelectBuzzFeedByEntityHandlerPtr handler) {
+	int selectBuzzfeedByBuzz(const uint256& chain, uint64_t from, const uint256& buzz, const uint256& subscriber, int requests, ISelectBuzzFeedByEntityHandlerPtr handler) {
 		//
 		std::map<IRequestProcessor::KeyOrder, IPeerPtr> lOrder;
 		requestProcessor_->collectPeersByChain(chain, lOrder);
@@ -234,7 +234,7 @@ public:
 				IPeerExtensionPtr lExtension = lPeer->second->extension("buzzer");
 				if (lExtension) {
 					if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[selectBuzzfeedByBuzz]: %s", lPeer->second->key()));
-					std::static_pointer_cast<BuzzerPeerExtension>(lExtension)->selectBuzzfeedByBuzz(chain, from, buzz, handler);
+					std::static_pointer_cast<BuzzerPeerExtension>(lExtension)->selectBuzzfeedByBuzz(chain, from, buzz, subscriber, handler);
 					// for now just 1 active feed
 					if (++lCount == requests /*may be 2/3 nearest - but it doubles traffic*/) break;
 				}
@@ -267,7 +267,7 @@ public:
 		return lCount;
 	}
 
-	int selectBuzzfeedByBuzzer(const uint256& chain, uint64_t from, const uint256& buzzer, int requests, ISelectBuzzFeedByEntityHandlerPtr handler) {
+	int selectBuzzfeedByBuzzer(const uint256& chain, uint64_t from, const uint256& buzzer, const uint256& subscriber, int requests, ISelectBuzzFeedByEntityHandlerPtr handler) {
 		//
 		std::map<IRequestProcessor::KeyOrder, IPeerPtr> lOrder;
 		requestProcessor_->collectPeersByChain(chain, lOrder);
@@ -280,7 +280,7 @@ public:
 			for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::reverse_iterator lPeer = lOrder.rbegin(); lPeer != lOrder.rend(); lPeer++) {
 				IPeerExtensionPtr lExtension = lPeer->second->extension("buzzer");
 				if (lExtension) {
-					std::static_pointer_cast<BuzzerPeerExtension>(lExtension)->selectBuzzfeedByBuzzer(chain, from, buzzer, handler);
+					std::static_pointer_cast<BuzzerPeerExtension>(lExtension)->selectBuzzfeedByBuzzer(chain, from, buzzer, subscriber, handler);
 					// for now just 1 active feed
 					if (++lCount == requests /*may be 2/3 nearest - but it doubles traffic*/) break;
 				}
@@ -374,7 +374,7 @@ public:
 		return lCount;
 	}
 
-	int selectBuzzfeedGlobal(const uint256& chain, uint64_t timeframeFrom, uint64_t scoreFrom, uint64_t timestampFrom, const uint256& publisher, int requests, ISelectBuzzFeedHandlerPtr handler) {
+	int selectBuzzfeedGlobal(const uint256& chain, uint64_t timeframeFrom, uint64_t scoreFrom, uint64_t timestampFrom, const uint256& publisher, const uint256& subscriber, int requests, ISelectBuzzFeedHandlerPtr handler) {
 		//
 		std::map<IRequestProcessor::KeyOrder, IPeerPtr> lOrder;
 		requestProcessor_->collectPeersByChain(chain, lOrder);
@@ -390,7 +390,8 @@ public:
 						timeframeFrom, 
 						scoreFrom, 
 						timestampFrom,
-						publisher, 
+						publisher,
+						subscriber, 
 						handler);
 					// for now just 1 active feed
 					if (++lCount == requests /*may be 2/3 nearest - but it doubles traffic*/) break;
@@ -401,7 +402,7 @@ public:
 		return lCount;
 	}
 
-	int selectBuzzfeedByTag(const uint256& chain, const std::string& tag, uint64_t timeframeFrom, uint64_t scoreFrom, uint64_t timestampFrom, const uint256& publisher, int requests, ISelectBuzzFeedHandlerPtr handler) {
+	int selectBuzzfeedByTag(const uint256& chain, const std::string& tag, uint64_t timeframeFrom, uint64_t scoreFrom, uint64_t timestampFrom, const uint256& publisher, const uint256& subscriber, int requests, ISelectBuzzFeedHandlerPtr handler) {
 		//
 		std::map<IRequestProcessor::KeyOrder, IPeerPtr> lOrder;
 		requestProcessor_->collectPeersByChain(chain, lOrder);
@@ -418,7 +419,8 @@ public:
 						timeframeFrom, 
 						scoreFrom, 
 						timestampFrom,
-						publisher, 
+						publisher,
+						subscriber,
 						handler);
 					// for now just 1 active feed
 					if (++lCount == requests /*may be 2/3 nearest - but it doubles traffic*/) break;

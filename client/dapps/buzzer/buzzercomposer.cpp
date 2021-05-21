@@ -1632,7 +1632,7 @@ void BuzzerLightComposer::LoadBuzzesByBuzz::process(errorFunction error) {
 	error_ = error;
 
 	// 
-	if (!(count_ = composer_->buzzerRequestProcessor()->selectBuzzfeedByBuzz(chain_, from_, buzz_, requests_,
+	if (!(count_ = composer_->buzzerRequestProcessor()->selectBuzzfeedByBuzz(chain_, from_, buzz_, composer_->buzzerTx()->id(), requests_,
 		SelectBuzzFeedByEntity::instance(
 			boost::bind(&BuzzerLightComposer::LoadBuzzesByBuzz::buzzfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3),
 			boost::bind(&BuzzerLightComposer::LoadBuzzesByBuzz::timeout, shared_from_this()))
@@ -1673,7 +1673,7 @@ void BuzzerLightComposer::LoadBuzzesByBuzzer::process(errorFunction error) {
 			for (std::vector<BuzzfeedPublisherFrom>::iterator lPublisher = from_.begin(); lPublisher != from_.end(); lPublisher++) {
 				//
 				if (lPublisher->publisher() == buzzerId_) {
-					if (!(count_ = composer_->buzzerRequestProcessor()->selectBuzzfeedByBuzzer(chain_, lPublisher->from(), buzzerId_, requests_,
+					if (!(count_ = composer_->buzzerRequestProcessor()->selectBuzzfeedByBuzzer(chain_, lPublisher->from(), buzzerId_, composer_->buzzerTx()->id(), requests_,
 						SelectBuzzFeedByEntity::instance(
 							boost::bind(&BuzzerLightComposer::LoadBuzzesByBuzzer::buzzfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3),
 							boost::bind(&BuzzerLightComposer::LoadBuzzesByBuzzer::timeout, shared_from_this()))
@@ -1686,7 +1686,7 @@ void BuzzerLightComposer::LoadBuzzesByBuzzer::process(errorFunction error) {
 			if (!lSent)
 				error_("E_LOAD_BUZZFEED_BUZZER_TIMESTAMP", "Buzzer timestamp was not found.");
 		} else {
-			if (!(count_ = composer_->buzzerRequestProcessor()->selectBuzzfeedByBuzzer(chain_, 0, buzzerId_, requests_,
+			if (!(count_ = composer_->buzzerRequestProcessor()->selectBuzzfeedByBuzzer(chain_, 0, buzzerId_, composer_->buzzerTx()->id(), requests_,
 				SelectBuzzFeedByEntity::instance(
 					boost::bind(&BuzzerLightComposer::LoadBuzzesByBuzzer::buzzfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3),
 					boost::bind(&BuzzerLightComposer::LoadBuzzesByBuzzer::timeout, shared_from_this()))
@@ -1707,7 +1707,7 @@ void BuzzerLightComposer::LoadBuzzesByBuzzer::publisherLoaded(EntityPtr publishe
 		for (std::vector<BuzzfeedPublisherFrom>::iterator lPublisher = from_.begin(); lPublisher != from_.end(); lPublisher++) {
 			//
 			if (lPublisher->publisher() == publisher->id()) {
-				if (!(count_ = composer_->buzzerRequestProcessor()->selectBuzzfeedByBuzzer(chain_, lPublisher->from(), publisher->id(), requests_,
+				if (!(count_ = composer_->buzzerRequestProcessor()->selectBuzzfeedByBuzzer(chain_, lPublisher->from(), publisher->id(), composer_->buzzerTx()->id(), requests_,
 					SelectBuzzFeedByEntity::instance(
 						boost::bind(&BuzzerLightComposer::LoadBuzzesByBuzzer::buzzfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3),
 						boost::bind(&BuzzerLightComposer::LoadBuzzesByBuzzer::timeout, shared_from_this()))
@@ -1720,7 +1720,7 @@ void BuzzerLightComposer::LoadBuzzesByBuzzer::publisherLoaded(EntityPtr publishe
 		if (!lSent)
 			error_("E_LOAD_BUZZFEED_BUZZER_TIMESTAMP", "Buzzer timestamp was not found.");
 	} else {
-		if (!(count_ = composer_->buzzerRequestProcessor()->selectBuzzfeedByBuzzer(chain_, 0, publisher->id(), requests_,
+		if (!(count_ = composer_->buzzerRequestProcessor()->selectBuzzfeedByBuzzer(chain_, 0, publisher->id(), composer_->buzzerTx()->id(), requests_,
 			SelectBuzzFeedByEntity::instance(
 				boost::bind(&BuzzerLightComposer::LoadBuzzesByBuzzer::buzzfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3),
 				boost::bind(&BuzzerLightComposer::LoadBuzzesByBuzzer::timeout, shared_from_this()))
@@ -1741,7 +1741,8 @@ void BuzzerLightComposer::LoadBuzzesGlobal::process(errorFunction error) {
 		timeframeFrom_,
 		scoreFrom_,
 		timestampFrom_,
-		publisher_, 
+		publisher_,
+		composer_->buzzerTx()->id(),
 		requests_,
 		SelectBuzzFeed::instance(
 			boost::bind(&BuzzerLightComposer::LoadBuzzesGlobal::buzzfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
@@ -1763,7 +1764,8 @@ void BuzzerLightComposer::LoadBuzzesByTag::process(errorFunction error) {
 		timeframeFrom_,
 		scoreFrom_,
 		timestampFrom_,
-		publisher_, 
+		publisher_,
+		composer_->buzzerTx()->id(),
 		requests_,
 		SelectBuzzFeed::instance(
 			boost::bind(&BuzzerLightComposer::LoadBuzzesByTag::buzzfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),

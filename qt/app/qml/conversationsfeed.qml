@@ -32,10 +32,12 @@ Item
 	function start() {
 		if (!buzzerApp.isDesktop) search.setText("");
 		else {
+			/*
 			console.log("[conversations/start]: connecting");
 			controller.mainToolBar.searchTextEdited.connect(conversationsfeed_.startSearch);
 			controller.mainToolBar.searchTextCleared.connect(conversationsfeed_.searchTextCleared);
 			controller.mainToolBar.setSearchText("", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.global.search.add"));
+			*/
 		}
 
 		switchDataTimer.start();
@@ -52,8 +54,8 @@ Item
 	function resetModel() {
 		//
 		if (buzzerApp.isDesktop){
-			controller.mainToolBar.searchTextEdited.connect(startSearch);
-			controller.mainToolBar.searchTextCleared.connect(searchTextCleared);
+			controller.mainToolBar.searchTextEdited.connect(conversationsfeed_.startSearch);
+			controller.mainToolBar.searchTextCleared.connect(conversationsfeed_.searchTextCleared);
 			controller.mainToolBar.setSearchText("", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.global.search.add"));
 		}
 
@@ -177,20 +179,25 @@ Item
 		x: 15
 		y: 0
 
+		property var prevText_: ""
+
 		onSearchTextChanged: {
 			//
-			if (searchText[0] === '@') {
-				// search buzzers on network
-				searchBuzzers.process(searchText);
-
-				// filter local feed
-				buzzerClient.getConversationsList().setFilter(searchText);
+			if (prevText_ !== searchText) {
+				prevText_ = searchText;
+				searchTextEdited(searchText);
 			}
+
+			if (searchText === "")
+				searchTextCleared();
+		}
+
+		onInnerTextChanged: {
+			if (text === "") searchTextCleared();
 		}
 
 		onTextCleared: {
-			buzzerClient.getConversationsList().resetFilter();
-			start();
+			searchTextCleared();
 		}
 	}
 
@@ -207,6 +214,7 @@ Item
 	}
 
 	function searchTextCleared() {
+		buzzerClient.getConversationsList().resetFilter();
 		start();
 	}
 

@@ -120,10 +120,10 @@ public:
 	// client-side facade methods
 	bool loadSubscription(const uint256& /*chain*/, const uint256& /*subscriber*/, const uint256& /*publisher*/, ILoadTransactionHandlerPtr /*handler*/);
 	bool selectBuzzfeed(const uint256& /*chain*/, const std::vector<BuzzfeedPublisherFrom>& /*from*/, const uint256& /*subscriber*/, ISelectBuzzFeedHandlerPtr /*handler*/);
-	bool selectBuzzfeedGlobal(const uint256& /*chain*/, uint64_t /*timeframeFrom*/, uint64_t /*scoreFrom*/, uint64_t /*timestampFrom*/, const uint256& /*publisherTs*/, ISelectBuzzFeedHandlerPtr /*handler*/);
-	bool selectBuzzfeedByTag(const uint256& /*chain*/, const std::string& /*tag*/, uint64_t /*timeframeFrom*/, uint64_t /*scoreFrom*/, uint64_t /*timestampFrom*/, const uint256& /*publisher*/, ISelectBuzzFeedHandlerPtr /*handler*/);
-	bool selectBuzzfeedByBuzz(const uint256& /*chain*/, uint64_t /*from*/, const uint256& /*buzz*/, ISelectBuzzFeedByEntityHandlerPtr /*handler*/);
-	bool selectBuzzfeedByBuzzer(const uint256& /*chain*/, uint64_t /*from*/, const uint256& /*buzzer*/, ISelectBuzzFeedByEntityHandlerPtr /*handler*/);
+	bool selectBuzzfeedGlobal(const uint256& /*chain*/, uint64_t /*timeframeFrom*/, uint64_t /*scoreFrom*/, uint64_t /*timestampFrom*/, const uint256& /*publisherTs*/, const uint256& /*subscriberTs*/, ISelectBuzzFeedHandlerPtr /*handler*/);
+	bool selectBuzzfeedByTag(const uint256& /*chain*/, const std::string& /*tag*/, uint64_t /*timeframeFrom*/, uint64_t /*scoreFrom*/, uint64_t /*timestampFrom*/, const uint256& /*publisher*/, const uint256& /*subscriber*/, ISelectBuzzFeedHandlerPtr /*handler*/);
+	bool selectBuzzfeedByBuzz(const uint256& /*chain*/, uint64_t /*from*/, const uint256& /*buzz*/, const uint256& /*subscriber*/, ISelectBuzzFeedByEntityHandlerPtr /*handler*/);
+	bool selectBuzzfeedByBuzzer(const uint256& /*chain*/, uint64_t /*from*/, const uint256& /*buzzer*/, const uint256& /*subscriber*/, ISelectBuzzFeedByEntityHandlerPtr /*handler*/);
 	bool selectMistrustsByBuzzer(const uint256& /*chain*/, const uint256& /*from*/, const uint256& /*buzzer*/, ISelectEventsFeedByEntityHandlerPtr /*handler*/);
 	bool selectEndorsementsByBuzzer(const uint256& /*chain*/, const uint256& /*from*/, const uint256& /*buzzer*/, ISelectEventsFeedByEntityHandlerPtr /*handler*/);
 	bool selectSubscriptionsByBuzzer(const uint256& /*chain*/, const uint256& /*from*/, const uint256& /*buzzer*/, ISelectEventsFeedByEntityHandlerPtr /*handler*/);

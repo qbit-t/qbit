@@ -393,6 +393,17 @@ Item {
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 3)) : (defaultFontPointSize + 2)
 	}
+	MouseArea {
+		x: buzzerNameControl.x - spaceItems_
+		y: buzzerNameControl.y - spaceItems_
+		width: buzzerNameControl.width + 2 * spaceItems_
+		height: buzzerNameControl.height + 2 * spaceItems_
+		cursorShape: Qt.PointingHandCursor
+
+		onClicked: {
+			clipboard.setText(buzzer_);
+		}
+	}
 
 	QuarkLabelRegular {
 		id: buzzerIdControl
@@ -422,7 +433,7 @@ Item {
 		id: copySymbol
 		x: parent.width - (spaceRight_ + width)
 		y: buzzerIdControl.y - buzzerClient.scaleFactor * 2
-		symbol: Fonts.clipboardSym
+		symbol: Fonts.externalLinkSym
 		// color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 		//font.pointSize: 14
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzeritem_.defaultFontSize + 3)) : defaultFontSize
@@ -435,7 +446,10 @@ Item {
 		cursorShape: Qt.PointingHandCursor
 
 		onClicked: {
-			clipboard.setText(buzzerId_);
+			// clipboard.setText(buzzerId_);
+			var lUrl = buzzerApp.getExploreTxRaw();
+			lUrl = lUrl.replace("{tx}", buzzerId_);
+			Qt.openUrlExternally(lUrl);
 		}
 	}
 

@@ -553,7 +553,7 @@ Item {
 		id: copySymbol
 		x: parent.width - (spaceRight_ + width)
 		y: buzzerIdControl.y - 2
-		symbol: Fonts.clipboardSym
+		symbol: Fonts.externalLinkSym
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : (defaultFontPointSize + 1)
 	}
 	MouseArea {
@@ -561,9 +561,13 @@ Item {
 		y: copySymbol.y - spaceItems_
 		width: copySymbol.width + 2 * spaceItems_
 		height: copySymbol.height + 2 * spaceItems_
+		cursorShape: Qt.PointingHandCursor
 
 		onClicked: {
-			clipboard.setText(buzzerId_);
+			// clipboard.setText(buzzerId_);
+			var lUrl = buzzerApp.getExploreTxRaw();
+			lUrl = lUrl.replace("{tx}", buzzerId_);
+			Qt.openUrlExternally(lUrl);
 		}
 	}
 

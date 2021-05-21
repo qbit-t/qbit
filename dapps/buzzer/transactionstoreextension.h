@@ -222,14 +222,15 @@ public:
 	bool popUnlinkedOut(const uint256&, TransactionContextPtr) {}
 	bool pushEntity(const uint256&, TransactionContextPtr);
 	bool isAllowed(TransactionContextPtr);
-	bool locateParents(TransactionContextPtr /*root*/, std::list<uint256>& /*parents*/);	
+	bool locateParents(TransactionContextPtr /*root*/, std::list<uint256>& /*parents*/);
+	void processBuzzerStat(const uint256&);
 
 	TransactionPtr locateSubscription(const uint256& /*subscriber*/, const uint256& /*publisher*/);
 	void selectBuzzfeed(const std::vector<BuzzfeedPublisherFrom>& /*from*/, const uint256& /*subscriber*/, std::vector<BuzzfeedItem>& /*feed*/);
-	void selectBuzzfeedGlobal(uint64_t /*timeframeFrom*/, uint64_t /*scoreFrom*/, uint64_t /*timestampFrom*/, const uint256& /*publisher*/, std::vector<BuzzfeedItem>& /*feed*/);
-	void selectBuzzfeedByTag(const std::string& /*tag*/, uint64_t /*timeframeFrom*/, uint64_t /*scoreFrom*/, uint64_t /*timestampFrom*/, const uint256& /*publisher*/, std::vector<BuzzfeedItem>& /*feed*/);
-	void selectBuzzfeedByBuzz(uint64_t /*from*/, const uint256& /*buzz*/, std::vector<BuzzfeedItem>& /*feed*/);
-	void selectBuzzfeedByBuzzer(uint64_t /*from*/, const uint256& /*buzzer*/, std::vector<BuzzfeedItem>& /*feed*/);
+	void selectBuzzfeedGlobal(uint64_t /*timeframeFrom*/, uint64_t /*scoreFrom*/, uint64_t /*timestampFrom*/, const uint256& /*publisher*/, const uint256& /*subscriber*/, std::vector<BuzzfeedItem>& /*feed*/);
+	void selectBuzzfeedByTag(const std::string& /*tag*/, uint64_t /*timeframeFrom*/, uint64_t /*scoreFrom*/, uint64_t /*timestampFrom*/, const uint256& /*publisher*/, const uint256& /*subscriber*/, std::vector<BuzzfeedItem>& /*feed*/);
+	void selectBuzzfeedByBuzz(uint64_t /*from*/, const uint256& /*buzz*/, const uint256& /*subscriber*/, std::vector<BuzzfeedItem>& /*feed*/);
+	void selectBuzzfeedByBuzzer(uint64_t /*from*/, const uint256& /*buzzer*/, const uint256& /*subscriber*/, std::vector<BuzzfeedItem>& /*feed*/);
 	void selectEventsfeed(uint64_t /*from*/, const uint256& /*buzzer*/, std::vector<EventsfeedItem>& /*feed*/);
 	void selectMistrusts(const uint256& /*from*/, const uint256& /*buzzer*/, std::vector<EventsfeedItem>& /*feed*/);
 	void selectEndorsements(const uint256& /*from*/, const uint256& /*buzzer*/, std::vector<EventsfeedItem>& /*feed*/);
@@ -304,6 +305,8 @@ private:
 	EventsfeedItemPtr makeEventsfeedItem(TxBuzzerPtr, TransactionPtr, ITransactionStorePtr, std::multimap<uint64_t, EventsfeedItem::Key>&, std::map<EventsfeedItem::Key, EventsfeedItemPtr>&);
 	void makeEventsfeedLikeItem(TransactionPtr, ITransactionStorePtr, std::multimap<uint64_t, EventsfeedItem::Key>&, std::map<EventsfeedItem::Key, EventsfeedItemPtr>&);
 	void makeEventsfeedRewardItem(EventsfeedItemPtr item, TransactionPtr tx, const uint256& buzz, const uint256& buzzChain, const uint256& buzzer);
+
+	void fillEventsfeed(unsigned short /*type*/, TransactionPtr /*tx*/, const uint256& /*subscriber*/, std::multimap<uint64_t, EventsfeedItem::Key>&, std::map<EventsfeedItem::Key, EventsfeedItemPtr>&);
 
 	template<typename _event> void makeEventsfeedTrustScoreItem(EventsfeedItemPtr item, TransactionPtr tx, unsigned short type, const uint256& buzzer, uint64_t score) {
 		//
