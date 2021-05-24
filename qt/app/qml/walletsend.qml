@@ -43,6 +43,7 @@ Item
 	readonly property real defaultFontSize: 11
 
 	function init() {
+		sendToAddress.rollback();
 		balanceCommand.process();
 	}
 
@@ -128,7 +129,10 @@ Item
 				//
 				if (address[0] === '@' && prevText_ !== address) {
 					prevText_ = address;
-					searchBuzzers.process(address);
+					if (!contactExists(address))
+						searchBuzzers.process(address);
+					else
+						amountInfo.prepare();
 				}
 
 				sendButton.adjust();
@@ -205,6 +209,20 @@ Item
 					  address: lContacts[lIdx].pkey()});
 				}
 			}
+
+			function contactExists(buzzer) {
+				//
+				if (!contactsModel_.count) return false;
+				//
+				var lContacts = buzzerClient.contacts;
+				for (var lIdx = 0; lIdx < lContacts.length; lIdx++) {
+					//
+					if (lContacts[lIdx].buzzer() === buzzer)
+						return true;
+				}
+
+				return false;
+			}
 		}
 
 		Rectangle {
@@ -241,6 +259,13 @@ Item
 					} else {
 						amountInfo.prepare();
 					}
+				}
+
+				onClearClicked: {
+					//
+					sendToAddress.rollback();
+					balanceCommand.process();
+					//amountInfo.recalculate();
 				}
 
 				onPopupClosed: {
@@ -287,8 +312,12 @@ Item
 				} else {
 					sendAmount.number = 0.0;
 					availableAmount.number = balance_;
+
+					// try prepare
+					prepare();
 				}
 
+				//balanceCommand.process();
 				sendButton.adjust();
 			}
 
@@ -585,6 +614,7 @@ Item
 				controller.showError(message, true);
 			}
 
+			sendToAddress.rollback();
 			amountEdit.numberString = "";
 			amountInfo.recalculate();
 		}

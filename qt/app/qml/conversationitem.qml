@@ -415,7 +415,7 @@ Item {
 		elide: Text.ElideRight
 		text: bodyControl.message
 		elideWidth: parent.width - (bodyControl.x + (buzzerApp.isDesktop ? 2 * spaceRight_ : spaceRight_))
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : bodyControl.defaultFontPointSize
 		property var fontFamily: Qt.platform.os == "windows" ? "Segoe UI Emoji" : "Noto Color Emoji N"
 		font.family: buzzerApp.isDesktop ? fontFamily : font.family
 	}

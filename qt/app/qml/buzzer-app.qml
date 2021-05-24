@@ -47,7 +47,7 @@ ApplicationWindow
             else
             {
 				var lValue = buzzerClient.getProperty("Client.preventClose");
-                if (lValue === "" || lValue === "false")
+				if (/*lValue === "" ||*/lValue === "false")
                     close.accepted = true;
             }
         }

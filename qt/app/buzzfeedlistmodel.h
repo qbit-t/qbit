@@ -86,6 +86,8 @@ public:
 	Q_INVOKABLE int locateIndex(QString key);
 	//
 	Q_INVOKABLE bool feeding() { return feeding_; }
+	//
+	Q_INVOKABLE QString itemToString(int index);
 
 	void buzzfeedLargeUpdated();
 	void buzzfeedItemNew(qbit::BuzzfeedItemPtr /*buzz*/);

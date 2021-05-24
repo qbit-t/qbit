@@ -2328,7 +2328,14 @@ public:
 
 	Q_INVOKABLE void broadcast() {
 		//
-		command_->broadcast();
+		if (command_)
+			command_->broadcast();
+	}
+
+	Q_INVOKABLE void rollback() {
+		//
+		if (command_)
+			command_->rollback();
 	}
 
 	Q_INVOKABLE QString finalAmount() {

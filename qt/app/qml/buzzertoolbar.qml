@@ -66,6 +66,10 @@ QuarkToolBar
 
 			networkButton.ready(buzzerClient.buzzerDAppReady);
 		}
+
+		function onThemeChanged() {
+			networkButton.ready(buzzerClient.buzzerDAppReady);
+		}
 	}
 
 	Timer {
@@ -227,7 +231,9 @@ QuarkToolBar
 		Material.background: "transparent"
 		visible: true
 		labelYOffset: 3
-		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.peer.pending")
+		symbolColor: buzzerClient.buzzerDAppReady ?
+						 buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground") :
+						 buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.peer.pending")
 		Layout.alignment: Qt.AlignHCenter
 
 		x: themeButton.x - width + 5

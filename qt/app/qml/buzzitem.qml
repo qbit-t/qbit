@@ -181,9 +181,11 @@ Item {
 		visible: getVisible()
 
 		function getVisible() {
+			// if (buzzfeedModel_) console.log("[getVisible]: " + buzzfeedModel_.itemToString(index));
 			return type_ === buzzerClient.tx_BUZZ_LIKE_TYPE() ||
 					type_ === buzzerClient.tx_BUZZ_REWARD_TYPE() ||
-					(type_ === buzzerClient.tx_REBUZZ_TYPE() && (/*!wrapped_ ||*/ buzzBody_.length === 0)); // if rebuzz without comments
+					(type_ === buzzerClient.tx_REBUZZ_TYPE() && buzzInfos_.length > 0
+					 /*&& (!wrapped_ || buzzBody_.length === 0)*/); // if rebuzz without comments
 		}
 
 		function getHeight() {

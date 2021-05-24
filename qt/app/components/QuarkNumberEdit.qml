@@ -58,7 +58,8 @@ Item
     signal popupClosed();
 
     signal percentClicked(var percent);
-    signal marketClicked();
+	signal marketClicked();
+	signal clearClicked();
 
     function closePopup()
     {
@@ -308,6 +309,7 @@ Item
                     onClicked:
                     {
                         numberString = "";
+						clearClicked();
                     }
                 }
 

@@ -196,7 +196,7 @@ QuarkPage {
 			y: parent.height / 2 - height / 2
 			Material.background: "transparent"
 			symbol: Fonts.elipsisVerticalSym
-			visible: true
+			visible: buzzerApp.isDesktop
 			labelYOffset: buzzerApp.isDesktop ? 0 : 3
 			symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 			Layout.alignment: Qt.AlignHCenter

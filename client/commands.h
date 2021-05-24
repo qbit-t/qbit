@@ -170,8 +170,10 @@ public:
 	}
 
 	void rollback() {
-		if (ctx_ && manualProcessing_)
-			composer_->wallet()->rollback(ctx_);		
+		if (ctx_ && manualProcessing_) {
+			composer_->wallet()->rollback(ctx_);
+			ctx_ = nullptr;
+		}
 	}
 
 	void broadcast() {
