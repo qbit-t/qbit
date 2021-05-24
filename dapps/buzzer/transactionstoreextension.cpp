@@ -180,6 +180,28 @@ bool BuzzerTransactionStoreExtension::isAllowed(TransactionContextPtr ctx) {
 			if (store_->chain() != lPublisherTx->in()[TX_BUZZER_SHARD_IN].out().tx()) {
 				return false;
 			}
+
+			//
+			if (ctx->tx()->type() == TX_REBUZZ) {
+				//
+				TxReBuzzPtr lRebuzz = TransactionHelper::to<TxReBuzz>(ctx->tx());
+				// re-buzz index
+				db::DbTwoKeyContainer<uint256 /*buzz|rebuzz|reply*/, uint256 /*rebuzzer*/, uint256 /*rebuzz_tx*/>::Iterator 
+					lRebuzzIdx = rebuzzesIdx_.find(lRebuzz->buzzId(), lPublisher);
+
+				if (lRebuzzIdx.valid())
+					return false;
+			}
+
+		} else if (ctx->tx()->type() == TX_BUZZ_REBUZZ_NOTIFY) {
+			//
+			TxReBuzzNotifyPtr lRebuzzNotify = TransactionHelper::to<TxReBuzzNotify>(ctx->tx());
+			// re-buzz index
+			db::DbTwoKeyContainer<uint256 /*buzz|rebuzz|reply*/, uint256 /*rebuzzer*/, uint256 /*rebuzz_tx*/>::Iterator 
+				lRebuzzIdx = rebuzzesIdx_.find(lRebuzzNotify->buzzId(), lPublisher);
+
+			if (lRebuzzIdx.valid())
+				return false;
 		} else if (ctx->tx()->type() == TX_BUZZER_ENDORSE) {
 			//
 			// in[0] - publisher/initiator
