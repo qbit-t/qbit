@@ -62,6 +62,7 @@ public:
 		std::cout << "\t[-p <public key>] 	- optional, counterparty public key for encryption" << std::endl;
 		std::cout << "\t[-s <000x000>] 		- optional, preview with specified size" << std::endl;
 		std::cout << "\t[-d <description>]	- optional, media file description" << std::endl;
+		std::cout << "\t[-l <duration>]		- optional, audio/video duration in secs" << std::endl;
 		std::cout << "\texample:\n\t\t>upload \"./my_photo.png\" \"My photo\"" << std::endl << std::endl;
 	}	
 
@@ -122,6 +123,9 @@ public:
 	void encrypt(const uint256&, const std::vector<unsigned char>&, std::vector<unsigned char>&);
 
 private:
+	bool prepareImage();
+
+private:
 	CubixLightComposerPtr composer_;
 	progressUploadFunction progress_;
 	std::string preview_;
@@ -139,6 +143,7 @@ private:
 	Transaction::UnlinkedOutPtr prev_;
 	int64_t pos_ = 0;
 	unsigned short orientation_ = 0;
+	unsigned int duration_ = 0;
 
 	TxMediaHeaderPtr header_;
 	TxMediaSummaryPtr summary_;
@@ -209,7 +214,7 @@ public:
 
 	void error(const std::string& code, const std::string& message) {
 		gLog().writeClient(Log::CLIENT, strprintf(": %s | %s", code, message));
-		if (done_) done_(nullptr, std::string(), std::string(), 0, ProcessingError(code, message));
+		if (done_) done_(nullptr, std::string(), std::string(), 0, 0, 0, 0, ProcessingError(code, message));
 	}
 
 	void decrypt(const uint256&, const std::vector<unsigned char>&, std::vector<unsigned char>&);

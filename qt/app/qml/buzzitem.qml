@@ -562,8 +562,19 @@ Item {
 	}
 
 	Timer {
-		id: expandBody
+		id: expandBodyRegular
 		interval: 500
+		repeat: false
+		running: false
+
+		onTriggered: {
+			bodyControl.forceExpand();
+		}
+	}
+
+	Timer {
+		id: expandBody
+		interval: 300
 		repeat: false
 		running: false
 
@@ -613,7 +624,8 @@ Item {
 		property var urlInfoItem_;
 		property var wrappedItem_;
 
-		onWidthChanged: {
+		function forceExpand() {
+			//
 			expand();
 
 			if (buzzMediaItem_ && bodyControl.width > 0) {
@@ -631,9 +643,16 @@ Item {
 			buzzitem_.calculateHeight();
 		}
 
+		onWidthChanged: {
+			//
+			if (dynamic_) expandBodyRegular.start();
+			else forceExpand();
+		}
+
 		onHeightChanged: {
-			expand();
-			buzzitem_.calculateHeight();
+			//
+			if (dynamic_) expandBodyRegular.start();
+			else forceExpand();
 		}
 
 		QuarkLabel {
@@ -778,9 +797,6 @@ Item {
 		}
 
 		function innerHeightChanged(value) {
-			//bodyControl.height = (buzzBody_.length > 0 ? buzzText.height : 0) + value +
-			//							(buzzBody_.length > 0 && buzzMedia_.length > 0 ? spaceMedia_ : spaceItems_) +
-			//							(buzzMedia_.length > 1 ? spaceMediaIndicator_ : spaceSingleMedia_);
 			bodyControl.height = bodyControl.getHeight();
 			buzzitem_.calculateHeight();
 		}

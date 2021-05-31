@@ -39,6 +39,7 @@
 
 #include "dapps/buzzer/buzzfeed.h"
 #include "dapps/buzzer/eventsfeed.h"
+#include "dapps/cubix/txmediaheader.h"
 
 #include "iapplication.h"
 #include "buzzfeedlistmodel.h"
@@ -934,6 +935,11 @@ public:
 		command_->process(lArgs);
 	}
 
+	Q_INVOKABLE void terminate() {
+		// TODO: on terminate and on stop - make proper processing in cubix-download
+		// command_->terminate();
+	}
+
 	void setUrl(const QString& url) {
 		url_ = url;
 
@@ -965,14 +971,43 @@ public:
 	void setSkipIfExists(bool skip) { skipIfExists_ = skip; emit skipIfExistsChanged(); }
 	bool skipIfExists() const { return skipIfExists_; }
 
-	void done(qbit::TransactionPtr tx, const std::string& previewFile, const std::string& originalFile, unsigned short orientation, const qbit::ProcessingError& result) {
+	void done(qbit::TransactionPtr tx, const std::string& previewFile, const std::string& originalFile, unsigned short orientation, unsigned int duration, uint64_t size, unsigned short type, const qbit::ProcessingError& result) {
 		if (result.success()) {
 			QString lTx;
-			if (tx) lTx = QString::fromStdString(tx->id().toHex());
+			QString lType = "unknown";
+			unsigned int lDuration = duration;
+			long long lSize = size;
+			switch((qbit::cubix::TxMediaHeader::Type)type) {
+				case qbit::cubix::TxMediaHeader::Type::UNKNOWN: lType = "unknown"; break;
+				case qbit::cubix::TxMediaHeader::Type::IMAGE_PNG: lType = "image"; break;
+				case qbit::cubix::TxMediaHeader::Type::IMAGE_JPEG: lType = "image"; break;
+				case qbit::cubix::TxMediaHeader::Type::VIDEO_MJPEG: lType = "video"; break;
+				case qbit::cubix::TxMediaHeader::Type::VIDEO_MP4: lType = "video"; break;
+				case qbit::cubix::TxMediaHeader::Type::AUDIO_PCM: lType = "audio"; break;
+				case qbit::cubix::TxMediaHeader::Type::AUDIO_AMR: lType = "audio"; break;
+			}
+
+			if (tx) {
+				lTx = QString::fromStdString(tx->id().toHex());
+				qbit::cubix::TxMediaHeaderPtr lHeader = qbit::TransactionHelper::to<qbit::cubix::TxMediaHeader>(tx);
+				switch(lHeader->mediaType()) {
+					case qbit::cubix::TxMediaHeader::Type::UNKNOWN: lType = "unknown"; break;
+					case qbit::cubix::TxMediaHeader::Type::IMAGE_PNG: lType = "image"; break;
+					case qbit::cubix::TxMediaHeader::Type::IMAGE_JPEG: lType = "image"; break;
+					case qbit::cubix::TxMediaHeader::Type::VIDEO_MJPEG: lType = "video"; break;
+					case qbit::cubix::TxMediaHeader::Type::VIDEO_MP4: lType = "video"; break;
+					case qbit::cubix::TxMediaHeader::Type::AUDIO_PCM: lType = "audio"; break;
+					case qbit::cubix::TxMediaHeader::Type::AUDIO_AMR: lType = "audio"; break;
+				}
+
+				lDuration = lHeader->duration();
+				lSize = lHeader->size();
+			}
+
 #ifdef Q_OS_WINDOWS
-			emit processed(lTx, QString("/") + QString::fromStdString(previewFile), QString("/") + QString::fromStdString(originalFile), orientation);
+			emit processed(lTx, QString("/") + QString::fromStdString(previewFile), QString("/") + QString::fromStdString(originalFile), orientation, lDuration, lSize, lType);
 #else
-			emit processed(lTx, QString::fromStdString(previewFile), QString::fromStdString(originalFile), orientation);			
+			emit processed(lTx, QString::fromStdString(previewFile), QString::fromStdString(originalFile), orientation, lDuration, lSize, lType);
 #endif
 		} else {
 			emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
@@ -984,7 +1019,7 @@ public:
 	}
 
 signals:
-	void processed(QString tx, QString previewFile, QString originalFile, unsigned short orientation);
+	void processed(QString tx, QString previewFile, QString originalFile, unsigned short orientation, unsigned int duration, long long size, QString type);
 	void progress(ulong pos, ulong size);
 	void error(QString code, QString message);
 	void urlChanged();
@@ -1279,7 +1314,7 @@ public:
 		//
 		std::vector<std::string> lArgs;
 		lArgs.push_back(buzzId_.toStdString());
-		if (buzzBody_.length()) lArgs.push_back(buzzBody_.toStdString());
+		lArgs.push_back(buzzBody_.toStdString());
 
 		for (QStringList::iterator lBuzzer = buzzers_.begin(); lBuzzer != buzzers_.end(); lBuzzer++) {
 			lArgs.push_back((*lBuzzer).toStdString());
@@ -1370,7 +1405,7 @@ public:
 		//
 		std::vector<std::string> lArgs;
 		lArgs.push_back(buzzId_.toStdString());
-		if (buzzBody_.length()) lArgs.push_back(buzzBody_.toStdString());
+		lArgs.push_back(buzzBody_.toStdString());
 
 		for (QStringList::iterator lBuzzer = buzzers_.begin(); lBuzzer != buzzers_.end(); lBuzzer++) {
 			lArgs.push_back((*lBuzzer).toStdString());

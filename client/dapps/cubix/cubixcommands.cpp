@@ -71,7 +71,13 @@ void UploadMediaCommand::process(const std::vector<std::string>& args) {
 				} else if (*lArg == "-p") {
 					pkey_.fromString(*(++lArg));
 				} else if (*lArg == "-d") {
-					description_ = 	*(++lArg);
+					description_ = *(++lArg);
+				} else if (*lArg == "-l") {
+					if (!boost::conversion::try_lexical_convert<unsigned int>(std::string(std::string(*(++lArg))), duration_)) {
+						error("E_DURATION_INVALID", "Duration is invalid.");
+						return;
+					}
+
 				}
 
 				lArg++;
@@ -173,35 +179,8 @@ void UploadMediaCommand::encrypt(const uint256& nonce, const std::vector<unsigne
 	#include <codecvt>
 #endif
 
-void UploadMediaCommand::startSendData() {
+bool UploadMediaCommand::prepareImage() {
 	//
-	boost::filesystem::path lFile(file_);
-	std::string lFileType;
-
-#if defined(_WIN32)
-	using lConvert = std::codecvt_utf8<wchar_t>;
-    std::wstring_convert<lConvert, wchar_t> lConverter;
-    lFileType = lConverter.to_bytes(lFile.extension().native());
-#else
-	lFileType = lFile.extension().native();
-#endif
-
-	std::string lType = boost::algorithm::to_lower_copy(lFileType);
-
-	if (lType == ".jpeg" || lType == ".jpg" || lType == "jpeg" || lType == "jpg") {
-		//
-		mediaType_ = TxMediaHeader::IMAGE_JPEG;
-	} else if (lType == ".png" || lType == "png") {
-		//
-		mediaType_ = TxMediaHeader::IMAGE_PNG;
-	} else {
-		error("E_INCORRECT_MEDIA_TYPE", "Media type is not supported");
-		return;
-	}
-
-	//
-	if (progress_) progress_(file_, 0, size_);	
-
 	try {
 		if (size_ > CUBIX_MAX_DATA_CHUNK || (previewWidth_ && previewHeight_)) {
 			//
@@ -402,27 +381,62 @@ void UploadMediaCommand::startSendData() {
 		}
 	} catch (const std::ios_base::failure& err) {
 		error("E_IMAGE_IO_ERROR", err.what());
+		return false;
+	}
+
+	return true;
+}
+
+void UploadMediaCommand::startSendData() {
+	//
+	boost::filesystem::path lFile(file_);
+	std::string lFileType;
+
+#if defined(_WIN32)
+	using lConvert = std::codecvt_utf8<wchar_t>;
+    std::wstring_convert<lConvert, wchar_t> lConverter;
+    lFileType = lConverter.to_bytes(lFile.extension().native());
+#else
+	lFileType = lFile.extension().native();
+#endif
+
+	std::string lType = boost::algorithm::to_lower_copy(lFileType);
+	mediaType_ = TxMediaHeader::extensionToMediaType(lType);
+
+	if (mediaType_ == TxMediaHeader::UNKNOWN) {
+		error("E_INCORRECT_MEDIA_TYPE", "Media type is not supported");
 		return;
 	}
 
-	//
+	// initial setup
 	if (progress_) progress_(file_, 0, size_);
 
-	//
-	if (size_ <= CUBIX_MAX_DATA_CHUNK && !previewWidth_ && !previewHeight_) {
-		// make media header and put data
-		SKeyPtr lSKey = composer_->wallet()->firstKey();
-		uint256 lNamePart = Random::generate(*lSKey);
-		IComposerMethodPtr lCreateHeader = CubixLightComposer::CreateTxMediaHeader::instance(composer_, 
-			size_, previewData_, orientation_, lNamePart.toHex(), description_, mediaType_, summary_->chain(), prev_,
-			boost::bind(&UploadMediaCommand::headerCreated, shared_from_this(), boost::placeholders::_1));
-		// async process
-		lCreateHeader->process(boost::bind(&UploadMediaCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
-	} else {
-		// make media data & continue
+	// if jpeg\png
+	if ((mediaType_ == TxMediaHeader::IMAGE_JPEG || mediaType_ == TxMediaHeader::IMAGE_PNG) &&
+			prepareImage()) {
+		// correcting
+		if (progress_) progress_(file_, 0, size_);
+
+		// try to define and make preview
+		if (size_ <= CUBIX_MAX_DATA_CHUNK && !previewWidth_ && !previewHeight_) {
+			// make media header and put data
+			SKeyPtr lSKey = composer_->wallet()->firstKey();
+			uint256 lNamePart = Random::generate(*lSKey);
+			IComposerMethodPtr lCreateHeader = CubixLightComposer::CreateTxMediaHeader::instance(composer_,
+				size_, previewData_, orientation_, lNamePart.toHex(), description_, mediaType_, summary_->chain(), prev_,
+				boost::bind(&UploadMediaCommand::headerCreated, shared_from_this(), boost::placeholders::_1));
+			// async process
+			lCreateHeader->process(boost::bind(&UploadMediaCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
+		} else {
+			// make media data & continue
+			mediaFile_ = std::ifstream(file_, std::ios::binary);
+			continueSendData();
+		}
+	} else if (mediaType_ == TxMediaHeader::AUDIO_PCM || mediaType_ == TxMediaHeader::AUDIO_AMR) {
+		// for audio there is no preview
 		mediaFile_ = std::ifstream(file_, std::ios::binary);
 		continueSendData();
-	}
+	} // else if (...video...) {}
 }
 
 bool UploadMediaCommand::readNextChunk(int64_t& pos, std::vector<unsigned char>& data) {
@@ -442,35 +456,51 @@ void UploadMediaCommand::continueSendData() {
 	//
 	// at the top
 	if (pos_ == size_) {
-		// make media header and put data
-		SKeyPtr lSKey = composer_->wallet()->firstKey();
-		uint256 lNamePart = Random::generate(*lSKey);
-		IComposerMethodPtr lCreateHeader = CubixLightComposer::CreateTxMediaHeader::instance(composer_, 
-			size_, previewData_, orientation_, lNamePart.toHex(), description_, mediaType_, summary_->chain(), prev_,
-			boost::bind(&UploadMediaCommand::headerCreated, shared_from_this(), boost::placeholders::_1));
-		// async process
-		lCreateHeader->process(boost::bind(&UploadMediaCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
+		//
+		if (mediaType_ == TxMediaHeader::IMAGE_JPEG || mediaType_ == TxMediaHeader::IMAGE_PNG) {
+			// make media header and put data
+			SKeyPtr lSKey = composer_->wallet()->firstKey();
+			uint256 lNamePart = Random::generate(*lSKey);
+			IComposerMethodPtr lCreateHeader = CubixLightComposer::CreateTxMediaHeader::instance(composer_,
+				size_, previewData_, orientation_, duration_, lNamePart.toHex(), description_, mediaType_, summary_->chain(), prev_,
+				boost::bind(&UploadMediaCommand::headerCreated, shared_from_this(), boost::placeholders::_1));
+			// async process
+			lCreateHeader->process(boost::bind(&UploadMediaCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
+		}
 	} else {
 		//
+		bool lEnd = false;
 		std::vector<unsigned char> lData;
 		if (pkey_.valid()) {
 			// read
 			std::vector<unsigned char> lTemp;
-			readNextChunk(pos_, lTemp);
+			lEnd = readNextChunk(pos_, lTemp);
 			// make cypher
 			SKeyPtr lSKey = composer_->wallet()->firstKey();
 			uint256 lNonce = lSKey->shared(pkey_);
 			encrypt(lNonce, lTemp, lData);
 		} else {
-			readNextChunk(pos_, lData);
+			lEnd = readNextChunk(pos_, lData);
 		}
 
 		//
-		IComposerMethodPtr lCreateData = CubixLightComposer::CreateTxMediaData::instance(composer_, 
-			lData, summary_->chain(), prev_,
-			boost::bind(&UploadMediaCommand::dataCreated, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
-		// async process
-		lCreateData->process(boost::bind(&UploadMediaCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
+		if (lEnd && !(mediaType_ == TxMediaHeader::IMAGE_JPEG || mediaType_ == TxMediaHeader::IMAGE_PNG)) {
+			// make media header and put data
+			SKeyPtr lSKey = composer_->wallet()->firstKey();
+			uint256 lNamePart = Random::generate(*lSKey);
+			IComposerMethodPtr lCreateHeader = CubixLightComposer::CreateTxMediaHeader::instance(composer_,
+				size_, lData, orientation_, lNamePart.toHex(), description_, mediaType_, summary_->chain(), prev_,
+				boost::bind(&UploadMediaCommand::headerCreated, shared_from_this(), boost::placeholders::_1));
+			// async process
+			lCreateHeader->process(boost::bind(&UploadMediaCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
+		} else {
+			//
+			IComposerMethodPtr lCreateData = CubixLightComposer::CreateTxMediaData::instance(composer_,
+				lData, summary_->chain(), prev_,
+				boost::bind(&UploadMediaCommand::dataCreated, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
+			// async process
+			lCreateData->process(boost::bind(&UploadMediaCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
+		}
 	}
 }
 
@@ -574,6 +604,9 @@ void DownloadMediaCommand::process(const std::vector<std::string>& args) {
 
 			bool lPreviewExists = false;
 			unsigned short lOrientation = 0;
+			unsigned int lDuration = 0;
+			uint64_t lSize = 0;
+			TxMediaHeader::Type lType = TxMediaHeader::Type::UNKNOWN;
 			for (std::list<std::string>::iterator lExtension = lExtensions.begin(); lExtension != lExtensions.end(); lExtension++) {
 				localPreviewFileName_ = lPreviewFile + *lExtension;
 				boost::filesystem::path lPath(localPreviewFileName_);
@@ -582,14 +615,19 @@ void DownloadMediaCommand::process(const std::vector<std::string>& args) {
 
 					std::ifstream lPreviewFileMeta = std::ifstream(localPreviewFileName_ + ".meta", std::ios::binary);
 					lPreviewFileMeta.read((char*)&lOrientation, 2);
+					lPreviewFileMeta.read((char*)&lDuration, sizeof(unsigned int));
+					lPreviewFileMeta.read((char*)&lSize, sizeof(uint64_t));
 					lPreviewFileMeta.close();
+
+					lType = TxMediaHeader::extensionToMediaType(*lExtension);
 
 					break;
 				}
 			}
 
 			bool lOriginalExists = false;
-			if (lPreviewExists/* && !lOriginalExists*/) {
+			// if (lPreviewExists/* && !lOriginalExists*/)
+			{
 				for (std::list<std::string>::iterator lExtension = lExtensions.begin(); lExtension != lExtensions.end(); lExtension++) {
 					localFileName_ = localFile_ + *lExtension;
 					boost::filesystem::path lPath(localFileName_);
@@ -607,7 +645,7 @@ void DownloadMediaCommand::process(const std::vector<std::string>& args) {
 					gLog().write(Log::CLIENT, strprintf("[downloadMediaCommand/EXISTS/%X]: header = %s/%s, file = %s", 
 								this, headerTx_.toHex(), chain_.toHex(), localPreviewFileName_));
 				*/
-				if (done_) done_(nullptr, localPreviewFileName_, localFileName_, lOrientation, ProcessingError());
+				if (done_) done_(nullptr, localPreviewFileName_, localFileName_, lOrientation, lDuration, lSize, lType, ProcessingError());
 				return;
 			}
 		}
@@ -675,9 +713,9 @@ void DownloadMediaCommand::headerLoaded(TransactionPtr tx) {
 		}
 
 		size_t lFirstSize = 0;
+		std::vector<unsigned char> lData;
 		std::ofstream lPreviewFile = std::ofstream(localPreviewFileName_, std::ios::binary);
 		if (pkey_.valid()) {
-			std::vector<unsigned char> lData;
 			SKeyPtr lSKey = composer_->wallet()->firstKey();
 			uint256 lNonce = lSKey->shared(pkey_);
 			decrypt(lNonce, header_->data(), lData);
@@ -694,7 +732,11 @@ void DownloadMediaCommand::headerLoaded(TransactionPtr tx) {
 
 		std::ofstream lPreviewFileMeta = std::ofstream(localPreviewFileName_ + ".meta", std::ios::binary);
 		unsigned short lOrientation = header_->orientation();
+		unsigned int lDuration = header_->duration();
+		uint64_t lSize = header_->size();
 		lPreviewFileMeta.write((char*)&lOrientation, 2);
+		lPreviewFileMeta.write((char*)&lDuration, sizeof(unsigned int));
+		lPreviewFileMeta.write((char*)&lSize, sizeof(uint64_t));
 		lPreviewFileMeta.close();
 
 		if (lOriginal) std::cout << "     original file: " << localFileName_ << std::endl;	
@@ -702,7 +744,7 @@ void DownloadMediaCommand::headerLoaded(TransactionPtr tx) {
 
 		//
 		if (previewOnly_ && header_->size() > CUBIX_MAX_DATA_CHUNK) {
-			if (done_) done_(header_, localPreviewFileName_, std::string(), header_->orientation(), ProcessingError());
+			if (done_) done_(header_, localPreviewFileName_, std::string(), header_->orientation(), header_->duration(), header_->size(), header_->mediaType(), ProcessingError());
 		} else {
 			// load data
 			if (header_->size() > CUBIX_MAX_DATA_CHUNK || lFirstSize != header_->size()) {
@@ -713,6 +755,22 @@ void DownloadMediaCommand::headerLoaded(TransactionPtr tx) {
 				}
 				//
 				outLocalFile_ = std::ofstream(localFile_ + header_->mediaTypeToExtension(), std::ios::binary);
+				//
+				if (header_->mediaType() == TxMediaHeader::AUDIO_PCM ||
+						header_->mediaType() == TxMediaHeader::AUDIO_AMR) {
+					// for the audio - there is no pewview, just duplicate header as fist chunk for the full file
+					if (pkey_.valid()) {
+						//
+						pos_ += lData.size();
+						lFirstSize = lData.size();
+						outLocalFile_.write((char*)&lData[0], lData.size());
+					} else {
+						//
+						pos_ += header_->data().size();
+						lFirstSize = header_->data().size();
+						outLocalFile_.write((char*)&header_->data()[0], header_->data().size());
+					}
+				}
 
 				//
 				if (progress_) progress_(pos_, header_->size());
@@ -725,7 +783,7 @@ void DownloadMediaCommand::headerLoaded(TransactionPtr tx) {
 							boost::bind(&DownloadMediaCommand::timeout, shared_from_this()))
 					))	error("E_MEDIA_DATA_NOT_LOADED", "Media data was not loaded.");
 			} else {
-				if (done_) done_(header_, localPreviewFileName_, localPreviewFileName_, header_->orientation(), ProcessingError());
+				if (done_) done_(header_, localPreviewFileName_, localPreviewFileName_, header_->orientation(), header_->duration(), header_->size(), header_->mediaType(), ProcessingError());
 			}
 		}
 	} else {
@@ -747,7 +805,7 @@ void DownloadMediaCommand::dataLoaded(TransactionPtr tx) {
 			// done
 			std::cout << "           summary: " << tx->id().toHex() << std::endl;		
 			outLocalFile_.close();
-			if (done_) done_(header_, localPreviewFileName_, localFileName_, header_->orientation(), ProcessingError());
+			if (done_) done_(header_, localPreviewFileName_, localFileName_, header_->orientation(), header_->duration(), header_->size(), header_->mediaType(), ProcessingError());
 		} else {
 			//
 			TxMediaDataPtr lData = TransactionHelper::to<TxMediaData>(tx);

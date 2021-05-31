@@ -66,6 +66,10 @@ QuarkToolBar
 
 			networkButton.ready(buzzerClient.buzzerDAppReady);
 		}
+
+		function onThemeChanged() {
+			networkButton.ready(buzzerClient.buzzerDAppReady);
+		}
 	}
 
 	Timer {

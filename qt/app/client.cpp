@@ -19,6 +19,8 @@
 
 #if defined(DESKTOP_PLATFORM)
 #include "emojimodel.h"
+#else
+#include "audiorecorder.h"
 #endif
 
 #include <QQuickImageProvider>
@@ -332,6 +334,7 @@ int Client::open(QString secret) {
 	// registed command wrappers
 #ifdef Q_OS_ANDROID
 	qmlRegisterType<buzzer::ImageListing>("app.buzzer.components", 1, 0, "ImageListing");
+	qmlRegisterType<buzzer::AudioRecorder>("app.buzzer.components", 1, 0, "AudioRecorder");
 #endif
 	qmlRegisterType<buzzer::BuzzTextHighlighter>("app.buzzer.components", 1, 0, "BuzzTextHighlighter");
 	qmlRegisterType<buzzer::WebSourceInfo>("app.buzzer.components", 1, 0, "WebSourceInfo");

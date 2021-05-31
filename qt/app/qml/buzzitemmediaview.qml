@@ -41,7 +41,12 @@ Item {
 	property var pkey_: ""
 
 	signal calculatedHeightModified(var value);
-	onCalculatedHeightChanged: calculatedHeightModified(calculatedHeight);
+	onCalculatedHeightChanged: { // calculatedHeightModified(calculatedHeight);
+		if (!imageView_ /*&& !buzzerApp.isDesktop*/) {
+			mediaList.clear();
+			mediaList.prepare();
+		}
+	}
 
 	Component.onCompleted: {
 	}
@@ -95,13 +100,39 @@ Item {
 
 		delegate: Rectangle {
 			//
-			id: imageFrame
+			id: mediaFrame
 			color: "transparent"
 			width: mediaModel.count > 1 ?
 					   (mediaImage.width ? mediaImage.width : mediaList.width - 2 * spaceItems_) + 2 * spaceItems_ :
 					   calculatedWidth
 			height: calculatedHeight
 
+			property var mediaItem;
+
+			function createImageView() {
+				if (!buzzerApp.isDesktop) {
+					// expand
+					var lSource;
+					var lComponent;
+
+					// viewer
+					lSource = buzzerApp.isDesktop ? "qrc:/qml/imageview-desktop.qml" :
+													"qrc:/qml/imageview.qml";
+					lComponent = Qt.createComponent(lSource);
+
+					if (lComponent.status === Component.Error) {
+						controller_.showError(lComponent.errorString());
+					} else {
+						imageViewIndex_ = index;
+						imageView_ = lComponent.createObject(controller_);
+						imageView_.pageClosed.connect(buzzitemmediaview_.imageViewClosed);
+						imageView_.initialize(path_, controller_);
+						controller_.addPage(imageView_);
+					}
+				}
+			}
+
+			/*
 			Image {
 				id: mediaImage
 				autoTransform: true
@@ -215,9 +246,10 @@ Item {
 					}
 				}
 			}
+			*/
 
 			QuarkRoundProgress {
-				id: imageLoading
+				id: mediaLoading
 				x: mediaList.width / 2 - width / 2
 				y: mediaList.height / 2 - height / 2
 				size: buzzerClient.scaleFactor * 50
@@ -232,9 +264,9 @@ Item {
 					id: waitSymbol
 					anchors.fill: parent
 					symbol: Fonts.clockSym
-					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (imageLoading.size-10)) : (imageLoading.size-10)
+					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (mediaLoading.size-10)) : (mediaLoading.size-10)
 					color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link")
-					visible: imageLoading.visible
+					visible: mediaLoading.visible
 				}
 
 				function progress(pos, size) {
@@ -258,17 +290,63 @@ Item {
 
 				onProgress: {
 					//
-					imageLoading.progress(pos, size);
+					mediaLoading.progress(pos, size);
 				}
 
 				onProcessed: {
-					// tx, previewFile, originalFile, orientation
-					// original orientation
-					orientation_ = orientation;
+					// tx, previewFile, originalFile, orientation, duration, size, type
+					console.log(tx + ", " + previewFile + ", " + originalFile + ", " + orientation + ", " + duration + ", " + size + ", " + type);
+
+					// stop timer
+					downloadWaitTimer.stop();
 					// set file
 					path_ = "file://" + originalFile;
+					// set original orientation
+					orientation_ = orientation;
+					// set duration
+					duration_ = duration;
+					// set size
+					size_ = size;
+					// set size
+					media_ = type;
 					// stop spinning
-					imageLoading.visible = false;
+					mediaLoading.visible = false;
+
+					//
+					var lComponent;
+					var lSource;
+
+					if (type === "audio") {
+						//
+						lSource = "qrc:/qml/buzzitemmedia-audio.qml";
+						lComponent = Qt.createComponent(lSource);
+
+						mediaFrame.mediaItem = lComponent.createObject(mediaFrame);
+
+						mediaFrame.mediaItem.width = mediaList.width;
+						mediaFrame.mediaItem.mediaList = mediaList;
+						mediaFrame.mediaItem.buzzitemmedia_ = buzzitemmediaview_;
+
+						mediaFrame.height = mediaFrame.mediaItem.height;
+						mediaFrame.width = mediaList.width;
+
+						mediaFrame.mediaItem.mediaView = true;
+					} else if (type === "image") {
+						//
+						lSource = "qrc:/qml/buzzitemmediaview-image.qml";
+						lComponent = Qt.createComponent(lSource);
+
+						mediaFrame.mediaItem = lComponent.createObject(mediaFrame);
+
+						mediaFrame.mediaItem.width = mediaList.width - 2 * spaceItems_;
+						mediaFrame.mediaItem.calculatedWidth = calculatedWidth;
+						mediaFrame.mediaItem.mediaList = mediaList;
+						mediaFrame.mediaItem.buzzitemmedia_ = buzzitemmediaview_;
+						mediaFrame.mediaItem.createViewHandler = mediaFrame.createImageView;
+
+						mediaFrame.height = mediaFrame.mediaItem.height;
+						mediaFrame.width = mediaList.width;
+					}
 				}
 
 				onError: {
@@ -279,8 +357,7 @@ Item {
 						if (tryCount_ < 15) {
 							downloadTimer.start();
 						} else {
-							imageLoading.visible = false;
-							mediaImage.source = "../images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "blur.one")
+							mediaLoading.visible = false;
 						}
 					}
 				}
@@ -298,7 +375,7 @@ Item {
 			}
 
 			Component.onCompleted: {
-				imageLoading.visible = true;
+				mediaLoading.visible = true;
 				downloadCommand.process();
 			}
 		}
@@ -308,6 +385,9 @@ Item {
 				key_: file,
 				url_: url,
 				path_: "",
+				media_: "unknown",
+				size_: 0,
+				duration_: 0,
 				orientation_: 0,
 				loaded_: false });
 		}

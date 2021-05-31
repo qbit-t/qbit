@@ -21,7 +21,7 @@ import "qrc:/lib/numberFunctions.js" as NumberFunctions
 Item {
 	id: buzzitemmedia_
 
-	property int calculatedHeight: 400
+	property int calculatedHeight: 0 //400
 	property int calculatedWidth: 500
 	property int calculatedWidthInternal: 500
 	property var buzzId_: buzzId
@@ -81,6 +81,14 @@ Item {
 
 		onContentXChanged: {
 			mediaIndicator.currentIndex = indexAt(contentX, 1);
+			//
+			var lItem = mediaList.itemAtIndex(mediaIndicator.currentIndex);
+			if (lItem) {
+				console.log("[onCurrentIndexChanged]: height = " + lItem.height);
+				mediaList.height = lItem.height;
+				buzzitemmedia_.height = mediaList.height;
+				calculatedHeight = mediaList.height;
+			}
 		}
 
 		add: Transition {
@@ -89,119 +97,23 @@ Item {
 
 		model: ListModel { id: mediaModel }
 
+		onWidthChanged: {
+			if (currentItem && currentItem.mediaItem) {
+				currentItem.mediaItem.adjust();
+			}
+		}
+
 		delegate: Rectangle {
 			//
-			id: imageFrame
+			id: mediaFrame
 			color: "transparent"
-			width: mediaImage.width + 2 * spaceItems_
-			height: mediaImage.height //calculatedHeight
+			//width: mediaItem ? mediaItem.width + 2 * spaceItems_ : 100 //mediaList.width
+			height: mediaItem ? mediaItem.height : 100
 
-			Image {
-				id: mediaImage
-				autoTransform: true
-				asynchronous: true
-
-				x: spaceItems_
-				y: 0
-
-				width: mediaList.width - spaceItems_
-				height: calculatedHeight
-				fillMode: Image.PreserveAspectCrop
-				mipmap: true
-
-				source: path_
-
-				Component.onCompleted: {
-					mediaList.height = Math.max(buzzitemmedia_.calculatedHeight, height);
-					buzzitemmedia_.calculatedHeight = mediaList.height;
-				}
-
-				onStatusChanged: {
-					//
-					if (status == Image.Error) {
-						// force to reload
-						console.log("[onStatusChanged]: forcing reload of " + path_);
-						path_ = "";
-						downloadCommand.process(true);
-					}
-				}
-
-				MouseArea {
-					id: linkClick
-					x: 0
-					y: 0
-					width: mediaImage.width
-					height: mediaImage.height
-					enabled: true
-					cursorShape: Qt.PointingHandCursor
-
-					ItemDelegate {
-						id: linkClicked
-						x: 0
-						y: 0
-						width: mediaImage.width
-						height: mediaImage.height
-						enabled: true
-
-						onClicked: {
-							// expand
-							var lSource;
-							var lComponent;
-
-							// gallery
-							lSource = "qrc:/qml/buzzmedia.qml";
-							lComponent = Qt.createComponent(lSource);
-
-							if (lComponent.status === Component.Error) {
-								controller_.showError(lComponent.errorString());
-							} else {
-								var lMedia = lComponent.createObject(controller_);
-								lMedia.controller = controller_;
-								lMedia.buzzMedia_ = buzzitemmedia_.buzzMedia_;
-								lMedia.initialize(pkey_);
-								controller_.addPage(lMedia);
-							}
-						}
-					}
-				}
-
-				layer.enabled: true
-				layer.effect: OpacityMask {
-					id: roundEffect
-					maskSource: Item {
-						width: roundEffect.getWidth()
-						height: roundEffect.getHeight()
-
-						Rectangle {
-							//anchors.centerIn: parent
-							x: roundEffect.getX()
-							y: roundEffect.getY()
-							width: roundEffect.getWidth()
-							height: roundEffect.getHeight()
-							radius: 8
-						}
-					}
-
-					function getX() {
-						return 0;
-					}
-
-					function getY() {
-						return 0;
-					}
-
-					function getWidth() {
-						return mediaImage.width;
-					}
-
-					function getHeight() {
-						return mediaImage.height;
-					}
-				}
-			}
+			property var mediaItem;
 
 			QuarkRoundProgress {
-				id: imageLoading
+				id: mediaLoading
 				x: mediaList.width / 2 - width / 2
 				y: mediaList.height / 2 - height / 2
 				size: buzzerClient.scaleFactor * 50
@@ -216,9 +128,9 @@ Item {
 					id: waitSymbol
 					anchors.fill: parent
 					symbol: Fonts.clockSym
-					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (imageLoading.size-10)) : (imageLoading.size-10)
+					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (mediaLoading.size-10)) : (mediaLoading.size-10)
 					color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link")
-					visible: imageLoading.visible
+					visible: mediaLoading.visible
 				}
 
 				function progress(pos, size) {
@@ -242,11 +154,13 @@ Item {
 
 				onProgress: {
 					//
-					imageLoading.progress(pos, size);
+					mediaLoading.progress(pos, size);
 				}
 
 				onProcessed: {
-					// tx, previewFile, originalFile, orientation
+					// tx, previewFile, originalFile, orientation, duration, size, type
+					// console.log(tx + ", " + previewFile + ", " + originalFile + ", " + orientation + ", " + duration + ", " + size + ", " + type);
+
 					// stop timer
 					downloadWaitTimer.stop();
 					// set file
@@ -254,11 +168,33 @@ Item {
 					else path_ = "file://" + originalFile;
 					// set original orientation
 					orientation_ = orientation;
+					// set duration
+					duration_ = duration;
+					// set size
+					size_ = size;
+					// set size
+					media_ = type;
 					// stop spinning
-					imageLoading.visible = false;
+					mediaLoading.visible = false;
+
+					//
+					var lComponent;
+					var lSource = "qrc:/qml/buzzitemmedia-image.qml";
+					if (type === "audio")
+						lSource = "qrc:/qml/buzzitemmedia-audio.qml";
+					lComponent = Qt.createComponent(lSource);
+
+					mediaFrame.mediaItem = lComponent.createObject(mediaFrame);
+
+					mediaFrame.mediaItem.width = mediaList.width;
+					mediaFrame.mediaItem.mediaList = mediaList;
+					mediaFrame.mediaItem.buzzitemmedia_ = buzzitemmedia_;
+
+					if (index === 0) mediaFrame.height = mediaFrame.mediaItem.height;
+					mediaFrame.width = mediaList.width;
+
 					// reset height
-					mediaList.height = Math.max(buzzitemmedia_.calculatedHeight, mediaImage.height);
-					buzzitemmedia_.calculatedHeight = mediaList.height;
+					if (index === 0) buzzitemmedia_.calculatedHeight = mediaFrame.height;
 				}
 
 				onError: {
@@ -269,11 +205,7 @@ Item {
 						if (tryCount_ < 15) {
 							downloadTimer.start();
 						} else {
-							imageLoading.visible = false;
-							mediaImage.source = "../images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "blur.one")
-							// reset height
-							mediaList.height = Math.max(buzzitemmedia_.calculatedHeight, mediaImage.height);
-							buzzitemmedia_.calculatedHeight = mediaList.height;
+							mediaLoading.visible = false;
 						}
 					}
 				}
@@ -297,7 +229,7 @@ Item {
 				running: false
 
 				onTriggered: {
-					imageLoading.visible = true;
+					mediaLoading.visible = true;
 				}
 			}
 
@@ -312,6 +244,9 @@ Item {
 				key_: file,
 				url_: url,
 				path_: "",
+				media_: "unknown",
+				size_: 0,
+				duration_: 0,
 				orientation_: 0,
 				loaded_: false });
 		}

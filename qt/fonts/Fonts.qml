@@ -240,5 +240,13 @@ Item
 	readonly property string maximizeSym: "\uf2d0";
 	readonly property string minimizeSym: "\uf2d1";
 	readonly property string restoreSym: "\uf2d2";
+
+	readonly property string microphoneSym: "\uf130";
+	readonly property string dotCircleSym: "\uf192";
+	readonly property string dotCircle2Sym: "\uf111";
+	readonly property string dotCircle3Sym: "\u10f111";
+
+	readonly property string playSym: "\uf04b";
+	readonly property string pauseSym: "\uf04c";
 }
 

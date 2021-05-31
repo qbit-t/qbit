@@ -11,6 +11,7 @@ namespace qbit {
 namespace cubix {
 
 #define TX_CUBIX_MEDIA_HEADER_VERSION_1 1 // + orientation
+#define TX_CUBIX_MEDIA_HEADER_VERSION_2 2 // + duration
 
 //
 class TxMediaHeader: public Entity {
@@ -19,7 +20,10 @@ public:
 		UNKNOWN = 0,
 		IMAGE_JPEG = 1,
 		IMAGE_PNG = 2,
-		VIDEO_MJPEG = 3
+		VIDEO_MJPEG = 3, // motion jpeg, mjpeg
+		VIDEO_MP4 = 4, // video + multichannel audio, mp4 
+		AUDIO_PCM = 5, // multichannel audio, wav
+		AUDIO_AMR = 6 // voice, amr
 	};
 
 public:
@@ -37,8 +41,10 @@ public:
 		s << data_;
 		s << signature_;
 
-		if (version_ == TX_CUBIX_MEDIA_HEADER_VERSION_1)
+		if (version_ >= TX_CUBIX_MEDIA_HEADER_VERSION_1)
 			s << orientation_;
+		if (version_ >= TX_CUBIX_MEDIA_HEADER_VERSION_2)
+			s << duration_;
 	}
 	
 	virtual void deserialize(DataStream& s) {
@@ -53,8 +59,10 @@ public:
 
 		if (description_.size() > TX_CUBIX_MEDIA_DESCRIPTION_SIZE) description_.resize(TX_CUBIX_MEDIA_DESCRIPTION_SIZE);
 
-		if (version_ == TX_CUBIX_MEDIA_HEADER_VERSION_1)
+		if (version_ >= TX_CUBIX_MEDIA_HEADER_VERSION_1)
 			s >> orientation_;
+		if (version_ >= TX_CUBIX_MEDIA_HEADER_VERSION_2)
+			s >> duration_;
 	}
 
 	inline Type mediaType() { return (Type)mediaType_; }
@@ -68,6 +76,9 @@ public:
 
 	inline unsigned short orientation() { return orientation_; }
 	inline void setOrientation(unsigned short orientation) { orientation_ = orientation; }
+
+	inline unsigned int duration() { return duration_; }
+	inline void setDuration(unsigned int duration) { duration_ = duration; }
 
 	inline std::vector<unsigned char>& description() { return description_; }
 	inline void setDescription(const std::vector<unsigned char>& description) {
@@ -169,6 +180,7 @@ public:
 		props["data"] = HexStr(data_.begin(), data_.end());
 		props["size"] = strprintf("%d", size_);
 		props["orientation"] = strprintf("%d", orientation_);
+		props["duration"] = strprintf("%d", duration_);
 		props["name"] = mediaName_;
 
 		std::string lDescription; lDescription.insert(lDescription.end(), description_.begin(), description_.end());
@@ -184,6 +196,9 @@ public:
 			case IMAGE_PNG: return "image/png";
 			case IMAGE_JPEG: return "image/jpeg";
 			case VIDEO_MJPEG: return "video/mjpeg";
+			case VIDEO_MP4: return "video/mp4";
+			case AUDIO_PCM: return "audio/pcm";
+			case AUDIO_AMR: return "audio/amr";
 		}
 
 		return "UNKNOWN";
@@ -196,14 +211,40 @@ public:
 			case IMAGE_PNG: return ".png";
 			case IMAGE_JPEG: return ".jpeg";
 			case VIDEO_MJPEG: return ".mjpeg";
+			case VIDEO_MP4: return ".mp4";
+			case AUDIO_PCM: return ".wav";
+			case AUDIO_AMR: return ".amr";
 		}
 
 		return "UNKNOWN";
 	}
 
+	static TxMediaHeader::Type extensionToMediaType(const std::string& ext) {
+		//
+		if (ext == ".jpeg" || ext == ".jpg" || ext == "jpeg" || ext == "jpg") {
+			return IMAGE_JPEG;
+		} else if (ext == ".png" || ext == "png") {
+			return IMAGE_PNG;
+		} else if (ext == ".mjpeg" || ext == "mjpeg") {
+			return VIDEO_MJPEG;
+		} else if (ext == ".mp4" || ext == "mp4") {
+			return VIDEO_MP4;
+		} else if (ext == ".wav" || ext == "wav") {
+			return AUDIO_PCM;
+		} else if (ext == ".amr" || ext == "amr") {
+			return AUDIO_AMR;
+		}
+
+		return UNKNOWN;
+	}
+
 	static void mediaExtensions(std::list<std::string>& list) {
 		list.push_back(".png");
 		list.push_back(".jpeg");
+		list.push_back(".mjpeg");
+		list.push_back(".mp4");
+		list.push_back(".wav");
+		list.push_back(".amr");
 	}
 
 	virtual inline void setChain(const uint256& chain) { chain_ = chain; } // override default entity behavior
@@ -236,6 +277,8 @@ protected:
 
 	// version 1
 	unsigned short orientation_ = 0;
+	// version 2
+	uint32_t duration_ = 0;
 
 };
 

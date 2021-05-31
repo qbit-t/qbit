@@ -276,7 +276,15 @@ DownloadMediaCommand::DownloadMediaCommand(QObject* /*parent*/) : QObject() {
 	command_ = qbit::cubix::DownloadMediaCommand::instance(
 			lClient->getCubixComposer(),
 			boost::bind(&DownloadMediaCommand::downloadProgress, this, boost::placeholders::_1, boost::placeholders::_2),
-			boost::bind(&DownloadMediaCommand::done, this, boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3, boost::placeholders::_4, boost::placeholders::_5));
+			boost::bind(&DownloadMediaCommand::done, this,
+						boost::placeholders::_1,
+						boost::placeholders::_2,
+						boost::placeholders::_3,
+						boost::placeholders::_4,
+						boost::placeholders::_5,
+						boost::placeholders::_6,
+						boost::placeholders::_7,
+						boost::placeholders::_8));
 
 	// TODO: potential leak, need "check list" to track such objects
 	QQmlEngine::setObjectOwnership(this, QQmlEngine::CppOwnership);

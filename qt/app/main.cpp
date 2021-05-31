@@ -21,6 +21,8 @@
 
 #if defined(Q_OS_LINUX)
 #include <pwd.h>
+//#include <QtPlugin>
+//Q_IMPORT_PLUGIN(QXcbIntegrationPlugin)
 #endif
 
 //

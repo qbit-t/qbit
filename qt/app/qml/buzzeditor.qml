@@ -17,6 +17,7 @@ import "qrc:/components"
 import "qrc:/qml"
 
 import "qrc:/lib/numberFunctions.js" as NumberFunctions
+import "qrc:/lib/dateFunctions.js" as DateFunctions
 
 QuarkPage {
 	id: buzzeditor_
@@ -521,109 +522,37 @@ QuarkPage {
 
 				model: ListModel { id: mediaModel }
 
-				delegate: Rectangle {
-					//
-					id: imageFrame
-					color: "transparent"
-					width: mediaImage.width + 2 * spaceItems_
-					height: mediaList.height // mediaImage.height
+				delegate: ItemDelegate {
+					id: itemDelegate
 
-					Image {
-						id: mediaImage
-						autoTransform: true
+					property var mediaItem;
 
-						x: getX()
-						y: getY()
+					onClicked: {
+						//
+					}
 
-						fillMode: Image.PreserveAspectFit
-						mipmap: true
-
-						source: path
-
-						Component.onCompleted: {
-						}
-
-						function getX() {
-							return parent.width / 2 - width / 2;
-						}
-
-						function getY() {
-							return 0;
-						}
-
-						function adjustView() {
-							width = mediaList.width - 2*spaceItems_;
-							mediaList.height = Math.max(mediaBox.calculatedHeight, height);
-							mediaBox.calculatedHeight = mediaList.height;
-						}
-
-						onStatusChanged: {
-							adjustView();
-						}
-
-						layer.enabled: true
-						layer.effect: OpacityMask {
-							id: roundEffect
-							maskSource: Item {
-								width: roundEffect.getWidth()
-								height: roundEffect.getHeight()
-
-								Rectangle {
-									x: roundEffect.getX()
-									y: roundEffect.getY()
-									width: roundEffect.getWidth()
-									height: roundEffect.getHeight()
-									radius: 8
-								}
-							}
-
-							function getX() {
-								return mediaImage.width / 2 - mediaImage.paintedWidth / 2;
-							}
-
-							function getY() {
-								return mediaImage.height / 2 - mediaImage.paintedHeight / 2;
-							}
-
-							function getWidth() {
-								return mediaImage.paintedWidth;
-							}
-
-							function getHeight() {
-								return mediaImage.paintedHeight;
-							}
+					onWidthChanged: {
+						if (mediaItem) {
+							mediaItem.width = mediaList.width;
+							itemDelegate.height = mediaItem.height;
 						}
 					}
 
-					QuarkToolButton	{
-						id: removeButton
-
-						x: mediaImage.width - (width + spaceItems_)
-						y: 2 * spaceItems_
-						// Material.background: "transparent"
-						visible: true
-						labelYOffset: 3
-						symbolColor: (!sending || uploaded) ? buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground") :
-														  buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
-						symbol: !uploaded ? Fonts.cancelSym : Fonts.checkedSym
-
-						onClicked: {
-							if (!sending) {
-								mediaList.removeMedia(index);
-							}
+					Component.onCompleted: {
+						var lSource = "qrc:/qml/buzzitemmedia-editor-image.qml";
+						if (media === "audio") {
+							lSource = "qrc:/qml/buzzitemmedia-editor-audio.qml";
 						}
-					}
 
-					QuarkRoundProgress {
-						id: mediaUploadProgress
-						x: removeButton.x - 1
-						y: removeButton.y - 1
-						size: removeButton.width + 2
-						colorCircle: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link");
-						colorBackground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link");
-						arcBegin: 0
-						arcEnd: progress
-						lineWidth: 3
+						var lComponent = Qt.createComponent(lSource);
+						mediaItem = lComponent.createObject(itemDelegate);
+
+						mediaItem.width = list.width;
+						mediaItem.mediaList = mediaList;
+						mediaItem.mediaBox = mediaBox;
+
+						itemDelegate.height = mediaItem.height;
+						itemDelegate.width = mediaList.width;
 					}
 				}
 
@@ -631,6 +560,21 @@ QuarkPage {
 					mediaModel.append({
 						key: file,
 						path: "file://" + file,
+						media: "image",
+						size: 0,
+						progress: 0,
+						uploaded: 0,
+						processing: 0 });
+
+					positionViewAtEnd();
+				}
+
+				function addAudio(file) {
+					mediaModel.append({
+						key: file,
+						path: "file://" + file,
+						media: "audio",
+						size: 0,
 						progress: 0,
 						uploaded: 0,
 						processing: 0 });
@@ -730,6 +674,74 @@ QuarkPage {
 			}
 		}
 
+		QuarkRoundState {
+			id: addAudioFrame
+			x: addAudioButton.x + 6
+			y: addAudioButton.y + 6
+			size: addAudioButton.width - 12
+			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.hidden")
+			background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
+			visible: audioRecorder.isRecording
+		}
+
+		QuarkToolButton {
+			id: addAudioButton
+			Material.background: "transparent"
+			visible: true
+			labelYOffset: 3
+			symbolColor:
+				audioRecorder.isRecording ?
+					buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.event.like") :
+					(!sending ?
+							 buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground") :
+							 buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled"))
+			Layout.alignment: Qt.AlignHCenter
+			symbol: audioRecorder.isRecording ? Fonts.dotCircle2Sym : Fonts.microphoneSym
+
+			x: addPhotoButton.x + addPhotoButton.width // + spaceItems_
+			y: parent.height / 2 - height / 2
+
+			onClicked: {
+				if (audioRecorder.isRecording) {
+					symbol = Fonts.microphoneSym;
+					audioRecorder.stop();
+					recordingAudio.stop();
+				} else {
+					symbol = Fonts.dotCircle2Sym;
+					audioRecorder.record();
+					recordingAudio.start();
+				}
+			}
+
+			function adjust() {
+				symbol = audioRecorder.isRecording ? Fonts.dotCircle3Sym : Fonts.microphoneSym;
+			}
+
+			Rectangle {
+				id: fill
+				x: addAudioButton.contentItem.x
+				y: addAudioButton.contentItem.y
+				width: addAudioButton.contentItem.width
+				height: width
+				radius: width / 2
+				color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.peer.banned")
+				visible: audioRecorder.isRecording
+			}
+		}
+
+		QuarkLabel {
+			id: elapsedAudioTime
+			x: addAudioButton.x + addAudioButton.width + spaceItems_
+			y: addAudioButton.y + addAudioButton.height / 2 - height / 2
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
+			text: "00:00"
+			visible: audioRecorder.isRecording
+
+			function setTime(ms) {
+				text = DateFunctions.msToTimeString(ms);
+			}
+		}
+
 		ProgressBar {
 			id: createProgressBar
 
@@ -744,6 +756,21 @@ QuarkPage {
 			Material.background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.background");
 			Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground");
 			Material.primary: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.primary");
+		}
+
+		QuarkRoundProgress {
+			id: addAudioProgress
+			x: addAudioButton.x + 6
+			y: addAudioButton.y + 6
+			size: addAudioButton.width - 12
+			colorCircle: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link");
+			colorBackground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link");
+			arcBegin: 0
+			arcEnd: progress
+			lineWidth: 2
+			visible: audioRecorder.isRecording
+
+			property var progress: 0;
 		}
 
 		QuarkRoundState {
@@ -898,8 +925,58 @@ QuarkPage {
 	}
 
 	//
-	// Create buzz
+	// Backend
 	//
+
+	// recording control
+	Timer {
+		id: recordingAudio
+		interval: 1000
+		repeat: true
+		running: false
+
+		onTriggered: {
+			//
+			if (audioRecorder.duration >= 5 * 60 * 1000) {
+				// we are done
+				addAudioButton.symbol = Fonts.microphoneSym;
+				audioRecorder.stop();
+				stop();
+			}
+		}
+	}
+
+	BuzzerComponents.AudioRecorder {
+		id: audioRecorder
+		localPath: buzzerClient.getTempFilesPath()
+
+		onDurationChanged: {
+			// max 5 min
+			var lPart = (duration * 100.0) / (5 * 60 * 1000);
+			addAudioProgress.progress = lPart * 360.0 / 100.0;
+			elapsedAudioTime.setTime(duration);
+		}
+
+		onStopped: {
+			//
+			if (actualFileLocation !== "") {
+				// we have location and content saved
+				mediaList.addAudio(audioRecorder.actualFileLocation);
+			}
+		}
+
+		onActualFileLocationChanged: {
+			//
+			if (isStopped) {
+				// we have location and content saved
+				mediaList.addAudio(audioRecorder.actualFileLocation);
+			}
+		}
+
+		onIsRecordingChanged: {
+			// console.log("[onIsRecordingChanged]: " + isRecording);
+		}
+	}
 
 	BuzzerCommands.UploadMediaCommand {
 		id: uploadBuzzMedia

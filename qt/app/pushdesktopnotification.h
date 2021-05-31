@@ -47,10 +47,12 @@ public:
 	void makeNotification();
 	void avatarDownloadDone(qbit::TransactionPtr /*tx*/,
 						   const std::string& previewFile,
-						   const std::string& /*originalFile*/, unsigned short /*orientation*/, const qbit::ProcessingError& result);
+						   const std::string& /*originalFile*/, unsigned short /*orientation*/, unsigned int /*duration*/,
+						   uint64_t /*size*/, unsigned short /*type*/, const qbit::ProcessingError& result);
 	void mediaDownloadDone(qbit::TransactionPtr /*tx*/,
 						   const std::string& previewFile,
-						   const std::string& /*originalFile*/, unsigned short /*orientation*/, const qbit::ProcessingError& result);
+						   const std::string& /*originalFile*/, unsigned short /*orientation*/, unsigned int /*duration*/,
+						   uint64_t /*size*/, unsigned short /*type*/, const qbit::ProcessingError& result);
 	void messageDone(const std::string& /*key*/, const std::string& /*body*/, const qbit::ProcessingError& /*result*/);
 
 	void loadAvatar();

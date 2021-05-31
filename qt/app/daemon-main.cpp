@@ -338,7 +338,8 @@ public:
 
 	void avatarDownloadDone(qbit::TransactionPtr /*tx*/,
 						   const std::string& previewFile,
-						   const std::string& /*originalFile*/, unsigned short /*orientation*/, const ProcessingError& result) {
+						   const std::string& /*originalFile*/, unsigned short /*orientation*/, unsigned int /*duration*/,
+						   uint64_t /*size*/, unsigned short /*type*/, const ProcessingError& result) {
 		//
 		if (result.success()) {
 			//
@@ -354,11 +355,14 @@ public:
 
 	void mediaDownloadDone(qbit::TransactionPtr /*tx*/,
 						   const std::string& previewFile,
-						   const std::string& /*originalFile*/, unsigned short /*orientation*/, const ProcessingError& result) {
+						   const std::string& /*originalFile*/, unsigned short /*orientation*/, unsigned int /*duration*/,
+						   uint64_t /*size*/, unsigned short type, const ProcessingError& result) {
 		//
 		if (result.success()) {
 			//
-			mediaFile_ = previewFile;
+			if (type == cubix::TxMediaHeader::Type::IMAGE_JPEG || type == cubix::TxMediaHeader::Type::IMAGE_PNG) {
+				mediaFile_ = previewFile;
+			}
 		} else {
 			gLog().write(Log::CLIENT, strprintf("[downloadMedia/error]: %s - %s", result.error(), result.message()));
 		}
@@ -372,7 +376,7 @@ public:
 		downloadAvatar_ =
 				cubix::DownloadMediaCommand::instance(gCubixComposer,
 													  boost::bind(&PushNotification::downloadProgress, this, _1, _2),
-													  boost::bind(&PushNotification::avatarDownloadDone, this, _1, _2, _3, _4, _5));
+													  boost::bind(&PushNotification::avatarDownloadDone, this, _1, _2, _3, _4, _5, _6, _7, _8));
 		// locate buzzer info and avater url
 		uint256 lInfoId;
 		if (buzz_->buzzers().size()) {
@@ -412,7 +416,7 @@ public:
 		downloadMedia_ =
 				cubix::DownloadMediaCommand::instance(gCubixComposer,
 													  boost::bind(&PushNotification::downloadProgress, this, _1, _2),
-													  boost::bind(&PushNotification::mediaDownloadDone, this, _1, _2, _3, _4, _5));
+													  boost::bind(&PushNotification::mediaDownloadDone, this, _1, _2, _3, _4, _5, _6, _7, _8));
 		std::string lUrl = lMedia.url();
 		std::string lHeader = lMedia.tx().toHex();
 

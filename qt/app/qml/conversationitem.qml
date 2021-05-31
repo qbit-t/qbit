@@ -411,6 +411,7 @@ Item {
 	}
 
 	TextMetrics	{
+		property real defaultFontPointSize: buzzerApp.isDesktop ? 11 : 16
 		id: bodyControlMetrics
 		elide: Text.ElideRight
 		text: bodyControl.message

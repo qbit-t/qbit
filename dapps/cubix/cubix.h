@@ -54,7 +54,10 @@ typedef LimitedString<TX_CUBIX_MEDIA_DESCRIPTION_SIZE> cubix_media_description_t
 #define TX_CUBIX_MEDIA_SUMMARY	Transaction::CUSTOM_51 //
 #define TX_CUBIX_MEDIA_DATA		Transaction::CUSTOM_52 //
 
-typedef boost::function<void (TransactionPtr, const std::string& /*previewFile*/, const std::string& /*originalFile*/, unsigned short /*orientation*/, const ProcessingError& /*error*/)> doneDownloadWithErrorFunction;
+typedef boost::function<void (TransactionPtr, const std::string& /*previewFile*/, const std::string& /*originalFile*/,
+                              unsigned short /*orientation*/, unsigned int /*duration*/,
+                              uint64_t /*size*/, unsigned short /*type*/,
+                              const ProcessingError& /*error*/)> doneDownloadWithErrorFunction;
 
 } // cubix
 } // qbit

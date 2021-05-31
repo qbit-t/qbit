@@ -1,7 +1,7 @@
 TARGET = buzzer
 
 #QT += qml quick quickcontrols2 multimedia multimediawidgets widgets quickwidgets
-QT += qml quick quickcontrols2 widgets quickwidgets
+QT += qml quick quickcontrols2 widgets quickwidgets multimedia
 
 CONFIG += c++11
 CONFIG += static
@@ -149,7 +149,7 @@ unix {
     LIBS += "../../boost/stage/lib/libboost_filesystem.a"
 
     LIBS += -ljpeg
-	LIBS += -lpng
+    LIBS += -lpng
 }
 
 win32 {

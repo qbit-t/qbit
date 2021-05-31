@@ -66,3 +66,14 @@ function extractFullTimeString(raw_date, offset)
     if (raw_date === null || raw_date === undefined || raw_date === "") return "";
     return toUniString(adjustDate(new Date(raw_date), offset), 2);
 }
+
+function msToTimeString(ms)
+{
+	var lMinutes = Math.floor(ms / 60000);
+	var lSeconds = ((ms % 60000) / 1000).toFixed(0);
+	return (
+	  lSeconds === 60 ?
+	  (lMinutes + 1) + ":00" :
+	  (lMinutes < 10 ? "0" : "") + lMinutes + ":" + (lSeconds < 10 ? "0" : "") + lSeconds
+	);
+}

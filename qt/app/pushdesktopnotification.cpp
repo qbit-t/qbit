@@ -172,11 +172,13 @@ void PushNotification::makeNotification() {
 
 void PushNotification::avatarDownloadDone(qbit::TransactionPtr /*tx*/,
 					   const std::string& previewFile,
-					   const std::string& /*originalFile*/, unsigned short /*orientation*/, const qbit::ProcessingError& result) {
+					   const std::string& /*originalFile*/, unsigned short /*orientation*/, unsigned int /*duration*/,
+					   uint64_t /*size*/, unsigned short type, const qbit::ProcessingError& result) {
 	//
 	if (result.success()) {
 		//
-		avatarFile_ = previewFile;
+		if (type == qbit::cubix::TxMediaHeader::Type::IMAGE_JPEG || type == qbit::cubix::TxMediaHeader::Type::IMAGE_PNG)
+			avatarFile_ = previewFile;
 
 		if (buzz_->type() == qbit::TX_BUZZER_MESSAGE || buzz_->type() == qbit::TX_BUZZER_MESSAGE_REPLY) {
 			// try to decrypt
@@ -192,11 +194,14 @@ void PushNotification::avatarDownloadDone(qbit::TransactionPtr /*tx*/,
 
 void PushNotification::mediaDownloadDone(qbit::TransactionPtr /*tx*/,
 					   const std::string& previewFile,
-					   const std::string& /*originalFile*/, unsigned short /*orientation*/, const qbit::ProcessingError& result) {
+					   const std::string& /*originalFile*/, unsigned short /*orientation*/, unsigned int /*duration*/,
+					   uint64_t /*size*/, unsigned short type, const qbit::ProcessingError& result) {
 	//
 	if (result.success()) {
 		//
-		mediaFile_ = previewFile;
+		if (type == qbit::cubix::TxMediaHeader::Type::IMAGE_JPEG || type == qbit::cubix::TxMediaHeader::Type::IMAGE_PNG) {
+			mediaFile_ = previewFile;
+		}
 	} else {
 		qbit::gLog().write(qbit::Log::CLIENT, strprintf("[downloadMedia/error]: %s - %s", result.error(), result.message()));
 	}
@@ -225,7 +230,7 @@ void PushNotification::loadAvatar() {
 	downloadAvatar_ =
 			qbit::cubix::DownloadMediaCommand::instance(lClient->getCubixComposer(),
 												  boost::bind(&PushNotification::downloadProgress, this, _1, _2),
-												  boost::bind(&PushNotification::avatarDownloadDone, this, _1, _2, _3, _4, _5));
+												  boost::bind(&PushNotification::avatarDownloadDone, this, _1, _2, _3, _4, _5, _6, _7, _8));
 	// locate buzzer info and avatar url
 	uint256 lInfoId;
 	if (buzz_->buzzers().size()) {
@@ -267,7 +272,7 @@ void PushNotification::loadMedia() {
 	downloadMedia_ =
 			qbit::cubix::DownloadMediaCommand::instance(lClient->getCubixComposer(),
 												  boost::bind(&PushNotification::downloadProgress, this, _1, _2),
-												  boost::bind(&PushNotification::mediaDownloadDone, this, _1, _2, _3, _4, _5));
+												  boost::bind(&PushNotification::mediaDownloadDone, this, _1, _2, _3, _4, _5, _6, _7, _8));
 	std::string lUrl = lMedia.url();
 	std::string lHeader = lMedia.tx().toHex();
 

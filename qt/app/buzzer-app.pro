@@ -75,6 +75,7 @@ SOURCES += \
 	../../client/commands.cpp \
     ../../client/commandshandler.cpp \
     asiodispatcher.cpp \
+    audiorecorder.cpp \
     buzzfeedlistmodel.cpp \
     buzztexthighlighter.cpp \
     client.cpp \
@@ -149,12 +150,18 @@ DISTFILES += \
     android/src/app/buzzer/mobile/FingerprintHandler.java \
 	android/src/app/buzzer/mobile/FileUtils.java \
     components/QuarkRoundRectangle.qml \
+    components/QuarkRoundSymbolButton.qml \
     ios/Info.plist \
     ios/Launch.xib \
     qml/buzzercreateupdate.qml \
     qml/buzzerheader.qml \
     qml/buzzerqbitkey.qml \
     qml/buzzerquickhelp.qml \
+    qml/buzzitemmedia-audio.qml \
+    qml/buzzitemmedia-editor-audio.qml \
+    qml/buzzitemmedia-editor-image.qml \
+    qml/buzzitemmedia-image.qml \
+    qml/buzzitemmediaview-image.qml \
     qml/conversationitem.qml \
     qml/conversationmessageitem.qml \
     qml/conversationsfeed.qml \
@@ -168,6 +175,7 @@ DISTFILES += \
 
 HEADERS += \
     asiodispatcher.h \
+    audiorecorder.h \
     buzzfeedlistmodel.h \
     buzztexthighlighter.h \
     client.h \
