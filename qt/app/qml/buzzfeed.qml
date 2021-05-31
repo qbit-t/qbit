@@ -186,7 +186,9 @@ Item
 
 			onClicked: {
 				//
-				controller.openThread(buzzChainId, buzzId, buzzerAlias, buzzBodyFlat);
+				if (!(type === buzzerClient.tx_BUZZER_ENDORSE_TYPE() || type === buzzerClient.tx_BUZZER_MISTRUST_TYPE())) {
+					controller.openThread(buzzChainId, buzzId, buzzerAlias, buzzBodyFlat);
+				}
 			}
 
 			onWidthChanged: {

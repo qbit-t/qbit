@@ -58,6 +58,15 @@ bool BuzzfeedListModel::hasNextLink(int index) const {
 	return lItem->hasNextLink();
 }
 
+QString BuzzfeedListModel::itemToString(int index) {
+	if (index < 0 || index >= (int)list_.size()) {
+		return "";
+	}
+
+	qbit::BuzzfeedItemPtr lItem = list_[index];
+	return QString::fromStdString(lItem->toString());
+}
+
 QString BuzzfeedListModel::buzzId(int index) const {
 	if (index < 0 || index >= (int)list_.size()) {
 		return "";

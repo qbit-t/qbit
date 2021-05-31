@@ -462,6 +462,7 @@ public:
 		inline unsigned short parentType() { return parentType_; }
 		inline uint256& parent() { return parent_; }
 
+		inline void setType(unsigned short type) { type_ = type; }
 		inline void setParentType(unsigned short type) { parentType_ = type; }
 		inline void setParent(const uint256& parent) { parent_ = parent; }
 		inline void setTimestamp(uint64_t timestamp) { timestamp_ = timestamp; }
