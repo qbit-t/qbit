@@ -27,7 +27,7 @@ public:
 	};
 
 public:
-	TxMediaHeader() { type_ = TX_CUBIX_MEDIA_HEADER; version_ = TX_CUBIX_MEDIA_HEADER_VERSION_1; }
+	TxMediaHeader() { type_ = TX_CUBIX_MEDIA_HEADER; version_ = TX_CUBIX_MEDIA_HEADER_VERSION_2; }
 
 	ADD_INHERITABLE_SERIALIZE_METHODS;
 

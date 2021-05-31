@@ -177,7 +177,8 @@ void cubixUploadProgress(const std::string&, uint64_t, uint64_t) {
 
 }
 
-void cubixDownloadDone(TransactionPtr, const std::string&, const std::string&, unsigned short, const ProcessingError& /*error*/) {
+void cubixDownloadDone(TransactionPtr, const std::string&, const std::string&, unsigned short /*orientation*/, unsigned int /*duration*/,
+                              uint64_t /*size*/, unsigned short /*type*/,const ProcessingError& /*error*/) {
 	//
 	gCommandDone = true;
 }
@@ -601,7 +602,7 @@ int main(int argv, char** argc) {
 
 	// cubix commands
 	lCommandsHandler->push(cubix::UploadMediaCommand::instance(lCubixComposer, boost::bind(&cubixUploadProgress, _1, _2, _3), boost::bind(&commandDone, _1, _2)));
-	lCommandsHandler->push(cubix::DownloadMediaCommand::instance(lCubixComposer, boost::bind(&cubixDownloadProgress, _1, _2), boost::bind(&cubixDownloadDone, _1, _2, _3, _4, _5)));
+	lCommandsHandler->push(cubix::DownloadMediaCommand::instance(lCubixComposer, boost::bind(&cubixDownloadProgress, _1, _2), boost::bind(&cubixDownloadDone, _1, _2, _3, _4, _5, _6, _7, _8)));
 
 	// dapp instance - shared
 	lBuzzerComposer->setInstanceChangedCallback(boost::bind(&cubix::CubixLightComposer::setDAppSharedInstance, lCubixComposer, _1));
