@@ -1,7 +1,7 @@
 TARGET = buzzer
 
 #QT += qml quick quickcontrols2 multimedia multimediawidgets widgets quickwidgets
-QT += qml quick quickcontrols2 widgets quickwidgets multimedia
+QT += multimedia multimediawidgets qml quick quickcontrols2 widgets quickwidgets
 
 CONFIG += c++11
 CONFIG += static
@@ -164,10 +164,11 @@ win32 {
     LIBS += -ljpeg
     LIBS += -lpng
 
+    LIBS += -lopengl32
     LIBS += -lws2_32
     LIBS += -lwsock32
     LIBS += -lz
-    LIBS += -lopengl32
+    LIBS += -lgdi32
 
     QMAKE_CXXFLAGS += -std=c++11
 
