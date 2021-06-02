@@ -41,10 +41,17 @@ Rectangle {
 	readonly property int spaceThreadedItems_: 4
 	readonly property real defaultFontSize: 11
 	property bool mediaView: false
+	property int originalDuration: duration_;
 
 	//
 	property var buzzitemmedia_;
 	property var mediaList;
+
+	//
+	onOriginalDurationChanged: {
+		//console.log("[onOriginalDurationChanged]: originalDuration = " + originalDuration);
+		//if (originalDuration) playSlider.to = originalDuration;
+	}
 
 	//
 	x: mediaView ? getX() : 0
@@ -168,7 +175,7 @@ Rectangle {
 				case Audio.Loaded:
 					totalTime.setTotalTime(duration ? duration : duration_);
 					totalSize.setTotalSize(size_);
-					playSlider.to = duration;
+					playSlider.to = duration ? duration : duration_;
 				break;
 			}
 		}
