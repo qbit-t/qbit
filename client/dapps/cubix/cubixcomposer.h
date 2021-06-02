@@ -133,8 +133,8 @@ public:
 		CubixLightComposerPtr composer_;
 		uint64_t size_;
 		std::vector<unsigned char> data_;
-		unsigned short orientation_;
-		unsigned int duration_;
+		unsigned short orientation_ = 0;
+		unsigned int duration_ = 0;
 		std::string name_;
 		std::string description_;
 		TxMediaHeader::Type type_;

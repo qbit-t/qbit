@@ -166,7 +166,7 @@ Rectangle {
 			//
 			switch(status) {
 				case Audio.Loaded:
-					totalTime.setTotalTime(duration);
+					totalTime.setTotalTime(duration ? duration : duration_);
 					totalSize.setTotalSize(size_);
 					playSlider.to = duration;
 				break;
@@ -253,7 +253,7 @@ Rectangle {
 		x: elapsedTime.x + elapsedTime.width
 		y: actionButton.y + spaceItems_
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
-		text: "/00:00"
+		text: duration_ ? ("/" + DateFunctions.msToTimeString(duration_)) : "/00:00"
 
 		function setTotalTime(ms) {
 			text = "/" + DateFunctions.msToTimeString(ms);

@@ -84,6 +84,19 @@ void UploadMediaCommand::process(const std::vector<std::string>& args) {
 			}
 		}
 
+		// check extra parameters
+		std::vector<std::string> lFileParams;
+		boost::split(lFileParams, file_, boost::is_any_of(","));
+		if (lFileParams.size() > 1) {
+			// o - file
+			file_ = lFileParams[0];
+			// 1 - duration, ms
+			if (!boost::conversion::try_lexical_convert<unsigned int>(lFileParams[1], duration_)) {
+				error("E_DURATION_INVALID", "Duration is invalid.");
+				return;
+			}
+		}
+
 		// try file
 		boost::filesystem::path lPath(file_);
 		if (!boost::filesystem::exists(lPath)) {
@@ -489,7 +502,7 @@ void UploadMediaCommand::continueSendData() {
 			SKeyPtr lSKey = composer_->wallet()->firstKey();
 			uint256 lNamePart = Random::generate(*lSKey);
 			IComposerMethodPtr lCreateHeader = CubixLightComposer::CreateTxMediaHeader::instance(composer_,
-				size_, lData, orientation_, lNamePart.toHex(), description_, mediaType_, summary_->chain(), prev_,
+				size_, lData, orientation_, duration_, lNamePart.toHex(), description_, mediaType_, summary_->chain(), prev_,
 				boost::bind(&UploadMediaCommand::headerCreated, shared_from_this(), boost::placeholders::_1));
 			// async process
 			lCreateHeader->process(boost::bind(&UploadMediaCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));

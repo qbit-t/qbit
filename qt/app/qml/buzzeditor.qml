@@ -562,6 +562,7 @@ QuarkPage {
 						path: "file://" + file,
 						media: "image",
 						size: 0,
+						duration: 0,
 						progress: 0,
 						uploaded: 0,
 						processing: 0 });
@@ -569,12 +570,13 @@ QuarkPage {
 					positionViewAtEnd();
 				}
 
-				function addAudio(file) {
+				function addAudio(file, duration) {
 					mediaModel.append({
 						key: file,
 						path: "file://" + file,
 						media: "audio",
 						size: 0,
+						duration: duration,
 						progress: 0,
 						uploaded: 0,
 						processing: 0 });
@@ -961,7 +963,7 @@ QuarkPage {
 			//
 			if (actualFileLocation !== "") {
 				// we have location and content saved
-				mediaList.addAudio(audioRecorder.actualFileLocation);
+				mediaList.addAudio(audioRecorder.actualFileLocation, duration);
 			}
 		}
 
@@ -969,7 +971,7 @@ QuarkPage {
 			//
 			if (isStopped) {
 				// we have location and content saved
-				mediaList.addAudio(audioRecorder.actualFileLocation);
+				mediaList.addAudio(audioRecorder.actualFileLocation, duration);
 			}
 		}
 
@@ -1118,7 +1120,7 @@ QuarkPage {
 		}
 
 		for (lIdx = 0; lIdx < mediaModel.count; lIdx++) {
-			buzzCommand.addMedia(mediaModel.get(lIdx).key);
+			buzzCommand.addMedia(mediaModel.get(lIdx).key + "," + mediaModel.get(lIdx).duration);
 		}
 
 		buzzCommand.process();
@@ -1148,7 +1150,7 @@ QuarkPage {
 		}
 
 		for (lIdx = 0; lIdx < mediaModel.count; lIdx++) {
-			rebuzzCommand.addMedia(mediaModel.get(lIdx).key);
+			rebuzzCommand.addMedia(mediaModel.get(lIdx).key + "," + mediaModel.get(lIdx).duration);
 		}
 
 		if (buzzId) rebuzzCommand.buzzId = buzzId;
@@ -1187,7 +1189,7 @@ QuarkPage {
 		}
 
 		for (lIdx = 0; lIdx < mediaModel.count; lIdx++) {
-			replyCommand.addMedia(mediaModel.get(lIdx).key);
+			replyCommand.addMedia(mediaModel.get(lIdx).key + "," + mediaModel.get(lIdx).duration);
 		}
 
 		if (buzzId) replyCommand.buzzId = buzzId;
@@ -1226,7 +1228,7 @@ QuarkPage {
 		}
 
 		for (lIdx = 0; lIdx < mediaModel.count; lIdx++) {
-			messageCommand.addMedia(mediaModel.get(lIdx).key);
+			messageCommand.addMedia(mediaModel.get(lIdx).key + "," + mediaModel.get(lIdx).duration);
 		}
 
 		messageCommand.process();
