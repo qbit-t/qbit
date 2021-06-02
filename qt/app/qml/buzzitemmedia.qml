@@ -84,7 +84,7 @@ Item {
 			//
 			var lItem = mediaList.itemAtIndex(mediaIndicator.currentIndex);
 			if (lItem) {
-				console.log("[onCurrentIndexChanged]: height = " + lItem.height);
+				//console.log("[onCurrentIndexChanged]: height = " + lItem.height);
 				mediaList.height = lItem.height;
 				buzzitemmedia_.height = mediaList.height;
 				calculatedHeight = mediaList.height;
