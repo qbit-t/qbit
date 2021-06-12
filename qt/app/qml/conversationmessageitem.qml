@@ -213,7 +213,7 @@ Item {
 		id: messageMetrics
 		font.family: buzzText.font.family
 		text: conversationMessage()
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : buzzText.defaultFontPointSize
 
 		function getX(pwidth) {
 			//
@@ -428,6 +428,9 @@ Item {
 						buzzMediaItem_ = lComponent.createObject(bodyControl);
 						buzzMediaItem_.calculatedHeightModified.connect(innerHeightChanged);
 
+						buzzMediaItem_.frameColor = myMessage_ ?
+											 buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.conversation.message.my") :
+											 buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.conversation.message.other");
 						buzzMediaItem_.x = 0;
 						buzzMediaItem_.y = bodyControl.getY();
 						buzzMediaItem_.calculatedWidth = bodyControl.width;

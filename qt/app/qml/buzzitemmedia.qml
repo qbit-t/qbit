@@ -27,6 +27,7 @@ Item {
 	property var buzzId_: buzzId
 	property var buzzMedia_: buzzMedia
 	property var controller_: controller
+	property var frameColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
 
 	readonly property int maxCalculatedWidth_: 600
 	readonly property int spaceLeft_: 15
@@ -214,6 +215,7 @@ Item {
 					mediaFrame.mediaItem = lComponent.createObject(mediaFrame);
 					mediaFrame.mediaItem.adjustHeight.connect(mediaFrame.adjustHeight);
 
+					mediaFrame.mediaItem.frameColor = buzzitemmedia_.frameColor;
 					mediaFrame.mediaItem.width = mediaList.width;
 					mediaFrame.mediaItem.mediaList = mediaList;
 					mediaFrame.mediaItem.buzzitemmedia_ = buzzitemmedia_;

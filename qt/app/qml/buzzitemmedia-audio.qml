@@ -43,6 +43,7 @@ Rectangle {
 	property bool mediaView: false
 	property int originalDuration: duration_
 	property int totalSize_: size_
+	property var frameColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
 
 	//
 	property var buzzitemmedia_;

@@ -45,6 +45,7 @@ Rectangle {
 	property int originalDuration: duration_
 	property int totalSize_: size_
 	property int calculatedHeight: 600
+	property var frameColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
 
 	//
 	property var buzzitemmedia_;
@@ -344,7 +345,7 @@ Rectangle {
 		width: videoOutput.contentRect.width + 2
 		height: videoOutput.contentRect.height + 2
 
-		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
+		color: frameColor
 		backgroundColor: "transparent"
 		radius: 14
 		penWidth: 9
