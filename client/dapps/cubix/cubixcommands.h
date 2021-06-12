@@ -110,7 +110,8 @@ public:
 
 			return false;
 		} else {
-			std::cout << msg << tx.toHex() << std::endl;
+			// std::cout << msg << tx.toHex() << std::endl;
+			gLog().writeClient(Log::CLIENT, strprintf("%s %s", msg, tx.toHex()));
 		}
 
 		return true;
@@ -133,6 +134,7 @@ private:
 
 	uint64_t size_ = 0;
 	std::string file_;
+	std::string previewFile_;
 	std::string description_;
 
 	std::vector<std::string> args_;

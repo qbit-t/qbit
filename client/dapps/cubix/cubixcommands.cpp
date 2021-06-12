@@ -31,6 +31,9 @@ void UploadMediaCommand::process(const std::vector<std::string>& args) {
 	peer_ = nullptr;
 	previewWidth_ = 0;
 	previewHeight_ = 0;
+	previewFile_ = "";
+	orientation_ = 0;
+	duration_ = 0;
 
 	args_ = args;
 
@@ -88,12 +91,38 @@ void UploadMediaCommand::process(const std::vector<std::string>& args) {
 		std::vector<std::string> lFileParams;
 		boost::split(lFileParams, file_, boost::is_any_of(","));
 		if (lFileParams.size() > 1) {
-			// o - file
+			// 0 - file
 			file_ = lFileParams[0];
+
 			// 1 - duration, ms
 			if (!boost::conversion::try_lexical_convert<unsigned int>(lFileParams[1], duration_)) {
 				error("E_DURATION_INVALID", "Duration is invalid.");
 				return;
+			}
+
+			// 2 - preview
+			if (lFileParams.size() > 2) {
+				//
+				if (lFileParams[2] != "none") {
+					//
+					previewFile_ = lFileParams[2];
+
+					// try preview file
+					boost::filesystem::path lPath(previewFile_);
+					if (!boost::filesystem::exists(lPath)) {
+						error("E_PREVIEW_FILE_NOT_EXISTS", "Preview file does not exists.");
+						return;
+					}
+				}
+			}
+
+			// 3 - orientation
+			if (lFileParams.size() > 3) {
+				//
+				if (!boost::conversion::try_lexical_convert<unsigned short>(lFileParams[3], orientation_)) {
+					error("E_ORIENTATION_INVALID", "Orientation is invalid.");
+					return;
+				}
 			}
 		}
 
@@ -421,6 +450,11 @@ void UploadMediaCommand::startSendData() {
 		return;
 	}
 
+	if ((mediaType_ == TxMediaHeader::VIDEO_MJPEG || mediaType_ == TxMediaHeader::VIDEO_MP4) && !previewFile_.size()) {
+		error("E_PREVIEW_FILE_NOT_SUPPLIED", "Preview file was not supplied");
+		return;
+	}
+
 	// initial setup
 	if (progress_) progress_(file_, 0, size_);
 
@@ -449,28 +483,51 @@ void UploadMediaCommand::startSendData() {
 		// for audio there is no preview
 		mediaFile_ = std::ifstream(file_, std::ios::binary);
 		continueSendData();
-	} // else if (...video...) {}
+	} else if (mediaType_ == TxMediaHeader::VIDEO_MJPEG || mediaType_ == TxMediaHeader::VIDEO_MP4) {
+		// video has preview
+		std::ifstream lStream(previewFile_, std::ios::binary);
+		//
+		if (pkey_.valid()) {
+			// data
+			std::vector<unsigned char> lPreviewData;
+			lPreviewData.insert(lPreviewData.end(),
+					std::istreambuf_iterator<char>(lStream),
+					std::istreambuf_iterator<char>());
+
+			// make cypher
+			SKeyPtr lSKey = composer_->wallet()->firstKey();
+			uint256 lNonce = lSKey->shared(pkey_);
+			encrypt(lNonce, lPreviewData, previewData_);
+		} else {
+			previewData_.insert(previewData_.end(),
+					std::istreambuf_iterator<char>(lStream),
+					std::istreambuf_iterator<char>());
+		}
+
+		mediaFile_ = std::ifstream(file_, std::ios::binary);
+		continueSendData();
+	}
 }
 
 bool UploadMediaCommand::readNextChunk(int64_t& pos, std::vector<unsigned char>& data) {
 	//
-	int lSize = (pos + CUBIX_MAX_DATA_CHUNK > size_ ? size_ - pos : CUBIX_MAX_DATA_CHUNK);
+	int lSize = (pos + CUBIX_MAX_DATA_CHUNK > (int64_t)size_ ? (int64_t)size_ - pos : CUBIX_MAX_DATA_CHUNK);
 	data.resize(lSize);
 
 	pos += lSize;
 	mediaFile_.seekg(-pos, std::ios::end);
 	mediaFile_.read((char*)&data[0], lSize);
 
-	if (pos == size_) return true;
+	if (pos == (int64_t)size_) return true;
 	return false;
 }
 
 void UploadMediaCommand::continueSendData() {
 	//
 	// at the top
-	if (pos_ == size_) {
+	if (pos_ == (int64_t)size_) {
 		//
-		if (mediaType_ == TxMediaHeader::IMAGE_JPEG || mediaType_ == TxMediaHeader::IMAGE_PNG) {
+		if (previewData_.size()) {
 			// make media header and put data
 			SKeyPtr lSKey = composer_->wallet()->firstKey();
 			uint256 lNamePart = Random::generate(*lSKey);
@@ -497,7 +554,7 @@ void UploadMediaCommand::continueSendData() {
 		}
 
 		//
-		if (lEnd && !(mediaType_ == TxMediaHeader::IMAGE_JPEG || mediaType_ == TxMediaHeader::IMAGE_PNG)) {
+		if (lEnd && !previewData_.size()) {
 			// make media header and put data
 			SKeyPtr lSKey = composer_->wallet()->firstKey();
 			uint256 lNamePart = Random::generate(*lSKey);
@@ -619,7 +676,7 @@ void DownloadMediaCommand::process(const std::vector<std::string>& args) {
 			unsigned short lOrientation = 0;
 			unsigned int lDuration = 0;
 			uint64_t lSize = 0;
-			TxMediaHeader::Type lType = TxMediaHeader::Type::UNKNOWN;
+			unsigned short lType = TxMediaHeader::Type::UNKNOWN;
 			for (std::list<std::string>::iterator lExtension = lExtensions.begin(); lExtension != lExtensions.end(); lExtension++) {
 				localPreviewFileName_ = lPreviewFile + *lExtension;
 				boost::filesystem::path lPath(localPreviewFileName_);
@@ -630,9 +687,11 @@ void DownloadMediaCommand::process(const std::vector<std::string>& args) {
 					lPreviewFileMeta.read((char*)&lOrientation, 2);
 					lPreviewFileMeta.read((char*)&lDuration, sizeof(unsigned int));
 					lPreviewFileMeta.read((char*)&lSize, sizeof(uint64_t));
+					lPreviewFileMeta.read((char*)&lType, sizeof(unsigned short));
 					lPreviewFileMeta.close();
 
-					lType = TxMediaHeader::extensionToMediaType(*lExtension);
+					if (lType == TxMediaHeader::Type::UNKNOWN)
+						lType = TxMediaHeader::extensionToMediaType(*lExtension);
 
 					break;
 				}
@@ -646,6 +705,7 @@ void DownloadMediaCommand::process(const std::vector<std::string>& args) {
 					boost::filesystem::path lPath(localFileName_);
 					if (boost::filesystem::exists(lPath)) {
 						lOriginalExists = true;
+						lType = TxMediaHeader::extensionToMediaType(*lExtension);
 						break;
 					}
 				}
@@ -707,7 +767,7 @@ void DownloadMediaCommand::headerLoaded(TransactionPtr tx) {
 
 		bool lOriginal = (header_->size() <= CUBIX_MAX_DATA_CHUNK);
 		localFileName_ = localFile_ + header_->mediaTypeToExtension();
-		localPreviewFileName_ = localFile_ + "-preview" + header_->mediaTypeToExtension();
+		localPreviewFileName_ = localFile_ + "-preview" + header_->previewMediaTypeToExtension();
 
 		/*
 		if (gLog().isEnabled(Log::CLIENT))
@@ -747,9 +807,11 @@ void DownloadMediaCommand::headerLoaded(TransactionPtr tx) {
 		unsigned short lOrientation = header_->orientation();
 		unsigned int lDuration = header_->duration();
 		uint64_t lSize = header_->size();
+		unsigned short lType = header_->mediaType();
 		lPreviewFileMeta.write((char*)&lOrientation, 2);
 		lPreviewFileMeta.write((char*)&lDuration, sizeof(unsigned int));
 		lPreviewFileMeta.write((char*)&lSize, sizeof(uint64_t));
+		lPreviewFileMeta.write((char*)&lType, sizeof(unsigned short));
 		lPreviewFileMeta.close();
 
 		if (lOriginal) std::cout << "     original file: " << localFileName_ << std::endl;	

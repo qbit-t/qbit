@@ -79,6 +79,16 @@ Item {
 		layoutDirection:  Qt.LeftToRight
 		snapMode: ListView.SnapOneItem
 
+		function adjustItems() {
+			//
+			for (var lIdx = 0; lIdx < mediaList.count; lIdx++) {
+				var lItem = mediaList.itemAtIndex(lIdx);
+				if (lItem) {
+					lItem.mediaItem.adjust();
+				}
+			}
+		}
+
 		onContentXChanged: {
 			mediaIndicator.currentIndex = indexAt(contentX, 1);
 			//
@@ -98,9 +108,13 @@ Item {
 		model: ListModel { id: mediaModel }
 
 		onWidthChanged: {
+			adjustItems();
+
+			/*
 			if (currentItem && currentItem.mediaItem) {
 				currentItem.mediaItem.adjust();
 			}
+			*/
 		}
 
 		delegate: Rectangle {
@@ -142,6 +156,14 @@ Item {
 				}
 			}
 
+			function adjustHeight(proposed) {
+				//
+				if (index === mediaIndicator.currentIndex) {
+					//
+					buzzitemmedia_.calculatedHeight = proposed;
+				}
+			}
+
 			BuzzerCommands.DownloadMediaCommand {
 				id: downloadCommand
 				preview: true
@@ -159,10 +181,12 @@ Item {
 
 				onProcessed: {
 					// tx, previewFile, originalFile, orientation, duration, size, type
-					// console.log(tx + ", " + previewFile + ", " + originalFile + ", " + orientation + ", " + duration + ", " + size + ", " + type);
+					console.log(tx + ", " + previewFile + ", " + originalFile + ", " + orientation + ", " + duration + ", " + size + ", " + type);
 
 					// stop timer
 					downloadWaitTimer.stop();
+					// set preview
+					preview_ = "file://" + previewFile;
 					// set file
 					if (preview) path_ = "file://" + previewFile;
 					else path_ = "file://" + originalFile;
@@ -182,9 +206,13 @@ Item {
 					var lSource = "qrc:/qml/buzzitemmedia-image.qml";
 					if (type === "audio")
 						lSource = "qrc:/qml/buzzitemmedia-audio.qml";
+					else if (type === "video")
+						lSource = "qrc:/qml/buzzitemmedia-video.qml";
+
 					lComponent = Qt.createComponent(lSource);
 
 					mediaFrame.mediaItem = lComponent.createObject(mediaFrame);
+					mediaFrame.mediaItem.adjustHeight.connect(mediaFrame.adjustHeight);
 
 					mediaFrame.mediaItem.width = mediaList.width;
 					mediaFrame.mediaItem.mediaList = mediaList;
@@ -194,7 +222,12 @@ Item {
 					mediaFrame.width = mediaList.width;
 
 					// reset height
-					if (index === 0) buzzitemmedia_.calculatedHeight = mediaFrame.height;
+					if (index === 0 && !buzzitemmedia_.calculatedHeight) {
+						// mediaList.height = mediaFrame.mediaItem.height;
+						buzzitemmedia_.calculatedHeight = mediaFrame.height;
+					}
+
+					//mediaFrame.mediaItem.adjust();
 				}
 
 				onError: {
@@ -244,6 +277,7 @@ Item {
 				key_: file,
 				url_: url,
 				path_: "",
+				preview_: "",
 				media_: "unknown",
 				size_: 0,
 				duration_: 0,

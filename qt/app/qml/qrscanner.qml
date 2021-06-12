@@ -37,7 +37,10 @@ QuarkPage
 
     function closePage()
     {
-        stopPage();
+		//
+		buzzerApp.unlockOrientation();
+		//
+		stopPage();
         destroy(500);
         controller.popPage();
     }

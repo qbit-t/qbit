@@ -6,7 +6,7 @@ QT += multimedia multimediawidgets qml quick quickcontrols2 widgets quickwidgets
 CONFIG += c++11
 CONFIG += static
 
-VERSION = 0.1.3.20
+VERSION = 0.1.3.21
 DEFINES += VERSION_STRING=\\\"$${VERSION}\\\"
 DEFINES += QT_ENVIRONMENT
 DEFINES += HAVE_CONFIG_H
@@ -18,7 +18,7 @@ DEFINES += DESKTOP_PLATFORM
 DEFINES += QBIT_VERSION_MAJOR=0
 DEFINES += QBIT_VERSION_MINOR=1
 DEFINES += QBIT_VERSION_REVISION=3
-DEFINES += QBIT_VERSION_BUILD=20
+DEFINES += QBIT_VERSION_BUILD=21
 
 DEFINES += BUZZER_MOD
 DEFINES += CUBIX_MOD
@@ -199,7 +199,12 @@ DISTFILES += \
     qml/setupqbit-desktop.qml \
     qml/setupqbitaddress-desktop.qml \
     qml/setuptoolbar-desktop.qml \
-    qml/walletreceivereceipt-desktop.qml
+    qml/walletreceivereceipt-desktop.qml \
+    qml/buzzitemmedia-audio.qml \
+    qml/buzzitemmedia-image.qml \
+    qml/buzzitemmedia-video.qml \
+    qml/buzzitemmediaview-image.qml \
+    qml/buzzitemmediaview-video.qml
 
 HEADERS += \
     asiodispatcher.h \

@@ -121,6 +121,9 @@ QuarkPage {
 	readonly property int spaceLine_: 4
 	readonly property int spaceMedia_: 20
 
+	onWidthChanged: {
+	}
+
 	// only once to pop-up system keyboard
 	Timer {
 		id: startUp
@@ -489,6 +492,16 @@ QuarkPage {
 				return lPos ? lPos : y;
 			}
 
+			function orientationChanged() {
+				//
+				var lOrientation = 0; // vertical
+				if (buzzeditor_.width > buzzeditor_.height) lOrientation = 1; // horizontal
+
+				for (lIdx = 0; lIdx < mediaModel.count; lIdx++) {
+					mediaModel.get(lIdx).mediaItem.adjustOrientation(lOrientation);
+				}
+			}
+
 			property var calculatedHeight: 400
 
 			QuarkListView {
@@ -522,14 +535,16 @@ QuarkPage {
 
 				model: ListModel { id: mediaModel }
 
-				delegate: ItemDelegate {
+				delegate: Item {
 					id: itemDelegate
 
 					property var mediaItem;
 
+					/*
 					onClicked: {
 						//
 					}
+					*/
 
 					onWidthChanged: {
 						if (mediaItem) {
@@ -542,6 +557,8 @@ QuarkPage {
 						var lSource = "qrc:/qml/buzzitemmedia-editor-image.qml";
 						if (media === "audio") {
 							lSource = "qrc:/qml/buzzitemmedia-editor-audio.qml";
+						} else if (media === "video") {
+							lSource = "qrc:/qml/buzzitemmedia-editor-video.qml";
 						}
 
 						var lComponent = Qt.createComponent(lSource);
@@ -557,28 +574,59 @@ QuarkPage {
 				}
 
 				function addMedia(file) {
+					var lOrientation = 0; // vertical
+					if (buzzeditor_.width > buzzeditor_.height) lOrientation = 1; // horizontal
+
 					mediaModel.append({
 						key: file,
 						path: "file://" + file,
+						preview: "none",
 						media: "image",
 						size: 0,
 						duration: 0,
 						progress: 0,
 						uploaded: 0,
+						orientation: lOrientation,
 						processing: 0 });
 
 					positionViewAtEnd();
 				}
 
 				function addAudio(file, duration) {
+					var lOrientation = 0; // vertical
+					if (buzzeditor_.width > buzzeditor_.height) lOrientation = 1; // horizontal
+
 					mediaModel.append({
 						key: file,
 						path: "file://" + file,
+						preview: "none",
 						media: "audio",
 						size: 0,
 						duration: duration,
 						progress: 0,
 						uploaded: 0,
+						orientation: lOrientation,
+						processing: 0 });
+
+					positionViewAtEnd();
+				}
+
+				function addVideo(file, duration, orientation, preview) {
+					/*
+					var lOrientation = 0; // vertical
+					if (buzzeditor_.width > buzzeditor_.height) lOrientation = 1; // horizontal
+					*/
+
+					mediaModel.append({
+						key: file,
+						path: "file://" + file,
+						preview: preview,
+						media: "video",
+						size: 0,
+						duration: duration,
+						progress: 0,
+						uploaded: 0,
+						orientation: orientation,
 						processing: 0 });
 
 					positionViewAtEnd();
@@ -676,6 +724,43 @@ QuarkPage {
 			}
 		}
 
+		QuarkToolButton {
+			id: addVideoButton
+			Material.background: "transparent"
+			visible: true
+			labelYOffset: 3
+			symbolColor: !sending ?
+							 buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground") :
+							 buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
+			Layout.alignment: Qt.AlignHCenter
+			symbol: Fonts.videoSym
+
+			x: addPhotoButton.x + addPhotoButton.width // + spaceItems_
+			y: parent.height / 2 - height / 2
+
+			onClicked: {
+				if (sending) return;
+
+				var lComponent = null;
+				var lPage = null;
+
+				lComponent = Qt.createComponent("qrc:/qml/camera-video.qml");
+				if (lComponent.status === Component.Error) {
+					controller.showError(lComponent.errorString());
+				} else {
+					lPage = lComponent.createObject(window);
+					lPage.controller = controller;
+					lPage.videoReady.connect(videoTaken);
+
+					addPage(lPage);
+				}
+			}
+
+			function videoTaken(path, duration, orientation, preview) {
+				mediaList.addVideo(path, duration, orientation, preview);
+			}
+		}
+
 		QuarkRoundState {
 			id: addAudioFrame
 			x: addAudioButton.x + 6
@@ -700,7 +785,7 @@ QuarkPage {
 			Layout.alignment: Qt.AlignHCenter
 			symbol: audioRecorder.isRecording ? Fonts.dotCircle2Sym : Fonts.microphoneSym
 
-			x: addPhotoButton.x + addPhotoButton.width // + spaceItems_
+			x: addVideoButton.x + addVideoButton.width // + spaceItems_
 			y: parent.height / 2 - height / 2
 
 			onClicked: {
@@ -747,7 +832,7 @@ QuarkPage {
 		ProgressBar {
 			id: createProgressBar
 
-			x: addPhotoButton.x + addPhotoButton.width + spaceItems_
+			x: addAudioButton.x + addAudioButton.width + spaceItems_
 			y: parent.height / 2 - height / 2
 			width: countProgress.x - x - spaceRight_
 			visible: false
@@ -1120,7 +1205,10 @@ QuarkPage {
 		}
 
 		for (lIdx = 0; lIdx < mediaModel.count; lIdx++) {
-			buzzCommand.addMedia(mediaModel.get(lIdx).key + "," + mediaModel.get(lIdx).duration);
+			buzzCommand.addMedia(mediaModel.get(lIdx).key + "," +
+								 mediaModel.get(lIdx).duration + "," +
+								 mediaModel.get(lIdx).preview + "," +
+								 mediaModel.get(lIdx).orientation);
 		}
 
 		buzzCommand.process();
@@ -1150,7 +1238,10 @@ QuarkPage {
 		}
 
 		for (lIdx = 0; lIdx < mediaModel.count; lIdx++) {
-			rebuzzCommand.addMedia(mediaModel.get(lIdx).key + "," + mediaModel.get(lIdx).duration);
+			rebuzzCommand.addMedia(mediaModel.get(lIdx).key + "," +
+								   mediaModel.get(lIdx).duration + "," +
+								   mediaModel.get(lIdx).preview + "," +
+								   mediaModel.get(lIdx).orientation);
 		}
 
 		if (buzzId) rebuzzCommand.buzzId = buzzId;
@@ -1189,7 +1280,10 @@ QuarkPage {
 		}
 
 		for (lIdx = 0; lIdx < mediaModel.count; lIdx++) {
-			replyCommand.addMedia(mediaModel.get(lIdx).key + "," + mediaModel.get(lIdx).duration);
+			replyCommand.addMedia(mediaModel.get(lIdx).key + "," +
+								  mediaModel.get(lIdx).duration + "," +
+								  mediaModel.get(lIdx).preview + "," +
+								  mediaModel.get(lIdx).orientation);
 		}
 
 		if (buzzId) replyCommand.buzzId = buzzId;
@@ -1228,7 +1322,10 @@ QuarkPage {
 		}
 
 		for (lIdx = 0; lIdx < mediaModel.count; lIdx++) {
-			messageCommand.addMedia(mediaModel.get(lIdx).key + "," + mediaModel.get(lIdx).duration);
+			messageCommand.addMedia(mediaModel.get(lIdx).key + "," +
+									mediaModel.get(lIdx).duration + "," +
+									mediaModel.get(lIdx).preview + "," +
+									mediaModel.get(lIdx).orientation);
 		}
 
 		messageCommand.process();

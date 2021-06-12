@@ -207,13 +207,28 @@ public:
 	inline std::string mediaTypeToExtension() {
 		//
 		switch(mediaType_) {
-			case UNKNOWN: return ".unknown";
-			case IMAGE_PNG: return ".png";
-			case IMAGE_JPEG: return ".jpeg";
-			case VIDEO_MJPEG: return ".mjpeg";
-			case VIDEO_MP4: return ".mp4";
-			case AUDIO_PCM: return ".wav";
-			case AUDIO_AMR: return ".amr";
+		    case UNKNOWN: return ".unknown";
+		    case IMAGE_PNG: return ".png";
+		    case IMAGE_JPEG: return ".jpeg";
+		    case VIDEO_MJPEG: return ".mjpeg";
+		    case VIDEO_MP4: return ".mp4";
+		    case AUDIO_PCM: return ".wav";
+		    case AUDIO_AMR: return ".amr";
+		}
+
+		return "UNKNOWN";
+	}
+
+	inline std::string previewMediaTypeToExtension() {
+		//
+		switch(mediaType_) {
+		    case UNKNOWN: return ".unknown";
+		    case IMAGE_PNG: return ".png";
+		    case IMAGE_JPEG: return ".jpeg";
+		    case VIDEO_MJPEG: return ".jpeg"; //!
+		    case VIDEO_MP4: return ".jpeg"; //!
+		    case AUDIO_PCM: return ".wav";
+		    case AUDIO_AMR: return ".amr";
 		}
 
 		return "UNKNOWN";

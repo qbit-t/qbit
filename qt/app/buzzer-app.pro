@@ -1,11 +1,11 @@
 TARGET = buzzer
 
-android: QT += qml quick quickcontrols2 androidextras multimedia
+android: QT += qml quick quickcontrols2 androidextras multimedia sensors
 else: QT += qml quick quickcontrols2 multimedia
 
 CONFIG += c++11
 
-VERSION = 0.1.3.20
+VERSION = 0.1.3.21
 DEFINES += VERSION_STRING=\\\"$${VERSION}\\\"
 DEFINES += QT_ENVIRONMENT
 DEFINES += BUZZER_MOD
@@ -18,7 +18,7 @@ DEFINES += CLIENT_PLATFORM
 DEFINES += QBIT_VERSION_MAJOR=0
 DEFINES += QBIT_VERSION_MINOR=1
 DEFINES += QBIT_VERSION_REVISION=3
-DEFINES += QBIT_VERSION_BUILD=20
+DEFINES += QBIT_VERSION_BUILD=21
 
 DEFINES += BUZZER_MOD
 DEFINES += CUBIX_MOD
@@ -90,6 +90,7 @@ SOURCES += \
     applicationpath.cpp \
     peerslistmodel.cpp \
     settings.cpp \
+    videorecorder.cpp \
     wallettransactionslistmodel.cpp \
     websourceinfo.cpp
 
@@ -160,8 +161,12 @@ DISTFILES += \
     qml/buzzitemmedia-audio.qml \
     qml/buzzitemmedia-editor-audio.qml \
     qml/buzzitemmedia-editor-image.qml \
+    qml/buzzitemmedia-editor-video.qml \
     qml/buzzitemmedia-image.qml \
+    qml/buzzitemmedia-video.qml \
     qml/buzzitemmediaview-image.qml \
+    qml/buzzitemmediaview-video.qml \
+    qml/camera-video.qml \
     qml/conversationitem.qml \
     qml/conversationmessageitem.qml \
     qml/conversationsfeed.qml \
@@ -206,6 +211,7 @@ HEADERS += \
 	../../client/dapps/cubix/cubixcommands.h \
 	../../client/dapps/cubix/cubixcomposer.h \
 	../../client/commands.h \
+    videorecorder.h \
     wallettransactionslistmodel.h \
     websourceinfo.h
 

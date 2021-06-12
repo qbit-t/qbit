@@ -41,17 +41,14 @@ Rectangle {
 	readonly property int spaceThreadedItems_: 4
 	readonly property real defaultFontSize: 11
 	property bool mediaView: false
-	property int originalDuration: duration_;
+	property int originalDuration: duration_
+	property int totalSize_: size_
 
 	//
 	property var buzzitemmedia_;
 	property var mediaList;
 
-	//
-	onOriginalDurationChanged: {
-		//console.log("[onOriginalDurationChanged]: originalDuration = " + originalDuration);
-		//if (originalDuration) playSlider.to = originalDuration;
-	}
+	signal adjustHeight(var proposed);
 
 	//
 	x: mediaView ? getX() : 0
@@ -65,6 +62,10 @@ Rectangle {
 
 	onMediaViewChanged: {
 		adjust();
+	}
+
+	onTotalSize_Changed: {
+		totalSize.setTotalSize(size_);
 	}
 
 	function adjust() {
@@ -88,7 +89,7 @@ Rectangle {
 		y: 0
 		width: parent.width
 		height: parent.height
-		enabled: true
+		enabled: !mediaView
 		cursorShape: Qt.PointingHandCursor
 
 		ItemDelegate {
@@ -97,12 +98,9 @@ Rectangle {
 			y: 0
 			width: parent.width
 			height: parent.height
-			enabled: true
+			enabled: !mediaView
 
 			onClicked: {
-				//
-				if (mediaView) return;
-
 				// expand
 				var lSource;
 				var lComponent;
@@ -221,6 +219,7 @@ Rectangle {
 				downloadCommand.processing = false;
 				downloadCommand.terminate();
 			} else if (!player.playing) {
+				symbol = Fonts.cancelSym;
 				player.play();
 			} else {
 				player.pause();
@@ -361,8 +360,11 @@ Rectangle {
 			// stop spinning
 			mediaLoading.visible = false;
 
-			//
+			// adjust button
 			actionButton.adjust();
+
+			// autoplay
+			if (!player.playing) player.play();
 		}
 
 		onError: {

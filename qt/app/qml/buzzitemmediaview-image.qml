@@ -25,7 +25,7 @@ Rectangle {
 	//
 	property int calculatedHeight: parent.height
 	property int calculatedWidth: 500
-	property var createViewHandler: null;
+	property var createViewHandler: null
 	readonly property int spaceLeft_: 15
 	readonly property int spaceTop_: 12
 	readonly property int spaceRight_: 15
@@ -63,6 +63,18 @@ Rectangle {
 		mediaImage.adjustView();
 	}
 
+	function showLoading() {
+		mediaLoading.visible = true;
+	}
+
+	function hideLoading() {
+		mediaLoading.visible = false;
+	}
+
+	function loadingProgress(pos, size) {
+		mediaLoading.progress(pos, size);
+	}
+
 	//
 	color: "transparent"
 	// border.color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
@@ -80,7 +92,7 @@ Rectangle {
 
 		fillMode: Image.PreserveAspectFit
 		mipmap: true
-		source: path_
+		source: usePreview_ ? preview_ : path_
 
 		property int widthEvents: calculatedWidth
 
@@ -168,4 +180,35 @@ Rectangle {
 			}
 		}
 	}
+
+	QuarkRoundProgress {
+		id: mediaLoading
+		x: parent.width / 2 - width / 2
+		y: parent.height / 2 - height / 2
+		size: buzzerClient.scaleFactor * 50
+		colorCircle: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link")
+		colorBackground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link")
+		arcBegin: 0
+		arcEnd: 0
+		lineWidth: buzzerClient.scaleFactor * 3
+		visible: false
+
+		QuarkSymbolLabel {
+			id: waitSymbol
+			anchors.fill: parent
+			symbol: Fonts.clockSym
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (mediaLoading.size-10)) : (mediaLoading.size-10)
+			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link")
+			visible: mediaLoading.visible
+		}
+
+		function progress(pos, size) {
+			//
+			waitSymbol.visible = false;
+			//
+			var lPercent = (pos * 100) / size;
+			arcEnd = (360 * lPercent) / 100;
+		}
+	}
+
 }

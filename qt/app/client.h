@@ -263,6 +263,10 @@ public:
 
 	Q_INVOKABLE long getQbitRate();
 
+	Q_INVOKABLE QString generateRandom() {
+		return QString::fromStdString(qbit::Random::generate().toHex());
+	}
+
 	Q_INVOKABLE void forceResolveBuzzerInfos() {
 		buzzer_->resolveBuzzerInfos();
 	}

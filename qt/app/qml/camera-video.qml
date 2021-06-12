@@ -8,19 +8,28 @@ import QtQuick.Controls.Universal 2.1
 import Qt.labs.settings 1.0
 import QtQuick.Dialogs 1.1
 import StatusBar 0.1
+import QtSensors 5.15
+
+import app.buzzer.components 1.0 as BuzzerComponents
 
 import "qrc:/fonts"
 import "qrc:/components"
 import "qrc:/qml"
 
+import "qrc:/lib/dateFunctions.js" as DateFunctions
+
 QuarkPage {
-	id: cameraPage_
+	id: cameraVideoPage_
+
+	property var localPath: buzzerClient.getTempFilesPath() + "/" + buzzerClient.generateRandom()
+	signal videoReady(var path, var duration, var orientation, var preview);
 
     width: parent.width
     height: parent.height
 
 	Component.onCompleted: {
-        buzzerApp.lockPortraitOrientation();
+		orientationSensor.start();
+		buzzerApp.lockPortraitOrientation();
         closePageHandler = closePage;
     }
 
@@ -30,39 +39,87 @@ QuarkPage {
 	function closePage() {
 		//
 		buzzerApp.unlockOrientation();
+		orientationSensor.stop();
 		//
 		stopPage();
         controller.popPage();
 		destroy(1000);
 	}
 
+	// recording control
+	Timer {
+		id: recordingVideo
+		interval: 500
+		repeat: true
+		running: false
+
+		onTriggered: {
+			//
+			if (cameraDevice.videoRecorder.duration >= 1 * 60 * 1000) {
+				// we are done
+				buzzerApp.wakeRelease(); // release
+				cameraDevice.videoRecorder.stop();
+				recordingVideo.start();
+			}
+		}
+	}
+
+	OrientationSensor {
+		id: orientationSensor
+		onReadingChanged: {
+			// console.log("[onReadingChanged]: " + reading.orientation);
+			videoRecorder.orientation = reading.orientation;
+		}
+	}
+
 	Camera {
 		id: cameraDevice
 
-		//imageProcessing.whiteBalanceMode: CameraImageProcessing.WhiteBalanceFlash
-
         focus.focusMode: Camera.FocusContinuous
-		captureMode: Camera.CaptureStillImage
-
-		imageCapture {
-			onImageSaved: {
-				cameraDevice.stop();
-				dataReady(path);
-				closePage();
-			}
-		}
-
+		captureMode: Camera.CaptureVideo
 		exposure {
 			exposureMode: Camera.ExposureAuto
             exposureCompensation: expoSlider.value
         }
 
 		flash.mode: Camera.FlashOff
-
         digitalZoom: zoomSlider.value
-
 		position: Camera.BackFace
     }
+
+	BuzzerComponents.VideoRecorder {
+		id: videoRecorder
+		localPath: buzzerClient.getTempFilesPath()
+		camera: cameraDevice
+
+		onDurationChanged: {
+			// max 5 min
+			var lPart = (duration * 100.0) / (1 * 60 * 1000);
+			videoCaptureProgress.progress = lPart * 360.0 / 100.0;
+			elapsedAudioTime.setTime(duration);
+		}
+
+		onStopped: {
+			//
+			if (actualFileLocation !== "") {
+				// we have location and content saved
+				videoReady(actualFileLocation, duration, unifiedOrientation, previewLocation);
+				closePage();
+			}
+		}
+
+		onActualFileLocationChanged: {
+			//
+			if (isStopped) {
+				// we have location and content saved
+				videoReady(actualFileLocation, duration, unifiedOrientation, previewLocation);
+				closePage();
+			}
+		}
+
+		onIsRecordingChanged: {
+		}
+	}
 
 	VideoOutput {
         id: viewfinder
@@ -89,9 +146,10 @@ QuarkPage {
 
 	QuarkToolButton {
 		id: flashButton
-		symbol: Fonts.flashSym
+		symbol: Fonts.flashLightSym
 		visible: true
 		labelYOffset: 3
+		symbolRotation: -90.0
 		x: rotateButton.x - (width + 5)
 		y: topOffset + 10
 
@@ -99,7 +157,7 @@ QuarkPage {
 
 		onClicked: {
 			if (cameraDevice.flash.mode === Camera.FlashOff) {
-				cameraDevice.flash.mode = Camera.FlashAuto;
+				cameraDevice.flash.mode = Camera.FlashVideoLight;
 				symbolColor = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground");
 			} else {
 				cameraDevice.flash.mode = Camera.FlashOff;
@@ -150,7 +208,55 @@ QuarkPage {
 		}
 
 		onClicked: {
-			cameraDevice.imageCapture.capture();
+			//
+			if (videoRecorder.isRecording) {
+				buzzerApp.wakeRelease(); // release
+				videoRecorder.stop();
+				recordingVideo.stop();
+			} else {
+				buzzerApp.wakeLock(); // lock from sleep
+				videoRecorder.record();
+				recordingVideo.start();
+			}
+		}
+
+		Rectangle {
+			id: fill
+			x: photoButton.contentItem.x
+			y: photoButton.contentItem.y
+			width: photoButton.contentItem.width
+			height: width
+			radius: width / 2
+			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.peer.banned")
+			visible: videoRecorder.isRecording
+		}
+	}
+
+	QuarkRoundProgress {
+		id: videoCaptureProgress
+		x: photoButton.x + 8
+		y: photoButton.y + 8
+		size: photoButton.width - 16
+		colorCircle: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link");
+		colorBackground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link");
+		arcBegin: 0
+		arcEnd: progress
+		lineWidth: 3
+		visible: videoRecorder.isRecording
+
+		property var progress: 0;
+	}
+
+	QuarkLabel {
+		id: elapsedAudioTime
+		x: photoButton.x + (photoButton.width / 2 - width / 2)
+		y: photoButton.y + photoButton.height + (parent.height - (photoButton.y + photoButton.height)) / 2 - height / 2
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 14) : 14
+		text: "00:00"
+		visible: videoRecorder.isRecording
+
+		function setTime(ms) {
+			text = DateFunctions.msToTimeString(ms);
 		}
 	}
 
@@ -179,7 +285,7 @@ QuarkPage {
             from: -3
             orientation: Qt.Vertical
             stepSize: 0.5
-			height: cameraPage_.height/3
+			height: cameraVideoPage_.height/3
         }
 
 		QuarkSymbolLabel {
@@ -214,7 +320,7 @@ QuarkPage {
             from: 1
             orientation: Qt.Vertical
             stepSize: 0.5
-			height: cameraPage_.height/3
+			height: cameraVideoPage_.height/3
         }
 
 		QuarkSymbolLabel {

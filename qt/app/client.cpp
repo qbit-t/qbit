@@ -21,6 +21,7 @@
 #include "emojimodel.h"
 #else
 #include "audiorecorder.h"
+#include "videorecorder.h"
 #endif
 
 #include <QQuickImageProvider>
@@ -335,6 +336,7 @@ int Client::open(QString secret) {
 #ifdef Q_OS_ANDROID
 	qmlRegisterType<buzzer::ImageListing>("app.buzzer.components", 1, 0, "ImageListing");
 	qmlRegisterType<buzzer::AudioRecorder>("app.buzzer.components", 1, 0, "AudioRecorder");
+	qmlRegisterType<buzzer::VideoRecorder>("app.buzzer.components", 1, 0, "VideoRecorder");
 #endif
 	qmlRegisterType<buzzer::BuzzTextHighlighter>("app.buzzer.components", 1, 0, "BuzzTextHighlighter");
 	qmlRegisterType<buzzer::WebSourceInfo>("app.buzzer.components", 1, 0, "WebSourceInfo");

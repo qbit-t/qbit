@@ -24,6 +24,7 @@ T.RoundButton
 	property int labelXOffset: 0;
 	property int labelYOffset: 0;
 	property real symbolFontPointSize: 18
+	property real symbolRotation: 0
 
 	font.family: Fonts.icons
     font.weight: Font.Normal
@@ -78,6 +79,7 @@ T.RoundButton
         color: symbolColor
         font.pointSize: symbolFontPointSize
 		antialiasing: buzzerApp.isDesktop ? false : antialiasing
+		rotation: symbolRotation
     }
 
 	background: Rectangle

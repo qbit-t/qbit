@@ -45,6 +45,8 @@ Rectangle {
 	property var buzzitemmedia_;
 	property var mediaList;
 
+	signal adjustHeight(var proposed);
+
 	onMediaListChanged: {
 		mediaImage.adjustView();
 	}
@@ -80,6 +82,10 @@ Rectangle {
 			//height = calculatedHeight;
 			//mediaList.height = Math.max(buzzitemmedia_.calculatedHeight, height);
 			//buzzitemmedia_.calculatedHeight = mediaList.height;
+
+			if (calculatedHeight < mediaImage.paintedHeight) {
+				calculatedHeight = mediaImage.paintedHeight;
+			}
 		}
 
 		width: mediaList.width - spaceItems_

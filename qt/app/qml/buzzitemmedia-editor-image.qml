@@ -48,6 +48,9 @@ Rectangle {
 		mediaImage.adjustView();
 	}
 
+	function adjustOrientation(orientation) {
+	}
+
 	//
 	color: "transparent"
 	width: mediaImage.width + 2 * spaceItems_

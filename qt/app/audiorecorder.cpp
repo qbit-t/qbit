@@ -84,7 +84,7 @@ void AudioRecorder::toggleRecord() {
 void AudioRecorder::actualLocationChanged(const QUrl& location) {
 	//
 	actualFileLocation_ = location.toLocalFile();
-	qInfo() << "[actualLocationChanged]" << actualFileLocation_;
+	// qInfo() << "[actualLocationChanged]" << actualFileLocation_;
 	emit actualFileLocationChanged();
 }
 

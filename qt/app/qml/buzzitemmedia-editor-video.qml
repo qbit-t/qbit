@@ -5,7 +5,8 @@ import QtQuick.Controls.Material 2.1
 import QtQuick.Controls.Universal 2.1
 import Qt.labs.settings 1.0
 import QtQuick.Dialogs 1.1
-import QtGraphicalEffects 1.0
+//import QtGraphicalEffects 1.0
+import QtGraphicalEffects 1.15
 import Qt.labs.folderlistmodel 2.11
 import QtMultimedia 5.8
 
@@ -21,7 +22,7 @@ import "qrc:/lib/dateFunctions.js" as DateFunctions
 
 Rectangle {
 	//
-	id: audioFrame
+	id: videoFrame
 
 	//
 	readonly property int spaceLeft_: 15
@@ -45,22 +46,115 @@ Rectangle {
 	property var mediaList;
 	property var mediaBox;
 
-	function adjustOrientation(orientation) {
+	onMediaBoxChanged: {
+		videoOutput.adjustView();
+	}
+
+	onHeightChanged: {
+		videoOutput.adjustView();
+	}
+
+	//
+	property var currentOrientation_: orientation;
+
+	onCurrentOrientation_Changed: {
+		//
+		if (buzzerApp.isDesktop) {
+			if (currentOrientation_ === 6) videoOutput.orientation = -90;
+			else if (currentOrientation_ === 3) videoOutput.orientation = -180;
+			else if (currentOrientation_ === 8) videoOutput.orientation = 90;
+			else videoOutput.orientation = 0;
+
+			console.log("[onCurrentOrientation_Changed]: orientation = " + currentOrientation_ + ", videoOutput.orientation = " + videoOutput.orientation);
+			videoOutput.adjustView();
+		}
+	}
+
+	//
+	function adjustOrientation(newOrientation) {
+		//
 	}
 
 	//
 	color: "transparent"
-	width: parent.width
-	height: actionButton.height + spaceTop_ + spaceBottom_
-	border.color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
-	radius: 8
+	width: player.width + 2 * spaceItems_
+	height: 600
 
 	//
-	Audio {
+	VideoOutput {
+		id: videoOutput
+
+		x: getX()
+		y: getY()
+
+		function getX() {
+			return parent.width / 2 - width / 2;
+		}
+
+		function getY() {
+			return 0;
+		}
+
+		function adjustView() {
+			if (mediaList) width = mediaList.width - 2 * spaceItems_;
+			if (mediaBox) {
+				mediaList.height = Math.max(mediaBox.calculatedHeight, parent.height);
+				mediaBox.calculatedHeight = mediaList.height;
+			}
+
+			height = videoOutput.contentRect.height;
+		}
+
+		width: parent.width
+		height: parent.height
+		source: player
+		fillMode: VideoOutput.PreserveAspectFit
+
+		onContentRectChanged: {
+			//
+			//console.log("[onContentRectChanged-2]: videoOutput.contentRect = " + videoOutput.contentRect + ", parent.height = " + parent.height);
+			if (videoOutput.contentRect.height > 0 && videoOutput.contentRect.height < parent.height) {
+				height = videoOutput.contentRect.height;
+			}
+		}
+	}
+
+	Timer {
+		id: loadTimer
+
+		interval: 1000
+		repeat: false
+		running: false
+
+		onTriggered: {
+			//
+			player.play();
+		}
+	}
+
+	//
+	QuarkRoundRectangle {
+		id: frameContainer
+		x: videoOutput.contentRect.x + spaceItems_ - 1
+		y: videoOutput.contentRect.y - 1
+		width: videoOutput.contentRect.width + 2
+		height: videoOutput.contentRect.height + 2
+
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
+		backgroundColor: "transparent"
+		radius: 14
+		penWidth: 9
+
+		visible: true
+	}
+
+	//
+	MediaPlayer {
 		id: player
 		source: path
 
 		property bool playing: false;
+		property bool intialized: false;
 
 		onPlaying: playing = true;
 		onPaused: playing = false;
@@ -69,10 +163,18 @@ Rectangle {
 		onStatusChanged: {
 			//
 			switch(status) {
-				case Audio.Loaded:
-					totalTime.setTotalTime(duration);
-					totalSize.setTotalSize(metaData.size);
-					playSlider.to = duration;
+				case MediaPlayer.Loaded:
+					if (!intialized) {
+						totalTime.setTotalTime(duration);
+						totalSize.setTotalSize(metaData.size);
+						playSlider.to = duration;
+						player.seek(1);
+						videoOutput.fillMode = VideoOutput.PreserveAspectFit;
+						videoOutput.adjustView();
+						loadTimer.start();
+
+						intialized = true;
+					}
 				break;
 			}
 		}
@@ -90,10 +192,22 @@ Rectangle {
 	}
 
 	//
+	Rectangle {
+		id: controlsBack
+		x: frameContainer.x + 2 * spaceItems_
+		y: frameContainer.y + frameContainer.height - (actionButton.height + 4 * spaceItems_)
+		width: frameContainer.width - (4 * spaceItems_)
+		height: actionButton.height + 2 * spaceItems_
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
+		opacity: 0.3
+		radius: 8
+	}
+
+	//
 	QuarkRoundSymbolButton {
 		id: actionButton
-		x: spaceLeft_
-		y: spaceTop_
+		x: controlsBack.x + spaceItems_
+		y: controlsBack.y + spaceItems_
 		spaceLeft: player.playing ? 0 : 3
 		spaceTop: 2
 		symbol: player.playing ? Fonts.pauseSym : Fonts.playSym
@@ -159,7 +273,7 @@ Rectangle {
 		to: 1
 		orientation: Qt.Horizontal
 		stepSize: 0.1
-		width: parent.width - (actionButton.x + actionButton.width + /*spaceItems_ +*/ removeButton.width)
+		width: frameContainer.width - (actionButton.width + 5 * spaceItems_)
 
 		onMoved: {
 			player.seek(value);
@@ -170,7 +284,7 @@ Rectangle {
 	QuarkToolButton	{
 		id: removeButton
 
-		x: parent.width - (width + spaceItems_)
+		x: frameContainer.x + frameContainer.width - (width + spaceItems_)
 		y: spaceItems_
 		// Material.background: "transparent"
 		visible: true
