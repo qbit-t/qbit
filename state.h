@@ -196,6 +196,13 @@ public:
 			lStream << infos_;
 		}
 
+		//
+		// TODO: TEMPORARILY (during initial network deployment and growth)
+		//
+		if ((roles_ & NODE) != 0) {
+			return false;
+		}
+
 		uint256 lData = Hash(lStream.begin(), lStream.end());
 		return pkey_.verify(lData, signature_);
 	}

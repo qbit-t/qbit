@@ -478,7 +478,7 @@ int main(int argv, char** argc) {
 		QBIT_VERSION_MAJOR << "." <<
 		QBIT_VERSION_MINOR << "." <<
 		QBIT_VERSION_REVISION << "." <<
-		QBIT_VERSION_BUILD << ") | (c) 2019-2021 Qbit Technology | MIT license" << std::endl;
+		QBIT_VERSION_BUILD << ") | (c) 2019-2022 Qbit Technology | MIT license" << std::endl;
 
 	// home
 	ISettingsPtr lSettings = NodeSettings::instance();
@@ -578,7 +578,8 @@ int main(int argv, char** argc) {
 			lSettings->setSupportAirdrop();
 		} else if (std::string(argc[lIdx]) == std::string("-qbit-only")) {
 			//
-			lSettings->setQbitOnly();
+			std::cout << "qbit-only: not supported" << std::endl;
+			return -1;
 		} else if (std::string(argc[lIdx]) == std::string("-reindex")) {
 			//
 			lSettings->setReindex();

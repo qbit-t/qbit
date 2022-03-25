@@ -128,7 +128,7 @@ private:
 
 	void touch(const boost::system::error_code& error) {
 		// life control
-		if(!error && !settings_->qbitOnly()) {
+		if(!error) {
 			//
 			size_t lActiveShardsCount = 0;
 			std::map<uint256/*shard-chain*/, EntityPtr> lPendingShards;

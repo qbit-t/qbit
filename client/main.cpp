@@ -239,7 +239,7 @@ int main(int argv, char** argc) {
 		QBIT_VERSION_MAJOR << "." <<
 		QBIT_VERSION_MINOR << "." <<
 		QBIT_VERSION_REVISION << "." <<
-		QBIT_VERSION_BUILD << ") | (c) 2019-2021 Qbit Technology | MIT license" << std::endl;
+		QBIT_VERSION_BUILD << ") | (c) 2019-2022 Qbit Technology | MIT license" << std::endl;
 
 	// home
 	ISettingsPtr lSettings = ClientSettings::instance();
