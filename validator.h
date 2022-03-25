@@ -204,14 +204,16 @@ private:
 			while(minerRunning_) {
 				//
 				uint8_t EDGEBITS_ = 20;
-				uint8_t PROOFSIZE_ = 40;
+				uint8_t PROOFSIZE_ = 42;
 
 				//
+				/*
 				const uint64_t CHANGE_ALG_TIME_0 = 1614422850; // in seconds 1614163650 + 3 days
 				if (consensus_->currentTime() > CHANGE_ALG_TIME_0) {
 					EDGEBITS_ = 20;
 					PROOFSIZE_ = 42;
 				}
+				*/
 				
 				try {
 					// get block template

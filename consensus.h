@@ -111,6 +111,10 @@ public:
 		uint64_t lBlocksPerYear = 31536000/(blockTime()/1000); // 365*24*60*(60/5)
 		uint64_t lYear = height / lBlocksPerYear;
 
+		if (height == 0 /*first block*/) {
+			return 100000000 * 1000000; // one million qbits as premine for user unboarding
+		}
+
 		switch(lYear) {
 			case   0: return 100000000; // first year
 			case   1: return  90000000; // second year
@@ -242,14 +246,16 @@ public:
 	virtual bool checkSequenceConsistency(const BlockHeader& block) {
 		//
 		uint8_t EDGEBITS_ = 20;
-		uint8_t PROOFSIZE_ = 40;
+		uint8_t PROOFSIZE_ = 42;
 
 		//
+		/*
 		const uint64_t CHANGE_ALG_TIME_0 = 1614422850; // in seconds 1614163650 + 3 days
 		if (block.time() > CHANGE_ALG_TIME_0) {
 			EDGEBITS_ = 20;
 			PROOFSIZE_ = 42;
 		}
+		*/
 
 		//
 		int lRes = VerifyCycle(const_cast<BlockHeader&>(block).hash(), EDGEBITS_, PROOFSIZE_, block.cycle_);
