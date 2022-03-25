@@ -13,15 +13,15 @@
 #include "tinyformat.h"
 #include "uint256.h"
 
-#define QBIT_MESSAGE_0 0x1a
-#define QBIT_MESSAGE_1 0x1b
-#define QBIT_MESSAGE_2 0x1c
-#define QBIT_MESSAGE_3 0x1d
+#define QBIT_MESSAGE_0 0x61
+#define QBIT_MESSAGE_1 0x31
+#define QBIT_MESSAGE_2 0x32
+#define QBIT_MESSAGE_3 0x36
 
-#define QBIT_TEST_MESSAGE_0 0x0a
-#define QBIT_TEST_MESSAGE_1 0x0b
-#define QBIT_TEST_MESSAGE_2 0x0c
-#define QBIT_TEST_MESSAGE_3 0x0d
+#define QBIT_TEST_MESSAGE_0 0x62
+#define QBIT_TEST_MESSAGE_1 0x32
+#define QBIT_TEST_MESSAGE_2 0x33
+#define QBIT_TEST_MESSAGE_3 0x36
 
 namespace qbit {
 

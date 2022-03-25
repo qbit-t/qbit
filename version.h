@@ -1,7 +1,7 @@
 #ifndef VERSION_H
 #define VERSION_H
 
-static const int PROTOCOL_VERSION = 0xb0;
+static const int PROTOCOL_VERSION = 0xb1;
 static const int QBIT_VERSION = ((((QBIT_VERSION_MAJOR << 16) + QBIT_VERSION_MINOR) << 8) + QBIT_VERSION_REVISION);
 
 #define UNPACK_MAJOR(v) v >> 24
