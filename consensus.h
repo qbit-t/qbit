@@ -112,7 +112,7 @@ public:
 		uint64_t lYear = height / lBlocksPerYear;
 
 		if (height == 1 /*first block*/) {
-			return ((uint64_t)100000000) * ((uint64_t)1000000); // one million qbits as premine for user unboarding
+			return ((uint64_t)100000000) * ((uint64_t)3000000); // three million qbits as premine for user unboarding
 		}
 
 		switch(lYear) {
