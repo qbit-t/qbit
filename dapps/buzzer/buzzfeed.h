@@ -626,6 +626,7 @@ public:
 	virtual int locateIndex(BuzzfeedItemPtr);
 	virtual BuzzfeedItemPtr locateBuzz(const Key& key) {
 		if (root_) root_->locateBuzz(key);
+		return nullptr;
 	}
 	virtual BuzzfeedItemPtr locateBuzz(const uint256&);
 

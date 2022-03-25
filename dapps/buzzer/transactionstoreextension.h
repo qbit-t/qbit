@@ -218,8 +218,8 @@ public:
 	bool open();
 	bool close();
 
-	bool pushUnlinkedOut(Transaction::UnlinkedOutPtr, TransactionContextPtr) {}
-	bool popUnlinkedOut(const uint256&, TransactionContextPtr) {}
+	bool pushUnlinkedOut(Transaction::UnlinkedOutPtr, TransactionContextPtr) { return false; }
+	bool popUnlinkedOut(const uint256&, TransactionContextPtr) { return false; }
 	bool pushEntity(const uint256&, TransactionContextPtr);
 	bool isAllowed(TransactionContextPtr);
 	bool locateParents(TransactionContextPtr /*root*/, std::list<uint256>& /*parents*/);

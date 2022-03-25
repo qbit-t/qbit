@@ -54,6 +54,8 @@ public:
 		wallet_.reset();
 		store_.reset();
 		consensusManager_.reset();
+
+		return true;
 	}
 
 	IConsensusManagerPtr consensusManager() {

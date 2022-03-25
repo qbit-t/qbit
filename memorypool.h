@@ -229,7 +229,7 @@ public:
 		bool popUnlinkedOut(const uint256&, TransactionContextPtr);
 		void addLink(const uint256& /*from*/, const uint256& /*to*/);
 
-		Transaction::UnlinkedOutPtr findUnlinkedOut(const uint256&) {} // TODO: stub
+		Transaction::UnlinkedOutPtr findUnlinkedOut(const uint256&) { return nullptr; } // TODO: stub
 
 		inline static ITransactionStorePtr instance(IMemoryPoolPtr pool) {
 			return std::make_shared<PoolStore>(pool); 

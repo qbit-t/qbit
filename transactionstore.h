@@ -351,7 +351,7 @@ public:
 	{}
 
 	// stub
-	bool pushTransaction(TransactionContextPtr) {}
+	bool pushTransaction(TransactionContextPtr) { return false; }
 	TransactionContextPtr pushTransaction(TransactionPtr) { return nullptr; }
 
 	//
