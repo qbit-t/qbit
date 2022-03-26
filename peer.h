@@ -273,11 +273,11 @@ public:
 	}
 
 	virtual bool isLocal() {
-		if (socket != nullptr) {
-			boost::system::error_code lLocalEndpoint; socket->local_endpoint(lLocalEndpoint);
-			boost::system::error_code lRemoteEndpoint; socket->remote_endpoint(lRemoteEndpoint);
+		if (socket_ != nullptr) {
+			boost::system::error_code lLocalEndpoint; socket_->local_endpoint(lLocalEndpoint);
+			boost::system::error_code lRemoteEndpoint; socket_->remote_endpoint(lRemoteEndpoint);
 			if (!lLocalEndpoint && !lRemoteEndpoint)
-				return socket->local_endpoint().address().to_string() == socket->remote_endpoint().address().to_string();
+				return socket_->local_endpoint().address().to_string() == socket_->remote_endpoint().address().to_string();
 		}
 
 		return false;
