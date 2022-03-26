@@ -296,6 +296,7 @@ public:
 	virtual void setExtension(const std::string&, IPeerExtensionPtr /*extension*/) { throw qbit::exception("NOT_IMPL", "IPeer::setExtension - not implemented."); }
 
 	virtual void release() { throw qbit::exception("NOT_IMPL", "IPeer::release - not implemented."); }
+	virtual bool isLocal() { throw qbit::exception("NOT_IMPL", "IPeer::isLocal - not implemented."); }
 
 	virtual Type type() { throw qbit::exception("NOT_IMPL", "IPeer::type - not implemented."); }
 	virtual void setType(Type) { throw qbit::exception("NOT_IMPL", "IPeer::setType - not implemented."); }

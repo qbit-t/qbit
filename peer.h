@@ -272,6 +272,17 @@ public:
 		return "";
 	}
 
+	virtual bool isLocal() {
+		if (socket != nullptr) {
+			boost::system::error_code lLocalEndpoint; socket->local_endpoint(lLocalEndpoint);
+			boost::system::error_code lRemoteEndpoint; socket->remote_endpoint(lRemoteEndpoint);
+			if (!lLocalEndpoint && !lRemoteEndpoint)
+				return socket->local_endpoint().address().to_string() == socket->remote_endpoint().address().to_string();
+		}
+
+		return false;
+	}
+
 	inline uint160 keyId() {
 		//
 		std::string lAddress;
