@@ -15,8 +15,9 @@ void EventsfeedItem::push(const EventsfeedItem& buzz, const uint160& peer) {
 		if (lItem->second->addConfirmation(peer) >= BUZZ_PEERS_CONFIRMATIONS) {
 			//
 			EventsfeedItemPtr lBuzz = lItem->second;
-			// remove from unconfirmed
-			unconfirmed_.erase(lItem);
+			// TODO: remove from unconfirmed?
+			//unconfirmed_.erase(lItem);
+
 			// merge finally
 			mergeInternal(lBuzz, true, true);
 

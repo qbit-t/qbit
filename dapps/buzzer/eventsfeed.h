@@ -192,7 +192,7 @@ public:
 			}
 		}
 
-		if (type_ == TX_BUZZER_ENDORSE || type_ == TX_BUZZER_MISTRUST || type_ == TX_BUZZER_SUBSCRIBE || TX_BUZZER_CONVERSATION) {
+		if (type_ == TX_BUZZER_ENDORSE || type_ == TX_BUZZER_MISTRUST || type_ == TX_BUZZER_SUBSCRIBE || type_ == TX_BUZZER_CONVERSATION) {
 			READWRITE(publisher_);
 		}
 
@@ -200,7 +200,7 @@ public:
 			READWRITE(value_);
 		}
 
-		if (type_ == TX_BUZZER_SUBSCRIBE || TX_BUZZER_CONVERSATION || TX_BUZZER_ACCEPT_CONVERSATION || TX_BUZZER_DECLINE_CONVERSATION) {
+		if (type_ == TX_BUZZER_SUBSCRIBE || type_ == TX_BUZZER_CONVERSATION || type_ == TX_BUZZER_ACCEPT_CONVERSATION || type_ == TX_BUZZER_DECLINE_CONVERSATION) {
 			READWRITE(publisherInfo_);
 			READWRITE(publisherInfoChain_);
 		}
@@ -489,6 +489,7 @@ public:
 		}
 
 		if (!publisherInfo_.isNull()) {
+			//
 			if (!buzzerInfoResolve_(
 					publisherInfoChain_, 
 					publisher_, 
@@ -497,7 +498,7 @@ public:
 				//
 				return false;
 			}
-		} else lResolved = false;
+		} // else lResolved = false;
 
 		return lResolved;
 	}
