@@ -204,7 +204,7 @@ private:
 			while(minerRunning_) {
 				//
 				uint8_t EDGEBITS_ = 20;
-				uint8_t PROOFSIZE_ = 42;
+				uint8_t PROOFSIZE_ = 40;
 
 				//
 				/*
