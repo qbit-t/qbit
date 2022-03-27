@@ -497,13 +497,13 @@ public:
 			//
 			if (lPeer->second->addressId() == lastPeer_) {
 				lLastPeer = lPeer->second;
-				lastPeer_ = lPeer->second->addressId();
 				break;
 			}
 		}
 
 		if (!lLastPeer && lOrder.size()) {
 			// use nearest
+			lastPeer_ = lOrder.rbegin()->second->addressId();
 			lOrder.rbegin()->second->sendTransaction(ctx, handler);
 			return lOrder.rbegin()->second;
 		} else {
@@ -540,13 +540,13 @@ public:
 			//
 			if (lPeer->second->addressId() == lastPeer_) {
 				lLastPeer = lPeer->second;
-				lastPeer_ = lPeer->second->addressId();
 				break;
 			}
 		}
 
 		if (!lLastPeer && lOrder.size()) {
 			// use nearest
+			lastPeer_ = lOrder.rbegin()->second->addressId();
 			lOrder.rbegin()->second->sendTransaction(ctx, handler);
 			return lOrder.rbegin()->second;
 		} else {
