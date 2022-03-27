@@ -33,9 +33,7 @@ public:
 	//
 	// block time for main chain, ms
 	// TODO: settings
-	virtual uint32_t blockTime() { 
-		return 1000; 
-	}
+	virtual uint32_t blockTime() { return 2000; }
 
 	//
 	// block count (100 blocks)
