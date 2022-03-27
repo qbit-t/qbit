@@ -25,7 +25,7 @@ public:
 	uint32_t bits_;
 	uint32_t nonce_;
 
-	std::vector<uint32_t> cycle_;
+	std::vector<uint160> cycle_;
 
 	BlockHeader() {
 		setNull();

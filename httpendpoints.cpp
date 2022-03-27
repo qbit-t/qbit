@@ -1457,13 +1457,13 @@ void HttpGetBlock::process(const std::string& source, const HttpRequest& request
 
 				json::Value lPowObject = lRootObject.addArray("pow");
 				int lIdx = 0;
-				for (std::vector<uint32_t>::iterator lNumber = lBlock->cycle_.begin(); lNumber != lBlock->cycle_.end(); lNumber++, lIdx++) {
+				for (std::vector<uint160>::iterator lNumber = lBlock->cycle_.begin(); lNumber != lBlock->cycle_.end(); lNumber++, lIdx++) {
 					//
 					json::Value lItem = lPowObject.newArrayItem();
 					//lItem.toObject();
 					//lItem.addInt("index", lIdx);
 					//lItem.addUInt("number", *lNumber);
-					lItem.setUInt(*lNumber);
+					lItem.setString((*lNumber).toString());
 				}
 
 				json::Value lTransactionsObject = lRootObject.addArray("transactions");
@@ -1605,13 +1605,13 @@ void HttpGetBlockHeader::process(const std::string& source, const HttpRequest& r
 
 				json::Value lPowObject = lRootObject.addArray("pow");
 				int lIdx = 0;
-				for (std::vector<uint32_t>::iterator lNumber = lBlock->cycle_.begin(); lNumber != lBlock->cycle_.end(); lNumber++, lIdx++) {
+				for (std::vector<uint160>::iterator lNumber = lBlock->cycle_.begin(); lNumber != lBlock->cycle_.end(); lNumber++, lIdx++) {
 					//
 					json::Value lItem = lPowObject.newArrayItem();
 					//lItem.toObject();
 					//lItem.addInt("index", lIdx);
 					//lItem.addUInt("number", *lNumber);
-					lItem.setUInt(*lNumber);
+					lItem.setString((*lNumber).toString());
 				}
 			} else {
 				reply = HttpReply::stockReply("E_BLOCK_NOT_FOUND", "Block not found"); 
@@ -1745,13 +1745,13 @@ void HttpGetBlockHeaderByHeight::process(const std::string& source, const HttpRe
 
 			json::Value lPowObject = lRootObject.addArray("pow");
 			int lIdx = 0;
-			for (std::vector<uint32_t>::iterator lNumber = lHeader.cycle_.begin(); lNumber != lHeader.cycle_.end(); lNumber++, lIdx++) {
+			for (std::vector<uint160>::iterator lNumber = lHeader.cycle_.begin(); lNumber != lHeader.cycle_.end(); lNumber++, lIdx++) {
 				//
 				json::Value lItem = lPowObject.newArrayItem();
 				//lItem.toObject();
 				//lItem.addInt("index", lIdx);
 				//lItem.addUInt("number", *lNumber);
-				lItem.setUInt(*lNumber);
+				lItem.setString((*lNumber).toString());
 			}
 		} else {
 			reply = HttpReply::stockReply("E_STOREMANAGER", "Store manager not found"); 

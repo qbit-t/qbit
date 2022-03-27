@@ -69,7 +69,7 @@ public:
 	//
 	// block time for main chain, ms
 	// TODO: settings
-	virtual uint32_t blockTime() { return 2000; }
+	virtual uint32_t blockTime() { return 5000; }
 
 	//
 	// block count (100 blocks)
@@ -242,56 +242,17 @@ public:
 	}
 
 	//
-	// PoW/PoS work sequnce with "block" and "block->prev"
 	virtual bool checkSequenceConsistency(const BlockHeader& block) {
-		//
-		uint8_t EDGEBITS_ = 20;
-		uint8_t PROOFSIZE_ = 42;
-
-		//
-		/*
-		const uint64_t CHANGE_ALG_TIME_0 = 1614422850; // in seconds 1614163650 + 3 days
-		if (block.time() > CHANGE_ALG_TIME_0) {
-			EDGEBITS_ = 20;
-			PROOFSIZE_ = 42;
-		}
-		*/
-
-		//
-		int lRes = VerifyCycle(const_cast<BlockHeader&>(block).hash(), EDGEBITS_, PROOFSIZE_, block.cycle_);
-		if(lRes == verify_code::POW_OK) {
-			bool lNegative = false;
-			bool lOverflow = false;
-			//
-			arith_uint256 lTarget;
-			lTarget.SetCompact(block.bits_, &lNegative, &lOverflow);
-
-			// Check range
-			if (lNegative || lTarget == 0 || lOverflow) { // || bnTarget > UintToArith256(params.powLimit.uHashLimit)
-				if (gLog().isEnabled(Log::VALIDATOR)) 
-					gLog().write(Log::VALIDATOR, "[consensus/error]: target wan NOT COMPACTED");
-				return false;
-			}
-
-			// Check proof of work matches claimed amount
-			HashWriter lStream(SER_GETHASH, PROTOCOL_VERSION);
-			lStream << block.cycle_;
-			uint256 lCycleHash = lStream.GetHash();
-			arith_uint256 lCycleHashArith = UintToArith256(lCycleHash);
-
-			// Compare
-			if (lCycleHashArith > lTarget) {
-				if (gLog().isEnabled(Log::VALIDATOR)) 
-					gLog().write(Log::VALIDATOR, "[consensus/error]: cycle is less than TARGET");
-				return false;
-			}
-
-			return true;
-		}
-
-		gLog().write(Log::VALIDATOR, strprintf("[consensus/error]: PoW check FAILED. Reason = %d", lRes));
-
-		return false;
+		// prepare generator
+		boost::random::mt19937 lGen(block.time_);
+		// prepare distribution
+		boost::random::uniform_int_distribution<> lDistribute(0, block.cycle_.size()-1);
+		// get index
+		int lNodeIndex = lDistribute(lGen);
+		// locate node
+		uint160 lId = *std::next(block.cycle_.begin(), lNodeIndex);
+		// check
+		return (lId == block.origin_);
 	}
 
 	//
