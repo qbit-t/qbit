@@ -39,8 +39,8 @@ public:
 		uint64_t lTime = qbit::getTime();
 		uint64_t lMedianTime = qbit::getMedianTime(); // consensusManager_->medianTime();
 
-		if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, 
-			strprintf("[currentTime]: local %d, median %d, avg %d", lTime, lMedianTime, (lTime + lMedianTime)/2));
+		//if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, 
+		//	strprintf("[currentTime]: local %d, median %d, avg %d", lTime, lMedianTime, (lTime + lMedianTime)/2));
 
 		return (lTime + lMedianTime)/2;
 	}
