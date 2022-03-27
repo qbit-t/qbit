@@ -37,10 +37,7 @@ public:
 	// current time (adjusted? averaged?)
 	uint64_t currentTime() {
 		uint64_t lTime = qbit::getTime();
-		uint64_t lMedianTime = qbit::getMedianTime(); // consensusManager_->medianTime();
-
-		//if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, 
-		//	strprintf("[currentTime]: local %d, median %d, avg %d", lTime, lMedianTime, (lTime + lMedianTime)/2));
+		uint64_t lMedianTime = qbit::getMedianTime();
 
 		return (lTime + lMedianTime)/2;
 	}
@@ -69,7 +66,7 @@ public:
 	//
 	// block time for main chain, ms
 	// TODO: settings
-	virtual uint32_t blockTime() { return 5000; }
+	virtual uint32_t blockTime() { return 2000; }
 
 	//
 	// block count (100 blocks)
