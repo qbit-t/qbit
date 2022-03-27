@@ -91,6 +91,8 @@ private:
 
 	std::vector<std::string> args_;
 	Transaction::UnlinkedOutPtr buzzerOut_;
+
+	IPeerPtr peer_;
 };
 
 class CreateBuzzerInfoCommand;
@@ -204,11 +206,12 @@ public:
 		//
 		// push linked and newly created txs; order matters
 		// NOTE: fee and parent tx should start processing on the one node
+		IPeerPtr lPeer;
 		for (std::list<TransactionContextPtr>::iterator lLinkedCtx = ctx->linkedTxs().begin(); lLinkedCtx != ctx->linkedTxs().end(); lLinkedCtx++) {
-			if (!composer_->requestProcessor()->sendTransaction(ctx->tx()->chain(), *lLinkedCtx,
+			if (!(lPeer = composer_->requestProcessor()->sendTransaction(lPeer, ctx->tx()->chain(), *lLinkedCtx,
 					SentTransaction::instance(
 						boost::bind(&CreateBuzzCommand::feeSent, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
-						boost::bind(&CreateBuzzCommand::timeout, shared_from_this())))) {
+						boost::bind(&CreateBuzzCommand::timeout, shared_from_this()))))) {
 				gLog().writeClient(Log::CLIENT, std::string(": tx was not broadcasted, wallet re-init..."));
 				composer_->wallet()->resetCache();
 				composer_->wallet()->prepareCache();
@@ -216,7 +219,7 @@ public:
 			}
 		}
 
-		if (!composer_->requestProcessor()->sendTransaction(ctx->tx()->chain(), ctx, 
+		if (!composer_->requestProcessor()->sendTransaction(lPeer, ctx->tx()->chain(), ctx, 
 				SentTransaction::instance(
 					boost::bind(&CreateBuzzCommand::buzzSent, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 					boost::bind(&CreateBuzzCommand::timeout, shared_from_this())))) {
@@ -1578,11 +1581,12 @@ public:
 		ctx_ = ctx;
 		//
 		// push linked and newly created txs; order matters
+		IPeerPtr lPeer = nullptr;
 		for (std::list<TransactionContextPtr>::iterator lLinkedCtx = ctx->linkedTxs().begin(); lLinkedCtx != ctx->linkedTxs().end(); lLinkedCtx++) {
-			if (!composer_->requestProcessor()->sendTransaction(ctx->tx()->chain(), *lLinkedCtx,
+			if (!(lPeer = composer_->requestProcessor()->sendTransaction(lPeer, ctx->tx()->chain(), *lLinkedCtx,
 					SentTransaction::instance(
 						boost::bind(&CreateBuzzReplyCommand::feeSent, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
-						boost::bind(&CreateBuzzReplyCommand::timeout, shared_from_this())))) {
+						boost::bind(&CreateBuzzReplyCommand::timeout, shared_from_this()))))) {
 				gLog().writeClient(Log::CLIENT, std::string(": tx was not broadcasted, wallet re-init..."));
 				composer_->wallet()->resetCache();
 				composer_->wallet()->prepareCache();
@@ -1590,7 +1594,7 @@ public:
 			}
 		}
 
-		if (!composer_->requestProcessor()->sendTransaction(ctx->tx()->chain(), ctx,
+		if (!composer_->requestProcessor()->sendTransaction(lPeer, ctx->tx()->chain(), ctx,
 				SentTransaction::instance(
 					boost::bind(&CreateBuzzReplyCommand::buzzSent, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 					boost::bind(&CreateBuzzReplyCommand::timeout, shared_from_this())))) {
@@ -1724,10 +1728,11 @@ public:
 		TransactionContextPtr lFee = ctx->locateByType(Transaction::FEE);
 		TransactionContextPtr lNotify = ctx->locateByType(TX_BUZZ_REBUZZ_NOTIFY);
 
-		if (!composer_->requestProcessor()->sendTransaction(ctx->tx()->chain(), lFee,
+		IPeerPtr lPeer = nullptr;
+		if (!(lPeer = composer_->requestProcessor()->sendTransaction(ctx->tx()->chain(), lFee,
 				SentTransaction::instance(
 					boost::bind(&CreateReBuzzCommand::feeSent, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
-					boost::bind(&CreateReBuzzCommand::timeout, shared_from_this())))) {
+					boost::bind(&CreateReBuzzCommand::timeout, shared_from_this()))))) {
 			gLog().writeClient(Log::CLIENT, std::string(": tx was not broadcasted, wallet re-init..."));
 			composer_->wallet()->resetCache();
 			composer_->wallet()->prepareCache();
@@ -1749,7 +1754,7 @@ public:
 			notifySent_ = true;
 		}
 
-		if (!composer_->requestProcessor()->sendTransaction(ctx->tx()->chain(), ctx,
+		if (!composer_->requestProcessor()->sendTransaction(lPeer, ctx->tx()->chain(), ctx,
 				SentTransaction::instance(
 					boost::bind(&CreateReBuzzCommand::buzzSent, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 					boost::bind(&CreateReBuzzCommand::timeout, shared_from_this())))) {
@@ -1939,18 +1944,19 @@ public:
 		ctx_ = ctx;
 		//
 		// push linked and newly created txs; order matters
+		IPeerPtr lPeer = nullptr;
 		TransactionContextPtr lFee = ctx->locateByType(Transaction::FEE);
-		if (!composer_->requestProcessor()->sendTransaction(ctx->tx()->chain(), lFee,
+		if (!(lPeer = composer_->requestProcessor()->sendTransaction(ctx->tx()->chain(), lFee,
 				SentTransaction::instance(
 					boost::bind(&BuzzerEndorseCommand::feeSent, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
-					boost::bind(&BuzzerEndorseCommand::timeout, shared_from_this())))) {
+					boost::bind(&BuzzerEndorseCommand::timeout, shared_from_this()))))) {
 			gLog().writeClient(Log::CLIENT, std::string(": tx was not broadcasted, wallet re-init..."));
 			composer_->wallet()->resetCache();
 			composer_->wallet()->prepareCache();
 			done_(ProcessingError("E_TX_NOT_SENT", "Transaction was not sent."));
 		}
 
-		if (!composer_->requestProcessor()->sendTransaction(ctx->tx()->chain(), ctx,
+		if (!composer_->requestProcessor()->sendTransaction(lPeer, ctx->tx()->chain(), ctx,
 				SentTransaction::instance(
 					boost::bind(&BuzzerEndorseCommand::endorseSent, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 					boost::bind(&BuzzerEndorseCommand::timeout, shared_from_this())))) {
@@ -2053,18 +2059,19 @@ public:
 		ctx_ = ctx;
 		//
 		// push linked and newly created txs; order matters
+		IPeerPtr lPeer = nullptr;
 		TransactionContextPtr lFee = ctx->locateByType(Transaction::FEE);
-		if (!composer_->requestProcessor()->sendTransaction(ctx->tx()->chain(), lFee,
+		if (!(lPeer = composer_->requestProcessor()->sendTransaction(ctx->tx()->chain(), lFee,
 				SentTransaction::instance(
 					boost::bind(&BuzzerMistrustCommand::feeSent, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
-					boost::bind(&BuzzerMistrustCommand::timeout, shared_from_this())))) {
+					boost::bind(&BuzzerMistrustCommand::timeout, shared_from_this()))))) {
 			gLog().writeClient(Log::CLIENT, std::string(": tx was not broadcasted, wallet re-init..."));
 			composer_->wallet()->resetCache();
 			composer_->wallet()->prepareCache();
 			done_(ProcessingError("E_TX_NOT_SENT", "Transaction was not sent."));
 		}
 
-		if (!composer_->requestProcessor()->sendTransaction(ctx->tx()->chain(), ctx,
+		if (!composer_->requestProcessor()->sendTransaction(lPeer, ctx->tx()->chain(), ctx,
 				SentTransaction::instance(
 					boost::bind(&BuzzerMistrustCommand::mistrustSent, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 					boost::bind(&BuzzerMistrustCommand::timeout, shared_from_this())))) {
@@ -2308,18 +2315,19 @@ public:
 		ctx_ = ctx;
 		//
 		// push linked and newly created txs; order matters
+		IPeerPtr lPeer = nullptr;
 		TransactionContextPtr lFee = ctx->locateByType(Transaction::FEE);
-		if (!composer_->requestProcessor()->sendTransaction(ctx->tx()->chain(), lFee,
+		if (!(lPeer = composer_->requestProcessor()->sendTransaction(ctx->tx()->chain(), lFee,
 				SentTransaction::instance(
 					boost::bind(&CreateBuzzerConversationCommand::feeSent, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
-					boost::bind(&CreateBuzzerConversationCommand::timeout, shared_from_this())))) {
+					boost::bind(&CreateBuzzerConversationCommand::timeout, shared_from_this()))))) {
 			gLog().writeClient(Log::CLIENT, std::string(": tx was not broadcasted, wallet re-init..."));
 			composer_->wallet()->resetCache();
 			composer_->wallet()->prepareCache();
 			done_(ProcessingError("E_TX_NOT_SENT", "Transaction was not sent."));
 		}
 
-		if (!composer_->requestProcessor()->sendTransaction(ctx->tx()->chain(), ctx,
+		if (!composer_->requestProcessor()->sendTransaction(lPeer, ctx->tx()->chain(), ctx,
 				SentTransaction::instance(
 					boost::bind(&CreateBuzzerConversationCommand::conversationSent, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 					boost::bind(&CreateBuzzerConversationCommand::timeout, shared_from_this())))) {
@@ -2578,11 +2586,12 @@ public:
 		ctx_ = ctx;
 		//
 		// push linked and newly created txs; order matters
+		IPeerPtr lPeer = nullptr;
 		for (std::list<TransactionContextPtr>::iterator lLinkedCtx = ctx->linkedTxs().begin(); lLinkedCtx != ctx->linkedTxs().end(); lLinkedCtx++) {
-			if (!composer_->requestProcessor()->sendTransaction(ctx->tx()->chain(), *lLinkedCtx,
+			if (!(lPeer = composer_->requestProcessor()->sendTransaction(lPeer, ctx->tx()->chain(), *lLinkedCtx,
 					SentTransaction::instance(
 						boost::bind(&CreateBuzzerMessageCommand::feeSent, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
-						boost::bind(&CreateBuzzerMessageCommand::timeout, shared_from_this())))) {
+						boost::bind(&CreateBuzzerMessageCommand::timeout, shared_from_this()))))) {
 				gLog().writeClient(Log::CLIENT, std::string(": tx was not broadcasted, wallet re-init..."));
 				composer_->wallet()->resetCache();
 				composer_->wallet()->prepareCache();
@@ -2590,7 +2599,7 @@ public:
 			}
 		}
 
-		if (!composer_->requestProcessor()->sendTransaction(ctx->tx()->chain(), ctx,
+		if (!composer_->requestProcessor()->sendTransaction(lPeer, ctx->tx()->chain(), ctx,
 				SentTransaction::instance(
 					boost::bind(&CreateBuzzerMessageCommand::messageSent, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 					boost::bind(&CreateBuzzerMessageCommand::timeout, shared_from_this())))) {

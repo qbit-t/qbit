@@ -491,10 +491,24 @@ public:
 		std::map<IRequestProcessor::KeyOrder, IPeerPtr> lOrder;
 		collectPeersByChain(ctx->tx()->chain(), lOrder);
 
-		if (lOrder.size()) {
+		// try locate last used peer
+		IPeerPtr lLastPeer = nullptr;
+		for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::reverse_iterator lPeer = lOrder.rbegin(); lPeer != lOrder.rend(); lPeer++) {
+			//
+			if (lPeer->second->addressId() == lastPeer_) {
+				lLastPeer = lPeer->second;
+				lastPeer_ = lPeer->second->addressId();
+				break;
+			}
+		}
+
+		if (!lLastPeer && lOrder.size()) {
 			// use nearest
 			lOrder.rbegin()->second->sendTransaction(ctx, handler);
 			return lOrder.rbegin()->second;
+		} else {
+			lLastPeer->sendTransaction(ctx, handler);
+			return lLastPeer;
 		}
 
 		return nullptr;
@@ -502,13 +516,42 @@ public:
 
 	IPeerPtr sendTransaction(const uint256& destination, TransactionContextPtr ctx, ISentTransactionHandlerPtr handler) {
 		//
+		return sendTransaction(nullptr, destination, ctx, handler);
+	}
+
+	IPeerPtr sendTransaction(IPeerPtr peer, const uint256& destination, TransactionContextPtr ctx, ISentTransactionHandlerPtr handler) {
+		//
+		if (peer) {
+			//
+			StatePtr lState = peer->state();
+			if (lState->containsChain(destination)) {
+				peer->sendTransaction(ctx, handler);
+				return peer;
+			}
+		}
+
+		// doing hard
 		std::map<IRequestProcessor::KeyOrder, IPeerPtr> lOrder;
 		collectPeersByChain(destination, lOrder);
 
-		if (lOrder.size()) {
+		// try locate last used peer
+		IPeerPtr lLastPeer = nullptr;
+		for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::reverse_iterator lPeer = lOrder.rbegin(); lPeer != lOrder.rend(); lPeer++) {
+			//
+			if (lPeer->second->addressId() == lastPeer_) {
+				lLastPeer = lPeer->second;
+				lastPeer_ = lPeer->second->addressId();
+				break;
+			}
+		}
+
+		if (!lLastPeer && lOrder.size()) {
 			// use nearest
 			lOrder.rbegin()->second->sendTransaction(ctx, handler);
 			return lOrder.rbegin()->second;
+		} else {
+			lLastPeer->sendTransaction(ctx, handler);
+			return lLastPeer;
 		}
 
 		return nullptr;
@@ -685,6 +728,9 @@ private:
 	std::map<uint256 /*chain*/, std::set<uint160>> chainPeers_;
 	std::map<std::string /*dapp*/, std::set<uint160>> dappPeers_;
 	std::map<std::string /*dapp*/, std::set<uint256>> dappChains_;
+
+	peer_t lastPeer_;
+	uint64_t lastPeerUsageTimestamp_ = 0; // not used for now
 };
 
 } // qbit

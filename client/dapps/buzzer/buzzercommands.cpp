@@ -35,10 +35,10 @@ void CreateBuzzerCommand::buzzerCreated(TransactionContextPtr ctx, Transaction::
 	buzzerOut_ = buzzerOut;
 	buzzerTx_ = ctx->tx();
 	//
-	if (!composer_->requestProcessor()->sendTransaction(ctx,
+	if (!(peer_ = composer_->requestProcessor()->sendTransaction(ctx,
 			SentTransaction::instance(
 				boost::bind(&CreateBuzzerCommand::buzzerSent, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
-				boost::bind(&CreateBuzzerCommand::timeout, shared_from_this())))) {
+				boost::bind(&CreateBuzzerCommand::timeout, shared_from_this()))))) {
 		composer_->wallet()->resetCache();
 		composer_->wallet()->prepareCache();
 		error("E_TX_NOT_SENT", "Transaction was not sent");
@@ -133,7 +133,7 @@ void CreateBuzzerCommand::buzzerInfoCreated(TransactionContextPtr ctx) {
 	//
 	buzzerInfoTx_ = ctx->tx();
 	//
-	if (!composer_->requestProcessor()->sendTransaction(ctx->tx()->chain(), ctx, 
+	if (!composer_->requestProcessor()->sendTransaction(peer_, ctx->tx()->chain(), ctx, 
 			SentTransaction::instance(
 				boost::bind(&CreateBuzzerCommand::buzzerInfoSent, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 				boost::bind(&CreateBuzzerCommand::timeout, shared_from_this())))) {

@@ -68,6 +68,7 @@ public:
 	virtual void collectPeersByDApp(const std::string& /*dapp*/, std::map<uint256, std::map<uint32_t, IPeerPtr>>& /*order*/) { throw qbit::exception("NOT_IMPL", "IRequestProcessor::collectPeersByDApp - not implemented."); }
 	virtual IPeerPtr sendTransaction(TransactionContextPtr /*ctx*/, ISentTransactionHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IRequestProcessor::sendTransaction - not implemented."); }
 	virtual IPeerPtr sendTransaction(const uint256& /*destination*/, TransactionContextPtr /*ctx*/, ISentTransactionHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IRequestProcessor::sendTransaction - not implemented."); }
+	virtual IPeerPtr sendTransaction(IPeerPtr /*peer*/, const uint256& /*destination*/, TransactionContextPtr /*ctx*/, ISentTransactionHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IRequestProcessor::sendTransaction - not implemented."); }
 	virtual void sendTransaction(IPeerPtr /*peer*/, TransactionContextPtr /*ctx*/, ISentTransactionHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IRequestProcessor::sendTransaction - not implemented."); }
 	virtual bool askForQbits() { throw qbit::exception("NOT_IMPL", "IRequestProcessor::askForQbits - not implemented."); }
 };
