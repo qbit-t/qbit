@@ -2186,6 +2186,9 @@ bool TransactionStore::firstEnqueuedBlock(NetworkBlockHeader& block) {
 
 bool TransactionStore::airdropped(const uint160& address, const uint160& peer) {
 	//
+	return true;
+	
+	//
 	if (settings_->supportAirdrop()) {
 		//
 		gLog().write(Log::STORE, std::string("[airdropped]: try to check ") + 
