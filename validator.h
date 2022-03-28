@@ -70,12 +70,20 @@ public:
 		BlockHeader& lOther = const_cast<NetworkBlockHeader&>(blockHeader).blockHeader();
 
 		// check if work done
-		if (!consensus_->checkSequenceConsistency(lOther)) {
+		bool lExtended = true;
+		if (!consensus_->checkSequenceConsistency(lOther, lExtended)) {
 			//
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[checkBlockHeader]: check sequence consistency FAILED ") +
 				strprintf("block = %s, prev = %s, chain = %s#", const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().hash().toHex(), 
 					const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().prev().toHex(), chain_.toHex().substr(0, 10)));
 			return IValidator::INTEGRITY_IS_INVALID;
+		} else if (!lExtended && const_cast<NetworkBlockHeader&>(blockHeader).height() > lCurrentHeight) {
+			//
+			if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[checkBlockHeader]: PoC violated, broken chain for ") + 
+				strprintf("%d/%s/%s#", const_cast<NetworkBlockHeader&>(blockHeader).height(), 
+					lOther.hash().toHex(), chain_.toHex().substr(0, 10)));
+			consensus_->toNonSynchronized();
+			return IValidator::BROKEN_CHAIN;				
 		}
 
 		if (lOther.time() < lHeader.time() && const_cast<NetworkBlockHeader&>(blockHeader).height() > lCurrentHeight) {

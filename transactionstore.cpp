@@ -1055,8 +1055,15 @@ bool TransactionStore::processBlocks(const uint256& from, const uint256& to, IMe
 	BlockHeader lHeader;
 	while(!lDone && headers_.read(lHash, lHeader)) {
 		// check sequence consistency
-		if (lMempool && !lMempool->consensus()->checkSequenceConsistency(lHeader)) {
-			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlocks/error]: check sequence consistency FAILED ") +
+		bool lExtended = true;
+		if (lMempool && !lMempool->consensus()->checkSequenceConsistency(lHeader, lExtended)) {
+			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlocks/error]: check basic sequence consistency FAILED ") +
+				strprintf("block = %s, prev = %s, chain = %s#", lHash.toHex(), lHeader.prev().toHex(), chain_.toHex().substr(0, 10)));
+			errorReason = ERROR_REASON_INTEGRITY_ERROR;
+			last = lPrev;
+			return false;
+		} else if (!lExtended) {
+			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlocks/error]: check extended sequence consistency FAILED ") +
 				strprintf("block = %s, prev = %s, chain = %s#", lHash.toHex(), lHeader.prev().toHex(), chain_.toHex().substr(0, 10)));
 			errorReason = ERROR_REASON_INTEGRITY_ERROR;
 			last = lPrev;

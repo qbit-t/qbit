@@ -68,7 +68,8 @@ public:
 		BlockHeader& lOther = const_cast<NetworkBlockHeader&>(blockHeader).blockHeader();
 
 		// check if work done
-		if (!consensus_->checkSequenceConsistency(lOther)) {
+		bool lExtended = true;
+		if (!consensus_->checkSequenceConsistency(lOther, lExtended)) {
 			//
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[cubix/checkBlockHeader]: check sequence consistency FAILED ") +
 				strprintf("block = %s, prev = %s, chain = %s#", const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().hash().toHex(), 

@@ -239,7 +239,7 @@ public:
 	}
 
 	//
-	virtual bool checkSequenceConsistency(const BlockHeader& block) {
+	virtual bool checkSequenceConsistency(const BlockHeader& block, bool& extended) {
 		// prepare generator
 		boost::random::mt19937 lGen(block.time_);
 		// prepare distribution
@@ -272,14 +272,13 @@ public:
 						lSource << block.time_;
 						
 						uint256 lHashChallenge = Hash(lSource.begin(), lSource.end());
-
-						return lTargetCheck && lHashChallenge == block.prevChallenge_;
+						extended = lHashChallenge == block.prevChallenge_; // proof-of-content
 					}
 				}
 			}
-		} else return lTargetCheck;
+		}
 
-		return false;
+		return lTargetCheck;
 	}
 
 	//

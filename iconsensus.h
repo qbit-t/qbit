@@ -98,7 +98,7 @@ public:
 
 	virtual amount_t blockReward(uint64_t /*height*/) { throw qbit::exception("NOT_IMPL", "IConsensus::blockReward - not implemented."); }
 	virtual bool checkBalance(amount_t /*coinbaseAmount*/, amount_t /*blockFee*/, uint64_t /*height*/) { throw qbit::exception("NOT_IMPL", "IConsensus::checkCoinbaseAmountAndFee - not implemented."); }
-	virtual bool checkSequenceConsistency(const BlockHeader& /*block*/) { throw qbit::exception("NOT_IMPL", "IConsensus::checkSequenceConsistency - not implemented."); }
+	virtual bool checkSequenceConsistency(const BlockHeader& /*block*/, bool& /*extended*/) { throw qbit::exception("NOT_IMPL", "IConsensus::checkSequenceConsistency - not implemented."); }
 
 	virtual bool processPartialTreeHeaders(SynchronizationJobPtr /*job*/) { throw qbit::exception("NOT_IMPL", "IConsensus::processPartialTreeHeaders - not implemented."); }
 
