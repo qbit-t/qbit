@@ -97,14 +97,8 @@ public:
 		}
 
 		if (lOther.prev() == lHeader.hash()) {
-			/*
-			if (lOther.origin() == lHeader.origin() && !consensus_->isSimpleNetwork()) {
-				if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[checkBlockHeader]: sequential blocks is not allowed ") + 
-					strprintf("height = %d, new = %s, our = %s, origin = %s/%s#", const_cast<NetworkBlockHeader&>(blockHeader).height(), 
-						lOther.hash().toHex(), lHeader.hash().toHex(), 
-							lOther.origin().toHex(), chain_.toHex().substr(0, 10)));
-				return IValidator::ORIGIN_NOT_ALLOWED;
-			} else if (lOther.time() < lHeader.time()) {
+			//
+			if (lOther.time() < lHeader.time()) {
 				if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[checkBlockHeader]: next block time is less than median time ") + 
 					strprintf("current = %d, proposed = %d, height = %d, new = %s, our = %s, origin = %s/%s#",
 						lHeader.time(), lOther.time(),
@@ -112,8 +106,16 @@ public:
 						lOther.hash().toHex(), lHeader.hash().toHex(), 
 							lOther.origin().toHex(), chain_.toHex().substr(0, 10)));
 				return IValidator::INTEGRITY_IS_INVALID;
+			} else if (!(lOther.time() - lHeader.time() >= (consensus_->blockTime() / 1000) &&
+						lOther.time() - lHeader.time() < (consensus_->blockTime() / 1000) * 2)) {
+				if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[checkBlockHeader]: time passage is wrong ") + 
+					strprintf("current = %d, proposed = %d, height = %d, new = %s, our = %s, origin = %s/%s#",
+						lHeader.time(), lOther.time(),
+						const_cast<NetworkBlockHeader&>(blockHeader).height(), 
+						lOther.hash().toHex(), lHeader.hash().toHex(), 
+							lOther.origin().toHex(), chain_.toHex().substr(0, 10)));
+				return IValidator::INTEGRITY_IS_INVALID;
 			}
-			*/
 
 			if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[checkBlockHeader]: proposed header is correct ") + 
 				strprintf("height = %d, new = %s, our = %s, origin = %s/%s#", const_cast<NetworkBlockHeader&>(blockHeader).height(), 
