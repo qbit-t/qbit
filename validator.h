@@ -246,6 +246,49 @@ private:
 								lCurrentBlock->cycle_.push_back(lNode->first);
 							}
 
+							// prepare next challenge
+							BlockHeader lCurrentBlockHeader;
+							boost::random::uniform_int_distribution<uint64_t> lBlockDistribution(0, store_->currentHeight(lCurrentBlockHeader));
+							uint64_t lChallengeBlock = lBlockDistribution(lGen);
+
+							BlockPtr lBlock = store_->block(lChallengeBlock);
+							if (lBlock != nullptr) {
+								//
+								uint256 lNextBlockChallenge = lBlock->hash();
+								if (lBlock->transactions().size()) {
+									//
+									boost::random::uniform_int_distribution<> lTxDistribution(0, lBlock->transactions().size()-1);
+									int32_t lChallengeBlockTx = lTxDistribution(lGen);
+
+									// finally - set
+									lCurrentBlock->setChallenge(lNextBlockChallenge, lChallengeBlockTx);
+								}
+							}
+
+							// resolve previous challenge
+							if (!lLastHeader.nextBlockChallenge().isNull()) {
+								//
+								BlockPtr lTargetBlock = store_->block(lLastHeader.nextBlockChallenge());
+								if (lTargetBlock != nullptr) {
+									//
+									if (lTargetBlock->transactions().size() > lLastHeader.nextTxChallenge() &&
+										lLastHeader.nextTxChallenge() >= 0) {
+										//
+										TransactionPtr lTransaction = lTargetBlock->transactions()[lLastHeader.nextTxChallenge()];
+										uint256 lTxId = lTransaction->hash();
+
+										// make hash
+										DataStream lSource(SER_NETWORK, PROTOCOL_VERSION);
+										lSource << lLastHeader.nextBlockChallenge();
+										lSource << lTxId;
+										lSource << lCurrentTime;
+										
+										uint256 lHashChallenge = Hash(lSource.begin(), lSource.end());
+										lCurrentBlock->setPrevChallenge(lHashChallenge);
+									}
+								}
+							}
+
 							// calc merkle root
 							lCurrentBlock->setRoot(lCurrentBlockContext->calculateMerkleRoot());
 

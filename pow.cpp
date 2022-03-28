@@ -5,6 +5,10 @@ namespace qbit {
 
 uint32_t getNextWorkRequired(ITransactionStorePtr store, BlockPtr current, uint64_t blockTime) {
 	//
+	return 0;
+	
+	/*
+	//
 	bool fNegative;
 	bool fOverflow;
 
@@ -89,6 +93,7 @@ uint32_t getNextWorkRequired(ITransactionStorePtr store, BlockPtr current, uint6
 
 	// std::cout << "\nTarget = " << lTarget.GetCompact() << std::endl;
 	return lCompactTarget;
+	*/
 }
 
 }

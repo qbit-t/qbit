@@ -98,8 +98,6 @@ public:
 		props["root"] = blockHeader_.root().toHex();
 		props["origin"] = blockHeader_.origin().toHex();
 		props["version"] = strprintf("%d", blockHeader_.version());
-		props["bits"] = strprintf("%d", blockHeader_.bits());
-		props["nonce"] = strprintf("%d", blockHeader_.nonce());
 	}
 
 	bool isValue(UnlinkedOutPtr) { return true; }

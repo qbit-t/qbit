@@ -1372,10 +1372,8 @@ void HttpGetBlock::process(const std::string& source, const HttpRequest& request
 			"prev": "<prev_id>",			-- (string) prev block hash (id)
 			"root": "<merkle_root_hash>",	-- (string) merkle root hash
 			"origin": "<miner_id>",			-- (string) miner address id
-			"bits": <pow_bits>,				-- (int) pow bits
-			"nonce": <nonce_counter>,		-- (int) found nonce
-			"pow": [
-				<int>, <int> ... <int>		-- (aray) found pow cycle
+			"peers": [
+				"<string>", "<string>" ... "<string>"		-- (aray) peer ids
 			],
 			"transactions": [
 				{
@@ -1452,10 +1450,11 @@ void HttpGetBlock::process(const std::string& source, const HttpRequest& request
 				lRootObject.addString("prev", lBlock->prev().toHex());
 				lRootObject.addString("root", lBlock->root().toHex());
 				lRootObject.addString("origin", lBlock->origin().toHex());
-				lRootObject.addInt("bits", lBlock->bits());
-				lRootObject.addInt("nonce", lBlock->nonce());
+				lRootObject.addString("next_block_challenge", lBlock->nextBlockChallenge().toHex());
+				lRootObject.addInt("next_tx_challenge", lBlock->nextTxChallenge());
+				lRootObject.addString("prev_challenge", lBlock->prevChallenge().toHex());
 
-				json::Value lPowObject = lRootObject.addArray("pow");
+				json::Value lPowObject = lRootObject.addArray("peers");
 				int lIdx = 0;
 				for (std::vector<uint160>::iterator lNumber = lBlock->cycle_.begin(); lNumber != lBlock->cycle_.end(); lNumber++, lIdx++) {
 					//
@@ -1526,10 +1525,8 @@ void HttpGetBlockHeader::process(const std::string& source, const HttpRequest& r
 			"prev": "<prev_id>",			-- (string) prev block hash (id)
 			"root": "<merkle_root_hash>",	-- (string) merkle root hash
 			"origin": "<miner_id>",			-- (string) miner address id
-			"bits": <pow_bits>,				-- (int) pow bits
-			"nonce": <nonce_counter>,		-- (int) found nonce
-			"pow": [
-				<int>, <int> ... <int>		-- (aray) found pow cycle
+			"peers": [
+				"<string>", "<string>" ... "<string>"		-- (aray) peer ids
 			]
 		},
 		"error":							-- (object or null) error description
@@ -1600,10 +1597,11 @@ void HttpGetBlockHeader::process(const std::string& source, const HttpRequest& r
 				lRootObject.addString("prev", lBlock->prev().toHex());
 				lRootObject.addString("root", lBlock->root().toHex());
 				lRootObject.addString("origin", lBlock->origin().toHex());
-				lRootObject.addInt("bits", lBlock->bits());
-				lRootObject.addInt("nonce", lBlock->nonce());
+				lRootObject.addString("next_block_challenge", lBlock->nextBlockChallenge().toHex());
+				lRootObject.addInt("next_tx_challenge", lBlock->nextTxChallenge());
+				lRootObject.addString("prev_challenge", lBlock->prevChallenge().toHex());
 
-				json::Value lPowObject = lRootObject.addArray("pow");
+				json::Value lPowObject = lRootObject.addArray("peers");
 				int lIdx = 0;
 				for (std::vector<uint160>::iterator lNumber = lBlock->cycle_.begin(); lNumber != lBlock->cycle_.end(); lNumber++, lIdx++) {
 					//
@@ -1663,10 +1661,8 @@ void HttpGetBlockHeaderByHeight::process(const std::string& source, const HttpRe
 			"prev": "<prev_id>",			-- (string) prev block hash (id)
 			"root": "<merkle_root_hash>",	-- (string) merkle root hash
 			"origin": "<miner_id>",			-- (string) miner address id
-			"bits": <pow_bits>,				-- (int) pow bits
-			"nonce": <nonce_counter>,		-- (int) found nonce
-			"pow": [
-				<int>, <int> ... <int>		-- (aray) found pow cycle
+			"peers": [
+				"<string>", "<string>" ... "<string>"		-- (aray) peer ids
 			]
 		},
 		"error":							-- (object or null) error description
@@ -1740,10 +1736,11 @@ void HttpGetBlockHeaderByHeight::process(const std::string& source, const HttpRe
 			lRootObject.addString("prev", lHeader.prev().toHex());
 			lRootObject.addString("root", lHeader.root().toHex());
 			lRootObject.addString("origin", lHeader.origin().toHex());
-			lRootObject.addInt("bits", lHeader.bits());
-			lRootObject.addInt("nonce", lHeader.nonce());
+			lRootObject.addString("next_block_challenge", lBlock->nextBlockChallenge().toHex());
+			lRootObject.addInt("next_tx_challenge", lBlock->nextTxChallenge());
+			lRootObject.addString("prev_challenge", lBlock->prevChallenge().toHex());
 
-			json::Value lPowObject = lRootObject.addArray("pow");
+			json::Value lPowObject = lRootObject.addArray("peers");
 			int lIdx = 0;
 			for (std::vector<uint160>::iterator lNumber = lHeader.cycle_.begin(); lNumber != lHeader.cycle_.end(); lNumber++, lIdx++) {
 				//

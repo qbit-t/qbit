@@ -35,12 +35,12 @@ bool Block::equals(BlockPtr other) {
 
 std::string Block::toString() {
 	std::stringstream s;
-	s << strprintf("block(hash=%s..., version=0x%08x, prev=%s..., root=%s..., time=%u, bits=%08x, nonce=%u, txs=%u)\n",
+	s << strprintf("block(hash=%s..., version=0x%08x, prev=%s..., root=%s..., time=%u, txs=%u)\n",
 		hash().toString().substr(0,10),
 		version_,
 		prev_.toString().substr(0,10),
 		root_.toString().substr(0,10),
-		time_, bits_, nonce_,
+		time_,
 		transactions_.size());
 
 	for (const auto& lTx : transactions_) {

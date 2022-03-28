@@ -249,7 +249,37 @@ public:
 		// locate node
 		uint160 lId = *std::next(block.cycle_.begin(), lNodeIndex);
 		// check
-		return (lId == block.origin_);
+		bool lTargetCheck = (lId == block.origin_);
+
+		// check challenge
+		if (!block.prev_.isNull()) {
+			BlockPtr lChallengeBlock = store_->block(block.prev_);
+			if (lChallengeBlock != nullptr) {
+				//
+				BlockPtr lTargetBlock = store_->block(lChallengeBlock->nextBlockChallenge());
+				if (lTargetBlock != nullptr) {
+					//
+					if (lTargetBlock->transactions().size() > lChallengeBlock->nextTxChallenge() &&
+						lChallengeBlock->nextTxChallenge() >= 0) {
+						//
+						TransactionPtr lTransaction = lTargetBlock->transactions()[lChallengeBlock->nextTxChallenge()];
+						uint256 lTxId = lTransaction->hash();
+
+						// make hash
+						DataStream lSource(SER_NETWORK, PROTOCOL_VERSION);
+						lSource << lChallengeBlock->nextBlockChallenge();
+						lSource << lTxId;
+						lSource << block.time_;
+						
+						uint256 lHashChallenge = Hash(lSource.begin(), lSource.end());
+
+						return lHashChallenge == block.prevChallenge_;
+					}
+				}
+			}
+		} else return lTargetCheck;
+
+		return false;
 	}
 
 	//

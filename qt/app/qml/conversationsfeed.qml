@@ -215,7 +215,7 @@ Item
 
 	function searchTextCleared() {
 		buzzerClient.getConversationsList().resetFilter();
-		start();
+		//start();
 	}
 
 	QuarkListView {

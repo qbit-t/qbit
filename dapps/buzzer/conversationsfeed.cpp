@@ -21,8 +21,9 @@ void ConversationItem::push(const ConversationItem& buzz, const uint160& peer) {
 		if (lItem->second->addConfirmation(peer) >= BUZZ_PEERS_CONFIRMATIONS) {
 			//
 			ConversationItemPtr lBuzz = lItem->second;
-			// remove from unconfirmed
-			unconfirmed_.erase(lItem);
+			// TODO: remove from unconfirmed?
+			// unconfirmed_.erase(lItem);
+			
 			// merge finally
 			mergeInternal(lBuzz, true, true);
 
@@ -199,6 +200,9 @@ void ConversationItem::merge(const std::vector<ConversationItem>& chunk, const u
 				//
 				removeIndex(lRemove->second);
 				items_.erase(lRemove->second->key());
+
+				if (gLog().isEnabled(Log::CLIENT))
+					gLog().write(Log::CLIENT, "[ERASE]");
 			}
 		}
 	}

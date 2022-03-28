@@ -22,10 +22,10 @@ public:
 	uint256 root_;
 	uint160 origin_;
 	uint64_t time_;
-	uint32_t bits_;
-	uint32_t nonce_;
-
-	std::vector<uint160> cycle_;
+	std::vector<uint160> cycle_; // chrono-time proof
+	uint256 nextBlockChallenge_; // proof-of-content challenge for the next validator: block
+	int32_t nextTxChallenge_; // proof-of-content challenge for the next validator: tx index
+	uint256 prevChallenge_; // proof-of-content resolved challenge (for quick check)
 
 	BlockHeader() {
 		setNull();
@@ -39,9 +39,10 @@ public:
 		s << root_;
 		s << origin_;
 		s << time_;
-		s << bits_;
-		s << nonce_;
 		s << cycle_;
+		s << nextBlockChallenge_;
+		s << nextTxChallenge_;
+		s << prevChallenge_;
 	}
 
 	template <typename Stream>
@@ -51,9 +52,10 @@ public:
 		s << prev_;
 		s << root_;
 		s << origin_;
-		s << time_;
-		s << bits_;
-		s << nonce_;
+		s << cycle_;
+		s << nextBlockChallenge_;
+		s << nextTxChallenge_;
+		s << prevChallenge_;
 	}
 
 	template <typename Stream>
@@ -64,9 +66,10 @@ public:
 		s >> root_;
 		s >> origin_;
 		s >> time_;
-		s >> bits_;
-		s >> nonce_;
 		s >> cycle_;
+		s << nextBlockChallenge_;
+		s << nextTxChallenge_;
+		s << prevChallenge_;
 	}
 
 	void setNull() {
@@ -76,19 +79,18 @@ public:
 		root_.setNull();
 		origin_.setNull();
 		time_ = 0;
-		bits_ = 0;
-		nonce_ = 0;
+		nextTxChallenge_ = -1;
+		nextBlockChallenge_.setNull();
+		prevChallenge_.setNull();
 	}
 
 	inline bool isNull() const {
-		return (bits_ == 0);
+		return (time_ == 0);
 	}
 
 	uint256 hash();
 
 	inline int32_t version() const { return version_; }
-	inline uint32_t bits() const { return bits_; }
-	inline uint32_t nonce() const { return nonce_; }
 
 	inline uint64_t time() const { return time_; }
 	inline void setTime(uint64_t time) { time_ = time; } 
@@ -104,6 +106,17 @@ public:
 
 	inline void setOrigin(const uint160& origin) { origin_ = origin; }
 	inline uint160 origin() { return origin_; }
+
+	inline void setChallenge(const uint256& nextBlockChallenge, uint32_t nextTxChallenge) {
+		nextBlockChallenge_ = nextBlockChallenge;
+		nextTxChallenge_ = nextTxChallenge;
+	}
+
+	inline uint256 nextBlockChallenge() { return nextBlockChallenge_; }
+	inline int32_t nextTxChallenge() { return nextTxChallenge_; }
+
+	inline void setPrevChallenge(const uint256& prevChallenge) { prevChallenge_ = prevChallenge; }
+	inline uint256 prevChallenge() { return prevChallenge_; }
 };
 
 // broadcast found block
