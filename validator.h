@@ -248,22 +248,31 @@ private:
 
 							// prepare next challenge
 							BlockHeader lCurrentBlockHeader;
-							boost::random::uniform_int_distribution<uint64_t> lBlockDistribution(0, store_->currentHeight(lCurrentBlockHeader));
+							int32_t lChallengeBlockTx = -1;
+							uint256 lNextBlockChallenge;
+							uint64_t lCurrentBlockHeight = store_->currentHeight(lCurrentBlockHeader);
+							boost::random::uniform_int_distribution<uint64_t> lBlockDistribution(0, lCurrentBlockHeight);
 							uint64_t lChallengeBlock = lBlockDistribution(lGen);
+							bool lChallengeSaved = false;
 
 							BlockPtr lBlock = store_->block(lChallengeBlock);
 							if (lBlock != nullptr) {
 								//
-								uint256 lNextBlockChallenge = lBlock->hash();
+								lNextBlockChallenge = lBlock->hash();
 								if (lBlock->transactions().size()) {
 									//
 									boost::random::uniform_int_distribution<> lTxDistribution(0, lBlock->transactions().size()-1);
-									int32_t lChallengeBlockTx = lTxDistribution(lGen);
+									lChallengeBlockTx = lTxDistribution(lGen);
 
 									// finally - set
 									lCurrentBlock->setChallenge(lNextBlockChallenge, lChallengeBlockTx);
+									lChallengeSaved = true;
 								}
 							}
+
+							if (gLog().isEnabled(Log::VALIDATOR))
+								gLog().write(Log::VALIDATOR, std::string("[validator/miner]: challenge ") +
+									strprintf("b = %s/%d/%d, h = %d, saved = %d", lNextBlockChallenge.toHex(), lChallengeBlock, lChallengeBlockTx, lCurrentBlockHeight, lChallengeSaved));
 
 							// resolve previous challenge
 							if (!lLastHeader.nextBlockChallenge().isNull()) {

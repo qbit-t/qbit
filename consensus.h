@@ -273,7 +273,7 @@ public:
 						
 						uint256 lHashChallenge = Hash(lSource.begin(), lSource.end());
 
-						return lHashChallenge == block.prevChallenge_;
+						return lTargetCheck && lHashChallenge == block.prevChallenge_;
 					}
 				}
 			}
