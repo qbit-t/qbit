@@ -67,9 +67,9 @@ public:
 		s >> origin_;
 		s >> time_;
 		s >> cycle_;
-		s << nextBlockChallenge_;
-		s << nextTxChallenge_;
-		s << prevChallenge_;
+		s >> nextBlockChallenge_;
+		s >> nextTxChallenge_;
+		s >> prevChallenge_;
 	}
 
 	void setNull() {
