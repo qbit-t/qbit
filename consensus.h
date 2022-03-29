@@ -304,6 +304,10 @@ public:
 			}
 		}
 
+		if (gLog().isEnabled(Log::CONSENSUS) && !(lTargetCheck && lSignatureCheck && lProofAssetCheck)) 
+			gLog().write(Log::CONSENSUS, std::string("[checkSequenceConsistency]: sequence consistency result FAILED: ") +
+				strprintf("target = %d, signature = %d, proof = %d", lTargetCheck, lSignatureCheck, lProofAssetCheck));
+
 		return lTargetCheck && lSignatureCheck && lProofAssetCheck;
 	}
 
