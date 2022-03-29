@@ -200,6 +200,9 @@ public:
 	void setProofAmount(amount_t amount) { proofAmount_ = amount; }
 	amount_t proofAmount() { return proofAmount_; }
 
+	void setProofFrom(uint64_t from) { proofFrom_ = from; }
+	uint64_t proofFrom() { return proofFrom_; }
+
 	void notifyTransaction(const uint256& tx) {
 		//
 		if (notifyTransaction_.size()) {
@@ -241,7 +244,8 @@ private:
 	std::string userName_;
 	uint256 reindexShard_;
 	uint256 proofAsset_;
-	amount_t proofAmount_;
+	amount_t proofAmount_ = 0;
+	uint64_t proofFrom_ = 0;
 };
 
 class Node;
@@ -608,6 +612,15 @@ int main(int argv, char** argc) {
 				std::cout << "proof-amount: incorrect value" << std::endl;
 				return -1;
 			}
+		} else if (std::string(argc[lIdx]) == std::string("-proof-from")) {
+			//
+			uint64_t lFrom;
+			if (boost::conversion::try_lexical_convert<uint64_t>(std::string(argc[++lIdx]), lFrom)) {
+				lSettings->setProofFrom(lFrom);
+			} else {
+				std::cout << "proof-from: incorrect value" << std::endl;
+				return -1;
+			}
 		} else if (std::string(argc[lIdx]) == std::string("-resync")) {
 			//
 			lSettings->setResync();
@@ -667,6 +680,19 @@ int main(int argv, char** argc) {
 					lSettings->setProofAmount(lAmount);
 				} else {
 					std::cout << "proofAmount: incorrect value" << std::endl;
+					return -1;
+				}
+			}
+
+			// proof asset amount
+			qbit::json::Value lProofFrom;
+			if (lConfig.find("proofFrom", lProofFrom)) {
+				//
+				uint64_t lFrom;
+				if (boost::conversion::try_lexical_convert<uint64_t>(lProofFrom.getString(), lFrom)) {
+					lSettings->setProofAmount(lFrom);
+				} else {
+					std::cout << "proofFrom: incorrect value" << std::endl;
 					return -1;
 				}
 			}

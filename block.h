@@ -20,13 +20,14 @@ public:
 	uint256 chain_;
 	uint256 prev_;
 	uint256 root_;
-	PKey origin_;
+	PKey origin_; // block emitent
 	uint64_t time_;
 	std::vector<uint160> cycle_; // chrono-time proof
 	uint256 nextBlockChallenge_; // proof-of-content challenge for the next validator: block
 	int32_t nextTxChallenge_; // proof-of-content challenge for the next validator: tx index
 	uint256 prevChallenge_; // proof-of-content resolved challenge (for quick check)
-	uint512 signature_;
+	uint256 proofTx_; // pos proof
+	uint512 signature_; // block signature (by origin)
 
 	BlockHeader() {
 		setNull();
@@ -44,6 +45,7 @@ public:
 		s << nextBlockChallenge_;
 		s << nextTxChallenge_;
 		s << prevChallenge_;
+		s << proofTx_;
 		s << signature_;
 	}
 
@@ -58,6 +60,7 @@ public:
 		s << nextBlockChallenge_;
 		s << nextTxChallenge_;
 		s << prevChallenge_;
+		s << proofTx_;
 	}
 
 	template <typename Stream>
@@ -72,6 +75,7 @@ public:
 		s >> nextBlockChallenge_;
 		s >> nextTxChallenge_;
 		s >> prevChallenge_;
+		s >> proofTx_;
 		s >> signature_;
 	}
 
@@ -85,6 +89,7 @@ public:
 		nextBlockChallenge_.setNull();
 		prevChallenge_.setNull();
 		signature_.setNull();
+		proofTx_.setNull();
 	}
 
 	inline bool isNull() const {
@@ -120,6 +125,12 @@ public:
 
 	inline void setPrevChallenge(const uint256& prevChallenge) { prevChallenge_ = prevChallenge; }
 	inline uint256 prevChallenge() { return prevChallenge_; }
+
+	inline void setProofTx(const uint256& proof) { proofTx_ = proof; }
+	inline uint256 proofTx() { return proofTx_; }
+
+	inline void setSignature(const uint512& signature) { signature_ = signature; }
+	inline uint512 signature() { return signature_; }
 };
 
 // broadcast found block

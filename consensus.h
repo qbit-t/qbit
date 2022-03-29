@@ -257,25 +257,28 @@ public:
 		bool lSignatureCheck = const_cast<BlockHeader&>(block).origin().verify(lHash, block.signature_);
 
 		// check available asset balance
-		bool lProofAssetCheck = true;
-		std::vector<Transaction::NetworkUnlinkedOut> lFreeOuts;
+		bool lProofAssetCheck = false;
 		uint256 lProofAsset = settings_->proofAsset();
 		if (!lProofAsset.isNull()) {
-			//
-			ITransactionStorePtr lStore = store_->storeManager()->locate(MainChain::id());
-			lStore->selectUtxoByAddressAndAsset(block.origin_, lProofAsset, lFreeOuts);
+			if (block.time_ >= settings_->proofFrom()) {
+				if (!block.proofTx_.isNull()) {
+					//
+					std::vector<Transaction::NetworkUnlinkedOut> lUtxo;
+					ITransactionStorePtr lStore = store_->storeManager()->locate(MainChain::id());
+					lStore->selectUtxoByTransaction(block.proofTx_, lUtxo);
 
-			if (lFreeOuts.size()) {
-				//
-				amount_t lLocalAmount = 0;
-				for (std::vector<Transaction::NetworkUnlinkedOut>::iterator lOut = lFreeOuts.begin(); lOut != lFreeOuts.end(); lOut++) {
-					lLocalAmount += lOut->utxo().amount();
+					if (lUtxo.size()) {
+						//
+						for (std::vector<Transaction::NetworkUnlinkedOut>::iterator lOut = lUtxo.begin(); lOut != lUtxo.end(); lOut++) {
+							if (lOut->utxo().amount() >= settings_->proofAmount()) {
+								lProofAssetCheck = true;
+								break;
+							}
+						}
+					}
 				}
-
-				if (lLocalAmount < settings_->proofAmount())
-					lProofAssetCheck = false;
-			} else lProofAssetCheck = false;
-		}
+			} else lProofAssetCheck = true;
+		} else lProofAssetCheck = true;
 
 		// check challenge
 		if (!block.prev_.isNull()) {

@@ -90,6 +90,9 @@ public:
 	virtual void setProofAmount(amount_t) {}
 	virtual amount_t proofAmount() { return 0; }
 
+	virtual void setProofFrom(uint64_t) {}
+	virtual uint64_t proofFrom() { return 0; }
+
 	virtual std::string userName() { return ""; }
 };
 

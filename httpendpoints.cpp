@@ -1450,9 +1450,13 @@ void HttpGetBlock::process(const std::string& source, const HttpRequest& request
 				lRootObject.addString("prev", lBlock->prev().toHex());
 				lRootObject.addString("root", lBlock->root().toHex());
 				lRootObject.addString("origin", lBlock->origin().toHex());
-				lRootObject.addString("next_block_challenge", lBlock->nextBlockChallenge().toHex());
-				lRootObject.addInt("next_tx_challenge", lBlock->nextTxChallenge());
-				lRootObject.addString("prev_challenge", lBlock->prevChallenge().toHex());
+				lRootObject.addString("signature", lBlock->signature().toHex());
+				lRootObject.addString("proof", lBlock->proofTx().toHex());
+
+				json::Value lChallenge = lRootObject.addObject("challenge");
+				lChallenge.addString("block", lBlock->nextBlockChallenge().toHex());
+				lChallenge.addInt("tx", lBlock->nextTxChallenge());
+				lChallenge.addString("prev", lBlock->prevChallenge().toHex());
 
 				json::Value lPowObject = lRootObject.addArray("peers");
 				int lIdx = 0;
@@ -1597,9 +1601,13 @@ void HttpGetBlockHeader::process(const std::string& source, const HttpRequest& r
 				lRootObject.addString("prev", lBlock->prev().toHex());
 				lRootObject.addString("root", lBlock->root().toHex());
 				lRootObject.addString("origin", lBlock->origin().toHex());
-				lRootObject.addString("next_block_challenge", lBlock->nextBlockChallenge().toHex());
-				lRootObject.addInt("next_tx_challenge", lBlock->nextTxChallenge());
-				lRootObject.addString("prev_challenge", lBlock->prevChallenge().toHex());
+				lRootObject.addString("signature", lBlock->signature().toHex());
+				lRootObject.addString("proof", lBlock->proofTx().toHex());
+
+				json::Value lChallenge = lRootObject.addObject("challenge");
+				lChallenge.addString("block", lBlock->nextBlockChallenge().toHex());
+				lChallenge.addInt("tx", lBlock->nextTxChallenge());
+				lChallenge.addString("prev", lBlock->prevChallenge().toHex());
 
 				json::Value lPowObject = lRootObject.addArray("peers");
 				int lIdx = 0;
@@ -1736,9 +1744,13 @@ void HttpGetBlockHeaderByHeight::process(const std::string& source, const HttpRe
 			lRootObject.addString("prev", lHeader.prev().toHex());
 			lRootObject.addString("root", lHeader.root().toHex());
 			lRootObject.addString("origin", lHeader.origin().toHex());
-			lRootObject.addString("next_block_challenge", lBlock->nextBlockChallenge().toHex());
-			lRootObject.addInt("next_tx_challenge", lBlock->nextTxChallenge());
-			lRootObject.addString("prev_challenge", lBlock->prevChallenge().toHex());
+			lRootObject.addString("signature", lHeader.signature().toHex());
+			lRootObject.addString("proof", lHeader.proofTx().toHex());
+
+			json::Value lChallenge = lRootObject.addObject("challenge");
+			lChallenge.addString("block", lHeader.nextBlockChallenge().toHex());
+			lChallenge.addInt("tx", lHeader.nextTxChallenge());
+			lChallenge.addString("prev", lHeader.prevChallenge().toHex());
 
 			json::Value lPowObject = lRootObject.addArray("peers");
 			int lIdx = 0;
