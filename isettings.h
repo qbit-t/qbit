@@ -43,7 +43,7 @@ public:
 	virtual void addFullNodeRole() {}
 
 	virtual int httpServerPort() { return 8080; }
-	virtual size_t httpThreadPoolSize() { return 2; } // tread pool size
+	virtual size_t httpThreadPoolSize() { return 2; } // thread pool size
 
 	virtual size_t incomingBlockQueueLength() { return 50; }
 
@@ -83,6 +83,12 @@ public:
 
 	virtual bool resync() { return false; }
 	virtual void setResync() {}
+
+	virtual void setProofAsset(const uint256&) {}
+	virtual uint256 proofAsset() { return uint256(); }
+
+	virtual void setProofAmount(amount_t) {}
+	virtual amount_t proofAmount() { return 0; }
 
 	virtual std::string userName() { return ""; }
 };

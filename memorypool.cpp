@@ -759,7 +759,7 @@ BlockContextPtr MemoryPool::beginBlock(BlockPtr block) {
 	lCtx->block()->setPrev(persistentStore_->currentBlockHeader().hash());
 
 	// set origin
-	lCtx->block()->setOrigin(consensus_->mainKey()->createPKey().id());
+	lCtx->block()->setOrigin(consensus_->mainKey()->createPKey());
 
 	return lCtx;
 }

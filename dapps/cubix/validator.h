@@ -67,13 +67,53 @@ public:
 		uint64_t lCurrentHeight = store_->currentHeight(lHeader);
 		BlockHeader& lOther = const_cast<NetworkBlockHeader&>(blockHeader).blockHeader();
 
-		// check if work done
+		//
+		if (const_cast<NetworkBlockHeader&>(blockHeader).height() <= lCurrentHeight) {
+			if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[cubix/checkBlockHeader]: target height is less that current ") + 
+				strprintf("current = %d, proposed = %d, height = %d, new = %s, our = %s, origin = %s/%s#", 
+					lHeader.time(), lOther.time(),
+					const_cast<NetworkBlockHeader&>(blockHeader).height(),
+					lOther.hash().toHex(), lHeader.hash().toHex(), 
+						lOther.origin().toHex(), chain_.toHex().substr(0, 10)));
+			return IValidator::INTEGRITY_IS_INVALID;
+		}
+
+		//
 		bool lExtended = true;
 		if (!consensus_->checkSequenceConsistency(lOther, lExtended)) {
 			//
-			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[cubix/checkBlockHeader]: check sequence consistency FAILED ") +
-				strprintf("block = %s, prev = %s, chain = %s#", const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().hash().toHex(), 
-					const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().prev().toHex(), chain_.toHex().substr(0, 10)));
+			if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[cubix/checkBlockHeader]: check sequence consistency FAILED ") +
+				strprintf("block = %s, prev = %s, chain = %s#", lOther.hash().toHex(), 
+					lOther.prev().toHex(), chain_.toHex().substr(0, 10)));
+			return IValidator::INTEGRITY_IS_INVALID;
+		} else if (!lExtended /*&& lOther.height() > lCurrentHeight*/) {
+			//
+			std::map<uint160, IPeerPtr> lPeers;
+			consensus_->collectPeers(lPeers);
+			lPeers[consensus_->mainKey()->createPKey().id()] = nullptr; // just stub
+			//
+			std::vector<uint160> lCycle;
+			for (std::map<uint160, IPeerPtr>::iterator lNode = lPeers.begin(); lNode != lPeers.end(); lNode++) {
+				//
+				lCycle.push_back(lNode->first);
+			}
+
+			std::vector<uint160> lResult;
+			std::set_intersection(lCycle.begin(), lCycle.end(), lOther.cycle_.begin(), lOther.cycle_.end(), std::back_inserter(lResult));
+
+			if (lResult.size()) {
+				//
+				if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[cubix/checkBlockHeader]: PoC violated, broken chain for ") + 
+					strprintf("%d/%s/%s#", const_cast<NetworkBlockHeader&>(blockHeader).height(), 
+						lOther.hash().toHex(), chain_.toHex().substr(0, 10)));
+				consensus_->toNonSynchronized();
+				return IValidator::BROKEN_CHAIN;
+			}
+
+			if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[cubix/checkBlockHeader]: peers proof FAILED ") +
+				strprintf("block = %s, prev = %s, chain = %s#", lOther.hash().toHex(), 
+					lOther.prev().toHex(), chain_.toHex().substr(0, 10)));
+
 			return IValidator::INTEGRITY_IS_INVALID;
 		}
 
@@ -88,23 +128,25 @@ public:
 		}
 
 		if (lOther.prev() == lHeader.hash()) {
-			/*
-			if (lOther.origin() == lHeader.origin() && !consensus_->isSimpleNetwork()) {
-				if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[cubix/checkBlockHeader]: sequential blocks is not allowed ") + 
-					strprintf("height = %d, new = %s, our = %s, origin = %s/%s#", const_cast<NetworkBlockHeader&>(blockHeader).height(), 
+			//
+			if (lOther.time() < lHeader.time()) {
+				if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[cubix/checkBlockHeader]: next block time is less than median time ") + 
+					strprintf("current = %d, proposed = %d, height = %d, new = %s, our = %s, origin = %s/%s#",
+						lHeader.time(), lOther.time(),
+						const_cast<NetworkBlockHeader&>(blockHeader).height(), 
 						lOther.hash().toHex(), lHeader.hash().toHex(), 
 							lOther.origin().toHex(), chain_.toHex().substr(0, 10)));
-				return IValidator::ORIGIN_NOT_ALLOWED;
-			} else if (lOther.time() < lHeader.time()) {
-				if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[cubix/checkBlockHeader]: next block time is less than median time ") + 
-					strprintf("current = %d, proposed = %d, height = %d, new = %s, our = %s, origin = %s/%s#", 
+				return IValidator::INTEGRITY_IS_INVALID;
+			} else if (!(lOther.time() - lHeader.time() >= (consensus_->blockTime() / 1000) &&
+						lOther.time() - lHeader.time() < (consensus_->blockTime() / 1000) * 2)) {
+				if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[cubix/checkBlockHeader]: time passage is wrong ") + 
+					strprintf("current = %d, proposed = %d, height = %d, new = %s, our = %s, origin = %s/%s#",
 						lHeader.time(), lOther.time(),
-						const_cast<NetworkBlockHeader&>(blockHeader).height(),
+						const_cast<NetworkBlockHeader&>(blockHeader).height(), 
 						lOther.hash().toHex(), lHeader.hash().toHex(), 
 							lOther.origin().toHex(), chain_.toHex().substr(0, 10)));
 				return IValidator::INTEGRITY_IS_INVALID;
 			}
-			*/
 
 			if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[cubix/checkBlockHeader]: proposed header is correct ") + 
 				strprintf("height = %d, new = %s, our = %s, origin = %s/%s#", const_cast<NetworkBlockHeader&>(blockHeader).height(), 
@@ -247,6 +289,58 @@ private:
 							for (std::map<uint160, IPeerPtr>::iterator lNode = lPeers.begin(); lNode != lPeers.end(); lNode++) {
 								//
 								lCurrentBlock->cycle_.push_back(lNode->first);
+							}
+
+							// prepare next challenge
+							BlockHeader lCurrentBlockHeader;
+							int32_t lChallengeBlockTx = -1;
+							uint256 lNextBlockChallenge;
+							uint64_t lCurrentBlockHeight = store_->currentHeight(lCurrentBlockHeader);
+							boost::random::uniform_int_distribution<uint64_t> lBlockDistribution(1, lCurrentBlockHeight);
+							uint64_t lChallengeBlock = lBlockDistribution(lGen);
+							bool lChallengeSaved = false;
+
+							BlockPtr lBlock = store_->block(lChallengeBlock);
+							if (lBlock != nullptr) {
+								//
+								lNextBlockChallenge = lBlock->hash();
+								if (lBlock->transactions().size()) {
+									//
+									boost::random::uniform_int_distribution<> lTxDistribution(0, lBlock->transactions().size()-1);
+									lChallengeBlockTx = lTxDistribution(lGen);
+
+									// finally - set
+									lCurrentBlock->setChallenge(lNextBlockChallenge, lChallengeBlockTx);
+									lChallengeSaved = true;
+								}
+							}
+
+							if (gLog().isEnabled(Log::VALIDATOR))
+								gLog().write(Log::VALIDATOR, std::string("[cubix/validator/miner]: challenge ") +
+									strprintf("b = %s/%d/%d, h = %d, saved = %d", lNextBlockChallenge.toHex(), lChallengeBlock, lChallengeBlockTx, lCurrentBlockHeight, lChallengeSaved));
+
+							// resolve previous challenge
+							if (!lLastHeader.nextBlockChallenge().isNull()) {
+								//
+								BlockPtr lTargetBlock = store_->block(lLastHeader.nextBlockChallenge());
+								if (lTargetBlock != nullptr) {
+									//
+									if (lTargetBlock->transactions().size() > lLastHeader.nextTxChallenge() &&
+										lLastHeader.nextTxChallenge() >= 0) {
+										//
+										TransactionPtr lTransaction = lTargetBlock->transactions()[lLastHeader.nextTxChallenge()];
+										uint256 lTxId = lTransaction->hash();
+
+										// make hash
+										DataStream lSource(SER_NETWORK, PROTOCOL_VERSION);
+										lSource << lLastHeader.nextBlockChallenge();
+										lSource << lTxId;
+										lSource << lCurrentTime;
+										
+										uint256 lHashChallenge = Hash(lSource.begin(), lSource.end());
+										lCurrentBlock->setPrevChallenge(lHashChallenge);
+									}
+								}
 							}
 
 							// calc merkle root

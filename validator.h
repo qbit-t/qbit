@@ -344,6 +344,9 @@ private:
 							// calc merkle root
 							lCurrentBlock->setRoot(lCurrentBlockContext->calculateMerkleRoot());
 
+							// make signature
+							consensus_->mainKey()->sign(lCurrentBlock->hash(), lCurrentBlock->signature_);
+
 							// get current header
 							currentBlockHeader_ = lCurrentBlock->blockHeader();
 

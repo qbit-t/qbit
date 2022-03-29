@@ -20,12 +20,13 @@ public:
 	uint256 chain_;
 	uint256 prev_;
 	uint256 root_;
-	uint160 origin_;
+	PKey origin_;
 	uint64_t time_;
 	std::vector<uint160> cycle_; // chrono-time proof
 	uint256 nextBlockChallenge_; // proof-of-content challenge for the next validator: block
 	int32_t nextTxChallenge_; // proof-of-content challenge for the next validator: tx index
 	uint256 prevChallenge_; // proof-of-content resolved challenge (for quick check)
+	uint512 signature_;
 
 	BlockHeader() {
 		setNull();
@@ -43,6 +44,7 @@ public:
 		s << nextBlockChallenge_;
 		s << nextTxChallenge_;
 		s << prevChallenge_;
+		s << signature_;
 	}
 
 	template <typename Stream>
@@ -70,6 +72,7 @@ public:
 		s >> nextBlockChallenge_;
 		s >> nextTxChallenge_;
 		s >> prevChallenge_;
+		s >> signature_;
 	}
 
 	void setNull() {
@@ -77,11 +80,11 @@ public:
 		chain_ = MainChain::id();
 		prev_.setNull();
 		root_.setNull();
-		origin_.setNull();
 		time_ = 0;
 		nextTxChallenge_ = -1;
 		nextBlockChallenge_.setNull();
 		prevChallenge_.setNull();
+		signature_.setNull();
 	}
 
 	inline bool isNull() const {
@@ -104,8 +107,8 @@ public:
 	inline void setRoot(const uint256& root) { root_ = root; }
 	inline uint256 root() { return root_; }
 
-	inline void setOrigin(const uint160& origin) { origin_ = origin; }
-	inline uint160 origin() { return origin_; }
+	inline void setOrigin(const PKey& origin) { origin_ = origin; }
+	inline PKey origin() { return origin_; }
 
 	inline void setChallenge(const uint256& nextBlockChallenge, uint32_t nextTxChallenge) {
 		nextBlockChallenge_ = nextBlockChallenge;

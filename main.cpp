@@ -194,6 +194,12 @@ public:
 		reindexShard_ = shard;
 	}
 
+	void setProofAsset(const uint256& asset) { proofAsset_ = asset; }
+	uint256 proofAsset() { return proofAsset_; }
+
+	void setProofAmount(amount_t amount) { proofAmount_ = amount; }
+	amount_t proofAmount() { return proofAmount_; }
+
 	void notifyTransaction(const uint256& tx) {
 		//
 		if (notifyTransaction_.size()) {
@@ -234,6 +240,8 @@ private:
 	bool resync_ = false;
 	std::string userName_;
 	uint256 reindexShard_;
+	uint256 proofAsset_;
+	amount_t proofAmount_;
 };
 
 class Node;
@@ -587,6 +595,19 @@ int main(int argv, char** argc) {
 			//
 			uint256 lShard; lShard.setHex(std::string(argc[++lIdx]));
 			lSettings->setReindexShard(lShard);
+		} else if (std::string(argc[lIdx]) == std::string("-proof-asset")) {
+			//
+			uint256 lAsset; lAsset.setHex(std::string(argc[++lIdx]));
+			lSettings->setProofAsset(lAsset);
+		} else if (std::string(argc[lIdx]) == std::string("-proof-amount")) {
+			//
+			uint64_t lAmount;
+			if (boost::conversion::try_lexical_convert<uint64_t>(std::string(argc[++lIdx]), lAmount)) {
+				lSettings->setProofAmount(lAmount);
+			} else {
+				std::cout << "proof-amount: incorrect value" << std::endl;
+				return -1;
+			}
 		} else if (std::string(argc[lIdx]) == std::string("-resync")) {
 			//
 			lSettings->setResync();
@@ -628,6 +649,26 @@ int main(int argv, char** argc) {
 			if (lConfig.find("peers", lPeersValue) && !lPeers.size()) {
 				//
 				boost::split(lPeers, lPeersValue.getString(), boost::is_any_of(","));
+			}
+
+			// proof asset
+			qbit::json::Value lProofAsset;
+			if (lConfig.find("proofAsset", lProofAsset)) {
+				uint256 lAsset; lAsset.setHex(lProofAsset.getString());
+				lSettings->setProofAsset(lAsset);
+			}
+
+			// proof asset amount
+			qbit::json::Value lProofAmount;
+			if (lConfig.find("proofAmount", lProofAmount)) {
+				//
+				uint64_t lAmount;
+				if (boost::conversion::try_lexical_convert<uint64_t>(lProofAmount.getString(), lAmount)) {
+					lSettings->setProofAmount(lAmount);
+				} else {
+					std::cout << "proofAmount: incorrect value" << std::endl;
+					return -1;
+				}
 			}
 		}
 	} catch(qbit::exception& ex) {

@@ -248,8 +248,34 @@ public:
 		int lNodeIndex = lDistribute(lGen);
 		// locate node
 		uint160 lId = *std::next(block.cycle_.begin(), lNodeIndex);
+		
 		// check
-		bool lTargetCheck = (lId == block.origin_);
+		bool lTargetCheck = (lId == block.origin_.id());
+		
+		// check signature
+		uint256 lHash = const_cast<BlockHeader&>(block).hash();
+		bool lSignatureCheck = const_cast<BlockHeader&>(block).origin().verify(lHash, block.signature_);
+
+		// check available asset balance
+		bool lProofAssetCheck = true;
+		std::vector<Transaction::NetworkUnlinkedOut> lFreeOuts;
+		uint256 lProofAsset = settings_->proofAsset();
+		if (!lProofAsset.isNull()) {
+			//
+			ITransactionStorePtr lStore = store_->storeManager()->locate(MainChain::id());
+			lStore->selectUtxoByAddressAndAsset(block.origin_, lProofAsset, lFreeOuts);
+
+			if (lFreeOuts.size()) {
+				//
+				amount_t lLocalAmount = 0;
+				for (std::vector<Transaction::NetworkUnlinkedOut>::iterator lOut = lFreeOuts.begin(); lOut != lFreeOuts.end(); lOut++) {
+					lLocalAmount += lOut->utxo().amount();
+				}
+
+				if (lLocalAmount < settings_->proofAmount())
+					lProofAssetCheck = false;
+			} else lProofAssetCheck = false;
+		}
 
 		// check challenge
 		if (!block.prev_.isNull()) {
@@ -278,7 +304,7 @@ public:
 			}
 		}
 
-		return lTargetCheck;
+		return lTargetCheck && lSignatureCheck && lProofAssetCheck;
 	}
 
 	//
@@ -335,7 +361,7 @@ public:
 		IPeerPtr lPeer = nullptr;
 		{
 			boost::unique_lock<boost::mutex> lLock(peersMutex_);
-			PeersMap::iterator lPeerPtr = directPeerMap_.find(const_cast<NetworkBlockHeader&>(block).blockHeader().origin());
+			PeersMap::iterator lPeerPtr = directPeerMap_.find(const_cast<NetworkBlockHeader&>(block).blockHeader().origin().id());
 			if (lPeerPtr != directPeerMap_.end()) {
 				lPeer = lPeerPtr->second;
 			}
