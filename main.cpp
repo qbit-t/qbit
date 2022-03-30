@@ -690,7 +690,7 @@ int main(int argv, char** argc) {
 				//
 				uint64_t lFrom;
 				if (boost::conversion::try_lexical_convert<uint64_t>(lProofFrom.getString(), lFrom)) {
-					lSettings->setProofAmount(lFrom);
+					lSettings->setProofFrom(lFrom);
 				} else {
 					std::cout << "proofFrom: incorrect value" << std::endl;
 					return -1;

@@ -345,16 +345,9 @@ private:
 								ITransactionStorePtr lStore = store_->storeManager()->locate(MainChain::id());
 								lStore->selectUtxoByAddressAndAsset(consensus_->mainKey()->createPKey(), lProofAsset, lFreeOuts);
 
-								if (gLog().isEnabled(Log::VALIDATOR))
-									gLog().write(Log::VALIDATOR, std::string("[validator/miner]: outs = ") +
-										strprintf("%d", lFreeOuts.size()));
-
 								if (lFreeOuts.size()) {
 									//
 									for (std::vector<Transaction::NetworkUnlinkedOut>::iterator lOut = lFreeOuts.begin(); lOut != lFreeOuts.end(); lOut++) {
-										if (gLog().isEnabled(Log::VALIDATOR))
-											gLog().write(Log::VALIDATOR, std::string("[validator/miner]: amount = ") +
-												strprintf("%d, %d, %s", lOut->utxo().amount(), consensus_->settings()->proofAmount(), lOut->utxo().out().tx().toHex()));
 										if (lOut->utxo().amount() >= consensus_->settings()->proofAmount()) {
 											lProofTx = lOut->utxo().out().tx();
 											break;
