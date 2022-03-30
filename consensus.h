@@ -272,9 +272,6 @@ public:
 					if (lUtxo.size()) {
 						//
 						for (std::vector<Transaction::NetworkUnlinkedOut>::iterator lOut = lUtxo.begin(); lOut != lUtxo.end(); lOut++) {
-							if (gLog().isEnabled(Log::CONSENSUS)) 
-								gLog().write(Log::CONSENSUS, std::string("[checkSequenceConsistency]: amount = ") +
-									strprintf("%d", lOut->utxo().amount()));
 							if (lOut->utxo().amount() >= settings_->proofAmount()) {
 								lProofAssetCheck = true;
 								break;
