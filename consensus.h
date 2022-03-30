@@ -252,7 +252,7 @@ public:
 		// check
 		bool lTargetCheck = (lId == block.origin_.id());
 		//
-		extended = false;
+		extended = true; // default
 		
 		// check signature
 		uint256 lHash = const_cast<BlockHeader&>(block).hash();
@@ -288,7 +288,7 @@ public:
 			if (lChallengeBlock != nullptr) {
 				//
 				BlockPtr lTargetBlock = store_->block(lChallengeBlock->nextBlockChallenge());
-				if (lTargetBlock != nullptr) {
+				if (lTargetBlock != nullptr && !block.prevChallenge_.isNull()) {
 					//
 					if (lTargetBlock->transactions().size() > lChallengeBlock->nextTxChallenge() &&
 						lChallengeBlock->nextTxChallenge() >= 0) {
