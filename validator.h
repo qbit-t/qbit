@@ -348,11 +348,11 @@ private:
 								if (lFreeOuts.size()) {
 									//
 									for (std::vector<Transaction::NetworkUnlinkedOut>::iterator lOut = lFreeOuts.begin(); lOut != lFreeOuts.end(); lOut++) {
-										if (gLog().isEnabled(Log::VALIDATOR))
-											gLog().write(Log::VALIDATOR, std::string("[validator/miner]: amount = ") +
-												strprintf("%d", lOut->utxo().amount()));
 										if (lOut->utxo().amount() >= consensus_->settings()->proofAmount()) {
 											lProofTx = lOut->utxo().out().tx();
+											if (gLog().isEnabled(Log::VALIDATOR))
+												gLog().write(Log::VALIDATOR, std::string("[validator/miner]: amount = ") +
+													strprintf("%d, %s", lOut->utxo().amount(), lOut->utxo().out().tx().toHex()));
 											break;
 										}
 									}
