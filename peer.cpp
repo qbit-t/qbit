@@ -3700,7 +3700,7 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 				if (!lConsensus->checkSequenceConsistency(lBlockHeader, lExtended)) {
 					if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: block headers has errors from ") + key() + " -> " + 
 						strprintf("%s/%s#", lId.toHex(), lBlockHeader.chain().toHex().substr(0, 10)));
-					peerManager_->ban(shared_from_this());
+					//peerManager_->ban(shared_from_this());
 
 					SynchronizationJobPtr lJob = locateJob(lBlockHeader.chain());
 					if (lJob) {

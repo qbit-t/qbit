@@ -251,6 +251,8 @@ public:
 		
 		// check
 		bool lTargetCheck = (lId == block.origin_.id());
+		//
+		extended = false;
 		
 		// check signature
 		uint256 lHash = const_cast<BlockHeader&>(block).hash();
