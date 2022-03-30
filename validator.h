@@ -361,7 +361,7 @@ private:
 
 							if (gLog().isEnabled(Log::VALIDATOR))
 								gLog().write(Log::VALIDATOR, std::string("[validator/miner]: challenge and proof ") +
-									strprintf("b = %s/%d/%d, h = %d, proof = %d/%s, saved = %d", lNextBlockChallenge.toHex(), lChallengeBlock, lChallengeBlockTx, lCurrentBlockHeight, lFreeOuts.size(), lProofTx.toHex(), lChallengeSaved));
+									strprintf("b = %s/%d/%d, h = %d, proof = %d/%s, saved = %d, %s#", lNextBlockChallenge.toHex(), lChallengeBlock, lChallengeBlockTx, lCurrentBlockHeight, lFreeOuts.size(), lProofTx.toHex(), lChallengeSaved, chain_.toHex().substr(0, 10)));
 
 							// calc merkle root
 							lCurrentBlock->setRoot(lCurrentBlockContext->calculateMerkleRoot());

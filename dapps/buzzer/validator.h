@@ -338,6 +338,31 @@ private:
 								}
 							}
 
+							// prepare proof
+							uint256 lProofTx;
+							uint256 lProofAsset = consensus_->settings()->proofAsset();
+							std::vector<Transaction::NetworkUnlinkedOut> lFreeOuts;
+							if (!lProofAsset.isNull()) {
+								ITransactionStorePtr lStore = store_->storeManager()->locate(MainChain::id());
+								lStore->selectUtxoByAddressAndAsset(consensus_->mainKey()->createPKey(), lProofAsset, lFreeOuts);
+
+								if (lFreeOuts.size()) {
+									//
+									for (std::vector<Transaction::NetworkUnlinkedOut>::iterator lOut = lFreeOuts.begin(); lOut != lFreeOuts.end(); lOut++) {
+										if (lOut->utxo().amount() >= consensus_->settings()->proofAmount()) {
+											lProofTx = lOut->utxo().out().tx();
+											break;
+										}
+									}
+
+									if (!lProofTx.isNull()) lCurrentBlock->setProofTx(lProofTx);
+								}
+							}
+
+							if (gLog().isEnabled(Log::VALIDATOR))
+								gLog().write(Log::VALIDATOR, std::string("[buzzer/validator/miner]: challenge and proof ") +
+									strprintf("b = %s/%d/%d, h = %d, proof = %d/%s, saved = %d, %s#", lNextBlockChallenge.toHex(), lChallengeBlock, lChallengeBlockTx, lCurrentBlockHeight, lFreeOuts.size(), lProofTx.toHex(), lChallengeSaved, chain_.toHex().substr(0, 10)));
+
 							// calc merkle root
 							lCurrentBlock->setRoot(lCurrentBlockContext->calculateMerkleRoot());
 
