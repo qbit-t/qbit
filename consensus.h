@@ -250,7 +250,8 @@ public:
 		uint160 lId = *std::next(block.cycle_.begin(), lNodeIndex);
 		
 		// check
-		bool lTargetCheck = (lId == block.origin_.id());
+		uint160 lOriginId = block.origin_.id();
+		bool lTargetCheck = (lId == lOriginId);
 		//
 		extended = true; // default
 		
@@ -272,7 +273,7 @@ public:
 					if (lUtxo.size()) {
 						//
 						for (std::vector<Transaction::NetworkUnlinkedOut>::iterator lOut = lUtxo.begin(); lOut != lUtxo.end(); lOut++) {
-							if (lOut->utxo().amount() >= settings_->proofAmount()) {
+							if (lOut->utxo().amount() >= settings_->proofAmount() && lOut->utxo().address().id() == lOriginId) {
 								lProofAssetCheck = true;
 								break;
 							}
