@@ -139,6 +139,11 @@ Item
 
 		model: buzzerClient.getBuzzfeedList()
 
+		// TODO: consumes a lot RAM
+		cacheBuffer: 10000
+		displayMarginBeginning: 5000
+		displayMarginEnd: 5000
+
 		add: Transition {
 			enabled: true
 			NumberAnimation { property: "opacity"; from: 0; to: 1.0; duration: 400 }

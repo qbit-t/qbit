@@ -122,9 +122,9 @@ public:
 			try {
 				TransactionContextPtr lCtx;
 				if (feeRate_ == -1) 
-					lCtx = composer_->wallet()->createTxSpend(lAsset, address_, (amount_t)(amount_ * (double)lScale));
+					lCtx = composer_->wallet()->createTxSpend(lAsset, address_, (amount_t)(amount_ * (double)lScale, false));
 				else
-					lCtx = composer_->wallet()->createTxSpend(lAsset, address_, (amount_t)(amount_ * (double)lScale), feeRate_);
+					lCtx = composer_->wallet()->createTxSpend(lAsset, address_, (amount_t)(amount_ * (double)lScale), feeRate_, false);
 				if (lCtx) { 
 					lCtx->setScale(lScale);
 					created_(lCtx);

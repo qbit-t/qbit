@@ -339,7 +339,7 @@ ApplicationWindow
 				suspended = true;
 
 				//
-				//buzzerApp.resumeNotifications();
+				buzzerApp.resumeNotifications();
             }
             else if(Qt.application.state === 4 /* active */)
             {
@@ -350,7 +350,7 @@ ApplicationWindow
                 if (localNotificator) localNotificator.reset();
 
 				//
-				//buzzerApp.pauseNotifications();
+				buzzerApp.pauseNotifications();
 
 				// try to re-force change background
 				adjustTimer.start();

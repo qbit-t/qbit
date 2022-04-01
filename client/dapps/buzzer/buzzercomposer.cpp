@@ -1133,7 +1133,7 @@ void BuzzerLightComposer::CreateTxBuzzer::utxoByShardLoaded(const std::vector<Tr
 	std::list<Transaction::UnlinkedOutPtr> lFeeUtxos;
 	//
 	try {
-		amount_t lFeeAmount = composer_->wallet()->fillInputs(buzzerTx_, TxAssetType::qbitAsset(), lFee, lFeeUtxos);
+		amount_t lFeeAmount = composer_->wallet()->fillInputs(buzzerTx_, TxAssetType::qbitAsset(), lFee, false, lFeeUtxos);
 		buzzerTx_->addFeeOut(*lSKey, TxAssetType::qbitAsset(), lFee); // to miner
 		if (lFeeAmount > lFee) { // make change
 			lChangeUtxo = buzzerTx_->addOut(*lSChangeKey, lSChangeKey->createPKey()/*change*/, TxAssetType::qbitAsset(), lFeeAmount - lFee);

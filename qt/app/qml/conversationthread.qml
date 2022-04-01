@@ -209,7 +209,7 @@ QuarkPage {
 
 			if (initialFeed) {
 				initialFeed = false;
-				editBuzzTimer.start();
+				toTheTimer.start();
 			}
 		}
 
@@ -538,9 +538,19 @@ QuarkPage {
 		}
 	}
 
-	//
+	///
 	// thread
-	//
+	///
+
+	Image {
+		id: back
+		fillMode: Image.PreserveAspectFit
+		width: parent.width
+		x: 0
+		y: buzzThreadToolBar.y + buzzThreadToolBar.height
+		Layout.alignment: Qt.AlignCenter
+		source: "../images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "conversations.back")
+	}
 
 	QuarkListView {
 		id: list
@@ -551,6 +561,10 @@ QuarkPage {
 		//contentHeight: 1000
 		usePull: true
 		clip: true
+
+		cacheBuffer: 10000
+		displayMarginBeginning: 5000
+		displayMarginEnd: 5000
 
 		model: buzzesThread_
 
@@ -567,6 +581,24 @@ QuarkPage {
 					lItem.width = list.width;
 				}
 			}
+		}
+
+		property int lastItemCount: -1
+
+		onContentYChanged: {
+			if (lastItemCount == -1) lastItemCount = list.count;
+			if (lastItemCount == list.count) {
+				//console.log("[onContentYChanged]: lastItemCount = " + lastItemCount + ", list.count = " + list.count + ", atTheBottom(p) = " + atTheBottom);
+
+				var lBottomItem = list.itemAtIndex(list.count - 1);
+				if (lBottomItem !== null) {
+					atTheBottom = lBottomItem.isFullyVisible;
+				}
+
+				//console.log("[onContentYChanged]: lastItemCount = " + lastItemCount + ", list.count = " + list.count + ", atTheBottom(a) = " + atTheBottom);
+			}
+
+			lastItemCount = list.count;
 		}
 
 		onDragStarted: {
@@ -587,8 +619,7 @@ QuarkPage {
 		}
 
 		Component.onCompleted: {
-			list.positionViewAtEnd();
-			atTheBottom = true;
+			toTheTimer.start();
 		}
 
 		delegate: Item {
@@ -596,11 +627,8 @@ QuarkPage {
 
 			property var buzzItem;
 
-			/*
-			onClicked: {
-				// TODO: actions
-			}
-			*/
+			property int yoff: Math.round(itemDelegate.y - list.contentY)
+			property bool isFullyVisible: (yoff > list.y && yoff + height < list.y + list.height)
 
 			onWidthChanged: {
 				if (buzzItem) {
@@ -633,6 +661,8 @@ QuarkPage {
 
 			function calculatedHeightModified(value) {
 				itemDelegate.height = value;
+				if (atTheBottom)
+					toTheTimer.start();
 			}
 		}
 	}
@@ -780,14 +810,14 @@ QuarkPage {
 			onClicked: {
 				if (!sending) {
 					//
-					if (buzzesThread_.count > 0) {
-						var lBottomItem = list.itemAtIndex(buzzesThread_.count - 1);
+					/*
+					if (list.count > 0) {
+						var lBottomItem = list.itemAtIndex(list.count - 1);
 						if (lBottomItem !== null) {
-							atTheBottom = (lBottomItem.y < list.contentY + list.contentHeight);
-						} else {
-							atTheBottom = false;
+							atTheBottom = lBottomItem.isFullyVisible;
 						}
 					}
+					*/
 
 					//
 					sending = true;
@@ -843,6 +873,18 @@ QuarkPage {
 	Timer {
 		id: editBuzzTimer
 		interval: 200
+		repeat: false
+		running: false
+
+		onTriggered: {
+			list.positionViewAtEnd();
+			atTheBottom = true;
+		}
+	}
+
+	Timer {
+		id: toTheTimer
+		interval: 1000
 		repeat: false
 		running: false
 

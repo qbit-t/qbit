@@ -138,7 +138,7 @@ TransactionContextPtr BuzzerComposer::createTxBuzzer(const PKey& self, const std
 
 	std::list<Transaction::UnlinkedOutPtr> lFeeUtxos;
 	amount_t lFee = lRate * lCtx->size();
-	amount_t lFeeAmount = wallet_->fillInputs(lBuzzerTx, TxAssetType::qbitAsset(), lFee, lFeeUtxos);
+	amount_t lFeeAmount = wallet_->fillInputs(lBuzzerTx, TxAssetType::qbitAsset(), lFee, false, lFeeUtxos);
 	lBuzzerTx->addFeeOut(*lSKey, TxAssetType::qbitAsset(), lFee); // to miner
 
 	Transaction::UnlinkedOutPtr lFeeOut;

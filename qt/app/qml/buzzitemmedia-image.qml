@@ -41,6 +41,7 @@ Rectangle {
 	readonly property int spaceThreadedItems_: 4
 	readonly property real defaultFontSize: 11
 	property var frameColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
+	property var fillColor: "transparent"
 
 	//
 	property var buzzitemmedia_;

@@ -476,6 +476,10 @@ public:
 	}
 
 	Q_INVOKABLE void processAndMerge() {
+		processAndMerge(false);
+	}
+
+	Q_INVOKABLE void processAndMerge(bool more) {
 		//
 		if (!buzzfeedModel_) return;
 
@@ -483,7 +487,7 @@ public:
 		prepare();
 
 		// params
-		more_ = false;
+		more_ = more;
 		merge_ = true;
 
 		// NOTICE: we actually able to process only "our" updates not "all", that is why there is no
@@ -494,6 +498,7 @@ public:
 
 		std::vector<std::string> lArgs;
 		lArgs.push_back(buzzId_.toStdString());
+		if (more) lArgs.push_back("more");
 
 		command_->process(lArgs);
 	}
@@ -1823,6 +1828,10 @@ public:
 	}
 
 	Q_INVOKABLE void processAndMerge() {
+		processAndMerge(false);
+	}
+
+	Q_INVOKABLE void processAndMerge(bool more) {
 		//
 		if (!eventsfeedModel_) return;
 
@@ -1830,13 +1839,14 @@ public:
 		prepare();
 
 		// params
-		more_ = false;
+		more_ = more;
 		merge_ = true;
 
 		//
 		if (!more_) eventsfeedModel_->eventsfeed()->clear();
 		//
 		std::vector<std::string> lArgs;
+		if (more) lArgs.push_back("more");
 		command_->process(lArgs);
 	}
 

@@ -41,7 +41,7 @@ Rectangle
 	radius: defaultRadius
 	width: radius * 2
 	height: radius * 2
-	color: !enabled ? Material.buttonDisabledColor : Material.buttonColor
+	color: enabled ? Material.buttonColor : Material.buttonDisabledColor
 
 	Rectangle
 	{

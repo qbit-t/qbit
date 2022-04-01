@@ -116,7 +116,8 @@ QuarkPage {
 
 		function onBuzzerDAppResumed() {
 			if (buzzerClient.buzzerDAppReady) {
-				modelLoader.processAndMerge();
+				modelLoader.processAndMerge(true);
+				buzzSubscribeCommand.process();
 			}
 		}
 	}
@@ -246,6 +247,11 @@ QuarkPage {
 
 		model: buzzesThread_
 
+		// TODO: consumes a lot RAM
+		cacheBuffer: 10000
+		displayMarginBeginning: 5000
+		displayMarginEnd: 5000
+
 		add: Transition {
 			enabled: true
 			NumberAnimation { property: "opacity"; from: 0; to: 1.0; duration: 400 }
@@ -259,6 +265,24 @@ QuarkPage {
 					lItem.width = list.width;
 				}
 			}
+		}
+
+		property int lastItemCount: -1
+
+		onContentYChanged: {
+			if (lastItemCount == -1) lastItemCount = list.count;
+			if (lastItemCount == list.count) {
+				//console.log("[onContentYChanged]: lastItemCount = " + lastItemCount + ", list.count = " + list.count + ", atTheBottom(p) = " + atTheBottom);
+
+				var lBottomItem = list.itemAtIndex(list.count - 1);
+				if (lBottomItem !== null) {
+					atTheBottom = lBottomItem.isFullyVisible;
+				}
+
+				//console.log("[onContentYChanged]: lastItemCount = " + lastItemCount + ", list.count = " + list.count + ", atTheBottom(a) = " + atTheBottom);
+			}
+
+			lastItemCount = list.count;
 		}
 
 		onDragStarted: {
@@ -288,6 +312,9 @@ QuarkPage {
 
 					property var buzzItem;
 
+					property int yoff: Math.round(headDelegate.y - list.contentY)
+					property bool isFullyVisible: (yoff > list.y && yoff + height < list.y + list.height)
+
 					onWidthChanged: {
 						if (buzzItem) {
 							buzzItem.width = list.width;
@@ -314,6 +341,8 @@ QuarkPage {
 
 					function calculatedHeightModified(value) {
 						headDelegate.height = value;
+						if (atTheBottom)
+							toTheTimer.start();
 					}
 				}
 			}
@@ -323,6 +352,9 @@ QuarkPage {
 					id: itemDelegate
 
 					property var buzzItem;
+
+					property int yoff: Math.round(itemDelegate.y - list.contentY)
+					property bool isFullyVisible: (yoff > list.y && yoff + height < list.y + list.height)
 
 					onClicked: {
 						//
@@ -516,6 +548,7 @@ QuarkPage {
 			onClicked: {
 				if (!sending) {
 					//
+					/*
 					if (buzzesThread_.count > 0) {
 						var lBottomItem = list.itemAtIndex(buzzesThread_.count - 1);
 						if (lBottomItem !== null) {
@@ -524,6 +557,7 @@ QuarkPage {
 							atTheBottom = false;
 						}
 					}
+					*/
 
 					//
 					sending = true;
@@ -585,6 +619,19 @@ QuarkPage {
 
 		onTriggered: {
 			list.positionViewAtEnd();
+			atTheBottom = true;
+		}
+	}
+
+	Timer {
+		id: toTheTimer
+		interval: 1000
+		repeat: false
+		running: false
+
+		onTriggered: {
+			list.positionViewAtEnd();
+			atTheBottom = true;
 		}
 	}
 

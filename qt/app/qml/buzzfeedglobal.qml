@@ -324,6 +324,11 @@ Item
 		usePull: true
 		clip: true
 
+		// TODO: consumes a lot RAM
+		cacheBuffer: 10000
+		displayMarginBeginning: 5000
+		displayMarginEnd: 5000
+
 		function adjust() {
 			//
 			for (var lIdx = 0; lIdx < list.count; lIdx++) {

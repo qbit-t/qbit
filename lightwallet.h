@@ -104,7 +104,7 @@ public:
 	// utxo management
 	bool pushUnlinkedOut(Transaction::UnlinkedOutPtr, TransactionContextPtr);
 	bool popUnlinkedOut(const uint256&, TransactionContextPtr);
-	void collectUnlinkedOutsByAsset(const uint256&, amount_t, std::list<Transaction::UnlinkedOutPtr>&);
+	void collectUnlinkedOutsByAsset(const uint256&, amount_t, bool, std::list<Transaction::UnlinkedOutPtr>&);
 
 	// 
 	TransactionContextPtr processTransaction(TransactionPtr);
@@ -202,6 +202,7 @@ public:
 	// create spend tx
 	TransactionContextPtr createTxSpend(const uint256& /*asset*/, const PKey& /*dest*/, amount_t /*amount*/, qunit_t /*fee limit*/, int32_t targetBlock = -1);
 	TransactionContextPtr createTxSpend(const uint256& /*asset*/, const PKey& /*dest*/, amount_t /*amount*/);
+	TransactionContextPtr createTxSpend(const uint256& /*asset*/, const PKey& /*dest*/, amount_t /*amount*/, bool /*aggregate*/);
 
 	// create spend private tx
 	TransactionContextPtr createTxSpendPrivate(const uint256& /*asset*/, const PKey& /*dest*/, amount_t /*amount*/, qunit_t /*fee limit*/, int32_t targetBlock = -1);
@@ -211,7 +212,7 @@ public:
 	TransactionContextPtr createTxFee(const PKey& /*dest*/, amount_t /*amount*/);	
 	TransactionContextPtr createTxFeeLockedChange(const PKey& /*dest*/, amount_t /*amount*/, amount_t /*locked*/, uint64_t /*height*/);
 
-	amount_t fillInputs(TxSpendPtr /*tx*/, const uint256& /*asset*/, amount_t /*amount*/, std::list<Transaction::UnlinkedOutPtr>& /*utxos*/);
+	amount_t fillInputs(TxSpendPtr /*tx*/, const uint256& /*asset*/, amount_t /*amount*/, bool /*aggregate*/, std::list<Transaction::UnlinkedOutPtr>& /*utxos*/);
 	void removeUnlinkedOut(std::list<Transaction::UnlinkedOutPtr>&);
 	void removeUnlinkedOut(Transaction::UnlinkedOutPtr);
 	void cacheUnlinkedOut(Transaction::UnlinkedOutPtr);
@@ -230,9 +231,11 @@ public:
 	bool isTimelockReached(const uint256& /*utxo*/);
 
 private:
-	TransactionContextPtr makeTxSpend(Transaction::Type /*type*/, const uint256& /*asset*/, const PKey& /*dest*/, amount_t /*amount*/, qunit_t /*fee limit*/);
+	TransactionContextPtr makeTxSpend(Transaction::Type /*type*/, const uint256& /*asset*/, const PKey& /*dest*/, amount_t /*amount*/, qunit_t /*fee limit*/, bool /*aggregate*/);
 	Transaction::NetworkUnlinkedOutPtr findNetworkUnlinkedOut(const uint256& /*out*/);
 	void removeFromAssetsCache(Transaction::UnlinkedOutPtr);
+	void collectUnlinkedOutsByAssetReverse(const uint256&, amount_t, std::list<Transaction::UnlinkedOutPtr>&);
+	void collectUnlinkedOutsByAssetForward(const uint256&, amount_t, std::list<Transaction::UnlinkedOutPtr>&);
 
 private:
 	// various settings, command line args & config file

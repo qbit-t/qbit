@@ -262,10 +262,14 @@ Item {
 		id: backgroundContainer
 		//x: myMessage_ ? messageMetrics.getX() : spaceLeft_
 		y: spaceItems_
-		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
-		backgroundColor: myMessage_ ?
+		color: conversationMessage().length ?
+				   buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden") :
+				   "transparent"
+		backgroundColor: conversationMessage().length ?
+							 (myMessage_ ?
 							 buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.conversation.message.my") :
-							 buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.conversation.message.other")
+							 buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.conversation.message.other")) :
+							 "transparent"
 		//width: messageMetrics.getWidth()
 		height: calculatedHeight - (spaceItems_ + spaceItems_)
 		bottomLeftCorner: myMessage_
@@ -301,12 +305,13 @@ Item {
 
 		QuarkSymbolLabel {
 			id: onChainSymbol
-			x: parent.width - (width + (buzzerApp.isDesktop ? spaceHalfItems_ : spaceHalfItems_) + 1)
+			x: (parent.width - (width + (buzzerApp.isDesktop ? spaceHalfItems_ : spaceHalfItems_) + 1)) +
+				(conversationMessage().length ? 0 : 3)
 			y: (buzzerApp.isDesktop ? spaceHalfItems_ : spaceHalfItems_)
 			symbol: !onChain_ ? Fonts.clockSym : Fonts.checkedCircleSym //linkSym
 			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 10)) : 12
-			color: !onChain_ ? buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzz.wait") :
-							   buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzz.done");
+			color: !onChain_ ? buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzz.wait.chat") :
+							   buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzz.done.chat");
 
 			visible: dynamic_
 		}
@@ -317,9 +322,9 @@ Item {
 
 		Rectangle {
 			id: bodyControl
-			x: spaceLeft_
-			y: spaceTop_
-			width: parent.width - (spaceLeft_ + spaceRight_)
+			x: conversationMessage().length ? spaceLeft_ : 0
+			y: conversationMessage().length ? spaceTop_ : 0
+			width: parent.width - (conversationMessage().length ? (spaceLeft_ + spaceRight_) : 0)
 			height: getHeight()
 
 			border.color: "transparent"
@@ -418,6 +423,7 @@ Item {
 
 				//
 				if (!accepted_ && key === "") return;
+				if (!accepted_ && buzzerClient.getCurrentBuzzerId() !== buzzerId_) return;
 
 				// expand media
 				if (buzzMedia_.length && key !== "") {
@@ -429,6 +435,9 @@ Item {
 						buzzMediaItem_.calculatedHeightModified.connect(innerHeightChanged);
 
 						buzzMediaItem_.frameColor = myMessage_ ?
+											 buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.conversation.message.my") :
+											 buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.conversation.message.other");
+						buzzMediaItem_.fillColor = myMessage_ ?
 											 buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.conversation.message.my") :
 											 buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.conversation.message.other");
 						buzzMediaItem_.x = 0;

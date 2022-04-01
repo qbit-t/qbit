@@ -44,6 +44,7 @@ Rectangle {
 	property int originalDuration: duration_
 	property int totalSize_: size_
 	property var frameColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
+	property var fillColor: "transparent"
 
 	//
 	property var buzzitemmedia_;
@@ -55,10 +56,10 @@ Rectangle {
 	x: mediaView ? getX() : 0
 	y: mediaView ? getY() : 0
 
-	color: "transparent"
 	width: mediaList ? mediaList.width - (mediaView ? spaceItems_ * 2 : 0) : parent.width - (mediaView ? spaceItems_ * 2 : 0)
 	height: actionButton.height + spaceTop_ + spaceBottom_
 	border.color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
+	color: fillColor
 	radius: 8
 
 	onMediaViewChanged: {
@@ -203,6 +204,7 @@ Rectangle {
 									(player.playing ? Fonts.pauseSym : Fonts.playSym)
 		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 7)) : 18
 		radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius)) : defaultRadius
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.highlight")
 
 		property bool needDownload: size_ && size_ > 1024*200 && !downloadCommand.downloaded
 

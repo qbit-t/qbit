@@ -213,6 +213,7 @@ Rectangle {
 		spaceTop: 2
 		symbol: player.playing ? Fonts.pauseSym : Fonts.playSym
 		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 7)) : 18
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.highlight")
 
 		onClick: {
 			if (!player.playing) {

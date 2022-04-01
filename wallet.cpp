@@ -566,7 +566,104 @@ void Wallet::balance(const uint256& asset, amount_t& pending, amount_t& actual) 
 	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[balance]: ") + strprintf("wallet balance for %s = %d", asset.toHex(), actual));
 }
 
-void Wallet::collectUnlinkedOutsByAsset(const uint256& asset, amount_t amount, std::list<Transaction::UnlinkedOutPtr>& list) {
+void Wallet::collectUnlinkedOutsByAsset(const uint256& asset, amount_t amount, bool aggregate, std::list<Transaction::UnlinkedOutPtr>& list) {
+	//
+	if (!aggregate) collectUnlinkedOutsByAssetForward(asset, amount, list);
+	else collectUnlinkedOutsByAssetReverse(asset, amount, list);
+}
+
+void Wallet::collectUnlinkedOutsByAssetReverse(const uint256& asset, amount_t amount, std::list<Transaction::UnlinkedOutPtr>& list) {
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
+	std::map<uint256 /*asset*/, std::multimap<amount_t /*amount*/, uint256 /*utxo*/>>::iterator lAsset = assetsCache_.find(asset);
+	amount_t lTotal = 0;
+	if (lAsset != assetsCache_.end()) {
+		for (std::multimap<amount_t /*amount*/, uint256 /*utxo*/>::iterator lAmount = lAsset->second.begin(); 
+			lAmount != lAsset->second.end();) {
+						
+			//
+			if (!lAmount->first) {
+				lAmount++;
+				continue;
+			}
+
+			Transaction::UnlinkedOutPtr lUtxo = findUnlinkedOut(lAmount->second);
+			if (lUtxo == nullptr) {
+				// delete from store
+				utxo_.remove(lAmount->second);
+				assetsUtxoPresence_.erase(lAmount->second);
+				lAsset->second.erase(lAmount);
+				continue;
+			}
+
+			// extra check
+			{
+				uint64_t lHeight;
+				uint64_t lConfirms;
+				ITransactionStorePtr lStore;
+				if (storeManager()) lStore = storeManager()->locate(lUtxo->out().chain());
+				else lStore = persistentStore_;
+
+				if (lStore) {
+					bool lCoinbase = false;
+					if (lStore->transactionHeight(lUtxo->out().tx(), lHeight, lConfirms, lCoinbase)) {
+						//
+						IMemoryPoolPtr lMempool;
+						if(mempoolManager()) lMempool = mempoolManager()->locate(lUtxo->out().chain()); // corresponding mempool
+						else lMempool = mempool_;
+
+						//
+						if (!lCoinbase && lConfirms < lMempool->consensus()->maturity()) {
+							if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[collectUnlinkedOutsByAsset]: transaction is NOT MATURE ") + 
+								strprintf("%d/%d/%s/%s#", lConfirms, lMempool->consensus()->maturity(), lUtxo->out().tx().toHex(), lUtxo->out().chain().toHex().substr(0, 10)));
+							lAmount++;
+							continue; // skip UTXO
+						} else if (lCoinbase && lConfirms < lMempool->consensus()->coinbaseMaturity()) {
+							if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[collectUnlinkedOutsByAsset]: COINBASE transaction is NOT MATURE ") + 
+								strprintf("%d/%d/%s/%s#", lConfirms, lMempool->consensus()->coinbaseMaturity(), lUtxo->out().tx().toHex(), lUtxo->out().chain().toHex().substr(0, 10)));
+							lAmount++;
+							continue; // skip UTXO
+						} else if (lUtxo->lock() && lUtxo->lock() > lHeight + lConfirms) {
+							if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[collectUnlinkedOutsByAsset]: timelock is NOT REACHED ") + 
+								strprintf("%d/%d/%s/%s#", lUtxo->lock(), lHeight + lConfirms, lUtxo->out().tx().toHex(), lUtxo->out().chain().toHex().substr(0, 10)));
+							lAmount++;
+							continue; // skip UTXO
+						}
+					} else {
+						gLog().write(Log::WALLET, std::string("[collectUnlinkedOutsByAsset]: transaction not found ") + 
+							strprintf("%s/%s#", lUtxo->out().tx().toHex(), lUtxo->out().chain().toHex().substr(0, 10)));
+						lAmount++;
+						continue; // skip UTXO
+					}
+				} else {
+					gLog().write(Log::WALLET, std::string("[collectUnlinkedOutsByAsset]: storage not found for ") + 
+						strprintf("%s#", lUtxo->out().chain().toHex().substr(0, 10)));
+					lAmount++;
+					continue; // skip UTXO
+				}
+			}
+
+			if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[collectUnlinkedOutsByAsset]: tx found for amount ") + 
+				strprintf("%d/%s/%s/%s#", lAmount->first, lUtxo->out().hash().toHex(), lUtxo->out().tx().toHex(), lUtxo->out().chain().toHex().substr(0, 10)));
+
+			lTotal += lAmount->first;
+			list.push_back(lUtxo);
+
+			if (lTotal >= amount) {
+				break;
+			}
+
+			lAmount++;
+		}
+	}
+
+	if (lTotal < amount) list.clear(); // amount is unreachable
+
+	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[collectUnlinkedOutsByAsset]: total amount collected ") + 
+		strprintf("%d", lTotal));
+}
+
+void Wallet::collectUnlinkedOutsByAssetForward(const uint256& asset, amount_t amount, std::list<Transaction::UnlinkedOutPtr>& list) {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
 	std::map<uint256 /*asset*/, std::multimap<amount_t /*amount*/, uint256 /*utxo*/>>::iterator lAsset = assetsCache_.find(asset);
@@ -787,10 +884,10 @@ bool Wallet::rollback(TransactionContextPtr ctx) {
 }
 
 // fill inputs
-amount_t Wallet::fillInputs(TxSpendPtr tx, const uint256& asset, amount_t amount, std::list<Transaction::UnlinkedOutPtr>& /*utxos*/) {
+amount_t Wallet::fillInputs(TxSpendPtr tx, const uint256& asset, amount_t amount, bool aggregate, std::list<Transaction::UnlinkedOutPtr>& /*utxos*/) {
 	// collect utxo's
 	std::list<Transaction::UnlinkedOutPtr> lUtxos;
-	collectUnlinkedOutsByAsset(asset, amount, lUtxos);
+	collectUnlinkedOutsByAsset(asset, amount, aggregate, lUtxos);
 
 	if (!lUtxos.size()) throw qbit::exception("E_AMOUNT", "Insufficient amount.");
 
@@ -811,14 +908,14 @@ amount_t Wallet::fillInputs(TxSpendPtr tx, const uint256& asset, amount_t amount
 }
 
 // make tx spend...
-TransactionContextPtr Wallet::makeTxSpend(Transaction::Type type, const uint256& asset, const PKey& dest, amount_t amount, qunit_t feeRateLimit, int32_t targetBlock) {
+TransactionContextPtr Wallet::makeTxSpend(Transaction::Type type, const uint256& asset, const PKey& dest, amount_t amount, qunit_t feeRateLimit, int32_t targetBlock, bool aggregate) {
 	// create empty tx
 	TxSpendPtr lTx = TransactionHelper::to<TxSpend>(TransactionFactory::create(type)); // TxSendPrivate -> TxSend
 	// create context
 	TransactionContextPtr lCtx = TransactionContext::instance(lTx);
 	// fill inputs
 	std::list<Transaction::UnlinkedOutPtr> lUtxos, lFeeUtxos;
-	amount_t lAmount = fillInputs(lTx, asset, amount, lUtxos);
+	amount_t lAmount = fillInputs(lTx, asset, amount, aggregate, lUtxos);
 
 	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[makeTxSpend]: creating spend tx: ") + 
 		strprintf("to = %s, amount = %d, asset = %s#", const_cast<PKey&>(dest).toString(), amount, asset.toHex().substr(0, 10)));
@@ -852,11 +949,11 @@ TransactionContextPtr Wallet::makeTxSpend(Transaction::Type type, const uint256&
 				lTx->addOut(*lSChangeKey, lSChangeKey->createPKey()/*change*/, asset, lAmount - (amount + lFee), true);
 			}
 		} else { // rare cases
-			return makeTxSpend(type, asset, dest, amount + lFee, feeRateLimit, targetBlock);
+			return makeTxSpend(type, asset, dest, amount + lFee, feeRateLimit, targetBlock, aggregate);
 		}
 	} else {
 		// add fee
-		amount_t lFeeAmount = fillInputs(lTx, TxAssetType::qbitAsset(), lFee, lFeeUtxos);
+		amount_t lFeeAmount = fillInputs(lTx, TxAssetType::qbitAsset(), lFee, aggregate, lFeeUtxos);
 		lTx->addFeeOut(*lSKey, TxAssetType::qbitAsset(), lFee); // to miner
 		if (lFeeAmount > lFee) { // make change
 			lTx->addOut(*lSChangeKey, lSChangeKey->createPKey()/*change*/, TxAssetType::qbitAsset(), lFeeAmount - lFee, true);
@@ -876,22 +973,27 @@ TransactionContextPtr Wallet::makeTxSpend(Transaction::Type type, const uint256&
 
 // create spend tx
 TransactionContextPtr Wallet::createTxSpend(const uint256& asset, const PKey& dest, amount_t amount, qunit_t feeRateLimit, int32_t targetBlock) {
-	return makeTxSpend(Transaction::SPEND, asset, dest, amount, feeRateLimit, targetBlock);
+	return makeTxSpend(Transaction::SPEND, asset, dest, amount, feeRateLimit, targetBlock, false);
 }
 
 TransactionContextPtr Wallet::createTxSpend(const uint256& asset, const PKey& dest, amount_t amount) {
 	qunit_t lRate = settings_->maxFeeRate();
-	return makeTxSpend(Transaction::SPEND, asset, dest, amount, lRate, -1);
+	return makeTxSpend(Transaction::SPEND, asset, dest, amount, lRate, -1, false);
+}
+
+TransactionContextPtr Wallet::createTxSpend(const uint256& asset, const PKey& dest, amount_t amount, bool aggregate) {
+	qunit_t lRate = settings_->maxFeeRate();
+	return makeTxSpend(Transaction::SPEND, asset, dest, amount, lRate, -1, aggregate);
 }
 
 // create spend private tx
 TransactionContextPtr Wallet::createTxSpendPrivate(const uint256& asset, const PKey& dest, amount_t amount, qunit_t feeRateLimit, int32_t targetBlock) {
-	return makeTxSpend(Transaction::SPEND_PRIVATE, asset, dest, amount, feeRateLimit, targetBlock);	
+	return makeTxSpend(Transaction::SPEND_PRIVATE, asset, dest, amount, feeRateLimit, targetBlock, false);	
 }
 
 TransactionContextPtr Wallet::createTxSpendPrivate(const uint256& asset, const PKey& dest, amount_t amount) {
 	qunit_t lRate = settings_->maxFeeRate();
-	return makeTxSpend(Transaction::SPEND_PRIVATE, asset, dest, amount, lRate, -1);	
+	return makeTxSpend(Transaction::SPEND_PRIVATE, asset, dest, amount, lRate, -1, false);	
 }
 
 TransactionContextPtr Wallet::createTxAssetType(const PKey& dest, const std::string& shortName, const std::string& longName, amount_t supply, amount_t scale, int chunks, TxAssetType::Emission emission, qunit_t feeRateLimit, int32_t targetBlock) {
@@ -925,7 +1027,7 @@ TransactionContextPtr Wallet::createTxAssetType(const PKey& dest, const std::str
 
 	amount_t lFee = lRate * lCtx->size(); 	
 	std::list<Transaction::UnlinkedOutPtr> lUtxos;
-	amount_t lFeeAmount = fillInputs(lAssetTypeTx, TxAssetType::qbitAsset(), lFee, lUtxos);
+	amount_t lFeeAmount = fillInputs(lAssetTypeTx, TxAssetType::qbitAsset(), lFee, false, lUtxos);
 	lAssetTypeTx->addFeeOut(*lSKey, TxAssetType::qbitAsset(), lFee); // to miner
 	if (lFeeAmount > lFee) { // make change
 		lAssetTypeTx->addOut(*lSChangeKey, lSChangeKey->createPKey()/*change*/, TxAssetType::qbitAsset(), lFeeAmount - lFee, true);
@@ -991,7 +1093,7 @@ TransactionContextPtr Wallet::createTxLimitedAssetEmission(const PKey& dest, con
 
 	amount_t lFee = lRate * lCtx->size(); 
 	std::list<Transaction::UnlinkedOutPtr> lUtxos;
-	amount_t lFeeAmount = fillInputs(lAssetEmissionTx, TxAssetType::qbitAsset(), lFee, lUtxos);
+	amount_t lFeeAmount = fillInputs(lAssetEmissionTx, TxAssetType::qbitAsset(), lFee, false, lUtxos);
 	lAssetEmissionTx->addFeeOut(*lSKey, TxAssetType::qbitAsset(), lFee); // to miner
 	if (lFeeAmount > lFee) { // make change
 		lAssetEmissionTx->addOut(*lSChangeKey, lSChangeKey->createPKey()/*change*/, TxAssetType::qbitAsset(), lFeeAmount - lFee, true);
@@ -1055,7 +1157,7 @@ TransactionContextPtr Wallet::createTxDApp(const PKey& dest, const std::string& 
 
 	amount_t lFee = lRate * lCtx->size(); 
 	std::list<Transaction::UnlinkedOutPtr> lUtxos;
-	amount_t lFeeAmount = fillInputs(lDAppTx, TxAssetType::qbitAsset(), lFee, lUtxos);
+	amount_t lFeeAmount = fillInputs(lDAppTx, TxAssetType::qbitAsset(), lFee, false, lUtxos);
 	lDAppTx->addFeeOut(*lSKey, TxAssetType::qbitAsset(), lFee); // to miner
 	if (lFeeAmount > lFee) { // make change
 		lDAppTx->addOut(*lSChangeKey, lSChangeKey->createPKey()/*change*/, TxAssetType::qbitAsset(), lFeeAmount - lFee, true);
@@ -1102,7 +1204,7 @@ TransactionContextPtr Wallet::createTxShard(const PKey& dest, const std::string&
 
 	amount_t lFee = lRate * lCtx->size(); 
 	std::list<Transaction::UnlinkedOutPtr> lInputsUtxos;
-	amount_t lFeeAmount = fillInputs(lShardTx, TxAssetType::qbitAsset(), lFee, lInputsUtxos);
+	amount_t lFeeAmount = fillInputs(lShardTx, TxAssetType::qbitAsset(), lFee, false, lInputsUtxos);
 	lShardTx->addFeeOut(*lSKey, TxAssetType::qbitAsset(), lFee); // to miner
 	if (lFeeAmount > lFee) { // make change
 		lShardTx->addOut(*lSChangeKey, lSChangeKey->createPKey()/*change*/, TxAssetType::qbitAsset(), lFeeAmount - lFee, true);
@@ -1123,7 +1225,7 @@ TransactionContextPtr Wallet::createTxFee(const PKey& dest, amount_t amount) {
 	TransactionContextPtr lCtx = TransactionContext::instance(lTx);
 	// fill inputs
 	std::list<Transaction::UnlinkedOutPtr> lUtxos;
-	amount_t lAmount = fillInputs(lTx, TxAssetType::qbitAsset(), amount, lUtxos);
+	amount_t lAmount = fillInputs(lTx, TxAssetType::qbitAsset(), amount, false, lUtxos);
 
 	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[createTxFee]: creating fee tx: ") + 
 		strprintf("to = %s, amount = %d", const_cast<PKey&>(dest).toString(), amount));
@@ -1166,7 +1268,7 @@ TransactionContextPtr Wallet::createTxFeeLockedChange(const PKey& dest, amount_t
 	TransactionContextPtr lCtx = TransactionContext::instance(lTx);
 	// fill inputs
 	std::list<Transaction::UnlinkedOutPtr> lUtxos;
-	amount_t lAmount = fillInputs(lTx, TxAssetType::qbitAsset(), amount+locked, lUtxos);
+	amount_t lAmount = fillInputs(lTx, TxAssetType::qbitAsset(), amount+locked, false, lUtxos);
 
 	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[createTxFeeLockedChange]: creating fee tx: ") + 
 		strprintf("to = %s, amount = %d", const_cast<PKey&>(dest).toString(), amount+locked));

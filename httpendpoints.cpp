@@ -448,7 +448,8 @@ void HttpSendToAddress::process(const std::string& source, const HttpRequest& re
 		"params": [
 			"<asset_id>", 	-- (string) asset or "*"
 			"<address>", 	-- (string) address
-			"0.1"			-- (string) amount
+			"0.1",			-- (string) amount
+			["aggregate"]		
 		]
 	}
 	*/
@@ -478,8 +479,9 @@ void HttpSendToAddress::process(const std::string& source, const HttpRequest& re
 		std::string lAssetString;	// 0
 		PKey lAddress; // 1
 		double lValue; // 2
+		bool lAggregate = false; // 3
 
-		if (lParams.size() == 3) {
+		if (lParams.size() >= 3) {
 			// param[0]
 			json::Value lP0 = lParams[0];
 			if (lP0.isString()) lAssetString = lP0.getString();
@@ -494,9 +496,18 @@ void HttpSendToAddress::process(const std::string& source, const HttpRequest& re
 			json::Value lP2 = lParams[2];
 			if (lP2.isString()) { 
 				if (!convert<double>(lP2.getString(), lValue)) {
-					reply = HttpReply::stockReply("E_INCORRECT_VALUE_TYPE", "Incorrect parameter type"); return;	
+					reply = HttpReply::stockReply("E_INCORRECT_VALUE_TYPE", "Incorrect parameter type"); return;
 				}
 			} else { reply = HttpReply::stockReply(HttpReply::bad_request); return; }
+
+			// param[3]
+			if (lParams.size() > 3) {
+				json::Value lP3 = lParams[3];
+				if (lP3.isString()) { 
+					if (lP3.getString() == "aggregate") lAggregate = true;
+					else { reply = HttpReply::stockReply("E_INCORRECT_VALUE_TYPE", "Incorrect parameter type"); return; }
+				} else { reply = HttpReply::stockReply(HttpReply::bad_request); return; }
+			}
 		} else {
 			reply = HttpReply::stockReply("E_PARAMS", "Insufficient or extra parameters"); 
 			return;
@@ -529,7 +540,7 @@ void HttpSendToAddress::process(const std::string& source, const HttpRequest& re
 		TransactionContextPtr lCtx = nullptr;
 		try {
 			// create tx
-			lCtx = wallet_->createTxSpend(lAsset, lAddress, (amount_t)(lValue * (double)lScale));
+			lCtx = wallet_->createTxSpend(lAsset, lAddress, (amount_t)(lValue * (double)lScale), lAggregate);
 			if (lCtx->errors().size()) {
 				reply = HttpReply::stockReply("E_TX_CREATE_SPEND", *lCtx->errors().begin()); 
 				return;

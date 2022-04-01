@@ -73,7 +73,7 @@ public:
 	Transaction::UnlinkedOutPtr findUnlinkedOut(const uint256&);
 	Transaction::UnlinkedOutPtr findLinkedOut(const uint256&);
 	Transaction::UnlinkedOutPtr findUnlinkedOutByAsset(const uint256&, amount_t);
-	void collectUnlinkedOutsByAsset(const uint256&, amount_t, std::list<Transaction::UnlinkedOutPtr>&);
+	void collectUnlinkedOutsByAsset(const uint256&, amount_t, bool, std::list<Transaction::UnlinkedOutPtr>&);
 
 	// rollback tx
 	bool rollback(TransactionContextPtr);
@@ -131,6 +131,7 @@ public:
 	// create spend tx
 	TransactionContextPtr createTxSpend(const uint256& /*asset*/, const PKey& /*dest*/, amount_t /*amount*/, qunit_t /*fee limit*/, int32_t targetBlock = -1);
 	TransactionContextPtr createTxSpend(const uint256& /*asset*/, const PKey& /*dest*/, amount_t /*amount*/);
+	TransactionContextPtr createTxSpend(const uint256& /*asset*/, const PKey& /*dest*/, amount_t /*amount*/, bool /*aggregate*/);
 
 	// create spend private tx
 	TransactionContextPtr createTxSpendPrivate(const uint256& /*asset*/, const PKey& /*dest*/, amount_t /*amount*/, qunit_t /*fee limit*/, int32_t targetBlock = -1);
@@ -202,10 +203,10 @@ public:
 		pendingtxs_.write(id, tx);
 	}
 
-	amount_t fillInputs(TxSpendPtr /*tx*/, const uint256& /*asset*/, amount_t /*amount*/, std::list<Transaction::UnlinkedOutPtr>& /*utxos*/);
+	amount_t fillInputs(TxSpendPtr /*tx*/, const uint256& /*asset*/, amount_t /*amount*/, bool /*aggregate*/, std::list<Transaction::UnlinkedOutPtr>& /*utxos*/);
 
 private:
-	TransactionContextPtr makeTxSpend(Transaction::Type /*type*/, const uint256& /*asset*/, const PKey& /*dest*/, amount_t /*amount*/, qunit_t /*fee limit*/, int32_t /*targetBlock*/);
+	TransactionContextPtr makeTxSpend(Transaction::Type /*type*/, const uint256& /*asset*/, const PKey& /*dest*/, amount_t /*amount*/, qunit_t /*fee limit*/, int32_t /*targetBlock*/, bool /*aggregate*/);
 	Transaction::UnlinkedOutPtr findUnlinkedOutByEntity(const uint256& /*entity*/);
 
 	inline void cacheUtxo(Transaction::UnlinkedOutPtr utxo) {
@@ -241,6 +242,9 @@ private:
 
 		return true;
 	}
+
+	void collectUnlinkedOutsByAssetReverse(const uint256&, amount_t, std::list<Transaction::UnlinkedOutPtr>&);
+	void collectUnlinkedOutsByAssetForward(const uint256&, amount_t, std::list<Transaction::UnlinkedOutPtr>&);
 
 private:
 	// various settings, command line args & config file

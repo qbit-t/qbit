@@ -163,8 +163,15 @@ bool BuzzfeedItem::mergeInternal(BuzzfeedItemPtr buzz, bool checkSize, bool noti
 
 	// verify signature
 	Buzzer::VerificationResult lResult;
-	if (suspicious && verifyPublisherLazy_) lResult = verifyPublisherLazy_(lBuzz);
-	else lResult = verifyPublisher_(lBuzz);
+	if (suspicious && verifyPublisherLazy_) {
+		lResult = verifyPublisherLazy_(lBuzz);
+		if (lResult == Buzzer::VerificationResult::INVALID)
+			if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[ERROR-01]: %s", lBuzz->toString()));
+	} else {
+		lResult = verifyPublisher_(lBuzz);
+		if (lResult == Buzzer::VerificationResult::INVALID)
+			if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[ERROR-02]: %s", lBuzz->toString()));
+	}
 
 	// supposedly strict
 	if (lResult == Buzzer::VerificationResult::INVALID) {
@@ -175,6 +182,9 @@ bool BuzzfeedItem::mergeInternal(BuzzfeedItemPtr buzz, bool checkSize, bool noti
 			lResult = verifyPublisherLazy_(lBuzz);
 		}
 	}
+
+	if (lResult == Buzzer::VerificationResult::INVALID)
+		if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[ERROR-03]: %s", lBuzz->toString()));
 
 	if (lResult == Buzzer::VerificationResult::SUCCESS || lResult == Buzzer::VerificationResult::POSTPONED) {
 		// check result

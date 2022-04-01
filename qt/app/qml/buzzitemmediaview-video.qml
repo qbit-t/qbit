@@ -292,7 +292,7 @@ Rectangle {
 		radius: 14
 		penWidth: 9
 
-		visible: !buzzerApp.isDesktop && !actionButton.needDownload
+		visible: false //!buzzerApp.isDesktop && !actionButton.needDownload
 	}
 
 	//
@@ -361,6 +361,7 @@ Rectangle {
 									(player.playing ? Fonts.pauseSym : Fonts.playSym)
 		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 7)) : 18
 		radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius)) : defaultRadius
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.highlight")
 
 		property bool needDownload: size_ && size_ > 1024*200 && !downloadCommand.downloaded
 

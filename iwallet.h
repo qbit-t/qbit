@@ -70,7 +70,7 @@ public:
 
 	// try to find utxo by asset with amount >=
 	virtual Transaction::UnlinkedOutPtr findUnlinkedOutByAsset(const uint256&, amount_t) { throw qbit::exception("NOT_IMPL", "IWallet::findUnlinkedOutByAsset - not implemented."); }
-	virtual void collectUnlinkedOutsByAsset(const uint256&, amount_t, std::list<Transaction::UnlinkedOutPtr>&) { throw qbit::exception("NOT_IMPL", "IWallet::collectUnlinkedOutsByAsset - not implemented."); }
+	virtual void collectUnlinkedOutsByAsset(const uint256&, amount_t, bool, std::list<Transaction::UnlinkedOutPtr>&) { throw qbit::exception("NOT_IMPL", "IWallet::collectUnlinkedOutsByAsset - not implemented."); }
 
 	// clean-up assets utxo
 	virtual void cleanUp() { throw qbit::exception("NOT_IMPL", "IWallet::cleanUp - not implemented."); }
@@ -89,6 +89,7 @@ public:
 	// create spend tx
 	virtual TransactionContextPtr createTxSpend(const uint256& /*asset*/, const PKey& /*dest*/, amount_t /*amount*/, qunit_t /*fee limit*/, int32_t targetBlock = -1) { throw qbit::exception("NOT_IMPL", "Not implemented."); }
 	virtual TransactionContextPtr createTxSpend(const uint256& /*asset*/, const PKey& /*dest*/, amount_t /*amount*/) { throw qbit::exception("NOT_IMPL", "Not implemented."); }
+	virtual TransactionContextPtr createTxSpend(const uint256& /*asset*/, const PKey& /*dest*/, amount_t /*amount*/, bool /*aggregate*/) { throw qbit::exception("NOT_IMPL", "Not implemented."); }
 
 	// create spend private tx
 	virtual TransactionContextPtr createTxSpendPrivate(const uint256& /*asset*/, const PKey& /*dest*/, amount_t /*amount*/, qunit_t /*fee limit*/, int32_t targetBlock = -1) { throw qbit::exception("NOT_IMPL", "Not implemented."); }
@@ -138,7 +139,7 @@ public:
 	virtual void removePendingTransaction(const uint256& /*tx*/) { throw qbit::exception("NOT_IMPL", "IWallet::removePendingTransaction - Not implemented."); }
 	virtual void collectPendingTransactions(std::list<TransactionPtr>& /*list*/) { throw qbit::exception("NOT_IMPL", "IWallet::collectPendingTransactions - Not implemented."); }
 
-	virtual amount_t fillInputs(TxSpendPtr /*tx*/, const uint256& /*asset*/, amount_t /*amount*/, std::list<Transaction::UnlinkedOutPtr>& /*utxos*/) { throw qbit::exception("NOT_IMPL", "IWallet::fillInputs - Not implemented."); }
+	virtual amount_t fillInputs(TxSpendPtr /*tx*/, const uint256& /*asset*/, amount_t /*amount*/, bool /*aggregate*/, std::list<Transaction::UnlinkedOutPtr>& /*utxos*/) { throw qbit::exception("NOT_IMPL", "IWallet::fillInputs - Not implemented."); }
 	virtual void writePendingTransaction(const uint256& /*id*/, TransactionPtr /*tx*/) { throw qbit::exception("NOT_IMPL", "IWallet::writePendingTransaction - Not implemented."); }
 	virtual void removeUnlinkedOut(std::list<Transaction::UnlinkedOutPtr>&) { throw qbit::exception("NOT_IMPL", "IWallet::removeUnlinkedOut - Not implemented."); }
 	virtual void cacheUnlinkedOut(Transaction::UnlinkedOutPtr) { throw qbit::exception("NOT_IMPL", "IWallet::cacheUnlinkedOut - Not implemented."); }
