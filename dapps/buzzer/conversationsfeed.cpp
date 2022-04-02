@@ -170,7 +170,9 @@ void ConversationItem::merge(const std::vector<ConversationItem>& chunk, const u
 			//
 			for (std::map<uint256 /*id*/, _commit>::iterator lCandidate = commit_.begin(); lCandidate != commit_.end(); lCandidate++) {
 				//
-				if (lCandidate->second.count_ == CONVERSATIONSFEED_CONFIRMATIONS) {
+				// TODO: conversations list should use UNION strategy
+				//
+				if (lCandidate->second.count_ == 1 /*CONVERSATIONSFEED_CONFIRMATIONS*/) {
 					mergeInternal(lCandidate->second.candidate_, true, false);
 				}
 			}

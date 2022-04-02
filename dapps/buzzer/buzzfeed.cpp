@@ -475,58 +475,28 @@ void BuzzfeedItem::merge(const std::vector<BuzzfeedItem>& chunk, bool notify) {
 	{
 		Guard lLock(this);
 		//
-		uint256 lChain;
-		// control
-		bool lChainExists = false; 
-		if (chunk.size()) {
-			lChainExists = !(chains_.insert((lChain = chunk.begin()->buzzChainId())).second); // one chunk = one chain
-		}
-
-		std::map<Key, std::vector<BuzzfeedItem>::iterator> lFeed;
 		for (std::vector<BuzzfeedItem>::iterator lItem = const_cast<std::vector<BuzzfeedItem>&>(chunk).begin(); 
 												lItem != const_cast<std::vector<BuzzfeedItem>&>(chunk).end(); lItem++) {
-			// preserve for backtrace
-			if (merge_ == Merge::INTERSECT) lFeed[lItem->key()] = lItem;
-
-			// process merge
-			bool lMerge = true;
-			if (lChainExists) {
-				//
-				std::map<Key /*buzz*/, BuzzfeedItemPtr>::iterator lExisting = items_.find(lItem->key());
-				if (lExisting == items_.end()) {
-					if (merge_ == Merge::UNION) {
-						lMerge = true;
-					} else if (merge_ == Merge::INTERSECT) {
-						lMerge = false;
-					}
-				}
+			//
+			std::map<Key /*id*/, _commit>::iterator lExisting = commit_.find(lItem->key());
+			if (lExisting == commit_.end()) {
+				commit_.insert(std::map<Key /*id*/, _commit>::value_type(lItem->key(), _commit(BuzzfeedItem::instance(*lItem))));
+			} else {
+				lExisting->second.commit();
 			}
-
-			if (lMerge)
-				merge(*lItem, false, false);
 		}
 
-		// backtracing
-		if (merge_ == Merge::INTERSECT && lFeed.size()) {
+		if (notify /*done*/) {
 			//
-			std::map<Key, BuzzfeedItemPtr> lToRemove;
-			for (std::map<Key /*buzz*/, BuzzfeedItemPtr>::iterator lItem = items_.begin(); lItem != items_.end(); lItem++) {
-				if (lItem->second->buzzChainId() == lChain) {
-					//
-					if (lFeed.find(lItem->second->key()) == lFeed.end()) {
-						// missing
-						lToRemove[lItem->second->key()] = lItem->second;
-					}
+			for (std::map<Key /*id*/, _commit>::iterator lCandidate = commit_.begin(); lCandidate != commit_.end(); lCandidate++) {
+				if (merge_ == Merge::UNION ||
+						lCandidate->second.count_ == BUZZFEED_PEERS_CONFIRMATIONS ||
+						lCandidate->second.count_ == BUZZFEED_PEERS_CONFIRMATIONS-1) {
+					mergeInternal(lCandidate->second.candidate_, false, false, false);
 				}
 			}
 
-			// erase items
-			for (std::map<Key /*buzz*/, BuzzfeedItemPtr>::iterator lRemove = lToRemove.begin(); lRemove != lToRemove.end(); lRemove++) {
-				//
-				removeIndex(lRemove->second);
-				items_.erase(lRemove->second->key());
-				originalItems_.erase(lRemove->second->buzzId());
-			}
+			commit_.clear();
 		}
 	}
 
@@ -561,7 +531,6 @@ void BuzzfeedItem::clear() {
 			lItem->second->clear();
 		}
 
-		chains_.clear();
 		items_.clear();
 		originalItems_.clear();
 		index_.clear();

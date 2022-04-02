@@ -30,6 +30,10 @@ namespace qbit {
 #define BUZZ_PEERS_CONFIRMATIONS 2 // default
 
 //
+// number of load confirmations
+#define BUZZFEED_PEERS_CONFIRMATIONS 3 // default
+
+//
 // forward
 class BuzzfeedItem;
 typedef std::shared_ptr<BuzzfeedItem> BuzzfeedItemPtr;
@@ -1062,7 +1066,6 @@ protected:
 
 	// merge strategy
 	Merge merge_ = Merge::UNION;
-	std::set<uint256> chains_;
 
 	// sort order
 	Order sortOrder_ = Order::REVERSE;
@@ -1128,6 +1131,20 @@ protected:
 	bool hasPrevLink_ = false;
 	bool hasNextLink_ = false;
 	bool pulled_ = false;
+
+	//
+	struct _commit {
+		BuzzfeedItemPtr candidate_;
+		int count_ = 1;
+
+		_commit(BuzzfeedItemPtr item) {
+			candidate_ = item;
+		}
+
+		void commit() { count_++; }
+	};
+
+	std::map<Key /*id*/, _commit> commit_;	
 };
 
 //

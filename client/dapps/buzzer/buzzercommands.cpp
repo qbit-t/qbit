@@ -511,7 +511,7 @@ void LoadBuzzfeedByTagCommand::process(const std::vector<std::string>& args) {
 			composer_, 
 			*lChain, 
 			lTag, lTimeframeFrom, lScoreFrom, lTimestampFrom, lPublisher,
-			2 /*to be sure that the feed is not doctored*/,
+			BUZZFEED_PEERS_CONFIRMATIONS /*to be sure that the feed is not doctored*/,
 			boost::bind(&LoadBuzzfeedByTagCommand::buzzfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 		// async process
 		lCommand->process(boost::bind(&LoadBuzzfeedByTagCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
@@ -572,7 +572,7 @@ void LoadBuzzesGlobalCommand::process(const std::vector<std::string>& args) {
 			composer_, 
 			*lChain, 
 			lTimeframeFrom, lScoreFrom, lTimestampFrom, lPublisher,
-			2 /*to be sure that the feed is not doctored*/,
+			BUZZFEED_PEERS_CONFIRMATIONS /*to be sure that the feed is not doctored*/,
 			boost::bind(&LoadBuzzesGlobalCommand::buzzfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 		// async process
 		lCommand->process(boost::bind(&LoadBuzzesGlobalCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
@@ -634,7 +634,7 @@ void LoadBuzzfeedByBuzzerCommand::process(const std::vector<std::string>& args) 
 			*lChain, 
 			lFrom,
 			lBuzzer,
-			2 /*to be sure that the feed is not doctored*/,
+			BUZZFEED_PEERS_CONFIRMATIONS /*to be sure that the feed is not doctored*/,
 			boost::bind(&LoadBuzzfeedByBuzzerCommand::buzzfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 		// async process
 		lCommand->process(boost::bind(&LoadBuzzfeedByBuzzerCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
@@ -692,7 +692,7 @@ void LoadBuzzfeedByBuzzCommand::process(const std::vector<std::string>& args) {
 			*lChain, 
 			from_,
 			lBuzzId,
-			2 /*to be sure that the feed is not doctored*/,
+			BUZZFEED_PEERS_CONFIRMATIONS /*to be sure that the feed is not doctored*/,
 			boost::bind(&LoadBuzzfeedByBuzzCommand::buzzfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 		// async process
 		lCommand->process(boost::bind(&LoadBuzzfeedByBuzzCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
@@ -809,7 +809,7 @@ void LoadBuzzfeedCommand::process(const std::vector<std::string>& args) {
 			composer_, 
 			*lChain, 
 			lFrom, 
-			2 /*to be sure that the feed is not doctored*/,
+			BUZZFEED_PEERS_CONFIRMATIONS /*to be sure that the feed is not doctored*/,
 			boost::bind(&LoadBuzzfeedCommand::buzzfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 		// async process
 		lCommand->process(boost::bind(&LoadBuzzfeedCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
