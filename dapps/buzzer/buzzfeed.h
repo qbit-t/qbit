@@ -1144,7 +1144,7 @@ protected:
 		void commit() { count_++; }
 	};
 
-	std::map<Key /*id*/, _commit> commit_;	
+	std::map<Key /*id*/, _commit> commit_;
 };
 
 //

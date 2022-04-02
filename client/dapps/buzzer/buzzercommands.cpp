@@ -408,7 +408,7 @@ void LoadHashTagsCommand::process(const std::vector<std::string>& args) {
 			composer_, 
 			*lChain, 
 			tag_,
-			2 /*to be sure that the feed is not doctored*/,
+			3 /*to be sure that the feed is not doctored*/,
 			boost::bind(&LoadHashTagsCommand::tagsLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 		// async process
 		lCommand->process(boost::bind(&LoadHashTagsCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
@@ -750,7 +750,7 @@ void LoadMessagesCommand::process(const std::vector<std::string>& args) {
 			*lChain, 
 			from_,
 			lConversationId,
-			2 /*to be sure that the feed is not doctored*/,
+			BUZZFEED_PEERS_CONFIRMATIONS /*to be sure that the feed is not doctored*/,
 			boost::bind(&LoadMessagesCommand::buzzfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 		// async process
 		lCommand->process(boost::bind(&LoadMessagesCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
@@ -1022,7 +1022,7 @@ void LoadEndorsementsByBuzzerCommand::process(const std::vector<std::string>& ar
 				*lChain, 
 				fromBuzzer_, 
 				lBuzzerId, 
-				2,
+				EVENTSFEED_PEERS_CONFIRMATIONS,
 				boost::bind(&LoadEndorsementsByBuzzerCommand::eventsfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 		else
 			lCommand = BuzzerLightComposer::LoadEndorsementsByBuzzer::instance(
@@ -1030,7 +1030,7 @@ void LoadEndorsementsByBuzzerCommand::process(const std::vector<std::string>& ar
 				*lChain, 
 				fromBuzzer_, 
 				lBuzzer, 
-				2,
+				EVENTSFEED_PEERS_CONFIRMATIONS,
 				boost::bind(&LoadEndorsementsByBuzzerCommand::eventsfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 
 		// async process
@@ -1092,7 +1092,7 @@ void LoadMistrustsByBuzzerCommand::process(const std::vector<std::string>& args)
 				*lChain, 
 				fromBuzzer_, 
 				lBuzzerId,
-				2,
+				EVENTSFEED_PEERS_CONFIRMATIONS,
 				boost::bind(&LoadMistrustsByBuzzerCommand::eventsfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 		else
 			 lCommand = BuzzerLightComposer::LoadMistrustsByBuzzer::instance(
@@ -1100,7 +1100,7 @@ void LoadMistrustsByBuzzerCommand::process(const std::vector<std::string>& args)
 				*lChain, 
 				fromBuzzer_, 
 				lBuzzer,
-				2,
+				EVENTSFEED_PEERS_CONFIRMATIONS,
 				boost::bind(&LoadMistrustsByBuzzerCommand::eventsfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 
 		// async process
@@ -1164,7 +1164,7 @@ void LoadSubscriptionsByBuzzerCommand::process(const std::vector<std::string>& a
 				*lChain, 
 				fromBuzzer_, 
 				lBuzzerId,
-				2,
+				EVENTSFEED_PEERS_CONFIRMATIONS,
 				boost::bind(&LoadSubscriptionsByBuzzerCommand::eventsfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 		else
 			lCommand = BuzzerLightComposer::LoadSubscriptionsByBuzzer::instance(
@@ -1172,7 +1172,7 @@ void LoadSubscriptionsByBuzzerCommand::process(const std::vector<std::string>& a
 				*lChain, 
 				fromBuzzer_, 
 				lBuzzer,
-				2,
+				EVENTSFEED_PEERS_CONFIRMATIONS,
 				boost::bind(&LoadSubscriptionsByBuzzerCommand::eventsfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 
 		// async process
@@ -1236,7 +1236,7 @@ void LoadFollowersByBuzzerCommand::process(const std::vector<std::string>& args)
 				*lChain, 
 				fromBuzzer_, 
 				lBuzzerId,
-				2,
+				EVENTSFEED_PEERS_CONFIRMATIONS,
 				boost::bind(&LoadFollowersByBuzzerCommand::eventsfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 		else
 			lCommand = BuzzerLightComposer::LoadFollowersByBuzzer::instance(
@@ -1244,7 +1244,7 @@ void LoadFollowersByBuzzerCommand::process(const std::vector<std::string>& args)
 				*lChain, 
 				fromBuzzer_, 
 				lBuzzer,
-				2,
+				EVENTSFEED_PEERS_CONFIRMATIONS,
 				boost::bind(&LoadFollowersByBuzzerCommand::eventsfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 
 		// async process
@@ -1289,7 +1289,7 @@ void LoadEventsfeedCommand::process(const std::vector<std::string>& args) {
 	// spead requests
 	for (std::vector<uint256>::iterator lChain = chains_.begin(); lChain != chains_.end(); lChain++) {
 		//
-		IComposerMethodPtr lCommand = BuzzerLightComposer::LoadEventsfeed::instance(composer_, *lChain, from_, 2,
+		IComposerMethodPtr lCommand = BuzzerLightComposer::LoadEventsfeed::instance(composer_, *lChain, from_, EVENTSFEED_PEERS_CONFIRMATIONS,
 			boost::bind(&LoadEventsfeedCommand::eventsfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 		// async process
 		lCommand->process(boost::bind(&LoadEventsfeedCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));

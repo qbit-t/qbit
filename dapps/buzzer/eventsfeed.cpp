@@ -176,57 +176,29 @@ void EventsfeedItem::merge(const std::vector<EventsfeedItem>& chunk, bool notify
 	//
 	{
 		Guard lLock(this);
-		uint256 lChain;
-		bool lChainExists = false;
-		if (chunk.size()) {
-			// control
-			lChainExists = !(chains_.insert((lChain = chunk.begin()->buzzChainId())).second); // one chunk = one chain
-		}
-
-		std::map<Key, std::vector<EventsfeedItem>::iterator> lFeed;
+		//
 		for (std::vector<EventsfeedItem>::iterator lItem = const_cast<std::vector<EventsfeedItem>&>(chunk).begin(); 
 												lItem != const_cast<std::vector<EventsfeedItem>&>(chunk).end(); lItem++) {
-			// preserve for backtrace
-			if (merge_ == Merge::INTERSECT) lFeed[lItem->key()] = lItem;
-
-			// process merge
-			bool lMerge = true;
-			if (lChainExists) {
-				//
-				std::map<Key /*buzz*/, EventsfeedItemPtr>::iterator lExisting = items_.find(lItem->key());
-				if (lExisting == items_.end()) {
-					if (merge_ == Merge::UNION) {
-						lMerge = true;
-					} else if (merge_ == Merge::INTERSECT) {
-						lMerge = false;
-					}
-				}
+			//
+			std::map<Key /*id*/, _commit>::iterator lExisting = commit_.find(lItem->key());
+			if (lExisting == commit_.end()) {
+				commit_.insert(std::map<Key /*id*/, _commit>::value_type(lItem->key(), _commit(EventsfeedItem::instance(*lItem))));
+			} else {
+				lExisting->second.commit();
 			}
-
-			if (lMerge)
-				merge(*lItem, true, false);
 		}
 
-		// backtracing
-		if (merge_ == Merge::INTERSECT && lFeed.size()) {
+		if (notify /*done*/) {
 			//
-			std::map<Key, EventsfeedItemPtr> lToRemove;
-			for (std::map<Key /*buzz*/, EventsfeedItemPtr>::iterator lItem = items_.begin(); lItem != items_.end(); lItem++) {
-				if (lItem->second->buzzChainId() == lChain) {
-					//
-					if (lFeed.find(lItem->second->key()) == lFeed.end()) {
-						// missing
-						lToRemove[lItem->second->key()] = lItem->second;
-					}
+			for (std::map<Key /*id*/, _commit>::iterator lCandidate = commit_.begin(); lCandidate != commit_.end(); lCandidate++) {
+				if (merge_ == Merge::UNION ||
+						lCandidate->second.count_ == EVENTSFEED_PEERS_CONFIRMATIONS ||
+						lCandidate->second.count_ == EVENTSFEED_PEERS_CONFIRMATIONS-1) {
+					mergeInternal(lCandidate->second.candidate_, true, false);
 				}
 			}
 
-			// erase items
-			for (std::map<Key /*buzz*/, EventsfeedItemPtr>::iterator lRemove = lToRemove.begin(); lRemove != lToRemove.end(); lRemove++) {
-				//
-				removeIndex(lRemove->second);
-				items_.erase(lRemove->second->key());
-			}
+			commit_.clear();
 		}
 	}
 

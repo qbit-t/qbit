@@ -19,6 +19,10 @@
 
 namespace qbit {
 
+//
+// number of load confirmations
+#define EVENTSFEED_PEERS_CONFIRMATIONS 3 // default
+
 // forward
 class EventsfeedItem;
 typedef std::shared_ptr<EventsfeedItem> EventsfeedItemPtr;
@@ -518,7 +522,6 @@ public:
 		index_.clear();
 		lastTimestamps_.clear();
 		pendings_.clear();
-		chains_.clear();	
 	}
 
 	virtual EventsfeedItemPtr last() {
@@ -652,7 +655,6 @@ protected:
 
 	// merge strategy
 	Merge merge_ = Merge::UNION;
-	std::set<uint256> chains_;
 
 	// check result
 	Buzzer::VerificationResult checkResult_ = Buzzer::VerificationResult::INVALID;
@@ -671,6 +673,20 @@ protected:
 
 	// parent
 	EventsfeedItemPtr parent_;
+
+	//
+	struct _commit {
+		EventsfeedItemPtr candidate_;
+		int count_ = 1;
+
+		_commit(EventsfeedItemPtr item) {
+			candidate_ = item;
+		}
+
+		void commit() { count_++; }
+	};
+
+	std::map<Key /*id*/, _commit> commit_;	
 };
 
 //
