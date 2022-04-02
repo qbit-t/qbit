@@ -154,60 +154,32 @@ void ConversationItem::merge(const std::vector<ConversationItem>& chunk, const u
 	//
 	{
 		Guard lLock(this);
-		bool lChainExists = false;
-		if (chunk.size()) {
-			// control
-			lChainExists = !(chains_.insert(chain).second); // one chunk = one chain
-		}
-
-		std::map<uint256, std::vector<ConversationItem>::iterator> lFeed;
+		//
 		for (std::vector<ConversationItem>::iterator lItem = const_cast<std::vector<ConversationItem>&>(chunk).begin(); 
 												lItem != const_cast<std::vector<ConversationItem>&>(chunk).end(); lItem++) {
-			// preserve for backtrace
-			lFeed[lItem->key()] = lItem;
-
-			// process merge
-			bool lMerge = true;
-			if (lChainExists) {
-				//
-				std::map<uint256 /*conversation*/, ConversationItemPtr>::iterator lExisting = items_.find(lItem->key());
-				if (lExisting == items_.end()) {
-					lMerge = false;
-				}
-			}
-
-			if (lMerge) {
-				merge(*lItem, true, false);
+			//
+			std::map<uint256 /*id*/, _commit>::iterator lExisting = commit_.find(lItem->key());
+			if (lExisting == commit_.end()) {
+				commit_.insert(std::map<uint256 /*id*/, _commit>::value_type(lItem->key(), _commit(ConversationItem::instance(*lItem))));
+			} else {
+				lExisting->second.commit();
 			}
 		}
 
-		// backtracing
-		if (lFeed.size()) {
+		if (notify /*done*/) {
 			//
-			std::map<uint256, ConversationItemPtr> lToRemove;
-			for (std::map<uint256 /*conversation*/, ConversationItemPtr>::iterator lItem = items_.begin(); lItem != items_.end(); lItem++) {
-				if (lItem->second->counterpartyInfoChainId() == chain) {
-					//
-					if (lFeed.find(lItem->second->key()) == lFeed.end()) {
-						// missing
-						lToRemove[lItem->second->key()] = lItem->second;
-					}
+			for (std::map<uint256 /*id*/, _commit>::iterator lCandidate = commit_.begin(); lCandidate != commit_.end(); lCandidate++) {
+				//
+				if (lCandidate->second.count_ == CONVERSATIONSFEED_CONFIRMATIONS) {
+					mergeInternal(lCandidate->second.candidate_, true, false);
 				}
 			}
 
-			// erase items
-			for (std::map<uint256 /*conversation*/, ConversationItemPtr>::iterator lRemove = lToRemove.begin(); lRemove != lToRemove.end(); lRemove++) {
-				//
-				removeIndex(lRemove->second);
-				items_.erase(lRemove->second->key());
-
-				if (gLog().isEnabled(Log::CLIENT))
-					gLog().write(Log::CLIENT, "[ERASE]");
-			}
+			commit_.clear();
 		}
 	}
 
-	if (notify) largeUpdated();
+	if (notify) largeUpdated();	
 }
 
 bool ConversationItem::mergeAppend(const std::vector<ConversationItemPtr>& items) {

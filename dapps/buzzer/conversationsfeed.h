@@ -19,6 +19,10 @@
 
 namespace qbit {
 
+//
+// number of soft-confirmations
+#define CONVERSATIONSFEED_CONFIRMATIONS 3 // default
+
 // forward
 class ConversationItem;
 typedef std::shared_ptr<ConversationItem> ConversationItemPtr;
@@ -418,11 +422,12 @@ public:
 	}
 
 	virtual void clear() {
+		Guard lLock(this);
 		items_.clear();
 		index_.clear();
 		lastTimestamps_.clear();
 		pendings_.clear();
-		chains_.clear();
+		commit_.clear();
 		resetFed();
 	}
 
@@ -525,7 +530,18 @@ protected:
 
 	uint64_t order_ = 0;
 
-	std::set<uint256> chains_;
+	struct _commit {
+		ConversationItemPtr candidate_;
+		int count_ = 1;
+
+		_commit(ConversationItemPtr item) {
+			candidate_ = item;
+		}
+
+		void commit() { count_++; }
+	};
+
+	std::map<uint256 /*id*/, _commit> commit_;
 
 	bool onChain_ = true;
 	bool dynamic_ = false;

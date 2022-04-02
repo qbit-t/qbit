@@ -1439,7 +1439,6 @@ void LoadConversationsCommand::process(const std::vector<std::string>& args) {
 	pengindChainInfos_.clear();
 	localConversationsFeed_->clear();
 	pendingChainInfosLoaded_ = 0;
-	conversationsFeed_->clear();
 
 	// args - from
 	uint256 lBuzzerId;
@@ -1479,7 +1478,7 @@ void LoadConversationsCommand::process(const std::vector<std::string>& args) {
 			*lChain, 
 			lBuzzerId, 
 			from_,
-			3,
+			CONVERSATIONSFEED_CONFIRMATIONS,
 			boost::bind(&LoadConversationsCommand::eventsfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 
 		// async process
