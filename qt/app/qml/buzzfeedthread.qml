@@ -73,6 +73,7 @@ QuarkPage {
 	}
 
 	function activatePage() {
+		buzzText.external_ = false;
 		buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background"));
 	}
 
@@ -459,6 +460,8 @@ QuarkPage {
 					//
 					var lComponent = null;
 					var lPage = null;
+					//
+					buzzText.external_ = true;
 
 					lComponent = Qt.createComponent("qrc:/qml/buzzeditor.qml");
 					if (lComponent.status === Component.Error) {
@@ -495,6 +498,8 @@ QuarkPage {
 				//focus: true
 				color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 
+				property bool external_: false
+
 				onLengthChanged: {
 					// TODO: may by too expensive
 					var lText = buzzerClient.getPlainText(buzzText.textDocument);
@@ -510,6 +515,10 @@ QuarkPage {
 
 				onFocusChanged: {
 					editBuzzTimer.start();
+				}
+
+				onEditingFinished: {
+					if (!external_) buzzText.forceActiveFocus();
 				}
 			}
 

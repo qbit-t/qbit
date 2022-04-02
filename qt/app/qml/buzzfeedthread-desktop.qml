@@ -1,4 +1,4 @@
-﻿import QtQuick 2.9
+import QtQuick 2.9
 import QtQuick.Layouts 1.3
 import QtQuick.Controls 2.2
 import QtQuick.Controls.Material 2.1
@@ -265,6 +265,11 @@ QuarkPage {
 		clip: true
 
 		model: buzzesThread_
+
+		// TODO: consumes a lot RAM
+		cacheBuffer: 10000
+		displayMarginBeginning: 5000
+		displayMarginEnd: 5000
 
 		add: Transition {
 			enabled: true

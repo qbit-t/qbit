@@ -58,7 +58,7 @@ public:
 	virtual size_t clientSessionsLimit() { return 50; } // default client sessions for node\full node
 	virtual void setClientSessionsLimit(size_t) {}
 
-	virtual size_t mainChainBlockTime() { return 5000; } // ms
+	virtual size_t mainChainBlockTime() { return 2000; } // ms
 
 	virtual bool supportAirdrop() { return false; }
 

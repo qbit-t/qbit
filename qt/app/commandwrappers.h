@@ -2784,6 +2784,10 @@ public:
 	}
 
 	Q_INVOKABLE void processAndMerge() {
+		processAndMerge(false);
+	}
+
+	Q_INVOKABLE void processAndMerge(bool more) {
 		//
 		if (!buzzfeedModel_) return;
 
@@ -2791,7 +2795,7 @@ public:
 		prepare();
 
 		// params
-		more_ = false;
+		more_ = more;
 		merge_ = true;
 
 		// NOTICE: we actually able to process only "our" updates not "all", that is why there is no
@@ -2801,6 +2805,7 @@ public:
 		if (!more_) buzzfeedModel_->buzzfeed()->clear();
 
 		std::vector<std::string> lArgs;
+		if (more) lArgs.push_back("more");
 		lArgs.push_back(conversationId_.toStdString());
 
 		command_->process(lArgs);

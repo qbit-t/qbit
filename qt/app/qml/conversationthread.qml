@@ -176,7 +176,7 @@ QuarkPage {
 
 		function onBuzzerDAppResumed() {
 			if (buzzerClient.buzzerDAppReady) {
-				modelLoader.processAndMerge();
+				modelLoader.processAndMerge(true);
 			}
 		}
 	}

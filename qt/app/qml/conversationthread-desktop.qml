@@ -1,4 +1,4 @@
-﻿import QtQuick 2.9
+import QtQuick 2.9
 import QtQuick.Layouts 1.3
 import QtQuick.Controls 2.2
 import QtQuick.Controls.Material 2.1
@@ -189,7 +189,7 @@ QuarkPage {
 
 		function onBuzzerDAppResumed() {
 			if (buzzerClient.buzzerDAppReady) {
-				modelLoader.processAndMerge();
+				modelLoader.processAndMerge(true);
 			}
 		}
 	}
@@ -582,9 +582,19 @@ QuarkPage {
 		}
 	}
 
-	//
+	///
 	// thread
-	//
+	///
+
+	Image {
+		id: back
+		fillMode: Image.PreserveAspectFit
+		width: parent.width
+		x: 0
+		y: buzzThreadToolBar.y + buzzThreadToolBar.height
+		Layout.alignment: Qt.AlignCenter
+		source: "../images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "conversations.back")
+	}
 
 	QuarkListView {
 		id: list
@@ -595,6 +605,10 @@ QuarkPage {
 		//contentHeight: 1000
 		usePull: true
 		clip: true
+
+		cacheBuffer: 10000
+		displayMarginBeginning: 5000
+		displayMarginEnd: 5000
 
 		model: buzzesThread_
 
