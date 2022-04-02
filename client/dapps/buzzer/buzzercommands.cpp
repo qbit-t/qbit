@@ -1479,7 +1479,7 @@ void LoadConversationsCommand::process(const std::vector<std::string>& args) {
 			*lChain, 
 			lBuzzerId, 
 			from_,
-			2,
+			3,
 			boost::bind(&LoadConversationsCommand::eventsfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 
 		// async process
