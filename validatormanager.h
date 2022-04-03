@@ -113,7 +113,7 @@ public:
 
 		//
 		if (!controller_) {
-			timer_ = TimerPtr(new boost::asio::steady_timer(context_, boost::asio::chrono::seconds(10))); // first tick - 15 secs
+			timer_ = TimerPtr(new boost::asio::steady_timer(context_, boost::asio::chrono::seconds(300))); // 5 mins since start
 			timer_->async_wait(boost::bind(&ValidatorManager::touch, shared_from_this(), boost::asio::placeholders::error));			
 
 			controller_ = boost::shared_ptr<boost::thread>(
@@ -161,37 +161,44 @@ private:
 		if(!error) {
 			//
 			gLog().write(Log::INFO, std::string("[aggregate]: trying to aggregate..."));
-			TransactionContextPtr lCtx = consensusManager_->wallet()->aggregateCoinbaseTxs();
-			if (lCtx != nullptr && !lCtx->errors().size()) {
-				// push to memory pool
-				IMemoryPoolPtr lMempool = consensusManager_->wallet()->mempoolManager()->locate(MainChain::id()); // all spend txs - to the main chain
-				if (lMempool) {
-					//
-					if (lMempool->pushTransaction(lCtx)) {
-						// check for errors
-						if (lCtx->errors().size()) {
+			if (consensusManager_->locate(MainChain::id())->chainState() == IConsensus::SYNCHRONIZED) {
+				//
+				TransactionContextPtr lCtx = consensusManager_->wallet()->aggregateCoinbaseTxs();
+				if (lCtx != nullptr && !lCtx->errors().size()) {
+					// push to memory pool
+					IMemoryPoolPtr lMempool = consensusManager_->wallet()->mempoolManager()->locate(MainChain::id()); // all spend txs - to the main chain
+					if (lMempool) {
+						//
+						if (lMempool->pushTransaction(lCtx)) {
+							// check for errors
+							if (lCtx->errors().size()) {
+								// rollback transaction
+								consensusManager_->wallet()->rollback(lCtx);
+								// error
+								gLog().write(Log::GENERAL_ERROR, std::string("[aggregate/error]: E_TX_MEMORYPOOL - ") + *lCtx->errors().begin());
+								lCtx = nullptr;
+							} else if (!lMempool->consensus()->broadcastTransaction(lCtx, consensusManager_->wallet()->firstKey()->createPKey().id())) {
+								// error
+								gLog().write(Log::GENERAL_ERROR, std::string("[aggregate/error]: E_TX_NOT_BROADCASTED - Transaction is not broadcasted"));
+								// rollback transaction
+								consensusManager_->wallet()->rollback(lCtx);
+								// reset
+								lCtx = nullptr;
+							}
+						} else {
+							// error
+							gLog().write(Log::GENERAL_ERROR, std::string("[aggregate/error]: E_TX_EXISTS - Transaction already exists"));
 							// rollback transaction
 							consensusManager_->wallet()->rollback(lCtx);
-							// error
-							gLog().write(Log::GENERAL_ERROR, std::string("[aggregate/error]: E_TX_MEMORYPOOL - ") + *lCtx->errors().begin());
+							// reset
 							lCtx = nullptr;
-						} else if (!lMempool->consensus()->broadcastTransaction(lCtx, consensusManager_->wallet()->firstKey()->createPKey().id())) {
-							// error
-							gLog().write(Log::GENERAL_ERROR, std::string("[aggregate/error]: E_TX_NOT_BROADCASTED - Transaction is not broadcasted"));
 						}
-					} else {
-						// error
-						gLog().write(Log::GENERAL_ERROR, std::string("[aggregate/error]: E_TX_EXISTS - Transaction already exists"));
-						// rollback transaction
-						consensusManager_->wallet()->rollback(lCtx);
-						// reset
-						lCtx = nullptr;
 					}
 				}
 			}
 		}
 
-		timer_->expires_at(timer_->expiry() + boost::asio::chrono::milliseconds(1000*60*30)); // 30 minutes
+		timer_->expires_at(timer_->expiry() + boost::asio::chrono::milliseconds(1000*60*10)); // 30 minutes
 		timer_->async_wait(boost::bind(&ValidatorManager::touch, shared_from_this(), boost::asio::placeholders::error));
 	}
 
