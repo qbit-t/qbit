@@ -1502,18 +1502,34 @@ public:
 	// callbacks
 	void created(TransactionContextPtr ctx) {
 		//
-		if (!composer_->requestProcessor()->sendTransaction(ctx,
+		ctx_ = ctx;
+		//
+		// push linked and newly created txs; order matters
+		IPeerPtr lPeer = nullptr;
+		for (std::list<TransactionContextPtr>::iterator lLinkedCtx = ctx->linkedTxs().begin(); lLinkedCtx != ctx->linkedTxs().end(); lLinkedCtx++) {
+			if (!(lPeer = composer_->requestProcessor()->sendTransaction(lPeer, ctx->tx()->chain(), *lLinkedCtx,
+					SentTransaction::instance(
+						boost::bind(&BuzzRewardCommand::spendSent, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
+						boost::bind(&BuzzRewardCommand::timeout, shared_from_this()))))) {
+				gLog().writeClient(Log::CLIENT, std::string(": tx was not broadcasted, wallet re-init..."));
+				composer_->wallet()->resetCache();
+				composer_->wallet()->prepareCache();
+				done_(ProcessingError("E_TX_NOT_SENT", "Transaction was not sent."));
+			}
+		}
+
+		if (!composer_->requestProcessor()->sendTransaction(lPeer, ctx->tx()->chain(), ctx,
 				SentTransaction::instance(
-					boost::bind(&BuzzRewardCommand::sent, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
+					boost::bind(&BuzzRewardCommand::rewardSent, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 					boost::bind(&BuzzRewardCommand::timeout, shared_from_this())))) {
 			gLog().writeClient(Log::CLIENT, std::string(": tx was not broadcasted, wallet re-init..."));
 			composer_->wallet()->resetCache();
 			composer_->wallet()->prepareCache();
 			done_(ProcessingError("E_TX_NOT_SENT", "Transaction was not sent."));
-		}
+		}		
 	}
 
-	void sent(const uint256& tx, const std::vector<TransactionContext::Error>& errors) {
+	void spendSent(const uint256& tx, const std::vector<TransactionContext::Error>& errors) {
 		//
 		if (errors.size()) {
 			for (std::vector<TransactionContext::Error>::iterator lError = const_cast<std::vector<TransactionContext::Error>&>(errors).begin(); 
@@ -1524,10 +1540,34 @@ public:
 
 			return;
 		} else {
-			std::cout << tx.toHex() << std::endl;
+			std::cout << "spend: " << tx.toHex() << std::endl;
+			//
+			TransactionContextPtr lSpend = ctx_->locateByType(Transaction::SPEND);
+			for (std::list<Transaction::NetworkUnlinkedOutPtr>::iterator lOut = lSpend->externalOuts().begin(); 
+																		lOut != lSpend->externalOuts().end(); lOut++) {
+				composer_->wallet()->updateOut(*lOut, ctx_->tx()->id(), ctx_->tx()->type());
+			}
 		}
 
-		done_(ProcessingError());
+		spendSent_ = true;
+		if (spendSent_ && rewardSent_) done_(ProcessingError());
+	}
+
+	void rewardSent(const uint256& tx, const std::vector<TransactionContext::Error>& errors) {
+		if (errors.size()) {
+			for (std::vector<TransactionContext::Error>::iterator lError = const_cast<std::vector<TransactionContext::Error>&>(errors).begin(); 
+					lError != const_cast<std::vector<TransactionContext::Error>&>(errors).end(); lError++) {
+				gLog().writeClient(Log::CLIENT, strprintf("[error]: %s", lError->data()));
+				done_(ProcessingError("E_SENT_TX", lError->data()));
+			}
+
+			return;
+		} else {
+			std::cout << "reward: " << tx.toHex() << std::endl;
+		}
+
+		rewardSent_ = true;
+		if (spendSent_ && rewardSent_) done_(ProcessingError());
 	}
 
 	void timeout() {
@@ -1543,6 +1583,11 @@ private:
 	BuzzerLightComposerPtr composer_;
 	BuzzfeedPtr buzzFeed_;
 	doneWithErrorFunction done_;
+
+	TransactionContextPtr ctx_;
+
+	bool spendSent_ = false;
+	bool rewardSent_ = false;	
 };
 
 class CreateBuzzReplyCommand;
