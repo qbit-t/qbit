@@ -877,7 +877,7 @@ TransactionContextPtr Wallet::aggregateCoinbaseTxs() {
 	// try to estimate fee
 	qunit_t lRate = mempool()->estimateFeeRateByLimit(lCtx, settings_->maxFeeRate());
 	amount_t lFee = lRate * lCtx->size();
-	
+
 	// try to check amount
 	if (lAmount - lFee > 0) {
 		lTx->addOut(*lSKey, lDest, TxAssetType::qbitAsset(), lAmount - lFee); // aggregate
@@ -896,6 +896,8 @@ TransactionContextPtr Wallet::aggregateCoinbaseTxs() {
 
 	// we do not have enough...
 	rollback(lCtx);
+	//
+	return nullptr;
 }
 
 // clean-up assets utxo
