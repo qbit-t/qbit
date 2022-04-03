@@ -103,8 +103,11 @@ public:
 	}
 
 	void run() {
+		//
+		bool lHasValidators = false;
 		{
 			boost::unique_lock<boost::mutex> lLock(validatorsMutex_);
+			lHasValidators = validators_.size() > 0;
 
 			for (std::map<uint256, IValidatorPtr>::iterator lValidator = validators_.begin(); lValidator != validators_.end(); lValidator++) {
 				lValidator->second->run();
@@ -112,7 +115,7 @@ public:
 		}
 
 		//
-		if (!controller_) {
+		if (!controller_ && lHasValidators) {
 			timer_ = TimerPtr(new boost::asio::steady_timer(context_, boost::asio::chrono::seconds(300))); // 5 mins since start
 			timer_->async_wait(boost::bind(&ValidatorManager::touch, shared_from_this(), boost::asio::placeholders::error));			
 
