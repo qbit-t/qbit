@@ -39,6 +39,7 @@ QuarkToolBar
 	function setSearchText(text, placeholder) {
 		//
 		search.prevText_ = text;
+		search.setText("");
 		searchText = text;
 		searchPlaceHolder = placeholder;
 		searchVisible = true;

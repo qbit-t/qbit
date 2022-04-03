@@ -380,10 +380,11 @@ Item
 			buzzersModel.clear();
 
 			for (var lIdx = 0; lIdx < buzzers.length; lIdx++) {
-				buzzersModel.append({
-					key: buzzers[lIdx],
-					keySymbol: "",
-					name: buzzers[lIdx]});
+				if (buzzers[lIdx] !== buzzerClient.name)
+					buzzersModel.append({
+						key: buzzers[lIdx],
+						keySymbol: "",
+						name: buzzers[lIdx]});
 			}
 
 			x = (search.x + search.width) - width;
