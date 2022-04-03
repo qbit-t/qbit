@@ -147,6 +147,13 @@ void WebSourceInfo::processCommon(QNetworkReply* reply) {
 		if (lTitleFound && /*lDescriptionFound &&*/ lImageFound) {
 			lFound = true;
 		}
+
+		/*
+		qInfo() << "Title:" << title_;
+		qInfo() << "Image:" << image_;
+		qInfo() << "totalBytes_:" << totalBytes_;
+		qInfo() << "lBytesAvailable:" << lBytesAvailable;
+		*/
 	}
 
 	if (!lFound) {
@@ -167,7 +174,7 @@ void WebSourceInfo::processCommon(QNetworkReply* reply) {
 		emit processed();
 		// remove
 		reply->deleteLater();
-	} else if (totalBytes_ > 200 * 1024) {
+	} else if (totalBytes_ > 300 * 1024) {
 		// just finish it
 		emit processed();
 		reply->deleteLater();
