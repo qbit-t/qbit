@@ -203,7 +203,7 @@ private:
 			}
 		}
 
-		timer_->expires_at(timer_->expiry() + boost::asio::chrono::milliseconds(1000*60*10)); // 30 minutes
+		timer_->expires_at(timer_->expiry() + boost::asio::chrono::milliseconds(1000*60*30)); // 30 minutes
 		timer_->async_wait(boost::bind(&ValidatorManager::touch, shared_from_this(), boost::asio::placeholders::error));
 	}
 
