@@ -292,31 +292,6 @@ Item {
 		clip: true
 
 		//
-		// state
-		//
-		QuarkLabel {
-			id: agoControl
-			x: parent.width - (width + spaceItems_)
-			y: bodyControl.y + bodyControl.height + (buzzerApp.isDesktop ? spaceHalfItems_ : spaceHalfItems_)
-			text: ago_
-			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
-			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 3)) : 14
-		}
-
-		QuarkSymbolLabel {
-			id: onChainSymbol
-			x: (parent.width - (width + (buzzerApp.isDesktop ? spaceHalfItems_ : spaceHalfItems_) + 1)) +
-				(conversationMessage().length ? 0 : 3)
-			y: (buzzerApp.isDesktop ? spaceHalfItems_ : spaceHalfItems_)
-			symbol: !onChain_ ? Fonts.clockSym : Fonts.checkedCircleSym //linkSym
-			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 10)) : 12
-			color: !onChain_ ? buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzz.wait.chat") :
-							   buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzz.done.chat");
-
-			visible: dynamic_
-		}
-
-		//
 		// body
 		//
 
@@ -538,6 +513,31 @@ Item {
 				//
 				decryptCommand.process(buzzId_);
 			}
+		}
+
+		//
+		// state
+		//
+		QuarkLabel {
+			id: agoControl
+			x: parent.width - (width + spaceItems_)
+			y: bodyControl.y + bodyControl.height + (buzzerApp.isDesktop ? spaceHalfItems_ : spaceHalfItems_)
+			text: ago_
+			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 3)) : 14
+		}
+
+		QuarkSymbolLabel {
+			id: onChainSymbol
+			x: (parent.width - (width + (buzzerApp.isDesktop ? spaceHalfItems_ : spaceHalfItems_) + 1)) +
+				(conversationMessage().length ? 0 : 3)
+			y: (buzzerApp.isDesktop ? spaceHalfItems_ : spaceHalfItems_)
+			symbol: !onChain_ ? Fonts.clockSym : Fonts.checkedCircleSym //linkSym
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 10)) : 12
+			color: !onChain_ ? buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzz.wait.chat") :
+							   buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzz.done.chat");
+
+			visible: dynamic_
 		}
 
 		/*

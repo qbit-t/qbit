@@ -745,7 +745,7 @@ ConversationMessagesList::ConversationMessagesList() {
 		boost::bind(&BuzzfeedListModel::buzzfeedItemUpdated, this, boost::placeholders::_1),
 		boost::bind(&BuzzfeedListModel::buzzfeedItemsUpdated, this, boost::placeholders::_1),
 		boost::bind(&BuzzfeedListModel::buzzfeedItemAbsent, this, boost::placeholders::_1, boost::placeholders::_2),
-		qbit::BuzzfeedItem::Merge::INTERSECT,
+		qbit::BuzzfeedItem::Merge::UNION, // INTERSECT
 		qbit::BuzzfeedItem::Order::FORWARD,
 		qbit::BuzzfeedItem::Group::TIMESTAMP
 	);

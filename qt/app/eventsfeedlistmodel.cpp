@@ -353,7 +353,7 @@ EventsfeedListModelEndorsements::EventsfeedListModelEndorsements() {
 		boost::bind(&EventsfeedListModel::eventsfeedItemNew, this, boost::placeholders::_1),
 		boost::bind(&EventsfeedListModel::eventsfeedItemUpdated, this, boost::placeholders::_1),
 		boost::bind(&EventsfeedListModel::eventsfeedItemsUpdated, this, boost::placeholders::_1),
-		qbit::EventsfeedItem::Merge::INTERSECT
+		qbit::EventsfeedItem::Merge::UNION
 	);
 
 	eventsfeed_->prepare();
@@ -370,7 +370,7 @@ EventsfeedListModelMistrusts::EventsfeedListModelMistrusts() {
 		boost::bind(&EventsfeedListModel::eventsfeedItemNew, this, boost::placeholders::_1),
 		boost::bind(&EventsfeedListModel::eventsfeedItemUpdated, this, boost::placeholders::_1),
 		boost::bind(&EventsfeedListModel::eventsfeedItemsUpdated, this, boost::placeholders::_1),
-		qbit::EventsfeedItem::Merge::INTERSECT
+		qbit::EventsfeedItem::Merge::UNION
 	);
 
 	eventsfeed_->prepare();
@@ -387,7 +387,7 @@ EventsfeedListModelFollowing::EventsfeedListModelFollowing() {
 		boost::bind(&EventsfeedListModel::eventsfeedItemNew, this, boost::placeholders::_1),
 		boost::bind(&EventsfeedListModel::eventsfeedItemUpdated, this, boost::placeholders::_1),
 		boost::bind(&EventsfeedListModel::eventsfeedItemsUpdated, this, boost::placeholders::_1),
-		qbit::EventsfeedItem::Merge::INTERSECT
+		qbit::EventsfeedItem::Merge::UNION
 	);
 
 	eventsfeed_->prepare();
@@ -404,7 +404,7 @@ EventsfeedListModelFollowers::EventsfeedListModelFollowers() {
 		boost::bind(&EventsfeedListModel::eventsfeedItemNew, this, boost::placeholders::_1),
 		boost::bind(&EventsfeedListModel::eventsfeedItemUpdated, this, boost::placeholders::_1),
 		boost::bind(&EventsfeedListModel::eventsfeedItemsUpdated, this, boost::placeholders::_1),
-		qbit::EventsfeedItem::Merge::INTERSECT
+		qbit::EventsfeedItem::Merge::UNION
 	);
 
 	eventsfeed_->prepare();
