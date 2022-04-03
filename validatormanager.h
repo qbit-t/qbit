@@ -188,7 +188,7 @@ private:
 								// reset
 								lCtx = nullptr;
 							} else {
-								gLog().write(Log::GENERAL_ERROR, std::string("[aggregate]: ") + strprintf("tx = %s successed", lCtx->tx()->hash().toHex()));
+								gLog().write(Log::INFO, std::string("[aggregate]: ") + strprintf("tx = %s successed", lCtx->tx()->hash().toHex()));
 							}
 						} else {
 							// error
