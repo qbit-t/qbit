@@ -17,11 +17,17 @@ SwipeView
 	clip: true
 	interactive: false
 
+	onWidthChanged: {
+		decentralized.width = width;
+	}
+
 	Image {
 			id: decentralized
-			fillMode: Image.PreserveAspectFit
+			x: 0
+			y: 0
+			width: pagesView.width
 			Layout.alignment: Qt.AlignCenter
-			mipmap: true
 			source: "../images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "desktop.back")
+			fillMode: Image.PreserveAspectCrop
 	}
 }

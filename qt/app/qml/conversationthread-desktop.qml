@@ -163,6 +163,7 @@ QuarkPage {
 
 	onWidthChanged: {
 		orientationChangedTimer.start();
+		back.width = width;
 	}
 
 	// to adjust model
