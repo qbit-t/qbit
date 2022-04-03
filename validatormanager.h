@@ -16,12 +16,28 @@
 #include "ivalidatormanager.h"
 #include "validator.h"
 
+#include <boost/thread/thread.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/recursive_mutex.hpp>
+#include <boost/chrono.hpp>
+#include <boost/algorithm/string.hpp>
+#include <boost/ptr_container/ptr_vector.hpp>
+
 namespace qbit {
 
 class ValidatorManager: public IValidatorManager, public std::enable_shared_from_this<ValidatorManager> {
 public:
 	ValidatorManager(ISettingsPtr settings, IConsensusManagerPtr consensusManager, IMemoryPoolManagerPtr mempoolManager, ITransactionStoreManagerPtr storeManager) : 
-		settings_(settings), consensusManager_(consensusManager), mempoolManager_(mempoolManager), storeManager_(storeManager) {}
+		settings_(settings), consensusManager_(consensusManager), mempoolManager_(mempoolManager), storeManager_(storeManager),
+		signals_(context_) {
+
+		signals_.add(SIGINT);
+		signals_.add(SIGTERM);
+#if defined(SIGQUIT)
+		signals_.add(SIGQUIT);
+#endif
+		signals_.async_wait(boost::bind(&ValidatorManager::stop, this));
+	}
 
 	static void registerValidator(const std::string& name, ValidatorCreatorPtr creator) {
 		gValidators[name] = creator;
@@ -87,22 +103,97 @@ public:
 	}
 
 	void run() {
-		boost::unique_lock<boost::mutex> lLock(validatorsMutex_);
+		{
+			boost::unique_lock<boost::mutex> lLock(validatorsMutex_);
 
-		for (std::map<uint256, IValidatorPtr>::iterator lValidator = validators_.begin(); lValidator != validators_.end(); lValidator++) {
-			lValidator->second->run();
+			for (std::map<uint256, IValidatorPtr>::iterator lValidator = validators_.begin(); lValidator != validators_.end(); lValidator++) {
+				lValidator->second->run();
+			}
 		}
+
+		//
+		if (!controller_) {
+			timer_ = TimerPtr(new boost::asio::steady_timer(context_, boost::asio::chrono::seconds(10))); // first tick - 15 secs
+			timer_->async_wait(boost::bind(&ValidatorManager::touch, shared_from_this(), boost::asio::placeholders::error));			
+
+			controller_ = boost::shared_ptr<boost::thread>(
+						new boost::thread(
+							boost::bind(&ValidatorManager::controller, shared_from_this())));
+		}		
 	}
 
 	void stop() {
+		gLog().write(Log::INFO, std::string("[validators/stop]: stopping..."));
 		boost::unique_lock<boost::mutex> lLock(validatorsMutex_);
-
 		for (std::map<uint256, IValidatorPtr>::iterator lValidator = validators_.begin(); lValidator != validators_.end(); lValidator++) {
 			lValidator->second->stop();
 		}
+
+		context_.stop();
 	}
 
 	IMemoryPoolManagerPtr mempoolManager() { return mempoolManager_; }
+
+private:
+	void controller() {
+		// log
+		gLog().write(Log::INFO, std::string("[validators]: starting..."));
+
+		try {
+			context_.run();
+		} 
+		catch(qbit::exception& ex) {
+			gLog().write(Log::GENERAL_ERROR, std::string("[validators]: qbit error -> ") + ex.what());
+		}
+		catch(boost::system::system_error& ex) {
+			gLog().write(Log::GENERAL_ERROR, std::string("[validators]: context error -> ") + ex.what());
+		}
+		catch(std::runtime_error& ex) {
+			gLog().write(Log::GENERAL_ERROR, std::string("[validators]: runtime error -> ") + ex.what());
+		}
+
+		// log
+		gLog().write(Log::INFO, std::string("[validators]: stopped"));
+	}	
+
+	void touch(const boost::system::error_code& error) {
+		// life control
+		if(!error) {
+			//
+			gLog().write(Log::INFO, std::string("[aggregate]: trying to aggregate..."));
+			TransactionContextPtr lCtx = consensusManager_->wallet()->aggregateCoinbaseTxs();
+			if (lCtx != nullptr && !lCtx->errors().size()) {
+				// push to memory pool
+				IMemoryPoolPtr lMempool = consensusManager_->wallet()->mempoolManager()->locate(MainChain::id()); // all spend txs - to the main chain
+				if (lMempool) {
+					//
+					if (lMempool->pushTransaction(lCtx)) {
+						// check for errors
+						if (lCtx->errors().size()) {
+							// rollback transaction
+							consensusManager_->wallet()->rollback(lCtx);
+							// error
+							gLog().write(Log::GENERAL_ERROR, std::string("[aggregate/error]: E_TX_MEMORYPOOL - ") + *lCtx->errors().begin());
+							lCtx = nullptr;
+						} else if (!lMempool->consensus()->broadcastTransaction(lCtx, consensusManager_->wallet()->firstKey()->createPKey().id())) {
+							// error
+							gLog().write(Log::GENERAL_ERROR, std::string("[aggregate/error]: E_TX_NOT_BROADCASTED - Transaction is not broadcasted"));
+						}
+					} else {
+						// error
+						gLog().write(Log::GENERAL_ERROR, std::string("[aggregate/error]: E_TX_EXISTS - Transaction already exists"));
+						// rollback transaction
+						consensusManager_->wallet()->rollback(lCtx);
+						// reset
+						lCtx = nullptr;
+					}
+				}
+			}
+		}
+
+		timer_->expires_at(timer_->expiry() + boost::asio::chrono::milliseconds(1000*60*30)); // 30 minutes
+		timer_->async_wait(boost::bind(&ValidatorManager::touch, shared_from_this(), boost::asio::placeholders::error));
+	}
 
 private:
 	boost::mutex validatorsMutex_;
@@ -111,6 +202,16 @@ private:
 	IConsensusManagerPtr consensusManager_;
 	IMemoryPoolManagerPtr mempoolManager_;
 	ITransactionStoreManagerPtr storeManager_;
+
+	// controller
+	boost::shared_ptr<boost::thread> controller_;
+	// context
+	boost::asio::io_context context_;
+	// signals
+	boost::asio::signal_set signals_;
+	// timer
+	typedef std::shared_ptr<boost::asio::steady_timer> TimerPtr;
+	TimerPtr timer_;
 };
 
 } // qbit

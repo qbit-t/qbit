@@ -154,6 +154,9 @@ public:
 	virtual void selectLog(uint64_t /*from*/, std::vector<Transaction::NetworkUnlinkedOutPtr>& /*items*/) { throw qbit::exception("NOT_IMPL", "IWallet::selectLog - Not implemented."); }
 	virtual void selectIns(uint64_t /*from*/, std::vector<Transaction::NetworkUnlinkedOutPtr>& /*items*/) { throw qbit::exception("NOT_IMPL", "IWallet::selectIns - Not implemented."); }
 	virtual void selectOuts(uint64_t /*from*/, std::vector<Transaction::NetworkUnlinkedOutPtr>& /*items*/) { throw qbit::exception("NOT_IMPL", "IWallet::selectOuts - Not implemented."); }
+
+	//
+	virtual TransactionContextPtr aggregateCoinbaseTxs() { throw qbit::exception("NOT_IMPL", "IWallet::aggregateCoinbaseTxs - Not implemented."); }
 };
 
 typedef std::shared_ptr<IWallet> IWalletPtr;

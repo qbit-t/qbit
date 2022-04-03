@@ -204,10 +204,13 @@ public:
 	}
 
 	amount_t fillInputs(TxSpendPtr /*tx*/, const uint256& /*asset*/, amount_t /*amount*/, bool /*aggregate*/, std::list<Transaction::UnlinkedOutPtr>& /*utxos*/);
+	TransactionContextPtr aggregateCoinbaseTxs();
 
 private:
 	TransactionContextPtr makeTxSpend(Transaction::Type /*type*/, const uint256& /*asset*/, const PKey& /*dest*/, amount_t /*amount*/, qunit_t /*fee limit*/, int32_t /*targetBlock*/, bool /*aggregate*/);
 	Transaction::UnlinkedOutPtr findUnlinkedOutByEntity(const uint256& /*entity*/);
+	amount_t fillCoinbaseInputs(TxSpendPtr /*tx*/);
+	void collectCoinbaseUnlinkedOuts(std::list<Transaction::UnlinkedOutPtr>& /*list*/);
 
 	inline void cacheUtxo(Transaction::UnlinkedOutPtr utxo) {
 		if (useUtxoCache_) utxoCache_[utxo->hash()] = utxo;

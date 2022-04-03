@@ -754,6 +754,150 @@ void Wallet::collectUnlinkedOutsByAssetForward(const uint256& asset, amount_t am
 		strprintf("%d", lTotal));
 }
 
+void Wallet::collectCoinbaseUnlinkedOuts(std::list<Transaction::UnlinkedOutPtr>& list) {
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
+	std::map<uint256 /*asset*/, std::multimap<amount_t /*amount*/, uint256 /*utxo*/>>::iterator lAsset = assetsCache_.find(TxAssetType::qbitAsset());
+	if (lAsset != assetsCache_.end()) {
+		for (std::multimap<amount_t /*amount*/, uint256 /*utxo*/>::iterator lAmount = lAsset->second.begin(); 
+			lAmount != lAsset->second.end();) {
+						
+			//
+			if (!lAmount->first) {
+				lAmount++;
+				continue;
+			}
+
+			Transaction::UnlinkedOutPtr lUtxo = findUnlinkedOut(lAmount->second);
+			if (lUtxo == nullptr) {
+				// delete from store
+				utxo_.remove(lAmount->second);
+				assetsUtxoPresence_.erase(lAmount->second);
+				lAsset->second.erase(lAmount);
+				continue;
+			}
+
+			// extra check
+			{
+				uint64_t lHeight;
+				uint64_t lConfirms;
+				ITransactionStorePtr lStore;
+				if (storeManager()) lStore = storeManager()->locate(lUtxo->out().chain());
+				else lStore = persistentStore_;
+
+				if (lStore) {
+					bool lCoinbase = false;
+					if (lStore->transactionHeight(lUtxo->out().tx(), lHeight, lConfirms, lCoinbase) && lCoinbase) {
+						//
+						IMemoryPoolPtr lMempool;
+						if(mempoolManager()) lMempool = mempoolManager()->locate(lUtxo->out().chain()); // corresponding mempool
+						else lMempool = mempool_;
+
+						//
+						if (lConfirms < lMempool->consensus()->coinbaseMaturity()) {
+							if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[collectCoinbaseUnlinkedOuts]: COINBASE transaction is NOT MATURE ") + 
+								strprintf("%d/%d/%s/%s#", lConfirms, lMempool->consensus()->coinbaseMaturity(), lUtxo->out().tx().toHex(), lUtxo->out().chain().toHex().substr(0, 10)));
+							lAmount++;
+							continue; // skip UTXO
+						}
+					} else {
+						lAmount++;
+						continue; // skip UTXO
+					}
+				} else {
+					gLog().write(Log::WALLET, std::string("[collectCoinbaseUnlinkedOuts]: storage not found for ") + 
+						strprintf("%s#", lUtxo->out().chain().toHex().substr(0, 10)));
+					lAmount++;
+					continue; // skip UTXO
+				}
+			}
+
+			if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[collectCoinbaseUnlinkedOuts]: tx found for amount ") + 
+				strprintf("%d/%s/%s/%s#", lAmount->first, lUtxo->out().hash().toHex(), lUtxo->out().tx().toHex(), lUtxo->out().chain().toHex().substr(0, 10)));
+
+			list.push_back(lUtxo);
+
+			if (list.size() >= 500) {
+				break;
+			}
+
+			lAmount++;
+		}
+	}
+
+	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[collectCoinbaseUnlinkedOuts]: total collected ") + 
+		strprintf("%d", list.size()));
+}
+
+// fill inputs
+amount_t Wallet::fillCoinbaseInputs(TxSpendPtr tx) {
+	// collect utxo's
+	std::list<Transaction::UnlinkedOutPtr> lUtxos;
+	collectCoinbaseUnlinkedOuts(lUtxos);
+
+	// amount
+	amount_t lAmount = 0;
+
+	// fill ins 
+	for (std::list<Transaction::UnlinkedOutPtr>::iterator lUtxo = lUtxos.begin(); lUtxo != lUtxos.end(); lUtxo++) {
+		// locate skey
+		SKeyPtr lSKey = findKey((*lUtxo)->address());
+		if (lSKey && lSKey->valid()) { 
+			tx->addIn(*lSKey, *lUtxo);
+			lAmount += (*lUtxo)->amount();
+		}
+	}	
+
+	return lAmount;
+}
+
+TransactionContextPtr Wallet::aggregateCoinbaseTxs() {
+	// create empty tx
+	TxSpendPtr lTx = TransactionHelper::to<TxSpend>(TransactionFactory::create(Transaction::SPEND));
+	// create context
+	TransactionContextPtr lCtx = TransactionContext::instance(lTx);
+	// fill inputs
+	std::list<Transaction::UnlinkedOutPtr> lFeeUtxos;
+	// collect coinbase confirmed outs
+	amount_t lAmount = fillCoinbaseInputs(lTx);
+	if (!lAmount) {
+		if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[aggregateCoinbaseTxs]: nothing to aggregate..."));
+		return nullptr;
+	}
+
+	// fill output
+	SKeyPtr lSChangeKey = changeKey();
+	SKeyPtr lSKey = firstKey();
+	if (!lSKey->valid() || !lSChangeKey->valid()) throw qbit::exception("E_KEY", "Secret key is invalid.");
+	PKey lDest = lSKey->createPKey(); // main address
+
+	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[aggregateCoinbaseTxs]: creating spend tx: ") + 
+		strprintf("to = %s, amount = %d, asset = %s#", const_cast<PKey&>(lDest).toString(), lAmount, TxAssetType::qbitAsset().toHex().substr(0, 10)));
+
+	// try to estimate fee
+	qunit_t lRate = mempool()->estimateFeeRateByLimit(lCtx, settings_->maxFeeRate());
+	amount_t lFee = lRate * lCtx->size();
+	
+	// try to check amount
+	if (lAmount - lFee > 0) {
+		lTx->addOut(*lSKey, lDest, TxAssetType::qbitAsset(), lAmount - lFee); // aggregate
+		lTx->addFeeOut(*lSKey, TxAssetType::qbitAsset(), lFee); // to miner
+
+		if (!lTx->finalize(*lSKey)) throw qbit::exception("E_TX_FINALIZE", "Transaction finalization failed.");
+
+		if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[aggregateCoinbaseTxs]: spend tx created: ") + 
+			strprintf("to = %s, amount = %d/%d, fee = %d, asset = %s#", const_cast<PKey&>(lDest).toString(), lAmount, lAmount-lFee, lFee, TxAssetType::qbitAsset().toHex().substr(0, 10)));
+
+		// write to pending transactions
+		pendingtxs_.write(lTx->id(), lTx);
+
+		return lCtx;
+	}
+
+	// we do not have enough...
+	rollback(lCtx);
+}
+
 // clean-up assets utxo
 void Wallet::cleanUp() {
 	resetCache();
