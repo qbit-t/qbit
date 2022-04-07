@@ -183,10 +183,16 @@ public:
 	void setReindex() {
 		reindex_ = true;
 	}
+	void resetReindex() {
+		reindex_ = false;
+	}
 
 	bool resync() { return resync_; }
 	void setResync() {
 		resync_ = true;
+	}
+	void resetResync() {
+		resync_ = false;
 	}
 
 	uint256 reindexShard() { return reindexShard_; }

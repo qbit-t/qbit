@@ -2159,6 +2159,8 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 	gLog().write(Log::STORE, std::string("[reindex]: reindex FINISHED for ") + 
 		strprintf("%s#", chain_.toHex().substr(0, 10)));
 
+	if (settings_->reindex()) settings_->resetReindex();
+
 	return lResult;
 }
 

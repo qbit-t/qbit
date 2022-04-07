@@ -77,12 +77,14 @@ public:
 
 	virtual bool reindex() { return false; }
 	virtual void setReindex() {}
+	virtual void resetReindex() {}
 
 	virtual uint256 reindexShard() { return uint256(); }
 	virtual void setReindexShard(const uint256&) {}
 
 	virtual bool resync() { return false; }
 	virtual void setResync() {}
+	virtual void resetResync() {}
 
 	virtual void setProofAsset(const uint256&) {}
 	virtual uint256 proofAsset() { return uint256(); }

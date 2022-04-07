@@ -642,6 +642,25 @@ public:
 		if (chain == MainChain::id() && !order.size() && mostSuitable) {
 			collectPeersByChain(chain, order, false);
 		}
+
+		// cleanup
+		int64_t lLastHeight = -1;
+		for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::reverse_iterator lItem = order.rbegin(); lItem != order.rend();) {
+			//
+			if (lLastHeight == -1) {
+				lLastHeight = (int64_t)lItem->first.height();
+				lItem++;
+				continue;
+			}
+
+			if (lLastHeight - (int64_t)lItem->first.height() > 5 /*more that 5 blocks*/) {
+				order.erase(std::next(lItem).base());
+				continue;
+			}
+
+			lLastHeight = (int64_t)lItem->first.height();
+			lItem++;
+		}
 	}
 
 	void collectPeersByDApp(const std::string& dapp, std::map<uint256, std::map<uint32_t, IPeerPtr>>& order) {
