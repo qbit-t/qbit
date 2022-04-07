@@ -119,6 +119,11 @@ public:
 			timer_ = TimerPtr(new boost::asio::steady_timer(context_, boost::asio::chrono::seconds(300))); // 5 mins since start
 			timer_->async_wait(boost::bind(&ValidatorManager::touch, shared_from_this(), boost::asio::placeholders::error));			
 
+			if (settings_->reindex()) {
+				timerReindexed_ = TimerPtr(new boost::asio::steady_timer(context_, boost::asio::chrono::seconds(150)));
+				timerReindexed_->async_wait(boost::bind(&ValidatorManager::checkReindexed, shared_from_this(), boost::asio::placeholders::error));
+			}
+
 			controller_ = boost::shared_ptr<boost::thread>(
 						new boost::thread(
 							boost::bind(&ValidatorManager::controller, shared_from_this())));
@@ -158,6 +163,33 @@ private:
 		// log
 		gLog().write(Log::INFO, std::string("[validators]: stopped"));
 	}	
+
+	void checkReindexed(const boost::system::error_code& error) {
+		// life control
+		if(!error) {
+			//
+			gLog().write(Log::INFO, std::string("[validators]: check reindexed chains..."));
+
+			bool lAllDone = true;
+			{
+				boost::unique_lock<boost::mutex> lLock(validatorsMutex_);
+				for (std::map<uint256, IValidatorPtr>::iterator lValidator = validators_.begin(); lValidator != validators_.end(); lValidator++) {
+					if (!lValidator->second->reindexed()) lAllDone = false;
+				}
+			}
+
+			if (lAllDone) {
+				gLog().write(Log::INFO, std::string("[validators]: resetting reindex switch..."));
+					settings_->resetReindex();
+			} else {
+				gLog().write(Log::INFO, std::string("[validators]: reindex STILL underway..."));
+			}
+
+			//
+			timerReindexed_->expires_at(timer_->expiry() + boost::asio::chrono::milliseconds(1000*60)); // 1 minute
+			timerReindexed_->async_wait(boost::bind(&ValidatorManager::checkReindexed, shared_from_this(), boost::asio::placeholders::error));
+		}
+	}
 
 	void touch(const boost::system::error_code& error) {
 		// life control
@@ -224,6 +256,7 @@ private:
 	// timer
 	typedef std::shared_ptr<boost::asio::steady_timer> TimerPtr;
 	TimerPtr timer_;
+	TimerPtr timerReindexed_;
 };
 
 } // qbit

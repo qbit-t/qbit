@@ -33,6 +33,8 @@ public:
 	virtual bool acceptBlockHeader(const NetworkBlockHeader& /*blockHeader*/) { throw qbit::exception("NOT_IMPL", "IValidator::acceptBlockHeader - not implemented."); }
 
 	virtual IMemoryPoolPtr mempool() { throw qbit::exception("NOT_IMPL", "IValidator::mempool - not implemented."); }
+
+	virtual bool reindexed() { throw qbit::exception("NOT_IMPL", "IValidator::reindexed - not implemented."); }
 };
 
 typedef std::shared_ptr<IValidator> IValidatorPtr;

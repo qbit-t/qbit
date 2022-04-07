@@ -181,6 +181,8 @@ public:
 		return true;
 	}
 
+	bool reindexed() { return reindexed_; }
+
 private:
 	void stopMiner() {
 		// stop miner
