@@ -1744,48 +1744,56 @@ void BuzzerPeerExtension::processTransaction(TransactionContextPtr ctx) {
 bool BuzzerPeerExtension::processMessage(Message& message, std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
 	//
 	if (message.type() == GET_BUZZER_SUBSCRIPTION) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
 				&BuzzerPeerExtension::processGetSubscription, shared_from_this(), msg,
 				boost::asio::placeholders::error)));
 	} else if (message.type() == BUZZER_SUBSCRIPTION) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
 				&BuzzerPeerExtension::processSubscription, shared_from_this(), msg,
 				boost::asio::placeholders::error)));
 	} else if (message.type() == BUZZER_SUBSCRIPTION_IS_ABSENT) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
 				&BuzzerPeerExtension::processSubscriptionAbsent, shared_from_this(), msg,
 				boost::asio::placeholders::error)));
 	} else if (message.type() == GET_BUZZ_FEED) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
 				&BuzzerPeerExtension::processGetBuzzfeed, shared_from_this(), msg,
 				boost::asio::placeholders::error)));
 	} else if (message.type() == BUZZ_FEED) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
 				&BuzzerPeerExtension::processBuzzfeed, shared_from_this(), msg,
 				boost::asio::placeholders::error)));
 	} else if (message.type() == NEW_BUZZ_NOTIFY) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
 				&BuzzerPeerExtension::processNewBuzzNotify, shared_from_this(), msg,
 				boost::asio::placeholders::error)));
 	} else if (message.type() == BUZZ_UPDATE_NOTIFY) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
 				&BuzzerPeerExtension::processBuzzUpdateNotify, shared_from_this(), msg,
 				boost::asio::placeholders::error)));
 	} else if (message.type() == GET_BUZZES) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
@@ -1793,24 +1801,28 @@ bool BuzzerPeerExtension::processMessage(Message& message, std::list<DataStream>
 				boost::asio::placeholders::error)));
 
 	} else if (message.type() == GET_EVENTS_FEED) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
 				&BuzzerPeerExtension::processGetEventsfeed, shared_from_this(), msg,
 				boost::asio::placeholders::error)));
 	} else if (message.type() == EVENTS_FEED) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
 				&BuzzerPeerExtension::processEventsfeed, shared_from_this(), msg,
 				boost::asio::placeholders::error)));
 	} else if (message.type() == NEW_EVENT_NOTIFY) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
 				&BuzzerPeerExtension::processNewEventNotify, shared_from_this(), msg,
 				boost::asio::placeholders::error)));
 	} else if (message.type() == EVENT_UPDATE_NOTIFY) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
@@ -1818,18 +1830,21 @@ bool BuzzerPeerExtension::processMessage(Message& message, std::list<DataStream>
 				boost::asio::placeholders::error)));
 
 	} else if (message.type() == GET_BUZZER_TRUST_SCORE) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
 				&BuzzerPeerExtension::processGetBuzzerTrustScore, shared_from_this(), msg,
 				boost::asio::placeholders::error)));
 	} else if (message.type() == BUZZER_TRUST_SCORE) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
 				&BuzzerPeerExtension::processBuzzerTrustScore, shared_from_this(), msg,
 				boost::asio::placeholders::error)));
 	} else if (message.type() == BUZZER_TRUST_SCORE_UPDATE) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
@@ -1837,24 +1852,28 @@ bool BuzzerPeerExtension::processMessage(Message& message, std::list<DataStream>
 				boost::asio::placeholders::error)));
 
 	} else if (message.type() == GET_BUZZER_MISTRUST_TX) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
 				&BuzzerPeerExtension::processGetBuzzerMistrustTx, shared_from_this(), msg,
 				boost::asio::placeholders::error)));
 	} else if (message.type() == BUZZER_MISTRUST_TX) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
 				&BuzzerPeerExtension::processBuzzerMistrustTx, shared_from_this(), msg,
 				boost::asio::placeholders::error)));
 	} else if (message.type() == GET_BUZZER_ENDORSE_TX) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
 				&BuzzerPeerExtension::processGetBuzzerEndorseTx, shared_from_this(), msg,
 				boost::asio::placeholders::error)));
 	} else if (message.type() == BUZZER_ENDORSE_TX) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
@@ -1862,12 +1881,14 @@ bool BuzzerPeerExtension::processMessage(Message& message, std::list<DataStream>
 				boost::asio::placeholders::error)));
 
 	} else if (message.type() == GET_BUZZ_FEED_BY_BUZZ) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
 				&BuzzerPeerExtension::processGetBuzzfeedByBuzz, shared_from_this(), msg,
 				boost::asio::placeholders::error)));
 	} else if (message.type() == BUZZ_FEED_BY_BUZZ) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
@@ -1880,6 +1901,7 @@ bool BuzzerPeerExtension::processMessage(Message& message, std::list<DataStream>
 				&BuzzerPeerExtension::processGetBuzzfeedByBuzzer, shared_from_this(), msg,
 				boost::asio::placeholders::error)));
 	} else if (message.type() == BUZZ_FEED_BY_BUZZER) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
@@ -1887,24 +1909,28 @@ bool BuzzerPeerExtension::processMessage(Message& message, std::list<DataStream>
 				boost::asio::placeholders::error)));
 
 	} else if (message.type() == GET_MISTRUSTS_FEED_BY_BUZZER) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
 				&BuzzerPeerExtension::processGetMistrustsByBuzzer, shared_from_this(), msg,
 				boost::asio::placeholders::error)));
 	} else if (message.type() == MISTRUSTS_FEED_BY_BUZZER) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
 				&BuzzerPeerExtension::processMistrustsByBuzzer, shared_from_this(), msg,
 				boost::asio::placeholders::error)));
 	} else if (message.type() == GET_ENDORSEMENTS_FEED_BY_BUZZER) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
 				&BuzzerPeerExtension::processGetEndorsementsByBuzzer, shared_from_this(), msg,
 				boost::asio::placeholders::error)));
 	} else if (message.type() == ENDORSEMENTS_FEED_BY_BUZZER) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
@@ -1912,24 +1938,28 @@ bool BuzzerPeerExtension::processMessage(Message& message, std::list<DataStream>
 				boost::asio::placeholders::error)));
 
 	} else if (message.type() == GET_BUZZER_SUBSCRIPTIONS) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
 				&BuzzerPeerExtension::processGetSubscriptionsByBuzzer, shared_from_this(), msg,
 				boost::asio::placeholders::error)));
 	} else if (message.type() == BUZZER_SUBSCRIPTIONS) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
 				&BuzzerPeerExtension::processSubscriptionsByBuzzer, shared_from_this(), msg,
 				boost::asio::placeholders::error)));
 	} else if (message.type() == GET_BUZZER_FOLLOWERS) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
 				&BuzzerPeerExtension::processGetFollowersByBuzzer, shared_from_this(), msg,
 				boost::asio::placeholders::error)));
 	} else if (message.type() == BUZZER_FOLLOWERS) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
@@ -1937,24 +1967,28 @@ bool BuzzerPeerExtension::processMessage(Message& message, std::list<DataStream>
 				boost::asio::placeholders::error)));
 
 	} else if (message.type() == GET_BUZZ_FEED_GLOBAL) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
 				&BuzzerPeerExtension::processGetBuzzfeedGlobal, shared_from_this(), msg,
 				boost::asio::placeholders::error)));
 	} else if (message.type() == BUZZ_FEED_GLOBAL) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
 				&BuzzerPeerExtension::processBuzzfeedGlobal, shared_from_this(), msg,
 				boost::asio::placeholders::error)));
 	} else if (message.type() == GET_BUZZ_FEED_BY_TAG) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
 				&BuzzerPeerExtension::processGetBuzzfeedByTag, shared_from_this(), msg,
 				boost::asio::placeholders::error)));
 	} else if (message.type() == BUZZ_FEED_BY_TAG) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
@@ -1962,12 +1996,14 @@ bool BuzzerPeerExtension::processMessage(Message& message, std::list<DataStream>
 				boost::asio::placeholders::error)));
 
 	} else if (message.type() == GET_HASH_TAGS) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
 				&BuzzerPeerExtension::processGetHashTags, shared_from_this(), msg,
 				boost::asio::placeholders::error)));
 	} else if (message.type() == HASH_TAGS) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
@@ -1975,12 +2011,14 @@ bool BuzzerPeerExtension::processMessage(Message& message, std::list<DataStream>
 				boost::asio::placeholders::error)));
 
 	} else if (message.type() == BUZZ_SUBSCRIBE) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
 				&BuzzerPeerExtension::processSubscribeBuzzThread, shared_from_this(), msg,
 				boost::asio::placeholders::error)));
 	} else if (message.type() == BUZZ_UNSUBSCRIBE) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
@@ -1988,18 +2026,21 @@ bool BuzzerPeerExtension::processMessage(Message& message, std::list<DataStream>
 				boost::asio::placeholders::error)));
 
 	} else if (message.type() == GET_BUZZER_AND_INFO) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
 				&BuzzerPeerExtension::processGetBuzzerAndInfo, shared_from_this(), msg,
 				boost::asio::placeholders::error)));
 	} else if (message.type() == BUZZER_AND_INFO) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
 				&BuzzerPeerExtension::processBuzzerAndInfo, shared_from_this(), msg,
 				boost::asio::placeholders::error)));
 	} else if (message.type() == BUZZER_AND_INFO_ABSENT) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
@@ -2007,12 +2048,14 @@ bool BuzzerPeerExtension::processMessage(Message& message, std::list<DataStream>
 				boost::asio::placeholders::error)));
 
 	} else if (message.type() == GET_CONVERSATIONS_FEED_BY_BUZZER) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
 				&BuzzerPeerExtension::processGetConversationsFeedByBuzzer, shared_from_this(), msg,
 				boost::asio::placeholders::error)));
 	} else if (message.type() == CONVERSATIONS_FEED_BY_BUZZER) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
@@ -2020,12 +2063,14 @@ bool BuzzerPeerExtension::processMessage(Message& message, std::list<DataStream>
 				boost::asio::placeholders::error)));
 
 	} else if (message.type() == GET_MESSAGES_FEED_BY_CONVERSATION) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
 				&BuzzerPeerExtension::processGetMessagesFeedByConversation, shared_from_this(), msg,
 				boost::asio::placeholders::error)));
 	} else if (message.type() == MESSAGES_FEED_BY_CONVERSATION) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
@@ -2033,18 +2078,21 @@ bool BuzzerPeerExtension::processMessage(Message& message, std::list<DataStream>
 				boost::asio::placeholders::error)));
 
 	} else if (message.type() == NEW_BUZZER_CONVERSATION_NOTIFY) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
 				&BuzzerPeerExtension::processNewConversationNotify, shared_from_this(), msg,
 				boost::asio::placeholders::error)));
 	} else if (message.type() == UPDATE_BUZZER_CONVERSATION_NOTIFY) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
 				&BuzzerPeerExtension::processUpdateConversationNotify, shared_from_this(), msg,
 				boost::asio::placeholders::error)));
 	} else if (message.type() == NEW_BUZZER_MESSAGE_NOTIFY) {
+		if (peerManager_->settings()->resync()) return true;
 		boost::asio::async_read(*peer_->socket(),
 			boost::asio::buffer(msg->data(), message.dataSize()),
 			peer_->strand()->wrap(boost::bind(
