@@ -82,15 +82,6 @@ public:
 		bool lExtended = true;
 		if (!consensus_->checkSequenceConsistency(lOther, lExtended)) {
 			//
-			if (const_cast<NetworkBlockHeader&>(blockHeader).height() > lCurrentHeight) {
-				if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[buzzer/checkBlockHeader]: probably broken chain for ") + 
-					strprintf("%d/%s/%s#", const_cast<NetworkBlockHeader&>(blockHeader).height(), 
-						lOther.hash().toHex(), chain_.toHex().substr(0, 10)));
-				
-				consensus_->toNonSynchronized();
-				return IValidator::BROKEN_CHAIN;
-			}
-			//
 			if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[cubix/checkBlockHeader]: check sequence consistency FAILED ") +
 				strprintf("block = %s, prev = %s, chain = %s#", lOther.hash().toHex(), 
 					lOther.prev().toHex(), chain_.toHex().substr(0, 10)));
