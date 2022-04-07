@@ -260,7 +260,7 @@ public:
 		bool lSignatureCheck = const_cast<BlockHeader&>(block).origin().verify(lHash, block.signature_);
 
 		// check available asset balance
-		bool lProofAssetCheck = false;
+		bool lProofAssetCheck = settings_->reindex() || settings_->resync();
 		uint256 lProofAsset = settings_->proofAsset();
 		if (!lProofAsset.isNull()) {
 			if (block.time_ >= settings_->proofFrom()) {
