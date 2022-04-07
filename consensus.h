@@ -306,7 +306,7 @@ public:
 						lSource << lTxId;
 						lSource << block.time_;
 						
-						uint256 lHashChallenge = Hash(lSource.begin(), lSource.end());
+						lHashChallenge = Hash(lSource.begin(), lSource.end());
 						extended = lHashChallenge == block.prevChallenge_; // proof-of-content
 						lChecked = true;
 						lLevel = 3;
@@ -323,8 +323,9 @@ public:
 
 		if (gLog().isEnabled(Log::CONSENSUS) && (!(lTargetCheck && lSignatureCheck && lProofAssetCheck) || !extended)) 
 			gLog().write(Log::CONSENSUS, std::string("[checkSequenceConsistency]: sequence consistency result FAILED: ") +
-				strprintf("target = %d, signature = %d, proof = %d, ext = %d/%s (%d, %d)",
-						lTargetCheck, lSignatureCheck, lProofAssetCheck, extended, lHashChallenge.toHex(), lChecked, lLevel));
+				strprintf("target = %d, signature = %d, proof = %d, ext = %d/%s/%s (%d, %d)",
+						lTargetCheck, lSignatureCheck, lProofAssetCheck,
+							extended, lHashChallenge.toHex(), block.prevChallenge_.toHex(), lChecked, lLevel));
 
 		return lTargetCheck && lSignatureCheck && lProofAssetCheck;
 	}
