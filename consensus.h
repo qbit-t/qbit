@@ -284,6 +284,7 @@ public:
 		} else lProofAssetCheck = true;
 
 		// check challenge
+		uint256 lHashChallenge;
 		if (!block.prev_.isNull()) {
 			BlockPtr lChallengeBlock = store_->block(block.prev_);
 			if (lChallengeBlock != nullptr) {
@@ -305,14 +306,20 @@ public:
 						
 						uint256 lHashChallenge = Hash(lSource.begin(), lSource.end());
 						extended = lHashChallenge == block.prevChallenge_; // proof-of-content
+					} else {
+						extended = false;	
 					}
+				} else {
+					extended = false;
 				}
+			} else {
+				extended = false;
 			}
 		}
 
-		if (gLog().isEnabled(Log::CONSENSUS) && !(lTargetCheck && lSignatureCheck && lProofAssetCheck)) 
+		if (gLog().isEnabled(Log::CONSENSUS) && (!(lTargetCheck && lSignatureCheck && lProofAssetCheck) || !extended)) 
 			gLog().write(Log::CONSENSUS, std::string("[checkSequenceConsistency]: sequence consistency result FAILED: ") +
-				strprintf("target = %d, signature = %d, proof = %d", lTargetCheck, lSignatureCheck, lProofAssetCheck));
+				strprintf("target = %d, signature = %d, proof = %d, ext = %d/%s", lTargetCheck, lSignatureCheck, lProofAssetCheck, extended, lHashChallenge.toHex()));
 
 		return lTargetCheck && lSignatureCheck && lProofAssetCheck;
 	}
