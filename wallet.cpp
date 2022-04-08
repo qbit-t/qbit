@@ -773,7 +773,7 @@ void Wallet::collectCoinbaseUnlinkedOuts(std::list<Transaction::UnlinkedOutPtr>&
 				// delete from store
 				utxo_.remove(lAmount->second);
 				assetsUtxoPresence_.erase(lAmount->second);
-				lAsset->second.erase(lAmount);
+				//lAsset->second.erase(lAmount);
 				continue;
 			}
 
