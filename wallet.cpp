@@ -836,15 +836,17 @@ amount_t Wallet::fillCoinbaseInputs(TxSpendPtr tx) {
 	// amount
 	amount_t lAmount = 0;
 
-	// fill ins 
-	for (std::list<Transaction::UnlinkedOutPtr>::iterator lUtxo = lUtxos.begin(); lUtxo != lUtxos.end(); lUtxo++) {
-		// locate skey
-		SKeyPtr lSKey = findKey((*lUtxo)->address());
-		if (lSKey && lSKey->valid()) { 
-			tx->addIn(*lSKey, *lUtxo);
-			lAmount += (*lUtxo)->amount();
+	if (lUtxos.size() >= 500) {
+		// fill ins 
+		for (std::list<Transaction::UnlinkedOutPtr>::iterator lUtxo = lUtxos.begin(); lUtxo != lUtxos.end(); lUtxo++) {
+			// locate skey
+			SKeyPtr lSKey = findKey((*lUtxo)->address());
+			if (lSKey && lSKey->valid()) { 
+				tx->addIn(*lSKey, *lUtxo);
+				lAmount += (*lUtxo)->amount();
+			}
 		}
-	}	
+	}
 
 	return lAmount;
 }
