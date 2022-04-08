@@ -770,10 +770,7 @@ void Wallet::collectCoinbaseUnlinkedOuts(std::list<Transaction::UnlinkedOutPtr>&
 
 			Transaction::UnlinkedOutPtr lUtxo = findUnlinkedOut(lAmount->second);
 			if (lUtxo == nullptr) {
-				// delete from store
-				utxo_.remove(lAmount->second);
-				assetsUtxoPresence_.erase(lAmount->second);
-				//lAsset->second.erase(lAmount);
+				//
 				continue;
 			}
 
