@@ -202,7 +202,7 @@ QuarkToolBar
 	{
 		id: logo
 		fillMode: Image.PreserveAspectFit
-		width: 20
+		width: 15
 		x: parent.width / 2 - logo.width / 2
 		y: extraOffset
 		Layout.alignment: Qt.AlignCenter

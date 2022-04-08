@@ -1104,6 +1104,13 @@ QuarkPage {
 			createProgressBar.value = 1.0;
 			controller.popPage();
 		}
+
+		onRetry: {
+			// was specific error, retrying...
+			createProgressBar.indeterminate = true;
+			retryBuzzCommand.start();
+		}
+
 		onError: {
 			createProgressBar.visible = false;
 			sending = false;
@@ -1112,6 +1119,17 @@ QuarkPage {
 
 		onMediaUploaded: {
 			createProgressBar.indeterminate = true;
+		}
+	}
+
+	Timer {
+		id: retryBuzzCommand
+		interval: 1000
+		repeat: false
+		running: false
+
+		onTriggered: {
+			buzzCommand.reprocess();
 		}
 	}
 
@@ -1124,6 +1142,13 @@ QuarkPage {
 			createProgressBar.value = 1.0;
 			controller.popPage();
 		}
+
+		onRetry: {
+			// was specific error, retrying...
+			createProgressBar.indeterminate = true;
+			retryReBuzzCommand.start();
+		}
+
 		onError: {
 			createProgressBar.visible = false;
 			sending = false;
@@ -1132,6 +1157,17 @@ QuarkPage {
 
 		onMediaUploaded: {
 			createProgressBar.indeterminate = true;
+		}
+	}
+
+	Timer {
+		id: retryReBuzzCommand
+		interval: 1000
+		repeat: false
+		running: false
+
+		onTriggered: {
+			rebuzzCommand.reprocess();
 		}
 	}
 
@@ -1144,6 +1180,13 @@ QuarkPage {
 			createProgressBar.value = 1.0;
 			controller.popPage();
 		}
+
+		onRetry: {
+			// was specific error, retrying...
+			createProgressBar.indeterminate = true;
+			retryReplyCommand.start();
+		}
+
 		onError: {
 			createProgressBar.visible = false;
 			sending = false;
@@ -1152,6 +1195,17 @@ QuarkPage {
 
 		onMediaUploaded: {
 			createProgressBar.indeterminate = true;
+		}
+	}
+
+	Timer {
+		id: retryReplyCommand
+		interval: 1000
+		repeat: false
+		running: false
+
+		onTriggered: {
+			replyCommand.reprocess();
 		}
 	}
 
@@ -1164,6 +1218,12 @@ QuarkPage {
 			controller.popPage();
 		}
 
+		onRetry: {
+			// was specific error, retrying...
+			createProgressBar.indeterminate = true;
+			retryConversationMessageCommand.start();
+		}
+
 		onError: {
 			createProgressBar.visible = false;
 			sending = false;
@@ -1172,6 +1232,17 @@ QuarkPage {
 
 		onMediaUploaded: {
 			createProgressBar.indeterminate = true;
+		}
+	}
+
+	Timer {
+		id: retryConversationMessageCommand
+		interval: 1000
+		repeat: false
+		running: false
+
+		onTriggered: {
+			messageCommand.reprocess();
 		}
 	}
 
@@ -1334,7 +1405,7 @@ QuarkPage {
 	function handleError(code, message) {
 		if (code === "E_CHAINS_ABSENT") return;
 		if (message === "UNKNOWN_REFTX" || code === "E_TX_NOT_SENT") {
-			buzzerClient.resync();
+			//buzzerClient.resync();
 			controller.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.UNKNOWN_REFTX"), true);
 		} else {
 			controller.showError(message, true);

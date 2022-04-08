@@ -1187,6 +1187,12 @@ QuarkPage {
 			buzzText.clear();
 		}
 
+		onRetry: {
+			// was specific error, retrying...
+			createProgressBar.indeterminate = true;
+			retryConversationMessageCommand.start();
+		}
+
 		onError: {
 			sending = false;
 			createProgressBar.visible = false;
@@ -1194,6 +1200,17 @@ QuarkPage {
 		}
 
 		onMediaUploaded: {
+		}
+	}
+
+	Timer {
+		id: retryConversationMessageCommand
+		interval: 1000
+		repeat: false
+		running: false
+
+		onTriggered: {
+			messageCommand.reprocess();
 		}
 	}
 
@@ -1231,7 +1248,7 @@ QuarkPage {
 	function handleError(code, message) {
 		if (code === "E_CHAINS_ABSENT") return;
 		if (message === "UNKNOWN_REFTX" || code === "E_TX_NOT_SENT") {
-			buzzerClient.resync();
+			//buzzerClient.resync();
 			controller.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.UNKNOWN_REFTX"), true);
 		} else {
 			controller.showError(message, true);

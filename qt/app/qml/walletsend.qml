@@ -604,7 +604,7 @@ Item
 		onError: {
 			if (code === "E_CHAINS_ABSENT") return;
 			if (message === "UNKNOWN_REFTX" || code === "E_TX_NOT_SENT") {
-				buzzerClient.resync();
+				//buzzerClient.resync();
 				controller.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.UNKNOWN_REFTX"), true);
 			} else if (code === "E_ADDRESS_IS_INVALID") {
 				controller.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_ADDRESS_IS_INVALID"), true);
@@ -636,7 +636,7 @@ Item
 			amountInfo.prepare();
 			if (code === "E_CHAINS_ABSENT") return;
 			if (message === "UNKNOWN_REFTX" || code === "E_TX_NOT_SENT") {
-				buzzerClient.resync();
+				//buzzerClient.resync();
 				controller.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.UNKNOWN_REFTX"));
 			} else {
 				controller.showError(message);

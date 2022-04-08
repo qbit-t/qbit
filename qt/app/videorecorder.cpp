@@ -54,6 +54,27 @@ void VideoRecorder::togglePause() {
 	}
 }
 
+void VideoRecorder::setResolution(const QString& resolution) {
+	//
+	resolution_ = resolution;
+	emit resolutionChanged();
+
+	//
+	if (resolution_ == "1080p" || !resolution_.size()) {
+		maxDuration_ = 1 * 60 * 1000; // 1 minute
+		emit maxDurationChanged();
+	} else if (resolution_ == "720p") {
+		maxDuration_ = 3 * 60 * 1000; // 3 minutes
+		emit maxDurationChanged();
+	} else if (resolution_ == "480p") {
+		maxDuration_ = 5 * 60 * 1000; // 5 minutes
+		emit maxDurationChanged();
+	} else if (resolution_ == "360p") {
+		maxDuration_ = 10 * 60 * 1000; // 10 minutes
+		emit maxDurationChanged();
+	}
+}
+
 void VideoRecorder::toggleRecord() {
 	//
 	qInfo() << "VideoRecorder::toggleRecord" << videoRecorder_->state();
@@ -91,7 +112,29 @@ void VideoRecorder::toggleRecord() {
 
 		QVideoEncoderSettings lVideoSettings;
 		lVideoSettings.setCodec("h264");
-		lVideoSettings.setBitRate(3145728); // 3 Mbit/s
+		if (resolution_ == "1080p" || !resolution_.size()) {
+			lVideoSettings.setBitRate(3145728); // 3 Mbit/s
+			maxDuration_ = 1 * 60 * 1000; // 1 minute
+			emit maxDurationChanged();
+		} else if (resolution_ == "720p") {
+			lVideoSettings.setBitRate(2097152); // 2 Mbit/s
+			maxDuration_ = 3 * 60 * 1000; // 3 minutes
+			emit maxDurationChanged();
+		} else if (resolution_ == "480p") {
+			lVideoSettings.setBitRate(1048576); // 1 Mbit/s
+			maxDuration_ = 5 * 60 * 1000; // 5 minutes
+			emit maxDurationChanged();
+		} else if (resolution_ == "360p") {
+			lVideoSettings.setBitRate(524288); // 0.5 Mbit/s
+			maxDuration_ = 10 * 60 * 1000; // 10 minutes
+			emit maxDurationChanged();
+		}
+
+		if (resolution_ == "1080p" || !resolution_.size()) lVideoSettings.setResolution(1920, 1080);
+		else if (resolution_ == "720p") lVideoSettings.setResolution(1280, 720);
+		else if (resolution_ == "480p") lVideoSettings.setResolution(640, 480);
+		else if (resolution_ == "360p") lVideoSettings.setResolution(640, 360);
+
 		lVideoSettings.setQuality(QMultimedia::HighQuality);
 
 		localFile_ = QString::fromStdString(qbit::Random::generate().toHex());

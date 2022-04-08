@@ -92,9 +92,13 @@ QuarkPage {
 		localPath: buzzerClient.getTempFilesPath()
 		camera: cameraDevice
 
+		Component.onCompleted: {
+			resolution = "1080p";
+		}
+
 		onDurationChanged: {
 			// max 5 min
-			var lPart = (duration * 100.0) / (1 * 60 * 1000);
+			var lPart = (duration * 100.0) / maxDuration;
 			videoCaptureProgress.progress = lPart * 360.0 / 100.0;
 			elapsedAudioTime.setTime(duration);
 		}
@@ -118,6 +122,14 @@ QuarkPage {
 		}
 
 		onIsRecordingChanged: {
+		}
+
+		onResolutionChanged: {
+			elapsedAudioTime.setTotalTime(maxDuration);
+		}
+
+		onMaxDurationChanged: {
+			elapsedAudioTime.setTotalTime(maxDuration);
 		}
 	}
 
@@ -143,6 +155,50 @@ QuarkPage {
 			closePage();
 		}
     }
+
+	//
+	// resolution menu
+	//
+
+	QuarkSimpleComboBox {
+		id: resolutionCombo
+		x: backButton.x + backButton.width + 10
+		y: backButton.y
+		width: 65
+		itemLeftPadding: 12
+		itemTopPadding: 16
+		itemHorizontalAlignment: Text.AlignHCenter
+
+		// Material.background: "transparent"
+
+		model: ListModel { id: resolutionModel_ }
+
+		Component.onCompleted: {
+			prepare();
+		}
+
+		indicator: Canvas {
+		}
+
+		clip: false
+
+		onActivated: {
+			var lEntry = resolutionModel_.get(resolutionCombo.currentIndex);
+			if (lEntry !== undefined)
+				videoRecorder.resolution = lEntry.id;
+		}
+
+		function prepare() {
+			if (resolutionModel_.count) return;
+
+			resolutionModel_.append({ id: "1080p", name: "1080p" });
+			resolutionModel_.append({ id: "720p", name: "720p" });
+			resolutionModel_.append({ id: "480p", name: "480p" });
+			resolutionModel_.append({ id: "360p", name: "360p" });
+
+			resolutionCombo.currentIndex = 0;
+		}
+	}
 
 	QuarkToolButton {
 		id: flashButton
@@ -252,11 +308,20 @@ QuarkPage {
 		x: photoButton.x + (photoButton.width / 2 - width / 2)
 		y: photoButton.y + photoButton.height + (parent.height - (photoButton.y + photoButton.height)) / 2 - height / 2
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 14) : 14
-		text: "00:00"
-		visible: videoRecorder.isRecording
+		text: "00:00 / 00:00"
+		visible: true
+
+		property string currentTime_: "00:00"
+		property string totalTime_: "00:00"
 
 		function setTime(ms) {
-			text = DateFunctions.msToTimeString(ms);
+			currentTime_ = DateFunctions.msToTimeString(ms);
+			text = currentTime_ + " / " + totalTime_;
+		}
+
+		function setTotalTime(ms) {
+			totalTime_ = DateFunctions.msToTimeString(ms);
+			text = currentTime_ + " / " + totalTime_;
 		}
 	}
 

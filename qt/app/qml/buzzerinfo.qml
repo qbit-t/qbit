@@ -490,7 +490,7 @@ Item
 			// create buzzer
 			if (buzzerinfo_.action === "CREATE" && !buzzerinfo_.buzzerCreated) {
 				//
-				if (buzzerName_ === "" || buzzerName_[0] !== '@') {
+				if (buzzerName_ === "" /*|| buzzerName_[0] !== '@'*/) {
 					controller.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZER_NAME_INCORRECT"), true);
 					return;
 				}

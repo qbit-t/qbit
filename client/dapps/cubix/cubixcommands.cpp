@@ -136,6 +136,12 @@ void UploadMediaCommand::process(const std::vector<std::string>& args) {
 		// try size
 		size_ = boost::filesystem::file_size(lPath);
 
+		// check
+		if (size_ > CUBIX_MAX_DATA_SIZE) {
+			error("E_INCORRECT_SIZE", "Max data size exceeded (>50 Mb).");
+			return;
+		}
+
 		// prepare
 		IComposerMethodPtr lCreateSummary = CubixLightComposer::CreateTxMediaSummary::instance(composer_, 
 			size_, boost::bind(&UploadMediaCommand::summaryCreated, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));

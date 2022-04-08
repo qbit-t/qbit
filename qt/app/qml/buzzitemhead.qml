@@ -935,7 +935,7 @@ Item {
 		onError: {
 			if (code === "E_CHAINS_ABSENT") return;
 			if (message === "UNKNOWN_REFTX" || code == "E_TX_NOT_SENT") {
-				buzzerClient.resync();
+				//buzzerClient.resync();
 				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.UNKNOWN_REFTX"));
 			} else {
 				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_ENDORSE"));
@@ -951,7 +951,7 @@ Item {
 		onError: {
 			if (code === "E_CHAINS_ABSENT") return;
 			if (message === "UNKNOWN_REFTX" || code == "E_TX_NOT_SENT") {
-				buzzerClient.resync();
+				//buzzerClient.resync();
 				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.UNKNOWN_REFTX"));
 			} else {
 				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_MISTRUST"));
@@ -965,14 +965,29 @@ Item {
 
 		onProcessed: {
 		}
+		onRetry: {
+			// was specific error, retrying...
+			retryRewardCommand.start();
+		}
 		onError: {
 			if (code === "E_CHAINS_ABSENT") return;
 			if (message === "UNKNOWN_REFTX" || code == "E_TX_NOT_SENT") {
-				buzzerClient.resync();
+				//buzzerClient.resync();
 				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.UNKNOWN_REFTX"));
 			} else {
 				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_REWARD_YOURSELF"));
 			}
+		}
+	}
+
+	Timer {
+		id: retryRewardCommand
+		interval: 1000
+		repeat: false
+		running: false
+
+		onTriggered: {
+			buzzRewardCommand.reprocess();
 		}
 	}
 
@@ -985,7 +1000,7 @@ Item {
 		onError: {
 			if (code === "E_CHAINS_ABSENT") return;
 			if (message === "UNKNOWN_REFTX" || code == "E_TX_NOT_SENT") {
-				buzzerClient.resync();
+				//buzzerClient.resync();
 				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.UNKNOWN_REFTX"));
 			} else {
 				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_LIKE_YOURSELF"));
@@ -1010,15 +1025,30 @@ Item {
 
 		onProcessed: {
 		}
+		onRetry: {
+			// was specific error, retrying...
+			retryReBuzzCommand.start();
+		}
 		onError: {
 			handleError(code, message);
+		}
+	}
+
+	Timer {
+		id: retryReBuzzCommand
+		interval: 1000
+		repeat: false
+		running: false
+
+		onTriggered: {
+			rebuzzCommand.reprocess();
 		}
 	}
 
 	function handleError(code, message) {
 		if (code === "E_CHAINS_ABSENT") return;
 		if (message === "UNKNOWN_REFTX" || code === "E_TX_NOT_SENT") {
-			buzzerClient.resync();
+			//buzzerClient.resync();
 			controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.UNKNOWN_REFTX"));
 		} else {
 			controller_.showError(message);

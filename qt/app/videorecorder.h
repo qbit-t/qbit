@@ -16,10 +16,12 @@ class VideoRecorder : public QObject {
 	Q_PROPERTY(QVariant camera READ camera WRITE setCamera NOTIFY cameraChanged)
 	Q_PROPERTY(QOrientationReading::Orientation orientation READ orientation WRITE setOrientation NOTIFY orientationChanged)
 	Q_PROPERTY(qint64 duration READ duration NOTIFY durationChanged)
+	Q_PROPERTY(qint64 maxDuration READ maxDuration NOTIFY maxDurationChanged)
 	Q_PROPERTY(QString localPath READ localPath WRITE setLocalPath NOTIFY localPathChanged)
 	Q_PROPERTY(QString localFile READ localFile NOTIFY localFileChanged)
 	Q_PROPERTY(QString actualFileLocation READ actualFileLocation NOTIFY actualFileLocationChanged)
 	Q_PROPERTY(QString previewLocation READ previewLocation NOTIFY previewLocationChanged)
+	Q_PROPERTY(QString resolution READ resolution WRITE setResolution NOTIFY resolutionChanged)
 	Q_PROPERTY(bool isRecording READ isRecording NOTIFY isRecordingChanged)
 	Q_PROPERTY(bool isStopped READ isStopped NOTIFY isStoppedChanged)
 	Q_PROPERTY(unsigned short unifiedOrientation READ unifiedOrientation NOTIFY unifiedOrientationChanged)
@@ -36,12 +38,15 @@ public:
 	void setOrientation(QOrientationReading::Orientation orientation) { orientation_ = orientation; emit orientationChanged(); }
 	void setCamera(QVariant camera);
 	qint64 duration() { return duration_; }
+	qint64 maxDuration() { return maxDuration_; }
 	unsigned short unifiedOrientation() { return unifiedOrientation_; }
 	QString localPath() { return localPath_; }
 	QString localFile() { return localFile_; }
 	QString actualFileLocation() { return actualFileLocation_; }
 	QString previewLocation() { return previewLocation_; }
+	QString resolution() { return resolution_; }
 	void setLocalPath(const QString& localPath) { localPath_ = localPath; emit localPathChanged(); }
+	void setResolution(const QString&);
 	bool isRecording() {
 		if (videoRecorder_) {
 			//
@@ -63,6 +68,7 @@ public:
 signals:
 	void cameraChanged();
 	void durationChanged();
+	void maxDurationChanged();
 	void recording();
 	void stopped();
 	void paused();
@@ -75,6 +81,7 @@ signals:
 	void orientationChanged();
 	void previewLocationChanged();
 	void unifiedOrientationChanged();
+	void resolutionChanged();
 
 private slots:
 	void togglePause();
@@ -94,12 +101,14 @@ private:
 	QImage* preview_ = nullptr;
 
 	qint64 duration_ = 0;
+	qint64 maxDuration_ = 0;
 	QString localPath_;
 	QString localFile_;
 	QString actualFileLocation_;
 	QOrientationReading::Orientation orientation_;
 	unsigned short unifiedOrientation_ = 0;
 	QString previewLocation_;
+	QString resolution_;
 
 	int frame_ = 0;
 };

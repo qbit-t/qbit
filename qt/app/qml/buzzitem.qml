@@ -1226,14 +1226,29 @@ Item {
 		onProcessed: {
 			endorsed_ = true;
 		}
+		onRetry: {
+			// was specific error, retrying...
+			retryBuzzerEndorseCommand.start();
+		}
 		onError: {
 			if (code === "E_CHAINS_ABSENT") return;
 			if (message === "UNKNOWN_REFTX" || code == "E_TX_NOT_SENT") {
-				buzzerClient.resync();
+				//buzzerClient.resync();
 				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.UNKNOWN_REFTX"));
 			} else {
 				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_ENDORSE"));
 			}
+		}
+	}
+
+	Timer {
+		id: retryBuzzerEndorseCommand
+		interval: 1000
+		repeat: false
+		running: false
+
+		onTriggered: {
+			buzzerEndorseCommand.reprocess();
 		}
 	}
 
@@ -1243,14 +1258,29 @@ Item {
 		onProcessed: {
 			mistrusted_ = true;
 		}
+		onRetry: {
+			// was specific error, retrying...
+			retryBuzzerEndorseCommand.start();
+		}
 		onError: {
 			if (code === "E_CHAINS_ABSENT") return;
 			if (message === "UNKNOWN_REFTX" || code == "E_TX_NOT_SENT") {
-				buzzerClient.resync();
+				//buzzerClient.resync();
 				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.UNKNOWN_REFTX"));
 			} else {
 				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_MISTRUST"));
 			}
+		}
+	}
+
+	Timer {
+		id: retryBuzzerMistrustCommand
+		interval: 1000
+		repeat: false
+		running: false
+
+		onTriggered: {
+			buzzerMistrustCommand.reprocess();
 		}
 	}
 
@@ -1260,14 +1290,31 @@ Item {
 
 		onProcessed: {
 		}
+
+		onRetry: {
+			// was specific error, retrying...
+			retryRewardCommand.start();
+		}
+
 		onError: {
 			if (code === "E_CHAINS_ABSENT") return;
 			if (message === "UNKNOWN_REFTX" || code == "E_TX_NOT_SENT") {
-				buzzerClient.resync();
+				//buzzerClient.resync();
 				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.UNKNOWN_REFTX"));
 			} else {
 				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_REWARD_YOURSELF"));
 			}
+		}
+	}
+
+	Timer {
+		id: retryRewardCommand
+		interval: 1000
+		repeat: false
+		running: false
+
+		onTriggered: {
+			buzzRewardCommand.reprocess();
 		}
 	}
 
@@ -1309,13 +1356,29 @@ Item {
 			buzzfeedModel_.setHasRebuzz(index);
 		}
 
+		onRetry: {
+			// was specific error, retrying...
+			retryReBuzzCommand.start();
+		}
+
 		onError: {
 			// mostly silent
 			if (code === "E_CHAINS_ABSENT") return;
 			if (message === "UNKNOWN_REFTX" || code == "E_TX_NOT_SENT") {
-				buzzerClient.resync();
+				//buzzerClient.resync();
 				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.UNKNOWN_REFTX"));
 			}
+		}
+	}
+
+	Timer {
+		id: retryReBuzzCommand
+		interval: 1000
+		repeat: false
+		running: false
+
+		onTriggered: {
+			rebuzzCommand.reprocess();
 		}
 	}
 
@@ -1344,7 +1407,7 @@ Item {
 	function handleError(code, message) {
 		if (code === "E_CHAINS_ABSENT") return;
 		if (message === "UNKNOWN_REFTX" || code === "E_TX_NOT_SENT") {
-			buzzerClient.resync();
+			//buzzerClient.resync();
 			controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.UNKNOWN_REFTX"));
 		} else {
 			controller_.showError(message);

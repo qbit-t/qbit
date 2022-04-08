@@ -402,6 +402,46 @@ Item
 		}
 	}
 
+	QuarkToolButton {
+		id: createBuzz
+		x: parent.width - (width + 15)
+		y: parent.height - (height + 15)
+		width: 55
+		height: width
+		visible: true
+		// symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+		Layout.alignment: Qt.AlignHCenter
+		radius: width / 2
+		clip: true
+
+		enabled: true
+
+		Image {
+			id: buzzImage
+			anchors.fill: parent
+			source: "../images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector,
+					buzzerApp.isDesktop ? "buzzer.round.full" : "buzzer.round")
+			fillMode: Image.PreserveAspectFit
+		}
+
+		onClicked: {
+			//
+			var lComponent = null;
+			var lPage = null;
+
+			lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzeditor-desktop.qml") :
+											   Qt.createComponent("qrc:/qml/buzzeditor.qml");
+			if (lComponent.status === Component.Error) {
+				showError(lComponent.errorString());
+			} else {
+				lPage = lComponent.createObject(controller);
+				lPage.controller = controller;
+
+				addPage(lPage);
+			}
+		}
+	}
+
 	Timer {
 		id: switchDataTimer
 		interval: 500

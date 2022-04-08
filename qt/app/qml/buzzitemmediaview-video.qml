@@ -8,7 +8,7 @@ import QtQuick.Dialogs 1.1
 //import QtGraphicalEffects 1.0
 import QtGraphicalEffects 1.15
 import Qt.labs.folderlistmodel 2.11
-import QtMultimedia 5.8
+import QtMultimedia 5.15
 
 import app.buzzer.components 1.0 as BuzzerComponents
 import app.buzzer.commands 1.0 as BuzzerCommands
@@ -56,10 +56,10 @@ Rectangle {
 	onCurrentOrientation_Changed: {
 		//
 		if (buzzerApp.isDesktop) {
-			if (currentOrientation_ == 6) videoOutput.orientation = -90;
-			else if (currentOrientation_ == 3) videoOutput.orientation = -180;
-			else if (currentOrientation_ == 8) videoOutput.orientation = 90;
-			else videoOutput.orientation = 0;
+			if (currentOrientation_ == 6) videoOut.orientation = -90;
+			else if (currentOrientation_ == 3) videoOut.orientation = -180;
+			else if (currentOrientation_ == 8) videoOut.orientation = 90;
+			else videoOut.orientation = 0;
 		}
 	}
 
@@ -72,22 +72,22 @@ Rectangle {
 	}
 
 	onMediaListChanged: {
-		videoOutput.adjustView();
+		videoOut.adjustView();
 		previewImage.adjustView();
 	}
 
 	onBuzzitemmedia_Changed: {
-		videoOutput.adjustView();
+		videoOut.adjustView();
 		previewImage.adjustView();
 	}
 
 	onCalculatedWidthChanged: {
-		videoOutput.adjustView();
+		videoOut.adjustView();
 		previewImage.adjustView();
 	}
 
 	function adjust() {
-		videoOutput.adjustView();
+		videoOut.adjustView();
 		previewImage.adjustView();
 	}
 
@@ -98,7 +98,7 @@ Rectangle {
 
 	//
 	VideoOutput {
-		id: videoOutput
+		id: videoOut
 
 		x: getX()
 		y: getY()
@@ -135,10 +135,10 @@ Rectangle {
 
 		onContentRectChanged: {
 			//
-			console.log("[onContentRectChanged]: videoOutput.contentRect = " + videoOutput.contentRect + ", parent.height = " + parent.height);
-			if (!previewImage.visible && videoOutput.contentRect.height > 0 &&
-													videoOutput.contentRect.height < calculatedHeight) {
-				height = videoOutput.contentRect.height;
+			console.log("[onContentRectChanged]: videoOutput.contentRect = " + videoOut.contentRect + ", parent.height = " + parent.height);
+			if (!previewImage.visible && videoOut.contentRect.height > 0 &&
+													videoOut.contentRect.height < calculatedHeight) {
+				height = videoOut.contentRect.height;
 				//buzzitemmedia_.calculatedHeight = height;
 				correctedHeight = height;
 			}
@@ -282,23 +282,23 @@ Rectangle {
 	//
 	QuarkRoundRectangle {
 		id: frameContainer
-		x: videoOutput.contentRect.x + spaceItems_ - 1
-		y: videoOutput.y - 1
-		width: videoOutput.contentRect.width + 2
-		height: videoOutput.contentRect.height + 2
+		x: videoOut.contentRect.x + spaceItems_ - 1
+		y: videoOut.y - 1
+		width: videoOut.contentRect.width + 2
+		height: videoOut.contentRect.height + 2
 
-		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
+		color: "transparent"
 		backgroundColor: "transparent"
 		radius: 14
 		penWidth: 9
 
-		visible: false //!buzzerApp.isDesktop && !actionButton.needDownload
+		visible: true //!buzzerApp.isDesktop && !actionButton.needDownload
 	}
 
 	//
 	MediaPlayer {
 		id: player
-		source: path_
+		//source: path_
 
 		property bool playing: false;
 
@@ -314,13 +314,12 @@ Rectangle {
 					totalSize.setTotalSize(size_);
 					playSlider.to = duration ? duration : duration_;
 					//player.seek(1);
-					videoOutput.fillMode = VideoOutput.PreserveAspectFit;
+					videoOut.fillMode = VideoOutput.PreserveAspectFit;
+					videoOut.adjustView();
 				break;
 			}
 
 			console.log("[onStatusChanged]: status = " + status + ", duration = " + duration);
-
-			videoOutput.adjustView();
 		}
 
 		onErrorStringChanged: {
@@ -379,6 +378,7 @@ Rectangle {
 				downloadCommand.processing = false;
 				downloadCommand.terminate();
 			} else if (!player.playing) {
+				player.source = path_;
 				player.play();
 			} else {
 				player.pause();
@@ -533,6 +533,7 @@ Rectangle {
 
 			// autoplay
 			if (!player.playing) {
+				player.source = path_;
 				player.play();
 			}
 		}

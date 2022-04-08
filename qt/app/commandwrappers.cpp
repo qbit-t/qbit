@@ -333,10 +333,11 @@ void BuzzRewardCommand::prepare() {
 
 	Client* lClient = static_cast<Client*>(gApplication->getClient());
 
-	command_ = qbit::BuzzRewardCommand::instance(
-		lClient->getBuzzerComposer(),
-		buzzfeedModel_->buzzfeed(),
-		boost::bind(&BuzzRewardCommand::done, this, boost::placeholders::_1)
+	command_ = std::static_pointer_cast<qbit::BuzzRewardCommand>(
+		qbit::BuzzRewardCommand::instance(
+			lClient->getBuzzerComposer(),
+			buzzfeedModel_->buzzfeed(),
+			boost::bind(&BuzzRewardCommand::done, this, boost::placeholders::_1))
 	);
 }
 
@@ -417,9 +418,10 @@ BuzzerEndorseCommand::BuzzerEndorseCommand(QObject* /*parent*/) : QObject() {
 	//
 	Client* lClient = static_cast<Client*>(gApplication->getClient());
 
-	command_ = qbit::BuzzerEndorseCommand::instance(
-		lClient->getBuzzerComposer(),
-		boost::bind(&BuzzerEndorseCommand::done, this, boost::placeholders::_1)
+	command_ = std::static_pointer_cast<qbit::BuzzerEndorseCommand>(
+		qbit::BuzzerEndorseCommand::instance(
+			lClient->getBuzzerComposer(),
+			boost::bind(&BuzzerEndorseCommand::done, this, boost::placeholders::_1))
 	);
 }
 
@@ -427,9 +429,10 @@ BuzzerMistrustCommand::BuzzerMistrustCommand(QObject* /*parent*/) : QObject() {
 	//
 	Client* lClient = static_cast<Client*>(gApplication->getClient());
 
-	command_ = qbit::BuzzerMistrustCommand::instance(
-		lClient->getBuzzerComposer(),
-		boost::bind(&BuzzerMistrustCommand::done, this, boost::placeholders::_1)
+	command_ = std::static_pointer_cast<qbit::BuzzerMistrustCommand>(
+		qbit::BuzzerMistrustCommand::instance(
+			lClient->getBuzzerComposer(),
+			boost::bind(&BuzzerMistrustCommand::done, this, boost::placeholders::_1))
 	);
 }
 

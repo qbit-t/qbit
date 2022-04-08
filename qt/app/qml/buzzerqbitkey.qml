@@ -635,7 +635,7 @@ QuarkPage
 	function handleError(code, message) {
 		if (code === "E_CHAINS_ABSENT") return;
 		if (message === "UNKNOWN_REFTX" || code === "E_TX_NOT_SENT") {
-			buzzerClient.resync();
+			//buzzerClient.resync();
 			controller.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.UNKNOWN_REFTX"));
 		} else {
 			controller.showError(message);

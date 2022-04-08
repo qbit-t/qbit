@@ -45,6 +45,8 @@
 #include "buzzfeedlistmodel.h"
 #include "eventsfeedlistmodel.h"
 
+#define RETRY_MAX_COUNT 4
+
 namespace buzzer {
 
 class AskForQbitsCommand: public QObject
@@ -859,52 +861,122 @@ class BuzzerEndorseCommand: public QObject
 {
 	Q_OBJECT
 
+	Q_PROPERTY(int retryCount READ retryCount NOTIFY retryCountChanged)
+
 public:
 	explicit BuzzerEndorseCommand(QObject* parent = nullptr);
 
 	Q_INVOKABLE void process(QString buzzer) {
+		//
+		allowRetry_ = false;
+		retryCount_ = 0;
+		//
 		std::vector<std::string> lArgs;
 		lArgs.push_back(buzzer.toStdString());
 		command_->process(lArgs);
 	}
 
+	Q_INVOKABLE bool reprocess() {
+		//
+		if (command_ != nullptr && allowRetry_) {
+			// we suppose that command_ was failed
+			retryCount_++; emit retryCountChanged();
+			return command_->retry();
+		}
+
+		return false;
+	}
+
+	Q_INVOKABLE int retryCount() { return retryCount_; }
+
 	void done(const qbit::ProcessingError& result) {
 		if (result.success()) emit processed();
-		else emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
+		else {
+			//
+			if (result.error() == "E_SENT_TX" && result.message().find("UNKNOWN_REFTX") != std::string::npos) {
+				//
+				if (retryCount_ >= RETRY_MAX_COUNT) {
+					emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
+				} else {
+					// can retry
+					allowRetry_ = true;
+					emit retry();
+				}
+			} else emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
+		}
 	}
 
 signals:
 	void processed();
 	void error(QString code, QString message);
+	void retryCountChanged();
+	void retry();
 
 private:
-	qbit::ICommandPtr command_;
+	qbit::BuzzerEndorseCommandPtr command_;
+	bool allowRetry_ = false;
+	int retryCount_ = 0;
 };
 
 class BuzzerMistrustCommand: public QObject
 {
 	Q_OBJECT
 
+	Q_PROPERTY(int retryCount READ retryCount NOTIFY retryCountChanged)
+
 public:
 	explicit BuzzerMistrustCommand(QObject* parent = nullptr);
 
 	Q_INVOKABLE void process(QString buzzer) {
+		//
+		allowRetry_ = false;
+		retryCount_ = 0;
+		//
 		std::vector<std::string> lArgs;
 		lArgs.push_back(buzzer.toStdString());
 		command_->process(lArgs);
 	}
 
+	Q_INVOKABLE bool reprocess() {
+		//
+		if (command_ != nullptr && allowRetry_) {
+			// we suppose that command_ was failed
+			retryCount_++; emit retryCountChanged();
+			return command_->retry();
+		}
+
+		return false;
+	}
+
+	Q_INVOKABLE int retryCount() { return retryCount_; }
+
 	void done(const qbit::ProcessingError& result) {
 		if (result.success()) emit processed();
-		else emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
+		else {
+			//
+			if (result.error() == "E_SENT_TX" && result.message().find("UNKNOWN_REFTX") != std::string::npos) {
+				//
+				if (retryCount_ >= RETRY_MAX_COUNT) {
+					emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
+				} else {
+					// can retry
+					allowRetry_ = true;
+					emit retry();
+				}
+			} else emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
+		}
 	}
 
 signals:
 	void processed();
 	void error(QString code, QString message);
+	void retryCountChanged();
+	void retry();
 
 private:
-	qbit::ICommandPtr command_;
+	qbit::BuzzerMistrustCommandPtr command_;
+	bool allowRetry_ = false;
+	int retryCount_ = 0;
 };
 
 class DownloadMediaCommand: public QObject
@@ -1182,11 +1254,15 @@ class BuzzRewardCommand: public QObject
 	Q_OBJECT
 
 	Q_PROPERTY(BuzzfeedListModel* model READ model WRITE setModel NOTIFY modelChanged)
+	Q_PROPERTY(int retryCount READ retryCount NOTIFY retryCountChanged)
 
 public:
 	explicit BuzzRewardCommand(QObject* parent = nullptr);
 
 	Q_INVOKABLE void process(QString buzz, QString reward) {
+		//
+		allowRetry_ = false;
+		retryCount_ = 0;
 		//
 		if (!buzzfeedModel_) return;
 
@@ -1200,6 +1276,19 @@ public:
 		command_->process(lArgs);
 	}
 
+	Q_INVOKABLE bool reprocess() {
+		//
+		if (command_ != nullptr && allowRetry_) {
+			// we suppose that command_ was failed
+			retryCount_++; emit retryCountChanged();
+			return command_->retry();
+		}
+
+		return false;
+	}
+
+	Q_INVOKABLE int retryCount() { return retryCount_; }
+
 	BuzzfeedListModel* model() { return buzzfeedModel_; }
 	void setModel(BuzzfeedListModel* model) { buzzfeedModel_ = model; emit modelChanged(); }
 
@@ -1207,17 +1296,33 @@ public:
 
 	void done(const qbit::ProcessingError& result) {
 		if (result.success()) emit processed();
-		else emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
+		else {
+			//
+			if (result.error() == "E_SENT_TX" && result.message().find("UNKNOWN_REFTX") != std::string::npos) {
+				//
+				if (retryCount_ >= RETRY_MAX_COUNT) {
+					emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
+				} else {
+					// can retry
+					allowRetry_ = true;
+					emit retry();
+				}
+			} else emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
+		}
 	}
 
 signals:
 	void modelChanged();
 	void processed();
 	void error(QString code, QString message);
+	void retryCountChanged();
+	void retry();
 
 private:
 	BuzzfeedListModel* buzzfeedModel_ = nullptr;
-	qbit::ICommandPtr command_;
+	qbit::BuzzRewardCommandPtr command_;
+	bool allowRetry_ = false;
+	int retryCount_ = 0;
 };
 
 class BuzzCommand: public QObject
@@ -1226,11 +1331,15 @@ class BuzzCommand: public QObject
 
 	Q_PROPERTY(QString buzzBody READ buzzBody WRITE setBuzzBody NOTIFY buzzBodyChanged)
 	Q_PROPERTY(UploadMediaCommand* uploadCommand READ uploadCommand WRITE setUploadCommand NOTIFY uploadCommandChanged)
+	Q_PROPERTY(int retryCount READ retryCount NOTIFY retryCountChanged)
 
 public:
 	explicit BuzzCommand(QObject* parent = nullptr);
 
 	Q_INVOKABLE void process() {
+		//
+		allowRetry_ = false;
+		retryCount_ = 0;
 		//
 		prepare();
 
@@ -1251,6 +1360,19 @@ public:
 		command_->process(lArgs);
 	}
 
+	Q_INVOKABLE bool reprocess() {
+		//
+		if (command_ != nullptr && allowRetry_) {
+			// we suppose that command_ was failed
+			retryCount_++; emit retryCountChanged();
+			return command_->retry();
+		}
+
+		return false;
+	}
+
+	Q_INVOKABLE int retryCount() { return retryCount_; }
+
 	void setBuzzBody(const QString& buzzBody) { buzzBody_ = buzzBody; emit buzzBodyChanged(); }
 	QString buzzBody() const { return buzzBody_; }
 
@@ -1261,7 +1383,19 @@ public:
 
 	void done(const qbit::ProcessingError& result) {
 		if (result.success()) emit processed();
-		else emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
+		else {
+			//
+			if (result.error() == "E_SENT_TX" && result.message().find("UNKNOWN_REFTX") != std::string::npos) {
+				//
+				if (retryCount_ >= RETRY_MAX_COUNT) {
+					emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
+				} else {
+					// can retry
+					allowRetry_ = true;
+					emit retry();
+				}
+			} else emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
+		}
 	}
 
 	void mediaUploaded(qbit::TransactionPtr tx, const qbit::ProcessingError& result) {
@@ -1288,6 +1422,9 @@ signals:
 	void processed();
 	void error(QString code, QString message);
 	void mediaUploaded(QString tx);
+	void retryChanged();
+	void retryCountChanged();
+	void retry();
 
 private:
 	QString buzzBody_;
@@ -1295,6 +1432,8 @@ private:
 	QStringList buzzMedia_;
 	UploadMediaCommand* uploadCommand_ = nullptr;
 	qbit::CreateBuzzCommandPtr command_;
+	bool allowRetry_ = false;
+	int retryCount_ = 0;
 };
 
 class ReBuzzCommand: public QObject
@@ -1305,11 +1444,15 @@ class ReBuzzCommand: public QObject
 	Q_PROPERTY(QString buzzBody READ buzzBody WRITE setBuzzBody NOTIFY buzzBodyChanged)
 	Q_PROPERTY(BuzzfeedListModel* model READ model WRITE setModel NOTIFY modelChanged)
 	Q_PROPERTY(UploadMediaCommand* uploadCommand READ uploadCommand WRITE setUploadCommand NOTIFY uploadCommandChanged)
+	Q_PROPERTY(int retryCount READ retryCount NOTIFY retryCountChanged)
 
 public:
 	explicit ReBuzzCommand(QObject* parent = nullptr);
 
 	Q_INVOKABLE void process() {
+		//
+		allowRetry_ = false;
+		retryCount_ = 0;
 		//
 		if (!buzzfeedModel_) return;
 
@@ -1332,6 +1475,19 @@ public:
 		command_->process(lArgs);
 	}
 
+	Q_INVOKABLE bool reprocess() {
+		//
+		if (command_ != nullptr && allowRetry_) {
+			// we suppose that command_ was failed
+			retryCount_++; emit retryCountChanged();
+			return command_->retry();
+		}
+
+		return false;
+	}
+
+	Q_INVOKABLE int retryCount() { return retryCount_; }
+
 	void setBuzzId(const QString& buzzId) { buzzId_ = buzzId; emit buzzIdChanged(); }
 	QString buzzId() const { return buzzId_; }
 
@@ -1348,7 +1504,19 @@ public:
 
 	void done(const qbit::ProcessingError& result) {
 		if (result.success()) emit processed();
-		else emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
+		else {
+			//
+			if (result.error() == "E_SENT_TX" && result.message().find("UNKNOWN_REFTX") != std::string::npos) {
+				//
+				if (retryCount_ >= RETRY_MAX_COUNT) {
+					emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
+				} else {
+					// can retry
+					allowRetry_ = true;
+					emit retry();
+				}
+			} else emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
+		}
 	}
 
 	void mediaUploaded(qbit::TransactionPtr tx, const qbit::ProcessingError& result) {
@@ -1377,6 +1545,8 @@ signals:
 	void processed();
 	void error(QString code, QString message);
 	void mediaUploaded(QString tx);
+	void retryCountChanged();
+	void retry();
 
 private:
 	QString buzzId_;
@@ -1386,6 +1556,8 @@ private:
 	BuzzfeedListModel* buzzfeedModel_ = nullptr;
 	UploadMediaCommand* uploadCommand_ = nullptr;
 	qbit::CreateReBuzzCommandPtr command_;
+	bool allowRetry_ = false;
+	int retryCount_ = 0;
 };
 
 class ReplyCommand: public QObject
@@ -1396,11 +1568,15 @@ class ReplyCommand: public QObject
 	Q_PROPERTY(QString buzzBody READ buzzBody WRITE setBuzzBody NOTIFY buzzBodyChanged)
 	Q_PROPERTY(BuzzfeedListModel* model READ model WRITE setModel NOTIFY modelChanged)
 	Q_PROPERTY(UploadMediaCommand* uploadCommand READ uploadCommand WRITE setUploadCommand NOTIFY uploadCommandChanged)
+	Q_PROPERTY(int retryCount READ retryCount NOTIFY retryCountChanged)
 
 public:
 	explicit ReplyCommand(QObject* parent = nullptr);
 
 	Q_INVOKABLE void process() {
+		//
+		allowRetry_ = false;
+		retryCount_ = 0;
 		//
 		if (!buzzfeedModel_) return;
 
@@ -1423,6 +1599,19 @@ public:
 		command_->process(lArgs);
 	}
 
+	Q_INVOKABLE bool reprocess() {
+		//
+		if (command_ != nullptr && allowRetry_) {
+			// we suppose that command_ was failed
+			retryCount_++; emit retryCountChanged();
+			return command_->retry();
+		}
+
+		return false;
+	}
+
+	Q_INVOKABLE int retryCount() { return retryCount_; }
+
 	void setBuzzId(const QString& buzzId) { buzzId_ = buzzId; emit buzzIdChanged(); }
 	QString buzzId() const { return buzzId_; }
 
@@ -1439,7 +1628,19 @@ public:
 
 	void done(const qbit::ProcessingError& result) {
 		if (result.success()) emit processed();
-		else emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
+		else {
+			//
+			if (result.error() == "E_SENT_TX" && result.message().find("UNKNOWN_REFTX") != std::string::npos) {
+				//
+				if (retryCount_ >= RETRY_MAX_COUNT) {
+					emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
+				} else {
+					// can retry
+					allowRetry_ = true;
+					emit retry();
+				}
+			} else emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
+		}
 	}
 
 	void mediaUploaded(qbit::TransactionPtr tx, const qbit::ProcessingError& result) {
@@ -1468,6 +1669,8 @@ signals:
 	void processed();
 	void error(QString code, QString message);
 	void mediaUploaded(QString tx);
+	void retryCountChanged();
+	void retry();
 
 private:
 	QString buzzId_;
@@ -1477,6 +1680,8 @@ private:
 	BuzzfeedListModel* buzzfeedModel_ = nullptr;
 	UploadMediaCommand* uploadCommand_ = nullptr;
 	qbit::CreateBuzzReplyCommandPtr command_;
+	bool allowRetry_ = false;
+	int retryCount_ = 0;
 };
 
 class BuzzSubscribeCommand: public QObject
@@ -2857,11 +3062,15 @@ class ConversationMessageCommand: public QObject
 	Q_PROPERTY(QString conversation READ conversation WRITE setConversation NOTIFY conversationChanged)
 	Q_PROPERTY(QString messageBody READ messageBody WRITE setMessageBody NOTIFY messageBodyChanged)
 	Q_PROPERTY(UploadMediaCommand* uploadCommand READ uploadCommand WRITE setUploadCommand NOTIFY uploadCommandChanged)
+	Q_PROPERTY(int retryCount READ retryCount NOTIFY retryCountChanged)
 
 public:
 	explicit ConversationMessageCommand(QObject* parent = nullptr);
 
 	Q_INVOKABLE void process() {
+		//
+		allowRetry_ = false;
+		retryCount_ = 0;
 		//
 		prepare();
 
@@ -2883,6 +3092,19 @@ public:
 		command_->process(lArgs);
 	}
 
+	Q_INVOKABLE bool reprocess() {
+		//
+		if (command_ != nullptr && allowRetry_) {
+			// we suppose that command_ was failed
+			retryCount_++; emit retryCountChanged();
+			return command_->retry();
+		}
+
+		return false;
+	}
+
+	Q_INVOKABLE int retryCount() { return retryCount_; }
+
 	void setMessageBody(const QString& messageBody) { messageBody_ = messageBody; emit messageBodyChanged(); }
 	QString messageBody() const { return messageBody_; }
 
@@ -2896,7 +3118,19 @@ public:
 
 	void done(const qbit::ProcessingError& result) {
 		if (result.success()) emit processed();
-		else emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
+		else {
+			//
+			if (result.error() == "E_SENT_TX" && result.message().find("UNKNOWN_REFTX") != std::string::npos) {
+				//
+				if (retryCount_ >= RETRY_MAX_COUNT) {
+					emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
+				} else {
+					// can retry
+					allowRetry_ = true;
+					emit retry();
+				}
+			} else emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
+		}
 	}
 
 	void mediaUploaded(qbit::TransactionPtr tx, const qbit::ProcessingError& result) {
@@ -2924,6 +3158,8 @@ signals:
 	void processed();
 	void error(QString code, QString message);
 	void mediaUploaded(QString tx);
+	void retryCountChanged();
+	void retry();
 
 private:
 	QString conversation_;
@@ -2932,6 +3168,8 @@ private:
 	QStringList messageMedia_;
 	UploadMediaCommand* uploadCommand_ = nullptr;
 	qbit::CreateBuzzerMessageCommandPtr command_;
+	bool allowRetry_ = false;
+	int retryCount_ = 0;
 };
 
 class LoadCounterpartyKeyCommand: public QObject

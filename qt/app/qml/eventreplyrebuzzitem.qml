@@ -669,7 +669,7 @@ Item {
 		onError: {
 			if (code === "E_CHAINS_ABSENT") return;
 			if (message === "UNKNOWN_REFTX" || code == "E_TX_NOT_SENT") {
-				buzzerClient.resync();
+				//buzzerClient.resync();
 				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.UNKNOWN_REFTX"));
 			} else {
 				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_ENDORSE"));
@@ -685,7 +685,7 @@ Item {
 		onError: {
 			if (code === "E_CHAINS_ABSENT") return;
 			if (message === "UNKNOWN_REFTX" || code == "E_TX_NOT_SENT") {
-				buzzerClient.resync();
+				//buzzerClient.resync();
 				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.UNKNOWN_REFTX"));
 			} else {
 				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_MISTRUST"));
@@ -696,7 +696,7 @@ Item {
 	function handleError(code, message) {
 		if (code === "E_CHAINS_ABSENT") return;
 		if (message === "UNKNOWN_REFTX" || code === "E_TX_NOT_SENT") {
-			buzzerClient.resync();
+			//buzzerClient.resync();
 			controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.UNKNOWN_REFTX"));
 		} else {
 			controller_.showError(message);

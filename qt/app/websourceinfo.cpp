@@ -13,12 +13,13 @@ WebSourceInfo::WebSourceInfo(QObject* /*parent*/) : QObject() {
 WebSourceInfo::~WebSourceInfo() {
 	//
 	qInfo() << "WebSourceInfo::~WebSourceInfo()";
+	reply_ = nullptr;
 }
 
 void WebSourceInfo::process() {
 	//
 	// TODO: potential leak, need "check list" to track such objects
-	QQmlEngine::setObjectOwnership(this, QQmlEngine::CppOwnership);
+	// QQmlEngine::setObjectOwnership(this, QQmlEngine::CppOwnership);
 
 	//
 	QNetworkAccessManager* lManager = gApplication->getNetworkManager();
@@ -96,11 +97,12 @@ bool WebSourceInfo::extractFullInfo(const QRegularExpression& expression, const 
 
 void WebSourceInfo::errorOccurred(QNetworkReply::NetworkError /*code*/) {
 	//
-	emit error(reply_->errorString());
+	if (reply_)
+		emit error(reply_->errorString());
 }
 
 void WebSourceInfo::readyToRead() {
-	finished(reply_);
+	if (reply_) finished(reply_);
 }
 
 void WebSourceInfo::processCommon(QNetworkReply* reply) {
