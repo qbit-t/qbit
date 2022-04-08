@@ -3917,22 +3917,13 @@ void Peer::processBlockHeaderAndState(std::list<DataStream>::iterator msg, const
 							peerManager_->consensusManager()->pushState(lStatePtr);
 						}
 						break;
-					/*
-					case IValidator::BROKEN_CHAIN: {
-							// synchronize ?
-							IConsensusPtr lConsensus = peerManager_->consensusManager()->locate(lNetworkBlockHeader.blockHeader().chain());
-							if (lConsensus) lConsensus->toNonSynchronized();
-						}
-						break;
-					*/
 					case IValidator::ORIGIN_NOT_ALLOWED:
 							// quarantine? - just skip for now
 						break;
-					case IValidator::INTEGRITY_IS_INVALID:
-							// WARNING: banning is too hard, consider quarantinig
-							// peerManager_->ban(shared_from_this());
-
-							// quarantine? - just skip for now
+					case IValidator::INTEGRITY_IS_INVALID: {
+							// quarantining this peer
+							peerManager_->quarantine(shared_from_this());
+						}
 						break;
 					case IValidator::ALREADY_PROCESSED:
 							// skip

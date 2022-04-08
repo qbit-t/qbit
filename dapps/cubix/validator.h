@@ -103,7 +103,7 @@ public:
 
 			if (lResult.size()) {
 				//
-				if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[cubix/checkBlockHeader]: PoC violated, broken chain for ") + 
+				if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[cubix/checkBlockHeader]: PoC FAILED, broken chain for ") + 
 					strprintf("%d/%s/%s#", const_cast<NetworkBlockHeader&>(blockHeader).height(), 
 						lOther.hash().toHex(), chain_.toHex().substr(0, 10)));
 				consensus_->toNonSynchronized();
@@ -117,6 +117,7 @@ public:
 			return IValidator::INTEGRITY_IS_INVALID;
 		}
 
+		/*
 		if (lOther.time() < lHeader.time() && const_cast<NetworkBlockHeader&>(blockHeader).height() > lCurrentHeight) {
 			if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[cubix/checkBlockHeader]: proposed block time is less than median time ") + 
 				strprintf("current = %d, proposed = %d, height = %d, new = %s, our = %s, origin = %s/%s#", 
@@ -126,10 +127,11 @@ public:
 						lOther.origin().toHex(), chain_.toHex().substr(0, 10)));
 			return IValidator::INTEGRITY_IS_INVALID;
 		}
+		*/
 
 		if (lOther.prev() == lHeader.hash()) {
 			//
-			if (lOther.time() < lHeader.time()) {
+			if (lOther.time() < lHeader.time() && lHeader.time() - lOther.time() > (consensus_->blockTime() / 1000)) {
 				if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[cubix/checkBlockHeader]: next block time is less than median time ") + 
 					strprintf("current = %d, proposed = %d, height = %d, new = %s, our = %s, origin = %s/%s#",
 						lHeader.time(), lOther.time(),
@@ -137,7 +139,7 @@ public:
 						lOther.hash().toHex(), lHeader.hash().toHex(), 
 							lOther.origin().toHex(), chain_.toHex().substr(0, 10)));
 				return IValidator::INTEGRITY_IS_INVALID;
-			} else if (!(lOther.time() - lHeader.time() >= (consensus_->blockTime() / 1000) &&
+			} else if (lHeader.time() > lOther.time() && !(lOther.time() - lHeader.time() >= (consensus_->blockTime() / 1000) &&
 						lOther.time() - lHeader.time() < (consensus_->blockTime() / 1000) * 2)) {
 				if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[cubix/checkBlockHeader]: time passage is wrong ") + 
 					strprintf("current = %d, proposed = %d, height = %d, new = %s, our = %s, origin = %s/%s#",

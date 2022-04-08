@@ -14,7 +14,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
 add_definitions(-DQBIT_VERSION_MAJOR=0)
 add_definitions(-DQBIT_VERSION_MINOR=1)
 add_definitions(-DQBIT_VERSION_REVISION=5)
-add_definitions(-DQBIT_VERSION_BUILD=23)
+add_definitions(-DQBIT_VERSION_BUILD=24)
 
 # Daemon
 project(qbitd)
