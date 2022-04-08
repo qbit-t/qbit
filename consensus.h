@@ -321,9 +321,9 @@ public:
 			}
 		}
 
-		//if (gLog().isEnabled(Log::CONSENSUS) && (!(lTargetCheck && lSignatureCheck && lProofAssetCheck) || !extended)) 
+		if (gLog().isEnabled(Log::CONSENSUS) && (!(lTargetCheck && lSignatureCheck && lProofAssetCheck) || (!extended && lLevel > 0))) 
 			gLog().write(Log::CONSENSUS, std::string("[checkSequenceConsistency]: sequence consistency result FAILED: ") +
-				strprintf("target = %d, signature = %d, proof = %d, ext = %d / %s / %s (%d, %d), prevBlock = %s",
+				strprintf("target = %d, signature = %d, proof = %d, ext = %d / %s / %s - (c = %d, l = %d), prevBlock = %s",
 						lTargetCheck, lSignatureCheck, lProofAssetCheck,
 							extended, lHashChallenge.toHex(), block.prevChallenge_.toHex(), lChecked, lLevel, block.prev_.toHex()));
 
