@@ -239,7 +239,7 @@ public:
 	}
 
 	//
-	virtual bool checkSequenceConsistency(const BlockHeader& block, bool& extended) {
+	virtual bool checkSequenceConsistency(const BlockHeader& block, bool& extended, bool lazy = false) {
 		// prepare generator
 		boost::random::mt19937 lGen(block.time_);
 		// prepare distribution
@@ -260,9 +260,9 @@ public:
 		bool lSignatureCheck = const_cast<BlockHeader&>(block).origin().verify(lHash, block.signature_);
 
 		// check available asset balance
-		bool lProofAssetCheck = settings_->reindex() || settings_->resync();
+		bool lProofAssetCheck = lazy || settings_->reindex() || settings_->resync();
 		uint256 lProofAsset = settings_->proofAsset();
-		if (!lProofAsset.isNull()) {
+		if (!lazy && !lProofAsset.isNull()) {
 			if (block.time_ >= settings_->proofFrom()) {
 				if (!block.proofTx_.isNull()) {
 					//
