@@ -3921,8 +3921,8 @@ void Peer::processBlockHeaderAndState(std::list<DataStream>::iterator msg, const
 							// quarantine? - just skip for now
 						break;
 					case IValidator::INTEGRITY_IS_INVALID: {
-							// quarantining this peer
-							peerManager_->quarantine(shared_from_this());
+							// quarantine? - network splitted from the beginning
+							// peerManager_->quarantine(shared_from_this());
 						}
 						break;
 					case IValidator::ALREADY_PROCESSED:
