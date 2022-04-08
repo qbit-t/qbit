@@ -287,34 +287,40 @@ public:
 		bool lChecked = false;
 		int lLevel = -1;
 		uint256 lHashChallenge;
-		if (!block.prev_.isNull()) {
+		uint256 lBottom = BlockHeader().hash();
+		//
+		if (!block.prev_.isNull() && block.prev_ != lBottom) {
+			//
 			BlockPtr lChallengeBlock = store_->block(block.prev_);
 			if (lChallengeBlock != nullptr) {
 				//
-				BlockPtr lTargetBlock = store_->block(lChallengeBlock->nextBlockChallenge());
-				if (lTargetBlock != nullptr && !block.prevChallenge_.isNull()) {
+				if (lChallengeBlock->prev_ != lBottom) {
 					//
-					if (lTargetBlock->transactions().size() > lChallengeBlock->nextTxChallenge() &&
-						lChallengeBlock->nextTxChallenge() >= 0) {
+					BlockPtr lTargetBlock = store_->block(lChallengeBlock->nextBlockChallenge());
+					if (lTargetBlock != nullptr && !block.prevChallenge_.isNull()) {
 						//
-						TransactionPtr lTransaction = lTargetBlock->transactions()[lChallengeBlock->nextTxChallenge()];
-						uint256 lTxId = lTransaction->hash();
+						if (lTargetBlock->transactions().size() > lChallengeBlock->nextTxChallenge() &&
+							lChallengeBlock->nextTxChallenge() >= 0) {
+							//
+							TransactionPtr lTransaction = lTargetBlock->transactions()[lChallengeBlock->nextTxChallenge()];
+							uint256 lTxId = lTransaction->hash();
 
-						// make hash
-						DataStream lSource(SER_NETWORK, PROTOCOL_VERSION);
-						lSource << lChallengeBlock->nextBlockChallenge();
-						lSource << lTxId;
-						lSource << block.time_;
-						
-						lHashChallenge = Hash(lSource.begin(), lSource.end());
-						extended = lHashChallenge == block.prevChallenge_; // proof-of-content
-						lChecked = true;
-						lLevel = 3;
+							// make hash
+							DataStream lSource(SER_NETWORK, PROTOCOL_VERSION);
+							lSource << lChallengeBlock->nextBlockChallenge();
+							lSource << lTxId;
+							lSource << block.time_;
+							
+							lHashChallenge = Hash(lSource.begin(), lSource.end());
+							extended = lHashChallenge == block.prevChallenge_; // proof-of-content
+							lChecked = true;
+							lLevel = 3;
+						} else {
+							extended = false; lLevel = 2;
+						}
 					} else {
-						extended = false; lLevel = 2;
+						extended = false; lLevel = 1;
 					}
-				} else {
-					extended = false; lLevel = 1;
 				}
 			} else {
 				extended = false; lLevel = 0;
