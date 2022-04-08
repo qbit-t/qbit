@@ -268,7 +268,7 @@ public:
 					//
 					std::vector<Transaction::NetworkUnlinkedOut> lUtxo;
 					ITransactionStorePtr lStore = store_->storeManager()->locate(MainChain::id());
-					lStore->selectUtxoByTransaction(block.proofTx_, lUtxo);
+					lStore->selectUtxoByRawTransaction(block.proofTx_, lUtxo);
 
 					if (lUtxo.size()) {
 						//

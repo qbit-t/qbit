@@ -1722,6 +1722,24 @@ void TransactionStore::selectUtxoByAddressAndAsset(const PKey& address, const ui
 	}
 }
 
+void TransactionStore::selectUtxoByRawTransaction(const uint256& tx, std::vector<Transaction::NetworkUnlinkedOut>& utxo) {
+	//
+	std::map<uint32_t, Transaction::NetworkUnlinkedOut> lUtxos;
+	db::DbMultiContainer<uint256 /*tx*/, uint256 /*utxo*/>::Iterator lTxRoot = txUtxo_.find(tx);
+	for (; lTxRoot.valid(); ++lTxRoot) {
+		Transaction::UnlinkedOut lOut;
+		if (utxo_.read(*lTxRoot, lOut)) {
+			//
+			lUtxos[lOut.out().index()] = Transaction::NetworkUnlinkedOut(lOut, 0, 0);
+		}
+	}
+
+	// ordering
+	for (std::map<uint32_t, Transaction::NetworkUnlinkedOut>::iterator lItem = lUtxos.begin(); lItem != lUtxos.end(); lItem++) {
+		utxo.push_back(lItem->second);
+	}
+}
+
 void TransactionStore::selectUtxoByTransaction(const uint256& tx, std::vector<Transaction::NetworkUnlinkedOut>& utxo) {
 	//
 	uint64_t lHeight = 0;

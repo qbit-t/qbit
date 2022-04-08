@@ -55,7 +55,7 @@ QuarkPage {
 
 		onTriggered: {
 			//
-			if (cameraDevice.videoRecorder.duration >= 1 * 60 * 1000) {
+			if (cameraDevice.videoRecorder.duration >= videoRecorder.maxDuration) {
 				// we are done
 				buzzerApp.wakeRelease(); // release
 				cameraDevice.videoRecorder.stop();
