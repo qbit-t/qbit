@@ -287,6 +287,9 @@ private:
 							// set effective time (need for integrity check)
 							lCurrentBlock->setTime(lCurrentTime);
 
+							// reset current block linkage
+							lCurrentBlock->setPrev(lLastHeader.hash());
+
 							// fill-up nodes with order (need for integrity check)
 							for (std::map<uint160, IPeerPtr>::iterator lNode = lPeers.begin(); lNode != lPeers.end(); lNode++) {
 								//

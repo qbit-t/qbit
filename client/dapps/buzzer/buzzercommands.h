@@ -199,6 +199,14 @@ public:
 		return std::make_shared<CreateBuzzCommand>(composer, done); 
 	}
 
+	// retry
+	bool retry() {
+		//
+		if (ctx_ == nullptr) return false;
+		created(ctx_);
+		return true;
+	}
+
 	// callbacks
 	void created(TransactionContextPtr ctx) {
 		//
@@ -1499,6 +1507,14 @@ public:
 		return std::make_shared<BuzzRewardCommand>(composer, buzzFeed, done); 
 	}
 
+	// retry
+	bool retry() {
+		//
+		if (ctx_ == nullptr) return false;
+		created(ctx_);
+		return true;
+	}
+
 	// callbacks
 	void created(TransactionContextPtr ctx) {
 		//
@@ -1618,6 +1634,14 @@ public:
 
 	static ICommandPtr instance(BuzzerLightComposerPtr composer, BuzzfeedPtr buzzFeed, doneWithErrorFunction done) {
 		return std::make_shared<CreateBuzzReplyCommand>(composer, buzzFeed, done); 
+	}
+
+	// retry
+	bool retry() {
+		//
+		if (ctx_ == nullptr) return false;
+		created(ctx_);
+		return true;
 	}
 
 	// callbacks
@@ -1761,6 +1785,14 @@ public:
 
 	static ICommandPtr instance(BuzzerLightComposerPtr composer, BuzzfeedPtr buzzFeed, doneWithErrorFunction done) {
 		return std::make_shared<CreateReBuzzCommand>(composer, buzzFeed, done); 
+	}
+
+	// retry
+	bool retry() {
+		//
+		if (ctx_ == nullptr) return false;
+		created(ctx_);
+		return true;
 	}
 
 	// callbacks
@@ -1983,6 +2015,14 @@ public:
 		return std::make_shared<BuzzerEndorseCommand>(composer, done); 
 	}
 
+	// retry
+	bool retry() {
+		//
+		if (ctx_ == nullptr) return false;
+		created(ctx_);
+		return true;
+	}
+
 	// callbacks
 	void created(TransactionContextPtr ctx) {
 		//
@@ -2096,6 +2136,14 @@ public:
 
 	static ICommandPtr instance(BuzzerLightComposerPtr composer, doneWithErrorFunction done) { 
 		return std::make_shared<BuzzerMistrustCommand>(composer, done); 
+	}
+
+	// retry
+	bool retry() {
+		//
+		if (ctx_ == nullptr) return false;
+		created(ctx_);
+		return true;
 	}
 
 	// callbacks
@@ -2352,6 +2400,14 @@ public:
 
 	static ICommandPtr instance(BuzzerLightComposerPtr composer, doneWithErrorFunction done) { 
 		return std::make_shared<CreateBuzzerConversationCommand>(composer, done); 
+	}
+
+	// retry
+	bool retry() {
+		//
+		if (ctx_ == nullptr) return false;
+		created(ctx_);
+		return true;
 	}
 
 	// callbacks
@@ -2623,6 +2679,14 @@ public:
 
 	static ICommandPtr instance(BuzzerLightComposerPtr composer, ConversationsfeedPtr conversations, doneWithErrorFunction done) {
 		return std::make_shared<CreateBuzzerMessageCommand>(composer, conversations, done); 
+	}
+
+	// retry
+	bool retry() {
+		//
+		if (ctx_ == nullptr) return false;
+		created(ctx_);
+		return true;
 	}
 
 	// callbacks

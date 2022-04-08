@@ -749,14 +749,8 @@ BlockContextPtr MemoryPool::beginBlock(BlockPtr block) {
 	// set fee
 	lCtx->setFee(lFee);
 
-	// set adjusted time
-	lCtx->block()->setTime(consensus_->currentTime());
-
 	// set chain
 	lCtx->block()->setChain(chain_);
-
-	// set prev block
-	lCtx->block()->setPrev(persistentStore_->currentBlockHeader().hash());
 
 	// set origin
 	lCtx->block()->setOrigin(consensus_->mainKey()->createPKey());
