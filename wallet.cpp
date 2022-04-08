@@ -771,6 +771,7 @@ void Wallet::collectCoinbaseUnlinkedOuts(std::list<Transaction::UnlinkedOutPtr>&
 			Transaction::UnlinkedOutPtr lUtxo = findUnlinkedOut(lAmount->second);
 			if (lUtxo == nullptr) {
 				//
+				lAmount++;
 				continue;
 			}
 
