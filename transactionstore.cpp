@@ -1054,24 +1054,9 @@ bool TransactionStore::processBlocks(const uint256& from, const uint256& to, IMe
 	bool lFound = false;
 	BlockHeader lHeader;
 	while(!lDone && headers_.read(lHash, lHeader)) {
-		// check sequence consistency
-		bool lExtended = true;
-		if (lMempool && !lMempool->consensus()->checkSequenceConsistency(lHeader, lExtended)) {
-			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlocks/error]: check basic sequence consistency FAILED ") +
-				strprintf("block = %s, prev = %s, chain = %s#", lHash.toHex(), lHeader.prev().toHex(), chain_.toHex().substr(0, 10)));
-			errorReason = ERROR_REASON_INTEGRITY_ERROR;
-			last = lPrev;
-			return false;
-		} else if (!lExtended && !settings_->reindex()) {
-			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlocks/error]: check extended sequence consistency FAILED ") +
-				strprintf("block = %s, prev = %s, chain = %s#", lHash.toHex(), lHeader.prev().toHex(), chain_.toHex().substr(0, 10)));
-			errorReason = ERROR_REASON_INTEGRITY_ERROR;
-			last = lPrev;
-			return false;
-		}
-
+		//
 		lFound = lFound ? lFound : lHash == to;
-
+		//
 		if (lFound) { 
 			// ONLY in case that the block is indexed, otherwise - go forward
 			if (blockIndexed(lHash)) {
@@ -1111,6 +1096,23 @@ bool TransactionStore::processBlocks(const uint256& from, const uint256& to, IMe
 		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlocks]: processing block ") +
 			strprintf("%s/%s#", lBlockHash.toHex(), chain_.toHex().substr(0, 10)));
 
+		// check sequence consistency
+		bool lExtended = true;
+		if (lMempool && !lMempool->consensus()->checkSequenceConsistency(*lBlock, lExtended)) {
+			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlocks/error]: check basic sequence consistency FAILED ") +
+				strprintf("block = %s, prev = %s, chain = %s#", lBlockHash.toHex(), (*lBlock).prev().toHex(), chain_.toHex().substr(0, 10)));
+			errorReason = ERROR_REASON_INTEGRITY_ERROR;
+			last = lBlockHash;
+			return false;
+		} else if (!lExtended && !settings_->reindex()) {
+			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlocks/error]: check extended sequence consistency FAILED ") +
+				strprintf("block = %s, prev = %s, chain = %s#", lHash.toHex(), lHeader.prev().toHex(), chain_.toHex().substr(0, 10)));
+			errorReason = ERROR_REASON_INTEGRITY_ERROR;
+			last = lBlockHash;
+			return false;
+		}
+
+		//
 		BlockContextPtr lBlockCtx = BlockContext::instance(Block::instance(*lBlock)); // just header without transactions attached
 		BlockTransactionsPtr lTransactions = transactions_.read(lBlockHash);
 		if (!lTransactions) {
