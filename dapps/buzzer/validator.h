@@ -237,6 +237,10 @@ private:
 
 			if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[buzzer/miner]: starting for ") + strprintf("%s#", chain_.toHex().substr(0, 10)));
 
+			//
+			bool lTimeout = false;
+			uint64_t lWaitTo = 0;
+
 			// check and run
 			while(minerRunning_) {
 				// get last header
@@ -244,7 +248,9 @@ private:
 				// get seed
 				uint64_t lCurrentTime = consensus_->currentTime();
 				// check if time passage was take a place
-				if (lCurrentTime - lLastHeader.time() >= (consensus_->blockTime())/1000) {
+				if ((lTimeout && lCurrentTime < lWaitTo) || 
+						(lCurrentTime > lLastHeader.time() &&
+							lCurrentTime - lLastHeader.time() >= (consensus_->blockTime())/1000)) {
 					//
 					try {
 						// select next leader
@@ -297,24 +303,27 @@ private:
 							BlockHeader lCurrentBlockHeader;
 							int32_t lChallengeBlockTx = -1;
 							uint256 lNextBlockChallenge;
-							uint64_t lCurrentBlockHeight = store_->currentHeight(lCurrentBlockHeader);
-							if (lCurrentBlockHeight > 5) lCurrentBlockHeight -= 5; // min blocks
-							boost::random::uniform_int_distribution<uint64_t> lBlockDistribution(1, lCurrentBlockHeight);
-							uint64_t lChallengeBlock = lBlockDistribution(lGen);
+							uint64_t lChallengeBlock;
 							bool lChallengeSaved = false;
+							uint64_t lCurrentBlockHeight = store_->currentHeight(lCurrentBlockHeader);
+							if (lCurrentBlockHeight > 5) {
+								lCurrentBlockHeight -= 5; // min blocks
+								boost::random::uniform_int_distribution<uint64_t> lBlockDistribution(1, lCurrentBlockHeight);
+								lChallengeBlock = lBlockDistribution(lGen);
 
-							BlockPtr lBlock = store_->block(lChallengeBlock);
-							if (lBlock != nullptr) {
-								//
-								lNextBlockChallenge = lBlock->hash();
-								if (lBlock->transactions().size()) {
+								BlockPtr lBlock = store_->block(lChallengeBlock);
+								if (lBlock != nullptr) {
 									//
-									boost::random::uniform_int_distribution<> lTxDistribution(0, lBlock->transactions().size()-1);
-									lChallengeBlockTx = lTxDistribution(lGen);
+									lNextBlockChallenge = lBlock->hash();
+									if (lBlock->transactions().size()) {
+										//
+										boost::random::uniform_int_distribution<> lTxDistribution(0, lBlock->transactions().size()-1);
+										lChallengeBlockTx = lTxDistribution(lGen);
 
-									// finally - set
-									lCurrentBlock->setChallenge(lNextBlockChallenge, lChallengeBlockTx);
-									lChallengeSaved = true;
+										// finally - set
+										lCurrentBlock->setChallenge(lNextBlockChallenge, lChallengeBlockTx);
+										lChallengeSaved = true;
+									}
 								}
 							}
 
@@ -449,6 +458,10 @@ private:
 							} else {
 								if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[buzzer/validator/miner]: skip found block ") + strprintf("%s/%s#", lCurrentBlock->hash().toHex(), chain_.toHex().substr(0, 10)));
 							}
+						} else {
+							// timeout
+							lTimeout = true;
+							lWaitTo = lCurrentTime + (consensus_->blockTime())/1000;
 						}
 					}
 					catch(boost::thread_interrupted&) {
