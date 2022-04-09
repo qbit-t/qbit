@@ -461,6 +461,8 @@ private:
 							// timeout
 							lTimeout = true;
 							lWaitTo = lCurrentTime + (consensus_->blockTime())/1000;
+							if (gLog().isEnabled(Log::VALIDATOR))
+								gLog().write(Log::VALIDATOR, std::string("[buzzer/miner]: timeout for ") + strprintf("%s#", chain_.toHex().substr(0, 10)));
 						}
 					}
 					catch(boost::thread_interrupted&) {
