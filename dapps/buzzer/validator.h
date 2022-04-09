@@ -253,6 +253,9 @@ private:
 							lCurrentTime - lLastHeader.time() >= (consensus_->blockTime())/1000)) {
 					//
 					try {
+						//
+						lTimeout = false;
+						
 						// select next leader
 						std::map<uint160, IPeerPtr> lPeers;
 						consensus_->collectPeers(lPeers);
@@ -459,10 +462,12 @@ private:
 							}
 						} else {
 							// timeout
-							lTimeout = true;
-							lWaitTo = lCurrentTime + (consensus_->blockTime())/1000;
-							if (gLog().isEnabled(Log::VALIDATOR))
-								gLog().write(Log::VALIDATOR, std::string("[buzzer/miner]: timeout for ") + strprintf("%s#", chain_.toHex().substr(0, 10)));
+							if (!lTimeout) {
+								lTimeout = true;
+								lWaitTo = lCurrentTime + (consensus_->blockTime())/1000;
+								if (gLog().isEnabled(Log::VALIDATOR))
+									gLog().write(Log::VALIDATOR, std::string("[buzzer/miner]: timeout for ") + strprintf("%s#", chain_.toHex().substr(0, 10)));
+							}
 						}
 					}
 					catch(boost::thread_interrupted&) {
