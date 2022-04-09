@@ -234,15 +234,14 @@ private:
 	// miner thread
 	void miner() {
 		//
+		bool lTimeout = false;
+		uint64_t lWaitTo = 0;
+		//
 		while(true) {
 			boost::mutex::scoped_lock lLock(minerMutex_);
 			while(!minerRunning_) minerActive_.wait(lLock);
 
 			if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[miner]: starting for ") + strprintf("%s#", chain_.toHex().substr(0, 10)));
-
-			//
-			bool lTimeout = false;
-			uint64_t lWaitTo = 0;
 
 			// check and run
 			while(minerRunning_) {
@@ -251,14 +250,14 @@ private:
 				// get seed
 				uint64_t lCurrentTime = consensus_->currentTime();
 				// check if time passage was take a place
-				if ((lTimeout && lCurrentTime < lWaitTo) || 
-						(lCurrentTime > lLastHeader.time() &&
+				if ((lTimeout && lCurrentTime > lWaitTo) || 
+						(!lTimeout && lCurrentTime > lLastHeader.time() &&
 							lCurrentTime - lLastHeader.time() >= (consensus_->blockTime())/1000)) {
 					//
 					try {
 						//
 						lTimeout = false;
-						
+
 						// select next leader
 						std::map<uint160, IPeerPtr> lPeers;
 						consensus_->collectPeers(lPeers);
