@@ -105,7 +105,7 @@ public:
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[TxEntityStore::pushEntity]: try to push entity ") +
 				strprintf("'%s'/%s", ctx->tx()->entityName(), id.toHex()));
 
-			if (persistentEntityStore_->locateEntity(id)) { 
+			if (persistentEntityStore_->locateEntity(ctx->tx()->entityName()/*id*/)) { 
 				if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[TxEntityStore::pushEntity]: entity ALREADY EXISTS - ") +
 					strprintf("'%s'/%s", ctx->tx()->entityName(), id.toHex()));
 				return false;
