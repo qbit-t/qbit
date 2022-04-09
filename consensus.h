@@ -294,7 +294,8 @@ public:
 			BlockPtr lChallengeBlock = store_->block(block.prev_);
 			if (lChallengeBlock != nullptr) {
 				//
-				if (lChallengeBlock->prev_ != lBottom) {
+				// TODO: add extra checks
+				if (lChallengeBlock->prev_ != lBottom && !lChallengeBlock->nextBlockChallenge().isNull()) {
 					//
 					BlockPtr lTargetBlock = store_->block(lChallengeBlock->nextBlockChallenge());
 					if (lTargetBlock != nullptr && !block.prevChallenge_.isNull()) {
