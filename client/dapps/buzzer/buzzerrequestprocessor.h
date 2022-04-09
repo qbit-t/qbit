@@ -161,9 +161,9 @@ public:
 			// several nodes with the given shard 
 			for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::reverse_iterator lPeer = lOrder.rbegin(); lPeer != lOrder.rend(); lPeer++) {
 				IPeerExtensionPtr lExtension = lPeer->second->extension("buzzer");
-				if (lExtension) {
+				if (lExtension != nullptr) {
 					//
-					gLog().writeClient(Log::CLIENT, strprintf("[buzzfeed]: requesting buzzfeed for %s, chain = %s#", subscriber.toHex(), chain.toHex().substr(0, 10)));
+					// gLog().writeClient(Log::CLIENT, strprintf("[buzzfeed]: requesting buzzfeed for %s, chain = %s#", subscriber.toHex(), chain.toHex().substr(0, 10)));
 					//
 					std::static_pointer_cast<BuzzerPeerExtension>(lExtension)->selectBuzzfeed(chain, from, subscriber, handler);
 					// for now just 1 active feed
@@ -188,7 +188,7 @@ public:
 			// use nearest
 			for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::reverse_iterator lPeer = lOrder.rbegin(); lPeer != lOrder.rend(); lPeer++) {
 				IPeerExtensionPtr lExtension = lPeer->second->extension("buzzer");
-				if (lExtension) {
+				if (lExtension != nullptr) {
 					std::static_pointer_cast<BuzzerPeerExtension>(lExtension)->selectEventsfeed(chain, from, subscriber, handler);
 					// for now just 1 active feed
 					if (++lCount == requests /*may be 2/3 nearest - but it doubles traffic*/) break;
@@ -209,7 +209,7 @@ public:
 			// use nearest
 			for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::reverse_iterator lPeer = lOrder.rbegin(); lPeer != lOrder.rend(); lPeer++) {
 				IPeerExtensionPtr lExtension = lPeer->second->extension("buzzer");
-				if (lExtension) {
+				if (lExtension != nullptr) {
 					std::static_pointer_cast<BuzzerPeerExtension>(lExtension)->selectConversations(chain, from, buzzer, handler);
 					// for now just 1 active feed
 					if (++lCount == requests /*may be 2/3 nearest - but it doubles traffic*/) break;

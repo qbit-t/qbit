@@ -103,7 +103,7 @@ public:
 public:
 	WalletTransactionsListModel();
 	WalletTransactionsListModel(const std::string&, qbit::IWalletPtr);
-	virtual ~WalletTransactionsListModel() {}
+	virtual ~WalletTransactionsListModel();
 
 	int rowCount(const QModelIndex& parent = QModelIndex()) const;
 	QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const;

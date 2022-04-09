@@ -14,6 +14,16 @@ EventsfeedListModel::EventsfeedListModel() {
 	connect(this, SIGNAL(eventsfeedItemNewSignal(const qbit::EventsfeedItemProxy&)), this, SLOT(eventsfeedItemNewSlot(const qbit::EventsfeedItemProxy&)));
 }
 
+EventsfeedListModel::~EventsfeedListModel() {
+	//
+	qInfo() << "EventsfeedListModel::~EventsfeedListModel()";
+
+	disconnect(this, SIGNAL(eventsfeedItemNewSignal(const qbit::EventsfeedItemProxy&)), 0, 0);
+
+	eventsfeed_ = nullptr;
+	list_.clear();
+}
+
 int EventsfeedListModel::rowCount(const QModelIndex& parent) const {
 	Q_UNUSED(parent);
 	return list_.size();

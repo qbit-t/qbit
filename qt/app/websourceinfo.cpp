@@ -13,6 +13,12 @@ WebSourceInfo::WebSourceInfo(QObject* /*parent*/) : QObject() {
 WebSourceInfo::~WebSourceInfo() {
 	//
 	qInfo() << "WebSourceInfo::~WebSourceInfo()";
+
+	if (reply_) {
+		disconnect(reply_, &QIODevice::readyRead, 0, 0);
+		disconnect(reply_, &QNetworkReply::errorOccurred, 0, 0);
+	}
+
 	reply_ = nullptr;
 }
 

@@ -26,6 +26,15 @@ WalletTransactionsListModel::WalletTransactionsListModel(const std::string& key,
 	QQmlEngine::setObjectOwnership(this, QQmlEngine::CppOwnership);
 }
 
+WalletTransactionsListModel::~WalletTransactionsListModel() {
+	disconnect(this, SIGNAL(walletReceiveTransactionSignal(const buzzer::UnlinkedOutProxy&, const buzzer::TransactionProxy&)),
+			0, 0);
+	disconnect(this, SIGNAL(outUpdatedSignal(const buzzer::NetworkUnlinkedOutProxy&)),
+			0, 0);
+	disconnect(this, SIGNAL(inUpdatedSignal(const buzzer::NetworkUnlinkedOutProxy&)),
+			0, 0);
+}
+
 void WalletTransactionsListModel::updateAgo(int index) {
 	if (index < 0 || index >= (int)list_.size()) {
 		return;

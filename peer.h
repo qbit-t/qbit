@@ -323,7 +323,9 @@ public:
 
 	IPeerExtensionPtr extension(const std::string& dapp) { 
 		boost::unique_lock<boost::mutex> lLock(extensionsMutex_);
-		return extension_[dapp]; 
+		std::map<std::string, IPeerExtensionPtr>::iterator lExt = extension_.find(dapp);
+		if (lExt != extension_.end()) return lExt->second;
+		return nullptr;
 	}
 	void setExtension(const std::string& dapp, IPeerExtensionPtr extension) { 
 		boost::unique_lock<boost::mutex> lLock(extensionsMutex_);

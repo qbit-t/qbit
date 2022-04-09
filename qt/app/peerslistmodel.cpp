@@ -345,9 +345,9 @@ PeersAddedListModel::PeersAddedListModel() {
 
 	//
 	disconnect(lClient, SIGNAL(peerPushedSignal(const buzzer::PeerProxy&, bool, int)),
-			this,  SLOT(peerPushedSlot(const buzzer::PeerProxy&, bool, int)));
+			0, 0);
 	disconnect(lClient, SIGNAL(peerPoppedSignal(const buzzer::PeerProxy&, int)),
-			this,  SLOT(peerPoppedSlot(const buzzer::PeerProxy&, int)));
+			0, 0);
 
 	QQmlEngine::setObjectOwnership(this, QQmlEngine::CppOwnership);
 }

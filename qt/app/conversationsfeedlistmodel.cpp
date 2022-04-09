@@ -14,6 +14,12 @@ ConversationsfeedListModel::ConversationsfeedListModel() {
 	connect(this, SIGNAL(conversationItemUpdatedSignal(const qbit::ConversationItemProxy&)), this, SLOT(conversationItemUpdatedSlot(const qbit::ConversationItemProxy&)));
 }
 
+ConversationsfeedListModel::~ConversationsfeedListModel() {
+	//
+	disconnect(this, SIGNAL(conversationItemNewSignal(const qbit::ConversationItemProxy&)), 0, 0);
+	disconnect(this, SIGNAL(conversationItemUpdatedSignal(const qbit::ConversationItemProxy&)), 0, 0);
+}
+
 int ConversationsfeedListModel::rowCount(const QModelIndex& parent) const {
 	Q_UNUSED(parent);
 	return !filtered_ ? list_.size() : filteredList_.size();

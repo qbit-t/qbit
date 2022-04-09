@@ -544,6 +544,7 @@ protected:
 	std::map<uint256 /*info tx*/, Buzzer::Info> pendingInfos_;
 	int pendingChainInfosLoaded_ = 0;
 	std::map<uint256 /*chain*/, std::vector<BuzzfeedPublisherFrom>> from_;
+	boost::recursive_mutex mutex_;
 };
 
 class LoadBuzzfeedByBuzzCommand;
@@ -942,6 +943,7 @@ protected:
 	std::map<uint256 /*info tx*/, Buzzer::Info> pendingInfos_;
 	int pendingChainInfosLoaded_ = 0;
 	uint64_t from_ = 0;	
+	boost::recursive_mutex mutex_;
 };
 
 class LoadConversationsCommand;
@@ -1027,7 +1029,8 @@ protected:
 	std::map<uint256 /*chain*/, std::set<uint256>/*items*/> pengindChainInfos_;
 	std::map<uint256 /*info tx*/, Buzzer::Info> pendingInfos_;
 	int pendingChainInfosLoaded_ = 0;
-	uint64_t from_ = 0;	
+	uint64_t from_ = 0;
+	boost::recursive_mutex mutex_;
 };
 
 class LoadMistrustsByBuzzerCommand;

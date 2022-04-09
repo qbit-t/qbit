@@ -16,6 +16,18 @@ BuzzfeedListModel::BuzzfeedListModel() {
 	connect(this, SIGNAL(buzzfeedItemsUpdatedSignal(const qbit::BuzzfeedItemUpdatesProxy&)), this, SLOT(buzzfeedItemsUpdatedSlot(const qbit::BuzzfeedItemUpdatesProxy&)));
 }
 
+BuzzfeedListModel::~BuzzfeedListModel() {
+	//
+	qInfo() << "BuzzfeedListModel::~BuzzfeedListModel()";
+
+	disconnect(this, SIGNAL(buzzfeedItemNewSignal(const qbit::BuzzfeedItemProxy&)), 0, 0);
+	disconnect(this, SIGNAL(buzzfeedItemUpdatedSignal(const qbit::BuzzfeedItemProxy&)), 0, 0);
+	disconnect(this, SIGNAL(buzzfeedItemsUpdatedSignal(const qbit::BuzzfeedItemUpdatesProxy&)), 0, 0);
+
+	buzzfeed_ = nullptr;
+	list_.clear();
+}
+
 int BuzzfeedListModel::locateIndex(QString key) {
 	//
 	uint256 lId; lId.setHex(key.toStdString());

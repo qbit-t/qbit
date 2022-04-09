@@ -96,6 +96,14 @@ CreateBuzzerInfoCommand::CreateBuzzerInfoCommand(QObject* /*parent*/) : QObject(
 
 LoadBuzzesGlobalCommand::LoadBuzzesGlobalCommand(QObject* /*parent*/) : QObject() {}
 
+LoadBuzzesGlobalCommand::~LoadBuzzesGlobalCommand() {
+	//
+	if (command_) {
+		disconnect(this, SIGNAL(dataReady(const qbit::BuzzfeedProxy&, bool, bool)), 0, 0);
+		command_ = nullptr;
+	}
+}
+
 void LoadBuzzesGlobalCommand::prepare() {
 	//
 	if (!command_ && buzzfeedModel_) {
@@ -126,6 +134,14 @@ void LoadBuzzesGlobalCommand::ready(qbit::BuzzfeedPtr /*base*/, qbit::BuzzfeedPt
 //
 
 LoadBuzzfeedByBuzzCommand::LoadBuzzfeedByBuzzCommand(QObject* /*parent*/) : QObject() {}
+
+LoadBuzzfeedByBuzzCommand::~LoadBuzzfeedByBuzzCommand() {
+	//
+	if (command_) {
+		disconnect(this, SIGNAL(dataReady(const qbit::BuzzfeedProxy&, bool, bool)), 0, 0);
+		command_ = nullptr;
+	}
+}
 
 void LoadBuzzfeedByBuzzCommand::prepare() {
 	//
@@ -162,6 +178,14 @@ void LoadBuzzfeedByBuzzCommand::ready(qbit::BuzzfeedPtr /*base*/, qbit::Buzzfeed
 
 LoadBuzzfeedByBuzzerCommand::LoadBuzzfeedByBuzzerCommand(QObject* /*parent*/) : QObject() {}
 
+LoadBuzzfeedByBuzzerCommand::~LoadBuzzfeedByBuzzerCommand() {
+	//
+	if (command_) {
+		disconnect(this, SIGNAL(dataReady(const qbit::BuzzfeedProxy&, bool, bool)), 0, 0);
+		command_ = nullptr;
+	}
+}
+
 void LoadBuzzfeedByBuzzerCommand::prepare() {
 	//
 	if (!command_ && buzzfeedModel_) {
@@ -193,6 +217,14 @@ void LoadBuzzfeedByBuzzerCommand::ready(qbit::BuzzfeedPtr /*base*/, qbit::Buzzfe
 
 LoadBuzzfeedByTagCommand::LoadBuzzfeedByTagCommand(QObject* /*parent*/) : QObject() {}
 
+LoadBuzzfeedByTagCommand::~LoadBuzzfeedByTagCommand() {
+	//
+	if (command_) {
+		disconnect(this, SIGNAL(dataReady(const qbit::BuzzfeedProxy&, bool, bool)), 0, 0);
+		command_ = nullptr;
+	}
+}
+
 void LoadBuzzfeedByTagCommand::prepare() {
 	//
 	if (!command_ && buzzfeedModel_) {
@@ -223,6 +255,14 @@ void LoadBuzzfeedByTagCommand::ready(qbit::BuzzfeedPtr /*base*/, qbit::BuzzfeedP
 //
 
 LoadBuzzfeedCommand::LoadBuzzfeedCommand(QObject* /*parent*/) : QObject() {}
+
+LoadBuzzfeedCommand::~LoadBuzzfeedCommand() {
+	//
+	if (command_) {
+		disconnect(this, SIGNAL(dataReady(const qbit::BuzzfeedProxy&, bool, bool)), 0, 0);
+		command_ = nullptr;
+	}
+}
 
 void LoadBuzzfeedCommand::prepare() {
 	//
@@ -475,6 +515,14 @@ LoadBuzzerInfoCommand::LoadBuzzerInfoCommand(QObject* /*parent*/) : QObject() {
 
 LoadEndorsementsByBuzzerCommand::LoadEndorsementsByBuzzerCommand(QObject* /*parent*/) : QObject() {}
 
+LoadEndorsementsByBuzzerCommand::~LoadEndorsementsByBuzzerCommand() {
+	//
+	if (command_) {
+		disconnect(this, SIGNAL(dataReady(const qbit::BuzzfeedProxy&, bool, bool)), 0, 0);
+		command_ = nullptr;
+	}
+}
+
 void LoadEndorsementsByBuzzerCommand::prepare() {
 	//
 	if (!command_ && eventsfeedModel_) {
@@ -505,6 +553,14 @@ void LoadEndorsementsByBuzzerCommand::ready(qbit::EventsfeedPtr /*base*/, qbit::
 //
 
 LoadMistrustsByBuzzerCommand::LoadMistrustsByBuzzerCommand(QObject* /*parent*/) : QObject() {}
+
+LoadMistrustsByBuzzerCommand::~LoadMistrustsByBuzzerCommand() {
+	//
+	if (command_) {
+		disconnect(this, SIGNAL(dataReady(const qbit::BuzzfeedProxy&, bool, bool)), 0, 0);
+		command_ = nullptr;
+	}
+}
 
 void LoadMistrustsByBuzzerCommand::prepare() {
 	//
@@ -537,6 +593,14 @@ void LoadMistrustsByBuzzerCommand::ready(qbit::EventsfeedPtr /*base*/, qbit::Eve
 
 LoadEventsfeedCommand::LoadEventsfeedCommand(QObject* /*parent*/) : QObject() {}
 
+LoadEventsfeedCommand::~LoadEventsfeedCommand() {
+	//
+	if (command_) {
+		disconnect(this, SIGNAL(dataReady(const qbit::BuzzfeedProxy&, bool, bool)), 0, 0);
+		command_ = nullptr;
+	}
+}
+
 void LoadEventsfeedCommand::prepare() {
 	//
 	if (!command_ && eventsfeedModel_) {
@@ -568,6 +632,14 @@ void LoadEventsfeedCommand::ready(qbit::EventsfeedPtr /*base*/, qbit::Eventsfeed
 
 LoadFollowingByBuzzerCommand::LoadFollowingByBuzzerCommand(QObject* /*parent*/) : QObject() {}
 
+LoadFollowingByBuzzerCommand::~LoadFollowingByBuzzerCommand() {
+	//
+	if (command_) {
+		disconnect(this, SIGNAL(dataReady(const qbit::BuzzfeedProxy&, bool, bool)), 0, 0);
+		command_ = nullptr;
+	}
+}
+
 void LoadFollowingByBuzzerCommand::prepare() {
 	//
 	if (!command_ && eventsfeedModel_) {
@@ -598,6 +670,14 @@ void LoadFollowingByBuzzerCommand::ready(qbit::EventsfeedPtr /*base*/, qbit::Eve
 //
 
 LoadFollowersByBuzzerCommand::LoadFollowersByBuzzerCommand(QObject* /*parent*/) : QObject() {}
+
+LoadFollowersByBuzzerCommand::~LoadFollowersByBuzzerCommand() {
+	//
+	if (command_) {
+		disconnect(this, SIGNAL(dataReady(const qbit::BuzzfeedProxy&, bool, bool)), 0, 0);
+		command_ = nullptr;
+	}
+}
 
 void LoadFollowersByBuzzerCommand::prepare() {
 	//
@@ -672,6 +752,14 @@ SendToAddressCommand::SendToAddressCommand(QObject* /*parent*/) : QObject() {
 //
 
 LoadConversationsCommand::LoadConversationsCommand(QObject* /*parent*/) : QObject() {}
+
+LoadConversationsCommand::~LoadConversationsCommand() {
+	//
+	if (command_) {
+		disconnect(this, SIGNAL(dataReady(const qbit::BuzzfeedProxy&, bool, bool)), 0, 0);
+		command_ = nullptr;
+	}
+}
 
 void LoadConversationsCommand::prepare() {
 	//
@@ -782,6 +870,14 @@ void DecryptMessageBodyCommand::prepare() {
 //
 
 LoadConversationMessagesCommand::LoadConversationMessagesCommand(QObject* /*parent*/) : QObject() {}
+
+LoadConversationMessagesCommand::~LoadConversationMessagesCommand() {
+	//
+	if (command_) {
+		disconnect(this, SIGNAL(dataReady(const qbit::BuzzfeedProxy&, bool, bool)), 0, 0);
+		command_ = nullptr;
+	}
+}
 
 void LoadConversationMessagesCommand::prepare() {
 	//

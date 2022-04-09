@@ -457,6 +457,8 @@ void LoadHashTagsCommand::tagsLoaded(const std::vector<Buzzer::HashTag>& feed, c
 // LoadBuzzfeedByTagCommand
 //
 void LoadBuzzfeedByTagCommand::process(const std::vector<std::string>& args) {
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
 	// clean-up
 	chains_.clear();
 	loaded_.clear();
@@ -522,6 +524,8 @@ void LoadBuzzfeedByTagCommand::process(const std::vector<std::string>& args) {
 // LoadBuzzesGlobalCommand
 //
 void LoadBuzzesGlobalCommand::process(const std::vector<std::string>& args) {
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
 	// clean-up
 	chains_.clear();
 	loaded_.clear();
@@ -583,6 +587,8 @@ void LoadBuzzesGlobalCommand::process(const std::vector<std::string>& args) {
 // LoadBuzzfeedByBuzzerCommand
 //
 void LoadBuzzfeedByBuzzerCommand::process(const std::vector<std::string>& args) {
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
 	// clean-up
 	chains_.clear();
 	loaded_.clear();
@@ -645,6 +651,8 @@ void LoadBuzzfeedByBuzzerCommand::process(const std::vector<std::string>& args) 
 // LoadBuzzfeedByBuzzCommand
 //
 void LoadBuzzfeedByBuzzCommand::process(const std::vector<std::string>& args) {
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
 	// clean-up
 	chains_.clear();
 	loaded_.clear();
@@ -703,6 +711,8 @@ void LoadBuzzfeedByBuzzCommand::process(const std::vector<std::string>& args) {
 // LoadMessagesCommand
 //
 void LoadMessagesCommand::process(const std::vector<std::string>& args) {
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
 	// clean-up
 	chains_.clear();
 	loaded_.clear();
@@ -761,6 +771,8 @@ void LoadMessagesCommand::process(const std::vector<std::string>& args) {
 // LoadBuzzfeedCommand
 //
 void LoadBuzzfeedCommand::process(const std::vector<std::string>& args) {
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
 	// clean-up
 	chains_.clear();
 	loaded_.clear();
@@ -818,12 +830,16 @@ void LoadBuzzfeedCommand::process(const std::vector<std::string>& args) {
 
 void LoadBuzzfeedCommand::display(const std::vector<BuzzfeedItemPtr>& feed) {
 	//
+	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
+	//
 	for (std::vector<BuzzfeedItemPtr>::const_iterator lBuzz = feed.begin(); lBuzz != feed.end(); lBuzz++) {
 		std::cout << (*lBuzz)->toString() << std::endl << std::endl;
 	}
 }
 
 void LoadBuzzfeedCommand::buzzesLoaded(const std::vector<BuzzfeedItem>& feed, const uint256& chain) {
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
 	//
 	pendingLoaded_.insert(chain);
 	std::cout << strprintf("pending, chain: %s/%d, n = %d", chain.toHex(), feed.size(), pendingLoaded_.size()) << std::endl;
@@ -842,6 +858,8 @@ void LoadBuzzfeedCommand::buzzesLoaded(const std::vector<BuzzfeedItem>& feed, co
 }
 
 void LoadBuzzfeedCommand::buzzfeedLoaded(const std::vector<BuzzfeedItem>& feed, const uint256& chain, int requests) {
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
 	//
 	loaded_[chain] = loaded_[chain] + 1;
 	std::cout << strprintf("[buzzfeed] - chain: %s/%d, n = %d/%d/%d", chain.toHex(), feed.size(), loaded_.size(), loaded_[chain], requests) << std::endl;
@@ -893,6 +911,8 @@ void LoadBuzzfeedCommand::buzzfeedLoaded(const std::vector<BuzzfeedItem>& feed, 
 
 void LoadBuzzfeedCommand::processPengingInfos() {
 	//
+	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
+	//
 	pendingInfos_ = buzzFeed_->buzzer()->pendingInfos(); // collect
 	buzzFeed_->buzzer()->collectPengingInfos(pengindChainInfos_); // prepare
 
@@ -922,6 +942,8 @@ void LoadBuzzfeedCommand::processPengingInfos() {
 
 void LoadBuzzfeedCommand::buzzerInfoLoaded(const std::vector<TransactionPtr>& txs) {
 	//
+	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
+	//
 	pendingChainInfosLoaded_++;
 	//
 	if (txs.size()) {
@@ -943,6 +965,8 @@ void LoadBuzzfeedCommand::buzzerInfoLoaded(const std::vector<TransactionPtr>& tx
 }
 
 void LoadBuzzfeedCommand::show() {
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
 	//
 	if (buzzfeedReady_) {
 		//
@@ -972,6 +996,8 @@ void LoadBuzzfeedCommand::show() {
 // LoadEndorsementsByBuzzerCommand
 //
 void LoadEndorsementsByBuzzerCommand::process(const std::vector<std::string>& args) {
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
 	// clean-up
 	chains_.clear();
 	loaded_.clear();
@@ -1042,6 +1068,8 @@ void LoadEndorsementsByBuzzerCommand::process(const std::vector<std::string>& ar
 // LoadMistrustsByBuzzerCommand
 //
 void LoadMistrustsByBuzzerCommand::process(const std::vector<std::string>& args) {
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
 	// clean-up
 	chains_.clear();
 	loaded_.clear();
@@ -1112,6 +1140,8 @@ void LoadMistrustsByBuzzerCommand::process(const std::vector<std::string>& args)
 // LoadSubscriptionsByBuzzerCommand
 //
 void LoadSubscriptionsByBuzzerCommand::process(const std::vector<std::string>& args) {
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
 	// clean-up
 	chains_.clear();
 	loaded_.clear();
@@ -1184,6 +1214,8 @@ void LoadSubscriptionsByBuzzerCommand::process(const std::vector<std::string>& a
 // LoadFollowersByBuzzerCommand
 //
 void LoadFollowersByBuzzerCommand::process(const std::vector<std::string>& args) {
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
 	// clean-up
 	chains_.clear();
 	loaded_.clear();
@@ -1256,6 +1288,8 @@ void LoadFollowersByBuzzerCommand::process(const std::vector<std::string>& args)
 // LoadEventsfeedCommand
 //
 void LoadEventsfeedCommand::process(const std::vector<std::string>& args) {
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
 	// clean-up
 	chains_.clear();
 	loaded_.clear();
@@ -1298,6 +1332,8 @@ void LoadEventsfeedCommand::process(const std::vector<std::string>& args) {
 
 void LoadEventsfeedCommand::display(EventsfeedItemPtr item) {
 	//
+	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
+	//
 	std::vector<EventsfeedItemPtr> lFeed;
 	item->feed(lFeed);
 
@@ -1307,6 +1343,8 @@ void LoadEventsfeedCommand::display(EventsfeedItemPtr item) {
 }
 
 void LoadEventsfeedCommand::buzzesLoaded(const std::vector<BuzzfeedItem>& feed, const uint256& chain) {
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
 	//
 	pendingLoaded_.insert(chain);
 	std::cout << strprintf("pending, chain: %s/%d, n = %d", chain.toHex(), feed.size(), pendingLoaded_.size()) << std::endl;
@@ -1323,6 +1361,8 @@ void LoadEventsfeedCommand::buzzesLoaded(const std::vector<BuzzfeedItem>& feed, 
 }
 
 void LoadEventsfeedCommand::eventsfeedLoaded(const std::vector<EventsfeedItem>& feed, const uint256& chain, int requests) {
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
 	//
 	loaded_[chain] = loaded_[chain] + 1;
 	std::cout << strprintf("[eventsfeed] - chain: %s/%d, n = %d/%d/%d", chain.toHex(), feed.size(), loaded_.size(), loaded_[chain], requests) << std::endl;
@@ -1363,6 +1403,8 @@ void LoadEventsfeedCommand::eventsfeedLoaded(const std::vector<EventsfeedItem>& 
 
 void LoadEventsfeedCommand::processPengingInfos() {
 	//
+	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
+	//
 	pendingInfos_ = eventsFeed_->buzzer()->pendingInfos(); // collect
 	eventsFeed_->buzzer()->collectPengingInfos(pengindChainInfos_); // prepare
 
@@ -1382,6 +1424,8 @@ void LoadEventsfeedCommand::processPengingInfos() {
 }
 
 void LoadEventsfeedCommand::buzzerInfoLoaded(const std::vector<TransactionPtr>& txs) {
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
 	//
 	pendingChainInfosLoaded_++;
 	//
@@ -1404,6 +1448,9 @@ void LoadEventsfeedCommand::buzzerInfoLoaded(const std::vector<TransactionPtr>& 
 }
 
 void LoadEventsfeedCommand::show() {
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
+	//
 	if (eventsfeedReady_) {
 		//
 		eventsfeedReady_(eventsFeed_, localEventsFeed_);
@@ -1430,6 +1477,8 @@ void LoadEventsfeedCommand::show() {
 // LoadConversationsCommand
 //
 void LoadConversationsCommand::process(const std::vector<std::string>& args) {
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
 	// clean-up
 	chains_.clear();
 	loaded_.clear();
@@ -1488,6 +1537,8 @@ void LoadConversationsCommand::process(const std::vector<std::string>& args) {
 
 void LoadConversationsCommand::display(ConversationItemPtr item) {
 	//
+	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
+	//
 	std::vector<ConversationItemPtr> lFeed;
 	item->feed(lFeed);
 
@@ -1497,6 +1548,8 @@ void LoadConversationsCommand::display(ConversationItemPtr item) {
 }
 
 void LoadConversationsCommand::buzzesLoaded(const std::vector<BuzzfeedItem>& feed, const uint256& chain) {
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
 	//
 	pendingLoaded_.insert(chain);
 	std::cout << strprintf("pending, chain: %s/%d, n = %d", chain.toHex(), feed.size(), pendingLoaded_.size()) << std::endl;
@@ -1517,6 +1570,8 @@ void LoadConversationsCommand::buzzesLoaded(const std::vector<BuzzfeedItem>& fee
 }
 
 void LoadConversationsCommand::eventsfeedLoaded(const std::vector<ConversationItem>& feed, const uint256& chain, int requests) {
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
 	//
 	loaded_[chain] = loaded_[chain] + 1;
 	std::cout << strprintf("[conversations] - chain: %s/%d, n = %d/%d/%d", chain.toHex(), feed.size(), loaded_.size(), loaded_[chain], requests) << std::endl;
@@ -1557,6 +1612,8 @@ void LoadConversationsCommand::eventsfeedLoaded(const std::vector<ConversationIt
 
 void LoadConversationsCommand::processPengingInfos() {
 	//
+	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
+	//
 	pendingInfos_ = conversationsFeed_->buzzer()->pendingInfos(); // collect
 	conversationsFeed_->buzzer()->collectPengingInfos(pengindChainInfos_); // prepare
 
@@ -1576,6 +1633,8 @@ void LoadConversationsCommand::processPengingInfos() {
 }
 
 void LoadConversationsCommand::buzzerInfoLoaded(const std::vector<TransactionPtr>& txs) {
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
 	//
 	pendingChainInfosLoaded_++;
 	//
@@ -1598,6 +1657,9 @@ void LoadConversationsCommand::buzzerInfoLoaded(const std::vector<TransactionPtr
 }
 
 void LoadConversationsCommand::show() {
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
+	//
 	if (conversationsfeedReady_) {
 		//
 		conversationsfeedReady_(conversationsFeed_, localConversationsFeed_);

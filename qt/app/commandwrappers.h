@@ -390,6 +390,7 @@ class LoadBuzzesGlobalCommand: public QObject
 
 public:
 	explicit LoadBuzzesGlobalCommand(QObject* parent = nullptr);
+	virtual ~LoadBuzzesGlobalCommand();
 
 	Q_INVOKABLE void process(bool more) {
 		//
@@ -452,6 +453,7 @@ class LoadBuzzfeedByBuzzCommand: public QObject
 
 public:
 	explicit LoadBuzzfeedByBuzzCommand(QObject* parent = nullptr);
+	virtual ~LoadBuzzfeedByBuzzCommand();
 
 	Q_INVOKABLE void process(bool more) {
 		//
@@ -548,6 +550,7 @@ class LoadBuzzfeedByBuzzerCommand: public QObject
 
 public:
 	explicit LoadBuzzfeedByBuzzerCommand(QObject* parent = nullptr);
+	virtual ~LoadBuzzfeedByBuzzerCommand();
 
 	Q_INVOKABLE void process(bool more) {
 		//
@@ -639,6 +642,7 @@ class LoadBuzzfeedByTagCommand: public QObject
 
 public:
 	explicit LoadBuzzfeedByTagCommand(QObject* parent = nullptr);
+	virtual ~LoadBuzzfeedByTagCommand();
 
 	Q_INVOKABLE void process(bool more) {
 		//
@@ -704,6 +708,7 @@ class LoadBuzzfeedCommand: public QObject
 
 public:
 	explicit LoadBuzzfeedCommand(QObject* parent = nullptr);
+	virtual ~LoadBuzzfeedCommand();
 
 	Q_INVOKABLE void process(bool more) {
 		//
@@ -738,10 +743,6 @@ public:
 		// params
 		more_ = false;
 		merge_ = true;
-
-		// set buzzes updates to this buzzfeed
-		Client* lClient = static_cast<Client*>(gApplication->getClient());
-		lClient->getBuzzer()->setBuzzfeed(buzzfeedModel_->buzzfeed());
 
 		//
 		if (!more_) buzzfeedModel_->buzzfeed()->clear();
@@ -2012,6 +2013,7 @@ class LoadEventsfeedCommand: public QObject
 
 public:
 	explicit LoadEventsfeedCommand(QObject* parent = nullptr);
+	virtual ~LoadEventsfeedCommand();
 
 	Q_INVOKABLE void process(bool more) {
 		//
@@ -2093,6 +2095,7 @@ class LoadEndorsementsByBuzzerCommand: public QObject
 
 public:
 	explicit LoadEndorsementsByBuzzerCommand(QObject* parent = nullptr);
+	virtual ~LoadEndorsementsByBuzzerCommand();
 
 	Q_INVOKABLE void process(bool more) {
 		//
@@ -2183,6 +2186,7 @@ class LoadMistrustsByBuzzerCommand: public QObject
 
 public:
 	explicit LoadMistrustsByBuzzerCommand(QObject* parent = nullptr);
+	virtual ~LoadMistrustsByBuzzerCommand();
 
 	Q_INVOKABLE void process(bool more) {
 		//
@@ -2273,6 +2277,7 @@ class LoadFollowingByBuzzerCommand: public QObject
 
 public:
 	explicit LoadFollowingByBuzzerCommand(QObject* parent = nullptr);
+	virtual ~LoadFollowingByBuzzerCommand();
 
 	Q_INVOKABLE void process(bool more) {
 		//
@@ -2363,6 +2368,7 @@ class LoadFollowersByBuzzerCommand: public QObject
 
 public:
 	explicit LoadFollowersByBuzzerCommand(QObject* parent = nullptr);
+	virtual ~LoadFollowersByBuzzerCommand();
 
 	Q_INVOKABLE void process(bool more) {
 		//
@@ -2646,6 +2652,7 @@ class LoadConversationsCommand: public QObject
 
 public:
 	explicit LoadConversationsCommand(QObject* parent = nullptr);
+	virtual ~LoadConversationsCommand();
 
 	Q_INVOKABLE void process(bool more) {
 		//
@@ -2963,6 +2970,7 @@ class LoadConversationMessagesCommand: public QObject
 
 public:
 	explicit LoadConversationMessagesCommand(QObject* parent = nullptr);
+	virtual ~LoadConversationMessagesCommand();
 
 	Q_INVOKABLE void process(bool more) {
 		//
