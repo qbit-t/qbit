@@ -256,6 +256,9 @@ private:
 					//
 					try {
 						//
+						if (lTimeout && gLog().isEnabled(Log::VALIDATOR))
+							gLog().write(Log::VALIDATOR, std::string("[miner]: timedout for ") + strprintf("%s#", chain_.toHex().substr(0, 10)));							
+
 						lTimeout = false;
 
 						// select next leader
