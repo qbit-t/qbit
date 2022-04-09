@@ -306,8 +306,7 @@ private:
 							uint64_t lChallengeBlock;
 							bool lChallengeSaved = false;
 							uint64_t lCurrentBlockHeight = store_->currentHeight(lCurrentBlockHeader);
-							if (lCurrentBlockHeight > 5) {
-								lCurrentBlockHeight -= 5; // min blocks
+							if (lCurrentBlockHeight > 1) {
 								boost::random::uniform_int_distribution<uint64_t> lBlockDistribution(1, lCurrentBlockHeight);
 								lChallengeBlock = lBlockDistribution(lGen);
 
