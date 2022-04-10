@@ -495,22 +495,42 @@ QuarkPage {
 				width: parent.width - spaceItems_
 				wrapMode: Text.Wrap
 				textFormat: Text.RichText
+
 				//focus: true
 				color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 
 				property bool external_: false
 
 				onLengthChanged: {
-					// TODO: may by too expensive
+					// TODO: may be too expensive
 					var lText = buzzerClient.getPlainText(buzzText.textDocument);
 					countProgress.adjust(buzzerClient.getBuzzBodySize(lText) + preeditText.length);
 					buzzersList.close();
 					tagsList.close();
 				}
 
+				property bool buzzerStarted_: false;
+				property bool tagStarted_: false;
+
 				onPreeditTextChanged: {
-					buzzersList.close();
-					tagsList.close();
+					//
+					if (preeditText == " ") {
+						buzzerStarted_ = false;
+						tagStarted_ = false;
+						buzzersList.close();
+						tagsList.close();
+					} else if (preeditText == "@" || buzzerStarted_) {
+						//
+						buzzerStarted_ = true;
+					} else if (preeditText == "#" || tagStarted_) {
+						//
+						tagStarted_ = true;
+					}
+
+					if (buzzerStarted_ || tagStarted_) {
+						var lText = buzzerClient.getPlainText(buzzText.textDocument);
+						highlighter.tryHighlightBlock(lText + preeditText, 0);
+					}
 				}
 
 				onFocusChanged: {
@@ -696,8 +716,20 @@ QuarkPage {
 
 		onClick: {
 			//
-			buzzText.remove(buzzText.cursorPosition - matched.length, buzzText.cursorPosition);
-			buzzText.insert(buzzText.cursorPosition, key);
+			var lPos = buzzText.cursorPosition; // current
+			var lText = buzzerClient.getPlainText(buzzText.textDocument) + "";
+			for (var lIdx = lPos; lIdx >= 0; lIdx--) {
+				if (lText[lIdx] === '@') {
+					break;
+				}
+			}
+
+			var lNewText = lText.slice(0, lIdx) + key + lText.slice(lPos);
+
+			buzzText.clear();
+			buzzText.insert(0, lNewText);
+
+			buzzText.cursorPosition = lIdx + key.length;
 		}
 
 		function popup(match, nx, ny, buzzers) {
@@ -737,8 +769,20 @@ QuarkPage {
 
 		onClick: {
 			//
-			buzzText.remove(buzzText.cursorPosition - matched.length, buzzText.cursorPosition);
-			buzzText.insert(buzzText.cursorPosition, key);
+			var lPos = buzzText.cursorPosition; // current
+			var lText = buzzerClient.getPlainText(buzzText.textDocument) + "";
+			for (var lIdx = lPos; lIdx >= 0; lIdx--) {
+				if (lText[lIdx] === '#') {
+					break;
+				}
+			}
+
+			var lNewText = lText.slice(0, lIdx) + key + lText.slice(lPos);
+
+			buzzText.clear();
+			buzzText.insert(0, lNewText);
+
+			buzzText.cursorPosition = lIdx + key.length;
 		}
 
 		function popup(match, nx, ny, tags) {
@@ -802,6 +846,7 @@ QuarkPage {
 		onMatched: {
 			// start, length, match
 			if (match.length) {
+				//
 				var lPosition = buzzText.cursorPosition;
 				if (/*(lPosition === start || lPosition === start + length) &&*/ buzzText.preeditText != " ") {
 					if (match[0] === '@')

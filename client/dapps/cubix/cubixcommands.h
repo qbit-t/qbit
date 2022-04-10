@@ -48,12 +48,15 @@ public:
 	    composer_(composer), progress_(progress), preview_(preview), done_(done) {}
 
 	void process(const std::vector<std::string>&);
+	void process(const std::vector<std::string>&, IPeerPtr);
 	std::set<std::string> name() {
 		std::set<std::string> lSet;
 		lSet.insert("uploadMedia"); 
 		lSet.insert("upload"); 
 		return lSet;
 	}
+
+	IPeerPtr peer() { return peer_; }
 
 	void help() {
 		std::cout << "uploadMedia | upload \"<file>\" [-p <public key>] [-s <000x000>] [-d <\"description\">]" << std::endl;

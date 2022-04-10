@@ -204,7 +204,7 @@ QuarkToolBar
 		fillMode: Image.PreserveAspectFit
 		width: 15
 		x: parent.width / 2 - logo.width / 2
-		y: extraOffset
+		y: parent.height / 2 - logo.height / 2 // extraOffset
 		Layout.alignment: Qt.AlignCenter
 		mipmap: true
 		//source: "../images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "buzzer.logo")

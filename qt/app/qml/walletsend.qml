@@ -127,6 +127,8 @@ Item
 
 			onAddressTextChanged: {
 				//
+				console.log("[onAddressTextChanged]: address = '" + address + "', prevText_ = '" + prevText_ + "'");
+				//
 				if (address[0] === '@' && prevText_ !== address) {
 					prevText_ = address;
 					if (!contactExists(address))
@@ -139,6 +141,8 @@ Item
 			}
 
 			onEditTextChanged: {
+				console.log("[onEditTextChanged]: address = '" + address + "', prevText_ = '" + prevText_ + "'");
+
 				prevText_ = address;
 				if (address === "") addressBox.address = "";
 			}

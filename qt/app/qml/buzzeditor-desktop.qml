@@ -348,10 +348,28 @@ QuarkPage {
 				tagsList.close();
 			}
 
+			property bool buzzerStarted_: false;
+			property bool tagStarted_: false;
+
 			onPreeditTextChanged: {
-				buzzersList.close();
-				tagsList.close();
-				// console.log("preedit = '" + preeditText + "'");
+				//
+				if (preeditText == " ") {
+					buzzerStarted_ = false;
+					tagStarted_ = false;
+					buzzersList.close();
+					tagsList.close();
+				} else if (preeditText == "@" || buzzerStarted_) {
+					//
+					buzzerStarted_ = true;
+				} else if (preeditText == "#" || tagStarted_) {
+					//
+					tagStarted_ = true;
+				}
+
+				if (buzzerStarted_ || tagStarted_) {
+					var lText = buzzerClient.getPlainText(buzzText.textDocument);
+					highlighter.tryHighlightBlock(lText + preeditText, 0);
+				}
 			}
 
 			onContentHeightChanged: {
@@ -838,8 +856,20 @@ QuarkPage {
 
 		onClick: {
 			//
-			buzzText.remove(buzzText.cursorPosition - matched.length, buzzText.cursorPosition);
-			buzzText.insert(buzzText.cursorPosition, key);
+			var lPos = buzzText.cursorPosition; // current
+			var lText = buzzerClient.getPlainText(buzzText.textDocument) + "";
+			for (var lIdx = lPos; lIdx >= 0; lIdx--) {
+				if (lText[lIdx] === '@') {
+					break;
+				}
+			}
+
+			var lNewText = lText.slice(0, lIdx) + key + lText.slice(lPos);
+
+			buzzText.clear();
+			buzzText.insert(0, lNewText);
+
+			buzzText.cursorPosition = lIdx + key.length;
 		}
 
 		function popup(match, nx, ny, buzzers) {
@@ -882,8 +912,20 @@ QuarkPage {
 
 		onClick: {
 			//
-			buzzText.remove(buzzText.cursorPosition - matched.length, buzzText.cursorPosition);
-			buzzText.insert(buzzText.cursorPosition, key);
+			var lPos = buzzText.cursorPosition; // current
+			var lText = buzzerClient.getPlainText(buzzText.textDocument) + "";
+			for (var lIdx = lPos; lIdx >= 0; lIdx--) {
+				if (lText[lIdx] === '#') {
+					break;
+				}
+			}
+
+			var lNewText = lText.slice(0, lIdx) + key + lText.slice(lPos);
+
+			buzzText.clear();
+			buzzText.insert(0, lNewText);
+
+			buzzText.cursorPosition = lIdx + key.length;
 		}
 
 		function popup(match, nx, ny, tags) {

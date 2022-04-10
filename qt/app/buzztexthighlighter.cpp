@@ -21,9 +21,21 @@ BuzzTextHighlighter::BuzzTextHighlighter(QObject* parent): QSyntaxHighlighter(pa
 	lRule.format = buzzerFormat;
 	highlightingRules_.append(lRule);
 
+	/*
+	lRule.pattern = QRegularExpression("@+");
+	lRule.format = buzzerFormat;
+	highlightingRules_.append(lRule);
+	*/
+
 	lRule.pattern = QRegularExpression("#[\\w\u0400-\u04FF]+"); // add support for another languages
 	lRule.format = tagFormat;
 	highlightingRules_.append(lRule);
+
+	/*
+	lRule.pattern = QRegularExpression("#+");
+	lRule.format = tagFormat;
+	highlightingRules_.append(lRule);
+	*/
 
 	lRule.pattern = QRegularExpression("((?:https?|ftp)://\\S+)");
 	lRule.format = tagFormat;
@@ -34,7 +46,12 @@ BuzzTextHighlighter::BuzzTextHighlighter(QObject* parent): QSyntaxHighlighter(pa
 	highlightingRules_.append(lRule);
 }
 
-void BuzzTextHighlighter::highlightBlock(const QString &text) {
+void BuzzTextHighlighter::tryHighlightBlock(const QString& text, int /*start*/) {
+	//
+	highlightBlock(text);
+}
+
+void BuzzTextHighlighter::highlightBlock(const QString& text) {
 	//
 	for (const HighlightingRule &rule : qAsConst(highlightingRules_)) {
 		QRegularExpressionMatchIterator matchIterator = rule.pattern.globalMatch(text);

@@ -23,6 +23,8 @@ public:
 		QSyntaxHighlighter::setDocument(textDocument_->textDocument());
 	}
 
+	Q_INVOKABLE void tryHighlightBlock(const QString& /*text*/, int /*start*/);
+
 protected:
 	void highlightBlock(const QString &text) override;
 

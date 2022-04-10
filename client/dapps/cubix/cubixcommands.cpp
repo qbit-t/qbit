@@ -19,6 +19,10 @@ using namespace qbit::cubix;
 // UploadMediaCommand
 //
 void UploadMediaCommand::process(const std::vector<std::string>& args) {
+	process(args, nullptr);
+}
+
+void UploadMediaCommand::process(const std::vector<std::string>& args, IPeerPtr peer) {
 	//
 	size_ = 0;
 	file_ = "";
@@ -28,7 +32,7 @@ void UploadMediaCommand::process(const std::vector<std::string>& args) {
 	summarySent_ = false;
 	feeSent_ = false;
 	headerSent_ = false;
-	peer_ = nullptr;
+	peer_ = peer;
 	previewWidth_ = 0;
 	previewHeight_ = 0;
 	previewFile_ = "";
@@ -160,8 +164,8 @@ void UploadMediaCommand::summaryCreated(TransactionContextPtr ctx, Transaction::
 	ctx_ = ctx;
 
 	TransactionContextPtr lFee = ctx->locateByType(Transaction::FEE);
-	// send tx and define peer to interact with
-	if (!(peer_ = composer_->requestProcessor()->sendTransaction(ctx->tx()->chain(), lFee,
+	// send tx and define peer to interact with (may be different returned)
+	if (!(peer_ = composer_->requestProcessor()->sendTransaction(peer_, ctx->tx()->chain(), lFee,
 			SentTransaction::instance(
 				boost::bind(&UploadMediaCommand::feeSent, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 				boost::bind(&UploadMediaCommand::timeout, shared_from_this()))))) {

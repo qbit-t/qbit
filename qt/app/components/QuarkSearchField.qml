@@ -62,6 +62,14 @@ Item
         placeholderText: searchField.placeHolder
 		text: searchText
 		mouseSelectionMode: TextInput.SelectCharacters
+		inputMask: ""
+		echoMode: TextInput.Normal
+
+		onDisplayTextChanged:
+		{
+			searchText = displayText;
+			//console.log("inner/displayTextChanged = " + displayText);
+		}
 
         onTextEdited:
         {
@@ -83,6 +91,7 @@ Item
 
 		onPreeditTextChanged:
 		{
+			//console.log("inner/preeditTextChanged = " + preeditText);
 		}
     }
 

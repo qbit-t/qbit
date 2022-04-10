@@ -68,7 +68,7 @@ void CreateBuzzerCommand::buzzerSent(const uint256& tx, const std::vector<Transa
 			lArgs.push_back(args_[4]);
 			lArgs.push_back(args_[5]);
 		}
-		uploadAvatar_->process(lArgs);
+		uploadAvatar_->process(lArgs, peer_);
 	} else {
 		createBuzzerInfo();
 	}
@@ -91,7 +91,7 @@ void CreateBuzzerCommand::avatarUploaded(TransactionPtr tx, const ProcessingErro
 			lArgs.push_back(args_[4]);
 		}
 
-		uploadHeader_->process(lArgs);
+		uploadHeader_->process(lArgs, peer_);
 		return;
 	} else if (!tx) {
 		error(err.error(), err.message());
@@ -281,6 +281,7 @@ void CreateBuzzCommand::process(const std::vector<std::string>& args) {
 		buzzSent_ = false;
 		mediaFiles_.clear();
 		buzzers_.clear();
+		peer_ = nullptr;
 
 		body_ = args[0];
 
@@ -317,7 +318,7 @@ void CreateBuzzCommand::uploadNextMedia() {
 		mediaFiles_.erase(mediaFiles_.begin());
 
 		std::vector<std::string> lArgs; lArgs.push_back(lFile);
-		uploadMedia_->process(lArgs);
+		uploadMedia_->process(lArgs, peer_);
 	}	
 }
 
@@ -327,6 +328,9 @@ void CreateBuzzCommand::mediaUploaded(TransactionPtr tx, const ProcessingError& 
 		error(err.error(), err.message());
 		return;
 	}
+
+	// get interactive peer
+	peer_ = uploadMedia_->peer();
 
 	if (mediaUploaded_) mediaUploaded_(tx, err);
 
@@ -2006,6 +2010,7 @@ void CreateBuzzReplyCommand::process(const std::vector<std::string>& args) {
 		buzzSent_ = false;
 		mediaPointers_.clear();
 		mediaFiles_.clear();
+		peer_ = nullptr;
 
 		std::vector<std::string>::const_iterator lArg = args.begin();
 
@@ -2052,7 +2057,7 @@ void CreateBuzzReplyCommand::uploadNextMedia() {
 		mediaFiles_.erase(mediaFiles_.begin());
 
 		std::vector<std::string> lArgs; lArgs.push_back(lFile);
-		uploadMedia_->process(lArgs);
+		uploadMedia_->process(lArgs, peer_);
 	}	
 }
 
@@ -2062,6 +2067,9 @@ void CreateBuzzReplyCommand::mediaUploaded(TransactionPtr tx, const ProcessingEr
 		error(err.error(), err.message());
 		return;
 	}
+
+	//
+	peer_ = uploadMedia_->peer();
 
 	if (mediaUploaded_) mediaUploaded_(tx, err);
 
@@ -2085,6 +2093,7 @@ void CreateReBuzzCommand::process(const std::vector<std::string>& args) {
 		buzzSent_ = false;
 		mediaPointers_.clear();
 		mediaFiles_.clear();
+		peer_ = nullptr;
 
 		//
 		std::vector<std::string>::const_iterator lArg = args.begin();
@@ -2134,7 +2143,7 @@ void CreateReBuzzCommand::uploadNextMedia() {
 		mediaFiles_.erase(mediaFiles_.begin());
 
 		std::vector<std::string> lArgs; lArgs.push_back(lFile);
-		uploadMedia_->process(lArgs);
+		uploadMedia_->process(lArgs, peer_);
 	}	
 }
 
@@ -2144,6 +2153,9 @@ void CreateReBuzzCommand::mediaUploaded(TransactionPtr tx, const ProcessingError
 		error(err.error(), err.message());
 		return;
 	}
+
+	//
+	peer_ = uploadMedia_->peer();
 
 	if (mediaUploaded_) mediaUploaded_(tx, err);
 
@@ -2452,6 +2464,7 @@ void CreateBuzzerMessageCommand::process(const std::vector<std::string>& args) {
 		messageSent_ = false;
 		mediaPointers_.clear();
 		mediaFiles_.clear();
+		peer_ = nullptr;
 
 		std::vector<std::string>::const_iterator lArg = args.begin();
 
@@ -2548,7 +2561,7 @@ void CreateBuzzerMessageCommand::uploadNextMedia(const PKey& pkey) {
 		lArgs.push_back(lFile);
 		lArgs.push_back("-p");
 		lArgs.push_back(pkey.toString());
-		uploadMedia_->process(lArgs);
+		uploadMedia_->process(lArgs, peer_);
 	}	
 }
 
@@ -2558,6 +2571,9 @@ void CreateBuzzerMessageCommand::mediaUploaded(TransactionPtr tx, const Processi
 		error(err.error(), err.message());
 		return;
 	}
+
+	//
+	peer_ = uploadMedia_->peer();
 
 	if (mediaUploaded_) mediaUploaded_(tx, err);
 

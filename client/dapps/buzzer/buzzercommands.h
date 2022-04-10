@@ -214,7 +214,7 @@ public:
 		//
 		// push linked and newly created txs; order matters
 		// NOTE: fee and parent tx should start processing on the one node
-		IPeerPtr lPeer;
+		IPeerPtr lPeer = peer_;
 		for (std::list<TransactionContextPtr>::iterator lLinkedCtx = ctx->linkedTxs().begin(); lLinkedCtx != ctx->linkedTxs().end(); lLinkedCtx++) {
 			if (!(lPeer = composer_->requestProcessor()->sendTransaction(lPeer, ctx->tx()->chain(), *lLinkedCtx,
 					SentTransaction::instance(
@@ -314,6 +314,8 @@ private:
 	std::vector<std::string> mediaFiles_;
 
 	TransactionContextPtr ctx_;
+
+	IPeerPtr peer_;
 
 	bool feeSent_ = false;
 	bool buzzSent_ = false;
@@ -1653,7 +1655,7 @@ public:
 		ctx_ = ctx;
 		//
 		// push linked and newly created txs; order matters
-		IPeerPtr lPeer = nullptr;
+		IPeerPtr lPeer = peer_;
 		for (std::list<TransactionContextPtr>::iterator lLinkedCtx = ctx->linkedTxs().begin(); lLinkedCtx != ctx->linkedTxs().end(); lLinkedCtx++) {
 			if (!(lPeer = composer_->requestProcessor()->sendTransaction(lPeer, ctx->tx()->chain(), *lLinkedCtx,
 					SentTransaction::instance(
@@ -1756,6 +1758,8 @@ private:
 
 	TransactionContextPtr ctx_;
 
+	IPeerPtr peer_;
+
 	bool feeSent_ = false;
 	bool buzzSent_ = false;
 };	
@@ -1808,7 +1812,7 @@ public:
 		TransactionContextPtr lFee = ctx->locateByType(Transaction::FEE);
 		TransactionContextPtr lNotify = ctx->locateByType(TX_BUZZ_REBUZZ_NOTIFY);
 
-		IPeerPtr lPeer = nullptr;
+		IPeerPtr lPeer = peer_;
 		if (!(lPeer = composer_->requestProcessor()->sendTransaction(ctx->tx()->chain(), lFee,
 				SentTransaction::instance(
 					boost::bind(&CreateReBuzzCommand::feeSent, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
@@ -1929,6 +1933,8 @@ private:
 	std::vector<std::string> mediaFiles_;
 
 	TransactionContextPtr ctx_;
+
+	IPeerPtr peer_;
 
 	bool feeSent_ = false;
 	bool notifySent_ = false;
@@ -2698,7 +2704,7 @@ public:
 		ctx_ = ctx;
 		//
 		// push linked and newly created txs; order matters
-		IPeerPtr lPeer = nullptr;
+		IPeerPtr lPeer = peer_;
 		for (std::list<TransactionContextPtr>::iterator lLinkedCtx = ctx->linkedTxs().begin(); lLinkedCtx != ctx->linkedTxs().end(); lLinkedCtx++) {
 			if (!(lPeer = composer_->requestProcessor()->sendTransaction(lPeer, ctx->tx()->chain(), *lLinkedCtx,
 					SentTransaction::instance(
@@ -2802,6 +2808,8 @@ private:
 	std::vector<std::string> mediaFiles_;
 
 	TransactionContextPtr ctx_;
+
+	IPeerPtr peer_;
 
 	bool feeSent_ = false;
 	bool messageSent_ = false;
