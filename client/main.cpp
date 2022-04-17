@@ -178,7 +178,7 @@ void cubixUploadProgress(const std::string&, uint64_t, uint64_t) {
 }
 
 void cubixDownloadDone(TransactionPtr, const std::string&, const std::string&, unsigned short /*orientation*/, unsigned int /*duration*/,
-                              uint64_t /*size*/, unsigned short /*type*/,const ProcessingError& /*error*/) {
+                              uint64_t /*size*/, const qbit::cubix::doneDownloadWithErrorFunctionExtraArgs& /*extra*/,const ProcessingError& /*error*/) {
 	//
 	gCommandDone = true;
 }
