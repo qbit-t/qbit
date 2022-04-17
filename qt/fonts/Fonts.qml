@@ -248,6 +248,7 @@ Item
 
 	readonly property string playSym: "\uf04b";
 	readonly property string pauseSym: "\uf04c";
+	readonly property string stopSym: "\uf04d";
 
 	readonly property string videoSym: "\uf03d";
 	readonly property string flashLightSym: "\uf8b8";

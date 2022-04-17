@@ -93,10 +93,11 @@ public:
 			const std::string& name,
 			const std::string& description,
 			TxMediaHeader::Type type,
+			TxMediaHeader::Type previewType,
 			const uint256& chain, 
 			Transaction::UnlinkedOutPtr prev,
 			transactionCreatedFunction created): 
-			composer_(composer), size_(size), data_(data), orientation_(orientation), name_(name), description_(description), type_(type), chain_(chain), prev_(prev), created_(created) {}
+			composer_(composer), size_(size), data_(data), orientation_(orientation), name_(name), description_(description), type_(type), previewType_(previewType), chain_(chain), prev_(prev), created_(created) {}
 		CreateTxMediaHeader(CubixLightComposerPtr composer,
 			uint64_t size,
 			const std::vector<unsigned char>& data,
@@ -105,23 +106,24 @@ public:
 			const std::string& name,
 			const std::string& description,
 			TxMediaHeader::Type type,
+			TxMediaHeader::Type previewType,
 			const uint256& chain,
 			Transaction::UnlinkedOutPtr prev,
 			transactionCreatedFunction created):
-			composer_(composer), size_(size), data_(data), orientation_(orientation), duration_(duration), name_(name), description_(description), type_(type), chain_(chain), prev_(prev), created_(created) {}
+			composer_(composer), size_(size), data_(data), orientation_(orientation), duration_(duration), name_(name), description_(description), type_(type), previewType_(previewType), chain_(chain), prev_(prev), created_(created) {}
 		void process(errorFunction);
 
 		static IComposerMethodPtr instance(
 				CubixLightComposerPtr composer, uint64_t size,
 				const std::vector<unsigned char>& data, unsigned short orientation,
-				const std::string& name, const std::string& description, TxMediaHeader::Type type, const uint256& chain, Transaction::UnlinkedOutPtr prev, transactionCreatedFunction created) {
-			return std::make_shared<CreateTxMediaHeader>(composer, size, data, orientation, name, description, type, chain, prev, created);
+				const std::string& name, const std::string& description, TxMediaHeader::Type type, TxMediaHeader::Type previewType, const uint256& chain, Transaction::UnlinkedOutPtr prev, transactionCreatedFunction created) {
+			return std::make_shared<CreateTxMediaHeader>(composer, size, data, orientation, name, description, type, previewType, chain, prev, created);
 		}
 		static IComposerMethodPtr instance(
 				CubixLightComposerPtr composer, uint64_t size,
 				const std::vector<unsigned char>& data, unsigned short orientation, unsigned int duration,
-				const std::string& name, const std::string& description, TxMediaHeader::Type type, const uint256& chain, Transaction::UnlinkedOutPtr prev, transactionCreatedFunction created) {
-			return std::make_shared<CreateTxMediaHeader>(composer, size, data, orientation, duration, name, description, type, chain, prev, created);
+				const std::string& name, const std::string& description, TxMediaHeader::Type type, TxMediaHeader::Type previewType, const uint256& chain, Transaction::UnlinkedOutPtr prev, transactionCreatedFunction created) {
+			return std::make_shared<CreateTxMediaHeader>(composer, size, data, orientation, duration, name, description, type, previewType, chain, prev, created);
 		}
 
 		// 
@@ -138,6 +140,7 @@ public:
 		std::string name_;
 		std::string description_;
 		TxMediaHeader::Type type_;
+		TxMediaHeader::Type previewType_;
 		uint256 chain_;
 		Transaction::UnlinkedOutPtr prev_;
 		transactionCreatedFunction created_;

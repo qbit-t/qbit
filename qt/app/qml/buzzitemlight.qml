@@ -61,6 +61,7 @@ Item {
 	property var controller_: controller
 	//property var buzzfeedModel_: buzzfeedModel
 	property var listView_
+	property var sharedMediaPlayer_
 
 	readonly property int spaceLeft_: 15
 	readonly property int spaceTop_: 12
@@ -89,6 +90,10 @@ Item {
 		avatarDownloadCommand.process();
 	}
 
+	onSharedMediaPlayer_Changed: {
+		bodyControl.setSharedMediaPlayer();
+	}
+
 	function calculateHeightInternal() {
 		var lCalculatedInnerHeight = spaceTop_ + spaceHeader_ + buzzerAliasControl.height +
 											bodyControl.height + spaceLeft_;
@@ -101,6 +106,9 @@ Item {
 		return calculatedHeight;
 	}
 
+	function forceVisibilityCheck(isFullyVisible) {
+		bodyControl.setFullyVisible(isFullyVisible);
+	}
 	//
 	// avatar download
 	//
@@ -283,6 +291,16 @@ Item {
 
 			property var buzzMediaItem_;
 			property var urlInfoItem_;
+
+			function setFullyVisible(fullyVisible) {
+				if (buzzMediaItem_) buzzMediaItem_.forceVisibilityCheck(fullyVisible);
+			}
+
+			function setSharedMediaPlayer() {
+				if (buzzMediaItem_) {
+					buzzMediaItem_.sharedMediaPlayer_ = buzzitemlight_.sharedMediaPlayer_;
+				}
+			}
 
 			onWidthChanged: {
 				expand();

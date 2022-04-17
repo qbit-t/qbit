@@ -22,6 +22,7 @@
 #include "ipeermanager.h"
 #include "ipeer.h"
 
+#include "client.h"
 #include "settings.h"
 #include "../../client/commands.h"
 #include "../../client/commandshandler.h"
@@ -1002,7 +1003,7 @@ public:
 
 	Q_INVOKABLE void process(bool force) {
 		// TODO: potential leak, need "check list" to track such objects
-		QQmlEngine::setObjectOwnership(this, QQmlEngine::CppOwnership);
+		// QQmlEngine::setObjectOwnership(this, QQmlEngine::CppOwnership);
 
 		std::vector<std::string> lArgs;
 		lArgs.push_back(header_.toStdString() + "/" + chain_.toStdString());
@@ -1015,7 +1016,11 @@ public:
 
 	Q_INVOKABLE void terminate() {
 		// TODO: on terminate and on stop - make proper processing in cubix-download
-		// command_->terminate();
+		command_->terminate();
+	}
+
+	Q_INVOKABLE void cleanUp() {
+		command_->cleanUp();
 	}
 
 	void setUrl(const QString& url) {
@@ -1049,13 +1054,14 @@ public:
 	void setSkipIfExists(bool skip) { skipIfExists_ = skip; emit skipIfExistsChanged(); }
 	bool skipIfExists() const { return skipIfExists_; }
 
-	void done(qbit::TransactionPtr tx, const std::string& previewFile, const std::string& originalFile, unsigned short orientation, unsigned int duration, uint64_t size, unsigned short type, const qbit::ProcessingError& result) {
+	void done(qbit::TransactionPtr tx, const std::string& previewFile, const std::string& originalFile, unsigned short orientation, unsigned int duration, uint64_t size, const qbit::cubix::doneDownloadWithErrorFunctionExtraArgs& extra, const qbit::ProcessingError& result) {
 		if (result.success()) {
+			//
 			QString lTx;
 			QString lType = "unknown";
 			unsigned int lDuration = duration;
 			long long lSize = size;
-			switch((qbit::cubix::TxMediaHeader::Type)type) {
+			switch((qbit::cubix::TxMediaHeader::Type)extra.type) {
 				case qbit::cubix::TxMediaHeader::Type::UNKNOWN: lType = "unknown"; break;
 				case qbit::cubix::TxMediaHeader::Type::IMAGE_PNG: lType = "image"; break;
 				case qbit::cubix::TxMediaHeader::Type::IMAGE_JPEG: lType = "image"; break;
@@ -1063,6 +1069,21 @@ public:
 				case qbit::cubix::TxMediaHeader::Type::VIDEO_MP4: lType = "video"; break;
 				case qbit::cubix::TxMediaHeader::Type::AUDIO_PCM: lType = "audio"; break;
 				case qbit::cubix::TxMediaHeader::Type::AUDIO_AMR: lType = "audio"; break;
+				case qbit::cubix::TxMediaHeader::Type::AUDIO_MP3: {
+					if (extra.previewType == qbit::cubix::TxMediaHeader::Type::UNKNOWN)
+						lType = "audio";
+					else 
+						lType = "video";
+				} 
+				break;
+				case qbit::cubix::TxMediaHeader::Type::AUDIO_M4A: {
+					if (extra.previewType == qbit::cubix::TxMediaHeader::Type::UNKNOWN)
+						lType = "audio";
+					else 
+						lType = "video";
+				} 
+				break;
+				case qbit::cubix::TxMediaHeader::Type::DOCUMENT_PDF: lType = "document"; break;
 			}
 
 			if (tx) {
@@ -1076,6 +1097,21 @@ public:
 					case qbit::cubix::TxMediaHeader::Type::VIDEO_MP4: lType = "video"; break;
 					case qbit::cubix::TxMediaHeader::Type::AUDIO_PCM: lType = "audio"; break;
 					case qbit::cubix::TxMediaHeader::Type::AUDIO_AMR: lType = "audio"; break;
+					case qbit::cubix::TxMediaHeader::Type::AUDIO_MP3: {
+						if (lHeader->previewType() == qbit::cubix::TxMediaHeader::Type::UNKNOWN)
+							lType = "audio";
+						else 
+							lType = "video";
+					} 
+					break;
+					case qbit::cubix::TxMediaHeader::Type::AUDIO_M4A: {
+						if (lHeader->previewType() == qbit::cubix::TxMediaHeader::Type::UNKNOWN)
+							lType = "audio";
+						else 
+							lType = "video";
+					} 
+					break;
+					case qbit::cubix::TxMediaHeader::Type::DOCUMENT_PDF: lType = "document"; break;
 				}
 
 				lDuration = lHeader->duration();

@@ -136,11 +136,13 @@ Rectangle {
 		onContentRectChanged: {
 			//
 			console.log("[onContentRectChanged]: videoOutput.contentRect = " + videoOut.contentRect + ", parent.height = " + parent.height);
-			if (!previewImage.visible && videoOut.contentRect.height > 0 &&
-													videoOut.contentRect.height < calculatedHeight) {
+			if (player.playing && videoOut.contentRect.height > 0 /*&&
+													videoOut.contentRect.height < calculatedHeight*/) {
+				previewImage.visible = false;
 				height = videoOut.contentRect.height;
 				//buzzitemmedia_.calculatedHeight = height;
 				correctedHeight = height;
+				frameContainer.visible = true;
 			}
 		}
 
@@ -238,7 +240,7 @@ Rectangle {
 		fillMode: VideoOutput.PreserveAspectFit
 		mipmap: true
 
-		visible: actionButton.needDownload || (!player.playing && player.position == 1 && buzzerApp.isDesktop)
+		visible: true // actionButton.needDownload || (!player.playing && player.position == 1 && buzzerApp.isDesktop)
 
 		function actualX() { return x + previewImage.width / 2 - previewImage.paintedWidth / 2; }
 		function actualY() { return y + previewImage.height / 2 - previewImage.paintedHeight / 2; }
@@ -283,7 +285,7 @@ Rectangle {
 	QuarkRoundRectangle {
 		id: frameContainer
 		x: videoOut.contentRect.x + spaceItems_ - 1
-		y: videoOut.y - 1
+		y: videoOut.contentRect.y + videoOut.y - 1
 		width: videoOut.contentRect.width + 2
 		height: videoOut.contentRect.height + 2
 
@@ -292,7 +294,7 @@ Rectangle {
 		radius: 14
 		penWidth: 9
 
-		visible: true //!buzzerApp.isDesktop && !actionButton.needDownload
+		visible: false //!buzzerApp.isDesktop && !actionButton.needDownload
 	}
 
 	//
@@ -324,6 +326,9 @@ Rectangle {
 
 		onErrorStringChanged: {
 			console.log("[onErrorStringChanged]: " + errorString);
+			downloadCommand.downloaded = false;
+			downloadCommand.processing = false;
+			downloadCommand.cleanUp();
 		}
 
 		onPositionChanged: {
@@ -341,6 +346,7 @@ Rectangle {
 		x: frameContainer.visible ? (frameContainer.x + 2 * spaceItems_) : (previewImage.actualX() + spaceItems_)
 		y: frameContainer.visible ? (frameContainer.y + frameContainer.height - (actionButton.height + 4 * spaceItems_)) :
 									(previewImage.actualY() + previewImage.actualHeight() - (actionButton.height + 3 * spaceItems_))
+
 		width: frameContainer.visible ? (frameContainer.width - (4 * spaceItems_)) : (previewImage.actualWidth() - (2 * spaceItems_))
 		height: actionButton.height + 2 * spaceItems_
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
@@ -435,7 +441,7 @@ Rectangle {
 
 		function setTotalSize(mediaSize) {
 			//
-			if (mediaSize < 1000) text = ", " + size + "b";
+			if (mediaSize < 1000) text = ", " + mediaSize + "b";
 			else text = ", " + NumberFunctions.numberToCompact(mediaSize);
 		}
 	}
@@ -473,11 +479,18 @@ Rectangle {
 		arcEnd: 0
 		lineWidth: buzzerClient.scaleFactor * 2
 		visible: false
+		animationDuration: 50
 
 		function start() {
+			beginAnimation = false;
+			endAnimation = false;
+
 			visible = true;
 			arcBegin = 0;
 			arcEnd = 0;
+
+			beginAnimation = true;
+			endAnimation = true;
 		}
 
 		function progress(pos, size) {

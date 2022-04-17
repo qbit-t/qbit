@@ -32,3 +32,5 @@ PeersList 1.0 peerslist.qml
 PeersManualList 1.0 peersmanuallist.qml
 BuzzerStackView 1.0 buzzer-stackview-desktop.qml
 BuzzerDesktopToolBar 1.0 buzzertoolbar-desktop.qml
+BuzzItemMediaPlayer 1.0 buzzitemmedia-player.qml
+BuzzerMediaPlayerController 1.0 buzzitemmedia-player-controller.qml

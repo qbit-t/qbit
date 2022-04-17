@@ -1,11 +1,12 @@
 #ifndef BUZZER_MOBILE_SETTINGS_H
 #define BUZZER_MOBILE_SETTINGS_H
 
+#include <QObject>
 #include <QString>
 #include <QList>
 #include <QMap>
 
-#include "client.h"
+#include "iclient.h"
 #include "json.h"
 #include "../../isettings.h"
 #include "../../state.h"

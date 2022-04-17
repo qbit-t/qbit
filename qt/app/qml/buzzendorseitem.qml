@@ -62,6 +62,7 @@ Item {
 	property var controller_: controller
 	property var buzzfeedModel_: buzzfeedModel
 	property var listView_
+	property var sharedMediaPlayer_
 
 	property var publisherScore_: 0;
 	property var publisherBuzzerId_: buzzInfos_[0].buzzerId;
@@ -96,6 +97,10 @@ Item {
 										bodyControl.height + spaceItems_ + spaceItems_ + 1;
 		return lCalculatedInnerHeight > avatarImage.displayHeight ?
 										   lCalculatedInnerHeight : avatarImage.displayHeight;
+	}
+
+	function cleanUp() {
+		//
 	}
 
 	/*

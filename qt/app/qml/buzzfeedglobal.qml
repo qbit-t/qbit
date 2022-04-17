@@ -20,8 +20,27 @@ Item
 {
 	id: buzzfeed_
 
+	//
+	readonly property int spaceLeft_: 15
+	readonly property int spaceTop_: 12
+	readonly property int spaceRight_: 15
+	readonly property int spaceBottom_: 12
+	readonly property int spaceAvatarBuzz_: 10
+	readonly property int spaceItems_: 5
+	readonly property int spaceMedia_: 10
+	readonly property int spaceSingleMedia_: 8
+	readonly property int spaceMediaIndicator_: 15
+	readonly property int spaceHeader_: 7
+	readonly property int spaceRightMenu_: 15
+	readonly property int spaceStats_: -5
+	readonly property int spaceLine_: 4
+	readonly property int spaceThreaded_: 33
+	readonly property int spaceThreadedItems_: 4
+	readonly property real defaultFontSize: 11
+
 	property var infoDialog;
 	property var controller;
+	property var mediaPlayerControler;
 	property bool listen: false;
 
 	property var buzzfeedModel_;
@@ -36,6 +55,7 @@ Item
 	}
 
 	function start() {
+		//
 		if (!buzzerApp.isDesktop) search.setText("");
 		else {
 			disconnect();
@@ -44,10 +64,12 @@ Item
 			controller.mainToolBar.setSearchText("", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.global.search"));
 		}
 
-		modelLoader_ = globalModelLoader;
-		buzzfeedModel_ = globalBuzzfeedModel_;
-		list.model = globalBuzzfeedModel_;
-		switchDataTimer.start();
+		if (!list.model) {
+			modelLoader_ = globalModelLoader;
+			buzzfeedModel_ = globalBuzzfeedModel_;
+			list.model = globalBuzzfeedModel_;
+			switchDataTimer.start();
+		}
 	}
 
 	function disconnect() {
@@ -90,6 +112,11 @@ Item
 		orientationChangedTimer.start();
 	}
 
+	onMediaPlayerControlerChanged: {
+		//
+		buzzerApp.sharedMediaPlayerController(mediaPlayerControler);
+	}
+
 	// to adjust model
 	Timer {
 		id: orientationChangedTimer
@@ -113,6 +140,8 @@ Item
 		}
 
 		function onThemeChanged() {
+			//
+			player.terminate();
 			if (buzzfeedModel_) buzzfeedModel_.resetModel();
 		}
 	}
@@ -315,6 +344,7 @@ Item
 		start();
 	}
 
+	//
 	QuarkListView {
 		id: list
 		x: 0
@@ -361,6 +391,18 @@ Item
 
 			property var buzzItem;
 
+			property bool isFullyVisible: itemDelegate.y >= list.contentY && itemDelegate.y + height < list.contentY + list.height
+
+			onIsFullyVisibleChanged: {
+				if (itemDelegate !== null && itemDelegate.buzzItem !== null && itemDelegate.buzzItem !== undefined) {
+					try {
+						itemDelegate.buzzItem.forceVisibilityCheck(itemDelegate.isFullyVisible);
+					} catch (err) {
+						console.log("[onIsFullyVisibleChanged]: " + err + ", itemDelegate.buzzItem = " + itemDelegate.buzzItem);
+					}
+				}
+			}
+
 			onWidthChanged: {
 				if (buzzItem) {
 					buzzItem.width = list.width;
@@ -385,6 +427,7 @@ Item
 				var lComponent = Qt.createComponent(lSource);
 				buzzItem = lComponent.createObject(itemDelegate);
 
+				buzzItem.sharedMediaPlayer_ = buzzfeed_.mediaPlayerControler;
 				buzzItem.width = list.width;
 				buzzItem.controller_ = buzzfeed_.controller;
 				buzzItem.buzzfeedModel_ = list.model;
@@ -400,6 +443,15 @@ Item
 				itemDelegate.height = value;
 			}
 		}
+	}
+
+	//
+	BuzzItemMediaPlayer {
+		id: player
+		x: 0
+		y: buzzerApp.isDesktop ? 0 : search.y + search.calculatedHeight
+		width: parent.width
+		mediaPlayerControler: buzzfeed_.mediaPlayerControler
 	}
 
 	Timer {

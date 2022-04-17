@@ -95,6 +95,14 @@ QuarkPage
 	}
 
 	//
+	// Shared media player controller
+	//
+	BuzzerMediaPlayerController {
+		id: globalMediaPlayerControler
+		controller: buzzermain_.controller
+	}
+
+	//
 	// toolbar
 	//
 	BuzzerToolBar {
@@ -248,6 +256,7 @@ QuarkPage
 			width: buzzermain_.width
 			height: navigatorBar.y - (headerBar.y + headerBar.height)
 			controller: buzzermain_.controller
+			mediaPlayerControler: globalMediaPlayerControler
 		}
 		BuzzfeedGlobal {
 			id: buzzfeedGlobal
@@ -256,6 +265,7 @@ QuarkPage
 			width: buzzermain_.width
 			height: navigatorBar.y - (headerBar.y + headerBar.height)
 			controller: buzzermain_.controller
+			mediaPlayerControler: globalMediaPlayerControler
 		}
 		Eventsfeed {
 			id: eventsfeedPersonal

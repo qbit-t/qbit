@@ -8,6 +8,7 @@
 #include "roundframe.h"
 #include "statusbar/statusbar.h"
 #include "httprequest.h"
+#include "imageqx.h"
 
 using namespace buzzer;
 IApplication* buzzer::gApplication = nullptr;
@@ -114,6 +115,8 @@ int Application::execute()
 	qmlRegisterType<buzzer::Client>("app.buzzer.client", 1, 0, "Client");
     qmlRegisterType<buzzer::ClipboardAdapter>("app.buzzer.helpers", 1, 0, "Clipboard");
     qmlRegisterType<StatusBar>("StatusBar", 0, 1, "StatusBar");
+	qmlRegisterType<buzzer::ImageQx>("app.buzzer.components", 1, 0, "ImageQx");
+
 	buzzer::QuarkLine::declare();
 	buzzer::QuarkRoundFrame::declare();
 
@@ -127,6 +130,7 @@ int Application::execute()
     engine_.rootContext()->setContextProperty("clipboard", clipboard_);
 	engine_.rootContext()->setContextProperty("localNotificator", nullptr);
 	engine_.rootContext()->setContextProperty("keyEmitter", &keyEmitter_);
+
 
 #ifdef Q_OS_IOS
     localNotificator_ = LocalNotificator::instance();
@@ -177,6 +181,9 @@ int Application::execute()
 		qCritical() << "Root object is empty. Exiting...";
 		return -1;
 	}
+
+	QObject* lAppWindow = *(engine_.rootObjects().begin());
+	view_ = qobject_cast<QQuickWindow*>(lAppWindow);
 
     qInfo() << "Executing app:" << APP_NAME;
 	return app_.exec();
@@ -520,11 +527,11 @@ void Application::setWakeLock(int lock)
                 QAndroidJniObject lPowerMgr = lActivity.callObjectMethod("getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;",lServiceName.object<jobject>());
                 if (lPowerMgr.isValid())
                 {
-                    jint lLevelAndFlags = QAndroidJniObject::getStaticField<jint>("android/os/PowerManager","SCREEN_DIM_WAKE_LOCK");
+					jint lLevelAndFlags = QAndroidJniObject::getStaticField<jint>("android/os/PowerManager","SCREEN_BRIGHT_WAKE_LOCK"); // SCREEN_DIM_WAKE_LOCK
 
 					QAndroidJniObject lTag = QAndroidJniObject::fromString("BUZZER-TAG");
 
-                    wakeLock_ = lPowerMgr.callObjectMethod("newWakeLock", "(ILjava/lang/String;)Landroid/os/PowerManager$WakeLock;", lLevelAndFlags, lTag.object<jstring>());
+					wakeLock_ = lPowerMgr.callObjectMethod("newWakeLock", "(ILjava/lang/String;)Landroid/os/PowerManager$WakeLock;", lLevelAndFlags, lTag.object<jstring>());
                 }
             }
         }
@@ -656,9 +663,9 @@ void Application::emit_fingertipAuthFailed()
     emit fingertipAuthFailed();
 }
 
-void Application::emit_fileSelected(QString key)
+void Application::emit_fileSelected(QString key, QString preview)
 {
-	emit fileSelected(key);
+	emit fileSelected(key, preview);
 }
 
 //
@@ -692,17 +699,25 @@ JNIEXPORT void JNICALL Java_app_buzzer_mobile_FingerprintHandler_authenticationS
 	((Application*)buzzer::gApplication)->emit_fingertipAuthSuccessed(lKeyFound);
 }
 
-JNIEXPORT void JNICALL Java_app_buzzer_mobile_MainActivity_fileSelected(JNIEnv* env, jobject, jstring file)
+JNIEXPORT void JNICALL Java_app_buzzer_mobile_MainActivity_fileSelected(JNIEnv* env, jobject, jstring file, jstring preview)
 {
 	QString lFileFound = "none";
+	QString lPreviewFound = "none";
+
 	const char* lFile = env->GetStringUTFChars(file, NULL);
 	if (lFile) {
 		lFileFound = QString::fromLocal8Bit(lFile);
 		env->ReleaseStringUTFChars(file, lFile);  // release resource
 	}
 
-	qDebug() << "[JAVA::fileSelected]: file = " << lFileFound;
-	((Application*)buzzer::gApplication)->emit_fileSelected(lFileFound);
+	const char* lPreview = env->GetStringUTFChars(preview, NULL);
+	if (lPreview) {
+		lPreviewFound = QString::fromLocal8Bit(lPreview);
+		env->ReleaseStringUTFChars(preview, lPreview);  // release resource
+	}
+
+	qDebug() << "[JAVA::fileSelected]: file = " << lFileFound << lPreviewFound;
+	((Application*)buzzer::gApplication)->emit_fileSelected(lFileFound, lPreviewFound);
 }
 
 #ifdef __cplusplus

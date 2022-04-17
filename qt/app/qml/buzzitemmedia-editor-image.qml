@@ -52,6 +52,10 @@ Rectangle {
 	function adjustOrientation(orientation) {
 	}
 
+	function terminate() {
+		//
+	}
+
 	//
 	color: "transparent"
 	width: mediaImage.width + 2 * spaceItems_

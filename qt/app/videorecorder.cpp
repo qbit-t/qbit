@@ -61,13 +61,13 @@ void VideoRecorder::setResolution(const QString& resolution) {
 
 	//
 	if (resolution_ == "1080p" || !resolution_.size()) {
-		maxDuration_ = 1 * 60 * 1000; // 1 minute
+		maxDuration_ = 3 * 60 * 1000; // 3 minute
 		emit maxDurationChanged();
 	} else if (resolution_ == "720p") {
-		maxDuration_ = 3 * 60 * 1000; // 3 minutes
+		maxDuration_ = 5 * 60 * 1000; // 5 minutes
 		emit maxDurationChanged();
 	} else if (resolution_ == "480p") {
-		maxDuration_ = 5 * 60 * 1000; // 5 minutes
+		maxDuration_ = 7 * 60 * 1000; // 7 minutes
 		emit maxDurationChanged();
 	} else if (resolution_ == "360p") {
 		maxDuration_ = 10 * 60 * 1000; // 10 minutes
@@ -112,20 +112,22 @@ void VideoRecorder::toggleRecord() {
 
 		QVideoEncoderSettings lVideoSettings;
 		lVideoSettings.setCodec("h264");
+		//lVideoSettings.setFrameRate(24.0);
+
 		if (resolution_ == "1080p" || !resolution_.size()) {
-			lVideoSettings.setBitRate(3145728); // 3 Mbit/s
-			maxDuration_ = 1 * 60 * 1000; // 1 minute
+			lVideoSettings.setBitRate(2*1024*1024); // 1 Mbit/s
+			maxDuration_ = 3 * 60 * 1000; // 3 minute
 			emit maxDurationChanged();
 		} else if (resolution_ == "720p") {
-			lVideoSettings.setBitRate(2097152); // 2 Mbit/s
-			maxDuration_ = 3 * 60 * 1000; // 3 minutes
-			emit maxDurationChanged();
-		} else if (resolution_ == "480p") {
-			lVideoSettings.setBitRate(1048576); // 1 Mbit/s
+			lVideoSettings.setBitRate(1024*1024); // 0.7 Mbit/s
 			maxDuration_ = 5 * 60 * 1000; // 5 minutes
 			emit maxDurationChanged();
+		} else if (resolution_ == "480p") {
+			lVideoSettings.setBitRate(500*1024); // 0.5 Mbit/s
+			maxDuration_ = 7 * 60 * 1000; // 7 minutes
+			emit maxDurationChanged();
 		} else if (resolution_ == "360p") {
-			lVideoSettings.setBitRate(524288); // 0.5 Mbit/s
+			lVideoSettings.setBitRate(200*1024); // 0.2 Mbit/s
 			maxDuration_ = 10 * 60 * 1000; // 10 minutes
 			emit maxDurationChanged();
 		}

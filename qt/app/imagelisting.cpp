@@ -30,7 +30,7 @@ void ImageListing::listImages() {
 
 	if (lActionPick.isValid() && lIntent.isValid()) {
 		//lIntent.callObjectMethod("addCategory", "(Ljava/lang/String;)Landroid/content/Intent;", lOpenable.object<jstring>());
-		lIntent.callObjectMethod("setType", "(Ljava/lang/String;)Landroid/content/Intent;", QAndroidJniObject::fromString("image/*").object<jstring>());
+		lIntent.callObjectMethod("setType", "(Ljava/lang/String;)Landroid/content/Intent;", QAndroidJniObject::fromString("*/*").object<jstring>());
 		QtAndroid::startActivity(lIntent.object<jobject>(), 101, this);
 	}
 }
@@ -54,13 +54,15 @@ void ImageListing::handleActivityResult(int receiverRequestCode, int resultCode,
 		QAndroidJniObject lRes = lCursor.callObjectMethod("getString", "(I)Ljava/lang/String;", lIndex);
 		QString lFile = lRes.toString();
 		qInfo() << "GALLERY" << lFile;
+
 		emit imageFound(lFile);
 
 		/*
 		QAndroidJniObject lString = data.callObjectMethod("getDataString", "()java/lang/String;");
-		QString lFile = lString.toString();
-		qInfo() << "GALLERY" << lFile;
-		emit imageFound(lFile);
+		QString lFile1 = lString.toString();
+		qInfo() << "GALLERY" << lFile1;
+
+		emit imageFound(lFile1);
 		*/
 	}
 }

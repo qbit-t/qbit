@@ -42,12 +42,14 @@ Rectangle {
 	readonly property real defaultFontSize: 11
 	property var frameColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
 	property var fillColor: "transparent"
+	property var sharedMediaPlayer_
 
 	//
 	property var buzzitemmedia_;
 	property var mediaList;
 
 	signal adjustHeight(var proposed);
+	signal errorLoading();
 
 	onMediaListChanged: {
 		mediaImage.adjustView();
@@ -61,6 +63,14 @@ Rectangle {
 		mediaImage.adjustView();
 	}
 
+	function terminate() {
+		//
+	}
+
+	function forceVisibilityCheck(isFullyVisible) {
+		//
+	}
+
 	//
 	color: "transparent"
 	// border.color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
@@ -68,10 +78,11 @@ Rectangle {
 	height: calculatedHeight // mediaImage.height
 	radius: 8
 
-	Image {
+	BuzzerComponents.ImageQx {
 		id: mediaImage
 		autoTransform: true
 		asynchronous: true
+		radius: 8
 
 		x: spaceItems_
 		y: 0
@@ -90,7 +101,7 @@ Rectangle {
 			}
 		}
 
-		width: mediaList.width - spaceItems_
+		// width: (mediaList ? mediaList.width : imageFrame.width) - spaceItems_
 		height: calculatedHeight
 		fillMode: Image.PreserveAspectCrop
 		mipmap: true
@@ -102,22 +113,29 @@ Rectangle {
 
 		onStatusChanged: {
 			//
-			/*
 			if (status == Image.Error) {
 				// force to reload
 				console.log("[onStatusChanged]: forcing reload of " + path_);
-				path_ = "";
-				downloadCommand.process(true);
+				//downloadCommand
+				errorLoading();
 			}
-			*/
+		}
+
+		onWidthChanged: {
+			//
+			if (width != originalWidth) {
+				var lCoeff = (width * 1.0) / (originalWidth * 1.0)
+				var lHeight = originalHeight * 1.0;
+				height = lHeight * lCoeff;
+			}
 		}
 
 		MouseArea {
 			id: linkClick
-			x: 0
-			y: 0
-			width: mediaImage.width
-			height: mediaImage.height
+			x: 1
+			y: 1
+			width: mediaImage.width - 1
+			height: mediaImage.height - 1
 			enabled: true
 			cursorShape: Qt.PointingHandCursor
 
@@ -151,6 +169,7 @@ Rectangle {
 			}
 		}
 
+		/*
 		layer.enabled: true
 		layer.effect: OpacityMask {
 			id: roundEffect
@@ -184,5 +203,6 @@ Rectangle {
 				return mediaImage.height;
 			}
 		}
+		*/
 	}
 }

@@ -45,12 +45,14 @@ Rectangle {
 	property int totalSize_: size_
 	property var frameColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
 	property var fillColor: "transparent"
+	property var sharedMediaPlayer_
 
 	//
 	property var buzzitemmedia_;
 	property var mediaList;
 
 	signal adjustHeight(var proposed);
+	signal errorLoading();
 
 	//
 	x: mediaView ? getX() : 0
@@ -68,6 +70,15 @@ Rectangle {
 
 	onTotalSize_Changed: {
 		totalSize.setTotalSize(size_);
+	}
+
+	function forceVisibilityCheck(isFullyVisible) {
+		//
+	}
+
+	function terminate() {
+		//
+		player.pause();
 	}
 
 	function adjust() {
@@ -161,7 +172,7 @@ Rectangle {
 	//
 	Audio {
 		id: player
-		source: path_
+		//source: path_
 
 		property bool playing: false;
 
@@ -189,6 +200,11 @@ Rectangle {
 		}
 
 		onErrorStringChanged: {
+			//
+			console.log("[onErrorStringChanged]: " + errorString);
+			downloadCommand.downloaded = false;
+			downloadCommand.processing = false;
+			downloadCommand.cleanUp();
 		}
 	}
 
@@ -279,7 +295,7 @@ Rectangle {
 
 		function setTotalSize(mediaSize) {
 			//
-			if (mediaSize < 1000) text = ", " + size + "b";
+			if (mediaSize < 1000) text = ", " + mediaSize + "b";
 			else text = ", " + NumberFunctions.numberToCompact(mediaSize);
 		}
 	}
@@ -311,11 +327,18 @@ Rectangle {
 		arcEnd: 0
 		lineWidth: buzzerClient.scaleFactor * 2
 		visible: false
+		animationDuration: 50
 
 		function start() {
+			beginAnimation = false;
+			endAnimation = false;
+
 			visible = true;
 			arcBegin = 0;
 			arcEnd = 0;
+
+			beginAnimation = true;
+			endAnimation = true;
 		}
 
 		function progress(pos, size) {

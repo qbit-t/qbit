@@ -5,7 +5,7 @@ else: QT += qml quick quickcontrols2 multimedia
 
 CONFIG += c++11
 
-VERSION = 0.1.5.25
+VERSION = 0.1.5.29
 DEFINES += VERSION_STRING=\\\"$${VERSION}\\\"
 DEFINES += QT_ENVIRONMENT
 DEFINES += BUZZER_MOD
@@ -18,7 +18,7 @@ DEFINES += CLIENT_PLATFORM
 DEFINES += QBIT_VERSION_MAJOR=0
 DEFINES += QBIT_VERSION_MINOR=1
 DEFINES += QBIT_VERSION_REVISION=5
-DEFINES += QBIT_VERSION_BUILD=25
+DEFINES += QBIT_VERSION_BUILD=29
 
 DEFINES += BUZZER_MOD
 DEFINES += CUBIX_MOD
@@ -92,7 +92,10 @@ SOURCES += \
     settings.cpp \
     videorecorder.cpp \
     wallettransactionslistmodel.cpp \
-    websourceinfo.cpp
+	websourceinfo.cpp \
+	imageqx.cpp \
+	imageqxloader.cpp \
+	imageqxnode.cpp
 
 SUBDIRS += \
     ../../client \
@@ -163,7 +166,10 @@ DISTFILES += \
     qml/buzzitemmedia-editor-image.qml \
     qml/buzzitemmedia-editor-video.qml \
     qml/buzzitemmedia-image.qml \
+    qml/buzzitemmedia-mediaplayer.qml \
+    qml/buzzitemmedia-player-controller.qml \
     qml/buzzitemmedia-video.qml \
+    qml/buzzitemmedia-videooutput.qml \
     qml/buzzitemmediaview-image.qml \
     qml/buzzitemmediaview-video.qml \
     qml/camera-video.qml \
@@ -213,7 +219,10 @@ HEADERS += \
 	../../client/commands.h \
     videorecorder.h \
     wallettransactionslistmodel.h \
-    websourceinfo.h
+	websourceinfo.h \
+	imageqx.h \
+	imageqxloader.h \
+	imageqxnode.h
 
 RESOURCES += \
     $$files(../fonts/*) \

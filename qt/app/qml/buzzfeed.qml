@@ -22,6 +22,7 @@ Item
 
 	property var infoDialog;
 	property var controller;
+	property var mediaPlayerControler;
 
 	function externalPull() {
 		modelLoader.restart();
@@ -36,6 +37,11 @@ Item
 
 	onWidthChanged: {
 		orientationChangedTimer.start();
+	}
+
+	onMediaPlayerControlerChanged: {
+		//
+		buzzerApp.sharedMediaPlayerController(mediaPlayerControler);
 	}
 
 	// to adjust model
@@ -66,6 +72,8 @@ Item
 		}
 
 		function onThemeChanged() {
+			//
+			buzzfeedPlayer.terminate();
 			buzzerClient.getBuzzfeedList().resetModel();
 		}
 
@@ -128,6 +136,7 @@ Item
 		}
 	}
 
+	//
 	QuarkListView {
 		id: list
 		x: 0
@@ -181,6 +190,18 @@ Item
 
 			property var buzzItem;
 
+			property bool isFullyVisible: itemDelegate.y >= list.contentY && itemDelegate.y + height < list.contentY + list.height
+
+			onIsFullyVisibleChanged: {
+				if (itemDelegate !== null && itemDelegate.buzzItem !== null && itemDelegate.buzzItem !== undefined) {
+					try {
+						itemDelegate.buzzItem.forceVisibilityCheck(itemDelegate.isFullyVisible);
+					} catch (err) {
+						console.log("[onIsFullyVisibleChanged]: " + err + ", itemDelegate.buzzItem = " + itemDelegate.buzzItem);
+					}
+				}
+			}
+
 			function forceChildLink() {
 				buzzItem.childLink_ = true;
 			}
@@ -213,6 +234,7 @@ Item
 				var lComponent = Qt.createComponent(lSource);
 				buzzItem = lComponent.createObject(itemDelegate);
 
+				buzzItem.sharedMediaPlayer_ = buzzfeed_.mediaPlayerControler;
 				buzzItem.width = list.width;
 				buzzItem.controller_ = buzzfeed_.controller;
 				buzzItem.buzzfeedModel_ = buzzerClient.getBuzzfeedList();
@@ -228,6 +250,15 @@ Item
 				itemDelegate.height = value;
 			}
 		}
+	}
+
+	//
+	BuzzItemMediaPlayer {
+		id: buzzfeedPlayer
+		x: 0
+		y: 0
+		width: parent.width
+		mediaPlayerControler: buzzfeed_.mediaPlayerControler
 	}
 
 	QuarkToolButton {

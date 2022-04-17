@@ -12,6 +12,7 @@ namespace cubix {
 
 #define TX_CUBIX_MEDIA_HEADER_VERSION_1 1 // + orientation
 #define TX_CUBIX_MEDIA_HEADER_VERSION_2 2 // + duration
+#define TX_CUBIX_MEDIA_HEADER_VERSION_3 4 // + preview
 
 //
 class TxMediaHeader: public Entity {
@@ -23,11 +24,14 @@ public:
 		VIDEO_MJPEG = 3, // motion jpeg, mjpeg
 		VIDEO_MP4 = 4, // video + multichannel audio, mp4 
 		AUDIO_PCM = 5, // multichannel audio, wav
-		AUDIO_AMR = 6 // voice, amr
+		AUDIO_AMR = 6, // voice, amr
+		DOCUMENT_PDF = 7,
+		AUDIO_MP3 = 8,
+		AUDIO_M4A = 9
 	};
 
 public:
-	TxMediaHeader() { type_ = TX_CUBIX_MEDIA_HEADER; version_ = TX_CUBIX_MEDIA_HEADER_VERSION_2; }
+	TxMediaHeader() { type_ = TX_CUBIX_MEDIA_HEADER; version_ = TX_CUBIX_MEDIA_HEADER_VERSION_3; }
 
 	ADD_INHERITABLE_SERIALIZE_METHODS;
 
@@ -45,6 +49,8 @@ public:
 			s << orientation_;
 		if (version_ >= TX_CUBIX_MEDIA_HEADER_VERSION_2)
 			s << duration_;
+		if (version_ >= TX_CUBIX_MEDIA_HEADER_VERSION_3)
+			s << previewType_;
 	}
 	
 	virtual void deserialize(DataStream& s) {
@@ -63,10 +69,15 @@ public:
 			s >> orientation_;
 		if (version_ >= TX_CUBIX_MEDIA_HEADER_VERSION_2)
 			s >> duration_;
+		if (version_ >= TX_CUBIX_MEDIA_HEADER_VERSION_3)
+			s >> previewType_;
 	}
 
 	inline Type mediaType() { return (Type)mediaType_; }
 	inline void setMediaType(unsigned short type) { mediaType_ = type; }
+
+	inline Type previewType() { return (Type)previewType_; }
+	inline void setPreviewType(unsigned short type) { previewType_ = type; }
 
 	inline uint64_t timestamp() { return timestamp_; }
 	inline void setTimestamp(uint64_t timestamp) { timestamp_ = timestamp; }
@@ -186,12 +197,17 @@ public:
 		std::string lDescription; lDescription.insert(lDescription.end(), description_.begin(), description_.end());
 		props["description"] = lDescription;
 		props["type"] = mediaTypeToString();
+		props["previewType"] = mediaTypeAnyToString((Type)previewType_);
 		props["signature"] = signature_.toHex();
 	}
 
 	inline std::string mediaTypeToString() {
+		return mediaTypeAnyToString((Type)mediaType_);
+	}
+
+	inline std::string mediaTypeAnyToString(Type mediaType) {
 		//
-		switch(mediaType_) {
+		switch(mediaType) {
 			case UNKNOWN: return "UNKNOWN";
 			case IMAGE_PNG: return "image/png";
 			case IMAGE_JPEG: return "image/jpeg";
@@ -199,14 +215,21 @@ public:
 			case VIDEO_MP4: return "video/mp4";
 			case AUDIO_PCM: return "audio/pcm";
 			case AUDIO_AMR: return "audio/amr";
+			case DOCUMENT_PDF: return "application/pdf";
+			case AUDIO_MP3: return "audio/mp3";
+			case AUDIO_M4A: return "audio/m4a";
 		}
 
 		return "UNKNOWN";
 	}
 
 	inline std::string mediaTypeToExtension() {
+		return mediaTypeAnyToExtension((Type)mediaType_);
+	}
+
+	inline std::string mediaTypeAnyToExtension(Type mediaType) {
 		//
-		switch(mediaType_) {
+		switch(mediaType) {
 		    case UNKNOWN: return ".unknown";
 		    case IMAGE_PNG: return ".png";
 		    case IMAGE_JPEG: return ".jpeg";
@@ -214,6 +237,9 @@ public:
 		    case VIDEO_MP4: return ".mp4";
 		    case AUDIO_PCM: return ".wav";
 		    case AUDIO_AMR: return ".amr";
+		    case DOCUMENT_PDF: return ".pdf";
+		    case AUDIO_MP3: return ".mp3";
+		    case AUDIO_M4A: return ".m4a";
 		}
 
 		return "UNKNOWN";
@@ -221,14 +247,13 @@ public:
 
 	inline std::string previewMediaTypeToExtension() {
 		//
-		switch(mediaType_) {
-		    case UNKNOWN: return ".unknown";
-		    case IMAGE_PNG: return ".png";
-		    case IMAGE_JPEG: return ".jpeg";
-		    case VIDEO_MJPEG: return ".jpeg"; //!
-		    case VIDEO_MP4: return ".jpeg"; //!
-		    case AUDIO_PCM: return ".wav";
-		    case AUDIO_AMR: return ".amr";
+		if (version_ >= TX_CUBIX_MEDIA_HEADER_VERSION_3) {
+			return mediaTypeAnyToExtension((Type)previewType_);
+		} else {
+			switch(mediaType_) {
+				case IMAGE_PNG: return ".png";
+				default: return ".jpeg";
+			}
 		}
 
 		return "UNKNOWN";
@@ -248,6 +273,12 @@ public:
 			return AUDIO_PCM;
 		} else if (ext == ".amr" || ext == "amr") {
 			return AUDIO_AMR;
+		} else if (ext == ".pdf" || ext == "pdf") {
+			return DOCUMENT_PDF;
+		} else if (ext == ".mp3" || ext == "mp3") {
+			return AUDIO_MP3;
+		} else if (ext == ".m4a" || ext == "m4a") {
+			return AUDIO_M4A;
 		}
 
 		return UNKNOWN;
@@ -260,6 +291,9 @@ public:
 		list.push_back(".mp4");
 		list.push_back(".wav");
 		list.push_back(".amr");
+		list.push_back(".pdf");
+		list.push_back(".mp3");
+		list.push_back(".m4a");
 	}
 
 	virtual inline void setChain(const uint256& chain) { chain_ = chain; } // override default entity behavior
@@ -294,6 +328,8 @@ protected:
 	unsigned short orientation_ = 0;
 	// version 2
 	uint32_t duration_ = 0;
+	// version 3
+	unsigned short previewType_ = Type::UNKNOWN;
 
 };
 

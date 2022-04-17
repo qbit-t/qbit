@@ -90,7 +90,6 @@ QuarkPage {
 	BuzzerComponents.VideoRecorder {
 		id: videoRecorder
 		localPath: buzzerClient.getTempFilesPath()
-		camera: cameraDevice
 
 		Component.onCompleted: {
 			resolution = "1080p";
@@ -270,6 +269,8 @@ QuarkPage {
 				videoRecorder.stop();
 				recordingVideo.stop();
 			} else {
+				//
+				videoRecorder.camera = cameraDevice;
 				buzzerApp.wakeLock(); // lock from sleep
 				videoRecorder.record();
 				recordingVideo.start();

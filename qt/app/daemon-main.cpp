@@ -72,9 +72,6 @@
 #include "settings.h"
 #include "applicationpath.h"
 #include "error.h"
-#include "client.h"
-
-#include "applicationpath.h"
 
 using namespace qbit;
 
@@ -339,7 +336,7 @@ public:
 	void avatarDownloadDone(qbit::TransactionPtr /*tx*/,
 						   const std::string& previewFile,
 						   const std::string& /*originalFile*/, unsigned short /*orientation*/, unsigned int /*duration*/,
-						   uint64_t /*size*/, unsigned short /*type*/, const ProcessingError& result) {
+						   uint64_t /*size*/, const qbit::cubix::doneDownloadWithErrorFunctionExtraArgs& /*extra*/, const ProcessingError& result) {
 		//
 		if (result.success()) {
 			//
@@ -356,11 +353,11 @@ public:
 	void mediaDownloadDone(qbit::TransactionPtr /*tx*/,
 						   const std::string& previewFile,
 						   const std::string& /*originalFile*/, unsigned short /*orientation*/, unsigned int /*duration*/,
-						   uint64_t /*size*/, unsigned short type, const ProcessingError& result) {
+						   uint64_t /*size*/, const qbit::cubix::doneDownloadWithErrorFunctionExtraArgs& extra, const ProcessingError& result) {
 		//
 		if (result.success()) {
 			//
-			if (type == cubix::TxMediaHeader::Type::IMAGE_JPEG || type == cubix::TxMediaHeader::Type::IMAGE_PNG) {
+			if (extra.type == cubix::TxMediaHeader::Type::IMAGE_JPEG || extra.type == cubix::TxMediaHeader::Type::IMAGE_PNG) {
 				mediaFile_ = previewFile;
 			}
 		} else {

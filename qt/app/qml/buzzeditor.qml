@@ -32,6 +32,8 @@ QuarkPage {
 	}
 
 	function closePage() {
+		//
+		mediaListEditor.cleanUp();
 		stopPage();
 		controller.popPage();
 		destroy(1000);
@@ -225,7 +227,7 @@ QuarkPage {
 		y: buzzEditorToolBar.y + buzzEditorToolBar.height
 		width: parent.width
 		height: parent.height - (buzzEditorToolBar.height + buzzFooterBar.height)
-		contentHeight: buzzText.contentHeight + (mediaList.model.count ? mediaBox.height : 0) + spaceMedia_ + spaceBottom_ * 2 +
+		contentHeight: buzzText.contentHeight + (mediaListEditor.model.count ? mediaBox.height : 0) + spaceMedia_ + spaceBottom_ * 2 +
 							wrapContainer.getHeight() + wrapContainer.getSpace() +
 							replyContainer.getHeight() + replyContainer.getSpace()
 		clip: true
@@ -279,7 +281,7 @@ QuarkPage {
 									lParts[lParts.length-1].toLowerCase() === "png") {
 									console.log(match);
 									// inject
-									mediaList.addMedia(match);
+									mediaListEditor.addMedia(match);
 									// remove
 									buzzText.remove(start, start + length);
 
@@ -496,7 +498,7 @@ QuarkPage {
 			x: spaceLeft_ - spaceItems_
 			y: getY()
 			width: parent.width - (spaceLeft_ + spaceRight_ - (spaceItems_) * 2)
-			height: Math.max(mediaList.height, calculatedHeight)
+			height: Math.max(mediaListEditor.height, calculatedHeight)
 			visible: true
 
 			function getY() {
@@ -523,7 +525,7 @@ QuarkPage {
 			property var calculatedHeight: 400
 
 			QuarkListView {
-				id: mediaList
+				id: mediaListEditor
 				x: 0
 				y: 0
 				width: parent.width
@@ -533,18 +535,28 @@ QuarkPage {
 				layoutDirection:  Qt.LeftToRight
 				snapMode: ListView.SnapOneItem
 
+				function cleanUp() {
+					//
+					for (var lIdx = 0; lIdx < mediaListEditor.count; lIdx++) {
+						var lItem = mediaListEditor.itemAtIndex(lIdx);
+						if (lItem && lItem.mediaItem) {
+							lItem.mediaItem.terminate();
+						}
+					}
+				}
+
 				onContentXChanged: {
 					mediaIndicator.currentIndex = indexAt(contentX, 1);
 				}
 
 				add: Transition {
 					NumberAnimation { property: "opacity"; from: 0; to: 1.0; duration: 400 }
-					//NumberAnimation { property: "height"; from: 0; to: mediaList.width; duration: 400 }
+					//NumberAnimation { property: "height"; from: 0; to: mediaListEditor.width; duration: 400 }
 				}
 
 				remove: Transition {
 					NumberAnimation { property: "opacity"; from: 1.0; to: 0; duration: 400 }
-					NumberAnimation { property: "height"; from: mediaList.width; to: 0; duration: 400 }
+					NumberAnimation { property: "height"; from: mediaListEditor.width; to: 0; duration: 400 }
 				}
 
 				displaced: Transition {
@@ -558,15 +570,9 @@ QuarkPage {
 
 					property var mediaItem;
 
-					/*
-					onClicked: {
-						//
-					}
-					*/
-
 					onWidthChanged: {
 						if (mediaItem) {
-							mediaItem.width = mediaList.width;
+							mediaItem.width = mediaListEditor.width;
 							itemDelegate.height = mediaItem.height;
 						}
 					}
@@ -581,13 +587,26 @@ QuarkPage {
 
 						var lComponent = Qt.createComponent(lSource);
 						mediaItem = lComponent.createObject(itemDelegate);
+						if (media === "video")
+							mediaItem.adjustDuration.connect(adjustDuration);
 
 						mediaItem.width = list.width;
-						mediaItem.mediaList = mediaList;
+						mediaItem.mediaList = mediaListEditor;
 						mediaItem.mediaBox = mediaBox;
 
 						itemDelegate.height = mediaItem.height;
-						itemDelegate.width = mediaList.width;
+						itemDelegate.width = mediaListEditor.width;
+					}
+
+					function adjustDuration(value) {
+						//
+						for (var lIdx = 0; lIdx < mediaModel.count; lIdx++) {
+							if(mediaModel.get(lIdx).key === key) {
+								//
+								duration = value;
+								console.log("[adjustDuration]: vale = " + duration);
+							}
+						}
 					}
 				}
 
@@ -634,7 +653,7 @@ QuarkPage {
 					var lOrientation = 0; // vertical
 					if (buzzeditor_.width > buzzeditor_.height) lOrientation = 1; // horizontal
 					*/
-
+					console.log("[addVideo]: file = " + file + ", preview = " + preview);
 					mediaModel.append({
 						key: file,
 						path: "file://" + file,
@@ -658,7 +677,7 @@ QuarkPage {
 			PageIndicator {
 				id: mediaIndicator
 				count: mediaModel.count
-				currentIndex: mediaList.currentIndex
+				currentIndex: mediaListEditor.currentIndex
 
 				anchors.bottom: parent.top
 				anchors.horizontalCenter: parent.horizontalCenter
@@ -700,7 +719,7 @@ QuarkPage {
 
 			onClicked: {
 				if (!sending)
-					// imageListing.listImages();
+					//imageListing.listImages();
 					buzzerApp.pickImageFromGallery();
 			}
 		}
@@ -738,7 +757,7 @@ QuarkPage {
 			}
 
 			function photoTaken(path) {
-				mediaList.addMedia(path);
+				mediaListEditor.addMedia(path);
 			}
 		}
 
@@ -775,7 +794,7 @@ QuarkPage {
 			}
 
 			function videoTaken(path, duration, orientation, preview) {
-				mediaList.addVideo(path, duration, orientation, preview);
+				mediaListEditor.addVideo(path, duration, orientation, preview);
 			}
 		}
 
@@ -1039,7 +1058,7 @@ QuarkPage {
 		id: imageListing
 
 		onImageFound:  {
-			mediaList.addMedia(file);
+			mediaListEditor.addMedia(file);
 		}
 	}
 
@@ -1047,9 +1066,18 @@ QuarkPage {
 		id: selectImage
 		target: buzzerApp
 
-		function onFileSelected(file) {
+		function onFileSelected(file, preview) {
 			//
-			mediaList.addMedia(file);
+			if ((file.includes(".mp4") || file.includes(".mp3") || file.includes(".m4a")) && preview !== "") {
+				mediaListEditor.addVideo(file, 0, 0, preview);
+			} else if (file.includes(".mp3") || file.includes(".m4a")) {
+				mediaListEditor.addAudio(file, 0);
+			} else if (file.includes(".mp4")) {
+				handleError("E_MEDIA_PREVIEW_ABSENT", "Media preview is absent"); // TODO: localize!
+			} else {
+				//
+				mediaListEditor.addMedia(file);
+			}
 		}
 	}
 
@@ -1090,7 +1118,7 @@ QuarkPage {
 			//
 			if (actualFileLocation !== "") {
 				// we have location and content saved
-				mediaList.addAudio(audioRecorder.actualFileLocation, duration);
+				mediaListEditor.addAudio(audioRecorder.actualFileLocation, duration);
 			}
 		}
 
@@ -1098,7 +1126,7 @@ QuarkPage {
 			//
 			if (isStopped) {
 				// we have location and content saved
-				mediaList.addAudio(audioRecorder.actualFileLocation, duration);
+				mediaListEditor.addAudio(audioRecorder.actualFileLocation, duration);
 			}
 		}
 
@@ -1143,6 +1171,7 @@ QuarkPage {
 		uploadCommand: uploadBuzzMedia
 
 		onProcessed: {
+			mediaListEditor.cleanUp();
 			createProgressBar.value = 1.0;
 			controller.popPage();
 		}
@@ -1181,6 +1210,7 @@ QuarkPage {
 		model: buzzfeedModel_
 
 		onProcessed: {
+			mediaListEditor.cleanUp();
 			createProgressBar.value = 1.0;
 			controller.popPage();
 		}
@@ -1219,6 +1249,7 @@ QuarkPage {
 		model: buzzfeedModel_ // TODO: implement property buzzChainId (with buzzfeedModel in parallel)
 
 		onProcessed: {
+			mediaListEditor.cleanUp();
 			createProgressBar.value = 1.0;
 			controller.popPage();
 		}
@@ -1256,6 +1287,7 @@ QuarkPage {
 		uploadCommand: uploadBuzzMedia
 
 		onProcessed: {
+			mediaListEditor.cleanUp();
 			createProgressBar.value = 1.0;
 			controller.popPage();
 		}
@@ -1292,6 +1324,9 @@ QuarkPage {
 		//
 		var lText = buzzerClient.getPlainText(buzzText.textDocument);
 		if (lText.length === 0) lText = buzzText.preeditText;
+
+		//
+		mediaListEditor.cleanUp();
 
 		if (lText.length === 0 && mediaModel.count === 0) {
 			handleError("E_BUZZ_IS_EMPTY", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZ_IS_EMPTY"));
@@ -1332,6 +1367,9 @@ QuarkPage {
 		var lText = buzzerClient.getPlainText(buzzText.textDocument);
 		if (lText.length === 0) lText = buzzText.preeditText;
 
+		//
+		mediaListEditor.cleanUp();
+
 		if (buzzerClient.getBuzzBodySize(lText) >= buzzerClient.getBuzzBodyMaxSize()) {
 			handleError("E_BUZZ_IS_TOO_BIG", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZ_IS_TOO_BIG"));
 			sending = false;
@@ -1366,6 +1404,9 @@ QuarkPage {
 		//
 		var lText = buzzerClient.getPlainText(buzzText.textDocument);
 		if (lText.length === 0) lText = buzzText.preeditText;
+
+		//
+		mediaListEditor.cleanUp();
 
 		if (lText.length === 0 && mediaModel.count === 0) {
 			handleError("E_BUZZ_IS_EMPTY", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZ_IS_EMPTY"));
@@ -1408,6 +1449,9 @@ QuarkPage {
 		//
 		var lText = buzzerClient.getPlainText(buzzText.textDocument);
 		if (lText.length === 0) lText = buzzText.preeditText;
+
+		//
+		mediaListEditor.cleanUp();
 
 		if (lText.length === 0 && mediaModel.count === 0) {
 			handleError("E_BUZZ_IS_EMPTY", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZ_IS_EMPTY"));

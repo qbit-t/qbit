@@ -47,6 +47,8 @@ Rectangle {
 	property var buzzitemmedia_;
 	property var mediaList;
 
+	signal errorLoading();
+
 	onMediaListChanged: {
 		mediaImage.adjustView();
 	}
@@ -77,7 +79,7 @@ Rectangle {
 
 	//
 	color: "transparent"
-	// border.color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
+	//border.color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
 	width: mediaImage.width + 2 * spaceItems_
 	height: calculatedHeight // mediaImage.height
 	radius: 8
@@ -106,6 +108,10 @@ Rectangle {
 
 		function adjustView() {
 			if (mediaImage.status === Image.Ready) {
+				//
+				reloadControl.visible = true;
+				waitControl.visible = false;
+				//
 				if (calculatedWidth > calculatedHeight && mediaImage.sourceSize.height > mediaImage.sourceSize.width ||
 						(mediaImage.sourceSize.height > mediaImage.sourceSize.width && !orientation_)) {
 					height = calculatedHeight - 20;
@@ -119,8 +125,24 @@ Rectangle {
 			}
 		}
 
+		onSourceChanged: {
+			//
+			if (!usePreview_) waitControl.visible = true;
+		}
+
 		onStatusChanged: {
+			//
 			adjustView();
+			//
+			if (status == Image.Error) {
+				//
+				reloadControl.visible = true;
+
+				// force to reload
+				console.log("[onStatusChanged]: forcing reload of " + path_);
+				//downloadCommand
+				errorLoading();
+			}
 		}
 
 		MouseArea {
@@ -181,6 +203,35 @@ Rectangle {
 		}
 	}
 
+	QuarkToolButton {
+		id: reloadControl
+		x: mediaImage.x + mediaImage.width - width - spaceItems_
+		y: mediaImage.y + spaceItems_
+		symbol: Fonts.arrowDownHollowSym
+		visible: false
+		labelYOffset: buzzerApp.isDesktop ? 1 : 3
+		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
+		Material.background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.background");
+		Layout.alignment: Qt.AlignHCenter
+		opacity: 0.6
+		symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 14) : symbolFontPointSize
+
+		onClicked: {
+			//
+			errorLoading();
+		}
+	}
+
+	QuarkSymbolLabel {
+		id: waitControl
+		x: parent.width / 2 - width / 2
+		y: parent.height / 2 - height / 2
+		symbol: Fonts.clockSym
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (mediaLoading.size-10)) : (mediaLoading.size-10)
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link")
+		visible: false
+	}
+
 	QuarkRoundProgress {
 		id: mediaLoading
 		x: parent.width / 2 - width / 2
@@ -192,6 +243,7 @@ Rectangle {
 		arcEnd: 0
 		lineWidth: buzzerClient.scaleFactor * 3
 		visible: false
+		animationDuration: 50
 
 		QuarkSymbolLabel {
 			id: waitSymbol
@@ -200,6 +252,23 @@ Rectangle {
 			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (mediaLoading.size-10)) : (mediaLoading.size-10)
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link")
 			visible: mediaLoading.visible
+		}
+
+		function wait() {
+			beginAnimation = false;
+			endAnimation = false;
+
+			visible = true;
+			waitSymbol.visible = true;
+			arcBegin = 0;
+			arcEnd = 0;
+
+			beginAnimation = true;
+			endAnimation = true;
+		}
+
+		function hide() {
+			mediaLoading.visible = false;
 		}
 
 		function progress(pos, size) {

@@ -327,11 +327,12 @@ DownloadMediaCommand::DownloadMediaCommand(QObject* /*parent*/) : QObject() {
 						boost::placeholders::_8));
 
 	// TODO: potential leak, need "check list" to track such objects
-	QQmlEngine::setObjectOwnership(this, QQmlEngine::CppOwnership);
+	// QQmlEngine::setObjectOwnership(this, QQmlEngine::CppOwnership);
 }
 
 DownloadMediaCommand::~DownloadMediaCommand() {
 	//
+	command_->unlink();
 	command_->terminate();
 }
 
@@ -345,7 +346,7 @@ UploadMediaCommand::UploadMediaCommand(QObject* /*parent*/) : QObject() {
 			boost::bind(&UploadMediaCommand::done, this, boost::placeholders::_1, boost::placeholders::_2));
 
 	// TODO: potential leak, need "check list" to track such objects
-	QQmlEngine::setObjectOwnership(this, QQmlEngine::CppOwnership);
+	// QQmlEngine::setObjectOwnership(this, QQmlEngine::CppOwnership);
 }
 
 BuzzLikeCommand::BuzzLikeCommand(QObject* /*parent*/) : QObject() {

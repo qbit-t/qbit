@@ -49,6 +49,11 @@ Rectangle {
 	function adjustOrientation(orientation) {
 	}
 
+	function terminate() {
+		//
+		player.pause();
+	}
+
 	//
 	color: "transparent"
 	width: parent.width
@@ -148,7 +153,7 @@ Rectangle {
 
 		function setTotalSize(mediaSize) {
 			//
-			if (mediaSize < 1000) text = ", " + size + "b";
+			if (mediaSize < 1000) text = ", " + mediaSize + "b";
 			else text = ", " + NumberFunctions.numberToCompact(mediaSize);
 		}
 	}

@@ -47,19 +47,27 @@ Rectangle {
 	property int calculatedHeight: 600
 	property var frameColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
 	property var fillColor: "transparent"
+	property var sharedMediaPlayer_
 
 	//
 	property var buzzitemmedia_;
 	property var mediaList;
 
 	signal adjustHeight(var proposed);
+	signal errorLoading();
 
 	//
 	property var currentOrientation_: orientation_;
 
+	function terminate() {
+		//
+		console.log("[itemVideo]: terminate");
+		if (videoFrame.player) videoFrame.player.pause();
+	}
+
 	onCurrentOrientation_Changed: {
 		//
-		if (buzzerApp.isDesktop) {
+		if (buzzerApp.isDesktop && videoOut) {
 			if (currentOrientation_ == 6) videoOut.orientation = -90;
 			else if (currentOrientation_ == 3) videoOut.orientation = -180;
 			else if (currentOrientation_ == 8) videoOut.orientation = 90;
@@ -91,159 +99,106 @@ Rectangle {
 		adjust();
 	}
 
+	function forceVisibilityCheck(isFullyVisible) {
+		//
+		if (player && playing) {
+			//
+			if (!isFullyVisible) {
+				videoFrame.sharedMediaPlayer_.showCurrentPlayer();
+			} else {
+				videoFrame.sharedMediaPlayer_.hideCurrentPlayer();
+			}
+		}
+	}
+
 	function adjust() {
-		videoOut.adjustView();
+		frameContainer.adjustView();
 		previewImage.adjustView();
 	}
 
 	//
 	color: "transparent"
-	width: player.width + 2 * spaceItems_
 
 	//
-	VideoOutput {
-		id: videoOut
+	Item {
+		id: frameContainer
+		//x: videoOut ? videoOut.contentRect.x : 0
+		//y: videoOut ? videoOut.contentRect.y : 0
+		//width: previewImage.visible ? previewImage.width : parent.width
+		//height: previewImage.visible ? previewImage.height : parent.height
 
-		x: getX()
-		y: getY()
+		width: videoOut ? videoOut.contentRect.width : parent.width
+		height: videoOut ? videoOut.contentRect.height : parent.height
+
+		visible: false
 
 		property var correctedHeight: 0
 
-		function getX() {
-			return 0;
-		}
-
-		function getY() {
-			return 0;
-		}
-
 		function adjustView() {
-			if (previewImage.visible) return;
+			//if (previewImage.visible) return;
 			if (!buzzitemmedia_) return;
 			if (mediaList) width = mediaList.width - 2 * spaceItems_;
 
-			//console.log("[adjustView]: height = " + height + ", parent.height = " + parent.height + ", buzzitemmedia_.calculatedHeight = " + buzzitemmedia_.calculatedHeight);
-
 			mediaList.height = Math.max(buzzitemmedia_.calculatedHeight, previewImage.visible ? 0 : calculatedHeight);
 			// buzzitemmedia_.calculatedHeight = correctedHeight ? correctedHeight : mediaList.height;
+
 			height = previewImage.visible ? previewImage.height : parent.height;
+			//console.log("[frameContainer/adjustView]: height = " + height + ", parent.height = " + parent.height + ", buzzitemmedia_.calculatedHeight = " + buzzitemmedia_.calculatedHeight + ", correctedHeight = " + correctedHeight);
+
 			adjustHeight(correctedHeight ? correctedHeight : mediaList.height);
 		}
 
-		width: parent.width
-		height: previewImage.visible ? previewImage.height : parent.height
-		visible: !actionButton.needDownload
-
-		source: player
-
-		fillMode: VideoOutput.PreserveAspectFit
-
-		onSourceRectChanged: {
-		}
-
-		onContentRectChanged: {
+		function enableScene() {
 			//
-			if (!previewImage.visible && videoOut.contentRect.height > 0 &&
+			//console.log("[onContentRectChanged(0)]: videoOutput.contentRect = " + videoOut.contentRect + ", playing = " + playing + ", calculatedHeight = " + calculatedHeight);
+			//
+			if (videoFrame.playing && videoFrame.player && videoFrame.player.hasVideo /*videoOut.contentRect.height > 0 &&
 													videoOut.contentRect.height < calculatedHeight &&
-														(orientation != 90 && orientation != -90)) {
-				console.log("[onContentRectChanged]: videoOutput.contentRect = " + videoOut.contentRect);
+														(orientation != 90 && orientation != -90)*/) {
+				//console.log("[onContentRectChanged(1)]: videoOutput.contentRect = " + videoOut.contentRect);
+				previewImage.visible = false;
+				frameContainer.visible = true;
 				height = videoOut.contentRect.height;
 				adjustHeight(height);
 				correctedHeight = height;
 			}
 		}
 
-		layer.enabled: buzzerApp.isDesktop
-		layer.effect: OpacityMask {
-			id: roundEffect
-			maskSource: Item {
-				width: roundEffect.getWidth()
-				height: roundEffect.getHeight()
-
-				Rectangle {
-					//anchors.centerIn: parent
-					x: roundEffect.getX()
-					y: roundEffect.getY()
-					width: roundEffect.getWidth()
-					height: roundEffect.getHeight()
-					radius: 8
-				}
-			}
-
-			function getX() {
-				return 0;
-			}
-
-			function getY() {
-				return 0;
-			}
-
-			function getWidth() {
-				return previewImage.width;
-			}
-
-			function getHeight() {
-				return previewImage.height;
-			}
+		function disableScene() {
+			previewImage.visible = true;
+			frameContainer.visible = false;
+			previewImage.adjustView();
 		}
 
-		MouseArea {
-			id: linkClick
-			x: 0
-			y: 0
-			width: videoOut.width
-			height: videoOut.height
-			enabled: true
-			cursorShape: Qt.PointingHandCursor
+		function clickActivated() {
+			// expand
+			var lSource;
+			var lComponent;
 
-			function clickActivated() {
-				// expand
-				var lSource;
-				var lComponent;
+			// gallery
+			lSource = "qrc:/qml/buzzmedia.qml";
+			lComponent = Qt.createComponent(lSource);
 
-				// gallery
-				lSource = "qrc:/qml/buzzmedia.qml";
-				lComponent = Qt.createComponent(lSource);
-
-				if (lComponent.status === Component.Error) {
-					controller_.showError(lComponent.errorString());
-				} else {
-					var lMedia = lComponent.createObject(controller_);
-					lMedia.controller = controller_;
-					lMedia.buzzMedia_ = buzzitemmedia_.buzzMedia_;
-					lMedia.initialize(pkey_);
-					controller_.addPage(lMedia);
-				}
-			}
-
-			onClicked: {
-				//
-				if (!buzzerApp.isDesktop) {
-					linkClick.clickActivated();
-				}
-			}
-
-			ItemDelegate {
-				id: linkClicked
-				x: 0
-				y: 0
-				width: videoOut.width
-				height: videoOut.height
-				enabled: buzzerApp.isDesktop
-
-				onClicked: {
-					linkClick.clickActivated();
-				}
+			if (lComponent.status === Component.Error) {
+				controller_.showError(lComponent.errorString());
+			} else {
+				var lMedia = lComponent.createObject(controller_);
+				lMedia.controller = controller_;
+				lMedia.buzzMedia_ = buzzitemmedia_.buzzMedia_;
+				lMedia.initialize(pkey_);
+				controller_.addPage(lMedia);
 			}
 		}
 	}
 
-	Image {
+	BuzzerComponents.ImageQx {
 		id: previewImage
 		asynchronous: true
+		radius: 8
 
 		function adjustView() {
 			if (previewImage.status === Image.Ready && mediaList && buzzitemmedia_) {
+				//console.log("[onHeightChanged(1)/image]: height = " + height + ", width = " + width + ", implicitHeight = " + previewImage.implicitHeight);
 				width = mediaList.width - 2*spaceItems_;
 				adjustHeight(height);
 				parent.height = height;
@@ -252,7 +207,9 @@ Rectangle {
 
 		onHeightChanged: {
 			if (buzzitemmedia_) {
+				//console.log("[onHeightChanged(2)/image]: height = " + height + ", width = " + width + ", implicitHeight = " + previewImage.implicitHeight);
 				adjustHeight(height);
+				parent.height = height;
 			}
 		}
 
@@ -260,45 +217,22 @@ Rectangle {
 			adjustView();
 		}
 
-		source: preview_
-		fillMode: VideoOutput.PreserveAspectFit
-		mipmap: true
+		onWidthChanged: {
+			//
+			if (width != originalWidth) {
+				var lCoeff = (width * 1.0) / (originalWidth * 1.0)
+				var lHeight = originalHeight * 1.0;
+				height = lHeight * lCoeff;
 
-		visible: actionButton.needDownload || (!player.playing && player.position == 1 && buzzerApp.isDesktop)
-
-		layer.enabled: true
-		layer.effect: OpacityMask {
-			id: roundEffect1
-			maskSource: Item {
-				width: roundEffect1.getWidth()
-				height: roundEffect1.getHeight()
-
-				Rectangle {
-					//anchors.centerIn: parent
-					x: roundEffect1.getX()
-					y: roundEffect1.getY()
-					width: roundEffect1.getWidth()
-					height: roundEffect1.getHeight()
-					radius: 8
-				}
-			}
-
-			function getX() {
-				return 0;
-			}
-
-			function getY() {
-				return 0;
-			}
-
-			function getWidth() {
-				return previewImage.width;
-			}
-
-			function getHeight() {
-				return previewImage.height;
+				//console.log("[onHeightChanged/image/new height]: height = " + lHeight + ", lCoeff = " + lCoeff + ", width = " + width + ", originalWidth = " + originalWidth);
 			}
 		}
+
+		source: preview_
+		fillMode: BuzzerComponents.ImageQx.PreserveAspectFit
+		mipmap: true
+
+		visible: true //actionButton.needDownload || (!playing && ((player && player.position === 1) || !player) && buzzerApp.isDesktop)
 
 		MouseArea {
 			x: 0
@@ -309,10 +243,10 @@ Rectangle {
 			cursorShape: Qt.PointingHandCursor
 
 			ItemDelegate {
-				x: 0
-				y: 0
-				width: previewImage.width
-				height: previewImage.height
+				x: 1
+				y: 1
+				width: previewImage.width - 2
+				height: previewImage.height - 2
 				enabled: true
 
 				onClicked: {
@@ -338,75 +272,99 @@ Rectangle {
 		}
 	}
 
-	//
-	QuarkRoundRectangle {
-		id: frameContainer
-		x: videoOut.contentRect.x /*+ spaceItems_*/ - 1
-		y: videoOut.contentRect.y - 1
-		width: videoOut.contentRect.width + 2
-		height: videoOut.contentRect.height + 2
+	property var player: null
+	property var videoOut: null
+	property bool playing: false
 
-		color: "transparent"
-		backgroundColor: "transparent"
-		radius: 14
-		penWidth: 9
+	function play() {
+		//
+		if (!player) {
+			// controller
+			var lVideoOut = videoFrame.sharedMediaPlayer_.createInstance(videoFrame, frameContainer);
+			//
+			if (lVideoOut) {
+				lVideoOut.player.onPlaying.connect(mediaPlaying);
+				lVideoOut.player.onPaused.connect(mediaPaused);
+				lVideoOut.player.onStopped.connect(mediaStopped);
+				lVideoOut.player.onStatusChanged.connect(playerStatusChanged);
+				lVideoOut.player.onPositionChanged.connect(playerPositionChanged);
+				lVideoOut.player.onError.connect(playerError);
+				lVideoOut.linkActivated.connect(frameContainer.clickActivated);
+				lVideoOut.onContentRectChanged.connect(frameContainer.enableScene);
 
-		visible: true //!buzzerApp.isDesktop && !actionButton.needDownload
+				videoOut = lVideoOut;
+				player = lVideoOut.player;
+
+				player.source = path_;
+				player.play();
+			}
+		} else {
+			if (player.stopped)
+				videoFrame.sharedMediaPlayer_.linkInstance(videoOut);
+			player.play();
+		}
 	}
 
-	//
-	MediaPlayer {
-		id: player
-		//source: path_
+	function mediaPlaying() {
+		if (!videoFrame) return;
+		playing = true;
+		frameContainer.enableScene();
+		actionButton.adjust();
+		//previewImage.visible = false;
+	}
 
-		property bool playing: false;
+	function mediaPaused() {
+		if (!videoFrame) return;
+		playing = false;
+		actionButton.adjust();
+	}
 
-		onPlaying: { playing = true; actionButton.adjust(); }
-		onPaused: { playing = false; actionButton.adjust(); }
-		onStopped: {
-			playing = false;
-			actionButton.adjust();
-			player.seek(1);
+	function mediaStopped() {
+		if (!videoFrame) return;
+		videoFrame.playing = false;
+		actionButton.adjust();
+		frameContainer.disableScene();
+		elapsedTime.setTime(0);
+		playSlider.value = 0;
+	}
+
+	function playerStatusChanged(status) {
+		if (!videoFrame || !videoFrame.player) return;
+		switch(videoFrame.player.status) {
+			case MediaPlayer.Buffered:
+				totalTime.setTotalTime(videoFrame.player.duration ? videoFrame.player.duration : duration_);
+				totalSize.setTotalSize(size_);
+				playSlider.to = videoFrame.player.duration ? videoFrame.player.duration : duration_;
+				videoOut.fillMode = VideoOutput.PreserveAspectFit;
+				frameContainer.adjustView();
+
+				//console.log("[onStatusChanged/buffered/inner]: status = " + videoFrame.player.status + ", duration = " + videoFrame.player.duration);
+			break;
 		}
+	}
 
-		onStatusChanged: {
-			//
-			switch(status) {
-				case MediaPlayer.Buffered:
-					totalTime.setTotalTime(duration ? duration : duration_);
-					totalSize.setTotalSize(size_);
-					playSlider.to = duration ? duration : duration_;
-					//player.seek(1);
-					videoOut.fillMode = VideoOutput.PreserveAspectFit;
-					videoOut.adjustView();
+	function playerError(error, errorString) {
+		console.log("[onErrorStringChanged]: " + errorString);
+		// in case of error
+		downloadCommand.downloaded = false;
+		downloadCommand.processing = false;
+		downloadCommand.cleanUp();
+	}
 
-					console.log("[onStatusChanged/buffered]: status = " + status + ", duration = " + duration);
-				break;
-			}
-
-			console.log("[onStatusChanged]: status = " + status + ", duration = " + duration);
-		}
-
-		onErrorStringChanged: {
-			console.log("[onErrorStringChanged]: " + errorString);
-		}
-
-		onPositionChanged: {
-			elapsedTime.setTime(position);
-			playSlider.value = position;
-		}
-
-		onPlaybackStateChanged: {
+	function playerPositionChanged(position) {
+		if (videoFrame && videoFrame.player) {
+			elapsedTime.setTime(videoFrame.player.position);
+			playSlider.value = videoFrame.player.position;
 		}
 	}
 
 	//
 	Rectangle {
 		id: controlsBack
-		x: frameContainer.visible ? (frameContainer.x + 2 * spaceItems_) : (previewImage.x + spaceItems_)
-		y: frameContainer.visible ? (frameContainer.y + frameContainer.height - (actionButton.height + 4 * spaceItems_)) :
+		x: frameContainer.visible ? (frameContainer.x + spaceItems_) : (previewImage.x + spaceItems_)
+		y: frameContainer.visible ? (frameContainer.y + frameContainer.height - (actionButton.height + 3 * spaceItems_)) :
 									(previewImage.y + previewImage.height - (actionButton.height + 3 * spaceItems_))
-		width: frameContainer.visible ? (frameContainer.width - (4 * spaceItems_)) : (previewImage.width - (2 * spaceItems_))
+		width: frameContainer.visible ? (frameContainer.width - (2 * spaceItems_)) : (previewImage.width - (2 * spaceItems_))
 		height: actionButton.height + 2 * spaceItems_
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
 		opacity: 0.3
@@ -422,12 +380,14 @@ Rectangle {
 					   (symbol === Fonts.playSym || symbol === Fonts.cancelSym ? 3 : 0)
 		spaceTop: 2
 		symbol: needDownload && !downloadCommand.downloaded ? Fonts.arrowDownHollowSym :
-									(player.playing ? Fonts.pauseSym : Fonts.playSym)
+									(videoFrame.playing ? Fonts.pauseSym : Fonts.playSym)
 		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 7)) : 18
 		radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius)) : defaultRadius
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.highlight")
 
 		property bool needDownload: size_ && size_ > 1024*200 && !downloadCommand.downloaded
+
+		opacity: 0.6
 
 		onClick: {
 			//
@@ -442,11 +402,11 @@ Rectangle {
 				mediaLoading.visible = false;
 				downloadCommand.processing = false;
 				downloadCommand.terminate();
-			} else if (!player.playing) {
-				player.source = path_;
-				player.play();
+			} else if (!videoFrame.playing) {
+				videoFrame.play();
 			} else {
-				player.pause();
+				if (videoFrame.player)
+					videoFrame.player.pause();
 			}
 		}
 
@@ -462,7 +422,7 @@ Rectangle {
 
 		function adjust() {
 			symbol = needDownload && !downloadCommand.downloaded ? Fonts.arrowDownHollowSym :
-										(player.playing ? Fonts.pauseSym : Fonts.playSym);
+										(videoFrame.playing ? Fonts.pauseSym : Fonts.playSym);
 		}
 	}
 
@@ -500,7 +460,7 @@ Rectangle {
 
 		function setTotalSize(mediaSize) {
 			//
-			if (mediaSize < 1000) text = ", " + size + "b";
+			if (mediaSize < 1000) text = ", " + mediaSize + "b";
 			else text = ", " + NumberFunctions.numberToCompact(mediaSize);
 		}
 	}
@@ -518,7 +478,7 @@ Rectangle {
 										(previewImage.width - (actionButton.width + 4 * spaceItems_))
 
 		onMoved: {
-			player.seek(value);
+			if (videoFrame.player) videoFrame.player.seek(value);
 			elapsedTime.setTime(value);
 		}
 
@@ -538,11 +498,18 @@ Rectangle {
 		arcEnd: 0
 		lineWidth: buzzerClient.scaleFactor * 2
 		visible: false
+		animationDuration: 50
 
 		function start() {
+			beginAnimation = false;
+			endAnimation = false;
+
 			visible = true;
 			arcBegin = 0;
 			arcEnd = 0;
+
+			beginAnimation = true;
+			endAnimation = true;
 		}
 
 		function progress(pos, size) {
@@ -595,9 +562,8 @@ Rectangle {
 			actionButton.adjust();
 
 			// autoplay
-			if (!player.playing) {
-				player.source = path_;
-				player.play();
+			if (!videoFrame.playing) {
+				videoFrame.play();
 			}
 		}
 

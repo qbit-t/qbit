@@ -25,6 +25,8 @@ public:
 	virtual std::set<std::string> name() { throw qbit::exception("NOT_IMPL", "ICommand::name - not implemented."); }
 	virtual void help() { throw qbit::exception("NOT_IMPL", "ICommand::help - not implemented."); }
 	virtual void terminate() { throw qbit::exception("NOT_IMPL", "ICommand::terminate - not implemented."); }
+	virtual void cleanUp() { throw qbit::exception("NOT_IMPL", "ICommand::cleanUp - not implemented."); }
+	virtual void unlink() { throw qbit::exception("NOT_IMPL", "ICommand::unlink - not implemented."); }
 	virtual IPeerPtr peer() { throw qbit::exception("NOT_IMPL", "ICommand::peer - not implemented."); }
 
 	void setWallet(IWalletPtr wallet) { wallet_ = wallet; }

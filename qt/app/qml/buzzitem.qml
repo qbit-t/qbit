@@ -73,6 +73,7 @@ Item {
 	property var controller_: controller
 	property var buzzfeedModel_: buzzfeedModel
 	property var listView_
+	property var sharedMediaPlayer_
 
 	readonly property int spaceLeft_: 15
 	readonly property int spaceTop_: 12
@@ -133,6 +134,10 @@ Item {
 		return calculatedHeight;
 	}
 
+	function cleanUp() {
+		//
+	}
+
 	onThreaded_Changed: {
 		calculateHeight();
 	}
@@ -149,6 +154,14 @@ Item {
 		if (wrapped_) {
 			expandBody.start();
 		}
+	}
+
+	onSharedMediaPlayer_Changed: {
+		bodyControl.setSharedMediaPlayer();
+	}
+
+	function forceVisibilityCheck(isFullyVisible) {
+		bodyControl.setFullyVisible(isFullyVisible);
 	}
 
 	//
@@ -331,6 +344,7 @@ Item {
 		}
 	}
 
+	//BuzzerComponents.ImageQx {
 	Image {
 		id: avatarImage
 
@@ -340,6 +354,7 @@ Item {
 		height: avatarImage.displayHeight
 		fillMode: Image.PreserveAspectCrop
 		mipmap: true
+		//radius: avatarImage.displayWidth
 
 		property bool rounded: true
 		property int displayWidth: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 50 : 50
@@ -626,6 +641,21 @@ Item {
 		property var urlInfoItem_;
 		property var wrappedItem_;
 
+		function setFullyVisible(fullyVisible) {
+			if (buzzMediaItem_) buzzMediaItem_.forceVisibilityCheck(fullyVisible);
+			if (wrappedItem_) wrappedItem_.forceVisibilityCheck(fullyVisible);
+		}
+
+		function setSharedMediaPlayer() {
+			if (buzzMediaItem_) {
+				buzzMediaItem_.sharedMediaPlayer_ = buzzitem_.sharedMediaPlayer_;
+			}
+
+			if (wrappedItem_) {
+				wrappedItem_.sharedMediaPlayer_ = buzzitem_.sharedMediaPlayer_;
+			}
+		}
+
 		function forceExpand() {
 			//
 			expand();
@@ -737,6 +767,7 @@ Item {
 				wrappedItem_.y = bodyControl.getY();
 				wrappedItem_.width = bodyControl.width;
 				wrappedItem_.controller_ = buzzitem_.controller_;
+				wrappedItem_.sharedMediaPlayer_ = buzzitem_.sharedMediaPlayer_;
 
 				//console.log("[WRAPPED]: wrapped_.buzzerId = " + wrapped_.buzzerId + ", wrapped_.buzzerInfoId = " + wrapped_.buzzerInfoId);
 
@@ -771,6 +802,7 @@ Item {
 					buzzMediaItem_.controller_ = buzzitem_.controller_;
 					buzzMediaItem_.buzzId_ = buzzitem_.buzzId_;
 					buzzMediaItem_.buzzMedia_ = buzzitem_.buzzMedia_;
+					buzzMediaItem_.sharedMediaPlayer_ = buzzitem_.sharedMediaPlayer_;
 					buzzMediaItem_.initialize();
 
 					bodyControl.height = bodyControl.getHeight();

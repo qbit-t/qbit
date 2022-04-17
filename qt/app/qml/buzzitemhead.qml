@@ -62,6 +62,7 @@ Item {
 	property var controller_: controller
 	property var buzzfeedModel_: buzzfeedModel
 	property var listView_
+	property var sharedMediaPlayer_
 
 	readonly property int spaceLeft_: 15
 	readonly property int spaceTop_: 12
@@ -87,6 +88,10 @@ Item {
 		avatarDownloadCommand.process();
 	}
 
+	onSharedMediaPlayer_Changed: {
+		bodyControl.setSharedMediaPlayer();
+	}
+
 	function calculateHeightInternal() {
 		return bottomLine.y1;
 		//spaceTop_ + headerInfo.getHeight() + avatarImage.displayHeight + spaceTop_ +
@@ -97,6 +102,10 @@ Item {
 	function calculateHeight() {
 		calculatedHeight = calculateHeightInternal();
 		return calculatedHeight;
+	}
+
+	function forceVisibilityCheck(isFullyVisible) {
+		bodyControl.setFullyVisible(isFullyVisible);
 	}
 
 	//
@@ -378,6 +387,16 @@ Item {
 		property var urlInfoItem_;
 		property var wrappedItem_;
 
+		function setFullyVisible(fullyVisible) {
+			if (buzzMediaItem_) buzzMediaItem_.forceVisibilityCheck(fullyVisible);
+		}
+
+		function setSharedMediaPlayer() {
+			if (buzzMediaItem_) {
+				buzzMediaItem_.sharedMediaPlayer_ = buzzitemhead_.sharedMediaPlayer_;
+			}
+		}
+
 		onWidthChanged: {
 			expand();
 
@@ -483,6 +502,7 @@ Item {
 				wrappedItem_.y = bodyControl.getY();
 				wrappedItem_.width = bodyControl.width;
 				wrappedItem_.controller_ = buzzitemhead_.controller_;
+				wrappedItem_.sharedMediaPlayer_ = buzzitemhead_.sharedMediaPlayer_;
 
 				wrappedItem_.timestamp_ = wrapped_.timestamp;
 				wrappedItem_.score_ = wrapped_.score;
@@ -512,6 +532,7 @@ Item {
 					buzzMediaItem_.controller_ = buzzitemhead_.controller_;
 					buzzMediaItem_.buzzId_ = buzzitemhead_.buzzId_;
 					buzzMediaItem_.buzzMedia_ = buzzitemhead_.buzzMedia_;
+					buzzMediaItem_.sharedMediaPlayer_ = buzzitemhead_.sharedMediaPlayer_;
 					buzzMediaItem_.initialize();
 
 					bodyControl.height = bodyControl.getHeight();

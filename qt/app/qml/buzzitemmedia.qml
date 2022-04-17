@@ -29,6 +29,7 @@ Item {
 	property var controller_: controller
 	property var frameColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
 	property var fillColor: "transparent"
+	property var sharedMediaPlayer_
 
 	readonly property int maxCalculatedWidth_: 600
 	readonly property int spaceLeft_: 15
@@ -58,12 +59,21 @@ Item {
 		calculatedWidthInternal = calculatedWidth;
 	}
 
+	function forceVisibilityCheck(isFullyVisible) {
+		//
+		mediaList.setFullyVisible(isFullyVisible);
+	}
+
 	Component.onCompleted: {
 	}
 
 	function initialize(key) {
 		if (key !== undefined) pkey_ = key;
 		mediaList.prepare();
+	}
+
+	function cleanUp() {
+		mediaList.cleanUp();
 	}
 
 	//
@@ -86,18 +96,43 @@ Item {
 			for (var lIdx = 0; lIdx < mediaList.count; lIdx++) {
 				var lItem = mediaList.itemAtIndex(lIdx);
 				if (lItem) {
+					lItem.width = mediaList.width;
 					lItem.mediaItem.adjust();
 				}
 			}
 		}
 
+		function cleanUp() {
+			//
+			for (var lIdx = 0; lIdx < mediaList.count; lIdx++) {
+				var lItem = mediaList.itemAtIndex(lIdx);
+				if (lItem) {
+					lItem.mediaItem.terminate();
+				}
+			}
+		}
+
+		function setFullyVisible(fullyVisible) {
+			//
+			for (var lIdx = 0; lIdx < mediaList.count; lIdx++) {
+				var lItem = mediaList.itemAtIndex(lIdx);
+				if (lItem) {
+					lItem.mediaItem.forceVisibilityCheck(fullyVisible);
+				}
+			}
+		}
+
 		onContentXChanged: {
-			mediaIndicator.currentIndex = indexAt(contentX, 1);
+			//
+			//console.log("[onContentXChanged]: mediaList.contentX = " + mediaList.contentX + ", mediaList.indexAt(mediaList.contentX, 0) = " + mediaList.indexAt(mediaList.contentX, 0));
+
+			//
+			if (contentX == 0) mediaIndicator.currentIndex = 0;
+			else mediaIndicator.currentIndex = mediaList.indexAt(mediaList.contentX, 0);
 			//
 			var lItem = mediaList.itemAtIndex(mediaIndicator.currentIndex);
-			if (lItem) {
-				//console.log("[onCurrentIndexChanged]: height = " + lItem.height);
-				mediaList.height = lItem.height;
+			if (lItem && lItem.mediaItem) {
+				mediaList.height = lItem.mediaItem.height;
 				buzzitemmedia_.height = mediaList.height;
 				calculatedHeight = mediaList.height;
 			}
@@ -139,6 +174,7 @@ Item {
 				arcEnd: 0
 				lineWidth: buzzerClient.scaleFactor * 3
 				visible: false
+				animationDuration: 50
 
 				QuarkSymbolLabel {
 					id: waitSymbol
@@ -175,6 +211,17 @@ Item {
 				pkey: pkey_
 
 				property int tryCount_: 0;
+				property int tryReloadCount_: 0;
+
+				function errorMediaLoading() {
+					//
+					tryReloadCount_++;
+					if (tryReloadCount_ > 3) return;
+					// cleaning up
+					downloadCommand.cleanUp();
+					// re-process
+					downloadCommand.process();
+				}
 
 				onProgress: {
 					//
@@ -212,15 +259,20 @@ Item {
 						lSource = "qrc:/qml/buzzitemmedia-video.qml";
 
 					lComponent = Qt.createComponent(lSource);
+					if (lComponent.status === Component.Error) {
+						console.log(lComponent.errorString());
+					}
 
 					mediaFrame.mediaItem = lComponent.createObject(mediaFrame);
 					mediaFrame.mediaItem.adjustHeight.connect(mediaFrame.adjustHeight);
+					mediaFrame.mediaItem.errorLoading.connect(errorMediaLoading);
 
 					mediaFrame.mediaItem.frameColor = buzzitemmedia_.frameColor;
 					mediaFrame.mediaItem.fillColor = buzzitemmedia_.fillColor;
 					mediaFrame.mediaItem.width = mediaList.width;
 					mediaFrame.mediaItem.mediaList = mediaList;
 					mediaFrame.mediaItem.buzzitemmedia_ = buzzitemmedia_;
+					mediaFrame.mediaItem.sharedMediaPlayer_ = buzzitemmedia_.sharedMediaPlayer_;
 
 					if (index === 0) mediaFrame.height = mediaFrame.mediaItem.height;
 					mediaFrame.width = mediaList.width;

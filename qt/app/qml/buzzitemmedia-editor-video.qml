@@ -47,6 +47,8 @@ Rectangle {
 	property var mediaList;
 	property var mediaBox;
 
+	signal adjustDuration(var dureation);
+
 	onMediaBoxChanged: {
 		videoOutput.adjustView();
 	}
@@ -74,6 +76,11 @@ Rectangle {
 	//
 	function adjustOrientation(newOrientation) {
 		//
+	}
+
+	function terminate() {
+		//
+		player.pause();
 	}
 
 	//
@@ -120,19 +127,6 @@ Rectangle {
 		}
 	}
 
-	Timer {
-		id: loadTimer
-
-		interval: 1000
-		repeat: false
-		running: false
-
-		onTriggered: {
-			//
-			player.play();
-		}
-	}
-
 	//
 	QuarkRoundRectangle {
 		id: frameContainer
@@ -146,7 +140,59 @@ Rectangle {
 		radius: 14
 		penWidth: 9
 
-		visible: true
+		visible: !previewImage.visible
+	}
+
+	BuzzerComponents.ImageQx {
+		id: previewImage
+		asynchronous: true
+		radius: 8
+
+		function adjustView() {
+			if (previewImage.status === Image.Ready && mediaList) {
+				width = mediaList.width - 2*spaceItems_;
+				parent.height = height;
+			}
+		}
+
+		onHeightChanged: {
+			parent.height = height;
+		}
+
+		onStatusChanged: {
+			adjustView();
+		}
+
+		onWidthChanged: {
+			//
+			if (width != originalWidth) {
+				var lCoeff = (width * 1.0) / (originalWidth * 1.0)
+				var lHeight = originalHeight * 1.0;
+				height = lHeight * lCoeff;
+
+				//console.log("[onHeightChanged/image/new height]: height = " + lHeight + ", lCoeff = " + lCoeff + ", width = " + width + ", originalWidth = " + originalWidth);
+			}
+		}
+
+		source: "file://" + preview
+		fillMode: BuzzerComponents.ImageQx.PreserveAspectFit
+		mipmap: true
+
+		visible: (preview !== "none" || preview !== "") && (!player.hasVideo ||
+					(player.hasVideo && !player.playing && !player.paused))
+	}
+
+	Timer {
+		id: loadTimer
+
+		interval: 1000
+		repeat: false
+		running: false
+
+		onTriggered: {
+			//
+			// player.play();
+		}
 	}
 
 	//
@@ -155,29 +201,37 @@ Rectangle {
 		source: path
 
 		property bool playing: false;
+		property bool paused: true;
 		property bool intialized: false;
 
-		onPlaying: playing = true;
-		onPaused: playing = false;
-		onStopped: playing = false;
+		onPlaying: { playing = true; paused = false; }
+		onPaused: { playing = false; paused = true; }
+		onStopped: { playing = false; paused = false; }
 
 		onStatusChanged: {
 			//
 			switch(status) {
 				case MediaPlayer.Loaded:
 					if (!intialized) {
+						size = buzzerApp.getFileSize(key);
 						totalTime.setTotalTime(duration);
-						totalSize.setTotalSize(metaData.size);
+						totalSize.setTotalSize(size);
 						playSlider.to = duration;
 						player.seek(1);
 						videoOutput.fillMode = VideoOutput.PreserveAspectFit;
 						videoOutput.adjustView();
+						previewImage.adjustView();
 						loadTimer.start();
 
 						intialized = true;
+
+						//
+						adjustDuration(duration);
 					}
 				break;
 			}
+
+			console.log("[onStatusChanged(9)]: status = " + status + ", duration = " + duration + ", path = " + path + ", size = " + size);
 		}
 
 		onPositionChanged: {
@@ -189,15 +243,20 @@ Rectangle {
 		}
 
 		onErrorStringChanged: {
+			console.log("[onErrorStringChanged(9)]: " + errorString);
 		}
 	}
 
 	//
 	Rectangle {
 		id: controlsBack
-		x: frameContainer.x + 2 * spaceItems_
-		y: frameContainer.y + frameContainer.height - (actionButton.height + 4 * spaceItems_)
-		width: frameContainer.width - (4 * spaceItems_)
+		//x: frameContainer.x + 2 * spaceItems_
+		//y: frameContainer.y + frameContainer.height - (actionButton.height + 4 * spaceItems_)
+		//width: frameContainer.width - (4 * spaceItems_)
+		x: frameContainer.visible ? (frameContainer.x + spaceItems_) : (previewImage.x + spaceItems_)
+		y: frameContainer.visible ? (frameContainer.y + frameContainer.height - (actionButton.height + 3 * spaceItems_)) :
+									(previewImage.y + previewImage.height - (actionButton.height + 3 * spaceItems_))
+		width: frameContainer.visible ? (frameContainer.width - (2 * spaceItems_)) : (previewImage.width - (2 * spaceItems_))
 		height: actionButton.height + 2 * spaceItems_
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
 		opacity: 0.3
@@ -214,6 +273,8 @@ Rectangle {
 		symbol: player.playing ? Fonts.pauseSym : Fonts.playSym
 		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 7)) : 18
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.highlight")
+
+		opacity: 0.6
 
 		onClick: {
 			if (!player.playing) {
@@ -262,7 +323,7 @@ Rectangle {
 
 		function setTotalSize(mediaSize) {
 			//
-			if (mediaSize < 1000) text = ", " + size + "b";
+			if (mediaSize < 1000) text = ", " + mediaSize + "b";
 			else text = ", " + NumberFunctions.numberToCompact(mediaSize);
 		}
 	}
@@ -286,7 +347,7 @@ Rectangle {
 	QuarkToolButton	{
 		id: removeButton
 
-		x: frameContainer.x + frameContainer.width - (width + spaceItems_)
+		x: frameContainer.x + frameContainer.width - (width + 2*spaceItems_)
 		y: spaceItems_
 		// Material.background: "transparent"
 		visible: true

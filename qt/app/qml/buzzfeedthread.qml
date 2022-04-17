@@ -28,6 +28,7 @@ QuarkPage {
 	property var controller;
 	property bool listen: false;
 	property var buzzesThread_;
+	property var mediaPlayerControler: buzzerApp.sharedMediaPlayerController()
 
 	readonly property int spaceLeft_: 15
 	readonly property int spaceTop_: 12
@@ -67,6 +68,12 @@ QuarkPage {
 	}
 
 	function closePage() {
+		//
+		if (mediaPlayerControler && mediaPlayerControler.isCurrentInstancePlaying()) {
+			mediaPlayerControler.showCurrentPlayer();
+		}
+
+		//
 		stopPage();
 		controller.popPage();
 		destroy(1000);
@@ -328,6 +335,7 @@ QuarkPage {
 						var lComponent = Qt.createComponent(lSource);
 						buzzItem = lComponent.createObject(headDelegate);
 
+						buzzItem.sharedMediaPlayer_ = buzzfeedthread_.mediaPlayerControler;
 						buzzItem.width = list.width;
 						buzzItem.controller_ = buzzfeedthread_.controller;
 						buzzItem.buzzfeedModel_ = buzzesThread_;
@@ -356,6 +364,17 @@ QuarkPage {
 
 					property int yoff: Math.round(itemDelegate.y - list.contentY)
 					property bool isFullyVisible: (yoff > list.y && yoff + height < list.y + list.height)
+					property bool isVisible: itemDelegate.y >= list.contentY && itemDelegate.y + height < list.contentY + list.height
+
+					onIsVisibleChanged: {
+						if (itemDelegate !== null && itemDelegate.buzzItem !== null && itemDelegate.buzzItem !== undefined) {
+							try {
+								itemDelegate.buzzItem.forceVisibilityCheck(isVisible);
+							} catch (err) {
+								console.log("[onIsVisibleChanged]: " + err + ", itemDelegate.buzzItem = " + itemDelegate.buzzItem);
+							}
+						}
+					}
 
 					onClicked: {
 						//
@@ -394,6 +413,7 @@ QuarkPage {
 						var lComponent = Qt.createComponent(lSource);
 						buzzItem = lComponent.createObject(itemDelegate);
 
+						buzzItem.sharedMediaPlayer_ = buzzfeedthread_.mediaPlayerControler;
 						buzzItem.width = list.width;
 						buzzItem.controller_ = buzzfeedthread_.controller;
 						buzzItem.buzzfeedModel_ = buzzesThread_;
@@ -414,6 +434,15 @@ QuarkPage {
 		}
 
 		delegate: itemChooser
+	}
+
+	//
+	BuzzItemMediaPlayer {
+		id: player
+		x: 0
+		y: 0
+		width: parent.width
+		mediaPlayerControler: buzzfeedthread_.mediaPlayerControler
 	}
 
 	//

@@ -143,6 +143,7 @@ private:
 	std::vector<std::string> args_;
 
 	TxMediaHeader::Type mediaType_;
+	TxMediaHeader::Type previewType_;
 	std::vector<unsigned char> previewData_;
 	std::ifstream mediaFile_;
 	Transaction::UnlinkedOutPtr prev_;
@@ -194,10 +195,17 @@ public:
 	}
 
 	void terminate() {
-		// reset callbacks
+		//
+		terminate_ = true;
+	}
+
+	void unlink() {
+		//
 		done_ = 0;
 		progress_ = 0;
 	}
+
+	void cleanUp();
 
 	static ICommandPtr instance(CubixLightComposerPtr composer, progressFunction progress, doneDownloadWithErrorFunction done) { 
 		return std::make_shared<DownloadMediaCommand>(composer, progress, done); 
@@ -214,12 +222,14 @@ public:
 	}
 
 	void timeout() {
+		downloading_ = false;
 		error("E_TIMEOUT", "Timeout expired during media download.");
 	}
 
 	void error(const std::string& code, const std::string& message) {
+		downloading_ = false;
 		gLog().writeClient(Log::CLIENT, strprintf(": %s | %s", code, message));
-		if (done_) done_(nullptr, std::string(), std::string(), 0, 0, 0, 0, ProcessingError(code, message));
+		if (done_) done_(nullptr, std::string(), std::string(), 0, 0, 0, doneDownloadWithErrorFunctionExtraArgs( 0, 0 ), ProcessingError(code, message));
 	}
 
 	void decrypt(const uint256&, const std::vector<unsigned char>&, std::vector<unsigned char>&);
@@ -247,6 +257,8 @@ private:
 	
 	bool previewOnly_ = false;
 	bool skipIfExists_ = false;
+	bool terminate_ = false;
+	bool downloading_ = false;
 };
 
 }

@@ -56,9 +56,16 @@ typedef LimitedString<TX_CUBIX_MEDIA_DESCRIPTION_SIZE> cubix_media_description_t
 #define TX_CUBIX_MEDIA_SUMMARY	Transaction::CUSTOM_51 //
 #define TX_CUBIX_MEDIA_DATA		Transaction::CUSTOM_52 //
 
+struct doneDownloadWithErrorFunctionExtraArgs {
+	unsigned short type;
+	unsigned short previewType;
+
+	doneDownloadWithErrorFunctionExtraArgs(unsigned short _type, unsigned short _previewType) : type(_type), previewType(_previewType) {}
+};
+
 typedef boost::function<void (TransactionPtr, const std::string& /*previewFile*/, const std::string& /*originalFile*/,
                               unsigned short /*orientation*/, unsigned int /*duration*/,
-                              uint64_t /*size*/, unsigned short /*type*/,
+                              uint64_t /*size*/, const doneDownloadWithErrorFunctionExtraArgs& /*extra*/,
                               const ProcessingError& /*error*/)> doneDownloadWithErrorFunction;
 
 } // cubix

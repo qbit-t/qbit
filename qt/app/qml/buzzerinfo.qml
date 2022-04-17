@@ -518,6 +518,10 @@ Item
 				//
 				waitTimer.start();
 
+				var lBuzzerName = buzzerName_.trim();
+				if (lBuzzerName[0] !== '@') lBuzzerName = "@" + buzzerName_.trim();
+				buzzerName_ = lBuzzerName;
+
 				createBuzzerCommand.name = buzzerName_;
 				createBuzzerCommand.alias = buzzerAlias_;
 				createBuzzerCommand.description = buzzerDescription_;

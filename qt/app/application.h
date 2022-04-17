@@ -139,7 +139,7 @@ class Application : public QQuickItem, public IApplication
 	Q_PROPERTY(bool isDesktop READ isDesktop NOTIFY isDesktopChanged)
 
 public:
-    Application(QApplication& app) : app_(app)
+	Application(QApplication& app) : app_(app)
     {
 		profile_ = "local";
         connectionState_ = "offline"; isWakeLocked_ = false;
@@ -209,8 +209,18 @@ public:
     QQmlApplicationEngine* getEngine() { return &engine_; }
 	IClient* getClient() { return &client_; }
     QNetworkAccessManager* getNetworkManager() { return networkManager_; }
+	QQuickWindow* view() { return view_; }
 
     Q_INVOKABLE QString getDeviceInfo();
+
+	Q_INVOKABLE int getFileSize(QString file) {
+		QString lFile = file;
+		if (lFile.startsWith("qrc:/")) lFile = file.mid(3);
+		else if (lFile.startsWith("file://")) lFile = file.mid(7);
+
+		QFileInfo lInfo(lFile);
+		return lInfo.size();
+	}
 
     Q_INVOKABLE void makeNetworkAccesible() { networkManager_->setNetworkAccessible(QNetworkAccessManager::Accessible); }
 
@@ -274,6 +284,15 @@ public:
 
 	Q_INVOKABLE void commitCurrentInput();
 
+	Q_INVOKABLE void setSharedMediaPlayerController(QVariant object) {
+		sharedMediaPlayerController_ = object.value<QObject*>();
+		qInfo() << "[setSharedMediaPlayerController]:" << sharedMediaPlayerController_;
+	}
+
+	Q_INVOKABLE QVariant sharedMediaPlayerController() {
+		return QVariant::fromValue(sharedMediaPlayerController_);
+	}
+
 	std::string getLogCategories();
 	bool getTestNet();
 	std::string getPeers();
@@ -281,7 +300,7 @@ public:
 
     void emit_fingertipAuthSuccessed(QString);
     void emit_fingertipAuthFailed();
-	void emit_fileSelected(QString);
+	void emit_fileSelected(QString, QString);
 
 public slots:
     void appQuit();
@@ -295,7 +314,7 @@ signals:
     void fingertipAuthSuccessed(QString);
     void fingertipAuthFailed();
     void deviceTokenUpdated(QString token);
-	void fileSelected(QString file);
+	void fileSelected(QString file, QString preview);
 	void isDesktopChanged();
 
 private:
@@ -306,6 +325,7 @@ private:
     QApplication& app_;
     QQmlApplicationEngine engine_;
 	KeyEmitter keyEmitter_;
+	QQuickWindow* view_;
 
     QString style_;
     QString profile_;
@@ -321,6 +341,7 @@ private:
     ClipboardAdapter* clipboard_;
 
 	QTimer* timer_;
+	QObject* sharedMediaPlayerController_ = nullptr;
 
     // wake lock
 #ifdef Q_OS_ANDROID

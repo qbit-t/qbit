@@ -170,6 +170,8 @@ void CubixLightComposer::CreateTxMediaHeader::process(errorFunction error) {
 	tx_->setDescription(description_);
 	// type
 	tx_->setMediaType(type_);
+	// previewType
+	tx_->setPreviewType(previewType_);
 	// orientation
 	tx_->setOrientation(orientation_);
 	// duration

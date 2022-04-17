@@ -43,6 +43,19 @@ Rectangle
 	height: radius * 2
 	color: enabled ? Material.buttonColor : Material.buttonDisabledColor
 
+	QuarkSymbolLabel {
+		id: label
+		anchors.centerIn: innerFrame
+		leftPadding: spaceLeft
+		topPadding: spaceTop
+		//x: frame.spaceLeft
+		//y: frame.spaceTop
+		//width: textMetrics.boundingRect.width
+		color: frame.textColor
+		symbol: frame.symbol
+		font.pointSize: fontPointSize
+	}
+
 	Rectangle
 	{
 		id: innerFrame
@@ -54,19 +67,6 @@ Rectangle
 		clip: true
 
 		color: "transparent"
-
-		QuarkSymbolLabel {
-			id: label
-			anchors.centerIn: parent
-			leftPadding: spaceLeft
-			topPadding: spaceTop
-			//x: frame.spaceLeft
-			//y: frame.spaceTop
-			//width: textMetrics.boundingRect.width
-			color: frame.textColor
-			symbol: frame.symbol
-			font.pointSize: fontPointSize
-		}
 
 		layer.enabled: true
 		layer.effect: OpacityMask {

@@ -60,6 +60,10 @@ import java.io.FileInputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.UnrecoverableEntryException;
 import android.util.Log;
+import android.database.Cursor;
+import android.util.Size;
+import android.media.MediaMetadataRetriever;
+import android.graphics.BitmapFactory;
 
 public class MainActivity extends QtActivity
 {
@@ -390,33 +394,186 @@ public class MainActivity extends QtActivity
 		if (requestCode == 101) {
 			if (data != null) {
 				if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
-					String lFilePath = FileUtils.getPath(this, data.getData());
-					Log.i("buzzer", "PATH = " + lFilePath);
-					fileSelected(lFilePath);
+					//
+					try {
+						String lFilePath = FileUtils.getPath(this, data.getData());
+						if (lFilePath.contains(".mp4") || lFilePath.contains(".MP4")) {
+							Cursor ca = getContentResolver().query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, new String[] { MediaStore.MediaColumns._ID }, MediaStore.MediaColumns.DATA + "=?", new String[] {lFilePath}, null);
+							if (ca != null && ca.moveToFirst()) {
+								int id = ca.getInt(ca.getColumnIndex(MediaStore.MediaColumns._ID));
+								ca.close();
+
+								String format = new SimpleDateFormat("yyyyMMddHHmmss",
+								       java.util.Locale.getDefault()).format(new Date());
+
+								File fileThumbnail = new File(getExternalCacheDir(), format + ".jpg");
+								OutputStream streamThumbnail = new FileOutputStream(fileThumbnail);
+								Bitmap thumbnail = MediaStore.Images.Thumbnails.getThumbnail(getContentResolver(), id, MediaStore.Images.Thumbnails.MICRO_KIND, null);
+								thumbnail.compress(Bitmap.CompressFormat.JPEG, 100, streamThumbnail);
+								streamThumbnail.flush();
+								streamThumbnail.close();
+
+								Log.i("buzzer", "PATH = " + lFilePath);
+								fileSelected(lFilePath, fileThumbnail.getAbsolutePath());
+							} else {
+							    fileSelected(lFilePath, "");
+							}
+						} else {
+						    Log.i("buzzer", "PATH = " + lFilePath);
+							fileSelected(lFilePath, "");
+						}
+					} catch (IOException e) {
+					    e.printStackTrace();
+					}
 				} else {
 				    Uri uri = data.getData();
 					try {
 						String format = new SimpleDateFormat("yyyyMMddHHmmss",
 						       java.util.Locale.getDefault()).format(new Date());
 
-						InputStream inputStream = getContentResolver().openInputStream(uri);
-						ExifInterface exif = new ExifInterface(inputStream);
+						String[] columns = { MediaStore.Images.Media.DATA,
+							            MediaStore.Images.Media.MIME_TYPE };
 
-						Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), uri);
-						File file = new File(getExternalFilesDir(null), format + ".jpg");
-						OutputStream stream = new FileOutputStream(file);
+						Cursor cursor = getContentResolver().query(uri, columns, null, null, null);
+						cursor.moveToFirst();
 
-						bitmap.compress(Bitmap.CompressFormat.JPEG, 90, stream);
-						stream.flush();
-						stream.close();
+						int pathColumnIndex     = cursor.getColumnIndex( columns[0] );
+						int mimeTypeColumnIndex = cursor.getColumnIndex( columns[1] );
 
-						ExifInterface newExif = new ExifInterface(file.getAbsolutePath());
-						newExif.setAttribute(ExifInterface.TAG_ORIENTATION, exif.getAttribute(ExifInterface.TAG_ORIENTATION));
-						newExif.saveAttributes();
+						String contentPath = cursor.getString(pathColumnIndex);
+						String mimeType    = cursor.getString(mimeTypeColumnIndex);
+						cursor.close();
 
-						Log.i("buzzer", "PATH = " + file.getAbsolutePath());
-						fileSelected(file.getAbsolutePath());
+						Log.i("buzzer", "mimeType = " + mimeType);
 
+						if (mimeType.startsWith("image")) {
+							//
+							InputStream inputStream = getContentResolver().openInputStream(uri);
+							ExifInterface exif = new ExifInterface(inputStream);
+
+							Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), uri);
+							File file = new File(getExternalCacheDir(), format + ".jpg");
+							OutputStream stream = new FileOutputStream(file);
+
+							bitmap.compress(Bitmap.CompressFormat.JPEG, 90, stream);
+							stream.flush();
+							stream.close();
+							inputStream.close();
+
+							ExifInterface newExif = new ExifInterface(file.getAbsolutePath());
+							newExif.setAttribute(ExifInterface.TAG_ORIENTATION, exif.getAttribute(ExifInterface.TAG_ORIENTATION));
+							newExif.saveAttributes();
+
+							Log.i("buzzer", "PATH = " + file.getAbsolutePath());
+							fileSelected(file.getAbsolutePath(), "");
+						} else if (mimeType.startsWith("video")) {
+						    //
+							Bitmap thumbnail =
+							        getContentResolver().loadThumbnail(uri, new Size(1920, 1080), null);
+
+							File fileThumbnail = new File(getExternalCacheDir(), format + ".jpg");
+							OutputStream streamThumbnail = new FileOutputStream(fileThumbnail);
+
+							thumbnail.compress(Bitmap.CompressFormat.JPEG, 100, streamThumbnail);
+							streamThumbnail.flush();
+							streamThumbnail.close();
+
+							InputStream inputStream = getContentResolver().openInputStream(uri);
+							File file = new File(getExternalCacheDir(), format + ".mp4");
+							OutputStream stream = new FileOutputStream(file);
+
+							byte[] buffer = new byte[4 * 1024];
+							int len;
+							while ((len = inputStream.read(buffer, 0, 4 * 1024)) > 0) {
+								stream.write(buffer, 0, len);
+							}
+
+						    stream.flush();
+							stream.close();
+							inputStream.close();
+
+							Log.i("buzzer", "PATH = " + file.getAbsolutePath());
+							fileSelected(file.getAbsolutePath(), fileThumbnail.getAbsolutePath());
+
+						} else if (mimeType.startsWith("audio/mpeg")) {
+						    //
+							MediaMetadataRetriever mr = new MediaMetadataRetriever();
+							mr.setDataSource(this, uri);
+
+							byte[] byte1 = mr.getEmbeddedPicture();
+							mr.release();
+
+							String lAbsolutePath = "";
+							if (byte1 != null) {
+								Bitmap thumbnail = BitmapFactory.decodeByteArray(byte1, 0, byte1.length);
+
+								File fileThumbnail = new File(getExternalCacheDir(), format + ".jpg");
+								OutputStream streamThumbnail = new FileOutputStream(fileThumbnail);
+
+								thumbnail.compress(Bitmap.CompressFormat.JPEG, 100, streamThumbnail);
+								streamThumbnail.flush();
+								streamThumbnail.close();
+
+								lAbsolutePath = fileThumbnail.getAbsolutePath();
+							}
+
+						    InputStream inputStream = getContentResolver().openInputStream(uri);
+							File file = new File(getExternalCacheDir(), format + ".mp3");
+							OutputStream stream = new FileOutputStream(file);
+
+							byte[] buffer = new byte[4 * 1024];
+							int len;
+							while ((len = inputStream.read(buffer, 0, 4 * 1024)) > 0) {
+								stream.write(buffer, 0, len);
+							}
+
+						    stream.flush();
+							stream.close();
+							inputStream.close();
+
+							Log.i("buzzer", "PATH1 = " + file.getAbsolutePath());
+							Log.i("buzzer", "PATH2 = " + lAbsolutePath);
+							fileSelected(file.getAbsolutePath(), lAbsolutePath);
+						} else if (mimeType.startsWith("audio/mp4")) {
+						    //
+							MediaMetadataRetriever mr = new MediaMetadataRetriever();
+							mr.setDataSource(this, uri);
+
+							byte[] byte1 = mr.getEmbeddedPicture();
+							mr.release();
+
+							String lAbsolutePath = "";
+							if (byte1 != null) {
+								Bitmap thumbnail = BitmapFactory.decodeByteArray(byte1, 0, byte1.length);
+
+								File fileThumbnail = new File(getExternalCacheDir(), format + ".jpg");
+								OutputStream streamThumbnail = new FileOutputStream(fileThumbnail);
+
+								thumbnail.compress(Bitmap.CompressFormat.JPEG, 100, streamThumbnail);
+								streamThumbnail.flush();
+								streamThumbnail.close();
+
+								lAbsolutePath = fileThumbnail.getAbsolutePath();
+							}
+
+						    InputStream inputStream = getContentResolver().openInputStream(uri);
+							File file = new File(getExternalCacheDir(), format + ".m4a");
+							OutputStream stream = new FileOutputStream(file);
+
+							byte[] buffer = new byte[4 * 1024];
+							int len;
+							while ((len = inputStream.read(buffer, 0, 4 * 1024)) > 0) {
+								stream.write(buffer, 0, len);
+							}
+
+						    stream.flush();
+							stream.close();
+							inputStream.close();
+
+							Log.i("buzzer", "PATH1 = " + file.getAbsolutePath());
+							Log.i("buzzer", "PATH2 = " + lAbsolutePath);
+							fileSelected(file.getAbsolutePath(), lAbsolutePath);
+						}
 					} catch (IOException e) {
 					    e.printStackTrace();
 					}
@@ -427,12 +584,20 @@ public class MainActivity extends QtActivity
 	    super.onActivityResult(requestCode, resultCode, data);
 	}
 
-    public native void fileSelected(String key);
+    public native void fileSelected(String key, String preview);
 
     public void pickImage() {
-		Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+		Intent intent;
+		if(Build.VERSION.SDK_INT < Build.VERSION_CODES.KITKAT)
+		    intent = new Intent(Intent.ACTION_GET_CONTENT);
+		else
+		    intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+
 		intent.addCategory(Intent.CATEGORY_OPENABLE);
-		intent.setType("image/*");
+		intent.setType("*/*");
+		String[] mimetypes = {"image/*", "video/*", "audio/*", "application/pdf"};
+		intent.putExtra(Intent.EXTRA_MIME_TYPES, mimetypes);
+
 		startActivityForResult(intent, 101);
 	}
 

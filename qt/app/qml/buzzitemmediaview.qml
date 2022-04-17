@@ -132,38 +132,6 @@ Item {
 				}
 			}
 
-			/*
-			QuarkRoundProgress {
-				id: mediaLoading
-				x: mediaList.width / 2 - width / 2
-				y: mediaList.height / 2 - height / 2
-				size: buzzerClient.scaleFactor * 50
-				colorCircle: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link")
-				colorBackground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link")
-				arcBegin: 0
-				arcEnd: 0
-				lineWidth: buzzerClient.scaleFactor * 3
-				visible: false
-
-				QuarkSymbolLabel {
-					id: waitSymbol
-					anchors.fill: parent
-					symbol: Fonts.clockSym
-					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (mediaLoading.size-10)) : (mediaLoading.size-10)
-					color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link")
-					visible: mediaLoading.visible
-				}
-
-				function progress(pos, size) {
-					//
-					waitSymbol.visible = false;
-					//
-					var lPercent = (pos * 100) / size;
-					arcEnd = (360 * lPercent) / 100;
-				}
-			}
-			*/
-
 			BuzzerCommands.DownloadMediaCommand {
 				id: downloadCommand
 				preview: true
@@ -173,6 +141,19 @@ Item {
 				pkey: pkey_
 
 				property int tryCount_: 0;
+				property int tryReloadCount_: 0;
+
+				function errorMediaLoading() {
+					//
+					tryReloadCount_++;
+					if (tryReloadCount_ > 3) return;
+					// cleaning up
+					downloadCommand.cleanUp();
+					// re-process
+					if (mediaFrame.mediaItem && media_ === "image")
+						mediaFrame.mediaItem.showLoading();
+					downloadCommand.process();
+				}
 
 				onProgress: {
 					//
@@ -233,6 +214,7 @@ Item {
 							lComponent = Qt.createComponent(lSource);
 
 							mediaFrame.mediaItem = lComponent.createObject(mediaFrame);
+							mediaFrame.mediaItem.errorLoading.connect(errorMediaLoading);
 
 							mediaFrame.mediaItem.width = mediaList.width - 2 * spaceItems_;
 							mediaFrame.mediaItem.calculatedWidth = calculatedWidth;
