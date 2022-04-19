@@ -105,14 +105,14 @@ public:
 
 			if (lResult.size()) {
 				//
-				if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[checkBlockHeader]: PoC FAILED, broken chain for ") + 
+				if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[checkBlockHeader/error]: PoC FAILED, broken chain for ") + 
 					strprintf("%d/%s/%s#", const_cast<NetworkBlockHeader&>(blockHeader).height(), 
 						lOther.hash().toHex(), chain_.toHex().substr(0, 10)));
 				consensus_->toNonSynchronized();
 				return IValidator::BROKEN_CHAIN;
 			}
 
-			if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[checkBlockHeader]: peers proof FAILED ") +
+			if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[checkBlockHeader/error]: peers proof FAILED ") +
 				strprintf("block = %s, prev = %s, chain = %s#", lOther.hash().toHex(), 
 					lOther.prev().toHex(), chain_.toHex().substr(0, 10)));
 
@@ -134,7 +134,7 @@ public:
 		if (lOther.prev() == lHeader.hash()) {
 			//
 			if (lOther.time() < lHeader.time() && lHeader.time() - lOther.time() > (consensus_->blockTime() / 1000)) {
-				if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[checkBlockHeader]: next block time is less than median time ") + 
+				if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[checkBlockHeader/error]: next block time is less than median time ") + 
 					strprintf("current = %d, proposed = %d, height = %d, new = %s, our = %s, origin = %s/%s#",
 						lHeader.time(), lOther.time(),
 						const_cast<NetworkBlockHeader&>(blockHeader).height(), 
@@ -143,7 +143,7 @@ public:
 				return IValidator::INTEGRITY_IS_INVALID;
 			} else if (lHeader.time() > lOther.time() && !(lOther.time() - lHeader.time() >= (consensus_->blockTime() / 1000) &&
 						lOther.time() - lHeader.time() <= (consensus_->blockTime() / 1000) * 2)) {
-				if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[checkBlockHeader]: time passage is wrong ") + 
+				if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[checkBlockHeader/error]: time passage is wrong ") + 
 					strprintf("current = %d, proposed = %d, height = %d, new = %s, our = %s, origin = %s/%s#",
 						lHeader.time(), lOther.time(),
 						const_cast<NetworkBlockHeader&>(blockHeader).height(), 
@@ -160,7 +160,7 @@ public:
 			return IValidator::SUCCESS;
 		}
 
-		if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[checkBlockHeader]: broken chain for ") + 
+		if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[checkBlockHeader/error]: broken chain for ") + 
 			strprintf("%d/%s/%s#", const_cast<NetworkBlockHeader&>(blockHeader).height(), 
 				lOther.hash().toHex(), chain_.toHex().substr(0, 10)));
 		
