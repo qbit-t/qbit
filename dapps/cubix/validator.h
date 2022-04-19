@@ -252,7 +252,7 @@ private:
 				// get seed
 				uint64_t lCurrentTime = consensus_->currentTime();
 				// check if time passage was take a place
-				if ((lTimeout && lCurrentTime > lWaitTo) || 
+				if ((lTimeout && lCurrentTime >= lWaitTo) || 
 						(!lTimeout && lCurrentTime > lLastHeader.time() &&
 							lCurrentTime - lLastHeader.time() >= (consensus_->blockTime())/1000)) {
 					//
