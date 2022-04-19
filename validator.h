@@ -323,8 +323,9 @@ private:
 								BlockPtr lBlock;
 								uint256 lPrevBlock = lLastHeader.prev();
 								while ((lBlock = store_->block(lPrevBlock)) != nullptr &&
-														++lCurrentBlockChallenge <= lChallengeBlock) {
+														lCurrentBlockChallenge < lChallengeBlock) {
 									lPrevBlock = lBlock->prev();
+									lCurrentBlockChallenge++;
 								}
 
 								if (lBlock && lCurrentBlockChallenge == lChallengeBlock) {
