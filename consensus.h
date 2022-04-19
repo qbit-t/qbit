@@ -316,15 +316,15 @@ public:
 							lChecked = true;
 							lLevel = 3;
 						} else {
-							//
-							// WARNING: Softing checks - favor to more fast net than strict content challenges
-							//
-							if (!block.prevChallenge_.isNull()) {
-								extended = false; lLevel = 2;
-							}
+							extended = false; lLevel = 2;
 						}
 					} else {
-						extended = false; lLevel = 1;
+						//
+						// WARNING: Softing checks - favor to more fast net than strict content challenges
+						//
+						if (!block.prevChallenge_.isNull()) {
+							extended = false; lLevel = 1;
+						}
 					}
 				}
 			} else {
