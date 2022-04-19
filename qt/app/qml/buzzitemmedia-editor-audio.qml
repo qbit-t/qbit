@@ -76,9 +76,12 @@ Rectangle {
 			//
 			switch(status) {
 				case Audio.Loaded:
+					size = buzzerApp.getFileSize(key);
 					totalTime.setTotalTime(duration);
-					totalSize.setTotalSize(metaData.size);
+					totalSize.setTotalSize(size);
 					playSlider.to = duration;
+					//
+					adjustDuration(duration);
 				break;
 			}
 		}

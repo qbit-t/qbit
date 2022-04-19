@@ -388,9 +388,9 @@ bool UploadMediaCommand::prepareImage() {
 
 			// write image
 			std::stringstream lStream(std::ios_base::in | std::ios_base::out | std::ios_base::binary);
-			if (mediaType_ == TxMediaHeader::Type::IMAGE_JPEG)
+			if (mediaType_ == TxMediaHeader::MediaType::IMAGE_JPEG)
 				boost::gil::write_view(lStream, boost::gil::view(lPreviewImage), boost::gil::image_write_info<boost::gil::jpeg_tag>(95));
-			else if (mediaType_ == TxMediaHeader::IMAGE_PNG)
+			else if (mediaType_ == TxMediaHeader::MediaType::IMAGE_PNG)
 				boost::gil::write_view(lStream, boost::gil::view(lPreviewImage), boost::gil::png_tag());
 
 			if (pkey_.valid()) {
@@ -455,7 +455,7 @@ void UploadMediaCommand::startSendData() {
 	std::string lType = boost::algorithm::to_lower_copy(lFileType);
 	mediaType_ = TxMediaHeader::extensionToMediaType(lType);
 
-	if (mediaType_ == TxMediaHeader::UNKNOWN) {
+	if (mediaType_ == TxMediaHeader::MediaType::UNKNOWN) {
 		error("E_INCORRECT_MEDIA_TYPE", "Media type is not supported");
 		return;
 	}
@@ -469,6 +469,15 @@ void UploadMediaCommand::startSendData() {
 	if (previewFile_.size()) {
 		boost::filesystem::path lPreviewFile(previewFile_);
 		std::string lPreviewFileType;
+
+#if defined(_WIN32)
+		using lConvert = std::codecvt_utf8<wchar_t>;
+		std::wstring_convert<lConvert, wchar_t> lConverter;
+		lPreviewFileType = lConverter.to_bytes(lPreviewFile.extension().native());
+#else
+		lPreviewFileType = lPreviewFile.extension().native();
+#endif
+
 		std::string lPreviewType = boost::algorithm::to_lower_copy(lPreviewFileType);
 		previewType_ = TxMediaHeader::extensionToMediaType(lPreviewType);
 	}
@@ -477,7 +486,9 @@ void UploadMediaCommand::startSendData() {
 	if (progress_) progress_(file_, 0, size_);
 
 	// if jpeg\png
-	if ((mediaType_ == TxMediaHeader::IMAGE_JPEG || mediaType_ == TxMediaHeader::IMAGE_PNG) && prepareImage()) {
+	bool lPrepared = prepareImage();
+	//
+	if ((mediaType_ == TxMediaHeader::IMAGE_JPEG || mediaType_ == TxMediaHeader::IMAGE_PNG) && lPrepared) {
 		// correcting
 		if (progress_) progress_(file_, 0, size_);
 
@@ -498,11 +509,11 @@ void UploadMediaCommand::startSendData() {
 			mediaFile_ = std::ifstream(file_, std::ios::binary);
 			continueSendData();
 		}
-	} else if (previewType_ == TxMediaHeader::UNKNOWN) {
+	} else if (previewType_ == TxMediaHeader::MediaType::UNKNOWN) {
 		// there is NO preview that was supplied explicitly
 		mediaFile_ = std::ifstream(file_, std::ios::binary);
 		continueSendData();
-	} else if (previewType_ != TxMediaHeader::UNKNOWN) {
+	} else if (previewType_ != TxMediaHeader::MediaType::UNKNOWN) {
 		// preview WAS supplied explicitly
 		std::ifstream lStream(previewFile_, std::ios::binary);
 		//
@@ -698,8 +709,8 @@ void DownloadMediaCommand::process(const std::vector<std::string>& args) {
 			unsigned short lOrientation = 0;
 			unsigned int lDuration = 0;
 			uint64_t lSize = 0;
-			unsigned short lType = TxMediaHeader::Type::UNKNOWN;
-			unsigned short lPreviewType = TxMediaHeader::Type::UNKNOWN;
+			unsigned short lType = TxMediaHeader::MediaType::UNKNOWN;
+			unsigned short lPreviewType = TxMediaHeader::MediaType::UNKNOWN;
 			for (std::list<std::string>::iterator lExtension = lExtensions.begin(); lExtension != lExtensions.end(); lExtension++) {
 				localPreviewFileName_ = lPreviewFile + *lExtension;
 				boost::filesystem::path lPath(localPreviewFileName_);
@@ -714,7 +725,7 @@ void DownloadMediaCommand::process(const std::vector<std::string>& args) {
 					lPreviewFileMeta.read((char*)&lPreviewType, sizeof(unsigned short));
 					lPreviewFileMeta.close();
 
-					if (lType == TxMediaHeader::Type::UNKNOWN)
+					if (lType == TxMediaHeader::MediaType::UNKNOWN)
 						lType = TxMediaHeader::extensionToMediaType(*lExtension);
 
 					break;
@@ -798,10 +809,12 @@ void DownloadMediaCommand::headerLoaded(TransactionPtr tx) {
 		localPreviewFileName_ = localFile_ + "-preview" + header_->previewMediaTypeToExtension();
 
 		/*
-		if (gLog().isEnabled(Log::CLIENT))
-			gLog().write(Log::CLIENT, strprintf("[downloadMediaCommand/LOADED/%X]: header = %s|%s, file = %s", 
-						this, headerTx_.toHex(), header_->id().toHex(), localPreviewFileName_));
+		if ((TxMediaHeader::MediaType)header_->previewType() != TxMediaHeader::MediaType::UNKNOWN)
+			if (gLog().isEnabled(Log::CLIENT))
+				gLog().write(Log::CLIENT, strprintf("[downloadMediaCommand/LOADED/%X]: header = %s|%s, file = %s/%d/%s", 
+						this, headerTx_.toHex(), header_->id().toHex(), localPreviewFileName_, header_->previewType(), header_->previewMediaTypeToExtension()));
 		*/
+
 		// try file
 		boost::filesystem::path lPath(localFileName_);
 		if (boost::filesystem::exists(lPath)) {
@@ -848,14 +861,14 @@ void DownloadMediaCommand::headerLoaded(TransactionPtr tx) {
 		else std::cout << "local preview file: " << localPreviewFileName_ << std::endl;	
 
 		//
-		if (previewOnly_ && (header_->size() > CUBIX_MAX_DATA_CHUNK || lPreviewType != TxMediaHeader::UNKNOWN)) {
+		if (previewOnly_ && (header_->size() > CUBIX_MAX_DATA_CHUNK || lPreviewType != TxMediaHeader::MediaType::UNKNOWN)) {
 			if (done_) {
 				downloading_ = false;
-				done_(header_, localPreviewFileName_, std::string(), header_->orientation(), header_->duration(), header_->size(), doneDownloadWithErrorFunctionExtraArgs(header_->mediaType(), header_->previewType()), ProcessingError());
+				done_(header_, localPreviewFileName_, localFileName_/*std::string()*/, header_->orientation(), header_->duration(), header_->size(), doneDownloadWithErrorFunctionExtraArgs(header_->mediaType(), header_->previewType()), ProcessingError());
 			}
 		} else {
 			// load data
-			if (header_->size() > CUBIX_MAX_DATA_CHUNK || lFirstSize != header_->size() || lPreviewType != TxMediaHeader::UNKNOWN) {
+			if (header_->size() > CUBIX_MAX_DATA_CHUNK || lFirstSize != header_->size() || lPreviewType != TxMediaHeader::MediaType::UNKNOWN) {
 				// try file
 				boost::filesystem::path lLocalPath(localFile_ + header_->mediaTypeToExtension());
 				if (boost::filesystem::exists(lLocalPath)) {
@@ -864,7 +877,7 @@ void DownloadMediaCommand::headerLoaded(TransactionPtr tx) {
 				//
 				outLocalFile_ = std::ofstream(localFile_ + header_->mediaTypeToExtension(), std::ios::binary);
 				//
-				if (lPreviewType == TxMediaHeader::UNKNOWN /*header_->mediaType() == TxMediaHeader::AUDIO_PCM ||
+				if (lPreviewType == TxMediaHeader::MediaType::UNKNOWN /*header_->mediaType() == TxMediaHeader::AUDIO_PCM ||
 						header_->mediaType() == TxMediaHeader::AUDIO_AMR ||
 							header_->mediaType() == TxMediaHeader::AUDIO_M4A ||
 								header_->mediaType() == TxMediaHeader::DOCUMENT_PDF*/) {

@@ -27,7 +27,7 @@ QuarkPage
 		activatePageHandler = activatePage;
 
 		if (buzzerClient.cacheReady) {
-			loadTrustScoreCommand.process();
+			infoLoaderCommand.process(buzzerClient.name);
 		}
 
 		// NOTICE: start notificator service for the first time
@@ -66,11 +66,11 @@ QuarkPage
 		target: buzzerClient
 
 		function onCacheReadyChanged() {
-			loadTrustScoreCommand.process();
+			infoLoaderCommand.process(buzzerClient.name); //loadTrustScoreCommand.process();
 		}
 
 		function onBuzzerDAppReadyChanged() {
-			loadTrustScoreCommand.process();
+			infoLoaderCommand.process(buzzerClient.name); //loadTrustScoreCommand.process();
 		}
 
 		function onNewEvents() {
@@ -86,11 +86,48 @@ QuarkPage
 		}
 	}
 
+	//
+	// buzzer info loader
+	//
+	BuzzerCommands.LoadBuzzerInfoCommand {
+		id: infoLoaderCommand
+
+		onProcessed: {
+			// name
+			loadTrustScoreCommand.process(infoLoaderCommand.buzzerId + "/" + infoLoaderCommand.buzzerChainId);
+
+			if (infoLoaderCommand.avatarId !== "0000000000000000000000000000000000000000000000000000000000000000") {
+				avatarDownloadCommand.url = infoLoaderCommand.avatarUrl;
+				avatarDownloadCommand.localFile = buzzerClient.getTempFilesPath() + "/" + infoLoaderCommand.avatarId;
+				avatarDownloadCommand.process();
+			}
+		}
+
+		onError: {
+			handleError(code, message);
+		}
+	}
+
 	BuzzerCommands.LoadBuzzerTrustScoreCommand {
 		id: loadTrustScoreCommand
 		onProcessed: {
 			buzzerClient.setTrustScore(endorsements, mistrusts);
 			headerBar.adjustTrustScore();
+		}
+	}
+
+	BuzzerCommands.DownloadMediaCommand {
+		id: avatarDownloadCommand
+		preview: false // TODO: consider to use full image
+		skipIfExists: true
+
+		onProcessed: {
+			// tx, previewFile, originalFile
+			buzzerClient.avatar = originalFile;
+		}
+
+		onError: {
+			handleError(code, message);
 		}
 	}
 
@@ -290,6 +327,15 @@ QuarkPage
 			width: buzzermain_.width
 			height: navigatorBar.y - (headerBar.y + headerBar.height)
 			controller: buzzermain_.controller
+		}
+	}
+
+	function handleError(code, message) {
+		if (code === "E_CHAINS_ABSENT") return;
+		if (message === "UNKNOWN_REFTX" || code === "E_TX_NOT_SENT") {
+			//buzzermain_.controller.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.UNKNOWN_REFTX"));
+		} else {
+			//buzzermain_.controller.showError(message);
 		}
 	}
 }

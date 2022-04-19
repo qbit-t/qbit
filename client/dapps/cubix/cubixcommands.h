@@ -142,8 +142,8 @@ private:
 
 	std::vector<std::string> args_;
 
-	TxMediaHeader::Type mediaType_;
-	TxMediaHeader::Type previewType_;
+	TxMediaHeader::MediaType mediaType_ = TxMediaHeader::MediaType::UNKNOWN;
+	TxMediaHeader::MediaType previewType_ = TxMediaHeader::MediaType::UNKNOWN;
 	std::vector<unsigned char> previewData_;
 	std::ifstream mediaFile_;
 	Transaction::UnlinkedOutPtr prev_;
@@ -216,7 +216,7 @@ public:
 	void dataLoaded(TransactionPtr);
 
 	// data
-	TxMediaHeader::Type mediaType() { return header_->mediaType(); }
+	TxMediaHeader::MediaType mediaType() { return header_->mediaType(); }
 	void headerData(std::vector<unsigned char>& data) {
 		data.insert(data.end(), header_->data().begin(), header_->data().end());
 	}

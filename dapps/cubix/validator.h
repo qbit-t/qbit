@@ -316,8 +316,8 @@ private:
 							uint64_t lChallengeBlock = 0;
 							bool lChallengeSaved = false;
 							uint64_t lCurrentBlockHeight = store_->currentHeight(lCurrentBlockHeader);
-							if (lCurrentBlockHeight > 1) {
-								boost::random::uniform_int_distribution<uint64_t> lBlockDistribution(1, lCurrentBlockHeight);
+							if (lCurrentBlockHeight > 100) {
+								boost::random::uniform_int_distribution<uint64_t> lBlockDistribution(1, lCurrentBlockHeight - 100);
 								lChallengeBlock = lBlockDistribution(lGen);
 
 								BlockPtr lBlock = store_->block(lChallengeBlock);
@@ -341,6 +341,7 @@ private:
 									strprintf("b = %s/%d/%d, h = %d, saved = %d", lNextBlockChallenge.toHex(), lChallengeBlock, lChallengeBlockTx, lCurrentBlockHeight, lChallengeSaved));
 
 							// resolve previous challenge
+							bool lPrevChallengeResolved = false;
 							if (!lLastHeader.nextBlockChallenge().isNull()) {
 								//
 								BlockPtr lTargetBlock = store_->block(lLastHeader.nextBlockChallenge());
@@ -362,6 +363,18 @@ private:
 										lCurrentBlock->setPrevChallenge(lHashChallenge);
 									}
 								}
+							} else lPrevChallengeResolved = true;
+
+							if (!lPrevChallengeResolved) {
+								// timeout
+								if (!lTimeout) {
+									lTimeout = true;
+									lWaitTo = lCurrentTime + (consensus_->blockTime())/1000;
+									if (gLog().isEnabled(Log::VALIDATOR))
+										gLog().write(Log::VALIDATOR, std::string("[cubix/miner]: going for timeout ") + strprintf("%s#", chain_.toHex().substr(0, 10)));
+								}
+
+								continue;
 							}
 
 							// prepare proof

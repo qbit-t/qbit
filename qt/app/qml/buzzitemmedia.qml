@@ -97,6 +97,7 @@ Item {
 				var lItem = mediaList.itemAtIndex(lIdx);
 				if (lItem) {
 					lItem.width = mediaList.width;
+					lItem.mediaItem.width = mediaList.width;
 					lItem.mediaItem.adjust();
 				}
 			}
@@ -122,11 +123,16 @@ Item {
 			}
 		}
 
+		add: Transition {
+			NumberAnimation { property: "opacity"; from: 0; to: 1.0; duration: 400 }
+		}
+
+		model: ListModel { id: mediaModel }
+
 		onContentXChanged: {
 			//
-			//console.log("[onContentXChanged]: mediaList.contentX = " + mediaList.contentX + ", mediaList.indexAt(mediaList.contentX, 0) = " + mediaList.indexAt(mediaList.contentX, 0));
+			// console.log("[onContentXChanged]: mediaList.contentX = " + mediaList.contentX + ", mediaList.indexAt(mediaList.contentX, 0) = " + mediaList.indexAt(mediaList.contentX, 0));
 
-			//
 			if (contentX == 0) mediaIndicator.currentIndex = 0;
 			else mediaIndicator.currentIndex = mediaList.indexAt(mediaList.contentX, 0);
 			//
@@ -138,20 +144,8 @@ Item {
 			}
 		}
 
-		add: Transition {
-			NumberAnimation { property: "opacity"; from: 0; to: 1.0; duration: 400 }
-		}
-
-		model: ListModel { id: mediaModel }
-
 		onWidthChanged: {
 			adjustItems();
-
-			/*
-			if (currentItem && currentItem.mediaItem) {
-				currentItem.mediaItem.adjust();
-			}
-			*/
 		}
 
 		delegate: Rectangle {
@@ -198,6 +192,7 @@ Item {
 				//
 				if (index === mediaIndicator.currentIndex) {
 					//
+					//console.log("[buzzitemmedia/adjustHeight]: proposed = " + proposed + ", buzzitemmedia_.calculatedHeight = " + buzzitemmedia_.calculatedHeight);
 					buzzitemmedia_.calculatedHeight = proposed;
 				}
 			}
@@ -212,6 +207,7 @@ Item {
 
 				property int tryCount_: 0;
 				property int tryReloadCount_: 0;
+				property bool processed_: false;
 
 				function errorMediaLoading() {
 					//
@@ -229,16 +225,15 @@ Item {
 				}
 
 				onProcessed: {
+					//
+					processed_ = true;
 					// tx, previewFile, originalFile, orientation, duration, size, type
 					console.log(tx + ", " + previewFile + ", " + originalFile + ", " + orientation + ", " + duration + ", " + size + ", " + type);
 
 					// stop timer
 					downloadWaitTimer.stop();
 					// set preview
-					preview_ = "file://" + previewFile;
-					// set file
-					if (preview) path_ = "file://" + previewFile;
-					else path_ = "file://" + originalFile;
+					preview_ = "file://" + previewFile; // ONLY: preview binding here, path_ is for the inner component
 					// set original orientation
 					orientation_ = orientation;
 					// set duration
@@ -323,8 +318,10 @@ Item {
 			}
 
 			Component.onCompleted: {
-				downloadWaitTimer.start();
-				downloadCommand.process();
+				if (!downloadCommand.processed_) {
+					downloadWaitTimer.start();
+					downloadCommand.process();
+				}
 			}
 		}
 
@@ -342,6 +339,7 @@ Item {
 		}
 
 		function prepare() {
+			if (mediaList.count) return;
 			for (var lIdx = 0; lIdx < buzzMedia_.length; lIdx++) {
 				var lMedia = buzzMedia_[lIdx];
 				addMedia(lMedia.url, buzzerClient.getTempFilesPath() + "/" + lMedia.tx);

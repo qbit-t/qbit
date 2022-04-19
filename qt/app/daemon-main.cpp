@@ -357,7 +357,7 @@ public:
 		//
 		if (result.success()) {
 			//
-			if (extra.type == cubix::TxMediaHeader::Type::IMAGE_JPEG || extra.type == cubix::TxMediaHeader::Type::IMAGE_PNG) {
+			if (extra.type == cubix::TxMediaHeader::MediaType::IMAGE_JPEG || extra.type == cubix::TxMediaHeader::MediaType::IMAGE_PNG) {
 				mediaFile_ = previewFile;
 			}
 		} else {

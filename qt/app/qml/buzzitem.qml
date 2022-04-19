@@ -833,6 +833,7 @@ Item {
 		function innerHeightChanged(value) {
 			bodyControl.height = bodyControl.getHeight();
 			buzzitem_.calculateHeight();
+			//console.log("[innerHeightChanged]: value = " + value + ", bodyControl.height = " + bodyControl.height);
 		}
 
 		function getY() {

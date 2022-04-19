@@ -17,7 +17,7 @@ namespace cubix {
 //
 class TxMediaHeader: public Entity {
 public:
-	enum Type {
+	enum MediaType {
 		UNKNOWN = 0,
 		IMAGE_JPEG = 1,
 		IMAGE_PNG = 2,
@@ -27,7 +27,9 @@ public:
 		AUDIO_AMR = 6, // voice, amr
 		DOCUMENT_PDF = 7,
 		AUDIO_MP3 = 8,
-		AUDIO_M4A = 9
+		AUDIO_M4A = 9,
+
+		MAX_TYPES = 50
 	};
 
 public:
@@ -73,10 +75,10 @@ public:
 			s >> previewType_;
 	}
 
-	inline Type mediaType() { return (Type)mediaType_; }
+	inline TxMediaHeader::MediaType mediaType() { return (TxMediaHeader::MediaType)mediaType_; }
 	inline void setMediaType(unsigned short type) { mediaType_ = type; }
 
-	inline Type previewType() { return (Type)previewType_; }
+	inline TxMediaHeader::MediaType previewType() { return (TxMediaHeader::MediaType)previewType_; }
 	inline void setPreviewType(unsigned short type) { previewType_ = type; }
 
 	inline uint64_t timestamp() { return timestamp_; }
@@ -197,49 +199,49 @@ public:
 		std::string lDescription; lDescription.insert(lDescription.end(), description_.begin(), description_.end());
 		props["description"] = lDescription;
 		props["type"] = mediaTypeToString();
-		props["previewType"] = mediaTypeAnyToString((Type)previewType_);
+		props["previewType"] = mediaTypeAnyToString((TxMediaHeader::MediaType)previewType_);
 		props["signature"] = signature_.toHex();
 	}
 
 	inline std::string mediaTypeToString() {
-		return mediaTypeAnyToString((Type)mediaType_);
+		return mediaTypeAnyToString((TxMediaHeader::MediaType)mediaType_);
 	}
 
-	inline std::string mediaTypeAnyToString(Type mediaType) {
+	inline std::string mediaTypeAnyToString(TxMediaHeader::MediaType type) {
 		//
-		switch(mediaType) {
-			case UNKNOWN: return "UNKNOWN";
-			case IMAGE_PNG: return "image/png";
-			case IMAGE_JPEG: return "image/jpeg";
-			case VIDEO_MJPEG: return "video/mjpeg";
-			case VIDEO_MP4: return "video/mp4";
-			case AUDIO_PCM: return "audio/pcm";
-			case AUDIO_AMR: return "audio/amr";
-			case DOCUMENT_PDF: return "application/pdf";
-			case AUDIO_MP3: return "audio/mp3";
-			case AUDIO_M4A: return "audio/m4a";
+		switch(type) {
+			case TxMediaHeader::MediaType::UNKNOWN: return "UNKNOWN";
+			case TxMediaHeader::MediaType::IMAGE_PNG: return "image/png";
+			case TxMediaHeader::MediaType::IMAGE_JPEG: return "image/jpeg";
+			case TxMediaHeader::MediaType::VIDEO_MJPEG: return "video/mjpeg";
+			case TxMediaHeader::MediaType::VIDEO_MP4: return "video/mp4";
+			case TxMediaHeader::MediaType::AUDIO_PCM: return "audio/pcm";
+			case TxMediaHeader::MediaType::AUDIO_AMR: return "audio/amr";
+			case TxMediaHeader::MediaType::DOCUMENT_PDF: return "application/pdf";
+			case TxMediaHeader::MediaType::AUDIO_MP3: return "audio/mp3";
+			case TxMediaHeader::MediaType::AUDIO_M4A: return "audio/m4a";
 		}
 
 		return "UNKNOWN";
 	}
 
 	inline std::string mediaTypeToExtension() {
-		return mediaTypeAnyToExtension((Type)mediaType_);
+		return mediaTypeAnyToExtension((TxMediaHeader::MediaType)mediaType_);
 	}
 
-	inline std::string mediaTypeAnyToExtension(Type mediaType) {
+	inline std::string mediaTypeAnyToExtension(TxMediaHeader::MediaType type) {
 		//
-		switch(mediaType) {
-		    case UNKNOWN: return ".unknown";
-		    case IMAGE_PNG: return ".png";
-		    case IMAGE_JPEG: return ".jpeg";
-		    case VIDEO_MJPEG: return ".mjpeg";
-		    case VIDEO_MP4: return ".mp4";
-		    case AUDIO_PCM: return ".wav";
-		    case AUDIO_AMR: return ".amr";
-		    case DOCUMENT_PDF: return ".pdf";
-		    case AUDIO_MP3: return ".mp3";
-		    case AUDIO_M4A: return ".m4a";
+		switch(type) {
+		    case TxMediaHeader::MediaType::UNKNOWN: return ".unknown";
+		    case TxMediaHeader::MediaType::IMAGE_PNG: return ".png";
+		    case TxMediaHeader::MediaType::IMAGE_JPEG: return ".jpeg";
+		    case TxMediaHeader::MediaType::VIDEO_MJPEG: return ".mjpeg";
+		    case TxMediaHeader::MediaType::VIDEO_MP4: return ".mp4";
+		    case TxMediaHeader::MediaType::AUDIO_PCM: return ".wav";
+		    case TxMediaHeader::MediaType::AUDIO_AMR: return ".amr";
+		    case TxMediaHeader::MediaType::DOCUMENT_PDF: return ".pdf";
+		    case TxMediaHeader::MediaType::AUDIO_MP3: return ".mp3";
+		    case TxMediaHeader::MediaType::AUDIO_M4A: return ".m4a";
 		}
 
 		return "UNKNOWN";
@@ -248,10 +250,13 @@ public:
 	inline std::string previewMediaTypeToExtension() {
 		//
 		if (version_ >= TX_CUBIX_MEDIA_HEADER_VERSION_3) {
-			return mediaTypeAnyToExtension((Type)previewType_);
+			if ((TxMediaHeader::MediaType)previewType_ == TxMediaHeader::MediaType::UNKNOWN) return mediaTypeToExtension();
+			std::string lPreviewType = mediaTypeAnyToExtension((TxMediaHeader::MediaType)previewType_);
+			if (lPreviewType == "UNKNOWN") return mediaTypeToExtension();
+			return lPreviewType;
 		} else {
 			switch(mediaType_) {
-				case IMAGE_PNG: return ".png";
+				case TxMediaHeader::IMAGE_PNG: return ".png";
 				default: return ".jpeg";
 			}
 		}
@@ -259,29 +264,29 @@ public:
 		return "UNKNOWN";
 	}
 
-	static TxMediaHeader::Type extensionToMediaType(const std::string& ext) {
+	static TxMediaHeader::MediaType extensionToMediaType(const std::string& ext) {
 		//
 		if (ext == ".jpeg" || ext == ".jpg" || ext == "jpeg" || ext == "jpg") {
-			return IMAGE_JPEG;
+			return TxMediaHeader::MediaType::IMAGE_JPEG;
 		} else if (ext == ".png" || ext == "png") {
-			return IMAGE_PNG;
+			return TxMediaHeader::MediaType::IMAGE_PNG;
 		} else if (ext == ".mjpeg" || ext == "mjpeg") {
-			return VIDEO_MJPEG;
+			return TxMediaHeader::MediaType::VIDEO_MJPEG;
 		} else if (ext == ".mp4" || ext == "mp4") {
-			return VIDEO_MP4;
+			return TxMediaHeader::MediaType::VIDEO_MP4;
 		} else if (ext == ".wav" || ext == "wav") {
-			return AUDIO_PCM;
+			return TxMediaHeader::MediaType::AUDIO_PCM;
 		} else if (ext == ".amr" || ext == "amr") {
-			return AUDIO_AMR;
+			return TxMediaHeader::MediaType::AUDIO_AMR;
 		} else if (ext == ".pdf" || ext == "pdf") {
-			return DOCUMENT_PDF;
+			return TxMediaHeader::MediaType::DOCUMENT_PDF;
 		} else if (ext == ".mp3" || ext == "mp3") {
-			return AUDIO_MP3;
+			return TxMediaHeader::MediaType::AUDIO_MP3;
 		} else if (ext == ".m4a" || ext == "m4a") {
-			return AUDIO_M4A;
+			return TxMediaHeader::MediaType::AUDIO_M4A;
 		}
 
-		return UNKNOWN;
+		return TxMediaHeader::MediaType::UNKNOWN;
 	}
 
 	static void mediaExtensions(std::list<std::string>& list) {
@@ -316,7 +321,7 @@ public:
 
 protected:
 	// version 0
-	unsigned short mediaType_ = Type::UNKNOWN;
+	unsigned short mediaType_ = TxMediaHeader::MediaType::UNKNOWN;
 	uint64_t timestamp_;
 	std::string mediaName_;
 	std::vector<unsigned char> description_;
@@ -329,7 +334,7 @@ protected:
 	// version 2
 	uint32_t duration_ = 0;
 	// version 3
-	unsigned short previewType_ = Type::UNKNOWN;
+	unsigned short previewType_ = TxMediaHeader::MediaType::UNKNOWN;
 
 };
 

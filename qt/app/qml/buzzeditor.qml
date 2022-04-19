@@ -1353,6 +1353,7 @@ QuarkPage {
 		}
 
 		for (lIdx = 0; lIdx < mediaModel.count; lIdx++) {
+			console.log("[createBuzz/media]: key = " + mediaModel.get(lIdx).key + ", preview = " + mediaModel.get(lIdx).preview);
 			buzzCommand.addMedia(mediaModel.get(lIdx).key + "," +
 								 mediaModel.get(lIdx).duration + "," +
 								 mediaModel.get(lIdx).preview + "," +

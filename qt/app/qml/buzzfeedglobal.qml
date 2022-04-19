@@ -359,6 +359,9 @@ Item
 		displayMarginBeginning: 5000
 		displayMarginEnd: 5000
 
+		//property real localVelocity: maximumFlickVelocity
+		//maximumFlickVelocity: 3000
+
 		function adjust() {
 			//
 			for (var lIdx = 0; lIdx < list.count; lIdx++) {
@@ -370,6 +373,7 @@ Item
 		}
 
 		onDragStarted: {
+			//console.log("maximumFlickVelocity = " + maximumFlickVelocity);
 		}
 
 		onDraggingVerticallyChanged: {

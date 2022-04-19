@@ -61,6 +61,29 @@ Item {
 		return null;
 	}
 
+	function createAudioInstance(playerPlceholder, root) {
+		//
+		var lPlayer = null;
+		var lVideoOutput = null;
+
+		var lComponent = Qt.createComponent("qrc:/qml/buzzitemmedia-mediaplayer.qml");
+		if (lComponent.status === Component.Error) {
+			controller.showError(lComponent.errorString());
+		} else {
+			lPlayer = lComponent.createObject(playerController /*playerPlceholder*/);
+
+			root.player = lPlayer;
+
+			prevInstance = lastInstance;
+			lastInstance = root;
+			newInstanceCreated(root, prevInstance);
+
+			return lastInstance;
+		}
+
+		return null;
+	}
+
 	function linkInstance(instance) {
 		//
 		prevInstance = lastInstance;

@@ -23,7 +23,7 @@ Rectangle {
 	id: imageFrame
 
 	//
-	property int calculatedHeight: 400
+	property int calculatedHeight: 500 // 400?
 	readonly property int spaceLeft_: 15
 	readonly property int spaceTop_: 12
 	readonly property int spaceRight_: 15
@@ -103,10 +103,13 @@ Rectangle {
 
 		// width: (mediaList ? mediaList.width : imageFrame.width) - spaceItems_
 		height: calculatedHeight
-		fillMode: Image.PreserveAspectCrop
+		fillMode: BuzzerComponents.ImageQx.PreserveAspectFit //Image.PreserveAspectFit
 		mipmap: true
 
-		source: path_
+		Layout.fillWidth: true
+		//Layout.fillHeight: true
+
+		source: preview_
 
 		Component.onCompleted: {
 		}
@@ -115,7 +118,7 @@ Rectangle {
 			//
 			if (status == Image.Error) {
 				// force to reload
-				console.log("[onStatusChanged]: forcing reload of " + path_);
+				console.log("[onStatusChanged]: forcing reload of " + preview_);
 				//downloadCommand
 				errorLoading();
 			}
@@ -127,6 +130,8 @@ Rectangle {
 				var lCoeff = (width * 1.0) / (originalWidth * 1.0)
 				var lHeight = originalHeight * 1.0;
 				height = lHeight * lCoeff;
+
+				adjustHeight(height);
 			}
 		}
 
@@ -168,41 +173,5 @@ Rectangle {
 				}
 			}
 		}
-
-		/*
-		layer.enabled: true
-		layer.effect: OpacityMask {
-			id: roundEffect
-			maskSource: Item {
-				width: roundEffect.getWidth()
-				height: roundEffect.getHeight()
-
-				Rectangle {
-					//anchors.centerIn: parent
-					x: roundEffect.getX()
-					y: roundEffect.getY()
-					width: roundEffect.getWidth()
-					height: roundEffect.getHeight()
-					radius: 8
-				}
-			}
-
-			function getX() {
-				return 0;
-			}
-
-			function getY() {
-				return 0;
-			}
-
-			function getWidth() {
-				return mediaImage.width;
-			}
-
-			function getHeight() {
-				return mediaImage.height;
-			}
-		}
-		*/
 	}
 }

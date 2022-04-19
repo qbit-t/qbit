@@ -294,10 +294,10 @@ public:
 			BlockPtr lChallengeBlock = store_->block(block.prev_);
 			if (lChallengeBlock != nullptr) {
 				//
-				if (lChallengeBlock->prev_ != lBottom && !lChallengeBlock->nextBlockChallenge().isNull()) {
+				if (/*lChallengeBlock->prev_ != lBottom &&*/ !lChallengeBlock->nextBlockChallenge().isNull()) {
 					//
 					BlockPtr lTargetBlock = store_->block(lChallengeBlock->nextBlockChallenge());
-					if (lTargetBlock != nullptr && !block.prevChallenge_.isNull()) {
+					if (lTargetBlock != nullptr /*&& !block.prevChallenge_.isNull()*/) {
 						//
 						if (lTargetBlock->transactions().size() > lChallengeBlock->nextTxChallenge() &&
 							lChallengeBlock->nextTxChallenge() >= 0) {
@@ -319,12 +319,7 @@ public:
 							extended = false; lLevel = 2;
 						}
 					} else {
-						//
-						// WARNING: Softing checks - favor to more fast net than strict content challenges
-						//
-						if (!block.prevChallenge_.isNull()) {
-							extended = false; lLevel = 1;
-						}
+						extended = false; lLevel = 1;
 					}
 				}
 			} else {

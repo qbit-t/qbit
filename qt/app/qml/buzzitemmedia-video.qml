@@ -44,7 +44,7 @@ Rectangle {
 	property bool mediaView: false
 	property int originalDuration: duration_
 	property int totalSize_: size_
-	property int calculatedHeight: 600
+	property int calculatedHeight: 500
 	property var frameColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
 	property var fillColor: "transparent"
 	property var sharedMediaPlayer_
@@ -92,16 +92,12 @@ Rectangle {
 	}
 
 	onHeightChanged: {
-		/*
-		if (buzzitemmedia_)
-			console.log("[onHeightChanged]: height = " + height + ", parent.height = " + parent.height + ", buzzitemmedia_.calculatedHeight = " + buzzitemmedia_.calculatedHeight);
-		*/
 		adjust();
 	}
 
 	function forceVisibilityCheck(isFullyVisible) {
 		//
-		if (player && playing) {
+		if (player && (playing || downloadCommand.processing)) {
 			//
 			if (!isFullyVisible) {
 				videoFrame.sharedMediaPlayer_.showCurrentPlayer();
@@ -122,11 +118,6 @@ Rectangle {
 	//
 	Item {
 		id: frameContainer
-		//x: videoOut ? videoOut.contentRect.x : 0
-		//y: videoOut ? videoOut.contentRect.y : 0
-		//width: previewImage.visible ? previewImage.width : parent.width
-		//height: previewImage.visible ? previewImage.height : parent.height
-
 		width: videoOut ? videoOut.contentRect.width : parent.width
 		height: videoOut ? videoOut.contentRect.height : parent.height
 
@@ -150,9 +141,10 @@ Rectangle {
 
 		function enableScene() {
 			//
-			//console.log("[onContentRectChanged(0)]: videoOutput.contentRect = " + videoOut.contentRect + ", playing = " + playing + ", calculatedHeight = " + calculatedHeight);
+			//console.log("[onContentRectChanged(0)]: videoOutput.contentRect = " + videoOut.contentRect + ", videoFrame.playing = " + videoFrame.playing + ", videoFrame.player = " + videoFrame.player + ", videoFrame.player.hasVideo = " + videoFrame.player.hasVideo);
 			//
-			if (videoFrame.playing && videoFrame.player && videoFrame.player.hasVideo /*videoOut.contentRect.height > 0 &&
+			if (videoFrame.playing && videoFrame.player && videoFrame.player.hasVideo && videoFrame.player.position > 1
+												/*videoOut.contentRect.height > 0 &&
 													videoOut.contentRect.height < calculatedHeight &&
 														(orientation != 90 && orientation != -90)*/) {
 				//console.log("[onContentRectChanged(1)]: videoOutput.contentRect = " + videoOut.contentRect);
@@ -193,6 +185,7 @@ Rectangle {
 
 	BuzzerComponents.ImageQx {
 		id: previewImage
+		autoTransform: true
 		asynchronous: true
 		radius: 8
 
@@ -215,6 +208,13 @@ Rectangle {
 
 		onStatusChanged: {
 			adjustView();
+
+			if (status == Image.Error) {
+				// force to reload
+				console.log("[onStatusChanged]: forcing reload of " + preview_);
+				//downloadCommand
+				errorLoading();
+			}
 		}
 
 		onWidthChanged: {
@@ -223,6 +223,8 @@ Rectangle {
 				var lCoeff = (width * 1.0) / (originalWidth * 1.0)
 				var lHeight = originalHeight * 1.0;
 				height = lHeight * lCoeff;
+
+				adjustHeight(height);
 
 				//console.log("[onHeightChanged/image/new height]: height = " + lHeight + ", lCoeff = " + lCoeff + ", width = " + width + ", originalWidth = " + originalWidth);
 			}
@@ -289,6 +291,7 @@ Rectangle {
 				lVideoOut.player.onStatusChanged.connect(playerStatusChanged);
 				lVideoOut.player.onPositionChanged.connect(playerPositionChanged);
 				lVideoOut.player.onError.connect(playerError);
+				lVideoOut.player.onHasVideoChanged.connect(playerHasVideo);
 				lVideoOut.linkActivated.connect(frameContainer.clickActivated);
 				lVideoOut.onContentRectChanged.connect(frameContainer.enableScene);
 
@@ -343,8 +346,12 @@ Rectangle {
 		}
 	}
 
+	function playerHasVideo() {
+		frameContainer.enableScene();
+	}
+
 	function playerError(error, errorString) {
-		console.log("[onErrorStringChanged]: " + errorString);
+		console.log("[onErrorStringChanged]: error = " + error + " - " + errorString);
 		// in case of error
 		downloadCommand.downloaded = false;
 		downloadCommand.processing = false;
@@ -355,6 +362,10 @@ Rectangle {
 		if (videoFrame && videoFrame.player) {
 			elapsedTime.setTime(videoFrame.player.position);
 			playSlider.value = videoFrame.player.position;
+
+			console.log("[playerPositionChanged]: videoFrame.player.position = " + videoFrame.player.position + ", position = " + position);
+			if (videoFrame.player.position >= 1 &&
+					videoFrame.player.position <= 1000) frameContainer.enableScene();
 		}
 	}
 
@@ -385,9 +396,9 @@ Rectangle {
 		radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius)) : defaultRadius
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.highlight")
 
-		property bool needDownload: size_ && size_ > 1024*200 && !downloadCommand.downloaded
+		property bool needDownload: size_ && /*size_ > 1024*200 &&*/ !downloadCommand.downloaded
 
-		opacity: 0.6
+		opacity: 0.8
 
 		onClick: {
 			//

@@ -74,6 +74,14 @@ Rectangle {
 
 	function forceVisibilityCheck(isFullyVisible) {
 		//
+		if (player && (playing || downloadCommand.processing)) {
+			//
+			if (!isFullyVisible) {
+				audioFrame.sharedMediaPlayer_.showCurrentPlayer();
+			} else {
+				audioFrame.sharedMediaPlayer_.hideCurrentPlayer();
+			}
+		}
 	}
 
 	function terminate() {
@@ -170,9 +178,10 @@ Rectangle {
 	}
 
 	//
+	/*
 	Audio {
 		id: player
-		//source: path_
+		source: path_
 
 		property bool playing: false;
 
@@ -187,6 +196,7 @@ Rectangle {
 					totalTime.setTotalTime(duration ? duration : duration_);
 					totalSize.setTotalSize(size_);
 					playSlider.to = duration ? duration : duration_;
+					console.log("[onStatusChanged]: duration = " + duration + ", duration_ = " + duration_);
 				break;
 			}
 		}
@@ -207,6 +217,91 @@ Rectangle {
 			downloadCommand.cleanUp();
 		}
 	}
+	*/
+
+	Item {
+		id: audioOut
+
+		property var player;
+	}
+
+	property var player: null
+	property var videoOut: null
+	property bool playing: false
+
+	function play() {
+		//
+		if (!player) {
+			// controller
+			var lAudioOut = audioFrame.sharedMediaPlayer_.createAudioInstance(audioFrame, audioOut);
+			//
+			if (lAudioOut) {
+				lAudioOut.player.onPlaying.connect(mediaPlaying);
+				lAudioOut.player.onPaused.connect(mediaPaused);
+				lAudioOut.player.onStopped.connect(mediaStopped);
+				lAudioOut.player.onStatusChanged.connect(playerStatusChanged);
+				lAudioOut.player.onPositionChanged.connect(playerPositionChanged);
+				lAudioOut.player.onError.connect(playerError);
+
+				player = lAudioOut.player;
+
+				player.source = path_;
+				player.play();
+			}
+		} else {
+			if (player.stopped)
+				audioFrame.sharedMediaPlayer_.linkInstance(audioOut);
+			player.play();
+		}
+	}
+
+	function mediaPlaying() {
+		if (!audioFrame) return;
+		playing = true;
+		actionButton.adjust();
+	}
+
+	function mediaPaused() {
+		if (!audioFrame) return;
+		playing = false;
+		actionButton.adjust();
+	}
+
+	function mediaStopped() {
+		if (!audioFrame) return;
+		audioFrame.playing = false;
+		actionButton.adjust();
+		elapsedTime.setTime(0);
+		playSlider.value = 0;
+	}
+
+	function playerStatusChanged(status) {
+		if (!audioFrame || !audioFrame.player) return;
+		switch(audioFrame.player.status) {
+			case MediaPlayer.Buffered:
+				totalTime.setTotalTime(audioFrame.player.duration ? audioFrame.player.duration : duration_);
+				totalSize.setTotalSize(size_);
+				playSlider.to = audioFrame.player.duration ? audioFrame.player.duration : duration_;
+
+				//console.log("[onStatusChanged/buffered/inner]: status = " + videoFrame.player.status + ", duration = " + videoFrame.player.duration);
+			break;
+		}
+	}
+
+	function playerError(error, errorString) {
+		console.log("[onErrorStringChanged]: " + errorString);
+		// in case of error
+		downloadCommand.downloaded = false;
+		downloadCommand.processing = false;
+		downloadCommand.cleanUp();
+	}
+
+	function playerPositionChanged(position) {
+		if (audioFrame && audioFrame.player) {
+			elapsedTime.setTime(audioFrame.player.position);
+			playSlider.value = audioFrame.player.position;
+		}
+	}
 
 	//
 	QuarkRoundSymbolButton {
@@ -222,7 +317,7 @@ Rectangle {
 		radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius)) : defaultRadius
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.highlight")
 
-		property bool needDownload: size_ && size_ > 1024*200 && !downloadCommand.downloaded
+		property bool needDownload: size_ /*&& size_ > 1024*200*/ && !downloadCommand.downloaded
 
 		onClick: {
 			//
@@ -237,11 +332,12 @@ Rectangle {
 				mediaLoading.visible = false;
 				downloadCommand.processing = false;
 				downloadCommand.terminate();
-			} else if (!player.playing) {
+			} else if (!audioFrame.playing) {
 				symbol = Fonts.cancelSym;
-				player.play();
+				audioFrame.play();
 			} else {
-				player.pause();
+				if (audioFrame.player)
+					audioFrame.player.pause();
 			}
 		}
 
@@ -257,7 +353,7 @@ Rectangle {
 
 		function adjust() {
 			symbol = needDownload && !downloadCommand.downloaded ? Fonts.arrowDownHollowSym :
-										(player.playing ? Fonts.pauseSym : Fonts.playSym);
+										(audioFrame.playing ? Fonts.pauseSym : Fonts.playSym);
 		}
 	}
 
@@ -305,7 +401,7 @@ Rectangle {
 		x: actionButton.x + actionButton.width // + spaceItems_
 		y: actionButton.y + actionButton.height - (height - 3 * spaceItems_)
 		from: 0
-		to: 1
+		to: duration_ ? duration_ : 1
 		orientation: Qt.Horizontal
 		stepSize: 0.1
 		width: parent.width - (actionButton.x + actionButton.width + 2 * spaceItems_)
@@ -368,13 +464,12 @@ Rectangle {
 
 		onProcessed: {
 			// tx, previewFile, originalFile, orientation, duration, size, type
+			console.log(tx + ", " + previewFile + ", " + originalFile + ", " + orientation + ", " + duration + ", " + size + ", " + type);
 
 			//
 			processing = false;
 			downloaded = true;
 
-			// set file
-			path_ = "file://" + originalFile;
 			// set original orientation
 			orientation_ = orientation;
 			// set duration
@@ -383,6 +478,8 @@ Rectangle {
 			size_ = size;
 			// set size
 			media_ = type;
+			// set file
+			path_ = "file://" + originalFile;
 			// stop spinning
 			mediaLoading.visible = false;
 
@@ -390,7 +487,7 @@ Rectangle {
 			actionButton.adjust();
 
 			// autoplay
-			if (!player.playing) player.play();
+			if (!audioFrame.playing) audioFrame.play();
 		}
 
 		onError: {
