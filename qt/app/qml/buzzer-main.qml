@@ -108,12 +108,37 @@ QuarkPage
 		}
 	}
 
+	Timer {
+		id: checkTrustScore
+		interval: 1000
+		repeat: false
+		running: false
+
+		onTriggered: {
+			//
+			console.log("[checkTrustScore]: checking trust score...");
+			loadTrustScoreCommand.process();
+		}
+	}
+
 	BuzzerCommands.LoadBuzzerTrustScoreCommand {
 		id: loadTrustScoreCommand
+
+		property var count_: 0;
+
 		onProcessed: {
 			buzzerClient.setTrustScore(endorsements, mistrusts);
 			headerBar.adjustTrustScore();
+			count_ = 0;
 		}
+
+		/*
+		onError: {
+			if (count_++ < 5) {
+				checkTrustScore.start();
+			} else count_ = 0;
+		}
+		*/
 	}
 
 	BuzzerCommands.DownloadMediaCommand {
@@ -122,7 +147,8 @@ QuarkPage
 		skipIfExists: true
 
 		onProcessed: {
-			// tx, previewFile, originalFile
+			// tx, previewFile, originalFile, orientation, duration, size, type
+			console.log("[avatarDownloadCommand]: tx = " + tx + ", " + previewFile + ", " + originalFile + ", " + orientation + ", " + duration + ", " + size + ", " + type);
 			buzzerClient.avatar = originalFile;
 		}
 

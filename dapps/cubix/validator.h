@@ -68,10 +68,10 @@ public:
 		BlockHeader& lOther = const_cast<NetworkBlockHeader&>(blockHeader).blockHeader();
 
 		//
-		if (const_cast<NetworkBlockHeader&>(blockHeader).height() <= lCurrentHeight) {
-			if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[cubix/checkBlockHeader]: target height is less that current ") + 
-				strprintf("current = %d, proposed = %d, height = %d, new = %s, our = %s, origin = %s/%s#", 
-					lHeader.time(), lOther.time(),
+		if (const_cast<NetworkBlockHeader&>(blockHeader).height() < lCurrentHeight) {
+			if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[cubix/checkBlockHeader/error]: target height is less that current ") + 
+				strprintf("current = %d/%d, proposed = %d/%d, new = %s, our = %s, origin = %s/%s#", 
+					lHeader.time(), lCurrentHeight, lOther.time(),
 					const_cast<NetworkBlockHeader&>(blockHeader).height(),
 					lOther.hash().toHex(), lHeader.hash().toHex(), 
 						lOther.origin().toHex(), chain_.toHex().substr(0, 10)));
@@ -82,7 +82,7 @@ public:
 		bool lExtended = true;
 		if (!consensus_->checkSequenceConsistency(lOther, lExtended)) {
 			//
-			if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[cubix/checkBlockHeader]: check sequence consistency FAILED ") +
+			if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[cubix/checkBlockHeader/error]: check sequence consistency FAILED ") +
 				strprintf("block = %s, prev = %s, chain = %s#", lOther.hash().toHex(), 
 					lOther.prev().toHex(), chain_.toHex().substr(0, 10)));
 			return IValidator::INTEGRITY_IS_INVALID;
@@ -313,16 +313,23 @@ private:
 							BlockHeader lCurrentBlockHeader;
 							int32_t lChallengeBlockTx = -1;
 							uint256 lNextBlockChallenge;
-							uint64_t lChallengeBlock = 0;
+							uint64_t lChallengeBlock = 0, lCurrentBlockChallenge = 0;
 							bool lChallengeSaved = false;
+							// ONLY approx value to measure height
 							uint64_t lCurrentBlockHeight = store_->currentHeight(lCurrentBlockHeader);
 							if (lCurrentBlockHeight > 100) {
-								boost::random::uniform_int_distribution<uint64_t> lBlockDistribution(1, lCurrentBlockHeight - 100);
+								// define dig deep
+								boost::random::uniform_int_distribution<uint64_t> lBlockDistribution(1, 100);
 								lChallengeBlock = lBlockDistribution(lGen);
 
-								BlockPtr lBlock = store_->block(lChallengeBlock);
-								if (lBlock != nullptr) {
-									//
+								BlockPtr lBlock;
+								uint256 lPrevBlock = lLastHeader.prev();
+								while ((lBlock = store_->block(lPrevBlock)) != nullptr &&
+														lCurrentBlockChallenge++ < lChallengeBlock) {
+									lPrevBlock = lBlock->prev();
+								}
+
+								if (lBlock && lCurrentBlockChallenge == lChallengeBlock) {
 									lNextBlockChallenge = lBlock->hash();
 									if (lBlock->transactions().size()) {
 										//
@@ -335,10 +342,6 @@ private:
 									}
 								}
 							}
-
-							if (gLog().isEnabled(Log::VALIDATOR))
-								gLog().write(Log::VALIDATOR, std::string("[cubix/validator/miner]: challenge ") +
-									strprintf("b = %s/%d/%d, h = %d, saved = %d", lNextBlockChallenge.toHex(), lChallengeBlock, lChallengeBlockTx, lCurrentBlockHeight, lChallengeSaved));
 
 							// resolve previous challenge
 							bool lPrevChallengeResolved = false;
@@ -401,7 +404,12 @@ private:
 
 							if (gLog().isEnabled(Log::VALIDATOR))
 								gLog().write(Log::VALIDATOR, std::string("[cubix/validator/miner]: challenge and proof ") +
-									strprintf("b = %s/%d/%d, h = %d, proof = %d/%s, saved = %d, %s#", lNextBlockChallenge.toHex(), lChallengeBlock, lChallengeBlockTx, lCurrentBlockHeight, lFreeOuts.size(), lProofTx.toHex(), lChallengeSaved, chain_.toHex().substr(0, 10)));
+									strprintf("b = %s/%d/%d/%d, h = %d, proof = %d/%s, saved = %d, %s#",
+										lNextBlockChallenge.toHex(),
+										lChallengeBlock, 
+										lCurrentBlockChallenge,
+										lChallengeBlockTx,
+										lCurrentBlockHeight, lFreeOuts.size(), lProofTx.toHex(), lChallengeSaved, chain_.toHex().substr(0, 10)));
 
 							// calc merkle root
 							lCurrentBlock->setRoot(lCurrentBlockContext->calculateMerkleRoot());
