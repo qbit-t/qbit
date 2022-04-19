@@ -315,15 +315,15 @@ private:
 							bool lChallengeSaved = false;
 							// ONLY approx value to measure height
 							uint64_t lCurrentBlockHeight = store_->currentHeight(lCurrentBlockHeader);
-							if (lCurrentBlockHeight > 100) {
+							if (lCurrentBlockHeight > 500) {
 								// define dig deep
-								boost::random::uniform_int_distribution<uint64_t> lBlockDistribution(1, 100);
+								boost::random::uniform_int_distribution<uint64_t> lBlockDistribution(1, 500);
 								lChallengeBlock = lBlockDistribution(lGen);
 
 								BlockPtr lBlock;
 								uint256 lPrevBlock = lLastHeader.prev();
 								while ((lBlock = store_->block(lPrevBlock)) != nullptr &&
-														lCurrentBlockChallenge++ < lChallengeBlock) {
+														lCurrentBlockChallenge++ <= lChallengeBlock) {
 									lPrevBlock = lBlock->prev();
 								}
 
