@@ -4009,7 +4009,7 @@ void BuzzerTransactionStoreExtension::selectBuzzfeed(const std::vector<BuzzfeedP
 		lFrom.setKey2Empty();
 
 		// 2.4. stepping down up to max 100 events for each publisher
-		for (; (lBuzzItems.size() - lCurrentPublisher) < 100 /*TODO: settings?*/ && lFrom.valid(); --lFrom) {
+		for (; (lBuzzItems.size() - lCurrentPublisher) < 50 /*TODO: settings?*/ && lFrom.valid(); --lFrom) {
 			//
 			int lContext = 0;
 			TxBuzzerPtr lBuzzer = nullptr;
@@ -4128,7 +4128,7 @@ void BuzzerTransactionStoreExtension::selectBuzzfeed(const std::vector<BuzzfeedP
 	std::set<BuzzfeedItem::Key> lAdded;
 	for (std::multimap<uint64_t, BuzzfeedItem::Key>::reverse_iterator lItem = lRawBuzzfeed.rbegin(); lItem != lRawBuzzfeed.rend(); lItem++) {
 		//
-		if (!lContinue && feed.size() < 100 /*max last mixed events*/ || lContinue && feed.size() < 500) {
+		if (!lContinue && feed.size() < 50 /*max last mixed events*/ || lContinue && feed.size() < 500) {
 			std::map<BuzzfeedItem::Key, BuzzfeedItemPtr>::iterator lBuzzItem = lBuzzItems.find(lItem->second);
 			if (lBuzzItem != lBuzzItems.end()) {
 				if (lAdded.insert(lItem->second).second) {

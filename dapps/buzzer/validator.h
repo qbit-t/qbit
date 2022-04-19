@@ -356,6 +356,7 @@ private:
 										
 										uint256 lHashChallenge = Hash(lSource.begin(), lSource.end());
 										lCurrentBlock->setPrevChallenge(lHashChallenge);
+										lPrevChallengeResolved = true;
 									}
 								}
 							} else lPrevChallengeResolved = true;
