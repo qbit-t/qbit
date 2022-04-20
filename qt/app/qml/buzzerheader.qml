@@ -147,7 +147,7 @@ Item {
 		skipIfExists: true
 
 		onProcessed: {
-			// tx, previewFile, originalFile
+			// tx, previewFile, originalFile, orientation, duration, size, type
 			avatarImage.source = "file://" + originalFile;
 		}
 

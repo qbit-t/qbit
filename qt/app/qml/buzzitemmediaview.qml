@@ -164,12 +164,14 @@ Item {
 
 				onProcessed: {
 					// tx, previewFile, originalFile, orientation, duration, size, type
-					console.log(tx + ", " + previewFile + ", " + originalFile + ", " + orientation + ", " + duration + ", " + size + ", " + type);
+					var lPSize = buzzerApp.getFileSize(previewFile);
+					var lOSize = buzzerApp.getFileSize(originalFile);
+					console.log("[buzzitemmediaview]: tx = " + tx + ", " + previewFile + " - [" + lPSize + "], " + originalFile + " - [" + lOSize + "], " + orientation + ", " + duration + ", " + size + ", " + type);
 
 					// stop timer
 					downloadWaitTimer.stop();
 					// set file
-					path_ = "file://" + originalFile;
+					if (originalFile.length) path_ = "file://" + originalFile;
 					// set file
 					preview_ = "file://" + previewFile;
 					// set original orientation

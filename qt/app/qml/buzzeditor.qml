@@ -653,7 +653,6 @@ QuarkPage {
 					var lOrientation = 0; // vertical
 					if (buzzeditor_.width > buzzeditor_.height) lOrientation = 1; // horizontal
 					*/
-					console.log("[addVideo]: file = " + file + ", preview = " + preview);
 					mediaModel.append({
 						key: file,
 						path: "file://" + file,
@@ -715,6 +714,8 @@ QuarkPage {
 			Layout.alignment: Qt.AlignHCenter
 			symbol: Fonts.imagesSym
 
+			focusPolicy: Qt.NoFocus
+
 			y: parent.height / 2 - height / 2
 
 			onClicked: {
@@ -738,6 +739,8 @@ QuarkPage {
 			x: addFromGalleryButton.x + addFromGalleryButton.width // + spaceItems_
 			y: parent.height / 2 - height / 2
 
+			focusPolicy: Qt.NoFocus
+
 			onClicked: {
 				if (sending) return;
 
@@ -753,6 +756,9 @@ QuarkPage {
 					lPage.dataReady.connect(photoTaken);
 
 					addPage(lPage);
+
+					lPage.focusPolicy = Qt.StrongFocus;
+					lPage.forceActiveFocus(Qt.MouseFocusReason);
 				}
 			}
 
@@ -775,6 +781,8 @@ QuarkPage {
 			x: addPhotoButton.x + addPhotoButton.width // + spaceItems_
 			y: parent.height / 2 - height / 2
 
+			focusPolicy: Qt.NoFocus
+
 			onClicked: {
 				if (sending) return;
 
@@ -790,6 +798,9 @@ QuarkPage {
 					lPage.videoReady.connect(videoTaken);
 
 					addPage(lPage);
+
+					lPage.focusPolicy = Qt.StrongFocus;
+					lPage.forceActiveFocus(Qt.MouseFocusReason);
 				}
 			}
 
@@ -824,6 +835,8 @@ QuarkPage {
 
 			x: addVideoButton.x + addVideoButton.width // + spaceItems_
 			y: parent.height / 2 - height / 2
+
+			focusPolicy: Qt.NoFocus
 
 			onClicked: {
 				if (audioRecorder.isRecording) {
@@ -1068,15 +1081,24 @@ QuarkPage {
 
 		function onFileSelected(file, preview) {
 			//
-			if ((file.includes(".mp4") || file.includes(".mp3") || file.includes(".m4a")) && preview !== "") {
-				mediaListEditor.addVideo(file, 0, 0, preview);
-			} else if (file.includes(".mp3") || file.includes(".m4a")) {
-				mediaListEditor.addAudio(file, 0);
-			} else if (file.includes(".mp4")) {
-				handleError("E_MEDIA_PREVIEW_ABSENT", "Media preview is absent"); // TODO: localize!
-			} else {
+			if (mediaModel.count < 21) {
 				//
-				mediaListEditor.addMedia(file);
+				var lSize = buzzerApp.getFileSize(file);
+				var lPreviewSize = buzzerApp.getFileSize(preview);
+				console.log("[onFileSelected]: file = " + file + "/" + lSize + ", preview = " + preview + "/" + lPreviewSize);
+				//
+				if ((file.includes(".mp4") || file.includes(".mp3") || file.includes(".m4a")) && preview !== "") {
+					mediaListEditor.addVideo(file, 0, 0, preview);
+				} else if (file.includes(".mp3") || file.includes(".m4a")) {
+					mediaListEditor.addAudio(file, 0);
+				} else if (file.includes(".mp4")) {
+					handleError("E_MEDIA_PREVIEW_ABSENT", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_MEDIA_PREVIEW_ABSENT"));
+				} else {
+					//
+					mediaListEditor.addMedia(file);
+				}
+			} else {
+				handleError("E_MAX_ATTACHMENTS", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_MAX_ATTACHMENTS"));
 			}
 		}
 	}
@@ -1343,7 +1365,8 @@ QuarkPage {
 		//
 		createProgressBar.indeterminate = true;
 		createProgressBar.visible = true;
-
+		//
+		buzzCommand.clear();
 		//
 		buzzCommand.buzzBody = lText;
 		//
@@ -1380,11 +1403,12 @@ QuarkPage {
 		//
 		createProgressBar.indeterminate = true;
 		createProgressBar.visible = true;
-
+		//
+		rebuzzCommand.clear();
 		//
 		rebuzzCommand.buzzBody = lText;
+		//
 		var lBuzzers = buzzerClient.extractBuzzers(rebuzzCommand.buzzBody);
-
 		for (var lIdx = 0; lIdx < lBuzzers.length; lIdx++) {
 			rebuzzCommand.addBuzzer(lBuzzers[lIdx]);
 		}
@@ -1424,12 +1448,12 @@ QuarkPage {
 		//
 		createProgressBar.indeterminate = true;
 		createProgressBar.visible = true;
-
+		//
+		replyCommand.clear();
 		//
 		replyCommand.buzzBody = lText;
 		//
 		var lBuzzers = buzzerClient.extractBuzzers(replyCommand.buzzBody);
-
 		for (var lIdx = 0; lIdx < lBuzzers.length; lIdx++) {
 			replyCommand.addBuzzer(lBuzzers[lIdx]);
 		}
@@ -1469,7 +1493,8 @@ QuarkPage {
 		//
 		createProgressBar.indeterminate = true;
 		createProgressBar.visible = true;
-
+		//
+		messageCommand.clear();
 		//
 		if (conversation_ !== "") messageCommand.conversation = conversation_;
 		messageCommand.messageBody = lText;
@@ -1491,8 +1516,10 @@ QuarkPage {
 
 	function handleError(code, message) {
 		if (code === "E_CHAINS_ABSENT") return;
-		if (message === "UNKNOWN_REFTX" || code === "E_TX_NOT_SENT") {
-			//buzzerClient.resync();
+		if (message === "UNKNOWN_REFTX" || code === "E_TX_NOT_SENT" ||
+				((code === "E_SENT_TX" || code === "E_UPLOAD_DATA") && message.includes("UNKNOWN_REFTX"))) {
+			// a little tricky, but for now
+			// we need to RE-process failed upload, but now there is no uploads chain recovery present
 			controller.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.UNKNOWN_REFTX"), true);
 		} else {
 			controller.showError(message, true);

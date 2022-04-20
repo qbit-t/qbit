@@ -64,10 +64,15 @@ Item
 			controller.mainToolBar.setSearchText("", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.global.search"));
 		}
 
+		//
+		// TODO: switch off and rebind?
+		//
 		if (!list.model) {
 			modelLoader_ = globalModelLoader;
 			buzzfeedModel_ = globalBuzzfeedModel_;
 			list.model = globalBuzzfeedModel_;
+			switchDataTimer.start();
+		} else {
 			switchDataTimer.start();
 		}
 	}
@@ -351,16 +356,13 @@ Item
 		y: buzzerApp.isDesktop ? 0 : search.y + search.calculatedHeight
 		width: parent.width
 		height: parent.height - (buzzerApp.isDesktop ? 0 : search.calculatedHeight)
-		usePull: true
+		usePull: false
 		clip: true
 
 		// TODO: consumes a lot RAM
 		cacheBuffer: 10000
 		displayMarginBeginning: 5000
 		displayMarginEnd: 5000
-
-		//property real localVelocity: maximumFlickVelocity
-		//maximumFlickVelocity: 3000
 
 		function adjust() {
 			//
@@ -373,7 +375,6 @@ Item
 		}
 
 		onDragStarted: {
-			//console.log("maximumFlickVelocity = " + maximumFlickVelocity);
 		}
 
 		onDraggingVerticallyChanged: {
@@ -381,7 +382,7 @@ Item
 
 		onDragEnded: {
 			if (list.pullReady) {
-				modelLoader_.restart();
+				switchDataTimer.start();
 			}
 		}
 

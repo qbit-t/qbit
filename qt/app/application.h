@@ -284,6 +284,12 @@ public:
 
 	Q_INVOKABLE void commitCurrentInput();
 
+	Q_INVOKABLE void showKeyboard() {
+	}
+
+	Q_INVOKABLE void hideKeyboard() {
+	}
+
 	Q_INVOKABLE void setSharedMediaPlayerController(QVariant object) {
 		sharedMediaPlayerController_ = object.value<QObject*>();
 		qInfo() << "[setSharedMediaPlayerController]:" << sharedMediaPlayerController_;

@@ -228,7 +228,9 @@ Item {
 					//
 					processed_ = true;
 					// tx, previewFile, originalFile, orientation, duration, size, type
-					console.log(tx + ", " + previewFile + ", " + originalFile + ", " + orientation + ", " + duration + ", " + size + ", " + type);
+					var lPSize = buzzerApp.getFileSize(previewFile);
+					var lOSize = buzzerApp.getFileSize(originalFile);
+					console.log(tx + ", " + previewFile + " - [" + lPSize + "], " + originalFile + " - [" + lOSize + "], " + orientation + ", " + duration + ", " + size + ", " + type);
 
 					// stop timer
 					downloadWaitTimer.stop();

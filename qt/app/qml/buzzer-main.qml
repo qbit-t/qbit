@@ -132,13 +132,11 @@ QuarkPage
 			count_ = 0;
 		}
 
-		/*
 		onError: {
 			if (count_++ < 5) {
 				checkTrustScore.start();
 			} else count_ = 0;
 		}
-		*/
 	}
 
 	BuzzerCommands.DownloadMediaCommand {
@@ -148,7 +146,6 @@ QuarkPage
 
 		onProcessed: {
 			// tx, previewFile, originalFile, orientation, duration, size, type
-			console.log("[avatarDownloadCommand]: tx = " + tx + ", " + previewFile + ", " + originalFile + ", " + orientation + ", " + duration + ", " + size + ", " + type);
 			buzzerClient.avatar = originalFile;
 		}
 

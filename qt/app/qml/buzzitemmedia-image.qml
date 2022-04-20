@@ -88,6 +88,15 @@ Rectangle {
 		y: 0
 
 		function adjustView() {
+			if (mediaImage.status === Image.Ready && mediaList && buzzitemmedia_) {
+				//console.log("[onHeightChanged(1)/image]: height = " + height + ", width = " + width + ", implicitHeight = " + previewImage.implicitHeight);
+				width = mediaList.width - spaceItems_;
+				adjustHeight(height);
+				parent.height = height;
+			}
+		}
+
+		function adjustView2() {
 			//
 			if (!mediaList || !buzzitemmedia_) return;
 			//
@@ -101,12 +110,12 @@ Rectangle {
 			}
 		}
 
-		// width: (mediaList ? mediaList.width : imageFrame.width) - spaceItems_
-		height: calculatedHeight
+		//width: (mediaList ? mediaList.width : imageFrame.width) - spaceItems_
+		//height: calculatedHeight
 		fillMode: BuzzerComponents.ImageQx.PreserveAspectFit //Image.PreserveAspectFit
 		mipmap: true
 
-		Layout.fillWidth: true
+		//Layout.fillWidth: true
 		//Layout.fillHeight: true
 
 		source: preview_
@@ -114,8 +123,17 @@ Rectangle {
 		Component.onCompleted: {
 		}
 
+		onHeightChanged: {
+			if (buzzitemmedia_) {
+				//console.log("[onHeightChanged(2)/image]: height = " + height + ", width = " + width + ", implicitHeight = " + previewImage.implicitHeight);
+				adjustHeight(height);
+				parent.height = height;
+			}
+		}
+
 		onStatusChanged: {
-			//
+			adjustView();
+
 			if (status == Image.Error) {
 				// force to reload
 				console.log("[onStatusChanged]: forcing reload of " + preview_);

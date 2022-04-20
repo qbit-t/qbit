@@ -1155,30 +1155,35 @@ class UploadMediaCommand: public QObject
 	Q_PROPERTY(int height READ height WRITE setHeight NOTIFY heightChanged)
 	Q_PROPERTY(QString description READ description WRITE setDescription NOTIFY descriptionChanged)
 	Q_PROPERTY(QString pkey READ pkey WRITE setPKey NOTIFY pKeyChanged)
+	Q_PROPERTY(int retryCount READ retryCount NOTIFY retryCountChanged)
+	Q_PROPERTY(bool allowRetry READ allowRetry WRITE setAllowRetry NOTIFY allowRetryChanged)
 
 public:
 	explicit UploadMediaCommand(QObject* parent = nullptr);
 
 	Q_INVOKABLE void process() {
-		std::vector<std::string> lArgs;
-		lArgs.push_back(file_.toStdString());
-
-		if (width_ && height_) {
-			QString lDim = QString::number(width_) + "x" + QString::number(height_);
-			lArgs.push_back("-s");
-			lArgs.push_back(lDim.toStdString());
-		}
-
-		if (pkey_.size()) {
-			lArgs.push_back("-p");
-			lArgs.push_back(pkey_.toStdString());
-		}
-
-		if (description_.length())
-			lArgs.push_back(description_.toStdString());
-
-		command_->process(lArgs);
+		//
+		retryCount_ = 0;
+		//
+		processIternal();
 	}
+
+	Q_INVOKABLE bool reprocess() {
+		//
+		if (command_ != nullptr && allowRetry_) {
+			// we suppose that command_ was failed
+			retryCount_++; emit retryCountChanged();
+			// re-process WHOLE media because of probable inconsistency between nodes within milliseconds
+			// but maybe we'll should try to re-send last failed transaction once more and after that
+			// going hard way
+			processIternal();
+			return true;
+		}
+
+		return false;
+	}
+
+	Q_INVOKABLE int retryCount() { return retryCount_; }
 
 	void setFile(const QString& file) { file_ = file; emit fileChanged(); }
 	QString file() const { return file_; }
@@ -1195,13 +1200,25 @@ public:
 	void setPKey(const QString& pkey) { pkey_ = pkey; emit pKeyChanged(); }
 	QString pkey() const { return pkey_; }
 
+	void setAllowRetry(bool allowRetry) { allowRetry_ = allowRetry; emit allowRetryChanged(); }
+	bool allowRetry() const { return allowRetry_; }
+
 	void done(qbit::TransactionPtr tx, const qbit::ProcessingError& result) {
 		if (result.success()) {
 			QString lTx;
 			if (tx) lTx = QString::fromStdString(tx->id().toHex());
 			emit processed(lTx);
 		} else {
-			emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
+			//
+			if (result.error() == "E_SENT_TX" && result.message().find("UNKNOWN_REFTX") != std::string::npos) {
+				//
+				if (retryCount_ >= RETRY_MAX_COUNT || !allowRetry_) {
+					emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
+				} else if (allowRetry_) {
+					// can retry
+					emit retry();
+				}
+			} else emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
 		}
 	}
 
@@ -1223,6 +1240,32 @@ signals:
 	void heightChanged();
 	void descriptionChanged();
 	void pKeyChanged();
+	void retryCountChanged();
+	void allowRetryChanged();
+	void retry();
+
+private:
+	void processIternal() {
+		//
+		std::vector<std::string> lArgs;
+		lArgs.push_back(file_.toStdString());
+
+		if (width_ && height_) {
+			QString lDim = QString::number(width_) + "x" + QString::number(height_);
+			lArgs.push_back("-s");
+			lArgs.push_back(lDim.toStdString());
+		}
+
+		if (pkey_.size()) {
+			lArgs.push_back("-p");
+			lArgs.push_back(pkey_.toStdString());
+		}
+
+		if (description_.length())
+			lArgs.push_back(description_.toStdString());
+
+		command_->process(lArgs);
+	}	
 
 private:
 	QString file_;
@@ -1232,6 +1275,9 @@ private:
 	QString pkey_;
 
 	qbit::ICommandPtr command_;
+
+	bool allowRetry_ = false;
+	int retryCount_ = 0;	
 };
 
 class BuzzLikeCommand: public QObject
@@ -1398,6 +1444,11 @@ public:
 		return false;
 	}
 
+	Q_INVOKABLE void clear() {
+		buzzers_.clear();
+		buzzMedia_.clear();
+	}
+
 	Q_INVOKABLE int retryCount() { return retryCount_; }
 
 	void setBuzzBody(const QString& buzzBody) { buzzBody_ = buzzBody; emit buzzBodyChanged(); }
@@ -1511,6 +1562,11 @@ public:
 		}
 
 		return false;
+	}
+
+	Q_INVOKABLE void clear() {
+		buzzers_.clear();
+		buzzMedia_.clear();
 	}
 
 	Q_INVOKABLE int retryCount() { return retryCount_; }
@@ -1635,6 +1691,11 @@ public:
 		}
 
 		return false;
+	}
+
+	Q_INVOKABLE void clear() {
+		buzzers_.clear();
+		buzzMedia_.clear();
 	}
 
 	Q_INVOKABLE int retryCount() { return retryCount_; }
@@ -3135,6 +3196,11 @@ public:
 		}
 
 		return false;
+	}
+
+	Q_INVOKABLE void clear() {
+		buzzers_.clear();
+		messageMedia_.clear();
 	}
 
 	Q_INVOKABLE int retryCount() { return retryCount_; }

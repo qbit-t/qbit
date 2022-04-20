@@ -32,6 +32,8 @@ ListView
 
     onContentYChanged:
     {
+		if (!usePull) return;
+
         currentIndexAtTop = indexAt(1, contentY);
 
         var lHeight = contentY - originY;
@@ -58,7 +60,7 @@ ListView
 		y: listView.headerItem && listView.headerPositioning != ListView.InlineHeader ? listView.headerItem.height : 0
         visible: usePull && listView.currentIndexAtTop < 0
 
-        property bool refresh: state == "pulled" ? true : false
+		property bool refresh: usePull ? (state == "pulled" ? true : false) : false
 
         Row
         {

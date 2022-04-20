@@ -22,7 +22,7 @@ QuarkPage {
 	Component.onCompleted: {
         buzzerApp.lockPortraitOrientation();
         closePageHandler = closePage;
-    }
+	}
 
     statusBarColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Window.statusBar")
     navigationBarColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Window.navigationBar")

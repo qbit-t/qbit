@@ -11,6 +11,7 @@ import QtMultimedia 5.8
 import QtQuick.Window 2.15
 
 import app.buzzer.commands 1.0 as BuzzerCommands
+import app.buzzer.components 1.0 as BuzzerComponents
 
 import "qrc:/fonts"
 import "qrc:/components"
@@ -25,7 +26,8 @@ Item
 	property var mediaPlayerControler;
 
 	function externalPull() {
-		modelLoader.restart();
+		//modelLoader.restart();
+		switchDataTimer.start();
 	}
 
 	Component.onCompleted: {
@@ -56,6 +58,19 @@ Item
 		}
 	}
 
+	Timer {
+		id: switchDataTimer
+		interval: 500
+		repeat: false
+		running: false
+
+		onTriggered: {
+			if (buzzerClient.buzzerDAppReady) {
+				modelLoader.restart();
+			}
+		}
+	}
+
 	Connections {
 		target: buzzerClient
 
@@ -80,7 +95,8 @@ Item
 		function onBuzzerChanged() {
 			if (buzzerClient.buzzerDAppReady) {
 				console.log("[buzzfeed/onBuzzerChanged]: name = " + buzzerClient.name);
-				modelLoader.restart();
+				//modelLoader.restart();
+				switchDataTimer.start();
 			}
 		}
 	}
@@ -143,7 +159,7 @@ Item
 		y: 0
 		width: parent.width
 		height: parent.height
-		usePull: true
+		usePull: false
 		clip: true
 
 		model: buzzerClient.getBuzzfeedList()
@@ -176,7 +192,8 @@ Item
 
 		onDragEnded: {
 			if (list.pullReady) {
-				modelLoader.restart();
+				//modelLoader.restart();
+				switchDataTimer.start();
 			}
 		}
 
@@ -265,23 +282,15 @@ Item
 		id: createBuzz
 		x: parent.width - (width + 15)
 		y: parent.height - (height + 15)
-		width: 55
+		width: 65
 		height: width
 		visible: true
-		// symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
-		Layout.alignment: Qt.AlignHCenter
-		radius: width / 2
-		clip: true
+		//symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+		//Layout.alignment: Qt.AlignHCenter
+		radius: (width + 30) / 2
+		//clip: true
 
 		enabled: true
-
-		Image {
-			id: buzzImage
-			anchors.fill: parent
-			source: "../images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector,
-					buzzerApp.isDesktop ? "buzzer.round.full" : "buzzer.round")
-			fillMode: Image.PreserveAspectFit
-		}
 
 		onClicked: {
 			//
@@ -299,6 +308,21 @@ Item
 				addPage(lPage);
 			}
 		}
+	}
+
+	BuzzerComponents.ImageQx {
+		id: buzzImage
+		x: createBuzz.x + 5
+		y: createBuzz.y + 5
+		width: createBuzz.width - 10
+		height: createBuzz.height - 10
+		mipmap: true
+
+		source: "qrc://images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector,
+				//buzzerApp.isDesktop ? "buzzer.round.full" : "buzzer.round")
+				"buzzer.round.full")
+		fillMode: BuzzerComponents.ImageQx.PreserveAspectFit
+		radius: width / 2
 	}
 
 	QuarkBusyIndicator {

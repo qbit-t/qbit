@@ -864,11 +864,11 @@ void DownloadMediaCommand::headerLoaded(TransactionPtr tx) {
 		if (previewOnly_ && (header_->size() > CUBIX_MAX_DATA_CHUNK || lPreviewType != TxMediaHeader::MediaType::UNKNOWN)) {
 			if (done_) {
 				downloading_ = false;
-				done_(header_, localPreviewFileName_, localFileName_/*std::string()*/, header_->orientation(), header_->duration(), header_->size(), doneDownloadWithErrorFunctionExtraArgs(header_->mediaType(), header_->previewType()), ProcessingError());
+				done_(header_, localPreviewFileName_, std::string(), header_->orientation(), header_->duration(), header_->size(), doneDownloadWithErrorFunctionExtraArgs(header_->mediaType(), header_->previewType()), ProcessingError());
 			}
 		} else {
 			// load data
-			if (header_->size() > CUBIX_MAX_DATA_CHUNK || lFirstSize != header_->size() || lPreviewType != TxMediaHeader::MediaType::UNKNOWN) {
+			if (header_->size() > CUBIX_MAX_DATA_CHUNK || lFirstSize != header_->size() /*|| lPreviewType != TxMediaHeader::MediaType::UNKNOWN*/) {
 				// try file
 				boost::filesystem::path lLocalPath(localFile_ + header_->mediaTypeToExtension());
 				if (boost::filesystem::exists(lLocalPath)) {
