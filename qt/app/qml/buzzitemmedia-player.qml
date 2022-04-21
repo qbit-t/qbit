@@ -50,6 +50,7 @@ Rectangle {
 
 	onMediaPlayerControlerChanged: {
 		//
+		if (!mediaPlayerControler) return;
 		mediaPlayerControler.newInstanceCreated.connect(playerNewInstanceCreated);
 		mediaPlayerControler.showCurrentPlayer.connect(playerShow);
 		mediaPlayerControler.hideCurrentPlayer.connect(playerHide);
@@ -65,7 +66,7 @@ Rectangle {
 
 	function playerNewInstanceCreated(instance, prev) {
 		//
-		console.log("[playerNewInstanceCreated]: instance = " + instance + ", prev = " + prev);
+		console.log("[playerNewInstanceCreated]: instance = " + instance + ", player = " + instance.player + ", prev = " + prev);
 
 		if (prev && prev.player) {
 			prev.player.stop();
@@ -85,6 +86,7 @@ Rectangle {
 			player.onError.disconnect(playerError);
 		}
 
+		if (!instance.player) return;
 		instance.player.onPlaying.connect(mediaPlaying);
 		instance.player.onPaused.connect(mediaPaused);
 		instance.player.onStopped.connect(mediaStopped);

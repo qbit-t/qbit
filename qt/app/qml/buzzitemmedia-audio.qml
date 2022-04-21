@@ -136,6 +136,7 @@ Rectangle {
 					var lMedia = lComponent.createObject(controller_);
 					lMedia.controller = controller_;
 					lMedia.buzzMedia_ = buzzitemmedia_.buzzMedia_;
+					lMedia.mediaPlayerControler = sharedMediaPlayer_;
 					lMedia.initialize(pkey_);
 					controller_.addPage(lMedia);
 				}

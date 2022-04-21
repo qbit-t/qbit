@@ -25,12 +25,19 @@ QuarkPage {
 
 	// mandatory
 	property var buzzMedia_;
+	property var mediaPlayerControler;
 	property bool initialized_: false;
 	property var pkey_: ""
 
 	Component.onCompleted: {
 		closePageHandler = closePage;
 		activatePageHandler = activatePage;
+	}
+
+	onMediaPlayerControlerChanged: {
+		//
+		if (mediaContainer.buzzMediaItem_)
+			mediaContainer.buzzMediaItem_.sharedMediaPlayer_ = mediaPlayerControler;
 	}
 
 	function closePage() {
@@ -172,6 +179,7 @@ QuarkPage {
 			if (buzzMediaItem_) {
 				buzzMediaItem_.calculatedWidth = mediaContainer.width;
 				buzzMediaItem_.calculatedHeight = mediaContainer.height;
+				buzzMediaItem_.adjust();
 			}
 		}
 
@@ -189,10 +197,11 @@ QuarkPage {
 				buzzMediaItem_.y = 0;
 				buzzMediaItem_.calculatedWidth = mediaContainer.width;
 				buzzMediaItem_.calculatedHeight = mediaContainer.height;
-				buzzMediaItem_.width = mediaContainer.width;
-				buzzMediaItem_.height = mediaContainer.height;
+				//buzzMediaItem_.width = mediaContainer.width;
+				//buzzMediaItem_.height = mediaContainer.height;
 				buzzMediaItem_.controller_ = buzzmedia_.controller;
 				buzzMediaItem_.buzzMedia_ = buzzmedia_.buzzMedia_;
+				buzzMediaItem_.sharedMediaPlayer_ = buzzmedia_.mediaPlayerControler;
 				buzzMediaItem_.initialize(pkey_);
 			}
 		}
@@ -200,13 +209,24 @@ QuarkPage {
 		onWidthChanged: {
 			if (buzzMediaItem_) {
 				buzzMediaItem_.calculatedWidth = mediaContainer.width;
+				buzzMediaItem_.adjust();
 			}
 		}
 
 		onHeightChanged: {
 			if (buzzMediaItem_) {
 				buzzMediaItem_.calculatedHeight = mediaContainer.height;
+				buzzMediaItem_.adjust();
 			}
 		}
+	}
+
+	//
+	BuzzItemMediaPlayer {
+		id: player
+		x: 0
+		y: buzzMediaToolBar.y + buzzMediaToolBar.height
+		width: parent.width
+		mediaPlayerControler: buzzmedia_.mediaPlayerControler
 	}
 }

@@ -23,9 +23,9 @@ Rectangle {
 	id: imageFrame
 
 	//
-	property int calculatedHeight: parent.height
-	property int calculatedWidth: 500
-	property var createViewHandler: null
+	//property int calculatedHeight: parent.height
+	//property int calculatedWidth: 500
+
 	readonly property int spaceLeft_: 15
 	readonly property int spaceTop_: 12
 	readonly property int spaceRight_: 15
@@ -42,11 +42,13 @@ Rectangle {
 	readonly property int spaceThreaded_: 33
 	readonly property int spaceThreadedItems_: 4
 	readonly property real defaultFontSize: 11
+	property var sharedMediaPlayer_
 
 	//
 	property var buzzitemmedia_;
 	property var mediaList;
 
+	signal adjustHeight(var proposed);
 	signal errorLoading();
 
 	onMediaListChanged: {
@@ -57,9 +59,9 @@ Rectangle {
 		mediaImage.adjustView();
 	}
 
-	onCalculatedWidthChanged: {
-		mediaImage.adjustView();
-	}
+	//onCalculatedWidthChanged: {
+	//	mediaImage.adjustView();
+	//}
 
 	function adjust() {
 		mediaImage.adjustView();
@@ -77,26 +79,23 @@ Rectangle {
 		mediaLoading.progress(pos, size);
 	}
 
+	function forceVisibilityCheck(isFullyVisible) {
+	}
+
 	//
 	color: "transparent"
-	//border.color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
-	width: mediaImage.width + 2 * spaceItems_
-	height: calculatedHeight // mediaImage.height
+	width: parent.width // mediaImage.width + 2 * spaceItems_
+	height: parent.height
 	radius: 8
 
-	Image {
+	BuzzerComponents.ImageQx {
 		id: mediaImage
 		autoTransform: true
 		asynchronous: true
+		radius: 8
 
 		x: getX()
 		y: getY()
-
-		fillMode: Image.PreserveAspectFit
-		mipmap: true
-		source: usePreview_ ? preview_ : path_
-
-		property int widthEvents: calculatedWidth
 
 		function getX() {
 			return (mediaList ? mediaList.width / 2 : parent.width / 2) - width / 2;
@@ -107,22 +106,27 @@ Rectangle {
 		}
 
 		function adjustView() {
-			if (mediaImage.status === Image.Ready) {
+			if (mediaImage.status === Image.Ready && mediaList && buzzitemmedia_) {
 				//
-				reloadControl.visible = true;
+				reloadControl.forceVisible = true;
 				waitControl.visible = false;
 				//
-				if (calculatedWidth > calculatedHeight && mediaImage.sourceSize.height > mediaImage.sourceSize.width ||
-						(mediaImage.sourceSize.height > mediaImage.sourceSize.width && !orientation_)) {
+				if (calculatedWidth > calculatedHeight || originalHeight > calculatedHeight * 2)
 					height = calculatedHeight - 20;
-					y = getY();
-					x = getX();
-				} else {
-					width = mediaList.width - 2*spaceItems_;
-					y = getY();
-					x = getX();
-				}
+				else
+					width = calculatedWidth - 2*spaceItems_;
+
+				y = getY();
+				x = getX();
 			}
+		}
+
+		fillMode: BuzzerComponents.ImageQx.PreserveAspectFit
+		mipmap: true
+
+		source: usePreview_ ? preview_ : path_
+
+		Component.onCompleted: {
 		}
 
 		onSourceChanged: {
@@ -131,12 +135,11 @@ Rectangle {
 		}
 
 		onStatusChanged: {
-			//
 			adjustView();
 			//
 			if (status == Image.Error) {
 				//
-				reloadControl.visible = true;
+				reloadControl.forceVisible = true;
 
 				// force to reload
 				console.log("[onStatusChanged]: forcing reload of " + path_);
@@ -145,70 +148,109 @@ Rectangle {
 			}
 		}
 
-		MouseArea {
-			id: linkClick
-			x: 0
-			y: 0
-			width: mediaImage.width
-			height: mediaImage.height
-			enabled: true
-			cursorShape: Qt.PointingHandCursor
-
-			ItemDelegate {
-				id: linkClicked
-				x: 0
-				y: 0
-				width: mediaImage.width
-				height: mediaImage.height
-				enabled: true
-
-				onClicked: {
-					//
-					if (createViewHandler) createViewHandler();
-				}
+		onWidthChanged: {
+			//
+			if (width != originalWidth) {
+				var lCoeff = (width * 1.0) / (originalWidth * 1.0)
+				var lHeight = originalHeight * 1.0;
+				height = lHeight * lCoeff;
+				console.log("[onWidthChanged]: height = " + height);
+				adjustHeight(height);
 			}
 		}
 
-		layer.enabled: true
-		layer.effect: OpacityMask {
-			id: roundEffect
-			maskSource: Item {
-				width: mediaImage.width // roundEffect.getWidth()
-				height: mediaImage.height // roundEffect.getHeight()
-
-				Rectangle {
-					x: roundEffect.getX()
-					y: roundEffect.getY()
-					width: roundEffect.getWidth()
-					height: roundEffect.getHeight()
-					radius: 8
-				}
+		onHeightChanged: {
+			if (height != originalHeight) {
+				var lCoeff = (height * 1.0) / (originalHeight * 1.0)
+				var lWidth = originalWidth * 1.0;
+				width = lWidth * lCoeff;
+				console.log("[onHeightChanged]: width = " + width);
+				adjustHeight(height);
 			}
+		}
 
-			function getX() {
-				return mediaImage.width / 2 - mediaImage.paintedWidth / 2;
-			}
+		onScaleChanged: {
+			mediaList.interactive = scale == 1.0;
+		}
 
-			function getY() {
-				return mediaImage.height / 2 - mediaImage.paintedHeight / 2;
-			}
+		PinchHandler {
+			id: pinchHandler
+			minimumRotation: 0
+			maximumRotation: 0
+			minimumScale: 1.0
+			maximumScale: 10.0
+			target: mediaImage
 
-			function getWidth() {
-				return mediaImage.paintedWidth;
+			onActiveChanged: {
+				dragArea.enabled = !active;
 			}
+		}
+	}
 
-			function getHeight() {
-				return mediaImage.paintedHeight;
-			}
+	MouseArea {
+		id: dragArea
+		//hoverEnabled: true
+		x: 0
+		y: 0
+		width: parent.width
+		height: parent.height
+		drag.target: mediaImage
+		drag.threshold: 20
+		cursorShape: Qt.PointingHandCursor
+
+		drag.onActiveChanged: {
+		}
+
+		drag.minimumX: getMinX()
+		function getMinX() {
+			if (parent.width > mediaImage.width * mediaImage.scale) return mediaImage.getX();
+			return (parent.width - mediaImage.width * mediaImage.scale) / 2.0;
+
+		}
+
+		drag.maximumX: getMaxX()
+		function getMaxX() {
+			if (mediaImage.width * mediaImage.scale < parent.width) return 0;
+			return (mediaImage.width * mediaImage.scale - parent.width) / 2.0;
+		}
+
+		drag.minimumY: getMinY()
+		function getMinY() {
+			if (mediaImage.height * mediaImage.scale < parent.height) return mediaImage.getY();
+			return (parent.height - mediaImage.height * mediaImage.scale) / 2.0;
+
+		}
+
+		drag.maximumY: getMaxY()
+		function getMaxY() {
+			if (mediaImage.height * mediaImage.scale < parent.height) return 0;
+			return (mediaImage.height * mediaImage.scale - parent.height) / 2.0;
+		}
+
+		enabled: false
+
+		onPressedChanged: {
+		}
+
+		onClicked: {
+			mediaImage.scale = 1.0;
+			mediaImage.x = mediaImage.getX();
+			mediaImage.y = mediaImage.getY();
 		}
 	}
 
 	QuarkToolButton {
 		id: reloadControl
-		x: mediaImage.x + mediaImage.width - width - spaceItems_
+		x: (mediaImage.width > width * 2) ? mediaImage.x + mediaImage.width - width - spaceItems_ :
+											mediaImage.x + mediaImage.width + spaceItems_
 		y: mediaImage.y + spaceItems_
 		symbol: Fonts.arrowDownHollowSym
-		visible: false
+
+		property bool scaled: mediaImage.scale == 1.0
+		property bool forceVisible: false
+
+		visible: forceVisible && scaled
+
 		labelYOffset: buzzerApp.isDesktop ? 1 : 3
 		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
 		Material.background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.background");

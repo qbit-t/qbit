@@ -5,7 +5,6 @@ import QtQuick.Controls.Material 2.1
 import QtQuick.Controls.Universal 2.1
 import Qt.labs.settings 1.0
 import QtQuick.Dialogs 1.1
-//import QtGraphicalEffects 1.0
 import QtGraphicalEffects 1.15
 import Qt.labs.folderlistmodel 2.11
 import QtMultimedia 5.15
@@ -22,7 +21,7 @@ import "qrc:/lib/dateFunctions.js" as DateFunctions
 
 Rectangle {
 	//
-	id: videoFrame
+	id: videoFrameFeed
 
 	//
 	readonly property int spaceLeft_: 15
@@ -62,7 +61,7 @@ Rectangle {
 	function terminate() {
 		//
 		console.log("[itemVideo]: terminate");
-		if (videoFrame.player) videoFrame.player.pause();
+		if (videoFrameFeed.player) videoFrameFeed.player.pause();
 	}
 
 	onCurrentOrientation_Changed: {
@@ -100,9 +99,9 @@ Rectangle {
 		if (player && (playing || downloadCommand.processing)) {
 			//
 			if (!isFullyVisible) {
-				videoFrame.sharedMediaPlayer_.showCurrentPlayer();
+				videoFrameFeed.sharedMediaPlayer_.showCurrentPlayer();
 			} else {
-				videoFrame.sharedMediaPlayer_.hideCurrentPlayer();
+				videoFrameFeed.sharedMediaPlayer_.hideCurrentPlayer();
 			}
 		}
 	}
@@ -143,7 +142,7 @@ Rectangle {
 			//
 			//console.log("[onContentRectChanged(0)]: videoOutput.contentRect = " + videoOut.contentRect + ", videoFrame.playing = " + videoFrame.playing + ", videoFrame.player = " + videoFrame.player + ", videoFrame.player.hasVideo = " + videoFrame.player.hasVideo);
 			//
-			if (videoFrame.playing && videoFrame.player && videoFrame.player.hasVideo && videoFrame.player.position > 1
+			if (videoFrameFeed.playing && videoFrameFeed.player && videoFrameFeed.player.hasVideo && videoFrameFeed.player.position > 1
 												/*videoOut.contentRect.height > 0 &&
 													videoOut.contentRect.height < calculatedHeight &&
 														(orientation != 90 && orientation != -90)*/) {
@@ -266,6 +265,7 @@ Rectangle {
 						var lMedia = lComponent.createObject(controller_);
 						lMedia.controller = controller_;
 						lMedia.buzzMedia_ = buzzitemmedia_.buzzMedia_;
+						lMedia.mediaPlayerControler = sharedMediaPlayer_;
 						lMedia.initialize(pkey_);
 						controller_.addPage(lMedia);
 					}
@@ -282,7 +282,7 @@ Rectangle {
 		//
 		if (!player) {
 			// controller
-			var lVideoOut = videoFrame.sharedMediaPlayer_.createInstance(videoFrame, frameContainer);
+			var lVideoOut = videoFrameFeed.sharedMediaPlayer_.createInstance(videoFrameFeed, frameContainer);
 			//
 			if (lVideoOut) {
 				lVideoOut.player.onPlaying.connect(mediaPlaying);
@@ -303,13 +303,13 @@ Rectangle {
 			}
 		} else {
 			if (player.stopped)
-				videoFrame.sharedMediaPlayer_.linkInstance(videoOut);
+				videoFrameFeed.sharedMediaPlayer_.linkInstance(videoOut);
 			player.play();
 		}
 	}
 
 	function mediaPlaying() {
-		if (!videoFrame) return;
+		if (!videoFrameFeed) return;
 		playing = true;
 		frameContainer.enableScene();
 		actionButton.adjust();
@@ -317,14 +317,14 @@ Rectangle {
 	}
 
 	function mediaPaused() {
-		if (!videoFrame) return;
+		if (!videoFrameFeed) return;
 		playing = false;
 		actionButton.adjust();
 	}
 
 	function mediaStopped() {
-		if (!videoFrame) return;
-		videoFrame.playing = false;
+		if (!videoFrameFeed) return;
+		videoFrameFeed.playing = false;
 		actionButton.adjust();
 		frameContainer.disableScene();
 		elapsedTime.setTime(0);
@@ -332,12 +332,12 @@ Rectangle {
 	}
 
 	function playerStatusChanged(status) {
-		if (!videoFrame || !videoFrame.player) return;
-		switch(videoFrame.player.status) {
+		if (!videoFrameFeed || !videoFrameFeed.player) return;
+		switch(videoFrameFeed.player.status) {
 			case MediaPlayer.Buffered:
-				totalTime.setTotalTime(videoFrame.player.duration ? videoFrame.player.duration : duration_);
+				totalTime.setTotalTime(videoFrameFeed.player.duration ? videoFrameFeed.player.duration : duration_);
 				totalSize.setTotalSize(size_);
-				playSlider.to = videoFrame.player.duration ? videoFrame.player.duration : duration_;
+				playSlider.to = videoFrameFeed.player.duration ? videoFrameFeed.player.duration : duration_;
 				videoOut.fillMode = VideoOutput.PreserveAspectFit;
 				frameContainer.adjustView();
 
@@ -359,13 +359,13 @@ Rectangle {
 	}
 
 	function playerPositionChanged(position) {
-		if (videoFrame && videoFrame.player) {
-			elapsedTime.setTime(videoFrame.player.position);
-			playSlider.value = videoFrame.player.position;
+		if (videoFrameFeed && videoFrameFeed.player) {
+			elapsedTime.setTime(videoFrameFeed.player.position);
+			playSlider.value = videoFrameFeed.player.position;
 
-			console.log("[playerPositionChanged]: videoFrame.player.position = " + videoFrame.player.position + ", position = " + position);
-			if (videoFrame.player.position >= 1 &&
-					videoFrame.player.position <= 1000) frameContainer.enableScene();
+			//console.log("[playerPositionChanged]: videoFrame.player.position = " + videoFrame.player.position + ", position = " + position);
+			if (videoFrameFeed.player.position >= 1 &&
+					videoFrameFeed.player.position <= 1000) frameContainer.enableScene();
 		}
 	}
 
@@ -391,7 +391,7 @@ Rectangle {
 					   (symbol === Fonts.playSym || symbol === Fonts.cancelSym ? 3 : 0)
 		spaceTop: 2
 		symbol: needDownload && !downloadCommand.downloaded ? Fonts.arrowDownHollowSym :
-									(videoFrame.playing ? Fonts.pauseSym : Fonts.playSym)
+									(videoFrameFeed.playing ? Fonts.pauseSym : Fonts.playSym)
 		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 7)) : 18
 		radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius)) : defaultRadius
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.highlight")
@@ -413,11 +413,11 @@ Rectangle {
 				mediaLoading.visible = false;
 				downloadCommand.processing = false;
 				downloadCommand.terminate();
-			} else if (!videoFrame.playing) {
-				videoFrame.play();
+			} else if (!videoFrameFeed.playing) {
+				videoFrameFeed.play();
 			} else {
-				if (videoFrame.player)
-					videoFrame.player.pause();
+				if (videoFrameFeed.player)
+					videoFrameFeed.player.pause();
 			}
 		}
 
@@ -433,7 +433,7 @@ Rectangle {
 
 		function adjust() {
 			symbol = needDownload && !downloadCommand.downloaded ? Fonts.arrowDownHollowSym :
-										(videoFrame.playing ? Fonts.pauseSym : Fonts.playSym);
+										(videoFrameFeed.playing ? Fonts.pauseSym : Fonts.playSym);
 		}
 	}
 
@@ -489,7 +489,7 @@ Rectangle {
 										(previewImage.width - (actionButton.width + 4 * spaceItems_))
 
 		onMoved: {
-			if (videoFrame.player) videoFrame.player.seek(value);
+			if (videoFrameFeed.player) videoFrameFeed.player.seek(value);
 			elapsedTime.setTime(value);
 		}
 
@@ -573,8 +573,8 @@ Rectangle {
 			actionButton.adjust();
 
 			// autoplay
-			if (!videoFrame.playing) {
-				videoFrame.play();
+			if (!videoFrameFeed.playing) {
+				videoFrameFeed.play();
 			}
 		}
 

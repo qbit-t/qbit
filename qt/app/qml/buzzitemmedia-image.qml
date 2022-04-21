@@ -20,7 +20,7 @@ import "qrc:/lib/numberFunctions.js" as NumberFunctions
 
 Rectangle {
 	//
-	id: imageFrame
+	id: imageFrameFeed
 
 	//
 	property int calculatedHeight: 500 // 400?
@@ -52,15 +52,15 @@ Rectangle {
 	signal errorLoading();
 
 	onMediaListChanged: {
-		mediaImage.adjustView();
+		mediaImageFeed.adjustView();
 	}
 
 	onBuzzitemmedia_Changed: {
-		mediaImage.adjustView();
+		mediaImageFeed.adjustView();
 	}
 
 	function adjust() {
-		mediaImage.adjustView();
+		mediaImageFeed.adjustView();
 	}
 
 	function terminate() {
@@ -73,13 +73,12 @@ Rectangle {
 
 	//
 	color: "transparent"
-	// border.color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
-	width: mediaImage.width + 2 * spaceItems_
-	height: calculatedHeight // mediaImage.height
+	width: mediaImageFeed.width + 2 * spaceItems_
+	height: calculatedHeight
 	radius: 8
 
 	BuzzerComponents.ImageQx {
-		id: mediaImage
+		id: mediaImageFeed
 		autoTransform: true
 		asynchronous: true
 		radius: 8
@@ -88,35 +87,15 @@ Rectangle {
 		y: 0
 
 		function adjustView() {
-			if (mediaImage.status === Image.Ready && mediaList && buzzitemmedia_) {
-				//console.log("[onHeightChanged(1)/image]: height = " + height + ", width = " + width + ", implicitHeight = " + previewImage.implicitHeight);
+			if (mediaImageFeed.status === Image.Ready && mediaList && buzzitemmedia_) {
 				width = mediaList.width - spaceItems_;
 				adjustHeight(height);
 				parent.height = height;
 			}
 		}
 
-		function adjustView2() {
-			//
-			if (!mediaList || !buzzitemmedia_) return;
-			//
-			width = mediaList.width - spaceItems_;
-			//height = calculatedHeight;
-			//mediaList.height = Math.max(buzzitemmedia_.calculatedHeight, height);
-			//buzzitemmedia_.calculatedHeight = mediaList.height;
-
-			if (calculatedHeight < mediaImage.paintedHeight) {
-				calculatedHeight = mediaImage.paintedHeight;
-			}
-		}
-
-		//width: (mediaList ? mediaList.width : imageFrame.width) - spaceItems_
-		//height: calculatedHeight
-		fillMode: BuzzerComponents.ImageQx.PreserveAspectFit //Image.PreserveAspectFit
+		fillMode: BuzzerComponents.ImageQx.PreserveAspectFit
 		mipmap: true
-
-		//Layout.fillWidth: true
-		//Layout.fillHeight: true
 
 		source: preview_
 
@@ -125,7 +104,6 @@ Rectangle {
 
 		onHeightChanged: {
 			if (buzzitemmedia_) {
-				//console.log("[onHeightChanged(2)/image]: height = " + height + ", width = " + width + ", implicitHeight = " + previewImage.implicitHeight);
 				adjustHeight(height);
 				parent.height = height;
 			}
@@ -157,8 +135,8 @@ Rectangle {
 			id: linkClick
 			x: 1
 			y: 1
-			width: mediaImage.width - 1
-			height: mediaImage.height - 1
+			width: mediaImageFeed.width - 1
+			height: mediaImageFeed.height - 1
 			enabled: true
 			cursorShape: Qt.PointingHandCursor
 
@@ -166,8 +144,8 @@ Rectangle {
 				id: linkClicked
 				x: 0
 				y: 0
-				width: mediaImage.width
-				height: mediaImage.height
+				width: mediaImageFeed.width
+				height: mediaImageFeed.height
 				enabled: true
 
 				onClicked: {
@@ -185,6 +163,7 @@ Rectangle {
 						var lMedia = lComponent.createObject(controller_);
 						lMedia.controller = controller_;
 						lMedia.buzzMedia_ = buzzitemmedia_.buzzMedia_;
+						lMedia.mediaPlayerControler = sharedMediaPlayer_;
 						lMedia.initialize(pkey_);
 						controller_.addPage(lMedia);
 					}

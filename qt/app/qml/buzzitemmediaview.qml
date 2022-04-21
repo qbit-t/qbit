@@ -23,9 +23,10 @@ Item {
 
 	property int calculatedHeight: 400
 	property int calculatedWidth: 500
+
 	property var buzzMedia_: buzzMedia
 	property var controller_: controller
-	//property bool preview_: true
+	property var sharedMediaPlayer_
 
 	readonly property int spaceLeft_: 15
 	readonly property int spaceTop_: 12
@@ -40,15 +41,11 @@ Item {
 	readonly property real defaultFontSize: 11
 	property var pkey_: ""
 
-	signal calculatedHeightModified(var value);
-	onCalculatedHeightChanged: { // calculatedHeightModified(calculatedHeight);
-		if (!imageView_ /*&& !buzzerApp.isDesktop*/) {
-			mediaList.clear();
-			mediaList.prepare();
-		}
+	Component.onCompleted: {
 	}
 
-	Component.onCompleted: {
+	onSharedMediaPlayer_Changed: {
+		mediaList.setSharedMediaPlayer(sharedMediaPlayer_);
 	}
 
 	function initialize(pkey) {
@@ -56,21 +53,8 @@ Item {
 		mediaList.prepare();
 	}
 
-	property var imageView_: undefined
-	property int imageViewIndex_: 0
-
-	function imageViewClosed() {
-		imageView_ = undefined;
-		mediaList.clear();
-		mediaList.prepare();
-		mediaList.currentIndex = imageViewIndex_;
-	}
-
-	onCalculatedWidthChanged: {
-		if (!imageView_ /*&& !buzzerApp.isDesktop*/) {
-			mediaList.clear();
-			mediaList.prepare();
-		}
+	function adjust() {
+		mediaList.adjust();
 	}
 
 	//
@@ -88,8 +72,32 @@ Item {
 		layoutDirection:  Qt.LeftToRight
 		snapMode: ListView.SnapOneItem
 
+		function setSharedMediaPlayer(player) {
+			//
+			for (var lIdx = 0; lIdx < mediaList.count; lIdx++) {
+				var lItem = mediaList.itemAtIndex(lIdx);
+				if (lItem) {
+					lItem.mediaItem.sharedMediaPlayer_ = player;
+				}
+			}
+		}
+
+		function adjust() {
+			//
+			for (var lIdx = 0; lIdx < mediaList.count; lIdx++) {
+				var lItem = mediaList.itemAtIndex(lIdx);
+				if (lItem) {
+					lItem.width = mediaList.width;
+					lItem.height = mediaList.height;
+					lItem.mediaItem.width = mediaList.width;
+					lItem.mediaItem.height = mediaList.height;
+					lItem.mediaItem.adjust();
+				}
+			}
+		}
+
 		onContentXChanged: {
-			mediaIndicator.currentIndex = indexAt(contentX, 1);
+			mediaIndicator.currentIndex = mediaList.indexAt(mediaList.contentX, 0);
 		}
 
 		add: Transition {
@@ -102,32 +110,19 @@ Item {
 			//
 			id: mediaFrame
 			color: "transparent"
-			width: mediaModel.count > 1 ?
-					   (mediaImage.width ? mediaImage.width : mediaList.width - 2 * spaceItems_) + 2 * spaceItems_ :
-					   calculatedWidth
-			height: calculatedHeight
+			width: mediaList.width
+			height: mediaList.height
 
 			property var mediaItem;
 
-			function createImageView() {
-				if (!buzzerApp.isDesktop) {
-					// expand
-					var lSource;
-					var lComponent;
+			property bool isFullyVisible: mediaFrame.x >= mediaList.contentX && mediaFrame.x + mediaFrame.width <= mediaList.contentX + mediaList.width
 
-					// viewer
-					lSource = buzzerApp.isDesktop ? "qrc:/qml/imageview-desktop.qml" :
-													"qrc:/qml/imageview.qml";
-					lComponent = Qt.createComponent(lSource);
-
-					if (lComponent.status === Component.Error) {
-						controller_.showError(lComponent.errorString());
-					} else {
-						imageViewIndex_ = index;
-						imageView_ = lComponent.createObject(controller_);
-						imageView_.pageClosed.connect(buzzitemmediaview_.imageViewClosed);
-						imageView_.initialize(path_, controller_);
-						controller_.addPage(imageView_);
+			onIsFullyVisibleChanged: {
+				if (mediaFrame !== null && mediaFrame.mediaItem !== null && mediaFrame.mediaItem !== undefined) {
+					try {
+						mediaFrame.mediaItem.forceVisibilityCheck(mediaFrame.isFullyVisible);
+					} catch (err) {
+						console.log("[onIsFullyVisibleChanged]: " + err + ", itemDelegate.buzzItem = " + mediaFrame.buzzItem);
 					}
 				}
 			}
@@ -201,10 +196,12 @@ Item {
 							lComponent = Qt.createComponent(lSource);
 
 							mediaFrame.mediaItem = lComponent.createObject(mediaFrame);
+							//mediaFrame.mediaItem.errorLoading.connect(errorMediaLoading);
 
 							mediaFrame.mediaItem.width = mediaList.width;
 							mediaFrame.mediaItem.mediaList = mediaList;
 							mediaFrame.mediaItem.buzzitemmedia_ = buzzitemmediaview_;
+							//mediaFrame.mediaItem.sharedMediaPlayer_ = buzzitemmediaview_.sharedMediaPlayer_;
 
 							mediaFrame.height = mediaFrame.mediaItem.height;
 							mediaFrame.width = mediaList.width;
@@ -219,12 +216,13 @@ Item {
 							mediaFrame.mediaItem.errorLoading.connect(errorMediaLoading);
 
 							mediaFrame.mediaItem.width = mediaList.width - 2 * spaceItems_;
-							mediaFrame.mediaItem.calculatedWidth = calculatedWidth;
+							mediaFrame.mediaItem.height = mediaList.height;
+							//mediaFrame.mediaItem.calculatedWidth = calculatedWidth;
 							mediaFrame.mediaItem.mediaList = mediaList;
 							mediaFrame.mediaItem.buzzitemmedia_ = buzzitemmediaview_;
-							mediaFrame.mediaItem.createViewHandler = mediaFrame.createImageView;
+							mediaFrame.mediaItem.sharedMediaPlayer_ = buzzitemmediaview_.sharedMediaPlayer_;
 
-							mediaFrame.height = mediaFrame.mediaItem.height;
+							mediaFrame.height = mediaList.height;
 							mediaFrame.width = mediaList.width;
 
 							// stop spinning
@@ -244,13 +242,16 @@ Item {
 								window.showError(lComponent.errorString());
 							} else {
 								mediaFrame.mediaItem = lComponent.createObject(mediaFrame);
+								mediaFrame.mediaItem.errorLoading.connect(errorMediaLoading);
 
-								mediaFrame.mediaItem.width = mediaList.width - 2 * spaceItems_;
-								mediaFrame.mediaItem.calculatedWidth = calculatedWidth;
+								mediaFrame.mediaItem.width = mediaList.width;
+								mediaFrame.mediaItem.height = mediaList.height;
+								//mediaFrame.mediaItem.calculatedWidth = calculatedWidth;
 								mediaFrame.mediaItem.mediaList = mediaList;
 								mediaFrame.mediaItem.buzzitemmedia_ = buzzitemmediaview_;
+								mediaFrame.mediaItem.sharedMediaPlayer_ = buzzitemmediaview_.sharedMediaPlayer_;
 
-								mediaFrame.height = mediaFrame.mediaItem.height;
+								mediaFrame.height = mediaList.height;
 								mediaFrame.width = mediaList.width;
 							}
 						}
@@ -320,10 +321,6 @@ Item {
 		count: buzzMedia_ ? buzzMedia_.length : 0
 		currentIndex: mediaList.currentIndex
 		interactive: buzzerApp.isDesktop
-
-		onCurrentIndexChanged: {
-			mediaList.positionViewAtIndex(currentIndex, ListView.Beginning);
-		}
 
 		x: calculatedWidth / 2 - width / 2
 		y: spaceStats_ - height
