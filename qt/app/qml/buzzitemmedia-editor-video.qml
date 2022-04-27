@@ -48,6 +48,7 @@ Rectangle {
 	property var mediaBox;
 
 	signal adjustDuration(var dureation);
+	signal adjustHeight(var proposed);
 
 	onMediaBoxChanged: {
 		videoOutput.adjustView();
@@ -111,18 +112,21 @@ Rectangle {
 			}
 
 			height = videoOutput.contentRect.height;
+			adjustHeight(height);
 		}
 
-		width: parent.width
-		height: parent.height
+		//width: parent.width
+		//height: parent.height
+		anchors.fill: parent
 		source: player
 		fillMode: VideoOutput.PreserveAspectFit
 
 		onContentRectChanged: {
 			//
-			//console.log("[onContentRectChanged-2]: videoOutput.contentRect = " + videoOutput.contentRect + ", parent.height = " + parent.height);
+			// console.log("[onContentRectChanged-2]: videoOutput.contentRect = " + videoOutput.contentRect + ", parent.height = " + parent.height);
 			if (videoOutput.contentRect.height > 0 && videoOutput.contentRect.height < parent.height) {
 				height = videoOutput.contentRect.height;
+				adjustHeight(height);
 			}
 		}
 	}
@@ -130,10 +134,11 @@ Rectangle {
 	//
 	QuarkRoundRectangle {
 		id: frameContainer
-		x: videoOutput.contentRect.x + spaceItems_ - 1
-		y: videoOutput.contentRect.y - 1
-		width: videoOutput.contentRect.width + 2
-		height: videoOutput.contentRect.height + 2
+		//x: videoOutput.x + spaceItems_ - 1
+		//y: videoOutput.contentRect.y - 1
+		//width: videoOutput.width + 2
+		//height: videoOutput.contentRect.height + 2
+		anchors.fill: parent
 
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
 		backgroundColor: "transparent"
@@ -170,6 +175,8 @@ Rectangle {
 				var lHeight = originalHeight * 1.0;
 				height = lHeight * lCoeff;
 
+				adjustHeight(height);
+
 				//console.log("[onHeightChanged/image/new height]: height = " + lHeight + ", lCoeff = " + lCoeff + ", width = " + width + ", originalWidth = " + originalWidth);
 			}
 		}
@@ -191,7 +198,23 @@ Rectangle {
 
 		onTriggered: {
 			//
-			// player.play();
+			//player.play();
+			//sampleTimer.start();
+			//videoOutput.adjustView();
+			//previewImage.adjustView();
+		}
+	}
+
+	Timer {
+		id: sampleTimer
+
+		interval: 2000
+		repeat: false
+		running: false
+
+		onTriggered: {
+			//
+			//player.pause();
 		}
 	}
 
@@ -217,8 +240,9 @@ Rectangle {
 						totalTime.setTotalTime(duration);
 						totalSize.setTotalSize(size);
 						playSlider.to = duration;
+						//videoOutput.fillMode = VideoOutput.PreserveAspectFit;
+						//
 						player.seek(1);
-						videoOutput.fillMode = VideoOutput.PreserveAspectFit;
 						videoOutput.adjustView();
 						previewImage.adjustView();
 						loadTimer.start();
@@ -228,6 +252,11 @@ Rectangle {
 						//
 						adjustDuration(duration);
 					}
+				break;
+				case MediaPlayer.Buffered:
+					player.seek(1);
+					videoOutput.adjustView();
+					previewImage.adjustView();
 				break;
 			}
 
@@ -286,9 +315,20 @@ Rectangle {
 	}
 
 	QuarkLabel {
-		id: elapsedTime
+		id: caption
 		x: actionButton.x + actionButton.width + spaceItems_
-		y: actionButton.y + spaceItems_
+		y: actionButton.y + 1
+		width: playSlider.width
+		elide: Text.ElideRight
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
+		text: description
+		visible: description != "none"
+	}
+
+	QuarkLabel {
+		id: elapsedTime
+		x: actionButton.x + actionButton.width + spaceItems_ + (description != "none" ? 3 : 0)
+		y: actionButton.y + (description != "none" ? caption.height + 3 : spaceItems_)
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
 		text: "00:00"
 
@@ -300,7 +340,7 @@ Rectangle {
 	QuarkLabel {
 		id: totalTime
 		x: elapsedTime.x + elapsedTime.width
-		y: actionButton.y + spaceItems_
+		y: elapsedTime.y
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
 		text: "/00:00"
 
@@ -312,7 +352,7 @@ Rectangle {
 	QuarkLabel {
 		id: totalSize
 		x: totalTime.x + totalTime.width
-		y: actionButton.y + spaceItems_
+		y: elapsedTime.y
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
 		text: ", 0k"
 		visible: size !== 0
@@ -359,6 +399,25 @@ Rectangle {
 		onClicked: {
 			if (!sending) {
 				mediaList.removeMedia(index);
+			}
+		}
+	}
+
+	QuarkToolButton	{
+		id: clearDescriptionButton
+
+		x: frameContainer.x + frameContainer.width - (width + 2*spaceItems_)
+		y: removeButton.y + removeButton.height
+		// Material.background: "transparent"
+		visible: true
+		labelYOffset: 2
+		symbolColor: (!sending || uploaded) ? buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground") :
+										  buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
+		symbol: Fonts.eraserSym
+
+		onClicked: {
+			if (!sending) {
+				description = "none";
 			}
 		}
 	}

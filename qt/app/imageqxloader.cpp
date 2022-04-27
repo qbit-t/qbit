@@ -6,6 +6,7 @@
 #include <QBrush>
 #include <QDebug>
 #include <QImageReader>
+#include <QFileInfo>
 
 using namespace buzzer;
 
@@ -24,7 +25,7 @@ ImageQxLoader::ImageQxLoader()
     : QObject (nullptr)
 {
     moveToThread(&_thread);
-	connect (this, SIGNAL(loadTo(const QString&, ImageSharedPtr, bool)), SLOT(get(const QString&, ImageSharedPtr, bool)));
+	connect (this, SIGNAL(loadTo(QString, ImageSharedPtr, bool)), SLOT(get(QString, ImageSharedPtr, bool)), Qt::QueuedConnection);
     _thread.start();
 }
 
@@ -36,7 +37,7 @@ ImageQxLoader& ImageQxLoader::instance()
 }
 
 //------------------------------------------------------------------------------
-void ImageQxLoader::get(const QString &source, ImageSharedPtr image, bool autotransform)
+void ImageQxLoader::get(QString source, ImageSharedPtr image, bool autotransform)
 {
 	//
 	QString lPath;
@@ -47,7 +48,14 @@ void ImageQxLoader::get(const QString &source, ImageSharedPtr image, bool autotr
 	lReader.setAutoTransform(autotransform);
 	lReader.setAutoDetectImageFormat(true);
 
-	if (lReader.read(image.get())) {
+	QString lFile = lPath;
+	QFileInfo lInfo(lFile);
+
+	QImage lImage = lReader.read();
+	//qInfo() << "[ImageQxLoader::get]:" << source << lImage.sizeInBytes() << lInfo.size();
+
+	if (!lImage.isNull()) {
+		image->swap(lImage);
 		emit loaded(lPath, image);
 	} else {
 		emit error(lPath, image, lReader.errorString());

@@ -24,6 +24,7 @@ Page
 
 	property string statusBarColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.statusBar")
 	property string navigationBarColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.navigationBar")
+	property string pageTheme: buzzerClient.themeSelector
 
     property int topOffset: Qt.platform.os === "ios" ? Screen.height - Screen.desktopAvailableHeight - statusBar.extraPadding : 0
 
@@ -86,7 +87,7 @@ Page
         id: statusBar
         color: page_.statusBarColor
         navigationBarColor: page_.navigationBarColor
-		theme: buzzerClient.themeSelector === "dark" ? StatusBar.Dark : StatusBar.Light
+		theme: pageTheme === "dark" ? StatusBar.Dark : StatusBar.Light
     }
 
     function updateStatusBar()

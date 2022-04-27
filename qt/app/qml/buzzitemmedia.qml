@@ -21,11 +21,12 @@ import "qrc:/lib/numberFunctions.js" as NumberFunctions
 Item {
 	id: buzzitemmedia_
 
-	property int calculatedHeight: 0 //400
+	property real calculatedHeight: 0 //400
 	property int calculatedWidth: 500
 	property int calculatedWidthInternal: 500
 	property var buzzId_: buzzId
 	property var buzzMedia_: buzzMedia
+	property var buzzBody_: buzzBodyFlat
 	property var controller_: controller
 	property var frameColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
 	property var fillColor: "transparent"
@@ -90,6 +91,11 @@ Item {
 		orientation: Qt.Horizontal
 		layoutDirection:  Qt.LeftToRight
 		snapMode: ListView.SnapOneItem
+		highlightFollowsCurrentItem: true
+		highlightMoveDuration: -1
+		highlightMoveVelocity: -1
+
+		property var prevIndex: 0
 
 		function adjustItems() {
 			//
@@ -131,16 +137,32 @@ Item {
 
 		onContentXChanged: {
 			//
-			// console.log("[onContentXChanged]: mediaList.contentX = " + mediaList.contentX + ", mediaList.indexAt(mediaList.contentX, 0) = " + mediaList.indexAt(mediaList.contentX, 0));
-
 			if (contentX == 0) mediaIndicator.currentIndex = 0;
 			else mediaIndicator.currentIndex = mediaList.indexAt(mediaList.contentX, 0);
 			//
 			var lItem = mediaList.itemAtIndex(mediaIndicator.currentIndex);
 			if (lItem && lItem.mediaItem) {
-				mediaList.height = lItem.mediaItem.height;
-				buzzitemmedia_.height = mediaList.height;
-				calculatedHeight = mediaList.height;
+				//
+				//console.log("[onContentXChanged]: mediaList.contentX = " + mediaList.contentX +
+				//			", mediaList.indexAt(mediaList.contentX, 0) = " + mediaList.indexAt(mediaList.contentX, 0) +
+				//			", lItem.mediaItem.height = " + lItem.mediaItem.height);
+				//
+				if (lItem.x === mediaList.contentX) {
+					//
+					var lPrevItem = mediaList.itemAtIndex(prevIndex);
+					if (lPrevItem && lItem.mediaItem.height === 1) {
+						lItem.mediaItem.height = lPrevItem.mediaItem.height;
+					}
+					//
+					var lModelItem = mediaModel.get(mediaIndicator.currentIndex);
+					lModelItem.preview_ = lModelItem.previewSource_;
+					//
+					mediaList.height = lItem.mediaItem.height;
+					buzzitemmedia_.height = mediaList.height;
+					calculatedHeight = mediaList.height;
+					//
+					prevIndex = mediaIndicator.currentIndex;
+				}
 			}
 		}
 
@@ -190,10 +212,11 @@ Item {
 
 			function adjustHeight(proposed) {
 				//
-				if (index === mediaIndicator.currentIndex) {
+				if (index === mediaIndicator.currentIndex && proposed > 0 && buzzitemmedia_.calculatedHeight !== proposed) {
 					//
 					//console.log("[buzzitemmedia/adjustHeight]: proposed = " + proposed + ", buzzitemmedia_.calculatedHeight = " + buzzitemmedia_.calculatedHeight);
 					buzzitemmedia_.calculatedHeight = proposed;
+					mediaList.height = proposed;
 				}
 			}
 
@@ -228,14 +251,15 @@ Item {
 					//
 					processed_ = true;
 					// tx, previewFile, originalFile, orientation, duration, size, type
-					var lPSize = buzzerApp.getFileSize(previewFile);
-					var lOSize = buzzerApp.getFileSize(originalFile);
-					console.log(tx + ", " + previewFile + " - [" + lPSize + "], " + originalFile + " - [" + lOSize + "], " + orientation + ", " + duration + ", " + size + ", " + type);
+					//var lPSize = buzzerApp.getFileSize(previewFile);
+					//var lOSize = buzzerApp.getFileSize(originalFile);
+					//console.log("index = " + index + ", " + tx + ", " + previewFile + " - [" + lPSize + "], " + originalFile + " - [" + lOSize + "], " + orientation + ", " + duration + ", " + size + ", " + type);
 
 					// stop timer
 					downloadWaitTimer.stop();
 					// set preview
-					preview_ = "file://" + previewFile; // ONLY: preview binding here, path_ is for the inner component
+					/*if (index == 0)*/ preview_ = "file://" + previewFile; // ONLY: preview binding here, path_ is for the inner component
+					previewSource_ = "file://" + previewFile;
 					// set original orientation
 					orientation_ = orientation;
 					// set duration
@@ -244,6 +268,8 @@ Item {
 					size_ = size;
 					// set size
 					media_ = type;
+					// caption
+					caption_ = description;
 					// stop spinning
 					mediaLoading.visible = false;
 
@@ -270,6 +296,8 @@ Item {
 					mediaFrame.mediaItem.mediaList = mediaList;
 					mediaFrame.mediaItem.buzzitemmedia_ = buzzitemmedia_;
 					mediaFrame.mediaItem.sharedMediaPlayer_ = buzzitemmedia_.sharedMediaPlayer_;
+					mediaFrame.mediaItem.mediaIndex_ = index;
+					mediaFrame.mediaItem.controller_ = controller_;
 
 					if (index === 0) mediaFrame.height = mediaFrame.mediaItem.height;
 					mediaFrame.width = mediaList.width;
@@ -337,7 +365,10 @@ Item {
 				size_: 0,
 				duration_: 0,
 				orientation_: 0,
-				loaded_: false });
+				loaded_: false,
+				description_: (buzzBody_ ? buzzBody_ : ""),
+				caption_: "",
+				previewSource_: ""});
 		}
 
 		function prepare() {
@@ -356,12 +387,47 @@ Item {
 
 		x: calculatedWidthInternal / 2 - width / 2
 		y: spaceStats_ - height
-		visible: buzzMedia_ ? buzzMedia_.length > 1 : false
+		visible: buzzMedia_ ? buzzMedia_.length > 1 && buzzMedia_.length <= 5 : false
 
 		Material.theme: buzzerClient.themeSelector == "dark" ? Material.Dark : Material.Light;
 		Material.accent: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.accent");
 		Material.background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.background");
 		Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground");
 		Material.primary: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.primary");
+
+		/*
+		delegate: Rectangle {
+			implicitWidth: 6
+			implicitHeight: 6
+
+			radius: width / 2
+			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+
+			opacity: index === mediaIndicator.currentIndex ? 0.95 : pressed ? 0.7 : 0.45
+
+			Behavior on opacity {
+				OpacityAnimator {
+					duration: 100
+				}
+			}
+		}
+		*/
+	}
+
+	QuarkLabel {
+		id: mediaPagesIndicator
+		x: calculatedWidthInternal - width
+		y: spaceStats_ - (height + 3)
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 1)) : defaultFontSize + 1
+		text: "0/0"
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+		visible: count > 5
+
+		property var count: buzzMedia_ ? buzzMedia_.length : 0
+		property var currentIndex: mediaIndicator.currentIndex
+
+		onCurrentIndexChanged: {
+			text = (currentIndex + 1) + "/" + count;
+		}
 	}
 }

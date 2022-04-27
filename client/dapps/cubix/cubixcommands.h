@@ -229,7 +229,7 @@ public:
 	void error(const std::string& code, const std::string& message) {
 		downloading_ = false;
 		gLog().writeClient(Log::CLIENT, strprintf(": %s | %s", code, message));
-		if (done_) done_(nullptr, std::string(), std::string(), 0, 0, 0, doneDownloadWithErrorFunctionExtraArgs( 0, 0 ), ProcessingError(code, message));
+		if (done_) done_(nullptr, std::string(), std::string(), 0, 0, 0, doneDownloadWithErrorFunctionExtraArgs(0, 0, ""), ProcessingError(code, message));
 	}
 
 	void decrypt(const uint256&, const std::vector<unsigned char>&, std::vector<unsigned char>&);

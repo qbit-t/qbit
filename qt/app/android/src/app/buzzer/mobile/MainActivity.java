@@ -397,6 +397,10 @@ public class MainActivity extends QtActivity
 					//
 					try {
 						String lFilePath = FileUtils.getPath(this, data.getData());
+						String lOriginalFileName = lFilePath.substring(lFilePath.lastIndexOf("/") + 1, lFilePath.lastIndexOf("."));
+						lOriginalFileName = lOriginalFileName.replaceAll("_", " ");
+						lOriginalFileName = lOriginalFileName.replaceAll(",", " ");
+						//
 						if (lFilePath.contains(".mp4") || lFilePath.contains(".MP4")) {
 							Cursor ca = getContentResolver().query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, new String[] { MediaStore.MediaColumns._ID }, MediaStore.MediaColumns.DATA + "=?", new String[] {lFilePath}, null);
 							if (ca != null && ca.moveToFirst()) {
@@ -414,13 +418,13 @@ public class MainActivity extends QtActivity
 								streamThumbnail.close();
 
 								Log.i("buzzer", "PATH = " + lFilePath);
-								fileSelected(lFilePath, fileThumbnail.getAbsolutePath());
+								fileSelected(lFilePath, fileThumbnail.getAbsolutePath(), lOriginalFileName);
 							} else {
-							    fileSelected(lFilePath, "");
+							    fileSelected(lFilePath, "", lOriginalFileName);
 							}
 						} else {
 						    Log.i("buzzer", "PATH = " + lFilePath);
-							fileSelected(lFilePath, "");
+							fileSelected(lFilePath, "", lOriginalFileName);
 						}
 					} catch (IOException e) {
 					    e.printStackTrace();
@@ -433,6 +437,17 @@ public class MainActivity extends QtActivity
 
 						String[] columns = { MediaStore.Images.Media.DATA,
 							            MediaStore.Images.Media.MIME_TYPE };
+
+						String lFilePath = FileUtils.getPath(this, data.getData());
+						Log.i("buzzer", "uriPath = " + lFilePath);
+
+						String lOriginalFileName = "none";
+
+						if (lFilePath != null) {
+							lOriginalFileName = lFilePath.substring(lFilePath.lastIndexOf("/") + 1, lFilePath.lastIndexOf("."));
+							lOriginalFileName = lOriginalFileName.replaceAll("_", " ");
+							lOriginalFileName = lOriginalFileName.replaceAll(",", " ");
+						}
 
 						Cursor cursor = getContentResolver().query(uri, columns, null, null, null);
 						cursor.moveToFirst();
@@ -465,7 +480,7 @@ public class MainActivity extends QtActivity
 							newExif.saveAttributes();
 
 							Log.i("buzzer", "PATH = " + file.getAbsolutePath());
-							fileSelected(file.getAbsolutePath(), "");
+							fileSelected(file.getAbsolutePath(), "", lOriginalFileName);
 						} else if (mimeType.startsWith("video")) {
 						    //
 							Bitmap thumbnail =
@@ -493,7 +508,7 @@ public class MainActivity extends QtActivity
 							inputStream.close();
 
 							Log.i("buzzer", "PATH = " + file.getAbsolutePath());
-							fileSelected(file.getAbsolutePath(), fileThumbnail.getAbsolutePath());
+							fileSelected(file.getAbsolutePath(), fileThumbnail.getAbsolutePath(), lOriginalFileName);
 
 						} else if (mimeType.startsWith("audio/mpeg")) {
 						    //
@@ -533,7 +548,7 @@ public class MainActivity extends QtActivity
 
 							Log.i("buzzer", "PATH1 = " + file.getAbsolutePath());
 							Log.i("buzzer", "PATH2 = " + lAbsolutePath);
-							fileSelected(file.getAbsolutePath(), lAbsolutePath);
+							fileSelected(file.getAbsolutePath(), lAbsolutePath, lOriginalFileName);
 						} else if (mimeType.startsWith("audio/mp4")) {
 						    //
 							MediaMetadataRetriever mr = new MediaMetadataRetriever();
@@ -572,7 +587,7 @@ public class MainActivity extends QtActivity
 
 							Log.i("buzzer", "PATH1 = " + file.getAbsolutePath());
 							Log.i("buzzer", "PATH2 = " + lAbsolutePath);
-							fileSelected(file.getAbsolutePath(), lAbsolutePath);
+							fileSelected(file.getAbsolutePath(), lAbsolutePath, lOriginalFileName);
 						}
 					} catch (IOException e) {
 					    e.printStackTrace();
@@ -584,7 +599,7 @@ public class MainActivity extends QtActivity
 	    super.onActivityResult(requestCode, resultCode, data);
 	}
 
-    public native void fileSelected(String key, String preview);
+    public native void fileSelected(String key, String preview, String description);
 
     public void pickImage() {
 		Intent intent;

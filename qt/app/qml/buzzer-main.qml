@@ -93,6 +93,9 @@ QuarkPage
 		id: infoLoaderCommand
 
 		onProcessed: {
+			// reset
+			buzzerClient.avatar = "";
+
 			// name
 			loadTrustScoreCommand.process(infoLoaderCommand.buzzerId + "/" + infoLoaderCommand.buzzerChainId);
 
@@ -281,6 +284,10 @@ QuarkPage
 				walletQbit.init();
 			} else {
 				buzzerApp.unlockOrientation();
+			}
+
+			if (globalMediaPlayerControler.isCurrentInstancePlaying()) {
+				globalMediaPlayerControler.showCurrentPlayer();
 			}
 		}
 

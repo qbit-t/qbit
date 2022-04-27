@@ -128,6 +128,14 @@ void UploadMediaCommand::process(const std::vector<std::string>& args, IPeerPtr 
 					return;
 				}
 			}
+
+			// 4 - description
+			if (lFileParams.size() > 4) {
+				//
+				for (int lIdx = 4; lIdx < lFileParams.size(); lIdx++) {
+					description_ += lFileParams[lIdx];
+				}
+			}
 		}
 
 		// try file
@@ -505,6 +513,8 @@ void UploadMediaCommand::startSendData() {
 			// async process
 			lCreateHeader->process(boost::bind(&UploadMediaCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
 		} else {
+			// we have preview generated
+			previewType_ = mediaType_;
 			// make media data & continue
 			mediaFile_ = std::ifstream(file_, std::ios::binary);
 			continueSendData();
@@ -711,6 +721,8 @@ void DownloadMediaCommand::process(const std::vector<std::string>& args) {
 			uint64_t lSize = 0;
 			unsigned short lType = TxMediaHeader::MediaType::UNKNOWN;
 			unsigned short lPreviewType = TxMediaHeader::MediaType::UNKNOWN;
+			unsigned short lDescriptionSize = 0;
+			std::string lDescription;
 			for (std::list<std::string>::iterator lExtension = lExtensions.begin(); lExtension != lExtensions.end(); lExtension++) {
 				localPreviewFileName_ = lPreviewFile + *lExtension;
 				boost::filesystem::path lPath(localPreviewFileName_);
@@ -723,6 +735,15 @@ void DownloadMediaCommand::process(const std::vector<std::string>& args) {
 					lPreviewFileMeta.read((char*)&lSize, sizeof(uint64_t));
 					lPreviewFileMeta.read((char*)&lType, sizeof(unsigned short));
 					lPreviewFileMeta.read((char*)&lPreviewType, sizeof(unsigned short));
+					lPreviewFileMeta.read((char*)&lDescriptionSize, sizeof(unsigned short));
+
+					if (lPreviewFileMeta) {
+						std::vector<char> lRawDescription; lRawDescription.resize(lDescriptionSize);
+						lPreviewFileMeta.read((char*)&lRawDescription[0], lDescriptionSize);
+
+						lDescription.insert(lDescription.end(), lRawDescription.begin(), lRawDescription.end());
+					}
+
 					lPreviewFileMeta.close();
 
 					if (lType == TxMediaHeader::MediaType::UNKNOWN)
@@ -756,7 +777,7 @@ void DownloadMediaCommand::process(const std::vector<std::string>& args) {
 				if (done_) {
 					//
 					downloading_ = false;
-					done_(nullptr, localPreviewFileName_, localFileName_, lOrientation, lDuration, lSize, doneDownloadWithErrorFunctionExtraArgs((unsigned short)lType, (unsigned short)lPreviewType), ProcessingError());
+					done_(nullptr, localPreviewFileName_, localFileName_, lOrientation, lDuration, lSize, doneDownloadWithErrorFunctionExtraArgs((unsigned short)lType, (unsigned short)lPreviewType, lDescription), ProcessingError());
 				}
 				return;
 			}
@@ -850,11 +871,14 @@ void DownloadMediaCommand::headerLoaded(TransactionPtr tx) {
 		uint64_t lSize = header_->size();
 		unsigned short lType = header_->mediaType();
 		unsigned short lPreviewType = header_->previewType();
+		unsigned short lDescriptionSize = header_->description().size();
 		lPreviewFileMeta.write((char*)&lOrientation, 2);
 		lPreviewFileMeta.write((char*)&lDuration, sizeof(unsigned int));
 		lPreviewFileMeta.write((char*)&lSize, sizeof(uint64_t));
 		lPreviewFileMeta.write((char*)&lType, sizeof(unsigned short));
 		lPreviewFileMeta.write((char*)&lPreviewType, sizeof(unsigned short));
+		lPreviewFileMeta.write((char*)&lDescriptionSize, sizeof(unsigned short));
+		lPreviewFileMeta.write((char*)&header_->description()[0], lDescriptionSize);
 		lPreviewFileMeta.close();
 
 		if (lOriginal) std::cout << "     original file: " << localFileName_ << std::endl;	
@@ -864,7 +888,8 @@ void DownloadMediaCommand::headerLoaded(TransactionPtr tx) {
 		if (previewOnly_ && (header_->size() > CUBIX_MAX_DATA_CHUNK || lPreviewType != TxMediaHeader::MediaType::UNKNOWN)) {
 			if (done_) {
 				downloading_ = false;
-				done_(header_, localPreviewFileName_, std::string(), header_->orientation(), header_->duration(), header_->size(), doneDownloadWithErrorFunctionExtraArgs(header_->mediaType(), header_->previewType()), ProcessingError());
+				std::string lDescription; lDescription.insert(lDescription.end(), header_->description().begin(), header_->description().end());
+				done_(header_, localPreviewFileName_, std::string(), header_->orientation(), header_->duration(), header_->size(), doneDownloadWithErrorFunctionExtraArgs(header_->mediaType(), header_->previewType(), lDescription), ProcessingError());
 			}
 		} else {
 			// load data
@@ -877,7 +902,10 @@ void DownloadMediaCommand::headerLoaded(TransactionPtr tx) {
 				//
 				outLocalFile_ = std::ofstream(localFile_ + header_->mediaTypeToExtension(), std::ios::binary);
 				//
-				if (lPreviewType == TxMediaHeader::MediaType::UNKNOWN /*header_->mediaType() == TxMediaHeader::AUDIO_PCM ||
+				if (header_->mediaType() != TxMediaHeader::MediaType::IMAGE_JPEG &&
+					header_->mediaType() != TxMediaHeader::MediaType::IMAGE_PNG &&
+											lPreviewType == TxMediaHeader::MediaType::UNKNOWN /*even in case of UNKNOWN for images preview will be generated implicitly*/
+					/*header_->mediaType() == TxMediaHeader::AUDIO_PCM ||
 						header_->mediaType() == TxMediaHeader::AUDIO_AMR ||
 							header_->mediaType() == TxMediaHeader::AUDIO_M4A ||
 								header_->mediaType() == TxMediaHeader::DOCUMENT_PDF*/) {
@@ -909,7 +937,8 @@ void DownloadMediaCommand::headerLoaded(TransactionPtr tx) {
 				if (done_) {
 					// preview = full file
 					downloading_ = false;
-					done_(header_, localPreviewFileName_, localPreviewFileName_, header_->orientation(), header_->duration(), header_->size(), doneDownloadWithErrorFunctionExtraArgs(header_->mediaType(), header_->previewType()), ProcessingError());
+					std::string lDescription; lDescription.insert(lDescription.end(), header_->description().begin(), header_->description().end());
+					done_(header_, localPreviewFileName_, localPreviewFileName_, header_->orientation(), header_->duration(), header_->size(), doneDownloadWithErrorFunctionExtraArgs(header_->mediaType(), header_->previewType(), lDescription), ProcessingError());
 				}
 			}
 		}
@@ -953,7 +982,8 @@ void DownloadMediaCommand::dataLoaded(TransactionPtr tx) {
 			outLocalFile_.close();
 			if (done_) {
 				downloading_ = false;
-				done_(header_, localPreviewFileName_, localFileName_, header_->orientation(), header_->duration(), header_->size(), doneDownloadWithErrorFunctionExtraArgs(header_->mediaType(), header_->previewType()), ProcessingError());
+				std::string lDescription; lDescription.insert(lDescription.end(), header_->description().begin(), header_->description().end());
+				done_(header_, localPreviewFileName_, localFileName_, header_->orientation(), header_->duration(), header_->size(), doneDownloadWithErrorFunctionExtraArgs(header_->mediaType(), header_->previewType(), lDescription), ProcessingError());
 			}
 		} else {
 			//

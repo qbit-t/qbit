@@ -28,6 +28,14 @@ QuarkPage {
 	property var mediaPlayerControler;
 	property bool initialized_: false;
 	property var pkey_: ""
+	property var mediaIndex_: 0
+	property var mediaPlayer_: null
+	property var buzzBody_: ""
+
+	statusBarColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "MediaView.statusBar")
+	navigationBarColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "MediaView.navigationBar")
+	Material.background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "MediaView.pageBackground")
+	pageTheme: "dark"
 
 	Component.onCompleted: {
 		closePageHandler = closePage;
@@ -40,10 +48,18 @@ QuarkPage {
 			mediaContainer.buzzMediaItem_.sharedMediaPlayer_ = mediaPlayerControler;
 	}
 
+	onControllerChanged: {
+	}
+
 	function closePage() {
 		stopPage();
 		controller.popPage();
 		destroy(1000);
+
+		// set back
+		statusBarColor = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.statusBar")
+		navigationBarColor = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.navigationBar")
+		pageTheme = buzzerClient.themeSelector;
 	}
 
 	function activatePage() {
@@ -55,11 +71,24 @@ QuarkPage {
 	}
 
 	function stopPage() {
+		//
+		mediaContainer.checkPlaying();
+		//
+		playerControl.unlink();
+		//
+		if (mediaPlayerControler)
+			mediaPlayerControler.popVideoInstance();
 	}
 
-	function initialize(pkey) {
+	function initialize(pkey, mediaIndex, player, buzzBody) {
 		//
 		if (key !== undefined) pkey_ = pkey;
+		mediaIndex_ = mediaIndex;
+		mediaPlayer_ = player;
+		buzzBody_ = buzzBody;
+
+		console.log("[buzzmedia/initialize]: mediaIndex = " + mediaIndex + ", player = " + player);
+
 		mediaContainer.initialize();
 		//
 		initialized_ = true;
@@ -127,6 +156,7 @@ QuarkPage {
 		id: buzzMediaToolBar
 		height: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 50) : 45
 		width: parent.width
+		backgroundColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "MediaView.pageBackground")
 
 		property int totalHeight: height
 
@@ -183,6 +213,13 @@ QuarkPage {
 			}
 		}
 
+		function checkPlaying() {
+			//
+			if (buzzMediaItem_) {
+				buzzMediaItem_.checkPlaying();
+			}
+		}
+
 		function initialize() {
 			//
 			var lSource = "qrc:/qml/buzzitemmediaview.qml";
@@ -202,7 +239,7 @@ QuarkPage {
 				buzzMediaItem_.controller_ = buzzmedia_.controller;
 				buzzMediaItem_.buzzMedia_ = buzzmedia_.buzzMedia_;
 				buzzMediaItem_.sharedMediaPlayer_ = buzzmedia_.mediaPlayerControler;
-				buzzMediaItem_.initialize(pkey_);
+				buzzMediaItem_.initialize(pkey_, mediaIndex_, mediaPlayer_, buzzBody_);
 			}
 		}
 
@@ -223,7 +260,7 @@ QuarkPage {
 
 	//
 	BuzzItemMediaPlayer {
-		id: player
+		id: playerControl
 		x: 0
 		y: buzzMediaToolBar.y + buzzMediaToolBar.height
 		width: parent.width

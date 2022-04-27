@@ -28,14 +28,27 @@ Item {
 	signal hideCurrentPlayer();
 
 	//
-	function createMediaPlayerInstance(requester) {
+	function continueCreateInstance() {
 	}
 
-	function createInstance(playerPlceholder, videooutPlaceholder) {
+	function createInstance(playerPlceholder, videooutPlaceholder, continuous) {
 		//
 		var lPlayer = null;
 		var lVideoOutput = null;
 
+		//
+		var lPosition = 0;
+		var lSource;
+
+		//
+		if (lastInstance && lastInstance.player) {
+			//
+			lSource = lastInstance.player.source;
+			lPosition = lastInstance.player.position;
+			lastInstance.player.stop();
+		}
+
+		// make new
 		var lComponent = Qt.createComponent("qrc:/qml/buzzitemmedia-mediaplayer.qml");
 		if (lComponent.status === Component.Error) {
 			controller.showError(lComponent.errorString());
@@ -48,7 +61,14 @@ Item {
 			} else {
 				lVideoOutput = lComponentOut.createObject(videooutPlaceholder);
 				lVideoOutput.player = lPlayer;
-				lVideoOutput.source = lPlayer;
+
+				if (continuous && lSource) {
+					// TODO: ?
+					console.log("[createInstance]: source = " + lSource + ", position = " + lPosition);
+					lPlayer.source = lSource;
+					lPlayer.seek(lPosition);
+					lPlayer.play();
+				}
 
 				prevInstance = lastInstance;
 				lastInstance = lVideoOutput;
@@ -61,11 +81,61 @@ Item {
 		return null;
 	}
 
+	function createVideoInstance(videooutPlaceholder, player) {
+		//
+		var lPlayer = player;
+		var lVideoOutput = null;
+
+		console.log("[createVideoInstance]: creating...");
+		 var lComponentOut = Qt.createComponent("qrc:/qml/buzzitemmedia-videooutput.qml");
+		 if (lComponentOut.status === Component.Error) {
+			 console.log("[createVideoInstance]: " + lComponentOut.errorString());
+			 controller.showError(lComponentOut.errorString());
+		 } else {
+			 lVideoOutput = lComponentOut.createObject(videooutPlaceholder);
+			 lVideoOutput.player = lPlayer;
+
+			 return lVideoOutput;
+		 }
+
+		 return null;
+	}
+
+	function popVideoInstance(player) {
+		//
+		var lPlayer = player;
+		if (!lastInstance) return;
+		//
+		if (!lPlayer) lPlayer = lastInstance.player;
+		if (!lPlayer) return;
+		if (!lPlayer.videoOutput) return;
+
+		lPlayer.popSurface();
+	}
+
+	function popAllVideoInstances(player) {
+		var lPlayer = player;
+		if (!lastInstance) return;
+		//
+		if (!lPlayer) lPlayer = lastInstance.player;
+		if (!lPlayer) return;
+		if (!lPlayer.videoOutput) return;
+
+		lPlayer.clearSurfaces();
+	}
+
 	function createAudioInstance(playerPlceholder, root) {
 		//
 		var lPlayer = null;
 		var lVideoOutput = null;
 
+		// clean-up
+		if (lastInstance && lastInstance.player) {
+			lastInstance.player.stop();
+			popAllVideoInstances();
+		}
+
+		//
 		var lComponent = Qt.createComponent("qrc:/qml/buzzitemmedia-mediaplayer.qml");
 		if (lComponent.status === Component.Error) {
 			controller.showError(lComponent.errorString());
@@ -86,14 +156,33 @@ Item {
 
 	function linkInstance(instance) {
 		//
-		prevInstance = lastInstance;
-		lastInstance = instance;
+		if (instance !== lastInstance) {
+			prevInstance = lastInstance;
+			lastInstance = instance;
+		}
+
 		newInstanceCreated(instance, prevInstance);
 	}
 
 	function isCurrentInstancePlaying() {
 		if (lastInstance && lastInstance.player) {
 			return lastInstance.player.playing;
+		}
+
+		return false;
+	}
+
+	function isCurrentInstanceStopped() {
+		if (lastInstance && lastInstance.player) {
+			return lastInstance.player.stopped;
+		}
+
+		return false;
+	}
+
+	function isCurrentInstancePaused() {
+		if (lastInstance && lastInstance.player) {
+			return lastInstance.player.paused;
 		}
 
 		return false;

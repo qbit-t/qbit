@@ -23,9 +23,6 @@ Rectangle {
 	id: imageFrame
 
 	//
-	//property int calculatedHeight: parent.height
-	//property int calculatedWidth: 500
-
 	readonly property int spaceLeft_: 15
 	readonly property int spaceTop_: 12
 	readonly property int spaceRight_: 15
@@ -50,6 +47,7 @@ Rectangle {
 
 	signal adjustHeight(var proposed);
 	signal errorLoading();
+	signal previewLoaded();
 
 	onMediaListChanged: {
 		mediaImage.adjustView();
@@ -58,10 +56,6 @@ Rectangle {
 	onBuzzitemmedia_Changed: {
 		mediaImage.adjustView();
 	}
-
-	//onCalculatedWidthChanged: {
-	//	mediaImage.adjustView();
-	//}
 
 	function adjust() {
 		mediaImage.adjustView();
@@ -75,6 +69,10 @@ Rectangle {
 		mediaLoading.visible = false;
 	}
 
+	function binfMedia(mediaSource) {
+		mediaImage.source = mediaSource;
+	}
+
 	function loadingProgress(pos, size) {
 		mediaLoading.progress(pos, size);
 	}
@@ -82,9 +80,23 @@ Rectangle {
 	function forceVisibilityCheck(isFullyVisible) {
 	}
 
+	function checkPlaying() {
+	}
+
+	function syncPlayer(mediaPlayer) {
+		//
+	}
+
+	function reset() {
+		//
+		mediaImage.scale = 1.0;
+		mediaImage.x = mediaImage.getX();
+		mediaImage.y = mediaImage.getY();
+	}
+
 	//
 	color: "transparent"
-	width: parent.width // mediaImage.width + 2 * spaceItems_
+	width: parent.width
 	height: parent.height
 	radius: 8
 
@@ -92,7 +104,7 @@ Rectangle {
 		id: mediaImage
 		autoTransform: true
 		asynchronous: true
-		radius: 8
+		//radius: 8
 
 		x: getX()
 		y: getY()
@@ -102,7 +114,31 @@ Rectangle {
 		}
 
 		function getY() {
-			return (mediaList ? mediaList.height / 2 : parent.height / 2) - height / 2;
+			//return (mediaList ? mediaList.height / 2 : parent.height / 2) - height / 2;
+			return calculatedHeight / 2 - height / 2;
+		}
+
+		function adjustDimensions() {
+			//
+			var lRatioH = (originalHeight * 1.0) / (originalWidth * 1.0);
+			var lRatioW = (originalWidth * 1.0) / (originalHeight * 1.0);
+			//
+			if (calculatedHeight > calculatedWidth && lRatioH < 2 || lRatioW > 2 /*&& originalHeight < calculatedHeight * 2*/) {
+				var lCoeffW = (calculatedWidth * 1.0) / (originalWidth * 1.0)
+				var lWidth = originalWidth * 1.0;
+				width = lWidth * lCoeffW;
+
+				//var lCoeffH = (calculatedHeight * 1.0) / (originalHeight * 1.0)
+				var lHeightW = originalHeight * 1.0;
+				height = lHeightW * lCoeffW;
+			} else {
+				var lCoeffH = (calculatedHeight * 1.0) / (originalHeight * 1.0)
+				var lHeight = originalHeight * 1.0;
+				height = lHeight * lCoeffH;
+
+				var lWidthH = originalWidth * 1.0;
+				width = lWidthH * lCoeffH;
+			}
 		}
 
 		function adjustView() {
@@ -111,14 +147,15 @@ Rectangle {
 				reloadControl.forceVisible = true;
 				waitControl.visible = false;
 				//
-				if (calculatedWidth > calculatedHeight || originalHeight > calculatedHeight * 2)
-					height = calculatedHeight - 20;
-				else
-					width = calculatedWidth - 2*spaceItems_;
-
+				adjustDimensions();
+				//
 				y = getY();
 				x = getX();
 			}
+		}
+
+		onYChanged: {
+			//console.log("[onYChanged]: y = " + y + ", height = " + height + ", scale = " + scale);
 		}
 
 		fillMode: BuzzerComponents.ImageQx.PreserveAspectFit
@@ -145,45 +182,43 @@ Rectangle {
 				console.log("[onStatusChanged]: forcing reload of " + path_);
 				//downloadCommand
 				errorLoading();
+			} else if (status == Image.Ready) {
+				if (usePreview_) {
+					console.log("[onStatusChanged]: usePreview_ = " + usePreview_ + ", preview_ = " + preview_);
+					previewLoaded();
+				} else {
+					console.log("[onStatusChanged]: usePreview_ = " + usePreview_ + ", path_ = " + path_);
+				}
 			}
 		}
 
 		onWidthChanged: {
-			//
-			if (width != originalWidth) {
-				var lCoeff = (width * 1.0) / (originalWidth * 1.0)
-				var lHeight = originalHeight * 1.0;
-				height = lHeight * lCoeff;
-				console.log("[onWidthChanged]: height = " + height);
-				adjustHeight(height);
-			}
+			//console.log("[onWidthChanged]: height = " + height + ", width = " + width +
+			//							", originalWidth = " + originalWidth + ", originalHeight = " + originalHeight);
+			adjustHeight(height);
 		}
 
 		onHeightChanged: {
-			if (height != originalHeight) {
-				var lCoeff = (height * 1.0) / (originalHeight * 1.0)
-				var lWidth = originalWidth * 1.0;
-				width = lWidth * lCoeff;
-				console.log("[onHeightChanged]: width = " + width);
-				adjustHeight(height);
-			}
+			//console.log("[onHeightChanged]: width = " + width + ", height = " + height +
+			//							", originalHeight = " + originalHeight + ", originalWidth = " + originalWidth);
+			adjustHeight(height);
 		}
 
 		onScaleChanged: {
 			mediaList.interactive = scale == 1.0;
 		}
+	}
 
-		PinchHandler {
-			id: pinchHandler
-			minimumRotation: 0
-			maximumRotation: 0
-			minimumScale: 1.0
-			maximumScale: 10.0
-			target: mediaImage
+	PinchHandler {
+		id: pinchHandler
+		minimumRotation: 0
+		maximumRotation: 0
+		minimumScale: 1.0
+		maximumScale: 10.0
+		target: mediaImage
 
-			onActiveChanged: {
-				dragArea.enabled = !active;
-			}
+		onActiveChanged: {
+			dragArea.enabled = !active;
 		}
 	}
 
@@ -212,19 +247,6 @@ Rectangle {
 		function getMaxX() {
 			if (mediaImage.width * mediaImage.scale < parent.width) return 0;
 			return (mediaImage.width * mediaImage.scale - parent.width) / 2.0;
-		}
-
-		drag.minimumY: getMinY()
-		function getMinY() {
-			if (mediaImage.height * mediaImage.scale < parent.height) return mediaImage.getY();
-			return (parent.height - mediaImage.height * mediaImage.scale) / 2.0;
-
-		}
-
-		drag.maximumY: getMaxY()
-		function getMaxY() {
-			if (mediaImage.height * mediaImage.scale < parent.height) return 0;
-			return (mediaImage.height * mediaImage.scale - parent.height) / 2.0;
 		}
 
 		enabled: false

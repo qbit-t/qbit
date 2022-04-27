@@ -5,7 +5,7 @@ else: QT += qml quick quickcontrols2 multimedia
 
 CONFIG += c++11
 
-VERSION = 0.1.5.34
+VERSION = 0.1.5.37
 DEFINES += VERSION_STRING=\\\"$${VERSION}\\\"
 DEFINES += QT_ENVIRONMENT
 DEFINES += BUZZER_MOD
@@ -18,7 +18,7 @@ DEFINES += CLIENT_PLATFORM
 DEFINES += QBIT_VERSION_MAJOR=0
 DEFINES += QBIT_VERSION_MINOR=1
 DEFINES += QBIT_VERSION_REVISION=5
-DEFINES += QBIT_VERSION_BUILD=34
+DEFINES += QBIT_VERSION_BUILD=37
 
 DEFINES += BUZZER_MOD
 DEFINES += CUBIX_MOD
@@ -90,7 +90,9 @@ SOURCES += \
     applicationpath.cpp \
     peerslistmodel.cpp \
     settings.cpp \
+    videoframesprovider.cpp \
     videorecorder.cpp \
+    videosurface.cpp \
     wallettransactionslistmodel.cpp \
 	websourceinfo.cpp \
 	imageqx.cpp \
@@ -217,7 +219,9 @@ HEADERS += \
 	../../client/dapps/cubix/cubixcommands.h \
 	../../client/dapps/cubix/cubixcomposer.h \
 	../../client/commands.h \
+    videoframesprovider.h \
     videorecorder.h \
+    videosurface.h \
     wallettransactionslistmodel.h \
 	websourceinfo.h \
 	imageqx.h \

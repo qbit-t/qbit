@@ -47,6 +47,8 @@ Rectangle {
 	property var frameColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
 	property var fillColor: "transparent"
 	property var sharedMediaPlayer_
+	property var mediaIndex_: 0
+	property var controller_
 
 	//
 	property var buzzitemmedia_;
@@ -91,7 +93,7 @@ Rectangle {
 	}
 
 	onHeightChanged: {
-		adjust();
+		//console.log("[item/onHeightChanged]: height = " + height);
 	}
 
 	function forceVisibilityCheck(isFullyVisible) {
@@ -113,12 +115,12 @@ Rectangle {
 
 	//
 	color: "transparent"
+	width: parent.width
+	height: 1
 
 	//
 	Item {
 		id: frameContainer
-		width: videoOut ? videoOut.contentRect.width : parent.width
-		height: videoOut ? videoOut.contentRect.height : parent.height
 
 		visible: false
 
@@ -128,28 +130,17 @@ Rectangle {
 			//if (previewImage.visible) return;
 			if (!buzzitemmedia_) return;
 			if (mediaList) width = mediaList.width - 2 * spaceItems_;
-
-			mediaList.height = Math.max(buzzitemmedia_.calculatedHeight, previewImage.visible ? 0 : calculatedHeight);
-			// buzzitemmedia_.calculatedHeight = correctedHeight ? correctedHeight : mediaList.height;
-
-			height = previewImage.visible ? previewImage.height : parent.height;
-			//console.log("[frameContainer/adjustView]: height = " + height + ", parent.height = " + parent.height + ", buzzitemmedia_.calculatedHeight = " + buzzitemmedia_.calculatedHeight + ", correctedHeight = " + correctedHeight);
-
-			adjustHeight(correctedHeight ? correctedHeight : mediaList.height);
+			adjustHeight(height);
 		}
 
 		function enableScene() {
-			//
-			//console.log("[onContentRectChanged(0)]: videoOutput.contentRect = " + videoOut.contentRect + ", videoFrame.playing = " + videoFrame.playing + ", videoFrame.player = " + videoFrame.player + ", videoFrame.player.hasVideo = " + videoFrame.player.hasVideo);
-			//
-			if (videoFrameFeed.playing && videoFrameFeed.player && videoFrameFeed.player.hasVideo && videoFrameFeed.player.position > 1
-												/*videoOut.contentRect.height > 0 &&
-													videoOut.contentRect.height < calculatedHeight &&
-														(orientation != 90 && orientation != -90)*/) {
-				//console.log("[onContentRectChanged(1)]: videoOutput.contentRect = " + videoOut.contentRect);
+			if (videoFrameFeed.playing && videoFrameFeed.player && videoFrameFeed.player.hasVideo && videoFrameFeed.player.position > 1) {
 				previewImage.visible = false;
 				frameContainer.visible = true;
-				height = videoOut.contentRect.height;
+
+				previewImage.adjustFrameContainer();
+
+				//height = videoOut.contentRect.height;
 				adjustHeight(height);
 				correctedHeight = height;
 			}
@@ -176,7 +167,8 @@ Rectangle {
 				var lMedia = lComponent.createObject(controller_);
 				lMedia.controller = controller_;
 				lMedia.buzzMedia_ = buzzitemmedia_.buzzMedia_;
-				lMedia.initialize(pkey_);
+				lMedia.mediaPlayerControler = sharedMediaPlayer_;
+				lMedia.initialize(pkey_, mediaIndex_, !sharedMediaPlayer_.isCurrentInstanceStopped() ? player : null, description_);
 				controller_.addPage(lMedia);
 			}
 		}
@@ -190,18 +182,43 @@ Rectangle {
 
 		function adjustView() {
 			if (previewImage.status === Image.Ready && mediaList && buzzitemmedia_) {
-				//console.log("[onHeightChanged(1)/image]: height = " + height + ", width = " + width + ", implicitHeight = " + previewImage.implicitHeight);
 				width = mediaList.width - 2*spaceItems_;
-				adjustHeight(height);
-				parent.height = height;
+				if (height > 0) {
+					//mediaList.height = height;
+					parent.height = height;
+					adjustHeight(height);
+				}
+			}
+		}
+
+		function adjustFrameContainer() {
+			if (videoOut && !previewImage.visible && videoFrameFeed.playing && videoFrameFeed.player && videoFrameFeed.player.hasVideo && videoFrameFeed.player.position > 1) {
+				var lContentCoeff = (videoOut.sourceRect.width  * 1.0) / (videoOut.sourceRect.height * 1.0);
+				var lImageCoeff = (width * 1.0) / (height * 1.0);
+
+				//console.log("[adjustFrameContainer]: lContentCoeff = " + lContentCoeff + ", lImageCoeff = " + lImageCoeff);
+				if (Math.abs(lContentCoeff - lImageCoeff) > 0.001) {
+					// own
+					var lCoeff = (frameContainer.width * 1.0) / (videoOut.sourceRect.width * 1.0);
+					//var lCoeff = (frameContainer.width * 1.0) * (videoOut.sourceRect.height * 1.0) / (videoOut.sourceRect.width * 1.0);
+					var lHeight = videoOut.sourceRect.height * 1.0;
+
+					frameContainer.height = lHeight * lCoeff;
+					parent.height = frameContainer.height;
+					//mediaList.height = frameContainer.height;
+
+					//console.log("[adjustFrameContainer]: frameContainer.height = " + frameContainer.height + ", parent.height = " + parent.height + ", coeff = " + lCoeff);
+				} else {
+					frameContainer.height = previewImage.visible ? previewImage.height : parent.height; //
+				}
 			}
 		}
 
 		onHeightChanged: {
 			if (buzzitemmedia_) {
 				//console.log("[onHeightChanged(2)/image]: height = " + height + ", width = " + width + ", implicitHeight = " + previewImage.implicitHeight);
-				adjustHeight(height);
 				parent.height = height;
+				adjustHeight(height);
 			}
 		}
 
@@ -223,8 +240,7 @@ Rectangle {
 				var lHeight = originalHeight * 1.0;
 				height = lHeight * lCoeff;
 
-				adjustHeight(height);
-
+				//adjustHeight(height);
 				//console.log("[onHeightChanged/image/new height]: height = " + lHeight + ", lCoeff = " + lCoeff + ", width = " + width + ", originalWidth = " + originalWidth);
 			}
 		}
@@ -266,7 +282,7 @@ Rectangle {
 						lMedia.controller = controller_;
 						lMedia.buzzMedia_ = buzzitemmedia_.buzzMedia_;
 						lMedia.mediaPlayerControler = sharedMediaPlayer_;
-						lMedia.initialize(pkey_);
+						lMedia.initialize(pkey_, mediaIndex_, !sharedMediaPlayer_.isCurrentInstanceStopped() ? player : null, description_);
 						controller_.addPage(lMedia);
 					}
 				}
@@ -285,6 +301,8 @@ Rectangle {
 			var lVideoOut = videoFrameFeed.sharedMediaPlayer_.createInstance(videoFrameFeed, frameContainer);
 			//
 			if (lVideoOut) {
+				lVideoOut.player.description = description_;
+				lVideoOut.player.caption = caption_;
 				lVideoOut.player.onPlaying.connect(mediaPlaying);
 				lVideoOut.player.onPaused.connect(mediaPaused);
 				lVideoOut.player.onStopped.connect(mediaStopped);
@@ -329,6 +347,7 @@ Rectangle {
 		frameContainer.disableScene();
 		elapsedTime.setTime(0);
 		playSlider.value = 0;
+		//player = null;
 	}
 
 	function playerStatusChanged(status) {
@@ -364,8 +383,7 @@ Rectangle {
 			playSlider.value = videoFrameFeed.player.position;
 
 			//console.log("[playerPositionChanged]: videoFrame.player.position = " + videoFrame.player.position + ", position = " + position);
-			if (videoFrameFeed.player.position >= 1 &&
-					videoFrameFeed.player.position <= 1000) frameContainer.enableScene();
+			if (videoFrameFeed.player.position >= 500 && previewImage.visible) frameContainer.enableScene();
 		}
 	}
 
@@ -378,7 +396,7 @@ Rectangle {
 		width: frameContainer.visible ? (frameContainer.width - (2 * spaceItems_)) : (previewImage.width - (2 * spaceItems_))
 		height: actionButton.height + 2 * spaceItems_
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
-		opacity: 0.3
+		opacity: 0.8
 		radius: 8
 	}
 
@@ -438,11 +456,26 @@ Rectangle {
 	}
 
 	QuarkLabel {
-		id: elapsedTime
+		id: caption
 		x: actionButton.x + actionButton.width + spaceItems_
-		y: actionButton.y + spaceItems_
+		y: actionButton.y + 1
+		width: playSlider.width
+		elide: Text.ElideRight
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
+		text: caption_
+		visible: caption_ != "none"
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
+
+		//onTextChanged: console.log("[onTextChanged]: caption_ = " + caption_);
+	}
+
+	QuarkLabel {
+		id: elapsedTime
+		x: actionButton.x + actionButton.width + spaceItems_ + (description_ != "none" ? 3 : 0)
+		y: actionButton.y + (caption_ != "none" ? caption.height + 3 : spaceItems_)
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
 		text: "00:00"
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
 
 		function setTime(ms) {
 			text = DateFunctions.msToTimeString(ms);
@@ -452,9 +485,10 @@ Rectangle {
 	QuarkLabel {
 		id: totalTime
 		x: elapsedTime.x + elapsedTime.width
-		y: actionButton.y + spaceItems_
+		y: elapsedTime.y
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
 		text: duration_ ? ("/" + DateFunctions.msToTimeString(duration_)) : "/00:00"
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
 
 		function setTotalTime(ms) {
 			text = "/" + DateFunctions.msToTimeString(ms);
@@ -464,10 +498,11 @@ Rectangle {
 	QuarkLabel {
 		id: totalSize
 		x: totalTime.x + totalTime.width
-		y: actionButton.y + spaceItems_
+		y: elapsedTime.y
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
 		text: ", 0k"
 		visible: size_ !== 0
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
 
 		function setTotalSize(mediaSize) {
 			//
@@ -489,12 +524,15 @@ Rectangle {
 										(previewImage.width - (actionButton.width + 4 * spaceItems_))
 
 		onMoved: {
-			if (videoFrameFeed.player) videoFrameFeed.player.seek(value);
+			if (videoFrameFeed.player) {
+				videoFrameFeed.player.seek(value);
+			}
+
 			elapsedTime.setTime(value);
 		}
 
 		onToChanged: {
-			console.log("[onToChanged]: to = " + to);
+			console.log("[buzzitemmediz/onToChanged]: to = " + to);
 		}
 	}
 
@@ -550,7 +588,7 @@ Rectangle {
 
 		onProcessed: {
 			// tx, previewFile, originalFile, orientation, duration, size, type
-			console.log(tx + ", " + previewFile + ", " + originalFile + ", " + orientation + ", " + duration + ", " + size + ", " + type);
+			//console.log(tx + ", " + previewFile + ", " + originalFile + ", " + orientation + ", " + duration + ", " + size + ", " + type);
 
 			//
 			processing = false;

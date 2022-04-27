@@ -1,6 +1,6 @@
 // QuarkListView.qml
 
-import QtQuick 2.9
+import QtQuick 2.15
 import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.3
 import QtQuick.Controls.Material 2.1
@@ -46,7 +46,11 @@ ListView
 		//console.log("[ListView]: pullHeight = " + pullHeight + ", pullScale = " +
 		//			pullScale + ", currentIndexAtTop = " + currentIndexAtTop + ", contentY = " + contentY);
 
-		if (model && currentIndexAtTop + feedDelta > model.count) {
+		//var lEffectiveBottom = ((contentHeight - contentY) * 100.0 / contentHeight);
+		//console.log("[feed/onContentYChanged]: lEffectiveBottom = " + lEffectiveBottom + ", currentIndexAtTop = " + currentIndexAtTop
+		//			+ ", total = " + (currentIndexAtTop + feedDelta) + ", model.count = " + model.count);
+		if (model && (currentIndexAtTop + feedDelta > model.count /*|| lEffectiveBottom < 30*/)) {
+			//console.log("[feed/onContentYChanged/fired]: lEffectiveBottom = " + lEffectiveBottom);
 			feedReady();
 		}
     }

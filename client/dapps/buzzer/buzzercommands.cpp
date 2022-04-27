@@ -319,7 +319,7 @@ void CreateBuzzCommand::uploadNextMedia() {
 
 		std::vector<std::string> lArgs; lArgs.push_back(lFile);
 		uploadMedia_->process(lArgs, peer_);
-	}	
+	}
 }
 
 void CreateBuzzCommand::mediaUploaded(TransactionPtr tx, const ProcessingError& err) {

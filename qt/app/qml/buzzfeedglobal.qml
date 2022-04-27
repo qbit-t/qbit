@@ -356,13 +356,22 @@ Item
 		y: buzzerApp.isDesktop ? 0 : search.y + search.calculatedHeight
 		width: parent.width
 		height: parent.height - (buzzerApp.isDesktop ? 0 : search.calculatedHeight)
-		usePull: false
+		usePull: true
 		clip: true
+		reuseItems: false
+
+		ListView.onPooled: {
+			console.log("[ListView.onPooled]: delegate = " + delegate);
+		}
+
+		ListView.onReused: {
+			console.log("[ListView.onReused]: delegate = " + delegate);
+		}
 
 		// TODO: consumes a lot RAM
-		cacheBuffer: 10000
-		displayMarginBeginning: 5000
-		displayMarginEnd: 5000
+		//cacheBuffer: 10000
+		displayMarginBeginning: 500
+		displayMarginEnd: 500
 
 		function adjust() {
 			//
@@ -466,6 +475,9 @@ Item
 		running: false
 
 		onTriggered: {
+			//
+			if (mediaPlayerControler) mediaPlayerControler.popVideoInstance();
+			//
 			if (buzzerClient.buzzerDAppReady) {
 				modelLoader_.restart();
 			} else {

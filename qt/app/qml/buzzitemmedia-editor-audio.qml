@@ -119,9 +119,20 @@ Rectangle {
 	}
 
 	QuarkLabel {
-		id: elapsedTime
+		id: caption
 		x: actionButton.x + actionButton.width + spaceItems_
-		y: actionButton.y + spaceItems_
+		y: actionButton.y + 1
+		width: playSlider.width
+		elide: Text.ElideRight
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
+		text: description
+		visible: description != "none"
+	}
+
+	QuarkLabel {
+		id: elapsedTime
+		x: actionButton.x + actionButton.width + spaceItems_ + (description != "none" ? 3 : 0)
+		y: actionButton.y + (description != "none" ? caption.height + 3 : spaceItems_)
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
 		text: "00:00"
 
@@ -133,7 +144,7 @@ Rectangle {
 	QuarkLabel {
 		id: totalTime
 		x: elapsedTime.x + elapsedTime.width
-		y: actionButton.y + spaceItems_
+		y: elapsedTime.y
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
 		text: "/00:00"
 
@@ -145,7 +156,7 @@ Rectangle {
 	QuarkLabel {
 		id: totalSize
 		x: totalTime.x + totalTime.width
-		y: actionButton.y + spaceItems_
+		y: elapsedTime.y
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
 		text: ", 0k"
 		visible: size !== 0
@@ -169,7 +180,7 @@ Rectangle {
 		to: 1
 		orientation: Qt.Horizontal
 		stepSize: 0.1
-		width: parent.width - (actionButton.x + actionButton.width + /*spaceItems_ +*/ removeButton.width)
+		width: parent.width - (actionButton.x + actionButton.width + /*spaceItems_ +*/ removeButton.width + clearDescriptionButton.width)
 
 		onMoved: {
 			player.seek(value);
@@ -192,6 +203,25 @@ Rectangle {
 		onClicked: {
 			if (!sending) {
 				mediaList.removeMedia(index);
+			}
+		}
+	}
+
+	QuarkToolButton	{
+		id: clearDescriptionButton
+
+		x: removeButton.x - width
+		y: spaceItems_
+		// Material.background: "transparent"
+		visible: true
+		labelYOffset: 2
+		symbolColor: (!sending || uploaded) ? buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground") :
+										  buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
+		symbol: Fonts.eraserSym
+
+		onClicked: {
+			if (!sending) {
+				description = "none";
 			}
 		}
 	}

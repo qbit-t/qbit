@@ -306,7 +306,7 @@ public:
 
     void emit_fingertipAuthSuccessed(QString);
     void emit_fingertipAuthFailed();
-	void emit_fileSelected(QString, QString);
+	void emit_fileSelected(QString, QString, QString);
 
 public slots:
     void appQuit();
@@ -320,7 +320,7 @@ signals:
     void fingertipAuthSuccessed(QString);
     void fingertipAuthFailed();
     void deviceTokenUpdated(QString token);
-	void fileSelected(QString file, QString preview);
+	void fileSelected(QString file, QString preview, QString description);
 	void isDesktopChanged();
 
 private:

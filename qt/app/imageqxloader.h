@@ -24,17 +24,17 @@ class ImageQxLoader : public QObject {
 
     public slots:
         /// @brief Загружает изображение синхронно.
-		void get (const QString &source, ImageSharedPtr image, bool autotransform);
+		void get (QString source, ImageSharedPtr image, bool autotransform);
 
     signals:
         /// @brief Загружает изображение ассинхронно.
-		void loadTo(const QString &source, ImageSharedPtr image, bool autotransform);
+		void loadTo(QString source, ImageSharedPtr image, bool autotransform);
 
         /// @brief [signal] Сигнал, уведомляющий о загрузке изображения.
-        void loaded(const QString &source, ImageWeakPtr image);
+		void loaded(const QString &source, ImageWeakPtr image);
 
         /// @brief [signal] Сигнал об ошибке при загрузке изображения.
-        void error(const QString &source, ImageWeakPtr image, const QString &reason);
+		void error(const QString &source, ImageWeakPtr image, const QString &reason);
 
     private:
         QThread _thread;

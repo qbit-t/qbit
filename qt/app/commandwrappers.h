@@ -1061,6 +1061,8 @@ public:
 			QString lType = "unknown";
 			unsigned int lDuration = duration;
 			long long lSize = size;
+			QString lDescription = QString::fromStdString(extra.description);
+
 			switch((qbit::cubix::TxMediaHeader::MediaType)extra.type) {
 				case qbit::cubix::TxMediaHeader::MediaType::UNKNOWN: lType = "unknown"; break;
 				case qbit::cubix::TxMediaHeader::MediaType::IMAGE_PNG: lType = "image"; break;
@@ -1109,9 +1111,9 @@ public:
 			}
 
 #ifdef Q_OS_WINDOWS
-			emit processed(lTx, QString("/") + QString::fromStdString(previewFile), QString("/") + QString::fromStdString(originalFile), orientation, lDuration, lSize, lType);
+			emit processed(lTx, QString("/") + QString::fromStdString(previewFile), QString("/") + QString::fromStdString(originalFile), orientation, lDuration, lSize, lType, lDescription);
 #else
-			emit processed(lTx, QString::fromStdString(previewFile), QString::fromStdString(originalFile), orientation, lDuration, lSize, lType);
+			emit processed(lTx, QString::fromStdString(previewFile), QString::fromStdString(originalFile), orientation, lDuration, lSize, lType, lDescription);
 #endif
 		} else {
 			emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
@@ -1123,7 +1125,7 @@ public:
 	}
 
 signals:
-	void processed(QString tx, QString previewFile, QString originalFile, unsigned short orientation, unsigned int duration, long long size, QString type);
+	void processed(QString tx, QString previewFile, QString originalFile, unsigned short orientation, unsigned int duration, long long size, QString type, QString description);
 	void progress(ulong pos, ulong size);
 	void error(QString code, QString message);
 	void urlChanged();
@@ -1262,6 +1264,7 @@ private:
 		}
 
 		if (description_.length())
+			lArgs.push_back("-d");
 			lArgs.push_back(description_.toStdString());
 
 		command_->process(lArgs);

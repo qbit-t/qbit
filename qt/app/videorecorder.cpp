@@ -300,6 +300,7 @@ void VideoRecorder::updateProgress(qint64 duration) {
 
 void VideoRecorder::videoFrameProbed(const QVideoFrame& buffer) {
 	//
-	if (preview_) delete preview_;
+	if (frame_++ > 5) return;
+	if (!preview_) delete preview_;
 	preview_ = new QImage(buffer.image());
 }

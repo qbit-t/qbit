@@ -1,6 +1,8 @@
 ﻿import QtQuick 2.15
 import QtMultimedia 5.15
 
+import app.buzzer.components 1.0 as BuzzerComponents
+
 MediaPlayer {
 	id: player
 
@@ -8,16 +10,35 @@ MediaPlayer {
 	property bool paused: false;
 	property bool stopped: true;
 	property int size: 0;
+	property var description: "";
+	property var caption: "";
 
-	onPlaying: { playing = true; paused = false; stopped = false; adjustControls(); }
-	onPaused: { playing = false; paused = true; stopped = false; adjustControls(); }
-	onStopped: {
-		playing = false; paused = false; stopped = true;
-		adjustControls();
-		//player.seek(1);
+	function pushSurface(surface) {
+		surfaces.pushSurface(surface);
 	}
 
-	signal adjustControls();
+	function popSurface() {
+		surfaces.popSurface();
+	}
+
+	function clearSurfaces() {
+		surfaces.clearSurfaces();
+	}
+
+	videoOutput: surfaces
+
+	onPlaying: { playing = true; paused = false; stopped = false; }
+	onPaused: { playing = false; paused = true; stopped = false; playerPaused(); }
+	onStopped: {
+		playing = false; paused = false; stopped = true;
+		playerStopped();
+	}
+
+	onPositionChanged: {
+	}
+
+	signal playerStopped();
+	signal playerPaused();
 
 	onStatusChanged: {
 		switch(status) {
@@ -27,13 +48,12 @@ MediaPlayer {
 		}
 	}
 
-	onErrorStringChanged: {
+	onError: {
 		stop();
-	}
-
-	onPositionChanged: {
 	}
 
 	onPlaybackStateChanged: {
 	}
+
+	property BuzzerComponents.VideoSurfaces surfaces: BuzzerComponents.VideoSurfaces {}
 }

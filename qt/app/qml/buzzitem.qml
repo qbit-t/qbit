@@ -801,6 +801,7 @@ Item {
 					buzzMediaItem_.width = bodyControl.width;
 					buzzMediaItem_.controller_ = buzzitem_.controller_;
 					buzzMediaItem_.buzzId_ = buzzitem_.buzzId_;
+					buzzMediaItem_.buzzBody_ = buzzitem_.buzzBodyFlat_;
 					buzzMediaItem_.buzzMedia_ = buzzitem_.buzzMedia_;
 					buzzMediaItem_.sharedMediaPlayer_ = buzzitem_.sharedMediaPlayer_;
 					buzzMediaItem_.initialize();

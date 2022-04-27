@@ -70,6 +70,7 @@ QuarkPage {
 	function closePage() {
 		//
 		if (mediaPlayerControler && mediaPlayerControler.isCurrentInstancePlaying()) {
+			mediaPlayerControler.popVideoInstance();
 			mediaPlayerControler.showCurrentPlayer();
 		}
 
@@ -257,8 +258,8 @@ QuarkPage {
 
 		// TODO: consumes a lot RAM
 		cacheBuffer: 10000
-		displayMarginBeginning: 5000
-		displayMarginEnd: 5000
+		//displayMarginBeginning: 5000
+		//displayMarginEnd: 5000
 
 		add: Transition {
 			enabled: true
@@ -328,6 +329,10 @@ QuarkPage {
 							buzzItem.width = list.width;
 							headDelegate.height = buzzItem.calculateHeight();
 						}
+					}
+
+					onHeightChanged: {
+						player.y = list.y + height + 1;
 					}
 
 					Component.onCompleted: {
@@ -440,7 +445,7 @@ QuarkPage {
 	BuzzItemMediaPlayer {
 		id: player
 		x: 0
-		y: 0
+		y: bottomLine.y1 + 1
 		width: parent.width
 		mediaPlayerControler: buzzfeedthread_.mediaPlayerControler
 	}

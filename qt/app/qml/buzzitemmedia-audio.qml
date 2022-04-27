@@ -46,6 +46,8 @@ Rectangle {
 	property var frameColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
 	property var fillColor: "transparent"
 	property var sharedMediaPlayer_
+	property var mediaIndex_: 0
+	property var controller_
 
 	//
 	property var buzzitemmedia_;
@@ -84,6 +86,19 @@ Rectangle {
 		}
 	}
 
+	function checkPlaying() {
+		//
+		if (player) {
+			if (audioFrame.sharedMediaPlayer_.isCurrentInstancePaused()) player.stop();
+			else if (playing || downloadCommand.processing) audioFrame.sharedMediaPlayer_.showCurrentPlayer();
+		}
+	}
+
+	function syncPlayer(mediaPlayer) {
+		//
+		if (mediaPlayer) play(mediaPlayer);
+	}
+
 	function terminate() {
 		//
 		player.pause();
@@ -93,6 +108,9 @@ Rectangle {
 		width = mediaList ? mediaList.width - (mediaView ? spaceItems_ * 2 : 0) : parent.width - (mediaView ? spaceItems_ * 2 : 0);
 		x = mediaView ? getX() : 0;
 		y = mediaView ? getY() : 0;
+
+		console.log("[buzzitemmedia-audio/adjust]: mediaView = " + mediaView + ", y = " + y + ", mediaList.height = " + mediaList.height +
+					", height = " + height);
 	}
 
 	function getX() {
@@ -101,6 +119,9 @@ Rectangle {
 
 	function getY() {
 		return (mediaList ? mediaList.height / 2 : parent.height / 2) - height / 2;
+	}
+
+	function reset() {
 	}
 
 	//
@@ -137,7 +158,7 @@ Rectangle {
 					lMedia.controller = controller_;
 					lMedia.buzzMedia_ = buzzitemmedia_.buzzMedia_;
 					lMedia.mediaPlayerControler = sharedMediaPlayer_;
-					lMedia.initialize(pkey_);
+					lMedia.initialize(pkey_, mediaIndex_, !sharedMediaPlayer_.isCurrentInstanceStopped() ? player : null, description_);
 					controller_.addPage(lMedia);
 				}
 			}
@@ -178,48 +199,6 @@ Rectangle {
 		}
 	}
 
-	//
-	/*
-	Audio {
-		id: player
-		source: path_
-
-		property bool playing: false;
-
-		onPlaying: { playing = true; actionButton.adjust(); }
-		onPaused: { playing = false; actionButton.adjust(); }
-		onStopped: { playing = false; actionButton.adjust(); }
-
-		onStatusChanged: {
-			//
-			switch(status) {
-				case Audio.Loaded:
-					totalTime.setTotalTime(duration ? duration : duration_);
-					totalSize.setTotalSize(size_);
-					playSlider.to = duration ? duration : duration_;
-					console.log("[onStatusChanged]: duration = " + duration + ", duration_ = " + duration_);
-				break;
-			}
-		}
-
-		onPositionChanged: {
-			elapsedTime.setTime(position);
-			playSlider.value = position;
-		}
-
-		onPlaybackStateChanged: {
-		}
-
-		onErrorStringChanged: {
-			//
-			console.log("[onErrorStringChanged]: " + errorString);
-			downloadCommand.downloaded = false;
-			downloadCommand.processing = false;
-			downloadCommand.cleanUp();
-		}
-	}
-	*/
-
 	Item {
 		id: audioOut
 
@@ -230,29 +209,50 @@ Rectangle {
 	property var videoOut: null
 	property bool playing: false
 
-	function play() {
+	function play(existingPlayer) {
 		//
-		if (!player) {
-			// controller
-			var lAudioOut = audioFrame.sharedMediaPlayer_.createAudioInstance(audioFrame, audioOut);
-			//
-			if (lAudioOut) {
-				lAudioOut.player.onPlaying.connect(mediaPlaying);
-				lAudioOut.player.onPaused.connect(mediaPaused);
-				lAudioOut.player.onStopped.connect(mediaStopped);
-				lAudioOut.player.onStatusChanged.connect(playerStatusChanged);
-				lAudioOut.player.onPositionChanged.connect(playerPositionChanged);
-				lAudioOut.player.onError.connect(playerError);
+		if (existingPlayer) {
+			existingPlayer.onPlaying.connect(mediaPlaying);
+			existingPlayer.onPaused.connect(mediaPaused);
+			existingPlayer.onStopped.connect(mediaStopped);
+			existingPlayer.onStatusChanged.connect(playerStatusChanged);
+			existingPlayer.onPositionChanged.connect(playerPositionChanged);
+			existingPlayer.onError.connect(playerError);
 
-				player = lAudioOut.player;
+			player = existingPlayer;
 
-				player.source = path_;
+			if (!player.playing) {
+				downloadCommand.downloaded = true;
 				player.play();
+			} else {
+				downloadCommand.downloaded = true;
+				mediaPlaying();
 			}
 		} else {
-			if (player.stopped)
-				audioFrame.sharedMediaPlayer_.linkInstance(audioOut);
-			player.play();
+			if (!player) {
+				// controller
+				var lAudioOut = audioFrame.sharedMediaPlayer_.createAudioInstance(audioFrame, audioOut);
+				//
+				if (lAudioOut) {
+					lAudioOut.player.description = description_;
+					lAudioOut.player.caption = caption_;
+					lAudioOut.player.onPlaying.connect(mediaPlaying);
+					lAudioOut.player.onPaused.connect(mediaPaused);
+					lAudioOut.player.onStopped.connect(mediaStopped);
+					lAudioOut.player.onStatusChanged.connect(playerStatusChanged);
+					lAudioOut.player.onPositionChanged.connect(playerPositionChanged);
+					lAudioOut.player.onError.connect(playerError);
+
+					player = lAudioOut.player;
+
+					player.source = path_;
+					player.play();
+				}
+			} else {
+				if (player.stopped)
+					audioFrame.sharedMediaPlayer_.linkInstance(audioOut);
+				player.play();
+			}
 		}
 	}
 
@@ -359,9 +359,20 @@ Rectangle {
 	}
 
 	QuarkLabel {
-		id: elapsedTime
+		id: caption
 		x: actionButton.x + actionButton.width + spaceItems_
-		y: actionButton.y + spaceItems_
+		y: actionButton.y + 1
+		width: playSlider.width
+		elide: Text.ElideRight
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
+		text: caption_
+		visible: caption_ != "none" && caption_ != ""
+	}
+
+	QuarkLabel {
+		id: elapsedTime
+		x: actionButton.x + actionButton.width + spaceItems_ + (caption.visible ? 3 : 0)
+		y: actionButton.y + (caption.visible ? caption.height + 3 : spaceItems_)
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
 		text: "00:00"
 
@@ -373,7 +384,7 @@ Rectangle {
 	QuarkLabel {
 		id: totalTime
 		x: elapsedTime.x + elapsedTime.width
-		y: actionButton.y + spaceItems_
+		y: elapsedTime.y
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
 		text: duration_ ? ("/" + DateFunctions.msToTimeString(duration_)) : "/00:00"
 
@@ -385,7 +396,7 @@ Rectangle {
 	QuarkLabel {
 		id: totalSize
 		x: totalTime.x + totalTime.width
-		y: actionButton.y + spaceItems_
+		y: elapsedTime.y
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
 		text: ", 0k"
 		visible: size_ !== 0
@@ -408,7 +419,10 @@ Rectangle {
 		width: parent.width - (actionButton.x + actionButton.width + 2 * spaceItems_)
 
 		onMoved: {
-			player.seek(value);
+			if (player) {
+				player.seek(value);
+			}
+
 			elapsedTime.setTime(value);
 		}
 	}

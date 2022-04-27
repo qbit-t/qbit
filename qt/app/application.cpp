@@ -9,6 +9,8 @@
 #include "statusbar/statusbar.h"
 #include "httprequest.h"
 #include "imageqx.h"
+#include "videosurface.h"
+#include "videoframesprovider.h"
 
 using namespace buzzer;
 IApplication* buzzer::gApplication = nullptr;
@@ -115,7 +117,10 @@ int Application::execute()
 	qmlRegisterType<buzzer::Client>("app.buzzer.client", 1, 0, "Client");
     qmlRegisterType<buzzer::ClipboardAdapter>("app.buzzer.helpers", 1, 0, "Clipboard");
     qmlRegisterType<StatusBar>("StatusBar", 0, 1, "StatusBar");
+	//
 	qmlRegisterType<buzzer::ImageQx>("app.buzzer.components", 1, 0, "ImageQx");
+	qmlRegisterType<buzzer::VideoSurfaces>("app.buzzer.components", 1, 0, "VideoSurfaces");
+	qmlRegisterType<buzzer::VideoFramesProvider>("app.buzzer.components", 1, 0, "VideoFramesProvider");
 
 	buzzer::QuarkLine::declare();
 	buzzer::QuarkRoundFrame::declare();
@@ -663,9 +668,9 @@ void Application::emit_fingertipAuthFailed()
     emit fingertipAuthFailed();
 }
 
-void Application::emit_fileSelected(QString key, QString preview)
+void Application::emit_fileSelected(QString key, QString preview, QString description)
 {
-	emit fileSelected(key, preview);
+	emit fileSelected(key, preview, description);
 }
 
 //
@@ -699,10 +704,11 @@ JNIEXPORT void JNICALL Java_app_buzzer_mobile_FingerprintHandler_authenticationS
 	((Application*)buzzer::gApplication)->emit_fingertipAuthSuccessed(lKeyFound);
 }
 
-JNIEXPORT void JNICALL Java_app_buzzer_mobile_MainActivity_fileSelected(JNIEnv* env, jobject, jstring file, jstring preview)
+JNIEXPORT void JNICALL Java_app_buzzer_mobile_MainActivity_fileSelected(JNIEnv* env, jobject, jstring file, jstring preview, jstring description)
 {
 	QString lFileFound = "none";
 	QString lPreviewFound = "none";
+	QString lDescriptionFound = "none";
 
 	const char* lFile = env->GetStringUTFChars(file, NULL);
 	if (lFile) {
@@ -716,8 +722,14 @@ JNIEXPORT void JNICALL Java_app_buzzer_mobile_MainActivity_fileSelected(JNIEnv* 
 		env->ReleaseStringUTFChars(preview, lPreview);  // release resource
 	}
 
-	qDebug() << "[JAVA::fileSelected]: file = " << lFileFound << lPreviewFound;
-	((Application*)buzzer::gApplication)->emit_fileSelected(lFileFound, lPreviewFound);
+	const char* lDescription = env->GetStringUTFChars(description, NULL);
+	if (lDescription) {
+		lDescriptionFound = QString::fromLocal8Bit(lDescription);
+		env->ReleaseStringUTFChars(description, lDescription);  // release resource
+	}
+
+	qDebug() << "[JAVA::fileSelected]: file = " << lFileFound << lPreviewFound << lDescriptionFound;
+	((Application*)buzzer::gApplication)->emit_fileSelected(lFileFound, lPreviewFound, lDescriptionFound);
 }
 
 #ifdef __cplusplus

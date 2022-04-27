@@ -570,6 +570,14 @@ QuarkPage {
 
 					property var mediaItem;
 
+					function adjustHeight(proposed) {
+						//
+						if (index === mediaIndicator.currentIndex) {
+							//
+							itemDelegate.height = proposed;
+						}
+					}
+
 					onWidthChanged: {
 						if (mediaItem) {
 							mediaItem.width = mediaListEditor.width;
@@ -587,8 +595,10 @@ QuarkPage {
 
 						var lComponent = Qt.createComponent(lSource);
 						mediaItem = lComponent.createObject(itemDelegate);
-						if (media === "video")
+						if (media === "video") {
 							mediaItem.adjustDuration.connect(adjustDuration);
+							mediaItem.adjustHeight.connect(adjustHeight);
+						}
 
 						mediaItem.width = list.width;
 						mediaItem.mediaList = mediaListEditor;
@@ -610,7 +620,7 @@ QuarkPage {
 					}
 				}
 
-				function addMedia(file) {
+				function addMedia(file, info) {
 					var lOrientation = 0; // vertical
 					if (buzzeditor_.width > buzzeditor_.height) lOrientation = 1; // horizontal
 
@@ -624,12 +634,13 @@ QuarkPage {
 						progress: 0,
 						uploaded: 0,
 						orientation: lOrientation,
-						processing: 0 });
+						processing: 0,
+						description: info});
 
 					positionViewAtEnd();
 				}
 
-				function addAudio(file, duration) {
+				function addAudio(file, duration, info) {
 					var lOrientation = 0; // vertical
 					if (buzzeditor_.width > buzzeditor_.height) lOrientation = 1; // horizontal
 
@@ -643,12 +654,13 @@ QuarkPage {
 						progress: 0,
 						uploaded: 0,
 						orientation: lOrientation,
-						processing: 0 });
+						processing: 0,
+						description: info});
 
 					positionViewAtEnd();
 				}
 
-				function addVideo(file, duration, orientation, preview) {
+				function addVideo(file, duration, orientation, preview, info) {
 					/*
 					var lOrientation = 0; // vertical
 					if (buzzeditor_.width > buzzeditor_.height) lOrientation = 1; // horizontal
@@ -663,7 +675,8 @@ QuarkPage {
 						progress: 0,
 						uploaded: 0,
 						orientation: orientation,
-						processing: 0 });
+						processing: 0,
+						description: info});
 
 					positionViewAtEnd();
 				}
@@ -763,7 +776,7 @@ QuarkPage {
 			}
 
 			function photoTaken(path) {
-				mediaListEditor.addMedia(path);
+				mediaListEditor.addMedia(path, "none");
 			}
 		}
 
@@ -805,7 +818,7 @@ QuarkPage {
 			}
 
 			function videoTaken(path, duration, orientation, preview) {
-				mediaListEditor.addVideo(path, duration, orientation, preview);
+				mediaListEditor.addVideo(path, duration, orientation, preview, "none");
 			}
 		}
 
@@ -1079,23 +1092,23 @@ QuarkPage {
 		id: selectImage
 		target: buzzerApp
 
-		function onFileSelected(file, preview) {
+		function onFileSelected(file, preview, description) {
 			//
-			if (mediaModel.count < 21) {
+			if (mediaModel.count < 31) {
 				//
 				var lSize = buzzerApp.getFileSize(file);
 				var lPreviewSize = buzzerApp.getFileSize(preview);
 				console.log("[onFileSelected]: file = " + file + "/" + lSize + ", preview = " + preview + "/" + lPreviewSize);
 				//
 				if ((file.includes(".mp4") || file.includes(".mp3") || file.includes(".m4a")) && preview !== "") {
-					mediaListEditor.addVideo(file, 0, 0, preview);
+					mediaListEditor.addVideo(file, 0, 0, preview, description);
 				} else if (file.includes(".mp3") || file.includes(".m4a")) {
-					mediaListEditor.addAudio(file, 0);
+					mediaListEditor.addAudio(file, 0, description);
 				} else if (file.includes(".mp4")) {
 					handleError("E_MEDIA_PREVIEW_ABSENT", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_MEDIA_PREVIEW_ABSENT"));
 				} else {
 					//
-					mediaListEditor.addMedia(file);
+					mediaListEditor.addMedia(file, description);
 				}
 			} else {
 				handleError("E_MAX_ATTACHMENTS", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_MAX_ATTACHMENTS"));
@@ -1140,7 +1153,7 @@ QuarkPage {
 			//
 			if (actualFileLocation !== "") {
 				// we have location and content saved
-				mediaListEditor.addAudio(audioRecorder.actualFileLocation, duration);
+				mediaListEditor.addAudio(audioRecorder.actualFileLocation, duration, "none");
 			}
 		}
 
@@ -1148,7 +1161,7 @@ QuarkPage {
 			//
 			if (isStopped) {
 				// we have location and content saved
-				mediaListEditor.addAudio(audioRecorder.actualFileLocation, duration);
+				mediaListEditor.addAudio(audioRecorder.actualFileLocation, duration, "none");
 			}
 		}
 
@@ -1380,7 +1393,8 @@ QuarkPage {
 			buzzCommand.addMedia(mediaModel.get(lIdx).key + "," +
 								 mediaModel.get(lIdx).duration + "," +
 								 mediaModel.get(lIdx).preview + "," +
-								 mediaModel.get(lIdx).orientation);
+								 mediaModel.get(lIdx).orientation + "," +
+								 mediaModel.get(lIdx).description);
 		}
 
 		buzzCommand.process();
@@ -1417,7 +1431,8 @@ QuarkPage {
 			rebuzzCommand.addMedia(mediaModel.get(lIdx).key + "," +
 								   mediaModel.get(lIdx).duration + "," +
 								   mediaModel.get(lIdx).preview + "," +
-								   mediaModel.get(lIdx).orientation);
+								   mediaModel.get(lIdx).orientation + "," +
+								   mediaModel.get(lIdx).description);
 		}
 
 		if (buzzId) rebuzzCommand.buzzId = buzzId;
@@ -1462,7 +1477,8 @@ QuarkPage {
 			replyCommand.addMedia(mediaModel.get(lIdx).key + "," +
 								  mediaModel.get(lIdx).duration + "," +
 								  mediaModel.get(lIdx).preview + "," +
-								  mediaModel.get(lIdx).orientation);
+								  mediaModel.get(lIdx).orientation + "," +
+								  mediaModel.get(lIdx).description);
 		}
 
 		if (buzzId) replyCommand.buzzId = buzzId;
@@ -1508,7 +1524,8 @@ QuarkPage {
 			messageCommand.addMedia(mediaModel.get(lIdx).key + "," +
 									mediaModel.get(lIdx).duration + "," +
 									mediaModel.get(lIdx).preview + "," +
-									mediaModel.get(lIdx).orientation);
+									mediaModel.get(lIdx).orientation + "," +
+									mediaModel.get(lIdx).description);
 		}
 
 		messageCommand.process();

@@ -1,14 +1,11 @@
 #include "imageqx.h"
 
-//#include <LogSp.h>
-//#include <SpApplicationPrototype.h>
 #include <QtMath>
 #include <QSGTexture>
 #include <QSGOpaqueTextureMaterial>
 #include <QSGSimpleTextureNode>
 #include <QImage>
 
-//------------------------------------------------------------------------------
 buzzer::ImageQx::ImageQx(QQuickItem *parent)
     : QQuickItem (parent)
 	, _node(new ImageQxNode)
@@ -21,7 +18,6 @@ buzzer::ImageQx::~ImageQx()
 {
 }
 
-//------------------------------------------------------------------------------
 void buzzer::ImageQx::classBegin()
 {
     // Ничего нет
@@ -32,7 +28,31 @@ void buzzer::ImageQx::componentComplete()
     _completed = true;
 }
 
-//------------------------------------------------------------------------------
+void buzzer::ImageQx::rawImageReceived(buzzer::ImageSharedPtr image) {
+	//
+	qInfo() << "ImageQx::rawImageReceived" << image->width() << image->height() << width() << height() << image->format();
+
+	_image = image;
+
+	_imageUpdated = true;
+
+	_originalWidth = _image->width(); emit originalWidthChanged(_originalWidth);
+	_originalHeight = _image->height(); emit originalHeightChanged(_originalHeight);
+	_coeff = (float)_image->width() / _image->height(); emit coeffChanged(_coeff);
+
+	_status = Ready;
+	emit statusChanged(_status);
+
+	setImplicitWidth (_image->width());
+	setImplicitHeight(_image->height());
+
+	emit sourceSizeChanged(_image->size());
+
+	if (_completed) {
+		update();
+	}
+}
+
 QSGNode* buzzer::ImageQx::updatePaintNode(QSGNode* /*oldNode*/, QQuickItem::UpdatePaintNodeData *)
 {
     if (_status != Ready) {
@@ -132,11 +152,14 @@ QSGNode* buzzer::ImageQx::updatePaintNode(QSGNode* /*oldNode*/, QQuickItem::Upda
 	return _node;
 }
 
-//------------------------------------------------------------------------------
 void buzzer::ImageQx::setSource(const QString &source)
 {
+	//bool lRecreate = (_source != source && !_source.isEmpty() && !source.isEmpty());
+
     if (_source != source) {
         _source = source;
+
+		//if (lRecreate) *_image = QImage();
 
         if (source.isEmpty()) {
             *_image = QImage();
@@ -152,10 +175,10 @@ void buzzer::ImageQx::setSource(const QString &source)
                 _status = Loading;
 				connect (&ImageQxLoader::instance(), SIGNAL(loaded(const QString&, ImageWeakPtr))
 						 , SLOT(onImageQxLoaded(const QString&, ImageWeakPtr))
-                         , Qt::UniqueConnection);
+						 , Qt::UniqueConnection);
 				connect (&ImageQxLoader::instance(), SIGNAL(error(const QString&, ImageWeakPtr, const QString&))
 						 , SLOT(onImageQxError(const QString&, ImageWeakPtr, const QString&))
-                         , Qt::UniqueConnection);
+						 , Qt::UniqueConnection);
 
 				ImageQxLoader::instance().loadTo(_source, _image, _autotransform);
             }
@@ -172,22 +195,21 @@ void buzzer::ImageQx::setSource(const QString &source)
             update();
         }
     }
-} // void sp::ImageFast::setSource(const QString &source)
+}
 
-//------------------------------------------------------------------------------
-// 1. Обработка сигнала успешной загрузки изображения в ImageQxLoader'е.
-//------------------------------------------------------------------------------
 void buzzer::ImageQx::onImageQxLoaded(const QString &/*source*/, QWeakPointer<QImage> image)
 {
     if (image != _image) {
         return;
     }
 
+	_image = image;
+
 	_imageUpdated = true;
 	disconnect (&ImageQxLoader::instance(), 0, this, 0);
 
 	_originalWidth = _image->width(); emit originalWidthChanged(_originalWidth);
-	_originalHeight = _image->height(); emit originalWidthChanged(_originalHeight);
+	_originalHeight = _image->height(); emit originalHeightChanged(_originalHeight);
 	_coeff = (float)_image->width() / _image->height(); emit coeffChanged(_coeff);
 
 	_status = Ready;
@@ -203,31 +225,29 @@ void buzzer::ImageQx::onImageQxLoaded(const QString &/*source*/, QWeakPointer<QI
     }
 }
 
-//------------------------------------------------------------------------------
-// 1e. Обработка сигнала об ошибке загрузки изображения в ImageQxLoader'е.
-//------------------------------------------------------------------------------
-void buzzer::ImageQx::onImageQxError(const QString &/*source*/, QWeakPointer<QImage> image, const QString &/*reason*/)
+void buzzer::ImageQx::onImageQxError(const QString &/*source*/, QWeakPointer<QImage> /*image*/, const QString &/*reason*/)
 {
-    if (image != _image) {
+	/*
+	if (image != _image) {
         return;
     }
-
-    //TODO Добавить сообщение об ошибке
+	*/
 
 	disconnect (&ImageQxLoader::instance(), 0, this, 0);
 
     *_image = QImage();
     _status = Error;
 
-    setImplicitHeight(_image->height());
+	emit statusChanged(_status);
 
+    setImplicitHeight(_image->height());
     emit sourceSizeChanged(_image->size());
+
     if (_completed) {
         update();
     }
 }
 
-//------------------------------------------------------------------------------
 void buzzer::ImageQx::setRadius(float radius)
 {
     if (!qFuzzyCompare(_radius, radius)) {
@@ -240,7 +260,6 @@ void buzzer::ImageQx::setRadius(float radius)
     }
 }
 
-//------------------------------------------------------------------------------
 void buzzer::ImageQx::setFillMode(buzzer::ImageQx::FillMode fillMode)
 {
     if (_fillMode != fillMode) {
@@ -253,7 +272,6 @@ void buzzer::ImageQx::setFillMode(buzzer::ImageQx::FillMode fillMode)
     }
 }
 
-//------------------------------------------------------------------------------
 void buzzer::ImageQx::setAsynchronous(bool asynchronous)
 {
 	if (_asynchronous != asynchronous) {
@@ -263,7 +281,6 @@ void buzzer::ImageQx::setAsynchronous(bool asynchronous)
 	}
 }
 
-//------------------------------------------------------------------------------
 void buzzer::ImageQx::setAutotransform(bool autotransform)
 {
 	if (_autotransform != autotransform) {
@@ -273,7 +290,6 @@ void buzzer::ImageQx::setAutotransform(bool autotransform)
 	}
 }
 
-//------------------------------------------------------------------------------
 void buzzer::ImageQx::setMipmap(bool mipmap)
 {
     if (_mipmap != mipmap) {
@@ -287,7 +303,6 @@ void buzzer::ImageQx::setMipmap(bool mipmap)
     }
 }
 
-//------------------------------------------------------------------------------
 void buzzer::ImageQx::setHorizontalAlignment(buzzer::ImageQx::HorizontalAlignment horizontalAlignment)
 {
     if (_horizontalAlignment != horizontalAlignment) {
@@ -300,7 +315,6 @@ void buzzer::ImageQx::setHorizontalAlignment(buzzer::ImageQx::HorizontalAlignmen
     }
 }
 
-//------------------------------------------------------------------------------
 void buzzer::ImageQx::setVerticalAlignment(buzzer::ImageQx::VerticalAlignment verticalAlignment)
 {
     if (_verticalAlignment != verticalAlignment) {
@@ -313,27 +327,18 @@ void buzzer::ImageQx::setVerticalAlignment(buzzer::ImageQx::VerticalAlignment ve
     }
 }
 
-//==============================================================================
-// Расчитывает коэфициенты координат текстуры для fillMode = Pad.
-//------------------------------------------------------------------------------
 buzzer::ImageQx::Coefficients buzzer::ImageQx::coefficientsPad() const
 {
     return {0, 0, static_cast<float>(width()), static_cast<float>(height())
            ,0, 0, static_cast<float>(1/width()), static_cast<float>(1/height())};
 }
 
-//------------------------------------------------------------------------------
-// Расчитывает коэфициенты координат текстуры для fillMode = Stretch.
-//------------------------------------------------------------------------------
 buzzer::ImageQx::Coefficients buzzer::ImageQx::coefficientsStretch() const
 {
     return {0, 0, static_cast<float>(width()), static_cast<float>(height())
            ,0, 0, static_cast<float>(1/width()), static_cast<float>(1/height())};
 }
 
-//------------------------------------------------------------------------------
-// Расчитывает коэфициенты координат текстуры для fillMode = PreserveAspectFit.
-//------------------------------------------------------------------------------
 buzzer::ImageQx::Coefficients buzzer::ImageQx::coefficientsPreserveAspectFit() const
 {
     Coefficients cf;
@@ -396,9 +401,6 @@ buzzer::ImageQx::Coefficients buzzer::ImageQx::coefficientsPreserveAspectFit() c
     return cf ;
 }
 
-//------------------------------------------------------------------------------
-// Расчитывает коэфициенты координат текстуры для fillMode = PreserveAspectCrop.
-//------------------------------------------------------------------------------
 buzzer::ImageQx::Coefficients buzzer::ImageQx::coefficientsPreserveAspectCrop() const
 {
     Coefficients cf = {0, 0, static_cast<float>(width()), static_cast<float>(height()), 0, 0, 0, 0};
@@ -435,11 +437,13 @@ buzzer::ImageQx::Coefficients buzzer::ImageQx::coefficientsPreserveAspectCrop() 
     return cf;
 }
 
-//------------------------------------------------------------------------------
-// Расчитывает коэфициенты координат текстуры для fillMode = Parallax.
-//------------------------------------------------------------------------------
 buzzer::ImageQx::Coefficients buzzer::ImageQx::coefficientsParallax() const
 {
     return {0, 0, static_cast<float>(width()), static_cast<float>(height())
            ,0, 0, static_cast<float>(1/width()), static_cast<float>(1/height())};
+}
+
+
+void buzzer::ImageQx::setUpdateDimensions(int /*width*/, int /*height*/) {
+	//
 }

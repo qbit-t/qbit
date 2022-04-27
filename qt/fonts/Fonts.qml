@@ -252,5 +252,7 @@ Item
 
 	readonly property string videoSym: "\uf03d";
 	readonly property string flashLightSym: "\uf8b8";
+
+	readonly property string eraserSym: "\uf12d";
 }
 

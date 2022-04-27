@@ -3,50 +3,31 @@ import QtQuick.Controls 2.2
 import QtGraphicalEffects 1.15
 import QtMultimedia 5.15
 
+import app.buzzer.components 1.0 as BuzzerComponents
+
 VideoOutput {
 	id: videoOut
 
 	property var previewImage: null;
 	property var player: null;
+	property bool allowClick: true
+	property var pixelFormat: null
 
 	signal linkActivated();
 
 	anchors.fill: parent
 
-	onContentRectChanged: {
+	Component.onCompleted: {
+		if (player && !pushed) { player.pushSurface(videoSurface); pushed = true; }
+		else {
+			console.log("[VideoOutput/Component.onCompleted]: player is NULL");
+		}
 	}
 
-	layer.enabled: buzzerApp.isDesktop
-	layer.effect: OpacityMask {
-		id: roundEffect
-		maskSource: Item {
-			width: roundEffect.getWidth()
-			height: roundEffect.getHeight()
+	property bool pushed: false
 
-			Rectangle {
-				x: roundEffect.getX()
-				y: roundEffect.getY()
-				width: roundEffect.getWidth()
-				height: roundEffect.getHeight()
-				radius: 8
-			}
-		}
-
-		function getX() {
-			return 0;
-		}
-
-		function getY() {
-			return 0;
-		}
-
-		function getWidth() {
-			return previewImage.width;
-		}
-
-		function getHeight() {
-			return previewImage.height;
-		}
+	onPlayerChanged: {
+		if (player && !pushed) { player.pushSurface(videoSurface); pushed = true; }
 	}
 
 	MouseArea {
@@ -55,7 +36,7 @@ VideoOutput {
 		y: 0
 		width: videoOut.width
 		height: videoOut.height
-		enabled: true
+		enabled: allowClick
 		cursorShape: Qt.PointingHandCursor
 
 		function clickActivated() {
@@ -65,19 +46,6 @@ VideoOutput {
 		onClicked: {
 			//
 			if (!buzzerApp.isDesktop) {
-				linkClick.clickActivated();
-			}
-		}
-
-		ItemDelegate {
-			id: linkClicked
-			x: 0
-			y: 0
-			width: videoOut.width
-			height: videoOut.height
-			enabled: buzzerApp.isDesktop
-
-			onClicked: {
 				linkClick.clickActivated();
 			}
 		}

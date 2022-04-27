@@ -43,6 +43,8 @@ Rectangle {
 	property var frameColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
 	property var fillColor: "transparent"
 	property var sharedMediaPlayer_
+	property var mediaIndex_: 0
+	property var controller_
 
 	//
 	property var buzzitemmedia_;
@@ -57,6 +59,10 @@ Rectangle {
 
 	onBuzzitemmedia_Changed: {
 		mediaImageFeed.adjustView();
+	}
+
+	onHeightChanged: {
+		//console.log("[image/onHeightChanged]: height = " + height);
 	}
 
 	function adjust() {
@@ -74,7 +80,7 @@ Rectangle {
 	//
 	color: "transparent"
 	width: mediaImageFeed.width + 2 * spaceItems_
-	height: calculatedHeight
+	height: 1 //calculatedHeight
 	radius: 8
 
 	BuzzerComponents.ImageQx {
@@ -89,8 +95,9 @@ Rectangle {
 		function adjustView() {
 			if (mediaImageFeed.status === Image.Ready && mediaList && buzzitemmedia_) {
 				width = mediaList.width - spaceItems_;
-				adjustHeight(height);
 				parent.height = height;
+				//mediaList.height = height;
+				adjustHeight(height);
 			}
 		}
 
@@ -104,8 +111,8 @@ Rectangle {
 
 		onHeightChanged: {
 			if (buzzitemmedia_) {
-				adjustHeight(height);
 				parent.height = height;
+				adjustHeight(height);
 			}
 		}
 
@@ -127,7 +134,7 @@ Rectangle {
 				var lHeight = originalHeight * 1.0;
 				height = lHeight * lCoeff;
 
-				adjustHeight(height);
+				//adjustHeight(height);
 			}
 		}
 
@@ -164,7 +171,7 @@ Rectangle {
 						lMedia.controller = controller_;
 						lMedia.buzzMedia_ = buzzitemmedia_.buzzMedia_;
 						lMedia.mediaPlayerControler = sharedMediaPlayer_;
-						lMedia.initialize(pkey_);
+						lMedia.initialize(pkey_, mediaIndex_);
 						controller_.addPage(lMedia);
 					}
 				}

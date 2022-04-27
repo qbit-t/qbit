@@ -237,8 +237,8 @@ QuarkPage {
 
 		// TODO: consumes a lot RAM
 		cacheBuffer: 10000
-		displayMarginBeginning: 5000
-		displayMarginEnd: 5000
+		//displayMarginBeginning: 5000
+		//displayMarginEnd: 5000
 
 		function adjust() {
 			//

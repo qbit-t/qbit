@@ -65,6 +65,9 @@ Item
 		running: false
 
 		onTriggered: {
+			//
+			if (mediaPlayerControler) mediaPlayerControler.popVideoInstance();
+			//
 			if (buzzerClient.buzzerDAppReady) {
 				modelLoader.restart();
 			}
@@ -159,15 +162,15 @@ Item
 		y: 0
 		width: parent.width
 		height: parent.height
-		usePull: false
+		usePull: true
 		clip: true
 
 		model: buzzerClient.getBuzzfeedList()
 
 		// TODO: consumes a lot RAM
-		cacheBuffer: 10000
-		displayMarginBeginning: 5000
-		displayMarginEnd: 5000
+		//cacheBuffer: 10000
+		displayMarginBeginning: 500
+		displayMarginEnd: 500
 
 		add: Transition {
 			enabled: true

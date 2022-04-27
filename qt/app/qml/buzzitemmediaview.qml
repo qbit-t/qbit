@@ -40,6 +40,9 @@ Item {
 	readonly property int spaceLine_: 4
 	readonly property real defaultFontSize: 11
 	property var pkey_: ""
+	property var mediaIndex_: 0
+	property var mediaPlayer_: null
+	property var buzzBody_: ""
 
 	Component.onCompleted: {
 	}
@@ -48,13 +51,63 @@ Item {
 		mediaList.setSharedMediaPlayer(sharedMediaPlayer_);
 	}
 
-	function initialize(pkey) {
+	onMediaIndex_Changed: {
+		adjustPositionTimer.start();
+	}
+
+	onCalculatedWidthChanged: {
+		mediaPagesIndicator.landscape = parent.width > parent.height;
+		mediaPagesIndicator.adjust();
+		mediaIndicator.landscape = mediaPagesIndicator.landscape;
+		mediaIndicator.adjust();
+	}
+
+	onCalculatedHeightChanged: {
+		mediaPagesIndicator.landscape = parent.width > parent.height;
+		mediaPagesIndicator.adjust();
+		mediaIndicator.landscape = mediaPagesIndicator.landscape;
+		mediaIndicator.adjust();
+	}
+
+	function initialize(pkey, mediaIndex, player, buzzBody) {
 		if (key !== undefined) pkey_ = pkey;
+		mediaPlayer_ = player;
+		mediaIndex_ = mediaIndex;
+		buzzBody_ = buzzBody;
+
+		console.log("[initialize]: mediaIndex = " + mediaIndex + ", player = " + player);
+
 		mediaList.prepare();
 	}
 
 	function adjust() {
 		mediaList.adjust();
+	}
+
+	function checkPlaying() {
+		mediaList.checkPlaying();
+	}
+
+	//
+	// adjust index
+	//
+
+	Timer {
+		id: adjustPositionTimer
+		interval: 100
+		repeat: false
+		running: false
+
+		onTriggered: {
+			mediaList.preservedIndex = mediaIndex_;
+			mediaIndicator.currentIndex = mediaList.preservedIndex;
+			mediaList.currentIndex = mediaList.preservedIndex;
+
+			if (mediaPlayer_ != null) {
+				//
+				mediaList.syncPlayer(mediaIndex_, mediaPlayer_);
+			}
+		}
 	}
 
 	//
@@ -71,6 +124,11 @@ Item {
 		orientation: Qt.Horizontal
 		layoutDirection:  Qt.LeftToRight
 		snapMode: ListView.SnapOneItem
+		highlightFollowsCurrentItem: true
+		highlightMoveDuration: -1
+		highlightMoveVelocity: -1
+
+		property var preservedIndex: -1
 
 		function setSharedMediaPlayer(player) {
 			//
@@ -84,20 +142,72 @@ Item {
 
 		function adjust() {
 			//
+			preservedIndex = mediaList.currentIndex;
+			//
 			for (var lIdx = 0; lIdx < mediaList.count; lIdx++) {
 				var lItem = mediaList.itemAtIndex(lIdx);
 				if (lItem) {
 					lItem.width = mediaList.width;
 					lItem.height = mediaList.height;
 					lItem.mediaItem.width = mediaList.width;
-					lItem.mediaItem.height = mediaList.height;
+					if (lItem.mediaType !== "audio") lItem.mediaItem.height = mediaList.height;
 					lItem.mediaItem.adjust();
 				}
 			}
 		}
 
+		function checkPlaying() {
+			//
+			for (var lIdx = 0; lIdx < mediaList.count; lIdx++) {
+				var lItem = mediaList.itemAtIndex(lIdx);
+				if (lItem && lItem.mediaItem) {
+					lItem.mediaItem.checkPlaying();
+				}
+			}
+		}
+
+		function syncPlayer(mediaIndex, mediaPlayer) {
+			//
+			for (var lIdx = 0; lIdx < mediaList.count; lIdx++) {
+				if (mediaIndex === lIdx) {
+					var lItem = mediaList.itemAtIndex(lIdx);
+					if (lItem && lItem.mediaItem) {
+						lItem.mediaItem.syncPlayer(mediaPlayer);
+					}
+				}
+			}
+		}
+
 		onContentXChanged: {
-			mediaIndicator.currentIndex = mediaList.indexAt(mediaList.contentX, 0);
+			//
+			var lCurrentItem;
+			if (preservedIndex != -1) {
+				//
+				if (mediaList.currentIndex >= 0) {
+					lCurrentItem = mediaList.itemAtIndex(mediaList.currentIndex);
+					if (lCurrentItem) lCurrentItem.mediaItem.reset();
+				}
+
+				mediaIndicator.currentIndex = preservedIndex;
+				mediaList.currentIndex = preservedIndex;
+				preservedIndex = -1;
+			} else {
+				var lIndex = mediaList.indexAt(mediaList.contentX, 0);
+				if (lIndex >= 0) {
+					//
+					var lItem = mediaList.itemAtIndex(lIndex);
+					if (lItem.x === mediaList.contentX) {
+						//
+						if (mediaList.currentIndex >= 0) {
+							lCurrentItem = mediaList.itemAtIndex(mediaList.currentIndex);
+							if (lCurrentItem) lCurrentItem.mediaItem.reset();
+						}
+
+						mediaIndicator.currentIndex = mediaList.indexAt(mediaList.contentX, 0);
+						mediaList.currentIndex = mediaIndicator.currentIndex;
+					}
+				}
+			}
 		}
 
 		add: Transition {
@@ -114,6 +224,7 @@ Item {
 			height: mediaList.height
 
 			property var mediaItem;
+			property var mediaType;
 
 			property bool isFullyVisible: mediaFrame.x >= mediaList.contentX && mediaFrame.x + mediaFrame.width <= mediaList.contentX + mediaList.width
 
@@ -150,6 +261,15 @@ Item {
 					downloadCommand.process();
 				}
 
+				function previewMediaLoaded() {
+					// re-process
+					if (preview) {
+						preview = false;
+						mediaFrame.mediaItem.showLoading();
+						downloadCommand.process();
+					}
+				}
+
 				onProgress: {
 					//
 					if (media_ === "image") {
@@ -161,7 +281,7 @@ Item {
 					// tx, previewFile, originalFile, orientation, duration, size, type
 					var lPSize = buzzerApp.getFileSize(previewFile);
 					var lOSize = buzzerApp.getFileSize(originalFile);
-					console.log("[buzzitemmediaview]: tx = " + tx + ", " + previewFile + " - [" + lPSize + "], " + originalFile + " - [" + lOSize + "], " + orientation + ", " + duration + ", " + size + ", " + type);
+					console.log("[buzzitemmediaview]: tx = " + tx + ", " + previewFile + " - [" + lPSize + "], " + originalFile + " - [" + lOSize + "], " + orientation + ", " + duration + ", " + size + ", " + type + ", preview = " + preview);
 
 					// stop timer
 					downloadWaitTimer.stop();
@@ -177,6 +297,8 @@ Item {
 					size_ = size;
 					// set size
 					media_ = type;
+					// description
+					caption_ = description;
 					// use preview
 					usePreview_ = preview;
 
@@ -196,15 +318,17 @@ Item {
 							lComponent = Qt.createComponent(lSource);
 
 							mediaFrame.mediaItem = lComponent.createObject(mediaFrame);
-							//mediaFrame.mediaItem.errorLoading.connect(errorMediaLoading);
+							mediaFrame.mediaItem.errorLoading.connect(errorMediaLoading);
 
 							mediaFrame.mediaItem.width = mediaList.width;
 							mediaFrame.mediaItem.mediaList = mediaList;
 							mediaFrame.mediaItem.buzzitemmedia_ = buzzitemmediaview_;
-							//mediaFrame.mediaItem.sharedMediaPlayer_ = buzzitemmediaview_.sharedMediaPlayer_;
+							mediaFrame.mediaItem.sharedMediaPlayer_ = buzzitemmediaview_.sharedMediaPlayer_;
 
 							mediaFrame.height = mediaFrame.mediaItem.height;
 							mediaFrame.width = mediaList.width;
+
+							mediaFrame.mediaType = "audio";
 
 							mediaFrame.mediaItem.mediaView = true;
 						} else if (type === "image") {
@@ -214,6 +338,7 @@ Item {
 
 							mediaFrame.mediaItem = lComponent.createObject(mediaFrame);
 							mediaFrame.mediaItem.errorLoading.connect(errorMediaLoading);
+							mediaFrame.mediaItem.previewLoaded.connect(previewMediaLoaded);
 
 							mediaFrame.mediaItem.width = mediaList.width - 2 * spaceItems_;
 							mediaFrame.mediaItem.height = mediaList.height;
@@ -225,15 +350,19 @@ Item {
 							mediaFrame.height = mediaList.height;
 							mediaFrame.width = mediaList.width;
 
+							mediaFrame.mediaType = "image";
+
 							// stop spinning
 							mediaFrame.mediaItem.hideLoading();
 
 							// re-process
+							/*
 							if (preview) {
 								preview = false;
 								mediaFrame.mediaItem.showLoading();
 								downloadCommand.process();
 							}
+							*/
 						} else if (type === "video") {
 							//
 							lSource = "qrc:/qml/buzzitemmediaview-video.qml";
@@ -253,6 +382,8 @@ Item {
 
 								mediaFrame.height = mediaList.height;
 								mediaFrame.width = mediaList.width;
+
+								mediaFrame.mediaType = "video";
 							}
 						}
 					}
@@ -300,7 +431,9 @@ Item {
 				size_: 0,
 				duration_: 0,
 				orientation_: 0,
-				loaded_: false });
+				loaded_: false,
+				description_: (buzzBody_ ? buzzBody_ : ""),
+				caption_: ""});
 		}
 
 		function prepare() {
@@ -322,14 +455,42 @@ Item {
 		currentIndex: mediaList.currentIndex
 		interactive: buzzerApp.isDesktop
 
+		property bool landscape: false
+
 		x: calculatedWidth / 2 - width / 2
-		y: spaceStats_ - height
-		visible: buzzMedia_ ? buzzMedia_.length > 1 : false
+		y: spaceStats_ - (height + (landscape ? 0 : 5))
+		visible: buzzMedia_ ? buzzMedia_.length > 1 && buzzMedia_.length <= 5 : false
 
 		Material.theme: buzzerClient.themeSelector == "dark" ? Material.Dark : Material.Light;
 		Material.accent: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.accent");
 		Material.background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.background");
 		Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground");
 		Material.primary: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.primary");
+
+		function adjust() {
+			y = spaceStats_ - (height + (landscape ? 0 : 5));
+		}
+	}
+
+	QuarkLabel {
+		id: mediaPagesIndicator
+		x: calculatedWidth - (width + 2*spaceItems_)
+		y: spaceStats_ - (height + (landscape ? 0 : 5))
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 1)) : defaultFontSize + 1
+		text: "0/0"
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+		visible: count > 5
+
+		property bool landscape: false
+		property var count: buzzMedia_ ? buzzMedia_.length : 0
+		property var currentIndex: mediaIndicator.currentIndex
+
+		onCurrentIndexChanged: {
+			text = (currentIndex + 1) + "/" + count;
+		}
+
+		function adjust() {
+			y = spaceStats_ - (height + (landscape ? 0 : 5));
+		}
 	}
 }

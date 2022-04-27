@@ -64,12 +64,33 @@ Rectangle {
 		}
 	}
 
+	function unlink() {
+		if (mediaPlayerControler) {
+			console.log("[buzzitemmedia-player/unlink]: unlinking player = " + player);
+			mediaPlayerControler.newInstanceCreated.disconnect(playerNewInstanceCreated);
+			mediaPlayerControler.showCurrentPlayer.disconnect(playerShow);
+			mediaPlayerControler.hideCurrentPlayer.disconnect(playerHide);
+
+			if (player) {
+				player.onPlaying.disconnect(mediaPlaying);
+				player.onPaused.disconnect(mediaPaused);
+				player.onStopped.disconnect(mediaStopped);
+				player.onStatusChanged.disconnect(playerStatusChanged);
+				player.onPositionChanged.disconnect(playerPositionChanged);
+				player.onError.disconnect(playerError);
+				player = null;
+			}
+		}
+	}
+
 	function playerNewInstanceCreated(instance, prev) {
+		//
+		if (instance === prev) return;
 		//
 		console.log("[playerNewInstanceCreated]: instance = " + instance + ", player = " + instance.player + ", prev = " + prev);
 
 		if (prev && prev.player) {
-			prev.player.stop();
+			//prev.player.stop();
 			prev.player.onPlaying.disconnect(mediaPlaying);
 			prev.player.onPaused.disconnect(mediaPaused);
 			prev.player.onStopped.disconnect(mediaStopped);
@@ -77,16 +98,18 @@ Rectangle {
 			prev.player.onPositionChanged.disconnect(playerPositionChanged);
 			prev.player.onError.disconnect(playerError);
 		} else if (player) {
-			player.stop();
+			//player.stop();
 			player.onPlaying.disconnect(mediaPlaying);
 			player.onPaused.disconnect(mediaPaused);
 			player.onStopped.disconnect(mediaStopped);
 			player.onStatusChanged.disconnect(playerStatusChanged);
 			player.onPositionChanged.disconnect(playerPositionChanged);
 			player.onError.disconnect(playerError);
+			//player = null;
 		}
 
 		if (!instance.player) return;
+
 		instance.player.onPlaying.connect(mediaPlaying);
 		instance.player.onPaused.connect(mediaPaused);
 		instance.player.onStopped.connect(mediaStopped);
@@ -100,35 +123,41 @@ Rectangle {
 
 	function playerShow() {
 		console.log("[playerShow]: ...");
-		mediaPlayer.visible = true;
-		mediaPlayer.closed = false;
+		if (mediaPlayer && player) {
+			mediaPlayer.visible = true;
+			mediaPlayer.closed = false;
+		}
 	}
 
 	function playerHide() {
 		console.log("[playerHide]: ...");
-		mediaPlayer.visible = false;
-		mediaPlayer.closed = true;
+		if (mediaPlayer) {
+			mediaPlayer.visible = false;
+			mediaPlayer.closed = true;
+		}
 	}
 
 	function mediaPlaying() {
+		console.log("[mediaPlaying]: playing...");
 		buzzerApp.wakeLock();
 		actionButton.adjust();
 	}
 
 	function mediaPaused() {
+		console.log("[mediaPaused]: paused...");
 		buzzerApp.wakeRelease();
 		actionButton.adjust();
 	}
 
 	function mediaStopped() {
+		console.log("[mediaStopped]: clearing...");
 		buzzerApp.wakeRelease();
 		actionButton.adjust();
 		elapsedTime.setTime(0);
 		playSlider.value = 0;
 		mediaPlayer.visible = false;
 		mediaPlayer.closed = true;
-
-		//if (player) player.destroy(1000);
+		console.log("[mediaStopped]: cleared!");
 	}
 
 	function playerStatusChanged(status) {
@@ -248,7 +277,7 @@ Rectangle {
 		onClick: {
 			//
 			mediaPlayer.closed = true;
-			if (player) { player.stop(); player.destroy(5000); }
+			if (player) { player.stop(); /*player.destroy(5000);*/ }
 			else {
 				mediaPlayer.visible = false;
 			}
@@ -256,9 +285,20 @@ Rectangle {
 	}
 
 	QuarkLabel {
-		id: elapsedTime
+		id: caption
 		x: actionButton.x + actionButton.width + 2*spaceItems_
-		y: actionButton.y + spaceItems_
+		y: actionButton.y + 1
+		width: playSlider.width
+		elide: Text.ElideRight
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
+		text: player ? player.caption : "none"
+		visible: text != "none"
+	}
+
+	QuarkLabel {
+		id: elapsedTime
+		x: actionButton.x + actionButton.width + 2*spaceItems_ + (caption.text != "none" ? 3 : 0)
+		y: actionButton.y + (caption.text != "none" ? caption.height + 3 : spaceItems_)
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
 		text: "00:00"
 
@@ -270,7 +310,7 @@ Rectangle {
 	QuarkLabel {
 		id: totalTime
 		x: elapsedTime.x + elapsedTime.width
-		y: actionButton.y + spaceItems_
+		y: elapsedTime.y
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
 		text: player ? (player.duration ? ("/" + DateFunctions.msToTimeString(player.duration)) : "/00:00") : "/00:00"
 
@@ -282,7 +322,7 @@ Rectangle {
 	QuarkLabel {
 		id: totalSize
 		x: totalTime.x + totalTime.width
-		y: actionButton.y + spaceItems_
+		y: elapsedTime.y
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
 		text: ", 0k"
 		visible: player && player.size !== 0 || false
@@ -310,7 +350,7 @@ Rectangle {
 		}
 
 		onToChanged: {
-			console.log("[onToChanged]: to = " + to);
+			console.log("[buzzplayer/onToChanged]: to = " + to);
 		}
 	}
 }

@@ -22,17 +22,18 @@ ApplicationWindow
     title: "buzzer"
 
     property string onlineCount: "";
+	property string activePageBackground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
 
-	color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background");
+	color: activePageBackground
 
 	onWidthChanged: {
-		buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background"));
+		buzzerApp.setBackgroundColor(activePageBackground);
 	}
 
 	Component.onCompleted:
 	{
 		buzzerApp.lockPortraitOrientation();
-		buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background"));
+		buzzerApp.setBackgroundColor(activePageBackground);
 	}
 
 	onClosing:
@@ -335,7 +336,7 @@ ApplicationWindow
                Qt.application.state === 2 /* inactive */ )
             {
                 console.log("Main window suspending...");
-				buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background"));
+				buzzerApp.setBackgroundColor(activePageBackground);
 				suspended = true;
 
 				//
@@ -344,7 +345,7 @@ ApplicationWindow
             else if(Qt.application.state === 4 /* active */)
             {
                 console.log("Main window waking up...");
-				buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background"));
+				buzzerApp.setBackgroundColor(activePageBackground);
                 suspended = false;
 
                 if (localNotificator) localNotificator.reset();
@@ -654,7 +655,7 @@ ApplicationWindow
 		running: false
 
 		onTriggered: {
-			buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background"));
+			buzzerApp.setBackgroundColor(activePageBackground);
 		}
 	}
 

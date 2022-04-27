@@ -182,6 +182,13 @@ QuarkToolBar
 				}
 			}
 		}
+
+		onStateChanged: {
+			//
+			if (status == Image.Error) {
+				//
+			}
+		}
 	}
 
 	MouseArea
