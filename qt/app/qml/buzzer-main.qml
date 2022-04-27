@@ -21,6 +21,16 @@ QuarkPage
 	id: buzzermain_
 	key: "buzzermain"
 
+	prevPageHandler: function() {
+		//
+		if (navigatorBar.currentIndex - 1 >= 0) {
+			navigatorBar.currentIndex--;
+			return false;
+		}
+
+		return true;
+	}
+
 	Component.onCompleted: {
 		buzzerApp.unlockOrientation();
 		closePageHandler = closePage;

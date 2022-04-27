@@ -47,8 +47,16 @@ ApplicationWindow
             }
             else
             {
+				//
+				var lTryExit = true;
+				var lPage = pagesView.get(pagesView.depth-1);
+				if (lPage && lPage.prevPageHandler) {
+					lTryExit = lPage.prevPageHandler();
+				}
+
+				//
 				var lValue = buzzerClient.getProperty("Client.preventClose");
-				if (/*lValue === "" ||*/lValue === "false")
+				if (lTryExit && lValue === "false")
                     close.accepted = true;
             }
         }

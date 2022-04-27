@@ -626,39 +626,59 @@ QString Client::decorateBuzzBody(const QString& body) {
 	//
 	// already decorated
 	if (body.indexOf("<a") != -1) return body;
-	//
-	QString lPattern = QString("<a href='\\1' style='text-decoration:none;color:") +
-			gApplication->getColor(theme(), themeSelector(), "Material.link.rgb") +
-			QString("'>\\1</a>");
 
 	QString lUrlPattern = QString("<a href='\\1' style='text-decoration:none;color:") +
 			gApplication->getColor(theme(), themeSelector(), "Material.link.rgb") +
 			QString("'>\\2</a>");
 
 	QString lResult = body;
-	lResult.replace(QRegExp("(@[A-Za-z0-9]+)"), lPattern);
-	lResult.replace(QRegExp("(#[\\w\u0400-\u04FF]+)"), lPattern);
+	QString lCommonResult;
 
 	QRegularExpression lRule = QRegularExpression("((?:https?|ftp)://\\S+)");
 	QRegularExpressionMatchIterator lMatchIterator = lRule.globalMatch(lResult);
+
+	int lPrevMatch = 0;
+	bool lHasMatches = false;
 	while (lMatchIterator.hasNext()) {
 		QRegularExpressionMatch lMatch = lMatchIterator.next();
 		QString lUrl = lResult.mid(lMatch.capturedStart(), lMatch.capturedLength());
 		QString lUrlPatternDest = lUrlPattern;
 		lUrlPatternDest.replace("\\1", lUrl);
-
 		//
 		if (lUrl.length() > 25) {
 			lUrl.truncate(25); lUrl += "...";
 		}
 		lUrlPatternDest.replace("\\2", lUrl);
-		lResult.replace(lMatch.capturedStart(), lMatch.capturedLength(), lUrlPatternDest);
+		// lResult.replace(lMatch.capturedStart(), lMatch.capturedLength(), lUrlPatternDest);
+
+		if (lMatch.capturedStart() >= lPrevMatch) {
+			lHasMatches = true;
+			lCommonResult += lResult.mid(lPrevMatch, lMatch.capturedStart() - lPrevMatch);
+			lCommonResult += lUrlPatternDest;
+			lPrevMatch = lMatch.capturedStart() + lMatch.capturedLength();
+		}
 	}
 
-	if (lResult.size() && lResult[lResult.size()-1] == 0x0a) lResult[lResult.size()-1] = 0x20;
-	lResult.replace(QRegExp("\n"), QString("<br>"));
+	//
+	if (!lHasMatches) lCommonResult = lResult;
+	else if (lResult.size()) {
+		lCommonResult += lResult.mid(lPrevMatch, lResult.size()-1);
+	}
 
-	return lResult;
+	//
+	QString lPattern = QString("<a href='\\1' style='text-decoration:none;color:") +
+			gApplication->getColor(theme(), themeSelector(), "Material.link.rgb") +
+			QString("'>\\1</a>");
+
+	lCommonResult.replace(QRegExp("(@[A-Za-z0-9]+)"), lPattern);
+	lCommonResult.replace(QRegExp("(#[\\w\u0400-\u04FF]+)"), lPattern);
+
+	if (lCommonResult.size() && lCommonResult[lCommonResult.size()-1] == 0x0a) lCommonResult[lResult.size()-1] = 0x20;
+	lCommonResult.replace(QRegExp("\n"), QString("<br>"));
+
+	// qInfo() << "[Client::decorateBuzzBody]" << lCommonResult;
+
+	return lCommonResult;
 }
 
 QString Client::internalTimestampAgo(long long timestamp, long long fraction) {

@@ -19,6 +19,7 @@ Page
 	property string caption: "";
 	property var closePageHandler: null;
 	property var activatePageHandler: null;
+	property var prevPageHandler: null;
 	property bool stacked: false;
 	property string alias: "";
 
