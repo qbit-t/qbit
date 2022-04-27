@@ -24,6 +24,10 @@ Rectangle {
 	id: audioFrame
 
 	//
+	property string mediaViewTheme: "Darkmatter"
+	property string mediaViewSelector: "dark"
+
+	//
 	readonly property int spaceLeft_: 15
 	readonly property int spaceTop_: 12
 	readonly property int spaceRight_: 15
@@ -43,7 +47,7 @@ Rectangle {
 	property bool mediaView: false
 	property int originalDuration: duration_
 	property int totalSize_: size_
-	property var frameColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
+	property var frameColor: buzzerApp.getColor(mediaView ? mediaViewTheme : buzzerClient.theme, mediaView ? mediaViewSelector : buzzerClient.themeSelector, "Page.background")
 	property var fillColor: "transparent"
 	property var sharedMediaPlayer_
 	property var mediaIndex_: 0
@@ -62,7 +66,7 @@ Rectangle {
 
 	width: mediaList ? mediaList.width - (mediaView ? spaceItems_ * 2 : 0) : parent.width - (mediaView ? spaceItems_ * 2 : 0)
 	height: actionButton.height + spaceTop_ + spaceBottom_
-	border.color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
+	border.color: buzzerApp.getColor(mediaView ? mediaViewTheme : buzzerClient.theme, mediaView ? mediaViewSelector : buzzerClient.themeSelector, "Material.disabledHidden")
 	color: fillColor
 	radius: 8
 
@@ -316,7 +320,8 @@ Rectangle {
 									(player.playing ? Fonts.pauseSym : Fonts.playSym)
 		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 7)) : 18
 		radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius)) : defaultRadius
-		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.highlight")
+		color: buzzerApp.getColor(mediaView ? mediaViewTheme : buzzerClient.theme, mediaView ? mediaViewSelector : buzzerClient.themeSelector, "Material.menu.highlight")
+		Material.background: buzzerApp.getColor(mediaView ? mediaViewTheme : buzzerClient.theme, mediaView ? mediaViewSelector : buzzerClient.themeSelector, "Material.menu.background");
 
 		property bool needDownload: size_ /*&& size_ > 1024*200*/ && !downloadCommand.downloaded
 
@@ -344,12 +349,12 @@ Rectangle {
 
 		function notLoaded() {
 			symbol = Fonts.cancelSym;
-			textColor = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.event.like");
+			textColor = buzzerApp.getColor(mediaView ? mediaViewTheme : buzzerClient.theme, mediaView ? mediaViewSelector : buzzerClient.themeSelector, "Buzzer.event.like");
 		}
 
 		function loaded() {
 			symbol = Fonts.playSym;
-			textColor = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
+			textColor = buzzerApp.getColor(mediaView ? mediaViewTheme : buzzerClient.theme, mediaView ? mediaViewSelector : buzzerClient.themeSelector, "Material.menu.foreground")
 		}
 
 		function adjust() {
@@ -367,6 +372,7 @@ Rectangle {
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
 		text: caption_
 		visible: caption_ != "none" && caption_ != ""
+		color: buzzerApp.getColor(mediaView ? mediaViewTheme : buzzerClient.theme, mediaView ? mediaViewSelector : buzzerClient.themeSelector, "Material.menu.foreground")
 	}
 
 	QuarkLabel {
@@ -375,6 +381,7 @@ Rectangle {
 		y: actionButton.y + (caption.visible ? caption.height + 3 : spaceItems_)
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
 		text: "00:00"
+		color: buzzerApp.getColor(mediaView ? mediaViewTheme : buzzerClient.theme, mediaView ? mediaViewSelector : buzzerClient.themeSelector, "Material.menu.foreground")
 
 		function setTime(ms) {
 			text = DateFunctions.msToTimeString(ms);
@@ -387,6 +394,7 @@ Rectangle {
 		y: elapsedTime.y
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
 		text: duration_ ? ("/" + DateFunctions.msToTimeString(duration_)) : "/00:00"
+		color: buzzerApp.getColor(mediaView ? mediaViewTheme : buzzerClient.theme, mediaView ? mediaViewSelector : buzzerClient.themeSelector, "Material.menu.foreground")
 
 		function setTotalTime(ms) {
 			text = "/" + DateFunctions.msToTimeString(ms);
@@ -398,6 +406,7 @@ Rectangle {
 		x: totalTime.x + totalTime.width
 		y: elapsedTime.y
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
+		color: buzzerApp.getColor(mediaView ? mediaViewTheme : buzzerClient.theme, mediaView ? mediaViewSelector : buzzerClient.themeSelector, "Material.menu.foreground")
 		text: ", 0k"
 		visible: size_ !== 0
 
@@ -432,8 +441,8 @@ Rectangle {
 		x: actionButton.x - 2
 		y: actionButton.y - 2
 		size: buzzerClient.scaleFactor * (actionButton.width + 4)
-		colorCircle: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link");
-		colorBackground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link");
+		colorCircle: buzzerApp.getColor(mediaView ? mediaViewTheme : buzzerClient.theme, mediaView ? mediaViewSelector : buzzerClient.themeSelector, "Material.link");
+		colorBackground: buzzerApp.getColor(mediaView ? mediaViewTheme : buzzerClient.theme, mediaView ? mediaViewSelector : buzzerClient.themeSelector, "Material.link");
 		arcBegin: 0
 		arcEnd: 0
 		lineWidth: buzzerClient.scaleFactor * 2

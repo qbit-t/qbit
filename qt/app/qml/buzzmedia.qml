@@ -23,6 +23,10 @@ QuarkPage {
 	key: "buzzmedia"
 	stacked: false
 
+	//
+	property string mediaViewTheme: "Darkmatter"
+	property string mediaViewSelector: "dark"
+
 	// mandatory
 	property var buzzMedia_;
 	property var mediaPlayerControler;
@@ -40,6 +44,8 @@ QuarkPage {
 	Component.onCompleted: {
 		closePageHandler = closePage;
 		activatePageHandler = activatePage;
+
+		buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "MediaView.pageBackground"));
 	}
 
 	onMediaPlayerControlerChanged: {
@@ -60,6 +66,7 @@ QuarkPage {
 		statusBarColor = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.statusBar")
 		navigationBarColor = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.navigationBar")
 		pageTheme = buzzerClient.themeSelector;
+		buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background"));
 	}
 
 	function activatePage() {
@@ -169,7 +176,7 @@ QuarkPage {
 			Material.background: "transparent"
 			visible: true
 			labelYOffset: buzzerApp.isDesktop ? 0 : 3
-			symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+			symbolColor: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.foreground")
 			Layout.alignment: Qt.AlignHCenter
 			symbol: Fonts.cancelSym
 			symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 16) : symbolFontPointSize
@@ -186,7 +193,7 @@ QuarkPage {
 			x2: parent.width
 			y2: parent.height
 			penWidth: 1
-			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
+			color: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.disabledHidden")
 			visible: true
 		}
 	}

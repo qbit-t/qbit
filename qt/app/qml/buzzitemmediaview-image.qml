@@ -23,6 +23,10 @@ Rectangle {
 	id: imageFrame
 
 	//
+	property string mediaViewTheme: "Darkmatter"
+	property string mediaViewSelector: "dark"
+
+	//
 	readonly property int spaceLeft_: 15
 	readonly property int spaceTop_: 12
 	readonly property int spaceRight_: 15
@@ -274,8 +278,8 @@ Rectangle {
 		visible: forceVisible && scaled
 
 		labelYOffset: buzzerApp.isDesktop ? 1 : 3
-		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
-		Material.background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.background");
+		symbolColor: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.menu.foreground")
+		Material.background: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.menu.background");
 		Layout.alignment: Qt.AlignHCenter
 		opacity: 0.6
 		symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 14) : symbolFontPointSize
@@ -292,7 +296,7 @@ Rectangle {
 		y: parent.height / 2 - height / 2
 		symbol: Fonts.clockSym
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (mediaLoading.size-10)) : (mediaLoading.size-10)
-		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link")
+		color: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.link")
 		visible: false
 	}
 
@@ -301,8 +305,8 @@ Rectangle {
 		x: parent.width / 2 - width / 2
 		y: parent.height / 2 - height / 2
 		size: buzzerClient.scaleFactor * 50
-		colorCircle: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link")
-		colorBackground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link")
+		colorCircle: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.link")
+		colorBackground: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.link")
 		arcBegin: 0
 		arcEnd: 0
 		lineWidth: buzzerClient.scaleFactor * 3
@@ -314,7 +318,7 @@ Rectangle {
 			anchors.fill: parent
 			symbol: Fonts.clockSym
 			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (mediaLoading.size-10)) : (mediaLoading.size-10)
-			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link")
+			color: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.link")
 			visible: mediaLoading.visible
 		}
 

@@ -21,6 +21,9 @@ import "qrc:/lib/numberFunctions.js" as NumberFunctions
 Item {
 	id: buzzitemmediaview_
 
+	property string mediaViewTheme: "Darkmatter"
+	property string mediaViewSelector: "dark"
+
 	property int calculatedHeight: 400
 	property int calculatedWidth: 500
 
@@ -461,11 +464,11 @@ Item {
 		y: spaceStats_ - (height + (landscape ? 0 : 5))
 		visible: buzzMedia_ ? buzzMedia_.length > 1 && buzzMedia_.length <= 5 : false
 
-		Material.theme: buzzerClient.themeSelector == "dark" ? Material.Dark : Material.Light;
-		Material.accent: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.accent");
-		Material.background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.background");
-		Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground");
-		Material.primary: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.primary");
+		Material.theme: Material.Dark
+		Material.accent: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.accent");
+		Material.background: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.background");
+		Material.foreground: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.foreground");
+		Material.primary: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.primary");
 
 		function adjust() {
 			y = spaceStats_ - (height + (landscape ? 0 : 5));
@@ -478,7 +481,7 @@ Item {
 		y: spaceStats_ - (height + (landscape ? 0 : 5))
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 1)) : defaultFontSize + 1
 		text: "0/0"
-		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+		color: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.foreground")
 		visible: count > 5
 
 		property bool landscape: false

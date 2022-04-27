@@ -24,6 +24,10 @@ Rectangle {
 	id: videoFrame
 
 	//
+	property string mediaViewTheme: "Darkmatter"
+	property string mediaViewSelector: "dark"
+
+	//
 	readonly property int spaceLeft_: 15
 	readonly property int spaceTop_: 12
 	readonly property int spaceRight_: 15
@@ -515,7 +519,7 @@ Rectangle {
 	Rectangle {
 		id: controlsBack
 		height: actionButton.height + 2 * spaceItems_
-		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
+		color: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.disabledHidden")
 		opacity: 0.8
 		radius: 8
 
@@ -544,7 +548,8 @@ Rectangle {
 									(videoFrame.playing ? Fonts.pauseSym : Fonts.playSym)
 		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 7)) : 18
 		radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius)) : defaultRadius
-		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.highlight")
+		color: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.menu.highlight")
+		Material.background: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.menu.background");
 
 		property bool needDownload: size_ && /*size_ > 1024*200 &&*/ !downloadCommand.downloaded
 
@@ -579,12 +584,12 @@ Rectangle {
 
 		function notLoaded() {
 			symbol = Fonts.cancelSym;
-			textColor = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.event.like");
+			textColor = buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Buzzer.event.like");
 		}
 
 		function loaded() {
 			symbol = Fonts.playSym;
-			textColor = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
+			textColor = buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.menu.foreground")
 		}
 
 		function adjust() {
@@ -602,7 +607,7 @@ Rectangle {
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
 		text: caption_
 		visible: caption_ != "none" && forceVisible && scaled
-		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
+		color: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.menu.foreground")
 	}
 
 	QuarkLabel {
@@ -611,7 +616,7 @@ Rectangle {
 		y: actionButton.y + (caption_ != "none" ? caption.height + 3 : spaceItems_)
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
 		text: "00:00"
-		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
+		color: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.menu.foreground")
 
 		visible: forceVisible && scaled
 
@@ -626,7 +631,7 @@ Rectangle {
 		y: elapsedTime.y
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
 		text: duration_ ? ("/" + DateFunctions.msToTimeString(duration_)) : "/00:00"
-		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
+		color: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.menu.foreground")
 
 		visible: forceVisible && scaled
 
@@ -640,6 +645,7 @@ Rectangle {
 		x: totalTime.x + totalTime.width
 		y: elapsedTime.y
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
+		color: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.menu.foreground")
 		text: ", 0k"
 
 		visible: forceVisible && scaled && size_ !== 0
@@ -682,8 +688,8 @@ Rectangle {
 		x: actionButton.x - 2
 		y: actionButton.y - 2
 		size: buzzerClient.scaleFactor * (actionButton.width + 4)
-		colorCircle: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link");
-		colorBackground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link");
+		colorCircle: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.link");
+		colorBackground: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.link");
 		arcBegin: 0
 		arcEnd: 0
 		lineWidth: buzzerClient.scaleFactor * 2
