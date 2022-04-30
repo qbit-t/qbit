@@ -73,7 +73,7 @@ Item
 			list.model = globalBuzzfeedModel_;
 			switchDataTimer.start();
 		} else {
-			switchDataTimer.start();
+			if (list.atTheTop()) switchDataTimer.start();
 		}
 	}
 
@@ -372,6 +372,16 @@ Item
 					lItem.width = list.width;
 				}
 			}
+		}
+
+		function atTheTop() {
+			if (list.count > 0) {
+				var lItem = list.itemAtIndex(0);
+				if (lItem && lItem.y === contentY) return true;
+				return false;
+			}
+
+			return true;
 		}
 
 		onContentYChanged: {

@@ -25,7 +25,7 @@ Rectangle
 	property int spaceTop: 0
 	property int spaceBottom: 0
 	property bool enabled: true
-	property int defaultRadius: 25
+	property real defaultRadius: 25
 	property string textColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
 
 	signal click();

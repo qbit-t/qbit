@@ -38,6 +38,15 @@ Item {
 	function continueCreateInstance() {
 	}
 
+	function mediaStopped() {
+		console.log("[controller/mediaStopped]: performing scheduling...");
+
+		if (continuePlayback && playbackController) {
+			console.log("[controller/mediaStopped]: continue playback...");
+			continuePlayback = playbackController.mediaContainer.playNext();
+		}
+	}
+
 	function createInstance(playerPlceholder, videooutPlaceholder, playback, continuous) {
 		//
 		var lPlayer = null;
@@ -56,6 +65,7 @@ Item {
 			console.log("[createInstance]: lastInstance = " + lastInstance + ", lastInstance.player = " + lastInstance.player);
 			lSource = lastInstance.player.source;
 			lPosition = lastInstance.player.position;
+			lastInstance.player.onStopped.disconnect(mediaStopped);
 			lastInstance.player.stop();
 		} else {
 			if (!lastInstance) console.log("[createInstance]: lastInstance = " + lastInstance);
@@ -75,6 +85,8 @@ Item {
 			} else {
 				lVideoOutput = lComponentOut.createObject(videooutPlaceholder);
 				lVideoOutput.player = lPlayer;
+
+				lPlayer.onStopped.connect(mediaStopped);
 
 				if (continuous && lSource) {
 					// TODO: ?

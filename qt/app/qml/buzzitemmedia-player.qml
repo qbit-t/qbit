@@ -156,10 +156,10 @@ Rectangle {
 	}
 
 	function playerToggle() {
-		//if (mediaPlayer) {
+		if (mediaPlayer && player) {
 			console.log("[playerToggle]: mediaPlayer.visible = " + mediaPlayer.visible + ", instance = " + mediaPlayer);
 			mediaPlayer.visible = !mediaPlayer.visible;
-		//}
+		}
 	}
 
 	function mediaPlaying() {
@@ -181,14 +181,17 @@ Rectangle {
 		playSlider.value = 0;
 
 		if (mediaPlayerController && mediaPlayerController.continuePlayback && mediaPlayerController.playbackController) {
-			console.log("[mediaStopped]: continue playback...");
-			mediaPlayerController.continuePlayback = mediaPlayerController.playbackController.mediaContainer.playNext();
+			//console.log("[mediaStopped]: continue playback...");
+			//mediaPlayerController.continuePlayback = mediaPlayerController.playbackController.mediaContainer.playNext();
 		} else {
-			if (!mediaPlayerController) console.log("[mediaStopped]: releasing wake lock, mediaPlayerController = " + mediaPlayerController);
+			if (!mediaPlayerController)
+				console.log("[mediaStopped]: releasing wake lock, mediaPlayerController = " + mediaPlayerController);
+
 			buzzerApp.wakeRelease();
+
 			if (mediaPlayerController) {
 				console.log("[mediaStopped]: releasing wake lock, mediaPlayerController.continuePlayback = " + mediaPlayerController.continuePlayback);
-				mediaPlayerController.continuePlayback = false;
+				//mediaPlayerController.continuePlayback = false;
 			}
 
 			if (!showOnChanges) {

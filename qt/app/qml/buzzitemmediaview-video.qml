@@ -76,11 +76,10 @@ Rectangle {
 	}
 
 	onTotalSize_Changed: {
-		totalSize.setTotalSize(size_);
+		totalSizeControl.setTotalSize(size_);
 	}
 
 	onOriginalDurationChanged: {
-		playSlider.to = duration_;
 	}
 
 	onMediaListChanged: {
@@ -160,6 +159,8 @@ Rectangle {
 		id: frameContainer
 		visible: false
 
+		anchors.fill: parent
+
 		function getX() {
 			return (mediaList ? mediaList.width / 2 : parent.width / 2) - width / 2;
 		}
@@ -222,7 +223,7 @@ Rectangle {
 		x: 0
 		y: 0
 		width: parent.width
-		height: parent.height
+		height: parent.height - 50
 		drag.target: frameContainer
 		drag.threshold: 20
 		cursorShape: Qt.PointingHandCursor
@@ -264,10 +265,48 @@ Rectangle {
 		}
 
 		function getY() {
-			return (mediaList ? mediaList.height / 2 : parent.height / 2) - height / 2;
+			//return (mediaList ? mediaList.height / 2 : parent.height / 2) - height / 2;
+			return calculatedHeight / 2 - height / 2;
+		}
+
+		function adjustDimensions() {
+			//
+			var lRatioH = (originalHeight * 1.0) / (originalWidth * 1.0);
+			var lRatioW = (originalWidth * 1.0) / (originalHeight * 1.0);
+			//
+			if (calculatedHeight > calculatedWidth && lRatioH < 2 || lRatioW > 2 /*&& originalHeight < calculatedHeight * 2*/) {
+				var lCoeffW = (calculatedWidth * 1.0) / (originalWidth * 1.0)
+				var lWidth = originalWidth * 1.0;
+				width = lWidth * lCoeffW;
+
+				//var lCoeffH = (calculatedHeight * 1.0) / (originalHeight * 1.0)
+				var lHeightW = originalHeight * 1.0;
+				height = lHeightW * lCoeffW;
+			} else {
+				var lCoeffH = (calculatedHeight * 1.0) / (originalHeight * 1.0)
+				var lHeight = originalHeight * 1.0;
+				height = lHeight * lCoeffH;
+
+				var lWidthH = originalWidth * 1.0;
+				width = lWidthH * lCoeffH;
+			}
 		}
 
 		function adjustView() {
+			if (previewImageVideo.status === Image.Ready && mediaList && buzzitemmedia_) {
+				//
+				adjustDimensions();
+				//
+				x = getX();
+				controlsBack.adjustX();
+
+				y = getY();
+				controlsBack.adjustY();
+
+				adjustFrameContainer();
+			}
+
+			/*
 			if (previewImageVideo.status === Image.Ready && mediaList && buzzitemmedia_) {
 				//
 				if (calculatedWidth > height || originalHeight > calculatedHeight * 2)
@@ -283,35 +322,31 @@ Rectangle {
 
 				adjustFrameContainer();
 			}
+			*/
 		}
 
 		function adjustFrameContainer() {
 			if (videoOut) {
-				var lContentCoeff = (videoOut.sourceRect.width  * 1.0) / (videoOut.sourceRect.height * 1.0);
-				var lImageCoeff = (width * 1.0) / (height * 1.0);
+				// own
+				var lCoeff = (frameContainer.width * 1.0) / (videoOut.sourceRect.width * 1.0)
+				var lHeight = videoOut.sourceRect.height * 1.0;
 
-				if (lContentCoeff !== lImageCoeff) {
-					// own
-					var lCoeff = (frameContainer.width * 1.0) / (videoOut.sourceRect.width * 1.0)
-					var lHeight = videoOut.sourceRect.height * 1.0;
+				if (lHeight * lCoeff > calculatedHeight - 20)
+					frameContainer.height = calculatedHeight - 20;
+				else
+					frameContainer.height = lHeight * lCoeff;
 
-					if (lHeight * lCoeff > calculatedHeight - 20)
-						frameContainer.height = calculatedHeight - 20;
-					else
-						frameContainer.height = lHeight * lCoeff;
+				frameContainer.y = frameContainer.getY();
 
-					frameContainer.y = frameContainer.getY();
+				//
+				lCoeff = (frameContainer.height * 1.0) / (videoOut.sourceRect.height * 1.0)
+				var lWidth = videoOut.sourceRect.width * 1.0;
+				if (lWidth * lCoeff > calculatedWidth - 2*spaceItems_)
+					frameContainer.width = calculatedWidth - 2*spaceItems_;
+				else
+					frameContainer.width = lWidth * lCoeff;
 
-					//
-					lCoeff = (frameContainer.height * 1.0) / (videoOut.sourceRect.height * 1.0)
-					var lWidth = videoOut.sourceRect.width * 1.0;
-					if (lWidth * lCoeff > calculatedWidth - 2*spaceItems_)
-						frameContainer.width = calculatedWidth - 2*spaceItems_;
-					else
-						frameContainer.width = lWidth * lCoeff;
-
-					frameContainer.x = frameContainer.getX();
-				}
+				frameContainer.x = frameContainer.getX();
 			}
 		}
 
@@ -340,6 +375,15 @@ Rectangle {
 
 		onWidthChanged: {
 			//
+			y = getY();
+			frameContainer.y = y;
+			frameContainer.height = height;
+			controlsBack.adjustY();
+
+			adjustFrameContainer();
+
+			adjustHeight(height);
+			/*
 			if (width != originalWidth) {
 				var lCoeff = (width * 1.0) / (originalWidth * 1.0)
 				var lHeight = originalHeight * 1.0;
@@ -356,9 +400,19 @@ Rectangle {
 
 				adjustFrameContainer();
 			}
+			*/
 		}
 
 		onHeightChanged: {
+			x = getX();
+			frameContainer.x = x;
+			frameContainer.width = width;
+			controlsBack.adjustX();
+
+			adjustFrameContainer();
+
+			adjustHeight(height);
+			/*
 			if (height != originalHeight) {
 				var lCoeff = (height * 1.0) / (originalHeight * 1.0)
 				var lWidth = originalWidth * 1.0;
@@ -374,6 +428,7 @@ Rectangle {
 
 				adjustFrameContainer();
 			}
+			*/
 		}
 	}
 
@@ -514,7 +569,6 @@ Rectangle {
 		actionButton.adjust();
 		frameContainer.disableScene();
 		elapsedTime.setTime(0);
-		playSlider.value = 0;
 		//player = null;
 		//buzzerApp.wakeRelease();
 	}
@@ -523,9 +577,8 @@ Rectangle {
 		if (!videoFrame || !videoFrame.player) return;
 		switch(videoFrame.player.status) {
 			case MediaPlayer.Buffered:
-				totalTime.setTotalTime(videoFrame.player.duration ? videoFrame.player.duration : duration_);
-				totalSize.setTotalSize(size_);
-				playSlider.to = videoFrame.player.duration ? videoFrame.player.duration : duration_;
+				totalTimeControl.setTotalTime(videoFrame.player.duration ? videoFrame.player.duration : duration_);
+				totalSizeControl.setTotalSize(size_);
 				videoOut.fillMode = VideoOutput.PreserveAspectFit;
 				videoOut.anchors.fill = frameContainer;
 				frameContainer.adjustView();
@@ -549,12 +602,7 @@ Rectangle {
 
 	function playerPositionChanged(position) {
 		if (videoFrame && videoFrame.player) {
-			elapsedTime.setTime(videoFrame.player.position);
-			playSlider.value = videoFrame.player.position;
-
-			//console.log("[playerPositionChanged]: videoFrame.player.position = " + videoFrame.player.position + ", position = " + position);
-			if (//videoFrame.player.position >= 1 &&
-					videoFrame.player.position >= 500 && previewImageVideo.visible) frameContainer.enableScene();
+			if (videoFrame.player.position >= 500 && previewImageVideo.visible) frameContainer.enableScene();
 		}
 	}
 
@@ -564,61 +612,108 @@ Rectangle {
 	//
 	Rectangle {
 		id: controlsBack
-		height: actionButton.height + 2 * spaceItems_
+		width: Math.max(captionTextMetrics.width + spaceItems_, totalTimeControl.width + totalSizeControl.width) + 2 * spaceItems_
+		height: captionControl.visible ? captionControl.height + spaceItems_ + totalTimeControl.height + 2 * spaceItems_ :
+										 totalTimeControl.height + 2 * spaceItems_
 		color: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.disabledHidden.uni")
-		//opacity: 0.8
-		radius: 8
+		radius: 4
 
 		visible: forceVisible && scaled
 
+		TextMetrics	{
+			id: captionTextMetrics
+			elide: Text.ElideRight
+			text: caption_
+			elideWidth: previewImageVideo.width - 4 * spaceItems_
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : 11
+		}
+
+		QuarkLabel {
+			id: captionControl
+			x: spaceItems_
+			y: spaceItems_
+			width: previewImageVideo.width - 4 * spaceItems_
+			elide: Text.ElideRight
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
+			text: captionTextMetrics.elidedText +
+				  (captionTextMetrics.elidedText !== caption_ && buzzerApp.isDesktop ? "..." : "")
+			visible: caption_ != "none" && forceVisible && scaled && caption_ != ""
+			color: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.menu.foreground")
+		}
+
+		QuarkLabel {
+			id: totalTimeControl
+			x: spaceItems_
+			y: captionControl.visible ? captionControl.y + captionControl.height + spaceItems_ :
+								 spaceItems_
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
+			text: duration_ ? (DateFunctions.msToTimeString(duration_)) : "00:00"
+			color: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.menu.foreground")
+
+			visible: forceVisible && scaled
+
+			function setTotalTime(ms) {
+				text = DateFunctions.msToTimeString(ms);
+			}
+		}
+
+		QuarkLabel {
+			id: totalSizeControl
+			x: totalTimeControl.x + totalTimeControl.width
+			y: totalTimeControl.y
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
+			color: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.menu.foreground")
+			text: ", 0k"
+
+			visible: forceVisible && scaled && size_ !== 0
+
+			function setTotalSize(mediaSize) {
+				//
+				if (mediaSize < 1000) text = ", " + mediaSize + "b";
+				else text = ", " + NumberFunctions.numberToCompact(mediaSize);
+			}
+		}
+
 		function adjustX() {
-			x = frameContainer.visible ? (frameContainer.x + spaceItems_) : (previewImageVideo.x + spaceItems_);
-			width = frameContainer.visible ? (frameContainer.width - (2 * spaceItems_)) : (previewImageVideo.width - (2 * spaceItems_));
+			//x = frameContainer.visible ? (frameContainer.x + spaceItems_) : (previewImageVideo.x + spaceItems_);
+			//width = frameContainer.visible ? (frameContainer.width - (2 * spaceItems_)) : (previewImageVideo.width - (2 * spaceItems_));
+
+			x = previewImageVideo.x + spaceItems_;
+			//width = frameContainer.visible ? (frameContainer.width - (2 * spaceItems_)) : (previewImageVideo.width - (2 * spaceItems_));
 		}
 
 		function adjustY() {
 			//y = frameContainer.visible ? (frameContainer.y + frameContainer.height - (actionButton.height + 3 * spaceItems_)) :
 			//							(previewImageVideo.y + previewImageVideo.height - (actionButton.height + 3 * spaceItems_));
 
-			y = frameContainer.visible ? (frameContainer.y + spaceItems_) :
-										(previewImageVideo.y + spaceItems_);
-		}
+			//y = frameContainer.visible ? (frameContainer.y + spaceItems_) :
+			//							(previewImageVideo.y + spaceItems_);
 
-		/*
-		ShaderEffectSource {
-			id: effectSource
-			sourceItem: previewImageVideo
-			anchors.fill: parent
-			sourceRect: Qt.rect(parent.x, parent.y, parent.width, parent.height)
+			y = previewImageVideo.y + spaceItems_;
 		}
-
-		FastBlur{
-		  id: blur
-		  anchors.fill: effectSource
-		  source: effectSource
-		  radius: 38
-		}
-		*/
 	}
 
 	//
 	QuarkRoundSymbolButton {
 		id: actionButton
-		x: controlsBack.x + spaceItems_
-		y: controlsBack.y + spaceItems_
-		spaceLeft: symbol === Fonts.arrowDownHollowSym || symbol === Fonts.pauseSym ? 2 :
+		//x: controlsBack.x + spaceItems_
+		//y: controlsBack.y + spaceItems_
+
+		anchors.centerIn: parent
+		spaceLeft: symbol === Fonts.arrowDownHollowSym || symbol === Fonts.pauseSym ? 0 :
 					   (symbol === Fonts.playSym || symbol === Fonts.cancelSym ? 3 : 0)
 		spaceTop: 2
+
 		symbol: needDownload && !downloadCommand.downloaded ? Fonts.arrowDownHollowSym :
 									(videoFrame.playing ? Fonts.pauseSym : Fonts.playSym)
-		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 7)) : 18
-		radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius)) : defaultRadius
+		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 14)) : 24
+		radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius * 1.5)) : defaultRadius * 1.5
 		color: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.menu.highlight")
 		Material.background: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.menu.background");
 
 		property bool needDownload: size_ && /*size_ > 1024*200 &&*/ !downloadCommand.downloaded
 
-		//opacity: 0.8
+		opacity: 0.8
 
 		visible: forceVisible && scaled
 
@@ -644,91 +739,6 @@ Rectangle {
 		function adjust() {
 			symbol = needDownload && !downloadCommand.downloaded ? Fonts.arrowDownHollowSym :
 										(videoFrame.playing ? Fonts.pauseSym : Fonts.playSym);
-		}
-	}
-
-	QuarkLabel {
-		id: caption
-		x: actionButton.x + actionButton.width + spaceItems_
-		y: actionButton.y + 1
-		width: playSlider.width
-		elide: Text.ElideRight
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
-		text: caption_
-		visible: caption_ != "none" && forceVisible && scaled && caption_ != ""
-		color: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.menu.foreground")
-	}
-
-	QuarkLabel {
-		id: elapsedTime
-		x: actionButton.x + actionButton.width + spaceItems_ + (caption.visible ? 3 : 0)
-		y: actionButton.y + (caption.visible ? caption.height + 3 : spaceItems_)
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
-		text: "00:00"
-		color: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.menu.foreground")
-
-		visible: forceVisible && scaled
-
-		function setTime(ms) {
-			text = DateFunctions.msToTimeString(ms);
-		}
-	}
-
-	QuarkLabel {
-		id: totalTime
-		x: elapsedTime.x + elapsedTime.width
-		y: elapsedTime.y
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
-		text: duration_ ? ("/" + DateFunctions.msToTimeString(duration_)) : "/00:00"
-		color: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.menu.foreground")
-
-		visible: forceVisible && scaled
-
-		function setTotalTime(ms) {
-			text = "/" + DateFunctions.msToTimeString(ms);
-		}
-	}
-
-	QuarkLabel {
-		id: totalSize
-		x: totalTime.x + totalTime.width
-		y: elapsedTime.y
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
-		color: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.menu.foreground")
-		text: ", 0k"
-
-		visible: forceVisible && scaled && size_ !== 0
-
-		function setTotalSize(mediaSize) {
-			//
-			if (mediaSize < 1000) text = ", " + mediaSize + "b";
-			else text = ", " + NumberFunctions.numberToCompact(mediaSize);
-		}
-	}
-
-	Slider {
-		id: playSlider
-		x: actionButton.x + actionButton.width // + spaceItems_
-		y: actionButton.y + actionButton.height - (height - 3 * spaceItems_)
-		from: 0
-		to: 1
-		orientation: Qt.Horizontal
-		stepSize: 0.1
-		width: frameContainer.visible ? (frameContainer.width - (actionButton.width + 5 * spaceItems_)) :
-										(previewImageVideo.width - (actionButton.width + 4 * spaceItems_))
-
-		visible: false // forceVisible && scaled
-
-		onMoved: {
-			if (videoFrame.player) {
-				videoFrame.player.seek(value);
-			}
-
-			elapsedTime.setTime(value);
-		}
-
-		onToChanged: {
-			console.log("[buzzitemmediaview/onToChanged]: to = " + to);
 		}
 	}
 
