@@ -227,7 +227,7 @@ Item {
 		}
 	}
 
-	Image {
+	BuzzerComponents.ImageQx {
 		id: avatarImage
 
 		x: spaceLeft_
@@ -236,8 +236,9 @@ Item {
 		height: avatarImage.displayHeight
 		fillMode: Image.PreserveAspectCrop
 		mipmap: true
+		radius: avatarImage.displayWidth
 
-		property bool rounded: true
+		property bool rounded: false //!
 		property int displayWidth: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 50 : 50
 		property int displayHeight: displayWidth
 

@@ -28,7 +28,7 @@ QuarkPage {
 	property var controller;
 	property bool listen: false;
 	property var buzzesThread_;
-	property var mediaPlayerControler: buzzerApp.sharedMediaPlayerController()
+	property var mediaPlayerController: buzzerApp.sharedMediaPlayerController()
 
 	readonly property int spaceLeft_: 15
 	readonly property int spaceTop_: 12
@@ -69,9 +69,10 @@ QuarkPage {
 
 	function closePage() {
 		//
-		if (mediaPlayerControler && mediaPlayerControler.isCurrentInstancePlaying()) {
-			mediaPlayerControler.popVideoInstance();
-			mediaPlayerControler.showCurrentPlayer();
+		if (mediaPlayerController && mediaPlayerController.isCurrentInstancePlaying()) {
+			mediaPlayerController.disableContinousPlayback();
+			mediaPlayerController.popVideoInstance();
+			mediaPlayerController.showCurrentPlayer();
 		}
 
 		//
@@ -257,9 +258,9 @@ QuarkPage {
 		model: buzzesThread_
 
 		// TODO: consumes a lot RAM
-		cacheBuffer: 10000
-		//displayMarginBeginning: 5000
-		//displayMarginEnd: 5000
+		//cacheBuffer: 10000
+		displayMarginBeginning: 1000
+		displayMarginEnd: 1000
 
 		add: Transition {
 			enabled: true
@@ -279,19 +280,65 @@ QuarkPage {
 		property int lastItemCount: -1
 
 		onContentYChanged: {
+			//
 			if (lastItemCount == -1) lastItemCount = list.count;
 			if (lastItemCount == list.count) {
-				//console.log("[onContentYChanged]: lastItemCount = " + lastItemCount + ", list.count = " + list.count + ", atTheBottom(p) = " + atTheBottom);
 
 				var lBottomItem = list.itemAtIndex(list.count - 1);
 				if (lBottomItem !== null) {
 					atTheBottom = lBottomItem.isFullyVisible;
 				}
-
-				//console.log("[onContentYChanged]: lastItemCount = " + lastItemCount + ", list.count = " + list.count + ", atTheBottom(a) = " + atTheBottom);
 			}
 
 			lastItemCount = list.count;
+
+			//
+			var lVisible;
+			var lProcessable;
+			var lBackItem;
+			var lForwardItem;
+			var lBeginIdx = list.indexAt(1, contentY);
+			//
+			if (lBeginIdx > -1) {
+				// trace back
+				for (var lBackIdx = lBeginIdx; lBackIdx >= 0; lBackIdx--) {
+					//
+					lBackItem = list.itemAtIndex(lBackIdx);
+					if (lBackItem) {
+						lVisible = lBackItem.y >= list.contentY && lBackItem.y + lBackItem.height < list.contentY + list.height;
+						lProcessable = (lBackItem.y + lBackItem.height) < list.contentY && list.contentY - (lBackItem.y + lBackItem.height) > displayMarginBeginning;
+						if (!lProcessable) {
+							lBackItem.forceVisibilityCheck(lVisible);
+						}
+
+						if (lProcessable) {
+							// stop it
+							lBackItem.unbindCommonControls();
+							break;
+						}
+					}
+				}
+
+				// trace forward
+				for (var lForwardIdx = lBeginIdx; lForwardIdx < list.count; lForwardIdx++) {
+					//
+					lForwardItem = list.itemAtIndex(lForwardIdx);
+					if (lForwardItem) {
+						lVisible = lForwardItem.y >= list.contentY && lForwardItem.y + lForwardItem.height < list.contentY + list.height;
+						lProcessable = (lForwardItem.y + lForwardItem.height) > list.contentY + list.height && (lForwardItem.y + lForwardItem.height) - (list.contentY + list.height) > displayMarginEnd;
+						if (!lProcessable) {
+							lForwardItem.forceVisibilityCheck(lVisible);
+						}
+
+						if (lProcessable) {
+							// stop it
+							lForwardItem.unbindCommonControls();
+							// we are done
+							break;
+						}
+					}
+				}
+			}
 		}
 
 		onDragStarted: {
@@ -321,8 +368,7 @@ QuarkPage {
 
 					property var buzzItem;
 
-					property int yoff: Math.round(headDelegate.y - list.contentY)
-					property bool isFullyVisible: (yoff > list.y && yoff + height < list.y + list.height)
+					property bool isFullyVisible: y >= list.contentY && y + height < list.contentY + list.height
 
 					onWidthChanged: {
 						if (buzzItem) {
@@ -340,7 +386,7 @@ QuarkPage {
 						var lComponent = Qt.createComponent(lSource);
 						buzzItem = lComponent.createObject(headDelegate);
 
-						buzzItem.sharedMediaPlayer_ = buzzfeedthread_.mediaPlayerControler;
+						buzzItem.sharedMediaPlayer_ = buzzfeedthread_.mediaPlayerController;
 						buzzItem.width = list.width;
 						buzzItem.controller_ = buzzfeedthread_.controller;
 						buzzItem.buzzfeedModel_ = buzzesThread_;
@@ -358,6 +404,18 @@ QuarkPage {
 						if (atTheBottom)
 							toTheTimer.start();
 					}
+
+					function forceVisibilityCheck(check) {
+						if (buzzItem) {
+							buzzItem.forceVisibilityCheck(check);
+						}
+					}
+
+					function unbindCommonControls() {
+						if (buzzItem) {
+							buzzItem.unbindCommonControls();
+						}
+					}
 				}
 			}
 
@@ -367,12 +425,12 @@ QuarkPage {
 
 					property var buzzItem;
 
-					property int yoff: Math.round(itemDelegate.y - list.contentY)
-					property bool isFullyVisible: (yoff > list.y && yoff + height < list.y + list.height)
-					property bool isVisible: itemDelegate.y >= list.contentY && itemDelegate.y + height < list.contentY + list.height
+					property bool isFullyVisible: y >= list.contentY && y + height < list.contentY + list.height
+					property bool isCompleted: false
+					property bool isVisible: isCompleted && itemDelegate.y >= list.contentY && itemDelegate.y + height < list.contentY + list.height
 
 					onIsVisibleChanged: {
-						if (itemDelegate !== null && itemDelegate.buzzItem !== null && itemDelegate.buzzItem !== undefined) {
+						if (isCompleted && itemDelegate !== null && itemDelegate.buzzItem !== null && itemDelegate.buzzItem !== undefined) {
 							try {
 								itemDelegate.buzzItem.forceVisibilityCheck(isVisible);
 							} catch (err) {
@@ -408,6 +466,10 @@ QuarkPage {
 						}
 					}
 
+					Component.onDestruction: {
+						isCompleted = false;
+					}
+
 					Component.onCompleted: {
 						var lSource = "qrc:/qml/buzzitem.qml";
 						if (type === buzzerClient.tx_BUZZER_ENDORSE_TYPE() ||
@@ -418,7 +480,7 @@ QuarkPage {
 						var lComponent = Qt.createComponent(lSource);
 						buzzItem = lComponent.createObject(itemDelegate);
 
-						buzzItem.sharedMediaPlayer_ = buzzfeedthread_.mediaPlayerControler;
+						buzzItem.sharedMediaPlayer_ = buzzfeedthread_.mediaPlayerController;
 						buzzItem.width = list.width;
 						buzzItem.controller_ = buzzfeedthread_.controller;
 						buzzItem.buzzfeedModel_ = buzzesThread_;
@@ -429,10 +491,24 @@ QuarkPage {
 						itemDelegate.width = list.width;
 
 						buzzItem.calculatedHeightModified.connect(itemDelegate.calculatedHeightModified);
+
+						isCompleted = true;
 					}
 
 					function calculatedHeightModified(value) {
 						itemDelegate.height = value;
+					}
+
+					function forceVisibilityCheck(check) {
+						if (buzzItem) {
+							buzzItem.forceVisibilityCheck(check);
+						}
+					}
+
+					function unbindCommonControls() {
+						if (buzzItem) {
+							buzzItem.unbindCommonControls();
+						}
 					}
 				}
 			}
@@ -445,9 +521,10 @@ QuarkPage {
 	BuzzItemMediaPlayer {
 		id: player
 		x: 0
-		y: bottomLine.y1 + 1
+		y: (list.y + list.height) - height // bottomLine.y1 + 1
 		width: parent.width
-		mediaPlayerControler: buzzfeedthread_.mediaPlayerControler
+		mediaPlayerController: buzzfeedthread_.mediaPlayerController
+		overlayParent: list
 	}
 
 	//

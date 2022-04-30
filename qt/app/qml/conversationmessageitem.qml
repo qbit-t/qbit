@@ -63,6 +63,7 @@ Item {
 	property var listView_
 	property var model_
 	property var conversationId_
+	property var sharedMediaPlayer_
 
 	readonly property int spaceLeft_: 15
 	readonly property int spaceTop_: 12
@@ -158,6 +159,14 @@ Item {
 			buzzItemContainer.x = myMessage_ ? messageMetrics.getX(width) : spaceLeft_;
 			buzzItemContainer.width = messageMetrics.getWidth(width);
 		}
+	}
+
+	function forceVisibilityCheck(isFullyVisible) {
+		bodyControl.setFullyVisible(isFullyVisible);
+	}
+
+	function unbindCommonControls() {
+		bodyControl.unbindCommonControls();
 	}
 
 	BuzzerCommands.DecryptBuzzerMessageCommand {
@@ -313,6 +322,20 @@ Item {
 			property var buzzMediaItem_;
 			property var urlInfoItem_;
 
+			function setFullyVisible(fullyVisible) {
+				if (buzzMediaItem_) buzzMediaItem_.forceVisibilityCheck(fullyVisible);
+			}
+
+			function unbindCommonControls() {
+				if (buzzMediaItem_) buzzMediaItem_.unbindCommonControls();
+			}
+
+			function setSharedMediaPlayer() {
+				if (buzzMediaItem_) {
+					buzzMediaItem_.sharedMediaPlayer_ = conversationmessageitem_.sharedMediaPlayer_;
+				}
+			}
+
 			onWidthChanged: {
 				expand(buzzerClient.getCounterpartyKey(conversationId_));
 
@@ -422,6 +445,7 @@ Item {
 						buzzMediaItem_.controller_ = conversationmessageitem_.controller_;
 						buzzMediaItem_.buzzId_ = conversationmessageitem_.buzzId_;
 						buzzMediaItem_.buzzMedia_ = conversationmessageitem_.buzzMedia_;
+						buzzMediaItem_.sharedMediaPlayer_ = conversationmessageitem_.sharedMediaPlayer_;
 						buzzMediaItem_.initialize(key);
 
 						bodyControl.height = bodyControl.getHeight();

@@ -267,9 +267,9 @@ QuarkPage {
 		model: buzzesThread_
 
 		// TODO: consumes a lot RAM
-		cacheBuffer: 10000
-		//displayMarginBeginning: 5000
-		//displayMarginEnd: 5000
+		//cacheBuffer: 10000
+		displayMarginBeginning: 500
+		displayMarginEnd: 500
 
 		add: Transition {
 			enabled: true

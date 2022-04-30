@@ -47,11 +47,19 @@ Item {
 	property var mediaPlayer_: null
 	property var buzzBody_: ""
 
+	//
+	// playback controller
+	property alias mediaCount: mediaList.count
+	property alias mediaContainer: mediaList
+	//
+	//
+
 	Component.onCompleted: {
 	}
 
 	onSharedMediaPlayer_Changed: {
 		mediaList.setSharedMediaPlayer(sharedMediaPlayer_);
+		playerControl.mediaPlayerController = sharedMediaPlayer_;
 	}
 
 	onMediaIndex_Changed: {
@@ -131,6 +139,10 @@ Item {
 		highlightMoveDuration: -1
 		highlightMoveVelocity: -1
 
+		//displayMarginBeginning: 500
+		//displayMarginEnd: 500
+		cacheBuffer: 100000
+
 		property var preservedIndex: -1
 
 		function setSharedMediaPlayer(player) {
@@ -181,41 +193,77 @@ Item {
 			}
 		}
 
+		function playNext() {
+			//
+			console.log("[playNext]: mediaIndicator.currentIndex + 1 = " + (mediaIndicator.currentIndex + 1) + ", mediaList.currentIndex = " + mediaList.currentIndex);
+			for (var lIdx = mediaIndicator.currentIndex + 1; lIdx < mediaList.count; lIdx++) {
+				var lItem = mediaList.itemAtIndex(lIdx);
+				if (lItem && lItem.mediaItem && lItem.mediaItem.playable) {
+					preservedIndex = -1;
+					mediaList.currentIndex = lIdx;
+					lItem.mediaItem.tryPlay();
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		function playPrev() {
+			//
+			for (var lIdx = mediaIndicator.currentIndex - 1; lIdx >= 0; lIdx--) {
+				var lItem = mediaList.itemAtIndex(lIdx);
+				if (lItem && lItem.mediaItem && lItem.mediaItem.playable) {
+					preservedIndex = -1;
+					mediaList.currentIndex = lIdx;
+					lItem.mediaItem.tryPlay();
+					return true;
+				}
+			}
+
+			return false;
+		}
+
 		onContentXChanged: {
 			//
-			var lCurrentItem;
-			if (preservedIndex != -1) {
+			if (mediaList.count > 1) {
 				//
-				if (mediaList.currentIndex >= 0) {
-					lCurrentItem = mediaList.itemAtIndex(mediaList.currentIndex);
-					if (lCurrentItem) lCurrentItem.mediaItem.reset();
-				}
-
-				mediaIndicator.currentIndex = preservedIndex;
-				mediaList.currentIndex = preservedIndex;
-				preservedIndex = -1;
-			} else {
-				var lIndex = mediaList.indexAt(mediaList.contentX, 0);
-				if (lIndex >= 0) {
+				var lCurrentItem;
+				if (preservedIndex != -1) {
 					//
-					var lItem = mediaList.itemAtIndex(lIndex);
-					if (lItem.x === mediaList.contentX) {
-						//
-						if (mediaList.currentIndex >= 0) {
-							lCurrentItem = mediaList.itemAtIndex(mediaList.currentIndex);
-							if (lCurrentItem) lCurrentItem.mediaItem.reset();
-						}
+					if (mediaList.currentIndex >= 0) {
+						lCurrentItem = mediaList.itemAtIndex(mediaList.currentIndex);
+						if (lCurrentItem) lCurrentItem.mediaItem.reset();
+					}
 
-						mediaIndicator.currentIndex = mediaList.indexAt(mediaList.contentX, 0);
-						mediaList.currentIndex = mediaIndicator.currentIndex;
+					mediaIndicator.currentIndex = preservedIndex;
+					mediaList.currentIndex = preservedIndex;
+					preservedIndex = -1;
+				} else {
+					var lIndex = mediaList.indexAt(mediaList.contentX, 0);
+					if (lIndex >= 0) {
+						//
+						var lItem = mediaList.itemAtIndex(lIndex);
+						if (lItem.x === mediaList.contentX) {
+							//
+							if (mediaList.currentIndex >= 0) {
+								lCurrentItem = mediaList.itemAtIndex(mediaList.currentIndex);
+								if (lCurrentItem) lCurrentItem.mediaItem.reset();
+							}
+
+							mediaIndicator.currentIndex = mediaList.indexAt(mediaList.contentX, 0);
+							mediaList.currentIndex = mediaIndicator.currentIndex;
+						}
 					}
 				}
 			}
 		}
 
+		/*
 		add: Transition {
 			NumberAnimation { property: "opacity"; from: 0; to: 1.0; duration: 400 }
 		}
+		*/
 
 		model: ListModel { id: mediaModel }
 
@@ -229,8 +277,9 @@ Item {
 			property var mediaItem;
 			property var mediaType;
 
-			property bool isFullyVisible: mediaFrame.x >= mediaList.contentX && mediaFrame.x + mediaFrame.width <= mediaList.contentX + mediaList.width
+			//property bool isFullyVisible: mediaFrame.x >= mediaList.contentX && mediaFrame.x + mediaFrame.width <= mediaList.contentX + mediaList.width
 
+			/*
 			onIsFullyVisibleChanged: {
 				if (mediaFrame !== null && mediaFrame.mediaItem !== null && mediaFrame.mediaItem !== undefined) {
 					try {
@@ -240,6 +289,7 @@ Item {
 					}
 				}
 			}
+			*/
 
 			BuzzerCommands.DownloadMediaCommand {
 				id: downloadCommand
@@ -323,6 +373,7 @@ Item {
 							mediaFrame.mediaItem = lComponent.createObject(mediaFrame);
 							mediaFrame.mediaItem.errorLoading.connect(errorMediaLoading);
 
+							mediaFrame.mediaItem.fillColor = buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.disabledHidden.uni")
 							mediaFrame.mediaItem.width = mediaList.width;
 							mediaFrame.mediaItem.mediaList = mediaList;
 							mediaFrame.mediaItem.buzzitemmedia_ = buzzitemmediaview_;

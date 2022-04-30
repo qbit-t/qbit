@@ -114,12 +114,13 @@ void VideoSurfaces::pushSurface(QAbstractVideoSurface* surface) {
 void VideoSurfaces::popSurface() {
 	//
 	qInfo() << "VideoSurfaces::popSurface" << m_surfaces.size();
-	m_surfaces.pop_back();
+	if (m_surfaces.size()) m_surfaces.pop_back();
 
-	start(m_format);
-
-	emit surfaceFormatChanged(m_format);
-	emit nativeResolutionChanged(nativeResolution());
+	if (m_surfaces.size()) {
+		start(m_format);
+		emit surfaceFormatChanged(m_format);
+		emit nativeResolutionChanged(nativeResolution());
+	}
 }
 
 void VideoSurfaces::clearSurfaces() {

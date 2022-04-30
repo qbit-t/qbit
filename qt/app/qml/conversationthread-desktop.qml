@@ -607,9 +607,9 @@ QuarkPage {
 		usePull: true
 		clip: true
 
-		cacheBuffer: 10000
-		//displayMarginBeginning: 5000
-		//displayMarginEnd: 5000
+		//cacheBuffer: 10000
+		displayMarginBeginning: 500
+		displayMarginEnd: 500
 
 		model: buzzesThread_
 

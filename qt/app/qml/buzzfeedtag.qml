@@ -28,6 +28,7 @@ QuarkPage {
 	property var controller;
 	property bool listen: false;
 	property var buzzesThread_;
+	property var mediaPlayerController: buzzerApp.sharedMediaPlayerController()
 
 	readonly property int spaceLeft_: 15
 	readonly property int spaceTop_: 12
@@ -236,9 +237,9 @@ QuarkPage {
 		model: buzzesThread_
 
 		// TODO: consumes a lot RAM
-		cacheBuffer: 10000
-		//displayMarginBeginning: 5000
-		//displayMarginEnd: 5000
+		//cacheBuffer: 10000
+		displayMarginBeginning: 1000
+		displayMarginEnd: 1000
 
 		function adjust() {
 			//
@@ -246,6 +247,56 @@ QuarkPage {
 				var lItem = list.itemAtIndex(lIdx);
 				if (lItem) {
 					lItem.width = list.width;
+				}
+			}
+		}
+
+		onContentYChanged: {
+			//
+			var lVisible;
+			var lProcessable;
+			var lBackItem;
+			var lForwardItem;
+			var lBeginIdx = list.indexAt(1, contentY);
+			//
+			if (lBeginIdx > -1) {
+				// trace back
+				for (var lBackIdx = lBeginIdx; lBackIdx >= 0; lBackIdx--) {
+					//
+					lBackItem = list.itemAtIndex(lBackIdx);
+					if (lBackItem) {
+						lVisible = lBackItem.y >= list.contentY && lBackItem.y + lBackItem.height < list.contentY + list.height;
+						lProcessable = (lBackItem.y + lBackItem.height) < list.contentY && list.contentY - (lBackItem.y + lBackItem.height) > displayMarginBeginning;
+						if (!lProcessable) {
+							lBackItem.forceVisibilityCheck(lVisible);
+						}
+
+						if (lProcessable) {
+							// stop it
+							lBackItem.unbindCommonControls();
+							break;
+						}
+					}
+				}
+
+				// trace forward
+				for (var lForwardIdx = lBeginIdx; lForwardIdx < list.count; lForwardIdx++) {
+					//
+					lForwardItem = list.itemAtIndex(lForwardIdx);
+					if (lForwardItem) {
+						lVisible = lForwardItem.y >= list.contentY && lForwardItem.y + lForwardItem.height < list.contentY + list.height;
+						lProcessable = (lForwardItem.y + lForwardItem.height) > list.contentY + list.height && (lForwardItem.y + lForwardItem.height) - (list.contentY + list.height) > displayMarginEnd;
+						if (!lProcessable) {
+							lForwardItem.forceVisibilityCheck(lVisible);
+						}
+
+						if (lProcessable) {
+							// stop it
+							lForwardItem.unbindCommonControls();
+							// we are done
+							break;
+						}
+					}
 				}
 			}
 		}
@@ -266,12 +317,6 @@ QuarkPage {
 			//
 			modelLoader.feed();
 		}
-
-		/*
-		headerPositioning: ListView.PullBackHeader
-		header: ItemDelegate {
-		}
-		*/
 
 		delegate: ItemDelegate {
 			//
@@ -301,6 +346,7 @@ QuarkPage {
 				var lComponent = Qt.createComponent(lSource);
 				buzzItem = lComponent.createObject(itemDelegate);
 
+				buzzItem.sharedMediaPlayer_ = buzzfeedtag_.mediaPlayerController;
 				buzzItem.width = list.width;
 				buzzItem.controller_ = buzzfeedtag_.controller;
 				buzzItem.buzzfeedModel_ = buzzesThread_;
@@ -316,9 +362,22 @@ QuarkPage {
 			function calculatedHeightModified(value) {
 				itemDelegate.height = value;
 			}
+
+			function forceVisibilityCheck(check) {
+				if (buzzItem) {
+					buzzItem.forceVisibilityCheck(check);
+				}
+			}
+
+			function unbindCommonControls() {
+				if (buzzItem) {
+					buzzItem.unbindCommonControls();
+				}
+			}
 		}
 	}
 
+	//
 	QuarkToolButton {
 		id: createBuzz
 		x: parent.width - (width + 15)
@@ -356,6 +415,17 @@ QuarkPage {
 				addPage(lPage);
 			}
 		}
+
+	}
+
+	//
+	BuzzItemMediaPlayer {
+		id: player
+		x: 0
+		y: (list.y + list.height) - height // bottomLine.y1 + 1
+		width: parent.width
+		mediaPlayerController: buzzfeedtag_.mediaPlayerController
+		overlayParent: list
 	}
 
 	//

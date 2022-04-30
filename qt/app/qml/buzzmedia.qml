@@ -19,7 +19,7 @@ import "qrc:/qml"
 import "qrc:/lib/numberFunctions.js" as NumberFunctions
 
 QuarkPage {
-	id: buzzmedia_
+	id: buzzmediaPage_
 	key: "buzzmedia"
 	stacked: false
 
@@ -29,7 +29,7 @@ QuarkPage {
 
 	// mandatory
 	property var buzzMedia_;
-	property var mediaPlayerControler;
+	property var mediaPlayerController;
 	property bool initialized_: false;
 	property var pkey_: ""
 	property var mediaIndex_: 0
@@ -48,10 +48,10 @@ QuarkPage {
 		buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "MediaView.pageBackground"));
 	}
 
-	onMediaPlayerControlerChanged: {
+	onMediaPlayerControllerChanged: {
 		//
-		if (mediaContainer.buzzMediaItem_)
-			mediaContainer.buzzMediaItem_.sharedMediaPlayer_ = mediaPlayerControler;
+		if (mediaGalleryContainer.buzzMediaItem_)
+			mediaGalleryContainer.buzzMediaItem_.sharedMediaPlayer_ = mediaPlayerController;
 	}
 
 	onControllerChanged: {
@@ -67,10 +67,11 @@ QuarkPage {
 		navigationBarColor = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.navigationBar")
 		pageTheme = buzzerClient.themeSelector;
 		buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background"));
+		controller.activePageBackground = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background");
 	}
 
 	function activatePage() {
-		buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background"));
+		buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "MediaView.pageBackground"));
 	}
 
 	function onErrorCallback(error)	{
@@ -79,12 +80,14 @@ QuarkPage {
 
 	function stopPage() {
 		//
-		mediaContainer.checkPlaying();
+		mediaGalleryContainer.checkPlaying();
 		//
 		playerControl.unlink();
 		//
-		if (mediaPlayerControler)
-			mediaPlayerControler.popVideoInstance();
+		if (mediaPlayerController) {
+			mediaPlayerController.disableContinousPlayback();
+			mediaPlayerController.popVideoInstance();
+		}
 	}
 
 	function initialize(pkey, mediaIndex, player, buzzBody) {
@@ -96,9 +99,12 @@ QuarkPage {
 
 		console.log("[buzzmedia/initialize]: mediaIndex = " + mediaIndex + ", player = " + player);
 
-		mediaContainer.initialize();
+		mediaGalleryContainer.initialize();
 		//
 		initialized_ = true;
+		//
+		controller.activePageBackground = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "MediaView.pageBackground");
+		buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "MediaView.pageBackground"));
 	}
 
 	function adjustToolBar() {
@@ -123,6 +129,8 @@ QuarkPage {
 
 	onWidthChanged: {
 		//
+		buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "MediaView.pageBackground"));
+		//
 		adjustToolBar();
 		orientationChangedTimer.start();
 	}
@@ -139,7 +147,7 @@ QuarkPage {
 		running: false
 
 		onTriggered: {
-			mediaContainer.adjustOrientation();
+			mediaGalleryContainer.adjustOrientation();
 		}
 	}
 
@@ -186,6 +194,7 @@ QuarkPage {
 			}
 		}
 
+		/*
 		QuarkHLine {
 			id: bottomLine
 			x1: 0
@@ -194,15 +203,16 @@ QuarkPage {
 			y2: parent.height
 			penWidth: 1
 			color: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.disabledHidden")
-			visible: true
+			visible: false
 		}
+		*/
 	}
 
 	//
 	// buzz gallery
 	//
 	Rectangle {
-		id: mediaContainer
+		id: mediaGalleryContainer
 
 		x: 0
 		y: buzzMediaToolBar.y + buzzMediaToolBar.height // + spaceTop_
@@ -214,8 +224,8 @@ QuarkPage {
 
 		function adjustOrientation() {
 			if (buzzMediaItem_) {
-				buzzMediaItem_.calculatedWidth = mediaContainer.width;
-				buzzMediaItem_.calculatedHeight = mediaContainer.height;
+				buzzMediaItem_.calculatedWidth = mediaGalleryContainer.width;
+				buzzMediaItem_.calculatedHeight = mediaGalleryContainer.height;
 				buzzMediaItem_.adjust();
 			}
 		}
@@ -235,31 +245,31 @@ QuarkPage {
 			if (lComponent.status === Component.Error) {
 				controller.showError(lComponent.errorString());
 			} else {
-				buzzMediaItem_ = lComponent.createObject(mediaContainer);
+				buzzMediaItem_ = lComponent.createObject(mediaGalleryContainer);
 
 				buzzMediaItem_.x = 0;
 				buzzMediaItem_.y = 0;
-				buzzMediaItem_.calculatedWidth = mediaContainer.width;
-				buzzMediaItem_.calculatedHeight = mediaContainer.height;
+				buzzMediaItem_.calculatedWidth = mediaGalleryContainer.width;
+				buzzMediaItem_.calculatedHeight = mediaGalleryContainer.height;
 				//buzzMediaItem_.width = mediaContainer.width;
 				//buzzMediaItem_.height = mediaContainer.height;
-				buzzMediaItem_.controller_ = buzzmedia_.controller;
-				buzzMediaItem_.buzzMedia_ = buzzmedia_.buzzMedia_;
-				buzzMediaItem_.sharedMediaPlayer_ = buzzmedia_.mediaPlayerControler;
+				buzzMediaItem_.controller_ = buzzmediaPage_.controller;
+				buzzMediaItem_.buzzMedia_ = buzzmediaPage_.buzzMedia_;
+				buzzMediaItem_.sharedMediaPlayer_ = buzzmediaPage_.mediaPlayerController;
 				buzzMediaItem_.initialize(pkey_, mediaIndex_, mediaPlayer_, buzzBody_);
 			}
 		}
 
 		onWidthChanged: {
 			if (buzzMediaItem_) {
-				buzzMediaItem_.calculatedWidth = mediaContainer.width;
+				buzzMediaItem_.calculatedWidth = mediaGalleryContainer.width;
 				buzzMediaItem_.adjust();
 			}
 		}
 
 		onHeightChanged: {
 			if (buzzMediaItem_) {
-				buzzMediaItem_.calculatedHeight = mediaContainer.height;
+				buzzMediaItem_.calculatedHeight = mediaGalleryContainer.height;
 				buzzMediaItem_.adjust();
 			}
 		}
@@ -269,8 +279,10 @@ QuarkPage {
 	BuzzItemMediaPlayer {
 		id: playerControl
 		x: 0
-		y: buzzMediaToolBar.y + buzzMediaToolBar.height
-		width: parent.width
-		mediaPlayerControler: buzzmedia_.mediaPlayerControler
+		y: (mediaGalleryContainer.y + mediaGalleryContainer.height) - height // buzzMediaToolBar.y + buzzMediaToolBar.height
+		width: mediaGalleryContainer.width
+		showOnChanges: true
+		mediaPlayerController: buzzmediaPage_.mediaPlayerController
+		gallery: true
 	}
 }

@@ -42,18 +42,30 @@ Rectangle {
 	readonly property int spaceThreadedItems_: 4
 	readonly property real defaultFontSize: 11
 
-	property var mediaPlayerControler
+	property var mediaPlayerController
 	property var player
 	property bool closed: true
+	property bool showOnChanges: false
+	property var overlayParent
+	property bool gallery: false
+	property string galleryTheme: "Darkmatter"
+	property string gallerySelector: "dark"
+	property bool instanceLinked: false
 
 	signal instanceBounded();
 
-	onMediaPlayerControlerChanged: {
+	onMediaPlayerControllerChanged: {
 		//
-		if (!mediaPlayerControler) return;
-		mediaPlayerControler.newInstanceCreated.connect(playerNewInstanceCreated);
-		mediaPlayerControler.showCurrentPlayer.connect(playerShow);
-		mediaPlayerControler.hideCurrentPlayer.connect(playerHide);
+		if (!mediaPlayerController || instanceLinked) return;
+		console.log("[onMediaPlayerControllerChanged]: link to instance, self = " + mediaPlayer);
+		instanceLinked = true;
+		mediaPlayerController.newInstanceCreated.connect(playerNewInstanceCreated);
+		mediaPlayerController.showCurrentPlayer.connect(playerShow);
+		mediaPlayerController.hideCurrentPlayer.connect(playerHide);
+		mediaPlayerController.playbackDownloadStarted.connect(playerDownloadStarted);
+		mediaPlayerController.playbackDownloading.connect(playerDownloading);
+		mediaPlayerController.playbackDownloadCompleted.connect(playerDownloadCompleted);
+		mediaPlayerController.toggleCurrentPlayer.connect(playerToggle);
 	}
 
 	onPlayerChanged: {
@@ -65,11 +77,16 @@ Rectangle {
 	}
 
 	function unlink() {
-		if (mediaPlayerControler) {
+		if (mediaPlayerController && instanceLinked) {
 			console.log("[buzzitemmedia-player/unlink]: unlinking player = " + player);
-			mediaPlayerControler.newInstanceCreated.disconnect(playerNewInstanceCreated);
-			mediaPlayerControler.showCurrentPlayer.disconnect(playerShow);
-			mediaPlayerControler.hideCurrentPlayer.disconnect(playerHide);
+			instanceLinked = false;
+			mediaPlayerController.newInstanceCreated.disconnect(playerNewInstanceCreated);
+			mediaPlayerController.showCurrentPlayer.disconnect(playerShow);
+			mediaPlayerController.hideCurrentPlayer.disconnect(playerHide);
+			mediaPlayerController.playbackDownloadStarted.disconnect(playerDownloadStarted);
+			mediaPlayerController.playbackDownloading.disconnect(playerDownloading);
+			mediaPlayerController.playbackDownloadCompleted.disconnect(playerDownloadCompleted);
+			mediaPlayerController.toggleCurrentPlayer.disconnect(playerToggle);
 
 			if (player) {
 				player.onPlaying.disconnect(mediaPlaying);
@@ -118,23 +135,31 @@ Rectangle {
 		instance.player.onError.connect(playerError);
 
 		player = instance.player; // new instance
+
 		instanceBounded();
+
+		//if (showOnChanges) playerShow();
 	}
 
 	function playerShow() {
-		console.log("[playerShow]: ...");
 		if (mediaPlayer && player) {
+			console.log("[playerShow]: ...");
 			mediaPlayer.visible = true;
-			mediaPlayer.closed = false;
 		}
 	}
 
 	function playerHide() {
-		console.log("[playerHide]: ...");
 		if (mediaPlayer) {
+			console.log("[playerHide]: ...");
 			mediaPlayer.visible = false;
-			mediaPlayer.closed = true;
 		}
+	}
+
+	function playerToggle() {
+		//if (mediaPlayer) {
+			console.log("[playerToggle]: mediaPlayer.visible = " + mediaPlayer.visible + ", instance = " + mediaPlayer);
+			mediaPlayer.visible = !mediaPlayer.visible;
+		//}
 	}
 
 	function mediaPlaying() {
@@ -151,13 +176,26 @@ Rectangle {
 
 	function mediaStopped() {
 		console.log("[mediaStopped]: clearing...");
-		buzzerApp.wakeRelease();
 		actionButton.adjust();
 		elapsedTime.setTime(0);
 		playSlider.value = 0;
-		mediaPlayer.visible = false;
-		mediaPlayer.closed = true;
-		console.log("[mediaStopped]: cleared!");
+
+		if (mediaPlayerController && mediaPlayerController.continuePlayback && mediaPlayerController.playbackController) {
+			console.log("[mediaStopped]: continue playback...");
+			mediaPlayerController.continuePlayback = mediaPlayerController.playbackController.mediaContainer.playNext();
+		} else {
+			if (!mediaPlayerController) console.log("[mediaStopped]: releasing wake lock, mediaPlayerController = " + mediaPlayerController);
+			buzzerApp.wakeRelease();
+			if (mediaPlayerController) {
+				console.log("[mediaStopped]: releasing wake lock, mediaPlayerController.continuePlayback = " + mediaPlayerController.continuePlayback);
+				mediaPlayerController.continuePlayback = false;
+			}
+
+			if (!showOnChanges) {
+				mediaPlayer.visible = false;
+				mediaPlayer.closed = true;
+			}
+		}
 	}
 
 	function playerStatusChanged(status) {
@@ -167,6 +205,8 @@ Rectangle {
 				totalTime.setTotalTime(player.duration);
 				totalSize.setTotalSize(player.size);
 				playSlider.to = player.duration;
+
+				if (showOnChanges) playerShow();
 			break;
 		}
 	}
@@ -176,6 +216,7 @@ Rectangle {
 
 	function playerPositionChanged(position) {
 		if (player) {
+			//console.log("[playerPositionChanged]: position = " + player.position + ", instance = " + mediaPlayer + ", visible = " + mediaPlayer.visible);
 			elapsedTime.setTime(player.position);
 			playSlider.value = player.position;
 		}
@@ -189,46 +230,99 @@ Rectangle {
 		}
 	}
 
+	function playerDownloadStarted() {
+		//
+		if (mediaLoading) {
+			console.log("[playerDownloadStarted]: ....");
+			mediaLoading.start();
+			mediaLoading.visible = true;
+		}
+	}
+
+	function playerDownloading(pos, size) {
+		//
+		if (mediaLoading) {
+			console.log("[playerDownloading]: ....");
+			mediaLoading.progress(pos, size);
+		}
+	}
+
+	function playerDownloadCompleted() {
+		//
+		if (mediaLoading) {
+			console.log("[playerDownloadCompleted]: ....");
+			mediaLoading.visible = false;
+		}
+	}
+
 	visible: false
 
-	//
-	color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
+	color: "transparent"
 	width: parent.width
-	height: frameContainer.height
+	height: actionButton.height + 2 * spaceItems_
 
-	//
-	QuarkRoundRectangle {
-		id: frameContainer
-		x: 0
-		y: 0
-		width: parent.width
-		height: actionButton.height + 2 * spaceItems_
+	property var playListAvailableCondition: mediaPlayerController && mediaPlayerController.playbackController &&
+											  mediaPlayerController.playbackController.mediaCount > 1
+	property bool playListAvailable: playListAvailableCondition !== undefined ? (playListAvailableCondition === true) : false
 
-		color: "transparent"
-		backgroundColor: "transparent"
+	ShaderEffectSource {
+		id: effectSource
+		sourceItem: overlayParent
+		anchors.fill: parent
+		sourceRect: Qt.rect(mediaPlayer.x, mediaPlayer.y - (overlayParent ? overlayParent.y : 0), mediaPlayer.width, mediaPlayer.height)
+		mipmap: true
+	}
 
-		//radius: 8
-		penWidth: 1
-
-		//visible: true
+	GaussianBlur { //
+	  id: blur
+	  anchors.fill: parent
+	  source: effectSource
+	  radius: 18
+	  samples: 32
+	  cached: true
 	}
 
 	//
 	Rectangle {
 		id: controlsBack
-		x: frameContainer.x // + 2 * spaceItems_
-		y: frameContainer.y // + frameContainer.height - (actionButton.height + 4 * spaceItems_)
-		width: frameContainer.width //- (4 * spaceItems_)
-		height: actionButton.height + 2 * spaceItems_
-		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
-		opacity: 0.3
+		x: 0
+		y: 0
+		width: parent.width
+		height: parent.height
+		//
+		color: buzzerApp.getColor(gallery ? galleryTheme : buzzerClient.theme, gallery ? gallerySelector : buzzerClient.themeSelector, "Material.disabledHidden.alt")
+		opacity: overlayParent ? 0.8 : 0.5
 		radius: 0
+		visible: true
+	}
+
+	//
+	QuarkRoundSymbolButton {
+		id: prevButton
+		x: controlsBack.x + 3 * spaceItems_
+		y: controlsBack.y + spaceItems_ + (actionButton.height / 2 - height / 2)
+		spaceLeft: 0
+		spaceTop: 0
+		symbol: Fonts.backwardSym
+		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 4)) : 14
+		radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius - 10)) : defaultRadius - 10
+		color: buzzerApp.getColor(gallery ? galleryTheme : buzzerClient.theme, gallery ? gallerySelector : buzzerClient.themeSelector, "Material.menu.highlight")
+		opacity: 1.0
+
+		visible: playListAvailable
+
+		onClick: {
+			//
+			if (mediaPlayerController && mediaPlayerController.playbackController) {
+				mediaPlayerController.playbackController.mediaContainer.playPrev();
+			}
+		}
 	}
 
 	//
 	QuarkRoundSymbolButton {
 		id: actionButton
-		x: controlsBack.x + 3 * spaceItems_
+		x: prevButton.visible ? prevButton.x + prevButton.width + spaceItems_: controlsBack.x + 3 * spaceItems_
 		y: controlsBack.y + spaceItems_
 		spaceLeft: symbol === Fonts.arrowDownHollowSym || symbol === Fonts.pauseSym ? 2 :
 					   (symbol === Fonts.playSym || symbol === Fonts.cancelSym ? 3 : 0)
@@ -236,7 +330,8 @@ Rectangle {
 		symbol: player ? (player.playing ? Fonts.pauseSym : Fonts.playSym) : Fonts.playSym
 		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 7)) : 18
 		radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius)) : defaultRadius
-		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.highlight")
+		color: buzzerApp.getColor(gallery ? galleryTheme : buzzerClient.theme, gallery ? gallerySelector : buzzerClient.themeSelector, "Material.menu.highlight")
+		opacity: 1.0
 
 		onClick: {
 			//
@@ -249,12 +344,12 @@ Rectangle {
 
 		function notLoaded() {
 			symbol = Fonts.cancelSym;
-			textColor = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.event.like");
+			textColor = buzzerApp.getColor(gallery ? galleryTheme : buzzerClient.theme, gallery ? gallerySelector : buzzerClient.themeSelector, "Buzzer.event.like");
 		}
 
 		function loaded() {
 			symbol = Fonts.playSym;
-			textColor = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
+			textColor = buzzerApp.getColor(gallery ? galleryTheme : buzzerClient.theme, gallery ? gallerySelector : buzzerClient.themeSelector, "Material.menu.foreground")
 		}
 
 		function adjust() {
@@ -262,45 +357,79 @@ Rectangle {
 		}
 	}
 
+	//
 	QuarkRoundSymbolButton {
-		id: closeButton
-		x: frameContainer.width - (closeButton.width + spaceItems_)
-		y: controlsBack.y + spaceItems_
+		id: nextButton
+		x: actionButton.x + actionButton.width + spaceItems_
+		y: prevButton.y
 		spaceLeft: 0
 		spaceTop: 0
+		symbol: Fonts.forwardSym
+		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 4)) : 14
+		radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius - 10)) : defaultRadius - 10
+		color: buzzerApp.getColor(gallery ? galleryTheme : buzzerClient.theme, gallery ? gallerySelector : buzzerClient.themeSelector, "Material.menu.highlight")
+		opacity: 1.0
+
+		visible: playListAvailable
+
+		onClick: {
+			//
+			if (mediaPlayerController && mediaPlayerController.playbackController) {
+				mediaPlayerController.playbackController.mediaContainer.playNext();
+			}
+		}
+	}
+
+	QuarkRoundSymbolButton {
+		id: closeButton
+		x: controlsBack.width - (closeButton.width + spaceItems_)
+		y: controlsBack.y + spaceItems_
+		spaceLeft: 2
+		spaceTop: 2
 		symbol: Fonts.cancelSym
 		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 10)) : 18
 		radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius)) : defaultRadius
-		color: "transparent" //buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.highlight")
-		textColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+		color: "transparent" //buzzerApp.getColor(gallery ? galleryTheme : buzzerClient.theme, gallery ? gallerySelector : buzzerClient.themeSelector, "Material.menu.highlight")
+		textColor: buzzerApp.getColor(gallery ? galleryTheme : buzzerClient.theme, gallery ? gallerySelector : buzzerClient.themeSelector, "Material.foreground")
+		opacity: 1.0
 
 		onClick: {
 			//
 			mediaPlayer.closed = true;
-			if (player) { player.stop(); /*player.destroy(5000);*/ }
-			else {
-				mediaPlayer.visible = false;
+			if (mediaPlayerController) {
+				mediaPlayerController.popVideoInstance();
+				mediaPlayerController.continuePlayback = false;
 			}
+
+			//
+			if (player) { player.stop(); /*player.destroy(5000);*/ }
+			mediaPlayer.visible = false;
 		}
 	}
 
 	QuarkLabel {
 		id: caption
-		x: actionButton.x + actionButton.width + 2*spaceItems_
+		x: nextButton.visible ? nextButton.x + nextButton.width + 2*spaceItems_ :
+								actionButton.x + actionButton.width + 2*spaceItems_
 		y: actionButton.y + 1
 		width: playSlider.width
 		elide: Text.ElideRight
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
 		text: player ? player.caption : "none"
-		visible: text != "none"
+		visible: text != "none" && text != ""
+		opacity: 1.0
+		color: buzzerApp.getColor(gallery ? galleryTheme : buzzerClient.theme, gallery ? gallerySelector : buzzerClient.themeSelector, "Material.foreground")
 	}
 
 	QuarkLabel {
 		id: elapsedTime
-		x: actionButton.x + actionButton.width + 2*spaceItems_ + (caption.text != "none" ? 3 : 0)
-		y: actionButton.y + (caption.text != "none" ? caption.height + 3 : spaceItems_)
+		x: nextButton.visible ? (nextButton.x + nextButton.width + 2*spaceItems_ + (caption.visible ? 3 : 0)) :
+								(actionButton.x + actionButton.width + 2*spaceItems_ + (caption.visible ? 3 : 0))
+		y: actionButton.y + (caption.visible ? caption.height + 3 : spaceItems_)
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
 		text: "00:00"
+		opacity: 1.0
+		color: buzzerApp.getColor(gallery ? galleryTheme : buzzerClient.theme, gallery ? gallerySelector : buzzerClient.themeSelector, "Material.foreground")
 
 		function setTime(ms) {
 			text = DateFunctions.msToTimeString(ms);
@@ -313,6 +442,8 @@ Rectangle {
 		y: elapsedTime.y
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
 		text: player ? (player.duration ? ("/" + DateFunctions.msToTimeString(player.duration)) : "/00:00") : "/00:00"
+		opacity: 1.0
+		color: buzzerApp.getColor(gallery ? galleryTheme : buzzerClient.theme, gallery ? gallerySelector : buzzerClient.themeSelector, "Material.foreground")
 
 		function setTotalTime(ms) {
 			text = "/" + DateFunctions.msToTimeString(ms);
@@ -326,6 +457,8 @@ Rectangle {
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
 		text: ", 0k"
 		visible: player && player.size !== 0 || false
+		opacity: 1.0
+		color: buzzerApp.getColor(gallery ? galleryTheme : buzzerClient.theme, gallery ? gallerySelector : buzzerClient.themeSelector, "Material.foreground")
 
 		function setTotalSize(mediaSize) {
 			//
@@ -336,13 +469,15 @@ Rectangle {
 
 	Slider {
 		id: playSlider
-		x: actionButton.x + actionButton.width + spaceItems_
+		x: nextButton.visible ? nextButton.x + nextButton.width + spaceItems_ :
+								actionButton.x + actionButton.width + spaceItems_
 		y: actionButton.y + actionButton.height - (height - 3 * spaceItems_)
 		from: 0
 		to: 1
 		orientation: Qt.Horizontal
 		stepSize: 0.1
-		width: frameContainer.width - (actionButton.width + 4 * spaceItems_ + closeButton.width)
+		width: closeButton.x - (nextButton.visible ? nextButton.x + nextButton.width : actionButton.x + actionButton.width)
+		opacity: 1.0
 
 		onMoved: {
 			player.seek(value);
@@ -351,6 +486,39 @@ Rectangle {
 
 		onToChanged: {
 			console.log("[buzzplayer/onToChanged]: to = " + to);
+		}
+	}
+
+	QuarkRoundProgress {
+		id: mediaLoading
+		x: actionButton.x - 2
+		y: actionButton.y - 2
+		size: buzzerClient.scaleFactor * (actionButton.width + 4)
+		colorCircle: buzzerApp.getColor(gallery ? galleryTheme : buzzerClient.theme, gallery ? gallerySelector : buzzerClient.themeSelector, "Material.link");
+		colorBackground: buzzerApp.getColor(gallery ? galleryTheme : buzzerClient.theme, gallery ? gallerySelector : buzzerClient.themeSelector, "Material.link");
+		arcBegin: 0
+		arcEnd: 0
+		lineWidth: buzzerClient.scaleFactor * 2
+		visible: false
+		animationDuration: 50
+		opacity: 1.0
+
+		function start() {
+			beginAnimation = false;
+			endAnimation = false;
+
+			visible = true;
+			arcBegin = 0;
+			arcEnd = 0;
+
+			beginAnimation = true;
+			endAnimation = true;
+		}
+
+		function progress(pos, size) {
+			//
+			var lPercent = (pos * 100) / size;
+			arcEnd = (360 * lPercent) / 100;
 		}
 	}
 }

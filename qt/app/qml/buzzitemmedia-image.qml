@@ -23,6 +23,7 @@ Rectangle {
 	id: imageFrameFeed
 
 	//
+	readonly property bool playable: false
 	property int calculatedHeight: 500 // 400?
 	readonly property int spaceLeft_: 15
 	readonly property int spaceTop_: 12
@@ -74,6 +75,10 @@ Rectangle {
 	}
 
 	function forceVisibilityCheck(isFullyVisible) {
+		//
+	}
+
+	function unbindCommonControls() {
 		//
 	}
 
@@ -170,7 +175,7 @@ Rectangle {
 						var lMedia = lComponent.createObject(controller_);
 						lMedia.controller = controller_;
 						lMedia.buzzMedia_ = buzzitemmedia_.buzzMedia_;
-						lMedia.mediaPlayerControler = sharedMediaPlayer_;
+						lMedia.mediaPlayerController = sharedMediaPlayer_;
 						lMedia.initialize(pkey_, mediaIndex_);
 						controller_.addPage(lMedia);
 					}

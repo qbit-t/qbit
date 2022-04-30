@@ -29,7 +29,7 @@ Item {
 	property var buzzBody_: buzzBodyFlat
 	property var controller_: controller
 	property var frameColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
-	property var fillColor: "transparent"
+	property var fillColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden.uni")
 	property var sharedMediaPlayer_
 
 	readonly property int maxCalculatedWidth_: 600
@@ -47,6 +47,13 @@ Item {
 
 	property var pkey_: ""
 
+	//
+	// playback controller
+	property alias mediaCount: mediaModel.count
+	property alias mediaContainer: mediaList
+	//
+	//
+
 	signal calculatedHeightModified(var value);
 	
 	onCalculatedHeightChanged: calculatedHeightModified(calculatedHeight);
@@ -63,6 +70,11 @@ Item {
 	function forceVisibilityCheck(isFullyVisible) {
 		//
 		mediaList.setFullyVisible(isFullyVisible);
+	}
+
+	function unbindCommonControls() {
+		//
+		mediaList.unbindCommonControls();
 	}
 
 	Component.onCompleted: {
@@ -127,6 +139,46 @@ Item {
 					lItem.mediaItem.forceVisibilityCheck(fullyVisible);
 				}
 			}
+		}
+
+		function unbindCommonControls() {
+			//
+			for (var lIdx = 0; lIdx < mediaList.count; lIdx++) {
+				var lItem = mediaList.itemAtIndex(lIdx);
+				if (lItem) {
+					lItem.mediaItem.unbindCommonControls();
+				}
+			}
+		}
+
+		function playNext() {
+			//
+			for (var lIdx = mediaIndicator.currentIndex + 1; lIdx < mediaList.count; lIdx++) {
+				var lItem = mediaList.itemAtIndex(lIdx);
+				if (lItem && lItem.mediaItem && lItem.mediaItem.playable) {
+					mediaList.currentIndex = lIdx;
+					lItem.mediaItem.tryPlay();
+					sharedMediaPlayer_.showCurrentPlayer();
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		function playPrev() {
+			//
+			for (var lIdx = mediaIndicator.currentIndex - 1; lIdx >= 0; lIdx--) {
+				var lItem = mediaList.itemAtIndex(lIdx);
+				if (lItem && lItem.mediaItem && lItem.mediaItem.playable) {
+					mediaList.currentIndex = lIdx;
+					lItem.mediaItem.tryPlay();
+					sharedMediaPlayer_.showCurrentPlayer();
+					return true;
+				}
+			}
+
+			return false;
 		}
 
 		add: Transition {

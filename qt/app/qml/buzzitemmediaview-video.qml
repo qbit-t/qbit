@@ -28,6 +28,7 @@ Rectangle {
 	property string mediaViewSelector: "dark"
 
 	//
+	readonly property bool playable: true
 	readonly property int spaceLeft_: 15
 	readonly property int spaceTop_: 12
 	readonly property int spaceRight_: 15
@@ -102,9 +103,29 @@ Rectangle {
 		}
 	}
 
+	function unbindCommonControls() {
+		//
+		if (player && (playing || downloadCommand.processing)) {
+			//
+			// reset playback
+			videoFrame.sharedMediaPlayer_.continuePlayback = false;
+			videoFrame.sharedMediaPlayer_.playbackController = null;
+			videoFrame.sharedMediaPlayer_.popVideoInstance();
+			unlink();
+			//
+			mediaStopped();
+			//
+			videoOut = null;
+			player = null;
+		}
+	}
+
 	function checkPlaying() {
 		//
 		if (player) {
+			// reset continue playback
+			videoFrame.sharedMediaPlayer_.continuePlayback = false;
+			//
 			if (videoFrame.sharedMediaPlayer_.isCurrentInstancePaused()) player.stop();
 			else if (playing || downloadCommand.processing) videoFrame.sharedMediaPlayer_.showCurrentPlayer();
 
@@ -158,7 +179,6 @@ Rectangle {
 
 		function enableScene() {
 			//
-			// console.log("[onContentRectChanged(0)]: videoOutput.contentRect = " + videoOut.contentRect + ", videoFrame.playing = " + videoFrame.playing + ", videoFrame.player = " + videoFrame.player + ", videoFrame.player.hasVideo = " + videoFrame.player.hasVideo);
 			if (videoFrame.playing && videoFrame.player && videoFrame.player.hasVideo && videoFrame.player.position > 1) {
 				previewImageVideo.visible = false;
 				frameContainer.visible = true;
@@ -179,6 +199,7 @@ Rectangle {
 		}
 
 		function clickActivated() {
+			//
 		}
 	}
 
@@ -218,15 +239,15 @@ Rectangle {
 		}
 
 		onClicked: {
-			if (frameContainer.scale == 1.0) {
-				forceVisible = !forceVisible;
-				frameContainer.x = frameContainer.getX();
-				frameContainer.y = frameContainer.getY();
-			} else {
+			//
+			videoFrame.sharedMediaPlayer_.toggleCurrentPlayer();
+			//
+			if (frameContainer.scale != 1.0) {
 				frameContainer.scale = 1.0;
-				frameContainer.x = frameContainer.getX();
-				frameContainer.y = frameContainer.getY();
 			}
+
+			frameContainer.x = frameContainer.getX();
+			frameContainer.y = frameContainer.getY();
 		}
 	}
 
@@ -234,7 +255,6 @@ Rectangle {
 		id: previewImageVideo
 		autoTransform: true
 		asynchronous: true
-		//radius: 8
 
 		x: getX()
 		y: getY()
@@ -377,12 +397,33 @@ Rectangle {
 		}
 	}
 
+	function tryPlay() {
+		if (actionButton.needDownload && !downloadCommand.downloaded && !downloadCommand.processing) {
+			// start
+			actionButton.symbol = Fonts.cancelSym;
+			mediaLoading.start();
+			videoFrame.sharedMediaPlayer_.playbackDownloadStarted();
+			downloadCommand.process();
+		} else if (actionButton.needDownload && !downloadCommand.downloaded && downloadCommand.processing) {
+			// cancel
+			actionButton.symbol = Fonts.arrowDownHollowSym;
+			mediaLoading.visible = false;
+			downloadCommand.processing = false;
+			downloadCommand.terminate();
+			videoFrameFeed.sharedMediaPlayer_.playbackDownloadCompleted();
+		} else if (!videoFrame.playing) {
+			videoFrame.play();
+		} else {
+			if (videoFrame.player)
+				videoFrame.player.pause();
+		}
+	}
+
 	function play(existingPlayer) {
 		//
 		if (existingPlayer) {
 			// controller
-			//var singleVideoOut = videoFrame.sharedMediaPlayer_.createVideoInstance(frameContainer, existingPlayer);
-			var lSingleVideoOut = videoFrame.sharedMediaPlayer_.createInstance(videoFrame, frameContainer, true);
+			var lSingleVideoOut = videoFrame.sharedMediaPlayer_.createInstance(videoFrame, frameContainer, buzzitemmedia_, true);
 			console.log("[buzzmediaview/play]: video instance created...");
 			lSingleVideoOut.player.description = description_;
 			lSingleVideoOut.player.caption = caption_;
@@ -412,35 +453,38 @@ Rectangle {
 				mediaPlaying();
 			}
 		} else {
-			if (!player) {
-				// controller
-				var lVideoOut = videoFrame.sharedMediaPlayer_.createInstance(videoFrame, frameContainer);
-				//
-				if (lVideoOut) {
-					lVideoOut.player.description = description_;
-					lVideoOut.player.caption = caption_;
-					lVideoOut.player.onPlaying.connect(mediaPlaying);
-					lVideoOut.player.onPaused.connect(mediaPaused);
-					lVideoOut.player.onStopped.connect(mediaStopped);
-					lVideoOut.player.onStatusChanged.connect(playerStatusChanged);
-					lVideoOut.player.onPositionChanged.connect(playerPositionChanged);
-					lVideoOut.player.onError.connect(playerError);
-					lVideoOut.player.onHasVideoChanged.connect(playerHasVideo);
-					lVideoOut.linkActivated.connect(frameContainer.clickActivated);
-					lVideoOut.onContentRectChanged.connect(frameContainer.enableScene);
-					lVideoOut.allowClick = false;
+			// controller
+			var lVideoOut = videoFrame.sharedMediaPlayer_.createInstance(videoFrame, frameContainer, buzzitemmedia_);
+			//
+			if (lVideoOut) {
+				lVideoOut.player.description = description_;
+				lVideoOut.player.caption = caption_;
+				lVideoOut.player.onPlaying.connect(mediaPlaying);
+				lVideoOut.player.onPaused.connect(mediaPaused);
+				lVideoOut.player.onStopped.connect(mediaStopped);
+				lVideoOut.player.onStatusChanged.connect(playerStatusChanged);
+				lVideoOut.player.onPositionChanged.connect(playerPositionChanged);
+				lVideoOut.player.onError.connect(playerError);
+				lVideoOut.player.onHasVideoChanged.connect(playerHasVideo);
+				lVideoOut.linkActivated.connect(frameContainer.clickActivated);
+				lVideoOut.onContentRectChanged.connect(frameContainer.enableScene);
+				lVideoOut.allowClick = false;
 
-					videoOut = lVideoOut;
-					player = lVideoOut.player;
+				videoOut = lVideoOut;
+				player = lVideoOut.player;
 
-					player.source = path_;
-					player.play();
-				}
-			} else {
-				if (player.stopped)
-					videoFrame.sharedMediaPlayer_.linkInstance(videoOut);
+				player.source = path_;
 				player.play();
 			}
+
+			/*
+			if (!player) {
+			} else {
+				if (player.stopped)
+					videoFrame.sharedMediaPlayer_.linkInstance(videoOut, buzzitemmedia_);
+				player.play();
+			}
+			*/
 		}
 	}
 
@@ -448,6 +492,7 @@ Rectangle {
 		//if (!videoFrame) return;
 		console.log("[buzzmediaview/mediaPlaying]: playing...");
 		playing = true;
+		forceVisible = false;
 		frameContainer.enableScene();
 		actionButton.adjust();
 		buzzerApp.wakeLock();
@@ -465,12 +510,13 @@ Rectangle {
 		console.log("[buzzmediaview/mediaStopped]: stopped...");
 		//if (!videoFrame) return;
 		videoFrame.playing = false;
+		forceVisible = true;
 		actionButton.adjust();
 		frameContainer.disableScene();
 		elapsedTime.setTime(0);
 		playSlider.value = 0;
 		//player = null;
-		buzzerApp.wakeRelease();
+		//buzzerApp.wakeRelease();
 	}
 
 	function playerStatusChanged(status) {
@@ -519,8 +565,8 @@ Rectangle {
 	Rectangle {
 		id: controlsBack
 		height: actionButton.height + 2 * spaceItems_
-		color: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.disabledHidden")
-		opacity: 0.8
+		color: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.disabledHidden.uni")
+		//opacity: 0.8
 		radius: 8
 
 		visible: forceVisible && scaled
@@ -531,9 +577,28 @@ Rectangle {
 		}
 
 		function adjustY() {
-			y = frameContainer.visible ? (frameContainer.y + frameContainer.height - (actionButton.height + 3 * spaceItems_)) :
-										(previewImageVideo.y + previewImageVideo.height - (actionButton.height + 3 * spaceItems_));
+			//y = frameContainer.visible ? (frameContainer.y + frameContainer.height - (actionButton.height + 3 * spaceItems_)) :
+			//							(previewImageVideo.y + previewImageVideo.height - (actionButton.height + 3 * spaceItems_));
+
+			y = frameContainer.visible ? (frameContainer.y + spaceItems_) :
+										(previewImageVideo.y + spaceItems_);
 		}
+
+		/*
+		ShaderEffectSource {
+			id: effectSource
+			sourceItem: previewImageVideo
+			anchors.fill: parent
+			sourceRect: Qt.rect(parent.x, parent.y, parent.width, parent.height)
+		}
+
+		FastBlur{
+		  id: blur
+		  anchors.fill: effectSource
+		  source: effectSource
+		  radius: 38
+		}
+		*/
 	}
 
 	//
@@ -553,7 +618,7 @@ Rectangle {
 
 		property bool needDownload: size_ && /*size_ > 1024*200 &&*/ !downloadCommand.downloaded
 
-		opacity: 0.8
+		//opacity: 0.8
 
 		visible: forceVisible && scaled
 
@@ -563,23 +628,7 @@ Rectangle {
 
 		function process() {
 			//
-			if (needDownload && !downloadCommand.downloaded && !downloadCommand.processing) {
-				// start
-				symbol = Fonts.cancelSym;
-				mediaLoading.start();
-				downloadCommand.process();
-			} else if (needDownload && !downloadCommand.downloaded && downloadCommand.processing) {
-				// cancel
-				symbol = Fonts.arrowDownHollowSym;
-				mediaLoading.visible = false;
-				downloadCommand.processing = false;
-				downloadCommand.terminate();
-			} else if (!videoFrame.playing) {
-				videoFrame.play();
-			} else {
-				if (videoFrame.player)
-					videoFrame.player.pause();
-			}
+			tryPlay();
 		}
 
 		function notLoaded() {
@@ -606,14 +655,14 @@ Rectangle {
 		elide: Text.ElideRight
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
 		text: caption_
-		visible: caption_ != "none" && forceVisible && scaled
+		visible: caption_ != "none" && forceVisible && scaled && caption_ != ""
 		color: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.menu.foreground")
 	}
 
 	QuarkLabel {
 		id: elapsedTime
-		x: actionButton.x + actionButton.width + spaceItems_ + (caption_ != "none" ? 3 : 0)
-		y: actionButton.y + (caption_ != "none" ? caption.height + 3 : spaceItems_)
+		x: actionButton.x + actionButton.width + spaceItems_ + (caption.visible ? 3 : 0)
+		y: actionButton.y + (caption.visible ? caption.height + 3 : spaceItems_)
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
 		text: "00:00"
 		color: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.menu.foreground")
@@ -668,7 +717,7 @@ Rectangle {
 		width: frameContainer.visible ? (frameContainer.width - (actionButton.width + 5 * spaceItems_)) :
 										(previewImageVideo.width - (actionButton.width + 4 * spaceItems_))
 
-		visible: forceVisible && scaled
+		visible: false // forceVisible && scaled
 
 		onMoved: {
 			if (videoFrame.player) {
@@ -697,6 +746,7 @@ Rectangle {
 		animationDuration: 50
 
 		function start() {
+			//
 			beginAnimation = false;
 			endAnimation = false;
 
@@ -731,6 +781,7 @@ Rectangle {
 			//
 			processing = true;
 			mediaLoading.progress(pos, size);
+			videoFrame.sharedMediaPlayer_.playbackDownloading(pos, size);
 		}
 
 		onProcessed: {
@@ -753,6 +804,8 @@ Rectangle {
 			path_ = "file://" + originalFile;
 			// stop spinning
 			mediaLoading.visible = false;
+			// signal
+			videoFrameFeed.sharedMediaPlayer_.playbackDownloadCompleted();
 
 			// adjust button
 			actionButton.adjust();

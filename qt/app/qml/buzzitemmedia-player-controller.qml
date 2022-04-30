@@ -17,6 +17,8 @@ Item {
 	id: playerController
 
 	property var controller;
+	property var playbackController: null;
+	property bool continuePlayback: true
 	property var lastInstance: null;
 	property var prevInstance: null;
 
@@ -26,12 +28,17 @@ Item {
 	signal newInstanceCreated(var instance, var prev);
 	signal showCurrentPlayer();
 	signal hideCurrentPlayer();
+	signal toggleCurrentPlayer();
+
+	signal playbackDownloadStarted();
+	signal playbackDownloading(var pos, var size);
+	signal playbackDownloadCompleted();
 
 	//
 	function continueCreateInstance() {
 	}
 
-	function createInstance(playerPlceholder, videooutPlaceholder, continuous) {
+	function createInstance(playerPlceholder, videooutPlaceholder, playback, continuous) {
 		//
 		var lPlayer = null;
 		var lVideoOutput = null;
@@ -41,11 +48,18 @@ Item {
 		var lSource;
 
 		//
+		continuePlayback = false;
+
+		//
 		if (lastInstance && lastInstance.player) {
 			//
+			console.log("[createInstance]: lastInstance = " + lastInstance + ", lastInstance.player = " + lastInstance.player);
 			lSource = lastInstance.player.source;
 			lPosition = lastInstance.player.position;
 			lastInstance.player.stop();
+		} else {
+			if (!lastInstance) console.log("[createInstance]: lastInstance = " + lastInstance);
+			else if (lastInstance.player) console.log("[createInstance]: lastInstance.player = " + lastInstance.player);
 		}
 
 		// make new
@@ -72,6 +86,9 @@ Item {
 
 				prevInstance = lastInstance;
 				lastInstance = lVideoOutput;
+				playbackController = playback;
+				continuePlayback = true; // possible
+
 				newInstanceCreated(lVideoOutput, prevInstance);
 
 				return lastInstance;
@@ -101,6 +118,13 @@ Item {
 		 return null;
 	}
 
+	function disableContinousPlayback() {
+		//
+		console.log("[disableContinousPlayback]: disabling");
+		playbackController = null;
+		continuePlayback = false;
+	}
+
 	function popVideoInstance(player) {
 		//
 		var lPlayer = player;
@@ -108,31 +132,41 @@ Item {
 		//
 		if (!lPlayer) lPlayer = lastInstance.player;
 		if (!lPlayer) return;
-		if (!lPlayer.videoOutput) return;
+		//if (!lPlayer.videoOutput) return;
 
 		lPlayer.popSurface();
 	}
 
 	function popAllVideoInstances(player) {
+		//
 		var lPlayer = player;
 		if (!lastInstance) return;
 		//
 		if (!lPlayer) lPlayer = lastInstance.player;
 		if (!lPlayer) return;
-		if (!lPlayer.videoOutput) return;
+		//if (!lPlayer.videoOutput) return;
 
 		lPlayer.clearSurfaces();
 	}
 
-	function createAudioInstance(playerPlceholder, root) {
+	function createAudioInstance(playerPlceholder, root, playback, continuous) {
 		//
 		var lPlayer = null;
 		var lVideoOutput = null;
 
+		//
+		var lPosition = 0;
+		var lSource;
+
+		//
+		continuePlayback = false;
+
 		// clean-up
 		if (lastInstance && lastInstance.player) {
+			//
+			lSource = lastInstance.player.source;
+			lPosition = lastInstance.player.position;
 			lastInstance.player.stop();
-			popAllVideoInstances();
 		}
 
 		//
@@ -141,11 +175,20 @@ Item {
 			controller.showError(lComponent.errorString());
 		} else {
 			lPlayer = lComponent.createObject(playerController /*playerPlceholder*/);
-
 			root.player = lPlayer;
+
+			if (continuous && lSource) {
+				// TODO: ?
+				console.log("[createAudioInstance]: source = " + lSource + ", position = " + lPosition);
+				lPlayer.source = lSource;
+				lPlayer.seek(lPosition);
+				lPlayer.play();
+			}
 
 			prevInstance = lastInstance;
 			lastInstance = root;
+			playbackController = playback;
+			continuePlayback = true;
 			newInstanceCreated(root, prevInstance);
 
 			return lastInstance;
@@ -154,11 +197,12 @@ Item {
 		return null;
 	}
 
-	function linkInstance(instance) {
+	function linkInstance(instance, playback) {
 		//
 		if (instance !== lastInstance) {
 			prevInstance = lastInstance;
 			lastInstance = instance;
+			playbackController = playback;
 		}
 
 		newInstanceCreated(instance, prevInstance);

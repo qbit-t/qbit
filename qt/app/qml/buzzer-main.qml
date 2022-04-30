@@ -171,7 +171,7 @@ QuarkPage
 	// Shared media player controller
 	//
 	BuzzerMediaPlayerController {
-		id: globalMediaPlayerControler
+		id: globalMediaPlayerController
 		controller: buzzermain_.controller
 	}
 
@@ -296,8 +296,8 @@ QuarkPage
 				buzzerApp.unlockOrientation();
 			}
 
-			if (globalMediaPlayerControler.isCurrentInstancePlaying()) {
-				globalMediaPlayerControler.showCurrentPlayer();
+			if (globalMediaPlayerController.isCurrentInstancePlaying()) {
+				globalMediaPlayerController.showCurrentPlayer();
 			}
 		}
 
@@ -333,7 +333,7 @@ QuarkPage
 			width: buzzermain_.width
 			height: navigatorBar.y - (headerBar.y + headerBar.height)
 			controller: buzzermain_.controller
-			mediaPlayerControler: globalMediaPlayerControler
+			mediaPlayerController: globalMediaPlayerController
 		}
 		BuzzfeedGlobal {
 			id: buzzfeedGlobal
@@ -342,7 +342,7 @@ QuarkPage
 			width: buzzermain_.width
 			height: navigatorBar.y - (headerBar.y + headerBar.height)
 			controller: buzzermain_.controller
-			mediaPlayerControler: globalMediaPlayerControler
+			mediaPlayerController: globalMediaPlayerController
 		}
 		Eventsfeed {
 			id: eventsfeedPersonal

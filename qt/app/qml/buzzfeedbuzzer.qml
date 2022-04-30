@@ -28,6 +28,7 @@ QuarkPage {
 	property var controller;
 	property bool listen: false;
 	property var buzzfeedModel_;
+	property var mediaPlayerController: buzzerApp.sharedMediaPlayerController()
 
 	readonly property int spaceLeft_: 15
 	readonly property int spaceTop_: 12
@@ -280,12 +281,66 @@ QuarkPage {
 		usePull: true
 		clip: true
 
+		//cacheBuffer: 10000
+		displayMarginBeginning: 1000
+		displayMarginEnd: 1000
+
 		function adjust() {
 			//
 			for (var lIdx = 0; lIdx < list.count; lIdx++) {
 				var lItem = list.itemAtIndex(lIdx);
 				if (lItem) {
 					lItem.width = list.width;
+				}
+			}
+		}
+
+		onContentYChanged: {
+			//
+			var lVisible;
+			var lProcessable;
+			var lBackItem;
+			var lForwardItem;
+			var lBeginIdx = list.indexAt(1, contentY);
+			//
+			if (lBeginIdx > -1) {
+				// trace back
+				for (var lBackIdx = lBeginIdx; lBackIdx >= 0; lBackIdx--) {
+					//
+					lBackItem = list.itemAtIndex(lBackIdx);
+					if (lBackItem) {
+						lVisible = lBackItem.y >= list.contentY && lBackItem.y + lBackItem.height < list.contentY + list.height;
+						lProcessable = (lBackItem.y + lBackItem.height) < list.contentY && list.contentY - (lBackItem.y + lBackItem.height) > displayMarginBeginning;
+						if (!lProcessable) {
+							lBackItem.forceVisibilityCheck(lVisible);
+						}
+
+						if (lProcessable) {
+							// stop it
+							lBackItem.unbindCommonControls();
+							break;
+						}
+					}
+				}
+
+				// trace forward
+				for (var lForwardIdx = lBeginIdx; lForwardIdx < list.count; lForwardIdx++) {
+					//
+					lForwardItem = list.itemAtIndex(lForwardIdx);
+					if (lForwardItem) {
+						lVisible = lForwardItem.y >= list.contentY && lForwardItem.y + lForwardItem.height < list.contentY + list.height;
+						lProcessable = (lForwardItem.y + lForwardItem.height) > list.contentY + list.height && (lForwardItem.y + lForwardItem.height) - (list.contentY + list.height) > displayMarginEnd;
+						if (!lProcessable) {
+							lForwardItem.forceVisibilityCheck(lVisible);
+						}
+
+						if (lProcessable) {
+							// stop it
+							lForwardItem.unbindCommonControls();
+							// we are done
+							break;
+						}
+					}
 				}
 			}
 		}
@@ -345,6 +400,7 @@ QuarkPage {
 				var lComponent = Qt.createComponent(lSource);
 				buzzItem = lComponent.createObject(itemDelegate);
 
+				buzzItem.sharedMediaPlayer_ = buzzfeedbuzzer_.mediaPlayerController;
 				buzzItem.width = list.width;
 				buzzItem.controller_ = buzzfeedbuzzer_.controller;
 				buzzItem.buzzfeedModel_ = buzzfeedModel_;
@@ -358,6 +414,18 @@ QuarkPage {
 
 			function calculatedHeightModified(value) {
 				itemDelegate.height = value;
+			}
+
+			function forceVisibilityCheck(check) {
+				if (buzzItem) {
+					buzzItem.forceVisibilityCheck(check);
+				}
+			}
+
+			function unbindCommonControls() {
+				if (buzzItem) {
+					buzzItem.unbindCommonControls();
+				}
 			}
 		}
 	}
@@ -397,6 +465,24 @@ QuarkPage {
 				lPage.initializeBuzz(buzzerModelLoader.buzzer);
 
 				addPage(lPage);
+			}
+		}
+
+		//
+		BuzzItemMediaPlayer {
+			id: player
+			x: 0
+			y: (list.y + list.height) - height // bottomLine.y1 + 1
+			width: parent.width
+			mediaPlayerController: buzzfeedbuzzer_.mediaPlayerController
+			overlayParent: list
+
+			onVisibleChanged: {
+				if (visible) {
+					createBuzz.y = (parent.height - (height + 15)) - player.height;
+				} else {
+					createBuzz.y = parent.height - (height + 15);
+				}
 			}
 		}
 	}

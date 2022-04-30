@@ -27,6 +27,7 @@ Rectangle {
 	property string mediaViewSelector: "dark"
 
 	//
+	readonly property bool playable: false
 	readonly property int spaceLeft_: 15
 	readonly property int spaceTop_: 12
 	readonly property int spaceRight_: 15
@@ -82,6 +83,9 @@ Rectangle {
 	}
 
 	function forceVisibilityCheck(isFullyVisible) {
+	}
+
+	function unbindCommonControls() {
 	}
 
 	function checkPlaying() {

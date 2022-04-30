@@ -100,6 +100,11 @@ Item {
 
 	Component.onCompleted: {
 		//
+		finalizeCreation();
+	}
+
+	function finalizeCreation() {
+		//
 		avatarDownloadCommand.process();
 
 		if (!onChain_ && dynamic_) checkOnChain.start();
@@ -109,6 +114,12 @@ Item {
 			if (childrenCount_ < replies_)
 				hasMore_ = true;
 		}
+	}
+
+	function bindItem() {
+		finalizeCreation();
+		bodyControl.resetItem();
+		bodyControl.forceExpand();
 	}
 
 	/*
@@ -162,6 +173,10 @@ Item {
 
 	function forceVisibilityCheck(isFullyVisible) {
 		bodyControl.setFullyVisible(isFullyVisible);
+	}
+
+	function unbindCommonControls() {
+		bodyControl.unbindCommonControls();
 	}
 
 	//
@@ -344,8 +359,7 @@ Item {
 		}
 	}
 
-	//BuzzerComponents.ImageQx {
-	Image {
+	BuzzerComponents.ImageQx {
 		id: avatarImage
 
 		x: spaceLeft_
@@ -354,9 +368,9 @@ Item {
 		height: avatarImage.displayHeight
 		fillMode: Image.PreserveAspectCrop
 		mipmap: true
-		//radius: avatarImage.displayWidth
+		radius: avatarImage.displayWidth
 
-		property bool rounded: true
+		property bool rounded: false //!
 		property int displayWidth: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 50 : 50
 		property int displayHeight: displayWidth
 
@@ -646,6 +660,11 @@ Item {
 			if (wrappedItem_) wrappedItem_.forceVisibilityCheck(fullyVisible);
 		}
 
+		function unbindCommonControls() {
+			if (buzzMediaItem_) buzzMediaItem_.unbindCommonControls();
+			if (wrappedItem_) wrappedItem_.unbindCommonControls();
+		}
+
 		function setSharedMediaPlayer() {
 			if (buzzMediaItem_) {
 				buzzMediaItem_.sharedMediaPlayer_ = buzzitem_.sharedMediaPlayer_;
@@ -673,6 +692,12 @@ Item {
 			}
 
 			buzzitem_.calculateHeight();
+		}
+
+		function resetItem() {
+			buzzMediaItem_ = null;
+			urlInfoItem_ = null;
+			wrappedItem_ = null;
 		}
 
 		onWidthChanged: {

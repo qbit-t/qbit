@@ -40,7 +40,7 @@ Item
 
 	property var infoDialog;
 	property var controller;
-	property var mediaPlayerControler;
+	property var mediaPlayerController;
 	property bool listen: false;
 
 	property var buzzfeedModel_;
@@ -117,9 +117,9 @@ Item
 		orientationChangedTimer.start();
 	}
 
-	onMediaPlayerControlerChanged: {
+	onMediaPlayerControllerChanged: {
 		//
-		buzzerApp.sharedMediaPlayerController(mediaPlayerControler);
+		buzzerApp.sharedMediaPlayerController(mediaPlayerController);
 	}
 
 	// to adjust model
@@ -358,20 +358,11 @@ Item
 		height: parent.height - (buzzerApp.isDesktop ? 0 : search.calculatedHeight)
 		usePull: true
 		clip: true
-		reuseItems: false
-
-		ListView.onPooled: {
-			console.log("[ListView.onPooled]: delegate = " + delegate);
-		}
-
-		ListView.onReused: {
-			console.log("[ListView.onReused]: delegate = " + delegate);
-		}
 
 		// TODO: consumes a lot RAM
-		//cacheBuffer: 10000
-		displayMarginBeginning: 500
-		displayMarginEnd: 500
+		//cacheBuffer: 500
+		displayMarginBeginning: 1000
+		displayMarginEnd: 1000
 
 		function adjust() {
 			//
@@ -379,6 +370,56 @@ Item
 				var lItem = list.itemAtIndex(lIdx);
 				if (lItem) {
 					lItem.width = list.width;
+				}
+			}
+		}
+
+		onContentYChanged: {
+			//
+			var lVisible;
+			var lProcessable;
+			var lBackItem;
+			var lForwardItem;
+			var lBeginIdx = list.indexAt(1, contentY);
+			//
+			if (lBeginIdx > -1) {
+				// trace back
+				for (var lBackIdx = lBeginIdx; lBackIdx >= 0; lBackIdx--) {
+					//
+					lBackItem = list.itemAtIndex(lBackIdx);
+					if (lBackItem) {
+						lVisible = lBackItem.y >= list.contentY && lBackItem.y + lBackItem.height < list.contentY + list.height;
+						lProcessable = (lBackItem.y + lBackItem.height) < list.contentY && list.contentY - (lBackItem.y + lBackItem.height) > displayMarginBeginning;
+						if (!lProcessable) {
+							lBackItem.forceVisibilityCheck(lVisible);
+						}
+
+						if (lProcessable) {
+							// stop it
+							lBackItem.unbindCommonControls();
+							break;
+						}
+					}
+				}
+
+				// trace forward
+				for (var lForwardIdx = lBeginIdx; lForwardIdx < list.count; lForwardIdx++) {
+					//
+					lForwardItem = list.itemAtIndex(lForwardIdx);
+					if (lForwardItem) {
+						lVisible = lForwardItem.y >= list.contentY && lForwardItem.y + lForwardItem.height < list.contentY + list.height;
+						lProcessable = (lForwardItem.y + lForwardItem.height) > list.contentY + list.height && (lForwardItem.y + lForwardItem.height) - (list.contentY + list.height) > displayMarginEnd;
+						if (!lProcessable) {
+							lForwardItem.forceVisibilityCheck(lVisible);
+						}
+
+						if (lProcessable) {
+							// stop it
+							lForwardItem.unbindCommonControls();
+							// we are done
+							break;
+						}
+					}
 				}
 			}
 		}
@@ -405,18 +446,6 @@ Item
 
 			property var buzzItem;
 
-			property bool isFullyVisible: itemDelegate.y >= list.contentY && itemDelegate.y + height < list.contentY + list.height
-
-			onIsFullyVisibleChanged: {
-				if (itemDelegate !== null && itemDelegate.buzzItem !== null && itemDelegate.buzzItem !== undefined) {
-					try {
-						itemDelegate.buzzItem.forceVisibilityCheck(itemDelegate.isFullyVisible);
-					} catch (err) {
-						console.log("[onIsFullyVisibleChanged]: " + err + ", itemDelegate.buzzItem = " + itemDelegate.buzzItem);
-					}
-				}
-			}
-
 			onWidthChanged: {
 				if (buzzItem) {
 					buzzItem.width = list.width;
@@ -441,7 +470,16 @@ Item
 				var lComponent = Qt.createComponent(lSource);
 				buzzItem = lComponent.createObject(itemDelegate);
 
-				buzzItem.sharedMediaPlayer_ = buzzfeed_.mediaPlayerControler;
+				bindItem();
+			}
+
+			function calculatedHeightModified(value) {
+				itemDelegate.height = value;
+			}
+
+			function bindItem() {
+				//
+				buzzItem.sharedMediaPlayer_ = buzzfeed_.mediaPlayerController;
 				buzzItem.width = list.width;
 				buzzItem.controller_ = buzzfeed_.controller;
 				buzzItem.buzzfeedModel_ = list.model;
@@ -453,8 +491,20 @@ Item
 				buzzItem.calculatedHeightModified.connect(itemDelegate.calculatedHeightModified);
 			}
 
-			function calculatedHeightModified(value) {
-				itemDelegate.height = value;
+			function unbindItem() {
+				buzzItem.calculatedHeightModified.disconnect(itemDelegate.calculatedHeightModified);
+			}
+
+			function unbindCommonControls() {
+				if (buzzItem) {
+					buzzItem.unbindCommonControls();
+				}
+			}
+
+			function forceVisibilityCheck(check) {
+				if (buzzItem) {
+					buzzItem.forceVisibilityCheck(check);
+				}
 			}
 		}
 	}
@@ -463,9 +513,10 @@ Item
 	BuzzItemMediaPlayer {
 		id: player
 		x: 0
-		y: buzzerApp.isDesktop ? 0 : search.y + search.calculatedHeight
+		y: (list.y + list.height) - height // buzzerApp.isDesktop ? 0 : search.y + search.calculatedHeight
 		width: parent.width
-		mediaPlayerControler: buzzfeed_.mediaPlayerControler
+		mediaPlayerController: buzzfeed_.mediaPlayerController
+		overlayParent: list
 	}
 
 	Timer {
@@ -476,7 +527,11 @@ Item
 
 		onTriggered: {
 			//
-			if (mediaPlayerControler) mediaPlayerControler.popVideoInstance();
+			if (mediaPlayerController) {
+				mediaPlayerController.disableContinousPlayback();
+				mediaPlayerController.popVideoInstance();
+			}
+
 			//
 			if (buzzerClient.buzzerDAppReady) {
 				modelLoader_.restart();

@@ -30,6 +30,7 @@ QuarkPage {
 	property var buzzesThread_;
 	property var conversation_;
 	property var conversations_;
+	property var mediaPlayerController: buzzerApp.sharedMediaPlayerController()
 
 	//
 	// TODO: recheck!
@@ -54,16 +55,16 @@ QuarkPage {
 	property bool isCreator_: conversation_ !== undefined &&
 							  buzzerClient.getCurrentBuzzerId() === conversation_.creatorId
 
+	/*
 	Connections {
-		target: buzzesThread_
+		target: list //buzzesThread_
 
 		function onCountChanged() {
 			console.log("[onCountChanged]: atTheBottom = " + atTheBottom);
-			if (atTheBottom) {
-				list.positionViewAtEnd();
-			}
+			list.toTheBottom();
 		}
 	}
+	*/
 
 	function start(conversationId, conversation, conversations) {
 		//
@@ -558,13 +559,15 @@ QuarkPage {
 		y: buzzThreadToolBar.y + buzzThreadToolBar.height
 		width: parent.width
 		height: parent.height - (buzzThreadToolBar.y + buzzThreadToolBar.height + messageContainer.height - 1)
-		//contentHeight: 1000
 		usePull: true
 		clip: true
+		highlightFollowsCurrentItem: true
+		highlightMoveDuration: -1
+		highlightMoveVelocity: -1
 
-		cacheBuffer: 10000
-		//displayMarginBeginning: 5000
-		//displayMarginEnd: 5000
+		//cacheBuffer: 10000
+		displayMarginBeginning: 1000
+		displayMarginEnd: 1000
 
 		model: buzzesThread_
 
@@ -583,22 +586,78 @@ QuarkPage {
 			}
 		}
 
+		function toTheBottom() {
+			if (atTheBottom && list.count > 0) {
+				list.usePull = false;
+				list.currentIndex = list.count - 1;
+				list.usePull = true;
+			}
+
+			//if (atTheBottom) list.positionViewAtEnd();
+		}
+
 		property int lastItemCount: -1
 
 		onContentYChanged: {
+			//
 			if (lastItemCount == -1) lastItemCount = list.count;
 			if (lastItemCount == list.count) {
-				//console.log("[onContentYChanged]: lastItemCount = " + lastItemCount + ", list.count = " + list.count + ", atTheBottom(p) = " + atTheBottom);
-
 				var lBottomItem = list.itemAtIndex(list.count - 1);
 				if (lBottomItem !== null) {
 					atTheBottom = lBottomItem.isFullyVisible;
 				}
-
-				//console.log("[onContentYChanged]: lastItemCount = " + lastItemCount + ", list.count = " + list.count + ", atTheBottom(a) = " + atTheBottom);
 			}
 
 			lastItemCount = list.count;
+			//toTheBottom();
+
+			//
+			var lVisible;
+			var lProcessable;
+			var lBackItem;
+			var lForwardItem;
+			var lBeginIdx = list.indexAt(1, contentY);
+			//
+			if (lBeginIdx > -1) {
+				// trace back
+				for (var lBackIdx = lBeginIdx; lBackIdx >= 0; lBackIdx--) {
+					//
+					lBackItem = list.itemAtIndex(lBackIdx);
+					if (lBackItem) {
+						lVisible = lBackItem.y >= list.contentY && lBackItem.y + lBackItem.height < list.contentY + list.height;
+						lProcessable = (lBackItem.y + lBackItem.height) < list.contentY && list.contentY - (lBackItem.y + lBackItem.height) > displayMarginBeginning;
+						if (!lProcessable) {
+							lBackItem.forceVisibilityCheck(lVisible);
+						}
+
+						if (lProcessable) {
+							// stop it
+							lBackItem.unbindCommonControls();
+							break;
+						}
+					}
+				}
+
+				// trace forward
+				for (var lForwardIdx = lBeginIdx; lForwardIdx < list.count; lForwardIdx++) {
+					//
+					lForwardItem = list.itemAtIndex(lForwardIdx);
+					if (lForwardItem) {
+						lVisible = lForwardItem.y >= list.contentY && lForwardItem.y + lForwardItem.height < list.contentY + list.height;
+						lProcessable = (lForwardItem.y + lForwardItem.height) > list.contentY + list.height && (lForwardItem.y + lForwardItem.height) - (list.contentY + list.height) > displayMarginEnd;
+						if (!lProcessable) {
+							lForwardItem.forceVisibilityCheck(lVisible);
+						}
+
+						if (lProcessable) {
+							// stop it
+							lForwardItem.unbindCommonControls();
+							// we are done
+							break;
+						}
+					}
+				}
+			}
 		}
 
 		onDragStarted: {
@@ -620,6 +679,12 @@ QuarkPage {
 
 		Component.onCompleted: {
 			toTheTimer.start();
+		}
+
+		onCountChanged: {
+			if (buzzesThread_ && buzzesThread_.count === list.count) {
+				list.toTheBottom();
+			}
 		}
 
 		delegate: Item {
@@ -645,6 +710,7 @@ QuarkPage {
 				} else {
 					buzzItem = lComponent.createObject(itemDelegate);
 
+					buzzItem.sharedMediaPlayer_ = conversationthread_.mediaPlayerController;
 					buzzItem.accepted_ = conversationState() === conversationAccepted_;
 					buzzItem.width = list.width;
 					buzzItem.controller_ = conversationthread_.controller;
@@ -661,10 +727,33 @@ QuarkPage {
 
 			function calculatedHeightModified(value) {
 				itemDelegate.height = value;
-				if (atTheBottom)
-					toTheTimer.start();
+				list.toTheBottom();
+				//if (atTheBottom)
+				//	toTheTimer.start();
+			}
+
+			function unbindCommonControls() {
+				if (buzzItem) {
+					buzzItem.unbindCommonControls();
+				}
+			}
+
+			function forceVisibilityCheck(check) {
+				if (buzzItem) {
+					buzzItem.forceVisibilityCheck(check);
+				}
 			}
 		}
+	}
+
+	//
+	BuzzItemMediaPlayer {
+		id: player
+		x: 0
+		y: bottomLine.y1
+		width: parent.width
+		mediaPlayerController: conversationthread_.mediaPlayerController
+		overlayParent: list
 	}
 
 	//
@@ -877,8 +966,8 @@ QuarkPage {
 		running: false
 
 		onTriggered: {
-			list.positionViewAtEnd();
 			atTheBottom = true;
+			list.toTheBottom(); //positionViewAtEnd();
 		}
 	}
 
@@ -889,8 +978,8 @@ QuarkPage {
 		running: false
 
 		onTriggered: {
-			list.positionViewAtEnd();
 			atTheBottom = true;
+			list.toTheBottom(); // positionViewAtEnd();
 		}
 	}
 

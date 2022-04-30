@@ -23,7 +23,7 @@ Item
 
 	property var infoDialog;
 	property var controller;
-	property var mediaPlayerControler;
+	property var mediaPlayerController;
 
 	function externalPull() {
 		//modelLoader.restart();
@@ -41,9 +41,9 @@ Item
 		orientationChangedTimer.start();
 	}
 
-	onMediaPlayerControlerChanged: {
+	onMediaPlayerControllerChanged: {
 		//
-		buzzerApp.sharedMediaPlayerController(mediaPlayerControler);
+		buzzerApp.sharedMediaPlayerController(mediaPlayerController);
 	}
 
 	// to adjust model
@@ -66,7 +66,11 @@ Item
 
 		onTriggered: {
 			//
-			if (mediaPlayerControler) mediaPlayerControler.popVideoInstance();
+			if (mediaPlayerController) {
+				mediaPlayerController.disableContinousPlayback();
+				mediaPlayerController.popVideoInstance();
+			}
+
 			//
 			if (buzzerClient.buzzerDAppReady) {
 				modelLoader.restart();
@@ -169,8 +173,8 @@ Item
 
 		// TODO: consumes a lot RAM
 		//cacheBuffer: 10000
-		displayMarginBeginning: 500
-		displayMarginEnd: 500
+		displayMarginBeginning: 1000
+		displayMarginEnd: 1000
 
 		add: Transition {
 			enabled: true
@@ -183,6 +187,56 @@ Item
 				var lItem = list.itemAtIndex(lIdx);
 				if (lItem) {
 					lItem.width = list.width;
+				}
+			}
+		}
+
+		onContentYChanged: {
+			//
+			var lVisible;
+			var lProcessable;
+			var lBackItem;
+			var lForwardItem;
+			var lBeginIdx = list.indexAt(1, contentY);
+			//
+			if (lBeginIdx > -1) {
+				// trace back
+				for (var lBackIdx = lBeginIdx; lBackIdx >= 0; lBackIdx--) {
+					//
+					lBackItem = list.itemAtIndex(lBackIdx);
+					if (lBackItem) {
+						lVisible = lBackItem.y >= list.contentY && lBackItem.y + lBackItem.height < list.contentY + list.height;
+						lProcessable = (lBackItem.y + lBackItem.height) < list.contentY && list.contentY - (lBackItem.y + lBackItem.height) > displayMarginBeginning;
+						if (!lProcessable) {
+							lBackItem.forceVisibilityCheck(lVisible);
+						}
+
+						if (lProcessable) {
+							// stop it
+							lBackItem.unbindCommonControls();
+							break;
+						}
+					}
+				}
+
+				// trace forward
+				for (var lForwardIdx = lBeginIdx; lForwardIdx < list.count; lForwardIdx++) {
+					//
+					lForwardItem = list.itemAtIndex(lForwardIdx);
+					if (lForwardItem) {
+						lVisible = lForwardItem.y >= list.contentY && lForwardItem.y + lForwardItem.height < list.contentY + list.height;
+						lProcessable = (lForwardItem.y + lForwardItem.height) > list.contentY + list.height && (lForwardItem.y + lForwardItem.height) - (list.contentY + list.height) > displayMarginEnd;
+						if (!lProcessable) {
+							lForwardItem.forceVisibilityCheck(lVisible);
+						}
+
+						if (lProcessable) {
+							// stop it
+							lForwardItem.unbindCommonControls();
+							// we are done
+							break;
+						}
+					}
 				}
 			}
 		}
@@ -209,18 +263,6 @@ Item
 			id: itemDelegate
 
 			property var buzzItem;
-
-			property bool isFullyVisible: itemDelegate.y >= list.contentY && itemDelegate.y + height < list.contentY + list.height
-
-			onIsFullyVisibleChanged: {
-				if (itemDelegate !== null && itemDelegate.buzzItem !== null && itemDelegate.buzzItem !== undefined) {
-					try {
-						itemDelegate.buzzItem.forceVisibilityCheck(itemDelegate.isFullyVisible);
-					} catch (err) {
-						console.log("[onIsFullyVisibleChanged]: " + err + ", itemDelegate.buzzItem = " + itemDelegate.buzzItem);
-					}
-				}
-			}
 
 			function forceChildLink() {
 				buzzItem.childLink_ = true;
@@ -254,7 +296,7 @@ Item
 				var lComponent = Qt.createComponent(lSource);
 				buzzItem = lComponent.createObject(itemDelegate);
 
-				buzzItem.sharedMediaPlayer_ = buzzfeed_.mediaPlayerControler;
+				buzzItem.sharedMediaPlayer_ = buzzfeed_.mediaPlayerController;
 				buzzItem.width = list.width;
 				buzzItem.controller_ = buzzfeed_.controller;
 				buzzItem.buzzfeedModel_ = buzzerClient.getBuzzfeedList();
@@ -269,18 +311,22 @@ Item
 			function calculatedHeightModified(value) {
 				itemDelegate.height = value;
 			}
+
+			function unbindCommonControls() {
+				if (buzzItem) {
+					buzzItem.unbindCommonControls();
+				}
+			}
+
+			function forceVisibilityCheck(check) {
+				if (buzzItem) {
+					buzzItem.forceVisibilityCheck(check);
+				}
+			}
 		}
 	}
 
 	//
-	BuzzItemMediaPlayer {
-		id: buzzfeedPlayer
-		x: 0
-		y: 0
-		width: parent.width
-		mediaPlayerControler: buzzfeed_.mediaPlayerControler
-	}
-
 	QuarkToolButton {
 		id: createBuzz
 		x: parent.width - (width + 15)
@@ -331,5 +377,23 @@ Item
 	QuarkBusyIndicator {
 		anchors { horizontalCenter: parent.horizontalCenter; verticalCenter: parent.verticalCenter; }
 		running: !modelLoader.requestProcessed
+	}
+
+	//
+	BuzzItemMediaPlayer {
+		id: buzzfeedPlayer
+		x: 0
+		y: (list.y + list.height) - height // 0
+		width: parent.width
+		mediaPlayerController: buzzfeed_.mediaPlayerController
+		overlayParent: list
+
+		onVisibleChanged: {
+			if (visible) {
+				createBuzz.y = (parent.height - (height + 15)) - buzzfeedPlayer.height;
+			} else {
+				createBuzz.y = parent.height - (height + 15);
+			}
+		}
 	}
 }

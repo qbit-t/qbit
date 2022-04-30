@@ -88,6 +88,10 @@ Item {
 	}
 
 	Component.onCompleted: {
+		bindItem();
+	}
+
+	function bindItem() {
 		avatarDownloadCommand.process();
 		loadTrustScoreCommand.process(publisherBuzzerId_ + "/" + publisherBuzzerInfoChainId_);
 	}
@@ -101,6 +105,12 @@ Item {
 
 	function cleanUp() {
 		//
+	}
+
+	function forceVisibilityCheck(check) {
+	}
+
+	function unbindCommonControls() {
 	}
 
 	/*
@@ -244,7 +254,7 @@ Item {
 		}
 	}
 
-	Image {
+	BuzzerComponents.ImageQx {
 		id: avatarImage
 
 		x: spaceLeft_
@@ -252,8 +262,10 @@ Item {
 		width: avatarImage.displayWidth
 		height: avatarImage.displayHeight
 		fillMode: Image.PreserveAspectCrop
+		mipmap: true
+		radius: avatarImage.displayWidth
 
-		property bool rounded: true
+		property bool rounded: false //!
 		property int displayWidth: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 50 : 50
 		property int displayHeight: displayWidth
 

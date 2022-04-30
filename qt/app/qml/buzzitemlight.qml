@@ -109,6 +109,11 @@ Item {
 	function forceVisibilityCheck(isFullyVisible) {
 		bodyControl.setFullyVisible(isFullyVisible);
 	}
+
+	function unbindCommonControls() {
+		bodyControl.unbindCommonControls();
+	}
+
 	//
 	// avatar download
 	//
@@ -294,6 +299,10 @@ Item {
 
 			function setFullyVisible(fullyVisible) {
 				if (buzzMediaItem_) buzzMediaItem_.forceVisibilityCheck(fullyVisible);
+			}
+
+			function unbindCommonControls() {
+				if (buzzMediaItem_) buzzMediaItem_.unbindCommonControls();
 			}
 
 			function setSharedMediaPlayer() {

@@ -28,6 +28,7 @@ Rectangle {
 	property string mediaViewSelector: "dark"
 
 	//
+	readonly property bool playable: true
 	readonly property int spaceLeft_: 15
 	readonly property int spaceTop_: 12
 	readonly property int spaceRight_: 15
@@ -90,9 +91,24 @@ Rectangle {
 		}
 	}
 
+	function unbindCommonControls() {
+		//
+		if (player && (playing || downloadCommand.processing)) {
+			//
+			// reset playback
+			audioFrame.sharedMediaPlayer_.continuePlayback = false;
+			audioFrame.sharedMediaPlayer_.playbackController = null;
+			audioFrame.sharedMediaPlayer_.popVideoInstance();
+			unlink();
+		}
+	}
+
 	function checkPlaying() {
 		//
 		if (player) {
+			// reset continue playback
+			audioFrame.sharedMediaPlayer_.continuePlayback = false;
+			//
 			if (audioFrame.sharedMediaPlayer_.isCurrentInstancePaused()) player.stop();
 			else if (playing || downloadCommand.processing) audioFrame.sharedMediaPlayer_.showCurrentPlayer();
 		}
@@ -161,7 +177,7 @@ Rectangle {
 					var lMedia = lComponent.createObject(controller_);
 					lMedia.controller = controller_;
 					lMedia.buzzMedia_ = buzzitemmedia_.buzzMedia_;
-					lMedia.mediaPlayerControler = sharedMediaPlayer_;
+					lMedia.mediaPlayerController = sharedMediaPlayer_;
 					lMedia.initialize(pkey_, mediaIndex_, !sharedMediaPlayer_.isCurrentInstanceStopped() ? player : null, description_);
 					controller_.addPage(lMedia);
 				}
@@ -213,17 +229,50 @@ Rectangle {
 	property var videoOut: null
 	property bool playing: false
 
+	function unlink() {
+		player.onPlaying.disconnect(mediaPlaying);
+		player.onPaused.disconnect(mediaPaused);
+		player.onStopped.disconnect(mediaStopped);
+		player.onStatusChanged.disconnect(playerStatusChanged);
+		player.onPositionChanged.disconnect(playerPositionChanged);
+		player.onError.disconnect(playerError);
+	}
+
+	function tryPlay() {
+		if (actionButton.needDownload && !downloadCommand.downloaded && !downloadCommand.processing) {
+			// start
+			actionButton.symbol = Fonts.cancelSym;
+			mediaLoading.start();
+			audioFrame.sharedMediaPlayer_.playbackDownloadStarted();
+			downloadCommand.process();
+		} else if (actionButton.needDownload && !downloadCommand.downloaded && downloadCommand.processing) {
+			// cancel
+			actionButton.symbol = Fonts.arrowDownHollowSym;
+			mediaLoading.visible = false;
+			downloadCommand.processing = false;
+			downloadCommand.terminate();
+			audioFrame.sharedMediaPlayer_.playbackDownloadCompleted();
+		} else if (!audioFrame.playing) {
+			actionButton.symbol = Fonts.cancelSym;
+			audioFrame.play();
+		} else {
+			if (audioFrame.player)
+				audioFrame.player.pause();
+		}
+	}
+
 	function play(existingPlayer) {
 		//
 		if (existingPlayer) {
-			existingPlayer.onPlaying.connect(mediaPlaying);
-			existingPlayer.onPaused.connect(mediaPaused);
-			existingPlayer.onStopped.connect(mediaStopped);
-			existingPlayer.onStatusChanged.connect(playerStatusChanged);
-			existingPlayer.onPositionChanged.connect(playerPositionChanged);
-			existingPlayer.onError.connect(playerError);
+			var lSingleAudioOut = audioFrame.sharedMediaPlayer_.createAudioInstance(audioFrame, audioOut, buzzitemmedia_, true);
+			lSingleAudioOut.onPlaying.connect(mediaPlaying);
+			lSingleAudioOut.onPaused.connect(mediaPaused);
+			lSingleAudioOut.onStopped.connect(mediaStopped);
+			lSingleAudioOut.onStatusChanged.connect(playerStatusChanged);
+			lSingleAudioOut.onPositionChanged.connect(playerPositionChanged);
+			lSingleAudioOut.onError.connect(playerError);
 
-			player = existingPlayer;
+			player = lSingleAudioOut;
 
 			if (!player.playing) {
 				downloadCommand.downloaded = true;
@@ -233,30 +282,33 @@ Rectangle {
 				mediaPlaying();
 			}
 		} else {
-			if (!player) {
-				// controller
-				var lAudioOut = audioFrame.sharedMediaPlayer_.createAudioInstance(audioFrame, audioOut);
-				//
-				if (lAudioOut) {
-					lAudioOut.player.description = description_;
-					lAudioOut.player.caption = caption_;
-					lAudioOut.player.onPlaying.connect(mediaPlaying);
-					lAudioOut.player.onPaused.connect(mediaPaused);
-					lAudioOut.player.onStopped.connect(mediaStopped);
-					lAudioOut.player.onStatusChanged.connect(playerStatusChanged);
-					lAudioOut.player.onPositionChanged.connect(playerPositionChanged);
-					lAudioOut.player.onError.connect(playerError);
+			// controller
+			var lAudioOut = audioFrame.sharedMediaPlayer_.createAudioInstance(audioFrame, audioOut, buzzitemmedia_);
+			//
+			if (lAudioOut) {
+				lAudioOut.player.description = description_;
+				lAudioOut.player.caption = caption_;
+				lAudioOut.player.onPlaying.connect(mediaPlaying);
+				lAudioOut.player.onPaused.connect(mediaPaused);
+				lAudioOut.player.onStopped.connect(mediaStopped);
+				lAudioOut.player.onStatusChanged.connect(playerStatusChanged);
+				lAudioOut.player.onPositionChanged.connect(playerPositionChanged);
+				lAudioOut.player.onError.connect(playerError);
 
-					player = lAudioOut.player;
+				player = lAudioOut.player;
 
-					player.source = path_;
-					player.play();
-				}
-			} else {
-				if (player.stopped)
-					audioFrame.sharedMediaPlayer_.linkInstance(audioOut);
+				player.source = path_;
 				player.play();
 			}
+
+			/*
+			if (!player) {
+			} else {
+				if (player.stopped)
+					audioFrame.sharedMediaPlayer_.linkInstance(audioOut, buzzitemmedia_);
+				player.play();
+			}
+			*/
 		}
 	}
 
@@ -287,8 +339,6 @@ Rectangle {
 				totalTime.setTotalTime(audioFrame.player.duration ? audioFrame.player.duration : duration_);
 				totalSize.setTotalSize(size_);
 				playSlider.to = audioFrame.player.duration ? audioFrame.player.duration : duration_;
-
-				//console.log("[onStatusChanged/buffered/inner]: status = " + videoFrame.player.status + ", duration = " + videoFrame.player.duration);
 			break;
 		}
 	}
@@ -327,24 +377,7 @@ Rectangle {
 
 		onClick: {
 			//
-			if (needDownload && !downloadCommand.downloaded && !downloadCommand.processing) {
-				// start
-				symbol = Fonts.cancelSym;
-				mediaLoading.start();
-				downloadCommand.process();
-			} else if (needDownload && !downloadCommand.downloaded && downloadCommand.processing) {
-				// cancel
-				symbol = Fonts.arrowDownHollowSym;
-				mediaLoading.visible = false;
-				downloadCommand.processing = false;
-				downloadCommand.terminate();
-			} else if (!audioFrame.playing) {
-				symbol = Fonts.cancelSym;
-				audioFrame.play();
-			} else {
-				if (audioFrame.player)
-					audioFrame.player.pause();
-			}
+			tryPlay();
 		}
 
 		function notLoaded() {
@@ -484,6 +517,7 @@ Rectangle {
 			//
 			processing = true;
 			mediaLoading.progress(pos, size);
+			audioFrame.sharedMediaPlayer_.playbackDownloading(pos, size);
 		}
 
 		onProcessed: {
@@ -506,6 +540,8 @@ Rectangle {
 			path_ = "file://" + originalFile;
 			// stop spinning
 			mediaLoading.visible = false;
+			// signal
+			audioFrame.sharedMediaPlayer_.playbackDownloadCompleted();
 
 			// adjust button
 			actionButton.adjust();
