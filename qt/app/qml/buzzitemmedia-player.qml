@@ -50,7 +50,9 @@ Rectangle {
 	property bool gallery: false
 	property string galleryTheme: "Darkmatter"
 	property string gallerySelector: "dark"
-	property bool instanceLinked: false
+	property bool instanceLinked: false	
+	property var overlayRect;
+	property bool inverse: false
 
 	signal instanceBounded();
 
@@ -143,14 +145,14 @@ Rectangle {
 
 	function playerShow() {
 		if (mediaPlayer && player) {
-			console.log("[playerShow]: ...");
+			//console.log("[playerShow]: ...");
 			mediaPlayer.visible = true;
 		}
 	}
 
 	function playerHide() {
 		if (mediaPlayer) {
-			console.log("[playerHide]: ...");
+			//console.log("[playerHide]: ...");
 			mediaPlayer.visible = false;
 		}
 	}
@@ -191,7 +193,7 @@ Rectangle {
 
 			if (mediaPlayerController) {
 				console.log("[mediaStopped]: releasing wake lock, mediaPlayerController.continuePlayback = " + mediaPlayerController.continuePlayback);
-				//mediaPlayerController.continuePlayback = false;
+				mediaPlayerController.continuePlayback = false;
 			}
 
 			if (!showOnChanges) {
@@ -268,21 +270,27 @@ Rectangle {
 											  mediaPlayerController.playbackController.mediaCount > 1
 	property bool playListAvailable: playListAvailableCondition !== undefined ? (playListAvailableCondition === true) : false
 
-	ShaderEffectSource {
-		id: effectSource
-		sourceItem: overlayParent
+	Item {
 		anchors.fill: parent
-		sourceRect: Qt.rect(mediaPlayer.x, mediaPlayer.y - (overlayParent ? overlayParent.y : 0), mediaPlayer.width, mediaPlayer.height)
-		mipmap: true
-	}
 
-	GaussianBlur { //
-	  id: blur
-	  anchors.fill: parent
-	  source: effectSource
-	  radius: 18
-	  samples: 32
-	  cached: true
+		ShaderEffectSource {
+			id: effectSource
+			sourceItem: overlayParent
+			anchors.fill: parent
+			sourceRect: overlayRect ? overlayRect : Qt.rect(mediaPlayer.x, mediaPlayer.y - (overlayParent ? overlayParent.y : 0), mediaPlayer.width, mediaPlayer.height)
+			mipmap: true
+		}
+
+		GaussianBlur { //
+		  id: blur
+		  anchors.fill: parent
+		  source: effectSource
+		  radius: 18
+		  samples: 32
+		  cached: true
+		}
+
+		rotation: inverse ? 180 : 0
 	}
 
 	//

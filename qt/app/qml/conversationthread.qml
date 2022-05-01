@@ -50,21 +50,10 @@ QuarkPage {
 	readonly property int sideCounterparty_: 1
 
 	property bool sending: false
-	property bool atTheBottom: false
+	property bool atTheBottom: true
 
 	property bool isCreator_: conversation_ !== undefined &&
 							  buzzerClient.getCurrentBuzzerId() === conversation_.creatorId
-
-	/*
-	Connections {
-		target: list //buzzesThread_
-
-		function onCountChanged() {
-			console.log("[onCountChanged]: atTheBottom = " + atTheBottom);
-			list.toTheBottom();
-		}
-	}
-	*/
 
 	function start(conversationId, conversation, conversations) {
 		//
@@ -130,6 +119,14 @@ QuarkPage {
 	}
 
 	function closePage() {
+		//
+		if (mediaPlayerController && mediaPlayerController.isCurrentInstancePlaying()) {
+			mediaPlayerController.disableContinousPlayback();
+			mediaPlayerController.popVideoInstance();
+			mediaPlayerController.showCurrentPlayer();
+		}
+
+		//
 		stopPage();
 		controller.popPage();
 		destroy(1000);
@@ -559,15 +556,13 @@ QuarkPage {
 		y: buzzThreadToolBar.y + buzzThreadToolBar.height
 		width: parent.width
 		height: parent.height - (buzzThreadToolBar.y + buzzThreadToolBar.height + messageContainer.height - 1)
-		usePull: true
+		usePull: false
 		clip: true
 		highlightFollowsCurrentItem: true
 		highlightMoveDuration: -1
 		highlightMoveVelocity: -1
 
-		//cacheBuffer: 10000
-		displayMarginBeginning: 1000
-		displayMarginEnd: 1000
+		rotation: 180
 
 		model: buzzesThread_
 
@@ -575,6 +570,9 @@ QuarkPage {
 			enabled: true
 			NumberAnimation { property: "opacity"; from: 0; to: 1.0; duration: 400 }
 		}
+
+		ScrollIndicator.vertical: scrollIndicator
+		//ScrollBar.vertical: scrollBar
 
 		function adjust() {
 			//
@@ -587,29 +585,33 @@ QuarkPage {
 		}
 
 		function toTheBottom() {
-			if (atTheBottom && list.count > 0) {
-				list.usePull = false;
-				list.currentIndex = list.count - 1;
-				list.usePull = true;
-			}
-
-			//if (atTheBottom) list.positionViewAtEnd();
 		}
 
-		property int lastItemCount: -1
+		onContentHeightChanged: {
+		}
+
+		function isBottomItemVisible() {
+			var lBottomItem = list.itemAtIndex(model.count - 1);
+			if (lBottomItem) {
+				return lBottomItem.isFullyVisible;
+			}
+
+			return false;
+		}
+
+		function isTopItemVisible() {
+			var lTopItem = list.itemAtIndex(0);
+			if (lTopItem) {
+				return lTopItem.isFullyVisible;
+			}
+
+			return false;
+		}
 
 		onContentYChanged: {
 			//
-			if (lastItemCount == -1) lastItemCount = list.count;
-			if (lastItemCount == list.count) {
-				var lBottomItem = list.itemAtIndex(list.count - 1);
-				if (lBottomItem !== null) {
-					atTheBottom = lBottomItem.isFullyVisible;
-				}
-			}
-
-			lastItemCount = list.count;
-			//toTheBottom();
+			atTheBottom = isTopItemVisible();
+			console.log("[onContentYChanged]: contentY = " + contentY);
 
 			//
 			var lVisible;
@@ -625,7 +627,7 @@ QuarkPage {
 					lBackItem = list.itemAtIndex(lBackIdx);
 					if (lBackItem) {
 						lVisible = lBackItem.y >= list.contentY && lBackItem.y + lBackItem.height < list.contentY + list.height;
-						lProcessable = (lBackItem.y + lBackItem.height) < list.contentY && list.contentY - (lBackItem.y + lBackItem.height) > displayMarginBeginning;
+						lProcessable = (lBackItem.y + lBackItem.height) < list.contentY && list.contentY - (lBackItem.y + lBackItem.height) >= (cacheBuffer * 0.9);
 						if (!lProcessable) {
 							lBackItem.forceVisibilityCheck(lVisible);
 						}
@@ -644,7 +646,7 @@ QuarkPage {
 					lForwardItem = list.itemAtIndex(lForwardIdx);
 					if (lForwardItem) {
 						lVisible = lForwardItem.y >= list.contentY && lForwardItem.y + lForwardItem.height < list.contentY + list.height;
-						lProcessable = (lForwardItem.y + lForwardItem.height) > list.contentY + list.height && (lForwardItem.y + lForwardItem.height) - (list.contentY + list.height) > displayMarginEnd;
+						lProcessable = (lForwardItem.y + lForwardItem.height) > list.contentY + list.height && (lForwardItem.y + lForwardItem.height) - (list.contentY + list.height) >= (cacheBuffer * 0.9);
 						if (!lProcessable) {
 							lForwardItem.forceVisibilityCheck(lVisible);
 						}
@@ -681,19 +683,13 @@ QuarkPage {
 			toTheTimer.start();
 		}
 
-		onCountChanged: {
-			if (buzzesThread_ && buzzesThread_.count === list.count) {
-				list.toTheBottom();
-			}
-		}
-
 		delegate: Item {
 			id: itemDelegate
 
-			property var buzzItem;
+			rotation: 180
 
-			property int yoff: Math.round(itemDelegate.y - list.contentY)
-			property bool isFullyVisible: (yoff > list.y && yoff + height < list.y + list.height)
+			property var buzzItem;
+			property bool isFullyVisible: y >= list.contentY && y + height < list.contentY + list.height
 
 			onWidthChanged: {
 				if (buzzItem) {
@@ -727,9 +723,6 @@ QuarkPage {
 
 			function calculatedHeightModified(value) {
 				itemDelegate.height = value;
-				list.toTheBottom();
-				//if (atTheBottom)
-				//	toTheTimer.start();
 			}
 
 			function unbindCommonControls() {
@@ -744,6 +737,28 @@ QuarkPage {
 				}
 			}
 		}
+
+		Rectangle {
+			id: viewPort
+			x: 0
+			y: parent.height - player.height
+			width: parent.width
+			height: player.height
+			color: "transparent"
+			//rotation: 180
+		}
+	}
+
+	ScrollIndicator {
+		id: scrollIndicator
+		rotation: 180
+		active: true
+		anchors {
+			left: list.left
+			top: list.top
+			bottom: list.bottom
+			leftMargin: list.width - width
+		}
 	}
 
 	//
@@ -754,6 +769,29 @@ QuarkPage {
 		width: parent.width
 		mediaPlayerController: conversationthread_.mediaPlayerController
 		overlayParent: list
+		overlayRect: Qt.rect(viewPort.x, viewPort.y, viewPort.width, viewPort.height)
+		inverse: true
+	}
+
+	//
+	QuarkRoundSymbolButton {
+		id: goBottom
+		x: list.width - (width + spaceItems_ * 2)
+		y: list.y + list.height - (height + spaceItems_ * 2)
+
+		symbol: Fonts.arrowBottomSym
+		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 7)) : 18
+		radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius)) : defaultRadius
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.highlight")
+		opacity: 0.6
+
+		enabled: true
+
+		visible: !atTheBottom
+
+		onClick: {
+			list.positionViewAtBeginning();
+		}
 	}
 
 	//
@@ -966,19 +1004,19 @@ QuarkPage {
 		running: false
 
 		onTriggered: {
-			atTheBottom = true;
+			//atTheBottom = true;
 			list.toTheBottom(); //positionViewAtEnd();
 		}
 	}
 
 	Timer {
 		id: toTheTimer
-		interval: 1000
+		interval: 500
 		repeat: false
 		running: false
 
 		onTriggered: {
-			atTheBottom = true;
+			//atTheBottom = true;
 			list.toTheBottom(); // positionViewAtEnd();
 		}
 	}

@@ -256,5 +256,6 @@ Item
 	readonly property string flashLightSym: "\uf8b8";
 
 	readonly property string eraserSym: "\uf12d";
+	readonly property string arrowBottomSym: "\uf33d";
 }
 

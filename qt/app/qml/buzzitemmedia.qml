@@ -432,6 +432,7 @@ Item {
 		}
 	}
 
+	/*
 	PageIndicator {
 		id: mediaIndicator
 		count: buzzMedia_ ? buzzMedia_.length : 0
@@ -446,26 +447,28 @@ Item {
 		Material.background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.background");
 		Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground");
 		Material.primary: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.primary");
+	}
+	*/
 
-		/*
-		delegate: Rectangle {
-			implicitWidth: 6
-			implicitHeight: 6
+	/*
+	delegate: Rectangle {
+		implicitWidth: 6
+		implicitHeight: 6
 
-			radius: width / 2
-			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+		radius: width / 2
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 
-			opacity: index === mediaIndicator.currentIndex ? 0.95 : pressed ? 0.7 : 0.45
+		opacity: index === mediaIndicator.currentIndex ? 0.95 : pressed ? 0.7 : 0.45
 
-			Behavior on opacity {
-				OpacityAnimator {
-					duration: 100
-				}
+		Behavior on opacity {
+			OpacityAnimator {
+				duration: 100
 			}
 		}
-		*/
 	}
+	*/
 
+	/*
 	QuarkLabel {
 		id: mediaPagesIndicator
 		x: calculatedWidthInternal - width
@@ -477,6 +480,24 @@ Item {
 
 		property var count: buzzMedia_ ? buzzMedia_.length : 0
 		property var currentIndex: mediaIndicator.currentIndex
+
+		onCurrentIndexChanged: {
+			text = (currentIndex + 1) + "/" + count;
+		}
+	}
+	*/
+
+	QuarkLabel {
+		id: mediaIndicator
+		x: calculatedWidthInternal - (width + spaceItems_)
+		y: spaceStats_ - (height + 3)
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 1)) : defaultFontSize + 1
+		text: "0/0"
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
+		visible: count > 1
+
+		property var count: buzzMedia_ ? buzzMedia_.length : 0
+		property var currentIndex: mediaList.currentIndex
 
 		onCurrentIndexChanged: {
 			text = (currentIndex + 1) + "/" + count;

@@ -32,11 +32,16 @@ ListView
 
     onContentYChanged:
     {
+		currentIndexAtTop = indexAt(1, contentY);
+
+		if (model && (currentIndexAtTop + feedDelta > model.count /*|| lEffectiveBottom < 30*/)) {
+			//console.log("[feed/onContentYChanged/fired]: lEffectiveBottom = " + lEffectiveBottom);
+			feedReady();
+		}
+
 		if (!usePull) return;
 
-        currentIndexAtTop = indexAt(1, contentY);
-
-        var lHeight = contentY - originY;
+		var lHeight = contentY - originY;
 		var lCoeff = 0.1;
         if (lHeight < 0) pullHeight = -lHeight;
         else pullHeight = 0.0;
@@ -49,10 +54,6 @@ ListView
 		//var lEffectiveBottom = ((contentHeight - contentY) * 100.0 / contentHeight);
 		//console.log("[feed/onContentYChanged]: lEffectiveBottom = " + lEffectiveBottom + ", currentIndexAtTop = " + currentIndexAtTop
 		//			+ ", total = " + (currentIndexAtTop + feedDelta) + ", model.count = " + model.count);
-		if (model && (currentIndexAtTop + feedDelta > model.count /*|| lEffectiveBottom < 30*/)) {
-			//console.log("[feed/onContentYChanged/fired]: lEffectiveBottom = " + lEffectiveBottom);
-			feedReady();
-		}
     }
 
     Item
@@ -112,6 +113,7 @@ ListView
         ]
     }
 
-    ScrollIndicator.vertical: ScrollIndicator {}
+	ScrollIndicator.vertical: ScrollIndicator {
+	}
 }
 

@@ -259,8 +259,8 @@ QuarkPage {
 
 		// TODO: consumes a lot RAM
 		//cacheBuffer: 10000
-		displayMarginBeginning: 1000
-		displayMarginEnd: 1000
+		//displayMarginBeginning: 1000
+		//displayMarginEnd: 1000
 
 		add: Transition {
 			enabled: true
@@ -306,7 +306,7 @@ QuarkPage {
 					lBackItem = list.itemAtIndex(lBackIdx);
 					if (lBackItem) {
 						lVisible = lBackItem.y >= list.contentY && lBackItem.y + lBackItem.height < list.contentY + list.height;
-						lProcessable = (lBackItem.y + lBackItem.height) < list.contentY && list.contentY - (lBackItem.y + lBackItem.height) > displayMarginBeginning;
+						lProcessable = (lBackItem.y + lBackItem.height) < list.contentY && list.contentY - (lBackItem.y + lBackItem.height) >= (cacheBuffer * 0.9);
 						if (!lProcessable) {
 							lBackItem.forceVisibilityCheck(lVisible);
 						}
@@ -325,7 +325,7 @@ QuarkPage {
 					lForwardItem = list.itemAtIndex(lForwardIdx);
 					if (lForwardItem) {
 						lVisible = lForwardItem.y >= list.contentY && lForwardItem.y + lForwardItem.height < list.contentY + list.height;
-						lProcessable = (lForwardItem.y + lForwardItem.height) > list.contentY + list.height && (lForwardItem.y + lForwardItem.height) - (list.contentY + list.height) > displayMarginEnd;
+						lProcessable = (lForwardItem.y + lForwardItem.height) > list.contentY + list.height && (lForwardItem.y + lForwardItem.height) - (list.contentY + list.height) >= (cacheBuffer * 0.9);
 						if (!lProcessable) {
 							lForwardItem.forceVisibilityCheck(lVisible);
 						}

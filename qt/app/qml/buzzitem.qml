@@ -376,6 +376,7 @@ Item {
 
 		autoTransform: true
 
+		/*
 		layer.enabled: rounded
 		layer.effect: OpacityMask {
 			maskSource: Item {
@@ -390,6 +391,7 @@ Item {
 				}
 			}
 		}
+		*/
 
 		MouseArea {
 			id: buzzerInfoClick
@@ -421,7 +423,7 @@ Item {
 		x1: avatarImage.x + avatarImage.width / 2
 		y1: avatarImage.y + avatarImage.height + spaceLine_ + (endorseSymbol.visible ? (endorseSymbol.height + spaceItems_ + 2) : 0)
 		x2: x1
-		y2: bottomLine.y - (threaded_ || threadedControl.showMore() ? spaceThreaded_ : 0)
+		y2: bottomLine.y1 - (threaded_ || threadedControl.showMore() ? spaceThreaded_ : 0)
 		penWidth: 2
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
 		visible: hasNextLink_ || threadedControl.showMore()
@@ -431,7 +433,7 @@ Item {
 		id: threadedPoint0
 
 		x: (avatarImage.x + avatarImage.width / 2) - spaceThreadedItems_ / 2
-		y: (bottomLine.y - spaceThreaded_) + spaceThreadedItems_ - 1
+		y: (bottomLine.y1 - spaceThreaded_) + spaceThreadedItems_ - 1
 		width: spaceThreadedItems_
 		height: spaceThreadedItems_
 		radius: width / 2
@@ -478,7 +480,7 @@ Item {
 		x1: avatarImage.x + avatarImage.width / 2
 		y1: threadedPoint2.y + threadedPoint2.height + spaceThreadedItems_ - 1
 		x2: x1
-		y2: bottomLine.y
+		y2: bottomLine.y1
 		penWidth: 2
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
 
@@ -651,6 +653,84 @@ Item {
 			buzzitem_.calculateHeight();
 		}
 
+		Loader {
+			id: wrapperLoader
+			asynchronous: true
+
+			onLoaded: {
+				bodyControl.wrappedItem_ = item;
+				bodyControl.wrappedItem_.calculatedHeightModified.connect(bodyControl.innerHeightChanged);
+
+				bodyControl.wrappedItem_.x = 0;
+				bodyControl.wrappedItem_.y = bodyControl.getY();
+				bodyControl.wrappedItem_.width = bodyControl.width;
+				bodyControl.wrappedItem_.controller_ = buzzitem_.controller_;
+				bodyControl.wrappedItem_.sharedMediaPlayer_ = buzzitem_.sharedMediaPlayer_;
+
+				//console.log("[WRAPPED]: wrapped_.buzzerId = " + wrapped_.buzzerId + ", wrapped_.buzzerInfoId = " + wrapped_.buzzerInfoId);
+
+				bodyControl.wrappedItem_.timestamp_ = wrapped_.timestamp;
+				bodyControl.wrappedItem_.score_ = wrapped_.score;
+				bodyControl.wrappedItem_.buzzId_ = wrapped_.buzzId;
+				bodyControl.wrappedItem_.buzzChainId_ = wrapped_.buzzChainId;
+				bodyControl.wrappedItem_.buzzerId_ = wrapped_.buzzerId;
+				bodyControl.wrappedItem_.buzzerInfoId_ = wrapped_.buzzerInfoId;
+				bodyControl.wrappedItem_.buzzerInfoChainId_ = wrapped_.buzzerInfoChainId;
+				bodyControl.wrappedItem_.buzzBody_ = buzzerClient.decorateBuzzBody(wrapped_.buzzBody);
+				bodyControl.wrappedItem_.buzzMedia_ = wrapped_.buzzMedia;
+				bodyControl.wrappedItem_.lastUrl_ = buzzerClient.extractLastUrl(wrapped_.buzzBody);
+				bodyControl.wrappedItem_.ago_ = buzzerClient.timestampAgo(wrapped_.timestamp);
+
+				bodyControl.height = bodyControl.getHeight();
+				buzzitem_.calculateHeight();
+			}
+		}
+
+		Loader {
+			id: mediaLoader
+			asynchronous: true
+
+			onLoaded: {
+				bodyControl.buzzMediaItem_ = item;
+				bodyControl.buzzMediaItem_.calculatedHeightModified.connect(bodyControl.innerHeightChanged);
+
+				bodyControl.buzzMediaItem_.x = 0;
+				bodyControl.buzzMediaItem_.y = bodyControl.getNextY();
+				bodyControl.buzzMediaItem_.calculatedWidth = bodyControl.width;
+				bodyControl.buzzMediaItem_.width = bodyControl.width;
+				bodyControl.buzzMediaItem_.controller_ = buzzitem_.controller_;
+				bodyControl.buzzMediaItem_.buzzId_ = buzzitem_.buzzId_;
+				bodyControl.buzzMediaItem_.buzzBody_ = buzzitem_.buzzBodyFlat_;
+				bodyControl.buzzMediaItem_.buzzMedia_ = buzzitem_.buzzMedia_;
+				bodyControl.buzzMediaItem_.sharedMediaPlayer_ = buzzitem_.sharedMediaPlayer_;
+				bodyControl.buzzMediaItem_.initialize();
+
+				bodyControl.height = bodyControl.getHeight();
+				buzzitem_.calculateHeight();
+			}
+		}
+
+		Loader {
+			id: urlLoader
+			asynchronous: true
+
+			onLoaded: {
+				bodyControl.urlInfoItem_ = item;
+				bodyControl.urlInfoItem_.calculatedHeightModified.connect(bodyControl.innerHeightChanged);
+
+				bodyControl.urlInfoItem_.x = 0;
+				bodyControl.urlInfoItem_.y = bodyControl.getNextY();
+				bodyControl.urlInfoItem_.calculatedWidth = bodyControl.width;
+				bodyControl.urlInfoItem_.width = bodyControl.width;
+				bodyControl.urlInfoItem_.controller_ = buzzitem_.controller_;
+				bodyControl.urlInfoItem_.lastUrl_ = buzzitem_.lastUrl_;
+				bodyControl.urlInfoItem_.initialize();
+
+				bodyControl.height = bodyControl.getHeight();
+				buzzitem_.calculateHeight();
+			}
+		}
+
 		property var buzzMediaItem_;
 		property var urlInfoItem_;
 		property var wrappedItem_;
@@ -782,6 +862,9 @@ Item {
 
 			// if rebuzz and wapped
 			if (wrapped_ && !wrappedItem_) {
+				//
+				wrapperLoader.setSource("qrc:/qml/buzzitemlight.qml");
+				/*
 				// buzzText
 				lSource = "qrc:/qml/buzzitemlight.qml";
 				lComponent = Qt.createComponent(lSource);
@@ -810,11 +893,15 @@ Item {
 
 				bodyControl.height = bodyControl.getHeight();
 				buzzitem_.calculateHeight();
+				*/
 			}
 
 			// expand media
 			if (buzzMedia_.length) {
 				if (!buzzMediaItem_) {
+					//
+					mediaLoader.setSource("qrc:/qml/buzzitemmedia.qml");
+					/*
 					lSource = "qrc:/qml/buzzitemmedia.qml";
 					lComponent = Qt.createComponent(lSource);
 					buzzMediaItem_ = lComponent.createObject(bodyControl);
@@ -833,10 +920,14 @@ Item {
 
 					bodyControl.height = bodyControl.getHeight();
 					buzzitem_.calculateHeight();
+					*/
 				}
 			} else if (lastUrl_.length) {
 				//
 				if (!urlInfoItem_) {
+					//
+					urlLoader.setSource(buzzerApp.isDesktop ? "qrc:/qml/buzzitemurl-desktop.qml" : "qrc:/qml/buzzitemurl.qml");
+					/*
 					lSource = buzzerApp.isDesktop ? "qrc:/qml/buzzitemurl-desktop.qml" : "qrc:/qml/buzzitemurl.qml";
 					lComponent = Qt.createComponent(lSource);
 					urlInfoItem_ = lComponent.createObject(bodyControl);
@@ -852,11 +943,16 @@ Item {
 
 					bodyControl.height = bodyControl.getHeight();
 					buzzitem_.calculateHeight();
+					*/
 				}
 			}
 		}
 
 		function innerHeightChanged(value) {
+			if (value <= 1) return;
+			//if (buzzId_ === "5cc610c922785a652099e621226218250207b57ead815a42c89adcc282ba2dce")
+			//	console.log("[innerHeightChanged]: value = " + value);
+
 			bodyControl.height = bodyControl.getHeight();
 			buzzitem_.calculateHeight();
 			//console.log("[innerHeightChanged]: value = " + value + ", bodyControl.height = " + bodyControl.height);
@@ -904,7 +1000,7 @@ Item {
 		symbol: Fonts.replySym
 		Material.background: "transparent"
 		visible: true
-		labelYOffset: /*buzzerApp.isDesktop ? 0 :*/ buzzerClient.scaleFactor * 2
+		labelYOffset: buzzerClient.scaleFactor * 2
 		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 		Layout.alignment: Qt.AlignHCenter
 		font.family: Fonts.icons
@@ -945,7 +1041,7 @@ Item {
 		symbol: Fonts.rebuzzSym
 		Material.background: "transparent"
 		visible: true
-		labelYOffset: /*buzzerApp.isDesktop ? 0 :*/ buzzerClient.scaleFactor * 2
+		labelYOffset: buzzerClient.scaleFactor * 2
 		symbolColor: ownRebuzz_ ?
 			buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.event.rebuzz") :
 			buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
@@ -1050,14 +1146,6 @@ Item {
 			if (dynamic_) return false;
 
 			return hasMore_;
-			/*
-			if (replies_ > 0) {
-				if (childrenCount_ < replies_)
-					return true;
-			}
-
-			return false;
-			*/
 		}
 
 		function getHeight() {
@@ -1109,7 +1197,11 @@ Item {
 
 		model: ListModel { id: menuModel }
 
-		Component.onCompleted: prepare()
+		//Component.onCompleted: prepare()
+
+		onAboutToShow: {
+			prepare();
+		}
 
 		onClick: {
 			//
@@ -1185,7 +1277,11 @@ Item {
 
 		model: ListModel { id: tipModel }
 
-		Component.onCompleted: prepare()
+		//Component.onCompleted: prepare()
+
+		onAboutToShow: {
+			prepare();
+		}
 
 		onClick: {
 			buzzRewardCommand.process(buzzId_, key);
@@ -1220,7 +1316,11 @@ Item {
 
 		model: ListModel { id: rebuzzModel }
 
-		Component.onCompleted: prepare()
+		//Component.onCompleted: prepare()
+
+		onAboutToShow: {
+			prepare();
+		}
 
 		onClick: {
 			if (key === "rebuzz") {

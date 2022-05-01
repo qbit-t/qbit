@@ -19,6 +19,7 @@ Item {
 	property var controller;
 	property var playbackController: null;
 	property bool continuePlayback: true
+	property var lastInstancePlayer: null;
 	property var lastInstance: null;
 	property var prevInstance: null;
 
@@ -68,7 +69,13 @@ Item {
 			lastInstance.player.onStopped.disconnect(mediaStopped);
 			lastInstance.player.stop();
 		} else {
-			if (!lastInstance) console.log("[createInstance]: lastInstance = " + lastInstance);
+			if (lastInstancePlayer) {
+				console.log("[createInstance]: lastInstancePlayer = " + lastInstancePlayer);
+				lSource = lastInstancePlayer.source;
+				lPosition = lastInstancePlayer.position;
+				lastInstancePlayer.onStopped.disconnect(mediaStopped);
+				lastInstancePlayer.stop();
+			} else if (!lastInstance) console.log("[createInstance]: lastInstance = " + lastInstance);
 			else if (lastInstance.player) console.log("[createInstance]: lastInstance.player = " + lastInstance.player);
 		}
 
@@ -87,6 +94,7 @@ Item {
 				lVideoOutput.player = lPlayer;
 
 				lPlayer.onStopped.connect(mediaStopped);
+				lastInstancePlayer = lPlayer;
 
 				if (continuous && lSource) {
 					// TODO: ?
@@ -178,7 +186,13 @@ Item {
 			//
 			lSource = lastInstance.player.source;
 			lPosition = lastInstance.player.position;
+			lastInstance.player.onStopped.disconnect(mediaStopped);
 			lastInstance.player.stop();
+		} else if (lastInstancePlayer) {
+			lSource = lastInstancePlayer.source;
+			lPosition = lastInstancePlayer.position;
+			lastInstancePlayer.onStopped.disconnect(mediaStopped);
+			lastInstancePlayer.stop();
 		}
 
 		//
@@ -188,6 +202,9 @@ Item {
 		} else {
 			lPlayer = lComponent.createObject(playerController /*playerPlceholder*/);
 			root.player = lPlayer;
+
+			lPlayer.onStopped.connect(mediaStopped);
+			lastInstancePlayer = lPlayer;
 
 			if (continuous && lSource) {
 				// TODO: ?

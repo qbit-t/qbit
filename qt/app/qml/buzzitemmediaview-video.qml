@@ -706,7 +706,7 @@ Rectangle {
 
 		symbol: needDownload && !downloadCommand.downloaded ? Fonts.arrowDownHollowSym :
 									(videoFrame.playing ? Fonts.pauseSym : Fonts.playSym)
-		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 14)) : 24
+		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 17)) : 27
 		radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius * 1.5)) : defaultRadius * 1.5
 		color: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.menu.highlight")
 		Material.background: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.menu.background");
