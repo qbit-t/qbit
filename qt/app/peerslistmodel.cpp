@@ -172,6 +172,14 @@ void PeersListModel::feedInternal(std::vector<PeerItemPtr>& items) {
 	for (std::list<qbit::IPeerPtr>::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
 		//
 		if ((*lPeer)->status() == qbit::IPeer::UNDEFINED) continue;
+		if ((*lPeer)->status() != qbit::IPeer::ACTIVE) {
+			QString lStatus;
+			if ((*lPeer)->status() == qbit::IPeer::QUARANTINE) lStatus = "QUARANTINE";
+			else if ((*lPeer)->status() == qbit::IPeer::PENDING_STATE) lStatus = "PENDING";
+			else if ((*lPeer)->status() == qbit::IPeer::POSTPONED) lStatus = "POSTPONED";
+			qInfo() << "[PeersListModel::feedInternal/warning]:" << QString::fromStdString((*lPeer)->key()) << lStatus;
+		}
+
 		items.push_back(PeerItem::instance(*lPeer));
 	}
 }

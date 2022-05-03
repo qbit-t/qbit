@@ -48,7 +48,7 @@ typedef LimitedString<TX_CUBIX_MEDIA_DESCRIPTION_SIZE> cubix_media_description_t
     #define CUBIX_MAX_DATA_CHUNK 1024*200
 #endif
 
-#define CUBIX_MAX_DATA_SIZE 50*1024*1024
+#define CUBIX_MAX_DATA_SIZE 64*1024*1024
 
 #define CUBIX_PREVIEW_WIDTH 540
 

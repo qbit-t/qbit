@@ -17,6 +17,7 @@ public:
     virtual QNetworkAccessManager* getNetworkManager() = 0;
 	virtual QString getLocalization(QString locale, QString key) = 0;
 	virtual QString getColor(QString localtheme, QString selector, QString key) = 0;
+	virtual std::string getLogsLocation() = 0;
 	virtual int load() = 0;
 	virtual int execute() = 0;
 	virtual bool isDesktop() = 0;
@@ -26,6 +27,8 @@ public:
 	virtual std::string getQttAsset() = 0;
 	virtual bool getTestNet() = 0;
 	virtual bool getDebug() = 0;
+	virtual bool getInterceptOutput() = 0;
+	virtual bool checkPermission() { return false; }
 };
 
 extern buzzer::IApplication* gApplication;

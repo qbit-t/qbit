@@ -199,15 +199,15 @@ public:
 		std::string lDescription; lDescription.insert(lDescription.end(), description_.begin(), description_.end());
 		props["description"] = lDescription;
 		props["type"] = mediaTypeToString();
-		props["previewType"] = mediaTypeAnyToString((TxMediaHeader::MediaType)previewType_);
+		props["previewType"] = TxMediaHeader::mediaTypeAnyToString((TxMediaHeader::MediaType)previewType_);
 		props["signature"] = signature_.toHex();
 	}
 
 	inline std::string mediaTypeToString() {
-		return mediaTypeAnyToString((TxMediaHeader::MediaType)mediaType_);
+		return TxMediaHeader::mediaTypeAnyToString((TxMediaHeader::MediaType)mediaType_);
 	}
 
-	inline std::string mediaTypeAnyToString(TxMediaHeader::MediaType type) {
+	inline static std::string mediaTypeAnyToString(TxMediaHeader::MediaType type) {
 		//
 		switch(type) {
 			case TxMediaHeader::MediaType::UNKNOWN: return "UNKNOWN";

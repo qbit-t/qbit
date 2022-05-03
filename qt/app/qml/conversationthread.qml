@@ -76,6 +76,9 @@ QuarkPage {
 		//
 		avatarDownloadCommand.process();
 		switchDataTimer.start();
+
+		// muting notificaions
+		buzzerApp.pauseNotifications(buzzerClient.getBuzzerName(getBuzzerInfoId()));
 	}
 
 	function conversationState() {
@@ -119,6 +122,9 @@ QuarkPage {
 	}
 
 	function closePage() {
+		// enabling notificaions
+		buzzerApp.resumeNotifications(buzzerClient.getBuzzerName(getBuzzerInfoId()));
+
 		//
 		if (mediaPlayerController && mediaPlayerController.isCurrentInstancePlaying()) {
 			mediaPlayerController.disableContinousPlayback();
@@ -172,9 +178,16 @@ QuarkPage {
 			}
 		}
 
+		function onBuzzerDAppSuspended() {
+			// enabling notificaions
+			buzzerApp.resumeNotifications(buzzerClient.getBuzzerName(getBuzzerInfoId()));
+		}
+
 		function onBuzzerDAppResumed() {
 			if (buzzerClient.buzzerDAppReady) {
 				modelLoader.processAndMerge(true);
+				// muting notificaions
+				buzzerApp.pauseNotifications(buzzerClient.getBuzzerName(getBuzzerInfoId()));
 			}
 		}
 	}

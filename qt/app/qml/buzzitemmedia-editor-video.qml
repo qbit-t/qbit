@@ -143,9 +143,9 @@ Rectangle {
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
 		backgroundColor: "transparent"
 		radius: 14
-		penWidth: 9
+		penWidth: 10
 
-		visible: !previewImage.visible
+		visible: true //!previewImage.visible
 	}
 
 	BuzzerComponents.ImageQx {
@@ -185,8 +185,8 @@ Rectangle {
 		fillMode: BuzzerComponents.ImageQx.PreserveAspectFit
 		mipmap: true
 
-		visible: (preview !== "none" || preview !== "") && (!player.hasVideo ||
-					(player.hasVideo && !player.playing && !player.paused))
+		visible: (preview !== "none" || preview !== "") && !player.hasVideo //||
+					//(player.hasVideo && !player.playing && !player.paused))
 	}
 
 	Timer {
@@ -388,7 +388,7 @@ Rectangle {
 		id: removeButton
 
 		x: frameContainer.x + frameContainer.width - (width + 2*spaceItems_)
-		y: spaceItems_
+		y: 2*spaceItems_
 		// Material.background: "transparent"
 		visible: true
 		labelYOffset: 3

@@ -33,7 +33,7 @@ public class NotificatorService extends QtService
     private static final int ID_SERVICE = 31415;
 	private static String CHANNEL_ID = "buzzer_notifications_01";
     private static NotificatorService instance_;
-	private static int running_ = 1;
+	private static String pauseFor_;
 
     public NotificatorService()
     {
@@ -124,7 +124,7 @@ public class NotificatorService extends QtService
     public static void notify(int type, String id, String alias, String name, String comment,
 	                                                        String text, String avatarPath, String mediaPath) {
 		//
-		//if (running_ == 0) return;
+		if (pauseFor_ == name) return;
 
 		//
         Intent notificationIntent = new Intent(instance_, MainActivity.class);
@@ -252,12 +252,12 @@ public class NotificatorService extends QtService
             ctx.stopService(new Intent(ctx, NotificatorService.class));
     }
 
-    public static void pauseNotifications(Context ctx) {
-		running_ = 0;
+    public static void pauseNotifications(Context ctx, String name) {
+		pauseFor_ = name;
 	}
 
-    public static void resumeNotifications(Context ctx) {
-		running_ = 1;
+    public static void resumeNotifications(Context ctx, String name) {
+		if (name == pauseFor_ || name == "") pauseFor_ = "";
 	}
 }
 

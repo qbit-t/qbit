@@ -5,7 +5,7 @@ else: QT += qml quick quickcontrols2 multimedia
 
 CONFIG += c++11
 
-VERSION = 0.1.5.40
+VERSION = 0.1.5.49
 DEFINES += VERSION_STRING=\\\"$${VERSION}\\\"
 DEFINES += QT_ENVIRONMENT
 DEFINES += BUZZER_MOD
@@ -18,7 +18,7 @@ DEFINES += CLIENT_PLATFORM
 DEFINES += QBIT_VERSION_MAJOR=0
 DEFINES += QBIT_VERSION_MINOR=1
 DEFINES += QBIT_VERSION_REVISION=5
-DEFINES += QBIT_VERSION_BUILD=40
+DEFINES += QBIT_VERSION_BUILD=49
 
 DEFINES += BUZZER_MOD
 DEFINES += CUBIX_MOD
@@ -97,7 +97,9 @@ SOURCES += \
 	websourceinfo.cpp \
 	imageqx.cpp \
 	imageqxloader.cpp \
-	imageqxnode.cpp
+	imageqxnode.cpp \
+	androidshareutils.cpp \
+	shareutils.cpp
 
 SUBDIRS += \
     ../../client \
@@ -145,8 +147,9 @@ DISTFILES += \
     buzzer-app.config \
     android/gradle/wrapper/gradle-wrapper.jar \
     android/gradlew \
-    android/res/values/libs.xml \
-    android/build.gradle \
+	android/res/values/libs.xml \
+	android/res/xml/filepaths.xml \
+	android/build.gradle \
     android/gradle/wrapper/gradle-wrapper.properties \
     android/gradlew.bat \
     android/src/app/buzzer/mobile/NotificatorService.java \
@@ -155,7 +158,8 @@ DISTFILES += \
     android/src/app/buzzer/mobile/NotificatorBroadcastReceiver.java \
     android/src/app/buzzer/mobile/FingerprintHandler.java \
 	android/src/app/buzzer/mobile/FileUtils.java \
-    components/QuarkRoundRectangle.qml \
+	android/src/app/buzzer/mobile/ShareUtils.java \
+	components/QuarkRoundRectangle.qml \
     components/QuarkRoundSymbolButton.qml \
     ios/Info.plist \
     ios/Launch.xib \
@@ -226,7 +230,9 @@ HEADERS += \
 	websourceinfo.h \
 	imageqx.h \
 	imageqxloader.h \
-	imageqxnode.h
+	imageqxnode.h \
+	androidshareutils.h \
+	shareutils.h
 
 RESOURCES += \
     $$files(../fonts/*) \

@@ -238,6 +238,13 @@ Item {
 
 					mediaIndicator.currentIndex = preservedIndex;
 					mediaList.currentIndex = preservedIndex;
+
+					// try to track user attention
+					if (buzzitemmediaview_.sharedMediaPlayer_.isCurrentInstancePlaying() ||
+						buzzitemmediaview_.sharedMediaPlayer_.isCurrentInstancePaused()) {
+						buzzitemmediaview_.sharedMediaPlayer_.showCurrentPlayer();
+					}
+
 					preservedIndex = -1;
 				} else {
 					var lIndex = mediaList.indexAt(mediaList.contentX, 0);
@@ -253,6 +260,12 @@ Item {
 
 							mediaIndicator.currentIndex = mediaList.indexAt(mediaList.contentX, 0);
 							mediaList.currentIndex = mediaIndicator.currentIndex;
+
+							// try to track user attention
+							if (buzzitemmediaview_.sharedMediaPlayer_.isCurrentInstancePlaying() ||
+								buzzitemmediaview_.sharedMediaPlayer_.isCurrentInstancePaused()) {
+								buzzitemmediaview_.sharedMediaPlayer_.showCurrentPlayer();
+							}
 						}
 					}
 				}
@@ -305,7 +318,7 @@ Item {
 				function errorMediaLoading() {
 					//
 					tryReloadCount_++;
-					if (tryReloadCount_ > 3) return;
+					if (tryReloadCount_ > 3 || downloadCommand.processing) return;
 					// cleaning up
 					downloadCommand.cleanUp();
 					// re-process
@@ -337,21 +350,27 @@ Item {
 					console.log("[buzzitemmediaview]: tx = " + tx + ", " + previewFile + " - [" + lPSize + "], " + originalFile + " - [" + lOSize + "], " + orientation + ", " + duration + ", " + size + ", " + type + ", preview = " + preview);
 
 					// stop timer
-					downloadWaitTimer.stop();
+					downloadTimer.stop();
 					// set file
-					if (originalFile.length) path_ = "file://" + originalFile;
+					if (originalFile.length) {
+						originalPath_ = originalFile;
+						path_ = "file://" + originalFile;
+					}
 					// set file
-					preview_ = "file://" + previewFile;
+					if (previewFile === "<stub>") preview_ = "qrc://images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "broken.media.cover");
+					else preview_ = "file://" + previewFile;
 					// set original orientation
 					orientation_ = orientation;
 					// set duration
 					duration_ = duration;
 					// set size
 					size_ = size;
-					// set size
+					// common ty[e
 					media_ = type;
 					// description
 					caption_ = description;
+					// mime type
+					mimeType_ = mimeType;
 					// use preview
 					usePreview_ = preview;
 
@@ -479,15 +498,17 @@ Item {
 				key_: file,
 				url_: url,
 				path_: "",
+				originalPath_: "",
 				media_: "unknown",
 				preview_: "",
-				usePreview_: false,
+				usePreview_: true,
 				size_: 0,
 				duration_: 0,
 				orientation_: 0,
 				loaded_: false,
 				description_: (buzzBody_ ? buzzBody_ : ""),
-				caption_: ""});
+				caption_: "",
+				mimeType_: "UNKNOWN"});
 		}
 
 		function prepare() {

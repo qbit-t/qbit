@@ -150,7 +150,7 @@ void UploadMediaCommand::process(const std::vector<std::string>& args, IPeerPtr 
 
 		// check
 		if (size_ > CUBIX_MAX_DATA_SIZE) {
-			error("E_INCORRECT_SIZE", strprintf("Data size %dMb is exceeded 50Mb limit.", size_ / (1024 * 1024)));
+			error("E_INCORRECT_SIZE", strprintf("Data size %dMb is exceeded %dMb limit.", size_ / (1024 * 1024), CUBIX_MAX_DATA_SIZE / (1024 * 1024)));
 			return;
 		}
 
@@ -665,6 +665,11 @@ void UploadMediaCommand::headerSent(const uint256& tx, const std::vector<Transac
 //
 void DownloadMediaCommand::process(const std::vector<std::string>& args) {
 	//
+	if (downloading_) {
+		error("E_DOWNLOAD_IN_PROGRESS", "Download command is in process now.");
+	}
+
+	//
 	if (args.size() >= 2) {
 		//
 		std::vector<std::string> lParts;
@@ -811,7 +816,7 @@ void DownloadMediaCommand::headerLoaded(TransactionPtr tx) {
 	if (tx) {
 		// check tx
 		if (headerTx_ != tx->id()) {
-			error("E_TX_INCORRECT", "Transaction is incorrect.");
+			error("E_TX_INCORRECT", strprintf("Transaction is incorrect: %s != %s", headerTx_.toHex(), tx->id().toHex()));
 			return;
 		}
 
@@ -928,6 +933,7 @@ void DownloadMediaCommand::headerLoaded(TransactionPtr tx) {
 
 				//
 				nextDataTx_ = header_->in()[0].out().tx();
+				//if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[DownloadCommand]: next_tx = %s", nextDataTx_.toHex()));
 				if (!composer_->requestProcessor()->loadTransaction(chain_, nextDataTx_, true /*try mempool*/,
 						LoadTransaction::instance(
 							boost::bind(&DownloadMediaCommand::dataLoaded, shared_from_this(), boost::placeholders::_1),
@@ -971,7 +977,7 @@ void DownloadMediaCommand::dataLoaded(TransactionPtr tx) {
 	if (tx) {
 		// check tx
 		if (nextDataTx_ != tx->id()) {
-			error("E_TX_INCORRECT", "Transaction is incorrect.");
+			error("E_TX_INCORRECT", strprintf("Transaction is incorrect: %s != %s", nextDataTx_.toHex(), tx->id().toHex()));
 			return;
 		}
 
@@ -1016,6 +1022,7 @@ void DownloadMediaCommand::dataLoaded(TransactionPtr tx) {
 
 			//
 			nextDataTx_ = lData->in()[0].out().tx();
+			//if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[DownloadCommand]: next_tx = %s", nextDataTx_.toHex()));
 			if (!composer_->requestProcessor()->loadTransaction(chain_, nextDataTx_, true /*try mempool*/, 
 					LoadTransaction::instance(
 						boost::bind(&DownloadMediaCommand::dataLoaded, shared_from_this(), boost::placeholders::_1),

@@ -107,7 +107,15 @@ int Client::openSettings() {
 
 int Client::open(QString secret) {
 	// setup log
-	qbit::gLog(settings_->dataPath() + "/debug.log");
+	if (application_->getDebug()) {
+		// force privileges
+		application_->checkPermission();
+		// make new
+		qbit::gLog(application_->getLogsLocation() + "/buzzer-debug.log");
+	} else {
+		// TODO: make action to copy debug log to downloads
+		qbit::gLog(settings_->dataPath() + "/debug.log");
+	}
 
 	// setup categories
 	std::vector<std::string> lCategories;
@@ -117,7 +125,7 @@ int Client::open(QString secret) {
 	}
 
 	// rebind qapplication message handler to intercept qInfo(), qError() output messages
-	buzzer::gLogger.reset(new buzzer::Logger(!application_->getDebug()));
+	buzzer::gLogger.reset(new buzzer::Logger(application_->getInterceptOutput()));
 
 	//
 #if defined(DESKTOP_PLATFORM)
@@ -145,7 +153,7 @@ int Client::open(QString secret) {
 	qbit::gTestNet = application_->getTestNet();
 
 	// intercept qbit log - only in debug mode
-	if (application_->getDebug())
+	if (application_->getDebug() && !application_->getInterceptOutput())
 		qbit::gLog().setEcho(boost::bind(&Client::echoLog, this, _1, _2));
 
 	//

@@ -39,6 +39,7 @@
 #include "iapplication.h"
 #include "applicationpath.h"
 #include "cameracontroler.h"
+#include "shareutils.h"
 
 #ifdef Q_OS_IOS
 #include "ios/localnotificator.h"
@@ -139,7 +140,7 @@ class Application : public QQuickItem, public IApplication
 	Q_PROPERTY(bool isDesktop READ isDesktop NOTIFY isDesktopChanged)
 
 public:
-	Application(QApplication& app) : app_(app)
+	Application(QApplication& app) : app_(app), shareUtils_(new ShareUtils(this))
     {
 		profile_ = "local";
         connectionState_ = "offline"; isWakeLocked_ = false;
@@ -158,6 +159,15 @@ public:
         QString lAssetsPath = ApplicationPath::assetUrlPath() + ApplicationPath::applicationUrlPath() + "/" + profile_;
         return lAssetsPath;
     }
+
+	Q_INVOKABLE QString downloadsPath() {
+		return ApplicationPath::logsDirPath();
+	}
+
+	std::string getLogsLocation() {
+		// by default
+		return ApplicationPath::logsDirPath().toStdString();
+	}
 
     QStringList picturesLocation() const
     {
@@ -222,6 +232,27 @@ public:
 		return lInfo.size();
 	}
 
+	Q_INVOKABLE bool copyFile(QString from, QString to) {
+		QString lFileFrom = from;
+		if (lFileFrom.startsWith("qrc:/")) lFileFrom = from.mid(3);
+		else if (lFileFrom.startsWith("file://")) lFileFrom = from.mid(7);
+
+		QString lFileTo = to;
+		if (lFileTo.startsWith("qrc:/")) lFileTo = to.mid(3);
+		else if (lFileTo.startsWith("file://")) lFileTo = to.mid(7);
+
+		return QFile::copy(lFileFrom, lFileTo);
+	}
+
+	Q_INVOKABLE QString getFileName(QString file) {
+		QString lFile = file;
+		if (lFile.startsWith("qrc:/")) lFile = file.mid(3);
+		else if (lFile.startsWith("file://")) lFile = file.mid(7);
+
+		QFileInfo lInfo(lFile);
+		return lInfo.fileName();
+	}
+
     Q_INVOKABLE void makeNetworkAccesible() { networkManager_->setNetworkAccessible(QNetworkAccessManager::Accessible); }
 
     Q_INVOKABLE void lockPortraitOrientation();
@@ -243,7 +274,7 @@ public:
 	Q_INVOKABLE QString getExploreTxRaw();
 
     Q_INVOKABLE bool getDebug();
-    Q_INVOKABLE bool getNetworkDebug();
+	Q_INVOKABLE bool getInterceptOutput();
 
 	Q_INVOKABLE QString qttAsset() {
 		return QString::fromStdString(getQttAsset());
@@ -263,8 +294,8 @@ public:
     Q_INVOKABLE void stopNotificator();
     Q_INVOKABLE void startNotificator();
 
-	Q_INVOKABLE void pauseNotifications();
-	Q_INVOKABLE void resumeNotifications();
+	Q_INVOKABLE void pauseNotifications(QString);
+	Q_INVOKABLE void resumeNotifications(QString);
 
 	Q_INVOKABLE void startFingerprintAuth();
     Q_INVOKABLE void stopFingerprintAuth();
@@ -308,10 +339,17 @@ public:
     void emit_fingertipAuthFailed();
 	void emit_fileSelected(QString, QString, QString);
 
+#if defined(Q_OS_ANDROID)
+	Q_INVOKABLE	bool checkPermission();
+#endif
+
 public slots:
     void appQuit();
     void appStateChanged(Qt::ApplicationState);
     void deviceTokenChanged();
+#if defined(Q_OS_ANDROID)
+	 void onApplicationStateChanged(Qt::ApplicationState applicationState);
+#endif
 
 signals:
     void appSuspending();
@@ -322,6 +360,7 @@ signals:
     void deviceTokenUpdated(QString token);
 	void fileSelected(QString file, QString preview, QString description);
 	void isDesktopChanged();
+	void noDocumentsWorkLocation();
 
 private:
     void setAndroidOrientation(int);
@@ -362,6 +401,11 @@ private:
 
     bool serviceRunning_;
     int fingertipAuthState_;
+
+	//
+	// Sharing
+	ShareUtils* shareUtils_;
+	bool pendingIntentsChecked_;
 };
 
 } // buzzer

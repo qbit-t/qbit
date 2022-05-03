@@ -17,6 +17,10 @@ QuarkPopup
 	Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground");
 	Material.primary: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.primary");
 
+	property var menuHighlightColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.highlight")
+	property var menuBackgroundColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.background")
+	property var menuForegroundColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
+
 	property var model;
 	signal click(var key);
 
@@ -49,8 +53,8 @@ QuarkPopup
 				target: background
 				property: "color"
 				value: listDelegate.highlighted ?
-						   buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.highlight"):
-						   buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.background");
+						   menuHighlightColor:
+						   menuBackgroundColor;
 			}
 
 			contentItem: Rectangle {
@@ -66,7 +70,7 @@ QuarkPopup
 					y: parent.height / 2 - height / 2
 					verticalAlignment: Text.AlignVCenter
 					Material.background: "transparent"
-					Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
+					Material.foreground: menuForegroundColor
 					visible: true
 					symbol: keySymbol
 					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : defaultFontSize
@@ -90,7 +94,7 @@ QuarkPopup
 					text: metrics.elidedText
 					//maximumLineCount: 1
 					Material.background: "transparent"
-					Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
+					Material.foreground: menuForegroundColor
 					visible: true
 					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 11) : 16
 				}

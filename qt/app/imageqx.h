@@ -26,6 +26,7 @@ class ImageQx: public QQuickItem
 	Q_PROPERTY (int      originalWidth  READ originalWidth                        NOTIFY originalWidthChanged)
 	Q_PROPERTY (int      originalHeight READ originalHeight                       NOTIFY originalHeightChanged)
 	Q_PROPERTY (QRectF   contentRect    READ contentRect                          NOTIFY contentRectChanged)
+	Q_PROPERTY (QString  errorString    READ errorString                          NOTIFY errorStringChanged)
 
     /** @property mipmap
      *  @brief Флаг mipmap-фильтрации изображения, оно же более качественное масштабирование.
@@ -93,6 +94,7 @@ class ImageQx: public QQuickItem
 		int originalWidth() { return _originalWidth; }
 		int originalHeight() { return _originalHeight; }
 		QRectF contentRect() { return QRectF(0 , 0, _image->width(), _image->height()); }
+		QString errorString() { return _errorString; }
 
         void setSource(const QString &source);
         void setRadius(float radius);
@@ -120,6 +122,7 @@ class ImageQx: public QQuickItem
 		void originalHeightChanged(int);
 		void originalWidthChanged(int);
 		void contentRectChanged();
+		void errorStringChanged();
 
 	public slots:
 		void rawImageReceived(buzzer::ImageSharedPtr image);
@@ -158,6 +161,7 @@ class ImageQx: public QQuickItem
         bool _asynchronous = true;
 		bool _autotransform = false;
         bool _mipmap = true;
+		QString _errorString;
         FillMode _fillMode = PreserveAspectCrop;
         HorizontalAlignment _horizontalAlignment = AlignHCenter;
         VerticalAlignment _verticalAlignment = AlignVCenter;

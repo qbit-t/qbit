@@ -28,6 +28,7 @@ class VideoRecorder : public QObject {
 
 public:
 	explicit VideoRecorder(QObject *parent = nullptr);
+	virtual ~VideoRecorder();
 
 	Q_INVOKABLE void record();
 	Q_INVOKABLE void stop();
@@ -64,6 +65,9 @@ public:
 
 		return false;
 	}
+
+private:
+	bool savePreview();
 
 signals:
 	void cameraChanged();
@@ -105,6 +109,8 @@ private:
 	QString localPath_;
 	QString localFile_;
 	QString actualFileLocation_;
+	bool previewSaved_ = false;
+	bool videoCaptured_ = false;
 	QOrientationReading::Orientation orientation_;
 	unsigned short unifiedOrientation_ = 0;
 	QString previewLocation_;

@@ -259,6 +259,9 @@ private:
 	bool skipIfExists_ = false;
 	bool terminate_ = false;
 	bool downloading_ = false;
+
+	//
+	std::map<uint256 /*from*/, uint256 /*to*/> chunksSequence_;
 };
 
 }

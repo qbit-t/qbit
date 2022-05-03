@@ -152,7 +152,7 @@ Rectangle {
 		function adjustView() {
 			if (mediaImage.status === Image.Ready && mediaList && buzzitemmedia_) {
 				//
-				reloadControl.forceVisible = true;
+				menuControl.forceVisible = true;
 				waitControl.visible = false;
 				//
 				adjustDimensions();
@@ -184,18 +184,19 @@ Rectangle {
 			//
 			if (status == Image.Error) {
 				//
-				reloadControl.forceVisible = true;
+				menuControl.forceVisible = true;
 
 				// force to reload
-				console.log("[onStatusChanged]: forcing reload of " + path_);
+				console.log("[buzzmediaview-image/onStatusChanged]: forcing reload of " + (usePreview_ ? preview_ : path_) + ", error = " + errorString);
+
 				//downloadCommand
 				errorLoading();
 			} else if (status == Image.Ready) {
 				if (usePreview_) {
-					console.log("[onStatusChanged]: usePreview_ = " + usePreview_ + ", preview_ = " + preview_);
+					console.log("[buzzmediaview-image/onStatusChanged]: usePreview_ = " + usePreview_ + ", preview_ = " + preview_);
 					previewLoaded();
 				} else {
-					console.log("[onStatusChanged]: usePreview_ = " + usePreview_ + ", path_ = " + path_);
+					console.log("[buzzmediaview-image/onStatusChanged]: usePreview_ = " + usePreview_ + ", path_ = " + path_);
 				}
 			}
 		}
@@ -226,7 +227,7 @@ Rectangle {
 		target: mediaImage
 
 		onActiveChanged: {
-			dragArea.enabled = !active;
+			//dragArea.enabled = !active;
 		}
 	}
 
@@ -257,12 +258,13 @@ Rectangle {
 			return (mediaImage.width * mediaImage.scale - parent.width) / 2.0;
 		}
 
-		enabled: false
+		enabled: true
 
 		onPressedChanged: {
 		}
 
 		onClicked: {
+			menuControl.forceVisible = !menuControl.forceVisible || mediaImage.scale > 1.0;
 			mediaImage.scale = 1.0;
 			mediaImage.x = mediaImage.getX();
 			mediaImage.y = mediaImage.getY();
@@ -270,27 +272,82 @@ Rectangle {
 	}
 
 	QuarkToolButton {
-		id: reloadControl
+		id: menuControl
 		x: (mediaImage.width > width * 2) ? mediaImage.x + mediaImage.width - width - spaceItems_ :
 											mediaImage.x + mediaImage.width + spaceItems_
 		y: mediaImage.y + spaceItems_
-		symbol: Fonts.arrowDownHollowSym
-
-		property bool scaled: mediaImage.scale == 1.0
-		property bool forceVisible: false
-
+		symbol: buzzerApp.isDesktop ? Fonts.shevronDownSym : Fonts.elipsisVerticalSym
 		visible: forceVisible && scaled
-
-		labelYOffset: buzzerApp.isDesktop ? 1 : 3
-		symbolColor: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.menu.foreground")
-		Material.background: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.menu.background");
+		labelYOffset: /*buzzerApp.isDesktop ? 0 :*/ 3
 		Layout.alignment: Qt.AlignHCenter
 		opacity: 0.6
 		symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 14) : symbolFontPointSize
 
+		symbolColor: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.menu.foreground")
+		Material.background: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.menu.background");
+
+		property bool scaled: mediaImage.scale == 1.0
+		property bool forceVisible: false
+
 		onClicked: {
+			if (headerMenu.visible) headerMenu.close();
+			else { headerMenu.prepare(); headerMenu.open(); }
+		}
+	}
+
+	QuarkPopupMenu {
+		id: headerMenu
+		x: (menuControl.x + menuControl.width) - width // - spaceRight_
+		y: menuControl.y + menuControl.height // + spaceItems_
+		width: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 200) : 200
+		visible: false
+
+		property int request_NO_RESPONSE: -1
+
+		Material.background: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Page.background")
+		menuHighlightColor: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.menu.highlight")
+		menuBackgroundColor: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.menu.background")
+		menuForegroundColor: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.menu.foreground")
+
+		model: ListModel { id: menuModel }
+
+		Component.onCompleted: prepare()
+
+		onClick: {
 			//
-			errorLoading();
+			if (key === "reload") {
+				//
+				if (usePreview_) mediaImage.source = "";
+				usePreview_ = true;
+				errorLoading();
+			} else if (key === "share") {
+				//
+				shareUtils.sendFile(originalPath_, "Send file", "image/*", request_NO_RESPONSE, false);
+			} else if (key === "copyToDownload") {
+				//
+				buzzerApp.checkPermission();
+				buzzerApp.copyFile(originalPath_, buzzerApp.downloadsPath() + "/" + buzzerApp.getFileName(originalPath_));
+			}
+		}
+
+		function prepare() {
+			//
+			menuModel.clear();
+
+			menuModel.append({
+				key: "reload",
+				keySymbol: Fonts.arrowDownHollowSym,
+				name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.gallery.media.reload")});
+
+			menuModel.append({
+				key: "share",
+				keySymbol: Fonts.shareSym,
+				name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.gallery.media.share")});
+
+			menuModel.append({
+				key: "copyToDownload",
+				keySymbol: Fonts.downloadSym,
+				name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.gallery.media.copyToDownload")});
 		}
 	}
 

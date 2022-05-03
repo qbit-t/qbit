@@ -82,6 +82,9 @@ QuarkPage {
             exposureCompensation: expoSlider.value
         }
 
+		imageCapture.resolution: Qt.size(1920, 1080)
+		viewfinder.resolution: Qt.size(1920, 1080)
+
 		flash.mode: Camera.FlashOff
         digitalZoom: zoomSlider.value
 		position: Camera.BackFace
@@ -104,7 +107,7 @@ QuarkPage {
 
 		onStopped: {
 			//
-			if (actualFileLocation !== "") {
+			if (actualFileLocation !== "" && previewLocation !== "") {
 				// we have location and content saved
 				videoReady(actualFileLocation, duration, unifiedOrientation, previewLocation);
 				closePage();
@@ -113,7 +116,7 @@ QuarkPage {
 
 		onActualFileLocationChanged: {
 			//
-			if (isStopped) {
+			if (isStopped && actualFileLocation !== "" && previewLocation !== "") {
 				// we have location and content saved
 				videoReady(actualFileLocation, duration, unifiedOrientation, previewLocation);
 				closePage();
@@ -183,17 +186,29 @@ QuarkPage {
 
 		onActivated: {
 			var lEntry = resolutionModel_.get(resolutionCombo.currentIndex);
-			if (lEntry !== undefined)
+			if (lEntry !== undefined) {
 				videoRecorder.resolution = lEntry.id;
+
+				if (lEntry.id === "1080p") {
+					cameraDevice.imageCapture.resolution = Qt.size(1920, 1080);
+					cameraDevice.viewfinder.resolution = Qt.size(1920, 1080);
+				} else if (lEntry.id === "720p") {
+					cameraDevice.imageCapture.resolution = Qt.size(1280, 720);
+					cameraDevice.viewfinder.resolution = Qt.size(1280, 720);
+				} else if (lEntry.id === "480p") {
+					cameraDevice.imageCapture.resolution = Qt.size(720, 480);
+					cameraDevice.viewfinder.resolution = Qt.size(720, 480);
+				}
+			}
 		}
 
 		function prepare() {
 			if (resolutionModel_.count) return;
 
+			// very common dimensions for most cameras
 			resolutionModel_.append({ id: "1080p", name: "1080p" });
 			resolutionModel_.append({ id: "720p", name: "720p" });
 			resolutionModel_.append({ id: "480p", name: "480p" });
-			resolutionModel_.append({ id: "360p", name: "360p" });
 
 			resolutionCombo.currentIndex = 0;
 		}

@@ -126,7 +126,7 @@ Rectangle {
 
 			if (status == Image.Error) {
 				// force to reload
-				console.log("[onStatusChanged]: forcing reload of " + preview_);
+				console.log("[buzzmedia/onStatusChanged]: forcing reload of " + preview_ + ", errorString = " + errorString);
 				//downloadCommand
 				errorLoading();
 			}

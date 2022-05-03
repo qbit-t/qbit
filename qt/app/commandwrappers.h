@@ -992,6 +992,7 @@ class DownloadMediaCommand: public QObject
 	Q_PROPERTY(QString pkey READ pkey WRITE setPKey NOTIFY pKeyChanged)
 	Q_PROPERTY(bool preview READ preview WRITE setPreview NOTIFY previewChanged)
 	Q_PROPERTY(bool skipIfExists READ skipIfExists WRITE setSkipIfExists NOTIFY skipIfExistsChanged)
+	Q_PROPERTY(bool processing READ processing NOTIFY processingChanged)
 
 public:
 	explicit DownloadMediaCommand(QObject* parent = nullptr);
@@ -1001,7 +1002,11 @@ public:
 		process(false);
 	}
 
-	Q_INVOKABLE void process(bool force) {
+	Q_INVOKABLE bool process(bool force) {
+		//
+		if (!force && processing_) return false;
+		processing_ = true;
+
 		// TODO: potential leak, need "check list" to track such objects
 		// QQmlEngine::setObjectOwnership(this, QQmlEngine::CppOwnership);
 
@@ -1012,11 +1017,14 @@ public:
 		if (preview_) lArgs.push_back("-preview");
 		if (skipIfExists_ && !force) lArgs.push_back("-skip");
 		command_->process(lArgs);
+
+		return true;
 	}
 
 	Q_INVOKABLE void terminate() {
 		// TODO: on terminate and on stop - make proper processing in cubix-download
 		command_->terminate();
+		processing_ = false;
 	}
 
 	Q_INVOKABLE void cleanUp() {
@@ -1034,6 +1042,7 @@ public:
 
 		emit urlChanged();
 	}
+
 	QString url() const { return url_; }
 
 	void setHeader(const QString& header) { header_ = header; emit headerChanged(); }
@@ -1054,7 +1063,12 @@ public:
 	void setSkipIfExists(bool skip) { skipIfExists_ = skip; emit skipIfExistsChanged(); }
 	bool skipIfExists() const { return skipIfExists_; }
 
+	bool processing() { return processing_; }
+
 	void done(qbit::TransactionPtr tx, const std::string& previewFile, const std::string& originalFile, unsigned short orientation, unsigned int duration, uint64_t size, const qbit::cubix::doneDownloadWithErrorFunctionExtraArgs& extra, const qbit::ProcessingError& result) {
+		//
+		processing_ = false;
+		//
 		if (result.success()) {
 			//
 			QString lTx;
@@ -1062,6 +1076,8 @@ public:
 			unsigned int lDuration = duration;
 			long long lSize = size;
 			QString lDescription = QString::fromStdString(extra.description);
+			QString lMimeType = QString::fromStdString(qbit::cubix::TxMediaHeader::mediaTypeAnyToString((qbit::cubix::TxMediaHeader::MediaType)extra.type));
+			QString lPreviewFile = QString::fromStdString(previewFile);
 
 			switch((qbit::cubix::TxMediaHeader::MediaType)extra.type) {
 				case qbit::cubix::TxMediaHeader::MediaType::UNKNOWN: lType = "unknown"; break;
@@ -1076,8 +1092,10 @@ public:
 					if (extra.previewType > qbit::cubix::TxMediaHeader::MediaType::UNKNOWN &&
 						extra.previewType < qbit::cubix::TxMediaHeader::MediaType::MAX_TYPES)
 						lType = "video";
-					else
-						lType = "audio";
+					else {
+						lType = "video";
+						lPreviewFile = "<stub>";
+					}
 				} 
 				break;
 				case qbit::cubix::TxMediaHeader::MediaType::DOCUMENT_PDF: lType = "document"; break;
@@ -1099,8 +1117,10 @@ public:
 						if (lHeader->previewType() > qbit::cubix::TxMediaHeader::MediaType::UNKNOWN &&
 							lHeader->previewType() < qbit::cubix::TxMediaHeader::MediaType::MAX_TYPES)
 							lType = "video";
-						else 
-							lType = "audio";
+						else {
+							lType = "video";
+							lPreviewFile = "<stub>";
+						}
 					} 
 					break;
 					case qbit::cubix::TxMediaHeader::MediaType::DOCUMENT_PDF: lType = "document"; break;
@@ -1108,12 +1128,17 @@ public:
 
 				lDuration = lHeader->duration();
 				lSize = lHeader->size();
+				lMimeType = QString::fromStdString(qbit::cubix::TxMediaHeader::mediaTypeAnyToString(lHeader->mediaType()));
+
+				std::string lLocalDescription;
+				lLocalDescription.insert(lLocalDescription.end(), lHeader->description().begin(), lHeader->description().end());
+				lDescription = QString::fromStdString(lLocalDescription);
 			}
 
 #ifdef Q_OS_WINDOWS
-			emit processed(lTx, QString("/") + QString::fromStdString(previewFile), QString("/") + QString::fromStdString(originalFile), orientation, lDuration, lSize, lType, lDescription);
+			emit processed(lTx, QString("/") + lPreviewFile, QString("/") + QString::fromStdString(originalFile), orientation, lDuration, lSize, lType, lDescription, lMimeType);
 #else
-			emit processed(lTx, QString::fromStdString(previewFile), QString::fromStdString(originalFile), orientation, lDuration, lSize, lType, lDescription);
+			emit processed(lTx, lPreviewFile, QString::fromStdString(originalFile), orientation, lDuration, lSize, lType, lDescription, lMimeType);
 #endif
 		} else {
 			emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
@@ -1125,7 +1150,7 @@ public:
 	}
 
 signals:
-	void processed(QString tx, QString previewFile, QString originalFile, unsigned short orientation, unsigned int duration, long long size, QString type, QString description);
+	void processed(QString tx, QString previewFile, QString originalFile, unsigned short orientation, unsigned int duration, long long size, QString type, QString description, QString mimeType);
 	void progress(ulong pos, ulong size);
 	void error(QString code, QString message);
 	void urlChanged();
@@ -1135,6 +1160,7 @@ signals:
 	void pKeyChanged();
 	void previewChanged();
 	void skipIfExistsChanged();
+	void processingChanged();
 
 private:
 	QString url_;
@@ -1144,6 +1170,7 @@ private:
 	QString pkey_;
 	bool preview_;
 	bool skipIfExists_;
+	bool processing_ = false;
 
 	qbit::ICommandPtr command_;
 };

@@ -310,7 +310,9 @@ Item {
 					// stop timer
 					downloadWaitTimer.stop();
 					// set preview
-					/*if (index == 0)*/ preview_ = "file://" + previewFile; // ONLY: preview binding here, path_ is for the inner component
+					if (previewFile === "<stub>") preview_ = "qrc://images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "broken.media.cover");
+					else preview_ = "file://" + previewFile; // ONLY: preview binding here, path_ is for the inner component
+					//
 					previewSource_ = "file://" + previewFile;
 					// set original orientation
 					orientation_ = orientation;
@@ -322,6 +324,8 @@ Item {
 					media_ = type;
 					// caption
 					caption_ = description;
+					// mime type
+					mimeType_ = mimeType;
 					// stop spinning
 					mediaLoading.visible = false;
 
@@ -420,7 +424,8 @@ Item {
 				loaded_: false,
 				description_: (buzzBody_ ? buzzBody_ : ""),
 				caption_: "",
-				previewSource_: ""});
+				previewSource_: "",
+				mimeType_: "UNKNOWN"});
 		}
 
 		function prepare() {
@@ -489,7 +494,7 @@ Item {
 
 	QuarkLabel {
 		id: mediaIndicator
-		x: calculatedWidthInternal - (width + spaceItems_)
+		x: calculatedWidthInternal - (width + 2 * spaceItems_)
 		y: spaceStats_ - (height + 3)
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 1)) : defaultFontSize + 1
 		text: "0/0"

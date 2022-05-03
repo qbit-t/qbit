@@ -245,7 +245,9 @@ Rectangle {
 
 			if (status == Image.Error) {
 				// force to reload
-				console.log("[onStatusChanged]: forcing reload of " + preview_);
+				console.log("[buzzitemmedia-video/onStatusChanged]: forcing reload of " + preview_ + ", error = " + errorString);
+				// force to reload
+				source = "qrc://images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "broken.media.cover");
 				//downloadCommand
 				errorLoading();
 			}
@@ -352,37 +354,33 @@ Rectangle {
 
 	function play() {
 		//
-		// controller
-		var lVideoOut = videoFrameFeed.sharedMediaPlayer_.createInstance(videoFrameFeed, frameContainer, buzzitemmedia_);
-		//
-		if (lVideoOut) {
-			lVideoOut.player.description = description_;
-			lVideoOut.player.caption = caption_;
-			lVideoOut.player.onPlaying.connect(mediaPlaying);
-			lVideoOut.player.onPaused.connect(mediaPaused);
-			lVideoOut.player.onStopped.connect(mediaStopped);
-			lVideoOut.player.onStatusChanged.connect(playerStatusChanged);
-			lVideoOut.player.onPositionChanged.connect(playerPositionChanged);
-			lVideoOut.player.onError.connect(playerError);
-			lVideoOut.player.onHasVideoChanged.connect(playerHasVideo);
-			lVideoOut.linkActivated.connect(frameContainer.clickActivated);
-			lVideoOut.onContentRectChanged.connect(frameContainer.enableScene);
-
-			videoOut = lVideoOut;
-			player = lVideoOut.player;
-
-			player.source = path_;
+		if (videoOut && player && player.paused) {
+			// videoFrameFeed.sharedMediaPlayer_.linkInstance(videoOut, buzzitemmedia_);
 			player.play();
-		}
-
-		/*
-		if (!player) {
 		} else {
-			if (player.stopped)
-				videoFrameFeed.sharedMediaPlayer_.linkInstance(videoOut, buzzitemmedia_);
-			player.play();
+			// controller
+			var lVideoOut = videoFrameFeed.sharedMediaPlayer_.createInstance(videoFrameFeed, frameContainer, buzzitemmedia_);
+			//
+			if (lVideoOut) {
+				lVideoOut.player.description = description_;
+				lVideoOut.player.caption = caption_;
+				lVideoOut.player.onPlaying.connect(mediaPlaying);
+				lVideoOut.player.onPaused.connect(mediaPaused);
+				lVideoOut.player.onStopped.connect(mediaStopped);
+				lVideoOut.player.onStatusChanged.connect(playerStatusChanged);
+				lVideoOut.player.onPositionChanged.connect(playerPositionChanged);
+				lVideoOut.player.onError.connect(playerError);
+				lVideoOut.player.onHasVideoChanged.connect(playerHasVideo);
+				lVideoOut.linkActivated.connect(frameContainer.clickActivated);
+				lVideoOut.onContentRectChanged.connect(frameContainer.enableScene);
+
+				videoOut = lVideoOut;
+				player = lVideoOut.player;
+
+				player.source = path_;
+				player.play();
+			}
 		}
-		*/
 	}
 
 	function mediaPlaying() {

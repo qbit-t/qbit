@@ -818,7 +818,11 @@ QuarkPage {
 			}
 
 			function videoTaken(path, duration, orientation, preview) {
-				mediaListEditor.addVideo(path, duration, orientation, preview, "none");
+				var lPreviewSize = buzzerApp.getFileSize(preview);
+				if (lPreviewSize)
+					mediaListEditor.addVideo(path, duration, orientation, preview, "none");
+				else
+					handleError("E_PREVIEW_FILE_WAS_NOT_FOUND", "Preview file was not found.");
 			}
 		}
 

@@ -282,33 +282,29 @@ Rectangle {
 				mediaPlaying();
 			}
 		} else {
-			// controller
-			var lAudioOut = audioFrame.sharedMediaPlayer_.createAudioInstance(audioFrame, audioOut, buzzitemmedia_);
-			//
-			if (lAudioOut) {
-				lAudioOut.player.description = description_;
-				lAudioOut.player.caption = caption_;
-				lAudioOut.player.onPlaying.connect(mediaPlaying);
-				lAudioOut.player.onPaused.connect(mediaPaused);
-				lAudioOut.player.onStopped.connect(mediaStopped);
-				lAudioOut.player.onStatusChanged.connect(playerStatusChanged);
-				lAudioOut.player.onPositionChanged.connect(playerPositionChanged);
-				lAudioOut.player.onError.connect(playerError);
-
-				player = lAudioOut.player;
-
-				player.source = path_;
+			if (player && player.paused) {
+				// audioFrame.sharedMediaPlayer_.linkInstance(audioOut, buzzitemmedia_);
 				player.play();
-			}
-
-			/*
-			if (!player) {
 			} else {
-				if (player.stopped)
-					audioFrame.sharedMediaPlayer_.linkInstance(audioOut, buzzitemmedia_);
-				player.play();
+				// controller
+				var lAudioOut = audioFrame.sharedMediaPlayer_.createAudioInstance(audioFrame, audioOut, buzzitemmedia_);
+				//
+				if (lAudioOut) {
+					lAudioOut.player.description = description_;
+					lAudioOut.player.caption = caption_;
+					lAudioOut.player.onPlaying.connect(mediaPlaying);
+					lAudioOut.player.onPaused.connect(mediaPaused);
+					lAudioOut.player.onStopped.connect(mediaStopped);
+					lAudioOut.player.onStatusChanged.connect(playerStatusChanged);
+					lAudioOut.player.onPositionChanged.connect(playerPositionChanged);
+					lAudioOut.player.onError.connect(playerError);
+
+					player = lAudioOut.player;
+
+					player.source = path_;
+					player.play();
+				}
 			}
-			*/
 		}
 	}
 

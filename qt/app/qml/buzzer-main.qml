@@ -142,7 +142,10 @@ QuarkPage
 		onProcessed: {
 			buzzerClient.setTrustScore(endorsements, mistrusts);
 			headerBar.adjustTrustScore();
-			count_ = 0;
+
+			if (endorsements === 0) {
+				if (count_++ < 5) checkTrustScore.start();
+			} else count_ = 0;
 		}
 
 		onError: {

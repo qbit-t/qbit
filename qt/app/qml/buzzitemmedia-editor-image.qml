@@ -85,9 +85,11 @@ Rectangle {
 		}
 
 		function adjustView() {
-			width = mediaList.width - 2 * spaceItems_;
-			mediaList.height = Math.max(mediaBox.calculatedHeight, height);
-			mediaBox.calculatedHeight = mediaList.height;
+			if (mediaList) {
+				width = mediaList.width - 2 * spaceItems_;
+				mediaList.height = Math.max(mediaBox.calculatedHeight, height);
+				mediaBox.calculatedHeight = mediaList.height;
+			}
 		}
 
 		onStatusChanged: {
@@ -131,7 +133,7 @@ Rectangle {
 	QuarkToolButton	{
 		id: removeButton
 
-		x: mediaImage.width - (width + spaceItems_)
+		x: mediaImage.width - (width + 0*spaceItems_)
 		y: spaceItems_
 		// Material.background: "transparent"
 		visible: true

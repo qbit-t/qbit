@@ -130,7 +130,8 @@ int Application::execute()
 
     engine_.rootContext()->setContextProperty("buzzerApp", this);
 	engine_.rootContext()->setContextProperty("buzzerClient", &client_);
-    engine_.rootContext()->setContextProperty("appHelper", &helper_);
+	engine_.rootContext()->setContextProperty("shareUtils", shareUtils_);
+	engine_.rootContext()->setContextProperty("appHelper", &helper_);
     engine_.rootContext()->setContextProperty("cameraController", &cameraController_);
     engine_.rootContext()->setContextProperty("clipboard", clipboard_);
 	engine_.rootContext()->setContextProperty("localNotificator", nullptr);
@@ -232,29 +233,35 @@ void Application::startNotificator()
 #endif
 }
 
-void Application::pauseNotifications()
+void Application::pauseNotifications(QString name)
 {
 	qInfo() << "Pausing notifications...";
 
 #ifdef Q_OS_ANDROID
-		QAndroidJniObject lActivity = QAndroidJniObject::callStaticObjectMethod("org/qtproject/qt5/android/QtNative", "activity", "()Landroid/app/Activity;");
-		QAndroidJniObject::callStaticMethod<void>("app/buzzer/mobile/NotificatorService",
-													  "pauseNotifications",
-													  "(Landroid/content/Context;)V",
-													  lActivity.object());
+	QAndroidJniObject lName = QAndroidJniObject::fromString(name);
+	QAndroidJniObject lActivity = QAndroidJniObject::callStaticObjectMethod("org/qtproject/qt5/android/QtNative", "activity", "()Landroid/app/Activity;");
+	QAndroidJniObject::callStaticMethod<void>("app/buzzer/mobile/NotificatorService",
+												  "pauseNotifications",
+												  "(Landroid/content/Context;)V",
+												  "(Ljava/lang/String;)V",
+												  lActivity.object(),
+												  lName.object<jstring>());
 #endif
 }
 
-void Application::resumeNotifications()
+void Application::resumeNotifications(QString name)
 {
 	qInfo() << "Resuming notifications...";
 
 #ifdef Q_OS_ANDROID
-		QAndroidJniObject lActivity = QAndroidJniObject::callStaticObjectMethod("org/qtproject/qt5/android/QtNative", "activity", "()Landroid/app/Activity;");
-		QAndroidJniObject::callStaticMethod<void>("app/buzzer/mobile/NotificatorService",
-													  "resumeNotifications",
-													  "(Landroid/content/Context;)V",
-													  lActivity.object());
+	QAndroidJniObject lName = QAndroidJniObject::fromString(name);
+	QAndroidJniObject lActivity = QAndroidJniObject::callStaticObjectMethod("org/qtproject/qt5/android/QtNative", "activity", "()Landroid/app/Activity;");
+	QAndroidJniObject::callStaticMethod<void>("app/buzzer/mobile/NotificatorService",
+												  "resumeNotifications",
+												  "(Landroid/content/Context;)V",
+												  "(Ljava/lang/String;)V",
+												  lActivity.object(),
+												  lName.object<jstring>());
 #endif
 }
 
@@ -376,9 +383,9 @@ bool Application::getDebug()
     return lValue.getBool();
 }
 
-bool Application::getNetworkDebug()
+bool Application::getInterceptOutput()
 {
-	qbit::json::Value lValue = appConfig_["networkDebug"];
+	qbit::json::Value lValue = appConfig_["interceptOutput"];
     return lValue.getBool();
 }
 
@@ -672,6 +679,43 @@ void Application::emit_fileSelected(QString key, QString preview, QString descri
 {
 	emit fileSelected(key, preview, description);
 }
+
+#if defined(Q_OS_ANDROID)
+void Application::onApplicationStateChanged(Qt::ApplicationState applicationState)
+{
+	if(applicationState == Qt::ApplicationState::ApplicationSuspended) {
+		// nothing to do
+		return;
+	}
+
+	if(applicationState == Qt::ApplicationState::ApplicationActive) {
+		// if App was launched from VIEW or SEND Intent
+		// there's a race collision: the event will be lost,
+		// because App and UI wasn't completely initialized
+		// workaround: QShareActivity remembers that an Intent is pending
+		if(!pendingIntentsChecked_) {
+			pendingIntentsChecked_ = true;
+			shareUtils_->checkPendingIntents(ApplicationPath::tempFilesDir());
+		}
+	}
+}
+
+bool Application::checkPermission() {
+	//
+	QtAndroid::PermissionResult r = QtAndroid::checkPermission("android.permission.WRITE_EXTERNAL_STORAGE");
+	if(r == QtAndroid::PermissionResult::Denied) {
+		QtAndroid::requestPermissionsSync(QStringList() << "android.permission.WRITE_EXTERNAL_STORAGE");
+		r = QtAndroid::checkPermission("android.permission.WRITE_EXTERNAL_STORAGE");
+		if(r == QtAndroid::PermissionResult::Denied) {
+			qDebug() << "Permission denied";
+			emit noDocumentsWorkLocation();
+			return false;
+		}
+   }
+   return true;
+}
+
+#endif
 
 //
 //

@@ -346,9 +346,6 @@ ApplicationWindow
                 console.log("Main window suspending...");
 				buzzerApp.setBackgroundColor(activePageBackground);
 				suspended = true;
-
-				//
-				buzzerApp.resumeNotifications();
             }
             else if(Qt.application.state === 4 /* active */)
             {
@@ -357,9 +354,6 @@ ApplicationWindow
                 suspended = false;
 
                 if (localNotificator) localNotificator.reset();
-
-				//
-				buzzerApp.pauseNotifications();
 
 				// try to re-force change background
 				adjustTimer.start();

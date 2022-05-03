@@ -143,6 +143,7 @@ Item
 	readonly property string arrowDownHollowSym: "\uf354";
 	readonly property string botSym: "\uf544";
 	readonly property string inboxInSym: "\uf310";
+	readonly property string downloadSym: "\uf019";
 	readonly property string inboxOutSym: "\uf311";
 	readonly property string exchangeLightSym: "\uf0ec";
 	readonly property string shevronUpSym: "\uf077";
@@ -257,5 +258,7 @@ Item
 
 	readonly property string eraserSym: "\uf12d";
 	readonly property string arrowBottomSym: "\uf33d";
+
+	readonly property string shareSym: "\uf1e0";
 }
 

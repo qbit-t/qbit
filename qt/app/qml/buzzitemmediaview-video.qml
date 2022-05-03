@@ -217,6 +217,20 @@ Rectangle {
 		}
 	}
 
+	Timer {
+		id: hideControlsTimer
+		interval: 3000
+		repeat: false
+		running: false
+
+		onTriggered: {
+			menuControl.enforceVisible = false;
+			if (menuControl.enforceVisible) videoFrame.sharedMediaPlayer_.showCurrentPlayer();
+			else videoFrame.sharedMediaPlayer_.hideCurrentPlayer();
+		}
+	}
+
+
 	MouseArea {
 		id: dragArea
 		hoverEnabled: true
@@ -241,7 +255,11 @@ Rectangle {
 
 		onClicked: {
 			//
-			videoFrame.sharedMediaPlayer_.toggleCurrentPlayer();
+			hideControlsTimer.stop();
+			//
+			menuControl.enforceVisible = !menuControl.enforceVisible || frameContainer.scale > 1.0;
+			if (menuControl.enforceVisible) videoFrame.sharedMediaPlayer_.showCurrentPlayer();
+			else videoFrame.sharedMediaPlayer_.hideCurrentPlayer();
 			//
 			if (frameContainer.scale != 1.0) {
 				frameContainer.scale = 1.0;
@@ -365,9 +383,10 @@ Rectangle {
 			adjustView();
 			//
 			if (status == Image.Error) {
-				//
 				// force to reload
-				console.log("[onStatusChanged]: forcing reload of " + path_);
+				console.log("[buzzitemmediaview-video/onStatusChanged]: forcing reload of " + preview_ + ", error = " + errorString);
+				// force to reload
+				source = "qrc://images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "broken.media.cover");
 				//downloadCommand
 				errorLoading();
 			}
@@ -432,6 +451,93 @@ Rectangle {
 		}
 	}
 
+	QuarkToolButton {
+		id: menuControl
+		x: previewImageVideo.visible ? previewImageVideo.x + previewImageVideo.width - width - spaceItems_:
+									   frameContainer.x + frameContainer.width - width - spaceItems_
+		y: previewImageVideo.visible ? previewImageVideo.y + spaceItems_ :
+									   frameContainer.y + spaceItems_
+		symbol: buzzerApp.isDesktop ? Fonts.shevronDownSym : Fonts.elipsisVerticalSym
+		visible: !pinchHandler.active && enforceVisible
+		labelYOffset: /*buzzerApp.isDesktop ? 0 :*/ 3
+		Layout.alignment: Qt.AlignHCenter
+		opacity: 0.6
+		symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 14) : symbolFontPointSize
+
+		symbolColor: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.menu.foreground")
+		Material.background: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.menu.background")
+
+		property bool enforceVisible: true
+
+		onClicked: {
+			if (headerMenu.visible) headerMenu.close();
+			else { headerMenu.prepare(); headerMenu.open(); }
+		}
+	}
+
+	QuarkPopupMenu {
+		id: headerMenu
+		x: (menuControl.x + menuControl.width) - width // - spaceRight_
+		y: menuControl.y + menuControl.height // + spaceItems_
+		width: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 200) : 200
+		visible: false
+
+		property int request_NO_RESPONSE: -1
+
+		Material.background: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Page.background")
+		menuHighlightColor: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.menu.highlight")
+		menuBackgroundColor: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.menu.background")
+		menuForegroundColor: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.menu.foreground")
+
+		model: ListModel { id: menuModel }
+
+		Component.onCompleted: prepare()
+
+		onClick: {
+			//
+			if (key === "reload") {
+				//
+				if (!downloadCommand.processing) {
+					downloadCommand.downloaded = false;
+					downloadCommand.cleanUp();
+					downloadCommand.process();
+				}
+
+			} else if (key === "share") {
+				//
+				var lMimeType = "*/*";
+				if (mimeType_.startsWith("audio")) lMimeType = "audio/*";
+				else if (mimeType_.startsWith("video")) lMimeType = "video/*";
+
+				shareUtils.sendFile(originalPath_, "Send file", lMimeType, request_NO_RESPONSE, false);
+			} else if (key === "copyToDownload") {
+				//
+				buzzerApp.checkPermission();
+				buzzerApp.copyFile(originalPath_, buzzerApp.downloadsPath() + "/" + buzzerApp.getFileName(originalPath_));
+			}
+		}
+
+		function prepare() {
+			//
+			menuModel.clear();
+
+			menuModel.append({
+				key: "reload",
+				keySymbol: Fonts.arrowDownHollowSym,
+				name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.gallery.media.reload")});
+
+			menuModel.append({
+				key: "share",
+				keySymbol: Fonts.shareSym,
+				name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.gallery.media.share")});
+
+			menuModel.append({
+				key: "copyToDownload",
+				keySymbol: Fonts.downloadSym,
+				name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.gallery.media.copyToDownload")});
+		}
+	}
+
 	property var player: null
 	property var videoOut: null
 	property bool playing: false
@@ -463,10 +569,10 @@ Rectangle {
 			// cancel
 			actionButton.symbol = Fonts.arrowDownHollowSym;
 			mediaLoading.visible = false;
-			downloadCommand.processing = false;
 			downloadCommand.terminate();
-			videoFrameFeed.sharedMediaPlayer_.playbackDownloadCompleted();
+			videoFrame.sharedMediaPlayer_.playbackDownloadCompleted();
 		} else if (!videoFrame.playing) {
+			hideControlsTimer.start();
 			videoFrame.play();
 		} else {
 			if (videoFrame.player)
@@ -508,38 +614,34 @@ Rectangle {
 				mediaPlaying();
 			}
 		} else {
-			// controller
-			var lVideoOut = videoFrame.sharedMediaPlayer_.createInstance(videoFrame, frameContainer, buzzitemmedia_);
-			//
-			if (lVideoOut) {
-				lVideoOut.player.description = description_;
-				lVideoOut.player.caption = caption_;
-				lVideoOut.player.onPlaying.connect(mediaPlaying);
-				lVideoOut.player.onPaused.connect(mediaPaused);
-				lVideoOut.player.onStopped.connect(mediaStopped);
-				lVideoOut.player.onStatusChanged.connect(playerStatusChanged);
-				lVideoOut.player.onPositionChanged.connect(playerPositionChanged);
-				lVideoOut.player.onError.connect(playerError);
-				lVideoOut.player.onHasVideoChanged.connect(playerHasVideo);
-				lVideoOut.linkActivated.connect(frameContainer.clickActivated);
-				lVideoOut.onContentRectChanged.connect(frameContainer.enableScene);
-				lVideoOut.allowClick = false;
-
-				videoOut = lVideoOut;
-				player = lVideoOut.player;
-
-				player.source = path_;
+			if (videoOut && player && player.paused) {
+				//videoFrame.sharedMediaPlayer_.linkInstance(videoOut, buzzitemmedia_);
 				player.play();
-			}
-
-			/*
-			if (!player) {
 			} else {
-				if (player.stopped)
-					videoFrame.sharedMediaPlayer_.linkInstance(videoOut, buzzitemmedia_);
-				player.play();
+				// controller
+				var lVideoOut = videoFrame.sharedMediaPlayer_.createInstance(videoFrame, frameContainer, buzzitemmedia_);
+				//
+				if (lVideoOut) {
+					lVideoOut.player.description = description_;
+					lVideoOut.player.caption = caption_;
+					lVideoOut.player.onPlaying.connect(mediaPlaying);
+					lVideoOut.player.onPaused.connect(mediaPaused);
+					lVideoOut.player.onStopped.connect(mediaStopped);
+					lVideoOut.player.onStatusChanged.connect(playerStatusChanged);
+					lVideoOut.player.onPositionChanged.connect(playerPositionChanged);
+					lVideoOut.player.onError.connect(playerError);
+					lVideoOut.player.onHasVideoChanged.connect(playerHasVideo);
+					lVideoOut.linkActivated.connect(frameContainer.clickActivated);
+					lVideoOut.onContentRectChanged.connect(frameContainer.enableScene);
+					lVideoOut.allowClick = false;
+
+					videoOut = lVideoOut;
+					player = lVideoOut.player;
+
+					player.source = path_;
+					player.play();
+				}
 			}
-			*/
 		}
 	}
 
@@ -568,7 +670,7 @@ Rectangle {
 		forceVisible = true;
 		actionButton.adjust();
 		frameContainer.disableScene();
-		elapsedTime.setTime(0);
+		//elapsedTime.setTime(0);
 		//player = null;
 		//buzzerApp.wakeRelease();
 	}
@@ -596,7 +698,6 @@ Rectangle {
 		console.log("[onErrorStringChanged]: error = " + error + " - " + errorString);
 		// in case of error
 		downloadCommand.downloaded = false;
-		downloadCommand.processing = false;
 		downloadCommand.cleanUp();
 	}
 
@@ -624,7 +725,7 @@ Rectangle {
 			id: captionTextMetrics
 			elide: Text.ElideRight
 			text: caption_
-			elideWidth: previewImageVideo.width - 4 * spaceItems_
+			elideWidth: (previewImageVideo.width ? previewImageVideo.width : parent.width) - 4 * spaceItems_
 			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : 11
 		}
 
@@ -632,7 +733,7 @@ Rectangle {
 			id: captionControl
 			x: spaceItems_
 			y: spaceItems_
-			width: previewImageVideo.width - 4 * spaceItems_
+			width: (previewImageVideo.width ? previewImageVideo.width : parent.width) - 4 * spaceItems_
 			elide: Text.ElideRight
 			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
 			text: captionTextMetrics.elidedText +
@@ -700,8 +801,8 @@ Rectangle {
 		//y: controlsBack.y + spaceItems_
 
 		anchors.centerIn: parent
-		spaceLeft: symbol === Fonts.arrowDownHollowSym || symbol === Fonts.pauseSym ? 0 :
-					   (symbol === Fonts.playSym || symbol === Fonts.cancelSym ? 3 : 0)
+		spaceLeft: symbol === Fonts.arrowDownHollowSym || symbol === Fonts.pauseSym || symbol === Fonts.cancelSym ? 0 :
+					   (symbol === Fonts.playSym ? 3 : 0)
 		spaceTop: 2
 
 		symbol: needDownload && !downloadCommand.downloaded ? Fonts.arrowDownHollowSym :
@@ -784,12 +885,11 @@ Rectangle {
 		pkey: pkey_
 
 		property int tryCount_: 0;
-		property bool processing: false;
+		//property bool processing: false;
 		property bool downloaded: false;
 
 		onProgress: {
 			//
-			processing = true;
 			mediaLoading.progress(pos, size);
 			videoFrame.sharedMediaPlayer_.playbackDownloading(pos, size);
 		}
@@ -799,7 +899,6 @@ Rectangle {
 			console.log(tx + ", " + previewFile + ", " + originalFile + ", " + orientation + ", " + duration + ", " + size + ", " + type);
 
 			//
-			processing = false;
 			downloaded = true;
 
 			// set original orientation
@@ -815,13 +914,14 @@ Rectangle {
 			// stop spinning
 			mediaLoading.visible = false;
 			// signal
-			videoFrameFeed.sharedMediaPlayer_.playbackDownloadCompleted();
+			videoFrame.sharedMediaPlayer_.playbackDownloadCompleted();
 
 			// adjust button
 			actionButton.adjust();
 
 			// autoplay
 			if (!videoFrame.playing) {
+				hideControlsTimer.start();
 				videoFrame.play();
 			}
 		}
@@ -829,7 +929,6 @@ Rectangle {
 		onError: {
 			if (code == "E_MEDIA_HEADER_NOT_FOUND") {
 				//
-				processing = false;
 				downloaded = false;
 				//
 				tryCount_++;

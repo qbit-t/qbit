@@ -156,10 +156,10 @@ void buzzer::ImageQx::setSource(const QString &source)
 {
 	//bool lRecreate = (_source != source && !_source.isEmpty() && !source.isEmpty());
 
-    if (_source != source) {
+	if (_source != source || _status == Error) {
         _source = source;
 
-		//if (lRecreate) *_image = QImage();
+		_errorString.clear();
 
         if (source.isEmpty()) {
             *_image = QImage();
@@ -215,6 +215,9 @@ void buzzer::ImageQx::onImageQxLoaded(const QString &/*source*/, QWeakPointer<QI
 	_status = Ready;
 	emit statusChanged(_status);
 
+	if (_errorString.size()) _errorString.clear();
+	emit errorStringChanged();
+
 	setImplicitWidth (_image->width());
 	setImplicitHeight(_image->height());
 
@@ -225,13 +228,16 @@ void buzzer::ImageQx::onImageQxLoaded(const QString &/*source*/, QWeakPointer<QI
     }
 }
 
-void buzzer::ImageQx::onImageQxError(const QString &/*source*/, QWeakPointer<QImage> /*image*/, const QString &/*reason*/)
+void buzzer::ImageQx::onImageQxError(const QString &/*source*/, QWeakPointer<QImage> image, const QString &reason)
 {
-	/*
 	if (image != _image) {
         return;
     }
-	*/
+
+	//qInfo() << "ImageQx::onImageQxError" << source << reason;
+
+	_errorString = reason;
+	emit errorStringChanged();
 
 	disconnect (&ImageQxLoader::instance(), 0, this, 0);
 
