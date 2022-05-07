@@ -56,7 +56,23 @@ Rectangle {
 
 	signal instanceBounded();
 
+	Component.onCompleted: {
+		controllerAssigned();
+	}
+
 	onMediaPlayerControllerChanged: {
+		controllerAssigned();
+	}
+
+	onPlayerChanged: {
+		//console.log("[onPlayerChanged]: player === null");
+		if (player === null /*&& !mediaPlayer.closed*/) {
+			console.log("[onPlayerChanged]: player === null");
+			mediaStopped();
+		}
+	}
+
+	function controllerAssigned() {
 		//
 		if (!mediaPlayerController || instanceLinked) return;
 		console.log("[onMediaPlayerControllerChanged]: link to instance, self = " + mediaPlayer);
@@ -68,14 +84,9 @@ Rectangle {
 		mediaPlayerController.playbackDownloading.connect(playerDownloading);
 		mediaPlayerController.playbackDownloadCompleted.connect(playerDownloadCompleted);
 		mediaPlayerController.toggleCurrentPlayer.connect(playerToggle);
-	}
 
-	onPlayerChanged: {
-		//console.log("[onPlayerChanged]: player === null");
-		if (player === null /*&& !mediaPlayer.closed*/) {
-			console.log("[onPlayerChanged]: player === null");
-			mediaStopped();
-		}
+		// try to connect
+		link();
 	}
 
 	function unlink() {
@@ -98,6 +109,20 @@ Rectangle {
 				player.onPositionChanged.disconnect(playerPositionChanged);
 				player.onError.disconnect(playerError);
 				player = null;
+			}
+		}
+	}
+
+	function link() {
+		if (mediaPlayerController && mediaPlayerController.lastInstancePlayer) {
+			console.log("[buzzitemmedia-player/link]: linking to player = " + mediaPlayerController.lastInstancePlayer);
+			// just connect
+			playerNewInstanceCreated(mediaPlayerController.lastInstance, null);
+			// attach properties
+				if (player) {
+				totalTime.setTotalTime(player.duration);
+				totalSize.setTotalSize(player.size);
+				playSlider.to = player.duration;
 			}
 		}
 	}
@@ -145,14 +170,14 @@ Rectangle {
 
 	function playerShow() {
 		if (mediaPlayer && player) {
-			//console.log("[playerShow]: ...");
+			console.log("[playerShow]: player = " + mediaPlayer);
 			mediaPlayer.visible = true;
 		}
 	}
 
 	function playerHide() {
 		if (mediaPlayer) {
-			//console.log("[playerHide]: ...");
+			console.log("[playerHide]: player = " + mediaPlayer);
 			mediaPlayer.visible = false;
 		}
 	}
@@ -165,7 +190,7 @@ Rectangle {
 	}
 
 	function mediaPlaying() {
-		console.log("[mediaPlaying]: playing...");
+		//console.log("[mediaPlaying]: playing...");
 		buzzerApp.wakeLock();
 		actionButton.adjust();
 	}
@@ -401,7 +426,7 @@ Rectangle {
 		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 10)) : 18
 		radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius)) : defaultRadius
 		color: "transparent" //buzzerApp.getColor(gallery ? galleryTheme : buzzerClient.theme, gallery ? gallerySelector : buzzerClient.themeSelector, "Material.menu.highlight")
-		textColor: buzzerApp.getColor(gallery ? galleryTheme : buzzerClient.theme, gallery ? gallerySelector : buzzerClient.themeSelector, "Material.foreground")
+		textColor: buzzerApp.getColorStatusBar(gallery ? galleryTheme : buzzerClient.theme, gallery ? gallerySelector : buzzerClient.themeSelector, "Material.foreground")
 		opacity: 1.0
 
 		onClick: {

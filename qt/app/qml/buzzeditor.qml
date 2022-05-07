@@ -23,6 +23,9 @@ QuarkPage {
 	id: buzzeditor_
 	key: "buzzeditor"
 
+	// adjust height by virtual keyboard
+	followKeyboard: true
+
 	Component.onCompleted: {
 		closePageHandler = closePage;
 		activatePageHandler = activatePage;
@@ -40,7 +43,7 @@ QuarkPage {
 	}
 
 	function activatePage() {
-		buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background"));
+		buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Window.background"));
 	}
 
 	function onErrorCallback(error)	{
@@ -168,7 +171,7 @@ QuarkPage {
 			Material.background: "transparent"
 			visible: true
 			labelYOffset: 3
-			symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+			symbolColor: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 			Layout.alignment: Qt.AlignHCenter
 			symbol: Fonts.cancelSym
 
@@ -211,7 +214,7 @@ QuarkPage {
 			x2: parent.width
 			y2: parent.height
 			penWidth: 1
-			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
+			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Panel.bottom.separator") //Material.disabledHidden
 			visible: true
 		}
 	}
@@ -237,29 +240,10 @@ QuarkPage {
 		}
 
 		function ensureVisible(item) {
-			//
-			//console.log("item.y = " + item.y + ", item.contentHeight = " + item.contentHeight + ", spaceMedia_ = " + spaceMedia_ +
-			//			", contentY = " + contentY + ", height = " + height);
 			if (height > 0 && item.y + item.contentHeight + spaceMedia_ > contentY + height) {
-				//contentY += (item.y + item.contentHeight + spaceMedia_) - (contentY + height);
-
-				//console.log("delta.y = " + ((item.y + item.contentHeight + spaceMedia_) - (contentY + height)));
 				contentY += (item.y + item.contentHeight + spaceMedia_) - (contentY + height);
-
-				//ensureVisibleAnimation_.from = contentY;
-				//ensureVisibleAnimation_.to = contentY + (item.y + item.contentHeight + spaceMedia_) - (contentY + height);
-				//ensureVisibleAnimation_.start();
 			}
 		}
-
-		/*
-		NumberAnimation on contentY {
-			id: ensureVisibleAnimation_
-			to: 0
-			duration: 200
-			easing.type: Easing.OutQuad
-		}
-		*/
 
 		BuzzerComponents.BuzzTextHighlighter {
 			id: highlighter
@@ -345,14 +329,64 @@ QuarkPage {
 			}
 		}
 
+		Rectangle {
+			id: quasiCursor
+
+			x: spaceLeft_ + 2
+			y: buzzText.y + 2
+
+			width: 1
+			height: textMetrics.height
+
+			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+
+			opacity: 1.0
+
+			TextMetrics	{
+				id: textMetrics
+				text: "A"
+				font.pointSize: buzzText.defaultFontPointSize
+			}
+
+			property bool toggleBlink: true
+
+			NumberAnimation on opacity {
+				id: blinkOutAnimation
+				from: 1.0
+				to: 0.0
+				duration: 200
+				running: quasiCursor.toggleBlink
+			}
+
+			NumberAnimation on opacity {
+				id: blinkInAnimation
+				from: 0.0
+				to: 1.0
+				duration: 200
+				running: !quasiCursor.toggleBlink
+			}
+
+			Timer {
+				id: blinkTimer
+				interval: 500
+				repeat: parent.visible
+				running: parent.visible
+
+				onTriggered: {
+					quasiCursor.toggleBlink = !quasiCursor.toggleBlink
+				}
+			}
+		}
+
 		QuarkTextEdit {
 			id: buzzText
 			x: spaceLeft_
 			y: replyContainer.y + replyContainer.getHeight() + replyContainer.getSpace()
-			height: 1000 //parent.height
+			// height: 1000 //parent.height
 			width: parent.width - spaceRight_
 			wrapMode: Text.Wrap
 			textFormat: Text.RichText
+
 			focus: true
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 
@@ -366,6 +400,10 @@ QuarkPage {
 
 			property bool buzzerStarted_: false;
 			property bool tagStarted_: false;
+
+			onActiveFocusChanged: {
+				quasiCursor.visible = !activeFocus;
+			}
 
 			onPreeditTextChanged: {
 				//
@@ -535,6 +573,8 @@ QuarkPage {
 				layoutDirection:  Qt.LeftToRight
 				snapMode: ListView.SnapOneItem
 
+				cacheBuffer: 100000
+
 				function cleanUp() {
 					//
 					for (var lIdx = 0; lIdx < mediaListEditor.count; lIdx++) {
@@ -686,6 +726,7 @@ QuarkPage {
 				}
 			}
 
+			/*
 			PageIndicator {
 				id: mediaIndicator
 				count: mediaModel.count
@@ -700,6 +741,27 @@ QuarkPage {
 				Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground");
 				Material.primary: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.primary");
 			}
+			*/
+
+			QuarkLabel {
+				id: mediaIndicator
+				//x: calculatedWidthInternal - (width + 2 * spaceItems_)
+				//y: spaceStats_ - (height + 3)
+				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 1)) : defaultFontSize + 1
+				text: "0/0"
+				color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
+				visible: count > 1
+
+				anchors.bottom: parent.top
+				anchors.horizontalCenter: parent.horizontalCenter
+
+				property var count: mediaModel.count
+				property var currentIndex: mediaListEditor.currentIndex
+
+				onCurrentIndexChanged: {
+					text = (currentIndex + 1) + "/" + count;
+				}
+			}
 		}
 	}
 
@@ -713,6 +775,8 @@ QuarkPage {
 		y: parent.height - 45
 
 		property int totalHeight: height
+
+		backgroundColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Market.tabBackground")
 
 		Component.onCompleted: {
 		}
@@ -831,7 +895,7 @@ QuarkPage {
 			x: addAudioButton.x + 6
 			y: addAudioButton.y + 6
 			size: addAudioButton.width - 12
-			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.hidden")
+			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.hiddenLight")
 			background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
 			visible: audioRecorder.isRecording
 		}
@@ -932,8 +996,8 @@ QuarkPage {
 			x: parent.width - (size + spaceRight_)
 			y: parent.height / 2 - size / 2
 			size: 28
-			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.hidden")
-			background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
+			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.hiddenLight")
+			background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Market.tabBackground") //Page.background
 		}
 
 		QuarkRoundProgress {
@@ -959,7 +1023,7 @@ QuarkPage {
 			x2: parent.width
 			y2: 0
 			penWidth: 1
-			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
+			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Panel.top.separator") //Market.tabBackground
 			visible: true
 		}
 	}

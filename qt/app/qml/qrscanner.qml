@@ -149,6 +149,7 @@ QuarkPage
             id: expoInLabel
             symbol: Fonts.adjustSym
             x: exposureControl.width / 2 - width / 2
+			color: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 
             QuarkSymbolLabel
             {
@@ -156,6 +157,7 @@ QuarkPage
                 font.pointSize: 9
                 x: expoInLabel.width + 3
                 y: 0
+				color: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
             }
         }
 
@@ -174,6 +176,7 @@ QuarkPage
             id: expoOutLabel
             symbol: Fonts.adjustSym
             x: exposureControl.width / 2 - width / 2
+			color: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 
             QuarkSymbolLabel
             {
@@ -181,6 +184,7 @@ QuarkPage
                 font.pointSize: 9
                 x: expoInLabel.width + 3
                 y: 0
+				color: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
             }
         }
     }
@@ -197,6 +201,7 @@ QuarkPage
             id: zoomInLabel
             symbol: Fonts.zoomInSym
             x: zoomControl.width / 2 - width / 2 + 2
+			color: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
         }
 
         Slider
@@ -214,6 +219,7 @@ QuarkPage
             id: zoomOurLabel
             symbol: Fonts.zoomOutSym
             x: zoomControl.width / 2 - width / 2 + 2
+			color: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
         }
     }
 }

@@ -5,7 +5,7 @@ else: QT += qml quick quickcontrols2 multimedia
 
 CONFIG += c++11
 
-VERSION = 0.1.5.49
+VERSION = 0.1.5.52
 DEFINES += VERSION_STRING=\\\"$${VERSION}\\\"
 DEFINES += QT_ENVIRONMENT
 DEFINES += BUZZER_MOD
@@ -18,7 +18,7 @@ DEFINES += CLIENT_PLATFORM
 DEFINES += QBIT_VERSION_MAJOR=0
 DEFINES += QBIT_VERSION_MINOR=1
 DEFINES += QBIT_VERSION_REVISION=5
-DEFINES += QBIT_VERSION_BUILD=49
+DEFINES += QBIT_VERSION_BUILD=52
 
 DEFINES += BUZZER_MOD
 DEFINES += CUBIX_MOD
@@ -159,6 +159,7 @@ DISTFILES += \
     android/src/app/buzzer/mobile/FingerprintHandler.java \
 	android/src/app/buzzer/mobile/FileUtils.java \
 	android/src/app/buzzer/mobile/ShareUtils.java \
+	android/src/app/buzzer/mobile/KeyboardProvider.java \
 	components/QuarkRoundRectangle.qml \
     components/QuarkRoundSymbolButton.qml \
     ios/Info.plist \

@@ -25,7 +25,8 @@ Page
 
 	property string statusBarColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.statusBar")
 	property string navigationBarColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.navigationBar")
-	property string pageTheme: buzzerClient.themeSelector
+	property string statusBarTheme: buzzerClient.statusBarTheme
+	property string navigatorTheme: buzzerClient.themeSelector
 
     property int topOffset: Qt.platform.os === "ios" ? Screen.height - Screen.desktopAvailableHeight - statusBar.extraPadding : 0
 
@@ -69,6 +70,22 @@ Page
 		}
 	}
 
+	property bool followKeyboard: false
+	property int parentHeightDelta: 0
+
+	Connections {
+		target: buzzerApp
+
+		function onKeyboardHeightChanged(height) {
+			//
+			if (followKeyboard) {
+				var lKeyboardHeight = height / Screen.devicePixelRatio;
+				console.log("[onKeyboardHeightChanged]: parent.height = " + page_.parent.height + ", lKeyboardHeight = " + lKeyboardHeight);
+				page_.height = page_.parent.height - lKeyboardHeight;
+			}
+		}
+	}
+
     signal dataReady(var data);
 	signal pageClosed();
 
@@ -88,7 +105,8 @@ Page
         id: statusBar
         color: page_.statusBarColor
         navigationBarColor: page_.navigationBarColor
-		theme: pageTheme === "dark" ? StatusBar.Dark : StatusBar.Light
+		theme: page_.statusBarTheme === "dark" ? 1 : 0
+		navigationTheme: page_.navigatorTheme === "dark" ? 1 : 0
     }
 
     function updateStatusBar()

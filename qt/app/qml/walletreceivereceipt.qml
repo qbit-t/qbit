@@ -26,6 +26,10 @@ QuarkPage {
 	property var amount_;
 	property bool private_;
 
+	closePageHandler: function() {
+		closePage();
+	}
+
 	Component.onCompleted: {
 	}
 
@@ -36,7 +40,7 @@ QuarkPage {
 	}
 
 	function activatePage() {
-		buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background"));
+		buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Window.background"));
 	}
 
 	function onErrorCallback(error)	{
@@ -87,7 +91,7 @@ QuarkPage {
 			Material.background: "transparent"
 			visible: true
 			labelYOffset: 3
-			symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+			symbolColor: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 			Layout.alignment: Qt.AlignHCenter
 			symbol: Fonts.leftArrowSym
 

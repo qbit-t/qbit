@@ -31,12 +31,14 @@ public:
     static bool isAvailable_sys();
     static void setColor_sys(const QColor &color);
     static void setNavigationBarColor_sys(const QColor &color);
-    static void setTheme_sys(StatusBar::Theme theme);
-    static int getPadding();
+	static void setTheme_sys(StatusBar::Theme theme);
+	static void setNavigatorTheme_sys(StatusBar::Theme theme);
+	static int getPadding();
 
     static QColor color;
     static QColor navigationBarColor;
-    static StatusBar::Theme theme;
+	static StatusBar::Theme theme;
+	static StatusBar::Theme navigatorTheme;
 };
 
 #endif // STATUSBAR_P_H

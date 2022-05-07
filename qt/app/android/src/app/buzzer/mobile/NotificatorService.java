@@ -252,11 +252,13 @@ public class NotificatorService extends QtService
             ctx.stopService(new Intent(ctx, NotificatorService.class));
     }
 
-    public static void pauseNotifications(Context ctx, String name) {
+    public static void pauseNotifications(String name) {
+		Log.i("buzzer", "muting buzzer = " + name);
 		pauseFor_ = name;
 	}
 
-    public static void resumeNotifications(Context ctx, String name) {
+    public static void resumeNotifications(String name) {
+		Log.i("buzzer", "unmuting buzzer = " + name);
 		if (name == pauseFor_ || name == "") pauseFor_ = "";
 	}
 }

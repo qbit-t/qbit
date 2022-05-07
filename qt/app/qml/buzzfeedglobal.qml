@@ -303,13 +303,27 @@ Item
 
 	QuarkSearchField {
 		id: search
-		width: buzzerApp.isDesktop ? parent.width - x - 5 : parent.width - x - 14
+		width: buzzerApp.isDesktop ? parent.width - x - 5 : parent.width - x // - 14
 		placeHolder: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.global.search")
 		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : fontPointSize
 		visible: !buzzerApp.isDesktop
 
-		x: 15
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.statusBar")
+
+		Material.theme: buzzerClient.statusBarTheme == "dark" ? Material.Dark : Material.Light;
+		Material.accent: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.accent");
+		Material.background: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.background");
+		Material.foreground: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground");
+		Material.primary: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.primary");
+
+		cancelSymbolColor: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
+		placeholderTextColor: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
+
+		x: 0 // 15
 		y: 0
+
+		spacingLeft: 15
+		spacingRight: 14
 
 		property var prevText_: ""
 
@@ -347,6 +361,17 @@ Item
 
 	function searchTextCleared() {
 		start(true);
+	}
+
+	QuarkHLine {
+		id: bottomLine
+		x1: 0
+		y1: search.y + search.height
+		x2: parent.width
+		y2: search.y + search.height
+		penWidth: 1
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Panel.bottom.separator")
+		visible: true
 	}
 
 	//

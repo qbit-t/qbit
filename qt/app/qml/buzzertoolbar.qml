@@ -239,7 +239,7 @@ QuarkToolBar
 		visible: true
 		labelYOffset: 3
 		symbolColor: buzzerClient.buzzerDAppReady ?
-						 buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground") :
+						 buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground") :
 						 buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.peer.pending")
 		Layout.alignment: Qt.AlignHCenter
 
@@ -262,7 +262,7 @@ QuarkToolBar
 		}
 
 		function ready(isReady) {
-			if (isReady) symbolColor = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground");
+			if (isReady) symbolColor = buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground");
 			else symbolColor = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.peer.pending");
 		}
 	}
@@ -274,7 +274,7 @@ QuarkToolBar
 		Material.background: "transparent"
 		visible: true
 		labelYOffset: 3
-		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+		symbolColor: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 		Layout.alignment: Qt.AlignHCenter
 
 		x: parent.width - width - 8
@@ -285,13 +285,13 @@ QuarkToolBar
 			if (symbol === Fonts.sunSym)
 			{
 				buzzerClient.setTheme("Nova", "light");
-				buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background"));
+				buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Window.background"));
 				buzzerClient.save();
 			}
 			else
 			{
 				buzzerClient.setTheme("Darkmatter", "dark");
-				buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background"));
+				buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Window.background"));
 				buzzerClient.save();
 			}
 		}
@@ -310,7 +310,7 @@ QuarkToolBar
 		x2: parent.width
 		y2: parent.height
 		penWidth: 1
-		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Panel.bottom.separator")
 		visible: showBottomLine
 	}
 }

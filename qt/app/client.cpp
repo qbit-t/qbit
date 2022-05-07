@@ -689,6 +689,11 @@ QString Client::decorateBuzzBody(const QString& body) {
 	return lCommonResult;
 }
 
+QString Client::statusBarTheme() {
+	//
+	return gApplication->getColor(theme(), themeSelector(), "StatusBar.theme");
+}
+
 QString Client::internalTimestampAgo(long long timestamp, long long fraction) {
 	//
 	gApplication->getLocalization(locale(), "Buzzer.now");

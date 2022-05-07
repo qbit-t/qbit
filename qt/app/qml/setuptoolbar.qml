@@ -15,18 +15,18 @@ import "qrc:/components"
 QuarkToolBar
 {
 	id: setupToolBar
-	height: 40
+	height: 45
 	width: parent.width
 
 	property int extraOffset: 0;
-	property int totalHeight: logo.height;
+	property int totalHeight: setupToolBar.height;
 
 	Component.onCompleted: {
 		localeCombo.prepare();
 	}
 
 	function activate()	{
-		localeCombo.activate();
+		//localeCombo.activate();
 	}
 
 	QuarkToolButton	{
@@ -35,15 +35,17 @@ QuarkToolBar
 		Material.background: "transparent"
 		visible: true
 		labelYOffset: 3
-		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+		symbolColor: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 		Layout.alignment: Qt.AlignHCenter
 
 		onClicked: {
 			if (symbol === Fonts.sunSym) {
 				buzzerClient.setTheme("Nova", "light");
+				buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Window.background"));
 				buzzerClient.save();
 			} else {
 				buzzerClient.setTheme("Darkmatter", "dark");
+				buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Window.background"));
 				buzzerClient.save();
 			}
 		}
@@ -57,13 +59,13 @@ QuarkToolBar
 	Image {
 		id: logo
 		fillMode: Image.PreserveAspectFit
-		width: 25
+		width: 15
 		x: parent.width / 2 - logo.width / 2
-		y: extraOffset
+		y: parent.height / 2 - logo.height / 2
 		Layout.alignment: Qt.AlignCenter
 		mipmap: true
 		//source: "../images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "buzzer.logo")
-		source: "../images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "lightning.logo")
+		source: "../images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "lightning-bar.logo")
 	}
 
 	QuarkToolButton	{
@@ -72,7 +74,7 @@ QuarkToolBar
 		Material.background: "transparent"
 		visible: true
 		labelYOffset: 3
-		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+		symbolColor: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 		Layout.alignment: Qt.AlignHCenter
 
 		x: (themeButton.x + themeButton.width) - 5

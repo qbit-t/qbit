@@ -259,8 +259,9 @@ public:
     Q_INVOKABLE void lockLandscapeOrientation();
 	Q_INVOKABLE void unlockOrientation();
 
-    Q_INVOKABLE QString getColor(QString theme, QString selector, QString key);
-    Q_INVOKABLE QString getLocalization(QString locale, QString key);
+	Q_INVOKABLE QString getColor(QString theme, QString selector, QString key);
+	Q_INVOKABLE QString getColorStatusBar(QString theme, QString selector, QString key);
+	Q_INVOKABLE QString getLocalization(QString locale, QString key);
 
     Q_INVOKABLE bool hasLightOnly(QString theme);
     Q_INVOKABLE bool hasDarkOnly(QString theme);
@@ -330,6 +331,8 @@ public:
 		return QVariant::fromValue(sharedMediaPlayerController_);
 	}
 
+	Q_INVOKABLE void setKeyboardAdjustMode(bool adjustNothing);
+
 	std::string getLogCategories();
 	bool getTestNet();
 	std::string getPeers();
@@ -338,6 +341,7 @@ public:
     void emit_fingertipAuthSuccessed(QString);
     void emit_fingertipAuthFailed();
 	void emit_fileSelected(QString, QString, QString);
+	void emit_keyboardHeightChanged(int);
 
 #if defined(Q_OS_ANDROID)
 	Q_INVOKABLE	bool checkPermission();
@@ -361,6 +365,7 @@ signals:
 	void fileSelected(QString file, QString preview, QString description);
 	void isDesktopChanged();
 	void noDocumentsWorkLocation();
+	void keyboardHeightChanged(int height);
 
 private:
     void setAndroidOrientation(int);

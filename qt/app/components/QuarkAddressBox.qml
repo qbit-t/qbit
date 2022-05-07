@@ -190,6 +190,7 @@ Rectangle
 			searchText: addressBox.text;// + (addressBox.address !== "" ? (" / " + addressBox.address) : "")
 			clearButton: false
 			visible: editor
+			color: "transparent"
 
 			x: 5 + textLeftPadding
 			y: parent.height / 2 - calculatedHeight / 2 + 5

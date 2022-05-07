@@ -41,7 +41,7 @@ Rectangle {
 	readonly property int spaceThreaded_: 33
 	readonly property int spaceThreadedItems_: 4
 	readonly property real defaultFontSize: 11
-	property var frameColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
+	property var frameColor: "transparent" //buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
 	property var fillColor: "transparent"
 	property var sharedMediaPlayer_
 	property var mediaIndex_: 0
@@ -86,7 +86,7 @@ Rectangle {
 	color: "transparent"
 	width: mediaImageFeed.width + 2 * spaceItems_
 	height: 1 //calculatedHeight
-	radius: 8
+	//radius: 8
 
 	BuzzerComponents.ImageQx {
 		id: mediaImageFeed

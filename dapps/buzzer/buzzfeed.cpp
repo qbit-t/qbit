@@ -954,7 +954,7 @@ uint64_t BuzzfeedItem::locateLastTimestamp() {
 		lItem->second->locateLastTimestamp(lOrder);
 	}
 
-	return lOrder.size() ? *lOrder.rbegin() : 0;
+	return lOrder.size() ? (sortOrder_ == Order::REVERSE ? *lOrder.begin() : *lOrder.rbegin()) : 0;
 }
 
 void BuzzfeedItem::locateLastTimestamp(std::set<uint64_t>& set) {

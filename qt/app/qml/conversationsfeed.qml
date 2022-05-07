@@ -22,6 +22,7 @@ Item
 
 	property var infoDialog;
 	property var controller;
+	property var mediaPlayerController;
 
 	property var conversationModel_: buzzerClient.getConversationsList();
 
@@ -32,6 +33,11 @@ Item
 	function start() {
 		restart();
 		switchDataTimer.start();
+
+		var lPlayerController = buzzerApp.sharedMediaPlayerController();
+		if (lPlayerController && lPlayerController.isCurrentInstancePlaying()) {
+			lPlayerController.showCurrentPlayer();
+		}
 	}
 
 	function restart() {
@@ -172,12 +178,26 @@ Item
 
 	QuarkSearchField {
 		id: search
-		width: parent.width - x - 14
+		width: parent.width - x //- 14
 		placeHolder: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.global.search.add")
 		visible: !buzzerApp.isDesktop
 
-		x: 15
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.statusBar");
+
+		Material.theme: buzzerClient.statusBarTheme == "dark" ? Material.Dark : Material.Light;
+		Material.accent: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.accent");
+		Material.background: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.background");
+		Material.foreground: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground");
+		Material.primary: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.primary");
+
+		cancelSymbolColor: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
+		placeholderTextColor: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
+
+		x: 0 //15
 		y: 0
+
+		spacingLeft: 15
+		spacingRight: 14
 
 		property var prevText_: ""
 
@@ -199,6 +219,17 @@ Item
 		onTextCleared: {
 			searchTextCleared();
 		}
+	}
+
+	QuarkHLine {
+		id: bottomLine
+		x1: 0
+		y1: search.y + search.height
+		x2: parent.width
+		y2: search.y + search.height
+		penWidth: 1
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Panel.bottom.separator")
+		visible: true
 	}
 
 	function startSearch(searchText) {
@@ -298,6 +329,16 @@ Item
 				itemDelegate.height = value;
 			}
 		}
+	}
+
+	//
+	BuzzItemMediaPlayer {
+		id: player
+		x: 0
+		y: (list.y + list.height) - height // buzzerApp.isDesktop ? 0 : search.y + search.calculatedHeight
+		width: parent.width
+		mediaPlayerController: conversationsfeed_.mediaPlayerController
+		overlayParent: list
 	}
 
 	Timer {

@@ -96,6 +96,7 @@ class Client: public QObject, public IClient
 	Q_PROPERTY(QString header READ header WRITE setHeader NOTIFY headerChanged)
 	Q_PROPERTY(QString locale READ locale WRITE setLocale NOTIFY localeChanged)
 	Q_PROPERTY(QString theme READ theme WRITE setTheme NOTIFY themeChanged)
+	Q_PROPERTY(QString statusBarTheme READ statusBarTheme NOTIFY statusBarThemeChanged)
 	Q_PROPERTY(QString themeSelector READ themeSelector WRITE setThemeSelector NOTIFY themeSelectorChanged)
 	Q_PROPERTY(bool cacheReady READ getCacheReady NOTIFY cacheReadyChanged)
 	Q_PROPERTY(bool networkReady READ getNetworkReady NOTIFY networkReadyChanged)
@@ -207,12 +208,15 @@ public:
 
         emit themeChanged();
         emit themeSelectorChanged();
+		emit statusBarThemeChanged();
     }
 
     Q_INVOKABLE void setProperty(QString, QString);
     Q_INVOKABLE QString getProperty(QString);
     Q_INVOKABLE bool hasPropertyBeginWith(QString);
     Q_INVOKABLE bool hasPropertyBeginWithAndValue(QString, QString);
+
+	QString statusBarTheme();
 
 	Q_INVOKABLE void setFavEmoji(QString);
 
@@ -600,6 +604,7 @@ signals:
 	void mainChainStateUpdated(QString block, long long height, QString time, QString ago);
 	void addressChanged();
 	void contactsChanged();
+	void statusBarThemeChanged();
 
 	void buzzerChanged();
 

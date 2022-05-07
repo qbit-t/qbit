@@ -271,9 +271,10 @@ Item {
 		id: backgroundContainer
 		//x: myMessage_ ? messageMetrics.getX() : spaceLeft_
 		y: spaceItems_
-		color: conversationMessage().length ?
-				   buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden") :
-				   "transparent"
+		color: "transparent"
+					//conversationMessage().length ?
+					//buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden") :
+					//"transparent"
 		backgroundColor: conversationMessage().length ?
 							 (myMessage_ ?
 							 buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.conversation.message.my") :
@@ -473,7 +474,8 @@ Item {
 				}
 			}
 
-			function innerHeightChanged(value) {				
+			function innerHeightChanged(value) {
+				//
 				//bodyControl.height = (buzzBody_.length > 0 ? buzzText.height : 0) + value +
 				//							(buzzBody_.length > 0 ? spaceMedia_ : spaceItems_) +
 				//							(buzzMedia_.length > 1 ? spaceMediaIndicator_ : 0);

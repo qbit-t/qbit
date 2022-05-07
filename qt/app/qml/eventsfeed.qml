@@ -22,6 +22,7 @@ Item
 
 	property var infoDialog;
 	property var controller;
+	property var mediaPlayerController;
 
 	function externalPull() {
 		modelLoader.restart();
@@ -276,6 +277,16 @@ Item
 				itemDelegate.height = value;
 			}
 		}
+	}
+
+	//
+	BuzzItemMediaPlayer {
+		id: player
+		x: 0
+		y: (list.y + list.height) - height // buzzerApp.isDesktop ? 0 : search.y + search.calculatedHeight
+		width: parent.width
+		mediaPlayerController: eventsfeed_.mediaPlayerController
+		overlayParent: list
 	}
 
 	QuarkBusyIndicator {

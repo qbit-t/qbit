@@ -23,9 +23,12 @@
 #include "statusbar.h"
 #include "statusbar_p.h"
 
+#include <QDebug>
+
 QColor StatusBarPrivate::color;
 QColor StatusBarPrivate::navigationBarColor;
 StatusBar::Theme StatusBarPrivate::theme = StatusBar::Light;
+StatusBar::Theme StatusBarPrivate::navigatorTheme = StatusBar::Light;
 
 StatusBar::StatusBar(QObject *parent) : QObject(parent)
 {
@@ -48,12 +51,14 @@ QColor StatusBar::navigationBarColor()
 
 void StatusBar::setColor(const QColor &color)
 {
+	if (!enabled_) return;
     StatusBarPrivate::color = color;
     StatusBarPrivate::setColor_sys(color);
 }
 
 void StatusBar::setNavigationBarColor(const QColor &color)
 {
+	if (!enabled_) return;
     StatusBarPrivate::navigationBarColor = color;
     StatusBarPrivate::setNavigationBarColor_sys(color);
 }
@@ -65,8 +70,23 @@ StatusBar::Theme StatusBar::theme()
 
 void StatusBar::setTheme(Theme theme)
 {
+	if (!enabled_) return;
     StatusBarPrivate::theme = theme;
     StatusBarPrivate::setTheme_sys(theme);
+}
+
+StatusBar::Theme StatusBar::navigationTheme()
+{
+	return StatusBarPrivate::navigatorTheme;
+}
+
+void StatusBar::setNavigationTheme(Theme theme)
+{
+	if (!enabled_) return;
+	qInfo() << "[StatusBar::setNavigationTheme]:" << theme;
+	StatusBarPrivate::navigatorTheme = theme;
+	StatusBarPrivate::setNavigatorTheme_sys(theme);
+	emit navigationThemeChanged();
 }
 
 int StatusBar::extraPadding()

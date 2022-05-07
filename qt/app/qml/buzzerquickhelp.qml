@@ -54,7 +54,7 @@ QuarkPage
 
 	function activatePage() {
 		buzzerApp.lockPortraitOrientation();
-		buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background"));
+		buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Window.background"));
 		toolBar.activate();
 	}
 
@@ -92,7 +92,7 @@ QuarkPage
 			Material.background: "transparent"
 			visible: true
 			labelYOffset: buzzerApp.isDesktop ? 0 : 3
-			symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+			symbolColor: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 			Layout.alignment: Qt.AlignHCenter
 			symbol: Fonts.cancelSym
 			symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 16) : symbolFontPointSize
@@ -108,7 +108,7 @@ QuarkPage
 			y: parent.height / 2 - height / 2
 			width: parent.width - (x)
 			text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.help")
-			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link")
+			color: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.link")
 			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 16) : 18
 		}
 
@@ -119,7 +119,7 @@ QuarkPage
 			x2: parent.width
 			y2: parent.height
 			penWidth: 1
-			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
+			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Panel.bottom.separator")
 			visible: true
 		}
 	}

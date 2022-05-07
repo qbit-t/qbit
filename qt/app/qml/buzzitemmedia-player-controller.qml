@@ -245,6 +245,14 @@ Item {
 		return false;
 	}
 
+	function isCurrentInstance(path) {
+		if (lastInstance && lastInstance.player) {
+			return lastInstance.player.source == path;
+		}
+
+		return false;
+	}
+
 	function isCurrentInstanceStopped() {
 		if (lastInstance && lastInstance.player) {
 			return lastInstance.player.stopped;

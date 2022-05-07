@@ -32,25 +32,41 @@ class StatusBar : public QObject
     Q_PROPERTY(bool available READ isAvailable CONSTANT)
     Q_PROPERTY(QColor color READ color WRITE setColor)
     Q_PROPERTY(QColor navigationBarColor READ navigationBarColor WRITE setNavigationBarColor)
-    Q_PROPERTY(Theme theme READ theme WRITE setTheme)
-    Q_PROPERTY(int extraPadding READ extraPadding)
+	Q_PROPERTY(Theme theme READ theme WRITE setTheme)
+	Q_PROPERTY(Theme navigationTheme READ navigationTheme WRITE setNavigationTheme NOTIFY navigationThemeChanged)
+	Q_PROPERTY(int extraPadding READ extraPadding)
+	Q_PROPERTY(bool enabled READ enabled WRITE setEnabled NOTIFY enabledChanged)
 
 public:
     explicit StatusBar(QObject *parent = nullptr);
 
     static bool isAvailable();
 
-    static QColor color();
-    static QColor navigationBarColor();
-    static void setColor(const QColor &color);
-    static void setNavigationBarColor(const QColor &color);
-    static int extraPadding();
+	QColor color();
+	QColor navigationBarColor();
+	void setColor(const QColor &color);
+	void setNavigationBarColor(const QColor &color);
+	int extraPadding();
 
     enum Theme { Light, Dark };
     Q_ENUM(Theme)
 
-    static Theme theme();
-    static void setTheme(Theme theme);
+	Theme theme();
+	void setTheme(Theme theme);
+
+	Theme navigationTheme();
+	void setNavigationTheme(Theme theme);
+
+	bool enabled() { return	enabled_; }
+	void setEnabled(bool enabled) { enabled_ = enabled; }
+
+signals:
+	void enabledChanged();
+	void navigatorThemeChanged();
+	void navigationThemeChanged();
+
+private:
+	bool enabled_ = true;
 };
 
 #endif // STATUSBAR_H

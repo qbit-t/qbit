@@ -239,12 +239,9 @@ void Application::pauseNotifications(QString name)
 
 #ifdef Q_OS_ANDROID
 	QAndroidJniObject lName = QAndroidJniObject::fromString(name);
-	QAndroidJniObject lActivity = QAndroidJniObject::callStaticObjectMethod("org/qtproject/qt5/android/QtNative", "activity", "()Landroid/app/Activity;");
 	QAndroidJniObject::callStaticMethod<void>("app/buzzer/mobile/NotificatorService",
 												  "pauseNotifications",
-												  "(Landroid/content/Context;)V",
 												  "(Ljava/lang/String;)V",
-												  lActivity.object(),
 												  lName.object<jstring>());
 #endif
 }
@@ -255,12 +252,9 @@ void Application::resumeNotifications(QString name)
 
 #ifdef Q_OS_ANDROID
 	QAndroidJniObject lName = QAndroidJniObject::fromString(name);
-	QAndroidJniObject lActivity = QAndroidJniObject::callStaticObjectMethod("org/qtproject/qt5/android/QtNative", "activity", "()Landroid/app/Activity;");
 	QAndroidJniObject::callStaticMethod<void>("app/buzzer/mobile/NotificatorService",
 												  "resumeNotifications",
-												  "(Landroid/content/Context;)V",
 												  "(Ljava/lang/String;)V",
-												  lActivity.object(),
 												  lName.object<jstring>());
 #endif
 }
@@ -430,6 +424,17 @@ QString Application::getColor(QString theme, QString selector, QString key)
 	qbit::json::Value lTheme = lThemes[theme.toStdString()];
 	qbit::json::Value lSelector = lTheme[selector.toStdString()];
 	qbit::json::Value lValue = lSelector[key.toStdString()];
+
+	return QString::fromStdString(lValue.getString());
+}
+
+QString Application::getColorStatusBar(QString theme, QString selector, QString key)
+{
+	QString lStatusBarTheme = getColor(theme, selector, "StatusBar.theme");
+	qbit::json::Value lThemes = appConfig_["themes"];
+	qbit::json::Value lTheme = lThemes[theme.toStdString()];
+	qbit::json::Value lSelector = lTheme[selector.toStdString()];
+	qbit::json::Value lValue = lSelector[(key + "." + lStatusBarTheme).toStdString()];
 
 	return QString::fromStdString(lValue.getString());
 }
@@ -613,6 +618,15 @@ void Application::unlockOrientation()
 #endif
 }
 
+void Application::setKeyboardAdjustMode(bool adjustNothing)
+{
+#if defined (Q_OS_ANDROID)
+	QtAndroid::runOnAndroidThread([=]() {
+		QtAndroid::androidActivity().callMethod<void>("setKeyboardAdjustMode", "(Z)V", adjustNothing);
+	});
+#endif
+}
+
 QString Application::getLanguages()
 {
     QString lResult;
@@ -678,6 +692,11 @@ void Application::emit_fingertipAuthFailed()
 void Application::emit_fileSelected(QString key, QString preview, QString description)
 {
 	emit fileSelected(key, preview, description);
+}
+
+void Application::emit_keyboardHeightChanged(int height)
+{
+	emit keyboardHeightChanged(height);
 }
 
 #if defined(Q_OS_ANDROID)
@@ -774,6 +793,12 @@ JNIEXPORT void JNICALL Java_app_buzzer_mobile_MainActivity_fileSelected(JNIEnv* 
 
 	qDebug() << "[JAVA::fileSelected]: file = " << lFileFound << lPreviewFound << lDescriptionFound;
 	((Application*)buzzer::gApplication)->emit_fileSelected(lFileFound, lPreviewFound, lDescriptionFound);
+}
+
+JNIEXPORT void JNICALL Java_app_buzzer_mobile_MainActivity_keyboardHeightChanged(JNIEnv* env, jobject, jint height) {
+	if (!buzzer::gApplication) return;
+	qDebug() << "[JAVA::keyboardHeightChanged]: height =" << height;
+	((Application*)buzzer::gApplication)->emit_keyboardHeightChanged(height);
 }
 
 #ifdef __cplusplus

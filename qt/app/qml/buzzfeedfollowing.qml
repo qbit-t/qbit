@@ -55,7 +55,7 @@ QuarkPage {
 	}
 
 	function activatePage() {
-		buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background"));
+		buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Window.background"));
 	}
 
 	function onErrorCallback(error)	{

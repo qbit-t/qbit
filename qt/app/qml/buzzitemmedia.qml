@@ -29,7 +29,7 @@ Item {
 	property var buzzBody_: buzzBodyFlat
 	property var controller_: controller
 	property var frameColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
-	property var fillColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden.uni")
+	property var fillColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.background.simple")
 	property var sharedMediaPlayer_
 
 	readonly property int maxCalculatedWidth_: 600
@@ -135,7 +135,7 @@ Item {
 			//
 			for (var lIdx = 0; lIdx < mediaList.count; lIdx++) {
 				var lItem = mediaList.itemAtIndex(lIdx);
-				if (lItem) {
+				if (lItem && lItem.mediaItem) {
 					lItem.mediaItem.forceVisibilityCheck(fullyVisible);
 				}
 			}
@@ -145,7 +145,7 @@ Item {
 			//
 			for (var lIdx = 0; lIdx < mediaList.count; lIdx++) {
 				var lItem = mediaList.itemAtIndex(lIdx);
-				if (lItem) {
+				if (lItem && lItem.mediaItem) {
 					lItem.mediaItem.unbindCommonControls();
 				}
 			}

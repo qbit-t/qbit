@@ -23,6 +23,7 @@
 #include "statusbar_p.h"
 
 #include <QtAndroid>
+#include <QDebug>
 
 // WindowManager.LayoutParams
 #define FLAG_TRANSLUCENT_STATUS 0x04000000
@@ -67,7 +68,7 @@ void StatusBarPrivate::setNavigationBarColor_sys(const QColor &color)
     {
         QAndroidJniObject window = getAndroidWindow();
 
-        window.callMethod<void>("setNavigationBarColor", "(I)V", color.rgba());
+		window.callMethod<void>("setNavigationBarColor", "(I)V", color.rgba());
         //window.callMethod<void>("setBackgroundDrawableResource", "(I)V", 0x7f020000);
     });
 }
@@ -77,19 +78,43 @@ void StatusBarPrivate::setTheme_sys(StatusBar::Theme theme)
     if (QtAndroid::androidSdkVersion() < 23)
         return;
 
-    QtAndroid::runOnAndroidThread([=]() {
+	qInfo() << "[StatusBarPrivate::setTheme_sys]:" << theme;
+
+	QtAndroid::runOnAndroidThread([=]() {
         QAndroidJniObject window = getAndroidWindow();
         QAndroidJniObject view = window.callObjectMethod("getDecorView", "()Landroid/view/View;");
         int visibility = view.callMethod<int>("getSystemUiVisibility", "()I");
         if (theme == StatusBar::Theme::Light) {
             visibility |= SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
-            visibility |= SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+			//visibility |= SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
         } else {
             visibility &= ~SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
-            visibility &= ~SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+			//visibility &= ~SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
         }
         view.callMethod<void>("setSystemUiVisibility", "(I)V", visibility);
     });
+}
+
+void StatusBarPrivate::setNavigatorTheme_sys(StatusBar::Theme theme)
+{
+	if (QtAndroid::androidSdkVersion() < 23)
+		return;
+
+	qInfo() << "[StatusBarPrivate::setNavigatorTheme_sys]:" << theme;
+
+	QtAndroid::runOnAndroidThread([=]() {
+		QAndroidJniObject window = getAndroidWindow();
+		QAndroidJniObject view = window.callObjectMethod("getDecorView", "()Landroid/view/View;");
+		int visibility = view.callMethod<int>("getSystemUiVisibility", "()I");
+		if (theme == StatusBar::Theme::Light) {
+			//visibility |= SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+			visibility |= SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+		} else {
+			//visibility &= ~SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+			visibility &= ~SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+		}
+		view.callMethod<void>("setSystemUiVisibility", "(I)V", visibility);
+	});
 }
 
 int StatusBarPrivate::getPadding()

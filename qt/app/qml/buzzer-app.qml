@@ -22,7 +22,7 @@ ApplicationWindow
     title: "buzzer"
 
     property string onlineCount: "";
-	property string activePageBackground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
+	property string activePageBackground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Window.background")
 
 	color: activePageBackground
 
@@ -69,8 +69,9 @@ ApplicationWindow
         id: mainStatusBar
         color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Splash.statusBar")
         navigationBarColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Splash.navigationBar")
-        theme: buzzerClient.themeSelector === "dark" ? StatusBar.Dark : StatusBar.Light
-    }
+		theme: buzzerClient.statusBarTheme === "dark" ? 1 : 0
+		navigationTheme: buzzerClient.themeSelector === "dark" ? 1 : 0
+	}
 
     function createPage(source)
     {
@@ -363,14 +364,11 @@ ApplicationWindow
 
     Connections
     {
-        target: buzzerApp
+		target: buzzerClient
 
-		/*
-        onDeviceTokenUpdated:
-        {
-            registerDeviceId(token);
-        }
-		*/
+		function onThemeChanged() {
+			window.activePageBackground = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Window.background")
+		}
     }
 
     function registerDeviceId(token)
@@ -672,6 +670,8 @@ ApplicationWindow
         {
             var lComponent = null;
             var lPage = null;
+
+			mainStatusBar.enabled = false;
 
 			if (buzzerClient.configured())
 			{

@@ -55,7 +55,7 @@ QuarkPage
 	}
 
 	function activatePage() {
-		buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background"));
+		buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Window.background"));
 		headerBar.activate();
 	}
 
@@ -93,6 +93,10 @@ QuarkPage
 			if (navigatorBar.currentIndex != 3 /*conversations*/) {
 				newMessagesDot.visible = true;
 			}
+		}
+
+		function onThemeChanged() {
+			buzzermain_.updateStatusBar();
 		}
 	}
 
@@ -140,12 +144,16 @@ QuarkPage
 		property var count_: 0;
 
 		onProcessed: {
-			buzzerClient.setTrustScore(endorsements, mistrusts);
-			headerBar.adjustTrustScore();
-
+			//
 			if (endorsements === 0) {
 				if (count_++ < 5) checkTrustScore.start();
-			} else count_ = 0;
+			} else {
+				console.log("[loadTrustScoreCommand]: setting endorsements = " + endorsements + ", mistrusts = " + mistrusts);
+				buzzerClient.setTrustScore(endorsements, mistrusts);
+				headerBar.adjustTrustScore();
+
+				count_ = 0;
+			}
 		}
 
 		onError: {
@@ -312,6 +320,7 @@ QuarkPage
 
 		Material.accent: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Market.tabActive");
 		Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Market.tabInactive");
+		Material.background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Market.tabBackground");
 	}
 
 	QuarkHLine {
@@ -321,7 +330,7 @@ QuarkPage
 		x2: parent.width
 		y2: navigatorBar.y
 		penWidth: 1
-		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Panel.top.separator") // Market.tabBackground
 		visible: true
 	}
 
@@ -354,6 +363,7 @@ QuarkPage
 			width: buzzermain_.width
 			height: navigatorBar.y - (headerBar.y + headerBar.height)
 			controller: buzzermain_.controller
+			mediaPlayerController: globalMediaPlayerController
 		}
 		Conversations {
 			id: conversations
@@ -362,6 +372,7 @@ QuarkPage
 			width: buzzermain_.width
 			height: navigatorBar.y - (headerBar.y + headerBar.height)
 			controller: buzzermain_.controller
+			mediaPlayerController: globalMediaPlayerController
 		}
 		Wallet {
 			id: walletQbit

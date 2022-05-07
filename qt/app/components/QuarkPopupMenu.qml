@@ -13,8 +13,8 @@ QuarkPopup
 
 	Material.theme: buzzerClient.themeSelector == "dark" ? Material.Dark : Material.Light;
 	Material.accent: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.accent");
-	Material.background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background");
-	Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground");
+	Material.background: menuBackgroundColor // buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background");
+	Material.foreground: menuForegroundColor // buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground");
 	Material.primary: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.primary");
 
 	property var menuHighlightColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.highlight")
@@ -33,6 +33,8 @@ QuarkPopup
 		clip: true
 		implicitHeight: contentHeight
 		model: popupBox.model
+
+		Material.background: menuBackgroundColor
 
 		delegate: ItemDelegate
 		{

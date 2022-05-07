@@ -39,7 +39,12 @@ void StatusBarPrivate::setNavigationBarColor_sys(const QColor &color)
 
 void StatusBarPrivate::setTheme_sys(StatusBar::Theme theme)
 {
-    Q_UNUSED(theme);
+	Q_UNUSED(theme);
+}
+
+void StatusBarPrivate::setNavigatorTheme_sys(StatusBar::Theme theme)
+{
+	Q_UNUSED(theme);
 }
 
 

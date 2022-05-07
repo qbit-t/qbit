@@ -39,7 +39,8 @@ QuarkPage {
 	statusBarColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "MediaView.statusBar")
 	navigationBarColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "MediaView.navigationBar")
 	Material.background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "MediaView.pageBackground")
-	pageTheme: "dark"
+	statusBarTheme: "dark"
+	navigatorTheme: "dark"
 
 	Component.onCompleted: {
 		closePageHandler = closePage;
@@ -65,9 +66,10 @@ QuarkPage {
 		// set back
 		statusBarColor = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.statusBar")
 		navigationBarColor = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.navigationBar")
-		pageTheme = buzzerClient.themeSelector;
-		buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background"));
-		controller.activePageBackground = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background");
+		statusBarTheme = buzzerClient.statusBarTheme;
+		navigatorTheme = buzzerClient.themeSelector;
+		buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Window.background"));
+		controller.activePageBackground = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Window.background");
 	}
 
 	function activatePage() {

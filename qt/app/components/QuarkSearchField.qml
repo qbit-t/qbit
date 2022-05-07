@@ -9,7 +9,7 @@ import QtQuick.Controls.Styles 1.4
 
 import "qrc:/fonts"
 
-Item
+Rectangle
 {
     id: searchField
 
@@ -19,12 +19,19 @@ Item
     Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground");
     Material.primary: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.primary");
 
+	color: "transparent"
+	height: calculatedHeight
+
 	property string searchText: "";
 	property string preeditText: "";
 	property string placeHolder: buzzerApp.getLocalization(buzzerClient.locale, "Markets.Filter.Search");
     property int calculatedHeight: 0;
 	property real fontPointSize: 14
 	property int itemSpacing: 3;
+	property int spacingLeft: 0
+	property int spacingRight: 0
+	property var cancelSymbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
+	property var placeholderTextColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
 
     property bool clearButton: true;
 	property var innerField: field
@@ -49,21 +56,38 @@ Item
 
     onWidthChanged:
     {
-		field.width = searchField.width - (clearButton ? cancel.width + 15 : 0);
+		field.width = searchField.width - ((clearButton ? cancel.width + 15 : 0) + spacingRight + spacingLeft);
     }
 
     QuarkTextField
     {
         id: field
 		font.pointSize: fontPointSize
-		width: searchField.width - (searchField.clearButton ? cancel.width + 15 : 0)
+		width: searchField.width - ((searchField.clearButton ? cancel.width + 15 : 0) + spacingRight + spacingLeft)
         clip: true
+
+		Material.accent: searchField.Material.accent
+		Material.background: searchField.Material.background
+		Material.foreground: searchField.Material.foreground
+		Material.primary: searchField.Material.primary
 
         placeholderText: searchField.placeHolder
 		text: searchText
 		mouseSelectionMode: TextInput.SelectCharacters
 		inputMask: ""
 		echoMode: TextInput.Normal
+
+		placeholderTextColor: searchField.placeholderTextColor
+
+		x: spacingLeft
+
+		onActiveFocusChanged: {
+			if (activeFocus) {
+				cancel.color = field.Material.accent;
+			} else {
+				cancel.color = cancelSymbolColor;
+			}
+		}
 
 		onDisplayTextChanged:
 		{
@@ -98,13 +122,13 @@ Item
     QuarkLabel
     {
         id: cancel
-        x: field.width + 5
+		x: spacingLeft + (field.width + 5)
         y: field.y + 10
         //renderType: Text.NativeRendering
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
         text: Fonts.closeSym
-        color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.hidden");
+		color: cancelSymbolColor
         visible: searchField.clearButton
 
         font.family: Fonts.icons

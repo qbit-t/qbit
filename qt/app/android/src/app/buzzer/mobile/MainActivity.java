@@ -3,6 +3,7 @@ package app.buzzer.mobile;
 import android.content.Intent;
 import android.os.Bundle;
 import org.qtproject.qt5.android.bindings.QtActivity;
+import org.qtproject.qt5.android.QtNative;
 
 import android.app.KeyguardManager;
 import android.content.pm.PackageManager;
@@ -67,6 +68,7 @@ import android.graphics.BitmapFactory;
 import android.webkit.MimeTypeMap;
 //import androidx.core.*;
 import android.content.ContentResolver;
+import android.view.WindowManager;
 
 public class MainActivity extends QtActivity
 {
@@ -75,6 +77,7 @@ public class MainActivity extends QtActivity
     private Cipher cipher;
     private KeyStore keyStore;
     private KeyGenerator keyGenerator;
+	private KeyboardProvider keyboardProvider;
     private FingerprintManager.CryptoObject cryptoObject;
     private FingerprintManager fingerprintManager;
     private KeyguardManager keyguardManager;
@@ -97,6 +100,7 @@ public class MainActivity extends QtActivity
 	public static native void setFileReceivedAndSaved(String url);
 	public static native void fireActivityResult(int requestCode, int resultCode);
 	public static native boolean checkFileExits(String url);
+	public static native void keyboardHeightChanged(int height);
 	public static boolean isIntentPending;
 	public static boolean isInitialized;
 	public static String workingDirPath;
@@ -111,7 +115,14 @@ public class MainActivity extends QtActivity
 		if (savedInstanceState == null) Log.i("buzzer", "============ NO INSTANCE, creating ============");
         super.onCreate(savedInstanceState);
 
-		Intent theIntent = getIntent();
+		new KeyboardProvider(this).init().setListener(new KeyboardProvider.KeyboardListener() {
+			@Override
+			public void onHeightChanged(int height) {
+				keyboardHeightChanged(height);
+				}
+		});
+
+	    Intent theIntent = getIntent();
 		if (theIntent != null){
 			String theAction = theIntent.getAction();
 			if (theAction != null){
@@ -121,7 +132,7 @@ public class MainActivity extends QtActivity
 			}
 		}
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN)
+	    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN)
         {
             try
             {
@@ -297,6 +308,12 @@ public class MainActivity extends QtActivity
         }
     }
 
+    public void setKeyboardAdjustMode(boolean adjustNothing) {
+		// for some reason it doesn't work without QtNative.activity(). Why?
+		QtNative.activity().getWindow().setSoftInputMode(adjustNothing ? WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING :
+		                                                                 WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
+	}
+
     public static void externalStartFingertipAuth()
     {
         instance_.startFingertipAuth();
@@ -423,6 +440,7 @@ public class MainActivity extends QtActivity
 						String lOriginalFileName = lFilePath.substring(lFilePath.lastIndexOf("/") + 1, lFilePath.lastIndexOf("."));
 						lOriginalFileName = lOriginalFileName.replaceAll("_", " ");
 						lOriginalFileName = lOriginalFileName.replaceAll(",", " ");
+						lOriginalFileName = lOriginalFileName.replaceAll("-", " ");
 						//
 						if (lFilePath.contains(".mp4") || lFilePath.contains(".MP4")) {
 							Cursor ca = getContentResolver().query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, new String[] { MediaStore.MediaColumns._ID }, MediaStore.MediaColumns.DATA + "=?", new String[] {lFilePath}, null);
@@ -470,6 +488,7 @@ public class MainActivity extends QtActivity
 							lOriginalFileName = lFilePath.substring(lFilePath.lastIndexOf("/") + 1, lFilePath.lastIndexOf("."));
 							lOriginalFileName = lOriginalFileName.replaceAll("_", " ");
 							lOriginalFileName = lOriginalFileName.replaceAll(",", " ");
+							lOriginalFileName = lOriginalFileName.replaceAll("-", " ");
 						}
 
 						Cursor cursor = getContentResolver().query(uri, columns, null, null, null);
@@ -739,7 +758,7 @@ public class MainActivity extends QtActivity
 		}
 
 	    setFileReceivedAndSaved(filePath);
-	} // processIntent
+	} // processIntent`
 
     //
 	//

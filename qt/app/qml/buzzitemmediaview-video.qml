@@ -255,11 +255,14 @@ Rectangle {
 
 		onClicked: {
 			//
-			hideControlsTimer.stop();
-			//
-			menuControl.enforceVisible = !menuControl.enforceVisible || frameContainer.scale > 1.0;
-			if (menuControl.enforceVisible) videoFrame.sharedMediaPlayer_.showCurrentPlayer();
-			else videoFrame.sharedMediaPlayer_.hideCurrentPlayer();
+			if (videoFrame.sharedMediaPlayer_.isCurrentInstance(path_)) {
+				hideControlsTimer.stop();
+				//
+				menuControl.enforceVisible = !menuControl.enforceVisible; // || frameContainer.scale > 1.0;
+				if (menuControl.enforceVisible) videoFrame.sharedMediaPlayer_.showCurrentPlayer();
+				else videoFrame.sharedMediaPlayer_.hideCurrentPlayer();
+			}
+
 			//
 			if (frameContainer.scale != 1.0) {
 				frameContainer.scale = 1.0;
@@ -491,7 +494,7 @@ Rectangle {
 
 		model: ListModel { id: menuModel }
 
-		Component.onCompleted: prepare()
+		onAboutToShow:prepare()
 
 		onClick: {
 			//
@@ -526,15 +529,17 @@ Rectangle {
 				keySymbol: Fonts.arrowDownHollowSym,
 				name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.gallery.media.reload")});
 
-			menuModel.append({
-				key: "share",
-				keySymbol: Fonts.shareSym,
-				name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.gallery.media.share")});
+			if (buzzerApp.getFileSize(originalPath_) > 0) {
+				menuModel.append({
+					key: "share",
+					keySymbol: Fonts.shareSym,
+					name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.gallery.media.share")});
 
-			menuModel.append({
-				key: "copyToDownload",
-				keySymbol: Fonts.downloadSym,
-				name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.gallery.media.copyToDownload")});
+				menuModel.append({
+					key: "copyToDownload",
+					keySymbol: Fonts.downloadSym,
+					name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.gallery.media.copyToDownload")});
+			}
 		}
 	}
 
