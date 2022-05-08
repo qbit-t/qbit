@@ -439,7 +439,12 @@ ApplicationWindow
                 from: 0.0
                 to: 1.0
                 duration: 600
-                //easing.type: Easing.Linear
+
+				onFinished: {
+					//
+					// REAL start-up
+					startUpTimer.start();
+				}
             }
 
             Rectangle
@@ -662,9 +667,9 @@ ApplicationWindow
     Timer
     {
         id: startUpTimer
-        interval: 1200
+		interval: 400
         repeat: false
-        running: true
+		running: false
 
         onTriggered:
         {

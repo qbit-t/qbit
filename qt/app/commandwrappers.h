@@ -2791,6 +2791,10 @@ public:
 	}
 
 	Q_INVOKABLE void processAndMerge() {
+		processAndMerge(false);
+	}
+
+	Q_INVOKABLE void processAndMerge(bool more) {
 		//
 		if (!conversationsModel_) return;
 
@@ -2798,7 +2802,7 @@ public:
 		prepare();
 
 		// params
-		more_ = false;
+		more_ = more;
 		merge_ = true;
 
 		//

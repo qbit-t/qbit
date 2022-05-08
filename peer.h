@@ -375,7 +375,7 @@ public:
 		waitForMessage();
 	}
 	// error processing
-	void processError(const std::string& context, const boost::system::error_code& error);	
+	void processError(const std::string& context, std::list<DataStream>::iterator msg, const boost::system::error_code& error);	
 	void sendMessageAsync(std::list<DataStream>::iterator msg);
 	void sendMessage(std::list<DataStream>::iterator msg);
 	void processPendingMessagesQueue();
@@ -563,7 +563,7 @@ private:
 			reading_ = false;
 		}
 
-		rawInData_.erase(msg);
+		if (msg != rawInData_.end()) rawInData_.erase(msg);
 	}
 
 	bool jobExists(const uint256& chain) {

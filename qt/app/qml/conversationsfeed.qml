@@ -102,7 +102,7 @@ Item
 
 		function onBuzzerDAppResumed() {
 			if (buzzerClient.buzzerDAppReady) {
-				conversationsModelLoader.processAndMerge();
+				conversationsModelLoader.processAndMerge(true); // preserve data
 			}
 		}
 

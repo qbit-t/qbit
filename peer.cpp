@@ -91,7 +91,7 @@ void Peer::messageSentAsync(std::list<OutMessage>::iterator msg, const boost::sy
 
 	//
 	if (error) {
-		processError("messageSentAsync", error);
+		processError("messageSentAsync", rawInData_.end(), error);
 	} else {
 		// log
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, strprintf("[peer/messageSentAsync]: for %s", key()));
@@ -100,9 +100,12 @@ void Peer::messageSentAsync(std::list<OutMessage>::iterator msg, const boost::sy
 	}
 }
 
-void Peer::processError(const std::string& context, const boost::system::error_code& error) {
+void Peer::processError(const std::string& context, std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
 	// log
 	if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, strprintf("[peer/%s/error]: closing session ", context) + key() + " -> " + error.message());
+	//
+	eraseInData(msg);
+
 	//
 	if (context != "messageSentAsync") { 
 		boost::unique_lock<boost::recursive_mutex> lLock(readMutex_);
@@ -1108,7 +1111,7 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 		if (!msg->size()) {
 			// log
 			gLog().write(Log::NET, std::string("[peer/processMessage/error]: empty message from ") + key());
-			rawInMessages_.erase(msg);
+			eraseInMessage(msg); // erase
 
 			processed(); 
 			return; 
@@ -1554,6 +1557,9 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 		}
 		
 	} else {
+		// erase message
+		eraseInMessage(msg);
+
 		// log
 		if (key() != "EKEY") {
 			gLog().write(Log::NET, "[peer/processMessage/error]: closing session " + key() + " -> " + error.message() + ", " + statusString());
@@ -1693,7 +1699,7 @@ void Peer::processGetTransactionData(std::list<DataStream>::iterator msg, const 
 		//
 		//waitForMessage();
 	} else {
-		processError("processGetTransactionData", error);
+		processError("processGetTransactionData", msg, error);
 	}
 }
 
@@ -1742,7 +1748,7 @@ void Peer::processGetTransactionsData(std::list<DataStream>::iterator msg, const
 		// write
 		sendMessage(lMsg);
 	} else {
-		processError("processGetTransactionsData", error);
+		processError("processGetTransactionsData", msg, error);
 	}
 }
 
@@ -1764,7 +1770,7 @@ void Peer::processGetState(std::list<DataStream>::iterator msg, const boost::sys
 		//
 		processed();		
 	} else {
-		processError("processGetState", error);
+		processError("processGetState", msg, error);
 	}
 }
 
@@ -1853,7 +1859,7 @@ void Peer::processAskForQbits(std::list<DataStream>::iterator msg, const boost::
 		}
 		
 	} else {
-		processError("processAskForQbits", error);
+		processError("processAskForQbits", msg, error);
 	}
 }
 
@@ -1926,7 +1932,7 @@ void Peer::processGetEntity(std::list<DataStream>::iterator msg, const boost::sy
 		//
 		//waitForMessage();
 	} else {
-		processError("processGetEntity", error);
+		processError("processGetEntity", msg, error);
 	}
 }
 
@@ -1973,7 +1979,7 @@ void Peer::processGetUtxoByEntity(std::list<DataStream>::iterator msg, const boo
 		// write
 		sendMessage(lMsg);
 	} else {
-		processError("processGetUtxoByEntity", error);
+		processError("processGetUtxoByEntity", msg, error);
 	}
 }
 
@@ -2033,7 +2039,7 @@ void Peer::processGetUtxoByEntityNames(std::list<DataStream>::iterator msg, cons
 		// write
 		sendMessage(lMsg);
 	} else {
-		processError("processGetUtxoByEntityNames", error);
+		processError("processGetUtxoByEntityNames", msg, error);
 	}
 }
 
@@ -2083,7 +2089,7 @@ void Peer::processGetEntityCountByShards(std::list<DataStream>::iterator msg, co
 		// write
 		sendMessage(lMsg);
 	} else {
-		processError("processGetEntityCountByShards", error);
+		processError("processGetEntityCountByShards", msg, error);
 	}
 }
 
@@ -2133,7 +2139,7 @@ void Peer::processGetEntityCountByDApp(std::list<DataStream>::iterator msg, cons
 		// write
 		sendMessage(lMsg);
 	} else {
-		processError("processGetEntityCountByDApp", error);
+		processError("processGetEntityCountByDApp", msg, error);
 	}
 }
 
@@ -2178,7 +2184,7 @@ void Peer::processGetEntityNames(std::list<DataStream>::iterator msg, const boos
 		// write
 		sendMessage(lMsg);
 	} else {
-		processError("processGetEntityNames", error);
+		processError("processGetEntityNames", msg, error);
 	}
 }
 
@@ -2208,7 +2214,7 @@ void Peer::processTransactionAbsent(std::list<DataStream>::iterator msg, const b
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: transaction is absent ") + strprintf("%s#", lTxId.toHex()));
 
 	} else {
-		processError("processTransactionAbsent", error);
+		processError("processTransactionAbsent", msg, error);
 	}
 }
 
@@ -2246,7 +2252,7 @@ void Peer::processTransactionData(std::list<DataStream>::iterator msg, const boo
 			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: request was NOT FOUND for transaction ") + strprintf("r = %s, %s", lRequestId.toHex(), lTx->id().toHex()) + std::string("..."));
 		}
 	} else {
-		processError("processTransactionData", error);
+		processError("processTransactionData", msg, error);
 	}
 }
 
@@ -2279,7 +2285,7 @@ void Peer::processTransactionsData(std::list<DataStream>::iterator msg, const bo
 			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: request was NOT FOUND ") + strprintf("r = %s", lRequestId.toHex()) + std::string("..."));
 		}
 	} else {
-		processError("processTransactionsData", error);
+		processError("processTransactionsData", msg, error);
 	}
 }
 
@@ -2309,7 +2315,7 @@ void Peer::processEntityAbsent(std::list<DataStream>::iterator msg, const boost:
 		
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: entity is absent - ") + strprintf("'%s'", lName));
 	} else {
-		processError("processTransactionAbsent", error);
+		processError("processTransactionAbsent", msg, error);
 	}
 }
 
@@ -2342,7 +2348,7 @@ void Peer::processEntity(std::list<DataStream>::iterator msg, const boost::syste
 			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: request was NOT FOUND for entity ") + strprintf("r = %s, %s", lRequestId.toHex(), lTx->id().toHex()) + std::string("..."));
 		}
 	} else {
-		processError("processTransactionData", error);
+		processError("processTransactionData", msg, error);
 	}
 }
 
@@ -2389,7 +2395,7 @@ void Peer::processGetUtxoByAddress(std::list<DataStream>::iterator msg, const bo
 		// write
 		sendMessage(lMsg);
 	} else {
-		processError("processGetUtxoByAddress", error);
+		processError("processGetUtxoByAddress", msg, error);
 	}
 }
 
@@ -2439,7 +2445,7 @@ void Peer::processGetUtxoByAddressAndAsset(std::list<DataStream>::iterator msg, 
 		// write
 		sendMessage(lMsg);
 	} else {
-		processError("processGetUtxoByAddressAndAsset", error);
+		processError("processGetUtxoByAddressAndAsset", msg, error);
 	}
 }
 
@@ -2486,7 +2492,7 @@ void Peer::processGetUtxoByTransaction(std::list<DataStream>::iterator msg, cons
 		// write
 		sendMessage(lMsg);
 	} else {
-		processError("processGetUtxoByTransaction", error);
+		processError("processGetUtxoByTransaction", msg, error);
 	}
 }
 
@@ -2523,7 +2529,7 @@ void Peer::processUtxoByAddress(std::list<DataStream>::iterator msg, const boost
 			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: request was NOT FOUND for utxo by address ") + strprintf("r = %s, %s", lRequestId.toHex(), lPKey.toString()) + std::string("..."));
 		}
 	} else {
-		processError("processUtxoByAddress", error);
+		processError("processUtxoByAddress", msg, error);
 	}
 }
 
@@ -2562,7 +2568,7 @@ void Peer::processUtxoByAddressAndAsset(std::list<DataStream>::iterator msg, con
 			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: request was NOT FOUND for utxo by asset ") + strprintf("r = %s, %s", lRequestId.toHex(), lAsset.toHex()) + std::string("..."));
 		}
 	} else {
-		processError("processUtxoByAddressAndAsset", error);
+		processError("processUtxoByAddressAndAsset", msg, error);
 	}
 }
 
@@ -2599,7 +2605,7 @@ void Peer::processUtxoByTransaction(std::list<DataStream>::iterator msg, const b
 			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: request was NOT FOUND for utxo by tx ") + strprintf("r = %s, %s", lRequestId.toHex(), lTx.toHex()) + std::string("..."));
 		}
 	} else {
-		processError("processUtxoByTransaction", error);
+		processError("processUtxoByTransaction", msg, error);
 	}
 }
 
@@ -2635,7 +2641,7 @@ void Peer::processUtxoByEntity(std::list<DataStream>::iterator msg, const boost:
 			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: request was NOT FOUND for utxo by entity ") + strprintf("r = %s, e = '%s'", lRequestId.toHex(), lName) + std::string("..."));
 		}
 	} else {
-		processError("processUtxoByEntity", error);
+		processError("processUtxoByEntity", msg, error);
 	}
 }
 
@@ -2668,7 +2674,7 @@ void Peer::processUtxoByEntityNames(std::list<DataStream>::iterator msg, const b
 			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: request was NOT FOUND for utxo by entity ") + strprintf("r = %s", lRequestId.toHex()) + std::string("..."));
 		}
 	} else {
-		processError("processUtxoByEntityNames", error);
+		processError("processUtxoByEntityNames", msg, error);
 	}
 }
 
@@ -2710,7 +2716,7 @@ void Peer::processEntityCountByShards(std::list<DataStream>::iterator msg, const
 			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: request was NOT FOUND for entity count by shards ") + strprintf("r = %s, e = '%s'", lRequestId.toHex(), lName) + std::string("..."));
 		}
 	} else {
-		processError("processEntityCountByShards", error);
+		processError("processEntityCountByShards", msg, error);
 	}
 }
 
@@ -2752,7 +2758,7 @@ void Peer::processEntityCountByDApp(std::list<DataStream>::iterator msg, const b
 			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: request was NOT FOUND for entity count by shards ") + strprintf("r = %s, e = '%s'", lRequestId.toHex(), lName) + std::string("..."));
 		}
 	} else {
-		processError("processEntityCountByDApp", error);
+		processError("processEntityCountByDApp", msg, error);
 	}
 }
 
@@ -2788,7 +2794,7 @@ void Peer::processEntityNames(std::list<DataStream>::iterator msg, const boost::
 			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: request was NOT FOUND for entity names ") + strprintf("r = %s, e = '%s'", lRequestId.toHex(), lName) + std::string("..."));
 		}
 	} else {
-		processError("processEntityNames", error);
+		processError("processEntityNames", msg, error);
 	}
 }
 
@@ -2823,7 +2829,7 @@ void Peer::processTransactionPushed(std::list<DataStream>::iterator msg, const b
 			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: request was NOT FOUND ") + strprintf("r = %s, tx = %s", lRequestId.toHex(), lTxId.toHex()) + std::string("..."));
 		}
 	} else {
-		processError("processTransactionPushed", error);
+		processError("processTransactionPushed", msg, error);
 	}
 }
 
@@ -2844,7 +2850,7 @@ void Peer::processBlockByHeightAbsent(std::list<DataStream>::iterator msg, const
 		//
 		processed();
 	} else {
-		processError("processBlockByHeightAbsent", error);
+		processError("processBlockByHeightAbsent", msg, error);
 	}
 }
 
@@ -2872,7 +2878,7 @@ void Peer::processBlockByIdAbsent(std::list<DataStream>::iterator msg, const boo
 		//
 		processed();
 	} else {
-		processError("processBlockByIdAbsent", error);
+		processError("processBlockByIdAbsent", msg, error);
 	}	
 }
 
@@ -2893,7 +2899,7 @@ void Peer::processNetworkBlockAbsent(std::list<DataStream>::iterator msg, const 
 		//
 		processed();
 	} else {
-		processError("processNetworkBlockAbsent", error);
+		processError("processNetworkBlockAbsent", msg, error);
 	}	
 }
 
@@ -2921,7 +2927,7 @@ void Peer::processNetworkBlockHeaderAbsent(std::list<DataStream>::iterator msg, 
 		
 		if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: network block header is absent for ") + strprintf("%s/%s#", lId.toHex(), lChain.toHex().substr(0, 10)));
 	} else {
-		processError("processNetworkBlockHeaderAbsent", error);
+		processError("processNetworkBlockHeaderAbsent", msg, error);
 	}	
 }
 
@@ -2953,7 +2959,7 @@ void Peer::processBlockHeaderAbsent(std::list<DataStream>::iterator msg, const b
 		//
 		processed();
 	} else {
-		processError("processBlockHeaderAbsent", error);
+		processError("processBlockHeaderAbsent", msg, error);
 	}
 }
 
@@ -2984,7 +2990,7 @@ void Peer::processBlockAbsent(std::list<DataStream>::iterator msg, const boost::
 		//
 		processed();
 	} else {
-		processError("processBlockAbsent", error);
+		processError("processBlockAbsent", msg, error);
 	}
 }
 
@@ -3022,7 +3028,7 @@ void Peer::processBlockByHeight(std::list<DataStream>::iterator msg, const boost
 		}
 
 	} else {
-		processError("processBlockByHeight", error);
+		processError("processBlockByHeight", msg, error);
 	}	
 }
 
@@ -3085,7 +3091,7 @@ void Peer::processGetBlockByHeight(std::list<DataStream>::iterator msg, const bo
 		}
 
 	} else {
-		processError("processGetBlockByHeight", error);
+		processError("processGetBlockByHeight", msg, error);
 	}	
 }
 
@@ -3152,7 +3158,7 @@ void Peer::processBlockById(std::list<DataStream>::iterator msg, const boost::sy
 		}
 
 	} else {
-		processError("processBlockById", error);
+		processError("processBlockById", msg, error);
 	}	
 }
 
@@ -3185,7 +3191,7 @@ void Peer::processBlock(std::list<DataStream>::iterator msg, const boost::system
 		}
 
 	} else {
-		processError("processBlock", error);
+		processError("processBlock", msg, error);
 	}	
 }
 
@@ -3246,7 +3252,7 @@ void Peer::processGetBlockById(std::list<DataStream>::iterator msg, const boost:
 			sendMessage(lMsg);
 		}
 	} else {
-		processError("processGetBlockById", error);
+		processError("processGetBlockById", msg, error);
 	}	
 }
 
@@ -3307,7 +3313,7 @@ void Peer::processGetBlockData(std::list<DataStream>::iterator msg, const boost:
 			sendMessage(lMsg);
 		}
 	} else {
-		processError("processGetBlockData", error);
+		processError("processGetBlockData", msg, error);
 	}	
 }
 
@@ -3364,7 +3370,7 @@ void Peer::processNetworkBlock(std::list<DataStream>::iterator msg, const boost:
 		}
 
 	} else {
-		processError("processNetworkBlock", error);
+		processError("processNetworkBlock", msg, error);
 	}	
 }
 
@@ -3399,7 +3405,7 @@ void Peer::processNetworkBlockHeader(std::list<DataStream>::iterator msg, const 
 			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: request was NOT FOUND for network block header ") + strprintf("r = %s, %s/%s#", lRequestId.toHex(), lNetworkBlockHeader.blockHeader().hash().toHex(), lNetworkBlockHeader.blockHeader().chain().toHex().substr(0, 10)) + std::string("..."));
 		}
 	} else {
-		processError("processNetworkBlockHeader", error);
+		processError("processNetworkBlockHeader", msg, error);
 	}	
 }
 
@@ -3460,7 +3466,7 @@ void Peer::processGetNetworkBlock(std::list<DataStream>::iterator msg, const boo
 			sendMessage(lMsg);
 		}
 	} else {
-		processError("processGetNetworkBlock", error);
+		processError("processGetNetworkBlock", msg, error);
 	}	
 }
 
@@ -3568,7 +3574,7 @@ void Peer::processGetNetworkBlockHeader(std::list<DataStream>::iterator msg, con
 			sendMessage(lMsg);
 		}
 	} else {
-		processError("processGetNetworkBlockHeader", error);
+		processError("processGetNetworkBlockHeader", msg, error);
 	}	
 }
 
@@ -3642,7 +3648,7 @@ void Peer::processGetBlockHeader(std::list<DataStream>::iterator msg, const boos
 			sendMessage(lMsg);
 		}
 	} else {
-		processError("processGetBlockHeader", error);
+		processError("processGetBlockHeader", msg, error);
 	}	
 }
 
@@ -3843,7 +3849,7 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 				strprintf("%s#", lHeaders.begin()->blockHeader().chain().toHex().substr(0, 10)));
 		}
 	} else {
-		processError("processBlockHeader", error);
+		processError("processBlockHeader", msg, error);
 	}
 }
 
@@ -3939,7 +3945,7 @@ void Peer::processBlockHeaderAndState(std::list<DataStream>::iterator msg, const
 		}
 
 	} else {
-		processError("processBlockHeaderAndState", error);
+		processError("processBlockHeaderAndState", msg, error);
 	}
 }
 
@@ -3991,7 +3997,7 @@ void Peer::processTransaction(std::list<DataStream>::iterator msg, const boost::
 		}
 
 	} else {
-		processError("processTransaction", error);
+		processError("processTransaction", msg, error);
 	}
 }
 
@@ -4075,7 +4081,7 @@ void Peer::processPushTransaction(std::list<DataStream>::iterator msg, const boo
 			sendMessage(lMsg);
 		}
 	} else {
-		processError("processPushTransaction", error);
+		processError("processPushTransaction", msg, error);
 	}
 }
 
@@ -4215,7 +4221,7 @@ void Peer::processRequestPeers(std::list<DataStream>::iterator msg, const boost:
 		// write
 		sendMessage(lMsg);
 	} else {
-		processError("processRequestPeers", error);
+		processError("processRequestPeers", msg, error);
 	}
 }
 
@@ -4242,7 +4248,7 @@ void Peer::processPeers(std::list<DataStream>::iterator msg, const boost::system
 		}
 
 	} else {
-		processError("processPeers", error);
+		processError("processPeers", msg, error);
 	}
 }
 
@@ -4265,7 +4271,7 @@ void Peer::processPing(std::list<DataStream>::iterator msg, const boost::system:
 
 		sendMessage(lMsg);
 	} else {
-		processError("processPing", error);
+		processError("processPing", msg, error);
 	}
 }
 
@@ -4289,7 +4295,7 @@ void Peer::processPong(std::list<DataStream>::iterator msg, const boost::system:
 		if (!state()->client()) peerManager_->updateMedianTime();
 
 	} else {
-		processError("processPong", error);
+		processError("processPong", msg, error);
 	}
 }
 
@@ -4337,7 +4343,7 @@ void Peer::processGlobalState(std::list<DataStream>::iterator msg, const boost::
 		}
 
 	} else {
-		processError("processGlobalState", error);
+		processError("processGlobalState", msg, error);
 	}
 }
 
@@ -4404,7 +4410,7 @@ void Peer::processState(std::list<DataStream>::iterator msg, bool broadcast, con
 			if (!isOutbound()) sendState();
 		}
 	} else {
-		processError("processState", error);
+		processError("processState", msg, error);
 	}
 }
 

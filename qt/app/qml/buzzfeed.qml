@@ -26,15 +26,17 @@ Item
 	property var mediaPlayerController;
 
 	function externalPull() {
-		//modelLoader.restart();
 		switchDataTimer.start();
 	}
 
 	Component.onCompleted: {
 		//
+		switchDataTimer.start();
+		/*
 		if (buzzerClient.buzzerDAppReady) {
 			modelLoader.start();
 		}
+		*/
 	}
 
 	onWidthChanged: {

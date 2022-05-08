@@ -2175,6 +2175,8 @@ void BuzzerPeerExtension::processGetSubscription(std::list<DataStream>::iterator
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processGetSubscription/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -2238,6 +2240,8 @@ void BuzzerPeerExtension::processGetBuzzerTrustScore(std::list<DataStream>::iter
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processGetBuzzerTrustScore/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -2299,6 +2303,8 @@ void BuzzerPeerExtension::processGetBuzzerEndorseTx(std::list<DataStream>::itera
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processGetBuzzerEndorseTx/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -2360,6 +2366,8 @@ void BuzzerPeerExtension::processGetBuzzerMistrustTx(std::list<DataStream>::iter
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processGetBuzzerMistrustTx/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -2397,6 +2405,8 @@ void BuzzerPeerExtension::processSubscribeBuzzThread(std::list<DataStream>::iter
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processGetBuzzfeed/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -2433,6 +2443,8 @@ void BuzzerPeerExtension::processUnsubscribeBuzzThread(std::list<DataStream>::it
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processGetBuzzfeed/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -2493,6 +2505,8 @@ void BuzzerPeerExtension::processGetConversationsFeedByBuzzer(std::list<DataStre
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processGetConversationsFeedByBuzzer/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -2553,6 +2567,8 @@ void BuzzerPeerExtension::processGetMessagesFeedByConversation(std::list<DataStr
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processGetMessagesFeedByConversation/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -2612,6 +2628,8 @@ void BuzzerPeerExtension::processGetBuzzfeed(std::list<DataStream>::iterator msg
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processGetBuzzfeed/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -2678,6 +2696,8 @@ void BuzzerPeerExtension::processGetBuzzfeedGlobal(std::list<DataStream>::iterat
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processGetBuzzfeedGlobal/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -2746,6 +2766,8 @@ void BuzzerPeerExtension::processGetBuzzfeedByTag(std::list<DataStream>::iterato
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processGetBuzzfeedByTag/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -2803,6 +2825,8 @@ void BuzzerPeerExtension::processGetHashTags(std::list<DataStream>::iterator msg
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processGetHashTags/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -2866,6 +2890,8 @@ void BuzzerPeerExtension::processGetBuzzfeedByBuzz(std::list<DataStream>::iterat
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processGetBuzzfeedByBuzz/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -2929,6 +2955,8 @@ void BuzzerPeerExtension::processGetBuzzfeedByBuzzer(std::list<DataStream>::iter
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processGetBuzzfeedByBuzzer/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -2989,6 +3017,8 @@ void BuzzerPeerExtension::processGetMistrustsByBuzzer(std::list<DataStream>::ite
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processGetMistrustsByBuzzer/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -3049,6 +3079,8 @@ void BuzzerPeerExtension::processGetEndorsementsByBuzzer(std::list<DataStream>::
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processGetEndorsementsByBuzzer/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -3109,6 +3141,8 @@ void BuzzerPeerExtension::processGetSubscriptionsByBuzzer(std::list<DataStream>:
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processGetSubscriptionsByBuzzer/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -3169,6 +3203,8 @@ void BuzzerPeerExtension::processGetFollowersByBuzzer(std::list<DataStream>::ite
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processGetFollowersByBuzzer/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -3228,6 +3264,8 @@ void BuzzerPeerExtension::processGetEventsfeed(std::list<DataStream>::iterator m
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processGetEventsfeed/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -3291,6 +3329,8 @@ void BuzzerPeerExtension::processGetBuzzes(std::list<DataStream>::iterator msg, 
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processGetBuzzes/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -3373,6 +3413,8 @@ void BuzzerPeerExtension::processGetBuzzerAndInfo(std::list<DataStream>::iterato
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processGetBuzzerAndInfo/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -3448,6 +3490,8 @@ void BuzzerPeerExtension::processBuzzerAndInfoAbsent(std::list<DataStream>::iter
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processBuzzerAndInfo/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -3480,6 +3524,8 @@ void BuzzerPeerExtension::processSubscriptionAbsent(std::list<DataStream>::itera
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processSubscriptionAbsent/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -3518,6 +3564,8 @@ void BuzzerPeerExtension::processSubscription(std::list<DataStream>::iterator ms
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processSubscription/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -3556,6 +3604,8 @@ void BuzzerPeerExtension::processBuzzerTrustScore(std::list<DataStream>::iterato
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processBuzzerTrustScore/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -3594,6 +3644,8 @@ void BuzzerPeerExtension::processBuzzerEndorseTx(std::list<DataStream>::iterator
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processBuzzerEndorseTx/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -3632,6 +3684,8 @@ void BuzzerPeerExtension::processBuzzerMistrustTx(std::list<DataStream>::iterato
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processBuzzerMistrustTx/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -3672,6 +3726,8 @@ void BuzzerPeerExtension::processBuzzfeed(std::list<DataStream>::iterator msg, c
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processBuzzfeed/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -3712,6 +3768,8 @@ void BuzzerPeerExtension::processBuzzfeedGlobal(std::list<DataStream>::iterator 
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processBuzzfeedGlobal/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -3752,6 +3810,8 @@ void BuzzerPeerExtension::processBuzzfeedByTag(std::list<DataStream>::iterator m
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processBuzzfeedByTag/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -3792,6 +3852,8 @@ void BuzzerPeerExtension::processHashTags(std::list<DataStream>::iterator msg, c
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processHashTags/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -3834,6 +3896,8 @@ void BuzzerPeerExtension::processBuzzfeedByBuzz(std::list<DataStream>::iterator 
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processBuzzfeedByBuzz/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -3876,6 +3940,8 @@ void BuzzerPeerExtension::processBuzzfeedByBuzzer(std::list<DataStream>::iterato
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processBuzzfeedByBuzzer/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -3918,6 +3984,8 @@ void BuzzerPeerExtension::processMistrustsByBuzzer(std::list<DataStream>::iterat
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processMistrustsByBuzzer/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -3960,6 +4028,8 @@ void BuzzerPeerExtension::processEndorsementsByBuzzer(std::list<DataStream>::ite
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processEndorsementsByBuzzer/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -4002,6 +4072,8 @@ void BuzzerPeerExtension::processSubscriptionsByBuzzer(std::list<DataStream>::it
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processSubscriptionsByBuzzer/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -4044,6 +4116,8 @@ void BuzzerPeerExtension::processFollowersByBuzzer(std::list<DataStream>::iterat
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processFollowersByBuzzer/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -4086,6 +4160,8 @@ void BuzzerPeerExtension::processConversationsFeedByBuzzer(std::list<DataStream>
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processConversationsFeedByBuzzer/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -4136,6 +4212,8 @@ void BuzzerPeerExtension::processMessagesFeedByConversation(std::list<DataStream
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processMessagesFeedByConversation/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -4176,6 +4254,8 @@ void BuzzerPeerExtension::processEventsfeed(std::list<DataStream>::iterator msg,
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processEventsfeed/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -4215,6 +4295,8 @@ void BuzzerPeerExtension::processNewBuzzNotify(std::list<DataStream>::iterator m
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processNewBuzzNotify/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -4254,6 +4336,8 @@ void BuzzerPeerExtension::processNewMessageNotify(std::list<DataStream>::iterato
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processNewMessageNotify/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -4291,6 +4375,8 @@ void BuzzerPeerExtension::processNewEventNotify(std::list<DataStream>::iterator 
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processNewEventNotify/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -4331,6 +4417,8 @@ void BuzzerPeerExtension::processNewConversationNotify(std::list<DataStream>::it
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processNewConversationNotify/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -4371,6 +4459,8 @@ void BuzzerPeerExtension::processUpdateConversationNotify(std::list<DataStream>:
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processUpdateConversationNotify/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -4411,6 +4501,8 @@ void BuzzerPeerExtension::processBuzzUpdateNotify(std::list<DataStream>::iterato
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processBuzzUpdateNotify/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -4444,6 +4536,8 @@ void BuzzerPeerExtension::processEventUpdateNotify(std::list<DataStream>::iterat
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processEventUpdateNotify/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
@@ -5216,6 +5310,8 @@ void BuzzerPeerExtension::processBuzzerTrustScoreUpdateNotify(std::list<DataStre
 	} else {
 		// log
 		gLog().write(Log::NET, "[peer/processBuzzerTrustScoreUpdateNotify/error]: closing session " + peer_->key() + " -> " + error.message());
+		// releasing message
+		peer_->eraseInData(msg);
 		// try to deactivate peer
 		peerManager_->deactivatePeer(peer_);
 		// close socket
