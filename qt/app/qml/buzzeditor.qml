@@ -493,7 +493,9 @@ QuarkPage {
 			wrapContainer.wrappedItem_.buzzerInfoChainId_ = item.buzzerInfoChainId;
 			wrapContainer.wrappedItem_.buzzBody_ = buzzerClient.decorateBuzzBody(item.buzzBody);
 			wrapContainer.wrappedItem_.buzzMedia_ = item.buzzMedia;
+			wrapContainer.wrappedItem_.lastUrl_ = buzzerClient.extractLastUrl(item.buzzBody);
 			wrapContainer.wrappedItem_.ago_ = buzzerClient.timestampAgo(item.timestamp);
+			wrapContainer.wrappedItem_.initialize();
 		}
 
 		function replyItem(item) {

@@ -193,6 +193,8 @@ Item {
 				var lString;
 				var lResult;
 
+				console.log("[actionText/getText]: buzzInfos_.length = " + buzzInfos_.length);
+
 				if (type_ === buzzerClient.tx_BUZZ_LIKE_TYPE()) {
 					if (buzzInfos_.length > 1) {
 						lInfo = buzzInfos_[0];
@@ -498,7 +500,7 @@ Item {
 			var lSource;
 			var lComponent;
 
-			// if rebuzz and wapped
+			// if rebuzz and wrapped
 			if (wrapped_ && !wrappedItem_) {
 				// buzzText
 				lSource = "qrc:/qml/buzzitemlight.qml";
@@ -523,10 +525,11 @@ Item {
 				wrappedItem_.buzzMedia_ = wrapped_.buzzMedia;
 				wrappedItem_.lastUrl_ = buzzerClient.extractLastUrl(wrapped_.buzzBody);
 				wrappedItem_.ago_ = buzzerClient.timestampAgo(wrapped_.timestamp);
+				wrappedItem_.initialize();
 			}
 
 			// expand media
-			if (buzzMedia_.length) {
+			if (buzzMedia_ && buzzMedia_.length) {
 				if (!buzzMediaItem_) {
 					lSource = "qrc:/qml/buzzitemmedia.qml";
 					lComponent = Qt.createComponent(lSource);
@@ -546,7 +549,7 @@ Item {
 					bodyControl.height = bodyControl.getHeight();
 					buzzitemhead_.calculateHeight();
 				}
-			} else if (lastUrl_.length) {
+			} else if (lastUrl_ && lastUrl_.length) {
 				//
 				if (!urlInfoItem_) {
 					lSource = buzzerApp.isDesktop ? "qrc:/qml/buzzitemurl-desktop.qml" : "qrc:/qml/buzzitemurl.qml";

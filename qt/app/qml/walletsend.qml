@@ -129,7 +129,7 @@ Item
 				//
 				console.log("[onAddressTextChanged]: address = '" + address + "', prevText_ = '" + prevText_ + "'");
 				//
-				if (address[0] === '@' && prevText_ !== address) {
+				if (address[0] === '@' /*&& prevText_ !== address*/) {
 					prevText_ = address;
 					if (!contactExists(address))
 						searchBuzzers.process(address);

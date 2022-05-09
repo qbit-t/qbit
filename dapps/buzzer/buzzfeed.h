@@ -220,6 +220,7 @@ public:
 			if (type_ == TX_BUZZ) return "BUZZ";
 			else if (type_ == TX_BUZZ_REPLY) return "REPLY";
 			else if (type_ == TX_REBUZZ) return "REBUZZ";
+			else if (type_ == TX_REBUZZ_REPLY) return "RREBUZZ";
 			else if (type_ == TX_BUZZ_LIKE) return "LIKE";
 			else if (type_ == TX_BUZZ_REWARD) return "REWARD";
 			else if (type_ == TX_BUZZER_MISTRUST) return "MISTRUST";
@@ -672,7 +673,7 @@ public:
 			lResolved = false;
 		}
 
-		if (type_ == TX_REBUZZ || type_ == TX_BUZZ_LIKE || type_ == TX_BUZZ_REWARD || type_ == TX_BUZZER_MISTRUST || type_ == TX_BUZZER_ENDORSE) {
+		if (type_ == TX_REBUZZ || type_ == TX_REBUZZ_REPLY || type_ == TX_BUZZ_LIKE || type_ == TX_BUZZ_REWARD || type_ == TX_BUZZER_MISTRUST || type_ == TX_BUZZER_ENDORSE) {
 			for (std::vector<ItemInfo>::const_iterator lItem = infos_.begin(); lItem != infos_.end(); lItem++) {
 				if (!buzzerInfoResolve_(
 						lItem->buzzerInfoChainId(), 
@@ -728,6 +729,7 @@ public:
 	std::string typeString() {
 		if (type_ == TX_BUZZ) return "bz";
 		else if (type_ == TX_REBUZZ) return "rb";
+		else if (type_ == TX_REBUZZ_REPLY) return "rb";
 		else if (type_ == TX_BUZZ_REPLY) return "re";
 		else if (type_ == TX_BUZZ_LIKE) return "lk";
 		else if (type_ == TX_BUZZ_REWARD) return "dn";
@@ -867,6 +869,7 @@ public:
 	virtual void collectPendingItems(std::map<uint256 /*chain*/, std::set<uint256>/*items*/>&);
 	virtual void crossMerge(bool notify = false);
 	virtual void wrap(BuzzfeedItemPtr item) {
+		item->resolve();
 		wrapped_ = item;
 	}
 	virtual BuzzfeedItemPtr wrapped() { return wrapped_; }

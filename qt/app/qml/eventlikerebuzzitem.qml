@@ -435,6 +435,7 @@ Item {
 				wrappedItem_.buzzMedia_ = buzzMedia_;
 				wrappedItem_.lastUrl_ = buzzerClient.extractLastUrl(buzzBody_);
 				wrappedItem_.ago_ = buzzerClient.timestampAgo(timestamp_);
+				wrappedItem_.initialize();
 			}
 		}
 

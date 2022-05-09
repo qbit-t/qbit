@@ -680,6 +680,7 @@ Item {
 				bodyControl.wrappedItem_.buzzMedia_ = wrapped_.buzzMedia;
 				bodyControl.wrappedItem_.lastUrl_ = buzzerClient.extractLastUrl(wrapped_.buzzBody);
 				bodyControl.wrappedItem_.ago_ = buzzerClient.timestampAgo(wrapped_.timestamp);
+				bodyControl.wrappedItem_.initialize();
 
 				bodyControl.height = bodyControl.getHeight();
 				buzzitem_.calculateHeight();

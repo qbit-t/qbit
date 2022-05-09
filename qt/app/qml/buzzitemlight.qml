@@ -23,18 +23,18 @@ Item {
 
 	property int calculatedHeight: calculateHeightInternal()
 	property var type_: type
-	property var buzzId_: buzzId
-	property var buzzChainId_: buzzChainId
-	property var timestamp_: timestamp
-	property var ago_: ago
+	property var buzzId_//: buzzId
+	property var buzzChainId_//: buzzChainId
+	property var timestamp_//: timestamp
+	property var ago_//: ago
 	property var localDateTime_: localDateTime
-	property var score_: score
+	property var score_//: score
 	property var buzzerId_//: buzzerId
 	property var buzzerInfoId_//: buzzerInfoId
 	property var buzzerInfoChainId_//: buzzerInfoChainId
-	property var buzzBody_: buzzBody
-	property var buzzBodyFlat_: buzzBodyFlat
-	property var buzzMedia_: buzzMedia
+	property var buzzBody_//: buzzBody
+	property var buzzBodyFlat_//: buzzBodyFlat
+	property var buzzMedia_//: buzzMedia
 	property bool interactive_: true
 	//property var replies_: replies
 	//property var rebuzzes_: rebuzzes
@@ -56,7 +56,7 @@ Item {
 	//property var wrapped_: wrapped
 	property var childLink_: false
 	property var parentLink_: false
-	property var lastUrl_: lastUrl
+	property var lastUrl_//: lastUrl
 
 	property var controller_: controller
 	//property var buzzfeedModel_: buzzfeedModel
@@ -85,9 +85,9 @@ Item {
 
 	onBuzzerInfoId_Changed: {
 		//console.log("[onBuzzerInfoId_Changed]: " + buzzerClient.getBuzzerAvatarUrl(buzzerInfoId_));
-		avatarDownloadCommand.url = buzzerClient.getBuzzerAvatarUrl(buzzerInfoId_)
-		avatarDownloadCommand.localFile = buzzerClient.getTempFilesPath() + "/" + buzzerClient.getBuzzerAvatarUrlHeader(buzzerInfoId_)
-		avatarDownloadCommand.process();
+		//avatarDownloadCommand.url = buzzerClient.getBuzzerAvatarUrl(buzzerInfoId_)
+		//avatarDownloadCommand.localFile = buzzerClient.getTempFilesPath() + "/" + buzzerClient.getBuzzerAvatarUrlHeader(buzzerInfoId_)
+		//avatarDownloadCommand.process();
 	}
 
 	onSharedMediaPlayer_Changed: {
@@ -114,6 +114,14 @@ Item {
 		bodyControl.unbindCommonControls();
 	}
 
+	function initialize() {
+		//
+		avatarDownloadCommand.url = buzzerClient.getBuzzerAvatarUrl(buzzitemlight_.buzzerInfoId_)
+		avatarDownloadCommand.localFile = buzzerClient.getTempFilesPath() + "/" + buzzerClient.getBuzzerAvatarUrlHeader(buzzitemlight_.buzzerInfoId_)
+		avatarDownloadCommand.process();
+		bodyControl.expand();
+	}
+
 	//
 	// avatar download
 	//
@@ -125,7 +133,12 @@ Item {
 
 		onProcessed: {
 			// tx, previewFile, originalFile
+			console.log("[buzzitemlight/onProcessed]: previewFile = " + previewFile);
 			avatarImage.source = "file://" + previewFile
+		}
+
+		onError: {
+			console.log("[buzzitemlight/onProcessed/error]: " + code + " - " + message + ", url = " + url);
 		}
 	}
 
@@ -199,7 +212,7 @@ Item {
 			}
 		}
 
-		Image {
+		BuzzerComponents.ImageQx {
 			id: avatarImage
 
 			x: spaceLeft_
@@ -208,13 +221,15 @@ Item {
 			height: avatarImage.displayHeight
 			fillMode: Image.PreserveAspectCrop
 			mipmap: true
+			radius: avatarImage.displayWidth
 
-			property bool rounded: true
+			property bool rounded: false //true
 			property int displayWidth: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 20 : 20
 			property int displayHeight: displayWidth
 
 			autoTransform: true
 
+			/*
 			layer.enabled: rounded
 			layer.effect: OpacityMask {
 				maskSource: Item {
@@ -229,6 +244,7 @@ Item {
 					}
 				}
 			}
+			*/
 
 			MouseArea {
 				id: buzzerInfoClick
@@ -382,7 +398,7 @@ Item {
 				var lComponent;
 
 				// expand media
-				if (buzzMedia_.length) {
+				if (buzzMedia_ && buzzMedia_.length) {
 					if (!buzzMediaItem_) {
 						lSource = "qrc:/qml/buzzitemmedia.qml";
 						lComponent = Qt.createComponent(lSource);
@@ -395,7 +411,9 @@ Item {
 						buzzMediaItem_.width = bodyControl.width;
 						buzzMediaItem_.controller_ = buzzitemlight_.controller_;
 						buzzMediaItem_.buzzId_ = buzzitemlight_.buzzId_;
+						buzzMediaItem_.buzzBody_ = buzzitemlight_.buzzBodyFlat_;
 						buzzMediaItem_.buzzMedia_ = buzzitemlight_.buzzMedia_;
+						buzzMediaItem_.sharedMediaPlayer_ = buzzitemlight_.sharedMediaPlayer_;
 						buzzMediaItem_.initialize();
 
 						bodyControl.height = bodyControl.getHeight();
@@ -433,22 +451,22 @@ Item {
 
 			function getY() {
 				// var lAdjust = buzzMedia_.length > 0 ? 0 : (buzzerClient.scaleFactor * 12);
-				return (buzzBody_.length > 0 ? buzzText.height : 0) +
-						(buzzBody_.length > 0 ? spaceMedia_ : spaceItems_) +
-						(buzzMedia_.length > 1 ? spaceMediaIndicator_ : 0);
+				return (buzzBody_ && buzzBody_.length > 0 ? buzzText.height : 0) +
+						(buzzBody_ && buzzBody_.length > 0 ? spaceMedia_ : spaceItems_) +
+						(buzzMedia_ && buzzMedia_.length > 1 ? spaceMediaIndicator_ : 0);
 			}
 
 			function getHeight() {
 				var lAdjust =
-						buzzMedia_.length > 0 ||
+						buzzMedia_ && buzzMedia_.length > 0 ||
 						buzzMediaItem_ ||
 						urlInfoItem_ && urlInfoItem_.calculatedHeight > 0 ? 0 : (buzzerClient.scaleFactor * 12);
 
 				return (buzzBody_.length > 0 ? buzzText.height - lAdjust : 0) +
 						(buzzMediaItem_ ? buzzMediaItem_.calculatedHeight : 0) +
 						(urlInfoItem_ ? urlInfoItem_.calculatedHeight : 0) +
-						(buzzBody_.length > 0 && buzzMedia_.length ? spaceMedia_ : 0 /*spaceItems_*/) +
-						(buzzMedia_.length > 1 ? spaceMediaIndicator_ : spaceBottom_);
+						(buzzBody_ && buzzBody_.length > 0 && buzzMedia_ && buzzMedia_.length ? spaceMedia_ : 0 /*spaceItems_*/) +
+						(buzzMedia_ && buzzMedia_.length > 1 ? spaceMediaIndicator_ : spaceBottom_);
 			}
 		}
 	}

@@ -719,7 +719,7 @@ BuzzfeedListModelBuzzes::BuzzfeedListModelBuzzes() {
 		boost::bind(&BuzzfeedListModel::buzzfeedItemUpdated, this, boost::placeholders::_1),
 		boost::bind(&BuzzfeedListModel::buzzfeedItemsUpdated, this, boost::placeholders::_1),
 		boost::bind(&BuzzfeedListModel::buzzfeedItemAbsent, this, boost::placeholders::_1, boost::placeholders::_2),
-		qbit::BuzzfeedItem::Merge::INTERSECT,
+		qbit::BuzzfeedItem::Merge::UNION, // INTERSECT //TODO: implement requests count for selectBuzzes
 		qbit::BuzzfeedItem::Order::FORWARD,
 		qbit::BuzzfeedItem::Group::TIMESTAMP,
 		qbit::BuzzfeedItem::Expand::FULL
