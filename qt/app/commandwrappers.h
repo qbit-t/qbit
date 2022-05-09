@@ -503,7 +503,7 @@ public:
 
 		std::vector<std::string> lArgs;
 		lArgs.push_back(buzzId_.toStdString());
-		if (more) lArgs.push_back("more");
+		//if (more) lArgs.push_back("more");
 
 		command_->process(lArgs);
 	}
@@ -2170,7 +2170,7 @@ public:
 		if (!more_) eventsfeedModel_->eventsfeed()->clear();
 		//
 		std::vector<std::string> lArgs;
-		if (more) lArgs.push_back("more");
+		//if (more) lArgs.push_back("more");
 		command_->process(lArgs);
 	}
 
@@ -3139,7 +3139,6 @@ public:
 		if (!more_) buzzfeedModel_->buzzfeed()->clear();
 
 		std::vector<std::string> lArgs;
-		if (more) lArgs.push_back("more");
 		lArgs.push_back(conversationId_.toStdString());
 
 		command_->process(lArgs);

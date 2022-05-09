@@ -26,6 +26,7 @@ import android.graphics.PorterDuffXfermode;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuff.Mode;
 import android.media.AudioAttributes;
+import android.os.Bundle;
 
 public class NotificatorService extends QtService
 {
@@ -33,22 +34,22 @@ public class NotificatorService extends QtService
     private static final int ID_SERVICE = 31415;
 	private static String CHANNEL_ID = "buzzer_notifications_01";
     private static NotificatorService instance_;
-	private static String pauseFor_;
 
-    public NotificatorService()
-    {
-        instance_ = this;
+	public NotificatorService() {
     }
 
     @Override
-    public int onStartCommand(Intent intent, int flags, int startId)
-    {
-        super.onStartCommand(intent, flags, startId);
+	public int onStartCommand(Intent intent, int flags, int startId) {
+		//
+		super.onStartCommand(intent, flags, startId);
+		//
         return START_STICKY;
     }
 
     @Override
 	public void onCreate() {
+		//
+		instance_ = this;
         super.onCreate();
 
         // Make intent
@@ -121,15 +122,19 @@ public class NotificatorService extends QtService
 		return output;
 	}
 
-    public static void notify(int type, String id, String alias, String name, String comment,
+    public static void notify(int type, String id, String chainId, String txId, String alias, String name, String comment,
 	                                                        String text, String avatarPath, String mediaPath) {
 		//
-		if (pauseFor_ == name) return;
-
-		//
         Intent notificationIntent = new Intent(instance_, MainActivity.class);
+		//notificationIntent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP /*| Intent.FLAG_ACTIVITY_CLEAR_TOP*/);
+		notificationIntent.putExtra("id", id);
+		notificationIntent.putExtra("type", type);
+		notificationIntent.putExtra("chainId", chainId);
+		notificationIntent.putExtra("txId", txId);
+		notificationIntent.putExtra("buzzer", name);
+
         PendingIntent pendingIntent =
-                PendingIntent.getActivity(instance_, 0, notificationIntent, 0);
+		        PendingIntent.getActivity(instance_, Integer.parseInt(id), notificationIntent, PendingIntent.FLAG_ONE_SHOT);
 
         NotificationManager notificationManager = (NotificationManager)instance_.getSystemService(Context.NOTIFICATION_SERVICE);
 
@@ -165,6 +170,7 @@ public class NotificatorService extends QtService
 		builder.setContentIntent(pendingIntent);
 		builder.setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION));
 		builder.setShowWhen(true);
+		builder.setAutoCancel(true);
 
         long[] vibrate = { 0, 100, 200, 300 };
         builder.setVibrate(vibrate);
@@ -240,26 +246,43 @@ public class NotificatorService extends QtService
             return false;
     }
 
-    public static void startNotificatorService(Context ctx)
-    {
-        if (!isServiceRunning(ctx, "app.buzzer.mobile.NotificatorService"))
-            ctx.startService(new Intent(ctx, NotificatorService.class));
+    public static void startNotificatorService(Context ctx) {
+		if (!isServiceRunning(ctx, "app.buzzer.mobile.NotificatorService")) {
+			Intent lIntent = new Intent(ctx, NotificatorService.class);
+			lIntent.putExtra("buzzer", "none");
+			ctx.startService(lIntent);
+		}
     }
 
-    public static void stopNotificatorService(Context ctx)
-    {
+    public static void stopNotificatorService(Context ctx) {
         if (isServiceRunning(ctx, "app.buzzer.mobile.NotificatorService"))
             ctx.stopService(new Intent(ctx, NotificatorService.class));
     }
 
-    public static void pauseNotifications(String name) {
-		Log.i("buzzer", "muting buzzer = " + name);
-		pauseFor_ = name;
+    public static void pauseNotifications(Context ctx, String name) {
+		//
+		/*
+		if (isServiceRunning(ctx, "app.buzzer.mobile.NotificatorService")) {
+			Log.i("buzzer", "muting buzzer = " + name);
+			Intent lIntent = new Intent(ctx, NotificatorService.class);
+			//lIntent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+			lIntent.putExtra("buzzer", name);
+			ctx.startService(lIntent);
+		}
+	    */
 	}
 
-    public static void resumeNotifications(String name) {
-		Log.i("buzzer", "unmuting buzzer = " + name);
-		if (name == pauseFor_ || name == "") pauseFor_ = "";
+    public static void resumeNotifications(Context ctx, String name) {
+		//
+		/*
+		if (isServiceRunning(ctx, "app.buzzer.mobile.NotificatorService")) {
+			Log.i("buzzer", "unmuting buzzer = " + name);
+			Intent lIntent = new Intent(ctx, NotificatorService.class);
+			lIntent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+			lIntent.putExtra("buzzer", "none");
+			ctx.startService(lIntent);
+		}
+	    */
 	}
 }
 

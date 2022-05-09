@@ -73,17 +73,14 @@ void Application::appQuit()
     emit appSuspending();
 }
 
-void Application::appStateChanged(Qt::ApplicationState state)
-{
-	if (state == Qt::ApplicationState::ApplicationSuspended || state == Qt::ApplicationState::ApplicationHidden ||
-			state == Qt::ApplicationState::ApplicationInactive)
+void Application::appStateChanged(Qt::ApplicationState state) {
+	if (state == Qt::ApplicationState::ApplicationSuspended /* || state == Qt::ApplicationState::ApplicationHidden ||
+			state == Qt::ApplicationState::ApplicationInactive*/)
     {
 		qInfo() << "[appStateChanged]: suspended";
 		client_.suspend();
         emit appSuspending();
-    }
-    else if (state == Qt::ApplicationState::ApplicationActive)
-    {
+	} else if (state == Qt::ApplicationState::ApplicationActive) {
 		qInfo() << "[appStateChanged]: resumed";
 		client_.resume();
 		emit appRunning();
@@ -238,24 +235,48 @@ void Application::pauseNotifications(QString name)
 	qInfo() << "Pausing notifications...";
 
 #ifdef Q_OS_ANDROID
+	std::ofstream lDaemonSettings = std::ofstream(client_.settingsDataPath() + "/buzzerd-settings.dat", std::ios::binary);
+	std::string lName = name.toStdString();
+	unsigned short lNameSize = lName.size();
+	lDaemonSettings.write((char*)&lNameSize, sizeof(unsigned short));
+	lDaemonSettings.write((char*)lName.c_str(), lNameSize);
+	lDaemonSettings.flush();
+	lDaemonSettings.close();
+
+	/*
+	QAndroidJniObject lActivity = QAndroidJniObject::callStaticObjectMethod("org/qtproject/qt5/android/QtNative", "activity", "()Landroid/app/Activity;");
 	QAndroidJniObject lName = QAndroidJniObject::fromString(name);
 	QAndroidJniObject::callStaticMethod<void>("app/buzzer/mobile/NotificatorService",
-												  "pauseNotifications",
-												  "(Ljava/lang/String;)V",
-												  lName.object<jstring>());
+													"pauseNotifications",
+													"(Landroid/content/Context;Ljava/lang/String;)V",
+													lActivity.object(),
+													lName.object<jstring>());
+	*/
 #endif
 }
 
-void Application::resumeNotifications(QString name)
+void Application::resumeNotifications(QString /*name*/)
 {
 	qInfo() << "Resuming notifications...";
 
 #ifdef Q_OS_ANDROID
+	std::ofstream lDaemonSettings = std::ofstream(client_.settingsDataPath() + "/buzzerd-settings.dat", std::ios::binary);
+	std::string lName = "none";
+	unsigned short lNameSize = lName.size();
+	lDaemonSettings.write((char*)&lNameSize, sizeof(unsigned short));
+	lDaemonSettings.write((char*)lName.c_str(), lNameSize);
+	lDaemonSettings.flush();
+	lDaemonSettings.close();
+
+	/*
+	QAndroidJniObject lActivity = QAndroidJniObject::callStaticObjectMethod("org/qtproject/qt5/android/QtNative", "activity", "()Landroid/app/Activity;");
 	QAndroidJniObject lName = QAndroidJniObject::fromString(name);
 	QAndroidJniObject::callStaticMethod<void>("app/buzzer/mobile/NotificatorService",
-												  "resumeNotifications",
-												  "(Ljava/lang/String;)V",
-												  lName.object<jstring>());
+													"resumeNotifications",
+													"(Landroid/content/Context;Ljava/lang/String;)V",
+													lActivity.object(),
+													lName.object<jstring>());
+	*/
 #endif
 }
 
@@ -694,6 +715,11 @@ void Application::emit_fileSelected(QString key, QString preview, QString descri
 	emit fileSelected(key, preview, description);
 }
 
+void Application::emit_externalActivityCalled(int type, QString chain, QString tx, QString buzzer)
+{
+	emit externalActivityCalled(type, chain, tx, buzzer);
+}
+
 void Application::emit_keyboardHeightChanged(int height)
 {
 	emit keyboardHeightChanged(height);
@@ -795,10 +821,38 @@ JNIEXPORT void JNICALL Java_app_buzzer_mobile_MainActivity_fileSelected(JNIEnv* 
 	((Application*)buzzer::gApplication)->emit_fileSelected(lFileFound, lPreviewFound, lDescriptionFound);
 }
 
-JNIEXPORT void JNICALL Java_app_buzzer_mobile_MainActivity_keyboardHeightChanged(JNIEnv* env, jobject, jint height) {
+JNIEXPORT void JNICALL Java_app_buzzer_mobile_MainActivity_keyboardHeightChanged(JNIEnv* /*env*/, jobject, jint height) {
 	if (!buzzer::gApplication) return;
 	qDebug() << "[JAVA::keyboardHeightChanged]: height =" << height;
 	((Application*)buzzer::gApplication)->emit_keyboardHeightChanged(height);
+}
+
+JNIEXPORT void JNICALL Java_app_buzzer_mobile_MainActivity_externalActivityCalled(JNIEnv* env, jobject, jint type, jstring chain, jstring tx, jstring buzzer)
+{
+	QString lChainFound = "none";
+	QString lTxFound = "none";
+	QString lBuzzerFound = "none";
+
+	const char* lChain = env->GetStringUTFChars(chain, NULL);
+	if (lChain) {
+		lChainFound = QString::fromLocal8Bit(lChain);
+		env->ReleaseStringUTFChars(chain, lChain);  // release resource
+	}
+
+	const char* lTx = env->GetStringUTFChars(tx, NULL);
+	if (lTx) {
+		lTxFound = QString::fromLocal8Bit(lTx);
+		env->ReleaseStringUTFChars(tx, lTx);  // release resource
+	}
+
+	const char* lBuzzer = env->GetStringUTFChars(buzzer, NULL);
+	if (lBuzzer) {
+		lBuzzerFound = QString::fromLocal8Bit(lBuzzer);
+		env->ReleaseStringUTFChars(buzzer, lBuzzer);  // release resource
+	}
+
+	qDebug() << "[JAVA::externalActivityCalled]: file = " << type << lChainFound << lTxFound << lBuzzerFound;
+	((Application*)buzzer::gApplication)->emit_externalActivityCalled(type, lChainFound, lTxFound, lBuzzerFound);
 }
 
 #ifdef __cplusplus

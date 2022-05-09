@@ -196,27 +196,31 @@ TransactionContextPtr LightWallet::processTransaction(TransactionPtr tx) {
 	// process tx
 	// extract our outs 
 	uint32_t lIdx = 0;
-	TransactionContextPtr lWrapper = TransactionContext::instance(tx);
-	std::vector<Transaction::Out>& lOuts = tx->out();
-	for(std::vector<Transaction::Out>::iterator lOutPtr = lOuts.begin(); lOutPtr != lOuts.end(); lOutPtr++, lIdx++) {
+	if (tx != nullptr) {
+		TransactionContextPtr lWrapper = TransactionContext::instance(tx);
+		std::vector<Transaction::Out>& lOuts = tx->out();
+		for(std::vector<Transaction::Out>::iterator lOutPtr = lOuts.begin(); lOutPtr != lOuts.end(); lOutPtr++, lIdx++) {
 
-		Transaction::Out& lOut = (*lOutPtr);
-		VirtualMachine lVM(lOut.destination());
-		lVM.getR(qasm::QTH0).set(tx->id());
-		lVM.getR(qasm::QTH1).set((unsigned short)tx->type());
-		lVM.getR(qasm::QTH3).set(lIdx); // out number
-		lVM.setTransaction(lWrapper);
-		lVM.setWallet(shared_from_this());
-		lVM.setTransactionStore(TxBlockStore::instance());
-		lVM.setEntityStore(TxEntityStore::instance());
+			Transaction::Out& lOut = (*lOutPtr);
+			VirtualMachine lVM(lOut.destination());
+			lVM.getR(qasm::QTH0).set(tx->id());
+			lVM.getR(qasm::QTH1).set((unsigned short)tx->type());
+			lVM.getR(qasm::QTH3).set(lIdx); // out number
+			lVM.setTransaction(lWrapper);
+			lVM.setWallet(shared_from_this());
+			lVM.setTransactionStore(TxBlockStore::instance());
+			lVM.setEntityStore(TxEntityStore::instance());
 
-		lVM.execute();
+			lVM.execute();
 
-		// WARNING:
-		// VM state is not important - pushUnlinkedOut should be happened in case if we have our outs
+			// WARNING:
+			// VM state is not important - pushUnlinkedOut should be happened in case if we have our outs
+		}
+
+		return lWrapper;
 	}
 
-	return lWrapper;
+	return nullptr;
 }
 
 void LightWallet::handleReply(TransactionPtr tx) {

@@ -122,13 +122,16 @@ QuarkPage {
 
 		function onBuzzerDAppReadyChanged() {
 			if (listen && buzzerClient.buzzerDAppReady) {
-				modelLoader.start();
 				listen = false;
+				modelLoader.start();
 			}
 		}
 
 		function onBuzzerDAppResumed() {
-			if (buzzerClient.buzzerDAppReady) {
+			if (listen && buzzerClient.buzzerDAppReady) {
+				listen = false;
+				modelLoader.start();
+			} else if (buzzerClient.buzzerDAppReady) {
 				modelLoader.processAndMerge(true);
 				buzzSubscribeCommand.process();
 			}
@@ -141,7 +144,7 @@ QuarkPage {
 
 		onProcessed: {
 			//
-			console.log("[buzzSubscribeCommand]: processed");
+			console.log("[buzzfeedthread/buzzSubscribeCommand]: processed");
 			var lPeers = buzzSubscribeCommand.peers();
 			for (var lIdx = 0; lIdx < lPeers.length; lIdx++) {
 				console.log(lPeers[lIdx]);
@@ -162,7 +165,7 @@ QuarkPage {
 		property bool dataRequested: false
 
 		onProcessed: {
-			console.log("[buzzfeed]: loaded");
+			console.log("[buzzfeedthread]: loaded");
 			dataReceived = true;
 			dataRequested = false;
 			waitDataTimer.done();
@@ -170,7 +173,7 @@ QuarkPage {
 
 		onError: {
 			// code, message
-			console.log("[buzzfeed/error]: " + code + " | " + message);
+			console.log("[buzzfeedthread/error]: " + code + " | " + message);
 			dataReceived = false;
 			dataRequested = false;
 			waitDataTimer.done();

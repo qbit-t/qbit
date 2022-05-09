@@ -362,7 +362,7 @@ Item {
 		property real defaultFontPointSize: buzzerApp.isDesktop ? 11 : 16
 		id: bodyControlMetrics
 		elide: Text.ElideRight
-		text: bodyControl.message
+		text: bodyControl.message ? bodyControl.message : ""
 		elideWidth: parent.width - (bodyControl.x + (buzzerApp.isDesktop ? 2 * spaceRight_ : spaceRight_))
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : bodyControl.defaultFontPointSize
 		property var fontFamily: Qt.platform.os == "windows" ? "Segoe UI Emoji" : "Noto Color Emoji N"

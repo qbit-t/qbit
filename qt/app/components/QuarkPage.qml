@@ -32,8 +32,8 @@ Page
 
 	function updateStakedInfo(key, alias, caption) {
 		page_.key = key;
-		page_.alias = alias;
-		page_.caption = caption;
+		page_.alias = alias ? alias : "";
+		page_.caption = caption ? caption : "";
 		page_.stacked = true;
 
 		buzzerClient.setTopId(key);

@@ -30,6 +30,7 @@ QuarkPage {
 	property var buzzesThread_;
 	property var conversation_;
 	property var conversations_;
+	property var message_;
 	property var mediaPlayerController: buzzerApp.sharedMediaPlayerController()
 
 	//
@@ -58,12 +59,13 @@ QuarkPage {
 	// adjust height by virtual keyboard
 	followKeyboard: true
 
-	function start(conversationId, conversation, conversations) {
+	function start(conversationId, conversation, conversations, message) {
 		//
 		buzzesThread_ = buzzerClient.createConversationMessagesList();
 		//
 		conversation_ = conversation;
 		conversations_ = conversations;
+		message_ = message;
 		modelLoader.conversationId = conversationId;
 		console.log("[conversationthread/start]: conversationId = " + conversationId);
 
@@ -82,6 +84,11 @@ QuarkPage {
 
 		// muting notificaions
 		buzzerApp.pauseNotifications(buzzerClient.getBuzzerName(getBuzzerInfoId()));
+	}
+
+	function showItem(message) {
+		message_ = message;
+		toTheTimer.start();
 	}
 
 	function conversationState() {
@@ -216,7 +223,7 @@ QuarkPage {
 		property bool initialFeed: false
 
 		onProcessed: {
-			console.log("[buzzfeed]: loaded");
+			console.log("[conversationfeed]: loaded");
 			dataReceived = true;
 			dataRequested = false;
 			waitDataTimer.done();
@@ -229,7 +236,7 @@ QuarkPage {
 
 		onError: {
 			// code, message
-			console.log("[buzzfeed/error]: " + code + " | " + message);
+			console.log("[conversationfeed/error]: " + code + " | " + message);
 			dataReceived = false;
 			dataRequested = false;
 			waitDataTimer.done();
@@ -603,6 +610,18 @@ QuarkPage {
 		function toTheBottom() {
 		}
 
+		function toTheMessage(message) {
+			//
+			if (message && buzzesThread_) {
+				// try locate index
+				var lIdx = buzzesThread_.locateIndex(message);
+				console.log("[toTheMessage]: message = " + message + ", index = " + lIdx);
+				if (lIdx >= 0) {
+					list.positionViewAtIndex(lIdx, ListView.Beginning);
+				}
+			}
+		}
+
 		onContentHeightChanged: {
 		}
 
@@ -741,7 +760,6 @@ QuarkPage {
 		}
 
 		Component.onCompleted: {
-			toTheTimer.start();
 		}
 
 		delegate: Item {
@@ -1165,8 +1183,8 @@ QuarkPage {
 		running: false
 
 		onTriggered: {
-			//atTheBottom = true;
-			list.toTheBottom(); //positionViewAtEnd();
+			//
+			list.toTheBottom();
 		}
 	}
 
@@ -1177,8 +1195,8 @@ QuarkPage {
 		running: false
 
 		onTriggered: {
-			//atTheBottom = true;
-			list.toTheBottom(); // positionViewAtEnd();
+			//
+			list.toTheMessage(message_);
 		}
 	}
 

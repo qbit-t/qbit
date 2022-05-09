@@ -202,7 +202,7 @@ Item
 					//
 					var lConversation = buzzerClient.locateConversation(lConversationId);
 					if (lConversation) {
-						controller.openConversation(lConversationId, lConversation, buzzerClient.getConversationsList());
+						controller.openConversation(lConversationId, lConversation, buzzerClient.getConversationsList(), buzzId);
 					}
 				} else {
 					//

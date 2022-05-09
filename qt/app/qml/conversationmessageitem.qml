@@ -226,8 +226,9 @@ Item {
 
 		function getX(pwidth) {
 			//
+			var lWidth;
 			if (buzzMedia_.length || (lastUrl_ && lastUrl_.length)) {
-				var lWidth = pwidth * maxWidth - spaceRight_;
+				lWidth = pwidth * maxWidth - spaceRight_;
 				if (buzzMedia_.length && lWidth > 600)
 					return pwidth - (600 + spaceRight_);
 				else if (lastUrl_ && lastUrl_.length && lWidth > 500)
@@ -241,13 +242,16 @@ Item {
 				return pwidth * minSpace;
 			}
 
-			return pwidth - (boundingRect.width + spaceLeft_ + spaceRight_ + spaceItems_ + spaceRight_);
+			lWidth = boundingRect.width;
+			if (lWidth == 0) lWidth = pwidth * maxWidth / 2;
+			return pwidth - (lWidth + spaceLeft_ + spaceRight_ + spaceItems_ + spaceRight_);
 		}
 
 		function getWidth(pwidth) {
 			//
+			var lWidth;
 			if (buzzMedia_.length || (lastUrl_ && lastUrl_.length)) {
-				var lWidth = pwidth * maxWidth - spaceRight_;
+				lWidth = pwidth * maxWidth - spaceRight_;
 				if (buzzMedia_.length && lWidth > 600) lWidth = 600;
 				else if (lastUrl_ && lastUrl_.length && lWidth > 500) lWidth = 500;
 				return lWidth;
@@ -258,7 +262,9 @@ Item {
 				return pwidth * maxWidth - (spaceLeft_ /*+ spaceRight_*/);
 			}
 
-			return boundingRect.width + spaceLeft_ + spaceRight_ + spaceItems_ /*extra*/;
+			lWidth = boundingRect.width;
+			if (lWidth == 0) lWidth = pwidth * maxWidth / 2;
+			return lWidth + spaceLeft_ + spaceRight_ + spaceItems_ /*extra*/;
 		}
 	}
 

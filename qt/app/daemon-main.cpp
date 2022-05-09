@@ -81,6 +81,7 @@ const char APP_NAME[] = { "buzzer-app" };
 cubix::CubixLightComposerPtr gCubixComposer;
 BuzzerLightComposerPtr gBuzzerComposer;
 BuzzerPtr gBuzzer;
+std::string gDataPath;
 
 std::string getColor(const std::string& theme, const std::string& selector, const std::string& key) {
 	qbit::json::Value lThemes = gAppConfig["themes"];
@@ -172,6 +173,14 @@ public:
 
 	void downloadProgress(uint64_t, uint64_t) {
 		//
+	}
+
+	QString getChainId() {
+		return QString::fromStdString(buzz_->buzzChainId().toHex());
+	}
+
+	QString getTxId() {
+		return QString::fromStdString(buzz_->buzzId().toHex());
 	}
 
 	QString getId() {
@@ -308,9 +317,25 @@ public:
 
 	void makeNotification() {
 		//
+		std::string lDataPath = gDataPath + "/buzzerd-settings.dat";
+		boost::filesystem::path lPath(lDataPath);
+		if (boost::filesystem::exists(lPath)) {
+			std::ifstream lDaemonSettings = std::ifstream(lDataPath, std::ios::binary);
+			unsigned short lNameSize;
+			char lMutedBuzzerName[0x100] = {0};
+			lDaemonSettings.read((char*)&lNameSize, sizeof(unsigned short));
+			lDaemonSettings.read((char*)lMutedBuzzerName, lNameSize);
+			lDaemonSettings.close();
+
+			QString lBuzzerName = getBuzzer();
+			if (lBuzzerName.toStdString() == std::string(lMutedBuzzerName)) return;
+		}
+
 #ifdef Q_OS_ANDROID
 		jint lType = buzz_->type();
 		QAndroidJniObject lId = QAndroidJniObject::fromString(getId());
+		QAndroidJniObject lChainId = QAndroidJniObject::fromString(getChainId());
+		QAndroidJniObject lTxId = QAndroidJniObject::fromString(getTxId());
 		QAndroidJniObject lAlias = QAndroidJniObject::fromString(getAlias());
 		QAndroidJniObject lName = QAndroidJniObject::fromString(getBuzzer());
 		QAndroidJniObject lComment = QAndroidJniObject::fromString(getComment());
@@ -321,9 +346,11 @@ public:
 		qInfo() << "[buzzer-daemon]: Pushing notification";
 
 		QAndroidJniObject::callStaticMethod<void>("app/buzzer/mobile/NotificatorService",
-									"notify", "(ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V",
+									"notify", "(ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V",
 									lType,
 									lId.object<jstring>(),
+									lChainId.object<jstring>(),
+									lTxId.object<jstring>(),
 									lAlias.object<jstring>(),
 									lName.object<jstring>(),
 									lComment.object<jstring>(),
@@ -537,6 +564,7 @@ int main(int argc, char** argv) {
 	// home
 	buzzer::Settings* lSettings = buzzer::SettingsFactory::getDaemon();
 	gClient = new DaemonClient();
+	gDataPath = lSettings->dataPath();
 	lSettings->link(gClient);
 	lSettings->open();
 

@@ -96,13 +96,27 @@ ApplicationWindow
 		return pagesView.depth - 1;
     }
 
-    function addPage(page)
-    {
+	function addPage(page) {
         pagesView.push(page, StackView.Transition);
         page.updateStatusBar();
     }
 
-    function unwindToTop()
+	function activatePage(key, itemId) {
+		for (var lIdx = pagesView.depth - 1; lIdx >= 0; lIdx--) {
+			var lPage = pagesView.get(lIdx);
+			if (lPage.key === key) {
+				//
+				if (lPage.activatePageHandler) lPage.activatePageHandler();
+				if (itemId) lPage.showItem(itemId);
+				//
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	function unwindToTop()
     {
         var lArray = [];
         for (var lIdx = pagesView.depth - 1; lIdx >= 0; lIdx--)
@@ -177,6 +191,9 @@ ApplicationWindow
 		var lComponent = null;
 		var lPage = null;
 
+		// locate and activate
+		if (activatePage(buzzId)) return;
+
 		lComponent = Qt.createComponent("qrc:/qml/buzzfeedthread.qml");
 		if (lComponent.status === Component.Error) {
 			showError(lComponent.errorString());
@@ -184,6 +201,7 @@ ApplicationWindow
 			lPage = lComponent.createObject(window);
 			lPage.controller = window;
 
+			lPage.updateStakedInfo(buzzId);
 			lPage.start(buzzChainId, buzzId);
 
 			addPage(lPage);
@@ -301,6 +319,9 @@ ApplicationWindow
 		var lComponent = null;
 		var lPage = null;
 
+		// locate and activate
+		if (activatePage(conversationId, messageId)) return;
+
 		lComponent = Qt.createComponent("qrc:/qml/conversationthread.qml");
 		if (lComponent.status === Component.Error) {
 			showError(lComponent.errorString());
@@ -314,6 +335,7 @@ ApplicationWindow
 				lCounterpart = conversation.creatorInfoId;
 			}
 
+			lPage.updateStakedInfo(conversationId);
 			addPage(lPage);
 
 			lPage.start(conversationId, conversation, conversationModel, messageId);
@@ -370,6 +392,37 @@ ApplicationWindow
 			window.activePageBackground = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Window.background")
 		}
     }
+
+	Connections
+	{
+		target: buzzerApp
+
+		function onExternalActivityCalled(type, chain, tx, buzzer) {
+			//
+			console.log("[onExternalActivityCalled]: type = " + type + ", chain = " + chain + ", tx = " + tx + ", buzzer = " + buzzer);
+			//
+			if (type === buzzerClient.tx_BUZZER_SUBSCRIBE_TYPE() ||
+				type === buzzerClient.tx_BUZZER_ENDORSE_TYPE() ||
+				type === buzzerClient.tx_BUZZER_MISTRUST_TYPE()) {
+				//
+				openBuzzfeedByBuzzer(buzzer);
+			} else if (type === buzzerClient.tx_BUZZER_CONVERSATION() ||
+						type === buzzerClient.tx_BUZZER_ACCEPT_CONVERSATION() ||
+						type === buzzerClient.tx_BUZZER_DECLINE_CONVERSATION() ||
+						type === buzzerClient.tx_BUZZER_MESSAGE() ||
+						type === buzzerClient.tx_BUZZER_MESSAGE_REPLY()) {
+				//
+				var lConversationId = buzzerClient.getConversationsList().locateConversation(buzzer);
+				var lConversation = buzzerClient.locateConversation(lConversationId);
+				if (lConversation) {
+					openConversation(lConversationId, lConversation, buzzerClient.getConversationsList(), tx);
+				}
+			} else {
+				//
+				openThread(chain, tx);
+			}
+		}
+	}
 
     function registerDeviceId(token)
     {

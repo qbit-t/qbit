@@ -19,12 +19,15 @@ import android.app.ActivityManager;
 public class NotificatorBroadcastReceiver extends BroadcastReceiver
 {
     @Override
-    public void onReceive(Context context, Intent intent)
-    {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-        {
-            context.startForegroundService(new Intent(context, NotificatorService.class));
-        }
-        else context.startService(new Intent(context, NotificatorService.class));
+	public void onReceive(Context context, Intent intent) {
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+			Intent lIntent = new Intent(context, NotificatorService.class);
+			lIntent.putExtra("buzzer", "none");
+			context.startForegroundService(lIntent);
+		} else {
+		    Intent lIntent = new Intent(context, NotificatorService.class);
+			lIntent.putExtra("buzzer", "none");
+			context.startService(lIntent);
+		}
     }
 }

@@ -72,27 +72,27 @@ import android.view.WindowManager;
 
 public class MainActivity extends QtActivity
 {
-    private static final String KEY_NAME = "BUZZER-KEY";
-    private static final String PIN_NAME = "BUZZER-PAIR-0";
-    private Cipher cipher;
-    private KeyStore keyStore;
-    private KeyGenerator keyGenerator;
+	private static final String KEY_NAME = "BUZZER-KEY";
+	private static final String PIN_NAME = "BUZZER-PAIR-0";
+	private Cipher cipher;
+	private KeyStore keyStore;
+	private KeyGenerator keyGenerator;
 	private KeyboardProvider keyboardProvider;
-    private FingerprintManager.CryptoObject cryptoObject;
-    private FingerprintManager fingerprintManager;
-    private KeyguardManager keyguardManager;
-    private static MainActivity instance_;
-    FingerprintHandler helper;
+	private FingerprintManager.CryptoObject cryptoObject;
+	private FingerprintManager fingerprintManager;
+	private KeyguardManager keyguardManager;
+	private static MainActivity instance_;
+	FingerprintHandler helper;
 
-    //  0   - unsupported
-    //  1   - initialized
-    // -1   - device doesn't support fingerprint authentication
-    // -2   - enable the fingerprint permission
-    // -3   - no fingerprint configured
-    // -4   - enable lockscreen security in your device's settings
-    // -100 - common error
-    // -101 - cypher init error
-    private int fingertipAuthState;
+	//  0   - unsupported
+	//  1   - initialized
+	// -1   - device doesn't support fingerprint authentication
+	// -2   - enable the fingerprint permission
+	// -3   - no fingerprint configured
+	// -4   - enable lockscreen security in your device's settings
+	// -100 - common error
+	// -101 - cypher init error
+	private int fingertipAuthState;
 
 	//
 	// Share activity support
@@ -101,28 +101,31 @@ public class MainActivity extends QtActivity
 	public static native void fireActivityResult(int requestCode, int resultCode);
 	public static native boolean checkFileExits(String url);
 	public static native void keyboardHeightChanged(int height);
+	public static native void externalActivityCalled(int type, String chain, String tx, String buzzer);
+	public native void fileSelected(String key, String preview, String description);
+
 	public static boolean isIntentPending;
 	public static boolean isInitialized;
 	public static String workingDirPath;
 
-    @Override
-    public void onCreate(Bundle savedInstanceState)
-    {
-        instance_ = this;
-        fingertipAuthState = 0;
+	@Override
+	public void onCreate(Bundle savedInstanceState)
+	{
+		instance_ = this;
+		fingertipAuthState = 0;
 
 		Log.i("buzzer", "============ STARTING JAVA ============");
 		if (savedInstanceState == null) Log.i("buzzer", "============ NO INSTANCE, creating ============");
-        super.onCreate(savedInstanceState);
+		super.onCreate(savedInstanceState);
 
 		new KeyboardProvider(this).init().setListener(new KeyboardProvider.KeyboardListener() {
 			@Override
 			public void onHeightChanged(int height) {
 				keyboardHeightChanged(height);
-				}
+			}
 		});
 
-	    Intent theIntent = getIntent();
+		Intent theIntent = getIntent();
 		if (theIntent != null){
 			String theAction = theIntent.getAction();
 			if (theAction != null){
@@ -132,131 +135,137 @@ public class MainActivity extends QtActivity
 			}
 		}
 
-	    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN)
-        {
-            try
-            {
-                keyguardManager =
-                        (KeyguardManager) getSystemService(KEYGUARD_SERVICE);
-                fingerprintManager =
-                        (FingerprintManager) getSystemService(FINGERPRINT_SERVICE);
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN)
+		{
+			try
+			{
+				keyguardManager =
+						(KeyguardManager) getSystemService(KEYGUARD_SERVICE);
+				fingerprintManager =
+						(FingerprintManager) getSystemService(FINGERPRINT_SERVICE);
 
-                if (keyguardManager == null || fingerprintManager == null) return;
+				if (keyguardManager == null || fingerprintManager == null) return;
 
-                if (!fingerprintManager.isHardwareDetected())
-                {
-                    fingertipAuthState = -1;
-                }
+				if (!fingerprintManager.isHardwareDetected())
+				{
+					fingertipAuthState = -1;
+				}
 
-                /*
-                if (ContextCompat.checkSelfPermission(this, Manifest.permission.USE_FINGERPRINT) != PackageManager.PERMISSION_GRANTED)
-                {
-                    fingertipAuthState = -2;
-                }
-                */
+				/*
+				if (ContextCompat.checkSelfPermission(this, Manifest.permission.USE_FINGERPRINT) != PackageManager.PERMISSION_GRANTED)
+				{
+					fingertipAuthState = -2;
+				}
+				*/
 
-                if (!fingerprintManager.hasEnrolledFingerprints())
-                {
-                    fingertipAuthState = -3;
-                }
+				if (!fingerprintManager.hasEnrolledFingerprints())
+				{
+					fingertipAuthState = -3;
+				}
 
-                if (!keyguardManager.isKeyguardSecure())
-                {
-                    fingertipAuthState = -4;
-                }
+				if (!keyguardManager.isKeyguardSecure())
+				{
+					fingertipAuthState = -4;
+				}
 
-                if (fingertipAuthState == 0)
-                {
-                    try
-                    {
-                        generateKey();
-                    }
-                    catch (FingerprintException e)
-                    {
-                        fingertipAuthState = -100;
-                        e.printStackTrace();
-                    }
+				if (fingertipAuthState == 0)
+				{
+					try
+					{
+						generateKey();
+					}
+					catch (FingerprintException e)
+					{
+						fingertipAuthState = -100;
+						e.printStackTrace();
+					}
 
-                    try
-                    {
-                        if (initCipher())
-                        {
-                            fingertipAuthState = 1;
-                            cryptoObject = new FingerprintManager.CryptoObject(cipher);
-                        }
-                        else
-                        {
-                            fingertipAuthState = -101;
-                        }
-                    }
-                    catch(RuntimeException e)
-                    {
-                        fingertipAuthState = -102;
-                        e.printStackTrace();
-                    }
-                }
-            }
-            catch(NoClassDefFoundError | RuntimeException e) // any other exchaption
-            {
-                fingertipAuthState = -103;
-                e.printStackTrace();
-            }
-        }
-    }
+					try
+					{
+						if (initCipher())
+						{
+							fingertipAuthState = 1;
+							cryptoObject = new FingerprintManager.CryptoObject(cipher);
+						}
+						else
+						{
+							fingertipAuthState = -101;
+						}
+					}
+					catch(RuntimeException e)
+					{
+						fingertipAuthState = -102;
+						e.printStackTrace();
+					}
+				}
+			}
+			catch(NoClassDefFoundError | RuntimeException e) // any other exchaption
+			{
+				fingertipAuthState = -103;
+				e.printStackTrace();
+			}
+		}
+	}
 
-    public int getFingertipAuthState()
-    {
-        return fingertipAuthState;
-    }
+	@Override
+	public void onResume() {
+		//
+		super.onResume();
+	}
 
-    public void startFingertipAuth()
-    {
-        if (fingertipAuthState == 1)
-        {
-            helper = new FingerprintHandler(this);
-            helper.startAuth(fingerprintManager, cryptoObject, extractPin());
-        }
-    }
+	public int getFingertipAuthState()
+	{
+		return fingertipAuthState;
+	}
 
-    public void stopFingertipAuth()
-    {
-        if (fingertipAuthState == 1)
-        {
-            helper.stopAuth();
-        }
-    }
+	public void startFingertipAuth()
+	{
+		if (fingertipAuthState == 1)
+		{
+			helper = new FingerprintHandler(this);
+			helper.startAuth(fingerprintManager, cryptoObject, extractPin());
+		}
+	}
 
-    public void enablePinStore(String pin)
-    {
-        try {
-            keyStore.load(null);
+	public void stopFingertipAuth()
+	{
+		if (fingertipAuthState == 1)
+		{
+			helper.stopAuth();
+		}
+	}
 
-            // Retrieve the keys
-            KeyStore.PrivateKeyEntry privateKeyEntry = (KeyStore.PrivateKeyEntry) keyStore.getEntry(PIN_NAME, null);
-            PrivateKey privateKey = privateKeyEntry.getPrivateKey();
-            PublicKey publicKey = privateKeyEntry.getCertificate().getPublicKey();
+	public void enablePinStore(String pin)
+	{
+		try {
+			keyStore.load(null);
 
-            // Encrypt the text
-            String dataDirectory = this.getApplicationInfo().dataDir;
-            String filesDirectory = this.getFilesDir().getAbsolutePath();
-            String encryptedDataFilePath = filesDirectory + File.separator + "buzzer-key.data";
+			// Retrieve the keys
+			KeyStore.PrivateKeyEntry privateKeyEntry = (KeyStore.PrivateKeyEntry) keyStore.getEntry(PIN_NAME, null);
+			PrivateKey privateKey = privateKeyEntry.getPrivateKey();
+			PublicKey publicKey = privateKeyEntry.getCertificate().getPublicKey();
 
-            Cipher inCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding", "AndroidKeyStoreBCWorkaround");
-            inCipher.init(Cipher.ENCRYPT_MODE, publicKey);
+			// Encrypt the text
+			String dataDirectory = this.getApplicationInfo().dataDir;
+			String filesDirectory = this.getFilesDir().getAbsolutePath();
+			String encryptedDataFilePath = filesDirectory + File.separator + "buzzer-key.data";
 
-            CipherOutputStream cipherOutputStream =
-                    new CipherOutputStream(
-                            new FileOutputStream(encryptedDataFilePath), inCipher);
-            cipherOutputStream.write(pin.getBytes(StandardCharsets.UTF_8));
-            cipherOutputStream.close();
-        }
-        catch (CertificateException | NoSuchAlgorithmException | UnsupportedOperationException | InvalidKeyException | NoSuchPaddingException | UnrecoverableEntryException | NoSuchProviderException | KeyStoreException | IOException e)
-        {
-            e.printStackTrace();
-        }
-    }
+			Cipher inCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding", "AndroidKeyStoreBCWorkaround");
+			inCipher.init(Cipher.ENCRYPT_MODE, publicKey);
 
-    public void setBackgroundColor(final String color)
+			CipherOutputStream cipherOutputStream =
+					new CipherOutputStream(
+							new FileOutputStream(encryptedDataFilePath), inCipher);
+			cipherOutputStream.write(pin.getBytes(StandardCharsets.UTF_8));
+			cipherOutputStream.close();
+		}
+		catch (CertificateException | NoSuchAlgorithmException | UnsupportedOperationException | InvalidKeyException | NoSuchPaddingException | UnrecoverableEntryException | NoSuchProviderException | KeyStoreException | IOException e)
+		{
+			e.printStackTrace();
+		}
+	}
+
+	public void setBackgroundColor(final String color)
 	{
 		runOnUiThread(new Runnable() {
 			@Override
@@ -268,168 +277,168 @@ public class MainActivity extends QtActivity
 		});
 	}
 
-    private String extractPin()
-    {
-        try {
-            keyStore.load(null);
+	private String extractPin()
+	{
+		try {
+			keyStore.load(null);
 
-            // Retrieve the keys
-            KeyStore.PrivateKeyEntry privateKeyEntry = (KeyStore.PrivateKeyEntry) keyStore.getEntry(PIN_NAME, null);
-            PrivateKey privateKey = privateKeyEntry.getPrivateKey();
-            PublicKey publicKey = privateKeyEntry.getCertificate().getPublicKey();
+			// Retrieve the keys
+			KeyStore.PrivateKeyEntry privateKeyEntry = (KeyStore.PrivateKeyEntry) keyStore.getEntry(PIN_NAME, null);
+			PrivateKey privateKey = privateKeyEntry.getPrivateKey();
+			PublicKey publicKey = privateKeyEntry.getCertificate().getPublicKey();
 
-            String dataDirectory = this.getApplicationInfo().dataDir;
-            String filesDirectory = this.getFilesDir().getAbsolutePath();
-            String encryptedDataFilePath = filesDirectory + File.separator + "buzzer-key.data";
+			String dataDirectory = this.getApplicationInfo().dataDir;
+			String filesDirectory = this.getFilesDir().getAbsolutePath();
+			String encryptedDataFilePath = filesDirectory + File.separator + "buzzer-key.data";
 
-            Cipher outCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding", "AndroidKeyStoreBCWorkaround");
-            outCipher.init(Cipher.DECRYPT_MODE, privateKey);
+			Cipher outCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding", "AndroidKeyStoreBCWorkaround");
+			outCipher.init(Cipher.DECRYPT_MODE, privateKey);
 
-            CipherInputStream cipherInputStream =
-                    new CipherInputStream(new FileInputStream(encryptedDataFilePath),
-                            outCipher);
+			CipherInputStream cipherInputStream =
+					new CipherInputStream(new FileInputStream(encryptedDataFilePath),
+							outCipher);
 
-            byte[] roundTrippedBytes = new byte[1000];
+			byte[] roundTrippedBytes = new byte[1000];
 
-            int index = 0;
-            int nextByte;
-            while ((nextByte = cipherInputStream.read()) != -1) {
-                roundTrippedBytes[index] = (byte) nextByte;
-                index++;
-            }
+			int index = 0;
+			int nextByte;
+			while ((nextByte = cipherInputStream.read()) != -1) {
+				roundTrippedBytes[index] = (byte) nextByte;
+				index++;
+			}
 
-            String pinString = new String(roundTrippedBytes, 0, index, StandardCharsets.UTF_8);
-            return pinString;
-        }
-        catch (CertificateException | NoSuchAlgorithmException | UnsupportedOperationException | InvalidKeyException | NoSuchPaddingException | UnrecoverableEntryException | NoSuchProviderException | KeyStoreException | IOException e)
-        {
-            e.printStackTrace();
-            return "none";
-        }
-    }
-
-    public void setKeyboardAdjustMode(boolean adjustNothing) {
-		// for some reason it doesn't work without QtNative.activity(). Why?
-		QtNative.activity().getWindow().setSoftInputMode(adjustNothing ? WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING :
-		                                                                 WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
+			String pinString = new String(roundTrippedBytes, 0, index, StandardCharsets.UTF_8);
+			return pinString;
+		}
+		catch (CertificateException | NoSuchAlgorithmException | UnsupportedOperationException | InvalidKeyException | NoSuchPaddingException | UnrecoverableEntryException | NoSuchProviderException | KeyStoreException | IOException e)
+		{
+			e.printStackTrace();
+			return "none";
+		}
 	}
 
-    public static void externalStartFingertipAuth()
-    {
-        instance_.startFingertipAuth();
-    }
+	public void setKeyboardAdjustMode(boolean adjustNothing) {
+		// for some reason it doesn't work without QtNative.activity(). Why?
+		QtNative.activity().getWindow().setSoftInputMode(adjustNothing ? WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING :
+																		 WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
+	}
 
-    public static void externalStopFingertipAuth()
-    {
-        instance_.stopFingertipAuth();
-    }
+	public static void externalStartFingertipAuth()
+	{
+		instance_.startFingertipAuth();
+	}
 
-    public static void externalEnablePinStore(String pin)
-    {
-        instance_.enablePinStore(pin);
-    }
+	public static void externalStopFingertipAuth()
+	{
+		instance_.stopFingertipAuth();
+	}
 
-    public static void externalSetBackgroundColor(String color)
+	public static void externalEnablePinStore(String pin)
+	{
+		instance_.enablePinStore(pin);
+	}
+
+	public static void externalSetBackgroundColor(String color)
 	{
 		instance_.setBackgroundColor(color);
 	}
 
-    public static int externalGetFingertipAuthState()
-    {
-        return instance_.getFingertipAuthState();
-    }
-
-    private void generateKey() throws FingerprintException
-    {
-        try
-        {
-            keyStore = KeyStore.getInstance("AndroidKeyStore");
-            keyGenerator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore");
-
-            keyStore.load(null);
-            keyGenerator.init(new
-                    KeyGenParameterSpec.Builder(KEY_NAME,
-                    KeyProperties.PURPOSE_ENCRYPT |
-                            KeyProperties.PURPOSE_DECRYPT)
-                    .setBlockModes(KeyProperties.BLOCK_MODE_CBC)
-                    .setUserAuthenticationRequired(true)
-                    .setEncryptionPaddings(
-                            KeyProperties.ENCRYPTION_PADDING_PKCS7)
-                    .build());
-
-            keyGenerator.generateKey();
-
-            // Create the keys if necessary
-            if (!keyStore.containsAlias(PIN_NAME)) {
-                Log.i("buzzer", "Generate new key...");
-                KeyPairGenerator spec = KeyPairGenerator.getInstance(
-                        KeyProperties.KEY_ALGORITHM_RSA, "AndroidKeyStore");
-                        spec.initialize(new KeyGenParameterSpec.Builder(
-                            PIN_NAME, KeyProperties.PURPOSE_DECRYPT | KeyProperties.PURPOSE_ENCRYPT)
-                            .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_PKCS1) //  RSA/ECB/PKCS1Padding
-                            .setKeySize(2048)
-                            .setCertificateSubject(new X500Principal("CN=test"))
-                            .setCertificateSerialNumber(BigInteger.ONE)
-                            .build());
-                KeyPair keyPair = spec.generateKeyPair();
-            }
-        }
-        catch (KeyStoreException
-                | NoSuchAlgorithmException
-                | NoSuchProviderException
-                | InvalidAlgorithmParameterException
-                | CertificateException
-                | IOException e)
-        {
-            e.printStackTrace();
-            throw new FingerprintException(e);
-        }
-    }
-
-    public boolean initCipher()
-    {
-        try
-        {
-            cipher = Cipher.getInstance(
-                KeyProperties.KEY_ALGORITHM_AES + "/"
-                + KeyProperties.BLOCK_MODE_CBC + "/"
-                + KeyProperties.ENCRYPTION_PADDING_PKCS7);
-        }
-        catch (NoSuchAlgorithmException |
-                NoSuchPaddingException e)
-        {
-            throw new RuntimeException("Failed to get Cipher", e);
-        }
-
-        try
-        {
-            keyStore.load(null);
-
-            SecretKey key = (SecretKey) keyStore.getKey(KEY_NAME, null);
-            cipher.init(Cipher.ENCRYPT_MODE, key);
-            return true;
-        }
-        catch (KeyPermanentlyInvalidatedException e)
-        {
-            return false;
-        }
-        catch (KeyStoreException | CertificateException
-            | UnrecoverableKeyException | IOException
-            | NoSuchAlgorithmException | InvalidKeyException e)
-        {
-            throw new RuntimeException("Failed to init Cipher", e);
-        }
-    }
-
-    private class FingerprintException extends Exception
-    {
-        public FingerprintException(Exception e)
-        {
-            super(e);
-        }
+	public static int externalGetFingertipAuthState()
+	{
+		return instance_.getFingertipAuthState();
 	}
 
-    @Override
+	private void generateKey() throws FingerprintException
+	{
+		try
+		{
+			keyStore = KeyStore.getInstance("AndroidKeyStore");
+			keyGenerator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore");
+
+			keyStore.load(null);
+			keyGenerator.init(new
+					KeyGenParameterSpec.Builder(KEY_NAME,
+					KeyProperties.PURPOSE_ENCRYPT |
+							KeyProperties.PURPOSE_DECRYPT)
+					.setBlockModes(KeyProperties.BLOCK_MODE_CBC)
+					.setUserAuthenticationRequired(true)
+					.setEncryptionPaddings(
+							KeyProperties.ENCRYPTION_PADDING_PKCS7)
+					.build());
+
+			keyGenerator.generateKey();
+
+			// Create the keys if necessary
+			if (!keyStore.containsAlias(PIN_NAME)) {
+				Log.i("buzzer", "Generate new key...");
+				KeyPairGenerator spec = KeyPairGenerator.getInstance(
+						KeyProperties.KEY_ALGORITHM_RSA, "AndroidKeyStore");
+						spec.initialize(new KeyGenParameterSpec.Builder(
+							PIN_NAME, KeyProperties.PURPOSE_DECRYPT | KeyProperties.PURPOSE_ENCRYPT)
+							.setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_PKCS1) //  RSA/ECB/PKCS1Padding
+							.setKeySize(2048)
+							.setCertificateSubject(new X500Principal("CN=test"))
+							.setCertificateSerialNumber(BigInteger.ONE)
+							.build());
+				KeyPair keyPair = spec.generateKeyPair();
+			}
+		}
+		catch (KeyStoreException
+				| NoSuchAlgorithmException
+				| NoSuchProviderException
+				| InvalidAlgorithmParameterException
+				| CertificateException
+				| IOException e)
+		{
+			e.printStackTrace();
+			throw new FingerprintException(e);
+		}
+	}
+
+	public boolean initCipher()
+	{
+		try
+		{
+			cipher = Cipher.getInstance(
+				KeyProperties.KEY_ALGORITHM_AES + "/"
+				+ KeyProperties.BLOCK_MODE_CBC + "/"
+				+ KeyProperties.ENCRYPTION_PADDING_PKCS7);
+		}
+		catch (NoSuchAlgorithmException |
+				NoSuchPaddingException e)
+		{
+			throw new RuntimeException("Failed to get Cipher", e);
+		}
+
+		try
+		{
+			keyStore.load(null);
+
+			SecretKey key = (SecretKey) keyStore.getKey(KEY_NAME, null);
+			cipher.init(Cipher.ENCRYPT_MODE, key);
+			return true;
+		}
+		catch (KeyPermanentlyInvalidatedException e)
+		{
+			return false;
+		}
+		catch (KeyStoreException | CertificateException
+			| UnrecoverableKeyException | IOException
+			| NoSuchAlgorithmException | InvalidKeyException e)
+		{
+			throw new RuntimeException("Failed to init Cipher", e);
+		}
+	}
+
+	private class FingerprintException extends Exception
+	{
+		public FingerprintException(Exception e)
+		{
+			super(e);
+		}
+	}
+
+	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 		if (requestCode == 101) {
 			if (data != null) {
@@ -449,7 +458,7 @@ public class MainActivity extends QtActivity
 								ca.close();
 
 								String format = new SimpleDateFormat("yyyyMMddHHmmss",
-								       java.util.Locale.getDefault()).format(new Date());
+									   java.util.Locale.getDefault()).format(new Date());
 
 								File fileThumbnail = new File(getExternalCacheDir(), format + ".jpg");
 								OutputStream streamThumbnail = new FileOutputStream(fileThumbnail);
@@ -461,23 +470,23 @@ public class MainActivity extends QtActivity
 								Log.i("buzzer", "PATH = " + lFilePath);
 								fileSelected(lFilePath, fileThumbnail.getAbsolutePath(), lOriginalFileName);
 							} else {
-							    fileSelected(lFilePath, "", lOriginalFileName);
+								fileSelected(lFilePath, "", lOriginalFileName);
 							}
 						} else {
-						    Log.i("buzzer", "PATH = " + lFilePath);
+							Log.i("buzzer", "PATH = " + lFilePath);
 							fileSelected(lFilePath, "", lOriginalFileName);
 						}
 					} catch (IOException e) {
-					    e.printStackTrace();
+						e.printStackTrace();
 					}
 				} else {
-				    Uri uri = data.getData();
+					Uri uri = data.getData();
 					try {
 						String format = new SimpleDateFormat("yyyyMMddHHmmss",
-						       java.util.Locale.getDefault()).format(new Date());
+							   java.util.Locale.getDefault()).format(new Date());
 
 						String[] columns = { MediaStore.Images.Media.DATA,
-							            MediaStore.Images.Media.MIME_TYPE };
+										MediaStore.Images.Media.MIME_TYPE };
 
 						String lFilePath = FileUtils.getPath(this, data.getData());
 						Log.i("buzzer", "uriPath = " + lFilePath);
@@ -524,9 +533,9 @@ public class MainActivity extends QtActivity
 							Log.i("buzzer", "PATH = " + file.getAbsolutePath());
 							fileSelected(file.getAbsolutePath(), "", lOriginalFileName);
 						} else if (mimeType.startsWith("video")) {
-						    //
+							//
 							Bitmap thumbnail =
-							        getContentResolver().loadThumbnail(uri, new Size(1920, 1080), null);
+									getContentResolver().loadThumbnail(uri, new Size(1920, 1080), null);
 
 							File fileThumbnail = new File(getExternalCacheDir(), format + ".jpg");
 							OutputStream streamThumbnail = new FileOutputStream(fileThumbnail);
@@ -545,7 +554,7 @@ public class MainActivity extends QtActivity
 								stream.write(buffer, 0, len);
 							}
 
-						    stream.flush();
+							stream.flush();
 							stream.close();
 							inputStream.close();
 
@@ -553,7 +562,7 @@ public class MainActivity extends QtActivity
 							fileSelected(file.getAbsolutePath(), fileThumbnail.getAbsolutePath(), lOriginalFileName);
 
 						} else if (mimeType.startsWith("audio/mpeg")) {
-						    //
+							//
 							MediaMetadataRetriever mr = new MediaMetadataRetriever();
 							mr.setDataSource(this, uri);
 
@@ -574,7 +583,7 @@ public class MainActivity extends QtActivity
 								lAbsolutePath = fileThumbnail.getAbsolutePath();
 							}
 
-						    InputStream inputStream = getContentResolver().openInputStream(uri);
+							InputStream inputStream = getContentResolver().openInputStream(uri);
 							File file = new File(getExternalCacheDir(), format + ".mp3");
 							OutputStream stream = new FileOutputStream(file);
 
@@ -584,7 +593,7 @@ public class MainActivity extends QtActivity
 								stream.write(buffer, 0, len);
 							}
 
-						    stream.flush();
+							stream.flush();
 							stream.close();
 							inputStream.close();
 
@@ -592,7 +601,7 @@ public class MainActivity extends QtActivity
 							Log.i("buzzer", "PATH2 = " + lAbsolutePath);
 							fileSelected(file.getAbsolutePath(), lAbsolutePath, lOriginalFileName);
 						} else if (mimeType.startsWith("audio/mp4")) {
-						    //
+							//
 							MediaMetadataRetriever mr = new MediaMetadataRetriever();
 							mr.setDataSource(this, uri);
 
@@ -613,7 +622,7 @@ public class MainActivity extends QtActivity
 								lAbsolutePath = fileThumbnail.getAbsolutePath();
 							}
 
-						    InputStream inputStream = getContentResolver().openInputStream(uri);
+							InputStream inputStream = getContentResolver().openInputStream(uri);
 							File file = new File(getExternalCacheDir(), format + ".m4a");
 							OutputStream stream = new FileOutputStream(file);
 
@@ -623,7 +632,7 @@ public class MainActivity extends QtActivity
 								stream.write(buffer, 0, len);
 							}
 
-						    stream.flush();
+							stream.flush();
 							stream.close();
 							inputStream.close();
 
@@ -632,29 +641,54 @@ public class MainActivity extends QtActivity
 							fileSelected(file.getAbsolutePath(), lAbsolutePath, lOriginalFileName);
 						}
 					} catch (IOException e) {
-					    e.printStackTrace();
+						e.printStackTrace();
 					}
 				}
 			}
 		} else fireActivityResult(requestCode, resultCode);
 
-	    super.onActivityResult(requestCode, resultCode, data);
+		super.onActivityResult(requestCode, resultCode, data);
 	}
 
-    @Override
+	@Override
 	public void onNewIntent(Intent intent) {
-		Log.d("ekkescorner", "onNewIntent");
+		//
+		Log.i("buzzer", "new intent...");
+		Bundle extras = intent.getExtras();
+		if (extras != null) {
+			String lId = extras.getString("id");
+			String lTxId = extras.getString("txId");
+			String lChainId = extras.getString("chainId");
+			String lBuzzer = extras.getString("buzzer");
+			int lType = extras.getInt("type");
+
+			if (lTxId != null && lChainId != null && lBuzzer != null && lType > 0) {
+				//
+				Log.i("buzzer", "param.type = " + Integer.toString(lType));
+				Log.i("buzzer", "param.id = " + lId);
+				Log.i("buzzer", "param.txId = " + lTxId);
+				Log.i("buzzer", "param.chainId = " + lChainId);
+				Log.i("buzzer", "param.buzzer = " + lBuzzer);
+
+				//
+				externalActivityCalled(lType, lChainId, lTxId, lBuzzer);
+			}
+		}
+
+	    //
 		super.onNewIntent(intent);
+
+		//
 		setIntent(intent);
 		// Intent will be processed, if all is initialized and Qt / QML can handle the event
 		if(isInitialized) {
 			processIntent();
 		} else {
-		    isIntentPending = true;
+			isIntentPending = true;
 		}
 	} // onNewIntent
 
-    public void checkPendingIntents(String workingDir) {
+	public void checkPendingIntents(String workingDir) {
 		isInitialized = true;
 		workingDirPath = workingDir;
 		Log.d("ekkescorner", workingDirPath);
@@ -663,12 +697,12 @@ public class MainActivity extends QtActivity
 			Log.d("ekkescorner", "checkPendingIntents: true");
 			processIntent();
 		} else {
-		    Log.d("ekkescorner", "nothingPending");
+			Log.d("ekkescorner", "nothingPending");
 		}
 	} // checkPendingIntents
 
-    // process the Intent if Action is SEND or VIEW
-	private void processIntent(){
+	// process the Intent if Action is SEND or VIEW
+	private boolean processIntent(){
 		//
 		Intent intent = getIntent();
 
@@ -680,39 +714,39 @@ public class MainActivity extends QtActivity
 			intentAction = "VIEW";
 			intentUri = intent.getData();
 		} else if (intent.getAction().equals("android.intent.action.SEND")){
-		    intentAction = "SEND";
+			intentAction = "SEND";
 			Bundle bundle = intent.getExtras();
 			intentUri = (Uri)bundle.get(Intent.EXTRA_STREAM);
 		} else {
-		    Log.d("ekkescorner Intent unknown action:", intent.getAction());
-			return;
+			Log.d("ekkescorner Intent unknown action:", intent.getAction());
+			return false;
 		}
-	    Log.d("ekkescorner action:", intentAction);
+		Log.d("ekkescorner action:", intentAction);
 		if (intentUri == null){
 			Log.d("ekkescorner Intent URI:", "is null");
-			return;
+			return false;
 		}
 
-	    Log.d("ekkescorner Intent URI:", intentUri.toString());
+		Log.d("ekkescorner Intent URI:", intentUri.toString());
 
 		// content or file
 		intentScheme = intentUri.getScheme();
 		if (intentScheme == null){
 			Log.d("ekkescorner Intent URI Scheme:", "is null");
-			return;
+			return false;
 		}
-	    if(intentScheme.equals("file")){
+		if(intentScheme.equals("file")){
 			// URI as encoded string
 			Log.d("ekkescorner Intent File URI: ", intentUri.toString());
 			setFileUrlReceived(intentUri.toString());
 			// we are done Qt can deal with file scheme
-			return;
+			return false;
 		}
-	    if(!intentScheme.equals("content")){
+		if(!intentScheme.equals("content")){
 			Log.d("ekkescorner Intent URI unknown scheme: ", intentScheme);
-			return;
+			return false;
 		}
-	    // ok - it's a content scheme URI
+		// ok - it's a content scheme URI
 		// we will try to resolve the Path to a File URI
 		// if this won't work or if the File cannot be opened,
 		// we'll try to copy the file into our App working dir via InputStream
@@ -731,45 +765,44 @@ public class MainActivity extends QtActivity
 		if(name != null) {
 			Log.d("ekkescorner Intent Name:", name);
 		} else {
-		    Log.d("ekkescorner Intent Name:", "is NULL");
+			Log.d("ekkescorner Intent Name:", "is NULL");
 		}
 
-	    String filePath;
+		String filePath;
 		filePath = FileUtils.getPath(this, intentUri);
 
 		if(filePath == null) {
 			Log.d("ekkescorner QSharePathResolver:", "filePath is NULL");
 		} else {
-		    Log.d("ekkescorner QSharePathResolver:", filePath);
+			Log.d("ekkescorner QSharePathResolver:", filePath);
 			// to be safe check if this File Url really can be opened by Qt
 			// there were problems with MS office apps on Android 7
 			if (checkFileExits(filePath)) {
 				setFileUrlReceived(filePath);
 				// we are done Qt can deal with file scheme
-				return;
+				return false;
 			}
 		}
 
-	    // trying the InputStream way:
+		// trying the InputStream way:
 		filePath = ShareUtils.createFile(cR, intentUri, workingDirPath);
 		if(filePath == null) {
 			Log.d("ekkescorner Intent FilePath:", "is NULL");
-			return;
+			return false;
 		}
 
-	    setFileReceivedAndSaved(filePath);
+		setFileReceivedAndSaved(filePath);
+
+		return true;
 	} // processIntent`
 
-    //
 	//
-	public native void fileSelected(String key, String preview, String description);
-
-    public void pickImage() {
+	public void pickImage() {
 		Intent intent;
 		if(Build.VERSION.SDK_INT < Build.VERSION_CODES.KITKAT)
-		    intent = new Intent(Intent.ACTION_GET_CONTENT);
+			intent = new Intent(Intent.ACTION_GET_CONTENT);
 		else
-		    intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+			intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
 
 		intent.addCategory(Intent.CATEGORY_OPENABLE);
 		intent.setType("*/*");
@@ -779,42 +812,42 @@ public class MainActivity extends QtActivity
 		startActivityForResult(intent, 101);
 	}
 
-    public static void externalPickImage() {
+	public static void externalPickImage() {
 		instance_.pickImage();
 	}
 
-    @Override
-    public void onDestroy()
-    {
-        System.exit(0);
-    }
+	@Override
+	public void onDestroy()
+	{
+		System.exit(0);
+	}
 
-    public static int isReadStoragePermissionGranted() {
+	public static int isReadStoragePermissionGranted() {
 		if (Build.VERSION.SDK_INT >= 23) {
 			if (instance_.checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE)
-			        == PackageManager.PERMISSION_GRANTED) {
+					== PackageManager.PERMISSION_GRANTED) {
 				return 1;
 			} else {
-			    ActivityCompat.requestPermissions(instance_, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, 3);
+				ActivityCompat.requestPermissions(instance_, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, 3);
 				return 0;
 			}
 		}
-	    else {
+		else {
 			return 1;
 		}
 	}
 
-    public static int isWriteStoragePermissionGranted() {
+	public static int isWriteStoragePermissionGranted() {
 		if (Build.VERSION.SDK_INT >= 23) {
 			if (instance_.checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
-			        == PackageManager.PERMISSION_GRANTED) {
+					== PackageManager.PERMISSION_GRANTED) {
 				return 1;
 			} else {
-			    ActivityCompat.requestPermissions(instance_, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 2);
+				ActivityCompat.requestPermissions(instance_, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 2);
 				return 0;
 			}
 		}
-	    else {
+		else {
 			return 1;
 		}
 	}

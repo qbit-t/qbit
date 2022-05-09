@@ -102,6 +102,7 @@ Item
 
 		function onBuzzerDAppResumed() {
 			if (buzzerClient.buzzerDAppReady) {
+				console.log("[conversation/onBuzzerDAppResumed]: resuming...");
 				conversationsModelLoader.processAndMerge(true); // preserve data
 			}
 		}

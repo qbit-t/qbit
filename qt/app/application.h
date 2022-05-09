@@ -342,6 +342,7 @@ public:
     void emit_fingertipAuthFailed();
 	void emit_fileSelected(QString, QString, QString);
 	void emit_keyboardHeightChanged(int);
+	void emit_externalActivityCalled(int type, QString chain, QString tx, QString buzzer);
 
 #if defined(Q_OS_ANDROID)
 	Q_INVOKABLE	bool checkPermission();
@@ -366,6 +367,7 @@ signals:
 	void isDesktopChanged();
 	void noDocumentsWorkLocation();
 	void keyboardHeightChanged(int height);
+	void externalActivityCalled(int type, QString chain, QString tx, QString buzzer);
 
 private:
     void setAndroidOrientation(int);

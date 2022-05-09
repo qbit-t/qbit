@@ -33,7 +33,7 @@ int BuzzfeedListModel::locateIndex(QString key) {
 	uint256 lId; lId.setHex(key.toStdString());
 	qbit::BuzzfeedItem::Key lKey(lId, qbit::Transaction::TX_BUZZER_MESSAGE);
 	std::map<qbit::BuzzfeedItem::Key, int>::iterator lIndex = index_.find(lKey);
-	if (lIndex == index_.end()) return lIndex->second;
+	if (lIndex != index_.end()) return lIndex->second;
 
 	return -1;
 }

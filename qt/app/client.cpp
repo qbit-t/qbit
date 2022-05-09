@@ -105,6 +105,10 @@ int Client::openSettings() {
 	return 0;
 }
 
+std::string Client::settingsDataPath() {
+	return settings_->dataPath();
+}
+
 int Client::open(QString secret) {
 	// setup log
 	if (application_->getDebug()) {

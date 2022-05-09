@@ -122,6 +122,7 @@ public:
 
 	void settingsFromJSON(qbit::json::Value&);
 	void settingsToJSON(qbit::json::Value&);
+	std::string settingsDataPath();
 
     bool isFingerprintAccessConfigured();
 
