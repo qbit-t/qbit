@@ -102,7 +102,7 @@ public:
 
 public:
 	WalletTransactionsListModel();
-	WalletTransactionsListModel(const std::string&, qbit::IWalletPtr);
+	WalletTransactionsListModel(const std::string&, const uint256&, qbit::IWalletPtr);
 	virtual ~WalletTransactionsListModel();
 
 	int rowCount(const QModelIndex& parent = QModelIndex()) const;
@@ -114,6 +114,9 @@ public:
 	QString asset() { return QString::fromStdString(asset_.toHex()); }
 	void setAsset(QString asset) {
 		asset_.setHex(asset.toStdString());
+	}
+	void setAsset(const uint256& asset) {
+		asset_ = asset;
 	}
 
 	void walletReceiveTransaction(qbit::Transaction::UnlinkedOutPtr, qbit::TransactionPtr);
@@ -165,7 +168,8 @@ protected:
 class WalletTransactionsListModelReceived: public WalletTransactionsListModel {
 public:
 	WalletTransactionsListModelReceived() {}
-	WalletTransactionsListModelReceived(qbit::IWalletPtr wallet) : WalletTransactionsListModel("received", wallet) {
+	WalletTransactionsListModelReceived(const uint256& asset, qbit::IWalletPtr wallet) :
+		WalletTransactionsListModel(std::string("received-") + asset.toHex(), asset, wallet) {
 		QQmlEngine::setObjectOwnership(this, QQmlEngine::CppOwnership);
 	}
 
@@ -173,7 +177,7 @@ protected:
 	void outUpdatedInternal(const NetworkUnlinkedOutProxy&) {}
 	void feedInternal(uint64_t from, std::vector<qbit::Transaction::NetworkUnlinkedOutPtr>& items) {
 		//
-		wallet_->selectIns(from, items);
+		wallet_->selectIns(asset_, from, items);
 	}
 	bool processUpdate(const NetworkUnlinkedOutProxy& out) {
 		//
@@ -185,7 +189,8 @@ protected:
 class WalletTransactionsListModelSent: public WalletTransactionsListModel {
 public:
 	WalletTransactionsListModelSent() {}
-	WalletTransactionsListModelSent(qbit::IWalletPtr wallet) : WalletTransactionsListModel("sent", wallet) {
+	WalletTransactionsListModelSent(const uint256& asset, qbit::IWalletPtr wallet) :
+		WalletTransactionsListModel(std::string("sent-") + asset.toHex(), asset, wallet) {
 		QQmlEngine::setObjectOwnership(this, QQmlEngine::CppOwnership);
 	}
 
@@ -193,7 +198,7 @@ protected:
 	void inUpdatedInternal(const NetworkUnlinkedOutProxy&) {}
 	void feedInternal(uint64_t from, std::vector<qbit::Transaction::NetworkUnlinkedOutPtr>& items) {
 		//
-		wallet_->selectOuts(from, items);
+		wallet_->selectOuts(asset_, from, items);
 	}
 	bool processUpdate(const NetworkUnlinkedOutProxy& out) {
 		//

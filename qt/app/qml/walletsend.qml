@@ -44,7 +44,7 @@ Item
 
 	function init() {
 		sendToAddress.rollback();
-		balanceCommand.process();
+		balanceCommand.process(asset_);
 	}
 
 	function initSendTo(buzzer) {
@@ -55,7 +55,7 @@ Item
 	Component.onCompleted: {
 		//
 		if (buzzerClient.buzzerDAppReady) {
-			buzzerClient.getWalletSentLog().feed(false);
+			buzzerClient.getWalletSentLog(asset_).feed(false);
 			addressBox.prepare();
 		}
 	}
@@ -65,14 +65,14 @@ Item
 
 		function onBuzzerDAppReadyChanged() {
 			if (buzzerClient.buzzerDAppReady) {
-				buzzerClient.getWalletSentLog().feed(false);
+				buzzerClient.getWalletSentLog(asset_).feed(false);
 				addressBox.prepare();
 			}
 		}
 
 		function onWalletTransactionReceived(chain, tx) {
 			// refresh balance
-			balanceCommand.process();
+			balanceCommand.process(asset_);
 		}
 
 		function onThemeChanged() {
@@ -109,10 +109,32 @@ Item
 		onDragStarted: {
 		}
 
+		QuarkLabel {
+			id: sendInfo
+			x: spaceLeft_
+			y: spaceTop_
+			width: parent.width - spaceLeft_*2
+			wrapMode: Label.Wrap
+			text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.send." + unit_.toLowerCase())
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 2)) : 16
+			Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground");
+
+			onLinkActivated: {
+				if (isValidURL(link)) {
+				   Qt.openUrlExternally(link);
+				}
+			}
+
+			function isValidURL(str) {
+			   var regexp = /(ftp|http|https):\/\/(\w+:{0,1}\w*@)?(\S+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-\/]))?/
+			   return regexp.test(str);
+			}
+		}
+
 		QuarkAddressBox {
 			id: addressBox
 			x: spaceLeft_ - 1
-			y: spaceTop_
+			y: sendInfo.y + sendInfo.height + spaceTop_
 			width: parent.width - (spaceLeft_ + spaceRight_) + 2
 			placeholderText: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.wallet.address")
 			editor: true
@@ -253,7 +275,7 @@ Item
 				buzztonsFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 3)) : 20
 
 				function getFixed() {
-					return 4; //
+					return scaleSend_; //
 				}
 
 				onNumberStringModified: {
@@ -268,7 +290,7 @@ Item
 				onClearClicked: {
 					//
 					sendToAddress.rollback();
-					balanceCommand.process();
+					balanceCommand.process(asset_);
 					//amountInfo.recalculate();
 				}
 
@@ -288,7 +310,7 @@ Item
 				height: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 35) : 35
 				fillTo: 0
 				xButtons: false
-				units: "qBIT/b"
+				units: nanounitSend_ + "/b"
 				numberString: NumberFunctions.scientificToDecimal(parseFloat(buzzerClient.getQbitRate()))
 				useLimits: true
 				leftLimit: 1.0
@@ -300,7 +322,7 @@ Item
 
 				onNumberStringModified: {
 					amountInfo.prepare();
-					//balanceCommand.process();
+					//balanceCommand.process(asset_);
 				}
 
 				onPopupClosed: {
@@ -321,7 +343,7 @@ Item
 					prepare();
 				}
 
-				//balanceCommand.process();
+				//balanceCommand.process(asset_);
 				sendButton.adjust();
 			}
 
@@ -335,7 +357,7 @@ Item
 					var lAddress = addressBox.text;
 					if (addressBox.address !== "") lAddress = addressBox.address;
 					if (lAddress !== "" && lAddress[0] !== '@')
-						sendToAddress.process("*", lAddress, amountEdit.numberString, feeRateEdit.numberString);
+						sendToAddress.process(asset_, lAddress, amountEdit.numberString, feeRateEdit.numberString);
 				} else {
 					sendAmount.number = 0.0;
 					availableAmount.number = balance_;
@@ -364,7 +386,7 @@ Item
 
 				units: ""
 				number: 0.0
-				fillTo: 8
+				fillTo: scale_
 
 				QuarkSymbolLabel {
 					id: totalSym
@@ -401,7 +423,7 @@ Item
 
 				units: ""
 				number: 0.0
-				fillTo: 8
+				fillTo: scale_
 
 				QuarkSymbolLabel {
 					id: amountSym
@@ -511,7 +533,7 @@ Item
 
 				//
 				amountInfo.prepare();
-				//balanceCommand.process();
+				//balanceCommand.process(asset_);
 			}
 		}
 
@@ -543,7 +565,7 @@ Item
 			y: historyInfo.y + historyInfo.height + spaceItems_
 			width: historyInfo.width
 			height: walletsend_.height - (historyInfo.y + historyInfo.height + spaceItems_)
-			walletModel: buzzerClient.getWalletSentLog()
+			walletModel: buzzerClient.getWalletSentLog(asset_)
 			controller: walletsend_.controller
 		}
 
@@ -599,7 +621,7 @@ Item
 				privateButton.privateSend = false;
 				sendToAddress.privateSend = false;
 				addressBox.reset();
-				balanceCommand.process();
+				balanceCommand.process(asset_);
 			}
 
 			amountInfo.recalculate();

@@ -10,6 +10,7 @@ import Qt.labs.folderlistmodel 2.11
 import QtMultimedia 5.8
 import QtQuick.Window 2.15
 
+import app.buzzer.components 1.0 as BuzzerComponents
 import app.buzzer.commands 1.0 as BuzzerCommands
 
 import "qrc:/fonts"
@@ -40,14 +41,14 @@ Item
 	readonly property real defaultFontSize: 11
 
 	function init() {
-		balanceCommand.process();
+		balanceCommand.process(asset_);
 	}
 
 	Component.onCompleted: {
 		//
 		if (buzzerClient.buzzerDAppReady) {
-			balanceCommand.process();
-			buzzerClient.getWalletLog().feed(false);
+			balanceCommand.process(asset_);
+			buzzerClient.getWalletLog(asset_).feed(false);
 		}
 	}
 
@@ -56,32 +57,34 @@ Item
 
 		function onBuzzerDAppReadyChanged() {
 			if (buzzerClient.buzzerDAppReady) {
-				balanceCommand.process();
-				buzzerClient.getWalletLog().feed(false);
+				balanceCommand.process(asset_);
+				buzzerClient.getWalletLog(asset_).feed(false);
 			}
 		}
 
 		function onMainChainStateUpdated(block, height, time, ago) {
 			//
-			heightControl.text = height;
-			agoControl.text = ago;
-			blockControl.text = block;
-			timeControl.text = time;
-			heartBeatSymbol.beat();
+			if (lifePulse_) {
+				heightControl.text = height;
+				agoControl.text = ago;
+				blockControl.text = block;
+				timeControl.text = time;
+				heartBeatSymbol.beat();
+			}
 		}
 
 		function onWalletTransactionReceived(chain, tx) {
 			// refresh balance
-			balanceCommand.process();
+			balanceCommand.process(asset_);
 		}
 	}
 
 	Connections {
-		target: buzzerClient.getWalletLog()
+		target: buzzerClient.getWalletLog(asset_)
 
 		function onOutUpdatedSignal() {
 			// refresh balance
-			balanceCommand.process();
+			balanceCommand.process(asset_);
 		}
 	}
 
@@ -111,13 +114,13 @@ Item
 		running: false
 
 		onTriggered: {
-			balanceCommand.process();
+			balanceCommand.process(asset_);
 		}
 	}
 
 
 	//
-	// QBIT balance
+	// Asset balance
 	//
 
 	Flickable {
@@ -129,24 +132,21 @@ Item
 		 contentHeight: bottomItem.y
 		 clip: true
 
-		 onDragStarted: {
-		 }
-
 		 Image {
-			 id: qbitBackImage
+			 id: assetBackImage
 
 			 x: parent.width * 5 / 100
 			 y: spaceTop_
 			 width: parent.width - (parent.width * 10 / 100)
 			 fillMode: Image.PreserveAspectFit
-			 source: "../images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "wallet.balance")
+			 source: balanceBackground_
 			 mipmap: true
 
 			 QuarkNumberLabel {
 				 id: availableNumber
 				 number: 0.00000000
 				 font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 22) : 30
-				 fillTo: 8
+				 fillTo: scale_
 				 mayCompact: true
 				 x: parent.width / 2 - calculatedWidth / 2
 				 y: parent.height / 2 - (calculatedHeight + middleLine.penWidth + spaceItems_ * 2 + pendingControl.height) / 2
@@ -172,16 +172,18 @@ Item
 				 id: qbitText1
 				 x: availableNumber.x + availableNumber.calculatedWidth + spaceItems_
 				 y: availableNumber.y
-				 text: "QBIT"
+				 text: unit_
 				 font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : 16
 				 color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
 			 }
 
 			 QuarkHLine {
 				 id: middleLine
-				 x1: availableNumber.x - spaceLeft_
+				 x1: availableNumber.calculatedWidth > 100 ? availableNumber.x - spaceLeft_ :
+															  availableNumber.x - (30 + spaceLeft_)
 				 y1: availableNumber.y + availableNumber.calculatedHeight + spaceItems_
-				 x2: availableNumber.x + availableNumber.calculatedWidth + spaceLeft_
+				 x2: availableNumber.x + (availableNumber.calculatedWidth > 100 ? availableNumber.calculatedWidth :
+																				   (availableNumber.calculatedWidth + 30)) + spaceLeft_
 				 y2: availableNumber.y + availableNumber.calculatedHeight + spaceItems_
 				 penWidth: 2
 				 color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
@@ -200,7 +202,7 @@ Item
 					 id: pendingNumber
 					 number: 0.00000000
 					 font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 1)) : 14
-					 fillTo: 8
+					 fillTo: scale_
 					 x: pendingControl.width + spaceItems_
 					 y: 0
 					 numberColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
@@ -213,8 +215,8 @@ Item
 
 		 QuarkToolButton {
 			 id: refreshControl
-			 x: qbitBackImage.x + qbitBackImage.width - width - spaceItems_
-			 y: qbitBackImage.y + spaceItems_
+			 x: assetBackImage.x + assetBackImage.width - width - spaceItems_
+			 y: assetBackImage.y + spaceItems_
 			 symbol: Fonts.rotateSym
 			 visible: true
 			 labelYOffset: buzzerApp.isDesktop ? 1 : 3
@@ -226,20 +228,20 @@ Item
 
 			 onClicked: {
 				 // refeed balance
-				 balanceCommand.process();
+				 balanceCommand.process(asset_);
 				 // refeed transactions
-				 buzzerClient.getWalletLog().feed(false);
+				 buzzerClient.getWalletLog(asset_).feed(false);
 			 }
 		 }
 
 		 //
-		 // QBIT information & heartbeat
+		 // Asset information & heartbeat
 		 //
 
 		 QuarkSymbolLabel {
 			 id: heartBeatSymbol
-			 x: qbitBackImage.x
-			 y: qbitBackImage.y + qbitBackImage.height + spaceTop_
+			 x: assetBackImage.x
+			 y: assetBackImage.y + assetBackImage.height + spaceTop_
 			 font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 3)) : 22
 			 symbol: Fonts.heartBeatSym
 
@@ -272,22 +274,28 @@ Item
 				 duration: buzzerApp.isDesktop ? 1000 : 600
 				 easing { type: Easing.OutBack; }
 			 }
+
+			 visible: lifePulse_
 		 }
 
 		 QuarkSymbolLabel {
 			 id: blockSymbol
-			 x: qbitBackImage.x + 1
+			 x: assetBackImage.x + 1
 			 y: blockControl.y - 1
 			 font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 3)) : 20
 			 symbol: Fonts.blockSym
+
+			 visible: lifePulse_
 		 }
 
 		 QuarkSymbolLabel {
 			 id: blockTimeSymbol
-			 x: qbitBackImage.x + 1
+			 x: assetBackImage.x + 1
 			 y: timeControl.y - 1
 			 font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 3)) : 20
 			 symbol: Fonts.clockSym
+
+			 visible: lifePulse_
 		 }
 
 		 QuarkLabel {
@@ -296,6 +304,8 @@ Item
 			 y: heartBeatSymbol.y + 3
 			 text: "0000000000"
 			 font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : defaultFontPointSize
+
+			 visible: lifePulse_
 
 			 onTextChanged: {
 				 transactions.updateAgo();
@@ -313,6 +323,8 @@ Item
 
 			 color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
 			 border.color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
+
+			 visible: lifePulse_
 		 }
 
 		 QuarkLabel {
@@ -321,6 +333,8 @@ Item
 			 y: heightControl.y
 			 text: "0s"
 			 font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : defaultFontPointSize
+
+			 visible: lifePulse_
 		 }
 
 		 QuarkLabelRegular {
@@ -331,6 +345,8 @@ Item
 			 elide: Text.ElideRight
 			 text: "00000000000000000000000000000000000000000000000000"
 			 font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : defaultFontPointSize
+
+			 visible: lifePulse_
 		 }
 
 		 QuarkLabelRegular {
@@ -341,6 +357,8 @@ Item
 			 elide: Text.ElideRight
 			 text: "00:00:00 00/00/0000"
 			 font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : defaultFontPointSize
+
+			 visible: lifePulse_
 		 }
 
 		 //
@@ -350,7 +368,8 @@ Item
 		 Rectangle {
 			 id: historyInfo
 			 x: spaceLeft_
-			 y: timeControl.y + timeControl.height + spaceTop_
+			 y: timeControl.visible ? (timeControl.y + timeControl.height + spaceTop_) :
+									  (assetBackImage.y + assetBackImage.height + spaceTop_)
 			 height: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 35) : 35
 			 width: parent.width - (spaceLeft_ + spaceRight_)
 			 color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Box.background")
@@ -371,7 +390,7 @@ Item
 			 y: historyInfo.y + historyInfo.height + spaceItems_
 			 width: historyInfo.width
 			 height: walletbalance_.height - (historyInfo.y + historyInfo.height + spaceItems_)
-			 walletModel: buzzerClient.getWalletLog()
+			 walletModel: buzzerClient.getWalletLog(asset_)
 			 controller: walletbalance_.controller
 		 }
 

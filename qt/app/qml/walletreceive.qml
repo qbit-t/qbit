@@ -45,7 +45,7 @@ Item
 	Component.onCompleted: {
 		//
 		if (buzzerClient.buzzerDAppReady) {
-			buzzerClient.getWalletReceivedLog().feed(false);
+			buzzerClient.getWalletReceivedLog(asset_).feed(false);
 		}
 	}
 
@@ -54,7 +54,7 @@ Item
 
 		function onBuzzerDAppReadyChanged() {
 			if (buzzerClient.buzzerDAppReady) {
-				buzzerClient.getWalletReceivedLog().feed(false);
+				buzzerClient.getWalletReceivedLog(asset_).feed(false);
 			}
 		}
 
@@ -79,10 +79,32 @@ Item
 		 onDragStarted: {
 		 }
 
-		Rectangle {
+		 QuarkLabel {
+			 id: receiveInfo
+			 x: spaceLeft_
+			 y: spaceTop_
+			 width: parent.width - spaceLeft_*2
+			 wrapMode: Label.Wrap
+			 text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.receive." + unit_.toLowerCase())
+			 font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 2)) : 16
+			 Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground");
+
+			 onLinkActivated: {
+				 if (isValidURL(link)) {
+					Qt.openUrlExternally(link);
+				 }
+			 }
+
+			 function isValidURL(str) {
+				var regexp = /(ftp|http|https):\/\/(\w+:{0,1}\w*@)?(\S+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-\/]))?/
+				return regexp.test(str);
+			 }
+		 }
+
+		 Rectangle {
 			id: qrContainer
 			x: qrCode.x - 10
-			y: 20
+			y: receiveInfo.y + receiveInfo.height + 10
 			width: qrCode.getWidth()
 			height: qrCode.getWidth()
 			border.color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Box.border");
@@ -92,7 +114,7 @@ Item
 		QRCode {
 			id: qrCode
 			x: getX()
-			y: 30
+			y: receiveInfo.y + receiveInfo.height + 20
 			width: (parent.width / 3) * 2 - 20
 			height: (parent.width / 3) * 2 - 20
 			visible: true
@@ -173,12 +195,13 @@ Item
 				height: amountInfo.height //40
 				fillTo: getFixed()
 				xButtons: false
+				//minDelta: "" + 1.0 / (scaleSend_ > 0 ? scaleSend_ : 1.0)
 
 				fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 2)) : 18
 				buzztonsFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 4)) : 20
 
 				function getFixed() {
-					return 4; //
+					return scaleSend_; //
 				}
 
 				onNumberStringModified: {
@@ -288,7 +311,7 @@ Item
 			y: historyInfo.y + historyInfo.height + spaceItems_
 			width: historyInfo.width
 			height: walletreceive_.height - (historyInfo.y + historyInfo.height + spaceItems_)
-			walletModel: buzzerClient.getWalletReceivedLog()
+			walletModel: buzzerClient.getWalletReceivedLog(asset_)
 			controller: walletreceive_.controller
 		}
 

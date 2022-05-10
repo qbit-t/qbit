@@ -184,9 +184,18 @@ int Client::open(QString secret) {
 	wallet_->open(secret.toStdString()); // secret - pin or keystore inlocked pin
 
 	// wallet logs
-	walletLog_ = new WalletTransactionsListModel("log", wallet_);
-	walletReceivedLog_ = new WalletTransactionsListModelReceived(wallet_);
-	walletSentLog_ = new WalletTransactionsListModelSent(wallet_);
+	walletLog_ = new WalletTransactionsListModel("log", TxAssetType::qbitAsset(), wallet_);
+	walletReceivedLog_ = new WalletTransactionsListModelReceived(TxAssetType::qbitAsset(), wallet_);
+	walletSentLog_ = new WalletTransactionsListModelSent(TxAssetType::qbitAsset(), wallet_);
+
+	//
+	// TODO: we need to make more robust mechanism for assets onboarding - i.e. scan address-bounded assets and extract asset info
+	//
+
+	// qtt
+	uint256 lQttAsset; lQttAsset.setHex(application_->getQttAsset());
+	wallets_[lQttAsset] = _Wallet(lQttAsset, wallet_);
+	//
 
 	// peers logs
 	peersActive_ = new PeersActiveListModel();

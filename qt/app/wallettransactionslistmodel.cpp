@@ -9,7 +9,7 @@ WalletTransactionsListModel::WalletTransactionsListModel() {
 	QQmlEngine::setObjectOwnership(this, QQmlEngine::CppOwnership);
 }
 
-WalletTransactionsListModel::WalletTransactionsListModel(const std::string& key, qbit::IWalletPtr wallet) : wallet_(wallet) {
+WalletTransactionsListModel::WalletTransactionsListModel(const std::string& key, const uint256& asset, qbit::IWalletPtr wallet) : wallet_(wallet), asset_(asset) {
 	//
 	wallet_->setWalletReceiveTransactionFunction(key, boost::bind(&WalletTransactionsListModel::walletReceiveTransaction, this, boost::placeholders::_1, boost::placeholders::_2));
 	wallet_->setWalletOutUpdatedFunction(key, boost::bind(&WalletTransactionsListModel::outUpdated, this, boost::placeholders::_1));
@@ -129,7 +129,7 @@ QHash<int, QByteArray> WalletTransactionsListModel::roleNames() const {
 
 void WalletTransactionsListModel::feedInternal(uint64_t from, std::vector<qbit::Transaction::NetworkUnlinkedOutPtr>& items) {
 	//
-	wallet_->selectLog(from, items);
+	wallet_->selectLog(asset_, from, items);
 }
 
 void WalletTransactionsListModel::feed(bool more) {

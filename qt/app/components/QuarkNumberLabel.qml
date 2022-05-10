@@ -110,6 +110,7 @@ Label
                 var lNumber = NumberFunctions.scientificToDecimal(number.toString()).toString();
                 if (lNumber === "0") lNumber += ".0";
                 else if (lNumber === "0.") lNumber += "0";
+
                 var lParts = lNumber.split(".");
 
                 // lNumber[0] - significant part, lNumber[1] - decimal
@@ -125,7 +126,7 @@ Label
 					}
 				}
 
-                lSignificant += lParts[0] + "."; // +|-000.
+				lSignificant += lParts[0] + (fillTo > 0 ? "." : ""); // +|-000.
                 significant.text = lSignificant;
 
                 // extract mantissa

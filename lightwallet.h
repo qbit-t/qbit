@@ -223,9 +223,9 @@ public:
 	void updateOuts(TransactionPtr /*tx*/);
 
 	//
-	void selectLog(uint64_t /*from*/, std::vector<Transaction::NetworkUnlinkedOutPtr>& /*items*/);
-	void selectIns(uint64_t /*from*/, std::vector<Transaction::NetworkUnlinkedOutPtr>& /*items*/);
-	void selectOuts(uint64_t /*from*/, std::vector<Transaction::NetworkUnlinkedOutPtr>& /*items*/);
+	void selectLog(const uint256& /*asset*/, uint64_t /*from*/, std::vector<Transaction::NetworkUnlinkedOutPtr>& /*items*/);
+	void selectIns(const uint256& /*asset*/, uint64_t /*from*/, std::vector<Transaction::NetworkUnlinkedOutPtr>& /*items*/);
+	void selectOuts(const uint256& /*asset*/, uint64_t /*from*/, std::vector<Transaction::NetworkUnlinkedOutPtr>& /*items*/);
 
 	//
 	bool isTimelockReached(const uint256& /*utxo*/);

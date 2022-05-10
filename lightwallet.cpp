@@ -879,13 +879,14 @@ TransactionContextPtr LightWallet::makeTxSpend(Transaction::Type type, const uin
 	if (!lSKey->valid() || !lSChangeKey->valid()) throw qbit::exception("E_KEY", "Secret key is invalid.");
 	Transaction::UnlinkedOutPtr lMainOut = lTx->addOut(*lSKey, dest, asset, amount);
 
-	// make change
-	if (asset != TxAssetType::qbitAsset() && lAmount > amount) {
-		lTx->addOut(*lSChangeKey, lSChangeKey->createPKey()/*change*/, asset, lAmount - amount);			
-	}
-
 	// change
 	Transaction::UnlinkedOutPtr lChangeUtxo = nullptr;
+	Transaction::UnlinkedOutPtr lChangeAssetUtxo = nullptr;
+
+	// make change
+	if (asset != TxAssetType::qbitAsset() && lAmount > amount) {
+		lChangeAssetUtxo = lTx->addOut(*lSChangeKey, lSChangeKey->createPKey()/*change*/, asset, lAmount - amount, true);			
+	}
 
 	// TODO: try to estimate fee
 	qunit_t lRate = feeRateLimit;
@@ -932,14 +933,24 @@ TransactionContextPtr LightWallet::makeTxSpend(Transaction::Type type, const uin
 	removeUnlinkedOut(lUtxos);
 	removeUnlinkedOut(lFeeUtxos);
 
-	if (lChangeUtxo) { 
+	if (lChangeUtxo) {
 		// cache new utxo
 		lCtx->addNewUnlinkedOut(lChangeUtxo);
 		cacheUnlinkedOut(lChangeUtxo);
 
 		if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[makeTxSpend]: ") + 
 			strprintf("PUSHED utxo = %s, amount = %d, tx = %s/%s#", 
-				lChangeUtxo->hash().toHex(), lChangeUtxo->amount(), lTx->id().toHex(), lChangeUtxo->out().chain().toHex().substr(0, 10)));		
+				lChangeUtxo->hash().toHex(), lChangeUtxo->amount(), lTx->id().toHex(), lChangeUtxo->out().chain().toHex().substr(0, 10)));
+	}
+
+	if (lChangeAssetUtxo) {
+		// cache new utxo
+		lCtx->addNewUnlinkedOut(lChangeAssetUtxo);
+		cacheUnlinkedOut(lChangeAssetUtxo);
+
+		if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[makeTxSpend]: ") + 
+			strprintf("PUSHED utxo = %s, amount = %d, tx = %s/%s#", 
+				lChangeAssetUtxo->hash().toHex(), lChangeAssetUtxo->amount(), lTx->id().toHex(), lChangeAssetUtxo->out().chain().toHex().substr(0, 10)));
 	}
 
 	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[makeTxSpend]: spend tx created: ") + 
@@ -1186,7 +1197,7 @@ void LightWallet::updateIn(Transaction::NetworkUnlinkedOutPtr out) {
 	inUpdated(out);
 }
 
-void LightWallet::selectLog(uint64_t from, std::vector<Transaction::NetworkUnlinkedOutPtr>& items) {
+void LightWallet::selectLog(const uint256& asset, uint64_t from, std::vector<Transaction::NetworkUnlinkedOutPtr>& items) {
 	//
 	db::DbContainer<
 		std::string /*timestamp*/,
@@ -1195,7 +1206,7 @@ void LightWallet::selectLog(uint64_t from, std::vector<Transaction::NetworkUnlin
 	if (!from) lFrom = index_.last();
 	else lFrom = index_.find(strprintf("%d", from));
 
-	uint256 lAsset = TxAssetType::qbitAsset(); // default
+	uint256 lAsset = asset;
 
 	for (; items.size() < 10 && lFrom.valid(); --lFrom) {
 		//
@@ -1217,7 +1228,7 @@ void LightWallet::selectLog(uint64_t from, std::vector<Transaction::NetworkUnlin
 	if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[selectLog]: items.size = %d", items.size()));
 }
 
-void LightWallet::selectIns(uint64_t from, std::vector<Transaction::NetworkUnlinkedOutPtr>& items) {
+void LightWallet::selectIns(const uint256& asset, uint64_t from, std::vector<Transaction::NetworkUnlinkedOutPtr>& items) {
 	//
 	db::DbTwoKeyContainer<
 		unsigned short /*direction*/,
@@ -1227,7 +1238,7 @@ void LightWallet::selectIns(uint64_t from, std::vector<Transaction::NetworkUnlin
 	if (!from) lFrom = value_.last();
 	else lFrom = value_.find(Transaction::NetworkUnlinkedOut::Direction::O_IN, strprintf("%d", from));
 
-	uint256 lAsset = TxAssetType::qbitAsset(); // default
+	uint256 lAsset = asset;
 
 	lFrom.setKey2Empty(); // off limits
 	for (; items.size() < 10 && lFrom.valid(); --lFrom) {
@@ -1250,7 +1261,7 @@ void LightWallet::selectIns(uint64_t from, std::vector<Transaction::NetworkUnlin
 	//if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[selectIns]: items.size = %d", items.size()));	
 }
 
-void LightWallet::selectOuts(uint64_t from, std::vector<Transaction::NetworkUnlinkedOutPtr>& items) {
+void LightWallet::selectOuts(const uint256& asset, uint64_t from, std::vector<Transaction::NetworkUnlinkedOutPtr>& items) {
 	//
 	db::DbTwoKeyContainer<
 		unsigned short /*direction*/,
@@ -1260,7 +1271,7 @@ void LightWallet::selectOuts(uint64_t from, std::vector<Transaction::NetworkUnli
 	if (!from) lFrom = value_.last();
 	else lFrom = value_.find(Transaction::NetworkUnlinkedOut::Direction::O_OUT, strprintf("%d", from));
 
-	uint256 lAsset = TxAssetType::qbitAsset(); // default
+	uint256 lAsset = asset;
 
 	lFrom.setKey2Empty(); // off limits
 	for (; items.size() < 10 && lFrom.valid(); --lFrom) {

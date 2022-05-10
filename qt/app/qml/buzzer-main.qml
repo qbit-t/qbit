@@ -302,7 +302,6 @@ QuarkPage
 			if (currentIndex == 4 /*wallet*/) {
 				headerBar.showBottomLine = false;
 				buzzerApp.lockPortraitOrientation();
-				walletQbit.init();
 			} else {
 				buzzerApp.unlockOrientation();
 			}
@@ -374,8 +373,8 @@ QuarkPage
 			controller: buzzermain_.controller
 			mediaPlayerController: globalMediaPlayerController
 		}
-		Wallet {
-			id: walletQbit
+		Wallets {
+			id: wallets
 			x: 0
 			y: headerBar.y + headerBar.height
 			width: buzzermain_.width

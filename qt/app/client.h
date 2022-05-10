@@ -256,9 +256,35 @@ public:
 	Q_INVOKABLE QVariant getBuzzfeedList() { return QVariant::fromValue(buzzfeedList_); }
 	Q_INVOKABLE QVariant getEventsfeedList() { return QVariant::fromValue(eventsfeedList_); }
 
-	Q_INVOKABLE QVariant getWalletLog() { return QVariant::fromValue(walletLog_); }
-	Q_INVOKABLE QVariant getWalletReceivedLog() { return QVariant::fromValue(walletReceivedLog_); }
-	Q_INVOKABLE QVariant getWalletSentLog() { return QVariant::fromValue(walletSentLog_); }
+	Q_INVOKABLE QVariant getWalletLog(QString asset) {
+		// qbit
+		if (asset == "*") return QVariant::fromValue(walletLog_);
+		// other
+		uint256 lAsset; lAsset.setHex(asset.toStdString());
+		std::map<uint256, _Wallet>::iterator lWalletLogs = wallets_.find(lAsset);
+		if (lWalletLogs != wallets_.end()) return QVariant::fromValue(lWalletLogs->second.log_);
+		return QVariant();
+	}
+
+	Q_INVOKABLE QVariant getWalletReceivedLog(QString asset) {
+		// qbit
+		if (asset == "*") return QVariant::fromValue(walletReceivedLog_);
+		// other
+		uint256 lAsset; lAsset.setHex(asset.toStdString());
+		std::map<uint256, _Wallet>::iterator lWalletLogs = wallets_.find(lAsset);
+		if (lWalletLogs != wallets_.end()) return QVariant::fromValue(lWalletLogs->second.receivedLog_);
+		return QVariant();
+	}
+
+	Q_INVOKABLE QVariant getWalletSentLog(QString asset) {
+		// qbit
+		if (asset == "*") return QVariant::fromValue(walletSentLog_);
+		// other
+		uint256 lAsset; lAsset.setHex(asset.toStdString());
+		std::map<uint256, _Wallet>::iterator lWalletLogs = wallets_.find(lAsset);
+		if (lWalletLogs != wallets_.end()) return QVariant::fromValue(lWalletLogs->second.sentLog_);
+		return QVariant();
+	}
 
 	Q_INVOKABLE QVariant getConversationsList() { return QVariant::fromValue(conversationsList_); }
 
@@ -679,6 +705,26 @@ private:
 	BuzzfeedListModelGlobal* globalBuzzfeedList_ = nullptr;
 	EventsfeedListModelPersonal* eventsfeedList_ = nullptr;
 	ConversationsListModel* conversationsList_ = nullptr;
+
+	struct _Wallet {
+		WalletTransactionsListModel* log_ = nullptr;
+		WalletTransactionsListModelReceived* receivedLog_ = nullptr;
+		WalletTransactionsListModelSent* sentLog_ = nullptr;
+
+		_Wallet() {}
+		_Wallet(WalletTransactionsListModel* walletLog, WalletTransactionsListModelReceived* walletReceivedLog, WalletTransactionsListModelSent* walletSentLog) {
+			log_ = walletLog;
+			receivedLog_ = walletReceivedLog;
+			sentLog_ = walletSentLog;
+		}
+		_Wallet(const uint256& asset, qbit::IWalletPtr wallet) {
+			log_ = new WalletTransactionsListModel(std::string("log-") + asset.toHex(), asset, wallet);
+			receivedLog_ = new WalletTransactionsListModelReceived(asset, wallet);
+			sentLog_ = new WalletTransactionsListModelSent(asset, wallet);
+		}
+	};
+
+	std::map<uint256 /*asset*/, _Wallet> wallets_;
 
 	WalletTransactionsListModel* walletLog_ = nullptr;
 	WalletTransactionsListModelReceived* walletReceivedLog_ = nullptr;

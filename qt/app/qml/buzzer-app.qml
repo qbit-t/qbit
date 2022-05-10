@@ -539,6 +539,11 @@ ApplicationWindow
 		width: 0.75 * window.width
 		height: window.height
 
+		onAboutToShow: {
+			myBuzzer.initialize();
+			drawerMenu.prepare();
+		}
+
 		BuzzerHeader {
 			id: myBuzzer
 			width: parent.width

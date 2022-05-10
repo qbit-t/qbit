@@ -179,6 +179,7 @@ QuarkPage {
 		clipboardButton: true
 		isNumber: true
 		height: 40
+		fillTo: scaleSend_
 
 		number: amount_
 	}

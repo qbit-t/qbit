@@ -18,6 +18,7 @@ BuzzEndorseMistrustItem 1.0 buzzendorseitem.qml
 QuarkCamera 1.0 camera.qml
 BuzzerItem 1.0 buzzitembuzzer.qml
 Eventsfeed 1.0 eventsfeed.qml
+Wallets 1.0 walletlist.qml
 Wallet 1.0 wallet.qml
 WalletBalance 1.0 walletbalance.qml
 WalletTransactions 1.0 wallettransactions.qml

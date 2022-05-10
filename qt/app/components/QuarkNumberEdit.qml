@@ -390,7 +390,7 @@ Item
     {
         if (minDelta.length) return minDelta;
 
-        var lNumber = "0.";
+		var lNumber = fillTo > 0 ? "0." : "";
         for (var lIdx = 0; lIdx < fillTo - 1; lIdx++)
         {
             lNumber += "0";
@@ -408,7 +408,7 @@ Item
         var lParts = num.split(".");
         if (!lParts[1] || !lParts[1].length || lParts[1] === "0") return 1.0;
 
-        var lSymDelta = "0.";
+		var lSymDelta = fillTo > 0 ? "0." : "";
         for (var lIdx = 0; lIdx < lParts[1].length-1; lIdx++)
         {
             lSymDelta += "0";

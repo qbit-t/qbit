@@ -157,7 +157,7 @@ public:
 	}
 
 	amount_t finalAmount() {
-		if (ctx_) return ctx_->fee() + ctx_->amount();
+		if (ctx_) return (asset_ == TxAssetType::qbitAsset() ? ctx_->fee() + ctx_->amount() : ctx_->amount());
 		return 0;
 	}
 
@@ -225,6 +225,7 @@ public:
 	}	
 
 protected:
+	uint256 asset_;
 	LightComposerPtr composer_;
 	bool manualProcessing_ = false;
 	doneSentWithErrorFunction done_;

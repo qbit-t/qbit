@@ -634,9 +634,9 @@ Item {
 
 	QuarkNumberLabel {
 		id: sharesNumber
-		number: 0.0000
+		number: 0
 		//font.pointSize: 30
-		fillTo: 4
+		fillTo: 1
 		mayCompact: true
 		x: aliasSymbol.x + aliasSymbol.width + spaceItems_
 		y: availableNumber.y + availableNumber.height + spaceItems_

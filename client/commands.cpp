@@ -105,8 +105,8 @@ void SendToAddressCommand::process(const std::vector<std::string>& args) {
 	// process
 	if (args.size() >= 3) {
 		// 0
-		uint256 lAsset = TxAssetType::qbitAsset();
-		if (args[0] != "*") lAsset.setHex(args[0]);
+		asset_ = TxAssetType::qbitAsset();
+		if (args[0] != "*") asset_.setHex(args[0]);
 
 		// 1
 		PKey lAddress;
@@ -127,10 +127,10 @@ void SendToAddressCommand::process(const std::vector<std::string>& args) {
 		// prepare
 		IComposerMethodPtr lSendToAddress;
 		if (lFeeRate == -1) 
-			lSendToAddress = LightComposer::SendToAddress::instance(composer_, lAsset, lAddress, lAmount,
+			lSendToAddress = LightComposer::SendToAddress::instance(composer_, asset_, lAddress, lAmount,
 				boost::bind(&SendToAddressCommand::created, shared_from_this(), boost::placeholders::_1));
 		else
-			lSendToAddress = LightComposer::SendToAddress::instance(composer_, lAsset, lAddress, lAmount, lFeeRate,
+			lSendToAddress = LightComposer::SendToAddress::instance(composer_, asset_, lAddress, lAmount, lFeeRate,
 				boost::bind(&SendToAddressCommand::created, shared_from_this(), boost::placeholders::_1));
 		// async process
 		lSendToAddress->process(boost::bind(&SendToAddressCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
@@ -144,8 +144,8 @@ void SendPrivateToAddressCommand::process(const std::vector<std::string>& args) 
 	// process
 	if (args.size() >= 3) {
 		// 0
-		uint256 lAsset = TxAssetType::qbitAsset();
-		if (args[0] != "*") lAsset.setHex(args[0]);
+		asset_ = TxAssetType::qbitAsset();
+		if (args[0] != "*") asset_.setHex(args[0]);
 
 		// 1
 		PKey lAddress;
@@ -166,10 +166,10 @@ void SendPrivateToAddressCommand::process(const std::vector<std::string>& args) 
 		// prepare
 		IComposerMethodPtr lSendToAddress;
 		if (lFeeRate == -1) 
-			lSendToAddress = LightComposer::SendPrivateToAddress::instance(composer_, lAsset, lAddress, lAmount,
+			lSendToAddress = LightComposer::SendPrivateToAddress::instance(composer_, asset_, lAddress, lAmount,
 				boost::bind(&SendToAddressCommand::created, shared_from_this(), boost::placeholders::_1));
 		else
-			lSendToAddress = LightComposer::SendPrivateToAddress::instance(composer_, lAsset, lAddress, lAmount, lFeeRate,
+			lSendToAddress = LightComposer::SendPrivateToAddress::instance(composer_, asset_, lAddress, lAmount, lFeeRate,
 				boost::bind(&SendToAddressCommand::created, shared_from_this(), boost::placeholders::_1));
 		// async process
 		lSendToAddress->process(boost::bind(&SendToAddressCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));

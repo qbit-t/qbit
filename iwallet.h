@@ -151,9 +151,9 @@ public:
 	// wallet local selects
 	virtual void updateOut(Transaction::NetworkUnlinkedOutPtr /*out*/, const uint256& /*parent*/, unsigned short /*type*/) { throw qbit::exception("NOT_IMPL", "IWallet::updateOut - Not implemented."); }
 	virtual void updateOuts(TransactionPtr /*tx*/) { throw qbit::exception("NOT_IMPL", "IWallet::updateOuts - Not implemented."); }
-	virtual void selectLog(uint64_t /*from*/, std::vector<Transaction::NetworkUnlinkedOutPtr>& /*items*/) { throw qbit::exception("NOT_IMPL", "IWallet::selectLog - Not implemented."); }
-	virtual void selectIns(uint64_t /*from*/, std::vector<Transaction::NetworkUnlinkedOutPtr>& /*items*/) { throw qbit::exception("NOT_IMPL", "IWallet::selectIns - Not implemented."); }
-	virtual void selectOuts(uint64_t /*from*/, std::vector<Transaction::NetworkUnlinkedOutPtr>& /*items*/) { throw qbit::exception("NOT_IMPL", "IWallet::selectOuts - Not implemented."); }
+	virtual void selectLog(const uint256& /*asset*/, uint64_t /*from*/, std::vector<Transaction::NetworkUnlinkedOutPtr>& /*items*/) { throw qbit::exception("NOT_IMPL", "IWallet::selectLog - Not implemented."); }
+	virtual void selectIns(const uint256& /*asset*/, uint64_t /*from*/, std::vector<Transaction::NetworkUnlinkedOutPtr>& /*items*/) { throw qbit::exception("NOT_IMPL", "IWallet::selectIns - Not implemented."); }
+	virtual void selectOuts(const uint256& /*asset*/, uint64_t /*from*/, std::vector<Transaction::NetworkUnlinkedOutPtr>& /*items*/) { throw qbit::exception("NOT_IMPL", "IWallet::selectOuts - Not implemented."); }
 
 	//
 	virtual TransactionContextPtr aggregateCoinbaseTxs() { throw qbit::exception("NOT_IMPL", "IWallet::aggregateCoinbaseTxs - Not implemented."); }

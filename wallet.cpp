@@ -1074,7 +1074,7 @@ TransactionContextPtr Wallet::makeTxSpend(Transaction::Type type, const uint256&
 
 	// make change
 	if (asset != TxAssetType::qbitAsset() && lAmount > amount) {
-		lTx->addOut(*lSChangeKey, lSChangeKey->createPKey()/*change*/, asset, lAmount - amount);			
+		lTx->addOut(*lSChangeKey, lSChangeKey->createPKey()/*change*/, asset, lAmount - amount, true);			
 	}
 
 	// try to estimate fee

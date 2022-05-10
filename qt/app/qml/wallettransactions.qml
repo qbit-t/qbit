@@ -493,8 +493,8 @@ Item
 
 				QuarkNumberLabel {
 					id: amountLabel
-					number: amount / buzzerClient.getQbitBase()
-					fillTo: 8
+					number: asset_ == "*" ? (amount / buzzerClient.getQbitBase()) : (amount / scaleNumber_)
+					fillTo: scale_
 					useSign: false
 					units: ""
 					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 4)) :

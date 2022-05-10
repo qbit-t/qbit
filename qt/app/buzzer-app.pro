@@ -189,7 +189,8 @@ DISTFILES += \
     qml/peeritem.qml \
     qml/peers.qml \
     qml/peerslist.qml \
-    qml/peersmanuallist.qml
+    qml/peersmanuallist.qml \
+    qml/walletlist.qml
 
 HEADERS += \
     asiodispatcher.h \
