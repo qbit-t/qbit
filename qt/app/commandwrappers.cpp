@@ -464,6 +464,12 @@ BuzzerEndorseCommand::BuzzerEndorseCommand(QObject* /*parent*/) : QObject() {
 			lClient->getBuzzerComposer(),
 			boost::bind(&BuzzerEndorseCommand::done, this, boost::placeholders::_1))
 	);
+
+	balance_ = std::static_pointer_cast<qbit::BalanceCommand>(
+		qbit::BalanceCommand::instance(
+			lClient->getComposer(),
+			boost::bind(&BuzzerEndorseCommand::balanceDone, this, boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3, boost::placeholders::_4))
+	);
 }
 
 BuzzerMistrustCommand::BuzzerMistrustCommand(QObject* /*parent*/) : QObject() {
@@ -474,6 +480,12 @@ BuzzerMistrustCommand::BuzzerMistrustCommand(QObject* /*parent*/) : QObject() {
 		qbit::BuzzerMistrustCommand::instance(
 			lClient->getBuzzerComposer(),
 			boost::bind(&BuzzerMistrustCommand::done, this, boost::placeholders::_1))
+	);
+
+	balance_ = std::static_pointer_cast<qbit::BalanceCommand>(
+		qbit::BalanceCommand::instance(
+			lClient->getComposer(),
+			boost::bind(&BuzzerMistrustCommand::balanceDone, this, boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3, boost::placeholders::_4))
 	);
 }
 

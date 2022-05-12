@@ -118,6 +118,9 @@ public:
 	// create fee with locked out tx
 	virtual TransactionContextPtr createTxFeeLockedChange(const PKey& /*dest*/, amount_t /*amount*/, amount_t /*locked*/, uint64_t /*height*/) { throw qbit::exception("NOT_IMPL", "IWallet::createTxFeeLockedChange - Not implemented."); }
 
+	// create fee with asset locked out tx
+	virtual TransactionContextPtr createTxFeeAssetLockedChange(const PKey& /*dest*/, amount_t /*fee*/, const uint256& /*asset*/, amount_t /*locked*/, uint64_t /*height*/) { throw qbit::exception("NOT_IMPL", "IWallet::createTxFeeAssetLockedChange - Not implemented."); }
+
 	// wallet balance
 	virtual amount_t balance() { return 0; } // qbit balance
 	virtual amount_t balance(const uint256& asset) { return 0; }

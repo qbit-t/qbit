@@ -159,7 +159,8 @@ public:
 						(
 							(*lIt >= 'a' && *lIt <= 'z') || 
 							(*lIt >= 'A' && *lIt <= 'Z') ||
-							(*lIt >= '0' && *lIt <= '9')
+							(*lIt >= '0' && *lIt <= '9') ||
+							(*lIt == 0x04 && (lIt+1) != body_.end() && *(lIt+1) >= 0x00 && *(lIt+1) <= 0xFF) // fast-russian
 						));
 
 			tags[Hash160(lTag.begin(), lTag.end())] = lStringTag;
@@ -190,6 +191,34 @@ public:
 	Transaction::UnlinkedOutPtr addBuzzPinOut(const SKey& skey, const PKey& pkey) {
 		//
 		// TODO: implement buzz_pin transaction
+		/*
+		Transaction::Out lOut;
+		lOut.setAsset(TxAssetType::nullAsset());
+		lOut.setDestination(ByteCode() <<
+			OP(QMOV) 		<< REG(QD0) << CVAR(const_cast<PKey&>(pkey).get()) << 
+			OP(QEQADDR) 	<<
+			OP(QPEN) 		<<
+			OP(QPTXO)		<< // use in entity-based pushUnlinkedOut's
+			OP(QMOV)		<< REG(QR1) << CU16(TX_BUZZ_PIN) <<
+			OP(QCMPE)		<< REG(QTH1) << REG(QR1) <<
+			OP(QMOV) 		<< REG(QR0) << REG(QC0) <<	
+			OP(QRET));
+
+		Transaction::UnlinkedOutPtr lUTXO = Transaction::UnlinkedOut::instance(
+			Transaction::Link(chain(), TxAssetType::nullAsset(), out_.size()), // link
+			pkey
+		);
+
+		out_.push_back(lOut);
+		return lUTXO;
+		*/
+
+		return nullptr;
+	}
+
+	Transaction::UnlinkedOutPtr addBuzzHideOut(const SKey& skey, const PKey& pkey) {
+		//
+		// TODO: implement hide_buzz transaction
 		/*
 		Transaction::Out lOut;
 		lOut.setAsset(TxAssetType::nullAsset());

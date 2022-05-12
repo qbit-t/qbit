@@ -193,6 +193,48 @@ bool BuzzerTransactionStoreExtension::isAllowed(TransactionContextPtr ctx) {
 					return false;
 			}
 
+		} else if (ctx->tx()->type() == TX_BUZZ_REPLY) {
+			// get publisher
+			uint256 lReplyPublisher = lEvent->in()[TX_BUZZ_REPLY_MY_IN].out().tx();
+			//  process sub-tree
+			uint256 lReTxId = lEvent->in()[TX_BUZZ_REPLY_BUZZ_IN].out().tx();
+			uint256 lReChainId = lEvent->in()[TX_BUZZ_REPLY_BUZZ_IN].out().chain();
+			// NOTICE: depth is only for performance reasons
+			int lCount = 0;
+			while (lCount++ < 100) {
+				//
+				ITransactionStorePtr lLocalStore = store_->storeManager()->locate(lReChainId);
+				if (!lLocalStore) break;
+
+				TransactionPtr lReTx = lLocalStore->locateTransaction(lReTxId);
+				if (lReTx && (lReTx->type() == TX_BUZZ_REPLY || lReTx->type() == TX_REBUZZ ||
+																	lReTx->type() == TX_BUZZ)) {
+					// check mistrusts
+					uint256 lOriginalPublisher = lReTx->in()[TX_BUZZ_REPLY_MY_IN /*for the ALL types above*/].out().tx();
+					//
+					db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*endoser*/, uint256 /*tx*/>::Iterator 
+																	lMistrust = mistrusts_.find(lOriginalPublisher, lReplyPublisher);
+					if (lMistrust.valid()) {
+						// re-ceck if we have compensation
+						db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*endoser*/, uint256 /*tx*/>::Iterator 
+																		lEndorsement = endorsements_.find(lOriginalPublisher, lReplyPublisher);
+						if (!lEndorsement.valid())
+							return false; // mistrusted and not able to make replies
+					}
+
+					//
+					if (lReTx->type() == TX_BUZZ || lReTx->type() == TX_REBUZZ) {
+						// we reach top
+						break;
+					}
+
+					if (lReTx->in().size() > TX_BUZZ_REPLY_BUZZ_IN) { // move up-next
+						lReTxId = lReTx->in()[TX_BUZZ_REPLY_BUZZ_IN].out().tx();
+						lReChainId = lReTx->in()[TX_BUZZ_REPLY_BUZZ_IN].out().chain();
+					}
+				} else break;
+			}
+
 		} else if (ctx->tx()->type() == TX_BUZZ_REBUZZ_NOTIFY) {
 			//
 			TxReBuzzNotifyPtr lRebuzzNotify = TransactionHelper::to<TxReBuzzNotify>(ctx->tx());
@@ -218,27 +260,34 @@ bool BuzzerTransactionStoreExtension::isAllowed(TransactionContextPtr ctx) {
 
 			ITransactionStorePtr lMainStore = store_->storeManager()->locate(MainChain::id());
 			if (lMainStore && lEvent->in().size() > TX_BUZZER_ENDORSE_FEE_IN) {
+				// try commited
 				TransactionPtr lFeeTx = lMainStore->locateTransaction(lEvent->in()[TX_BUZZER_ENDORSE_FEE_IN].out().tx());
+				// try mempool
+				if (lFeeTx == nullptr) lFeeTx = lMainStore->locateMempoolTransaction(lEvent->in()[TX_BUZZER_ENDORSE_FEE_IN].out().tx());
+				// main and primary case
 				if (lFeeTx) {
 					TxFeePtr lFee = TransactionHelper::to<TxFee>(lFeeTx);
 
 					amount_t lAmount;
 					uint64_t lHeight;
-					if (TxBuzzerEndorse::extractLockedAmountAndHeight(lFee, lAmount, lHeight) && lAmount != BUZZER_MIN_EM_STEP) {
+					uint256 lAsset;
+					if (TxBuzzerEndorse::extractLockedAmountHeightAndAsset(lFee, lAmount, lHeight, lAsset) &&
+							!(lAmount == settings_->oneVoteProofAmount() && lAsset == settings_->proofAsset())) {
 						// if amount is not fixed - for NOW
 						// maybe later we'll implement schedule
 						return false;
 					}
-				} else {
+				} else { // anyway we SHOULD try to check
 					//
 					TxBuzzerEndorsePtr lEndorse = TransactionHelper::to<TxBuzzerEndorse>(lEvent);
-					if (lEndorse->amount() != BUZZER_MIN_EM_STEP) {
+					if (!(lEndorse->amount() == BUZZER_MIN_EM_STEP && 
+							settings_->proofAsset() == lEvent->in()[TX_BUZZER_ENDORSE_FEE_IN].out().asset())) {
 						// if amount is not fixed - for NOW
 						// maybe later we'll implement schedule
 						return false;
 					}
 				}
-			}
+			} else return false;
 
 		} else if (ctx->tx()->type() == TX_BUZZER_MISTRUST) {
 			//
@@ -248,21 +297,27 @@ bool BuzzerTransactionStoreExtension::isAllowed(TransactionContextPtr ctx) {
 			uint256 lMistruster = lEvent->in()[TX_BUZZER_MISTRUST_BUZZER_IN].out().tx(); 
 			//
 			db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*endoser*/, uint256 /*tx*/>::Iterator 
-															lMitrust = mistrusts_.find(lBuzzer, lMistruster);
-			if (lMitrust.valid()) {
+															lMistrust = mistrusts_.find(lBuzzer, lMistruster);
+			if (lMistrust.valid()) {
 				//
-				return false; // already endorsed
+				return false; // already mistrusted
 			}
 
 			ITransactionStorePtr lMainStore = store_->storeManager()->locate(MainChain::id());
 			if (lMainStore && lEvent->in().size() > TX_BUZZER_MISTRUST_FEE_IN) {
+				// try commited
 				TransactionPtr lFeeTx = lMainStore->locateTransaction(lEvent->in()[TX_BUZZER_MISTRUST_FEE_IN].out().tx());
+				// try mempool
+				if (lFeeTx == nullptr) lFeeTx = lMainStore->locateMempoolTransaction(lEvent->in()[TX_BUZZER_MISTRUST_FEE_IN].out().tx());
+				// main and primary case
 				if (lFeeTx) {
 					TxFeePtr lFee = TransactionHelper::to<TxFee>(lFeeTx);
 
 					amount_t lAmount;
 					uint64_t lHeight;
-					if (TxBuzzerMistrust::extractLockedAmountAndHeight(lFee, lAmount, lHeight) && lAmount != BUZZER_MIN_EM_STEP) {
+					uint256 lAsset;
+					if (TxBuzzerMistrust::extractLockedAmountHeightAndAsset(lFee, lAmount, lHeight, lAsset) &&
+							!(lAmount == settings_->oneVoteProofAmount() && lAsset == settings_->proofAsset())) {
 						// if amount is not fixed - for NOW
 						// maybe later we'll implement schedule
 						return false;
@@ -270,13 +325,15 @@ bool BuzzerTransactionStoreExtension::isAllowed(TransactionContextPtr ctx) {
 				} else {
 					//
 					TxBuzzerMistrustPtr lMistrust = TransactionHelper::to<TxBuzzerMistrust>(lEvent);
-					if (lMistrust->amount() != BUZZER_MIN_EM_STEP) {
+					if (!(lMistrust->amount() == BUZZER_MIN_EM_STEP && 
+							settings_->proofAsset() == lMistrust->in()[TX_BUZZER_MISTRUST_FEE_IN].out().asset())) {
 						// if amount is not fixed - for NOW
 						// maybe later we'll implement schedule
 						return false;
 					}
 				}
-			}
+			} else return false;
+
 		} else if (ctx->tx()->type() == TX_BUZZ_LIKE) {
 
 			TxBuzzLikePtr lBuzzLike = TransactionHelper::to<TxBuzzLike>(ctx->tx());
@@ -937,23 +994,32 @@ void BuzzerTransactionStoreExtension::processEndorse(const uint256& id, Transact
 
 			ITransactionStorePtr lStore = store_->storeManager()->locate(MainChain::id());
 			if (lStore && lEvent->in().size() > TX_BUZZER_ENDORSE_FEE_IN) {
+				// try commited
 				TransactionPtr lFeeTx = lStore->locateTransaction(lEvent->in()[TX_BUZZER_ENDORSE_FEE_IN].out().tx());
+				// try mempool
+				if (lFeeTx == nullptr) lFeeTx = lStore->locateMempoolTransaction(lEvent->in()[TX_BUZZER_ENDORSE_FEE_IN].out().tx());
+				// main and primary case
 				if (lFeeTx) {
 					TxFeePtr lFee = TransactionHelper::to<TxFee>(lFeeTx);
 
 					amount_t lAmount;
 					uint64_t lHeight;
-					if (TxBuzzerEndorse::extractLockedAmountAndHeight(lFee, lAmount, lHeight)) {
+					uint256 lAsset;
+					if (TxBuzzerEndorse::extractLockedAmountHeightAndAsset(lFee, lAmount, lHeight, lAsset) &&
+							(lAmount == settings_->oneVoteProofAmount() && lAsset == settings_->proofAsset())) {
 						//
-						incrementEndorsements(lBuzzer, lAmount);
+						incrementEndorsements(lBuzzer, BUZZER_MIN_EM_STEP); // increment ONLY on specified step
 					}
 				} else {
 					//
+					// NOTICE: it can be pitfall on the road and maybe we do not allow to pass it in the following way
+					//
 					if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity/warning]: fee tx for endorsement was NOT FOUND ") +
-						strprintf("%s/%s#", lEvent->in()[TX_BUZZER_MISTRUST_FEE_IN].out().tx().toHex(), MainChain::id().toHex().substr(0, 10)));
+						strprintf("%s/%s#", lEvent->in()[TX_BUZZER_ENDORSE_FEE_IN].out().tx().toHex(), MainChain::id().toHex().substr(0, 10)));
 					//
 					TxBuzzerEndorsePtr lEndorse = TransactionHelper::to<TxBuzzerEndorse>(lEvent);
-					incrementEndorsements(lBuzzer, lEndorse->amount());
+					// WARNING: commenting out for now
+					// incrementEndorsements(lBuzzer, BUZZER_MIN_EM_STEP); // increment ONLY on specified step
 				}
 			}
 		}
@@ -994,23 +1060,32 @@ void BuzzerTransactionStoreExtension::processMistrust(const uint256& id, Transac
 
 			ITransactionStorePtr lStore = store_->storeManager()->locate(MainChain::id());
 			if (lStore && lEvent->in().size() > TX_BUZZER_MISTRUST_FEE_IN) {
+				// try commited
 				TransactionPtr lFeeTx = lStore->locateTransaction(lEvent->in()[TX_BUZZER_MISTRUST_FEE_IN].out().tx());
+				// try mempool
+				if (lFeeTx == nullptr) lFeeTx = lStore->locateMempoolTransaction(lEvent->in()[TX_BUZZER_MISTRUST_FEE_IN].out().tx());
+				// main and primary case
 				if (lFeeTx) {
 					TxFeePtr lFee = TransactionHelper::to<TxFee>(lFeeTx);
 
 					amount_t lAmount;
 					uint64_t lHeight;
-					if (TxBuzzerMistrust::extractLockedAmountAndHeight(lFee, lAmount, lHeight)) {
+					uint256 lAsset;
+					if (TxBuzzerMistrust::extractLockedAmountHeightAndAsset(lFee, lAmount, lHeight, lAsset) &&
+							(lAmount == settings_->oneVoteProofAmount() && lAsset == settings_->proofAsset())) {
 						//
-						incrementMistrusts(lBuzzer, lAmount);
+						incrementMistrusts(lBuzzer, BUZZER_MIN_EM_STEP);
 					}
 				} else {
+					//
+					// NOTICE: it can be pitfall on the road and maybe we do not allow to pass it in the following way
 					//
 					if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity/warning]: fee tx for mistrustment was NOT FOUND ") +
 						strprintf("%s/%s#", lEvent->in()[TX_BUZZER_MISTRUST_FEE_IN].out().tx().toHex(), MainChain::id().toHex().substr(0, 10)));
 					//
 					TxBuzzerMistrustPtr lMistrust = TransactionHelper::to<TxBuzzerMistrust>(lEvent);
-					incrementMistrusts(lBuzzer, lMistrust->amount());
+					// WARNING: commenting out for now
+					// incrementMistrusts(lBuzzer, BUZZER_MIN_EM_STEP); // increment ONLY on specified step
 				}
 			}
 		}
@@ -1596,14 +1671,17 @@ void BuzzerTransactionStoreExtension::removeTransaction(TransactionPtr tx) {
 			ITransactionStorePtr lStore = store_->storeManager()->locate(MainChain::id());
 			if (lStore && lEvent->in().size() > TX_BUZZER_ENDORSE_FEE_IN) {
 				TransactionPtr lFeeTx = lStore->locateTransaction(lEvent->in()[TX_BUZZER_ENDORSE_FEE_IN].out().tx());
+				if (lFeeTx == nullptr) lFeeTx = lStore->locateMempoolTransaction(lEvent->in()[TX_BUZZER_ENDORSE_FEE_IN].out().tx());
 				if (lFeeTx) {
 					TxFeePtr lFee = TransactionHelper::to<TxFee>(lFeeTx);
 
 					amount_t lAmount;
 					uint64_t lHeight;
-					if (TxBuzzerEndorse::extractLockedAmountAndHeight(lFee, lAmount, lHeight)) {
+					uint256 lAsset;
+					if (TxBuzzerEndorse::extractLockedAmountHeightAndAsset(lFee, lAmount, lHeight, lAsset) &&
+							(lAmount == settings_->oneVoteProofAmount() && lAsset == settings_->proofAsset())) {
 						//
-						decrementEndorsements(lBuzzer, lAmount);
+						decrementEndorsements(lBuzzer, BUZZER_MIN_EM_STEP);
 						if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: removed endorsement ") +
 							strprintf("%s/%s#", tx->id().toHex(), store_->chain().toHex().substr(0, 10)));
 					}
@@ -1633,14 +1711,17 @@ void BuzzerTransactionStoreExtension::removeTransaction(TransactionPtr tx) {
 			ITransactionStorePtr lStore = store_->storeManager()->locate(MainChain::id());
 			if (lStore && lEvent->in().size() > TX_BUZZER_MISTRUST_FEE_IN) {
 				TransactionPtr lFeeTx = lStore->locateTransaction(lEvent->in()[TX_BUZZER_MISTRUST_FEE_IN].out().tx());
+				if (lFeeTx == nullptr) lFeeTx = lStore->locateMempoolTransaction(lEvent->in()[TX_BUZZER_MISTRUST_FEE_IN].out().tx());
 				if (lFeeTx) {
 					TxFeePtr lFee = TransactionHelper::to<TxFee>(lFeeTx);
 
 					amount_t lAmount;
 					uint64_t lHeight;
-					if (TxBuzzerMistrust::extractLockedAmountAndHeight(lFee, lAmount, lHeight)) {
+					uint256 lAsset;
+					if (TxBuzzerMistrust::extractLockedAmountHeightAndAsset(lFee, lAmount, lHeight, lAsset) &&
+							(lAmount == settings_->oneVoteProofAmount() && lAsset == settings_->proofAsset())) {
 						//
-						decrementMistrusts(lBuzzer, lAmount);
+						decrementMistrusts(lBuzzer, BUZZER_MIN_EM_STEP);
 						if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: removed mistrust ") +
 							strprintf("%s/%s#", tx->id().toHex(), store_->chain().toHex().substr(0, 10)));
 					}
@@ -3702,6 +3783,17 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedGlobal(uint64_t timeframeFro
 				BuzzerInfo lPublisherInfo;
 				lPublisherExtension->readBuzzerStat(lTxPublisher, lPublisherInfo);
 				if (!lPublisherInfo.trusted()) continue;
+			}
+
+			// check for personal trust
+			db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*endoser*/, uint256 /*tx*/>::Iterator 
+															lMistrust = mistrusts_.find(subscriber, lTxPublisher);
+			if (lMistrust.valid()) {
+				// re-ceck if we have compensation
+				db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*endoser*/, uint256 /*tx*/>::Iterator 
+																lEndorsement = endorsements_.find(subscriber, lTxPublisher);
+				if (!lEndorsement.valid())
+					continue; // in case if we have mistrusted and NOT endirsed the publisher
 			}
 
 			//

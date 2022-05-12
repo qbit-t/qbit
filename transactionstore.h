@@ -394,6 +394,7 @@ public:
 	}
 
 	ITransactionStoreManagerPtr storeManager() { return storeManager_; }
+	ISettingsPtr settings() { return settings_; }
 
 	uint256 chain() { return chain_; }
 

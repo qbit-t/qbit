@@ -2788,14 +2788,25 @@ void BuzzerLightComposer::CreateTxBuzzerMistrust::utxoByBuzzerLoaded(const std::
 
 	// prepare fee tx
 	amount_t lFeeAmount = ctx_->size();
-	amount_t lLockedAmount = points_ /*endorsement points in BITS ot UNITS*/;
+	// NOTICE: endorsement/mistrust one step points in UNITS
+	// generally it is should not be more or less than BUZZER_MIN_EM_STEP in other words EXACT the BUZZER_MIN_EM_STEP
+	// checking rules will not pass the other values
+	amount_t lLockedAmount = points_;
+	//
 	TransactionContextPtr lFee;
 
 	try {
-		uint64_t lHeight = composer_->requestProcessor()->locateHeight(MainChain::id()); // qbits - lives in main chain
+		uint64_t lHeight = composer_->requestProcessor()->locateHeight(MainChain::id()); // ALL assets lives in main chain
 		lHeight += TxBuzzerMistrust::calcLockHeight(composer_->settings()->mainChainBlockTime());
 
-		lFee = composer_->wallet()->createTxFeeLockedChange(lPKey, lFeeAmount, lLockedAmount, lHeight + 5 /*delta*/);
+		lFee = composer_->wallet()->createTxFeeAssetLockedChange(
+			lPKey,
+			lFeeAmount,
+			composer_->settings()->proofAsset(),
+			composer_->settings()->oneVoteProofAmount(), /*single voting step*/
+			lHeight + 5 /*delta*/
+		);
+
 		if (!lFee) { error_("E_TX_CREATE", "Transaction creation error."); return; }
 	}
 	catch(qbit::exception& ex) {
@@ -2805,10 +2816,10 @@ void BuzzerLightComposer::CreateTxBuzzerMistrust::utxoByBuzzerLoaded(const std::
 		error_("E_TX_CREATE", ex.what()); return;
 	}
 
-	std::list<Transaction::UnlinkedOutPtr> lFeeUtxos = lFee->tx()->utxos(TxAssetType::qbitAsset()); // we need only qbits
+	std::list<Transaction::UnlinkedOutPtr> lFeeUtxos = lFee->tx()->utxos(composer_->settings()->proofAsset()); // we need only proof asset
 	if (lFeeUtxos.size()) {
 		// utxo[0]
-		buzzerMistrustTx_->addIn(*lSKey, *(lFeeUtxos.begin())); // qbit fee that was exact for fee - in
+		buzzerMistrustTx_->addIn(*lSKey, *(lFeeUtxos.begin())); // proof asset that was exact we need
 		buzzerMistrustTx_->addFeeOut(*lSKey, TxAssetType::qbitAsset(), lFeeAmount); // to the miner
 
 		// just for info

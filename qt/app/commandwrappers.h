@@ -870,11 +870,11 @@ public:
 
 	Q_INVOKABLE void process(QString buzzer) {
 		//
-		allowRetry_ = false;
-		retryCount_ = 0;
+		buzzer_ = buzzer;
+
 		//
 		std::vector<std::string> lArgs;
-		lArgs.push_back(buzzer.toStdString());
+		lArgs.push_back(gApplication->getQttAsset());
 		command_->process(lArgs);
 	}
 
@@ -908,6 +908,25 @@ public:
 		}
 	}
 
+	void balanceDone(double amount, double /*pending*/, uint64_t /*scale*/, const qbit::ProcessingError& result) {
+		if (result.success()) {
+			//
+			if ((int)amount >= gApplication->getQttAssetVoteAmount()) {
+				//
+				allowRetry_ = false;
+				retryCount_ = 0;
+				//
+				std::vector<std::string> lArgs;
+				lArgs.push_back(buzzer_.toStdString());
+				command_->process(lArgs);
+			} else {
+				emit error("E_INSUFFICIENT_QTT_BALANCE", "Insufficient QTT balance.");
+			}
+		} else {
+			emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
+		}
+	}
+
 signals:
 	void processed();
 	void error(QString code, QString message);
@@ -916,6 +935,8 @@ signals:
 
 private:
 	qbit::BuzzerEndorseCommandPtr command_;
+	qbit::BalanceCommandPtr balance_;
+	QString buzzer_;
 	bool allowRetry_ = false;
 	int retryCount_ = 0;
 };
@@ -931,11 +952,11 @@ public:
 
 	Q_INVOKABLE void process(QString buzzer) {
 		//
-		allowRetry_ = false;
-		retryCount_ = 0;
+		buzzer_ = buzzer;
+
 		//
 		std::vector<std::string> lArgs;
-		lArgs.push_back(buzzer.toStdString());
+		lArgs.push_back(gApplication->getQttAsset());
 		command_->process(lArgs);
 	}
 
@@ -969,6 +990,25 @@ public:
 		}
 	}
 
+	void balanceDone(double amount, double /*pending*/, uint64_t /*scale*/, const qbit::ProcessingError& result) {
+		if (result.success()) {
+			//
+			if ((int)amount >= gApplication->getQttAssetVoteAmount()) {
+				//
+				allowRetry_ = false;
+				retryCount_ = 0;
+				//
+				std::vector<std::string> lArgs;
+				lArgs.push_back(buzzer_.toStdString());
+				command_->process(lArgs);
+			} else {
+				emit error("E_INSUFFICIENT_QTT_BALANCE", "Insufficient QTT balance.");
+			}
+		} else {
+			emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
+		}
+	}
+
 signals:
 	void processed();
 	void error(QString code, QString message);
@@ -977,6 +1017,8 @@ signals:
 
 private:
 	qbit::BuzzerMistrustCommandPtr command_;
+	qbit::BalanceCommandPtr balance_;
+	QString buzzer_;
 	bool allowRetry_ = false;
 	int retryCount_ = 0;
 };

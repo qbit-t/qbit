@@ -87,7 +87,7 @@ TransactionAction::Result TxSpendVerify::execute(TransactionContextPtr wrapper, 
 
 		BlockHeader lCurrentBlock;
 		uint64_t lCurrentHeight = store->currentHeight(lCurrentBlock);
-		if (store->synchronizing() && lCurrentHeight < 1991288) lCurrentHeight = ULONG_MAX; // special case from height
+		if (store->synchronizing() /*&& lCurrentHeight < 1991288*/) lCurrentHeight = ULONG_MAX; // special case from height
 
 		for(std::vector<Transaction::In>::iterator lInPtr = lIns.begin(); lInPtr != lIns.end(); lInPtr++, lIdx++) {
 			//
@@ -311,6 +311,34 @@ TransactionAction::Result TxSpendOutVerify::execute(TransactionContextPtr wrappe
 			if (lVM.getR(qasm::QD0).to<unsigned short>() == PKey::miner()) {
 				wrapper->addFee(lVM.getR(qasm::QA0).to<uint64_t>());
 			}
+
+			// strict time-locked txs
+			if (lOut.asset() == store->settings()->proofAsset() && store->settings()->proofAssetLockTime() > 0) {
+				//
+				if (lVM.getR(qasm::QR1).getType() != qasm::QNONE) {
+					//
+					uint64_t lHeight = lVM.getR(qasm::QR1).to<uint64_t>();
+					//
+					if (!(lHeight > lCurrentHeight && 
+							lHeight - lCurrentHeight >= store->settings()->proofAssetLockTime())) {
+						//
+						std::string lError = _getVMStateText(VirtualMachine::INVALID_RESULT) + strprintf(" | locked height must be at least H+%d", store->settings()->proofAssetLockTime());
+						wrapper->tx()->setStatus(Transaction::DECLINED);
+						wrapper->addError(lError);
+						gLog().write(Log::GENERAL_ERROR, std::string("[TxSpendOutVerify]: ") + 
+							strprintf("current = %d, embedded = %d", lCurrentHeight, lHeight));
+						gLog().write(Log::GENERAL_ERROR, std::string("[TxSpendOutVerify]: ") + lError);
+						return TransactionAction::GENERAL_ERROR;
+					}
+
+				} else {
+					std::string lError = "Time-lock height is absent";
+					gLog().write(Log::GENERAL_ERROR, std::string("[TxSpendOutVerify]: ") + lError);
+					wrapper->tx()->setStatus(Transaction::DECLINED);
+					wrapper->addError(lError);
+					return TransactionAction::GENERAL_ERROR;
+				}
+			}			
 		}
 
 		if (!wrapper->tx()->isFeeFee() && wrapper->fee() == 0) {

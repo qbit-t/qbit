@@ -281,6 +281,10 @@ public:
 		return QString::fromStdString(getQttAsset());
 	}
 
+	Q_INVOKABLE double qttAssetVoteAmount() {
+		return getQttAssetVoteAmount();
+	}
+
     Q_INVOKABLE QString getLanguages();
     Q_INVOKABLE QString getColorSchemes();
 
@@ -337,6 +341,7 @@ public:
 	bool getTestNet();
 	std::string getPeers();
 	std::string getQttAsset();
+	int getQttAssetVoteAmount();
 
     void emit_fingertipAuthSuccessed(QString);
     void emit_fingertipAuthFailed();

@@ -158,11 +158,28 @@ public:
 
 	static inline bool extractLockedAmountAndHeight(TxFeePtr fee, amount_t& amount, uint64_t& height) {
 		//
-		Transaction::Out& lOut = fee->out()[TX_BUZZER_ENDORSE_FEE_LOCKED_OUT];
+		Transaction::Out& lOut = fee->out()[TX_BUZZER_MISTRUST_FEE_LOCKED_OUT];
 		VirtualMachine lVM(lOut.destination());
 		lVM.execute();
 
 		if (lVM.getR(qasm::QA0).getType() != qasm::QNONE && lVM.getR(qasm::QR1).getType() != qasm::QNONE) {
+			amount = lVM.getR(qasm::QA0).to<amount_t>();
+			height = lVM.getR(qasm::QR1).to<uint64_t>();
+
+			return true;
+		}
+
+		return false;
+	}
+
+	static inline bool extractLockedAmountHeightAndAsset(TxFeePtr fee, amount_t& amount, uint64_t& height, uint256& asset) {
+		//
+		Transaction::Out& lOut = fee->out()[TX_BUZZER_MISTRUST_FEE_LOCKED_OUT];
+		VirtualMachine lVM(lOut.destination());
+		lVM.execute();
+
+		if (lVM.getR(qasm::QA0).getType() != qasm::QNONE && lVM.getR(qasm::QR1).getType() != qasm::QNONE) {
+			asset = lOut.asset();
 			amount = lVM.getR(qasm::QA0).to<amount_t>();
 			height = lVM.getR(qasm::QR1).to<uint64_t>();
 

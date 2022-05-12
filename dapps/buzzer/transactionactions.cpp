@@ -105,6 +105,28 @@ TransactionAction::Result TxBuzzerTimelockOutsVerify::execute(TransactionContext
 							gLog().write(Log::GENERAL_ERROR, std::string("[TxBuzzerTimelockOutsVerify]: ") + lError);
 							return TransactionAction::GENERAL_ERROR;
 						}
+
+						if (lVM.getR(qasm::QA0).getType() != qasm::QNONE) {
+							amount_t lAmount = lVM.getR(qasm::QA0).to<amount_t>();
+							uint256 lAsset = lInTx->out()[TX_BUZZER_ENDORSE_FEE_LOCKED_OUT /*second out*/].asset();
+							if (!(lAsset == store->settings()->proofAsset() && lAmount == store->settings()->oneVoteProofAmount())) {
+								//
+								std::string lError = _getVMStateText(VirtualMachine::INVALID_RESULT) + " | locked amount and/or asset is invalid";
+								wrapper->tx()->setStatus(Transaction::DECLINED);
+								wrapper->addError(lError);
+								gLog().write(Log::GENERAL_ERROR, std::string("[TxBuzzerTimelockOutsVerify]: ") + 
+									strprintf("amount = %d, asset = %d", lAmount, lAsset.toHex()));
+								gLog().write(Log::GENERAL_ERROR, std::string("[TxBuzzerTimelockOutsVerify]: ") + lError);
+								return TransactionAction::GENERAL_ERROR;
+							}
+						} else {
+							//
+							std::string lError = _getVMStateText(VirtualMachine::INVALID_RESULT) + " | locked amount is absent";
+							wrapper->tx()->setStatus(Transaction::DECLINED);
+							wrapper->addError(lError);
+							gLog().write(Log::GENERAL_ERROR, std::string("[TxBuzzerTimelockOutsVerify]: ") + lError);
+							return TransactionAction::GENERAL_ERROR;
+						}
 					} else {
 						std::string lError = _getVMStateText(VirtualMachine::INVALID_RESULT) + " | height was not set";
 						wrapper->tx()->setStatus(Transaction::DECLINED);
@@ -115,7 +137,6 @@ TransactionAction::Result TxBuzzerTimelockOutsVerify::execute(TransactionContext
 
 					return TransactionAction::CONTINUE; // continue any way
 				}
-
 			}
 		}
 

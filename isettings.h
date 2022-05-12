@@ -88,6 +88,12 @@ public:
 
 	virtual void setProofAsset(const uint256&) {}
 	virtual uint256 proofAsset() { return uint256(); }
+	
+	virtual void setProofAssetLockTime(uint64_t) {}
+	virtual uint64_t proofAssetLockTime() { return 0; }
+
+	virtual void setOneVoteProofAmount(amount_t) {}
+	virtual amount_t oneVoteProofAmount() { return 0; }
 
 	virtual void setProofAmount(amount_t) {}
 	virtual amount_t proofAmount() { return 0; }

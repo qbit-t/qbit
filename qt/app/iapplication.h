@@ -25,6 +25,7 @@ public:
 	virtual std::string getLogCategories() = 0;
 	virtual std::string getPeers() = 0;
 	virtual std::string getQttAsset() = 0;
+	virtual int getQttAssetVoteAmount() = 0;
 	virtual bool getTestNet() = 0;
 	virtual bool getDebug() = 0;
 	virtual bool getInterceptOutput() = 0;

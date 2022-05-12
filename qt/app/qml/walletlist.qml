@@ -23,7 +23,33 @@ Item
 	property var infoDialog;
 	property var controller;
 
+	readonly property int spaceLeft_: 15
+	readonly property int spaceTop_: 12
+	readonly property int spaceRight_: 15
+	readonly property int spaceBottom_: 12
+	readonly property int spaceAvatarBuzz_: 10
+	readonly property int spaceItems_: 5
+	readonly property int spaceMedia_: 10
+	readonly property int spaceSingleMedia_: 8
+	readonly property int spaceMediaIndicator_: 15
+	readonly property int spaceHeader_: 5
+	readonly property int spaceRightMenu_: 15
+	readonly property int spaceStats_: -5
+	readonly property int spaceLine_: 4
+	readonly property int spaceThreaded_: 33
+	readonly property int spaceThreadedItems_: 4
+	readonly property real defaultFontSize: 11
+
 	Component.onCompleted: list.prepare()
+
+	Rectangle {
+		id: walletIndicatorBackground
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.statusBar")
+		x: 0
+		y: 0
+		width: parent.width
+		height: walletIndicator.height
+	}
 
 	PageIndicator {
 		id: walletIndicator
@@ -34,10 +60,10 @@ Item
 		y: 0
 
 		Material.theme: buzzerClient.themeSelector == "dark" ? Material.Dark : Material.Light;
-		Material.accent: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.accent");
-		Material.background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.background");
-		Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground");
-		Material.primary: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.primary");
+		Material.accent: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.accent");
+		Material.background: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.background");
+		Material.foreground: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground");
+		Material.primary: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.primary");
 	}
 
 	//
@@ -50,19 +76,14 @@ Item
 		x: 0
 		y: walletIndicator.y + walletIndicator.height
 		width: parent.width
-		height: parent.height - walletIndicator.height
+		height: parent.height - (walletIndicator.y + walletIndicator.height)
 
 		clip: true
 		orientation: Qt.Horizontal
 		layoutDirection:  Qt.LeftToRight
 		snapMode: ListView.SnapOneItem
-		//highlightFollowsCurrentItem: true
-		//highlightMoveDuration: -1
-		//highlightMoveVelocity: -1
 
 		model: ListModel { id: walletModel }
-
-		//cacheBuffer: 10000
 
 		onContentXChanged: {
 			//

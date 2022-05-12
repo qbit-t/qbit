@@ -409,6 +409,11 @@ std::string Application::getQttAsset() {
 	return lValue.getString();
 }
 
+int Application::getQttAssetVoteAmount() {
+	qbit::json::Value lValue = appConfig_["qttAssetVoteAmount"];
+	return lValue.getInt();
+}
+
 std::string Application::getLogCategories()
 {
 	qbit::json::Value lValue;
@@ -599,12 +604,20 @@ void Application::setWakeLock(int lock)
 
 void Application::wakeLock()
 {
-    setWakeLock(ACQUIRE_WAKE_LOCK);
+	// setWakeLock(ACQUIRE_WAKE_LOCK);
+#ifdef Q_OS_ANDROID
+	QAndroidJniObject window = QtAndroid::androidActivity().callObjectMethod("getWindow", "()Landroid/view/Window;");
+	window.callMethod<void>("addFlags", "(I)V", 0x00000080);
+#endif
 }
 
 void Application::wakeRelease()
 {
-    setWakeLock(RELEASE_WAKE_LOCK);
+	// setWakeLock(RELEASE_WAKE_LOCK);
+#ifdef Q_OS_ANDROID
+	QAndroidJniObject window = QtAndroid::androidActivity().callObjectMethod("getWindow", "()Landroid/view/Window;");
+	window.callMethod<void>("clearFlags", "(I)V", 0x00000080);
+#endif
 }
 
 void Application::lockPortraitOrientation()

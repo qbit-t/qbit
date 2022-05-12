@@ -113,6 +113,8 @@ public:
 
 	//
 	virtual void prepare() { throw qbit::exception("NOT_IMPL", "ITransactionStore::prepare - not implemeted."); }
+	//
+	virtual ISettingsPtr settings() { throw qbit::exception("NOT_IMPL", "ITransactionStore::settings - not implemeted."); }
 };
 
 typedef std::shared_ptr<ITransactionStore> ITransactionStorePtr;

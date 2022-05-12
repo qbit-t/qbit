@@ -877,7 +877,20 @@ TransactionContextPtr LightWallet::makeTxSpend(Transaction::Type type, const uin
 	SKeyPtr lSChangeKey = changeKey();
 	SKeyPtr lSKey = firstKey();
 	if (!lSKey->valid() || !lSChangeKey->valid()) throw qbit::exception("E_KEY", "Secret key is invalid.");
-	Transaction::UnlinkedOutPtr lMainOut = lTx->addOut(*lSKey, dest, asset, amount);
+
+	//
+	Transaction::UnlinkedOutPtr lMainOut = nullptr;
+
+	// check if asset is proof asset and locktime is enabled
+	if (asset == settings_->proofAsset() && settings_->proofAssetLockTime() > 0) {
+		//
+		uint64_t lLockHeight = requestProcessor_->locateHeight(MainChain::id()); // ALL assets lives in main chain
+		if (!lLockHeight) throw qbit::exception("E_TX_BASICHEIGHT_UNDEFINED", "Basic chain height is absent.");
+		//
+		lMainOut = lTx->addLockedOut(*lSKey, dest, asset, amount, lLockHeight + settings_->proofAssetLockTime() + 5 /*extra blocks*/);
+	} else {
+		lMainOut = lTx->addOut(*lSKey, dest, asset, amount);
+	}
 
 	// change
 	Transaction::UnlinkedOutPtr lChangeUtxo = nullptr;
@@ -1098,6 +1111,83 @@ TransactionContextPtr LightWallet::createTxFeeLockedChange(const PKey& dest, amo
 		strprintf("to = %s, amount = [%d/%d]%d", const_cast<PKey&>(dest).toString(), amount, locked, lAmount));
 
 	return lCtx;
+}
+
+TransactionContextPtr LightWallet::createTxFeeAssetLockedChange(const PKey& dest, amount_t fee, const uint256& asset, amount_t locked, uint64_t height) {
+	// create empty tx
+	TxFeePtr lTx = TransactionHelper::to<TxFee>(TransactionFactory::create(Transaction::FEE)); // TxSendPrivate -> TxSend
+	// create context
+	TransactionContextPtr lCtx = TransactionContext::instance(lTx);
+	// fill inputs
+	std::list<Transaction::UnlinkedOutPtr> lUtxos;	
+	amount_t lAmount = fillInputs(lTx, TxAssetType::qbitAsset(), fee, false, lUtxos);
+	// fill inputs for asset
+	std::list<Transaction::UnlinkedOutPtr> lAssetUtxos;	
+	amount_t lLockedAmount = fillInputs(lTx, asset, locked, false, lAssetUtxos);
+
+	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[createTxFeeAssetLockedChange]: creating fee tx: ") + 
+		strprintf("to = %s, fee = %d, locked = %d", const_cast<PKey&>(dest).toString(), fee, locked));
+
+	// fill output
+	SKeyPtr lSChangeKey = changeKey();
+	SKeyPtr lSKey = firstKey();
+	if (!lSKey->valid() || !lSChangeKey->valid()) throw qbit::exception("E_KEY", "Secret key is invalid.");
+	Transaction::UnlinkedOutPtr lMainOut = lTx->addExternalOut(*lSKey, dest, TxAssetType::qbitAsset(), fee); // out[0] - used to pay fee in shards
+
+	Transaction::UnlinkedOutPtr lLockedUtxo =
+		lTx->addLockedOut(*lSKey, dest, asset, locked, height); // out[1] - locked
+
+	amount_t lRate = settings_->maxFeeRate();
+	amount_t lFee = (lRate * lCtx->size()) / 2; // half fee 
+
+	// change
+	Transaction::UnlinkedOutPtr lChangeUtxo = nullptr;
+	Transaction::UnlinkedOutPtr lChangeAssetUtxo = nullptr;
+
+	// try to check fee
+	if (lAmount >= fee + lFee) {
+		lTx->addFeeOut(*lSKey, TxAssetType::qbitAsset(), lFee); // to miner
+
+		if (lAmount > fee + lFee) { // make change
+			lChangeUtxo = lTx->addOut(*lSChangeKey, lSChangeKey->createPKey()/*change*/, TxAssetType::qbitAsset(), lAmount - (fee + lFee), true);
+		}
+	} else { // rare cases
+		return createTxFeeAssetLockedChange(dest, fee + lFee, asset, locked, height);
+	}
+
+	// try to check locked amount
+	if (lLockedAmount > locked) {
+		lChangeAssetUtxo = lTx->addOut(*lSChangeKey, lSChangeKey->createPKey()/*change*/, asset, lLockedAmount - locked, true);
+	}
+
+	if (!lTx->finalize(*lSKey)) throw qbit::exception("E_TX_FINALIZE", "Transaction finalization failed.");
+
+	if (opened_) {
+		// add outs
+		lCtx->addExternalOut(Transaction::NetworkUnlinkedOut::instance(*lMainOut, Transaction::FEE, 0, false, lFee));
+		lCtx->addExternalOut(Transaction::NetworkUnlinkedOut::instance(*lLockedUtxo, Transaction::FEE, 0, false, lFee));
+	}
+
+	// we good
+	removeUnlinkedOut(lUtxos);
+	removeUnlinkedOut(lAssetUtxos);
+
+	if (lChangeUtxo) { 
+		cacheUnlinkedOut(lChangeUtxo);
+	}
+
+	if (lChangeAssetUtxo) { 
+		cacheUnlinkedOut(lChangeAssetUtxo);
+	}
+
+	if (lLockedUtxo) { 
+		cacheUnlinkedOut(lLockedUtxo);
+	}
+
+	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[createTxFeeLockedChange]: fee tx created: ") + 
+		strprintf("to = %s, amount = [%d/%d] - %d, %d", const_cast<PKey&>(dest).toString(), fee, locked, lAmount, lLockedAmount));
+
+	return lCtx;	
 }
 
 void LightWallet::updateOut(Transaction::NetworkUnlinkedOutPtr out, const uint256& parent, unsigned short type) {

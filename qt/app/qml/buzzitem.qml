@@ -1393,8 +1393,9 @@ Item {
 		onError: {
 			if (code === "E_CHAINS_ABSENT") return;
 			if (message === "UNKNOWN_REFTX" || code == "E_TX_NOT_SENT") {
-				//buzzerClient.resync();
 				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.UNKNOWN_REFTX"));
+			} else if (message === "E_INSUFFICIENT_QTT_BALANCE") {
+				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_INSUFFICIENT_QTT_BALANCE"));
 			} else {
 				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_ENDORSE"));
 			}
@@ -1427,6 +1428,8 @@ Item {
 			if (message === "UNKNOWN_REFTX" || code == "E_TX_NOT_SENT") {
 				//buzzerClient.resync();
 				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.UNKNOWN_REFTX"));
+			} else if (message === "E_INSUFFICIENT_QTT_BALANCE") {
+				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_INSUFFICIENT_QTT_BALANCE"));
 			} else {
 				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_MISTRUST"));
 			}

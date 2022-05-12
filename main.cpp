@@ -203,11 +203,17 @@ public:
 	void setProofAsset(const uint256& asset) { proofAsset_ = asset; }
 	uint256 proofAsset() { return proofAsset_; }
 
+	void setOneVoteProofAmount(amount_t amount) { oneVoteProofAmount_ = amount; }
+	amount_t oneVoteProofAmount() { return oneVoteProofAmount_; }
+
 	void setProofAmount(amount_t amount) { proofAmount_ = amount; }
 	amount_t proofAmount() { return proofAmount_; }
 
 	void setProofFrom(uint64_t from) { proofFrom_ = from; }
 	uint64_t proofFrom() { return proofFrom_; }
+
+	void setProofAssetLockTime(uint64_t lockTime) { proofAssetLockTime_ = lockTime; }
+	uint64_t proofAssetLockTime() { return proofAssetLockTime_; }
 
 	void notifyTransaction(const uint256& tx) {
 		//
@@ -252,6 +258,8 @@ private:
 	uint256 proofAsset_;
 	amount_t proofAmount_ = 0;
 	uint64_t proofFrom_ = 0;
+	amount_t oneVoteProofAmount_ = 0;
+	uint64_t proofAssetLockTime_ = 0;
 };
 
 class Node;
@@ -618,11 +626,29 @@ int main(int argv, char** argc) {
 				std::cout << "proof-amount: incorrect value" << std::endl;
 				return -1;
 			}
+		} else if (std::string(argc[lIdx]) == std::string("-one-vote-proof-amount")) {
+			//
+			uint64_t lAmount;
+			if (boost::conversion::try_lexical_convert<uint64_t>(std::string(argc[++lIdx]), lAmount)) {
+				lSettings->setOneVoteProofAmount(lAmount);
+			} else {
+				std::cout << "one-vote-proof-amount: incorrect value" << std::endl;
+				return -1;
+			}
 		} else if (std::string(argc[lIdx]) == std::string("-proof-from")) {
 			//
 			uint64_t lFrom;
 			if (boost::conversion::try_lexical_convert<uint64_t>(std::string(argc[++lIdx]), lFrom)) {
 				lSettings->setProofFrom(lFrom);
+			} else {
+				std::cout << "proof-from: incorrect value" << std::endl;
+				return -1;
+			}
+		} else if (std::string(argc[lIdx]) == std::string("-proof-asset-lock-time")) {
+			//
+			uint64_t lFrom;
+			if (boost::conversion::try_lexical_convert<uint64_t>(std::string(argc[++lIdx]), lFrom)) {
+				lSettings->setProofAssetLockTime(lFrom);
 			} else {
 				std::cout << "proof-from: incorrect value" << std::endl;
 				return -1;
@@ -690,6 +716,19 @@ int main(int argv, char** argc) {
 				}
 			}
 
+			// one vote proof asset amount
+			qbit::json::Value lOneVoteProofAmount;
+			if (lConfig.find("oneVoteProofAmount", lOneVoteProofAmount)) {
+				//
+				uint64_t lAmount;
+				if (boost::conversion::try_lexical_convert<uint64_t>(lOneVoteProofAmount.getString(), lAmount)) {
+					lSettings->setOneVoteProofAmount(lAmount);
+				} else {
+					std::cout << "oneVoteProofAmount: incorrect value" << std::endl;
+					return -1;
+				}
+			}
+
 			// proof asset amount
 			qbit::json::Value lProofFrom;
 			if (lConfig.find("proofFrom", lProofFrom)) {
@@ -699,6 +738,19 @@ int main(int argv, char** argc) {
 					lSettings->setProofFrom(lFrom);
 				} else {
 					std::cout << "proofFrom: incorrect value" << std::endl;
+					return -1;
+				}
+			}
+
+			// proof asset lock time
+			qbit::json::Value lProofAssetLockTime;
+			if (lConfig.find("proofAssetLockTime", lProofAssetLockTime)) {
+				//
+				uint64_t lLockTime;
+				if (boost::conversion::try_lexical_convert<uint64_t>(lProofAssetLockTime.getString(), lLockTime)) {
+					lSettings->setProofAssetLockTime(lLockTime);
+				} else {
+					std::cout << "proofAssetLockTime: incorrect value" << std::endl;
 					return -1;
 				}
 			}

@@ -211,6 +211,7 @@ public:
 	// create tx fee
 	TransactionContextPtr createTxFee(const PKey& /*dest*/, amount_t /*amount*/);	
 	TransactionContextPtr createTxFeeLockedChange(const PKey& /*dest*/, amount_t /*amount*/, amount_t /*locked*/, uint64_t /*height*/);
+	TransactionContextPtr createTxFeeAssetLockedChange(const PKey& /*dest*/, amount_t /*fee*/, const uint256& /*asset*/, amount_t /*locked*/, uint64_t /*height*/);
 
 	amount_t fillInputs(TxSpendPtr /*tx*/, const uint256& /*asset*/, amount_t /*amount*/, bool /*aggregate*/, std::list<Transaction::UnlinkedOutPtr>& /*utxos*/);
 	void removeUnlinkedOut(std::list<Transaction::UnlinkedOutPtr>&);

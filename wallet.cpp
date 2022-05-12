@@ -1070,7 +1070,21 @@ TransactionContextPtr Wallet::makeTxSpend(Transaction::Type type, const uint256&
 	SKeyPtr lSChangeKey = changeKey();
 	SKeyPtr lSKey = firstKey();
 	if (!lSKey->valid() || !lSChangeKey->valid()) throw qbit::exception("E_KEY", "Secret key is invalid.");
-	lTx->addOut(*lSKey, dest, asset, amount);
+
+	// check if asset is proof asset and locktime is enabled
+	if (asset == settings_->proofAsset() && settings_->proofAssetLockTime() > 0) {
+		//
+		if (!persistentStoreManager_) throw qbit::exception("E_TX_STOREMANAGER_ABSENT", "StoreManager is absent.");
+		//
+		BlockHeader lHeader;
+		uint64_t lLockHeight = persistentStoreManager_->locate(MainChain::id())->currentHeight(lHeader);
+		if (!lLockHeight) throw qbit::exception("E_TX_BASICHEIGHT_UNDEFINED", "Basic chain height is absent.");
+		//
+		lTx->addLockedOut(*lSKey, dest, asset, amount, lLockHeight + settings_->proofAssetLockTime() + 5 /*extra blocks*/);
+	} else {
+		// make spend-out
+		lTx->addOut(*lSKey, dest, asset, amount);		
+	}
 
 	// make change
 	if (asset != TxAssetType::qbitAsset() && lAmount > amount) {
