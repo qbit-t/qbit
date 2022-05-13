@@ -327,6 +327,10 @@ public:
 			return postponedTx_.size(); 
 		}
 
+		ISettingsPtr settings() {
+			return pool_->consensus()->settings();
+		}		
+
 	private:
 		IMemoryPoolPtr pool_;
 

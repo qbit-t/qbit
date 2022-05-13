@@ -73,6 +73,10 @@ public:
 			return nullptr;
 		}
 
+		inline ISettingsPtr settings() {
+			return nullptr;
+		}
+
 		bool synchronizing() { return false; } 
 
 	};

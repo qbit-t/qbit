@@ -225,6 +225,10 @@ public:
 
 		uint64_t currentHeight(BlockHeader& block) {
 			return persistentStore_->currentHeight(block);
+		}
+
+		ISettingsPtr settings() {
+			return persistentStore_->settings();
 		}		
 
 	private:
