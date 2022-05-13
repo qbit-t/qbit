@@ -1203,7 +1203,7 @@ TransactionContextPtr Wallet::createTxAssetType(const PKey& dest, const std::str
 
 TransactionContextPtr Wallet::createTxAssetType(const PKey& dest, const std::string& shortName, const std::string& longName, amount_t supply, amount_t scale, int chunks, TxAssetType::Emission emission) {
 	qunit_t lRate = settings_->maxFeeRate();
-	return createTxAssetType(dest, shortName, longName, supply, scale, emission, lRate, -1);
+	return createTxAssetType(dest, shortName, longName, supply, scale, chunks, emission, lRate, -1);
 }
 
 TransactionContextPtr Wallet::createTxAssetType(const PKey& dest, const std::string& shortName, const std::string& longName, amount_t supply, amount_t scale, TxAssetType::Emission emission, qunit_t feeRateLimit, int32_t targetBlock) {
