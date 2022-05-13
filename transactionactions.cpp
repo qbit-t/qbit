@@ -313,31 +313,51 @@ TransactionAction::Result TxSpendOutVerify::execute(TransactionContextPtr wrappe
 			}
 
 			// strict time-locked txs
-			if (lOut.asset() == store->settings()->proofAsset() && store->settings()->proofAssetLockTime() > 0 &&
-					(lVM.getR(qasm::QA6).getType() == qasm::QNONE || lVM.getR(qasm::QA6).to<unsigned char>() != 0x01)) { // .. and not CHANGE
+			if (lOut.asset() == store->settings()->proofAsset() && store->settings()->proofAssetLockTime() > 0) {
 				//
-				if (lVM.getR(qasm::QR1).getType() != qasm::QNONE) {
-					//
-					uint64_t lHeight = lVM.getR(qasm::QR1).to<uint64_t>();
-					//
-					if (!(lHeight > lCurrentHeight && 
-							lHeight - lCurrentHeight >= store->settings()->proofAssetLockTime())) {
+				bool lProcess = true;
+
+				// check if change
+				std::vector<Transaction::In>& lIns = wrapper->tx()->in();
+				if (lVM.getR(qasm::QA6).getType() != qasm::QNONE && lVM.getR(qasm::QA6).to<unsigned char>() == 0x01 /*change*/) {
+					// get address
+					VirtualMachine lVMIn(lIns.begin()->ownership());
+					lVMIn.execute();
+					if (lVMIn.getR(qasm::QS0) != lVM.getR(qasm::QD0)) {
 						//
-						std::string lError = _getVMStateText(VirtualMachine::INVALID_RESULT) + strprintf(" | locked height must be at least H+%d", store->settings()->proofAssetLockTime());
+						std::string lError = "Proof asset change address is not equal to the spend address.";
+						gLog().write(Log::GENERAL_ERROR, std::string("[TxSpendOutVerify]: ") + lError);
 						wrapper->tx()->setStatus(Transaction::DECLINED);
 						wrapper->addError(lError);
-						gLog().write(Log::GENERAL_ERROR, std::string("[TxSpendOutVerify]: ") + 
-							strprintf("current = %d, embedded = %d", lCurrentHeight, lHeight));
+						return TransactionAction::GENERAL_ERROR;
+					} else lProcess = false;
+				}
+
+				//
+				if (lProcess /*not change*/) {
+					if (lVM.getR(qasm::QR1).getType() != qasm::QNONE) {
+						//
+						uint64_t lHeight = lVM.getR(qasm::QR1).to<uint64_t>();
+						//
+						if (!(lHeight > lCurrentHeight && 
+								lHeight - lCurrentHeight >= store->settings()->proofAssetLockTime())) {
+							//
+							std::string lError = _getVMStateText(VirtualMachine::INVALID_RESULT) + strprintf(" | locked height must be at least H+%d", store->settings()->proofAssetLockTime());
+							wrapper->tx()->setStatus(Transaction::DECLINED);
+							wrapper->addError(lError);
+							gLog().write(Log::GENERAL_ERROR, std::string("[TxSpendOutVerify]: ") + 
+								strprintf("current = %d, embedded = %d", lCurrentHeight, lHeight));
+							gLog().write(Log::GENERAL_ERROR, std::string("[TxSpendOutVerify]: ") + lError);
+							return TransactionAction::GENERAL_ERROR;
+						}
+
+					} else {
+						std::string lError = "Time-lock height is absent";
 						gLog().write(Log::GENERAL_ERROR, std::string("[TxSpendOutVerify]: ") + lError);
+						wrapper->tx()->setStatus(Transaction::DECLINED);
+						wrapper->addError(lError);
 						return TransactionAction::GENERAL_ERROR;
 					}
-
-				} else {
-					std::string lError = "Time-lock height is absent";
-					gLog().write(Log::GENERAL_ERROR, std::string("[TxSpendOutVerify]: ") + lError);
-					wrapper->tx()->setStatus(Transaction::DECLINED);
-					wrapper->addError(lError);
-					return TransactionAction::GENERAL_ERROR;
 				}
 			}			
 		}
