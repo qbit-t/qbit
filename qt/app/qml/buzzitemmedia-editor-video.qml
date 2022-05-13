@@ -138,12 +138,12 @@ Rectangle {
 		//y: videoOutput.contentRect.y - 1
 		//width: videoOutput.width + 2
 		//height: videoOutput.contentRect.height + 2
-		anchors.fill: parent
+		anchors.fill: previewImage
 
-		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
+		color: "transparent" // buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
 		backgroundColor: "transparent"
-		radius: 14
-		penWidth: 10
+		//radius: 14
+		//penWidth: 10
 
 		visible: true //!previewImage.visible
 	}
@@ -184,6 +184,7 @@ Rectangle {
 		source: "file://" + preview
 		fillMode: BuzzerComponents.ImageQx.PreserveAspectFit
 		mipmap: true
+		anchors.centerIn: parent
 
 		visible: (preview !== "none" || preview !== "") && !player.hasVideo //||
 					//(player.hasVideo && !player.playing && !player.paused))
