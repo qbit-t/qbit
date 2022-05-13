@@ -313,7 +313,8 @@ TransactionAction::Result TxSpendOutVerify::execute(TransactionContextPtr wrappe
 			}
 
 			// strict time-locked txs
-			if (lOut.asset() == store->settings()->proofAsset() && store->settings()->proofAssetLockTime() > 0) {
+			if (lOut.asset() == store->settings()->proofAsset() && store->settings()->proofAssetLockTime() > 0 &&
+					!(lVM.getR(qasm::QA6).getType() != qasm::QNONE && lVM.getR(qasm::QA6).to<unsigned char>() == 0x01)) { // .. and not CHANGE
 				//
 				if (lVM.getR(qasm::QR1).getType() != qasm::QNONE) {
 					//
