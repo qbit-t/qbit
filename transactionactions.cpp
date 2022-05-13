@@ -333,6 +333,9 @@ TransactionAction::Result TxSpendOutVerify::execute(TransactionContextPtr wrappe
 					} else lProcess = false;
 				}
 
+				// check if balance out
+				if (lVM.getR(qasm::QD0).to<unsigned short>() == 0xffff) lProcess = false;
+
 				//
 				if (lProcess /*not change*/) {
 					if (lVM.getR(qasm::QR1).getType() != qasm::QNONE) {
