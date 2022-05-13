@@ -248,33 +248,84 @@ int main(int argv, char** argc) {
 	// command line
 	bool lDebugFound = false;
 	std::vector<std::string> lPeers;
+	//
+	bool lCommandFound = false;
+	bool lExplicitCat = false;
+	std::vector<std::string> lExplicitArgs;
+	std::string lExplicitCommand;
+	//
 	for (int lIdx = 1; lIdx < argv; lIdx++) {
 		//
-		if (std::string(argc[lIdx]) == std::string("-debug")) {
-			std::vector<std::string> lCategories; 
-			boost::split(lCategories, std::string(argc[++lIdx]), boost::is_any_of(","));
+		if (lCommandFound) {
+			//
+			if (!lExplicitCommand.size()) lExplicitCommand = std::string(argc[lIdx]);
+			else {
+				std::string lArg = std::string(argc[lIdx]);
+				//
+				if (!lExplicitCat) lExplicitArgs.push_back(lArg);
+				else { *(lExplicitArgs.rbegin()) += " "; *(lExplicitArgs.rbegin()) += lArg; }
 
-			if (!lIsLogConfigured) { 
-				gLog(lSettings->dataPath() + "/debug.log"); // setup 
+				if (*(lArg.begin()) == '\"' && *(lArg.rbegin()) == '\"') {
+					lExplicitArgs.rbegin()->erase(lExplicitArgs.rbegin()->begin());
+					lExplicitArgs.rbegin()->erase(--(lExplicitArgs.rbegin()->end()));
+				} else if (*(lArg.begin()) == '\"') { 
+					lExplicitCat = true; 
+				} else if (*(lArg.rbegin()) == '\"') { 
+					lExplicitCat = false;
+					lExplicitArgs.rbegin()->erase(lExplicitArgs.rbegin()->begin());
+					lExplicitArgs.rbegin()->erase(--(lExplicitArgs.rbegin()->end()));
+				}
+			}
+		} else {
+			if (std::string(argc[lIdx]) == std::string("-debug")) {
+				std::vector<std::string> lCategories; 
+				boost::split(lCategories, std::string(argc[++lIdx]), boost::is_any_of(","));
+
+				if (!lIsLogConfigured) { 
+					gLog(lSettings->dataPath() + "/debug.log"); // setup 
+					lIsLogConfigured = true;
+				}
+
+				for (std::vector<std::string>::iterator lCategory = lCategories.begin(); lCategory != lCategories.end(); lCategory++) {
+					gLog().enable(getLogCategory(*lCategory));
+				}
+
+				lDebugFound = true;
+			} else if (std::string(argc[lIdx]) == std::string("-peers")) {
+				boost::split(lPeers, std::string(argc[++lIdx]), boost::is_any_of(","));
+			} else if (std::string(argc[lIdx]) == std::string("-testnet")) {
+				qbit::gTestNet = true;
+			} else if (std::string(argc[lIdx]) == std::string("-command")) {
+				lCommandFound = true;
+			} else if (std::string(argc[lIdx]) == std::string("-home")) {
+				std::string lHome = std::string(argc[++lIdx]);
+				lSettings = ClientSettings::instance(lHome); // re-create
+				gLog(lSettings->dataPath() + "/debug.log"); // setup
 				lIsLogConfigured = true;
 			}
-
-			for (std::vector<std::string>::iterator lCategory = lCategories.begin(); lCategory != lCategories.end(); lCategory++) {
-				gLog().enable(getLogCategory(*lCategory));
-			}
-
-			lDebugFound = true;
-		} else if (std::string(argc[lIdx]) == std::string("-peers")) {
-			boost::split(lPeers, std::string(argc[++lIdx]), boost::is_any_of(","));
-		} else if (std::string(argc[lIdx]) == std::string("-testnet")) {
-			qbit::gTestNet = true;
-		} else if (std::string(argc[lIdx]) == std::string("-home")) {
-			std::string lHome = std::string(argc[++lIdx]);
-			lSettings = ClientSettings::instance(lHome); // re-create
-			gLog(lSettings->dataPath() + "/debug.log"); // setup
-			lIsLogConfigured = true;
 		}
 	}
+
+	/*
+		bool lCat = false;
+		lCommand = *lRawArgs.begin(); lRawArgs.erase(lRawArgs.begin());
+		for(std::vector<std::string>::iterator lArg = lRawArgs.begin(); lArg != lRawArgs.end(); lArg++) {
+			if (!lCat) lArgs.push_back(*lArg);
+			else { *(lArgs.rbegin()) += " "; *(lArgs.rbegin()) += *lArg; }
+
+			if (*(lArg->begin()) == '\"' && *(lArg->rbegin()) == '\"') {
+				lArgs.rbegin()->erase(lArgs.rbegin()->begin());
+				lArgs.rbegin()->erase(--(lArgs.rbegin()->end()));
+			} else if (*(lArg->begin()) == '\"') { 
+				lCat = true; 
+			} else if (*(lArg->rbegin()) == '\"') { 
+				lCat = false;
+				lArgs.rbegin()->erase(lArgs.rbegin()->begin());
+				lArgs.rbegin()->erase(--(lArgs.rbegin()->end()));
+			}
+		}
+
+	*/
 
 	if (!lDebugFound) {
 		gLog().enable(Log::INFO);
@@ -667,59 +718,88 @@ int main(int argv, char** argc) {
 			boost::this_thread::sleep_for(boost::chrono::milliseconds(500)); // just stub to wait for
 		}
 
-		//
-		std::string lInput;
-
-		std::cout << "\nqbit>";
-		std::getline(std::cin, lInput);
-
-		if (!lInput.size()) continue;
-		if (lWallet->status() != IWallet::OPENED) continue;
-
-		std::string lCommand;
-		std::vector<std::string> lArgs;
-
-		std::vector<std::string> lRawArgs; 
-		boost::split(lRawArgs, lInput, boost::is_any_of(" "));
-
-		bool lCat = false;
-		lCommand = *lRawArgs.begin(); lRawArgs.erase(lRawArgs.begin());
-		for(std::vector<std::string>::iterator lArg = lRawArgs.begin(); lArg != lRawArgs.end(); lArg++) {
-			if (!lCat) lArgs.push_back(*lArg);
-			else { *(lArgs.rbegin()) += " "; *(lArgs.rbegin()) += *lArg; }
-
-			if (*(lArg->begin()) == '\"' && *(lArg->rbegin()) == '\"') {
-				lArgs.rbegin()->erase(lArgs.rbegin()->begin());
-				lArgs.rbegin()->erase(--(lArgs.rbegin()->end()));
-			} else if (*(lArg->begin()) == '\"') { 
-				lCat = true; 
-			} else if (*(lArg->rbegin()) == '\"') { 
-				lCat = false;
-				lArgs.rbegin()->erase(lArgs.rbegin()->begin());
-				lArgs.rbegin()->erase(--(lArgs.rbegin()->end()));
+		// explicit command
+		if (lCommandFound) {
+			//
+			if (lExplicitCommand == "help" || lExplicitCommand == "h") {
+				lCommandsHandler->showHelp();
+				lExit = true;
+				continue;
 			}
-		}
 
-		if (lCommand == "quit" || lCommand == "q") { lExit = true; continue; }
-		else if (lCommand == "help" || lCommand == "h") {
-			lCommandsHandler->showHelp();
+			try {
+				gCommandDone = false;
+				lCommandsHandler->handleCommand(lExplicitCommand, lExplicitArgs);
+
+				// wating for signal
+				while (!gCommandDone) {
+					boost::this_thread::sleep_for(boost::chrono::milliseconds(50));
+				}
+			}
+			catch(qbit::exception& ex) {
+				gLog().writeClient(Log::GENERAL_ERROR, std::string(": ") + ex.code() + " | " + ex.what());
+			}
+			catch(std::exception& ex) {
+				gLog().writeClient(Log::GENERAL_ERROR, std::string(": ") + ex.what());
+			}
+
+			lExit = true;
 			continue;
-		}
+		} else {
+			//
+			std::string lInput;
 
-		try {
-			gCommandDone = false;
-			lCommandsHandler->handleCommand(lCommand, lArgs);
+			std::cout << "\nqbit>";
+			std::getline(std::cin, lInput);
 
-			// wating for signal
-			while (!gCommandDone) {
-				boost::this_thread::sleep_for(boost::chrono::milliseconds(50));
+			if (!lInput.size()) continue;
+			if (lWallet->status() != IWallet::OPENED) continue;
+
+			std::string lCommand;
+			std::vector<std::string> lArgs;
+
+			std::vector<std::string> lRawArgs; 
+			boost::split(lRawArgs, lInput, boost::is_any_of(" "));
+
+			bool lCat = false;
+			lCommand = *lRawArgs.begin(); lRawArgs.erase(lRawArgs.begin());
+			for(std::vector<std::string>::iterator lArg = lRawArgs.begin(); lArg != lRawArgs.end(); lArg++) {
+				if (!lCat) lArgs.push_back(*lArg);
+				else { *(lArgs.rbegin()) += " "; *(lArgs.rbegin()) += *lArg; }
+
+				if (*(lArg->begin()) == '\"' && *(lArg->rbegin()) == '\"') {
+					lArgs.rbegin()->erase(lArgs.rbegin()->begin());
+					lArgs.rbegin()->erase(--(lArgs.rbegin()->end()));
+				} else if (*(lArg->begin()) == '\"') { 
+					lCat = true; 
+				} else if (*(lArg->rbegin()) == '\"') { 
+					lCat = false;
+					lArgs.rbegin()->erase(lArgs.rbegin()->begin());
+					lArgs.rbegin()->erase(--(lArgs.rbegin()->end()));
+				}
 			}
-		}
-		catch(qbit::exception& ex) {
-			gLog().writeClient(Log::GENERAL_ERROR, std::string(": ") + ex.code() + " | " + ex.what());
-		}
-		catch(std::exception& ex) {
-			gLog().writeClient(Log::GENERAL_ERROR, std::string(": ") + ex.what());
+
+			if (lCommand == "quit" || lCommand == "q") { lExit = true; continue; }
+			else if (lCommand == "help" || lCommand == "h") {
+				lCommandsHandler->showHelp();
+				continue;
+			}
+
+			try {
+				gCommandDone = false;
+				lCommandsHandler->handleCommand(lCommand, lArgs);
+
+				// wating for signal
+				while (!gCommandDone) {
+					boost::this_thread::sleep_for(boost::chrono::milliseconds(50));
+				}
+			}
+			catch(qbit::exception& ex) {
+				gLog().writeClient(Log::GENERAL_ERROR, std::string(": ") + ex.code() + " | " + ex.what());
+			}
+			catch(std::exception& ex) {
+				gLog().writeClient(Log::GENERAL_ERROR, std::string(": ") + ex.what());
+			}
 		}
 	}
 

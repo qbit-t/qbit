@@ -138,6 +138,12 @@ void UploadMediaCommand::process(const std::vector<std::string>& args, IPeerPtr 
 			}
 		}
 
+		// clean-up description
+		if (description_.size()) {
+			std::replace(description_.begin(), description_.end(), '-', ' ');
+			std::replace(description_.begin(), description_.end(), '_', ' ');
+		}
+
 		// try file
 		boost::filesystem::path lPath(file_);
 		if (!boost::filesystem::exists(lPath)) {

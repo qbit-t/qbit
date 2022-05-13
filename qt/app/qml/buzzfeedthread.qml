@@ -131,6 +131,7 @@ QuarkPage {
 			if (listen && buzzerClient.buzzerDAppReady) {
 				listen = false;
 				modelLoader.start();
+				buzzSubscribeCommand.process();
 			} else if (buzzerClient.buzzerDAppReady) {
 				modelLoader.processAndMerge(true);
 				buzzSubscribeCommand.process();
