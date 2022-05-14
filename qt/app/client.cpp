@@ -109,6 +109,18 @@ std::string Client::settingsDataPath() {
 	return settings_->dataPath();
 }
 
+std::string Client::getQttAsset() {
+	return gApplication->getQttAsset();
+}
+
+int Client::getQttAssetLockTime() {
+	return gApplication->getQttAssetLockTime();
+}
+
+uint64_t Client::getQttAssetVoteAmount() {
+	return gApplication->getQttAssetVoteAmount();
+}
+
 int Client::open(QString secret) {
 	// setup log
 	if (application_->getDebug()) {

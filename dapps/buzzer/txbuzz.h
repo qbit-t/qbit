@@ -151,19 +151,37 @@ public:
 		std::vector<unsigned char>::iterator lIt = body_.begin();
 		while(lIt != body_.end() && (lIt = std::find(lIt, body_.end(), '#')) != body_.end()) {
 			std::vector<unsigned char> lTag;
-			std::string lStringTag;
-			do {
-				lTag.push_back(::tolower(*lIt)); 
-				lStringTag.push_back(*lIt); lIt++;
-			} while(lIt != body_.end() && 
-						(
-							(*lIt >= 'a' && *lIt <= 'z') || 
-							(*lIt >= 'A' && *lIt <= 'Z') ||
-							(*lIt >= '0' && *lIt <= '9') ||
-							(*lIt == 0x04 && (lIt+1) != body_.end() && *(lIt+1) >= 0x00 && *(lIt+1) <= 0xFF) // fast-russian
-						));
+			std::vector<unsigned char> lStringTag;
 
-			tags[Hash160(lTag.begin(), lTag.end())] = lStringTag;
+			// add #
+			lStringTag.push_back(*lIt);
+			lIt++;
+
+			bool lContinue = true;
+			while(lIt != body_.end() && lContinue) {
+				//
+				if ((*lIt >= 'a' && *lIt <= 'z') || (*lIt >= 'A' && *lIt <= 'Z') || (*lIt >= '0' && *lIt <= '9')) {
+					lStringTag.push_back(*lIt); lIt++;
+				} else if (*lIt >= 0xC2 && *lIt <= 0xDF && (lIt+1) != body_.end() && *(lIt+1) >= 0x00 && *(lIt+1) <= 0xFF) {
+					// utf-8 two-bytes sequence (cyrillic, just in case)
+					lStringTag.push_back(*lIt);
+					lIt++;
+					lStringTag.push_back(*lIt);
+					lIt++;
+
+					//TODO:
+					// C2  |   DF  |  FIRST byte of a 2-bytes sequence
+					// E0  |   EF  |  FIRST byte of a 3-bytes sequence
+					// F0  |   F4  |  FIRST byte of a 4-bytes sequence
+				} else lContinue = false;
+			}
+
+			std::string lStringTagRaw;
+			lStringTagRaw.insert(lStringTagRaw.end(), lStringTag.begin(), lStringTag.end());
+			
+			std::string lPreparedTag = boost::algorithm::to_lower_copy(lStringTagRaw);
+			lTag.insert(lTag.end(), lPreparedTag.begin(), lPreparedTag.end());
+			tags[Hash160(lTag.begin(), lTag.end())] = lStringTagRaw;
 		}
 	}
 

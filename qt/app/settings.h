@@ -31,12 +31,17 @@ public:
 	int clientActivePeers() { return 32; }
 	qbit::qunit_t maxFeeRate() { return qbit::QUNIT * 5; }
 
+	uint256 proofAsset();
+	uint64_t proofAssetLockTime();
+	uint64_t oneVoteProofAmount();
+
 	qbit::ISettingsPtr shared() { return qbit::ISettingsPtr(static_cast<ISettings*>(this)); }
 
 signals:
     void dataChanged();
 
 protected:
+	IClient* client_;
 	std::string path_;
 };
 
@@ -62,7 +67,6 @@ private:
 	std::string getApplicationLogsPath();
 
 private:	
-	IClient* client_;
     bool opened_;
 	bool daemon_ = false;
 };

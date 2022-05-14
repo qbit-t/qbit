@@ -875,7 +875,7 @@ public:
 		//
 		std::vector<std::string> lArgs;
 		lArgs.push_back(gApplication->getQttAsset());
-		command_->process(lArgs);
+		balance_->process(lArgs);
 	}
 
 	Q_INVOKABLE bool reprocess() {
@@ -957,7 +957,7 @@ public:
 		//
 		std::vector<std::string> lArgs;
 		lArgs.push_back(gApplication->getQttAsset());
-		command_->process(lArgs);
+		balance_->process(lArgs);
 	}
 
 	Q_INVOKABLE bool reprocess() {

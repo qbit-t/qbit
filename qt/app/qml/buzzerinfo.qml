@@ -454,6 +454,18 @@ Item
 		}
 	}
 
+	Connections {
+		target: buzzerClient
+
+		function onBuzzerDAppReadyChanged() {
+			createBuzzer.enabled = buzzerClient.buzzerDAppReady;
+		}
+
+		function onBuzzerDAppSuspended() {
+			createBuzzer.enabled = false;
+		}
+	}
+
 	//
 	// Create/update buzzer/buzzer info
 	//
@@ -469,7 +481,7 @@ Item
 		Layout.alignment: Qt.AlignHCenter
 		radius: width / 2 //- 10
 
-		enabled: getEnabled()
+		enabled: true
 
 		Image {
 			id: buzzerStartImage
@@ -563,10 +575,6 @@ Item
 			}
 
 			enabled = false;
-		}
-
-		function getEnabled() {
-			return true;
 		}
 	}
 

@@ -409,8 +409,13 @@ std::string Application::getQttAsset() {
 	return lValue.getString();
 }
 
-int Application::getQttAssetVoteAmount() {
+uint64_t Application::getQttAssetVoteAmount() {
 	qbit::json::Value lValue = appConfig_["qttAssetVoteAmount"];
+	return lValue.getInt();
+}
+
+int Application::getQttAssetLockTime() {
+	qbit::json::Value lValue = appConfig_["qttAssetLockTime"];
 	return lValue.getInt();
 }
 

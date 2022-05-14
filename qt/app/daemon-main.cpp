@@ -124,6 +124,10 @@ public:
 	void settingsToJSON(qbit::json::Value&) {
 	}
 
+	std::string getQttAsset() { return std::string(); }
+	int getQttAssetLockTime() { return 0; }
+	uint64_t getQttAssetVoteAmount() { return 0; }
+
 private:
 	QString locale_;
 	QString theme_;

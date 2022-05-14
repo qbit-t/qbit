@@ -1127,7 +1127,7 @@ TransactionContextPtr LightWallet::createTxFeeAssetLockedChange(const PKey& dest
 	amount_t lLockedAmount = fillInputs(lTx, asset, locked, false, lAssetUtxos);
 
 	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[createTxFeeAssetLockedChange]: creating fee tx: ") + 
-		strprintf("to = %s, fee = %d, locked = %d", const_cast<PKey&>(dest).toString(), fee, locked));
+		strprintf("to = %s, fee = %d, asset = %d, locked = %d", const_cast<PKey&>(dest).toString(), fee, asset.toHex(), locked));
 
 	// fill output
 	SKeyPtr lSChangeKey = changeKey();
@@ -1185,8 +1185,9 @@ TransactionContextPtr LightWallet::createTxFeeAssetLockedChange(const PKey& dest
 		cacheUnlinkedOut(lLockedUtxo);
 	}
 
-	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[createTxFeeLockedChange]: fee tx created: ") + 
-		strprintf("to = %s, amount = [%d/%d] - %d, %d", const_cast<PKey&>(dest).toString(), fee, locked, lAmount, lLockedAmount));
+	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[createTxFeeAssetLockedChange]: fee tx created: ") + 
+		strprintf("to = %s, asset = %s, amount = [%d/%d] - real = [%d/%d]", const_cast<PKey&>(dest).toString(), asset.toHex(),
+			fee, locked, lAmount, lLockedAmount));
 
 	return lCtx;	
 }

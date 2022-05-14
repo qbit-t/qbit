@@ -4,6 +4,7 @@
 #include <QStandardPaths>
 
 #include "settings.h"
+#include "iapplication.h"
 #include "applicationpath.h"
 
 #include "crypto/aes.h"
@@ -12,6 +13,22 @@
 #include <stdio.h>
 
 using namespace buzzer;
+
+uint256 Settings::proofAsset() {
+	if (!client_) return uint256();
+	uint256 lAsset; lAsset.setHex(client_->getQttAsset());
+	return lAsset;
+}
+
+uint64_t Settings::proofAssetLockTime() {
+	if (!client_) return 0;
+	return client_->getQttAssetLockTime();
+}
+
+uint64_t Settings::oneVoteProofAmount() {
+	if (!client_) return 0;
+	return client_->getQttAssetVoteAmount();
+}
 
 Settings* SettingsFactory::get()
 {

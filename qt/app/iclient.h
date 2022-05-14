@@ -11,6 +11,9 @@ class IClient
 public:
 	virtual void settingsFromJSON(qbit::json::Value&) = 0;
 	virtual void settingsToJSON(qbit::json::Value&) = 0;
+	virtual std::string getQttAsset() = 0;
+	virtual int getQttAssetLockTime() = 0;
+	virtual uint64_t getQttAssetVoteAmount() = 0;
 };
 
 } // buzzer

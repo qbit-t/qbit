@@ -24,6 +24,7 @@
 #include "ipeermanager.h"
 #include "ipeer.h"
 
+#include "iapplication.h"
 #include "settings.h"
 #include "../../client/commands.h"
 #include "../../client/commandshandler.h"
@@ -42,7 +43,6 @@
 #include "dapps/buzzer/eventsfeed.h"
 #include "dapps/buzzer/conversationsfeed.h"
 
-#include "iapplication.h"
 #include "buzzfeedlistmodel.h"
 #include "eventsfeedlistmodel.h"
 #include "conversationsfeedlistmodel.h"
@@ -172,6 +172,10 @@ public:
 	QString scale() const { return scale_; }
 
 	double scaleFactor() const { return scaleFactor_; }
+
+	std::string getQttAsset();
+	int getQttAssetLockTime();
+	uint64_t getQttAssetVoteAmount();
 
 	Q_INVOKABLE int open(QString);
     Q_INVOKABLE int openSettings();

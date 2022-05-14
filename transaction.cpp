@@ -91,6 +91,8 @@ bool qbit::TxSpend::finalize(const SKey& skey) {
 			}
 		}
 
+		if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[TxSpend::finalize]: tx amounts: ") + 
+			strprintf("asset = %s, out = %d, in = %d", lGroup->first.toHex(), lOutAmount, lInAmount));
 		if (!(lOutAmount == lInAmount && lOutAmount - lInAmount == 0 && lOutAmount != 0)) return false;
 
 		//

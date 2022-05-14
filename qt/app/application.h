@@ -285,7 +285,11 @@ public:
 		return getQttAssetVoteAmount();
 	}
 
-    Q_INVOKABLE QString getLanguages();
+	Q_INVOKABLE double qttAssetLockTime() {
+		return getQttAssetLockTime();
+	}
+
+	Q_INVOKABLE QString getLanguages();
     Q_INVOKABLE QString getColorSchemes();
 
     Q_INVOKABLE void wakeLock();
@@ -341,7 +345,8 @@ public:
 	bool getTestNet();
 	std::string getPeers();
 	std::string getQttAsset();
-	int getQttAssetVoteAmount();
+	uint64_t getQttAssetVoteAmount();
+	int getQttAssetLockTime();
 
     void emit_fingertipAuthSuccessed(QString);
     void emit_fingertipAuthFailed();
