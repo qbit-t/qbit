@@ -106,6 +106,8 @@ QuarkPage
 	BuzzerCommands.LoadBuzzerInfoCommand {
 		id: infoLoaderCommand
 
+		property var count_: 0;
+
 		onProcessed: {
 			// reset
 			buzzerClient.avatar = "";
@@ -121,6 +123,15 @@ QuarkPage
 		}
 
 		onError: {
+			//
+			console.log("[infoLoaderCommand]: error = " + code + ", message = " + message);
+			//
+			if (code == "E_BUZZER_NOT_FOUND") {
+				if (count_++ < 5) {
+					checkBuzzerInfo.start();
+				} else count_ = 0;
+			}
+
 			handleError(code, message);
 		}
 	}
@@ -135,6 +146,19 @@ QuarkPage
 			//
 			console.log("[checkTrustScore]: checking trust score...");
 			loadTrustScoreCommand.process();
+		}
+	}
+
+	Timer {
+		id: checkBuzzerInfo
+		interval: 1000
+		repeat: false
+		running: false
+
+		onTriggered: {
+			//
+			console.log("[checkBuzzerInfo]: checking buzzer info...");
+			infoLoaderCommand.process();
 		}
 	}
 

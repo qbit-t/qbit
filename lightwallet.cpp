@@ -206,6 +206,7 @@ TransactionContextPtr LightWallet::processTransaction(TransactionPtr tx) {
 			lVM.getR(qasm::QTH0).set(tx->id());
 			lVM.getR(qasm::QTH1).set((unsigned short)tx->type());
 			lVM.getR(qasm::QTH3).set(lIdx); // out number
+			lVM.getR(qasm::QTH4).set(requestProcessor_->locateHeight(MainChain::id())); // current height	
 			lVM.setTransaction(lWrapper);
 			lVM.setWallet(shared_from_this());
 			lVM.setTransactionStore(TxBlockStore::instance());

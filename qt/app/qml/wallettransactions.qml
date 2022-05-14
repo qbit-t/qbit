@@ -46,6 +46,8 @@ Item
 	readonly property int spaceThreadedItems_: 4
 	readonly property real defaultFontSize: 11
 
+	signal timelockReached();
+
 	onWalletModelChanged: {
 		list.model = walletModel;
 	}
@@ -529,6 +531,7 @@ Item
 							//console.log("[directionLabel]: utxo = " + utxo);
 							if (buzzerClient.isTimelockReached(utxo)) {
 								timelockChecher.stop();
+								timelockReached();
 								return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.4");
 							}
 

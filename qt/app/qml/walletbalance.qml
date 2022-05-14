@@ -41,6 +41,7 @@ Item
 	readonly property real defaultFontSize: 11
 
 	function init() {
+		transactions.timelockReached.connect(function() { balanceCommand.process(asset_); });
 		balanceCommand.process(asset_);
 	}
 

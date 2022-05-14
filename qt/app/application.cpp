@@ -606,8 +606,10 @@ void Application::wakeLock()
 {
 	// setWakeLock(ACQUIRE_WAKE_LOCK);
 #ifdef Q_OS_ANDROID
-	QAndroidJniObject window = QtAndroid::androidActivity().callObjectMethod("getWindow", "()Landroid/view/Window;");
-	window.callMethod<void>("addFlags", "(I)V", 0x00000080);
+	QtAndroid::runOnAndroidThread([=]() {
+		QAndroidJniObject window = QtAndroid::androidActivity().callObjectMethod("getWindow", "()Landroid/view/Window;");
+		window.callMethod<void>("addFlags", "(I)V", 0x00000080);
+	});
 #endif
 }
 
@@ -615,8 +617,10 @@ void Application::wakeRelease()
 {
 	// setWakeLock(RELEASE_WAKE_LOCK);
 #ifdef Q_OS_ANDROID
-	QAndroidJniObject window = QtAndroid::androidActivity().callObjectMethod("getWindow", "()Landroid/view/Window;");
-	window.callMethod<void>("clearFlags", "(I)V", 0x00000080);
+	QtAndroid::runOnAndroidThread([=]() {
+		QAndroidJniObject window = QtAndroid::androidActivity().callObjectMethod("getWindow", "()Landroid/view/Window;");
+		window.callMethod<void>("clearFlags", "(I)V", 0x00000080);
+	});
 #endif
 }
 
