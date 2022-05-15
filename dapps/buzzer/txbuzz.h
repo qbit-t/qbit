@@ -179,7 +179,9 @@ public:
 			std::string lStringTagRaw;
 			lStringTagRaw.insert(lStringTagRaw.end(), lStringTag.begin(), lStringTag.end());
 			
-			std::string lPreparedTag = boost::algorithm::to_lower_copy(lStringTagRaw);
+			std::string lPreparedTag(lStringTagRaw); // copy
+			UTFStringToLowerCase((unsigned char*)lPreparedTag.c_str()); // transform
+
 			lTag.insert(lTag.end(), lPreparedTag.begin(), lPreparedTag.end());
 			tags[Hash160(lTag.begin(), lTag.end())] = lStringTagRaw;
 		}

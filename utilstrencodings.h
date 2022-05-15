@@ -244,4 +244,9 @@ constexpr char ToUpper(char c)
  */
 std::string Capitalize(std::string str);
 
+
+/**
+ */
+unsigned char* UTFStringToLowerCase(unsigned char*);
+
 #endif // QBIT_UTIL_STRENCODINGS_H

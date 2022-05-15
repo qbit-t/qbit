@@ -158,7 +158,7 @@ QuarkPage
 		onTriggered: {
 			//
 			console.log("[checkBuzzerInfo]: checking buzzer info...");
-			infoLoaderCommand.process();
+			infoLoaderCommand.process(buzzerClient.name);
 		}
 	}
 

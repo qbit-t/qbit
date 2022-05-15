@@ -2827,11 +2827,11 @@ void BuzzerLightComposer::CreateTxBuzzerMistrust::utxoByBuzzerLoaded(const std::
 		error_("E_TX_CREATE", ex.what()); return;
 	}
 
-	std::list<Transaction::UnlinkedOutPtr> lFeeUtxos = lFee->tx()->utxos(composer_->settings()->proofAsset()); // we need only proof asset
+	std::list<Transaction::UnlinkedOutPtr> lFeeUtxos = lFee->tx()->utxos(TxAssetType::qbitAsset()); // we need only fees
 	if (lFeeUtxos.size()) {
 		// utxo[0]
 		buzzerMistrustTx_->addIn(*lSKey, *(lFeeUtxos.begin())); // proof asset that was exact we need
-		buzzerMistrustTx_->addFeeOut(*lSKey, TxAssetType::qbitAsset(), lFeeAmount); // to the miner
+		buzzerMistrustTx_->addFeeOut(*lSKey, TxAssetType::qbitAsset(), lFeeAmount);
 
 		// just for info
 		buzzerMistrustTx_->setAmount(lLockedAmount);

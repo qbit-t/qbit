@@ -801,11 +801,11 @@ Item {
 			if (code === "E_CHAINS_ABSENT") return;
 			if (message === "UNKNOWN_REFTX" || code == "E_TX_NOT_SENT") {
 				//buzzerClient.resync();
-				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.UNKNOWN_REFTX"));
-			} else if (message === "E_INSUFFICIENT_QTT_BALANCE") {
-				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_INSUFFICIENT_QTT_BALANCE"));
+				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.UNKNOWN_REFTX"), true);
+			} else if (code === "E_INSUFFICIENT_QTT_BALANCE") {
+				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_INSUFFICIENT_QTT_BALANCE"), true);
 			} else {
-				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_ENDORSE"));
+				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_ENDORSE"), true);
 			}
 		}
 	}
@@ -818,11 +818,11 @@ Item {
 		onError: {
 			if (code === "E_CHAINS_ABSENT") return;
 			if (message === "UNKNOWN_REFTX" || code == "E_TX_NOT_SENT") {
-				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.UNKNOWN_REFTX"));
-			} else if (message === "E_INSUFFICIENT_QTT_BALANCE") {
-				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_INSUFFICIENT_QTT_BALANCE"));
+				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.UNKNOWN_REFTX"), true);
+			} else if (code === "E_INSUFFICIENT_QTT_BALANCE") {
+				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_INSUFFICIENT_QTT_BALANCE"), true);
 			} else {
-				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_MISTRUST"));
+				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_MISTRUST"), true);
 			}
 		}
 	}

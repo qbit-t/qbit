@@ -1140,8 +1140,11 @@ void BuzzerTransactionStoreExtension::processEvent(const uint256& id, Transactio
 			// NOTICE: clean-up in selects
 			for (std::map<uint160, std::string>::iterator lTag = lTags.begin(); lTag != lTags.end(); lTag++) {
 				//
+				std::string lLower(lTag->second);
+				UTFStringToLowerCase((unsigned char*)lLower.c_str());
+				//
 				if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: write hash tag ") +
-					strprintf("%s/%s/%s", lTag->first.toHex(), boost::algorithm::to_lower_copy(lTag->second), lTag->second));
+					strprintf("%s/%s/%s", lTag->first.toHex(), lLower, lTag->second));
 
 				hashTagTimeline_.write(
 					lTag->first,
@@ -1169,7 +1172,7 @@ void BuzzerTransactionStoreExtension::processEvent(const uint256& id, Transactio
 				);
 
 				// #lower | #Original
-				hashTags_.write(boost::algorithm::to_lower_copy(lTag->second), lTag->second);
+				hashTags_.write(lLower, lTag->second);
 			}
 		}
 
@@ -3879,7 +3882,8 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedByTag(const std::string& tag
 	std::multimap<uint64_t, BuzzfeedItem::Key> lRawBuzzfeed;
 	std::map<BuzzfeedItem::Key, BuzzfeedItemPtr> lBuzzItems;
 
-	std::string lTag = boost::algorithm::to_lower_copy(tag);
+	std::string lTag(tag); // copy
+	UTFStringToLowerCase((unsigned char*)lTag.c_str()); // transform
 	uint160 lHash = Hash160(lTag.begin(), lTag.end());
 
 	//
@@ -3981,10 +3985,13 @@ void BuzzerTransactionStoreExtension::selectHashTags(const std::string& tag, std
 	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectHashTags]: selecting hash tags for ") +
 		strprintf("tag = %s, chain = %s#", tag, store_->chain().toHex().substr(0, 10)));
 	//
-	db::DbContainer<std::string, std::string>::Iterator lFrom = hashTags_.find(tag);
+	std::string lLower(tag);
+	UTFStringToLowerCase((unsigned char*)lLower.c_str());
+	//
+	db::DbContainer<std::string, std::string>::Iterator lFrom = hashTags_.find(lLower);
 	for (int lCount = 0; lFrom.valid() && feed.size() < 6 && lCount < 100; ++lFrom, ++lCount) {
 		std::string lTag;
-		if (lFrom.first(lTag) && lTag.find(tag) != std::string::npos) {
+		if (lFrom.first(lTag) && lTag.find(lLower) != std::string::npos) {
 			feed.push_back(Buzzer::HashTag(Hash160(lTag.begin(), lTag.end()), *lFrom));
 
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectHashTags]: add hash tag ") +
