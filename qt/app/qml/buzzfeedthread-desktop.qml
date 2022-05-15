@@ -28,6 +28,7 @@ QuarkPage {
 	property var controller;
 	property bool listen: false;
 	property var buzzesThread_;
+	property var mediaPlayerController: buzzerApp.sharedMediaPlayerController()
 
 	readonly property int spaceLeft_: 15
 	readonly property int spaceTop_: 12
@@ -37,6 +38,9 @@ QuarkPage {
 
 	property bool sending: false
 	property bool atTheBottom: false
+
+	// adjust height by virtual keyboard
+	followKeyboard: true
 
 	Connections {
 		target: buzzesThread_
@@ -67,12 +71,21 @@ QuarkPage {
 	}
 
 	function closePage() {
+		//
+		if (mediaPlayerController && mediaPlayerController.isCurrentInstancePlaying()) {
+			mediaPlayerController.disableContinousPlayback();
+			mediaPlayerController.popVideoInstance();
+			mediaPlayerController.showCurrentPlayer();
+		}
+
+		//
 		stopPage();
 		controller.popPage(buzzfeedthread_);
 		destroy(1000);
 	}
 
 	function activatePage() {
+		buzzText.external_ = false;
 		buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Window.background"));
 	}
 
@@ -115,8 +128,13 @@ QuarkPage {
 		}
 
 		function onBuzzerDAppResumed() {
-			if (buzzerClient.buzzerDAppReady) {
-				modelLoader.processAndMerge();
+			if (listen && buzzerClient.buzzerDAppReady) {
+				listen = false;
+				modelLoader.start();
+				buzzSubscribeCommand.process();
+			} else if (buzzerClient.buzzerDAppReady) {
+				modelLoader.processAndMerge(true);
+				buzzSubscribeCommand.process();
 			}
 		}
 	}
@@ -127,7 +145,7 @@ QuarkPage {
 
 		onProcessed: {
 			//
-			console.log("[buzzSubscribeCommand]: processed");
+			console.log("[buzzfeedthread/buzzSubscribeCommand]: processed");
 			var lPeers = buzzSubscribeCommand.peers();
 			for (var lIdx = 0; lIdx < lPeers.length; lIdx++) {
 				console.log(lPeers[lIdx]);
@@ -148,7 +166,7 @@ QuarkPage {
 		property bool dataRequested: false
 
 		onProcessed: {
-			console.log("[buzzfeed]: loaded");
+			console.log("[buzzfeedthread]: loaded");
 			dataReceived = true;
 			dataRequested = false;
 			waitDataTimer.done();
@@ -156,7 +174,7 @@ QuarkPage {
 
 		onError: {
 			// code, message
-			console.log("[buzzfeed/error]: " + code + " | " + message);
+			console.log("[buzzfeedthread/error]: " + code + " | " + message);
 			dataReceived = false;
 			dataRequested = false;
 			waitDataTimer.done();
@@ -267,9 +285,9 @@ QuarkPage {
 		model: buzzesThread_
 
 		// TODO: consumes a lot RAM
-		//cacheBuffer: 10000
-		displayMarginBeginning: 500
-		displayMarginEnd: 500
+		cacheBuffer: 500
+		//displayMarginBeginning: 1000
+		//displayMarginEnd: 1000
 
 		add: Transition {
 			enabled: true
@@ -282,6 +300,70 @@ QuarkPage {
 				var lItem = list.itemAtIndex(lIdx);
 				if (lItem) {
 					lItem.width = list.width;
+				}
+			}
+		}
+
+		property int lastItemCount: -1
+
+		onContentYChanged: {
+			//
+			if (lastItemCount == -1) lastItemCount = list.count;
+			if (lastItemCount == list.count) {
+
+				var lBottomItem = list.itemAtIndex(list.count - 1);
+				if (lBottomItem !== null) {
+					atTheBottom = lBottomItem.isFullyVisible;
+				}
+			}
+
+			lastItemCount = list.count;
+
+			//
+			var lVisible;
+			var lProcessable;
+			var lBackItem;
+			var lForwardItem;
+			var lBeginIdx = list.indexAt(1, contentY);
+			//
+			if (lBeginIdx > -1) {
+				// trace back
+				for (var lBackIdx = lBeginIdx; lBackIdx >= 0; lBackIdx--) {
+					//
+					lBackItem = list.itemAtIndex(lBackIdx);
+					if (lBackItem) {
+						lVisible = lBackItem.y >= list.contentY && lBackItem.y + lBackItem.height < list.contentY + list.height;
+						lProcessable = (lBackItem.y + lBackItem.height) < list.contentY && list.contentY - (lBackItem.y + lBackItem.height) >= (cacheBuffer * 0.7);
+						if (!lProcessable) {
+							lBackItem.forceVisibilityCheck(lVisible);
+						}
+
+						if (lProcessable) {
+							// stop it
+							lBackItem.unbindCommonControls();
+							break;
+						}
+					}
+				}
+
+				// trace forward
+				for (var lForwardIdx = lBeginIdx; lForwardIdx < list.count; lForwardIdx++) {
+					//
+					lForwardItem = list.itemAtIndex(lForwardIdx);
+					if (lForwardItem) {
+						lVisible = lForwardItem.y >= list.contentY && lForwardItem.y + lForwardItem.height < list.contentY + list.height;
+						lProcessable = (lForwardItem.y + lForwardItem.height) > list.contentY + list.height && (lForwardItem.y + lForwardItem.height) - (list.contentY + list.height) >= (cacheBuffer * 0.7);
+						if (!lProcessable) {
+							lForwardItem.forceVisibilityCheck(lVisible);
+						}
+
+						if (lProcessable) {
+							// stop it
+							lForwardItem.unbindCommonControls();
+							// we are done
+							break;
+						}
+					}
 				}
 			}
 		}
@@ -313,6 +395,8 @@ QuarkPage {
 
 					property var buzzItem;
 
+					property bool isFullyVisible: y >= list.contentY && y + height < list.contentY + list.height
+
 					onWidthChanged: {
 						if (buzzItem) {
 							buzzItem.width = list.width;
@@ -320,11 +404,16 @@ QuarkPage {
 						}
 					}
 
+					onHeightChanged: {
+						player.y = list.y + height + 1;
+					}
+
 					Component.onCompleted: {
 						var lSource = "qrc:/qml/buzzitemhead.qml";
 						var lComponent = Qt.createComponent(lSource);
 						buzzItem = lComponent.createObject(headDelegate);
 
+						buzzItem.sharedMediaPlayer_ = buzzfeedthread_.mediaPlayerController;
 						buzzItem.width = list.width;
 						buzzItem.controller_ = buzzfeedthread_.controller;
 						buzzItem.buzzfeedModel_ = buzzesThread_;
@@ -339,6 +428,20 @@ QuarkPage {
 
 					function calculatedHeightModified(value) {
 						headDelegate.height = value;
+						if (atTheBottom)
+							toTheTimer.start();
+					}
+
+					function forceVisibilityCheck(check) {
+						if (buzzItem) {
+							buzzItem.forceVisibilityCheck(check);
+						}
+					}
+
+					function unbindCommonControls() {
+						if (buzzItem) {
+							buzzItem.unbindCommonControls();
+						}
 					}
 				}
 			}
@@ -348,6 +451,20 @@ QuarkPage {
 					id: itemDelegate
 
 					property var buzzItem;
+
+					property bool isFullyVisible: y >= list.contentY && y + height < list.contentY + list.height
+					property bool isCompleted: false
+					property bool isVisible: isCompleted && itemDelegate.y >= list.contentY && itemDelegate.y + height < list.contentY + list.height
+
+					onIsVisibleChanged: {
+						if (isCompleted && itemDelegate !== null && itemDelegate.buzzItem !== null && itemDelegate.buzzItem !== undefined) {
+							try {
+								itemDelegate.buzzItem.forceVisibilityCheck(isVisible);
+							} catch (err) {
+								console.log("[onIsVisibleChanged]: " + err + ", itemDelegate.buzzItem = " + itemDelegate.buzzItem);
+							}
+						}
+					}
 
 					onClicked: {
 						//
@@ -364,6 +481,10 @@ QuarkPage {
 						}
 					}
 
+					Component.onDestruction: {
+						isCompleted = false;
+					}
+
 					Component.onCompleted: {
 						var lSource = "qrc:/qml/buzzitem.qml";
 						if (type === buzzerClient.tx_BUZZER_ENDORSE_TYPE() ||
@@ -374,6 +495,7 @@ QuarkPage {
 						var lComponent = Qt.createComponent(lSource);
 						buzzItem = lComponent.createObject(itemDelegate);
 
+						buzzItem.sharedMediaPlayer_ = buzzfeedthread_.mediaPlayerController;
 						buzzItem.width = list.width;
 						buzzItem.controller_ = buzzfeedthread_.controller;
 						buzzItem.buzzfeedModel_ = buzzesThread_;
@@ -384,16 +506,40 @@ QuarkPage {
 						itemDelegate.width = list.width;
 
 						buzzItem.calculatedHeightModified.connect(itemDelegate.calculatedHeightModified);
+
+						isCompleted = true;
 					}
 
 					function calculatedHeightModified(value) {
 						itemDelegate.height = value;
+					}
+
+					function forceVisibilityCheck(check) {
+						if (buzzItem) {
+							buzzItem.forceVisibilityCheck(check);
+						}
+					}
+
+					function unbindCommonControls() {
+						if (buzzItem) {
+							buzzItem.unbindCommonControls();
+						}
 					}
 				}
 			}
 		}
 
 		delegate: itemChooser
+	}
+
+	//
+	BuzzItemMediaPlayer {
+		id: player
+		x: 0
+		y: (list.y + list.height) - height // bottomLine.y1 + 1
+		width: parent.width
+		mediaPlayerController: buzzfeedthread_.mediaPlayerController
+		overlayParent: list
 	}
 
 	//
@@ -442,6 +588,8 @@ QuarkPage {
 					//
 					var lComponent = null;
 					var lPage = null;
+					//
+					buzzText.external_ = true;
 
 					lComponent = Qt.createComponent("qrc:/qml/buzzeditor-desktop.qml");
 					if (lComponent.status === Component.Error) {

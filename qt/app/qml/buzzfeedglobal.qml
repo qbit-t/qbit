@@ -383,11 +383,7 @@ Item
 		height: parent.height - (buzzerApp.isDesktop ? 0 : search.calculatedHeight)
 		usePull: true
 		clip: true
-
-		// TODO: consumes a lot RAM
 		cacheBuffer: 500
-		//displayMarginBeginning: 1000
-		//displayMarginEnd: 1000
 
 		function adjust() {
 			//
@@ -480,6 +476,15 @@ Item
 			id: itemDelegate
 
 			property var buzzItem;
+			property var targetHeight;
+
+			/*
+			ParallelAnimation {
+				id: heightAnimation
+				running: false
+				NumberAnimation { target: itemDelegate; easing.type: Easing.OutSine; property: "height"; to: targetHeight; duration: 200 }
+			}
+			*/
 
 			onWidthChanged: {
 				if (buzzItem) {
@@ -510,6 +515,8 @@ Item
 
 			function calculatedHeightModified(value) {
 				itemDelegate.height = value;
+				//targetHeight = value;
+				//heightAnimation.start();
 			}
 
 			function bindItem() {

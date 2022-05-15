@@ -31,7 +31,8 @@ QuarkPage {
 	property var buzzesThread_;
 	property var conversation_;
 	property var conversations_;
-	property var messageId_;
+	property var message_;
+	property var mediaPlayerController: buzzerApp.sharedMediaPlayerController()
 
 	//
 	// TODO: recheck!
@@ -52,7 +53,7 @@ QuarkPage {
 	readonly property int sideCounterparty_: 1
 
 	property bool sending: false
-	property bool atTheBottom: false
+	property bool atTheBottom: true
 
 	property bool isCreator_: conversation_ !== undefined &&
 							  buzzerClient.getCurrentBuzzerId() === conversation_.creatorId
@@ -603,13 +604,13 @@ QuarkPage {
 		y: buzzThreadToolBar.y + buzzThreadToolBar.height
 		width: parent.width
 		height: parent.height - (buzzThreadToolBar.y + buzzThreadToolBar.height + messageContainer.height - 1)
-		//contentHeight: 1000
-		usePull: true
+		usePull: false
 		clip: true
+		highlightFollowsCurrentItem: true
+		highlightMoveDuration: -1
+		highlightMoveVelocity: -1
 
-		//cacheBuffer: 10000
-		displayMarginBeginning: 500
-		displayMarginEnd: 500
+		rotation: 180
 
 		model: buzzesThread_
 
@@ -618,12 +619,150 @@ QuarkPage {
 			NumberAnimation { property: "opacity"; from: 0; to: 1.0; duration: 400 }
 		}
 
+		ScrollIndicator.vertical: scrollIndicator
+		//ScrollBar.vertical: scrollBar
+
 		function adjust() {
 			//
 			for (var lIdx = 0; lIdx < list.count; lIdx++) {
 				var lItem = list.itemAtIndex(lIdx);
 				if (lItem) {
 					lItem.width = list.width;
+				}
+			}
+		}
+
+		function toTheBottom() {
+		}
+
+		function toTheMessage(message) {
+			//
+			if (message && buzzesThread_) {
+				// try locate index
+				var lIdx = buzzesThread_.locateIndex(message);
+				console.log("[toTheMessage]: message = " + message + ", index = " + lIdx);
+				if (lIdx >= 0) {
+					list.positionViewAtIndex(lIdx, ListView.Beginning);
+				}
+			}
+		}
+
+		onContentHeightChanged: {
+		}
+
+		function isBottomItemVisible() {
+			var lBottomItem = list.itemAtIndex(model.count - 1);
+			if (lBottomItem) {
+				return lBottomItem.isFullyVisible;
+			}
+
+			return false;
+		}
+
+		function isTopItemVisible() {
+			var lTopItem = list.itemAtIndex(0);
+			if (lTopItem) {
+				return lTopItem.isFullyVisible;
+			}
+
+			return false;
+		}
+
+		function adjustVisible() {
+			//
+			/*
+			for (var lIdx = 0; lIdx < list.count; lIdx++) {
+				var lItem = list.itemAtIndex(lIdx);
+				if (lItem) {
+					lItem.height = lItem.originalHeight;
+				}
+			}
+			*/
+
+			//
+			var lProcessable;
+			var lBackItem;
+			var lForwardItem;
+			var lVisible;
+			var lBeginIdx = list.indexAt(1, contentY);
+			//
+			if (lBeginIdx > -1) {
+				// trace back
+				for (var lBackIdx = lBeginIdx; lBackIdx >= 0; lBackIdx--) {
+					//
+					lBackItem = list.itemAtIndex(lBackIdx);
+					if (lBackItem) {
+						lVisible = lBackItem.y >= list.contentY && lBackItem.y + lBackItem.height < list.contentY + list.height;
+						if (lVisible) {
+							lBackItem.height = lBackItem.originalHeight;
+						}
+					}
+				}
+
+				// trace forward
+				for (var lForwardIdx = lBeginIdx; lForwardIdx < list.count; lForwardIdx++) {
+					//
+					lForwardItem = list.itemAtIndex(lForwardIdx);
+					if (lForwardItem) {
+						lVisible = lForwardItem.y >= list.contentY && lForwardItem.y + lForwardItem.height < list.contentY + list.height;
+						if (lVisible) {
+							lForwardItem.height = lForwardItem.originalHeight;
+						}
+					}
+				}
+			}
+		}
+
+		onContentYChanged: {
+			//
+			atTheBottom = isTopItemVisible();
+			// console.log("[onContentYChanged]: contentY = " + contentY);
+
+			//
+			var lVisible;
+			var lProcessable;
+			var lBackItem;
+			var lForwardItem;
+			var lBeginIdx = list.indexAt(1, contentY);
+			//
+			if (lBeginIdx > -1) {
+				// trace back
+				for (var lBackIdx = lBeginIdx; lBackIdx >= 0; lBackIdx--) {
+					//
+					lBackItem = list.itemAtIndex(lBackIdx);
+					if (lBackItem) {
+						lVisible = lBackItem.y >= list.contentY && lBackItem.y + lBackItem.height < list.contentY + list.height;
+						lProcessable = (lBackItem.y + lBackItem.height) < list.contentY && list.contentY - (lBackItem.y + lBackItem.height) >= (cacheBuffer * 0.9);
+						if (!lProcessable) {
+							lBackItem.forceVisibilityCheck(lVisible);
+						}
+
+						if (lProcessable) {
+							// stop it
+							lBackItem.unbindCommonControls();
+							break;
+						}
+					}
+				}
+
+				// trace forward
+				for (var lForwardIdx = lBeginIdx; lForwardIdx < list.count; lForwardIdx++) {
+					//
+					lForwardItem = list.itemAtIndex(lForwardIdx);
+					if (lForwardItem) {
+						lVisible = lForwardItem.y >= list.contentY && lForwardItem.y + lForwardItem.height < list.contentY + list.height;
+						lProcessable = (lForwardItem.y + lForwardItem.height) > list.contentY + list.height && (lForwardItem.y + lForwardItem.height) - (list.contentY + list.height) >= (cacheBuffer * 0.9);
+						if (!lProcessable) {
+							lForwardItem.forceVisibilityCheck(lVisible);
+						}
+
+						if (lProcessable) {
+							// stop it
+							lForwardItem.unbindCommonControls();
+							// we are done
+							break;
+						}
+					}
 				}
 			}
 		}
@@ -653,13 +792,11 @@ QuarkPage {
 		delegate: Item {
 			id: itemDelegate
 
-			property var buzzItem;
+			rotation: 180
 
-			/*
-			onClicked: {
-				// TODO: actions
-			}
-			*/
+			property var buzzItem;
+			property bool isFullyVisible: y >= list.contentY && y + height < list.contentY + list.height
+			property int originalHeight: 0
 
 			onWidthChanged: {
 				if (buzzItem) {
@@ -676,6 +813,8 @@ QuarkPage {
 				} else {
 					buzzItem = lComponent.createObject(itemDelegate);
 
+					buzzItem.calculatedHeightModified.connect(itemDelegate.calculatedHeightModified);
+					buzzItem.sharedMediaPlayer_ = conversationthread_.mediaPlayerController;
 					buzzItem.accepted_ = conversationState() === conversationAccepted_;
 					buzzItem.width = list.width;
 					buzzItem.controller_ = conversationthread_.controller;
@@ -684,15 +823,118 @@ QuarkPage {
 					buzzItem.conversationId_ = modelLoader.conversationId;
 
 					itemDelegate.height = buzzItem.calculateHeight();
+					itemDelegate.originalHeight = itemDelegate.height;
 					itemDelegate.width = list.width;
-
-					buzzItem.calculatedHeightModified.connect(itemDelegate.calculatedHeightModified);
 				}
 			}
 
 			function calculatedHeightModified(value) {
-				itemDelegate.height = value;
+				//
+				//console.log("[calculatedHeightModified]: value = " + value);
+				itemDelegate.originalHeight = value;
+				itemDelegate.height = value - 1;
+				if (buzzItem.dynamic_) { adjustTimer.start(); }
+
+				// if (buzzItem.dynamic_) adjustTimer.start();
+
+				/*
+				else {
+					if (value > 50) {
+						console.log("[calculatedHeightModified]: value = " + value);
+						adjustTimer.adjustValue = value;
+						adjustTimer.start();
+
+						list.forceLayout();
+					}
+				}
+				*/
+
+				//list.adjustVisible();
+				//adjustTimer.adjustValue = value;
+				//adjustTimer.start();
 			}
+
+			Timer {
+				id: adjustTimer
+				interval: 300
+				repeat: false
+				running: false
+
+				property int adjustValue: 0
+
+				onTriggered: {
+					//list.forceLayout();
+					//itemDelegate.height = adjustValue;
+					list.adjustVisible();
+				}
+			}
+
+			function unbindCommonControls() {
+				if (buzzItem) {
+					buzzItem.unbindCommonControls();
+				}
+			}
+
+			function forceVisibilityCheck(check) {
+				if (buzzItem) {
+					buzzItem.forceVisibilityCheck(check);
+				}
+			}
+		}
+
+		Rectangle {
+			id: viewPort
+			x: 0
+			y: parent.height - conversationsPlayer.height
+			width: parent.width
+			height: conversationsPlayer.height
+			color: "transparent"
+			//rotation: 180
+		}
+	}
+
+	ScrollIndicator {
+		id: scrollIndicator
+		rotation: 180
+		active: true
+		anchors {
+			left: list.left
+			top: list.top
+			bottom: list.bottom
+			leftMargin: list.width - width
+		}
+	}
+
+	//
+	BuzzItemMediaPlayer {
+		id: conversationsPlayer
+		x: 0
+		y: bottomLine.y1
+		width: parent.width
+		mediaPlayerController: conversationthread_.mediaPlayerController
+		overlayParent: list
+		overlayRect: Qt.rect(viewPort.x, viewPort.y, viewPort.width, viewPort.height)
+		inverse: true
+	}
+
+	//
+	QuarkRoundSymbolButton {
+		id: goBottom
+		x: list.width - (width + spaceItems_ * 2)
+		y: list.y + list.height - (height + spaceItems_ * 2)
+
+		symbol: Fonts.arrowBottomSym
+		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 7)) : 18
+		radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius)) : defaultRadius
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.highlight")
+		opacity: 0.6
+
+		enabled: true
+
+		visible: !atTheBottom
+
+		onClick: {
+			list.positionViewAtBeginning();
 		}
 	}
 
@@ -954,8 +1196,20 @@ QuarkPage {
 		running: false
 
 		onTriggered: {
-			list.positionViewAtEnd();
-			atTheBottom = true;
+			//
+			list.toTheBottom();
+		}
+	}
+
+	Timer {
+		id: toTheTimer
+		interval: 500
+		repeat: false
+		running: false
+
+		onTriggered: {
+			//
+			list.toTheMessage(message_);
 		}
 	}
 
@@ -970,6 +1224,13 @@ QuarkPage {
 				modelLoader.restart();
 			} else {
 				listen = true;
+			}
+
+			//
+			var lPlayerController = buzzerApp.sharedMediaPlayerController();
+			if (lPlayerController && lPlayerController.isCurrentInstancePlaying()) {
+				console.log("[onTriggered]: show current player = " + conversationsPlayer);
+				lPlayerController.showCurrentPlayer();
 			}
 		}
 	}

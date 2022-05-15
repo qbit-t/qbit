@@ -292,7 +292,7 @@ Item
 
 			buzzerAvatar_ = decodeURIComponent(lPath);
 
-			createBuzzer.enabled = createBuzzer.getEnabled();
+			//createBuzzer.enabled = createBuzzer.getEnabled();
 		}
 	}
 
@@ -338,7 +338,7 @@ Item
 		onClicked: {
 			buzzerAvatar_ = "";
 			avatarImage.source = "";
-			createBuzzer.enabled = createBuzzer.getEnabled();
+			//createBuzzer.enabled = createBuzzer.getEnabled();
 		}
 	}
 
@@ -369,7 +369,7 @@ Item
 
 		onTextChanged: {
 			buzzerName_ = text;
-			createBuzzer.enabled = createBuzzer.getEnabled();
+			//createBuzzer.enabled = createBuzzer.getEnabled();
 		}
 	}
 
@@ -394,7 +394,7 @@ Item
 
 		onTextChanged: {
 			buzzerAlias_ = text;
-			createBuzzer.enabled = createBuzzer.getEnabled();
+			//createBuzzer.enabled = createBuzzer.getEnabled();
 		}
 	}
 
@@ -418,7 +418,7 @@ Item
 
 		onTextChanged: {
 			buzzerDescription_ = text;
-			createBuzzer.enabled = createBuzzer.getEnabled();
+			//createBuzzer.enabled = createBuzzer.getEnabled();
 		}
 	}
 
@@ -467,7 +467,7 @@ Item
 
 			buzzerHeader_ = decodeURIComponent(lPath);
 
-			createBuzzer.enabled = createBuzzer.getEnabled();
+			//createBuzzer.enabled = createBuzzer.getEnabled();
 		}
 	}
 
@@ -513,7 +513,7 @@ Item
 		onClicked: {
 			buzzerHeader_ = "";
 			headerImage.source = "";
-			createBuzzer.enabled = createBuzzer.getEnabled();
+			//createBuzzer.enabled = createBuzzer.getEnabled();
 		}
 	}
 
@@ -541,6 +541,18 @@ Item
 		}
 	}
 
+	Connections {
+		target: buzzerClient
+
+		function onBuzzerDAppReadyChanged() {
+			createBuzzer.enabled = buzzerClient.buzzerDAppReady;
+		}
+
+		function onBuzzerDAppSuspended() {
+			createBuzzer.enabled = false;
+		}
+	}
+
 	//
 	// Create/update buzzer/buzzer info
 	//
@@ -556,7 +568,7 @@ Item
 		Layout.alignment: Qt.AlignHCenter
 		radius: width / 2 //- 10
 
-		enabled: getEnabled()
+		enabled: true
 
 		Image {
 			id: buzzerStartImage
@@ -646,10 +658,6 @@ Item
 			}
 
 			enabled = false;
-		}
-
-		function getEnabled() {
-			return true;
 		}
 	}
 
@@ -746,7 +754,7 @@ Item
 		onError: {
 			console.log("[error]: code = " + code + ", message = " + message);
 			//
-			createBuzzer.enabled = createBuzzer.getEnabled();
+			createBuzzer.enabled = true;
 
 			waitTimer.stop();
 			progressBar.arcEnd = 0;
@@ -836,7 +844,7 @@ Item
 		onError: {
 			console.log("[error]: code = " + code + ", message = " + message);
 			//
-			createBuzzer.enabled = createBuzzer.getEnabled();
+			createBuzzer.enabled = true;
 
 			waitTimer.stop();
 			progressBar.arcEnd = 0;

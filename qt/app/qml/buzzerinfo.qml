@@ -246,11 +246,11 @@ Item
 				avatarImage.mipmap = false;
 				buzzerAvatar_ = file;
 				avatarImage.source = "file://" + buzzerAvatar_;
-				createBuzzer.enabled = createBuzzer.getEnabled();
+				//createBuzzer.enabled = createBuzzer.getEnabled();
 			} else if (destination == "header") {
 				buzzerHeader_ = file;
 				headerImage.source = "file://" + buzzerHeader_;
-				createBuzzer.enabled = createBuzzer.getEnabled();
+				//createBuzzer.enabled = createBuzzer.getEnabled();
 			}
 
 			selectImage.destination = "none";
@@ -287,7 +287,7 @@ Item
 		onClicked: {
 			buzzerAvatar_ = "";
 			avatarImage.source = "";
-			createBuzzer.enabled = createBuzzer.getEnabled();
+			//createBuzzer.enabled = createBuzzer.getEnabled();
 		}
 	}
 
@@ -317,7 +317,7 @@ Item
 
 		onTextChanged: {
 			buzzerName_ = text;
-			createBuzzer.enabled = createBuzzer.getEnabled();
+			//createBuzzer.enabled = createBuzzer.getEnabled();
 		}
 	}
 
@@ -341,7 +341,7 @@ Item
 
 		onTextChanged: {
 			buzzerAlias_ = text;
-			createBuzzer.enabled = createBuzzer.getEnabled();
+			//createBuzzer.enabled = createBuzzer.getEnabled();
 		}
 	}
 
@@ -364,7 +364,7 @@ Item
 
 		onTextChanged: {
 			buzzerDescription_ = text;
-			createBuzzer.enabled = createBuzzer.getEnabled();
+			//createBuzzer.enabled = createBuzzer.getEnabled();
 		}
 	}
 
@@ -433,7 +433,7 @@ Item
 		onClicked: {
 			buzzerHeader_ = "";
 			headerImage.source = "";
-			createBuzzer.enabled = createBuzzer.getEnabled();
+			//createBuzzer.enabled = createBuzzer.getEnabled();
 		}
 	}
 
@@ -671,7 +671,7 @@ Item
 		onError: {
 			console.log("[error]: code = " + code + ", message = " + message);
 			//
-			createBuzzer.enabled = createBuzzer.getEnabled();
+			createBuzzer.enabled = true;
 
 			waitTimer.stop();
 			progressBar.arcEnd = 0;
@@ -761,7 +761,7 @@ Item
 		onError: {
 			console.log("[error]: code = " + code + ", message = " + message);
 			//
-			createBuzzer.enabled = createBuzzer.getEnabled();
+			createBuzzer.enabled = true;
 
 			waitTimer.stop();
 			progressBar.arcEnd = 0;

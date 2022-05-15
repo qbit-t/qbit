@@ -728,27 +728,9 @@ QuarkPage {
 				}
 			}
 
-			/*
-			PageIndicator {
-				id: mediaIndicator
-				count: mediaModel.count
-				currentIndex: mediaListEditor.currentIndex
-
-				anchors.bottom: parent.top
-				anchors.horizontalCenter: parent.horizontalCenter
-
-				Material.theme: buzzerClient.themeSelector == "dark" ? Material.Dark : Material.Light;
-				Material.accent: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.accent");
-				Material.background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.background");
-				Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground");
-				Material.primary: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.primary");
-			}
-			*/
-
 			QuarkLabel {
 				id: mediaIndicator
-				//x: calculatedWidthInternal - (width + 2 * spaceItems_)
-				//y: spaceStats_ - (height + 3)
+				property var defaultFontSize: 11
 				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 1)) : defaultFontSize + 1
 				text: "0/0"
 				color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")

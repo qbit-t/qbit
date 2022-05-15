@@ -518,12 +518,24 @@ QuarkPage {
 				id: mediaList
 				x: 0
 				y: 0
-				width: mediaBox.width
-				height: mediaBox.height
+				width: parent.width
+				height: parent.height
 				clip: true
 				orientation: Qt.Horizontal
 				layoutDirection:  Qt.LeftToRight
 				snapMode: ListView.SnapOneItem
+
+				cacheBuffer: 100000
+
+				function cleanUp() {
+					//
+					for (var lIdx = 0; lIdx < mediaList.count; lIdx++) {
+						var lItem = mediaList.itemAtIndex(lIdx);
+						if (lItem && lItem.mediaItem) {
+							lItem.mediaItem.terminate();
+						}
+					}
+				}
 
 				onContentXChanged: {
 					mediaIndicator.currentIndex = indexAt(contentX, 1);
@@ -531,7 +543,7 @@ QuarkPage {
 
 				add: Transition {
 					NumberAnimation { property: "opacity"; from: 0; to: 1.0; duration: 400 }
-					//NumberAnimation { property: "height"; from: 0; to: mediaList.width; duration: 400 }
+					//NumberAnimation { property: "height"; from: 0; to: mediaListEditor.width; duration: 400 }
 				}
 
 				remove: Transition {
@@ -545,125 +557,118 @@ QuarkPage {
 
 				model: ListModel { id: mediaModel }
 
-				delegate: Rectangle {
-					//
-					id: imageFrame
-					color: "transparent"
-					width: mediaImage.width + 2 * spaceItems_
-					height: mediaList.height // mediaImage.height
+				delegate: Item {
+					id: itemDelegate
 
-					function adjust() {
-						mediaImage.adjustView();
-					}
+					property var mediaItem;
 
-					Image {
-						id: mediaImage
-						autoTransform: true
-						asynchronous: true
-
-						x: getX()
-						y: getY()
-
-						fillMode: Image.PreserveAspectFit
-						mipmap: true
-
-						source: path
-
-						Component.onCompleted: {
-						}
-
-						function getX() {
-							return parent.width / 2 - width / 2;
-						}
-
-						function getY() {
-							return 0;
-						}
-
-						function adjustView() {
-							width = mediaList.width - 2*spaceItems_;
-							mediaList.height = Math.max(mediaBox.calculatedHeight, height);
-							mediaBox.calculatedHeight = mediaList.height;
-							x = getX();
-						}
-
-						onStatusChanged: {
-							adjustView();
-						}
-
-						layer.enabled: true
-						layer.effect: OpacityMask {
-							id: roundEffect
-							maskSource: Item {
-								width: mediaImage.width // roundEffect.getWidth()
-								height: mediaImage.height // roundEffect.getHeight()
-
-								Rectangle {
-									x: roundEffect.getX()
-									y: roundEffect.getY()
-									width: roundEffect.getWidth()
-									height: roundEffect.getHeight()
-									radius: 8
-								}
-							}
-
-							function getX() {
-								return mediaImage.width / 2 - mediaImage.paintedWidth / 2;
-							}
-
-							function getY() {
-								return 0;
-							}
-
-							function getWidth() {
-								return mediaImage.paintedWidth;
-							}
-
-							function getHeight() {
-								return mediaImage.paintedHeight;
-							}
+					function adjustHeight(proposed) {
+						//
+						if (index === mediaIndicator.currentIndex) {
+							//
+							itemDelegate.height = proposed;
 						}
 					}
 
-					QuarkToolButton	{
-						id: removeButton
-
-						x: (mediaImage.width / 2 - mediaImage.paintedWidth / 2) + mediaImage.paintedWidth - (width + spaceItems_)
-						y: 2 * spaceItems_
-						// Material.background: "transparent"
-						visible: true
-						labelYOffset: buzzerApp.isDesktop ? 0 : 3
-						symbolColor: (!sending || uploaded) ? buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground") :
-														  buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
-						symbol: !uploaded ? Fonts.cancelSym : Fonts.checkedSym
-
-						onClicked: {
-							if (!sending) {
-								mediaList.removeMedia(index);
-							}
+					onWidthChanged: {
+						if (mediaItem) {
+							mediaItem.width = mediaList.width;
+							itemDelegate.height = mediaItem.height;
 						}
 					}
 
-					QuarkRoundProgress {
-						id: mediaUploadProgress
-						x: removeButton.x - 1
-						y: removeButton.y - 1
-						size: removeButton.width + 2
-						colorCircle: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link");
-						colorBackground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link");
-						arcBegin: 0
-						arcEnd: progress
-						lineWidth: buzzerClient.scaleFactor * 3
+					Component.onCompleted: {
+						var lSource = "qrc:/qml/buzzitemmedia-editor-image.qml";
+						if (media === "audio") {
+							lSource = "qrc:/qml/buzzitemmedia-editor-audio.qml";
+						} else if (media === "video") {
+							lSource = "qrc:/qml/buzzitemmedia-editor-video.qml";
+						}
+
+						var lComponent = Qt.createComponent(lSource);
+						mediaItem = lComponent.createObject(itemDelegate);
+						if (media === "video") {
+							mediaItem.adjustDuration.connect(adjustDuration);
+							mediaItem.adjustHeight.connect(adjustHeight);
+						}
+
+						mediaItem.width = list.width;
+						mediaItem.mediaList = mediaList;
+						mediaItem.mediaBox = mediaBox;
+
+						itemDelegate.height = mediaItem.height;
+						itemDelegate.width = mediaList.width;
+					}
+
+					function adjustDuration(value) {
+						//
+						for (var lIdx = 0; lIdx < mediaModel.count; lIdx++) {
+							if(mediaModel.get(lIdx).key === key) {
+								//
+								duration = value;
+								console.log("[adjustDuration]: vale = " + duration);
+							}
+						}
 					}
 				}
 
-				function addMedia(file) {
+				function addMedia(file, info) {
+					var lOrientation = 0; // vertical
+					if (buzzeditor_.width > buzzeditor_.height) lOrientation = 1; // horizontal
+
 					mediaModel.append({
 						key: file,
 						path: "file://" + file,
+						preview: "none",
+						media: "image",
+						size: 0,
+						duration: 0,
 						progress: 0,
 						uploaded: 0,
-						processing: 0 });
+						orientation: lOrientation,
+						processing: 0,
+						description: info});
+
+					positionViewAtEnd();
+				}
+
+				function addAudio(file, duration, info) {
+					var lOrientation = 0; // vertical
+					if (buzzeditor_.width > buzzeditor_.height) lOrientation = 1; // horizontal
+
+					mediaModel.append({
+						key: file,
+						path: "file://" + file,
+						preview: "none",
+						media: "audio",
+						size: 0,
+						duration: duration,
+						progress: 0,
+						uploaded: 0,
+						orientation: lOrientation,
+						processing: 0,
+						description: info});
+
+					positionViewAtEnd();
+				}
+
+				function addVideo(file, duration, orientation, preview, info) {
+					/*
+					var lOrientation = 0; // vertical
+					if (buzzeditor_.width > buzzeditor_.height) lOrientation = 1; // horizontal
+					*/
+					mediaModel.append({
+						key: file,
+						path: "file://" + file,
+						preview: preview,
+						media: "video",
+						size: 0,
+						duration: duration,
+						progress: 0,
+						uploaded: 0,
+						orientation: orientation,
+						processing: 0,
+						description: info});
 
 					positionViewAtEnd();
 				}
@@ -673,24 +678,23 @@ QuarkPage {
 				}
 			}
 
-			PageIndicator {
+			QuarkLabel {
 				id: mediaIndicator
-				count: mediaModel.count
-				currentIndex: mediaList.currentIndex
-				interactive: true
+				property var defaultFontSize: 11
+				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 1)) : defaultFontSize + 1
+				text: "0/0"
+				color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
+				visible: count > 1
 
 				anchors.bottom: parent.top
 				anchors.horizontalCenter: parent.horizontalCenter
 
-				onCurrentIndexChanged: {
-					mediaList.positionViewAtIndex(currentIndex, ListView.Beginning);
-				}
+				property var count: mediaModel.count
+				property var currentIndex: mediaList.currentIndex
 
-				Material.theme: buzzerClient.themeSelector == "dark" ? Material.Dark : Material.Light;
-				Material.accent: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.accent");
-				Material.background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.background");
-				Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground");
-				Material.primary: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.primary");
+				onCurrentIndexChanged: {
+					text = (currentIndex + 1) + "/" + count;
+				}
 			}
 		}
 	}
@@ -828,12 +832,13 @@ QuarkPage {
 
 	QtFileDialog {
 		id: imageListing
-		nameFilters: [ "Image files (*.jpg *.png *.jpeg)" ]
+		nameFilters: [ "Media files (*.jpg *.png *.jpeg *.mp3 *.mp4 *.m4a)" ]
 		selectExisting: true
 		selectFolder: false
 		selectMultiple: false
 
 		onAccepted: {
+			//
 			var lPath = fileUrl.toString();
 			if (Qt.platform.os == "windows") {
 				lPath = lPath.replace(/^(file:\/{3})/,"");
@@ -841,7 +846,29 @@ QuarkPage {
 				lPath = lPath.replace(/^(file:\/{2})/,"");
 			}
 
-			mediaList.addMedia(decodeURIComponent(lPath));
+			//
+			var lFile = decodeURIComponent(lPath);
+			var lPreview = "";
+
+			//
+			if (mediaModel.count < 31) {
+				//
+				var lSize = buzzerApp.getFileSize(lFile);
+				console.log("[onFileSelected]: file = " + lFile + "/" + lSize);
+				//
+				if ((lFile.includes(".mp4") || lFile.includes(".mp3") || lFile.includes(".m4a")) && preview !== "") {
+					mediaList.addVideo(lFile, 0, 0, lPreview, "none");
+				} else if (lFile.includes(".mp3") || lFile.includes(".m4a")) {
+					mediaList.addAudio(lFile, 0, "none");
+				} else if (lFile.includes(".mp4")) {
+					handleError("E_MEDIA_PREVIEW_ABSENT", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_MEDIA_PREVIEW_ABSENT"));
+				} else {
+					//
+					mediaList.addMedia(lFile, "none");
+				}
+			} else {
+				handleError("E_MAX_ATTACHMENTS", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_MAX_ATTACHMENTS"));
+			}
 		}
 	}
 
@@ -997,6 +1024,7 @@ QuarkPage {
 		uploadCommand: uploadBuzzMedia
 
 		onProcessed: {
+			mediaList.cleanUp();
 			createProgressBar.value = 1.0;
 			controller.popPage();
 		}
@@ -1035,6 +1063,7 @@ QuarkPage {
 		model: buzzfeedModel_
 
 		onProcessed: {
+			mediaList.cleanUp();
 			createProgressBar.value = 1.0;
 			controller.popPage();
 		}
@@ -1073,6 +1102,7 @@ QuarkPage {
 		model: buzzfeedModel_ // TODO: implement property buzzChainId (with buzzfeedModel in parallel)
 
 		onProcessed: {
+			mediaList.cleanUp();
 			createProgressBar.value = 1.0;
 			controller.popPage();
 		}
@@ -1110,6 +1140,7 @@ QuarkPage {
 		uploadCommand: uploadBuzzMedia
 
 		onProcessed: {
+			mediaList.cleanUp();
 			createProgressBar.value = 1.0;
 			controller.popPage();
 		}
@@ -1147,6 +1178,9 @@ QuarkPage {
 		var lText = buzzerClient.getPlainText(buzzText.textDocument);
 		if (lText.length === 0) lText = buzzText.preeditText;
 
+		//
+		mediaListcleanUp();
+
 		if (lText.length === 0 && mediaModel.count === 0) {
 			handleError("E_BUZZ_IS_EMPTY", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZ_IS_EMPTY"));
 			sending = false;
@@ -1162,7 +1196,8 @@ QuarkPage {
 		//
 		createProgressBar.indeterminate = true;
 		createProgressBar.visible = true;
-
+		//
+		buzzCommand.clear();
 		//
 		buzzCommand.buzzBody = lText;
 		//
@@ -1172,7 +1207,12 @@ QuarkPage {
 		}
 
 		for (lIdx = 0; lIdx < mediaModel.count; lIdx++) {
-			buzzCommand.addMedia(mediaModel.get(lIdx).key);
+			console.log("[createBuzz/media]: key = " + mediaModel.get(lIdx).key + ", preview = " + mediaModel.get(lIdx).preview);
+			buzzCommand.addMedia(mediaModel.get(lIdx).key + "," +
+								 mediaModel.get(lIdx).duration + "," +
+								 mediaModel.get(lIdx).preview + "," +
+								 mediaModel.get(lIdx).orientation + "," +
+								 mediaModel.get(lIdx).description);
 		}
 
 		buzzCommand.process();
@@ -1183,6 +1223,9 @@ QuarkPage {
 		var lText = buzzerClient.getPlainText(buzzText.textDocument);
 		if (lText.length === 0) lText = buzzText.preeditText;
 
+		//
+		mediaList.cleanUp();
+
 		if (buzzerClient.getBuzzBodySize(lText) >= buzzerClient.getBuzzBodyMaxSize()) {
 			handleError("E_BUZZ_IS_TOO_BIG", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZ_IS_TOO_BIG"));
 			sending = false;
@@ -1192,17 +1235,22 @@ QuarkPage {
 		//
 		createProgressBar.indeterminate = true;
 		createProgressBar.visible = true;
-
+		//
+		rebuzzCommand.clear();
 		//
 		rebuzzCommand.buzzBody = lText;
+		//
 		var lBuzzers = buzzerClient.extractBuzzers(rebuzzCommand.buzzBody);
-
 		for (var lIdx = 0; lIdx < lBuzzers.length; lIdx++) {
 			rebuzzCommand.addBuzzer(lBuzzers[lIdx]);
 		}
 
 		for (lIdx = 0; lIdx < mediaModel.count; lIdx++) {
-			rebuzzCommand.addMedia(mediaModel.get(lIdx).key);
+			rebuzzCommand.addMedia(mediaModel.get(lIdx).key + "," +
+								   mediaModel.get(lIdx).duration + "," +
+								   mediaModel.get(lIdx).preview + "," +
+								   mediaModel.get(lIdx).orientation + "," +
+								   mediaModel.get(lIdx).description);
 		}
 
 		if (buzzId) rebuzzCommand.buzzId = buzzId;
@@ -1215,6 +1263,9 @@ QuarkPage {
 		var lText = buzzerClient.getPlainText(buzzText.textDocument);
 		if (lText.length === 0) lText = buzzText.preeditText;
 
+		//
+		mediaList.cleanUp();
+
 		if (lText.length === 0 && mediaModel.count === 0) {
 			handleError("E_BUZZ_IS_EMPTY", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZ_IS_EMPTY"));
 			sending = false;
@@ -1230,18 +1281,22 @@ QuarkPage {
 		//
 		createProgressBar.indeterminate = true;
 		createProgressBar.visible = true;
-
+		//
+		replyCommand.clear();
 		//
 		replyCommand.buzzBody = lText;
 		//
 		var lBuzzers = buzzerClient.extractBuzzers(replyCommand.buzzBody);
-
 		for (var lIdx = 0; lIdx < lBuzzers.length; lIdx++) {
 			replyCommand.addBuzzer(lBuzzers[lIdx]);
 		}
 
 		for (lIdx = 0; lIdx < mediaModel.count; lIdx++) {
-			replyCommand.addMedia(mediaModel.get(lIdx).key);
+			replyCommand.addMedia(mediaModel.get(lIdx).key + "," +
+								  mediaModel.get(lIdx).duration + "," +
+								  mediaModel.get(lIdx).preview + "," +
+								  mediaModel.get(lIdx).orientation + "," +
+								  mediaModel.get(lIdx).description);
 		}
 
 		if (buzzId) replyCommand.buzzId = buzzId;
@@ -1254,6 +1309,9 @@ QuarkPage {
 		var lText = buzzerClient.getPlainText(buzzText.textDocument);
 		if (lText.length === 0) lText = buzzText.preeditText;
 
+		//
+		mediaList.cleanUp();
+
 		if (lText.length === 0 && mediaModel.count === 0) {
 			handleError("E_BUZZ_IS_EMPTY", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZ_IS_EMPTY"));
 			sending = false;
@@ -1269,7 +1327,8 @@ QuarkPage {
 		//
 		createProgressBar.indeterminate = true;
 		createProgressBar.visible = true;
-
+		//
+		messageCommand.clear();
 		//
 		if (conversation_ !== "") messageCommand.conversation = conversation_;
 		messageCommand.messageBody = lText;
@@ -1280,7 +1339,11 @@ QuarkPage {
 		}
 
 		for (lIdx = 0; lIdx < mediaModel.count; lIdx++) {
-			messageCommand.addMedia(mediaModel.get(lIdx).key);
+			messageCommand.addMedia(mediaModel.get(lIdx).key + "," +
+									mediaModel.get(lIdx).duration + "," +
+									mediaModel.get(lIdx).preview + "," +
+									mediaModel.get(lIdx).orientation + "," +
+									mediaModel.get(lIdx).description);
 		}
 
 		messageCommand.process();
@@ -1288,8 +1351,10 @@ QuarkPage {
 
 	function handleError(code, message) {
 		if (code === "E_CHAINS_ABSENT") return;
-		if (message === "UNKNOWN_REFTX" || code === "E_TX_NOT_SENT") {
-			//buzzerClient.resync();
+		if (message === "UNKNOWN_REFTX" || code === "E_TX_NOT_SENT" ||
+				((code === "E_SENT_TX" || code === "E_UPLOAD_DATA") && message.includes("UNKNOWN_REFTX"))) {
+			// a little tricky, but for now
+			// we need to RE-process failed upload, but now there is no uploads chain recovery present
 			controller.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.UNKNOWN_REFTX"), true);
 		} else {
 			controller.showError(message, true);
