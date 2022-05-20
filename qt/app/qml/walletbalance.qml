@@ -119,7 +119,6 @@ Item
 		}
 	}
 
-
 	//
 	// Asset balance
 	//
@@ -220,7 +219,7 @@ Item
 			 y: assetBackImage.y + spaceItems_
 			 symbol: Fonts.rotateSym
 			 visible: true
-			 labelYOffset: buzzerApp.isDesktop ? 1 : 3
+			 labelYOffset: buzzerApp.isDesktop ? (buzzerClient.scaleFactor > 1.0 ? 1 : 2) : 3
 			 symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
 			 Material.background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.background");
 			 Layout.alignment: Qt.AlignHCenter

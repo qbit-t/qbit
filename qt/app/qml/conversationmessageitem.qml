@@ -48,6 +48,8 @@ Item {
 	property var childrenCount_: childrenCount
 	property var hasPrevSibling_: hasPrevSibling
 	property var hasNextSibling_: hasNextSibling
+	property var hasPrevLink_: hasPrevLink
+	property var hasNextLink_: hasNextLink
 	property var prevSiblingId_: prevSiblingId
 	property var nextSiblingId_: nextSiblingId
 	property var firstChildId_: firstChildId
@@ -58,6 +60,7 @@ Item {
 	property var accepted_: false
 	property bool dynamic_: dynamic
 	property bool onChain_: onChain
+	property bool adjustData_: adjustData
 
 	property var controller_: controller
 	property var listView_
@@ -82,7 +85,9 @@ Item {
 	readonly property real minSpace: 0.2
 	readonly property real defaultFontSize: 11
 
-	property bool myMessage_//: buzzerClient.getCurrentBuzzerId() === buzzerId_
+	property bool myMessage_
+	property bool enableAvatar_: false
+	property bool leftSide_: false
 
 	signal calculatedHeightModified(var value);
 
@@ -108,12 +113,29 @@ Item {
 			// try to decrypt
 			decryptCommand.process(buzzId_);
 		}
+
+		//
+		adjustAvatar();
+	}
+
+	onAdjustData_Changed: {
+		//
+		adjustAvatar();
+	}
+
+	onEnableAvatar_Changed: {
+		//
+		if (enableAvatar_) avatarDownloadCommand.process();
+	}
+
+	onLeftSide_Changed: {
+		//
+		if (enableAvatar_) avatarDownloadCommand.process();
 	}
 
 	onBuzzerId_Changed: {
 		//
 		myMessage_ = buzzerClient.getCurrentBuzzerId() === buzzerId_;
-		//adjust();
 	}
 
 	onMyMessage_Changed: {
@@ -128,6 +150,13 @@ Item {
 
 	Component.onCompleted: {
 		if (!onChain_ && dynamic_) checkOnChain.start();
+	}
+
+	function adjustAvatar() {
+		if (model_) {
+			var lNextBuzzerId = index > 0 ? model_.buzzerId(index - 1) : "";
+			enableAvatar_ = (index == 0 || lNextBuzzerId !== "" && lNextBuzzerId !== buzzerId_);
+		}
 	}
 
 	function calculateHeightInternal() {
@@ -153,11 +182,24 @@ Item {
 
 	function adjust() {
 		//
-		if (width > 0) {
-			backgroundContainer.x = myMessage_ ? messageMetrics.getX(width) : spaceLeft_;
-			backgroundContainer.width = messageMetrics.getWidth(width);
-			buzzItemContainer.x = myMessage_ ? messageMetrics.getX(width) : spaceLeft_;
-			buzzItemContainer.width = messageMetrics.getWidth(width);
+		if (listView_ && width > 0) {
+			//
+			leftSide_ = listView_.width > listView_.height;
+			//
+			if (listView_.width < listView_.height) {
+				backgroundContainer.x = myMessage_ ? messageMetrics.getX(width) : spaceLeft_;
+				backgroundContainer.width = messageMetrics.getWidth(width);
+				buzzItemContainer.x = myMessage_ ? messageMetrics.getX(width) : spaceLeft_;
+				buzzItemContainer.width = messageMetrics.getWidth(width);
+			} else {
+				backgroundContainer.x = avatarImage.x + avatarImage.width + spaceLeft_;
+				backgroundContainer.width = messageMetrics.getWidth(width);
+				buzzItemContainer.x = avatarImage.x + avatarImage.width + spaceLeft_;
+				buzzItemContainer.width = messageMetrics.getWidth(width);
+			}
+
+			//
+			adjustAvatar();
 		}
 	}
 
@@ -269,27 +311,133 @@ Item {
 	}
 
 	//
+	// avatar download
+	//
+
+	BuzzerCommands.DownloadMediaCommand {
+		id: avatarDownloadCommand
+		url: buzzerClient.getBuzzerAvatarUrl(buzzerInfoId_)
+		localFile: buzzerClient.getTempFilesPath() + "/" + buzzerClient.getBuzzerAvatarUrlHeader(buzzerInfoId_)
+		preview: true
+		skipIfExists: true
+
+		onProcessed: {
+			// tx, previewFile, originalFile
+			avatarImage.source = "file://" + previewFile
+		}
+	}
+
+	//
+	// NOTICE: for mobile versions we should consider to use ImageQx
+	//
+	Image { //BuzzerComponents.ImageQx
+		id: avatarImage
+
+		x: spaceLeft_
+		y: backgroundContainer.height - (height)
+
+		width: avatarImage.displayWidth
+		height: avatarImage.displayHeight
+		fillMode: Image.PreserveAspectCrop
+		mipmap: true
+		//radius: avatarImage.displayWidth
+
+		visible: enableAvatar_ && leftSide_
+		enabled: enableAvatar_ && leftSide_
+
+		property bool rounded: true //!
+		property int displayWidth: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 40 : 40
+		property int displayHeight: displayWidth
+
+		autoTransform: true
+
+		layer.enabled: rounded
+		layer.effect: OpacityMask {
+			maskSource: Item {
+				width: avatarImage.displayWidth
+				height: avatarImage.displayHeight
+
+				Rectangle {
+					anchors.centerIn: parent
+					width: avatarImage.displayWidth
+					height: avatarImage.displayHeight
+					radius: avatarImage.displayWidth
+				}
+			}
+		}
+
+		MouseArea {
+			id: buzzerInfoClick
+			anchors.fill: parent
+			cursorShape: Qt.PointingHandCursor
+
+			onClicked: {
+				//
+				controller_.openBuzzfeedByBuzzer(buzzerName_);
+			}
+		}
+	}
+
+	QuarkRoundProgress {
+		id: imageFrame
+		x: avatarImage.x - 2
+		y: avatarImage.y - 2
+		size: avatarImage.displayWidth + 4
+		colorCircle: getColor()
+		colorBackground: "transparent"
+		arcBegin: 0
+		arcEnd: 360
+		lineWidth: buzzerClient.scaleFactor * 2
+		beginAnimation: false
+		endAnimation: false
+
+		visible: enableAvatar_ && leftSide_
+		enabled: enableAvatar_ && leftSide_
+
+		function getColor() {
+			var lScoreBase = buzzerClient.getTrustScoreBase() / 10;
+			var lIndex = score_ / lScoreBase;
+
+			// TODO: consider to use 4 basic colours:
+			// 0 - red
+			// 1 - 4 - orange
+			// 5 - green
+			// 6 - 9 - teal
+			// 10 -
+
+			switch(Math.round(lIndex)) {
+				case 0: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.0");
+				case 1: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.1");
+				case 2: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.2");
+				case 3: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.3");
+				case 4: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.4");
+				case 5: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.5");
+				case 6: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.6");
+				case 7: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.7");
+				case 8: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.8");
+				case 9: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.9");
+				default: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.10");
+			}
+		}
+	}
+
+	//
 	// header info
 	//
 
 	QuarkRoundRectangle {
 		//
 		id: backgroundContainer
-		//x: myMessage_ ? messageMetrics.getX() : spaceLeft_
 		y: spaceItems_
 		color: "transparent"
-					//conversationMessage().length ?
-					//buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden") :
-					//"transparent"
 		backgroundColor: conversationMessage().length ?
 							 (myMessage_ ?
 							 buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.conversation.message.my") :
 							 buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.conversation.message.other")) :
 							 "transparent"
-		//width: messageMetrics.getWidth()
 		height: calculatedHeight - (spaceItems_ + spaceItems_)
-		bottomLeftCorner: myMessage_
-		bottomRightCorner: !myMessage_
+		bottomLeftCorner: leftSide_ ? false : myMessage_
+		bottomRightCorner: leftSide_ ? true : !myMessage_
 		radius: 8
 
 		visible: true
@@ -451,6 +599,7 @@ Item {
 						buzzMediaItem_.width = bodyControl.width;
 						buzzMediaItem_.controller_ = conversationmessageitem_.controller_;
 						buzzMediaItem_.buzzId_ = conversationmessageitem_.buzzId_;
+						buzzMediaItem_.playerKey_ = conversationmessageitem_.conversationId_;
 						buzzMediaItem_.buzzMedia_ = conversationmessageitem_.buzzMedia_;
 						buzzMediaItem_.sharedMediaPlayer_ = conversationmessageitem_.sharedMediaPlayer_;
 						buzzMediaItem_.initialize(key);
@@ -552,8 +701,8 @@ Item {
 		//
 		QuarkLabel {
 			id: agoControl
-			x: parent.width - (width + spaceItems_)
-			y: bodyControl.y + bodyControl.height + (buzzerApp.isDesktop ? spaceHalfItems_ : spaceHalfItems_)
+			x: dynamic_ ? (onChainSymbol.x - (width + spaceItems_)) : (parent.width - (width + spaceItems_))
+			y: bodyControl.y + bodyControl.height + (conversationMessage().length ? spaceHalfItems_ : spaceItems_)
 			text: ago_
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
 			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 3)) : 14
@@ -561,10 +710,11 @@ Item {
 
 		QuarkSymbolLabel {
 			id: onChainSymbol
-			x: (parent.width - (width + (buzzerApp.isDesktop ? spaceHalfItems_ : spaceHalfItems_) + 1)) +
-				(conversationMessage().length ? 0 : 3)
-			y: (buzzerApp.isDesktop ? spaceHalfItems_ : spaceHalfItems_)
-			symbol: !onChain_ ? Fonts.clockSym : Fonts.checkedCircleSym //linkSym
+			//x: agoControl.x - (width + spaceItems_)
+			//y: agoControl.y + 2
+			x: parent.width - (width + spaceItems_)
+			y: bodyControl.y + bodyControl.height + (conversationMessage().length ? spaceHalfItems_ : spaceItems_) + 2
+			symbol: !onChain_ ? Fonts.clockSym : Fonts.checkedCircleSym
 			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 10)) : 12
 			color: !onChain_ ? buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzz.wait.chat") :
 							   buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzz.done.chat");
@@ -604,7 +754,7 @@ Item {
 
 		model: ListModel { id: menuModel }
 
-		Component.onCompleted: prepare()
+		onAboutToShow: prepare()
 
 		onClick: {
 			//

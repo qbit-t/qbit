@@ -53,6 +53,7 @@ Rectangle {
 	property bool instanceLinked: false	
 	property var overlayRect;
 	property bool inverse: false
+	property var key: null
 
 	signal instanceBounded();
 
@@ -168,22 +169,34 @@ Rectangle {
 		//if (showOnChanges) playerShow();
 	}
 
-	function playerShow() {
-		if (mediaPlayer && player) {
+	function playerShow(key) {
+		//
+		if (!mediaPlayer) return;
+		//
+		var lProcess = !key && !mediaPlayer.key || key && mediaPlayer.key === key;
+		if (lProcess && player) {
 			console.log("[playerShow]: player = " + mediaPlayer);
 			mediaPlayer.visible = true;
 		}
 	}
 
-	function playerHide() {
-		if (mediaPlayer) {
+	function playerHide(key) {
+		//
+		if (!mediaPlayer) return;
+		//
+		var lProcess = !key && !mediaPlayer.key || key && mediaPlayer.key === key;
+		if (lProcess) {
 			console.log("[playerHide]: player = " + mediaPlayer);
 			mediaPlayer.visible = false;
 		}
 	}
 
-	function playerToggle() {
-		if (mediaPlayer && player) {
+	function playerToggle(key) {
+		//
+		if (!mediaPlayer) return;
+		//
+		var lProcess = !key && !mediaPlayer.key || key && mediaPlayer.key === key;
+		if (lProcess && player) {
 			console.log("[playerToggle]: mediaPlayer.visible = " + mediaPlayer.visible + ", instance = " + mediaPlayer);
 			mediaPlayer.visible = !mediaPlayer.visible;
 		}
@@ -236,7 +249,7 @@ Rectangle {
 				totalSize.setTotalSize(player.size);
 				playSlider.to = player.duration;
 
-				if (showOnChanges) playerShow();
+				if (showOnChanges) playerShow(key);
 			break;
 		}
 	}
@@ -266,13 +279,14 @@ Rectangle {
 			console.log("[playerDownloadStarted]: ....");
 			mediaLoading.start();
 			mediaLoading.visible = true;
+			//
+			actionButton.symbol = Fonts.cancelSym;
 		}
 	}
 
 	function playerDownloading(pos, size) {
 		//
 		if (mediaLoading) {
-			console.log("[playerDownloading]: ....");
 			mediaLoading.progress(pos, size);
 		}
 	}
@@ -282,6 +296,8 @@ Rectangle {
 		if (mediaLoading) {
 			console.log("[playerDownloadCompleted]: ....");
 			mediaLoading.visible = false;
+			//
+			actionButton.symbol = Fonts.playSym;
 		}
 	}
 
@@ -360,14 +376,24 @@ Rectangle {
 		id: actionButton
 		x: prevButton.visible ? prevButton.x + prevButton.width + spaceItems_: controlsBack.x + 3 * spaceItems_
 		y: controlsBack.y + spaceItems_
-		spaceLeft: symbol === Fonts.arrowDownHollowSym || symbol === Fonts.pauseSym ? 2 :
-					   (symbol === Fonts.playSym || symbol === Fonts.cancelSym ? 3 : 0)
-		spaceTop: 2
+
+		/*
+		spaceLeft: buzzerClient.isDesktop ? (symbol === Fonts.playSym ? (buzzerClient.scaleFactor * 2) : 0) :
+					(symbol === Fonts.arrowDownHollowSym || symbol === Fonts.pauseSym) ?
+						2 : (symbol === Fonts.playSym || symbol === Fonts.cancelSym ? 3 : 0)
+		spaceTop: buzzerApp.isDesktop ? 0 : 2
+		*/
+
 		symbol: player ? (player.playing ? Fonts.pauseSym : Fonts.playSym) : Fonts.playSym
 		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 7)) : 18
 		radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius)) : defaultRadius
 		color: buzzerApp.getColor(gallery ? galleryTheme : buzzerClient.theme, gallery ? gallerySelector : buzzerClient.themeSelector, "Material.menu.highlight")
 		opacity: 1.0
+
+		onSymbolChanged: {
+			if (symbol !== Fonts.playSym) spaceLeft = 0;
+			else spaceLeft = buzzerClient.scaleFactor * 2;
+		}
 
 		onClick: {
 			//
@@ -420,8 +446,8 @@ Rectangle {
 		id: closeButton
 		x: controlsBack.width - (closeButton.width + spaceItems_)
 		y: controlsBack.y + spaceItems_
-		spaceLeft: 2
-		spaceTop: 2
+		spaceLeft: buzzerClient.isDesktop ? buzzerClient.scaleFactor : 2
+		spaceTop: buzzerClient.isDesktop ? buzzerClient.scaleFactor : 2
 		symbol: Fonts.cancelSym
 		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 10)) : 18
 		radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius)) : defaultRadius
@@ -462,7 +488,7 @@ Rectangle {
 		x: nextButton.visible ? (nextButton.x + nextButton.width + 2*spaceItems_ + (caption.visible ? 3 : 0)) :
 								(actionButton.x + actionButton.width + 2*spaceItems_ + (caption.visible ? 3 : 0))
 		y: actionButton.y + (caption.visible ? caption.height + 3 : spaceItems_)
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - (caption.visible ? 3 : 0))) : 11
 		text: "00:00"
 		opacity: 1.0
 		color: buzzerApp.getColor(gallery ? galleryTheme : buzzerClient.theme, gallery ? gallerySelector : buzzerClient.themeSelector, "Material.foreground")
@@ -476,7 +502,7 @@ Rectangle {
 		id: totalTime
 		x: elapsedTime.x + elapsedTime.width
 		y: elapsedTime.y
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - (caption.visible ? 3 : 0))) : 11
 		text: player ? (player.duration ? ("/" + DateFunctions.msToTimeString(player.duration)) : "/00:00") : "/00:00"
 		opacity: 1.0
 		color: buzzerApp.getColor(gallery ? galleryTheme : buzzerClient.theme, gallery ? gallerySelector : buzzerClient.themeSelector, "Material.foreground")
@@ -490,7 +516,7 @@ Rectangle {
 		id: totalSize
 		x: totalTime.x + totalTime.width
 		y: elapsedTime.y
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - (caption.visible ? 3 : 0))) : 11
 		text: ", 0k"
 		visible: player && player.size !== 0 || false
 		opacity: 1.0
@@ -507,7 +533,7 @@ Rectangle {
 		id: playSlider
 		x: nextButton.visible ? nextButton.x + nextButton.width + spaceItems_ :
 								actionButton.x + actionButton.width + spaceItems_
-		y: actionButton.y + actionButton.height - (height - 3 * spaceItems_)
+		y: actionButton.y + actionButton.height - (height - 3 * spaceItems_) + (buzzerApp.isDesktop && caption.visible ? 3 : 0)
 		from: 0
 		to: 1
 		orientation: Qt.Horizontal
@@ -527,9 +553,9 @@ Rectangle {
 
 	QuarkRoundProgress {
 		id: mediaLoading
-		x: actionButton.x - 2
-		y: actionButton.y - 2
-		size: buzzerClient.scaleFactor * (actionButton.width + 4)
+		x: actionButton.x - buzzerClient.scaleFactor * 2
+		y: actionButton.y - buzzerClient.scaleFactor * 2
+		size: actionButton.width + buzzerClient.scaleFactor * 4
 		colorCircle: buzzerApp.getColor(gallery ? galleryTheme : buzzerClient.theme, gallery ? gallerySelector : buzzerClient.themeSelector, "Material.link");
 		colorBackground: buzzerApp.getColor(gallery ? galleryTheme : buzzerClient.theme, gallery ? gallerySelector : buzzerClient.themeSelector, "Material.link");
 		arcBegin: 0

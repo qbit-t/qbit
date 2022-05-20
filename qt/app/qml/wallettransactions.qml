@@ -361,7 +361,7 @@ Item
 							return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.event.reply");
 						} else if (parentType === buzzerClient.tx_BUZZER_MISTRUST_TYPE()) {
 							return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.event.mistrust");
-						} else if (parentType === buzzerClient.tx_BUZZER_ENDORSE_TYPE()) {
+						} else if (parentType === buzzerClient.tx_BUZZER_ENDORSE_TYPE() || parentType === buzzerClient.tx_BUZZ_REWARD_TYPE()) {
 							return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.event.endorse");
 						} else if (parentType === buzzerClient.tx_BUZZER_TYPE()) {
 							return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.event.buzzer");
@@ -408,6 +408,8 @@ Item
 							return "Chat";
 						} else if (parentType === buzzerClient.tx_BUZZER_MESSAGE() || parentType === buzzerClient.tx_BUZZER_MESSAGE_REPLY()) {
 							return "Message";
+						} else if (parentType === buzzerClient.tx_BUZZ_REWARD_TYPE()) {
+							return "Reward";
 						}
 
 						return parentType;

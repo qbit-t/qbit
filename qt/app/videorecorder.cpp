@@ -237,6 +237,8 @@ bool VideoRecorder::savePreview() {
 			QTransform lMatrix;
 
 			lMatrix.translate(lCenter.x(), lCenter.y());
+
+#if !defined(DESKTOP_PLATFORM)
 			if (lInfo.orientation() == 270 && (orientation_ == QOrientationReading::TopUp || orientation_ == QOrientationReading::FaceUp)) {
 				lMatrix.rotate(90);
 				unifiedOrientation_ = 6;
@@ -263,6 +265,7 @@ bool VideoRecorder::savePreview() {
 				unifiedOrientation_ = 3;
 				emit unifiedOrientationChanged();
 			}
+#endif
 
 			QImage lNewImage = preview_->transformed(lMatrix);
 			lSaved = lNewImage.save(lPreview, "JPG", 80);
@@ -270,7 +273,9 @@ bool VideoRecorder::savePreview() {
 			lSaved = preview_->save(lPreview, "JPG", 80);
 		}
 
+#if !defined(DESKTOP_PLATFORM)
 		qInfo() << "[VideoRecorder::actualLocationChanged]:" << lPreview << lSaved << lInfo.orientation() << orientation_ << unifiedOrientation_;
+#endif
 
 		previewLocation_ = lPreview;
 		emit previewLocationChanged();

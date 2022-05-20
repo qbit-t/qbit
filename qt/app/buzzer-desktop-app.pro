@@ -6,7 +6,7 @@ QT += multimedia multimediawidgets qml quick quickcontrols2 widgets quickwidgets
 CONFIG += c++11
 CONFIG += static
 
-VERSION = 0.1.4.21
+VERSION = 0.1.5.59
 DEFINES += VERSION_STRING=\\\"$${VERSION}\\\"
 DEFINES += QT_ENVIRONMENT
 DEFINES += HAVE_CONFIG_H
@@ -17,8 +17,8 @@ DEFINES += DESKTOP_PLATFORM
 # Version
 DEFINES += QBIT_VERSION_MAJOR=0
 DEFINES += QBIT_VERSION_MINOR=1
-DEFINES += QBIT_VERSION_REVISION=4
-DEFINES += QBIT_VERSION_BUILD=21
+DEFINES += QBIT_VERSION_REVISION=5
+DEFINES += QBIT_VERSION_BUILD=59
 
 DEFINES += BUZZER_MOD
 DEFINES += CUBIX_MOD
@@ -93,8 +93,15 @@ SOURCES += \
     peerslistmodel.cpp \
     pushdesktopnotification.cpp \
     settings.cpp \
-    wallettransactionslistmodel.cpp \
-	websourceinfo.cpp
+	videoframesprovider.cpp \
+	videorecorder.cpp \
+	videosurface.cpp \
+	wallettransactionslistmodel.cpp \
+	websourceinfo.cpp \
+	imageqx.cpp \
+	imageqxloader.cpp \
+	imageqxnode.cpp \
+	shareutils.cpp
 
 SUBDIRS += \
     ../../client \
@@ -191,6 +198,8 @@ DISTFILES += \
     qml/buzzerinfo-desktop.qml \
     qml/buzzertoolbar-desktop.qml \
     qml/buzzfeedthread-desktop.qml \
+    qml/buzzitemmedia-editor-image-desktop.qml \
+    qml/buzzitemmedia-editor-video-desktop.qml \
     qml/buzzitemurl-desktop.qml \
     qml/conversationthread-desktop.qml \
     qml/setupaskqbit-desktop.qml \
@@ -243,8 +252,15 @@ HEADERS += \
 	../../client/dapps/cubix/cubixcommands.h \
 	../../client/dapps/cubix/cubixcomposer.h \
 	../../client/commands.h \
-    wallettransactionslistmodel.h \
-	websourceinfo.h
+	videoframesprovider.h \
+	videorecorder.h \
+	videosurface.h \
+	wallettransactionslistmodel.h \
+	websourceinfo.h \
+	imageqx.h \
+	imageqxloader.h \
+	imageqxnode.h \
+	shareutils.h
 
 RESOURCES += \
     $$files(../fonts/*) \

@@ -57,7 +57,10 @@ const char APP_NAME[] = { "buzzer-app" };
 const char APP_NAME[] = { "buzzer-desktop-app" };
 #endif
 
+#include <QMouseEvent>
+#include <QWheelEvent>
 #include <QKeyEvent>
+
 class KeyEmitter : public QObject
 {
 	Q_OBJECT
@@ -206,6 +209,8 @@ public:
 
 		return QString("file://") + lMediaPath.toString();
 #endif
+
+		return QString();
 	}
 
 	bool isDesktop() {
@@ -221,7 +226,19 @@ public:
     QNetworkAccessManager* getNetworkManager() { return networkManager_; }
 	QQuickWindow* view() { return view_; }
 
-    Q_INVOKABLE QString getDeviceInfo();
+	Q_INVOKABLE void sendWheelEvent(QObject* tf, qreal posX, qreal posY, qreal gposX, qreal gposY, int pixelDelta, int angleDelta, Qt::MouseButtons buttons, Qt::KeyboardModifiers modifiers, bool inverted) {
+		QWheelEvent lEvent = QWheelEvent(QPointF(posX, posY), QPointF(gposX, gposY), QPoint(0, pixelDelta), QPoint(0, angleDelta),
+										 buttons, modifiers, Qt::ScrollPhase::ScrollMomentum,
+										 inverted, Qt::MouseEventSynthesizedByApplication);
+		QCoreApplication::sendEvent(tf, &lEvent);
+	}
+
+	Q_INVOKABLE void sendMousePressedEvent(QObject* tf, qreal posX, qreal posY, qreal gposX, qreal gposY, Qt::MouseButton button, Qt::MouseButtons buttons, Qt::KeyboardModifiers modifiers) {
+		QMouseEvent lEvent = QMouseEvent(QEvent::Type::MouseButtonPress, QPointF(posX, posY), QPointF(gposX, gposY), button, buttons, modifiers);
+		QCoreApplication::sendEvent(tf, &lEvent);
+	}
+
+	Q_INVOKABLE QString getDeviceInfo();
 
 	Q_INVOKABLE int getFileSize(QString file) {
 		QString lFile = file;
@@ -253,7 +270,21 @@ public:
 		return lInfo.fileName();
 	}
 
-    Q_INVOKABLE void makeNetworkAccesible() { networkManager_->setNetworkAccessible(QNetworkAccessManager::Accessible); }
+	Q_INVOKABLE QString getFileNameAsDescription(QString file) {
+		QString lFile = file;
+		if (lFile.startsWith("qrc:/")) lFile = file.mid(3);
+		else if (lFile.startsWith("file://")) lFile = file.mid(7);
+
+		QFileInfo lInfo(lFile);
+		QString lDescription = lInfo.fileName();
+		lDescription.replace(QChar('-'), QChar(' '));
+		lDescription.replace(QChar('_'), QChar(' '));
+
+		int lLastDot = lDescription.lastIndexOf(QChar('.'));
+		return lDescription.left(lLastDot);
+	}
+
+	Q_INVOKABLE void makeNetworkAccesible() { networkManager_->setNetworkAccessible(QNetworkAccessManager::Accessible); }
 
     Q_INVOKABLE void lockPortraitOrientation();
     Q_INVOKABLE void lockLandscapeOrientation();

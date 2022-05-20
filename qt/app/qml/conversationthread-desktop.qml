@@ -1230,7 +1230,7 @@ QuarkPage {
 			var lPlayerController = buzzerApp.sharedMediaPlayerController();
 			if (lPlayerController && lPlayerController.isCurrentInstancePlaying()) {
 				console.log("[onTriggered]: show current player = " + conversationsPlayer);
-				lPlayerController.showCurrentPlayer();
+				lPlayerController.showCurrentPlayer(null);
 			}
 		}
 	}
@@ -1288,7 +1288,7 @@ QuarkPage {
 
 		model: ListModel { id: menuModel }
 
-		Component.onCompleted: prepare()
+		onAboutToShow: prepare()
 
 		onClick: {
 			// key, activate

@@ -27,13 +27,14 @@ Item {
 
 	//
 	signal newInstanceCreated(var instance, var prev);
-	signal showCurrentPlayer();
-	signal hideCurrentPlayer();
-	signal toggleCurrentPlayer();
+	signal showCurrentPlayer(var key);
+	signal hideCurrentPlayer(var key);
+	signal toggleCurrentPlayer(var key);
 
 	signal playbackDownloadStarted();
 	signal playbackDownloading(var pos, var size);
 	signal playbackDownloadCompleted();
+	signal cancelDownload();
 
 	//
 	function continueCreateInstance() {

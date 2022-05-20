@@ -106,7 +106,7 @@ Rectangle {
 	color: "transparent"
 	width: parent.width
 	height: parent.height
-	radius: 8
+	clip: true
 
 	BuzzerComponents.ImageQx {
 		id: mediaImage
@@ -130,22 +130,60 @@ Rectangle {
 			//
 			var lRatioH = (originalHeight * 1.0) / (originalWidth * 1.0);
 			var lRatioW = (originalWidth * 1.0) / (originalHeight * 1.0);
+
 			//
-			if (calculatedHeight > calculatedWidth && lRatioH < 2 || lRatioW > 2 /*&& originalHeight < calculatedHeight * 2*/) {
-				var lCoeffW = (calculatedWidth * 1.0) / (originalWidth * 1.0)
-				var lWidth = originalWidth * 1.0;
-				width = lWidth * lCoeffW;
+			var lCoeffW;
+			var lWidth;
+			var lHeightW;
+			var lCoeffH;
+			var lHeight;
+			var lWidthH;
 
-				//var lCoeffH = (calculatedHeight * 1.0) / (originalHeight * 1.0)
-				var lHeightW = originalHeight * 1.0;
-				height = lHeightW * lCoeffW;
+			//
+			if (buzzerApp.isDesktop) {
+				//
+				lCoeffW = (calculatedWidth * 1.0) / (originalWidth * 1.0);
+				lCoeffH = (calculatedHeight * 1.0) / (originalHeight * 1.0);
+
+				//console.log("lRatioH = " + lRatioH + ", lCoeffH = " + lCoeffH +
+				//			", lRatioW = " + lRatioW + ", lCoeffW = " + lCoeffW);
+
+				// 1)
+				// +---------------+
+				// |               |
+				// +---------------+
+
+				if (lRatioH < 1.0 && lCoeffW < lCoeffH) {
+					lWidth = originalWidth * 1.0;
+					width = lWidth * lCoeffW;
+
+					lHeightW = originalHeight * 1.0;
+					height = lHeightW * lCoeffW;
+				} else {
+					lHeight = originalHeight * 1.0;
+					height = lHeight * lCoeffH;
+
+					lWidthH = originalWidth * 1.0;
+					width = lWidthH * lCoeffH;
+				}
+
 			} else {
-				var lCoeffH = (calculatedHeight * 1.0) / (originalHeight * 1.0)
-				var lHeight = originalHeight * 1.0;
-				height = lHeight * lCoeffH;
+				if (calculatedHeight > calculatedWidth && lRatioH < 2 || lRatioW > 2 /*&& originalHeight < calculatedHeight * 2*/) {
+					lCoeffW = (calculatedWidth * 1.0) / (originalWidth * 1.0)
+					lWidth = originalWidth * 1.0;
+					width = lWidth * lCoeffW;
 
-				var lWidthH = originalWidth * 1.0;
-				width = lWidthH * lCoeffH;
+					//var lCoeffH = (calculatedHeight * 1.0) / (originalHeight * 1.0)
+					lHeightW = originalHeight * 1.0;
+					height = lHeightW * lCoeffW;
+				} else {
+					lCoeffH = (calculatedHeight * 1.0) / (originalHeight * 1.0)
+					lHeight = originalHeight * 1.0;
+					height = lHeight * lCoeffH;
+
+					lWidthH = originalWidth * 1.0;
+					width = lWidthH * lCoeffH;
+				}
 			}
 		}
 
@@ -218,6 +256,13 @@ Rectangle {
 		}
 	}
 
+	WheelHandler {
+		id: wheelHandler
+		target: mediaImage
+		property: "scale"
+		enabled: buzzerApp.isDesktop
+	}
+
 	PinchHandler {
 		id: pinchHandler
 		minimumRotation: 0
@@ -225,6 +270,7 @@ Rectangle {
 		minimumScale: 1.0
 		maximumScale: 10.0
 		target: mediaImage
+		enabled: !buzzerApp.isDesktop
 
 		onActiveChanged: {
 			//dragArea.enabled = !active;
@@ -311,7 +357,7 @@ Rectangle {
 
 		model: ListModel { id: menuModel }
 
-		Component.onCompleted: prepare()
+		onAboutToShow: prepare()
 
 		onClick: {
 			//
@@ -339,15 +385,17 @@ Rectangle {
 				keySymbol: Fonts.arrowDownHollowSym,
 				name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.gallery.media.reload")});
 
-			menuModel.append({
-				key: "share",
-				keySymbol: Fonts.shareSym,
-				name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.gallery.media.share")});
+			if (!buzzerApp.isDesktop) {
+				menuModel.append({
+					key: "share",
+					keySymbol: Fonts.shareSym,
+					name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.gallery.media.share")});
 
-			menuModel.append({
-				key: "copyToDownload",
-				keySymbol: Fonts.downloadSym,
-				name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.gallery.media.copyToDownload")});
+				menuModel.append({
+					key: "copyToDownload",
+					keySymbol: Fonts.downloadSym,
+					name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.gallery.media.copyToDownload")});
+			}
 		}
 	}
 

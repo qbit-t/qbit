@@ -42,13 +42,22 @@ Item
 
 	Component.onCompleted: list.prepare()
 
+	onWidthChanged: {
+		if (buzzerApp.isDesktop) {
+			list.adjustItems();
+		}
+	}
+
 	Rectangle {
 		id: walletIndicatorBackground
-		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.statusBar")
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, /*buzzerApp.isDesktop ? "Page.background" :*/
+																										"Page.statusBar")
 		x: 0
-		y: 0
+		y: buzzerApp.isDesktop ? (-1) * (height + 2) : 0
 		width: parent.width
 		height: walletIndicator.height
+
+		visible: !buzzerApp.isDesktop
 	}
 
 	PageIndicator {
@@ -57,7 +66,7 @@ Item
 		currentIndex: list.currentIndex
 
 		x: parent.width / 2 - width / 2
-		y: 0
+		y: buzzerApp.isDesktop ? (-1) * (height + 2) : 0
 
 		Material.theme: buzzerClient.themeSelector == "dark" ? Material.Dark : Material.Light;
 		Material.accent: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.accent");
@@ -74,9 +83,9 @@ Item
 		id: list
 
 		x: 0
-		y: walletIndicator.y + walletIndicator.height
+		y: buzzerApp.isDesktop ? 0 : walletIndicator.y + walletIndicator.height
 		width: parent.width
-		height: parent.height - (walletIndicator.y + walletIndicator.height)
+		height: buzzerApp.isDesktop ? parent.height : parent.height - (walletIndicator.y + walletIndicator.height)
 
 		clip: true
 		orientation: Qt.Horizontal
@@ -89,6 +98,17 @@ Item
 			//
 			if (contentX == 0) walletIndicator.currentIndex = 0;
 			else walletIndicator.currentIndex = list.indexAt(list.contentX, 0);
+		}
+
+		function adjustItems() {
+			//
+			for (var lIdx = 0; lIdx < list.count; lIdx++) {
+				var lItem = list.itemAtIndex(lIdx);
+				if (lItem) {
+					lItem.width = list.width;
+					lItem.walletItem.adjustWidth(list.width);
+				}
+			}
 		}
 
 		delegate: Rectangle {

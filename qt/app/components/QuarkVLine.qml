@@ -1,5 +1,6 @@
 // QuarkHLine.qml
 
+/*
 import QtQuick 2.15
 import QtQuick.Shapes 1.15
 
@@ -20,5 +21,14 @@ Shape {
 		startY: y1
 		PathLine { x: x2; y: y2 }
 	}
+}
+*/
+
+import QtQuick 2.11
+import app.buzzer.components 1.0 as QuarkComponents
+
+QuarkComponents.Line
+{
+	id: hLine
 }
 

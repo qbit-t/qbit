@@ -27,33 +27,28 @@ Rectangle
 	property bool enabled: true
 	property real defaultRadius: 25
 	property string textColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
+	property bool enableShadow: false
 
 	signal click();
-
-	/*
-	TextMetrics {
-		id: textMetrics
-		text: frame.text
-		font.pointSize: fontPointSize
-	}
-	*/
 
 	radius: defaultRadius
 	width: radius * 2
 	height: radius * 2
 	color: enabled ? Material.buttonColor : Material.buttonDisabledColor
 
-	QuarkSymbolLabel {
-		id: label
-		anchors.centerIn: innerFrame
-		leftPadding: spaceLeft
-		topPadding: spaceTop
-		//x: frame.spaceLeft
-		//y: frame.spaceTop
-		//width: textMetrics.boundingRect.width
-		color: frame.textColor
-		symbol: frame.symbol
-		font.pointSize: fontPointSize
+	Item {
+		anchors.fill: innerFrame
+		anchors.leftMargin: spaceLeft
+		QuarkSymbolLabel {
+			id: label
+			anchors.fill: parent
+			color: frame.textColor
+			symbol: frame.symbol
+			font.pointSize: fontPointSize
+
+			horizontalAlignment: Text.AlignHCenter
+			verticalAlignment: Text.AlignVCenter
+		}
 	}
 
 	Rectangle
@@ -127,6 +122,14 @@ Rectangle
 	Material.background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.background");
 	Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground");
 	Material.primary: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.primary");
+
+	layer.enabled: enableShadow
+	layer.effect: QuarkElevationEffect {
+		elevation: 5
+		explicitRadius: radius / 2
+		explicitHeight: height + (height * 15) / 100
+		explicitWidth: width + (width * 15) / 100
+	}
 }
 
 

@@ -176,6 +176,15 @@ Item
 
 			property var buzzItem;
 
+			hoverEnabled: buzzerApp.isDesktop
+			onHoveredChanged: {
+				if (eventsfeed_.mediaPlayerController &&
+						(eventsfeed_.mediaPlayerController.isCurrentInstancePlaying() ||
+										   eventsfeed_.mediaPlayerController.isCurrentInstancePaused())) {
+					eventsfeed_.mediaPlayerController.showCurrentPlayer(null);
+				}
+			}
+
 			onClicked: {
 				// open thread
 				var lComponent = null;

@@ -331,7 +331,7 @@ QuarkPage
 			}
 
 			if (globalMediaPlayerController.isCurrentInstancePlaying()) {
-				globalMediaPlayerController.showCurrentPlayer();
+				globalMediaPlayerController.showCurrentPlayer(null);
 			}
 		}
 

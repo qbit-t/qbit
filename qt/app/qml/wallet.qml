@@ -28,6 +28,14 @@ Item
 		walletSend.init();
 	}
 
+	function adjustWidth(width) {
+		walletBar.width = width;
+		walletPages.width = width;
+		walletBalance.width = width;
+		walletReceive.width = width;
+		walletSend.width = width;
+	}
+
 	TabBar {
 		id: walletBar
 		x: 0

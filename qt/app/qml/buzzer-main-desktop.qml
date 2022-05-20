@@ -88,11 +88,11 @@ QuarkPage
 		target: buzzerClient
 
 		function onCacheReadyChanged() {
-			loadTrustScoreCommand.process();
+			infoLoaderCommand.process(buzzerClient.name);
 		}
 
 		function onBuzzerDAppReadyChanged() {
-			loadTrustScoreCommand.process();
+			infoLoaderCommand.process(buzzerClient.name);
 		}
 
 		function onNewEvents() {
@@ -106,21 +106,126 @@ QuarkPage
 				newMessagesDot.visible = true;
 			}
 		}
+
+		function onScaleFactorChanged() {
+			if (buzzerApp.isDesktop) navigatorBar.contentHeight = 48 * buzzerClient.scaleFactor;
+		}
+	}
+
+	//
+	// buzzer info loader
+	//
+	BuzzerCommands.LoadBuzzerInfoCommand {
+		id: infoLoaderCommand
+
+		property var count_: 0;
+
+		onProcessed: {
+			// reset
+			buzzerClient.avatar = "";
+
+			// name
+			loadTrustScoreCommand.process(infoLoaderCommand.buzzerId + "/" + infoLoaderCommand.buzzerChainId);
+
+			if (infoLoaderCommand.avatarId !== "0000000000000000000000000000000000000000000000000000000000000000") {
+				avatarDownloadCommand.url = infoLoaderCommand.avatarUrl;
+				avatarDownloadCommand.localFile = buzzerClient.getTempFilesPath() + "/" + infoLoaderCommand.avatarId;
+				avatarDownloadCommand.process();
+			}
+		}
+
+		onError: {
+			//
+			console.log("[infoLoaderCommand]: error = " + code + ", message = " + message);
+			//
+			if (code == "E_BUZZER_NOT_FOUND") {
+				if (count_++ < 5) {
+					checkBuzzerInfo.start();
+				} else count_ = 0;
+			}
+
+			handleError(code, message);
+		}
+	}
+
+	Timer {
+		id: checkTrustScore
+		interval: 1000
+		repeat: false
+		running: false
+
+		onTriggered: {
+			//
+			console.log("[checkTrustScore]: checking trust score...");
+			loadTrustScoreCommand.process();
+		}
+	}
+
+	Timer {
+		id: checkBuzzerInfo
+		interval: 1000
+		repeat: false
+		running: false
+
+		onTriggered: {
+			//
+			console.log("[checkBuzzerInfo]: checking buzzer info...");
+			infoLoaderCommand.process(buzzerClient.name);
+		}
 	}
 
 	BuzzerCommands.LoadBuzzerTrustScoreCommand {
 		id: loadTrustScoreCommand
-		onProcessed: {
-			// endorsements, mistrusts, following, followers
-			buzzerClient.setTrustScore(endorsements, mistrusts);
-			headerBar.adjustTrustScore();
 
-			// switch pages - dynamic check
-			if (following == 0 && !buzzermain_.globalFeedAdjusted) {
-				navigatorBar.currentIndex = 1; // switch to global
-				buzzermain_.globalFeedAdjusted = true;
+		property var count_: 0;
+
+		onProcessed: {
+			//
+			if (endorsements === 0) {
+				if (count_++ < 5) checkTrustScore.start();
+			} else {
+				console.log("[loadTrustScoreCommand]: setting endorsements = " + endorsements + ", mistrusts = " + mistrusts);
+				buzzerClient.setTrustScore(endorsements, mistrusts);
+				headerBar.adjustTrustScore();
+
+				// switch pages - dynamic check
+				if (following == 0 && !buzzermain_.globalFeedAdjusted) {
+					navigatorBar.currentIndex = 1; // switch to global
+					buzzermain_.globalFeedAdjusted = true;
+				}
+
+				count_ = 0;
 			}
 		}
+
+		onError: {
+			if (count_++ < 5) {
+				checkTrustScore.start();
+			} else count_ = 0;
+		}
+	}
+
+	BuzzerCommands.DownloadMediaCommand {
+		id: avatarDownloadCommand
+		preview: false // TODO: consider to use full image
+		skipIfExists: true
+
+		onProcessed: {
+			// tx, previewFile, originalFile, orientation, duration, size, type
+			buzzerClient.avatar = originalFile;
+		}
+
+		onError: {
+			handleError(code, message);
+		}
+	}
+
+	//
+	// Shared media player controller
+	//
+	BuzzerMediaPlayerController {
+		id: globalMediaPlayerController
+		controller: buzzermain_.controller
 	}
 
 	function leftWidth() {
@@ -186,8 +291,13 @@ QuarkPage
 					controller.bottomBarHeight = height;
 				}
 
+				Component.onCompleted: {
+					contentHeight = contentHeight * buzzerClient.scaleFactor;
+				}
+
 				TabButton {
 					QuarkSymbolLabel {
+						id: homeLabel
 						x: parent.width / 2 - width / 2
 						y: parent.height / 2 - height / 2
 						symbol: Fonts.homeSym
@@ -262,7 +372,7 @@ QuarkPage
 
 					//
 					if (currentIndex == 1 /*global*/) {
-						headerBar.showBottomLine = true; //false;
+						if (!buzzerApp.isDesktop) headerBar.showBottomLine = true;
 						headerBar.resetSearchText();
 						buzzfeedGlobal.start();
 						conversations.disconnect();
@@ -279,7 +389,7 @@ QuarkPage
 
 					if (currentIndex == 3 /*conversations*/) {
 						headerBar.resetSearchText();
-						headerBar.showBottomLine = true;
+						if (!buzzerApp.isDesktop) headerBar.showBottomLine = true;
 						newMessagesDot.visible = false;
 						conversations.resetModel();
 						//conversations.start();
@@ -288,18 +398,25 @@ QuarkPage
 
 					if (currentIndex == 4 /*wallet*/) {
 						headerBar.resetSearchText();
-						headerBar.showBottomLine = false;
+						headerBar.showBottomLine = true;
 						buzzerApp.lockPortraitOrientation();
-						walletQbit.init();
 						buzzfeedGlobal.disconnect();
 						conversations.disconnect();
 					} else {
 						buzzerApp.unlockOrientation();
 					}
+
+					if (globalMediaPlayerController.isCurrentInstancePlaying()) {
+						globalMediaPlayerController.showCurrentPlayer(null);
+					}
 				}
+
+				//Material.accent: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Market.tabActive");
+				//Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Market.tabInactive");
 
 				Material.accent: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Market.tabActive");
 				Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Market.tabInactive");
+				Material.background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Market.tabBackground");
 			}
 
 			QuarkHLine {
@@ -320,41 +437,45 @@ QuarkPage
 				Buzzfeed {
 					id: buzzfeedPresonal
 					x: 0
-					y: headerBar.totalHeight
+					y: headerBar.totalHeight + 1
 					width: leftLane.width
-					height: navigatorBar.y - headerBar.totalHeight
+					height: navigatorBar.y - (headerBar.totalHeight + 1)
 					controller: buzzermain_.controller
+					mediaPlayerController: globalMediaPlayerController
 				}
 				BuzzfeedGlobal {
 					id: buzzfeedGlobal
 					x: 0
-					y: headerBar.totalHeight
+					y: headerBar.totalHeight + 1
 					width: leftLane.width
-					height: navigatorBar.y - headerBar.totalHeight
+					height: navigatorBar.y - (headerBar.totalHeight + 1)
 					controller: buzzermain_.controller
+					mediaPlayerController: globalMediaPlayerController
 				}
 				Eventsfeed {
 					id: eventsfeedPersonal
 					x: 0
-					y: headerBar.totalHeight
+					y: headerBar.totalHeight + 1
 					width: leftLane.width
-					height: navigatorBar.y - headerBar.totalHeight
+					height: navigatorBar.y - (headerBar.totalHeight + 1)
 					controller: buzzermain_.controller
+					mediaPlayerController: globalMediaPlayerController
 				}
 				Conversations {
 					id: conversations
 					x: 0
-					y: headerBar.totalHeight
+					y: headerBar.totalHeight + 1
 					width: leftLane.width
-					height: navigatorBar.y - headerBar.totalHeight
+					height: navigatorBar.y - (headerBar.totalHeight + 1)
 					controller: buzzermain_.controller
+					mediaPlayerController: globalMediaPlayerController
 				}
-				Wallet {
-					id: walletQbit
+				Wallets {
+					id: wallets
 					x: 0
-					y: headerBar.totalHeight
+					y: headerBar.totalHeight + 1
 					width: leftLane.width
-					height: navigatorBar.y - headerBar.totalHeight
+					height: navigatorBar.y - (headerBar.totalHeight)
 					controller: buzzermain_.controller
 				}
 			}
@@ -362,6 +483,16 @@ QuarkPage
 
 		BuzzerStackView {
 			id: rightView
+		}
+	}
+
+	//
+	function handleError(code, message) {
+		if (code === "E_CHAINS_ABSENT") return;
+		if (message === "UNKNOWN_REFTX" || code === "E_TX_NOT_SENT") {
+			//buzzermain_.controller.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.UNKNOWN_REFTX"));
+		} else {
+			//buzzermain_.controller.showError(message);
 		}
 	}
 }

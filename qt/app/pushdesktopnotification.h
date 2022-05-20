@@ -8,6 +8,7 @@
 #include "dapps/buzzer/buzzfeed.h"
 #include "dapps/buzzer/eventsfeed.h"
 #include "dapps/buzzer/buzzfeedview.h"
+#include "dapps/cubix/cubix.h"
 
 namespace buzzer {
 
@@ -45,14 +46,22 @@ public:
 	qbit::EventsfeedItem::Key getKey() { return buzz_->key(); }
 
 	void makeNotification();
-	void avatarDownloadDone(qbit::TransactionPtr /*tx*/,
+	void avatarDownloadDone(qbit::TransactionPtr tx,
+							const std::string& previewFile,
+							const std::string& originalFile,
+							unsigned short orientation,
+							unsigned int duration,
+							uint64_t size,
+							const qbit::cubix::doneDownloadWithErrorFunctionExtraArgs& extra,
+							const qbit::ProcessingError& result);
+	void mediaDownloadDone(qbit::TransactionPtr tx,
 						   const std::string& previewFile,
-						   const std::string& /*originalFile*/, unsigned short /*orientation*/, unsigned int /*duration*/,
-						   uint64_t /*size*/, unsigned short /*type*/, const qbit::ProcessingError& result);
-	void mediaDownloadDone(qbit::TransactionPtr /*tx*/,
-						   const std::string& previewFile,
-						   const std::string& /*originalFile*/, unsigned short /*orientation*/, unsigned int /*duration*/,
-						   uint64_t /*size*/, unsigned short /*type*/, const qbit::ProcessingError& result);
+						   const std::string& originalFile,
+						   unsigned short orientation,
+						   unsigned int duration,
+						   uint64_t size,
+						   const qbit::cubix::doneDownloadWithErrorFunctionExtraArgs& extra,
+						   const qbit::ProcessingError& result);
 	void messageDone(const std::string& /*key*/, const std::string& /*body*/, const qbit::ProcessingError& /*result*/);
 
 	void loadAvatar();

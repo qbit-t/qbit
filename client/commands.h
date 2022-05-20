@@ -94,9 +94,11 @@ public:
 
 	// callbacks
 	void balance(double amount, double pending, amount_t scale) {
+		/*
 		std::cout << 
 			strprintf(TxAssetType::scaleFormat(scale), amount) << "/" <<
 			strprintf(TxAssetType::scaleFormat(scale), pending) << std::endl;
+		*/
 		done_(amount, pending, scale, ProcessingError());
 	}
 

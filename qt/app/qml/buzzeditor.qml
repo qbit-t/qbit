@@ -520,6 +520,7 @@ QuarkPage {
 			replyContainer.replyItem_.buzzBody_ = buzzerClient.decorateBuzzBody(item.buzzBody);
 			replyContainer.replyItem_.buzzMedia_ = item.buzzMedia;
 			replyContainer.replyItem_.ago_ = buzzerClient.timestampAgo(item.timestamp);
+			replyContainer.replyItem_.initialize();
 
 			bodyContainer.ensureVisible(buzzText);
 		}
@@ -642,7 +643,7 @@ QuarkPage {
 							mediaItem.adjustHeight.connect(adjustHeight);
 						}
 
-						mediaItem.width = list.width;
+						mediaItem.width = mediaListEditor.width;
 						mediaItem.mediaList = mediaListEditor;
 						mediaItem.mediaBox = mediaBox;
 
