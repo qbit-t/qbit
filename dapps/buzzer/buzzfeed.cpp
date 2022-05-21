@@ -183,6 +183,10 @@ bool BuzzfeedItem::mergeInternal(BuzzfeedItemPtr buzz, bool checkSize, bool noti
 		}
 	}
 
+	//
+	if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[INFO-01]: %s", lBuzz->toString()));
+	//
+
 	if (lResult == Buzzer::VerificationResult::INVALID)
 		if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[ERROR-03]: %s", lBuzz->toString()));
 
@@ -225,6 +229,10 @@ bool BuzzfeedItem::mergeInternal(BuzzfeedItemPtr buzz, bool checkSize, bool noti
 			return true;
 		}
 
+		//
+		if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[INFO-02]: %s", lBuzz->toString()));
+		//
+
 		// orphans
 		std::map<uint256 /*buzz*/, std::set<Key>>::iterator lRoot = orphans_.find(lBuzz->buzzId());
 		if (lRoot != orphans_.end()) {
@@ -248,6 +256,10 @@ bool BuzzfeedItem::mergeInternal(BuzzfeedItemPtr buzz, bool checkSize, bool noti
 
 		//
 		bool lAdd = true;
+
+		//
+		if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[INFO-03]: %s", lBuzz->toString()));
+		//
 
 		// pending
 		std::vector<BuzzfeedItemUpdate> lUpdatedPendings;
@@ -273,6 +285,10 @@ bool BuzzfeedItem::mergeInternal(BuzzfeedItemPtr buzz, bool checkSize, bool noti
 
 		// 
 		if (lUpdatedPendings.size()) itemsUpdated(lUpdatedPendings);
+
+		//
+		if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[INFO-05]: %s", lBuzz->toString()));
+		//
 
 		// force load...
 		if (buzz->type() == TX_BUZZ_REPLY) {
@@ -361,6 +377,10 @@ bool BuzzfeedItem::mergeInternal(BuzzfeedItemPtr buzz, bool checkSize, bool noti
 			if (order_ < buzz->timestamp()) order_ = buzz->timestamp();
 		}
 		*/
+
+		//
+		if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[INFO-06]: %s", lBuzz->toString()));
+		//
 
 		if (lAdd && !lItemAdded) {
 			if (lNewItem) {
@@ -451,6 +471,10 @@ bool BuzzfeedItem::mergeInternal(BuzzfeedItemPtr buzz, bool checkSize, bool noti
 				}
 			}
 		}
+
+		//
+		if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[INFO-07]: %s", lBuzz->toString()));
+		//
 
 		return lItemAdded;
 	} else {

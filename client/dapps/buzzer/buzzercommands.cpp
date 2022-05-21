@@ -877,6 +877,9 @@ void LoadBuzzfeedCommand::buzzfeedLoaded(const std::vector<BuzzfeedItem>& feed, 
 	}
 
 	// for real client - mobile, for example, we can start to display feeds as soon as they arrived
+	if (gLog().isEnabled(Log::CLIENT))
+		gLog().write(Log::CLIENT, strprintf("[buzzfeed] - chain: %s/%d, ready = %d/%d", chain.toHex(), feed.size(), lReady, (requests * chains_.size())));
+	//
 	if (lReady < requests * chains_.size()) {
 		// merge feed
 		buzzfeed()->merge(feed);
@@ -2275,7 +2278,7 @@ void BuzzSubscribeCommand::process(const std::vector<std::string>& args) {
 		}
 
 		// send
-		if (!composer_->buzzerRequestProcessor()->subscribeBuzzThread(chain_, buzzId_, signature_, 2, peers_)) {
+		if (!composer_->buzzerRequestProcessor()->subscribeBuzzThread(chain_, buzzId_, signature_, BUZZFEED_PEERS_CONFIRMATIONS, peers_)) {
 			error("E_BUZZ_SUBSCRIBE", "Subscription for buzz thread updates failed.");
 			return;
 		}
