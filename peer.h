@@ -678,6 +678,8 @@ private:
 	std::map<uint256, SynchronizationJobPtr> jobs_;
 	boost::mutex jobsMutex_;
 
+	std::set<uint160> alreadyRelayed_;
+
 	IPeerManagerPtr peerManager_;
 	int contextId_ = -1;
 	int postponeTime_ = 0;

@@ -1789,6 +1789,11 @@ void Peer::processAskForQbits(std::list<DataStream>::iterator msg, const boost::
 		//
 		processed();
 
+		if (!alreadyRelayed_.insert(lAddress.id()).second) {
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: ALREADY processed request for get some qbits from ") + key());
+			return;
+		}
+
 		//
 		if (peerManager_->settings()->supportAirdrop()) {
 			// 1. check if address already has some qbits
