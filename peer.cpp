@@ -1854,8 +1854,8 @@ void Peer::processAskForQbits(std::list<DataStream>::iterator msg, const boost::
 
 		} else {
 			// WARNING: in case of broadcasting we can't control peer, just address; that is why this technique is not safe
-			//StatePtr lState = peerManager_->consensusManager()->currentState();
-			//peerManager_->consensusManager()->broadcastAirdropRequest(lAddress, lState->addressId());
+			StatePtr lState = peerManager_->consensusManager()->currentState();
+			peerManager_->consensusManager()->broadcastAirdropRequest(lAddress, lState->addressId());
 		}
 		
 	} else {
