@@ -42,7 +42,12 @@ void ImageQxLoader::get(QString source, ImageSharedPtr image, bool autotransform
 	//
 	QString lPath;
 	if (source.startsWith("qrc:/")) lPath = source.mid(3);
-	else if (source.startsWith("file://")) lPath = source.mid(7);
+	else if (source.startsWith("file://"))
+#if defined(Q_OS_WINDOWS)
+		lPath = source.mid(8);
+#else
+		lPath = source.mid(7);
+#endif
 
 	QImageReader lReader(lPath);
 	lReader.setAutoTransform(autotransform);
