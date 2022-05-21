@@ -42,6 +42,10 @@ QuarkPage
 		}
 	}
 
+	onControllerChanged: {
+		controller.rootComponent = buzzermain_;
+	}
+
 	function closePage() {
 		stopPage();
 		destroy(500);
@@ -245,12 +249,24 @@ QuarkPage
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
 		}
 
-		Rectangle {
+		FocusScope {
 			id: leftLane
 			x: 0
 			y: 0
 			width: leftWidth()
 			height: splitView.height
+
+			//x: leftLane.x
+			//y: leftLane.y
+			//width: leftLane.width
+			//height: leftLane.height
+		Rectangle {
+			id: leftLane2
+			anchors.fill: parent
+			//x: 0
+			//y: 0
+			//width: leftWidth()
+			//height: splitView.height
 			color: "transparent"
 
 			onWidthChanged: {
@@ -479,6 +495,7 @@ QuarkPage
 					controller: buzzermain_.controller
 				}
 			}
+		}
 		}
 
 		BuzzerStackView {

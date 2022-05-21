@@ -4322,9 +4322,7 @@ void BuzzerPeerExtension::processNewMessageNotify(std::list<DataStream>::iterato
 		else if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, std::string("[peer/buzzer]: processing message buzz notification ") + 
 			strprintf("%s/%s# from %s", lBuzz.buzzId().toHex(), lBuzz.buzzChainId().toHex().substr(0, 10), peer_->key()));
 
-		if (buzzer_->conversation() && buzzer_->conversation()->rootBuzzId() == lBuzz.rootBuzzId()) {
-			// update (if necessary) current buzzfeed
-			buzzer_->conversation()->push(lBuzz, peer_->addressId());
+		if (buzzer_->processConversations(lBuzz, peer_->addressId())) {
 			// try to process pending items (in case of rebuzz)
 			buzzer_->resolvePendingItems();
 		} else {

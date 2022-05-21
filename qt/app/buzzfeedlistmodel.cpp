@@ -345,17 +345,17 @@ void BuzzfeedListModel::buzzfeedItemAbsent(const uint256& /*chain*/, const uint2
 }
 
 void BuzzfeedListModel::buzzfeedItemNew(qbit::BuzzfeedItemPtr buzz) {
-	// qInfo() << "BuzzfeedListModel::buzzfeedItemNew";
+	qInfo() << "BuzzfeedListModel::buzzfeedItemNew";
 	emit buzzfeedItemNewSignal(qbit::BuzzfeedItemProxy(buzz));
 }
 
 void BuzzfeedListModel::buzzfeedItemUpdated(qbit::BuzzfeedItemPtr buzz) {
-	// qInfo() << "BuzzfeedListModel::buzzfeedItemUpdated";
+	qInfo() << "BuzzfeedListModel::buzzfeedItemUpdated";
 	emit buzzfeedItemUpdatedSignal(qbit::BuzzfeedItemProxy(buzz));
 }
 
 void BuzzfeedListModel::buzzfeedItemsUpdated(const std::vector<qbit::BuzzfeedItemUpdate>& items) {
-	// qInfo() << "BuzzfeedListModel::buzzfeedItemsUpdated";
+	qInfo() << "BuzzfeedListModel::buzzfeedItemsUpdated";
 	emit buzzfeedItemsUpdatedSignal(qbit::BuzzfeedItemUpdatesProxy(items));
 }
 
@@ -554,6 +554,7 @@ void BuzzfeedListModel::merge() {
 
 void BuzzfeedListModel::feedSlot(const qbit::BuzzfeedProxy& local, bool more, bool merge) {
 	//
+	qInfo() << "BuzzfeedListModel::feedSlot";
 	qbit::BuzzfeedPtr lBuzzfeed(local.get());
 	feed(lBuzzfeed, more, merge);
 }

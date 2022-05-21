@@ -123,6 +123,9 @@ uint64_t Client::getQttAssetVoteAmount() {
 
 int Client::open(QString secret) {
 	// setup log
+#if defined(DESKTOP_PLATFORM)
+	qbit::gLog(settings_->dataPath() + "/debug.log");
+#else
 	if (application_->getDebug()) {
 		// force privileges
 		application_->checkPermission();
@@ -132,6 +135,7 @@ int Client::open(QString secret) {
 		// TODO: make action to copy debug log to downloads
 		qbit::gLog(settings_->dataPath() + "/debug.log");
 	}
+#endif
 
 	// setup categories
 	std::vector<std::string> lCategories;

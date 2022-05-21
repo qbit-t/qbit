@@ -3190,7 +3190,8 @@ public:
 
 	Q_INVOKABLE void reset() {
 		Client* lClient = static_cast<Client*>(gApplication->getClient());
-		lClient->getBuzzerComposer()->buzzer()->setConversation(nullptr);
+		uint256 lRootId; lRootId.setHex(conversationId_.toStdString());
+		lClient->getBuzzerComposer()->buzzer()->removeActiveConversation(lRootId);
 	}
 
 	void done(const qbit::ProcessingError& result) {

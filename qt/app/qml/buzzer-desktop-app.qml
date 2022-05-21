@@ -26,6 +26,7 @@ ApplicationWindow {
 	property int bottomBarHeight: 0;
 	property var mainToolBar;
 	property string activePageBackground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Window.background")
+	property var rootComponent;
 
 	color: activePageBackground
 
@@ -518,12 +519,12 @@ ApplicationWindow {
 		// locate and activate
 		if (activatePage(buzzId)) return;
 
-		lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzfeedthread.qml", window) :
+		lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzfeedthread.qml", pagesView) :
 										   Qt.createComponent("qrc:/qml/buzzfeedthread.qml");
 		if (lComponent.status === Component.Error) {
 			showError(lComponent.errorString());
 		} else {
-			lPage = lComponent.createObject(window);
+			lPage = lComponent.createObject(pagesView);
 			lPage.controller = window;
 
 			lPage.updateStakedInfo(buzzId, buzzerAlias, buzzBody.replace(/(\r\n|\n|\r)/gm, ""));
@@ -544,12 +545,12 @@ ApplicationWindow {
 		// locate and activate
 		if (activatePage(buzzId + "-media")) return;
 
-		lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzmedia.qml", window) :
+		lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzmedia.qml", rootComponent) :
 										   Qt.createComponent("qrc:/qml/buzzmedia.qml");
 		if (lComponent.status === Component.Error) {
 			showError(lComponent.errorString());
 		} else {
-			lPage = lComponent.createObject(window);
+			lPage = lComponent.createObject(rootComponent);
 			lPage.controller = window;
 
 			lPage.buzzMedia_ = media;
@@ -575,11 +576,11 @@ ApplicationWindow {
 		// locate and activate
 		if (activatePage(buzzerName)) return;
 
-		lComponent = Qt.createComponent("qrc:/qml/buzzfeedbuzzer.qml");
+		lComponent = Qt.createComponent("qrc:/qml/buzzfeedbuzzer.qml", rootComponent);
 		if (lComponent.status === Component.Error) {
 			showError(lComponent.errorString());
 		} else {
-			lPage = lComponent.createObject(window);
+			lPage = lComponent.createObject(rootComponent);
 			lPage.controller = window;
 
 			lPage.updateStakedInfo(buzzerName, buzzerName, "...");
@@ -600,11 +601,11 @@ ApplicationWindow {
 		// locate and activate
 		if (activatePage(tag)) return;
 
-		lComponent = Qt.createComponent("qrc:/qml/buzzfeedtag.qml");
+		lComponent = Qt.createComponent("qrc:/qml/buzzfeedtag.qml", rootComponent);
 		if (lComponent.status === Component.Error) {
 			showError(lComponent.errorString());
 		} else {
-			lPage = lComponent.createObject(window);
+			lPage = lComponent.createObject(rootComponent);
 			lPage.controller = window;
 
 			lPage.updateStakedInfo(tag, tag, "...");
@@ -625,11 +626,11 @@ ApplicationWindow {
 		// locate and activate
 		if (activatePage(buzzer + "-endorsements")) return;
 
-		lComponent = Qt.createComponent("qrc:/qml/buzzfeedendorsements.qml");
+		lComponent = Qt.createComponent("qrc:/qml/buzzfeedendorsements.qml", rootComponent);
 		if (lComponent.status === Component.Error) {
 			showError(lComponent.errorString());
 		} else {
-			lPage = lComponent.createObject(window);
+			lPage = lComponent.createObject(rootComponent);
 			lPage.controller = window;
 
 			lPage.updateStakedInfo(buzzer + "-endorsements", buzzer, buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.endorsers"));
@@ -650,11 +651,11 @@ ApplicationWindow {
 		// locate and activate
 		if (activatePage(buzzer + "-mistrusts")) return;
 
-		lComponent = Qt.createComponent("qrc:/qml/buzzfeedmistrusts.qml");
+		lComponent = Qt.createComponent("qrc:/qml/buzzfeedmistrusts.qml", rootComponent);
 		if (lComponent.status === Component.Error) {
 			showError(lComponent.errorString());
 		} else {
-			lPage = lComponent.createObject(window);
+			lPage = lComponent.createObject(rootComponent);
 			lPage.controller = window;
 
 			lPage.updateStakedInfo(buzzer + "-mistrusts", buzzer, buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.mistrusters"));
@@ -675,11 +676,11 @@ ApplicationWindow {
 		// locate and activate
 		if (activatePage(buzzer + "-followers")) return;
 
-		lComponent = Qt.createComponent("qrc:/qml/buzzfeedfollowers.qml");
+		lComponent = Qt.createComponent("qrc:/qml/buzzfeedfollowers.qml", rootComponent);
 		if (lComponent.status === Component.Error) {
 			showError(lComponent.errorString());
 		} else {
-			lPage = lComponent.createObject(window);
+			lPage = lComponent.createObject(rootComponent);
 			lPage.controller = window;
 			lPage.start(buzzer);
 
@@ -699,11 +700,11 @@ ApplicationWindow {
 		// locate and activate
 		if (activatePage(buzzer + "-following")) return;
 
-		lComponent = Qt.createComponent("qrc:/qml/buzzfeedfollowing.qml");
+		lComponent = Qt.createComponent("qrc:/qml/buzzfeedfollowing.qml", rootComponent);
 		if (lComponent.status === Component.Error) {
 			showError(lComponent.errorString());
 		} else {
-			lPage = lComponent.createObject(window);
+			lPage = lComponent.createObject(rootComponent);
 			lPage.controller = window;
 			lPage.start(buzzer);
 
@@ -723,11 +724,11 @@ ApplicationWindow {
 		// locate and activate
 		if (activatePage(conversationId, messageId)) return;
 
-		lComponent = Qt.createComponent("qrc:/qml/conversationthread.qml", window);
+		lComponent = Qt.createComponent("qrc:/qml/conversationthread.qml", pagesView);
 		if (lComponent.status === Component.Error) {
 			showError(lComponent.errorString());
 		} else {
-			lPage = lComponent.createObject(window);
+			lPage = lComponent.createObject(pagesView);
 			lPage.controller = window;
 
 			//

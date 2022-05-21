@@ -528,7 +528,7 @@ public:
 	}
 
 	virtual bool appendFeed() {
-		if (from_.size()) return true;
+		if (fromAny_.size()) return true;
 		return false;
 	}
 
@@ -545,7 +545,7 @@ protected:
 	std::map<uint256 /*chain*/, std::set<uint256>/*items*/> pengindChainInfos_;
 	std::map<uint256 /*info tx*/, Buzzer::Info> pendingInfos_;
 	int pendingChainInfosLoaded_ = 0;
-	std::map<uint256 /*chain*/, std::vector<BuzzfeedPublisherFrom>> from_;
+	std::map<uint256 /*chain*/, std::vector<BuzzfeedPublisherFrom>> fromAny_;
 	boost::recursive_mutex mutex_;
 };
 

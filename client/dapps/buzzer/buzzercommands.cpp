@@ -606,7 +606,7 @@ void LoadBuzzfeedByBuzzerCommand::process(const std::vector<std::string>& args) 
 
 	std::string lBuzzer;
 	// args - from
-	from_.clear();
+	fromAny_.clear();
 	if (args.size() >= 1) {
 		//
 		lBuzzer = args[0];
@@ -614,7 +614,7 @@ void LoadBuzzfeedByBuzzerCommand::process(const std::vector<std::string>& args) 
 		//
 		if (args.size() > 1 && args[1] == "more") {
 			//
-			buzzFeed_->locateLastTimestamp(from_);
+			buzzFeed_->locateLastTimestamp(fromAny_);
 		}
 	}
 
@@ -632,8 +632,8 @@ void LoadBuzzfeedByBuzzerCommand::process(const std::vector<std::string>& args) 
 	for (std::vector<uint256>::iterator lChain = chains_.begin(); lChain != chains_.end(); lChain++) {
 		//
 		std::vector<BuzzfeedPublisherFrom> lFrom;
-		std::map<uint256 /*chain*/, std::vector<BuzzfeedPublisherFrom>>::iterator lFromChain = from_.find(*lChain);
-		if (lFromChain != from_.end())
+		std::map<uint256 /*chain*/, std::vector<BuzzfeedPublisherFrom>>::iterator lFromChain = fromAny_.find(*lChain);
+		if (lFromChain != fromAny_.end())
 			lFrom = lFromChain->second;
 
 		//
@@ -788,11 +788,11 @@ void LoadBuzzfeedCommand::process(const std::vector<std::string>& args) {
 	pendingChainInfosLoaded_ = 0;
 
 	// args - from
-	from_.clear();
+	fromAny_.clear();
 	if (args.size() == 1) {
 		if (args[0] == "more") {
 			//
-			buzzFeed_->locateLastTimestamp(from_);
+			buzzFeed_->locateLastTimestamp(fromAny_);
 		}
 	}
 
@@ -817,14 +817,14 @@ void LoadBuzzfeedCommand::process(const std::vector<std::string>& args) {
 	for (std::vector<uint256>::iterator lChain = chains_.begin(); lChain != chains_.end(); lChain++) {
 		//
 		std::vector<BuzzfeedPublisherFrom> lFrom;
-		std::map<uint256 /*chain*/, std::vector<BuzzfeedPublisherFrom>>::iterator lFromChain = from_.find(*lChain);
-		if (lFromChain != from_.end())
+		std::map<uint256 /*chain*/, std::vector<BuzzfeedPublisherFrom>>::iterator lFromChain = fromAny_.find(*lChain);
+		if (lFromChain != fromAny_.end())
 			lFrom = lFromChain->second;
 
 		IComposerMethodPtr lCommand = BuzzerLightComposer::LoadBuzzfeed::instance(
-			composer_, 
-			*lChain, 
-			lFrom, 
+			composer_,
+			*lChain,
+			lFrom,
 			BUZZFEED_PEERS_CONFIRMATIONS /*to be sure that the feed is not doctored*/,
 			boost::bind(&LoadBuzzfeedCommand::buzzfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 		// async process
@@ -880,7 +880,7 @@ void LoadBuzzfeedCommand::buzzfeedLoaded(const std::vector<BuzzfeedItem>& feed, 
 	if (gLog().isEnabled(Log::CLIENT))
 		gLog().write(Log::CLIENT, strprintf("[buzzfeed] - chain: %s/%d, ready = %d/%d", chain.toHex(), feed.size(), lReady, (requests * chains_.size())));
 	//
-	if (lReady < requests * chains_.size()) {
+	if (lReady < requests * (int) chains_.size()) {
 		// merge feed
 		buzzfeed()->merge(feed);
 	} else {
