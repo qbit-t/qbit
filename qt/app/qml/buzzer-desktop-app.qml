@@ -8,6 +8,8 @@ import QtQuick.Controls.Universal 2.1
 import Qt.labs.settings 1.0
 import QtQuick.Window 2.15
 
+import app.buzzer.components 1.0 as QuarkComponents
+
 import "qrc:/fonts"
 import "qrc:/components"
 import "qrc:/qml"
@@ -23,11 +25,12 @@ ApplicationWindow {
 	property var pagesView;
 	property int bottomBarHeight: 0;
 	property var mainToolBar;
+	property string activePageBackground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Window.background")
 
-	color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background");
+	color: activePageBackground
 
 	onWidthChanged: {
-		buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background"));
+		buzzerApp.setBackgroundColor(activePageBackground);
 		buzzerClient.setProperty("Client.width", width);
 	}
 
@@ -36,7 +39,7 @@ ApplicationWindow {
 	}
 
 	Component.onCompleted: {
-		buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background"));
+		buzzerApp.setBackgroundColor(activePageBackground);
 
 		var lWidth = buzzerClient.getProperty("Client.width");
 		if (lWidth !== "") width = parseInt(lWidth);
@@ -288,7 +291,7 @@ ApplicationWindow {
 		// work-a-round: frame for frameless window
 		//
 
-		QuarkVLine {
+		QuarkComponents.Line {
 			id: headerLeftLine
 			x1: 0
 			y1: 0
@@ -299,7 +302,7 @@ ApplicationWindow {
 			visible: true
 		}
 
-		QuarkVLine {
+		QuarkComponents.Line {
 			id: headerRightLine
 			x1: parent.width-1
 			y1: 0
@@ -310,7 +313,7 @@ ApplicationWindow {
 			visible: true
 		}
 
-		QuarkHLine {
+		QuarkComponents.Line {
 			id: headerTopLine
 			x1: 0
 			y1: 0
@@ -515,7 +518,7 @@ ApplicationWindow {
 		// locate and activate
 		if (activatePage(buzzId)) return;
 
-		lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzfeedthread-desktop.qml", window) :
+		lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzfeedthread.qml", window) :
 										   Qt.createComponent("qrc:/qml/buzzfeedthread.qml");
 		if (lComponent.status === Component.Error) {
 			showError(lComponent.errorString());
@@ -525,6 +528,37 @@ ApplicationWindow {
 
 			lPage.updateStakedInfo(buzzId, buzzerAlias, buzzBody.replace(/(\r\n|\n|\r)/gm, ""));
 			lPage.start(buzzChainId, buzzId);
+
+			addPage(lPage);
+		}
+	}
+
+	function openMedia(pkey, index, media, player, instance, buzzId, buzzerAlias, buzzBody) {
+		//
+		var lComponent = null;
+		var lPage = null;
+
+		// pop no-stacked page(s)
+		popNonStacked();
+
+		// locate and activate
+		if (activatePage(buzzId + "-media")) return;
+
+		lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzmedia.qml", window) :
+										   Qt.createComponent("qrc:/qml/buzzmedia.qml");
+		if (lComponent.status === Component.Error) {
+			showError(lComponent.errorString());
+		} else {
+			lPage = lComponent.createObject(window);
+			lPage.controller = window;
+
+			lPage.buzzMedia_ = media;
+			lPage.mediaPlayerController = player;
+			lPage.initialize(pkey, index, instance, buzzId, buzzBody);
+
+			var lTitle = "Media";
+			if (buzzBody !== "") lTitle = buzzBody.replace(/(\r\n|\n|\r)/gm, "");
+			lPage.updateStakedInfo(buzzId + "-media", buzzerAlias, lTitle);
 
 			addPage(lPage);
 		}
@@ -689,7 +723,7 @@ ApplicationWindow {
 		// locate and activate
 		if (activatePage(conversationId, messageId)) return;
 
-		lComponent = Qt.createComponent("qrc:/qml/conversationthread-desktop.qml");
+		lComponent = Qt.createComponent("qrc:/qml/conversationthread.qml", window);
 		if (lComponent.status === Component.Error) {
 			showError(lComponent.errorString());
 		} else {
@@ -1055,7 +1089,7 @@ ApplicationWindow {
 		running: false
 
 		onTriggered: {
-			buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background"));
+			buzzerApp.setBackgroundColor(activePageBackground);
 		}
 	}
 
@@ -1187,7 +1221,7 @@ ApplicationWindow {
 	// work-a-round: frame for frameless window
 	//
 
-	QuarkVLine {
+	QuarkComponents.Line {
 		id: leftLine
 		x1: 0
 		y1: 0
@@ -1198,7 +1232,7 @@ ApplicationWindow {
 		visible: true
 	}
 
-	QuarkVLine {
+	QuarkComponents.Line {
 		id: rightLine
 		x1: parent.width-1
 		y1: 0
@@ -1209,7 +1243,7 @@ ApplicationWindow {
 		visible: true
 	}
 
-	QuarkHLine {
+	QuarkComponents.Line {
 		id: bottomLine
 		x1: 0
 		y1: parent.height-1

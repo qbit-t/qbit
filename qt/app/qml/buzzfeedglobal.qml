@@ -371,7 +371,7 @@ Item
 		y2: search.y + search.height
 		penWidth: 1
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Panel.bottom.separator")
-		visible: true
+		visible: !buzzerApp.isDesktop
 	}
 
 	//
@@ -477,6 +477,15 @@ Item
 
 			property var buzzItem;
 			property var targetHeight;
+
+			hoverEnabled: buzzerApp.isDesktop
+			onHoveredChanged: {
+				if (buzzfeed_.mediaPlayerController &&
+						(buzzfeed_.mediaPlayerController.isCurrentInstancePlaying() ||
+										   buzzfeed_.mediaPlayerController.isCurrentInstancePaused())) {
+					buzzfeed_.mediaPlayerController.showCurrentPlayer(null);
+				}
+			}
 
 			/*
 			ParallelAnimation {

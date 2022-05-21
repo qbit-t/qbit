@@ -64,7 +64,8 @@ public:
 		DynamicRole,
 		FeedingRole,
 		OwnLikeRole,
-		OwnRebuzzRole
+		OwnRebuzzRole,
+		AdjustDataRole
 	};
 
 public:
@@ -77,6 +78,7 @@ public:
 	Q_INVOKABLE bool hasPrevLink(int index) const;
 	Q_INVOKABLE bool hasNextLink(int index) const;
 	Q_INVOKABLE QString buzzId(int index) const;
+	Q_INVOKABLE QString buzzerId(int index) const;
 	Q_INVOKABLE QVariant self(int index) const;
 	Q_INVOKABLE int childrenCount(int index) const;
 	//
@@ -151,6 +153,7 @@ private:
 protected:
 	qbit::BuzzfeedPtr buzzfeed_;
 	std::vector<qbit::BuzzfeedItemPtr> list_;
+	std::vector<bool> adjustData_;
 	std::map<qbit::BuzzfeedItem::Key, int> index_;
 	bool noMoreData_ = false;
 	uint256 rootId_;

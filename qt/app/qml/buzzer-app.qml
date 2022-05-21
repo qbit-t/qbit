@@ -22,6 +22,7 @@ ApplicationWindow
     title: "buzzer"
 
     property string onlineCount: "";
+	property int bottomBarHeight: 0;
 	property string activePageBackground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Window.background")
 
 	color: activePageBackground
@@ -203,6 +204,33 @@ ApplicationWindow
 
 			lPage.updateStakedInfo(buzzId);
 			lPage.start(buzzChainId, buzzId);
+
+			addPage(lPage);
+		}
+	}
+
+	function openMedia(index, pkey, media, player, instance, buzzId, buzzerAlias, buzzBody) {
+		//
+		var lComponent = null;
+		var lPage = null;
+
+		// locate and activate
+		if (activatePage(buzzId)) return;
+
+		lComponent = Qt.createComponent("qrc:/qml/buzzmedia.qml");
+		if (lComponent.status === Component.Error) {
+			showError(lComponent.errorString());
+		} else {
+			lPage = lComponent.createObject(window);
+			lPage.controller = window;
+
+			lPage.buzzMedia_ = media;
+			lPage.mediaPlayerController = player;
+			lPage.initialize(pkey, index, instance, buzzBody);
+
+			var lTitle = "Media";
+			if (buzzBody !== "") lTitle = buzzBody.replace(/(\r\n|\n|\r)/gm, "");
+			lPage.updateStakedInfo(buzzId + "-media", buzzerAlias, lTitle);
 
 			addPage(lPage);
 		}

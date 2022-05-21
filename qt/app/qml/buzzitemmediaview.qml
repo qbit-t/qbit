@@ -45,6 +45,7 @@ Item {
 	property var pkey_: ""
 	property var mediaIndex_: 0
 	property var mediaPlayer_: null
+	property var buzzId_: null
 	property var buzzBody_: ""
 
 	//
@@ -80,13 +81,14 @@ Item {
 		mediaIndicator.adjust();
 	}
 
-	function initialize(pkey, mediaIndex, player, buzzBody) {
+	function initialize(pkey, mediaIndex, player, buzzId, buzzBody) {
 		if (key !== undefined) pkey_ = pkey;
 		mediaPlayer_ = player;
 		mediaIndex_ = mediaIndex;
 		buzzBody_ = buzzBody;
+		buzzId_ = buzzId;
 
-		console.log("[initialize]: mediaIndex = " + mediaIndex + ", player = " + player);
+		console.log("[initialize]: mediaIndex = " + mediaIndex + ", player = " + player + ", buzzId = " + buzzId);
 
 		mediaList.prepare();
 	}
@@ -242,7 +244,7 @@ Item {
 					// try to track user attention
 					if (buzzitemmediaview_.sharedMediaPlayer_.isCurrentInstancePlaying() ||
 						buzzitemmediaview_.sharedMediaPlayer_.isCurrentInstancePaused()) {
-						buzzitemmediaview_.sharedMediaPlayer_.showCurrentPlayer();
+						buzzitemmediaview_.sharedMediaPlayer_.showCurrentPlayer(null);
 					}
 
 					preservedIndex = -1;
@@ -264,7 +266,7 @@ Item {
 							// try to track user attention
 							if (buzzitemmediaview_.sharedMediaPlayer_.isCurrentInstancePlaying() ||
 								buzzitemmediaview_.sharedMediaPlayer_.isCurrentInstancePaused()) {
-								buzzitemmediaview_.sharedMediaPlayer_.showCurrentPlayer();
+								buzzitemmediaview_.sharedMediaPlayer_.showCurrentPlayer(null);
 							}
 						}
 					}
@@ -357,7 +359,7 @@ Item {
 						path_ = "file://" + originalFile;
 					}
 					// set file
-					if (previewFile === "<stub>") preview_ = "qrc://images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "broken.media.cover");
+					if (previewFile === "<stub>") preview_ = "qrc://images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "default.media.cover");
 					else preview_ = "file://" + previewFile;
 					// set original orientation
 					orientation_ = orientation;
@@ -549,7 +551,7 @@ Item {
 
 	QuarkLabel {
 		id: mediaPagesIndicator
-		x: calculatedWidth - (width + 2*spaceItems_)
+		x: buzzerApp.isDesktop ? calculatedWidth / 2 - width / 2 : (calculatedWidth - (width + 2*spaceItems_))
 		y: spaceStats_ - (height + (landscape ? 0 : 5))
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 1)) : defaultFontSize + 1
 		text: "0/0"

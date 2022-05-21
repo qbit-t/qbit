@@ -116,8 +116,9 @@ Item {
 
 	function initialize() {
 		//
-		avatarDownloadCommand.url = buzzerClient.getBuzzerAvatarUrl(buzzitemlight_.buzzerInfoId_)
-		avatarDownloadCommand.localFile = buzzerClient.getTempFilesPath() + "/" + buzzerClient.getBuzzerAvatarUrlHeader(buzzitemlight_.buzzerInfoId_)
+		console.log("[initialize]: url = " + buzzerClient.getBuzzerAvatarUrl(buzzitemlight_.buzzerInfoId_));
+		avatarDownloadCommand.url = buzzerClient.getBuzzerAvatarUrl(buzzitemlight_.buzzerInfoId_);
+		avatarDownloadCommand.localFile = buzzerClient.getTempFilesPath() + "/" + buzzerClient.getBuzzerAvatarUrlHeader(buzzitemlight_.buzzerInfoId_);
 		avatarDownloadCommand.process();
 		bodyControl.expand();
 	}
@@ -300,7 +301,7 @@ Item {
 			x: spaceLeft_
 			y: avatarImage.y + avatarImage.height + spaceHeader_
 			width: parent.width - (spaceLeft_ + spaceRight_)
-			height: getHeight() //buzzText.height
+			//height: getHeight() //buzzText.height
 
 			border.color: "transparent"
 			color: "transparent"
@@ -462,11 +463,11 @@ Item {
 						buzzMediaItem_ ||
 						urlInfoItem_ && urlInfoItem_.calculatedHeight > 0 ? 0 : (buzzerClient.scaleFactor * 12);
 
-				return (buzzBody_.length > 0 ? buzzText.height - lAdjust : 0) +
+				return (buzzBody_ && buzzBody_.length > 0 ? buzzText.height - lAdjust : 0) +
 						(buzzMediaItem_ ? buzzMediaItem_.calculatedHeight : 0) +
 						(urlInfoItem_ ? urlInfoItem_.calculatedHeight : 0) +
 						(buzzBody_ && buzzBody_.length > 0 && buzzMedia_ && buzzMedia_.length ? spaceMedia_ : 0 /*spaceItems_*/) +
-						(buzzMedia_ && buzzMedia_.length > 1 ? spaceMediaIndicator_ : spaceBottom_);
+						(buzzMedia_ && buzzMedia_.length > 1 ? (spaceMediaIndicator_ + (buzzerApp.isDesktop ? 2*spaceItems_ : 0)) : spaceBottom_);
 			}
 		}
 	}

@@ -171,13 +171,18 @@ void PushNotification::makeNotification() {
 }
 
 void PushNotification::avatarDownloadDone(qbit::TransactionPtr /*tx*/,
-					   const std::string& previewFile,
-					   const std::string& /*originalFile*/, unsigned short /*orientation*/, unsigned int /*duration*/,
-					   uint64_t /*size*/, unsigned short type, const qbit::ProcessingError& result) {
+										  const std::string& previewFile,
+										  const std::string& /*originalFile*/,
+										  unsigned short /*orientation*/,
+										  unsigned int /*duration*/,
+										  uint64_t /*size*/,
+										  const qbit::cubix::doneDownloadWithErrorFunctionExtraArgs& extra,
+										  const qbit::ProcessingError& result) {
 	//
 	if (result.success()) {
 		//
-		if (type == qbit::cubix::TxMediaHeader::Type::IMAGE_JPEG || type == qbit::cubix::TxMediaHeader::Type::IMAGE_PNG)
+		if ((qbit::cubix::TxMediaHeader::MediaType)extra.type == qbit::cubix::TxMediaHeader::MediaType::IMAGE_JPEG ||
+				(qbit::cubix::TxMediaHeader::MediaType)extra.type == qbit::cubix::TxMediaHeader::MediaType::IMAGE_PNG)
 			avatarFile_ = previewFile;
 
 		if (buzz_->type() == qbit::TX_BUZZER_MESSAGE || buzz_->type() == qbit::TX_BUZZER_MESSAGE_REPLY) {
@@ -193,13 +198,18 @@ void PushNotification::avatarDownloadDone(qbit::TransactionPtr /*tx*/,
 }
 
 void PushNotification::mediaDownloadDone(qbit::TransactionPtr /*tx*/,
-					   const std::string& previewFile,
-					   const std::string& /*originalFile*/, unsigned short /*orientation*/, unsigned int /*duration*/,
-					   uint64_t /*size*/, unsigned short type, const qbit::ProcessingError& result) {
+										 const std::string& previewFile,
+										 const std::string& /*originalFile*/,
+										 unsigned short /*orientation*/,
+										 unsigned int /*duration*/,
+										 uint64_t /*size*/,
+										 const qbit::cubix::doneDownloadWithErrorFunctionExtraArgs& extra,
+										 const qbit::ProcessingError& result) {
 	//
 	if (result.success()) {
 		//
-		if (type == qbit::cubix::TxMediaHeader::Type::IMAGE_JPEG || type == qbit::cubix::TxMediaHeader::Type::IMAGE_PNG) {
+		if ((qbit::cubix::TxMediaHeader::MediaType)extra.type == qbit::cubix::TxMediaHeader::MediaType::IMAGE_JPEG ||
+				(qbit::cubix::TxMediaHeader::MediaType)extra.type == qbit::cubix::TxMediaHeader::MediaType::IMAGE_PNG) {
 			mediaFile_ = previewFile;
 		}
 	} else {

@@ -324,13 +324,65 @@ Item {
 		}
 	}
 
-	QuarkRoundState {
+	//
+	// NOTICE: for mobile versions we should consider to use ImageQx
+	//
+	Image { //BuzzerComponents.ImageQx
+		id: avatarImage
+
+		x: spaceLeft_
+		y: spaceTop_ + headerInfo.getHeight()
+		width: avatarImage.displayWidth
+		height: avatarImage.displayHeight
+		fillMode: Image.PreserveAspectCrop
+		mipmap: true
+		//radius: avatarImage.displayWidth
+
+		property bool rounded: true //!
+		property int displayWidth: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 50 : 50
+		property int displayHeight: displayWidth
+
+		autoTransform: true
+
+		layer.enabled: rounded
+		layer.effect: OpacityMask {
+			maskSource: Item {
+				width: avatarImage.displayWidth
+				height: avatarImage.displayHeight
+
+				Rectangle {
+					anchors.centerIn: parent
+					width: avatarImage.displayWidth
+					height: avatarImage.displayHeight
+					radius: avatarImage.displayWidth
+				}
+			}
+		}
+
+		MouseArea {
+			id: buzzerInfoClick
+			anchors.fill: parent
+			cursorShape: Qt.PointingHandCursor
+
+			onClicked: {
+				//
+				controller_.openBuzzfeedByBuzzer(buzzerName_);
+			}
+		}
+	}
+
+	QuarkRoundProgress {
 		id: imageFrame
 		x: avatarImage.x - 2
 		y: avatarImage.y - 2
 		size: avatarImage.displayWidth + 4
-		color: getColor()
-		background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
+		colorCircle: getColor()
+		colorBackground: "transparent"
+		arcBegin: 0
+		arcEnd: 360
+		lineWidth: buzzerClient.scaleFactor * 2
+		beginAnimation: false
+		endAnimation: false
 
 		function getColor() {
 			var lScoreBase = buzzerClient.getTrustScoreBase() / 10;
@@ -359,51 +411,42 @@ Item {
 		}
 	}
 
-	BuzzerComponents.ImageQx {
-		id: avatarImage
+	/*
+	QuarkRoundState {
+		id: imageFrame
+		x: avatarImage.x - 2
+		y: avatarImage.y - 2
+		size: avatarImage.displayWidth + 4
+		color: getColor()
+		background: "transparent" //buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
 
-		x: spaceLeft_
-		y: spaceTop_ + headerInfo.getHeight()
-		width: avatarImage.displayWidth
-		height: avatarImage.displayHeight
-		fillMode: Image.PreserveAspectCrop
-		mipmap: true
-		radius: avatarImage.displayWidth
+		function getColor() {
+			var lScoreBase = buzzerClient.getTrustScoreBase() / 10;
+			var lIndex = score_ / lScoreBase;
 
-		property bool rounded: false //!
-		property int displayWidth: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 50 : 50
-		property int displayHeight: displayWidth
+			// TODO: consider to use 4 basic colours:
+			// 0 - red
+			// 1 - 4 - orange
+			// 5 - green
+			// 6 - 9 - teal
+			// 10 -
 
-		autoTransform: true
-
-		/*
-		layer.enabled: rounded
-		layer.effect: OpacityMask {
-			maskSource: Item {
-				width: avatarImage.displayWidth
-				height: avatarImage.displayHeight
-
-				Rectangle {
-					anchors.centerIn: parent
-					width: avatarImage.displayWidth
-					height: avatarImage.displayHeight
-					radius: avatarImage.displayWidth
-				}
-			}
-		}
-		*/
-
-		MouseArea {
-			id: buzzerInfoClick
-			anchors.fill: parent
-			cursorShape: Qt.PointingHandCursor
-
-			onClicked: {
-				//
-				controller_.openBuzzfeedByBuzzer(buzzerName_);
+			switch(Math.round(lIndex)) {
+				case 0: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.0");
+				case 1: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.1");
+				case 2: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.2");
+				case 3: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.3");
+				case 4: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.4");
+				case 5: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.5");
+				case 6: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.6");
+				case 7: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.7");
+				case 8: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.8");
+				case 9: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.9");
+				default: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.10");
 			}
 		}
 	}
+	*/
 
 	QuarkSymbolLabel {
 		id: endorseSymbol
@@ -701,6 +744,7 @@ Item {
 				bodyControl.buzzMediaItem_.width = bodyControl.width;
 				bodyControl.buzzMediaItem_.controller_ = buzzitem_.controller_;
 				bodyControl.buzzMediaItem_.buzzId_ = buzzitem_.buzzId_;
+				bodyControl.buzzMediaItem_.buzzerAlias_ = buzzitem_.buzzerAlias_;
 				bodyControl.buzzMediaItem_.buzzBody_ = buzzitem_.buzzBodyFlat_;
 				bodyControl.buzzMediaItem_.buzzMedia_ = buzzitem_.buzzMedia_;
 				bodyControl.buzzMediaItem_.sharedMediaPlayer_ = buzzitem_.sharedMediaPlayer_;
@@ -914,6 +958,7 @@ Item {
 					buzzMediaItem_.width = bodyControl.width;
 					buzzMediaItem_.controller_ = buzzitem_.controller_;
 					buzzMediaItem_.buzzId_ = buzzitem_.buzzId_;
+					buzzMediaItem_.buzzerAlias_ = buzzitem_.buzzerAlias_;
 					buzzMediaItem_.buzzBody_ = buzzitem_.buzzBodyFlat_;
 					buzzMediaItem_.buzzMedia_ = buzzitem_.buzzMedia_;
 					buzzMediaItem_.sharedMediaPlayer_ = buzzitem_.sharedMediaPlayer_;
@@ -1012,13 +1057,13 @@ Item {
 			var lComponent = null;
 			var lPage = null;
 
-			lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzeditor-desktop.qml") :
+			lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzeditor-desktop.qml", controller_) :
 											   Qt.createComponent("qrc:/qml/buzzeditor.qml");
 			if (lComponent.status === Component.Error) {
 				showError(lComponent.errorString());
 			} else {
-				lPage = lComponent.createObject(controller);
-				lPage.controller = controller;
+				lPage = lComponent.createObject(controller_);
+				lPage.controller = controller_;
 				lPage.initializeReply(self_, buzzfeedModel_);
 				addPage(lPage);
 			}
@@ -1332,13 +1377,13 @@ Item {
 				var lComponent = null;
 				var lPage = null;
 
-				lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzeditor-desktop.qml") :
+				lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzeditor-desktop.qml", controller_) :
 												   Qt.createComponent("qrc:/qml/buzzeditor.qml");
 				if (lComponent.status === Component.Error) {
 					showError(lComponent.errorString());
 				} else {
-					lPage = lComponent.createObject(controller);
-					lPage.controller = controller;
+					lPage = lComponent.createObject(controller_);
+					lPage.controller = controller_;
 					lPage.initializeRebuzz(self_, buzzfeedModel_);
 					addPage(lPage);
 				}

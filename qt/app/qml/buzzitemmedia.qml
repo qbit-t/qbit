@@ -25,12 +25,14 @@ Item {
 	property int calculatedWidth: 500
 	property int calculatedWidthInternal: 500
 	property var buzzId_: buzzId
+	property var buzzerAlias_: buzzerAlias
 	property var buzzMedia_: buzzMedia
 	property var buzzBody_: buzzBodyFlat
 	property var controller_: controller
 	property var frameColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
 	property var fillColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.background.simple")
 	property var sharedMediaPlayer_
+	property var playerKey_
 
 	readonly property int maxCalculatedWidth_: 600
 	readonly property int spaceLeft_: 15
@@ -158,7 +160,7 @@ Item {
 				if (lItem && lItem.mediaItem && lItem.mediaItem.playable) {
 					mediaList.currentIndex = lIdx;
 					lItem.mediaItem.tryPlay();
-					sharedMediaPlayer_.showCurrentPlayer();
+					sharedMediaPlayer_.showCurrentPlayer(null);
 					return true;
 				}
 			}
@@ -173,7 +175,7 @@ Item {
 				if (lItem && lItem.mediaItem && lItem.mediaItem.playable) {
 					mediaList.currentIndex = lIdx;
 					lItem.mediaItem.tryPlay();
-					sharedMediaPlayer_.showCurrentPlayer();
+					sharedMediaPlayer_.showCurrentPlayer(null);
 					return true;
 				}
 			}
@@ -303,14 +305,14 @@ Item {
 					//
 					processed_ = true;
 					// tx, previewFile, originalFile, orientation, duration, size, type
-					//var lPSize = buzzerApp.getFileSize(previewFile);
-					//var lOSize = buzzerApp.getFileSize(originalFile);
-					//console.log("index = " + index + ", " + tx + ", " + previewFile + " - [" + lPSize + "], " + originalFile + " - [" + lOSize + "], " + orientation + ", " + duration + ", " + size + ", " + type);
+					var lPSize = buzzerApp.getFileSize(previewFile);
+					var lOSize = buzzerApp.getFileSize(originalFile);
+					console.log("index = " + index + ", " + tx + ", " + previewFile + " - [" + lPSize + "], " + originalFile + " - [" + lOSize + "], " + orientation + ", " + duration + ", " + size + ", " + type);
 
 					// stop timer
 					downloadWaitTimer.stop();
 					// set preview
-					if (previewFile === "<stub>") preview_ = "qrc://images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "broken.media.cover");
+					if (previewFile === "<stub>") preview_ = "qrc://images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "default.media.cover");
 					else preview_ = "file://" + previewFile; // ONLY: preview binding here, path_ is for the inner component
 					//
 					previewSource_ = "file://" + previewFile;
@@ -350,6 +352,7 @@ Item {
 					mediaFrame.mediaItem.fillColor = buzzitemmedia_.fillColor;
 					mediaFrame.mediaItem.width = mediaList.width;
 					mediaFrame.mediaItem.mediaList = mediaList;
+					mediaFrame.mediaItem.playerKey_ = playerKey_;
 					mediaFrame.mediaItem.buzzitemmedia_ = buzzitemmedia_;
 					mediaFrame.mediaItem.sharedMediaPlayer_ = buzzitemmedia_.sharedMediaPlayer_;
 					mediaFrame.mediaItem.mediaIndex_ = index;
@@ -494,9 +497,9 @@ Item {
 
 	QuarkLabel {
 		id: mediaIndicator
-		x: calculatedWidthInternal - (width + 2 * spaceItems_)
+		x: calculatedWidthInternal - (width + 3 * spaceItems_)
 		y: spaceStats_ - (height + 3)
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 1)) : defaultFontSize + 1
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 2)) : defaultFontSize + 1
 		text: "0/0"
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 		visible: count > 1

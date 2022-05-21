@@ -8,6 +8,8 @@
 #include <QFileInfo>
 #include <QDateTime>
 
+#if defined(Q_OS_ANDROID)
+
 #include <QtAndroidExtras/QAndroidJniObject>
 #include <jni.h>
 
@@ -607,4 +609,6 @@ JNIEXPORT void JNICALL
 
 #ifdef __cplusplus
 }
+#endif
+
 #endif

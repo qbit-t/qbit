@@ -88,6 +88,15 @@ QString BuzzfeedListModel::buzzId(int index) const {
 	return QString::fromStdString(lItem->buzzId().toHex());
 }
 
+QString BuzzfeedListModel::buzzerId(int index) const {
+	if (index < 0 || index >= (int)list_.size()) {
+		return "";
+	}
+
+	qbit::BuzzfeedItemPtr lItem = list_[index];
+	return QString::fromStdString(lItem->buzzerId().toHex());
+}
+
 QVariant BuzzfeedListModel::self(int index) const {
 	if (index < 0 || index >= (int)list_.size()) {
 		return QVariant();
@@ -139,7 +148,11 @@ QVariant BuzzfeedListModel::data(const QModelIndex& index, int role) const {
 		return QVariant();
 	}
 
-	qbit::BuzzfeedItemPtr lItem = list_[index.row()];	
+	if (role == AdjustDataRole) {
+		return adjustData_[index.row()];
+	}
+
+	qbit::BuzzfeedItemPtr lItem = list_[index.row()];
 	if (role == TypeRole) {
 		return lItem->type();
 	} else if (role == BuzzIdRole) {
@@ -318,6 +331,7 @@ QHash<int, QByteArray> BuzzfeedListModel::roleNames() const {
 	lRoles[FeedingRole] = "feeding";
 	lRoles[OwnLikeRole] = "ownLike";
 	lRoles[OwnRebuzzRole] = "ownRebuzz";
+	lRoles[AdjustDataRole] = "adjustData";
 
 	return lRoles;
 }
@@ -363,6 +377,7 @@ void BuzzfeedListModel::feed(qbit::BuzzfeedPtr local, bool more, bool merge) {
 		// get ordered list
 		list_.clear();
 		index_.clear();
+		adjustData_.clear();
 		buzzfeed_->feed(list_);
 
 		noMoreData_ = false;
@@ -370,6 +385,7 @@ void BuzzfeedListModel::feed(qbit::BuzzfeedPtr local, bool more, bool merge) {
 		// make index
 		for (int lItem = 0; lItem < (int)list_.size(); lItem++) {
 			index_[list_[lItem]->key()] = lItem;
+			adjustData_.push_back(false);
 			//qInfo() << "Initial: " << QString::fromStdString(list_[lItem]->key().toString()) << QString::fromStdString(list_[lItem]->buzzBodyString());
 		}
 
@@ -410,11 +426,13 @@ void BuzzfeedListModel::feed(qbit::BuzzfeedPtr local, bool more, bool merge) {
 			// new feed
 			list_.clear();
 			index_.clear();
+			adjustData_.clear();
 			buzzfeed_->feed(list_);
 
 			// make index
 			for (int lItem = 0; lItem < (int)list_.size(); lItem++) {
 				index_[list_[lItem]->key()] = lItem;
+				adjustData_.push_back(false);
 
 				//qInfo() << "More: " << QString::fromStdString(list_[lItem]->key().toString()) << QString::fromStdString(list_[lItem]->buzzBodyString());
 			}
@@ -469,6 +487,7 @@ void BuzzfeedListModel::merge() {
 	// update feed
 	list_.clear();
 	index_.clear();
+	adjustData_.clear();
 	buzzfeed_->feed(list_);
 
 	qInfo() << "new.count = " << list_.size();
@@ -476,6 +495,7 @@ void BuzzfeedListModel::merge() {
 	// make index
 	for (int lItem = 0; lItem < (int)list_.size(); lItem++) {
 		index_[list_[lItem]->key()] = lItem;
+		adjustData_.push_back(false);
 	}
 
 	bool lChanged = false;
@@ -544,12 +564,18 @@ void BuzzfeedListModel::buzzfeedItemNewSlot(const qbit::BuzzfeedItemProxy& buzz)
 	int lIndex = buzzfeed_->locateIndex(lBuzzfeedItem);
 	if ((lIndex != -1 && list_.begin() != list_.end()) || !list_.size()) {
 		//
+		bool lModified = false;
 		if (index_.find(lBuzzfeedItem->key()) == index_.end()) {
 			if (!list_.size()) {
 				lIndex = 0;
 				list_.push_back(lBuzzfeedItem);
+				if (adjustData_.size()) adjustData_[adjustData_.size() - 1] = true;
+				adjustData_.push_back(false);
 			} else {
 				list_.insert(list_.begin() + lIndex, lBuzzfeedItem);
+				adjustData_.insert(adjustData_.begin() + lIndex, false);
+				if (lIndex + 1 < (int)adjustData_.size()) adjustData_[lIndex + 1] = true;
+				lModified = true;
 			}
 
 			// rebuild index
@@ -562,6 +588,12 @@ void BuzzfeedListModel::buzzfeedItemNewSlot(const qbit::BuzzfeedItemProxy& buzz)
 			// qInfo() << "BuzzfeedListModel::buzzfeedItemNewSlot -> insert" << lIndex;
 			beginInsertRows(QModelIndex(), lIndex, lIndex);
 			endInsertRows();
+
+			if (lModified && lIndex + 1 < (int)adjustData_.size()) {
+				QModelIndex lModelIndex = createIndex(lIndex + 1, lIndex + 1);
+				emit dataChanged(lModelIndex, lModelIndex, QVector<int>()
+						<< AdjustDataRole);
+			}
 
 			emit countChanged();
 		} else {

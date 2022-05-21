@@ -8,7 +8,9 @@ import QtQuick.Dialogs 1.1
 //import QtGraphicalEffects 1.0
 import QtGraphicalEffects 1.15
 import Qt.labs.folderlistmodel 2.11
-import QtMultimedia 5.8
+import QtMultimedia 5.15
+// NOTICE: native file dialog
+import QtQuick.PrivateWidgets 1.0
 
 import app.buzzer.components 1.0 as BuzzerComponents
 import app.buzzer.commands 1.0 as BuzzerCommands
@@ -51,11 +53,21 @@ Rectangle {
 	signal adjustHeight(var proposed);
 
 	onMediaBoxChanged: {
-		videoOutput.adjustView();
+		adjust();
 	}
 
 	onHeightChanged: {
+		adjust();
+	}
+
+	onWidthChanged: {
+		adjust();
+	}
+
+	function adjust() {
 		videoOutput.adjustView();
+		previewImage.adjustView();
+		previewImage.adjustWidth();
 	}
 
 	//
@@ -86,7 +98,7 @@ Rectangle {
 
 	//
 	color: "transparent"
-	width: player.width + 2 * spaceItems_
+	//width: player.width + 2 * spaceItems_
 	height: 600
 
 	//
@@ -95,6 +107,8 @@ Rectangle {
 
 		x: getX()
 		y: getY()
+
+		flushMode: VideoOutput.FirstFrame
 
 		function getX() {
 			return parent.width / 2 - width / 2;
@@ -105,7 +119,7 @@ Rectangle {
 		}
 
 		function adjustView() {
-			if (mediaList) width = mediaList.width - 2 * spaceItems_;
+			if (mediaList) width = mediaList.width - 4 * spaceItems_;
 			if (mediaBox) {
 				mediaList.height = Math.max(mediaBox.calculatedHeight, parent.height);
 				mediaBox.calculatedHeight = mediaList.height;
@@ -115,15 +129,16 @@ Rectangle {
 			adjustHeight(height);
 		}
 
-		//width: parent.width
-		//height: parent.height
+		anchors.leftMargin: 2*spaceItems_
+		anchors.rightMargin: 2*spaceItems_
 		anchors.fill: parent
 		source: player
 		fillMode: VideoOutput.PreserveAspectFit
 
+		visible: !previewImage.visible
+
 		onContentRectChanged: {
 			//
-			// console.log("[onContentRectChanged-2]: videoOutput.contentRect = " + videoOutput.contentRect + ", parent.height = " + parent.height);
 			if (videoOutput.contentRect.height > 0 && videoOutput.contentRect.height < parent.height) {
 				height = videoOutput.contentRect.height;
 				adjustHeight(height);
@@ -134,18 +149,28 @@ Rectangle {
 	//
 	QuarkRoundRectangle {
 		id: frameContainer
-		//x: videoOutput.x + spaceItems_ - 1
-		//y: videoOutput.contentRect.y - 1
-		//width: videoOutput.width + 2
-		//height: videoOutput.contentRect.height + 2
-		anchors.fill: previewImage
+		//anchors.fill: previewImage.visible ? previewImage : videoOutput.contentRect
 
-		color: "transparent" // buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
+		x: previewImage.visible ? previewImage.x : videoOutput.contentRect.x + 2*spaceItems_
+		y: previewImage.visible ? previewImage.y : videoOutput.contentRect.y
+		width: previewImage.visible ? previewImage.width : videoOutput.contentRect.width
+		height: previewImage.visible ? previewImage.height : videoOutput.contentRect.height
+
+		color: "transparent"
 		backgroundColor: "transparent"
-		//radius: 14
-		//penWidth: 10
 
-		visible: true //!previewImage.visible
+		visible: true
+
+		MouseArea {
+			anchors.fill: parent
+			enabled: true
+			cursorShape: Qt.PointingHandCursor
+
+			onClicked: {
+				if (player.playing) player.pause();
+				else player.play();
+			}
+		}
 	}
 
 	BuzzerComponents.ImageQx {
@@ -155,8 +180,33 @@ Rectangle {
 
 		function adjustView() {
 			if (previewImage.status === Image.Ready && mediaList) {
-				width = mediaList.width - 2*spaceItems_;
-				parent.height = height;
+				if (originalWidth > originalHeight) {
+					width = mediaList.width - 4*spaceItems_;
+					parent.height = height;
+				} else {
+					height = parent.parent.height;
+				}
+
+				adjustHeight(height);
+			}
+		}
+
+		function adjustWidth() {
+			//
+			var lCoeff;
+			if (originalWidth > originalHeight) {
+				width = mediaList.width - 4*spaceItems_;
+				lCoeff = (width * 1.0) / (originalWidth * 1.0);
+				var lHeight = originalHeight * 1.0;
+				height = lHeight * lCoeff;
+				adjustHeight(height);
+			}
+
+			if (originalHeight > originalWidth) {
+				height = parent.parent.height;
+				lCoeff = (height * 1.0) / (originalHeight * 1.0);
+				var lWidth = originalWidth * 1.0;
+				width = (lWidth * lCoeff);
 			}
 		}
 
@@ -164,30 +214,27 @@ Rectangle {
 			parent.height = height;
 		}
 
-		onStatusChanged: {
-			adjustView();
-		}
-
 		onWidthChanged: {
 			//
-			if (width != originalWidth) {
-				var lCoeff = (width * 1.0) / (originalWidth * 1.0)
-				var lHeight = originalHeight * 1.0;
-				height = lHeight * lCoeff;
+		}
 
-				adjustHeight(height);
+		onStatusChanged: {
+			if (status == Image.Ready) {
+				adjustView();
+				adjustWidth();
+			}
 
-				//console.log("[onHeightChanged/image/new height]: height = " + lHeight + ", lCoeff = " + lCoeff + ", width = " + width + ", originalWidth = " + originalWidth);
+			if (status == Image.Error) {
+				console.log("[onStatusChanged]: error = " + errorString);
 			}
 		}
 
-		source: "file://" + preview
+		source: preview.startsWith("qrc") ? preview : "file://" + preview
 		fillMode: BuzzerComponents.ImageQx.PreserveAspectFit
 		mipmap: true
 		anchors.centerIn: parent
 
-		visible: (preview !== "none" || preview !== "") && !player.hasVideo //||
-					//(player.hasVideo && !player.playing && !player.paused))
+		visible: (preview !== "none" || preview !== "") && !(player.hasVideo && player.position > 1)
 	}
 
 	Timer {
@@ -261,7 +308,7 @@ Rectangle {
 				break;
 			}
 
-			console.log("[onStatusChanged(9)]: status = " + status + ", duration = " + duration + ", path = " + path + ", size = " + size);
+			console.log("[onStatusChanged(9)]: status = " + status + ", duration = " + duration + ", path = " + path + ", size = " + size + ", preview = " + preview);
 		}
 
 		onPositionChanged: {
@@ -280,16 +327,13 @@ Rectangle {
 	//
 	Rectangle {
 		id: controlsBack
-		//x: frameContainer.x + 2 * spaceItems_
-		//y: frameContainer.y + frameContainer.height - (actionButton.height + 4 * spaceItems_)
-		//width: frameContainer.width - (4 * spaceItems_)
 		x: frameContainer.visible ? (frameContainer.x + spaceItems_) : (previewImage.x + spaceItems_)
 		y: frameContainer.visible ? (frameContainer.y + frameContainer.height - (actionButton.height + 3 * spaceItems_)) :
 									(previewImage.y + previewImage.height - (actionButton.height + 3 * spaceItems_))
 		width: frameContainer.visible ? (frameContainer.width - (2 * spaceItems_)) : (previewImage.width - (2 * spaceItems_))
 		height: actionButton.height + 2 * spaceItems_
-		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
-		opacity: 0.3
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden.uni")
+		opacity: 0.9
 		radius: 8
 	}
 
@@ -305,6 +349,7 @@ Rectangle {
 		symbol: player.playing ? Fonts.pauseSym : Fonts.playSym
 		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 7)) : 18
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.highlight")
+		radius: buzzerApp.isDesktop ? defaultRadius * buzzerClient.scaleFactor : defaultRadius
 
 		onSymbolChanged: {
 			if (symbol !== Fonts.playSym) spaceLeft = 0;
@@ -331,14 +376,16 @@ Rectangle {
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
 		text: description
 		visible: description != "none"
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
 	}
 
 	QuarkLabel {
 		id: elapsedTime
 		x: actionButton.x + actionButton.width + spaceItems_ + (description != "none" ? 3 : 0)
 		y: actionButton.y + (description != "none" ? caption.height + 3 : spaceItems_)
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - (description != "none" ? 3 : 0))) : 11
 		text: "00:00"
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
 
 		function setTime(ms) {
 			text = DateFunctions.msToTimeString(ms);
@@ -349,8 +396,9 @@ Rectangle {
 		id: totalTime
 		x: elapsedTime.x + elapsedTime.width
 		y: elapsedTime.y
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - (description != "none" ? 3 : 0))) : 11
 		text: "/00:00"
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
 
 		function setTotalTime(ms) {
 			text = "/" + DateFunctions.msToTimeString(ms);
@@ -361,9 +409,10 @@ Rectangle {
 		id: totalSize
 		x: totalTime.x + totalTime.width
 		y: elapsedTime.y
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - (description != "none" ? 3 : 0))) : 11
 		text: ", 0k"
 		visible: size !== 0
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
 
 		function getSize() {
 			setTotalSize(size)
@@ -379,7 +428,7 @@ Rectangle {
 	Slider {
 		id: playSlider
 		x: actionButton.x + actionButton.width // + spaceItems_
-		y: actionButton.y + actionButton.height - (height - 3 * spaceItems_)
+		y: actionButton.y + actionButton.height - (height - 3 * spaceItems_) + (buzzerClient.scaleFactor && description != "none" ? 3 : 0)
 		from: 0
 		to: 1
 		orientation: Qt.Horizontal
@@ -392,53 +441,110 @@ Rectangle {
 		}
 	}
 
-	QuarkToolButton	{
+	QuarkRoundSymbolButton	{
 		id: removeButton
 
 		x: frameContainer.x + frameContainer.width - (width + 2*spaceItems_)
-		y: 2*spaceItems_
+		y: frameContainer.y + 2*spaceItems_
 		// Material.background: "transparent"
 		visible: true
-		labelYOffset: 3
-		symbolColor: (!sending || uploaded) ? buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground") :
+		spaceTop: 1
+		textColor: (!sending || uploaded) ? buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground") :
 										  buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 		symbol: !uploaded ? Fonts.cancelSym : Fonts.checkedSym
+		radius: 20
+		opacity: 0.8
+		fontPointSize: 16
+		enableShadow: true
 
-		onClicked: {
+		onClick: {
 			if (!sending) {
 				mediaList.removeMedia(index);
 			}
 		}
 	}
 
-	QuarkToolButton	{
+	QuarkRoundSymbolButton	{
 		id: clearDescriptionButton
 
 		x: frameContainer.x + frameContainer.width - (width + 2*spaceItems_)
-		y: removeButton.y + removeButton.height
+		y: removeButton.y + removeButton.height + 2*spaceItems_
 		// Material.background: "transparent"
 		visible: true
-		labelYOffset: 2
-		symbolColor: (!sending || uploaded) ? buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground") :
+		spaceTop: 2
+		textColor: (!sending || uploaded) ? buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground") :
 										  buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 		symbol: Fonts.eraserSym
+		radius: 20
+		opacity: 0.8
+		fontPointSize: 16
+		enableShadow: true
 
-		onClicked: {
+		onClick: {
 			if (!sending) {
 				description = "none";
 			}
 		}
 	}
 
+	QuarkRoundSymbolButton	{
+		id: replaceCoverButton
+
+		x: frameContainer.x + frameContainer.width - (width + 2*spaceItems_)
+		y: clearDescriptionButton.y + clearDescriptionButton.height + 2*spaceItems_
+		// Material.background: "transparent"
+		visible: true
+		spaceTop: 2
+		//symbolFontPointSize: 14
+		textColor: (!sending || uploaded) ? buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground") :
+										  buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
+		symbol: Fonts.mediaSym
+		radius: 20
+		opacity: 0.8
+		fontPointSize: 16
+		enableShadow: true
+
+		onClick: {
+			if (!sending) {
+				imageListing.open();
+			}
+		}
+	}
+
 	QuarkRoundProgress {
 		id: mediaUploadProgress
-		x: removeButton.x - 1
-		y: removeButton.y - 1
-		size: removeButton.width + 2
+		x: removeButton.x - 3
+		y: removeButton.y - 3
+		size: removeButton.width + 6
 		colorCircle: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link");
 		colorBackground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link");
 		arcBegin: 0
 		arcEnd: progress
 		lineWidth: 3
+	}
+
+	QtFileDialog {
+		id: imageListing
+		nameFilters: [ "Media files (*.jpg *.png *.jpeg)" ]
+		selectExisting: true
+		selectFolder: false
+		selectMultiple: false
+
+		onAccepted: {
+			//
+			var lPath = fileUrl.toString();
+			if (Qt.platform.os == "windows") {
+				lPath = lPath.replace(/^(file:\/{3})/,"");
+			} else {
+				lPath = lPath.replace(/^(file:\/{2})/,"");
+			}
+
+			//
+			preview = decodeURIComponent(lPath);
+
+			//
+			player.stop();
+			player.seek(1);
+		}
 	}
 }

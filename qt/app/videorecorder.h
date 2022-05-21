@@ -5,7 +5,10 @@
 #include <QVideoProbe>
 #include <QMediaRecorder>
 #include <QCamera>
+
+#if !defined(DESKTOP_PLATFORM)
 #include <QOrientationReading>
+#endif
 
 namespace buzzer {
 
@@ -14,7 +17,9 @@ class VideoRecorder : public QObject {
 	Q_OBJECT
 
 	Q_PROPERTY(QVariant camera READ camera WRITE setCamera NOTIFY cameraChanged)
+#if !defined(DESKTOP_PLATFORM)
 	Q_PROPERTY(QOrientationReading::Orientation orientation READ orientation WRITE setOrientation NOTIFY orientationChanged)
+#endif
 	Q_PROPERTY(qint64 duration READ duration NOTIFY durationChanged)
 	Q_PROPERTY(qint64 maxDuration READ maxDuration NOTIFY maxDurationChanged)
 	Q_PROPERTY(QString localPath READ localPath WRITE setLocalPath NOTIFY localPathChanged)
@@ -35,8 +40,10 @@ public:
 	Q_INVOKABLE void pause();
 
 	QVariant camera() { return QVariant::fromValue(camera_); }
+#if !defined(DESKTOP_PLATFORM)
 	QOrientationReading::Orientation orientation() { return orientation_; }
 	void setOrientation(QOrientationReading::Orientation orientation) { orientation_ = orientation; emit orientationChanged(); }
+#endif
 	void setCamera(QVariant camera);
 	qint64 duration() { return duration_; }
 	qint64 maxDuration() { return maxDuration_; }
@@ -111,7 +118,9 @@ private:
 	QString actualFileLocation_;
 	bool previewSaved_ = false;
 	bool videoCaptured_ = false;
+#if !defined(DESKTOP_PLATFORM)
 	QOrientationReading::Orientation orientation_;
+#endif
 	unsigned short unifiedOrientation_ = 0;
 	QString previewLocation_;
 	QString resolution_;

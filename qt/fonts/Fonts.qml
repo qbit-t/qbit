@@ -260,5 +260,6 @@ Item
 	readonly property string arrowBottomSym: "\uf33d";
 
 	readonly property string shareSym: "\uf1e0";
+	readonly property string mediaSym: "\uf87c";
 }
 

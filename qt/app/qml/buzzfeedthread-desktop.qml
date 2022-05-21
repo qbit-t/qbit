@@ -23,6 +23,7 @@ import "qrc:/lib/numberFunctions.js" as NumberFunctions
 QuarkPage {
 	id: buzzfeedthread_
 	key: "buzzfeedthread"
+	stacked: true
 
 	property var infoDialog;
 	property var controller;
@@ -75,7 +76,7 @@ QuarkPage {
 		if (mediaPlayerController && mediaPlayerController.isCurrentInstancePlaying()) {
 			mediaPlayerController.disableContinousPlayback();
 			mediaPlayerController.popVideoInstance();
-			mediaPlayerController.showCurrentPlayer();
+			mediaPlayerController.showCurrentPlayer(null);
 		}
 
 		//
@@ -869,7 +870,7 @@ QuarkPage {
 
 		model: ListModel { id: menuModel }
 
-		Component.onCompleted: prepare()
+		onAboutToShow: prepare()
 
 		onClick: {
 			// key, activate

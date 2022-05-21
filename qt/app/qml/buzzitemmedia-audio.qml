@@ -53,6 +53,7 @@ Rectangle {
 	property var sharedMediaPlayer_
 	property var mediaIndex_: 0
 	property var controller_
+	property var playerKey_
 
 	//
 	property var buzzitemmedia_;
@@ -84,9 +85,9 @@ Rectangle {
 		if (player && (playing || downloadCommand.processing)) {
 			//
 			if (!isFullyVisible) {
-				audioFrame.sharedMediaPlayer_.showCurrentPlayer();
+				audioFrame.sharedMediaPlayer_.showCurrentPlayer(playerKey_);
 			} else {
-				audioFrame.sharedMediaPlayer_.hideCurrentPlayer();
+				audioFrame.sharedMediaPlayer_.hideCurrentPlayer(playerKey_);
 			}
 		}
 	}
@@ -110,7 +111,7 @@ Rectangle {
 			audioFrame.sharedMediaPlayer_.continuePlayback = false;
 			//
 			if (audioFrame.sharedMediaPlayer_.isCurrentInstancePaused()) player.stop();
-			else if (playing || downloadCommand.processing) audioFrame.sharedMediaPlayer_.showCurrentPlayer();
+			else if (playing || downloadCommand.processing) audioFrame.sharedMediaPlayer_.showCurrentPlayer(null);
 		}
 	}
 
@@ -164,6 +165,10 @@ Rectangle {
 
 			onClicked: {
 				// expand
+				controller_.openMedia(pkey_, mediaIndex_, buzzitemmedia_.buzzMedia_, sharedMediaPlayer_, !sharedMediaPlayer_.isCurrentInstanceStopped() ? player : null,
+									  buzzitemmedia_.buzzId_, buzzitemmedia_.buzzerAlias_, buzzitemmedia_.buzzBody_);
+
+				/*
 				var lSource;
 				var lComponent;
 
@@ -181,6 +186,7 @@ Rectangle {
 					lMedia.initialize(pkey_, mediaIndex_, !sharedMediaPlayer_.isCurrentInstanceStopped() ? player : null, description_);
 					controller_.addPage(lMedia);
 				}
+				*/
 			}
 		}
 	}
@@ -359,9 +365,13 @@ Rectangle {
 		id: actionButton
 		x: spaceLeft_
 		y: spaceTop_
-		spaceLeft: symbol === Fonts.arrowDownHollowSym || symbol === Fonts.pauseSym ? 2 :
-					   (symbol === Fonts.playSym || symbol === Fonts.cancelSym ? 3 : 0)
-		spaceTop: 2
+		/*
+		spaceLeft: symbol === Fonts.arrowDownHollowSym || symbol === Fonts.pauseSym ?
+						(buzzerClient.scaleFactor * 2) :
+							(symbol === Fonts.playSym || symbol === Fonts.cancelSym ?
+								(buzzerClient.scaleFactor * 3) : 0)
+		spaceTop: buzzerClient.scaleFactor * 2
+		*/
 		symbol: needDownload && !downloadCommand.downloaded ? Fonts.arrowDownHollowSym :
 									(player.playing ? Fonts.pauseSym : Fonts.playSym)
 		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 7)) : 18
@@ -370,6 +380,11 @@ Rectangle {
 		Material.background: buzzerApp.getColor(mediaView ? mediaViewTheme : buzzerClient.theme, mediaView ? mediaViewSelector : buzzerClient.themeSelector, "Material.menu.background");
 
 		property bool needDownload: size_ /*&& size_ > 1024*200*/ && !downloadCommand.downloaded
+
+		onSymbolChanged: {
+			if (symbol !== Fonts.playSym) spaceLeft = 0;
+			else spaceLeft = buzzerClient.scaleFactor * 2;
+		}
 
 		onClick: {
 			//
@@ -467,9 +482,9 @@ Rectangle {
 
 	QuarkRoundProgress {
 		id: mediaLoading
-		x: actionButton.x - 2
-		y: actionButton.y - 2
-		size: buzzerClient.scaleFactor * (actionButton.width + 4)
+		x: actionButton.x - buzzerClient.scaleFactor * 2
+		y: actionButton.y - buzzerClient.scaleFactor * 2
+		size: actionButton.width + buzzerClient.scaleFactor * 4
 		colorCircle: buzzerApp.getColor(mediaView ? mediaViewTheme : buzzerClient.theme, mediaView ? mediaViewSelector : buzzerClient.themeSelector, "Material.link");
 		colorBackground: buzzerApp.getColor(mediaView ? mediaViewTheme : buzzerClient.theme, mediaView ? mediaViewSelector : buzzerClient.themeSelector, "Material.link");
 		arcBegin: 0

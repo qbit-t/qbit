@@ -15,6 +15,7 @@ MediaPlayer {
 
 	function pushSurface(surface) {
 		surfaces.pushSurface(surface);
+		videoOutput = surfaces;
 	}
 
 	function popSurface() {
@@ -25,7 +26,7 @@ MediaPlayer {
 		surfaces.clearSurfaces();
 	}
 
-	videoOutput: surfaces
+	//videoOutput: surfaces
 
 	onPlaying: { playing = true; paused = false; stopped = false; }
 	onPaused: { playing = false; paused = true; stopped = false; playerPaused(); }

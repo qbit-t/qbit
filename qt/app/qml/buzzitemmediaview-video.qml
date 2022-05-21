@@ -95,9 +95,9 @@ Rectangle {
 		if (player && (playing || downloadCommand.processing)) {
 			//
 			if (!isFullyVisible && frameContainer.scale == 1.0) {
-				videoFrame.sharedMediaPlayer_.showCurrentPlayer();
+				videoFrame.sharedMediaPlayer_.showCurrentPlayer(buzzerApp.isDesktop ? buzzitemmedia_.buzzId_ : null);
 			} else {
-				videoFrame.sharedMediaPlayer_.hideCurrentPlayer();
+				videoFrame.sharedMediaPlayer_.hideCurrentPlayer(buzzerApp.isDesktop ? buzzitemmedia_.buzzId_ : null);
 			}
 		}
 	}
@@ -126,7 +126,7 @@ Rectangle {
 			videoFrame.sharedMediaPlayer_.continuePlayback = false;
 			//
 			if (videoFrame.sharedMediaPlayer_.isCurrentInstancePaused()) player.stop();
-			else if (playing || downloadCommand.processing) videoFrame.sharedMediaPlayer_.showCurrentPlayer();
+			else if (playing || downloadCommand.processing) videoFrame.sharedMediaPlayer_.showCurrentPlayer(null);
 
 			unlink();
 		}
@@ -204,6 +204,13 @@ Rectangle {
 		}
 	}
 
+	WheelHandler {
+		id: wheelHandler
+		target: frameContainer
+		property: "scale"
+		enabled: !previewImageVideo.visible && buzzerApp.isDesktop
+	}
+
 	PinchHandler {
 		id: pinchHandler
 		minimumRotation: 0
@@ -211,7 +218,7 @@ Rectangle {
 		minimumScale: 1.0
 		maximumScale: 10.0
 		target: frameContainer
-		enabled: !previewImageVideo.visible
+		enabled: !previewImageVideo.visible && !buzzerApp.isDesktop
 
 		onActiveChanged: {
 		}
@@ -225,8 +232,8 @@ Rectangle {
 
 		onTriggered: {
 			menuControl.enforceVisible = false;
-			if (menuControl.enforceVisible) videoFrame.sharedMediaPlayer_.showCurrentPlayer();
-			else videoFrame.sharedMediaPlayer_.hideCurrentPlayer();
+			if (menuControl.enforceVisible) videoFrame.sharedMediaPlayer_.showCurrentPlayer(buzzerApp.isDesktop ? buzzitemmedia_.buzzId_ : null);
+			else videoFrame.sharedMediaPlayer_.hideCurrentPlayer(buzzerApp.isDesktop ? buzzitemmedia_.buzzId_ : null);
 		}
 	}
 
@@ -253,14 +260,45 @@ Rectangle {
 		onPressedChanged: {
 		}
 
-		onClicked: {
+		function showHidePlayer() {
 			//
 			if (videoFrame.sharedMediaPlayer_.isCurrentInstance(path_)) {
 				hideControlsTimer.stop();
 				//
-				menuControl.enforceVisible = !menuControl.enforceVisible; // || frameContainer.scale > 1.0;
-				if (menuControl.enforceVisible) videoFrame.sharedMediaPlayer_.showCurrentPlayer();
-				else videoFrame.sharedMediaPlayer_.hideCurrentPlayer();
+				menuControl.enforceVisible = !menuControl.enforceVisible;
+				if (menuControl.enforceVisible) videoFrame.sharedMediaPlayer_.showCurrentPlayer(buzzerApp.isDesktop ? buzzitemmedia_.buzzId_ : null);
+				else videoFrame.sharedMediaPlayer_.hideCurrentPlayer(buzzerApp.isDesktop ? buzzitemmedia_.buzzId_ : null);
+
+				return true;
+			}
+
+			return false;
+		}
+
+		function showPlayer() {
+			if (buzzerApp.isDesktop) {
+				//
+				if (videoFrame.sharedMediaPlayer_.isCurrentInstance(path_) && !menuControl.enforceVisible) {
+					//
+					hideControlsTimer.start();
+					//
+					menuControl.enforceVisible = true;
+					videoFrame.sharedMediaPlayer_.showCurrentPlayer(buzzerApp.isDesktop ? buzzitemmedia_.buzzId_ : null);
+				}
+			}
+		}
+
+		onHoveredChanged: showPlayer()
+		onMouseXChanged: showPlayer()
+		onMouseYChanged: showPlayer()
+
+		onClicked: {
+			//
+			if (!buzzerApp.isDesktop) showHidePlayer();
+			else {
+				// toggle play\pause
+				if (player && player.playing) player.pause();
+				else if (player && player.paused) player.play();
 			}
 
 			//
@@ -294,22 +332,59 @@ Rectangle {
 			//
 			var lRatioH = (originalHeight * 1.0) / (originalWidth * 1.0);
 			var lRatioW = (originalWidth * 1.0) / (originalHeight * 1.0);
+
 			//
-			if (calculatedHeight > calculatedWidth && lRatioH < 2 || lRatioW > 2 /*&& originalHeight < calculatedHeight * 2*/) {
-				var lCoeffW = (calculatedWidth * 1.0) / (originalWidth * 1.0)
-				var lWidth = originalWidth * 1.0;
-				width = lWidth * lCoeffW;
+			var lCoeffW;
+			var lWidth;
+			var lHeightW;
+			var lCoeffH;
+			var lHeight;
+			var lWidthH;
 
-				//var lCoeffH = (calculatedHeight * 1.0) / (originalHeight * 1.0)
-				var lHeightW = originalHeight * 1.0;
-				height = lHeightW * lCoeffW;
+			//
+			if (buzzerApp.isDesktop) {
+				//
+				lCoeffW = (calculatedWidth * 1.0) / (originalWidth * 1.0);
+				lCoeffH = (calculatedHeight * 1.0) / (originalHeight * 1.0);
+
+				//console.log("lRatioH = " + lRatioH + ", lCoeffH = " + lCoeffH +
+				//			", lRatioW = " + lRatioW + ", lCoeffW = " + lCoeffW);
+
+				// 1)
+				// +---------------+
+				// |               |
+				// +---------------+
+
+				if (lRatioH < 1.0 && lCoeffW < lCoeffH) {
+					lWidth = originalWidth * 1.0;
+					width = lWidth * lCoeffW;
+
+					lHeightW = originalHeight * 1.0;
+					height = lHeightW * lCoeffW;
+				} else {
+					lHeight = originalHeight * 1.0;
+					height = lHeight * lCoeffH;
+
+					lWidthH = originalWidth * 1.0;
+					width = lWidthH * lCoeffH;
+				}
+
 			} else {
-				var lCoeffH = (calculatedHeight * 1.0) / (originalHeight * 1.0)
-				var lHeight = originalHeight * 1.0;
-				height = lHeight * lCoeffH;
+				if (calculatedHeight > calculatedWidth && lRatioH < 2 || lRatioW > 2 /*&& originalHeight < calculatedHeight * 2*/) {
+					lCoeffW = (calculatedWidth * 1.0) / (originalWidth * 1.0)
+					lWidth = originalWidth * 1.0;
+					width = lWidth * lCoeffW;
 
-				var lWidthH = originalWidth * 1.0;
-				width = lWidthH * lCoeffH;
+					lHeightW = originalHeight * 1.0;
+					height = lHeightW * lCoeffW;
+				} else {
+					lCoeffH = (calculatedHeight * 1.0) / (originalHeight * 1.0)
+					lHeight = originalHeight * 1.0;
+					height = lHeight * lCoeffH;
+
+					lWidthH = originalWidth * 1.0;
+					width = lWidthH * lCoeffH;
+				}
 			}
 		}
 
@@ -326,24 +401,6 @@ Rectangle {
 
 				adjustFrameContainer();
 			}
-
-			/*
-			if (previewImageVideo.status === Image.Ready && mediaList && buzzitemmedia_) {
-				//
-				if (calculatedWidth > height || originalHeight > calculatedHeight * 2)
-					height = calculatedHeight - 20;
-				else
-					width = calculatedWidth - 2*spaceItems_;
-
-				x = getX();
-				controlsBack.adjustX();
-
-				y = getY();
-				//controlsBack.adjustY();
-
-				adjustFrameContainer();
-			}
-			*/
 		}
 
 		function adjustFrameContainer() {
@@ -374,7 +431,8 @@ Rectangle {
 		fillMode: BuzzerComponents.ImageQx.PreserveAspectFit
 		mipmap: true
 
-		source: preview_
+		source: preview_ == "none" ? "qrc://images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "default.media.cover") :
+									 preview_
 
 		Component.onCompleted: {
 		}
@@ -389,7 +447,9 @@ Rectangle {
 				// force to reload
 				console.log("[buzzitemmediaview-video/onStatusChanged]: forcing reload of " + preview_ + ", error = " + errorString);
 				// force to reload
-				source = "qrc://images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "broken.media.cover");
+				source = "qrc://images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "default.media.cover");
+				// "qrc://images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "broken.media.cover");
+
 				//downloadCommand
 				errorLoading();
 			}
@@ -405,24 +465,6 @@ Rectangle {
 			adjustFrameContainer();
 
 			adjustHeight(height);
-			/*
-			if (width != originalWidth) {
-				var lCoeff = (width * 1.0) / (originalWidth * 1.0)
-				var lHeight = originalHeight * 1.0;
-
-				if (lHeight * lCoeff > calculatedHeight - 20)
-					height = calculatedHeight - 20;
-				else
-					height = lHeight * lCoeff;
-
-				y = getY();
-				frameContainer.y = y;
-				frameContainer.height = height;
-				controlsBack.adjustY();
-
-				adjustFrameContainer();
-			}
-			*/
 		}
 
 		onHeightChanged: {
@@ -434,23 +476,6 @@ Rectangle {
 			adjustFrameContainer();
 
 			adjustHeight(height);
-			/*
-			if (height != originalHeight) {
-				var lCoeff = (height * 1.0) / (originalHeight * 1.0)
-				var lWidth = originalWidth * 1.0;
-				if (lWidth * lCoeff > calculatedWidth - 2*spaceItems_)
-					width = calculatedWidth - 2*spaceItems_;
-				else
-					width = lWidth * lCoeff;
-
-				x = getX();
-				frameContainer.x = x;
-				frameContainer.width = width;
-				controlsBack.adjustX();
-
-				adjustFrameContainer();
-			}
-			*/
 		}
 	}
 
@@ -494,7 +519,7 @@ Rectangle {
 
 		model: ListModel { id: menuModel }
 
-		onAboutToShow:prepare()
+		onAboutToShow: prepare()
 
 		onClick: {
 			//
@@ -502,8 +527,13 @@ Rectangle {
 				//
 				if (!downloadCommand.processing) {
 					downloadCommand.downloaded = false;
-					downloadCommand.cleanUp();
-					downloadCommand.process();
+					downloadCommand.cleanUp(); // NOTICE: for general purpose, not allways will be successed
+
+					// start
+					actionButton.symbol = Fonts.cancelSym;
+					mediaLoading.start();
+					videoFrame.sharedMediaPlayer_.playbackDownloadStarted();
+					downloadCommand.process(true /*force to reload*/);
 				}
 
 			} else if (key === "share") {
@@ -529,7 +559,7 @@ Rectangle {
 				keySymbol: Fonts.arrowDownHollowSym,
 				name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.gallery.media.reload")});
 
-			if (buzzerApp.getFileSize(originalPath_) > 0) {
+			if (buzzerApp.getFileSize(originalPath_) > 0 && !buzzerApp.isDesktop) {
 				menuModel.append({
 					key: "share",
 					keySymbol: Fonts.shareSym,
@@ -781,20 +811,10 @@ Rectangle {
 		}
 
 		function adjustX() {
-			//x = frameContainer.visible ? (frameContainer.x + spaceItems_) : (previewImageVideo.x + spaceItems_);
-			//width = frameContainer.visible ? (frameContainer.width - (2 * spaceItems_)) : (previewImageVideo.width - (2 * spaceItems_));
-
 			x = previewImageVideo.x + spaceItems_;
-			//width = frameContainer.visible ? (frameContainer.width - (2 * spaceItems_)) : (previewImageVideo.width - (2 * spaceItems_));
 		}
 
 		function adjustY() {
-			//y = frameContainer.visible ? (frameContainer.y + frameContainer.height - (actionButton.height + 3 * spaceItems_)) :
-			//							(previewImageVideo.y + previewImageVideo.height - (actionButton.height + 3 * spaceItems_));
-
-			//y = frameContainer.visible ? (frameContainer.y + spaceItems_) :
-			//							(previewImageVideo.y + spaceItems_);
-
 			y = previewImageVideo.y + spaceItems_;
 		}
 	}
@@ -802,13 +822,13 @@ Rectangle {
 	//
 	QuarkRoundSymbolButton {
 		id: actionButton
-		//x: controlsBack.x + spaceItems_
-		//y: controlsBack.y + spaceItems_
-
 		anchors.centerIn: parent
-		spaceLeft: symbol === Fonts.arrowDownHollowSym || symbol === Fonts.pauseSym || symbol === Fonts.cancelSym ? 0 :
-					   (symbol === Fonts.playSym ? 3 : 0)
-		spaceTop: 2
+		/*
+		spaceLeft: !buzzerClient.isDesktop ?
+					   (symbol === Fonts.arrowDownHollowSym || symbol === Fonts.pauseSym || symbol === Fonts.cancelSym ? 0 : (symbol === Fonts.playSym ? 3 : 0)) :
+					   (symbol === Fonts.playSym ? (buzzerClient.scaleFactor * 2) : 0)
+		spaceTop: buzzerApp.isDesktop ? 0 : 2
+		*/
 
 		symbol: needDownload && !downloadCommand.downloaded ? Fonts.arrowDownHollowSym :
 									(videoFrame.playing ? Fonts.pauseSym : Fonts.playSym)
@@ -816,6 +836,11 @@ Rectangle {
 		radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius * 1.5)) : defaultRadius * 1.5
 		color: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.menu.highlight")
 		Material.background: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.menu.background");
+
+		onSymbolChanged: {
+			if (symbol !== Fonts.playSym) spaceLeft = 0;
+			else spaceLeft = buzzerClient.scaleFactor * 2;
+		}
 
 		property bool needDownload: size_ && /*size_ > 1024*200 &&*/ !downloadCommand.downloaded
 
@@ -850,9 +875,9 @@ Rectangle {
 
 	QuarkRoundProgress {
 		id: mediaLoading
-		x: actionButton.x - 2
-		y: actionButton.y - 2
-		size: buzzerClient.scaleFactor * (actionButton.width + 4)
+		x: actionButton.x - buzzerClient.scaleFactor * 2
+		y: actionButton.y - buzzerClient.scaleFactor * 2
+		size: actionButton.width + buzzerClient.scaleFactor * 4
 		colorCircle: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.link");
 		colorBackground: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.link");
 		arcBegin: 0

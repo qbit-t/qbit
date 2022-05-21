@@ -441,7 +441,7 @@ QuarkPage {
 
 		model: ListModel { id: menuModel }
 
-		Component.onCompleted: prepare()
+		onAboutToShow: prepare()
 
 		onClick: {
 			// key, activate

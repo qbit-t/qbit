@@ -5,6 +5,8 @@
 #ifndef ANDROIDSHAREUTILS_H
 #define ANDROIDSHAREUTILS_H
 
+#if defined(Q_OS_ANDROID)
+
 #include <QtAndroid>
 #include <QAndroidActivityResultReceiver>
 
@@ -43,5 +45,6 @@ private:
     void processActivityResult(int requestCode, int resultCode);
 };
 
+#endif
 
 #endif // ANDROIDSHAREUTILS_H

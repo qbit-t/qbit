@@ -21,7 +21,7 @@ import "qrc:/lib/numberFunctions.js" as NumberFunctions
 QuarkPage {
 	id: buzzmediaPage_
 	key: "buzzmedia"
-	stacked: false
+	stacked: buzzerApp.isDesktop
 
 	//
 	property string mediaViewTheme: "Darkmatter"
@@ -34,6 +34,7 @@ QuarkPage {
 	property var pkey_: ""
 	property var mediaIndex_: 0
 	property var mediaPlayer_: null
+	property var buzzId_: null
 	property var buzzBody_: ""
 
 	statusBarColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "MediaView.statusBar")
@@ -92,12 +93,14 @@ QuarkPage {
 		}
 	}
 
-	function initialize(pkey, mediaIndex, player, buzzBody) {
+	function initialize(pkey, mediaIndex, player, buzzId, buzzBody) {
 		//
 		if (key !== undefined) pkey_ = pkey;
 		mediaIndex_ = mediaIndex;
 		mediaPlayer_ = player;
 		buzzBody_ = buzzBody;
+		playerControl.key = buzzId;
+		buzzId_ = buzzId;
 
 		console.log("[buzzmedia/initialize]: mediaIndex = " + mediaIndex + ", player = " + player);
 
@@ -196,6 +199,24 @@ QuarkPage {
 			}
 		}
 
+		QuarkToolButton {
+			id: menuControl
+			x: parent.width - width //- spaceItems_
+			y: parent.height / 2 - height / 2
+			Material.background: "transparent"
+			symbol: Fonts.elipsisVerticalSym
+			visible: buzzerApp.isDesktop
+			labelYOffset: buzzerApp.isDesktop ? 0 : 3
+			symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+			Layout.alignment: Qt.AlignHCenter
+			symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 16) : symbolFontPointSize
+
+			onClicked: {
+				if (headerMenu.visible) headerMenu.close();
+				else { headerMenu.prepare(); headerMenu.open(); }
+			}
+		}
+
 		/*
 		QuarkHLine {
 			id: bottomLine
@@ -258,7 +279,7 @@ QuarkPage {
 				buzzMediaItem_.controller_ = buzzmediaPage_.controller;
 				buzzMediaItem_.buzzMedia_ = buzzmediaPage_.buzzMedia_;
 				buzzMediaItem_.sharedMediaPlayer_ = buzzmediaPage_.mediaPlayerController;
-				buzzMediaItem_.initialize(pkey_, mediaIndex_, mediaPlayer_, buzzBody_);
+				buzzMediaItem_.initialize(pkey_, mediaIndex_, mediaPlayer_, buzzId_, buzzBody_);
 			}
 		}
 
@@ -286,5 +307,38 @@ QuarkPage {
 		showOnChanges: true
 		mediaPlayerController: buzzmediaPage_.mediaPlayerController
 		gallery: true
+	}
+
+	//
+	QuarkPopupMenu {
+		id: headerMenu
+		x: parent.width - width - spaceRight_
+		y: menuControl.y + menuControl.height + spaceItems_
+		width: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 350) : 350
+		visible: false
+
+		model: ListModel { id: menuModel }
+
+		onAboutToShow: prepare()
+
+		onClick: {
+			// key, activate
+			controller.activatePage(key);
+		}
+
+		function prepare() {
+			//
+			menuModel.clear();
+
+			//
+			var lArray = controller.enumStakedPages();
+			for (var lI = 0; lI < lArray.length; lI++) {
+				//
+				menuModel.append({
+					key: lArray[lI].key,
+					keySymbol: "",
+					name: lArray[lI].alias + " // " + lArray[lI].caption.substring(0, 100)});
+			}
+		}
 	}
 }

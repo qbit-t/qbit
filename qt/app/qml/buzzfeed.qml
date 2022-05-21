@@ -266,6 +266,15 @@ Item
 
 			property var buzzItem;
 
+			hoverEnabled: buzzerApp.isDesktop
+			onHoveredChanged: {
+				if (buzzfeed_.mediaPlayerController &&
+						(buzzfeed_.mediaPlayerController.isCurrentInstancePlaying() ||
+										   buzzfeed_.mediaPlayerController.isCurrentInstancePaused())) {
+					buzzfeed_.mediaPlayerController.showCurrentPlayer(null);
+				}
+			}
+
 			function forceChildLink() {
 				buzzItem.childLink_ = true;
 			}
@@ -392,9 +401,9 @@ Item
 
 		onVisibleChanged: {
 			if (visible) {
-				createBuzz.y = (parent.height - (height + 15)) - buzzfeedPlayer.height;
+				createBuzz.y = (parent.height - (height + buzzerClient.scaleFactor*15)) - buzzfeedPlayer.height;
 			} else {
-				createBuzz.y = parent.height - (height + 15);
+				createBuzz.y = parent.height - (height + buzzerClient.scaleFactor*15);
 			}
 		}
 	}

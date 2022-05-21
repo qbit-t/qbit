@@ -36,7 +36,7 @@ Item
 
 		var lPlayerController = buzzerApp.sharedMediaPlayerController();
 		if (lPlayerController && lPlayerController.isCurrentInstancePlaying()) {
-			lPlayerController.showCurrentPlayer();
+			lPlayerController.showCurrentPlayer(null);
 		}
 	}
 
@@ -230,7 +230,7 @@ Item
 		y2: search.y + search.height
 		penWidth: 1
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Panel.bottom.separator")
-		visible: true
+		visible: !buzzerApp.isDesktop
 	}
 
 	function startSearch(searchText) {
@@ -291,6 +291,15 @@ Item
 			id: itemDelegate
 
 			property var conversationItem;
+
+			hoverEnabled: buzzerApp.isDesktop
+			onHoveredChanged: {
+				if (conversationsfeed_.mediaPlayerController &&
+						(conversationsfeed_.mediaPlayerController.isCurrentInstancePlaying() ||
+										   conversationsfeed_.mediaPlayerController.isCurrentInstancePaused())) {
+					conversationsfeed_.mediaPlayerController.showCurrentPlayer(null);
+				}
+			}
 
 			onWidthChanged: {
 				if (conversationItem) {

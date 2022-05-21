@@ -50,6 +50,7 @@ Rectangle {
 	property var sharedMediaPlayer_
 	property var mediaIndex_: 0
 	property var controller_
+	property var playerKey_
 
 	//
 	property var buzzitemmedia_;
@@ -102,9 +103,9 @@ Rectangle {
 		if (player && (playing || downloadCommand.processing)) {
 			//
 			if (!isFullyVisible) {
-				videoFrameFeed.sharedMediaPlayer_.showCurrentPlayer();
+				videoFrameFeed.sharedMediaPlayer_.showCurrentPlayer(playerKey_);
 			} else {
-				videoFrameFeed.sharedMediaPlayer_.hideCurrentPlayer();
+				videoFrameFeed.sharedMediaPlayer_.hideCurrentPlayer(playerKey_);
 			}
 		}
 	}
@@ -172,6 +173,9 @@ Rectangle {
 
 		function clickActivated() {
 			// expand
+			controller_.openMedia(pkey_, mediaIndex_, buzzitemmedia_.buzzMedia_, sharedMediaPlayer_, !sharedMediaPlayer_.isCurrentInstanceStopped() ? player : null,
+								  buzzitemmedia_.buzzId_, buzzitemmedia_.buzzerAlias_, buzzitemmedia_.buzzBody_);
+			/*
 			var lSource;
 			var lComponent;
 
@@ -189,6 +193,7 @@ Rectangle {
 				lMedia.initialize(pkey_, mediaIndex_, !sharedMediaPlayer_.isCurrentInstanceStopped() ? player : null, description_);
 				controller_.addPage(lMedia);
 			}
+			*/
 		}
 	}
 
@@ -247,7 +252,9 @@ Rectangle {
 				// force to reload
 				console.log("[buzzitemmedia-video/onStatusChanged]: forcing reload of " + preview_ + ", error = " + errorString);
 				// force to reload
-				source = "qrc://images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "broken.media.cover");
+				source = "qrc://images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "default.media.cover");
+				//"qrc://images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "broken.media.cover");
+
 				//downloadCommand
 				errorLoading();
 			}
@@ -265,7 +272,8 @@ Rectangle {
 			}
 		}
 
-		source: preview_
+		source: preview_ == "none" ? "qrc://images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "default.media.cover") :
+									 preview_
 		fillMode: BuzzerComponents.ImageQx.PreserveAspectFit
 		mipmap: true
 
@@ -288,6 +296,11 @@ Rectangle {
 
 				onClicked: {
 					// expand
+					controller_.openMedia(pkey_, mediaIndex_, buzzitemmedia_.buzzMedia_, sharedMediaPlayer_, !sharedMediaPlayer_.isCurrentInstanceStopped() ? player : null,
+										  buzzitemmedia_.buzzId_, buzzitemmedia_.buzzerAlias_, buzzitemmedia_.buzzBody_);
+
+					/*
+					// expand
 					var lSource;
 					var lComponent;
 
@@ -305,6 +318,7 @@ Rectangle {
 						lMedia.initialize(pkey_, mediaIndex_, !sharedMediaPlayer_.isCurrentInstanceStopped() ? player : null, description_);
 						controller_.addPage(lMedia);
 					}
+					*/
 				}
 			}
 		}
@@ -463,14 +477,22 @@ Rectangle {
 		id: actionButton
 		x: controlsBack.x + spaceItems_
 		y: controlsBack.y + spaceItems_
-		spaceLeft: symbol === Fonts.arrowDownHollowSym || symbol === Fonts.pauseSym ? 2 :
-					   (symbol === Fonts.playSym || symbol === Fonts.cancelSym ? 3 : 0)
-		spaceTop: 2
+		/*
+		spaceLeft: buzzerClient.isDesktop ? (symbol === Fonts.playSym ? (buzzerClient.scaleFactor * 2) : 0) :
+					(symbol === Fonts.arrowDownHollowSym || symbol === Fonts.pauseSym) ?
+						2 : (symbol === Fonts.playSym || symbol === Fonts.cancelSym ? 3 : 0)
+		spaceTop: buzzerApp.isDesktop ? 0 : 2
+		*/
 		symbol: needDownload && !downloadCommand.downloaded ? Fonts.arrowDownHollowSym :
 									(videoFrameFeed.playing ? Fonts.pauseSym : Fonts.playSym)
 		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 7)) : 18
 		radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius)) : defaultRadius
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.highlight")
+
+		onSymbolChanged: {
+			if (symbol !== Fonts.playSym) spaceLeft = 0;
+			else spaceLeft = buzzerClient.scaleFactor * 2;
+		}
 
 		property bool needDownload: size_ && /*size_ > 1024*200 &&*/ !downloadCommand.downloaded
 
@@ -515,7 +537,7 @@ Rectangle {
 		id: elapsedTime
 		x: actionButton.x + actionButton.width + spaceItems_ + (caption.visible ? 3 : 0)
 		y: actionButton.y + (caption.visible ? caption.height + 3 : spaceItems_)
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - (caption.visible ? 3 : 0))) : 11
 		text: "00:00"
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
 
@@ -528,7 +550,7 @@ Rectangle {
 		id: totalTime
 		x: elapsedTime.x + elapsedTime.width
 		y: elapsedTime.y
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - (caption.visible ? 3 : 0))) : 11
 		text: duration_ ? ("/" + DateFunctions.msToTimeString(duration_)) : "/00:00"
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
 
@@ -541,7 +563,7 @@ Rectangle {
 		id: totalSize
 		x: totalTime.x + totalTime.width
 		y: elapsedTime.y
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - (caption.visible ? 3 : 0))) : 11
 		text: ", 0k"
 		visible: size_ !== 0
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
@@ -556,7 +578,7 @@ Rectangle {
 	Slider {
 		id: playSlider
 		x: actionButton.x + actionButton.width // + spaceItems_
-		y: actionButton.y + actionButton.height - (height - 3 * spaceItems_)
+		y: actionButton.y + actionButton.height - (height - 3 * spaceItems_) + (buzzerApp.isDesktop && caption.visible ? 3 : 0)
 		from: 0
 		to: 1
 		orientation: Qt.Horizontal
@@ -576,9 +598,9 @@ Rectangle {
 
 	QuarkRoundProgress {
 		id: mediaLoading
-		x: actionButton.x - 2
-		y: actionButton.y - 2
-		size: buzzerClient.scaleFactor * (actionButton.width + 4)
+		x: actionButton.x - buzzerClient.scaleFactor * 2
+		y: actionButton.y - buzzerClient.scaleFactor * 2
+		size: actionButton.width + buzzerClient.scaleFactor * 4
 		colorCircle: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link");
 		colorBackground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link");
 		arcBegin: 0
@@ -628,7 +650,9 @@ Rectangle {
 
 		onProcessed: {
 			// tx, previewFile, originalFile, orientation, duration, size, type
-			//console.log(tx + ", " + previewFile + ", " + originalFile + ", " + orientation + ", " + duration + ", " + size + ", " + type);
+			var lPSize = buzzerApp.getFileSize(previewFile);
+			var lOSize = buzzerApp.getFileSize(originalFile);
+			console.log("[buzzmedia-video/downloadCommand]: " + "index = " + index + ", " + tx + ", " + previewFile + " - [" + lPSize + "], " + originalFile + " - [" + lOSize + "], " + orientation + ", " + duration + ", " + size + ", " + type);
 
 			//
 			processing = false;

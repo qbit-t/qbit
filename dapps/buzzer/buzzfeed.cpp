@@ -81,8 +81,8 @@ void BuzzfeedItem::updateTimestamp(const uint256& publisher, const uint256& chai
 		//
 		std::map<uint256 /*publisher*/, uint64_t>::iterator lPubChain = lTimestamp->second.find(chain);
 		//
-		if (lPubChain != lTimestamp->second.end() && lPubChain->second > timestamp) {
-			lPubChain->second = timestamp;
+		if (lPubChain != lTimestamp->second.end()) {
+			if (lPubChain->second > timestamp) lPubChain->second = timestamp;
 		} else {
 			lTimestamp->second[chain] = timestamp;
 		}
@@ -976,6 +976,10 @@ uint64_t BuzzfeedItem::locateLastTimestamp() {
 	for (std::map<Key /*buzz*/, BuzzfeedItemPtr>::iterator lItem = items_.begin();
 														lItem != items_.end(); lItem++) {
 		lItem->second->locateLastTimestamp(lOrder);
+	}
+
+	for (auto &lId: lOrder) {
+		std::cout << lId << "\n";
 	}
 
 	return lOrder.size() ? (sortOrder_ == Order::REVERSE ? *lOrder.begin() : *lOrder.rbegin()) : 0;

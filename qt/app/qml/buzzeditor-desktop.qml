@@ -122,6 +122,15 @@ QuarkPage {
 	readonly property int spaceLine_: 4
 	readonly property int spaceMedia_: 20
 
+	onWidthChanged: {
+		bodyContainer.width = width;
+		mediaBox.adjust();
+	}
+
+	onHeightChanged: {
+		mediaBox.adjust();
+	}
+
 	// only once to pop-up system keyboard
 	Timer {
 		id: startUp
@@ -165,7 +174,7 @@ QuarkPage {
 			Material.background: "transparent"
 			visible: true
 			labelYOffset: buzzerApp.isDesktop ? 0 : 3
-			symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+			symbolColor: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 			Layout.alignment: Qt.AlignHCenter
 			symbol: Fonts.cancelSym
 			symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 16) : symbolFontPointSize
@@ -326,6 +335,55 @@ QuarkPage {
 			}
 		}
 
+		Rectangle {
+			id: quasiCursor
+
+			x: spaceLeft_ + 2
+			y: buzzText.y + 2
+
+			width: 1
+			height: textMetrics.height
+
+			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+
+			opacity: 1.0
+
+			TextMetrics	{
+				id: textMetrics
+				text: "A"
+				font.pointSize: buzzerClient.scaleFactor * buzzText.defaultFontPointSize
+			}
+
+			property bool toggleBlink: true
+
+			NumberAnimation on opacity {
+				id: blinkOutAnimation
+				from: 1.0
+				to: 0.0
+				duration: 200
+				running: quasiCursor.toggleBlink
+			}
+
+			NumberAnimation on opacity {
+				id: blinkInAnimation
+				from: 0.0
+				to: 1.0
+				duration: 200
+				running: !quasiCursor.toggleBlink
+			}
+
+			Timer {
+				id: blinkTimer
+				interval: 500
+				repeat: parent.visible
+				running: parent.visible
+
+				onTriggered: {
+					quasiCursor.toggleBlink = !quasiCursor.toggleBlink
+				}
+			}
+		}
+
 		QuarkTextEdit {
 			id: buzzText
 			x: spaceLeft_
@@ -350,6 +408,10 @@ QuarkPage {
 
 			property bool buzzerStarted_: false;
 			property bool tagStarted_: false;
+
+			onActiveFocusChanged: {
+				quasiCursor.visible = !activeFocus;
+			}
 
 			onPreeditTextChanged: {
 				//
@@ -444,6 +506,7 @@ QuarkPage {
 			wrapContainer.wrappedItem_.lastUrl_ = buzzerClient.extractLastUrl(item.buzzBody);
 			wrapContainer.wrappedItem_.interactive_ = false;
 			wrapContainer.wrappedItem_.ago_ = buzzerClient.timestampAgo(item.timestamp);
+			wrapContainer.wrappedItem_.initialize();
 		}
 
 		function replyItem(item) {
@@ -470,6 +533,7 @@ QuarkPage {
 			replyContainer.replyItem_.lastUrl_ = buzzerClient.extractLastUrl(item.buzzBody);
 			replyContainer.replyItem_.interactive_ = false;
 			replyContainer.replyItem_.ago_ = buzzerClient.timestampAgo(item.timestamp);
+			replyContainer.replyItem_.initialize();
 
 			bodyContainer.ensureVisible(buzzText);
 		}
@@ -484,10 +548,10 @@ QuarkPage {
 		Rectangle {
 			id: mediaBox
 			color: "transparent"
-			x: spaceLeft_ - spaceItems_
+			x: 0 //spaceLeft_ - spaceItems_
 			y: getY()
-			width: bodyContainer.width - (spaceLeft_ + spaceRight_ - (spaceItems_) * 2)
-			height: Math.max(mediaList.height, calculatedHeight)
+			width: bodyContainer.width //- (spaceLeft_ + spaceRight_ - (spaceItems_) * 2)
+			height: calculatedHeight //Math.max(mediaList.height, calculatedHeight)
 			visible: true
 
 			function getY() {
@@ -507,12 +571,14 @@ QuarkPage {
 					var lItem = mediaList.itemAtIndex(lIdx);
 					if (lItem) {
 						lItem.width = mediaBox.width;
-						lItem.adjust();
+						lItem.height = mediaBox.height;
+						lItem.mediaItem.adjust();
 					}
 				}
 			}
 
-			property var calculatedHeight: 400
+			property var calculatedHeight: buzzeditor_.height - 200
+			property var calculatedWidth: mediaBox.width
 
 			QuarkListView {
 				id: mediaList
@@ -520,7 +586,7 @@ QuarkPage {
 				y: 0
 				width: parent.width
 				height: parent.height
-				clip: true
+				//clip: true
 				orientation: Qt.Horizontal
 				layoutDirection:  Qt.LeftToRight
 				snapMode: ListView.SnapOneItem
@@ -563,26 +629,22 @@ QuarkPage {
 					property var mediaItem;
 
 					function adjustHeight(proposed) {
-						//
-						if (index === mediaIndicator.currentIndex) {
-							//
-							itemDelegate.height = proposed;
-						}
 					}
 
 					onWidthChanged: {
 						if (mediaItem) {
 							mediaItem.width = mediaList.width;
+							itemDelegate.width = mediaList.width;
 							itemDelegate.height = mediaItem.height;
 						}
 					}
 
 					Component.onCompleted: {
-						var lSource = "qrc:/qml/buzzitemmedia-editor-image.qml";
+						var lSource = "qrc:/qml/buzzitemmedia-editor-image-desktop.qml";
 						if (media === "audio") {
 							lSource = "qrc:/qml/buzzitemmedia-editor-audio.qml";
 						} else if (media === "video") {
-							lSource = "qrc:/qml/buzzitemmedia-editor-video.qml";
+							lSource = "qrc:/qml/buzzitemmedia-editor-video-desktop.qml";
 						}
 
 						var lComponent = Qt.createComponent(lSource);
@@ -592,7 +654,11 @@ QuarkPage {
 							mediaItem.adjustHeight.connect(adjustHeight);
 						}
 
-						mediaItem.width = list.width;
+						if (media === "image") {
+							mediaItem.adjustHeight.connect(adjustHeight);
+						}
+
+						mediaItem.width = mediaList.width;
 						mediaItem.mediaList = mediaList;
 						mediaItem.mediaBox = mediaBox;
 
@@ -710,6 +776,8 @@ QuarkPage {
 
 		property int totalHeight: height
 
+		backgroundColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Market.tabBackground")
+
 		Component.onCompleted: {
 		}
 
@@ -756,7 +824,7 @@ QuarkPage {
 		ProgressBar {
 			id: createProgressBar
 
-			x: addFromGalleryButton.x + addFromGalleryButton.width + spaceItems_
+			x: addEmojiButton.x + addEmojiButton.width + spaceItems_
 			y: parent.height / 2 - height / 2
 			width: countProgress.x - x - spaceRight_
 			visible: false
@@ -774,8 +842,8 @@ QuarkPage {
 			x: parent.width - (size + spaceRight_)
 			y: parent.height / 2 - size / 2
 			size: buzzerClient.scaleFactor * 28
-			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.hidden")
-			background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
+			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.hiddenLight")
+			background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Market.tabBackground") //Page.background
 			penWidth: buzzerClient.scaleFactor * 3
 		}
 
@@ -784,8 +852,8 @@ QuarkPage {
 			x: hiddenCountFrame.x
 			y: hiddenCountFrame.y
 			size: hiddenCountFrame.size
-			colorCircle: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.accentUltra");
-			colorBackground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.accentUltra");
+			colorCircle: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link");
+			colorBackground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link");
 			arcBegin: 0
 			arcEnd: 0
 			lineWidth: buzzerClient.scaleFactor * 3
@@ -802,7 +870,7 @@ QuarkPage {
 			x2: parent.width
 			y2: 0
 			penWidth: 1
-			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
+			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden") // Panel.top.separator
 			visible: true
 		}
 	}
@@ -818,6 +886,7 @@ QuarkPage {
 
 		onEmojiSelected: {
 			//
+			buzzText.forceActiveFocus();
 			buzzText.insert(buzzText.cursorPosition, emoji);
 		}
 
@@ -832,7 +901,7 @@ QuarkPage {
 
 	QtFileDialog {
 		id: imageListing
-		nameFilters: [ "Media files (*.jpg *.png *.jpeg *.mp3 *.mp4 *.m4a)" ]
+		nameFilters: [ "Media files (*.jpg *.png *.jpeg *.mp3 *.mp4)" ]
 		selectExisting: true
 		selectFolder: false
 		selectMultiple: false
@@ -856,12 +925,10 @@ QuarkPage {
 				var lSize = buzzerApp.getFileSize(lFile);
 				console.log("[onFileSelected]: file = " + lFile + "/" + lSize);
 				//
-				if ((lFile.includes(".mp4") || lFile.includes(".mp3") || lFile.includes(".m4a")) && preview !== "") {
-					mediaList.addVideo(lFile, 0, 0, lPreview, "none");
-				} else if (lFile.includes(".mp3") || lFile.includes(".m4a")) {
+				if (lFile.includes(".mp4") || lFile.includes(".mp3")) {
+					mediaList.addVideo(lFile, 0, 0, "qrc://images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "default.media.cover"), buzzerApp.getFileNameAsDescription(lFile));
+				} else if (lFile.includes(".m4a")) {
 					mediaList.addAudio(lFile, 0, "none");
-				} else if (lFile.includes(".mp4")) {
-					handleError("E_MEDIA_PREVIEW_ABSENT", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_MEDIA_PREVIEW_ABSENT"));
 				} else {
 					//
 					mediaList.addMedia(lFile, "none");
@@ -1179,7 +1246,7 @@ QuarkPage {
 		if (lText.length === 0) lText = buzzText.preeditText;
 
 		//
-		mediaListcleanUp();
+		mediaList.cleanUp();
 
 		if (lText.length === 0 && mediaModel.count === 0) {
 			handleError("E_BUZZ_IS_EMPTY", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZ_IS_EMPTY"));
@@ -1210,7 +1277,7 @@ QuarkPage {
 			console.log("[createBuzz/media]: key = " + mediaModel.get(lIdx).key + ", preview = " + mediaModel.get(lIdx).preview);
 			buzzCommand.addMedia(mediaModel.get(lIdx).key + "," +
 								 mediaModel.get(lIdx).duration + "," +
-								 mediaModel.get(lIdx).preview + "," +
+								 (mediaModel.get(lIdx).preview.startsWith("qrc") ? "none" : mediaModel.get(lIdx).preview) + "," +
 								 mediaModel.get(lIdx).orientation + "," +
 								 mediaModel.get(lIdx).description);
 		}
@@ -1248,7 +1315,7 @@ QuarkPage {
 		for (lIdx = 0; lIdx < mediaModel.count; lIdx++) {
 			rebuzzCommand.addMedia(mediaModel.get(lIdx).key + "," +
 								   mediaModel.get(lIdx).duration + "," +
-								   mediaModel.get(lIdx).preview + "," +
+								   (mediaModel.get(lIdx).preview.startsWith("qrc") ? "none" : mediaModel.get(lIdx).preview) + "," +
 								   mediaModel.get(lIdx).orientation + "," +
 								   mediaModel.get(lIdx).description);
 		}
@@ -1294,7 +1361,7 @@ QuarkPage {
 		for (lIdx = 0; lIdx < mediaModel.count; lIdx++) {
 			replyCommand.addMedia(mediaModel.get(lIdx).key + "," +
 								  mediaModel.get(lIdx).duration + "," +
-								  mediaModel.get(lIdx).preview + "," +
+								  (mediaModel.get(lIdx).preview.startsWith("qrc") ? "none" : mediaModel.get(lIdx).preview) + "," +
 								  mediaModel.get(lIdx).orientation + "," +
 								  mediaModel.get(lIdx).description);
 		}
@@ -1341,7 +1408,7 @@ QuarkPage {
 		for (lIdx = 0; lIdx < mediaModel.count; lIdx++) {
 			messageCommand.addMedia(mediaModel.get(lIdx).key + "," +
 									mediaModel.get(lIdx).duration + "," +
-									mediaModel.get(lIdx).preview + "," +
+									(mediaModel.get(lIdx).preview.startsWith("qrc") ? "none" : mediaModel.get(lIdx).preview) + "," +
 									mediaModel.get(lIdx).orientation + "," +
 									mediaModel.get(lIdx).description);
 		}

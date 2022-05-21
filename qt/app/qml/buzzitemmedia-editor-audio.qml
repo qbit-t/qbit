@@ -103,11 +103,18 @@ Rectangle {
 		id: actionButton
 		x: spaceLeft_
 		y: spaceTop_
+		/*
 		spaceLeft: player.playing ? 0 : 3
 		spaceTop: 2
+		*/
 		symbol: player.playing ? Fonts.pauseSym : Fonts.playSym
 		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 7)) : 18
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.highlight")
+
+		onSymbolChanged: {
+			if (symbol !== Fonts.playSym) spaceLeft = 0;
+			else spaceLeft = buzzerClient.scaleFactor * 2;
+		}
 
 		onClick: {
 			if (!player.playing) {

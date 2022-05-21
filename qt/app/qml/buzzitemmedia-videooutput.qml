@@ -30,6 +30,8 @@ VideoOutput {
 		if (player && !pushed) { player.pushSurface(videoSurface); pushed = true; }
 	}
 
+	//source: player
+
 	MouseArea {
 		id: linkClick
 		x: 0
@@ -45,9 +47,7 @@ VideoOutput {
 
 		onClicked: {
 			//
-			if (!buzzerApp.isDesktop) {
-				linkClick.clickActivated();
-			}
+			linkClick.clickActivated();
 		}
 	}
 }

@@ -57,6 +57,10 @@ QuarkPage
 		font.pointSize: 18
 
 		text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.welcome")
+
+		onLinkActivated: {
+			Qt.openUrlExternally(link);
+		}
 	}
 
 	Image {

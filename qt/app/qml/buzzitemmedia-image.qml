@@ -46,6 +46,7 @@ Rectangle {
 	property var sharedMediaPlayer_
 	property var mediaIndex_: 0
 	property var controller_
+	property var playerKey_
 
 	//
 	property var buzzitemmedia_;
@@ -162,23 +163,8 @@ Rectangle {
 
 				onClicked: {
 					// expand
-					var lSource;
-					var lComponent;
-
-					// gallery
-					lSource = "qrc:/qml/buzzmedia.qml";
-					lComponent = Qt.createComponent(lSource);
-
-					if (lComponent.status === Component.Error) {
-						controller_.showError(lComponent.errorString());
-					} else {
-						var lMedia = lComponent.createObject(controller_);
-						lMedia.controller = controller_;
-						lMedia.buzzMedia_ = buzzitemmedia_.buzzMedia_;
-						lMedia.mediaPlayerController = sharedMediaPlayer_;
-						lMedia.initialize(pkey_, mediaIndex_);
-						controller_.addPage(lMedia);
-					}
+					controller_.openMedia(pkey_, mediaIndex_, buzzitemmedia_.buzzMedia_, sharedMediaPlayer_, null,
+										  buzzitemmedia_.buzzId_, buzzitemmedia_.buzzerAlias_, buzzitemmedia_.buzzBody_);
 				}
 			}
 		}

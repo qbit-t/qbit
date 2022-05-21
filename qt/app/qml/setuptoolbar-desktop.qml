@@ -21,6 +21,8 @@ QuarkToolBar
 	property int extraOffset: 0;
 	property int totalHeight: height;
 
+	backgroundColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
+
 	Component.onCompleted: {
 		localeCombo.prepare();
 	}

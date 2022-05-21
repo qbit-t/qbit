@@ -247,6 +247,9 @@ void UploadMediaCommand::encrypt(const uint256& nonce, const std::vector<unsigne
 
 bool UploadMediaCommand::prepareImage() {
 	//
+	if (!(mediaType_ == TxMediaHeader::IMAGE_JPEG || mediaType_ == TxMediaHeader::IMAGE_PNG)) return false;
+
+	//
 	try {
 		if (size_ > CUBIX_MAX_DATA_CHUNK || (previewWidth_ && previewHeight_)) {
 			//
@@ -474,10 +477,12 @@ void UploadMediaCommand::startSendData() {
 		return;
 	}
 
+	/*
 	if ((mediaType_ == TxMediaHeader::VIDEO_MJPEG || mediaType_ == TxMediaHeader::VIDEO_MP4) && !previewFile_.size()) {
 		error("E_PREVIEW_FILE_NOT_SUPPLIED", "Preview file was not supplied");
 		return;
 	}
+	*/
 
 	// preview explicitly supplied - we'll take it
 	if (previewFile_.size()) {
@@ -501,6 +506,7 @@ void UploadMediaCommand::startSendData() {
 
 	// if jpeg\png
 	bool lPrepared = prepareImage();
+
 	//
 	if ((mediaType_ == TxMediaHeader::IMAGE_JPEG || mediaType_ == TxMediaHeader::IMAGE_PNG) && lPrepared) {
 		// correcting

@@ -1126,9 +1126,9 @@ public:
 				case qbit::cubix::TxMediaHeader::MediaType::IMAGE_PNG: lType = "image"; break;
 				case qbit::cubix::TxMediaHeader::MediaType::IMAGE_JPEG: lType = "image"; break;
 				case qbit::cubix::TxMediaHeader::MediaType::VIDEO_MJPEG: lType = "video"; break;
-				case qbit::cubix::TxMediaHeader::MediaType::VIDEO_MP4: lType = "video"; break;
 				case qbit::cubix::TxMediaHeader::MediaType::AUDIO_PCM: lType = "audio"; break;
 				case qbit::cubix::TxMediaHeader::MediaType::AUDIO_AMR: lType = "audio"; break;
+				case qbit::cubix::TxMediaHeader::MediaType::VIDEO_MP4:
 				case qbit::cubix::TxMediaHeader::MediaType::AUDIO_M4A:
 				case qbit::cubix::TxMediaHeader::MediaType::AUDIO_MP3: {
 					if (extra.previewType > qbit::cubix::TxMediaHeader::MediaType::UNKNOWN &&
@@ -1151,9 +1151,9 @@ public:
 					case qbit::cubix::TxMediaHeader::MediaType::IMAGE_PNG: lType = "image"; break;
 					case qbit::cubix::TxMediaHeader::MediaType::IMAGE_JPEG: lType = "image"; break;
 					case qbit::cubix::TxMediaHeader::MediaType::VIDEO_MJPEG: lType = "video"; break;
-					case qbit::cubix::TxMediaHeader::MediaType::VIDEO_MP4: lType = "video"; break;
 					case qbit::cubix::TxMediaHeader::MediaType::AUDIO_PCM: lType = "audio"; break;
 					case qbit::cubix::TxMediaHeader::MediaType::AUDIO_AMR: lType = "audio"; break;
+					case qbit::cubix::TxMediaHeader::MediaType::VIDEO_MP4:
 					case qbit::cubix::TxMediaHeader::MediaType::AUDIO_M4A:
 					case qbit::cubix::TxMediaHeader::MediaType::AUDIO_MP3: {
 						if (lHeader->previewType() > qbit::cubix::TxMediaHeader::MediaType::UNKNOWN &&
