@@ -152,6 +152,16 @@ public:
 		updates_.erase(buzzfeed);
 	}
 
+	void registerActiveConversation(const uint256& id, BuzzfeedItemPtr buzzfeed) {
+		boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
+		activeConversations_[id] = buzzfeed;
+	}
+
+	void removeActiveConversation(const uint256& id) {
+		boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
+		activeConversations_.erase(id);
+	}
+
 	void registerSubscription(const uint512& subscription, BuzzfeedItemPtr buzzfeed) {
 		boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
 		subscriptions_[subscription] = buzzfeed;
@@ -163,6 +173,7 @@ public:
 	}
 
 	bool processSubscriptions(const BuzzfeedItem& item, const uint160& peer);
+	bool processConversations(const BuzzfeedItem& item, const uint160& peer);
 
 	BuzzfeedItemPtr buzzfeed() { return buzzfeed_; }
 	EventsfeedItemPtr eventsfeed() { return eventsfeed_; }
@@ -323,6 +334,7 @@ private:
 	std::map<uint256 /*info tx*/, std::list<buzzerInfoReadyFunction>> pendingNotifications_;
 	std::set<uint256> loadingPendingInfos_;
 	std::map<uint512 /*signature-key*/, BuzzfeedItemPtr> subscriptions_;
+	std::map<uint256 /*conversation*/, BuzzfeedItemPtr> activeConversations_;
 	std::map<
 		uint160 /*peer*/, 
 		std::map<

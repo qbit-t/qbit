@@ -207,7 +207,7 @@ QuarkPage {
 			symbol: Fonts.elipsisVerticalSym
 			visible: buzzerApp.isDesktop
 			labelYOffset: buzzerApp.isDesktop ? 0 : 3
-			symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+			symbolColor: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.foreground")
 			Layout.alignment: Qt.AlignHCenter
 			symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 16) : symbolFontPointSize
 

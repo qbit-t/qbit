@@ -28,7 +28,7 @@ QuarkPage {
 	property var infoDialog;
 	property var controller;
 	property bool listen: false;
-	property var buzzesThread_;
+	property var conversationThread_;
 	property var conversation_;
 	property var conversations_;
 	property var message_;
@@ -62,13 +62,14 @@ QuarkPage {
 
 	function start(conversationId, conversation, conversations, message) {
 		//
-		buzzesThread_ = buzzerClient.createConversationMessagesList();
+		conversationThread_ = buzzerClient.createConversationMessagesList();
 		//
 		conversation_ = conversation;
 		conversations_ = conversations;
 		message_ = message;
 		modelLoader.conversationId = conversationId;
 		conversationsPlayer.key = conversationId;
+		list.model = conversationThread_;
 		console.log("[conversationthread/start]: conversationId = " + conversationId);
 
 		/*
@@ -146,13 +147,15 @@ QuarkPage {
 
 		//
 		stopPage();
-		controller.popPage();
+		controller.popPage(conversationthread_);
 		destroy(1000);
 	}
 
 	function activatePage() {
 		buzzText.external_ = false;
 		buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Window.background"));
+		//
+		buzzText.forceActiveFocus();
 	}
 
 	function onErrorCallback(error)	{
@@ -206,7 +209,7 @@ QuarkPage {
 		function onThemeChanged() {
 			//
 			conversationsPlayer.terminate();
-			if (buzzesThread_) buzzesThread_.resetModel();
+			if (conversationThread_) conversationThread_.resetModel();
 		}
 	}
 
@@ -224,7 +227,7 @@ QuarkPage {
 
 	BuzzerCommands.LoadConversationMessagesCommand {
 		id: modelLoader
-		model: buzzesThread_
+		model: conversationThread_
 
 		property bool dataReceived: false
 		property bool dataRequested: false
@@ -291,7 +294,7 @@ QuarkPage {
 			acceptButton.visible = false;
 			declineButton.visible = false;
 			// reset / refetch
-			buzzesThread_.resetModel();
+			conversationThread_.resetModel();
 		}
 
 		onError: {
@@ -649,7 +652,7 @@ QuarkPage {
 			}
 		}
 
-		model: buzzesThread_
+		//model: buzzesThread_
 
 		add: Transition {
 			enabled: true
@@ -674,9 +677,9 @@ QuarkPage {
 
 		function toTheMessage(message) {
 			//
-			if (message && buzzesThread_) {
+			if (message && conversationThread_) {
 				// try locate index
-				var lIdx = buzzesThread_.locateIndex(message);
+				var lIdx = conversationThread_.locateIndex(message);
 				console.log("[toTheMessage]: message = " + message + ", index = " + lIdx);
 				if (lIdx >= 0) {
 					list.positionViewAtIndex(lIdx, ListView.Beginning);
@@ -843,7 +846,7 @@ QuarkPage {
 					buzzItem.width = list.width;
 					buzzItem.controller_ = conversationthread_.controller;
 					buzzItem.listView_ = list;
-					buzzItem.model_ = buzzesThread_;
+					buzzItem.model_ = conversationThread_;
 					buzzItem.conversationId_ = modelLoader.conversationId;
 
 					itemDelegate.height = buzzItem.calculateHeight();
@@ -1054,6 +1057,7 @@ QuarkPage {
 
 				width: 1
 				height: parent.height - 6
+				visible: !buzzerApp.isDesktop
 
 				color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 
@@ -1101,6 +1105,7 @@ QuarkPage {
 				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : (defaultFontPointSize + 1)
 				selectionColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.selected")
 				selectByMouse: true
+				focus: buzzerApp.isDesktop
 
 				QuarkLabelRegular {
 					id: placeHolder
@@ -1114,18 +1119,20 @@ QuarkPage {
 					text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.editor.message")
 					color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.textDisabled")
 					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : (defaultFontPointSize + 1)
+
+					visible: !buzzText.activeFocus && !buzzText.hasText_
 				}
 
 				property bool external_: false
 
 				onActiveFocusChanged: {
-					quasiCursor.visible = !activeFocus;
-					placeHolder.visible = !activeFocus;
+					if (!buzzerApp.isDesktop) quasiCursor.visible = !activeFocus;
 				}
 
 				onLengthChanged: {
 					// TODO: may be too expensive
 					var lText = buzzerClient.getPlainText(buzzText.textDocument);
+					hasText_ = preeditText.length || lText.length;
 					countProgress.adjust(buzzerClient.getBuzzBodySize(lText) + preeditText.length);
 					buzzersList.close();
 					tagsList.close();
@@ -1133,6 +1140,7 @@ QuarkPage {
 
 				property bool buzzerStarted_: false;
 				property bool tagStarted_: false;
+				property bool hasText_: false;
 
 				onPreeditTextChanged: {
 					//
@@ -1149,10 +1157,13 @@ QuarkPage {
 						tagStarted_ = true;
 					}
 
+					var lText = "";
 					if (buzzerStarted_ || tagStarted_) {
-						var lText = buzzerClient.getPlainText(buzzText.textDocument);
+						lText = buzzerClient.getPlainText(buzzText.textDocument);
 						highlighter.tryHighlightBlock(lText + preeditText, 0);
 					}
+
+					hasText_ = preeditText.length || lText.length;
 				}
 
 				onFocusChanged: {
@@ -1160,7 +1171,7 @@ QuarkPage {
 				}
 
 				onEditingFinished: {
-					if (!external_) buzzText.forceActiveFocus();
+					if (!external_ && !buzzerApp.isDesktop) buzzText.forceActiveFocus();
 				}
 
 				property bool ctrlEnter: false
@@ -1182,23 +1193,6 @@ QuarkPage {
 					}
 				}
 			}
-
-			/*
-			layer.enabled: false
-			layer.effect: OpacityMask {
-				maskSource: Item {
-					width: replyEditorContainer.width
-					height: replyEditorContainer.height
-
-					Rectangle {
-						anchors.centerIn: parent
-						width: replyEditorContainer.width
-						height: replyEditorContainer.height
-						radius: 8
-					}
-				}
-			}
-			*/
 		}
 
 		QuarkToolButton {

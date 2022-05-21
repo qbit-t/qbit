@@ -39,7 +39,10 @@ QuarkPage {
 	}
 
 	function activatePage() {
+		//
 		buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background"));
+		//
+		buzzText.forceActiveFocus();
 	}
 
 	function onErrorCallback(error)	{
@@ -335,55 +338,6 @@ QuarkPage {
 			}
 		}
 
-		Rectangle {
-			id: quasiCursor
-
-			x: spaceLeft_ + 2
-			y: buzzText.y + 2
-
-			width: 1
-			height: textMetrics.height
-
-			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
-
-			opacity: 1.0
-
-			TextMetrics	{
-				id: textMetrics
-				text: "A"
-				font.pointSize: buzzerClient.scaleFactor * buzzText.defaultFontPointSize
-			}
-
-			property bool toggleBlink: true
-
-			NumberAnimation on opacity {
-				id: blinkOutAnimation
-				from: 1.0
-				to: 0.0
-				duration: 200
-				running: quasiCursor.toggleBlink
-			}
-
-			NumberAnimation on opacity {
-				id: blinkInAnimation
-				from: 0.0
-				to: 1.0
-				duration: 200
-				running: !quasiCursor.toggleBlink
-			}
-
-			Timer {
-				id: blinkTimer
-				interval: 500
-				repeat: parent.visible
-				running: parent.visible
-
-				onTriggered: {
-					quasiCursor.toggleBlink = !quasiCursor.toggleBlink
-				}
-			}
-		}
-
 		QuarkTextEdit {
 			id: buzzText
 			x: spaceLeft_
@@ -410,7 +364,6 @@ QuarkPage {
 			property bool tagStarted_: false;
 
 			onActiveFocusChanged: {
-				quasiCursor.visible = !activeFocus;
 			}
 
 			onPreeditTextChanged: {

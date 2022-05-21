@@ -137,6 +137,7 @@ LoadBuzzfeedByBuzzCommand::LoadBuzzfeedByBuzzCommand(QObject* /*parent*/) : QObj
 
 LoadBuzzfeedByBuzzCommand::~LoadBuzzfeedByBuzzCommand() {
 	//
+	qInfo() << "LoadBuzzfeedByBuzzCommand::~LoadBuzzfeedByBuzzCommand()";
 	if (command_) {
 		disconnect(this, SIGNAL(dataReady(const qbit::BuzzfeedProxy&, bool, bool)), 0, 0);
 		command_ = nullptr;
@@ -900,7 +901,7 @@ void LoadConversationMessagesCommand::prepare() {
 		uint256 lRootId; lRootId.setHex(conversationId_.toStdString());
 		// interlink & receive realtime updates
 		buzzfeedModel_->buzzfeed()->setRootBuzzId(lRootId);
-		lClient->getBuzzerComposer()->buzzer()->setConversation(buzzfeedModel_->buzzfeed());
+		lClient->getBuzzerComposer()->buzzer()->registerActiveConversation(lRootId, buzzfeedModel_->buzzfeed());
 		// prepare command
 		command_ = std::static_pointer_cast<qbit::LoadMessagesCommand>(
 			qbit::LoadMessagesCommand::instance(

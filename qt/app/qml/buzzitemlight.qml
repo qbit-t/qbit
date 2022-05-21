@@ -178,6 +178,7 @@ Item {
 		}
 		*/
 
+		/*
 		QuarkRoundState {
 			id: imageFrame
 			x: avatarImage.x - 1
@@ -212,8 +213,12 @@ Item {
 				}
 			}
 		}
+		*/
 
-		BuzzerComponents.ImageQx {
+		//
+		// NOTICE: for mobile versions we should consider to use ImageQx
+		//
+		Image { //BuzzerComponents.ImageQx
 			id: avatarImage
 
 			x: spaceLeft_
@@ -222,15 +227,14 @@ Item {
 			height: avatarImage.displayHeight
 			fillMode: Image.PreserveAspectCrop
 			mipmap: true
-			radius: avatarImage.displayWidth
+			//radius: avatarImage.displayWidth
 
-			property bool rounded: false //true
+			property bool rounded: true
 			property int displayWidth: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 20 : 20
 			property int displayHeight: displayWidth
 
 			autoTransform: true
 
-			/*
 			layer.enabled: rounded
 			layer.effect: OpacityMask {
 				maskSource: Item {
@@ -245,7 +249,6 @@ Item {
 					}
 				}
 			}
-			*/
 
 			MouseArea {
 				id: buzzerInfoClick
@@ -255,6 +258,46 @@ Item {
 				onClicked: {
 					//
 					controller_.openBuzzfeedByBuzzer(buzzerClient.getBuzzerName(buzzerInfoId_));
+				}
+			}
+		}
+
+		QuarkRoundProgress {
+			id: imageFrame
+			x: avatarImage.x - 2
+			y: avatarImage.y - 2
+			size: avatarImage.displayWidth + 4
+			colorCircle: getColor()
+			colorBackground: "transparent"
+			arcBegin: 0
+			arcEnd: 360
+			lineWidth: buzzerClient.scaleFactor * 2
+			beginAnimation: false
+			endAnimation: false
+
+			function getColor() {
+				var lScoreBase = buzzerClient.getTrustScoreBase() / 10;
+				var lIndex = score_ / lScoreBase;
+
+				// TODO: consider to use 4 basic colours:
+				// 0 - red
+				// 1 - 4 - orange
+				// 5 - green
+				// 6 - 9 - teal
+				// 10 -
+
+				switch(Math.round(lIndex)) {
+					case 0: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.0");
+					case 1: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.1");
+					case 2: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.2");
+					case 3: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.3");
+					case 4: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.4");
+					case 5: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.5");
+					case 6: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.6");
+					case 7: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.7");
+					case 8: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.8");
+					case 9: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.9");
+					default: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.10");
 				}
 			}
 		}

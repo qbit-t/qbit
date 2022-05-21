@@ -60,6 +60,7 @@ QuarkPage {
 		modelLoader.buzzId = buzzId;
 		buzzSubscribeCommand.chain = chain;
 		buzzSubscribeCommand.buzzId = buzzId;
+		list.model = buzzesThread_;
 
 		console.log("[buzzfeedthread/start]: chain = " + chain + ", buzzId = " + buzzId);
 
@@ -81,13 +82,15 @@ QuarkPage {
 
 		//
 		stopPage();
-		controller.popPage();
+		controller.popPage(buzzfeedthread_);
 		destroy(1000);
 	}
 
 	function activatePage() {
 		buzzText.external_ = false;
 		buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Window.background"));
+		//
+		if (buzzerApp.isDesktop) buzzText.forceActiveFocus();
 	}
 
 	function onErrorCallback(error)	{
@@ -177,6 +180,8 @@ QuarkPage {
 			dataReceived = true;
 			dataRequested = false;
 			waitDataTimer.done();
+			//
+			buzzSubscribeCommand.process();
 		}
 
 		onError: {
@@ -289,7 +294,7 @@ QuarkPage {
 		usePull: true
 		clip: true
 
-		model: buzzesThread_
+		//model: buzzesThread_
 
 		// TODO: consumes a lot RAM
 		cacheBuffer: 500
@@ -655,6 +660,7 @@ QuarkPage {
 
 				width: 1
 				height: parent.height - 6
+				visible: !buzzerApp.isDesktop
 
 				color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 
@@ -702,6 +708,7 @@ QuarkPage {
 				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : (defaultFontPointSize + 1)
 				selectionColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.selected")
 				selectByMouse: true
+				focus: buzzerApp.isDesktop
 
 				QuarkLabelRegular {
 					id: placeHolder
@@ -715,18 +722,20 @@ QuarkPage {
 					text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.editor.message")
 					color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.textDisabled")
 					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : (defaultFontPointSize + 1)
+
+					visible: !buzzText.activeFocus && !buzzText.hasText_
 				}
 
 				property bool external_: false
 
 				onActiveFocusChanged: {
-					quasiCursor.visible = !activeFocus;
-					placeHolder.visible = !activeFocus;
+					if (!buzzerApp.isDesktop) quasiCursor.visible = !activeFocus;
 				}
 
 				onLengthChanged: {
 					// TODO: may be too expensive
 					var lText = buzzerClient.getPlainText(buzzText.textDocument);
+					hasText_ = preeditText.length || lText.length;
 					countProgress.adjust(buzzerClient.getBuzzBodySize(lText) + preeditText.length);
 					buzzersList.close();
 					tagsList.close();
@@ -734,6 +743,7 @@ QuarkPage {
 
 				property bool buzzerStarted_: false;
 				property bool tagStarted_: false;
+				property bool hasText_: false;
 
 				onPreeditTextChanged: {
 					//
@@ -750,10 +760,13 @@ QuarkPage {
 						tagStarted_ = true;
 					}
 
+					var lText = "";
 					if (buzzerStarted_ || tagStarted_) {
-						var lText = buzzerClient.getPlainText(buzzText.textDocument);
+						lText = buzzerClient.getPlainText(buzzText.textDocument);
 						highlighter.tryHighlightBlock(lText + preeditText, 0);
 					}
+
+					hasText_ = preeditText.length || lText.length;
 				}
 
 				onFocusChanged: {
@@ -761,7 +774,7 @@ QuarkPage {
 				}
 
 				onEditingFinished: {
-					if (!external_) buzzText.forceActiveFocus();
+					if (!external_ && !buzzerApp.isDesktop) buzzText.forceActiveFocus();
 				}
 
 				property bool ctrlEnter: false
@@ -783,23 +796,6 @@ QuarkPage {
 					}
 				}
 			}
-
-			/*
-			layer.enabled: false
-			layer.effect: OpacityMask {
-				maskSource: Item {
-					width: replyEditorContainer.width
-					height: replyEditorContainer.height
-
-					Rectangle {
-						anchors.centerIn: parent
-						width: replyEditorContainer.width
-						height: replyEditorContainer.height
-						radius: 8
-					}
-				}
-			}
-			*/
 		}
 
 		QuarkToolButton {
@@ -919,7 +915,7 @@ QuarkPage {
 		onTriggered: {
 			if (buzzerClient.buzzerDAppReady) {
 				modelLoader.restart();
-				buzzSubscribeCommand.process();
+				//buzzSubscribeCommand.process();
 			} else {
 				listen = true;
 			}

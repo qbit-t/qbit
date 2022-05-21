@@ -87,6 +87,19 @@ bool Buzzer::processSubscriptions(const BuzzfeedItem& item, const uint160& peer)
 	return false;
 }
 
+bool Buzzer::processConversations(const BuzzfeedItem& item, const uint160& peer) {
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
+	std::map<uint256 /*conversation*/, BuzzfeedItemPtr>::iterator lConversation = activeConversations_.find(item.rootBuzzId());
+	//
+	if (lConversation != activeConversations_.end()) {
+		lConversation->second->push(item, peer);
+		return true;
+	}
+
+	return false;
+}
+
 void Buzzer::resolvePendingItems() {
 	//
 	// if we have postponed items, request missing
