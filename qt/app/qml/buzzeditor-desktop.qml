@@ -862,10 +862,13 @@ QuarkPage {
 		onAccepted: {
 			//
 			var lPath = fileUrl.toString();
+			console.log("[onAccepted]: lPath = " + lPath);
+
+			//
 			if (Qt.platform.os == "windows") {
-				lPath = lPath.replace(/^(file:\/{3})/,"");
+				lPath = lPath.replace(/^(file:\/{3})/, "");
 			} else {
-				lPath = lPath.replace(/^(file:\/{2})/,"");
+				lPath = lPath.replace(/^(file:\/{2})/, "");
 			}
 
 			//

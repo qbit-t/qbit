@@ -92,7 +92,7 @@ Item
 
 	StackLayout {
 		id: walletPages
-		y:  walletBar.height
+		y:  walletBar.y + 50
 		currentIndex: walletBar.currentIndex
 
 		WalletBalance {
