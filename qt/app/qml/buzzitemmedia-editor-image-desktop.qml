@@ -123,7 +123,7 @@ Rectangle {
 			}
 
 			if (status == Image.Error) {
-				console.log("[onStatusChanged]: error = " + errorString);
+				console.info("[onStatusChanged]: error = " + errorString);
 			}
 		}
 

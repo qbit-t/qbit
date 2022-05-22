@@ -272,7 +272,7 @@ QuarkPage {
 							if (lParts.length) {
 								if (lParts[lParts.length-1].toLowerCase() === "jpg" || lParts[lParts.length-1].toLowerCase() === "jpeg" ||
 									lParts[lParts.length-1].toLowerCase() === "png") {
-									console.log(match);
+									console.info(match);
 									// inject
 									mediaList.addMedia(match);
 									// remove
@@ -625,7 +625,7 @@ QuarkPage {
 							if(mediaModel.get(lIdx).key === key) {
 								//
 								duration = value;
-								console.log("[adjustDuration]: vale = " + duration);
+								console.info("[adjustDuration]: vale = " + duration);
 							}
 						}
 					}
@@ -862,7 +862,7 @@ QuarkPage {
 		onAccepted: {
 			//
 			var lPath = fileUrl.toString();
-			console.info("[onAccepted]: lPath = " + lPath);
+			console.info("[onAccepted]: raw path = " + lPath);
 
 			//
 			if (Qt.platform.os == "windows") {
@@ -879,7 +879,7 @@ QuarkPage {
 			if (mediaModel.count < 31) {
 				//
 				var lSize = buzzerApp.getFileSize(lFile);
-				console.info("[onFileSelected]: file = " + lFile + "/" + lSize);
+				console.info("[onAccepted]: file = " + lFile + " | " + lSize);
 				//
 				if (lFile.includes(".mp4") || lFile.includes(".mp3")) {
 					mediaList.addVideo(lFile, 0, 0, "qrc://images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "default.media.cover"), buzzerApp.getFileNameAsDescription(lFile));
@@ -1230,7 +1230,7 @@ QuarkPage {
 		}
 
 		for (lIdx = 0; lIdx < mediaModel.count; lIdx++) {
-			console.log("[createBuzz/media]: key = " + mediaModel.get(lIdx).key + ", preview = " + mediaModel.get(lIdx).preview);
+			console.info("[createBuzz/media]: key = " + mediaModel.get(lIdx).key + ", preview = " + mediaModel.get(lIdx).preview);
 			buzzCommand.addMedia(mediaModel.get(lIdx).key + "," +
 								 mediaModel.get(lIdx).duration + "," +
 								 (mediaModel.get(lIdx).preview.startsWith("qrc") ? "none" : mediaModel.get(lIdx).preview) + "," +
