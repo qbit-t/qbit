@@ -862,7 +862,7 @@ QuarkPage {
 		onAccepted: {
 			//
 			var lPath = fileUrl.toString();
-			console.log("[onAccepted]: lPath = " + lPath);
+			console.info("[onAccepted]: lPath = " + lPath);
 
 			//
 			if (Qt.platform.os == "windows") {
@@ -879,7 +879,7 @@ QuarkPage {
 			if (mediaModel.count < 31) {
 				//
 				var lSize = buzzerApp.getFileSize(lFile);
-				console.log("[onFileSelected]: file = " + lFile + "/" + lSize);
+				console.info("[onFileSelected]: file = " + lFile + "/" + lSize);
 				//
 				if (lFile.includes(".mp4") || lFile.includes(".mp3")) {
 					mediaList.addVideo(lFile, 0, 0, "qrc://images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "default.media.cover"), buzzerApp.getFileNameAsDescription(lFile));
