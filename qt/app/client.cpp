@@ -896,6 +896,8 @@ void Client::peerPushed(qbit::IPeerPtr peer, bool update, int count) {
 		emit networkReady();
 	}
 
+	qInfo() << "peerPushed" << QString::fromStdString(peer->key());
+
 	setBuzzerDAppReady();
 
 	if (!suspended_ && peersModelUpdates_)
@@ -914,6 +916,8 @@ void Client::peerPopped(qbit::IPeerPtr peer, int count) {
 		setNetworkReady(false);
 		emit networkUnavailable();
 	}
+
+	qInfo() << "peerPopped" << QString::fromStdString(peer->key());
 
 	setBuzzerDAppReady();
 
