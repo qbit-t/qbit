@@ -21,6 +21,7 @@ class ImageQxLoader : public QObject {
 	ImageQxLoader ();
     public:
 		static ImageQxLoader& instance();
+		static void stop();
 
     public slots:
         /// @brief Загружает изображение синхронно.

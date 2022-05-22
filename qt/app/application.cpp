@@ -69,6 +69,7 @@ int Application::load()
 
 void Application::appQuit()
 {
+	ImageQxLoader::stop();
     qInfo() << "Application quit. Bye!";
     emit appSuspending();
 }

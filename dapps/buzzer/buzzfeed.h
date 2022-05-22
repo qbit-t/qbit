@@ -28,10 +28,12 @@ namespace qbit {
 //
 // number of confirmations from different peers for realtime feed
 #define BUZZ_PEERS_CONFIRMATIONS 2 // default
+extern size_t G_BUZZ_PEERS_CONFIRMATIONS;
 
 //
 // number of load confirmations
 #define BUZZFEED_PEERS_CONFIRMATIONS 3 // default
+extern size_t G_BUZZFEED_PEERS_CONFIRMATIONS;
 
 //
 // forward
@@ -623,7 +625,7 @@ public:
 	void merge(const BuzzfeedItemUpdate&);
 	void merge(const std::vector<BuzzfeedItemUpdate>&);
 	bool merge(const BuzzfeedItem&, bool checkSize = true, bool notify = true);
-	void merge(const std::vector<BuzzfeedItem>&, bool notify = false);
+	void merge(const std::vector<BuzzfeedItem>&, int requests, bool notify = false);
 	bool mergeAppend(const std::vector<BuzzfeedItemPtr>&);
 	void push(const BuzzfeedItem&, const uint160&);
 

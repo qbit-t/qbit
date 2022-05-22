@@ -517,7 +517,7 @@ void LoadBuzzfeedByTagCommand::process(const std::vector<std::string>& args) {
 			composer_, 
 			*lChain, 
 			lTag, lTimeframeFrom, lScoreFrom, lTimestampFrom, lPublisher,
-			BUZZFEED_PEERS_CONFIRMATIONS /*to be sure that the feed is not doctored*/,
+			G_BUZZFEED_PEERS_CONFIRMATIONS /*to be sure that the feed is not doctored*/,
 			boost::bind(&LoadBuzzfeedByTagCommand::buzzfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 		// async process
 		lCommand->process(boost::bind(&LoadBuzzfeedByTagCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
@@ -580,7 +580,7 @@ void LoadBuzzesGlobalCommand::process(const std::vector<std::string>& args) {
 			composer_, 
 			*lChain, 
 			lTimeframeFrom, lScoreFrom, lTimestampFrom, lPublisher,
-			BUZZFEED_PEERS_CONFIRMATIONS /*to be sure that the feed is not doctored*/,
+			G_BUZZFEED_PEERS_CONFIRMATIONS /*to be sure that the feed is not doctored*/,
 			boost::bind(&LoadBuzzesGlobalCommand::buzzfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 		// async process
 		lCommand->process(boost::bind(&LoadBuzzesGlobalCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
@@ -644,7 +644,7 @@ void LoadBuzzfeedByBuzzerCommand::process(const std::vector<std::string>& args) 
 			*lChain, 
 			lFrom,
 			lBuzzer,
-			BUZZFEED_PEERS_CONFIRMATIONS /*to be sure that the feed is not doctored*/,
+			G_BUZZFEED_PEERS_CONFIRMATIONS /*to be sure that the feed is not doctored*/,
 			boost::bind(&LoadBuzzfeedByBuzzerCommand::buzzfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 		// async process
 		lCommand->process(boost::bind(&LoadBuzzfeedByBuzzerCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
@@ -704,7 +704,7 @@ void LoadBuzzfeedByBuzzCommand::process(const std::vector<std::string>& args) {
 			*lChain, 
 			from_,
 			lBuzzId,
-			BUZZFEED_PEERS_CONFIRMATIONS /*to be sure that the feed is not doctored*/,
+			G_BUZZFEED_PEERS_CONFIRMATIONS /*to be sure that the feed is not doctored*/,
 			boost::bind(&LoadBuzzfeedByBuzzCommand::buzzfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 		// async process
 		lCommand->process(boost::bind(&LoadBuzzfeedByBuzzCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
@@ -764,7 +764,7 @@ void LoadMessagesCommand::process(const std::vector<std::string>& args) {
 			*lChain, 
 			from_,
 			lConversationId,
-			BUZZFEED_PEERS_CONFIRMATIONS /*to be sure that the feed is not doctored*/,
+			G_BUZZFEED_PEERS_CONFIRMATIONS /*to be sure that the feed is not doctored*/,
 			boost::bind(&LoadMessagesCommand::buzzfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 		// async process
 		lCommand->process(boost::bind(&LoadMessagesCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
@@ -825,7 +825,7 @@ void LoadBuzzfeedCommand::process(const std::vector<std::string>& args) {
 			composer_,
 			*lChain,
 			lFrom,
-			BUZZFEED_PEERS_CONFIRMATIONS /*to be sure that the feed is not doctored*/,
+			G_BUZZFEED_PEERS_CONFIRMATIONS /*to be sure that the feed is not doctored*/,
 			boost::bind(&LoadBuzzfeedCommand::buzzfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 		// async process
 		lCommand->process(boost::bind(&LoadBuzzfeedCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
@@ -852,10 +852,10 @@ void LoadBuzzfeedCommand::buzzesLoaded(const std::vector<BuzzfeedItem>& feed, co
 
 	if (pendingLoaded_.size() < pending_.size()) {
 		// merge feed
-		buzzfeed()->merge(feed);
+		buzzfeed()->merge(feed, 1 /*exact ONE*/);
 	} else {
 		// merge and notify
-		buzzfeed()->merge(feed, true);
+		buzzfeed()->merge(feed, 1 /*exact ONE*/, true);
 		//
 		processPengingInfos();
 	}
@@ -882,10 +882,10 @@ void LoadBuzzfeedCommand::buzzfeedLoaded(const std::vector<BuzzfeedItem>& feed, 
 	//
 	if (lReady < requests * (int) chains_.size()) {
 		// merge feed
-		buzzfeed()->merge(feed);
+		buzzfeed()->merge(feed, requests);
 	} else {
 		// merge and notify
-		buzzfeed()->merge(feed, true);
+		buzzfeed()->merge(feed, requests, true);
 		// cross-merge in case pending items arrived
 		buzzfeed()->crossMerge();
 		// if we have postponed items, request missing
@@ -1706,7 +1706,7 @@ void BuzzfeedListCommand::buzzesLoaded(const std::vector<BuzzfeedItem>& feed, co
 
 	if (pendingLoaded_.size() < pending_.size()) {
 		// merge feed
-		buzzFeed_->merge(feed);
+		buzzFeed_->merge(feed, 1 /*exact ONE*/);
 	} else {
 		// merge and notify
 		buzzFeed_->merge(feed, true);
@@ -2278,7 +2278,7 @@ void BuzzSubscribeCommand::process(const std::vector<std::string>& args) {
 		}
 
 		// send
-		if (!composer_->buzzerRequestProcessor()->subscribeBuzzThread(chain_, buzzId_, signature_, BUZZFEED_PEERS_CONFIRMATIONS, peers_)) {
+		if (!composer_->buzzerRequestProcessor()->subscribeBuzzThread(chain_, buzzId_, signature_, G_BUZZFEED_PEERS_CONFIRMATIONS, peers_)) {
 			error("E_BUZZ_SUBSCRIBE", "Subscription for buzz thread updates failed.");
 			return;
 		}
@@ -2627,10 +2627,10 @@ void ConversationListCommand::buzzesLoaded(const std::vector<BuzzfeedItem>& feed
 
 	if (pendingLoaded_.size() < pending_.size()) {
 		// merge feed
-		buzzFeed_->merge(feed);
+		buzzFeed_->merge(feed, 1 /*exact ONE*/);
 	} else {
 		// merge and notify
-		buzzFeed_->merge(feed, true);
+		buzzFeed_->merge(feed, 1 /*exact ONE*/, true);
 		//
 		processPengingInfos();
 	}

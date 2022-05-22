@@ -36,6 +36,10 @@ ImageQxLoader& ImageQxLoader::instance()
     return instance;
 }
 
+void ImageQxLoader::stop() {
+	ImageQxLoader::instance()._thread.quit();
+}
+
 //------------------------------------------------------------------------------
 void ImageQxLoader::get(QString source, ImageSharedPtr image, bool autotransform)
 {

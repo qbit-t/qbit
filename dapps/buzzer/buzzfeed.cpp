@@ -5,6 +5,10 @@
 
 using namespace qbit;
 
+// initial values
+size_t qbit::G_BUZZ_PEERS_CONFIRMATIONS = BUZZ_PEERS_CONFIRMATIONS;
+size_t qbit::G_BUZZFEED_PEERS_CONFIRMATIONS = BUZZFEED_PEERS_CONFIRMATIONS;
+
 void BuzzfeedItem::merge(const BuzzfeedItemUpdate& update) {
 	//
 	switch(update.field()) {
@@ -125,7 +129,7 @@ void BuzzfeedItem::push(const BuzzfeedItem& buzz, const uint160& peer) {
 				gLog().write(Log::CLIENT, strprintf("[PUSH-ERROR]: signature is wrong, buzz = %s, nonce = %d", rootBuzzId_.toHex(), nonce_));
 		}
 	} else {
-		if (lItem->second->addConfirmation(peer) >= BUZZ_PEERS_CONFIRMATIONS) {
+		if (lItem->second->addConfirmation(peer) >= G_BUZZ_PEERS_CONFIRMATIONS) {
 			//
 			BuzzfeedItemPtr lBuzz = lItem->second;
 			// remove from unconfirmed
@@ -470,7 +474,7 @@ bool BuzzfeedItem::mergeInternal(BuzzfeedItemPtr buzz, bool checkSize, bool noti
 	return lItemAdded;
 }
 
-void BuzzfeedItem::merge(const std::vector<BuzzfeedItem>& chunk, bool notify) {
+void BuzzfeedItem::merge(const std::vector<BuzzfeedItem>& chunk, int requests, bool notify) {
 	//
 	{
 		Guard lLock(this);
@@ -490,8 +494,7 @@ void BuzzfeedItem::merge(const std::vector<BuzzfeedItem>& chunk, bool notify) {
 			//
 			for (std::map<Key /*id*/, _commit>::iterator lCandidate = commit_.begin(); lCandidate != commit_.end(); lCandidate++) {
 				if (merge_ == Merge::UNION ||
-						lCandidate->second.count_ == BUZZFEED_PEERS_CONFIRMATIONS ||
-						lCandidate->second.count_ == BUZZFEED_PEERS_CONFIRMATIONS-1) {
+						lCandidate->second.count_ == requests) {
 					mergeInternal(lCandidate->second.candidate_, false, false, false);
 				}
 			}

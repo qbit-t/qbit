@@ -18,7 +18,7 @@ void ConversationItem::push(const ConversationItem& buzz, const uint160& peer) {
 		if (gLog().isEnabled(Log::CLIENT))
 			gLog().write(Log::CLIENT, "[PUSH-0]");
 	} else {
-		if (lItem->second->addConfirmation(peer) >= BUZZ_PEERS_CONFIRMATIONS) {
+		if (lItem->second->addConfirmation(peer) >= G_BUZZ_PEERS_CONFIRMATIONS) {
 			//
 			ConversationItemPtr lBuzz = lItem->second;
 			// TODO: remove from unconfirmed?

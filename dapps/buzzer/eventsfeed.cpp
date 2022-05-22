@@ -12,7 +12,7 @@ void EventsfeedItem::push(const EventsfeedItem& buzz, const uint160& peer) {
 		lBuzz->addConfirmation(peer);
 		unconfirmed_[buzz.key()] = lBuzz;
 	} else {
-		if (lItem->second->addConfirmation(peer) >= BUZZ_PEERS_CONFIRMATIONS) {
+		if (lItem->second->addConfirmation(peer) >= G_BUZZ_PEERS_CONFIRMATIONS) {
 			//
 			EventsfeedItemPtr lBuzz = lItem->second;
 			// TODO: remove from unconfirmed?

@@ -891,19 +891,23 @@ void Client::peerPushed(qbit::IPeerPtr peer, bool update, int count) {
 	qInfo() << "peerPushed" << QString::fromStdString(peer->key()) << update << count;
 
 	//
-	if (lastPeersCount_ != count) {
-		if (count == 1) {
-			setNetworkReady(true);
-			emit networkLimited();
-		} else {
-			setNetworkReady(true);
-			emit networkReady();
-		}
-
-		if (!update) setBuzzerDAppReady();
-
-		lastPeersCount_ = count;
+	if (count == 1) {
+		setNetworkReady(true);
+		emit networkLimited();
+	} else {
+		setNetworkReady(true);
+		emit networkReady();
 	}
+
+	if (BUZZFEED_PEERS_CONFIRMATIONS > count) G_BUZZFEED_PEERS_CONFIRMATIONS = count;
+	else G_BUZZFEED_PEERS_CONFIRMATIONS = BUZZFEED_PEERS_CONFIRMATIONS;
+
+	if (BUZZ_PEERS_CONFIRMATIONS > count) G_BUZZ_PEERS_CONFIRMATIONS = count;
+	else G_BUZZ_PEERS_CONFIRMATIONS = BUZZ_PEERS_CONFIRMATIONS;
+
+	if (!update) setBuzzerDAppReady();
+
+	lastPeersCount_ = count;
 
 	if (!suspended_ && peersModelUpdates_)
 		emit peerPushedSignal(PeerProxy(peer), update, count);
@@ -979,31 +983,36 @@ void Client::setBuzzerDAppReady() {
 	if (!gApplication->isDesktop() && suspended_) return;
 
 	//
-	std::map<uint256, std::map<uint32_t, IPeerPtr>> lMap;
+	std::map<uint256 /*chain*/, std::map<uint32_t /*latency*/, IPeerPtr>> lMap;
 	requestProcessor_->collectPeersByDApp("buzzer", lMap);
 
 	//
-	std::map<uint256, std::map<uint32_t, IPeerPtr>> lMap2;
+	std::map<uint256 /*chain*/, std::map<uint32_t /*latency*/, IPeerPtr>> lMap2;
 	requestProcessor_->collectPeersByDApp("cubix", lMap2);
 
 	//
-	int lSupportNodes = 0;
+	size_t lSupportNodes = 0;
+	size_t lSupportNodes2 = 0;
+
+	//
 	for (std::map<uint256, std::map<uint32_t, IPeerPtr>>::iterator lChain = lMap.begin(); lChain != lMap.end(); lChain++) {
 		if (gLog().isEnabled(Log::CLIENT))
 			gLog().write(Log::CLIENT, strprintf("[Client::setBuzzerDAppReady]: chain = %s, count = %d", lChain->first.toHex(), lChain->second.size()));
-		if (lChain->second.size() >= 1) lSupportNodes += lChain->second.size();
+		lSupportNodes += lChain->second.size();
 	}
 
 	for (std::map<uint256, std::map<uint32_t, IPeerPtr>>::iterator lChain = lMap2.begin(); lChain != lMap2.end(); lChain++) {
 		if (gLog().isEnabled(Log::CLIENT))
 			gLog().write(Log::CLIENT, strprintf("[Client::setBuzzerDAppReady]: chain = %s, count = %d", lChain->first.toHex(), lChain->second.size()));
-		if (lChain->second.size() >= 1) lSupportNodes += lChain->second.size();
+		lSupportNodes2 += lChain->second.size();
 	}
 
-	if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[Client::setBuzzerDAppReady]: peers %d/%d", lSupportNodes, lMap.size()));
+	if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[Client::setBuzzerDAppReady]: peers %d/%d", lSupportNodes, (lMap.size() + lMap2.size())));
 
-	//
-	if (lSupportNodes / (lMap.size() + lMap2.size()) >= 1) {
+	// we have enough nodes to start servicing
+	if ((double)lSupportNodes / (double)G_BUZZ_PEERS_CONFIRMATIONS >= 1.0 &&
+		(double)lSupportNodes2 / (double)G_BUZZ_PEERS_CONFIRMATIONS >= 1.0) {
+		//
 		bool lNotify = !buzzerDAppReady_;
 		buzzerDAppReady_ = true;
 		if (lNotify) {

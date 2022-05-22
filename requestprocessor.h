@@ -625,12 +625,15 @@ public:
 		if (lPeers != chainPeers_.end()) {
 			for (std::set<uint160>::iterator lAddress = lPeers->second.begin(); lAddress != lPeers->second.end(); lAddress++) {
 				std::map<uint160 /*peer*/, IPeerPtr>::iterator lPeer = peers_.find(*lAddress);
+				std::map<uint160 /*peer*/, StatePtr>::iterator lState = states_.find(*lAddress);
+				//
 				LatencyMap::iterator lLatency = latencyMap_.find(*lAddress);
 				if (lLatency != latencyMap_.end() && lPeer != peers_.end()) {
 					//
+					StatePtr lStateData = lState != states_.end() ? lState->second : lPeer->second->state();
 					State::BlockInfo lInfo;
-					if (((mostSuitable && lPeer->second->state()->infos().size() > 1) || !mostSuitable) && // NOTICE: only nodes with multiple shards support
-							lPeer->second->state()->locateChain(chain, lInfo)) {
+					if (((mostSuitable && lStateData->infos().size() > 1) || !mostSuitable) && // NOTICE: only nodes with multiple shards support
+					        lStateData->locateChain(chain, lInfo)) {
 						//
 						order.insert(std::map<IRequestProcessor::KeyOrder, IPeerPtr>::value_type(
 							IRequestProcessor::KeyOrder(lInfo.height(), lLatency->second), lPeer->second));
@@ -672,8 +675,12 @@ public:
 			for (std::set<uint160>::iterator lPeerAddress = lDApp->second.begin(); lPeerAddress != lDApp->second.end(); lPeerAddress++) {
 				//
 				std::map<uint160 /*peer*/, IPeerPtr>::iterator lPeer = peers_.find(*lPeerAddress);
+				std::map<uint160 /*peer*/, StatePtr>::iterator lState = states_.find(*lPeerAddress);
+				//
 				if (lPeer != peers_.end()) {
-					for (std::vector<State::BlockInfo>::iterator lInfo = lPeer->second->state()->infos().begin(); lInfo != lPeer->second->state()->infos().end(); lInfo++) {
+					std::vector<State::BlockInfo> lInfos(lState != states_.end() ? lState->second->infos() :
+					                                                               lPeer->second->state()->infos());
+					for (std::vector<State::BlockInfo>::iterator lInfo = lInfos.begin(); lInfo != lInfos.end(); lInfo++) {
 						if (lInfo->dApp() == dapp) { 
 							order[lInfo->chain()].insert(std::map<uint32_t, IPeerPtr>::value_type(lPeer->second->latency(), lPeer->second));
 						}
