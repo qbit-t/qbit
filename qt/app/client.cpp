@@ -888,17 +888,22 @@ QString Client::resolveBuzzerDescription(QString buzzerInfoId) {
 
 void Client::peerPushed(qbit::IPeerPtr peer, bool update, int count) {
 	//
-	if (count == 1) {
-		setNetworkReady(true);
-		emit networkLimited();
-	} else {
-		setNetworkReady(true);
-		emit networkReady();
-	}
-
 	qInfo() << "peerPushed" << QString::fromStdString(peer->key()) << update << count;
 
-	setBuzzerDAppReady();
+	//
+	if (lastPeersCount_ != count) {
+		if (count == 1) {
+			setNetworkReady(true);
+			emit networkLimited();
+		} else {
+			setNetworkReady(true);
+			emit networkReady();
+		}
+
+		if (!update) setBuzzerDAppReady();
+
+		lastPeersCount_ = count;
+	}
 
 	if (!suspended_ && peersModelUpdates_)
 		emit peerPushedSignal(PeerProxy(peer), update, count);
@@ -986,19 +991,19 @@ void Client::setBuzzerDAppReady() {
 	for (std::map<uint256, std::map<uint32_t, IPeerPtr>>::iterator lChain = lMap.begin(); lChain != lMap.end(); lChain++) {
 		if (gLog().isEnabled(Log::CLIENT))
 			gLog().write(Log::CLIENT, strprintf("[Client::setBuzzerDAppReady]: chain = %s, count = %d", lChain->first.toHex(), lChain->second.size()));
-		if (lChain->second.size() > 1) lSupportNodes += lChain->second.size();
+		if (lChain->second.size() >= 1) lSupportNodes += lChain->second.size();
 	}
 
 	for (std::map<uint256, std::map<uint32_t, IPeerPtr>>::iterator lChain = lMap2.begin(); lChain != lMap2.end(); lChain++) {
 		if (gLog().isEnabled(Log::CLIENT))
 			gLog().write(Log::CLIENT, strprintf("[Client::setBuzzerDAppReady]: chain = %s, count = %d", lChain->first.toHex(), lChain->second.size()));
-		if (lChain->second.size() > 1) lSupportNodes += lChain->second.size();
+		if (lChain->second.size() >= 1) lSupportNodes += lChain->second.size();
 	}
 
 	if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[Client::setBuzzerDAppReady]: peers %d/%d", lSupportNodes, lMap.size()));
 
-	// at least two nodes
-	if (lSupportNodes / (lMap.size() + lMap2.size()) > 1) {
+	//
+	if (lSupportNodes / (lMap.size() + lMap2.size()) >= 1) {
 		bool lNotify = !buzzerDAppReady_;
 		buzzerDAppReady_ = true;
 		if (lNotify) {

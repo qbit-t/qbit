@@ -737,6 +737,8 @@ private:
 	PeersActiveListModel* peersActive_ = nullptr;
 	PeersListModel* peersAll_ = nullptr;
 	PeersAddedListModel* peersAdded_ = nullptr;
+	int lastPeersCount_ = 0;
+
 #if defined(DESKTOP_PLATFORM)
 	EmojiData* emojiData_ = nullptr;
 #endif
