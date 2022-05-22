@@ -139,12 +139,9 @@ public:
 						strprintf("%s", lAddress.toHex()));
 				peers_.insert(std::map<uint160 /*peer*/, IPeerPtr>::value_type(lAddress, peer));
 				lSize = peers_.size();
-			}
-			/*
-			else {
+			} else {
 				return false;
 			}
-			*/
 		}
 
 		//

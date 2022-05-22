@@ -896,7 +896,7 @@ void Client::peerPushed(qbit::IPeerPtr peer, bool update, int count) {
 		emit networkReady();
 	}
 
-	qInfo() << "peerPushed" << QString::fromStdString(peer->key());
+	qInfo() << "peerPushed" << QString::fromStdString(peer->key()) << update << count;
 
 	setBuzzerDAppReady();
 
