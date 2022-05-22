@@ -145,7 +145,7 @@ Rectangle {
 				lCoeffW = (calculatedWidth * 1.0) / (originalWidth * 1.0);
 				lCoeffH = (calculatedHeight * 1.0) / (originalHeight * 1.0);
 
-				//console.log("lRatioH = " + lRatioH + ", lCoeffH = " + lCoeffH +
+				//console.info("lRatioH = " + lRatioH + ", lCoeffH = " + lCoeffH +
 				//			", lRatioW = " + lRatioW + ", lCoeffW = " + lCoeffW);
 
 				// 1)
@@ -201,7 +201,7 @@ Rectangle {
 		}
 
 		onYChanged: {
-			//console.log("[onYChanged]: y = " + y + ", height = " + height + ", scale = " + scale);
+			//console.info("[onYChanged]: y = " + y + ", height = " + height + ", scale = " + scale);
 		}
 
 		fillMode: BuzzerComponents.ImageQx.PreserveAspectFit
@@ -225,28 +225,28 @@ Rectangle {
 				menuControl.forceVisible = true;
 
 				// force to reload
-				console.log("[buzzmediaview-image/onStatusChanged]: forcing reload of " + (usePreview_ ? preview_ : path_) + ", error = " + errorString);
+				console.info("[buzzmediaview-image/onStatusChanged]: forcing reload of " + (usePreview_ ? preview_ : path_) + ", error = " + errorString);
 
 				//downloadCommand
 				errorLoading();
 			} else if (status == Image.Ready) {
 				if (usePreview_) {
-					console.log("[buzzmediaview-image/onStatusChanged]: usePreview_ = " + usePreview_ + ", preview_ = " + preview_);
+					console.info("[buzzmediaview-image/onStatusChanged]: usePreview_ = " + usePreview_ + ", preview_ = " + preview_);
 					previewLoaded();
 				} else {
-					console.log("[buzzmediaview-image/onStatusChanged]: usePreview_ = " + usePreview_ + ", path_ = " + path_);
+					console.info("[buzzmediaview-image/onStatusChanged]: usePreview_ = " + usePreview_ + ", path_ = " + path_);
 				}
 			}
 		}
 
 		onWidthChanged: {
-			//console.log("[onWidthChanged]: height = " + height + ", width = " + width +
+			//console.info("[onWidthChanged]: height = " + height + ", width = " + width +
 			//							", originalWidth = " + originalWidth + ", originalHeight = " + originalHeight);
 			adjustHeight(height);
 		}
 
 		onHeightChanged: {
-			//console.log("[onHeightChanged]: width = " + width + ", height = " + height +
+			//console.info("[onHeightChanged]: width = " + width + ", height = " + height +
 			//							", originalHeight = " + originalHeight + ", originalWidth = " + originalWidth);
 			adjustHeight(height);
 		}

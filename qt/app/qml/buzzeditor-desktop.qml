@@ -637,7 +637,7 @@ QuarkPage {
 
 					mediaModel.append({
 						key: file,
-						path: "file://" + file,
+						path: (Qt.platform.os == "windows" ? "file:///" : "file://") + file,
 						preview: "none",
 						media: "image",
 						size: 0,
@@ -657,7 +657,7 @@ QuarkPage {
 
 					mediaModel.append({
 						key: file,
-						path: "file://" + file,
+						path: (Qt.platform.os == "windows" ? "file:///" : "file://") + file,
 						preview: "none",
 						media: "audio",
 						size: 0,
@@ -678,7 +678,7 @@ QuarkPage {
 					*/
 					mediaModel.append({
 						key: file,
-						path: "file://" + file,
+						path: (Qt.platform.os == "windows" ? "file:///" : "file://") + file,
 						preview: preview,
 						media: "video",
 						size: 0,

@@ -197,7 +197,7 @@ Item {
 			var lItem = mediaList.itemAtIndex(mediaIndicator.currentIndex);
 			if (lItem && lItem.mediaItem) {
 				//
-				//console.log("[onContentXChanged]: mediaList.contentX = " + mediaList.contentX +
+				//console.info("[onContentXChanged]: mediaList.contentX = " + mediaList.contentX +
 				//			", mediaList.indexAt(mediaList.contentX, 0) = " + mediaList.indexAt(mediaList.contentX, 0) +
 				//			", lItem.mediaItem.height = " + lItem.mediaItem.height);
 				//
@@ -268,7 +268,7 @@ Item {
 				//
 				if (index === mediaIndicator.currentIndex && proposed > 0 && buzzitemmedia_.calculatedHeight !== proposed) {
 					//
-					//console.log("[buzzitemmedia/adjustHeight]: proposed = " + proposed + ", buzzitemmedia_.calculatedHeight = " + buzzitemmedia_.calculatedHeight);
+					//console.info("[buzzitemmedia/adjustHeight]: proposed = " + proposed + ", buzzitemmedia_.calculatedHeight = " + buzzitemmedia_.calculatedHeight);
 					buzzitemmedia_.calculatedHeight = proposed;
 					mediaList.height = proposed;
 				}
@@ -307,7 +307,7 @@ Item {
 					// tx, previewFile, originalFile, orientation, duration, size, type
 					var lPSize = buzzerApp.getFileSize(previewFile);
 					var lOSize = buzzerApp.getFileSize(originalFile);
-					console.log("index = " + index + ", " + tx + ", " + previewFile + " - [" + lPSize + "], " + originalFile + " - [" + lOSize + "], " + orientation + ", " + duration + ", " + size + ", " + type);
+					console.info("index = " + index + ", " + tx + ", " + previewFile + " - [" + lPSize + "], " + originalFile + " - [" + lOSize + "], " + orientation + ", " + duration + ", " + size + ", " + type);
 
 					// stop timer
 					downloadWaitTimer.stop();
@@ -341,7 +341,7 @@ Item {
 
 					lComponent = Qt.createComponent(lSource);
 					if (lComponent.status === Component.Error) {
-						console.log(lComponent.errorString());
+						console.info(lComponent.errorString());
 					}
 
 					mediaFrame.mediaItem = lComponent.createObject(mediaFrame);

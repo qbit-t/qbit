@@ -349,7 +349,7 @@ Item {
 					// tx, previewFile, originalFile, orientation, duration, size, type
 					var lPSize = buzzerApp.getFileSize(previewFile);
 					var lOSize = buzzerApp.getFileSize(originalFile);
-					console.log("[buzzitemmediaview]: tx = " + tx + ", " + previewFile + " - [" + lPSize + "], " + originalFile + " - [" + lOSize + "], " + orientation + ", " + duration + ", " + size + ", " + type + ", preview = " + preview);
+					console.info("[buzzitemmediaview]: tx = " + tx + ", " + previewFile + " - [" + lPSize + "], " + originalFile + " - [" + lOSize + "], " + orientation + ", " + duration + ", " + size + ", " + type + ", preview = " + preview);
 
 					// stop timer
 					downloadTimer.stop();

@@ -61,7 +61,7 @@ Rectangle {
 
 	function terminate() {
 		//
-		console.log("[itemVideo]: terminate");
+		console.info("[itemVideo]: terminate");
 		if (videoFrame.player) videoFrame.player.pause();
 	}
 
@@ -347,7 +347,7 @@ Rectangle {
 				lCoeffW = (calculatedWidth * 1.0) / (originalWidth * 1.0);
 				lCoeffH = (calculatedHeight * 1.0) / (originalHeight * 1.0);
 
-				//console.log("lRatioH = " + lRatioH + ", lCoeffH = " + lCoeffH +
+				//console.info("lRatioH = " + lRatioH + ", lCoeffH = " + lCoeffH +
 				//			", lRatioW = " + lRatioW + ", lCoeffW = " + lCoeffW);
 
 				// 1)
@@ -445,7 +445,7 @@ Rectangle {
 			//
 			if (status == Image.Error) {
 				// force to reload
-				console.log("[buzzitemmediaview-video/onStatusChanged]: forcing reload of " + preview_ + ", error = " + errorString);
+				console.info("[buzzitemmediaview-video/onStatusChanged]: forcing reload of " + preview_ + ", error = " + errorString);
 				// force to reload
 				source = "qrc://images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "default.media.cover");
 				// "qrc://images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "broken.media.cover");
@@ -580,7 +580,7 @@ Rectangle {
 	function unlink() {
 		//
 		if (videoOut) {
-			console.log("[buzzmediaview/unlink]: unlinking video instance...");
+			console.info("[buzzmediaview/unlink]: unlinking video instance...");
 			videoOut.player.onPlaying.disconnect(mediaPlaying);
 			videoOut.player.onPaused.disconnect(mediaPaused);
 			videoOut.player.onStopped.disconnect(mediaStopped);
@@ -620,7 +620,7 @@ Rectangle {
 		if (existingPlayer) {
 			// controller
 			var lSingleVideoOut = videoFrame.sharedMediaPlayer_.createInstance(videoFrame, frameContainer, buzzitemmedia_, true);
-			console.log("[buzzmediaview/play]: video instance created...");
+			console.info("[buzzmediaview/play]: video instance created...");
 			lSingleVideoOut.player.description = description_;
 			lSingleVideoOut.player.caption = caption_;
 			lSingleVideoOut.player.onPlaying.connect(mediaPlaying);
@@ -682,7 +682,7 @@ Rectangle {
 
 	function mediaPlaying() {
 		//if (!videoFrame) return;
-		console.log("[buzzmediaview/mediaPlaying]: playing...");
+		console.info("[buzzmediaview/mediaPlaying]: playing...");
 		playing = true;
 		forceVisible = false;
 		frameContainer.enableScene();
@@ -691,7 +691,7 @@ Rectangle {
 	}
 
 	function mediaPaused() {
-		console.log("[buzzmediaview/mediaPaused]: paused...");
+		console.info("[buzzmediaview/mediaPaused]: paused...");
 		//if (!videoFrame) return;
 		playing = false;
 		actionButton.adjust();
@@ -699,7 +699,7 @@ Rectangle {
 	}
 
 	function mediaStopped() {
-		console.log("[buzzmediaview/mediaStopped]: stopped...");
+		console.info("[buzzmediaview/mediaStopped]: stopped...");
 		//if (!videoFrame) return;
 		videoFrame.playing = false;
 		forceVisible = true;
@@ -720,7 +720,7 @@ Rectangle {
 				videoOut.anchors.fill = frameContainer;
 				frameContainer.adjustView();
 
-				//console.log("[onStatusChanged/buffered/inner]: status = " + videoFrame.player.status + ", duration = " + videoFrame.player.duration);
+				//console.info("[onStatusChanged/buffered/inner]: status = " + videoFrame.player.status + ", duration = " + videoFrame.player.duration);
 			break;
 		}
 	}
@@ -730,7 +730,7 @@ Rectangle {
 	}
 
 	function playerError(error, errorString) {
-		console.log("[onErrorStringChanged]: error = " + error + " - " + errorString);
+		console.info("[onErrorStringChanged]: error = " + error + " - " + errorString);
 		// in case of error
 		downloadCommand.downloaded = false;
 		downloadCommand.cleanUp();
@@ -926,7 +926,7 @@ Rectangle {
 
 		onProcessed: {
 			// tx, previewFile, originalFile, orientation, duration, size, type
-			console.log(tx + ", " + previewFile + ", " + originalFile + ", " + orientation + ", " + duration + ", " + size + ", " + type);
+			console.info(tx + ", " + previewFile + ", " + originalFile + ", " + orientation + ", " + duration + ", " + size + ", " + type);
 
 			//
 			downloaded = true;
