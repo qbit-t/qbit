@@ -888,7 +888,7 @@ QString Client::resolveBuzzerDescription(QString buzzerInfoId) {
 
 void Client::peerPushed(qbit::IPeerPtr peer, bool update, int count) {
 	//
-	qInfo() << "peerPushed" << QString::fromStdString(peer->key()) << update << count;
+	//qInfo() << "peerPushed" << QString::fromStdString(peer->key()) << update << count;
 
 	//
 	if (count == 1) {
@@ -907,8 +907,6 @@ void Client::peerPushed(qbit::IPeerPtr peer, bool update, int count) {
 
 	if (!update) setBuzzerDAppReady();
 
-	lastPeersCount_ = count;
-
 	if (!suspended_ && peersModelUpdates_)
 		emit peerPushedSignal(PeerProxy(peer), update, count);
 }
@@ -926,7 +924,7 @@ void Client::peerPopped(qbit::IPeerPtr peer, int count) {
 		emit networkUnavailable();
 	}
 
-	qInfo() << "peerPopped" << QString::fromStdString(peer->key());
+	qInfo() << "peerPopped" << QString::fromStdString(peer->key()) << count;
 
 	setBuzzerDAppReady();
 

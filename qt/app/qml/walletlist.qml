@@ -48,6 +48,12 @@ Item
 		}
 	}
 
+	onHeightChanged: {
+		if (buzzerApp.isDesktop) {
+			list.adjustItems();
+		}
+	}
+
 	Rectangle {
 		id: walletIndicatorBackground
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, /*buzzerApp.isDesktop ? "Page.background" :*/
@@ -106,7 +112,9 @@ Item
 				var lItem = list.itemAtIndex(lIdx);
 				if (lItem) {
 					lItem.width = list.width;
-					lItem.walletItem.adjustWidth(list.width);
+					lItem.height = buzzerApp.isDesktop ? parent.height : parent.height - (walletIndicator.y + walletIndicator.height);
+					lItem.walletItem.adjustWidth(lItem.width);
+					lItem.walletItem.adjustHeight(lItem.height);
 				}
 			}
 		}

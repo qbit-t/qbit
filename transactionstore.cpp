@@ -2213,10 +2213,9 @@ bool TransactionStore::firstEnqueuedBlock(NetworkBlockHeader& block) {
 
 bool TransactionStore::airdropped(const uint160& address, const uint160& peer) {
 	//
-	return false;
-
-	//
 	if (settings_->supportAirdrop()) {
+		//
+		boost::unique_lock<boost::recursive_mutex> lLock(airdropMutex_);
 		//
 		gLog().write(Log::STORE, std::string("[airdropped]: try to check ") + 
 			strprintf("address_id = %s, peer_id = %s", address.toHex(), peer.toHex()));
@@ -2228,11 +2227,17 @@ bool TransactionStore::airdropped(const uint160& address, const uint160& peer) {
 				strprintf("address_id = %s, peer_id = %s", address.toHex(), peer.toHex()));
 			return true;
 		} else {
+			// mark intention
+			airDropAddressesTx_.write(address, uint256());
+
 			//
+			// NOTICE: in case of airdrops relay requests we do not able to check against ip addresses; we need more secure algo
+			//
+			/*
 			db::DbTwoKeyContainer<
-				uint160 /*peer_key_id*/, 
-				uint160 /*address_id*/, 
-				uint256 /*tx*/>::Iterator lFrom = airDropPeers_.find(peer);
+				uint160,
+				uint160,
+				uint256>::Iterator lFrom = airDropPeers_.find(peer);
 			//
 			lFrom.setKey2Empty();
 			//
@@ -2246,7 +2251,7 @@ bool TransactionStore::airdropped(const uint160& address, const uint160& peer) {
 					if (address == lAddress) { lAirdropped = true; break; }
 				}
 
-				if (++lCount > 1 /*2 different addresses from 1 peer*/) { lAirdropped = true; break; }
+				if (++lCount > 20) { lAirdropped = true; break; }
 			}
 
 			if (lAirdropped) {
@@ -2255,6 +2260,7 @@ bool TransactionStore::airdropped(const uint160& address, const uint160& peer) {
 					strprintf("address_id = %s, peer_id = %s", address.toHex(), peer.toHex()));
 				return true;
 			}
+			*/
 
 			return false;
 		}

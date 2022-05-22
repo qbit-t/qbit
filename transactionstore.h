@@ -581,6 +581,9 @@ private:
 	boost::recursive_mutex storageCommitMutex_;
 
 	//
+	boost::recursive_mutex airdropMutex_;
+
+	//
 	boost::recursive_mutex storageMutex_;
 	std::map<uint64_t, uint256> heightMap_;
 	std::map<uint256, uint64_t> blockMap_;

@@ -28,12 +28,21 @@ Item
 		walletSend.init();
 	}
 
-	function adjustWidth(width) {
-		walletBar.width = width;
-		walletPages.width = width;
-		walletBalance.width = width;
-		walletReceive.width = width;
-		walletSend.width = width;
+	function adjustWidth(w) {
+		wallet_.width = w;
+		walletBar.width = w;
+		walletPages.width = w;
+		walletBalance.width = w;
+		walletReceive.width = w;
+		walletSend.width = w;
+	}
+
+	function adjustHeight(h) {
+		wallet_.height = h;
+		walletPages.height = h - (walletBar.y + 50);
+		walletBalance.height = h - (walletBar.y + 50);
+		walletReceive.height = h - (walletBar.y + 50);
+		walletSend.height = h - (walletBar.y + 50);
 	}
 
 	TabBar {
@@ -83,6 +92,7 @@ Item
 
 	StackLayout {
 		id: walletPages
+		y:  walletBar.height
 		currentIndex: walletBar.currentIndex
 
 		WalletBalance {
