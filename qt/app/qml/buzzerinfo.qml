@@ -31,6 +31,7 @@ Item
 	property string buzzerDescription_: action !== "CREATE" ? buzzerClient.description : "";
 	property string buzzerAvatar_: action !== "CREATE" ? buzzerClient.avatar : "";
 	property string buzzerHeader_: action !== "CREATE" ? buzzerClient.header : "";
+	property string buzzerFinalName_: "";
 
 	signal processed();
 
@@ -531,10 +532,12 @@ Item
 				waitTimer.start();
 
 				var lBuzzerName = buzzerName_.trim();
-				if (lBuzzerName[0] !== '@') lBuzzerName = "@" + buzzerName_.trim();
-				buzzerName_ = lBuzzerName;
+				if (lBuzzerName[0] !== '@') buzzerFinalName_ = "@" + lBuzzerName;
+				else buzzerFinalName_ = lBuzzerName;
 
-				createBuzzerCommand.name = buzzerName_;
+				console.info("[createBuzzer]: creating buzzer = '" + buzzerFinalName_ + "'...");
+
+				createBuzzerCommand.name = buzzerFinalName_;
 				createBuzzerCommand.alias = buzzerAlias_;
 				createBuzzerCommand.description = buzzerDescription_;
 				createBuzzerCommand.avatar = buzzerAvatar_;
@@ -620,7 +623,9 @@ Item
 			buzzerStartImage.visible = false;
 			buzzerStopImage.visible = true;
 
-			buzzerClient.name = buzzerName_;
+			console.info("[createBuzzerCommand]: buzzer = '" + buzzerFinalName_ + "' created, saving...");
+
+			buzzerClient.name = buzzerFinalName_;
 			buzzerClient.alias = buzzerAlias_;
 			buzzerClient.description = buzzerDescription_;
 			buzzerClient.avatar = buzzerAvatar_;
