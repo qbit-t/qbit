@@ -845,8 +845,10 @@ Item {
 			text: buzzBody_
 			wrapMode: Text.Wrap
 			textFormat: Text.RichText
-			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize * multiplicator_) : defaultFontPointSize * multiplicator_
 			lineHeight: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 1.1) : lineHeight
+
+			property real multiplicator_: isEmoji ? 2.5 : 1.0
 
 			MouseArea {
 				anchors.fill: parent

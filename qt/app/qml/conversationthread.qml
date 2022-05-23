@@ -482,6 +482,7 @@ QuarkPage {
 			MouseArea {
 				id: buzzerInfoClick
 				anchors.fill: parent
+				cursorShape: Qt.PointingHandCursor
 
 				onClicked: {
 					//
@@ -578,7 +579,7 @@ QuarkPage {
 			x2: parent.width
 			y2: parent.height
 			penWidth: 1
-			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, buzzerApp.isDesktop ? "Material.disabledHidden" : "Panel.bottom.separator")
+			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Panel.bottom.separator")
 			visible: true
 		}
 	}
@@ -618,6 +619,9 @@ QuarkPage {
 		rotation: 180
 		feedDelta: 20
 
+		//
+		// TODO: pass through cursor share from the list items
+		//
 		MouseArea {
 			id: mouseArea
 			enabled: false
@@ -841,6 +845,7 @@ QuarkPage {
 					buzzItem = lComponent.createObject(itemDelegate);
 
 					buzzItem.calculatedHeightModified.connect(itemDelegate.calculatedHeightModified);
+					buzzItem.forceChangeCursorShape.connect(itemDelegate.changeCursorShape);
 					buzzItem.sharedMediaPlayer_ = conversationthread_.mediaPlayerController;
 					buzzItem.accepted_ = conversationState() === conversationAccepted_;
 					buzzItem.width = list.width;
@@ -863,6 +868,11 @@ QuarkPage {
 				//
 				itemDelegate.originalHeight = value;
 				itemDelegate.height = value - 1;
+			}
+
+			function changeCursorShape(shape) {
+				//
+				mouseArea.cursorShape = shape;
 			}
 
 			Timer {
@@ -1037,8 +1047,9 @@ QuarkPage {
 		Rectangle {
 			id: replyEditorContainer
 			x: addEmojiButton.visible ? addEmojiButton.x + addEmojiButton.width : richEditorButton.x + richEditorButton.width
-			y: spaceTop_
-			height: buzzText.contentHeight + 2 * spaceItems_
+			y: buzzText.contentHeight > richEditorButton.height / 2 ? spaceTop_ :
+																	  richEditorButton.y + richEditorButton.height / 2 - buzzText.contentHeight / 2
+			height: buzzText.contentHeight
 			width: parent.width - (sendButton.width + richEditorButton.width +
 										(addEmojiButton.visible ? addEmojiButton.width : 0) +
 											hiddenCountFrame.width + spaceItems_ + spaceRight_)
@@ -1095,8 +1106,8 @@ QuarkPage {
 
 			QuarkTextEdit {
 				id: buzzText
-				x: spaceItems_
-				y: spaceItems_
+				//x: spaceItems_
+				//y: spaceItems_
 				//height: 1000 //parent.height - spaceItems_
 				width: parent.width - spaceItems_
 				wrapMode: Text.Wrap

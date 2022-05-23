@@ -90,6 +90,7 @@ Item {
 	property bool leftSide_: false
 
 	signal calculatedHeightModified(var value);
+	signal forceChangeCursorShape(var shape);
 
 	onCalculatedHeightChanged: {
 		calculatedHeightModified(calculatedHeight);
@@ -215,9 +216,12 @@ Item {
 		id: decryptCommand
 
 		onProcessed: {
+			//
+			console.info("[decryptCommand]: key = " + key + ", body = " + body + ", hasEmoji = " + hasEmoji);
 			// key, body
 			buzzText.text = body;
 			messageMetrics.text = body;
+			isEmoji = hasEmoji;
 			//
 			calculateHeight();
 			adjust();
@@ -264,7 +268,9 @@ Item {
 		id: messageMetrics
 		font.family: buzzText.font.family
 		text: conversationMessage()
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : buzzText.defaultFontPointSize
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize * multiplicator_) : buzzText.defaultFontPointSize * multiplicator_
+
+		property real multiplicator_: isEmoji ? 2.5 : 1.0
 
 		function getX(pwidth) {
 			//
@@ -370,6 +376,15 @@ Item {
 			id: buzzerInfoClick
 			anchors.fill: parent
 			cursorShape: Qt.PointingHandCursor
+			hoverEnabled: true
+
+			onEntered: {
+				forceChangeCursorShape(Qt.PointingHandCursor);
+			}
+
+			onExited: {
+				forceChangeCursorShape(Qt.ArrowCursor);
+			}
 
 			onClicked: {
 				//
@@ -519,17 +534,21 @@ Item {
 				wrapMode: Text.Wrap
 				textFormat: Text.RichText
 				font.italic: !accepted_
-				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
+				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize * multiplicator_) : defaultFontPointSize * multiplicator_
 				// lineHeight: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 1.1) : lineHeight
 				readOnly: true
 				selectByMouse: true
 				color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 				selectionColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.selected")
 
+				property real multiplicator_: isEmoji ? 2.5 : 1.0
+
 				MouseArea {
-					anchors.fill: parent
-					cursorShape: parent.hoveredLink ? Qt.PointingHandCursor : Qt.ArrowCursor
+					anchors.fill: buzzText
+					cursorShape: buzzText.hoveredLink ? Qt.PointingHandCursor : Qt.ArrowCursor
 					acceptedButtons: Qt.RightButton
+
+					onCursorShapeChanged: forceChangeCursorShape(cursorShape)
 
 					onClicked: {
 						//

@@ -601,6 +601,7 @@ ApplicationWindow {
 		// locate and activate
 		if (activatePage(tag)) return;
 
+		//
 		lComponent = Qt.createComponent("qrc:/qml/buzzfeedtag.qml", rootComponent);
 		if (lComponent.status === Component.Error) {
 			showError(lComponent.errorString());

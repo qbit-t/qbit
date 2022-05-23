@@ -664,35 +664,64 @@ QString Client::decorateBuzzBody(const QString& body) {
 	// already decorated
 	if (body.indexOf("<a") != -1) return body;
 
-	QString lUrlPattern = QString("<a href='\\1' style='text-decoration:none;color:") +
-			gApplication->getColor(theme(), themeSelector(), "Material.link.rgb") +
-			QString("'>\\2</a>");
-
+	//
 	QString lResult = body;
 	QString lCommonResult;
 
-	QRegularExpression lRule = QRegularExpression("((?:https?|ftp)://\\S+)");
-	QRegularExpressionMatchIterator lMatchIterator = lRule.globalMatch(lResult);
+	struct DecorationRule {
+		QRegularExpression expression;
+		QString pattern;
+		bool truncate;
+	};
+
+	QVector<DecorationRule> lDecorationRules;
+
+	DecorationRule lRule;
+	lRule.pattern = QString("<a href='\\1' style='text-decoration:none;color:") +
+			gApplication->getColor(theme(), themeSelector(), "Material.link.rgb") +
+			QString("'>\\2</a>");
+	lRule.expression = QRegularExpression("((?:https?|ftp)://\\S+)"); // urls
+	lRule.truncate = true;
+	lDecorationRules.append(lRule);
+
+	lRule.pattern = QString("<a href='\\1' style='text-decoration:none;color:") +
+			gApplication->getColor(theme(), themeSelector(), "Material.link.rgb") +
+			QString("'>\\2</a>");
+	lRule.expression = QRegularExpression("(#[\\w\u0400-\u04FF]+)"); // #tags
+	lRule.truncate = false;
+	lDecorationRules.append(lRule);
+
+	lRule.pattern = QString("<a href='\\1' style='text-decoration:none;color:") +
+			gApplication->getColor(theme(), themeSelector(), "Material.link.rgb") +
+			QString("'>\\2</a>");
+	lRule.expression = QRegularExpression("(@[A-Za-z0-9]+)"); // @buzzers
+	lRule.truncate = false;
+	lDecorationRules.append(lRule);
 
 	int lPrevMatch = 0;
 	bool lHasMatches = false;
-	while (lMatchIterator.hasNext()) {
-		QRegularExpressionMatch lMatch = lMatchIterator.next();
-		QString lUrl = lResult.mid(lMatch.capturedStart(), lMatch.capturedLength());
-		QString lUrlPatternDest = lUrlPattern;
-		lUrlPatternDest.replace("\\1", lUrl);
-		//
-		if (lUrl.length() > 25) {
-			lUrl.truncate(25); lUrl += "...";
-		}
-		lUrlPatternDest.replace("\\2", lUrl);
-		// lResult.replace(lMatch.capturedStart(), lMatch.capturedLength(), lUrlPatternDest);
 
-		if (lMatch.capturedStart() >= lPrevMatch) {
-			lHasMatches = true;
-			lCommonResult += lResult.mid(lPrevMatch, lMatch.capturedStart() - lPrevMatch);
-			lCommonResult += lUrlPatternDest;
-			lPrevMatch = lMatch.capturedStart() + lMatch.capturedLength();
+	for (const DecorationRule &lRule : qAsConst(lDecorationRules)) {
+		QRegularExpressionMatchIterator lMatchIterator = lRule.expression.globalMatch(lResult);
+		while (lMatchIterator.hasNext()) {
+			//
+			QRegularExpressionMatch lMatch = lMatchIterator.next();
+			//
+			QString lUrl = lResult.mid(lMatch.capturedStart(), lMatch.capturedLength());
+			QString lUrlPatternDest = lRule.pattern;
+			lUrlPatternDest.replace("\\1", lUrl);
+			//
+			if (lRule.truncate && lUrl.length() > 25) {
+				lUrl.truncate(25); lUrl += "...";
+			}
+			lUrlPatternDest.replace("\\2", lUrl);
+
+			if (lMatch.capturedStart() >= lPrevMatch) {
+				lHasMatches = true;
+				lCommonResult += lResult.mid(lPrevMatch, lMatch.capturedStart() - lPrevMatch);
+				lCommonResult += lUrlPatternDest;
+				lPrevMatch = lMatch.capturedStart() + lMatch.capturedLength();
+			}
 		}
 	}
 
@@ -702,18 +731,10 @@ QString Client::decorateBuzzBody(const QString& body) {
 		lCommonResult += lResult.mid(lPrevMatch, lResult.size()-1);
 	}
 
-	//
-	QString lPattern = QString("<a href='\\1' style='text-decoration:none;color:") +
-			gApplication->getColor(theme(), themeSelector(), "Material.link.rgb") +
-			QString("'>\\1</a>");
-
-	lCommonResult.replace(QRegExp("(@[A-Za-z0-9]+)"), lPattern);
-	lCommonResult.replace(QRegExp("(#[\\w\u0400-\u04FF]+)"), lPattern);
-
-	if (lCommonResult.size() && lCommonResult[lCommonResult.size()-1] == 0x0a) lCommonResult[lResult.size()-1] = 0x20;
+	if (lCommonResult.size() && lCommonResult[lCommonResult.size()-1] == 0x0a) lCommonResult[lCommonResult.size()-1] = 0x20;
 	lCommonResult.replace(QRegExp("\n"), QString("<br>"));
 
-	// qInfo() << "[Client::decorateBuzzBody]" << lCommonResult;
+	//qInfo() << "[Client::decorateBuzzBody]" << lCommonResult;
 
 	return lCommonResult;
 }

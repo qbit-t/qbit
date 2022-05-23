@@ -81,7 +81,7 @@ Rectangle {
 			else if (currentOrientation_ === 8) videoOutput.orientation = 90;
 			else videoOutput.orientation = 0;
 
-			console.log("[onCurrentOrientation_Changed]: orientation = " + currentOrientation_ + ", videoOutput.orientation = " + videoOutput.orientation);
+			console.info("[onCurrentOrientation_Changed]: orientation = " + currentOrientation_ + ", videoOutput.orientation = " + videoOutput.orientation);
 			videoOutput.adjustView();
 		}
 	}
@@ -225,7 +225,7 @@ Rectangle {
 			}
 
 			if (status == Image.Error) {
-				console.log("[onStatusChanged]: error = " + errorString);
+				console.info("[onStatusChanged]: error = " + errorString);
 			}
 		}
 
@@ -308,7 +308,7 @@ Rectangle {
 				break;
 			}
 
-			console.log("[onStatusChanged(9)]: status = " + status + ", duration = " + duration + ", path = " + path + ", size = " + size + ", preview = " + preview);
+			console.info("[onStatusChanged(9)]: status = " + status + ", duration = " + duration + ", path = " + path + ", size = " + size + ", preview = " + preview);
 		}
 
 		onPositionChanged: {
@@ -320,7 +320,7 @@ Rectangle {
 		}
 
 		onErrorStringChanged: {
-			console.log("[onErrorStringChanged(9)]: " + errorString);
+			console.info("[onErrorStringChanged(9)]: " + errorString);
 		}
 	}
 

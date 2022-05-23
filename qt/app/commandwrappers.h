@@ -3108,14 +3108,27 @@ public:
 			return;
 		}
 
-		emit processed(QString::fromStdString(key), QString::fromStdString(body));
+		//
+		bool lEmojiString = true;
+		int lCount = 0;
+		//
+		for (size_t lIdx = 0; lIdx < body.size() && lCount < 30; ) {
+			//
+			if (lIdx + 1 < body.size() && (unsigned char)(body.c_str()[lIdx]) == 0xF0 && (unsigned char)(body.c_str()[lIdx+1]) == 0x9F) {
+				lCount++; lIdx += 4;
+			} else if (body.c_str()[lIdx] == 0x20 || body.c_str()[lIdx] == 0x0a) {
+				lIdx++;
+			} else { lEmojiString = false; break; }
+		}
+
+		emit processed(QString::fromStdString(key), QString::fromStdString(body), lEmojiString);
 	}
 
 	BuzzfeedListModel* model() { return conversationModel_; }
 	void setModel(BuzzfeedListModel* model) { conversationModel_ = model; emit modelChanged(); }
 
 signals:
-	void processed(QString key, QString body);
+	void processed(QString key, QString body, bool hasEmoji);
 	void error(QString code, QString message);
 	void modelChanged();
 

@@ -22,12 +22,15 @@ Item
 
 	property var infoDialog;
 	property var controller;
+	property var offset_: 50;
 
 	function init() {
 		walletBalance.init();
 		walletSend.init();
+		walletPages.y = 1; // trick
 	}
 
+	// TODO: adjust for mobile?
 	function adjustWidth(w) {
 		wallet_.width = w;
 		walletBar.width = w;
@@ -37,12 +40,14 @@ Item
 		walletSend.width = w;
 	}
 
+	// TODO: adjust for mobile?
 	function adjustHeight(h) {
+		//
 		wallet_.height = h;
-		walletPages.height = h - (walletBar.y + 50);
-		walletBalance.height = h - (walletBar.y + 50);
-		walletReceive.height = h - (walletBar.y + 50);
-		walletSend.height = h - (walletBar.y + 50);
+		walletPages.height = h - (walletBar.y + offset_);
+		walletBalance.height = h - (walletBar.y + offset_);
+		walletReceive.height = h - (walletBar.y + offset_);
+		walletSend.height = h - (walletBar.y + offset_);
 	}
 
 	TabBar {
@@ -81,6 +86,11 @@ Item
 
 		onCurrentIndexChanged: {
 			wallet_.init(); // try to refill balances
+
+			walletPages.y = offset_;
+			walletBalance.y = offset_;
+			walletReceive.y = offset_;
+			walletSend.y = offset_;
 		}
 
 		Component.onCompleted: {
@@ -92,31 +102,24 @@ Item
 
 	StackLayout {
 		id: walletPages
-		y:  walletBar.y + 50
+		anchors.top: walletBar.bottom
 		currentIndex: walletBar.currentIndex
+		width: wallet_.width
+		height: wallet_.height - (walletBar.y + offset_)
 
 		WalletBalance {
 			id: walletBalance
-			x: 0
-			y: walletBar.height
-			width: wallet_.width
-			height: wallet_.height - (walletBar.y + 50)
+			anchors.fill: parent
 			controller: wallet_.controller
 		}
 		WalletReceive {
 			id: walletReceive
-			x: 0
-			y: walletBar.height
-			width: wallet_.width
-			height: wallet_.height - (walletBar.y + 50)
+			anchors.fill: parent
 			controller: wallet_.controller
 		}
 		WalletSend {
 			id: walletSend
-			x: 0
-			y: walletBar.height
-			width: wallet_.width
-			height: wallet_.height - (walletBar.y + 50)
+			anchors.fill: parent
 			controller: wallet_.controller
 		}
 	}

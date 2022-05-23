@@ -65,7 +65,8 @@ public:
 		FeedingRole,
 		OwnLikeRole,
 		OwnRebuzzRole,
-		AdjustDataRole
+		AdjustDataRole,
+		IsEmojiRole
 	};
 
 public:

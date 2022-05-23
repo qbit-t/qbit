@@ -282,6 +282,34 @@ QVariant BuzzfeedListModel::data(const QModelIndex& index, int role) const {
 		return lItem->hasLike();
 	} else if (role == OwnRebuzzRole) {
 		return lItem->hasRebuzz();
+	} else if (role == IsEmojiRole) {
+		//
+		bool lEmojiString = true;
+		int lCount = 0;
+		//
+		if (lItem->type() == qbit::TX_BUZZER_MESSAGE || lItem->type() == qbit::TX_BUZZER_MESSAGE_REPLY) {
+			std::string lBody = lItem->buzzBodyString();
+			for (size_t lIdx = 0; lIdx < lBody.size() && lCount < 30; ) {
+				//
+				if (lIdx + 1 < lBody.size() && (unsigned char)(lBody.c_str()[lIdx]) == 0xF0 && (unsigned char)(lBody.c_str()[lIdx+1]) == 0x9F) {
+					lCount++; lIdx += 4;
+				} else if (lBody.c_str()[lIdx] == 0x20 || lBody.c_str()[lIdx] == 0x0a) {
+					lIdx++;
+				} else { lEmojiString = false; break; }
+			}
+		} else {
+			std::vector<unsigned char> lRawBody = lItem->buzzBody();
+			for (size_t lIdx = 0; lIdx < lRawBody.size() && lCount < 30; ) {
+				//
+				if (lIdx + 1 < lRawBody.size() && lRawBody[lIdx] == 0xF0 && lRawBody[lIdx+1] == 0x9F) {
+					lCount++; lIdx += 4;
+				} else if (lRawBody[lIdx] == 0x20 || lRawBody[lIdx] == 0x0a) {
+					lIdx++;
+				} else { lEmojiString = false; break; }
+			}
+		}
+
+		return lEmojiString;
 	}
 
 	return QVariant();
@@ -332,6 +360,7 @@ QHash<int, QByteArray> BuzzfeedListModel::roleNames() const {
 	lRoles[OwnLikeRole] = "ownLike";
 	lRoles[OwnRebuzzRole] = "ownRebuzz";
 	lRoles[AdjustDataRole] = "adjustData";
+	lRoles[IsEmojiRole] = "isEmoji";
 
 	return lRoles;
 }
