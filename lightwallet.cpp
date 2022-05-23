@@ -282,7 +282,7 @@ bool LightWallet::prepareCache() {
 	resetCache();
 
 	//
-	if (opened_) {
+	if (opened_ && status_ != IWallet::FETCHING_UTXO) {
 		//
 		status_ = IWallet::FETCHING_UTXO;
 

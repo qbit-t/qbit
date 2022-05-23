@@ -17,12 +17,9 @@
 #include "buzztexthighlighter.h"
 #include "wallettransactionslistmodel.h"
 
-#if defined(DESKTOP_PLATFORM)
 #include "emojimodel.h"
-#else
 #include "audiorecorder.h"
 #include "videorecorder.h"
-#endif
 
 #include <QQuickImageProvider>
 
@@ -126,15 +123,9 @@ int Client::open(QString secret) {
 #if defined(DESKTOP_PLATFORM)
 	qbit::gLog(settings_->dataPath() + "/debug.log");
 #else
-	if (application_->getDebug()) {
-		// force privileges
-		application_->checkPermission();
-		// make new
-		qbit::gLog(application_->getLogsLocation() + "/buzzer-debug.log");
-	} else {
-		// TODO: make action to copy debug log to downloads
-		qbit::gLog(settings_->dataPath() + "/debug.log");
-	}
+	// TODO: make action to copy debug log to downloads
+	// NOTICE: logs location points to the cache location and can be feed with the other temporary data
+	qbit::gLog(application_->getLogsLocation() + "/debug.log");
 #endif
 
 	// setup categories
@@ -146,6 +137,9 @@ int Client::open(QString secret) {
 
 	// rebind qapplication message handler to intercept qInfo(), qError() output messages
 	buzzer::gLogger.reset(new buzzer::Logger(application_->getInterceptOutput()));
+
+	// empty emoji data
+	emojiData_ = new EmojiData();
 
 	//
 #if defined(DESKTOP_PLATFORM)
@@ -164,7 +158,6 @@ int Client::open(QString secret) {
 		}
 
 #endif
-		emojiData_ = new EmojiData();
 		emojiData_->open();
 	}
 #endif
@@ -452,9 +445,7 @@ int Client::open(QString secret) {
 	qmlRegisterType<buzzer::ConversationsfeedListModel>("app.buzzer.commands", 1, 0, "ConversationsfeedListModel");
 	qmlRegisterType<buzzer::ConversationsListModel>("app.buzzer.commands", 1, 0, "ConversationsListModel");
 
-#if defined(DESKTOP_PLATFORM)
 	qmlRegisterType<buzzer::EmojiModel>("app.buzzer.commands", 1, 0, "EmojiModel");
-#endif
 
 	qRegisterMetaType<qbit::BuzzfeedProxy>("qbit::BuzzfeedProxy");
 	qRegisterMetaType<qbit::BuzzfeedItemProxy>("qbit::BuzzfeedItemProxy");
@@ -926,7 +917,9 @@ void Client::peerPushed(qbit::IPeerPtr peer, bool update, int count) {
 	if (BUZZ_PEERS_CONFIRMATIONS > count) G_BUZZ_PEERS_CONFIRMATIONS = count;
 	else G_BUZZ_PEERS_CONFIRMATIONS = BUZZ_PEERS_CONFIRMATIONS;
 
-	if (!update) setBuzzerDAppReady();
+	//if ((!update && gApplication->isDesktop()) ||
+	//		!gApplication->isDesktop())
+	setBuzzerDAppReady();
 
 	if (!suspended_ && peersModelUpdates_)
 		emit peerPushedSignal(PeerProxy(peer), update, count);
@@ -1015,18 +1008,18 @@ void Client::setBuzzerDAppReady() {
 
 	//
 	for (std::map<uint256, std::map<uint32_t, IPeerPtr>>::iterator lChain = lMap.begin(); lChain != lMap.end(); lChain++) {
-		if (gLog().isEnabled(Log::CLIENT))
-			gLog().write(Log::CLIENT, strprintf("[Client::setBuzzerDAppReady]: chain = %s, count = %d", lChain->first.toHex(), lChain->second.size()));
+		//if (gLog().isEnabled(Log::CLIENT))
+		//	gLog().write(Log::CLIENT, strprintf("[Client::setBuzzerDAppReady]: chain = %s, count = %d", lChain->first.toHex(), lChain->second.size()));
 		lSupportNodes += lChain->second.size();
 	}
 
 	for (std::map<uint256, std::map<uint32_t, IPeerPtr>>::iterator lChain = lMap2.begin(); lChain != lMap2.end(); lChain++) {
-		if (gLog().isEnabled(Log::CLIENT))
-			gLog().write(Log::CLIENT, strprintf("[Client::setBuzzerDAppReady]: chain = %s, count = %d", lChain->first.toHex(), lChain->second.size()));
+		//if (gLog().isEnabled(Log::CLIENT))
+		//	gLog().write(Log::CLIENT, strprintf("[Client::setBuzzerDAppReady]: chain = %s, count = %d", lChain->first.toHex(), lChain->second.size()));
 		lSupportNodes2 += lChain->second.size();
 	}
 
-	if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[Client::setBuzzerDAppReady]: peers %d/%d", lSupportNodes, (lMap.size() + lMap2.size())));
+	//if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[Client::setBuzzerDAppReady]: peers %d/%d", lSupportNodes, (lMap.size() + lMap2.size())));
 
 	// we have enough nodes to start servicing
 	if ((double)lSupportNodes / (double)G_BUZZ_PEERS_CONFIRMATIONS >= 1.0 &&
@@ -1039,13 +1032,19 @@ void Client::setBuzzerDAppReady() {
 			if (recallWallet_) {
 				if (wallet_->prepareCache()) {
 					recallWallet_ = false;
-					if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, std::string("[Client::prepareCache]: cache is ready"));
+					if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, std::string("[Client::setBuzzerDAppReady]: cache is ready"));
 					emit buzzerDAppResumed();
 				}
 			}
 
 			opened_ = true; // allways
 			emit buzzerDAppReadyChanged();
+		} else if (recallWallet_) {
+			if (wallet_->prepareCache()) {
+				recallWallet_ = false;
+				if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, std::string("[Client::setBuzzerDAppReady]: cache is ready"));
+				emit buzzerDAppResumed();
+			}
 		}
 	} else {
 		bool lNotify = buzzerDAppReady_;

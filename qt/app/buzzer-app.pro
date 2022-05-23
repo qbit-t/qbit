@@ -99,7 +99,9 @@ SOURCES += \
 	imageqxloader.cpp \
 	imageqxnode.cpp \
 	androidshareutils.cpp \
-	shareutils.cpp
+	shareutils.cpp \
+	emojimodel.cpp \
+	emojidata.cpp
 
 SUBDIRS += \
     ../../client \
@@ -234,7 +236,9 @@ HEADERS += \
 	imageqxloader.h \
 	imageqxnode.h \
 	androidshareutils.h \
-	shareutils.h
+	shareutils.h \
+	emojimodel.h \
+	emojidata.h
 
 RESOURCES += \
     $$files(../fonts/*) \

@@ -185,9 +185,10 @@ Item {
 		//
 		if (listView_ && width > 0) {
 			//
-			leftSide_ = listView_.width > listView_.height;
+			leftSide_ = listView_.width > listView_.height && ((!buzzerApp.isDesktop && listView_.width - listView_.height > 100) ||
+																	buzzerApp.isDesktop);
 			//
-			if (listView_.width < listView_.height) {
+			if (!leftSide_ /*listView_.width < listView_.height*/) {
 				backgroundContainer.x = myMessage_ ? messageMetrics.getX(width) : spaceLeft_;
 				backgroundContainer.width = messageMetrics.getWidth(width);
 				buzzItemContainer.x = myMessage_ ? messageMetrics.getX(width) : spaceLeft_;
@@ -445,11 +446,12 @@ Item {
 		id: backgroundContainer
 		y: spaceItems_
 		color: "transparent"
-		backgroundColor: conversationMessage().length ?
-							 (myMessage_ ?
-							 buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.conversation.message.my") :
-							 buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.conversation.message.other")) :
-							 "transparent"
+		backgroundColor: isEmoji ? "transparent" :
+								   (conversationMessage().length ?
+									 (myMessage_ ?
+										 buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.conversation.message.my") :
+										 buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.conversation.message.other")) :
+									 "transparent")
 		height: calculatedHeight - (spaceItems_ + spaceItems_)
 		bottomLeftCorner: leftSide_ ? false : myMessage_
 		bottomRightCorner: leftSide_ ? true : !myMessage_

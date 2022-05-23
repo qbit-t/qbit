@@ -149,7 +149,7 @@ QVariant BuzzfeedListModel::data(const QModelIndex& index, int role) const {
 	}
 
 	if (role == AdjustDataRole) {
-		return adjustData_[index.row()];
+		return (bool)(adjustData_[index.row()]);
 	}
 
 	qbit::BuzzfeedItemPtr lItem = list_[index.row()];

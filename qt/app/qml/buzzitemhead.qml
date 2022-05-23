@@ -438,12 +438,14 @@ Item {
 			text: buzzBody_
 			wrapMode: Text.Wrap
 			textFormat: Text.RichText
-			font.pointSize: buzzerApp.isDesktop ? Math.round(buzzerClient.scaleFactor * 13) : 20
+			font.pointSize: buzzerApp.isDesktop ? Math.round(buzzerClient.scaleFactor * 13 * multiplicator_) : 20 * multiplicator_
 			//lineHeight: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 1.1) : lineHeight
 			readOnly: true
 			selectByMouse: true
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 			selectionColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.selected")
+
+			property real multiplicator_: isEmoji ? 2.5 : 1.0
 
 			MouseArea {
 				anchors.fill: parent

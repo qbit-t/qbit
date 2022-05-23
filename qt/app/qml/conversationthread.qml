@@ -1063,7 +1063,7 @@ QuarkPage {
 			Rectangle {
 				id: quasiCursor
 
-				x: 2
+				x: 0
 				y: 3
 
 				width: 1
@@ -1124,6 +1124,7 @@ QuarkPage {
 					horizontalAlignment: Text.AlignLeft
 					verticalAlignment: Text.AlignVCenter
 					anchors.fill: parent
+					anchors.leftMargin: spaceItems_
 
 					elide: Text.ElideRight
 

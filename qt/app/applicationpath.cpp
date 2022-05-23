@@ -30,11 +30,11 @@ QString ApplicationPath::applicationDirPath()
 QString ApplicationPath::logsDirPath()
 {
 #ifdef Q_OS_ANDROID
-    return QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
+	return QStandardPaths::writableLocation(QStandardPaths::TempLocation);
 #endif
 
 #ifdef Q_OS_IOS
-    return QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+	return QStandardPaths::writableLocation(QStandardPaths::TempLocation);
 #endif
 
     return qApp->applicationDirPath() + "/logs";
