@@ -780,7 +780,7 @@ Item {
 		onClick: {
 			//
 			if (key === "copy") {
-				clipboard.setText(buzzText.text);
+				clipboard.setText(buzzerClient.getPlainText(buzzText.textDocument)); //buzzText.text
 			} else if (key === "copytx") {
 				clipboard.setText(buzzId_);
 			} else if (key === "copyselection") {
