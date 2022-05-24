@@ -109,11 +109,12 @@ void buzzer::Notificator::fadeOut() {
 	lAnimation->setEasingCurve(QEasingCurve::OutBack);
 	lAnimation->start(QPropertyAnimation::DeleteWhenStopped);
 	connect(lAnimation, SIGNAL(finished()), this, SLOT(done()));
-	index_.erase(item_->getKey());
+	//index_.erase(item_->getKey());
 }
 
 void buzzer::Notificator::done() {
 	//
+	index_.erase(item_->getKey());
 	hide();
 }
 

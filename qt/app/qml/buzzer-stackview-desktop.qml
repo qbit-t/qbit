@@ -26,8 +26,9 @@ SwipeView
 			x: 0
 			y: 0
 			width: pagesView.width
-			Layout.alignment: Qt.AlignCenter
-			source: "../images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "desktop.back")
-			fillMode: Image.PreserveAspectCrop
+			height: pagesView.height
+			//Layout.alignment: Qt.AlignCenter
+			source: "../images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "desktop.back.tile")
+			fillMode: Image.Tile
 	}
 }

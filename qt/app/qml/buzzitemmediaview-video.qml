@@ -66,7 +66,14 @@ Rectangle {
 	}
 
 	onCurrentOrientation_Changed: {
-		//
+		checkOrientation();
+	}
+
+	onVideoOutChanged: {
+		checkOrientation();
+	}
+
+	function checkOrientation() {
 		if (buzzerApp.isDesktop && videoOut) {
 			if (currentOrientation_ == 6) videoOut.orientation = -90;
 			else if (currentOrientation_ == 3) videoOut.orientation = -180;

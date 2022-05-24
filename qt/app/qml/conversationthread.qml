@@ -171,6 +171,12 @@ QuarkPage {
 		orientationChangedTimer.start();
 	}
 
+	onHeightChanged: {
+		if (buzzerApp.isDesktop) {
+			back.height = height;
+		}
+	}
+
 	// to adjust model
 	Timer {
 		id: orientationChangedTimer
@@ -590,12 +596,20 @@ QuarkPage {
 
 	Image {
 		id: back
-		fillMode: Image.PreserveAspectFit
+		fillMode: buzzerApp.isDesktop ? Image.Tile : Image.PreserveAspectFit
 		width: parent.width
 		x: 0
 		y: buzzThreadToolBar.y + buzzThreadToolBar.height
-		Layout.alignment: Qt.AlignCenter
-		source: "../images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "conversations.back")
+		source: "../images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, buzzerApp.isDesktop ? "desktop.back.tile" :
+																														"conversations.back")
+
+		Component.onCompleted: {
+			if (buzzerApp.isDesktop) {
+				height = parent.height;
+			} else {
+				back.Layout.alignment = Qt.AlignCenter;
+			}
+		}
 	}
 
 	property real posX
