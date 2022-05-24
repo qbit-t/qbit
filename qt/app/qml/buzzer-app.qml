@@ -192,9 +192,6 @@ ApplicationWindow
 		var lComponent = null;
 		var lPage = null;
 
-		// locate and activate
-		if (activatePage(buzzId)) return;
-
 		lComponent = Qt.createComponent("qrc:/qml/buzzfeedthread.qml");
 		if (lComponent.status === Component.Error) {
 			showError(lComponent.errorString());
@@ -213,9 +210,6 @@ ApplicationWindow
 		//
 		var lComponent = null;
 		var lPage = null;
-
-		// locate and activate
-		if (activatePage(buzzId)) return;
 
 		lComponent = Qt.createComponent("qrc:/qml/buzzmedia.qml");
 		if (lComponent.status === Component.Error) {

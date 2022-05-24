@@ -842,7 +842,7 @@ Item {
 			x: 0
 			y: 0
 			width: parent.width
-			text: buzzBody_
+			text: buzzBody_ ? (buzzBody_.length > 500 ? buzzBody_.slice(0, 500) + "..." : buzzBody_) : ""
 			wrapMode: Text.Wrap
 			textFormat: Text.RichText
 			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize * multiplicator_) : defaultFontPointSize * multiplicator_
@@ -891,15 +891,6 @@ Item {
 
 				buzzitem_.calculateHeight();
 			}
-
-			/*
-			TextMetrics {
-				id: buzzBodyMetrics
-				font.family: buzzText.font.family
-
-				text: buzzBody
-			}
-			*/
 		}
 
 		function expand() {
@@ -911,36 +902,6 @@ Item {
 			if (wrapped_ && !wrappedItem_) {
 				//
 				wrapperLoader.setSource("qrc:/qml/buzzitemlight.qml");
-				/*
-				// buzzText
-				lSource = "qrc:/qml/buzzitemlight.qml";
-				lComponent = Qt.createComponent(lSource);
-				wrappedItem_ = lComponent.createObject(bodyControl);
-				wrappedItem_.calculatedHeightModified.connect(innerHeightChanged);
-
-				wrappedItem_.x = 0;
-				wrappedItem_.y = bodyControl.getY();
-				wrappedItem_.width = bodyControl.width;
-				wrappedItem_.controller_ = buzzitem_.controller_;
-				wrappedItem_.sharedMediaPlayer_ = buzzitem_.sharedMediaPlayer_;
-
-				//console.log("[WRAPPED]: wrapped_.buzzerId = " + wrapped_.buzzerId + ", wrapped_.buzzerInfoId = " + wrapped_.buzzerInfoId);
-
-				wrappedItem_.timestamp_ = wrapped_.timestamp;
-				wrappedItem_.score_ = wrapped_.score;
-				wrappedItem_.buzzId_ = wrapped_.buzzId;
-				wrappedItem_.buzzChainId_ = wrapped_.buzzChainId;
-				wrappedItem_.buzzerId_ = wrapped_.buzzerId;
-				wrappedItem_.buzzerInfoId_ = wrapped_.buzzerInfoId;
-				wrappedItem_.buzzerInfoChainId_ = wrapped_.buzzerInfoChainId;
-				wrappedItem_.buzzBody_ = buzzerClient.decorateBuzzBody(wrapped_.buzzBody);
-				wrappedItem_.buzzMedia_ = wrapped_.buzzMedia;
-				wrappedItem_.lastUrl_ = buzzerClient.extractLastUrl(wrapped_.buzzBody);
-				wrappedItem_.ago_ = buzzerClient.timestampAgo(wrapped_.timestamp);
-
-				bodyControl.height = bodyControl.getHeight();
-				buzzitem_.calculateHeight();
-				*/
 			}
 
 			// expand media
@@ -948,58 +909,18 @@ Item {
 				if (!buzzMediaItem_) {
 					//
 					mediaLoader.setSource("qrc:/qml/buzzitemmedia.qml");
-					/*
-					lSource = "qrc:/qml/buzzitemmedia.qml";
-					lComponent = Qt.createComponent(lSource);
-					buzzMediaItem_ = lComponent.createObject(bodyControl);
-					buzzMediaItem_.calculatedHeightModified.connect(innerHeightChanged);
-
-					buzzMediaItem_.x = 0;
-					buzzMediaItem_.y = bodyControl.getNextY();
-					buzzMediaItem_.calculatedWidth = bodyControl.width;
-					buzzMediaItem_.width = bodyControl.width;
-					buzzMediaItem_.controller_ = buzzitem_.controller_;
-					buzzMediaItem_.buzzId_ = buzzitem_.buzzId_;
-					buzzMediaItem_.buzzerAlias_ = buzzitem_.buzzerAlias_;
-					buzzMediaItem_.buzzBody_ = buzzitem_.buzzBodyFlat_;
-					buzzMediaItem_.buzzMedia_ = buzzitem_.buzzMedia_;
-					buzzMediaItem_.sharedMediaPlayer_ = buzzitem_.sharedMediaPlayer_;
-					buzzMediaItem_.initialize();
-
-					bodyControl.height = bodyControl.getHeight();
-					buzzitem_.calculateHeight();
-					*/
 				}
 			} else if (lastUrl_.length) {
 				//
 				if (!urlInfoItem_) {
 					//
 					urlLoader.setSource(buzzerApp.isDesktop ? "qrc:/qml/buzzitemurl-desktop.qml" : "qrc:/qml/buzzitemurl.qml");
-					/*
-					lSource = buzzerApp.isDesktop ? "qrc:/qml/buzzitemurl-desktop.qml" : "qrc:/qml/buzzitemurl.qml";
-					lComponent = Qt.createComponent(lSource);
-					urlInfoItem_ = lComponent.createObject(bodyControl);
-					urlInfoItem_.calculatedHeightModified.connect(innerHeightChanged);
-
-					urlInfoItem_.x = 0;
-					urlInfoItem_.y = bodyControl.getNextY();
-					urlInfoItem_.calculatedWidth = bodyControl.width;
-					urlInfoItem_.width = bodyControl.width;
-					urlInfoItem_.controller_ = buzzitem_.controller_;
-					urlInfoItem_.lastUrl_ = buzzitem_.lastUrl_;
-					urlInfoItem_.initialize();
-
-					bodyControl.height = bodyControl.getHeight();
-					buzzitem_.calculateHeight();
-					*/
 				}
 			}
 		}
 
 		function innerHeightChanged(value) {
 			if (value <= 1) return;
-			//if (buzzId_ === "5cc610c922785a652099e621226218250207b57ead815a42c89adcc282ba2dce")
-			//	console.log("[innerHeightChanged]: value = " + value);
 
 			bodyControl.height = bodyControl.getHeight();
 			buzzitem_.calculateHeight();
