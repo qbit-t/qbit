@@ -79,10 +79,12 @@ bool VideoSurfaces::present(const QVideoFrame &frame)
 		for (auto &s : m_surfaces)
 			if (s->isActive()) result &= s->present(frame);
 
-		if (needPreview_ && sampleFrameCount_++ < 3) {
+		if (needPreview_) {
 			if (preview_) delete preview_;
 			preview_ = new QImage(frame.image());
-		} else if (needPreview_ && !previewPreparedFired_) {
+		}
+
+		if (needPreview_ && !previewPreparedFired_ && sampleFrameCount_++ >= 3) {
 			previewPreparedFired_ = true;
 			emit previewPrepared();
 		}
@@ -142,4 +144,12 @@ bool VideoSurfaces::savePreview(const QString& path) {
 	//
 	if (preview_) return preview_->save(path, "JPG", 80);
 	return false;
+}
+
+void VideoSurfaces::makePreview() {
+	//
+	if (needPreview_ && preview_) {
+		previewPreparedFired_ = true;
+		emit previewPrepared();
+	}
 }

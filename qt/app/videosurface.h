@@ -29,6 +29,7 @@ public:
 	Q_INVOKABLE void popSurface();
 	Q_INVOKABLE void clearSurfaces();
 	Q_INVOKABLE bool savePreview(const QString&);
+	Q_INVOKABLE void makePreview();
 
 signals:
 	void previewPrepared();

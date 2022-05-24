@@ -235,7 +235,7 @@ Rectangle {
 			}
 		}
 
-		source: preview.startsWith("qrc") ? preview : "file://" + preview
+		source: preview.startsWith("qrc") ? preview : (Qt.platform.os == "windows" ? "file:///" : "file://") + preview
 		fillMode: BuzzerComponents.ImageQx.PreserveAspectFit
 		mipmap: true
 		anchors.centerIn: parent
@@ -262,7 +262,7 @@ Rectangle {
 	Timer {
 		id: sampleTimer
 
-		interval: 150
+		interval: 200
 		repeat: false
 		running: false
 
@@ -349,6 +349,12 @@ Rectangle {
 					preview = lPath;
 				}
 			}
+		}
+
+		function makePreview() {
+			//
+			previewAvailableDot.visible = false;
+			surfaces.makePreview();
 		}
 
 		function terminate() {
@@ -492,6 +498,7 @@ Rectangle {
 
 		onClick: {
 			if (!sending) {
+				player.terminate();
 				mediaList.removeMedia(index);
 			}
 		}
@@ -540,6 +547,30 @@ Rectangle {
 		onClick: {
 			if (!sending) {
 				imageListing.open();
+			}
+		}
+	}
+
+	QuarkRoundSymbolButton	{
+		id: useFrameForCoverButton
+
+		x: frameContainer.x + frameContainer.width - (width + 2*spaceItems_)
+		y: replaceCoverButton.y + replaceCoverButton.height + 2*spaceItems_
+		// Material.background: "transparent"
+		visible: true
+		spaceTop: 2
+		//symbolFontPointSize: 14
+		textColor: (!sending || uploaded) ? buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground") :
+										  buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
+		symbol: Fonts.filmSym
+		radius: 20
+		opacity: 0.8
+		fontPointSize: 16
+		enableShadow: true
+
+		onClick: {
+			if (!sending) {
+				player.makePreview();
 			}
 		}
 	}

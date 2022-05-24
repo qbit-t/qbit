@@ -261,5 +261,6 @@ Item
 
 	readonly property string shareSym: "\uf1e0";
 	readonly property string mediaSym: "\uf87c";
+	readonly property string filmSym: "\uf008";
 }
 
