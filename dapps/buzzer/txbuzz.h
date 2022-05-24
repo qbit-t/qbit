@@ -9,7 +9,7 @@
 
 namespace qbit {
 
-#define TX_BUZZ_BODY_SIZE 1024 
+#define TX_BUZZ_BODY_SIZE 1024 * 5
 
 typedef LimitedString<64> buzzer_tag_t;
 
