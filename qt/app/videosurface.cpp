@@ -27,6 +27,7 @@ VideoSurfaces::VideoSurfaces(const QVector<QAbstractVideoSurface *> &s, QObject 
 VideoSurfaces::~VideoSurfaces()
 {
 	qInfo() << "VideoSurfaces::~VideoSurfaces";
+	if (preview_) delete preview_;
 }
 
 QList<QVideoFrame::PixelFormat> VideoSurfaces::supportedPixelFormats(QAbstractVideoBuffer::HandleType type) const
@@ -78,6 +79,14 @@ bool VideoSurfaces::present(const QVideoFrame &frame)
 		for (auto &s : m_surfaces)
 			if (s->isActive()) result &= s->present(frame);
 
+		if (needPreview_ && sampleFrameCount_++ < 3) {
+			if (preview_) delete preview_;
+			preview_ = new QImage(frame.image());
+		} else if (needPreview_ && !previewPreparedFired_) {
+			previewPreparedFired_ = true;
+			emit previewPrepared();
+		}
+
 		//qInfo() << "VideoSurfaces::present" << result;
 	} else {
 		//qInfo() << "VideoSurfaces::present" << "NOT active";
@@ -127,4 +136,10 @@ void VideoSurfaces::clearSurfaces() {
 	//
 	stop();
 	m_surfaces.clear();
+}
+
+bool VideoSurfaces::savePreview(const QString& path) {
+	//
+	if (preview_) return preview_->save(path, "JPG", 80);
+	return false;
 }

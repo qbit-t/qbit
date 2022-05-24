@@ -65,7 +65,7 @@ Rectangle {
 	}
 
 	function adjust() {
-		videoOutput.adjustView();
+		videoOut.adjustView();
 		previewImage.adjustView();
 		previewImage.adjustWidth();
 	}
@@ -76,13 +76,13 @@ Rectangle {
 	onCurrentOrientation_Changed: {
 		//
 		if (buzzerApp.isDesktop) {
-			if (currentOrientation_ === 6) videoOutput.orientation = -90;
-			else if (currentOrientation_ === 3) videoOutput.orientation = -180;
-			else if (currentOrientation_ === 8) videoOutput.orientation = 90;
-			else videoOutput.orientation = 0;
+			if (currentOrientation_ === 6) videoOut.orientation = -90;
+			else if (currentOrientation_ === 3) videoOut.orientation = -180;
+			else if (currentOrientation_ === 8) videoOut.orientation = 90;
+			else videoOut.orientation = 0;
 
-			console.info("[onCurrentOrientation_Changed]: orientation = " + currentOrientation_ + ", videoOutput.orientation = " + videoOutput.orientation);
-			videoOutput.adjustView();
+			console.info("[onCurrentOrientation_Changed]: orientation = " + currentOrientation_ + ", videoOutput.orientation = " + videoOut.orientation);
+			videoOut.adjustView();
 		}
 	}
 
@@ -93,7 +93,7 @@ Rectangle {
 
 	function terminate() {
 		//
-		player.pause();
+		player.terminate();
 	}
 
 	//
@@ -103,7 +103,7 @@ Rectangle {
 
 	//
 	VideoOutput {
-		id: videoOutput
+		id: videoOut
 
 		x: getX()
 		y: getY()
@@ -125,25 +125,31 @@ Rectangle {
 				mediaBox.calculatedHeight = mediaList.height;
 			}
 
-			height = videoOutput.contentRect.height;
+			height = videoOut.contentRect.height;
 			adjustHeight(height);
 		}
 
 		anchors.leftMargin: 2*spaceItems_
 		anchors.rightMargin: 2*spaceItems_
 		anchors.fill: parent
-		source: player
+		//source: player
 		fillMode: VideoOutput.PreserveAspectFit
 
 		visible: !previewImage.visible
 
 		onContentRectChanged: {
 			//
-			if (videoOutput.contentRect.height > 0 && videoOutput.contentRect.height < parent.height) {
-				height = videoOutput.contentRect.height;
+			if (videoOut.contentRect.height > 0 && videoOut.contentRect.height < parent.height) {
+				height = videoOut.contentRect.height;
 				adjustHeight(height);
 			}
 		}
+
+		function push() {
+			if (player && !pushed) { player.pushSurface(videoSurface); pushed = true; }
+		}
+
+		property bool pushed: false
 	}
 
 	//
@@ -151,10 +157,10 @@ Rectangle {
 		id: frameContainer
 		//anchors.fill: previewImage.visible ? previewImage : videoOutput.contentRect
 
-		x: previewImage.visible ? previewImage.x : videoOutput.contentRect.x + 2*spaceItems_
-		y: previewImage.visible ? previewImage.y : videoOutput.contentRect.y
-		width: previewImage.visible ? previewImage.width : videoOutput.contentRect.width
-		height: previewImage.visible ? previewImage.height : videoOutput.contentRect.height
+		x: previewImage.visible ? previewImage.x : videoOut.contentRect.x + 2*spaceItems_
+		y: previewImage.visible ? previewImage.y : videoOut.contentRect.y
+		width: previewImage.visible ? previewImage.width : videoOut.contentRect.width
+		height: previewImage.visible ? previewImage.height : videoOut.contentRect.height
 
 		color: "transparent"
 		backgroundColor: "transparent"
@@ -240,29 +246,29 @@ Rectangle {
 	Timer {
 		id: loadTimer
 
-		interval: 1000
+		interval: 100
 		repeat: false
 		running: false
 
 		onTriggered: {
 			//
-			//player.play();
-			//sampleTimer.start();
-			//videoOutput.adjustView();
-			//previewImage.adjustView();
+			player.play();
+			sampleTimer.start();
+			videoOut.adjustView();
+			previewImage.adjustView();
 		}
 	}
 
 	Timer {
 		id: sampleTimer
 
-		interval: 2000
+		interval: 150
 		repeat: false
 		running: false
 
 		onTriggered: {
 			//
-			//player.pause();
+			player.pause();
 		}
 	}
 
@@ -279,6 +285,15 @@ Rectangle {
 		onPaused: { playing = false; paused = true; }
 		onStopped: { playing = false; paused = false; }
 
+		Component.onCompleted: videoOut.push();
+
+		function pushSurface(surface) {
+			surfaces.pushSurface(surface);
+			videoOutput = surfaces;
+		}
+
+		//videoOutput: surfaces
+
 		onStatusChanged: {
 			//
 			switch(status) {
@@ -291,7 +306,7 @@ Rectangle {
 						//videoOutput.fillMode = VideoOutput.PreserveAspectFit;
 						//
 						player.seek(1);
-						videoOutput.adjustView();
+						videoOut.adjustView();
 						previewImage.adjustView();
 						loadTimer.start();
 
@@ -303,7 +318,7 @@ Rectangle {
 				break;
 				case MediaPlayer.Buffered:
 					player.seek(1);
-					videoOutput.adjustView();
+					videoOut.adjustView();
 					previewImage.adjustView();
 				break;
 			}
@@ -321,6 +336,24 @@ Rectangle {
 
 		onErrorStringChanged: {
 			console.info("[onErrorStringChanged(9)]: " + errorString);
+		}
+
+		property BuzzerComponents.VideoSurfaces surfaces: BuzzerComponents.VideoSurfaces {
+			needPreview: true
+			onPreviewPrepared: {
+				//
+				var lPath = buzzerClient.getTempFilesPath() + "/" + buzzerClient.generateRandom() + "-temp.jpeg";
+				if (savePreview(lPath)) {
+					console.info("[onPreviewPrepared]: preview file = " + lPath);
+					previewAvailableDot.visible = true;
+					preview = lPath;
+				}
+			}
+		}
+
+		function terminate() {
+			surfaces.clearSurfaces();
+			player.stop();
 		}
 	}
 
@@ -509,6 +542,17 @@ Rectangle {
 				imageListing.open();
 			}
 		}
+	}
+
+	Rectangle {
+		id: previewAvailableDot
+		x: replaceCoverButton.x + replaceCoverButton.width - (buzzerApp.isDesktop ? buzzerClient.scaleFactor * 5 : 5)
+		y: replaceCoverButton.y + (buzzerApp.isDesktop ? buzzerClient.scaleFactor * 5 : 5)
+		width: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 6 : 6
+		height: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 6 : 6
+		radius: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 3 : 3
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Market.tabActive");
+		visible: false
 	}
 
 	QuarkRoundProgress {
