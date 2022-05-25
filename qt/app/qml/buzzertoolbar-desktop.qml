@@ -248,6 +248,17 @@ QuarkToolBar
 		visible: searchVisible
 		clearButton: false
 
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.statusBar")
+
+		Material.theme: buzzerClient.statusBarTheme == "dark" ? Material.Dark : Material.Light;
+		Material.accent: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.accent");
+		Material.background: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.background");
+		Material.foreground: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground");
+		Material.primary: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.primary");
+
+		cancelSymbolColor: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
+		placeholderTextColor: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
+
 		x: avatarImage.x + avatarImage.width + 15
 		y: avatarImage.y + avatarImage.height / 2 - calculatedHeight / 2
 

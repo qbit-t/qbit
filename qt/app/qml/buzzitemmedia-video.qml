@@ -450,10 +450,10 @@ Rectangle {
 
 	function playerError(error, errorString) {
 		console.log("[onErrorStringChanged]: error = " + error + " - " + errorString);
-		// in case of error
-		downloadCommand.downloaded = false;
-		downloadCommand.processing = false;
-		downloadCommand.cleanUp();
+		// in case of error: for now do not do anything
+		//downloadCommand.downloaded = false;
+		//downloadCommand.processing = false;
+		//downloadCommand.cleanUp();
 	}
 
 	function playerPositionChanged(position) {

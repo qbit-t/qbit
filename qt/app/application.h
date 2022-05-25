@@ -325,6 +325,7 @@ public:
 
     Q_INVOKABLE void wakeLock();
     Q_INVOKABLE void wakeRelease();
+	Q_INVOKABLE bool isWakeLocked() { return isWakeLocked_; }
 
     Q_INVOKABLE QString getVersion();
 

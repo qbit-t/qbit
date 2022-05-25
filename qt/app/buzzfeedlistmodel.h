@@ -36,6 +36,7 @@ public:
 		BuzzerInfoChainIdRole,
 		BuzzBodyRole,
 		BuzzBodyFlatRole,
+		BuzzBodyLimitedRole,
 		BuzzMediaRole,
 		RepliesRole,
 		RebuzzesRole,

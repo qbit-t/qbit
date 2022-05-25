@@ -656,7 +656,7 @@ QString Client::decorateBuzzBodyLimited(const QString& body, int limit) {
 	if (body.indexOf("<a") != -1) return body;
 
 	//
-	QString lResult = limit == -1 ? body : body.mid(0, limit);
+	QString lResult = (limit == -1 ? body : body.mid(0, limit));
 	QString lCommonResult;
 
 	struct DecorationRule {
@@ -726,6 +726,13 @@ QString Client::decorateBuzzBodyLimited(const QString& body, int limit) {
 	lCommonResult.replace(QRegExp("\n"), QString("<br>"));
 
 	//qInfo() << "[Client::decorateBuzzBody]" << lCommonResult;
+
+	if (limit > 0 && body.length() > limit) {
+		//
+		lCommonResult += QString("<a style='text-decoration:none;color:") +
+				gApplication->getColor(theme(), themeSelector(), "Material.link.rgb") +
+				QString("'>...</a>");
+	}
 
 	return lCommonResult;
 }
@@ -967,13 +974,14 @@ void Client::suspend() {
 	if (gApplication->isDesktop()) return;
 
 	//
-	if (peerManager_) {
+	if (peerManager_ && !gApplication->isWakeLocked()) {
 		qInfo() << "Suspending PeerManager...";
 		peerManager_->suspend();
+		//
+		emit buzzerDAppSuspended();
+	} else {
+		qInfo() << "PeerManager continue to do the work in case of CPU is locked to process...";
 	}
-
-	//
-	emit buzzerDAppSuspended();
 }
 
 void Client::resume() {

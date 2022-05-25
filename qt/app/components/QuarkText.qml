@@ -22,6 +22,9 @@ Text
 	antialiasing: buzzerApp.isDesktop ? false : antialiasing
 	property var fontFamily: Qt.platform.os == "windows" ? "Segoe UI Emoji" : "Noto Color Emoji N"
 	font.family: buzzerApp.isDesktop ? fontFamily : font.family
+	//font.kerning: buzzerApp.isDesktop ? false : true
+	//font.preferShaping: buzzerApp.isDesktop ? false : true
+	//font.hintingPreference: buzzerApp.isDesktop ? Font.PreferNoHinting : font.hintingPreference
 
 	property real defaultFontPointSize: buzzerApp.isDesktop ? 11 : 16
 	font.pointSize: defaultFontPointSize

@@ -24,7 +24,7 @@ TextField
 		implicitWidth: 120
 		height: textField.activeFocus || textField.hovered ? 2 : 1
 		color: textField.activeFocus ? textField.Material.accentColor :
-									   (textField.hovered ? textField.Material.primaryTextColor :
+									   (textField.hovered ? textField.Material.foreground :
 															textField.hintColor)
 	}
 

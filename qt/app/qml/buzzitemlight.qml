@@ -344,7 +344,7 @@ Item {
 			x: spaceLeft_
 			y: avatarImage.y + avatarImage.height + spaceHeader_
 			width: parent.width - (spaceLeft_ + spaceRight_)
-			//height: getHeight() //buzzText.height
+			height: getHeight() //buzzText.height
 
 			border.color: "transparent"
 			color: "transparent"

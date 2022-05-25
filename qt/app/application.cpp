@@ -576,7 +576,7 @@ void Application::setWakeLock(int lock)
                 QAndroidJniObject lPowerMgr = lActivity.callObjectMethod("getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;",lServiceName.object<jobject>());
                 if (lPowerMgr.isValid())
                 {
-					jint lLevelAndFlags = QAndroidJniObject::getStaticField<jint>("android/os/PowerManager","SCREEN_BRIGHT_WAKE_LOCK"); // SCREEN_DIM_WAKE_LOCK
+					jint lLevelAndFlags = QAndroidJniObject::getStaticField<jint>("android/os/PowerManager","PARTIAL_WAKE_LOCK"); // SCREEN_DIM_WAKE_LOCK / SCREEN_BRIGHT_WAKE_LOCK
 
 					QAndroidJniObject lTag = QAndroidJniObject::fromString("BUZZER-TAG");
 
@@ -610,7 +610,7 @@ void Application::setWakeLock(int lock)
 
 void Application::wakeLock()
 {
-	// setWakeLock(ACQUIRE_WAKE_LOCK);
+	setWakeLock(ACQUIRE_WAKE_LOCK);
 #ifdef Q_OS_ANDROID
 	QtAndroid::runOnAndroidThread([=]() {
 		QAndroidJniObject window = QtAndroid::androidActivity().callObjectMethod("getWindow", "()Landroid/view/Window;");
@@ -621,7 +621,7 @@ void Application::wakeLock()
 
 void Application::wakeRelease()
 {
-	// setWakeLock(RELEASE_WAKE_LOCK);
+	setWakeLock(RELEASE_WAKE_LOCK);
 #ifdef Q_OS_ANDROID
 	QtAndroid::runOnAndroidThread([=]() {
 		QAndroidJniObject window = QtAndroid::androidActivity().callObjectMethod("getWindow", "()Landroid/view/Window;");

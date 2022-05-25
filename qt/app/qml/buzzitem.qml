@@ -34,6 +34,7 @@ Item {
 	property var buzzerInfoChainId_: buzzerInfoChainId
 	property var buzzBody_: buzzBody
 	property var buzzBodyFlat_: buzzBodyFlat
+	property var buzzBodyLimited_: buzzBodyLimited
 	property var buzzMedia_: buzzMedia
 	property int replies_: replies
 	property int rebuzzes_: rebuzzes
@@ -69,6 +70,7 @@ Item {
 	property bool hasMore_: false
 	property bool ownLike_: ownLike
 	property bool ownRebuzz_: ownRebuzz
+	property bool adjustData_: adjustData
 
 	property var controller_: controller
 	property var buzzfeedModel_: buzzfeedModel
@@ -147,6 +149,9 @@ Item {
 
 	function cleanUp() {
 		//
+	}
+
+	onAdjustData_Changed: {
 	}
 
 	onThreaded_Changed: {
@@ -410,43 +415,6 @@ Item {
 			}
 		}
 	}
-
-	/*
-	QuarkRoundState {
-		id: imageFrame
-		x: avatarImage.x - 2
-		y: avatarImage.y - 2
-		size: avatarImage.displayWidth + 4
-		color: getColor()
-		background: "transparent" //buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
-
-		function getColor() {
-			var lScoreBase = buzzerClient.getTrustScoreBase() / 10;
-			var lIndex = score_ / lScoreBase;
-
-			// TODO: consider to use 4 basic colours:
-			// 0 - red
-			// 1 - 4 - orange
-			// 5 - green
-			// 6 - 9 - teal
-			// 10 -
-
-			switch(Math.round(lIndex)) {
-				case 0: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.0");
-				case 1: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.1");
-				case 2: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.2");
-				case 3: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.3");
-				case 4: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.4");
-				case 5: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.5");
-				case 6: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.6");
-				case 7: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.7");
-				case 8: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.8");
-				case 9: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.9");
-				default: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.10");
-			}
-		}
-	}
-	*/
 
 	QuarkSymbolLabel {
 		id: endorseSymbol
@@ -842,7 +810,7 @@ Item {
 			x: 0
 			y: 0
 			width: parent.width
-			text: buzzBody_ ? (buzzBody_.length > 500 ? buzzBody_.slice(0, 500) + "..." : buzzBody_) : ""
+			text: buzzBodyLimited_ // buzzBody_ ? (buzzBody_.length > 500 ? buzzBody_.slice(0, 500) + "..." : buzzBody_) : ""
 			wrapMode: Text.Wrap
 			textFormat: Text.RichText
 			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize * multiplicator_) : defaultFontPointSize * multiplicator_
@@ -898,6 +866,8 @@ Item {
 			var lSource;
 			var lComponent;
 
+			//console.info("[expane]: wrapped_ = " + wrapped_);
+
 			// if rebuzz and wapped
 			if (wrapped_ && !wrappedItem_) {
 				//
@@ -924,6 +894,7 @@ Item {
 
 			bodyControl.height = bodyControl.getHeight();
 			buzzitem_.calculateHeight();
+
 			//console.log("[innerHeightChanged]: value = " + value + ", bodyControl.height = " + bodyControl.height);
 		}
 
@@ -1307,7 +1278,7 @@ Item {
 				} else {
 					lPage = lComponent.createObject(controller_);
 					lPage.controller = controller_;
-					lPage.initializeRebuzz(self_, buzzfeedModel_);
+					lPage.initializeRebuzz(self_, buzzfeedModel_, index);
 					addPage(lPage);
 				}
 			}

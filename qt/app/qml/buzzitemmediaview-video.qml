@@ -452,10 +452,9 @@ Rectangle {
 			//
 			if (status == Image.Error) {
 				// force to reload
-				console.info("[buzzitemmediaview-video/onStatusChanged]: forcing reload of " + preview_ + ", error = " + errorString);
+				console.info("[buzzitemmediaview-video/onStatusChanged]: media is broken " + preview_ + ", error = " + errorString);
 				// force to reload
 				source = "qrc://images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "default.media.cover");
-				// "qrc://images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "broken.media.cover");
 
 				//downloadCommand
 				errorLoading();
@@ -738,9 +737,9 @@ Rectangle {
 
 	function playerError(error, errorString) {
 		console.info("[onErrorStringChanged]: error = " + error + " - " + errorString);
-		// in case of error
-		downloadCommand.downloaded = false;
-		downloadCommand.cleanUp();
+		// in case of error: for now do not do anything
+		//downloadCommand.downloaded = false;
+		//downloadCommand.cleanUp();
 	}
 
 	function playerPositionChanged(position) {

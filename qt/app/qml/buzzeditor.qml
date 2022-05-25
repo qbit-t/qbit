@@ -62,13 +62,15 @@ QuarkPage {
 	property var pkey_: "";
 	property var conversation_: "";
 	property var text_: "";
+	property var index_;
 
-	function initializeRebuzz(item, model) {
+	function initializeRebuzz(item, model, index) {
 		buzzItem_ = item;
 		buzzfeedModel_ = model;
 		buzz_ = false;
 		rebuzz_ = true;
 		message_ = false;
+		index_ = index;
 
 		bodyContainer.wrapItem(item);
 	}
@@ -195,8 +197,11 @@ QuarkPage {
 
 			onClick: {
 				if (!sending) {
+					// flagging...
 					sending = true;
-
+					// locking from sleep
+					buzzerApp.wakeLock();
+					//
 					buzzerApp.commitCurrentInput();
 
 					if (rebuzz_) buzzeditor_.createRebuzz(buzzItem_.buzzId);
@@ -258,20 +263,6 @@ QuarkPage {
 							searchBuzzers.process(match);
 						else if (match[0] === '#')
 							searchTags.process(match);
-						else if (match.includes('/data/user/')) {
-							var lParts = match.split(".");
-							if (lParts.length) {
-								if (lParts[lParts.length-1].toLowerCase() === "jpg" || lParts[lParts.length-1].toLowerCase() === "jpeg" ||
-									lParts[lParts.length-1].toLowerCase() === "png") {
-									console.log(match);
-									// inject
-									mediaListEditor.addMedia(match);
-									// remove
-									buzzText.remove(start, start + length);
-
-								}
-							}
-						}
 					}
 				}
 			}
@@ -1259,6 +1250,9 @@ QuarkPage {
 		uploadCommand: uploadBuzzMedia
 
 		onProcessed: {
+			//
+			buzzerApp.wakeRelease();
+			//
 			mediaListEditor.cleanUp();
 			createProgressBar.value = 1.0;
 			controller.popPage();
@@ -1298,6 +1292,12 @@ QuarkPage {
 		model: buzzfeedModel_
 
 		onProcessed: {
+			//
+			buzzerApp.wakeRelease();
+			//
+			if (buzzfeedModel_ && index_ !== undefined)
+				buzzfeedModel_.setHasRebuzz(index_);
+			//
 			mediaListEditor.cleanUp();
 			createProgressBar.value = 1.0;
 			controller.popPage();
@@ -1337,6 +1337,9 @@ QuarkPage {
 		model: buzzfeedModel_ // TODO: implement property buzzChainId (with buzzfeedModel in parallel)
 
 		onProcessed: {
+			//
+			buzzerApp.wakeRelease();
+			//
 			mediaListEditor.cleanUp();
 			createProgressBar.value = 1.0;
 			controller.popPage();
@@ -1375,6 +1378,9 @@ QuarkPage {
 		uploadCommand: uploadBuzzMedia
 
 		onProcessed: {
+			//
+			buzzerApp.wakeRelease();
+			//
 			mediaListEditor.cleanUp();
 			createProgressBar.value = 1.0;
 			controller.popPage();

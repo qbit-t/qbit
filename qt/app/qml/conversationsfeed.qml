@@ -183,7 +183,7 @@ Item
 		placeHolder: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.global.search.add")
 		visible: !buzzerApp.isDesktop
 
-		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.statusBar");
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.statusBar")
 
 		Material.theme: buzzerClient.statusBarTheme == "dark" ? Material.Dark : Material.Light;
 		Material.accent: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.accent");

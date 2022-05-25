@@ -31,6 +31,7 @@ public:
 	virtual bool getDebug() = 0;
 	virtual bool getInterceptOutput() = 0;
 	virtual bool checkPermission() { return false; }
+	virtual bool isWakeLocked() = 0;
 };
 
 extern buzzer::IApplication* gApplication;

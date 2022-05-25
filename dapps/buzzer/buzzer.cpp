@@ -107,6 +107,9 @@ void Buzzer::resolvePendingItems() {
 	//
 	buzzfeed()->collectPendingItems(lPending);
 
+	if (gLog().isEnabled(Log::CLIENT))
+		gLog().write(Log::CLIENT, strprintf("[resolvePendingItems]: pending count = %d", lPending.size()));
+
 	if (lPending.size()) {
 		//
 		for (std::map<uint256 /*chain*/, std::set<uint256>/*items*/>::iterator lChain = lPending.begin(); lChain != lPending.end(); lChain++) {
@@ -144,7 +147,7 @@ void Buzzer::resolvePendingEventsItems() {
 
 void Buzzer::pendingItemsLoaded(const std::vector<BuzzfeedItem>& feed, const uint256& chain) {
 	// merge and notify
-	buzzfeed()->merge(feed, true);
+	buzzfeed()->merge(feed, 1 /*exact ONE*/, true);
 
 	// force
 	resolveBuzzerInfos();

@@ -178,6 +178,10 @@ QVariant BuzzfeedListModel::data(const QModelIndex& index, int role) const {
 		// decorate @buzzers, #tags and urls
 		Client* lClient = static_cast<Client*>(gApplication->getClient());
 		return lClient->decorateBuzzBody(QString::fromStdString(lItem->buzzBodyString()));
+	} else if (role == BuzzBodyLimitedRole) {
+		// decorate @buzzers, #tags and urls
+		Client* lClient = static_cast<Client*>(gApplication->getClient());
+		return lClient->decorateBuzzBodyLimited(QString::fromStdString(lItem->buzzBodyString()), 500);
 	} else if (role == BuzzBodyFlatRole) {
 		// simple body
 		return QString::fromStdString(lItem->buzzBodyString());
@@ -330,6 +334,7 @@ QHash<int, QByteArray> BuzzfeedListModel::roleNames() const {
 	lRoles[BuzzerInfoChainIdRole] = "buzzerInfoChainId";
 	lRoles[BuzzBodyRole] = "buzzBody";
 	lRoles[BuzzBodyFlatRole] = "buzzBodyFlat";
+	lRoles[BuzzBodyLimitedRole] = "buzzBodyLimited";
 	lRoles[BuzzMediaRole] = "buzzMedia";
 	lRoles[RepliesRole] = "replies";
 	lRoles[RebuzzesRole] = "rebuzzes";

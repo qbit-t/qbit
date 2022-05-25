@@ -61,13 +61,15 @@ QuarkPage {
 	property var pkey_: "";
 	property var conversation_: "";
 	property var text_: "";
+	property var index_;
 
-	function initializeRebuzz(item, model) {
+	function initializeRebuzz(item, model, index) {
 		buzzItem_ = item;
 		buzzfeedModel_ = model;
 		buzz_ = false;
 		rebuzz_ = true;
 		message_ = false;
+		index_ = index;
 
 		bodyContainer.wrapItem(item);
 	}
@@ -267,20 +269,6 @@ QuarkPage {
 							searchBuzzers.process(match);
 						else if (match[0] === '#')
 							searchTags.process(match);
-						else if (match.includes('/data/user/') || buzzerApp.isDesktop) {
-							var lParts = match.split(".");
-							if (lParts.length) {
-								if (lParts[lParts.length-1].toLowerCase() === "jpg" || lParts[lParts.length-1].toLowerCase() === "jpeg" ||
-									lParts[lParts.length-1].toLowerCase() === "png") {
-									console.info(match);
-									// inject
-									mediaList.addMedia(match);
-									// remove
-									buzzText.remove(start, start + length);
-
-								}
-							}
-						}
 					}
 				}
 			}
@@ -1088,6 +1076,10 @@ QuarkPage {
 		onProcessed: {
 			mediaList.cleanUp();
 			createProgressBar.value = 1.0;
+			//
+			if (buzzfeedModel_ && index_ !== undefined)
+				buzzfeedModel_.setHasRebuzz(index_);
+			//
 			controller.popPage();
 		}
 
