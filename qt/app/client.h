@@ -471,6 +471,7 @@ public:
 	Q_INVOKABLE QString timestampAgo(long long timestamp);
 	Q_INVOKABLE QString timeAgo(long long timestamp);
 	Q_INVOKABLE QString decorateBuzzBody(const QString&);
+	Q_INVOKABLE QString decorateBuzzBodyLimited(const QString&, int);
 	Q_INVOKABLE QString extractLastUrl(const QString&);
 
 	Q_INVOKABLE void notifyBuzzerChanged() {

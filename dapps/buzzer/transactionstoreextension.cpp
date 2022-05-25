@@ -213,11 +213,11 @@ bool BuzzerTransactionStoreExtension::isAllowed(TransactionContextPtr ctx) {
 					uint256 lOriginalPublisher = lReTx->in()[TX_BUZZ_REPLY_MY_IN /*for the ALL types above*/].out().tx();
 					//
 					db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*endoser*/, uint256 /*tx*/>::Iterator 
-																	lMistrust = mistrusts_.find(lOriginalPublisher, lReplyPublisher);
+																	lMistrust = mistrusts_.find(lReplyPublisher, lOriginalPublisher);
 					if (lMistrust.valid()) {
 						// re-ceck if we have compensation
 						db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*endoser*/, uint256 /*tx*/>::Iterator 
-																		lEndorsement = endorsements_.find(lOriginalPublisher, lReplyPublisher);
+																		lEndorsement = endorsements_.find(lReplyPublisher, lOriginalPublisher);
 						if (!lEndorsement.valid())
 							return false; // mistrusted and not able to make replies
 					}
@@ -3790,11 +3790,11 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedGlobal(uint64_t timeframeFro
 
 			// check for personal trust
 			db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*endoser*/, uint256 /*tx*/>::Iterator 
-															lMistrust = mistrusts_.find(subscriber, lTxPublisher);
+															lMistrust = mistrusts_.find(lTxPublisher, subscriber);
 			if (lMistrust.valid()) {
 				// re-ceck if we have compensation
 				db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*endoser*/, uint256 /*tx*/>::Iterator 
-																lEndorsement = endorsements_.find(subscriber, lTxPublisher);
+																lEndorsement = endorsements_.find(lTxPublisher, subscriber);
 				if (!lEndorsement.valid())
 					continue; // in case if we have mistrusted and NOT endirsed the publisher
 			}
