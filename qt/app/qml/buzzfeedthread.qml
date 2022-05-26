@@ -599,6 +599,9 @@ QuarkPage {
 				//
 				if (!sending && buzzesThread_.count > 0) {
 					//
+					controller.openReplyEditor(buzzesThread_.self(0), buzzesThread_, buzzerClient.getPlainText(buzzText.textDocument));
+
+					/*
 					var lComponent = null;
 					var lPage = null;
 					//
@@ -614,6 +617,7 @@ QuarkPage {
 						buzzText.clear();
 						addPage(lPage);
 					}
+					*/
 				}
 			}
 		}
@@ -1023,10 +1027,8 @@ QuarkPage {
 				}
 			}
 
-			var lNewText = lText.slice(0, lIdx) + key + lText.slice(lPos);
-
-			buzzText.clear();
-			buzzText.insert(0, lNewText);
+			buzzText.remove(lIdx, lPos);
+			buzzText.insert(lIdx, key);
 
 			buzzText.cursorPosition = lIdx + key.length;
 		}
@@ -1076,10 +1078,8 @@ QuarkPage {
 				}
 			}
 
-			var lNewText = lText.slice(0, lIdx) + key + lText.slice(lPos);
-
-			buzzText.clear();
-			buzzText.insert(0, lNewText);
+			buzzText.remove(lIdx, lPos);
+			buzzText.insert(lIdx, key);
 
 			buzzText.cursorPosition = lIdx + key.length;
 		}
@@ -1116,7 +1116,7 @@ QuarkPage {
 		onProcessed: {
 			// pattern, entities
 			var lRect = buzzText.positionToRectangle(buzzText.cursorPosition);
-			buzzersList.popup(pattern, lRect.x, lRect.y + lRect.height, entities);
+			buzzersList.popup(pattern, buzzText.x + lRect.x + spaceItems_, lRect.y + lRect.height, entities);
 		}
 
 		onError: {
@@ -1130,7 +1130,7 @@ QuarkPage {
 		onProcessed: {
 			// pattern, tags
 			var lRect = buzzText.positionToRectangle(buzzText.cursorPosition);
-			tagsList.popup(pattern, lRect.x, lRect.y + lRect.height, tags);
+			tagsList.popup(pattern, buzzText.x + lRect.x + spaceItems_, lRect.y + lRect.height, tags);
 		}
 
 		onError: {
@@ -1143,40 +1143,21 @@ QuarkPage {
 		textDocument: buzzText.textDocument
 
 		onMatched: {
-			// start, length, match
+			// start, length, match, text
 			if (match.length) {
 				//
+				var lText = buzzerClient.getPlainText(buzzText.textDocument); lText += buzzText.preeditText;
+				var lLength = lText.length;
 				var lPosition = buzzText.cursorPosition;
-				if (/*(lPosition === start || lPosition === start + length) &&*/ buzzText.preeditText != " ") {
+				var lLineStart = lLength - text.length;
+				//
+				// console.info("[onMatched]: start = " + start + ", length = " + length + ", match = '" + match + "', cursorPosition = " + buzzText.cursorPosition + ", lLineStart = " + lLineStart + ", lLength = " + lLength);
+				//
+				if ((lPosition === lLineStart + start || lPosition === (lLineStart + start + length)) && buzzText.preeditText != " ") {
 					if (match[0] === '@')
 						searchBuzzers.process(match);
 					else if (match[0] === '#')
 						searchTags.process(match);
-					else if (!buzzerApp.isDesktop && match.includes('/data/user/')) {
-						var lParts = match.split(".");
-						if (lParts.length) {
-							if (lParts[lParts.length-1].toLowerCase() === "jpg" || lParts[lParts.length-1].toLowerCase() === "jpeg" ||
-								lParts[lParts.length-1].toLowerCase() === "png") {
-								// pop-up rich editor
-								if (!sending) {
-									//
-									var lComponent = null;
-									var lPage = null;
-
-									lComponent = Qt.createComponent("qrc:/qml/buzzeditor.qml");
-									if (lComponent.status === Component.Error) {
-										showError(lComponent.errorString());
-									} else {
-										lPage = lComponent.createObject(controller);
-										lPage.controller = controller;
-										lPage.initializeReply(buzzesThread_.self(0), buzzesThread_, buzzerClient.getPlainText(buzzText.textDocument));
-										buzzText.clear();
-										addPage(lPage);
-									}
-								}
-							}
-						}
-					}
 				}
 			}
 		}

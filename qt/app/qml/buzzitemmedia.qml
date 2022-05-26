@@ -289,7 +289,7 @@ Item {
 				function errorMediaLoading() {
 					//
 					tryReloadCount_++;
-					if (tryReloadCount_ > 3) return;
+					if (tryReloadCount_ > 2) return;
 					// cleaning up
 					downloadCommand.cleanUp();
 					// re-process
@@ -315,7 +315,8 @@ Item {
 					if (previewFile === "<stub>") preview_ = "qrc://images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "default.media.cover");
 					else preview_ = "file://" + previewFile; // ONLY: preview binding here, path_ is for the inner component
 					//
-					previewSource_ = "file://" + previewFile;
+					if (previewFile === "<stub>") previewSource_ = preview_;
+					else previewSource_ = "file://" + previewFile;
 					// set original orientation
 					orientation_ = orientation;
 					// set duration
@@ -440,7 +441,6 @@ Item {
 		}
 	}
 
-	/*
 	PageIndicator {
 		id: mediaIndicator
 		count: buzzMedia_ ? buzzMedia_.length : 0
@@ -456,7 +456,6 @@ Item {
 		Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground");
 		Material.primary: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.primary");
 	}
-	*/
 
 	/*
 	delegate: Rectangle {
@@ -476,14 +475,13 @@ Item {
 	}
 	*/
 
-	/*
 	QuarkLabel {
 		id: mediaPagesIndicator
-		x: calculatedWidthInternal - width
+		x: calculatedWidthInternal / 2 - width / 2
 		y: spaceStats_ - (height + 3)
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 1)) : defaultFontSize + 1
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 2)) : defaultFontSize + 1
 		text: "0/0"
-		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 		visible: count > 5
 
 		property var count: buzzMedia_ ? buzzMedia_.length : 0
@@ -493,8 +491,8 @@ Item {
 			text = (currentIndex + 1) + "/" + count;
 		}
 	}
-	*/
 
+	/*
 	QuarkLabel {
 		id: mediaIndicator
 		x: calculatedWidthInternal - (width + 3 * spaceItems_)
@@ -511,4 +509,5 @@ Item {
 			text = (currentIndex + 1) + "/" + count;
 		}
 	}
+	*/
 }

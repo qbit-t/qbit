@@ -23,6 +23,7 @@ import "qrc:/lib/numberFunctions.js" as NumberFunctions
 QuarkPage {
 	id: buzzeditor_
 	key: "buzzeditor"
+	stacked: true
 
 	Component.onCompleted: {
 		closePageHandler = closePage;
@@ -71,6 +72,8 @@ QuarkPage {
 		message_ = false;
 		index_ = index;
 
+		extraInfo = buzzerClient.getBuzzerAlias(item.buzzerInfoId);
+
 		bodyContainer.wrapItem(item);
 	}
 
@@ -86,6 +89,8 @@ QuarkPage {
 			text_ = text;
 			injectText.start();
 		}
+
+		extraInfo = buzzerClient.getBuzzerAlias(item.buzzerInfoId);
 
 		bodyContainer.replyItem(item);
 	}
@@ -191,7 +196,7 @@ QuarkPage {
 
 		QuarkRoundButton {
 			id: sendButton
-			x: parent.width - width - 12
+			x: menuControl.x - width - spaceItems_ // parent.width - width - 12
 			y: topOffset + parent.height / 2 - height / 2
 			text: buzz_ ? buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.editor.buzz") :
 						  rebuzz_ ? buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.editor.rebuzz") :
@@ -214,6 +219,24 @@ QuarkPage {
 					else if (buzz_) buzzeditor_.createBuzz();
 					else if (message_) buzzeditor_.createMessage();
 				}
+			}
+		}
+
+		QuarkToolButton {
+			id: menuControl
+			x: parent.width - width //- spaceItems_
+			y: parent.height / 2 - height / 2
+			Material.background: "transparent"
+			symbol: Fonts.elipsisVerticalSym
+			visible: buzzerApp.isDesktop
+			labelYOffset: buzzerApp.isDesktop ? 0 : 3
+			symbolColor: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+			Layout.alignment: Qt.AlignHCenter
+			symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 16) : symbolFontPointSize
+
+			onClicked: {
+				if (headerMenu.visible) headerMenu.close();
+				else { headerMenu.prepare(); headerMenu.open(); }
 			}
 		}
 
@@ -261,10 +284,17 @@ QuarkPage {
 			textDocument: buzzText.textDocument
 
 			onMatched: {
-				// start, length, match
+				// start, length, match, text
 				if (match.length) {
+					//
+					var lText = buzzerClient.getPlainText(buzzText.textDocument); lText += buzzText.preeditText;
+					var lLength = lText.length;
 					var lPosition = buzzText.cursorPosition;
-					if (/*(lPosition === start || lPosition === start + length) &&*/ buzzText.preeditText != " ") {
+					var lLineStart = lLength - text.length;
+					//
+					// console.info("[onMatched]: start = " + start + ", length = " + length + ", match = '" + match + "', cursorPosition = " + buzzText.cursorPosition + ", lLineStart = " + lLineStart + ", lLength = " + lLength);
+					//
+					if ((lPosition === lLineStart + start || lPosition === (lLineStart + start + length)) && buzzText.preeditText != " ") {
 						if (match[0] === '@')
 							searchBuzzers.process(match);
 						else if (match[0] === '#')
@@ -280,7 +310,7 @@ QuarkPage {
 			onProcessed: {
 				// pattern, entities
 				var lRect = buzzText.positionToRectangle(buzzText.cursorPosition);
-				buzzersList.popup(pattern, lRect.x, lRect.y + lRect.height, entities);
+				buzzersList.popup(pattern, buzzText.x + lRect.x + spaceItems_, lRect.y + lRect.height, entities);
 			}
 
 			onError: {
@@ -294,7 +324,7 @@ QuarkPage {
 			onProcessed: {
 				// pattern, tags
 				var lRect = buzzText.positionToRectangle(buzzText.cursorPosition);
-				tagsList.popup(pattern, lRect.x, lRect.y + lRect.height, tags);
+				tagsList.popup(pattern, buzzText.x + lRect.x + spaceItems_, lRect.y + lRect.height, tags);
 			}
 
 			onError: {
@@ -341,9 +371,10 @@ QuarkPage {
 			selectByMouse: true
 
 			onLengthChanged: {
-				// TODO: may by too expensive
+				// TODO: may be too expensive
 				var lText = buzzerClient.getPlainText(buzzText.textDocument);
-				countProgress.adjust(buzzerClient.getBuzzBodySize(lText) + preeditText.length);
+				buzzeditor_.extraInfo = lText.slice(0, 100).replace(/(\r\n|\n|\r)/gm, "");
+				countProgress.adjust(buzzerClient.getBuzzBodySize(lText + preeditText.length));
 				buzzersList.close();
 				tagsList.close();
 			}
@@ -820,6 +851,38 @@ QuarkPage {
 	// menus and dropdowns
 	//
 
+	QuarkPopupMenu {
+		id: headerMenu
+		x: parent.width - width - spaceRight_
+		y: menuControl.y + menuControl.height + spaceItems_
+		width: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 350) : 350
+		visible: false
+
+		model: ListModel { id: menuModel }
+
+		onAboutToShow: prepare()
+
+		onClick: {
+			// key, activate
+			controller.activatePage(key);
+		}
+
+		function prepare() {
+			//
+			menuModel.clear();
+
+			//
+			var lArray = controller.enumStakedPages();
+			for (var lI = 0; lI < lArray.length; lI++) {
+				//
+				menuModel.append({
+					key: lArray[lI].key,
+					keySymbol: "",
+					name: lArray[lI].alias + " // " + lArray[lI].caption.substring(0, 100)});
+			}
+		}
+	}
+
 	QuarkEmojiPopup {
 		id: emojiPopup
 		width: buzzerClient.scaleFactor * 360
@@ -902,10 +965,8 @@ QuarkPage {
 				}
 			}
 
-			var lNewText = lText.slice(0, lIdx) + key + lText.slice(lPos);
-
-			buzzText.clear();
-			buzzText.insert(0, lNewText);
+			buzzText.remove(lIdx, lPos);
+			buzzText.insert(lIdx, key);
 
 			buzzText.cursorPosition = lIdx + key.length;
 		}
@@ -958,10 +1019,8 @@ QuarkPage {
 				}
 			}
 
-			var lNewText = lText.slice(0, lIdx) + key + lText.slice(lPos);
-
-			buzzText.clear();
-			buzzText.insert(0, lNewText);
+			buzzText.remove(lIdx, lPos);
+			buzzText.insert(lIdx, key);
 
 			buzzText.cursorPosition = lIdx + key.length;
 		}

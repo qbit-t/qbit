@@ -54,6 +54,10 @@ Item
 		modelLoader_.restart();
 	}
 
+	function externalTop() {
+		list.positionViewAtBeginning();
+	}
+
 	function start(force) {
 		//
 		if (!buzzerApp.isDesktop) search.setText("");

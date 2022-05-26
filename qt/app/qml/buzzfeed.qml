@@ -29,6 +29,10 @@ Item
 		switchDataTimer.start();
 	}
 
+	function externalTop() {
+		list.positionViewAtBeginning();
+	}
+
 	Component.onCompleted: {
 		//
 		switchDataTimer.start();
@@ -403,6 +407,9 @@ Item
 
 		onClicked: {
 			//
+			controller.openBuzzEditor();
+
+			/*
 			var lComponent = null;
 			var lPage = null;
 
@@ -416,6 +423,7 @@ Item
 
 				addPage(lPage);
 			}
+			*/
 		}
 	}
 

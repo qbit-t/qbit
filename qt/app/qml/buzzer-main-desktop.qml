@@ -66,6 +66,7 @@ QuarkPage
 		if (lInitialize) {
 			// common static check
 			if (!buzzerClient.haveSubscriptions() && !buzzermain_.globalFeedAdjusted) {
+				navigatorBar.startUp = true;
 				navigatorBar.currentIndex = 1; // global
 				buzzermain_.globalFeedAdjusted = true;
 			}
@@ -194,6 +195,7 @@ QuarkPage
 
 				// switch pages - dynamic check
 				if (following == 0 && !buzzermain_.globalFeedAdjusted) {
+					navigatorBar.startUp = true;
 					navigatorBar.currentIndex = 1; // switch to global
 					buzzermain_.globalFeedAdjusted = true;
 				}
@@ -307,6 +309,20 @@ QuarkPage
 						symbol: Fonts.homeSym
 						font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 16) : (defaultFontPointSize + 2)
 					}
+
+					onClicked: {
+						if (!navigatorBar.indexTransfered && navigatorBar.currentIndex == 0 /*feed*/) {
+							// go up
+							buzzfeedPresonal.externalTop();
+						} else navigatorBar.indexTransfered = false;
+					}
+
+					onDoubleClicked: {
+						if (!navigatorBar.indexTransfered && navigatorBar.currentIndex == 0 /*feed*/) {
+							// go up
+							buzzfeedPresonal.externalPull();
+						} else navigatorBar.indexTransfered = false;
+					}
 				}
 				TabButton {
 					QuarkSymbolLabel {
@@ -314,6 +330,20 @@ QuarkPage
 						y: parent.height / 2 - height / 2
 						symbol: Fonts.hashSym
 						font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 16) : (defaultFontPointSize + 2)
+					}
+
+					onClicked: {
+						if (!navigatorBar.indexTransfered && navigatorBar.currentIndex == 1 /*global*/) {
+							// go up
+							buzzfeedGlobal.externalTop();
+						} else navigatorBar.indexTransfered = false;
+					}
+
+					onDoubleClicked: {
+						if (!navigatorBar.indexTransfered && navigatorBar.currentIndex == 1 /*global*/) {
+							// go up
+							buzzfeedGlobal.externalPull();
+						} else navigatorBar.indexTransfered = false;
 					}
 				}
 				TabButton {
@@ -365,7 +395,13 @@ QuarkPage
 					}
 				}
 
+				property bool startUp: false
+				property bool indexTransfered: false
+
 				onCurrentIndexChanged: {
+					//
+					if (!startUp) indexTransfered = true;
+					else startUp = false;
 					//
 					if (currentIndex == 0 /*feed*/) {
 						headerBar.showBottomLine = true;

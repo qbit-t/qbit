@@ -565,6 +565,97 @@ ApplicationWindow {
 		}
 	}
 
+	function openBuzzEditor(text) {
+		//
+		var lComponent = null;
+		var lPage = null;
+
+		// pop no-stacked page(s)
+		popNonStacked();
+
+		lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzeditor-desktop.qml", rootComponent) :
+										   Qt.createComponent("qrc:/qml/buzzeditor.qml");
+		if (lComponent.status === Component.Error) {
+			showError(lComponent.errorString());
+		} else {
+			lPage = lComponent.createObject(rootComponent);
+			lPage.controller = window;
+
+			lPage.updateStakedInfo(buzzerClient.generateRandom(), buzzerClient.alias, buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.editor.buzz.caption"));
+			if (text) lPage.initializeBuzz(text);
+
+			addPage(lPage);
+		}
+	}
+
+	function openReplyEditor(self, buzzfeedModel, text) {
+		//
+		var lComponent = null;
+		var lPage = null;
+
+		// pop no-stacked page(s)
+		popNonStacked();
+
+		lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzeditor-desktop.qml", rootComponent) :
+										   Qt.createComponent("qrc:/qml/buzzeditor.qml");
+		if (lComponent.status === Component.Error) {
+			showError(lComponent.errorString());
+		} else {
+			lPage = lComponent.createObject(rootComponent);
+			lPage.controller = window;
+
+			lPage.updateStakedInfo(buzzerClient.generateRandom(), buzzerClient.alias, buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.editor.reply.caption"));
+			lPage.initializeReply(self, buzzfeedModel, text);
+
+			addPage(lPage);
+		}
+	}
+
+	function openRebuzzEditor(self, buzzfeedModel, index) {
+		//
+		var lComponent = null;
+		var lPage = null;
+
+		// pop no-stacked page(s)
+		popNonStacked();
+
+		lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzeditor-desktop.qml", rootComponent) :
+										   Qt.createComponent("qrc:/qml/buzzeditor.qml");
+		if (lComponent.status === Component.Error) {
+			showError(lComponent.errorString());
+		} else {
+			lPage = lComponent.createObject(rootComponent);
+			lPage.controller = window;
+
+			lPage.updateStakedInfo(buzzerClient.generateRandom(), buzzerClient.alias, buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.editor.rebuzz.caption"));
+			lPage.initializeRebuzz(self, buzzfeedModel, index);
+
+			addPage(lPage);
+		}
+	}
+
+	function openMessageEditor(text, key, conversation, counterparty) {
+		//
+		var lComponent = null;
+		var lPage = null;
+
+		// pop no-stacked page(s)
+		popNonStacked();
+
+		lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzeditor-desktop.qml", rootComponent) :
+										   Qt.createComponent("qrc:/qml/buzzeditor.qml");
+		if (lComponent.status === Component.Error) {
+			showError(lComponent.errorString());
+		} else {
+			lPage = lComponent.createObject(rootComponent);
+			lPage.controller = window;
+
+			lPage.updateStakedInfo(buzzerClient.generateRandom(), buzzerClient.alias, buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.editor.message.caption") + counterparty);
+			lPage.initializeMessage(text, key, conversation);
+			addPage(lPage);
+		}
+	}
+
 	function openBuzzfeedByBuzzer(buzzerName) {
 		//
 		var lComponent = null;

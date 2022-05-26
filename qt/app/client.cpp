@@ -655,7 +655,6 @@ QString Client::decorateBuzzBodyLimited(const QString& body, int limit) {
 	// already decorated
 	if (body.indexOf("<a") != -1) return body;
 
-	//
 	QString lResult = (limit == -1 ? body : body.mid(0, limit));
 	QString lCommonResult;
 
@@ -693,12 +692,17 @@ QString Client::decorateBuzzBodyLimited(const QString& body, int limit) {
 	bool lHasMatches = false;
 
 	for (const DecorationRule &lRule : qAsConst(lDecorationRules)) {
+		//
+		lCommonResult.clear();
+
+		//
 		QRegularExpressionMatchIterator lMatchIterator = lRule.expression.globalMatch(lResult);
 		while (lMatchIterator.hasNext()) {
 			//
 			QRegularExpressionMatch lMatch = lMatchIterator.next();
 			//
 			QString lUrl = lResult.mid(lMatch.capturedStart(), lMatch.capturedLength());
+
 			QString lUrlPatternDest = lRule.pattern;
 			lUrlPatternDest.replace("\\1", lUrl);
 			//
@@ -714,13 +718,26 @@ QString Client::decorateBuzzBodyLimited(const QString& body, int limit) {
 				lPrevMatch = lMatch.capturedStart() + lMatch.capturedLength();
 			}
 		}
+
+		// the rest
+		if (!lHasMatches) lCommonResult = lResult;
+		else if (lResult.size()) {
+			lCommonResult += lResult.mid(lPrevMatch, lResult.size()-1);
+		}
+
+		lPrevMatch = 0;
+		lHasMatches = false;
+
+		lResult = lCommonResult;
 	}
 
 	//
+	/*
 	if (!lHasMatches) lCommonResult = lResult;
 	else if (lResult.size()) {
 		lCommonResult += lResult.mid(lPrevMatch, lResult.size()-1);
 	}
+	*/
 
 	if (lCommonResult.size() && lCommonResult[lCommonResult.size()-1] == 0x0a) lCommonResult[lCommonResult.size()-1] = 0x20;
 	lCommonResult.replace(QRegExp("\n"), QString("<br>"));

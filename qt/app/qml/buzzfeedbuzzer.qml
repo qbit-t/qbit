@@ -452,6 +452,9 @@ QuarkPage {
 
 		onClicked: {
 			//
+			controller.openBuzzEditor(buzzerModelLoader.buzzer);
+
+			/*
 			var lComponent = null;
 			var lPage = null;
 
@@ -466,6 +469,7 @@ QuarkPage {
 
 				addPage(lPage);
 			}
+			*/
 		}
 
 		//

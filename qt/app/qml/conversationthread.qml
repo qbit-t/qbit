@@ -1007,6 +1007,10 @@ QuarkPage {
 				//
 				if (!sending /*&& buzzesThread_.count > 0*/) {
 					//
+					controller.openMessageEditor(buzzerClient.getPlainText(buzzText.textDocument),
+												 buzzerClient.getCounterpartyKey(modelLoader.conversationId),
+												 modelLoader.conversationId, buzzerClient.getBuzzerAlias(getBuzzerInfoId()));
+					/*
 					var lComponent = null;
 					var lPage = null;
 					//
@@ -1024,6 +1028,7 @@ QuarkPage {
 						buzzText.clear();
 						addPage(lPage);
 					}
+					*/
 				}
 			}
 		}
@@ -1438,10 +1443,8 @@ QuarkPage {
 				}
 			}
 
-			var lNewText = lText.slice(0, lIdx) + key + lText.slice(lPos);
-
-			buzzText.clear();
-			buzzText.insert(0, lNewText);
+			buzzText.remove(lIdx, lPos);
+			buzzText.insert(lIdx, key);
 
 			buzzText.cursorPosition = lIdx + key.length;
 		}
@@ -1491,10 +1494,8 @@ QuarkPage {
 				}
 			}
 
-			var lNewText = lText.slice(0, lIdx) + key + lText.slice(lPos);
-
-			buzzText.clear();
-			buzzText.insert(0, lNewText);
+			buzzText.remove(lIdx, lPos);
+			buzzText.insert(lIdx, key);
 
 			buzzText.cursorPosition = lIdx + key.length;
 		}
@@ -1558,10 +1559,17 @@ QuarkPage {
 		textDocument: buzzText.textDocument
 
 		onMatched: {
-			// start, length, match
+			// start, length, match, text
 			if (match.length) {
+				//
+				var lText = buzzerClient.getPlainText(buzzText.textDocument); lText += buzzText.preeditText;
+				var lLength = lText.length;
 				var lPosition = buzzText.cursorPosition;
-				if (/*(lPosition === start || lPosition === start + length) &&*/ buzzText.preeditText != " ") {
+				var lLineStart = lLength - text.length;
+				//
+				// console.info("[onMatched]: start = " + start + ", length = " + length + ", match = '" + match + "', cursorPosition = " + buzzText.cursorPosition + ", lLineStart = " + lLineStart + ", lLength = " + lLength);
+				//
+				if ((lPosition === lLineStart + start || lPosition === (lLineStart + start + length)) && buzzText.preeditText != " ") {
 					if (match[0] === '@')
 						searchBuzzers.process(match);
 					else if (match[0] === '#')

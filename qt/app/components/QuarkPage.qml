@@ -17,11 +17,13 @@ Page
     property var controller;
 	property string key: "";
 	property string caption: "";
+	property string captionOriginal: "";
 	property var closePageHandler: null;
 	property var activatePageHandler: null;
 	property var prevPageHandler: null;
 	property bool stacked: false;
 	property string alias: "";
+	property string extraInfo: "";
 
 	property string statusBarColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.statusBar")
 	property string navigationBarColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.navigationBar")
@@ -30,11 +32,16 @@ Page
 
     property int topOffset: Qt.platform.os === "ios" ? Screen.height - Screen.desktopAvailableHeight - statusBar.extraPadding : 0
 
+	onExtraInfoChanged: {
+		page_.caption = page_.captionOriginal + page_.extraInfo;
+	}
+
 	function updateStakedInfo(key, alias, caption) {
 		page_.key = key;
 		page_.alias = alias ? alias : "";
 		page_.caption = caption ? caption : "";
 		page_.stacked = true;
+		page_.captionOriginal = page_.caption;
 
 		buzzerClient.setTopId(key);
 	}

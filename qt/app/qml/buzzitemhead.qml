@@ -649,6 +649,9 @@ Item {
 
 		onClicked: {
 			//
+			controller.openReplyEditor(self_, buzzfeedModel_);
+
+			/*
 			var lComponent = null;
 			var lPage = null;
 
@@ -662,6 +665,7 @@ Item {
 				lPage.initializeReply(self_, buzzfeedModel_);
 				addPage(lPage);
 			}
+			*/
 		}
 	}
 
@@ -910,6 +914,9 @@ Item {
 				rebuzzCommand.process();
 			} else if (key === "rebuzz-comment") {
 				//
+				controller.openRebuzzEditor(self_, buzzfeedModel_);
+
+				/*
 				var lComponent = null;
 				var lPage = null;
 
@@ -923,6 +930,7 @@ Item {
 					lPage.initializeRebuzz(self_, buzzfeedModel_);
 					addPage(lPage);
 				}
+				*/
 			}
 		}
 

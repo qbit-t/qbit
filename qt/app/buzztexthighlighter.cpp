@@ -46,19 +46,26 @@ BuzzTextHighlighter::BuzzTextHighlighter(QObject* parent): QSyntaxHighlighter(pa
 	highlightingRules_.append(lRule);
 }
 
-void BuzzTextHighlighter::tryHighlightBlock(const QString& text, int /*start*/) {
+void BuzzTextHighlighter::tryHighlightBlock(const QString& text, int start) {
 	//
-	highlightBlock(text);
+	QString lText = text.mid(start, text.length()-1);
+	highlightInternal(text, start);
 }
 
 void BuzzTextHighlighter::highlightBlock(const QString& text) {
+	//
+	highlightInternal(text, 0);
+}
+
+void BuzzTextHighlighter::highlightInternal(const QString &text, int start) {
 	//
 	for (const HighlightingRule &rule : qAsConst(highlightingRules_)) {
 		QRegularExpressionMatchIterator matchIterator = rule.pattern.globalMatch(text);
 		while (matchIterator.hasNext()) {
 			QRegularExpressionMatch match = matchIterator.next();
 			if (rule.format.isValid()) setFormat(match.capturedStart(), match.capturedLength(), rule.format);
-			emit matched(match.capturedStart(), match.capturedLength(), text.mid(match.capturedStart(), match.capturedLength()));
+			// repositioning
+			emit matched(start + match.capturedStart(), match.capturedLength(), text.mid(match.capturedStart(), match.capturedLength()), text);
 		}
 	}
 }

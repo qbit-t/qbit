@@ -245,12 +245,40 @@ QuarkPage
 				y: parent.height / 2 - height / 2
 				symbol: Fonts.homeSym
 			}
+
+			onClicked: {
+				if (!navigatorBar.indexTransfered && navigatorBar.currentIndex == 0 /*feed*/) {
+					// go up
+					buzzfeedPresonal.externalTop();
+				} else navigatorBar.indexTransfered = false;
+			}
+
+			onDoubleClicked: {
+				if (!navigatorBar.indexTransfered && navigatorBar.currentIndex == 0 /*feed*/) {
+					// go up
+					buzzfeedPresonal.externalPull();
+				} else navigatorBar.indexTransfered = false;
+			}
 		}
 		TabButton {
 			QuarkSymbolLabel {
 				x: parent.width / 2 - width / 2
 				y: parent.height / 2 - height / 2
 				symbol: Fonts.hashSym
+			}
+
+			onClicked: {
+				if (!navigatorBar.indexTransfered && navigatorBar.currentIndex == 1 /*global*/) {
+					// go up
+					buzzfeedGlobal.externalTop();
+				} else navigatorBar.indexTransfered = false;
+			}
+
+			onDoubleClicked: {
+				if (!navigatorBar.indexTransfered && navigatorBar.currentIndex == 1 /*global*/) {
+					// go up
+					buzzfeedGlobal.externalPull();
+				} else navigatorBar.indexTransfered = false;
 			}
 		}
 		TabButton {
@@ -299,7 +327,13 @@ QuarkPage
 			}
 		}
 
+		property bool startUp: false
+		property bool indexTransfered: false
+
 		onCurrentIndexChanged: {
+			//
+			if (!startUp) indexTransfered = true;
+			else startUp = false;
 			//
 			if (currentIndex == 0 /*feed*/) {
 				headerBar.showBottomLine = true;
@@ -337,6 +371,7 @@ QuarkPage
 
 		Component.onCompleted: {
 			if (!buzzerClient.haveSubscriptions()) {
+				startUp = truee
 				currentIndex = 1; // global
 			}
 		}

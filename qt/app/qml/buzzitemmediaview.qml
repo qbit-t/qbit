@@ -320,7 +320,7 @@ Item {
 				function errorMediaLoading() {
 					//
 					tryReloadCount_++;
-					if (tryReloadCount_ > 3 || downloadCommand.processing) return;
+					if (tryReloadCount_ > 2 || downloadCommand.processing) return;
 					// cleaning up
 					downloadCommand.cleanUp();
 					// re-process

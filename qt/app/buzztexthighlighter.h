@@ -27,10 +27,11 @@ public:
 
 protected:
 	void highlightBlock(const QString &text) override;
+	void highlightInternal(const QString &text, int start);
 
 signals:
 	void textDocumentChanged();
-	void matched(int start, int length, QString match);
+	void matched(int start, int length, QString match, const QString& text);
 
 private:
 	struct HighlightingRule {
