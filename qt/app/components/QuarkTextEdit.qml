@@ -20,8 +20,9 @@ TextEdit
     Material.primary: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.primary");
 
 	antialiasing: buzzerApp.isDesktop ? false : antialiasing
-    property var fontFamily: Qt.platform.os == "windows" ? "Segoe UI Emoji" : "Noto Color Emoji N"
-	font.family: buzzerApp.isDesktop ? fontFamily : font.family
+	//property var fontFamily: Qt.platform.os == "windows" ? "Segoe UI Emoji" : "Noto Color Emoji N"
+	//font.family: buzzerApp.isDesktop ? fontFamily : font.family
+
 	//font.kerning: buzzerApp.isDesktop ? false : true
 	//font.preferShaping: buzzerApp.isDesktop ? false : true
 	//font.hintingPreference: buzzerApp.isDesktop ? Font.PreferNoHinting : font.hintingPreference

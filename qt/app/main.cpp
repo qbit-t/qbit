@@ -58,7 +58,8 @@ int main(int argc, char *argv[]) {
 	lHome = "/home/" + lUsername + "/";
 
 	// extract and save buzzer.png
-	if (!QFileInfo::exists(QString::fromStdString(lHome) + ".local/share/icons/buzzer.png")) {
+	QDir lIcons(QString::fromStdString(lHome) + ".local/share/icons");
+	if (!QFileInfo::exists(QString::fromStdString(lHome) + ".local/share/icons/buzzer.png") && lIcons.exists()) {
 		//
 		QFile lRawFile(":/images/icon-high.png");
 		lRawFile.open(QIODevice::ReadOnly);
@@ -72,7 +73,8 @@ int main(int argc, char *argv[]) {
 	}
 
 	// extract, correct and save buzzer.desktop
-	if (!QFileInfo::exists(QString::fromStdString(lHome) + ".local/share/applications/buzzer.desktop")) {
+	QDir lApplications(QString::fromStdString(lHome) + ".local/share/applications");
+	if (!QFileInfo::exists(QString::fromStdString(lHome) + ".local/share/applications/buzzer.desktop") && lApplications.exists()) {
 		//
 		QFile lRawFile(":/buzzer.desktop");
 		lRawFile.open(QIODevice::ReadOnly | QIODevice::Text);

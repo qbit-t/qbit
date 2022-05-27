@@ -21,9 +21,9 @@ Item
     Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground");
     Material.primary: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.primary");
 
-	property int fontPointSize: 12;
-	property int unitsFontPointSize: 10;
-	property int buzztonsFontPointSize: 14;
+	property int fontPointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 12 : 12;
+	property int unitsFontPointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 10 : 10;
+	property int buzztonsFontPointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 14 : 14;
 	property int popUpWidth: editRect.width;
     property int itemRightPadding: -5;
     property int itemLeftPadding: 5;

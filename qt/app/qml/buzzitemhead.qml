@@ -472,6 +472,10 @@ Item {
 				} else if (link[0] === '#') {
 					// tag
 					controller_.openBuzzfeedByTag(link);
+				} else if (link.slice(0, 7) === "buzz://") {
+					// link
+					var lParts = link.split("/");
+					controller_.openThread(lParts[2], lParts[3]);
 				} else {
 					Qt.openUrlExternally(link);
 				}
@@ -799,7 +803,7 @@ Item {
 			} else if (key === "mistrust") {
 				buzzerMistrustCommand.process(buzzerName_);
 			} else if (key === "copytx") {
-				clipboard.setText(buzzId_);
+				clipboard.setText("buzz://" + buzzChainId_ + "/" + buzzId_);
 			} else if (key === "copytext") {
 				clipboard.setText(buzzBodyFlat_);
 			} else if (key === "copyselection") {

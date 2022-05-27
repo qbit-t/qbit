@@ -18,8 +18,12 @@ Label {
 	Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground");
 	Material.primary: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.primary");
 
-	antialiasing: buzzerApp.isDesktop ? false : antialiasing
-	font.kerning: buzzerApp.isDesktop ? false : font.kerning
+	//property var fontFamily: "Noto Sans" //Qt.platform.os == "windows" ? "Segoe UI Emoji" : "Noto Color Emoji N"
+	//property var fontFamily: Qt.platform.os == "windows" ? "Segoe UI Emoji" : "Noto Color Emoji N"
+	//font.family: buzzerApp.isDesktop ? fontFamily : font.family
+
+	//antialiasing: buzzerApp.isDesktop ? false : antialiasing
+	//font.kerning: buzzerApp.isDesktop ? false : font.kerning
 
 	property real defaultFontPointSize: buzzerApp.isDesktop ? 11 : 16
 	font.pointSize: defaultFontPointSize

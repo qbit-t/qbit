@@ -44,6 +44,10 @@ BuzzTextHighlighter::BuzzTextHighlighter(QObject* parent): QSyntaxHighlighter(pa
 	lRule.pattern = QRegularExpression("((/data/user)/\\S+)");
 	lRule.format = QTextCharFormat();
 	highlightingRules_.append(lRule);
+
+	lRule.pattern = QRegularExpression("((?:buzz|msg|qbit)://\\S+)");
+	lRule.format = tagFormat;
+	highlightingRules_.append(lRule);
 }
 
 void BuzzTextHighlighter::tryHighlightBlock(const QString& text, int start) {

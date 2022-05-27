@@ -146,7 +146,7 @@ Item {
 			wrapMode: Text.Wrap
 			color: "transparent"
 			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
-			lineHeight: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 1.0) : lineHeight
+			//lineHeight: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 1.0) : lineHeight
 
 			function getHeight() {
 				return (sourceInfo && sourceInfo.description !== "" ? (infoDescription.height) : 0);
@@ -242,7 +242,7 @@ Item {
 			wrapMode: Text.Wrap
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
-			lineHeight: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 1.0) : lineHeight
+			//lineHeight: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 1.0) : lineHeight
 		}
 
 		QuarkSymbolLabel {

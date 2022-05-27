@@ -74,7 +74,7 @@ Item
 		height: parent.height
 		clip: true
 
-		property int fontPointSize: buzzerApp.isDesktop ? 12 : 15;
+		property int fontPointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 12 : 15;
 
 		onWidthChanged: {
 		}

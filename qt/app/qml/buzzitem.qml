@@ -814,7 +814,7 @@ Item {
 			wrapMode: Text.Wrap
 			textFormat: Text.RichText
 			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize * multiplicator_) : defaultFontPointSize * multiplicator_
-			lineHeight: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 1.1) : lineHeight
+			//lineHeight: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 1.1) : lineHeight
 
 			property real multiplicator_: isEmoji ? 2.5 : 1.0
 
@@ -836,6 +836,10 @@ Item {
 				} else if (link[0] === '#') {
 					// tag
 					controller_.openBuzzfeedByTag(link);
+				} else if (link.slice(0, 7) === "buzz://") {
+					// link
+					var lParts = link.split("/");
+					controller_.openThread(lParts[2], lParts[3]);
 				} else {
 					Qt.openUrlExternally(link);
 				}
@@ -1158,7 +1162,7 @@ Item {
 			} else if (key === "mistrust") {
 				buzzerMistrustCommand.process(buzzerName_);
 			} else if (key === "copytx") {
-				clipboard.setText(buzzId_);
+				clipboard.setText("buzz://" + buzzChainId_ + "/" + buzzId_);
 			} else if (key === "conversation") {
 				//
 				var lId = buzzerClient.getConversationsList().locateConversation(buzzerName_);

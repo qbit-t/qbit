@@ -391,7 +391,7 @@ Item
 				QuarkSymbolLabel {
 					id: totalSym
 					x: -width - spaceItems_
-					y: y - (Qt.platform.os == "android" ? 0 : 0)
+					y: sendAmount.calculatedHeight / 2 - height / 2 // y - (Qt.platform.os == "android" ? 0 : 0)
 					symbol: Fonts.sigmaSym
 					font.pointSize: sendAmount.font.pointSize + 1
 					color: sendAmount.getColor()
@@ -428,7 +428,7 @@ Item
 				QuarkSymbolLabel {
 					id: amountSym
 					x: -width - spaceItems_
-					y: y - (Qt.platform.os == "android" ? 0 : 0)
+					y: availableAmount.calculatedHeight / 2 - height / 2 // y - (Qt.platform.os == "android" ? 0 : 0)
 					symbol: Fonts.coinsSym
 					font.pointSize: sendAmount.font.pointSize + 1
 				}

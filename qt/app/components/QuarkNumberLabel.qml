@@ -41,9 +41,9 @@ Label
     property var zeroesColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
     property var unitsColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 
-    font.family: Qt.platform.os == "android" ? font.family : "Menlo-Regular"
+	//font.family: Qt.platform.os == "android" ? font.family : "Menlo-Regular"
 
-    onNumberChanged:
+	onNumberChanged:
     {
         formatNumber();
     }

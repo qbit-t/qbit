@@ -41,6 +41,10 @@ Item
 	readonly property int spaceStats_: -5
 	readonly property int spaceLine_: 4
 
+	property var menuHighlightColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.highlight")
+	property var menuBackgroundColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.background")
+	property var menuForegroundColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
+
 	onPeersModelChanged: {
 		list.model = peersModel;
 	}
@@ -130,7 +134,7 @@ Item
 		height: backRect.height
 		clip: true
 
-		property int fontPointSize: 15;
+		property int fontPointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 11 : 15;
 
 		onWidthChanged: {
 		}
@@ -156,7 +160,7 @@ Item
 		{
 			id: listDelegate
 			width: list.width
-			height: 40
+			height: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 30 : 40
 			leftPadding: 0
 			rightPadding: 0
 			topPadding: 0
@@ -167,16 +171,24 @@ Item
 				swipe.open(SwipeDelegate.Right);
 			}
 
-			contentItem: Rectangle	{
-				height: 40
-				width: list.width
-				color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Box.background");
+			Binding {
+				target: background
+				property: "color"
+				value: listDelegate.highlighted ?
+						   menuHighlightColor:
+						   buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Box.background");
+			}
 
+			contentItem: Rectangle	{
+				id: backgroundPane
+				height: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 30 : 40
+				width: list.width
+				color: "transparent"
 				QuarkText {
 					text: endpoint
 					x: 10
 					y: parent.height / 2 - height / 2
-					font.pointSize: 16
+					font.pointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 12 : 16
 				}
 			}
 
@@ -188,7 +200,7 @@ Item
 
 				QuarkSymbolLabel {
 					symbol: Fonts.trashSym
-					font.pointSize: 16
+					font.pointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 12 : 16
 					color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
 
 					x: parent.width / 2 - width / 2

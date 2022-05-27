@@ -279,10 +279,7 @@ void LightWallet::handleReply(const std::vector<Transaction::NetworkUnlinkedOut>
 
 bool LightWallet::prepareCache() {
 	//
-	resetCache();
-
-	//
-	if (opened_ && status_ != IWallet::FETCHING_UTXO) {
+	if (opened_ && status_ != IWallet::OPENED && status_ != IWallet::FETCHING_UTXO) {
 		//
 		status_ = IWallet::FETCHING_UTXO;
 
@@ -297,7 +294,7 @@ bool LightWallet::prepareCache() {
 		if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[prepareCache]: fetching utxo..."));
 	}
 
-	return true;
+	return opened_ && status_ == IWallet::OPENED;
 }
 
 bool LightWallet::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, TransactionContextPtr ctx) {

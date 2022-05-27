@@ -213,20 +213,19 @@ Item
 			 }
 		 }
 
-		 QuarkToolButton {
+		 QuarkRoundSymbolButton	{
 			 id: refreshControl
-			 x: assetBackImage.x + assetBackImage.width - width - spaceItems_
-			 y: assetBackImage.y + spaceItems_
+			 x: assetBackImage.x + assetBackImage.width - width - 2 * spaceItems_
+			 y: assetBackImage.y + 2 * spaceItems_
 			 symbol: Fonts.rotateSym
 			 visible: true
-			 labelYOffset: buzzerApp.isDesktop ? (buzzerClient.scaleFactor > 1.0 ? 1 : 2) : 3
-			 symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
-			 Material.background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.background");
-			 Layout.alignment: Qt.AlignHCenter
-			 opacity: 0.7
-			 symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 14) : symbolFontPointSize
+			 textColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
 
-			 onClicked: {
+			 radius: buzzerClient.scaleFactor * 20
+			 opacity: 0.6
+			 fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 14) : 14
+
+			 onClick: {
 				 // refeed balance
 				 balanceCommand.process(asset_);
 				 // refeed transactions
@@ -240,7 +239,7 @@ Item
 
 		 QuarkSymbolLabel {
 			 id: heartBeatSymbol
-			 x: assetBackImage.x
+			 x: assetBackImage.x + 1.0 * buzzerClient.scaleFactor
 			 y: assetBackImage.y + assetBackImage.height + spaceTop_
 			 font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 3)) : 22
 			 symbol: Fonts.heartBeatSym
@@ -281,7 +280,7 @@ Item
 		 QuarkSymbolLabel {
 			 id: blockSymbol
 			 x: assetBackImage.x + 1
-			 y: blockControl.y - 1
+			 y: blockControl.y + blockControl.height / 2 - height / 2
 			 font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 3)) : 20
 			 symbol: Fonts.blockSym
 
@@ -291,17 +290,21 @@ Item
 		 QuarkSymbolLabel {
 			 id: blockTimeSymbol
 			 x: assetBackImage.x + 1
-			 y: timeControl.y - 1
+			 y: timeControl.y + timeControl.height / 2 - height / 2
 			 font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 3)) : 20
 			 symbol: Fonts.clockSym
 
 			 visible: lifePulse_
 		 }
 
+		 //
+		 //
+		 //
+
 		 QuarkLabel {
 			 id: heightControl
 			 x: heartBeatSymbol.x + heartBeatSymbol.width + spaceLeft_
-			 y: heartBeatSymbol.y + 3
+			 y: heartBeatSymbol.y + heartBeatSymbol.height / 2 - height / 2
 			 text: "0000000000"
 			 font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : defaultFontPointSize
 

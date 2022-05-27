@@ -157,6 +157,55 @@ int Client::open(QString secret) {
 				gLog().write(Log::GENERAL_ERROR, std::string("[Client::open]: font NotoColorEmojiN.ttf was not loaded"));
 		}
 
+		if (QFontDatabase::addApplicationFont(":/fonts-desktop/NotoSans-Regular.ttf") == -1) {
+			if (gLog().isEnabled(Log::GENERAL_ERROR))
+				gLog().write(Log::GENERAL_ERROR, std::string("[Client::open]: font NotoSans-Regular.ttf was not loaded"));
+		}
+
+		if (QFontDatabase::addApplicationFont(":/fonts-desktop/NotoSans-Bold.ttf") == -1) {
+			if (gLog().isEnabled(Log::GENERAL_ERROR))
+				gLog().write(Log::GENERAL_ERROR, std::string("[Client::open]: font NotoSans-Bold.ttf was not loaded"));
+		}
+
+		if (QFontDatabase::addApplicationFont(":/fonts-desktop/NotoSans-ExtraBold.ttf") == -1) {
+			if (gLog().isEnabled(Log::GENERAL_ERROR))
+				gLog().write(Log::GENERAL_ERROR, std::string("[Client::open]: font NotoSans-ExtraBold.ttf was not loaded"));
+		}
+
+		if (QFontDatabase::addApplicationFont(":/fonts-desktop/NotoSans-Black.ttf") == -1) {
+			if (gLog().isEnabled(Log::GENERAL_ERROR))
+				gLog().write(Log::GENERAL_ERROR, std::string("[Client::open]: font NotoSans-Black.ttf was not loaded"));
+		}
+
+		if (QFontDatabase::addApplicationFont(":/fonts-desktop/NotoSans-SemiBold.ttf") == -1) {
+			if (gLog().isEnabled(Log::GENERAL_ERROR))
+				gLog().write(Log::GENERAL_ERROR, std::string("[Client::open]: font NotoSans-SemiBold.ttf was not loaded"));
+		}
+
+		if (QFontDatabase::addApplicationFont(":/fonts-desktop/NotoSans-Light.ttf") == -1) {
+			if (gLog().isEnabled(Log::GENERAL_ERROR))
+				gLog().write(Log::GENERAL_ERROR, std::string("[Client::open]: font NotoSans-Light.ttf was not loaded"));
+		}
+
+		if (QFontDatabase::addApplicationFont(":/fonts-desktop/NotoSans-Italic.ttf") == -1) {
+			if (gLog().isEnabled(Log::GENERAL_ERROR))
+				gLog().write(Log::GENERAL_ERROR, std::string("[Client::open]: font NotoSans-Italic.ttf was not loaded"));
+		}
+
+		if (QFontDatabase::addApplicationFont(":/fonts-desktop/NotoSans-Medium.ttf") == -1) {
+			if (gLog().isEnabled(Log::GENERAL_ERROR))
+				gLog().write(Log::GENERAL_ERROR, std::string("[Client::open]: font NotoSans-Medium.ttf was not loaded"));
+		}
+
+		if (QFontDatabase::addApplicationFont(":/fonts-desktop/NotoSans-Thin.ttf") == -1) {
+			if (gLog().isEnabled(Log::GENERAL_ERROR))
+				gLog().write(Log::GENERAL_ERROR, std::string("[Client::open]: font NotoSans-Thin.ttf was not loaded"));
+		}
+
+		QFont lAppFont("Noto Sans, Noto Color Emoji" /*, -1, QFont::Light*/);
+		lAppFont.setStyleStrategy(QFont::NoSubpixelAntialias);
+		QApplication::setFont(lAppFont);
+
 #endif
 		emojiData_->open();
 	}
@@ -486,6 +535,11 @@ int Client::open(QString secret) {
 		setProperty("Client.lastTimestamp", QString::number(qbit::getMicroseconds()));
 	}
 
+	// prepare cache timer
+	syncTimer_ = new QTimer(this);
+	connect(syncTimer_, &QTimer::timeout, this, &Client::prepareCache);
+	connect(this, &Client::fireResyncWalletCache, this, &Client::resyncWalletCache);
+
 	// fill up peers
 	peerManager_->run();
 
@@ -496,12 +550,11 @@ int Client::open(QString secret) {
 		peerManager_->addPeer(*lPeer);
 	}
 
-	// prepare cache timer
-	syncTimer_ = new QTimer(this);
-	connect(syncTimer_, &QTimer::timeout, this, &Client::prepareCache);
-	syncTimer_->start(500);
-
 	return 1;
+}
+
+void Client::resyncWalletCache() {
+	syncTimer_->start(500);
 }
 
 // events feed updated
@@ -677,6 +730,13 @@ QString Client::decorateBuzzBodyLimited(const QString& body, int limit) {
 	lRule.pattern = QString("<a href='\\1' style='text-decoration:none;color:") +
 			gApplication->getColor(theme(), themeSelector(), "Material.link.rgb") +
 			QString("'>\\2</a>");
+	lRule.expression = QRegularExpression("((?:buzz|msg|qbit)://\\S+)"); // qbit urls
+	lRule.truncate = true;
+	lDecorationRules.append(lRule);
+	lRule.pattern = QString("<a href='\\1' style='text-decoration:none;color:") +
+
+	gApplication->getColor(theme(), themeSelector(), "Material.link.rgb") +
+			QString("'>\\2</a>");
 	lRule.expression = QRegularExpression("(#[\\w\u0400-\u04FF]+)"); // #tags
 	lRule.truncate = false;
 	lDecorationRules.append(lRule);
@@ -706,8 +766,8 @@ QString Client::decorateBuzzBodyLimited(const QString& body, int limit) {
 			QString lUrlPatternDest = lRule.pattern;
 			lUrlPatternDest.replace("\\1", lUrl);
 			//
-			if (lRule.truncate && lUrl.length() > 25) {
-				lUrl.truncate(25); lUrl += "...";
+			if (lRule.truncate && lUrl.length() > 30) {
+				lUrl.truncate(30); lUrl += "...";
 			}
 			lUrlPatternDest.replace("\\2", lUrl);
 
@@ -980,7 +1040,7 @@ void Client::prepareCache() {
 		if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, std::string("[Client::prepareCache]: cache is ready"));
 		syncTimer_->stop();
 		setCacheReady();
-		setBuzzerDAppReady();
+		//setBuzzerDAppReady();
 	}
 }
 
@@ -1063,18 +1123,20 @@ void Client::setBuzzerDAppReady() {
 					recallWallet_ = false;
 					if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, std::string("[Client::setBuzzerDAppReady]: cache is ready"));
 					emit buzzerDAppResumed();
+				} else {
+					emit fireResyncWalletCache();
 				}
 			}
 
 			opened_ = true; // allways
 			emit buzzerDAppReadyChanged();
-		} else if (recallWallet_) {
+		} /*else if (recallWallet_) {
 			if (wallet_->prepareCache()) {
 				recallWallet_ = false;
 				if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, std::string("[Client::setBuzzerDAppReady]: cache is ready"));
 				emit buzzerDAppResumed();
 			}
-		}
+		}*/
 	} else {
 		bool lNotify = buzzerDAppReady_;
 		buzzerDAppReady_ = false;

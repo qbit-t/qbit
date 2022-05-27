@@ -102,7 +102,7 @@ Item {
 	QuarkLabelRegular {
 		id: endpointLabel
 		x: serverSymbol.x + serverSymbol.width + spaceItems_
-		y: spaceTop_
+		y: serverSymbol.y + serverSymbol.height / 2 - height / 2
 		text: endpoint_
 		font.pointSize: listView_.fontPointSize + 3
 		elide: Text.ElideRight
@@ -142,7 +142,7 @@ Item {
 	QuarkLabelRegular {
 		id: timeLabel
 		x: timeSymbol.x + timeSymbol.width + spaceItems_
-		y: timeSymbol.y
+		y: timeSymbol.y + timeSymbol.height / 2 - height / 2
 		text: localDateTime_ + " - " + latency_ + " ms"
 		font.pointSize: listView_.fontPointSize
 		elide: Text.ElideRight
@@ -162,7 +162,7 @@ Item {
 	QuarkLabelRegular {
 		id: addressLabel
 		x: addressSymbol.x + addressSymbol.width + spaceItems_
-		y: addressSymbol.y
+		y: addressSymbol.y + addressSymbol.height / 2 - height / 2
 		text: address_
 		font.pointSize: listView_.fontPointSize
 		elide: Text.ElideRight
@@ -182,7 +182,7 @@ Item {
 	QuarkLabelRegular {
 		id: peerIdLabel
 		x: addressSymbol.x + addressSymbol.width + spaceItems_
-		y: peerIdSymbol.y
+		y: peerIdSymbol.y + peerIdSymbol.height / 2 - height / 2
 		text: peerId_
 		font.pointSize: listView_.fontPointSize
 		elide: Text.ElideRight
@@ -202,9 +202,9 @@ Item {
 	Rectangle {
 		id: rolesFrame
 		x: rolesLabel.x - 3
-		y: rolesLabel.y - 3
+		y: rolesLabel.y - 2
 		width: rolesLabel.width + 6
-		height: rolesLabel.height + 6
+		height: rolesLabel.height + 4
 		radius: 5
 		color: getColor()
 
@@ -225,7 +225,7 @@ Item {
 	QuarkLabel {
 		id: rolesLabel
 		x: addressSymbol.x + addressSymbol.width + spaceItems_ + 5
-		y: rolesSymbol.y
+		y: rolesSymbol.y + rolesSymbol.height / 2 - height / 2
 		text: roles_
 		font.pointSize: listView_.fontPointSize
 		font.capitalization: Font.AllLowercase
@@ -246,7 +246,7 @@ Item {
 	QuarkNumberLabel {
 		id: receivedLabel
 		x: receivedSymbol.x + receivedSymbol.width + spaceItems_
-		y: receivedSymbol.y
+		y: receivedSymbol.y + receivedSymbol.height / 2 - height / 2
 
 		number: parseFloat(receivedBytes_)
 		fillTo: 1
@@ -285,7 +285,7 @@ Item {
 	QuarkNumberLabel {
 		id: sentLabel
 		x: sentSymbol.x + sentSymbol.width + spaceItems_
-		y: sentSymbol.y
+		y: sentSymbol.y + sentSymbol.height / 2 - height / 2
 
 		number: parseFloat(sentBytes_)
 		fillTo: 1
@@ -323,7 +323,7 @@ Item {
 	QuarkLabelRegular {
 		id: queuesLabel
 		x: queuesSymbol.x + queuesSymbol.width + spaceItems_
-		y: queuesSymbol.y
+		y: queuesSymbol.y + queuesSymbol.height / 2 - height / 2
 		text: "" + inQueue_ + " / " + outQueue_ + " / " + pendingQueue_
 		font.pointSize: listView_.fontPointSize
 		elide: Text.ElideRight
@@ -344,7 +344,7 @@ Item {
 		color: getColor()
 
 		property bool collapsed: true
-		property int pos_: 36
+		property int pos_: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 36 : 36
 
 		function getPos() { return pos_; }
 
@@ -392,6 +392,12 @@ Item {
 			font.pointSize: listView_.fontPointSize
 			width: parent.width - (spaceRight_ + spaceLeft_)
 			visible: !chainsFrame.collapsed
+
+			Component.onCompleted: {
+				if (buzzerApp.isDesktop) {
+					font.family = "Monospace";
+				}
+			}
 		}
 
 		MouseArea {

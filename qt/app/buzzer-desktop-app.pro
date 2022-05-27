@@ -274,7 +274,16 @@ RESOURCES += \
 	$$files(emoji/*) \
 	./buzzer-app.config \
 	./buzzer.desktop \
-	../fonts-desktop/NotoColorEmojiN.ttf
+	../fonts-desktop/NotoColorEmojiN.ttf \
+	../fonts-desktop/NotoSans-Regular.ttf \
+	../fonts-desktop/NotoSans-Bold.ttf \
+	../fonts-desktop/NotoSans-ExtraBold.ttf \
+	../fonts-desktop/NotoSans-Black.ttf \
+	../fonts-desktop/NotoSans-SemiBold.ttf \
+	../fonts-desktop/NotoSans-Light.ttf \
+	../fonts-desktop/NotoSans-Italic.ttf \
+	../fonts-desktop/NotoSans-Medium.ttf \
+	../fonts-desktop/NotoSans-Thin.ttf
 
 FORMS +=
 

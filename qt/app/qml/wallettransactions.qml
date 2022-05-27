@@ -162,7 +162,7 @@ Item
 				QuarkLabel {
 					id: timeLabel
 					x: timeSymbol.x + timeSymbol.width + spaceItems_
-					y: spaceItems_
+					y: timeSymbol.y + timeSymbol.height / 2 - height / 2
 					text: getLocalDateTime()
 					font.pointSize: list.fontPointSize
 
@@ -176,7 +176,7 @@ Item
 					id: point0
 
 					x: timeLabel.x + timeLabel.width + spaceItems_
-					y: timeLabel.y + timeLabel.height / 2 - height / 2
+					y: timeSymbol.y + timeSymbol.height / 2 - height / 2
 					width: spaceItems_
 					height: spaceItems_
 					radius: width / 2
@@ -262,7 +262,7 @@ Item
 				QuarkLabelRegular {
 					id: txLabel
 					x: txSymbol.x + txSymbol.width + spaceItems_
-					y: txSymbol.y
+					y: txSymbol.y + txSymbol.height / 2 - height / 2
 					text: txid
 					width: parent.width - (x + spaceItems_ + txExpandSymbol.width + spaceItems_)
 					elide: Text.ElideRight
@@ -272,7 +272,7 @@ Item
 				QuarkSymbolLabel {
 					id: txExpandSymbol
 					x: parent.width - (width + spaceItems_) - 2
-					y: txSymbol.y
+					y: txLabel.y
 					font.pointSize: list.fontPointSize
 					symbol: Fonts.expandSimpleDownSym
 				}

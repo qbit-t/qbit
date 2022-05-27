@@ -83,8 +83,9 @@ QuarkPopup
 					id: metrics
 					elide: Text.ElideRight
 					text: name
-					elideWidth: popupBox.width - ((keySymbol ? (buzzerClient.scaleFactor * 40) : 15) + 10)
+					elideWidth: popupBox.width - (textLabel.x + 15) //((keySymbol ? (buzzerClient.scaleFactor * 40) : 15) + 40)
 					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 11) : 16
+					font.family: "Noto Sans"
 				}
 
 				QuarkLabel
@@ -99,6 +100,7 @@ QuarkPopup
 					Material.foreground: menuForegroundColor
 					visible: true
 					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 11) : 16
+					font.family: "Noto Sans"
 				}
 			}
 		}

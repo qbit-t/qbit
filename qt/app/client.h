@@ -522,6 +522,9 @@ public slots:
 	// conversations updated
 	void conversationsUpdated(const qbit::ConversationItemProxy& /*event*/);
 
+	// resync wallet cache
+	void resyncWalletCache();
+
 public:
 	// Wallet
 	Q_INVOKABLE QString firstPKey();
@@ -637,6 +640,7 @@ signals:
 	void addressChanged();
 	void contactsChanged();
 	void statusBarThemeChanged();
+	void fireResyncWalletCache();
 
 	void buzzerChanged();
 
@@ -677,7 +681,7 @@ private:
 	bool networkReady_ = false;
 	bool buzzerDAppReady_ = false;
 	bool suspended_ = false;
-	bool recallWallet_ = false;
+	bool recallWallet_ = true;
 	bool opened_ = false;
 	bool peersModelUpdates_ = false;
 	QString topId_ = "";

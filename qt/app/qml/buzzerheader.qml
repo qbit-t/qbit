@@ -498,7 +498,7 @@ Item {
 	QuarkLabel {
 		id: buzzerAliasControl
 		x: aliasSymbol.x + aliasSymbol.width + spaceItems_
-		y: aliasSymbol.y
+		y: aliasSymbol.y + aliasSymbol.height / 2 - height / 2
 		width: parent.width - (x + spaceRight_ + (uiZoomSymbol.visible ? (parent.width - uiZoomSymbol.x) : 0))
 		elide: Text.ElideRight
 		text: alias_
@@ -519,7 +519,7 @@ Item {
 	QuarkLabelRegular {
 		id: buzzerNameControl
 		x: aliasSymbol.x + aliasSymbol.width + spaceItems_
-		y: nameSymbol.y
+		y: nameSymbol.y + nameSymbol.height / 2 - height / 2
 		width: parent.width - (x + spaceRight_)
 		elide: Text.ElideRight
 		text: buzzer_
@@ -540,7 +540,7 @@ Item {
 	QuarkLabelRegular {
 		id: buzzerIdControl
 		x: aliasSymbol.x + aliasSymbol.width + spaceItems_
-		y: idSymbol.y
+		y: idSymbol.y + idSymbol.height / 2 - height / 2
 		width: parent.width - (x + spaceRight_ + copySymbol.width + spaceItems_)
 		elide: Text.ElideRight
 
@@ -552,7 +552,7 @@ Item {
 	QuarkSymbolLabel {
 		id: copySymbol
 		x: parent.width - (spaceRight_ + width)
-		y: buzzerIdControl.y - 2
+		y: idSymbol.y - 2
 		symbol: Fonts.externalLinkSym
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : (defaultFontPointSize + 1)
 	}
@@ -588,7 +588,7 @@ Item {
 		fillTo: 8
 		mayCompact: true
 		x: aliasSymbol.x + aliasSymbol.width + spaceItems_
-		y: walletSymbol.y
+		y: walletSymbol.y + walletSymbol.height / 2 - calculatedHeight / 2
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 		numberColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 		mantissaColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
@@ -636,7 +636,7 @@ Item {
 		id: sharesNumber
 		number: 0
 		//font.pointSize: 30
-		fillTo: 1
+		fillTo: 0
 		mayCompact: true
 		x: aliasSymbol.x + aliasSymbol.width + spaceItems_
 		y: availableNumber.y + availableNumber.height + spaceItems_

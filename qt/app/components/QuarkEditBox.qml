@@ -13,7 +13,7 @@ Rectangle
 {
 	id: editBox
 
-    height: 50
+	height: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 40 : 50
 
     Material.theme: buzzerClient.themeSelector == "dark" ? Material.Dark : Material.Light;
     Material.accent: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.accent");
@@ -30,9 +30,9 @@ Rectangle
     property string placeholderText;
     property int symbolLeftPadding: 0;
     property int textLeftPadding: 5;
-	property int textFontSize: 16;
-    property int symbolFontSize: 20;
-    property int imageWidth: 36;
+	property int textFontSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 12 : 16;
+	property int symbolFontSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 16 : 20;
+	property int imageWidth: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 28 : 36;
     property bool clipboardButton: false;
 	property bool helpButton: false;
 	property bool addButton: false;
@@ -59,8 +59,8 @@ Rectangle
     {
         id: symbolRect
 
-        width: 50
-        height: 50
+		width: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 40 : 50
+		height: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 40 : 50
         clip: true
 
         border.color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Box.border");
@@ -130,7 +130,7 @@ Rectangle
         id: infoRect
 
         x: symbolRect.width - 1
-        height: 50
+		height: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 40 : 50
 		width: editBox.width - symbolRect.width - copyRect.width * clipboardButton -
 			   helpRect.width * helpButton  - addRect.width * addButton +
 			   clipboardButton*1 + helpButton*1 + addButton*1 + 1
@@ -210,8 +210,8 @@ Rectangle
         id: copyRect
 
         x: infoRect.x + infoRect.width - 1
-        width: 50
-        height: 50
+		width: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 40 : 50
+		height: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 40 : 50
         visible: clipboardButton
         clip: true
 
@@ -250,8 +250,8 @@ Rectangle
 	{
 		id: addRect
 		x: copyRect.getX() + copyRect.getWidth() - 1
-		width: 50
-		height: 50
+		width: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 40 : 50
+		height: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 40 : 50
 		visible: addButton
 		clip: true
 
@@ -291,8 +291,8 @@ Rectangle
         id: helpRect
 
 		x: addRect.getX() + addRect.getWidth() - 1
-        width: 50
-        height: 50
+		width: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 40 : 50
+		height: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 40 : 50
         visible: helpButton
         clip: true
 

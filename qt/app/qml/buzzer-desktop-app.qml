@@ -527,7 +527,7 @@ ApplicationWindow {
 			lPage = lComponent.createObject(pagesView);
 			lPage.controller = window;
 
-			lPage.updateStakedInfo(buzzId, buzzerAlias, buzzBody.replace(/(\r\n|\n|\r)/gm, ""));
+			lPage.updateStakedInfo(buzzId, buzzerAlias, buzzBody ? buzzBody.replace(/(\r\n|\n|\r)/gm, "") : "");
 			lPage.start(buzzChainId, buzzId);
 
 			addPage(lPage);

@@ -74,8 +74,9 @@ T.RoundButton
     {
         id: label
 		topPadding: labelYOffset
-        horizontalAlignment: Text.AlignHCenter
-        text: button.symbol
+		horizontalAlignment: Text.AlignHCenter
+		//verticalAlignment: Text.AlignVCenter
+		text: button.symbol
         color: symbolColor
         font.pointSize: symbolFontPointSize
 		antialiasing: buzzerApp.isDesktop ? false : antialiasing
@@ -84,6 +85,7 @@ T.RoundButton
 
 	background: Rectangle
 	{
+		id: backgroundPane
 		implicitWidth: button.Material.buttonHeight
 		implicitHeight: button.Material.buttonHeight
 

@@ -35,7 +35,7 @@ Label
     property var subLevelZeroColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Price.subLevelAbsent")
     property var subLevelColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Price.subLevelPresent")
 
-    font.family: Qt.platform.os == "android" ? font.family : "Menlo-Regular"
+	//font.family: Qt.platform.os == "android" ? font.family : "Menlo-Regular"
 
     onTrendChanged:
     {
@@ -120,6 +120,7 @@ Label
         id: significant
         x: 0
         y: 0
+		font.pointSize: parent.font.pointSize
 
         onWidthChanged:
         {
@@ -146,6 +147,7 @@ Label
         id: mantissa
         x: significant.x + significant.width
         y: 0
+		font.pointSize: parent.font.pointSize
 
         onWidthChanged:
         {
@@ -165,6 +167,7 @@ Label
         id: zeroes
         x: mantissa.x + mantissa.width
         y: 0
+		font.pointSize: parent.font.pointSize
 
         onWidthChanged:
         {
@@ -184,6 +187,7 @@ Label
         id: sublevel
         x: zeroes.x + zeroes.width
         y: 0
+		font.pointSize: parent.font.pointSize
 
         onWidthChanged:
         {

@@ -21,6 +21,10 @@ QuarkPage
 
 	property bool setupProcess: false
 
+	property var menuHighlightColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.highlight")
+	property var menuBackgroundColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.background")
+	property var menuForegroundColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
+
 	Component.onCompleted: {
 		buzzerApp.lockPortraitOrientation();
         closePageHandler = closePage;
@@ -276,10 +280,18 @@ QuarkPage
 					swipe.open(SwipeDelegate.Right);
 				}
 
+				Binding {
+					target: background
+					property: "color"
+					value: listDelegate.highlighted ?
+							   menuHighlightColor:
+							   buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Box.background");
+				}
+
 				contentItem: Rectangle	{
 					height: 40
 					width: seedView.width
-					color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Box.background");
+					color: "transparent"
 
 					QuarkText {
 						text: name

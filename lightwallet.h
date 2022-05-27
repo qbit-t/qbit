@@ -187,6 +187,7 @@ public:
 	void resetCache() {
 		boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
 		assetsCache_.clear();
+		status_ = IWallet::UNKNOWN;
 	}
 
 	bool prepareCache();
@@ -268,7 +269,7 @@ private:
 	std::string secret_;
 
 	// wallet status
-	IWallet::Status status_;
+	IWallet::Status status_ = IWallet::UNKNOWN;
 
 	// cached keys
 	std::map<uint160 /*id*/, SKeyPtr> keysCache_;	
