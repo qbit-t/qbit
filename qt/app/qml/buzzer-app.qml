@@ -235,12 +235,11 @@ ApplicationWindow
 		var lComponent = null;
 		var lPage = null;
 
-		lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzeditor-desktop.qml", rootComponent) :
-										   Qt.createComponent("qrc:/qml/buzzeditor.qml");
+		lComponent = Qt.createComponent("qrc:/qml/buzzeditor.qml");
 		if (lComponent.status === Component.Error) {
 			showError(lComponent.errorString());
 		} else {
-			lPage = lComponent.createObject(rootComponent);
+			lPage = lComponent.createObject(window);
 			lPage.controller = window;
 
 			lPage.updateStakedInfo(buzzerClient.generateRandom(), buzzerClient.alias, buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.editor.buzz.caption"));
@@ -255,12 +254,11 @@ ApplicationWindow
 		var lComponent = null;
 		var lPage = null;
 
-		lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzeditor-desktop.qml", rootComponent) :
-										   Qt.createComponent("qrc:/qml/buzzeditor.qml");
+		lComponent = Qt.createComponent("qrc:/qml/buzzeditor.qml");
 		if (lComponent.status === Component.Error) {
 			showError(lComponent.errorString());
 		} else {
-			lPage = lComponent.createObject(rootComponent);
+			lPage = lComponent.createObject(window);
 			lPage.controller = window;
 
 			lPage.updateStakedInfo(buzzerClient.generateRandom(), buzzerClient.alias, buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.editor.reply.caption"));
@@ -275,12 +273,11 @@ ApplicationWindow
 		var lComponent = null;
 		var lPage = null;
 
-		lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzeditor-desktop.qml", rootComponent) :
-										   Qt.createComponent("qrc:/qml/buzzeditor.qml");
+		lComponent = Qt.createComponent("qrc:/qml/buzzeditor.qml");
 		if (lComponent.status === Component.Error) {
 			showError(lComponent.errorString());
 		} else {
-			lPage = lComponent.createObject(rootComponent);
+			lPage = lComponent.createObject(window);
 			lPage.controller = window;
 
 			lPage.updateStakedInfo(buzzerClient.generateRandom(), buzzerClient.alias, buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.editor.rebuzz.caption"));
@@ -295,12 +292,11 @@ ApplicationWindow
 		var lComponent = null;
 		var lPage = null;
 
-		lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzeditor-desktop.qml", rootComponent) :
-										   Qt.createComponent("qrc:/qml/buzzeditor.qml");
+		lComponent = Qt.createComponent("qrc:/qml/buzzeditor.qml");
 		if (lComponent.status === Component.Error) {
 			showError(lComponent.errorString());
 		} else {
-			lPage = lComponent.createObject(rootComponent);
+			lPage = lComponent.createObject(window);
 			lPage.controller = window;
 
 			lPage.updateStakedInfo(buzzerClient.generateRandom(), buzzerClient.alias, buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.editor.message.caption") + counterparty);
