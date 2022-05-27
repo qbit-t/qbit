@@ -163,7 +163,6 @@ int Client::open(QString secret) {
 			if (gLog().isEnabled(Log::GENERAL_ERROR))
 				gLog().write(Log::GENERAL_ERROR, std::string("[Client::open]: font NotoColorEmojiN.ttf was not loaded"));
 		}
-#endif
 
 		if (QFontDatabase::addApplicationFont(":/fonts-desktop/NotoSans-Regular.ttf") == -1) {
 			if (gLog().isEnabled(Log::GENERAL_ERROR))
@@ -218,6 +217,7 @@ int Client::open(QString secret) {
 		QFont lAppFont("Noto Sans, Noto Color Emoji, Noto Sans Mono" /*, -1, QFont::Light*/);
 		lAppFont.setStyleStrategy(QFont::NoSubpixelAntialias);
 		QApplication::setFont(lAppFont);
+#endif
 
 		emojiData_->open();
 	}
