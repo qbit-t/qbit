@@ -223,7 +223,7 @@ Item
 
 			 radius: buzzerClient.scaleFactor * 20
 			 opacity: 0.6
-			 fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 14) : 14
+			 fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 14) : 18
 
 			 onClick: {
 				 // refeed balance
