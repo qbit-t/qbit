@@ -275,6 +275,7 @@ RESOURCES += \
 	./buzzer-app.config \
 	./buzzer.desktop \
 	../fonts-desktop/NotoColorEmojiN.ttf \
+	../fonts-desktop/NotoColorEmoji_WindowsCompatible.ttf \
 	../fonts-desktop/NotoSans-Regular.ttf \
 	../fonts-desktop/NotoSans-Bold.ttf \
 	../fonts-desktop/NotoSans-ExtraBold.ttf \

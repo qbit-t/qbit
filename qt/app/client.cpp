@@ -145,8 +145,15 @@ int Client::open(QString secret) {
 #if defined(DESKTOP_PLATFORM)
 	if (application_->isDesktop()) {
 #if defined(Q_OS_WINDOWS)
- 		auto lCurrent = QOperatingSystemVersion::current();
- 		//QString lEmojiFontFile = ":/fonts-desktop/SeguiEmj.ttf";
+		auto lCurrent = QOperatingSystemVersion::current();
+		if (lCurrent >= QOperatingSystemVersion::Windows10) {
+			if (QFontDatabase::addApplicationFont(":/fonts-desktop/NotoColorEmoji_WindowsCompatible.ttf") == -1) {
+				if (gLog().isEnabled(Log::GENERAL_ERROR))
+					gLog().write(Log::GENERAL_ERROR, std::string("[Client::open]: font NotoColorEmoji_WindowsCompatible.ttf was not loaded"));
+			}
+		}
+
+		//QString lEmojiFontFile = ":/fonts-desktop/SeguiEmj.ttf";
  		//if (lCurrent >= QOperatingSystemVersion::Windows10)
  		//	lEmojiFontFile = ":/fonts-desktop/NotoColorEmoji_WindowsCompatible.ttf";
 		//if (QFontDatabase::addApplicationFont(lEmojiFontFile) == -1) {
@@ -156,6 +163,7 @@ int Client::open(QString secret) {
 			if (gLog().isEnabled(Log::GENERAL_ERROR))
 				gLog().write(Log::GENERAL_ERROR, std::string("[Client::open]: font NotoColorEmojiN.ttf was not loaded"));
 		}
+#endif
 
 		if (QFontDatabase::addApplicationFont(":/fonts-desktop/NotoSans-Regular.ttf") == -1) {
 			if (gLog().isEnabled(Log::GENERAL_ERROR))
@@ -211,8 +219,12 @@ int Client::open(QString secret) {
 		lAppFont.setStyleStrategy(QFont::NoSubpixelAntialias);
 		QApplication::setFont(lAppFont);
 
-#endif
 		emojiData_->open();
+	}
+#else
+	if (QFontDatabase::addApplicationFont(":/fonts-desktop/NotoSansMono-Regular.ttf") == -1) {
+		if (gLog().isEnabled(Log::GENERAL_ERROR))
+			gLog().write(Log::GENERAL_ERROR, std::string("[Client::open]: font NotoSansMono-Regular.ttf was not loaded"));
 	}
 #endif
 

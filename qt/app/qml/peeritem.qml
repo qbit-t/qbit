@@ -395,7 +395,10 @@ Item {
 
 			Component.onCompleted: {
 				if (buzzerApp.isDesktop) {
-					font.family = "Noto Sans Mono"; // "Monospace";
+					if (Qt.platform.os == "windows") font.family = "Courier New";
+					else font.family = "Noto Sans Mono";
+				} else {
+					font.family = "Noto Sans Mono"; // added into package
 				}
 			}
 		}
