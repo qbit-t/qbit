@@ -395,7 +395,7 @@ Item {
 
 			Component.onCompleted: {
 				if (buzzerApp.isDesktop) {
-					font.family = "Monospace";
+					font.family = "Noto Sans Mono"; // "Monospace";
 				}
 			}
 		}

@@ -257,7 +257,7 @@ Item {
 
 		QuarkLabelRegular {
 			x: infoLink.x + infoLink.width + spaceItems_
-			y: infoLink.y + infoLink.height / 2 - height / 2 + 2
+			y: infoLink.y + infoLink.height / 2 - height / 2 // + 2
 			width: parent.width - (spaceRight_ + x)
 			text: sourceInfo.host
 			elide: Text.ElideRight

@@ -283,7 +283,8 @@ RESOURCES += \
 	../fonts-desktop/NotoSans-Light.ttf \
 	../fonts-desktop/NotoSans-Italic.ttf \
 	../fonts-desktop/NotoSans-Medium.ttf \
-	../fonts-desktop/NotoSans-Thin.ttf
+	../fonts-desktop/NotoSans-Thin.ttf \
+	../fonts-desktop/NotoSansMono-Regular.ttf
 
 FORMS +=
 
