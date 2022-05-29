@@ -277,8 +277,8 @@ QuarkPage {
 			var lRect = buzzText.positionToRectangle(buzzText.cursorPosition);
 			if (height > 0 && item.y + lRect.y + lRect.height + spaceMedia_ > contentY + height) {
 				contentY += (item.y + lRect.y + lRect.height + spaceMedia_) - (contentY + height);
-			} else if (height > 0 && lRect.y < contentY) {
-				contentY -= (contentY - lRect.y);
+			} else if (height > 0 && item.y + lRect.y < contentY) {
+				contentY -= (contentY - (item.y + lRect.y));
 			}
 		}
 
