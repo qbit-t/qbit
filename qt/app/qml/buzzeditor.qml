@@ -262,9 +262,19 @@ QuarkPage {
 				if (match.length) {
 					//
 					var lText = buzzerClient.getPlainText(buzzText.textDocument);
+					if (!buzzerApp.isDesktop) {
+						lText = lText.slice(0, buzzText.cursorPosition) + buzzText.preeditText + lText.slice(buzzText.cursorPosition);
+					}
 					var lPosition = buzzText.cursorPosition;
 					//
-					if (lText.slice(lPosition - length, lPosition) === match) {
+					console.log("[onMatched]: match = '" + match + "', start = " + start + ", lPosition = " + lPosition + ", length = " + length);
+					console.log("[onMatched]: 1 = " + lText.slice(lPosition - length, lPosition));
+					console.log("[onMatched]: 2 = " + lText.slice(lPosition-1, (lPosition-1) + length));
+					if (lText.length >= lPosition + length) console.log("[onMatched]: 3 = " + lText.slice(lPosition, lPosition + length));
+					if (lText.slice(lPosition - length, lPosition) === match ||
+							(!buzzerApp.isDesktop && lText.slice(lPosition-1, (lPosition-1) + length) === match) ||
+							(!buzzerApp.isDesktop && lText.length >= lPosition + length &&
+													lText.slice(lPosition, lPosition + length) === match)) {
 						if (match[0] === '@')
 							searchBuzzers.process(match);
 						else if (match[0] === '#')
@@ -420,7 +430,8 @@ QuarkPage {
 
 				if (buzzerStarted_ || tagStarted_) {
 					var lText = buzzerClient.getPlainText(buzzText.textDocument);
-					highlighter.tryHighlightBlock(lText + preeditText, 0);
+					//highlighter.tryHighlightBlock(lText.slice(0, cursorPosition) + preeditText, 0);
+					highlighter.tryHighlightBlock(lText.slice(0, cursorPosition) + preeditText + lText.slice(cursorPosition), 0);
 				}
 			}
 
@@ -1032,16 +1043,26 @@ QuarkPage {
 			//
 			var lPos = buzzText.cursorPosition; // current
 			var lText = buzzerClient.getPlainText(buzzText.textDocument) + "";
+			lText = lText.slice(0, lPos) + buzzText.preeditText + lText.slice(lPos);
+
 			for (var lIdx = lPos; lIdx >= 0; lIdx--) {
 				if (lText[lIdx] === '@') {
 					break;
 				}
 			}
 
-			buzzText.remove(lIdx, lPos);
-			buzzText.insert(lIdx, key);
+			var lNewText = lText.slice(0, lIdx);
+			if (lNewText.length && lNewText[lNewText.length-1] !== ' ') lNewText += " ";
+			lNewText += key + lText.slice(lPos + buzzText.preeditText.length);
 
-			buzzText.cursorPosition = lIdx + key.length;
+			buzzText.clear();
+
+			var lParagraphs = lNewText.split("\n");
+			for (var lChunk = 0; lChunk < lParagraphs.length; lChunk++) {
+				buzzText.append(lParagraphs[lChunk]);
+			}
+
+			buzzText.cursorPosition = lPos + key.length;
 		}
 
 		function popup(match, nx, ny, rect, buzzers) {
@@ -1064,7 +1085,11 @@ QuarkPage {
 			}
 
 			var lNewY = ny + buzzEditorToolBar.y + buzzEditorToolBar.height + buzzText.y + 5;
-			if (lNewY + (buzzers.length * itemHeight/*height*/) > bodyContainer.height)
+			var lAbove = (ny + buzzText.y) - bodyContainer.contentY;
+			var lBelow = ((bodyContainer.contentY + bodyContainer.height) - lAbove);
+			//console.info("[popup]: lAbove = " + lAbove + ", lBelow = " + lBelow + ", bodyContainer.contentY = " + bodyContainer.contentY + ", bodyContainer.height = " + bodyContainer.height);
+			//if (lNewY + (buzzers.length * itemHeight/*height*/) > bodyContainer.height && lNewY - (((buzzers.length) * itemHeight) + 5 + rect.height) > bodyContainer.contentY)
+			if (lAbove > lBelow)
 				y = lNewY - (((buzzers.length) * itemHeight) + 5 + rect.height);
 			else
 				y = lNewY;
@@ -1086,16 +1111,26 @@ QuarkPage {
 			//
 			var lPos = buzzText.cursorPosition; // current
 			var lText = buzzerClient.getPlainText(buzzText.textDocument) + "";
+			lText = lText.slice(0, lPos) + buzzText.preeditText + lText.slice(lPos);
+
 			for (var lIdx = lPos; lIdx >= 0; lIdx--) {
 				if (lText[lIdx] === '#') {
 					break;
 				}
 			}
 
-			buzzText.remove(lIdx, lPos);
-			buzzText.insert(lIdx, key);
+			var lNewText = lText.slice(0, lIdx);
+			if (lNewText.length && lNewText[lNewText.length-1] !== ' ') lNewText += " ";
+			lNewText += key + lText.slice(lPos + buzzText.preeditText.length);
 
-			buzzText.cursorPosition = lIdx + key.length;
+			buzzText.clear();
+
+			var lParagraphs = lNewText.split("\n");
+			for (var lChunk = 0; lChunk < lParagraphs.length; lChunk++) {
+				buzzText.append(lParagraphs[lChunk]);
+			}
+
+			buzzText.cursorPosition = lPos + key.length;
 		}
 
 		function popup(match, nx, ny, rect, tags) {
@@ -1118,7 +1153,11 @@ QuarkPage {
 			}
 
 			var lNewY = ny + buzzEditorToolBar.y + buzzEditorToolBar.height + buzzText.y + 5;
-			if (lNewY + (tags.length * itemHeight/*height*/) > bodyContainer.height)
+			var lAbove = (ny + buzzText.y) - bodyContainer.contentY;
+			var lBelow = ((bodyContainer.contentY + bodyContainer.height) - lAbove);
+			//console.info("[popup]: lAbove = " + lAbove + ", lBelow = " + lBelow + ", bodyContainer.contentY = " + bodyContainer.contentY + ", bodyContainer.height = " + bodyContainer.height);
+			//if (lNewY + (tags.length * itemHeight/*height*/) > bodyContainer.height && lNewY - (((tags.length) * itemHeight) + 5 + rect.height) > bodyContainer.contentY)
+			if (lAbove > lBelow)
 				y = lNewY - (((tags.length) * itemHeight) + 5 + rect.height);
 			else
 				y = lNewY;

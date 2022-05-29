@@ -772,7 +772,7 @@ QuarkPage {
 					var lText = "";
 					if (buzzerStarted_ || tagStarted_) {
 						lText = buzzerClient.getPlainText(buzzText.textDocument);
-						highlighter.tryHighlightBlock(lText + preeditText, 0);
+						highlighter.tryHighlightBlock(lText.slice(0, cursorPosition) + preeditText + lText.slice(cursorPosition), 0);
 					}
 
 					hasText_ = preeditText.length || lText.length;
@@ -1024,16 +1024,34 @@ QuarkPage {
 			//
 			var lPos = buzzText.cursorPosition; // current
 			var lText = buzzerClient.getPlainText(buzzText.textDocument) + "";
+			lText = lText.slice(0, lPos) + buzzText.preeditText + lText.slice(lPos);
+
 			for (var lIdx = lPos; lIdx >= 0; lIdx--) {
 				if (lText[lIdx] === '@') {
 					break;
 				}
 			}
 
-			buzzText.remove(lIdx, lPos);
-			buzzText.insert(lIdx, key);
+			if (buzzerApp.isDesktop) {
+				//
+				buzzText.remove(lIdx, lPos);
+				buzzText.insert(lIdx, key);
 
-			buzzText.cursorPosition = lIdx + key.length;
+				buzzText.cursorPosition = lIdx + key.length;
+			} else {
+				var lNewText = lText.slice(0, lIdx);
+				if (lNewText.length && lNewText[lNewText.length-1] !== ' ') lNewText += " ";
+				lNewText += key + lText.slice(lPos + buzzText.preeditText.length);
+
+				buzzText.clear();
+
+				var lParagraphs = lNewText.split("\n");
+				for (lIdx = 0; lIdx < lParagraphs.length; lIdx++) {
+					buzzText.append(lParagraphs[lIdx]);
+				}
+
+				buzzText.cursorPosition = lPos + key.length;
+			}
 		}
 
 		function popup(match, nx, ny, buzzers) {
@@ -1056,7 +1074,7 @@ QuarkPage {
 			}
 
 			var lNewY = ny + replyContainer.y + spaceTop_;
-			y = lNewY - ((buzzers.length) * 50 + spaceTop_);
+			y = lNewY - ((buzzers.length) * itemHeight + spaceTop_);
 
 			open();
 		}
@@ -1075,16 +1093,34 @@ QuarkPage {
 			//
 			var lPos = buzzText.cursorPosition; // current
 			var lText = buzzerClient.getPlainText(buzzText.textDocument) + "";
+			lText = lText.slice(0, lPos) + buzzText.preeditText + lText.slice(lPos);
+
 			for (var lIdx = lPos; lIdx >= 0; lIdx--) {
 				if (lText[lIdx] === '#') {
 					break;
 				}
 			}
 
-			buzzText.remove(lIdx, lPos);
-			buzzText.insert(lIdx, key);
+			if (buzzerApp.isDesktop) {
+				//
+				buzzText.remove(lIdx, lPos);
+				buzzText.insert(lIdx, key);
 
-			buzzText.cursorPosition = lIdx + key.length;
+				buzzText.cursorPosition = lIdx + key.length;
+			} else {
+				var lNewText = lText.slice(0, lIdx);
+				if (lNewText.length && lNewText[lNewText.length-1] !== ' ') lNewText += " ";
+				lNewText += key + lText.slice(lPos + buzzText.preeditText.length);
+
+				buzzText.clear();
+
+				var lParagraphs = lNewText.split("\n");
+				for (lIdx = 0; lIdx < lParagraphs.length; lIdx++) {
+					buzzText.append(lParagraphs[lIdx]);
+				}
+
+				buzzText.cursorPosition = lPos + key.length;
+			}
 		}
 
 		function popup(match, nx, ny, tags) {
@@ -1107,7 +1143,7 @@ QuarkPage {
 			}
 
 			var lNewY = ny + replyContainer.y + spaceTop_;
-			y = lNewY - ((tags.length) * 50 + spaceTop_);
+			y = lNewY - ((tags.length) * itemHeight + spaceTop_);
 
 			open();
 		}
@@ -1148,11 +1184,17 @@ QuarkPage {
 		onMatched: {
 			// start, length, match, text
 			if (match.length) {
-				//
+				//	
 				var lText = buzzerClient.getPlainText(buzzText.textDocument);
+				if (!buzzerApp.isDesktop) {
+					lText = lText.slice(0, buzzText.cursorPosition) + buzzText.preeditText + lText.slice(buzzText.cursorPosition, lText.length);
+				}
+
 				var lPosition = buzzText.cursorPosition;
-				//
-				if (lText.slice(lPosition - length, lPosition) === match) {
+				if (lText.slice(lPosition - length, lPosition) === match ||
+						(!buzzerApp.isDesktop && lText.slice(lPosition-1, (lPosition-1) + length) === match) ||
+						(!buzzerApp.isDesktop && lText.length >= lPosition + length &&
+												lText.slice(lPosition, lPosition + length) === match)) {
 					if (match[0] === '@')
 						searchBuzzers.process(match);
 					else if (match[0] === '#')

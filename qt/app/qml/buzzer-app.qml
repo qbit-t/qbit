@@ -35,14 +35,6 @@ ApplicationWindow
 	{
 		buzzerApp.lockPortraitOrientation();
 		buzzerApp.setBackgroundColor(activePageBackground);
-
-		//
-		if (buzzerClient.configured()) {
-			pagesView.initialItem.visible = false;
-			startUpTimer.interval = 300;
-		}
-
-		startUpTimer.start();
 	}
 
 	onClosing:
@@ -601,7 +593,7 @@ ApplicationWindow
 				onFinished: {
 					//
 					// REAL start-up
-					// startUpTimer.start();
+					startUpTimer.start();
 				}
             }
 
@@ -626,7 +618,7 @@ ApplicationWindow
 
                 Component.onCompleted:
                 {
-					if (!buzzerClient.configured()) apearing.start();
+					apearing.start();
                 }
             }
         }

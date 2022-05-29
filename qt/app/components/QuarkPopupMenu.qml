@@ -23,7 +23,7 @@ QuarkPopup
 
 	property bool freeSizing: false
 	property var model;
-	property var itemHeight;
+	property var itemHeight: 50 * buzzerClient.scaleFactor;
 	signal click(var key);
 
 	implicitHeight: contentItem.implicitHeight
@@ -49,7 +49,8 @@ QuarkPopup
 			clip: false
 
 			Component.onCompleted: {
-				popupBox.itemHeight = height;
+				if (!popupBox.itemHeight || popupBox.itemHeight < height)
+					popupBox.itemHeight = height;
 			}
 
 			onClicked: {
