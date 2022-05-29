@@ -28,7 +28,7 @@ ApplicationWindow {
 	property string activePageBackground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Window.background")
 	property var rootComponent;
 
-	color: activePageBackground
+	color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Window.background")
 
 	onWidthChanged: {
 		buzzerApp.setBackgroundColor(activePageBackground);
@@ -49,6 +49,14 @@ ApplicationWindow {
 		var lHeight = buzzerClient.getProperty("Client.height");
 		if (lHeight !== "") height = parseInt(lHeight);
 		else height = 740;
+
+		//
+		if (buzzerClient.configured()) {
+			pagesViewLocal.initialItem.visible = false;
+			startUpTimer.interval = 300;
+		}
+
+		startUpTimer.start();
 	}
 
 	onClosing:
@@ -527,7 +535,7 @@ ApplicationWindow {
 			lPage = lComponent.createObject(pagesView);
 			lPage.controller = window;
 
-			lPage.updateStakedInfo(buzzId, buzzerAlias, buzzBody ? buzzBody.replace(/(\r\n|\n|\r)/gm, "") : "");
+			lPage.updateStakedInfo(buzzId, buzzerAlias, buzzBody ? buzzBody.replace(/(\r\n|\n|\r)/gm, " ") : "");
 			lPage.start(buzzChainId, buzzId);
 
 			addPage(lPage);
@@ -558,7 +566,7 @@ ApplicationWindow {
 			lPage.initialize(pkey, index, instance, buzzId, buzzBody);
 
 			var lTitle = "Media";
-			if (buzzBody !== "") lTitle = buzzBody.replace(/(\r\n|\n|\r)/gm, "");
+			if (buzzBody !== "") lTitle = buzzBody.replace(/(\r\n|\n|\r)/gm, " ");
 			lPage.updateStakedInfo(buzzId + "-media", buzzerAlias, lTitle);
 
 			addPage(lPage);
@@ -1191,7 +1199,7 @@ ApplicationWindow {
         id: startUpTimer
 		interval: 1000
         repeat: false
-        running: true
+		running: false
 
         onTriggered:
         {

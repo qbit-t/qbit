@@ -1562,14 +1562,10 @@ QuarkPage {
 			// start, length, match, text
 			if (match.length) {
 				//
-				var lText = buzzerClient.getPlainText(buzzText.textDocument); lText += buzzText.preeditText;
-				var lLength = lText.length;
+				var lText = buzzerClient.getPlainText(buzzText.textDocument);
 				var lPosition = buzzText.cursorPosition;
-				var lLineStart = lLength - text.length;
 				//
-				// console.info("[onMatched]: start = " + start + ", length = " + length + ", match = '" + match + "', cursorPosition = " + buzzText.cursorPosition + ", lLineStart = " + lLineStart + ", lLength = " + lLength);
-				//
-				if ((lPosition === lLineStart + start || lPosition === (lLineStart + start + length)) && buzzText.preeditText != " ") {
+				if (lText.slice(lPosition - length, lPosition) === match) {
 					if (match[0] === '@')
 						searchBuzzers.process(match);
 					else if (match[0] === '#')
@@ -1626,6 +1622,12 @@ QuarkPage {
 
 		if (buzzerClient.getBuzzBodySize(lText) >= buzzerClient.getBuzzBodyMaxSize()) {
 			handleError("E_BUZZ_IS_TOO_BIG", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZ_IS_TOO_BIG"));
+			sending = false;
+			return;
+		}
+
+		if (lText.includes("/>") || lText.includes("</")) { // TODO: implement more common approach
+			handleError("E_BUZZ_UNSUPPORTED_HTML", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZ_UNSUPPORTED_HTML"));
 			sending = false;
 			return;
 		}

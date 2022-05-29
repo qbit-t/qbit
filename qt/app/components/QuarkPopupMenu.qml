@@ -21,7 +21,9 @@ QuarkPopup
 	property var menuBackgroundColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.background")
 	property var menuForegroundColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
 
+	property bool freeSizing: false
 	property var model;
+	property var itemHeight;
 	signal click(var key);
 
 	implicitHeight: contentItem.implicitHeight
@@ -46,6 +48,10 @@ QuarkPopup
 			bottomPadding: 0
 			clip: false
 
+			Component.onCompleted: {
+				popupBox.itemHeight = height;
+			}
+
 			onClicked: {
 				popupBox.close();
 				click(key);
@@ -65,6 +71,16 @@ QuarkPopup
 				border.color: "transparent"
 				anchors.fill: parent
 
+				Component.onCompleted: {
+					if (popupBox.freeSizing) {
+						//
+						var lWidth = sizingMetrics.width + 20 + (keySymbol ? (buzzerClient.scaleFactor * 40) : 15);
+						if (lWidth > popupBox.width) {
+							popupBox.width = lWidth;
+						}
+					}
+				}
+
 				QuarkSymbolLabel
 				{
 					id: symbolLabel
@@ -80,12 +96,18 @@ QuarkPopup
 
 				TextMetrics
 				{
+					id: sizingMetrics
+					text: name
+					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 11) : 16
+				}
+
+				TextMetrics
+				{
 					id: metrics
 					elide: Text.ElideRight
 					text: name
-					elideWidth: popupBox.width - (textLabel.x + 15) //((keySymbol ? (buzzerClient.scaleFactor * 40) : 15) + 40)
+					elideWidth: popupBox.width - (textLabel.x + 15)
 					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 11) : 16
-					font.family: "Noto Sans"
 				}
 
 				QuarkLabel
@@ -93,14 +115,13 @@ QuarkPopup
 					id: textLabel
 					x: keySymbol ? (buzzerClient.scaleFactor * 40) : 15
 					y: parent.height / 2 - height / 2
-					width: metrics.elideWidth // popupBox.width - ((keySymbol ? (buzzerClient.scaleFactor * 40) : 15) + 10)
+					width: metrics.elideWidth
 					text: metrics.elidedText
 					//maximumLineCount: 1
 					Material.background: "transparent"
 					Material.foreground: menuForegroundColor
 					visible: true
 					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 11) : 16
-					font.family: "Noto Sans"
 				}
 			}
 		}

@@ -35,6 +35,14 @@ ApplicationWindow
 	{
 		buzzerApp.lockPortraitOrientation();
 		buzzerApp.setBackgroundColor(activePageBackground);
+
+		//
+		if (buzzerClient.configured()) {
+			pagesView.initialItem.visible = false;
+			startUpTimer.interval = 300;
+		}
+
+		startUpTimer.start();
 	}
 
 	onClosing:
@@ -223,7 +231,7 @@ ApplicationWindow
 			lPage.initialize(pkey, index, instance, buzzBody);
 
 			var lTitle = "Media";
-			if (buzzBody !== "") lTitle = buzzBody.replace(/(\r\n|\n|\r)/gm, "");
+			if (buzzBody !== "") lTitle = buzzBody.replace(/(\r\n|\n|\r)/gm, " ");
 			lPage.updateStakedInfo(buzzId + "-media", buzzerAlias, lTitle);
 
 			addPage(lPage);
@@ -593,7 +601,7 @@ ApplicationWindow
 				onFinished: {
 					//
 					// REAL start-up
-					startUpTimer.start();
+					// startUpTimer.start();
 				}
             }
 
@@ -618,7 +626,7 @@ ApplicationWindow
 
                 Component.onCompleted:
                 {
-                    apearing.start();
+					if (!buzzerClient.configured()) apearing.start();
                 }
             }
         }

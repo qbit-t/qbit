@@ -430,6 +430,7 @@ QuarkPage {
 		}
 	}
 
+	/*
 	QuarkToolButton {
 		id: createBuzz
 		x: parent.width - (width + 15)
@@ -453,40 +454,76 @@ QuarkPage {
 		onClicked: {
 			//
 			controller.openBuzzEditor(buzzerModelLoader.buzzer);
-
-			/*
-			var lComponent = null;
-			var lPage = null;
-
-			lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzeditor-desktop.qml") :
-											   Qt.createComponent("qrc:/qml/buzzeditor.qml");
-			if (lComponent.status === Component.Error) {
-				showError(lComponent.errorString());
-			} else {
-				lPage = lComponent.createObject(controller);
-				lPage.controller = controller;
-				lPage.initializeBuzz(buzzerModelLoader.buzzer);
-
-				addPage(lPage);
-			}
-			*/
 		}
+	}
+	*/
 
-		//
-		BuzzItemMediaPlayer {
-			id: player
-			x: 0
-			y: (list.y + list.height) - height // bottomLine.y1 + 1
-			width: parent.width
-			mediaPlayerController: buzzfeedbuzzer_.mediaPlayerController
-			overlayParent: list
+	//
+	QuarkRoundSymbolButton {
+		id: createBuzz
+		x: parent.width - (width + 15)
+		y: parent.height - (height + 15)
+		width: 55
+		height: width
+		visible: true
+		radius: width / 2
+		enableShadow: true
+		elevation: 10
+		outerPercent: 3
+		color: "transparent"
 
-			onVisibleChanged: {
-				if (visible) {
-					createBuzz.y = (parent.height - (height + 15)) - player.height;
-				} else {
-					createBuzz.y = parent.height - (height + 15);
+		enabled: true
+
+		onClick: {
+			//
+			controller.openBuzzEditor(buzzerModelLoader.buzzer);
+		}
+	}
+
+	Image {
+		id: buzzImage
+		x: createBuzz.x
+		y: createBuzz.y
+		width: createBuzz.width
+		height: createBuzz.height
+		mipmap: true
+
+		source: "../images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector,
+				//buzzerApp.isDesktop ? "buzzer.round.full" : "buzzer.round")
+				"buzzer.round.full")
+		fillMode: Image.PreserveAspectFit
+		property var radius: width / 2
+
+		layer.enabled: true
+		layer.effect: OpacityMask {
+			maskSource: Item {
+				width: 2 * buzzImage.radius
+				height: 2 * buzzImage.radius
+
+				Rectangle {
+					anchors.centerIn: parent
+					width: 2 * buzzImage.radius
+					height: 2 * buzzImage.radius
+					radius: buzzImage.radius
 				}
+			}
+		}
+	}
+
+	//
+	BuzzItemMediaPlayer {
+		id: player
+		x: 0
+		y: (list.y + list.height) - height // bottomLine.y1 + 1
+		width: parent.width
+		mediaPlayerController: buzzfeedbuzzer_.mediaPlayerController
+		overlayParent: list
+
+		onVisibleChanged: {
+			if (visible) {
+				createBuzz.y = (parent.height - (height + 15)) - player.height;
+			} else {
+				createBuzz.y = parent.height - (height + 15);
 			}
 		}
 	}

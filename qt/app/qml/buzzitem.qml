@@ -1142,6 +1142,7 @@ Item {
 		y: menuControl.y + menuControl.height + spaceItems_
 		width: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 150) : 150
 		visible: false
+		freeSizing: true
 
 		model: ListModel { id: menuModel }
 
@@ -1261,6 +1262,7 @@ Item {
 		y: rebuzzButton.y + rebuzzButton.height
 		width: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 190) : 190
 		visible: false
+		freeSizing: true
 
 		model: ListModel { id: rebuzzModel }
 

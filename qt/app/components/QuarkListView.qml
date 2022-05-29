@@ -80,7 +80,7 @@ ListView
                 font.family: Fonts.icons
                 font.weight: Font.Normal
 				//font.pixelSize: getPixelSize()
-				font.pointSize: getPixelSize()
+				font.pointSize: getPixelSize() < 0 ? 1 : getPixelSize()
                 //renderType: Text.NativeRendering
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
@@ -90,8 +90,8 @@ ListView
 
                 function getPixelSize()
                 {
-                    var lSize = 3 * (-pullScale);
-                    if (lSize <= 0) return 1;
+					var lSize = 3 * (-pullScale);
+					if (lSize < 1) return 1;
                     if (lSize < 30) return lSize;
                     return 30;
                 }

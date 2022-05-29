@@ -391,55 +391,55 @@ Item
 	}
 
 	//
-	QuarkToolButton {
+	QuarkRoundSymbolButton {
 		id: createBuzz
 		x: parent.width - (width + 15)
 		y: parent.height - (height + 15)
-		width: 65
+		width: 55
 		height: width
 		visible: true
-		//symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
-		//Layout.alignment: Qt.AlignHCenter
-		radius: (width + 30) / 2
-		//clip: true
+		radius: width / 2
+		enableShadow: true
+		elevation: 10
+		outerPercent: 3
+		color: "transparent"
 
 		enabled: true
 
-		onClicked: {
+		onClick: {
 			//
 			controller.openBuzzEditor();
-
-			/*
-			var lComponent = null;
-			var lPage = null;
-
-			lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzeditor-desktop.qml") :
-											   Qt.createComponent("qrc:/qml/buzzeditor.qml");
-			if (lComponent.status === Component.Error) {
-				showError(lComponent.errorString());
-			} else {
-				lPage = lComponent.createObject(controller);
-				lPage.controller = controller;
-
-				addPage(lPage);
-			}
-			*/
 		}
 	}
 
-	BuzzerComponents.ImageQx {
+	Image {
 		id: buzzImage
-		x: createBuzz.x + 5
-		y: createBuzz.y + 5
-		width: createBuzz.width - 10
-		height: createBuzz.height - 10
+		x: createBuzz.x
+		y: createBuzz.y
+		width: createBuzz.width
+		height: createBuzz.height
 		mipmap: true
 
-		source: "qrc://images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector,
+		source: "../images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector,
 				//buzzerApp.isDesktop ? "buzzer.round.full" : "buzzer.round")
 				"buzzer.round.full")
-		fillMode: BuzzerComponents.ImageQx.PreserveAspectFit
-		radius: width / 2
+		fillMode: Image.PreserveAspectFit
+		property var radius: width / 2
+
+		layer.enabled: true
+		layer.effect: OpacityMask {
+			maskSource: Item {
+				width: 2 * buzzImage.radius
+				height: 2 * buzzImage.radius
+
+				Rectangle {
+					anchors.centerIn: parent
+					width: 2 * buzzImage.radius
+					height: 2 * buzzImage.radius
+					radius: buzzImage.radius
+				}
+			}
+		}
 	}
 
 	QuarkBusyIndicator {

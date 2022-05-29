@@ -456,8 +456,8 @@ Item {
 					//
 					if (headerMenu.visible) headerMenu.close();
 					else {
-						headerMenu.prepare(buzzText.selectedText.length);
-						headerMenu.popup(mouseX, mouseY);
+						headerMenu.prepare(buzzText.selectedText.length, buzzText.hoveredLink);
+						headerMenu.popup(bodyControl.x + mouseX, bodyControl.y + mouseY);
 					}
 				}
 			}
@@ -787,10 +787,11 @@ Item {
 		y: menuControl.y + menuControl.height + spaceItems_
 		width: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 160) : 160
 		visible: false
+		freeSizing: true
+
+		property var lastLink;
 
 		model: ListModel { id: menuModel }
-
-		onAboutToShow: prepare()
 
 		onClick: {
 			//
@@ -808,6 +809,8 @@ Item {
 				clipboard.setText(buzzBodyFlat_);
 			} else if (key === "copyselection") {
 				clipboard.setText(buzzText.selectedText);
+			} else if (key === "copylink") {
+				clipboard.setText(lastLink);
 			}
 		}
 
@@ -820,7 +823,10 @@ Item {
 			open();
 		}
 
-		function prepare(selection) {
+		function prepare(selection, link) {
+			//
+			lastLink = link;
+
 			//
 			menuModel.clear();
 
@@ -855,14 +861,22 @@ Item {
 				}
 			}
 
-			if (!selection) menuModel.append({
-				key: "copytext",
-				keySymbol: Fonts.copySym,
-				name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.copytext")});
-			menuModel.append({
-				key: "copytx",
-				keySymbol: Fonts.clipboardSym,
-				name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.copytransaction")});
+			if (link) menuModel.append({
+				key: "copylink",
+				keySymbol: Fonts.externalLinkSym,
+				name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.copyexternallink")});
+
+			if (!selection && !link) {
+				menuModel.append({
+					key: "copytext",
+					keySymbol: Fonts.copySym,
+					name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.copytext")});
+
+				menuModel.append({
+					key: "copytx",
+					keySymbol: Fonts.clipboardSym,
+					name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.copytransaction")});
+			}
 		}
 	}
 

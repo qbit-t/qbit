@@ -245,8 +245,11 @@ QuarkPage {
 		}
 
 		function ensureVisible(item) {
-			if (height > 0 && item.y + item.contentHeight + spaceMedia_ > contentY + height) {
-				contentY += (item.y + item.contentHeight + spaceMedia_) - (contentY + height);
+			var lRect = buzzText.positionToRectangle(buzzText.cursorPosition);
+			if (height > 0 && item.y + lRect.y + lRect.height + spaceMedia_ > contentY + height) {
+				contentY += (item.y + lRect.y + lRect.height + spaceMedia_) - (contentY + height);
+			} else if (height > 0 && lRect.y < contentY) {
+				contentY -= (contentY - lRect.y);
 			}
 		}
 
@@ -258,14 +261,10 @@ QuarkPage {
 				// start, length, match, text
 				if (match.length) {
 					//
-					var lText = buzzerClient.getPlainText(buzzText.textDocument); lText += buzzText.preeditText;
-					var lLength = lText.length;
+					var lText = buzzerClient.getPlainText(buzzText.textDocument);
 					var lPosition = buzzText.cursorPosition;
-					var lLineStart = lLength - text.length;
 					//
-					// console.info("[onMatched]: start = " + start + ", length = " + length + ", match = '" + match + "', cursorPosition = " + buzzText.cursorPosition + ", lLineStart = " + lLineStart + ", lLength = " + lLength);
-					//
-					if ((lPosition === lLineStart + start || lPosition === (lLineStart + start + length)) && buzzText.preeditText != " ") {
+					if (lText.slice(lPosition - length, lPosition) === match) {
 						if (match[0] === '@')
 							searchBuzzers.process(match);
 						else if (match[0] === '#')
@@ -281,7 +280,7 @@ QuarkPage {
 			onProcessed: {
 				// pattern, entities
 				var lRect = buzzText.positionToRectangle(buzzText.cursorPosition);
-				buzzersList.popup(pattern, buzzText.x + lRect.x + spaceItems_, lRect.y + lRect.height, entities);
+				buzzersList.popup(pattern, buzzText.x + lRect.x + spaceItems_, lRect.y + lRect.height - bodyContainer.contentY, lRect, entities);
 			}
 
 			onError: {
@@ -295,7 +294,8 @@ QuarkPage {
 			onProcessed: {
 				// pattern, tags
 				var lRect = buzzText.positionToRectangle(buzzText.cursorPosition);
-				tagsList.popup(pattern, buzzText.x + lRect.x + spaceItems_, lRect.y + lRect.height, tags);
+				//console.log("[searchTags/onProcessed]: lRect = " + lRect + ", bodyContainer.contentY = " + bodyContainer.contentY + ", buzzText.y = " + buzzText.y);
+				tagsList.popup(pattern, buzzText.x + lRect.x + spaceItems_, lRect.y + lRect.height - bodyContainer.contentY, lRect, tags);
 			}
 
 			onError: {
@@ -429,6 +429,10 @@ QuarkPage {
 			}
 
 			onYChanged: {
+				bodyContainer.ensureVisible(buzzText);
+			}
+
+			onCursorPositionChanged: {
 				bodyContainer.ensureVisible(buzzText);
 			}
 		}
@@ -1040,7 +1044,7 @@ QuarkPage {
 			buzzText.cursorPosition = lIdx + key.length;
 		}
 
-		function popup(match, nx, ny, buzzers) {
+		function popup(match, nx, ny, rect, buzzers) {
 			//
 			if (buzzers.length === 0) return;
 			if (buzzers.length === 1 && match === buzzers[0]) return;
@@ -1060,8 +1064,8 @@ QuarkPage {
 			}
 
 			var lNewY = ny + buzzEditorToolBar.y + buzzEditorToolBar.height + buzzText.y + 5;
-			if (lNewY + (buzzers.length * 50/*height*/) > bodyContainer.height)
-				y = lNewY - ((buzzers.length + 1) * 50);
+			if (lNewY + (buzzers.length * itemHeight/*height*/) > bodyContainer.height)
+				y = lNewY - (((buzzers.length) * itemHeight) + 5 + rect.height);
 			else
 				y = lNewY;
 
@@ -1094,7 +1098,7 @@ QuarkPage {
 			buzzText.cursorPosition = lIdx + key.length;
 		}
 
-		function popup(match, nx, ny, tags) {
+		function popup(match, nx, ny, rect, tags) {
 			//
 			if (tags.length === 0) return;
 			if (tags.length === 1 && match === tags[0]) return;
@@ -1114,8 +1118,8 @@ QuarkPage {
 			}
 
 			var lNewY = ny + buzzEditorToolBar.y + buzzEditorToolBar.height + buzzText.y + 5;
-			if (lNewY + (tags.length * 50/*height*/) > bodyContainer.height)
-				y = lNewY - ((tags.length + 1) * 50);
+			if (lNewY + (tags.length * itemHeight/*height*/) > bodyContainer.height)
+				y = lNewY - (((tags.length) * itemHeight) + 5 + rect.height);
 			else
 				y = lNewY;
 
@@ -1421,6 +1425,11 @@ QuarkPage {
 		//
 		var lText = buzzerClient.getPlainText(buzzText.textDocument);
 		if (lText.length === 0) lText = buzzText.preeditText;
+		if (lText.includes("/>") || lText.includes("</")) { // TODO: implement more common approach
+			handleError("E_BUZZ_UNSUPPORTED_HTML", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZ_UNSUPPORTED_HTML"));
+			sending = false;
+			return;
+		}
 
 		//
 		mediaListEditor.cleanUp();
@@ -1466,6 +1475,11 @@ QuarkPage {
 		//
 		var lText = buzzerClient.getPlainText(buzzText.textDocument);
 		if (lText.length === 0) lText = buzzText.preeditText;
+		if (lText.includes("/>") || lText.includes("</")) { // TODO: implement more common approach
+			handleError("E_BUZZ_UNSUPPORTED_HTML", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZ_UNSUPPORTED_HTML"));
+			sending = false;
+			return;
+		}
 
 		//
 		mediaListEditor.cleanUp();
@@ -1506,6 +1520,11 @@ QuarkPage {
 		//
 		var lText = buzzerClient.getPlainText(buzzText.textDocument);
 		if (lText.length === 0) lText = buzzText.preeditText;
+		if (lText.includes("/>") || lText.includes("</")) { // TODO: implement more common approach
+			handleError("E_BUZZ_UNSUPPORTED_HTML", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZ_UNSUPPORTED_HTML"));
+			sending = false;
+			return;
+		}
 
 		//
 		mediaListEditor.cleanUp();
@@ -1552,6 +1571,11 @@ QuarkPage {
 		//
 		var lText = buzzerClient.getPlainText(buzzText.textDocument);
 		if (lText.length === 0) lText = buzzText.preeditText;
+		if (lText.includes("/>") || lText.includes("</")) { // TODO: implement more common approach
+			handleError("E_BUZZ_UNSUPPORTED_HTML", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZ_UNSUPPORTED_HTML"));
+			sending = false;
+			return;
+		}
 
 		//
 		mediaListEditor.cleanUp();

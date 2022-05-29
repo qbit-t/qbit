@@ -169,8 +169,8 @@ void WebSourceInfo::processCommon(QNetworkReply* reply) {
 	}
 
 	if (lFound) {
-		title_ = title_.replace("&quot;", "\"").replace("&amp;", "&").replace("&#x27;", "'").replace("&#x39;", "'").replace("&#39;", "'").replace("&#039;", "'");
-		description_ = description_.replace("&quot;", "\"").replace("&amp;", "&").replace("&#x27;", "'").replace("&#x39;", "'").replace("&#39;", "'").replace("&#039;", "'");
+		title_ = title_.replace("&quot;", "\"").replace("&amp;", "&").replace("&#x27;", "'").replace("&#x39;", "'").replace("&#39;", "'").replace("&#039;", "'").replace("&#171;", "'").replace("&#187;", "'");
+		description_ = description_.replace("&quot;", "\"").replace("&amp;", "&").replace("&#x27;", "'").replace("&#x39;", "'").replace("&#39;", "'").replace("&#039;", "'").replace("&#171;", "'").replace("&#187;", "'");
 		image_ = image_.replace("&amp;", "&");
 		type_ = INFO_RICH;
 

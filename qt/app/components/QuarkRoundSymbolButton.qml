@@ -28,6 +28,8 @@ Rectangle
 	property real defaultRadius: 25
 	property string textColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
 	property bool enableShadow: false
+	property var elevation: 5
+	property var outerPercent: 15
 
 	signal click();
 
@@ -123,12 +125,12 @@ Rectangle
 	Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground");
 	Material.primary: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.primary");
 
-	layer.enabled: enableShadow
+	layer.enabled: frame.enableShadow
 	layer.effect: QuarkElevationEffect {
-		elevation: 5
+		elevation: frame.elevation
 		explicitRadius: radius / 2
-		explicitHeight: height + (height * 15) / 100
-		explicitWidth: width + (width * 15) / 100
+		explicitHeight: height + (height * frame.outerPercent) / 100
+		explicitWidth: width + (width * frame.outerPercent) / 100
 	}
 }
 

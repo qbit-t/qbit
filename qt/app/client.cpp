@@ -727,23 +727,35 @@ QString Client::decorateBuzzBodyLimited(const QString& body, int limit) {
 	// already decorated
 	if (body.indexOf("<a") != -1) return body;
 
-	QString lResult = (limit == -1 ? body : body.mid(0, limit));
+	QString lResult = body; // (limit == -1 ? body : body.mid(0, limit));
 	QString lCommonResult;
 
 	struct DecorationRule {
 		QRegularExpression expression;
 		QString pattern;
 		bool truncate;
+		int args = 1;
 	};
+
+	struct _Arg { int start; int length; QString text; };
 
 	QVector<DecorationRule> lDecorationRules;
 
 	DecorationRule lRule;
+	lRule.pattern = QString("<a href='\\2' style='text-decoration:none;color:") +
+			gApplication->getColor(theme(), themeSelector(), "Material.link.rgb") +
+			QString("'>\\1</a>");
+	lRule.expression = QRegularExpression("(\\[(.*?)\\|((?:https?|ftp)://\\S+)\\])"); // [text|url]
+	lRule.truncate = false;
+	lRule.args = 2;
+	lDecorationRules.append(lRule);
+
 	lRule.pattern = QString("<a href='\\1' style='text-decoration:none;color:") +
 			gApplication->getColor(theme(), themeSelector(), "Material.link.rgb") +
 			QString("'>\\2</a>");
-	lRule.expression = QRegularExpression("((?:https?|ftp)://\\S+)"); // urls
+	lRule.expression = QRegularExpression("(\\w*(?<!')(?:https?|ftp)://\\S+(?!'))"); // urls (?!\\")
 	lRule.truncate = true;
+	lRule.args = 1;
 	lDecorationRules.append(lRule);
 
 	lRule.pattern = QString("<a href='\\1' style='text-decoration:none;color:") +
@@ -751,6 +763,7 @@ QString Client::decorateBuzzBodyLimited(const QString& body, int limit) {
 			QString("'>\\2</a>");
 	lRule.expression = QRegularExpression("((?:buzz|msg|qbit)://\\S+)"); // qbit urls
 	lRule.truncate = true;
+	lRule.args = 1;
 	lDecorationRules.append(lRule);
 	lRule.pattern = QString("<a href='\\1' style='text-decoration:none;color:") +
 
@@ -758,6 +771,7 @@ QString Client::decorateBuzzBodyLimited(const QString& body, int limit) {
 			QString("'>\\2</a>");
 	lRule.expression = QRegularExpression("(#[\\w\u0400-\u04FF]+)"); // #tags
 	lRule.truncate = false;
+	lRule.args = 1;
 	lDecorationRules.append(lRule);
 
 	lRule.pattern = QString("<a href='\\1' style='text-decoration:none;color:") +
@@ -765,8 +779,45 @@ QString Client::decorateBuzzBodyLimited(const QString& body, int limit) {
 			QString("'>\\2</a>");
 	lRule.expression = QRegularExpression("(@[A-Za-z0-9]+)"); // @buzzers
 	lRule.truncate = false;
+	lRule.args = 1;
 	lDecorationRules.append(lRule);
 
+	lRule.pattern = QString("<b>\\1</b>");
+	lRule.expression = QRegularExpression("(\\*\\*(.*?)\\*\\*)"); // **bold**
+	lRule.truncate = false;
+	lRule.args = 1;
+	lDecorationRules.append(lRule);
+
+	lRule.pattern = QString("<i>\\1</i>");
+	lRule.expression = QRegularExpression("(__(.*?)__)"); // __italic__
+	lRule.truncate = false;
+	lRule.args = 1;
+	lDecorationRules.append(lRule);
+
+	lRule.pattern = QString("<code>\\1</code>");
+	lRule.expression = QRegularExpression("(`(.*?)`)"); // code with monotype
+	lRule.truncate = false;
+	lRule.args = 1;
+	lDecorationRules.append(lRule);
+
+	//
+	if (limit != -1) {
+		//
+
+		for (const DecorationRule &lRule : qAsConst(lDecorationRules)) {
+			QRegularExpressionMatchIterator lMatchIterator = lRule.expression.globalMatch(lResult);
+			while (lMatchIterator.hasNext()) {
+				QRegularExpressionMatch lMatch = lMatchIterator.next();
+				if (limit != -1 && limit >= lMatch.capturedStart() && limit <= lMatch.capturedStart() + lMatch.capturedLength()) {
+					limit = lMatch.capturedStart() + lMatch.capturedLength();
+				}
+			}
+		}
+
+		lResult = body.mid(0, limit);
+	}
+
+	//
 	int lPrevMatch = 0;
 	bool lHasMatches = false;
 
@@ -778,16 +829,25 @@ QString Client::decorateBuzzBodyLimited(const QString& body, int limit) {
 		QRegularExpressionMatchIterator lMatchIterator = lRule.expression.globalMatch(lResult);
 		while (lMatchIterator.hasNext()) {
 			//
+			// qInfo() << "-----------";
 			QRegularExpressionMatch lMatch = lMatchIterator.next();
-			//
-			QString lUrl = lResult.mid(lMatch.capturedStart(), lMatch.capturedLength());
-
-			QString lUrlPatternDest = lRule.pattern;
-			lUrlPatternDest.replace("\\1", lUrl);
-			//
-			if (lRule.truncate && lUrl.length() > 30) {
-				lUrl.truncate(30); lUrl += "...";
+			QVector<_Arg> lArgs;
+			for (int lArg = 0; lArg <= lMatch.lastCapturedIndex(); lArg++) {
+				lArgs.push_back(_Arg { lMatch.capturedStart(lArg), lMatch.capturedLength(lArg), lMatch.captured(lArg) });
+				//qInfo() << "Captured:" << lMatch.captured(lArg) << lMatch.capturedStart(lArg) << lMatch.capturedLength(lArg);
 			}
+
+			//
+			QString lUrlPatternDest = lRule.pattern;
+			//
+			QString lUrl = (lArgs.size() > 1 && lRule.args > 1 ? lArgs[lArgs.size()-2].text : (lArgs.size() ? lArgs[lArgs.size()-1].text : "...")); //lResult.mid(lMatch.capturedStart(), lMatch.capturedLength());
+			lUrlPatternDest.replace("\\1", lUrl);
+			//			
+			lUrl = (lArgs.size() > 1 && lRule.args > 1 ? lArgs[lArgs.size()-1].text : (lArgs.size() ? lArgs[lArgs.size()-1].text : "...")); //lResult.mid(lMatch.capturedStart(), lMatch.capturedLength());
+			if (lRule.truncate && lUrl.length() > 25) {
+				lUrl.truncate(25); lUrl += "...";
+			}
+
 			lUrlPatternDest.replace("\\2", lUrl);
 
 			if (lMatch.capturedStart() >= lPrevMatch) {
@@ -795,6 +855,10 @@ QString Client::decorateBuzzBodyLimited(const QString& body, int limit) {
 				lCommonResult += lResult.mid(lPrevMatch, lMatch.capturedStart() - lPrevMatch);
 				lCommonResult += lUrlPatternDest;
 				lPrevMatch = lMatch.capturedStart() + lMatch.capturedLength();
+			}
+
+			if (limit != -1 && limit >= lMatch.capturedStart() && limit <= lMatch.capturedStart() + lMatch.capturedLength()) {
+				limit = lMatch.capturedStart() + lMatch.capturedLength();
 			}
 		}
 

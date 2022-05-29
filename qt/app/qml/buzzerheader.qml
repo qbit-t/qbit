@@ -274,7 +274,7 @@ Item {
 			width: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 50 : 40
 			fontPointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 22 : 24
 			itemLeftPadding: buzzerApp.isDesktop ? /*buzzerClient.scaleFactor * */12 : 8
-			itemTopPadding: buzzerApp.isDesktop ? /*buzzerClient.scaleFactor * */10 : 8
+			itemTopPadding: buzzerApp.isDesktop ? /*buzzerClient.scaleFactor * */5 : 8
 			itemHorizontalAlignment: Text.AlignHCenter
 			leftPadding: buzzerApp.isDesktop ? 0 : -3
 

@@ -379,7 +379,7 @@ Item {
 
 		onProcessed: {
 			// pkey, body
-			bodyControl.message = body.replace(/(\r\n|\n|\r)/gm, "");
+			bodyControl.message = body.replace(/(\r\n|\n|\r)/gm, " ");
 		}
 
 		onError: {

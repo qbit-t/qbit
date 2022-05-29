@@ -521,7 +521,7 @@ Item {
 
 		onProcessed: {
 			// key, body
-			bodyControl.message = body.replace(/(\r\n|\n|\r)/gm, "");
+			bodyControl.message = body.replace(/(\r\n|\n|\r)/gm, " ");
 			eventconversationitem_.calculateHeight();
 		}
 	}
