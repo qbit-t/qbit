@@ -477,11 +477,8 @@ bool BuzzerTransactionStoreExtension::isAllowed(TransactionContextPtr ctx) {
 			uint256 lBuzzerId = lBuzzHide->in()[TX_BUZZ_MY_BUZZER_IN].out().tx(); // owner
 			
 			//
-			// NOTICE: there is no need to check this - just pass
-			//
-			db::DbContainer<uint256, uint256>::Iterator lHidden = hiddenIdx_.find(lBuzzId);
-			if (lHidden.valid()) // already hidden, without doubts
-				return false;
+			uint256 lOwner;
+			if (hiddenIdx_.read(lBuzzId, lOwner)) return false;
 		}
 	} 
 
@@ -1654,9 +1651,8 @@ void BuzzerTransactionStoreExtension::removeTransaction(TransactionPtr tx) {
 			uint256 lBuzzId = lBuzzHide->in()[TX_BUZZ_HIDE_IN].out().tx(); //
 			uint256 lBuzzerId = lBuzzHide->in()[TX_BUZZ_MY_BUZZER_IN].out().tx(); //
 			// remove index
-			db::DbContainer<uint256 /*buzz|rebuzz|reply*/, uint256 /*buzzer*/>::Iterator lHidden = hiddenIdx_.find(lBuzzId);
-			//
-			if (lHidden.valid()) {
+			uint256 lOwner;
+			if (hiddenIdx_.read(lBuzzId, lOwner)) {
 				//
 				hiddenIdx_.remove(lBuzzId);
 			}
@@ -2813,8 +2809,8 @@ void BuzzerTransactionStoreExtension::selectMessages(uint64_t from, const uint25
 			if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
 			else continue;
 			// check for hidden
-			db::DbContainer<uint256 /*buzz|rebuzz|reply*/, uint256 /*buzzer*/>::Iterator lHidden = hiddenIdx_.find(*lFrom);
-			if (lHidden.valid()) continue;
+			uint256 lOwner;
+			if (hiddenIdx_.read(*lFrom, lOwner)) continue;
 			//
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectMessages]: try to added item ") +
 				strprintf("buzzer = %s/%s, %s/%s#", lBuzzer->id().toHex(), lTxPublisher.toHex(), lTx->id().toHex(), store_->chain().toHex().substr(0, 10)));
@@ -3568,8 +3564,8 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedByBuzz(uint64_t from, const 
 				if (!lPublisherInfo.trusted()) continue;
 			}
 			// check for hidden
-			db::DbContainer<uint256 /*buzz|rebuzz|reply*/, uint256 /*buzzer*/>::Iterator lHidden = hiddenIdx_.find(lEventId);
-			if (lHidden.valid()) continue;
+			uint256 lOwner;
+			if (hiddenIdx_.read(lEventId, lOwner)) continue;
 			//
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectBuzzfeedByBuzz]: try to added item ") +
 				strprintf("buzzer = %s/%s, %s/%s#", lBuzzer->id().toHex(), lTxPublisher.toHex(), lTx->id().toHex(), store_->chain().toHex().substr(0, 10)));
@@ -3671,8 +3667,8 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedByBuzzer(uint64_t from, cons
 				if (!lPublisherInfo.trusted()) continue;
 			}
 			// check for hidden
-			db::DbContainer<uint256 /*buzz|rebuzz|reply*/, uint256 /*buzzer*/>::Iterator lHidden = hiddenIdx_.find(*lFrom);
-			if (lHidden.valid()) continue;
+			uint256 lOwner;
+			if (hiddenIdx_.read(*lFrom, lOwner)) continue;
 			//
 			bool lProcessed = false;
 			if (lTx->type() == TX_REBUZZ) {
@@ -3837,8 +3833,8 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedGlobal(uint64_t timeframeFro
 			}
 
 			// check for hidden
-			db::DbContainer<uint256 /*buzz|rebuzz|reply*/, uint256 /*buzzer*/>::Iterator lHidden = hiddenIdx_.find(*lFrom);
-			if (lHidden.valid()) continue;
+			uint256 lOwner;
+			if (hiddenIdx_.read(*lFrom, lOwner)) continue;
 
 			// check for personal trust
 			db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*endoser*/, uint256 /*tx*/>::Iterator 
@@ -4008,8 +4004,8 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedByTag(const std::string& tag
 			}
 
 			// check for hidden
-			db::DbContainer<uint256 /*buzz|rebuzz|reply*/, uint256 /*buzzer*/>::Iterator lHidden = hiddenIdx_.find(*lFrom);
-			if (lHidden.valid()) continue;
+			uint256 lOwner;
+			if (hiddenIdx_.read(*lFrom, lOwner)) continue;
 
 			//
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectBuzzfeedByTag]: try to added item ") +
@@ -4191,8 +4187,8 @@ void BuzzerTransactionStoreExtension::selectBuzzfeed(const std::vector<BuzzfeedP
 				}
 
 				// check for hidden
-				db::DbContainer<uint256 /*buzz|rebuzz|reply*/, uint256 /*buzzer*/>::Iterator lHidden = hiddenIdx_.find(*lFrom);
-				if (lHidden.valid()) continue;
+				uint256 lOwner;
+				if (hiddenIdx_.read(*lFrom, lOwner)) continue;
 
 				//
 				bool lProcessed = false;
