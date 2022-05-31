@@ -1338,11 +1338,13 @@ void BuzzerLightComposer::CreateTxBuzz::utxoByBuzzerLoaded(const std::vector<Tra
 	// reply out
 	buzzTx_->addBuzzReplyOut(*lSKey, lPKey); // out[0]
 	// re-buzz out
-	buzzTx_->addReBuzzOut(*lSKey, lPKey); // out[1]
+	buzzTx_->addReBuzzOut(*lSKey, lPKey); // --
 	// like out
-	buzzTx_->addBuzzLikeOut(*lSKey, lPKey); // out[2]
+	buzzTx_->addBuzzLikeOut(*lSKey, lPKey); // out[1]
 	// reward out
-	buzzTx_->addBuzzRewardOut(*lSKey, lPKey); // out[3]
+	buzzTx_->addBuzzRewardOut(*lSKey, lPKey); // out[2]
+	// hide out
+	buzzTx_->addBuzzHideOut(*lSKey, lPKey); // out[3]
 	// pin out
 	buzzTx_->addBuzzPinOut(*lSKey, lPKey); // out[4]
 
@@ -2103,19 +2105,23 @@ void BuzzerLightComposer::CreateTxBuzzHide::utxoByBuzzerLoaded(const std::vector
 	TransactionContextPtr lCtx = TransactionContext::instance(lTx);
 	//
 	lTx->setTimestamp(qbit::getMedianMicroseconds());
+	lTx->setChain(chain_);
 
 	// get buzzer tx (saved/cached)
 	TxBuzzerPtr lMyBuzzer = composer_->buzzerTx();
 	if (lMyBuzzer) {
 		SKeyPtr lSKey = composer_->wallet()->firstKey();
 		//
-		if (buzzUtxo_.size() > TX_BUZZ_HIDE_OUT && utxo.size() > TX_BUZZER_MY_OUT) {
+		bool lBuzzerMessage = !(buzzUtxo_.size() > TX_BUZZ_HIDE_OUT); // TX_BUZZER_MESSAGE_HIDE_OUT;
+		//
+		if ((buzzUtxo_.size() > TX_BUZZ_HIDE_OUT || buzzUtxo_.size() > TX_BUZZER_MESSAGE_HIDE_OUT) &&
+																				utxo.size() > TX_BUZZER_MY_OUT) {
 			// add my byzzer in
 			lTx->addMyBuzzerIn(*lSKey, Transaction::UnlinkedOut::instance(const_cast<Transaction::UnlinkedOut&>(utxo[TX_BUZZER_MY_OUT])));
 			// add buzz in
-			lTx->addBuzzHideIn(*lSKey, Transaction::UnlinkedOut::instance(buzzUtxo_[TX_BUZZ_HIDE_OUT].utxo()));
+			lTx->addBuzzHideIn(*lSKey, Transaction::UnlinkedOut::instance(buzzUtxo_[lBuzzerMessage ? TX_BUZZER_MESSAGE_HIDE_OUT : TX_BUZZ_HIDE_OUT].utxo()));
 			// sign
-			lTx->makeSignature(*lSKey, buzzUtxo_[TX_BUZZ_HIDE_OUT].utxo().out().tx());
+			lTx->makeSignature(*lSKey, buzzUtxo_[lBuzzerMessage ? TX_BUZZER_MESSAGE_HIDE_OUT : TX_BUZZ_HIDE_OUT].utxo().out().tx());
 
 			// finalize
 			if (!lTx->finalize(*lSKey)) { error_("E_TX_FINALIZE", "Transaction finalization failed."); return; }
@@ -2323,13 +2329,15 @@ void BuzzerLightComposer::CreateTxBuzzReply::utxoByBuzzerLoaded(const std::vecto
 	// reply out
 	buzzTx_->addBuzzReplyOut(*lSKey, lPKey); // out[0]
 	// re-buzz out
-	buzzTx_->addReBuzzOut(*lSKey, lPKey); // out[1]
+	buzzTx_->addReBuzzOut(*lSKey, lPKey); // --
 	// like out
-	buzzTx_->addBuzzLikeOut(*lSKey, lPKey); // out[2]
+	buzzTx_->addBuzzLikeOut(*lSKey, lPKey); // out[1]
 	// reward out
-	buzzTx_->addBuzzRewardOut(*lSKey, lPKey); // out[3]
-	// NOTE: pin out is not need
-	// buzzTx_->addBuzzPinOut(*lSKey, lPKey); // out[4]
+	buzzTx_->addBuzzRewardOut(*lSKey, lPKey); // out[2]
+	// hide out
+	buzzTx_->addBuzzHideOut(*lSKey, lPKey); // out[3]
+	// pin out
+	buzzTx_->addBuzzPinOut(*lSKey, lPKey); // out[4]
 
 	// check buzzers list
 	if (!buzzers_.size()) {
@@ -3427,6 +3435,8 @@ void BuzzerLightComposer::CreateTxBuzzerMessage::utxoByBuzzerLoaded(const std::v
 	messageTx_->setChain(conversationUtxo_[TX_BUZZER_CONVERSATION_MESSAGE_OUT].utxo().out().chain());
 	// reply out
 	messageTx_->addMessageReplyOut(*lSKey, lPKey); // out[0]
+	// hide out
+	messageTx_->addBuzzHideOut(*lSKey, lPKey); // out[1]
 
 	// prepare fee tx
 	amount_t lFeeAmount = ctx_->size();

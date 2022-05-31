@@ -27,6 +27,7 @@
 	#include "dapps/buzzer/txbuzzer.h"
 	#include "dapps/buzzer/txbuzz.h"
 	#include "dapps/buzzer/txbuzzlike.h"
+	#include "dapps/buzzer/txbuzzhide.h"
 	#include "dapps/buzzer/txbuzzreward.h"
 	#include "dapps/buzzer/txbuzzreply.h"
 	#include "dapps/buzzer/txrebuzz.h"

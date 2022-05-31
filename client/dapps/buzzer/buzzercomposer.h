@@ -720,8 +720,8 @@ public:
 		void process(errorFunction);
 
 		static IComposerMethodPtr instance(BuzzerLightComposerPtr composer, const uint256& chain, const uint256& buzz, transactionCreatedFunction created) {
-			return std::make_shared<CreateTxBuzzLike>(composer, chain, buzz, created);
-		} 
+			return std::make_shared<CreateTxBuzzHide>(composer, chain, buzz, created);
+		}
 
 		// 
 		void timeout() {

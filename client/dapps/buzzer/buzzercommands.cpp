@@ -1967,7 +1967,7 @@ void BuzzHideCommand::process(const std::vector<std::string>& args) {
 		//
 		BuzzfeedItemPtr lItem = buzzFeed_->locateBuzz(lBuzzId);
 		//
-		if (composer_->buzzerId() != lItem->buzzId()) {
+		if (composer_->buzzerId() != lItem->buzzerId()) {
 			error("E_BUZZ_OWNER_IS_INCORRECT", "Incorrect buzz owner");
 			return;
 		}

@@ -1322,6 +1322,7 @@ Item {
 
 	BuzzerCommands.BuzzHideCommand {
 		id: buzzHideCommand
+		model: buzzfeedModel_
 
 		onProcessed: {
 		}

@@ -16,6 +16,7 @@ namespace qbit {
 #define TX_BUZZER_CONVERSATION_IN 1
 
 #define TX_BUZZER_MESSAGE_REPLY_OUT 0
+#define TX_BUZZER_MESSAGE_HIDE_OUT 1
 
 //
 class TxBuzzerMessage: public TxBuzz {

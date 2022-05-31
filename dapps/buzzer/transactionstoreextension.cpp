@@ -476,12 +476,13 @@ bool BuzzerTransactionStoreExtension::isAllowed(TransactionContextPtr ctx) {
 			uint256 lBuzzId = lBuzzHide->in()[TX_BUZZ_HIDE_IN].out().tx(); // buzz_id
 			uint256 lBuzzerId = lBuzzHide->in()[TX_BUZZ_MY_BUZZER_IN].out().tx(); // owner
 			
-			// check index
-			db::DbContainer<uint256 /*buzz|rebuzz|reply*/, uint256 /*buzzer*/>::Iterator lHidden = hiddenIdx_.find(lBuzzId);
+			//
+			// NOTICE: there is no need to check this - just pass
+			//
+			db::DbContainer<uint256, uint256>::Iterator lHidden = hiddenIdx_.find(lBuzzId);
 			if (lHidden.valid()) // already hidden, without doubts
 				return false;
-
-		} else return false;
+		}
 	} 
 
 	return true;
@@ -2811,6 +2812,9 @@ void BuzzerTransactionStoreExtension::selectMessages(uint64_t from, const uint25
 			TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lTxPublisher);
 			if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
 			else continue;
+			// check for hidden
+			db::DbContainer<uint256 /*buzz|rebuzz|reply*/, uint256 /*buzzer*/>::Iterator lHidden = hiddenIdx_.find(*lFrom);
+			if (lHidden.valid()) continue;
 			//
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectMessages]: try to added item ") +
 				strprintf("buzzer = %s/%s, %s/%s#", lBuzzer->id().toHex(), lTxPublisher.toHex(), lTx->id().toHex(), store_->chain().toHex().substr(0, 10)));

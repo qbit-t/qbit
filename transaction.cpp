@@ -41,9 +41,10 @@ std::string qbit::Transaction::Out::toString() const
 std::string qbit::Transaction::toString() 
 {
 	std::string str;
-	str += strprintf("%s(hash=%s, ins=%u, outs=%u)\n",
+	str += strprintf("%s(hash=%s, chain=%s, ins=%u, outs=%u)\n",
 		name(),
 		hash().toHex(),
+		chain().toHex(),
 		in_.size(),
 		out_.size());
 	

@@ -108,6 +108,7 @@ Item {
 
 	onModel_Changed: {
 		decryptCommand.model = model_;
+		buzzHideCommand.model = model_;
 
 		// in case of counterparty pkey was not cached
 		if (buzzBody_ === "" && accepted_) {
