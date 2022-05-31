@@ -18,7 +18,8 @@ typedef LimitedString<64> buzzer_tag_t;
 #define TX_BUZZ_REPLY_OUT 0
 #define TX_BUZZ_LIKE_OUT 1
 #define TX_BUZZ_REWARD_OUT 2
-#define TX_BUZZ_PIN_OUT 3
+#define TX_BUZZ_HIDE_OUT 3
+#define TX_BUZZ_PIN_OUT 4
 
 //
 class TxBuzz: public TxEvent {
@@ -237,9 +238,6 @@ public:
 	}
 
 	Transaction::UnlinkedOutPtr addBuzzHideOut(const SKey& skey, const PKey& pkey) {
-		//
-		// TODO: implement hide_buzz transaction
-		/*
 		Transaction::Out lOut;
 		lOut.setAsset(TxAssetType::nullAsset());
 		lOut.setDestination(ByteCode() <<
@@ -247,7 +245,7 @@ public:
 			OP(QEQADDR) 	<<
 			OP(QPEN) 		<<
 			OP(QPTXO)		<< // use in entity-based pushUnlinkedOut's
-			OP(QMOV)		<< REG(QR1) << CU16(TX_BUZZ_PIN) <<
+			OP(QMOV)		<< REG(QR1) << CU16(TX_BUZZ_HIDE) <<
 			OP(QCMPE)		<< REG(QTH1) << REG(QR1) <<
 			OP(QMOV) 		<< REG(QR0) << REG(QC0) <<	
 			OP(QRET));
@@ -259,9 +257,6 @@ public:
 
 		out_.push_back(lOut);
 		return lUTXO;
-		*/
-
-		return nullptr;
 	}
 
 	//

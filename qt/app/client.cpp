@@ -297,6 +297,7 @@ int Client::open(QString secret) {
 	Transaction::registerTransactionType(TX_BUZZER_UNSUBSCRIBE, TxBuzzerUnsubscribeCreator::instance());
 	Transaction::registerTransactionType(TX_BUZZ, TxBuzzCreator::instance());
 	Transaction::registerTransactionType(TX_BUZZ_LIKE, TxBuzzLikeCreator::instance());
+	Transaction::registerTransactionType(TX_BUZZ_HIDE, TxBuzzHideCreator::instance());
 	Transaction::registerTransactionType(TX_BUZZ_REPLY, TxBuzzReplyCreator::instance());
 	Transaction::registerTransactionType(TX_REBUZZ, TxReBuzzCreator::instance());
 	Transaction::registerTransactionType(TX_BUZZ_REBUZZ_NOTIFY, TxReBuzzNotifyCreator::instance());
@@ -456,6 +457,7 @@ int Client::open(QString secret) {
 	qmlRegisterType<buzzer::DownloadMediaCommand>("app.buzzer.commands", 1, 0, "DownloadMediaCommand");
 	qmlRegisterType<buzzer::UploadMediaCommand>("app.buzzer.commands", 1, 0, "UploadMediaCommand");
 	qmlRegisterType<buzzer::BuzzLikeCommand>("app.buzzer.commands", 1, 0, "BuzzLikeCommand");
+	qmlRegisterType<buzzer::BuzzHideCommand>("app.buzzer.commands", 1, 0, "BuzzHideCommand");
 	qmlRegisterType<buzzer::BuzzRewardCommand>("app.buzzer.commands", 1, 0, "BuzzRewardCommand");
 	qmlRegisterType<buzzer::BuzzCommand>("app.buzzer.commands", 1, 0, "BuzzCommand");
 	qmlRegisterType<buzzer::ReBuzzCommand>("app.buzzer.commands", 1, 0, "ReBuzzCommand");
@@ -709,14 +711,19 @@ QString Client::extractLastUrl(const QString& body) {
 	//
 	QString lUrl;
 	QString lResult = body;
-	QRegularExpression lRule = QRegularExpression("((?:https?|ftp)://\\S+)");
+	QRegularExpression lRule = QRegularExpression(REGEX_UNIVERSAL_URL_PATTERN);
 	QRegularExpressionMatchIterator lMatchIterator = lRule.globalMatch(lResult);
 	while (lMatchIterator.hasNext()) {
 		QRegularExpressionMatch lMatch = lMatchIterator.next();
 		lUrl = lResult.mid(lMatch.capturedStart(), lMatch.capturedLength());
 	}
 
-	return lUrl;
+	if (lUrl.size() > 3) {
+		QString lLegal = lUrl.mid(0, 3);
+		if (lLegal == "htt" || lLegal == "ftp") return lUrl;
+	}
+
+	return QString();
 }
 
 // TODO: just keep it
@@ -727,14 +734,15 @@ QString Client::decorateBuzzBodyLimited(const QString& body, int limit) {
 	// already decorated
 	if (body.indexOf("<a") != -1) return body;
 
-	QString lResult = body; // (limit == -1 ? body : body.mid(0, limit));
+	QString lResult = body;
 	QString lCommonResult;
 
 	struct DecorationRule {
 		QRegularExpression expression;
 		QString pattern;
 		bool truncate;
-		int args = 1;
+		int arg0 = 0;
+		int arg1 = 0;
 	};
 
 	struct _Arg { int start; int length; QString text; };
@@ -745,19 +753,22 @@ QString Client::decorateBuzzBodyLimited(const QString& body, int limit) {
 	lRule.pattern = QString("<a href='\\2' style='text-decoration:none;color:") +
 			gApplication->getColor(theme(), themeSelector(), "Material.link.rgb") +
 			QString("'>\\1</a>");
-	lRule.expression = QRegularExpression("(\\[(.*?)\\|((?:https?|ftp)://\\S+)\\])"); // [text|url]
+	lRule.expression = QRegularExpression(REGEX_EMBEDDED_LINK);
 	lRule.truncate = false;
-	lRule.args = 2;
+	lRule.arg0 = 2;
+	lRule.arg1 = 3;
 	lDecorationRules.append(lRule);
 
 	lRule.pattern = QString("<a href='\\1' style='text-decoration:none;color:") +
 			gApplication->getColor(theme(), themeSelector(), "Material.link.rgb") +
 			QString("'>\\2</a>");
-	lRule.expression = QRegularExpression("(\\w*(?<!')(?:https?|ftp)://\\S+(?!'))"); // urls (?!\\")
+	lRule.expression = QRegularExpression(REGEX_EMBEDDED_URL);
 	lRule.truncate = true;
-	lRule.args = 1;
+	lRule.arg0 = 2;
+	lRule.arg1 = 2;
 	lDecorationRules.append(lRule);
 
+	/*
 	lRule.pattern = QString("<a href='\\1' style='text-decoration:none;color:") +
 			gApplication->getColor(theme(), themeSelector(), "Material.link.rgb") +
 			QString("'>\\2</a>");
@@ -766,12 +777,14 @@ QString Client::decorateBuzzBodyLimited(const QString& body, int limit) {
 	lRule.args = 1;
 	lDecorationRules.append(lRule);
 	lRule.pattern = QString("<a href='\\1' style='text-decoration:none;color:") +
+	*/
 
 	gApplication->getColor(theme(), themeSelector(), "Material.link.rgb") +
 			QString("'>\\2</a>");
 	lRule.expression = QRegularExpression("(#[\\w\u0400-\u04FF]+)"); // #tags
 	lRule.truncate = false;
-	lRule.args = 1;
+	lRule.arg0 = 0;
+	lRule.arg1 = 0;
 	lDecorationRules.append(lRule);
 
 	lRule.pattern = QString("<a href='\\1' style='text-decoration:none;color:") +
@@ -779,25 +792,29 @@ QString Client::decorateBuzzBodyLimited(const QString& body, int limit) {
 			QString("'>\\2</a>");
 	lRule.expression = QRegularExpression("(@[A-Za-z0-9]+)"); // @buzzers
 	lRule.truncate = false;
-	lRule.args = 1;
+	lRule.arg0 = 0;
+	lRule.arg1 = 0;
 	lDecorationRules.append(lRule);
 
 	lRule.pattern = QString("<b>\\1</b>");
 	lRule.expression = QRegularExpression("(\\*\\*(.*?)\\*\\*)"); // **bold**
 	lRule.truncate = false;
-	lRule.args = 1;
+	lRule.arg0 = 2;
+	lRule.arg1 = 2;
 	lDecorationRules.append(lRule);
 
 	lRule.pattern = QString("<i>\\1</i>");
 	lRule.expression = QRegularExpression("(__(.*?)__)"); // __italic__
 	lRule.truncate = false;
-	lRule.args = 1;
+	lRule.arg0 = 2;
+	lRule.arg1 = 2;
 	lDecorationRules.append(lRule);
 
 	lRule.pattern = QString("<code>\\1</code>");
 	lRule.expression = QRegularExpression("(`(.*?)`)"); // code with monotype
 	lRule.truncate = false;
-	lRule.args = 1;
+	lRule.arg0 = 2;
+	lRule.arg1 = 2;
 	lDecorationRules.append(lRule);
 
 	//
@@ -829,7 +846,7 @@ QString Client::decorateBuzzBodyLimited(const QString& body, int limit) {
 		QRegularExpressionMatchIterator lMatchIterator = lRule.expression.globalMatch(lResult);
 		while (lMatchIterator.hasNext()) {
 			//
-			// qInfo() << "-----------";
+			//qInfo() << "-----------";
 			QRegularExpressionMatch lMatch = lMatchIterator.next();
 			QVector<_Arg> lArgs;
 			for (int lArg = 0; lArg <= lMatch.lastCapturedIndex(); lArg++) {
@@ -840,10 +857,10 @@ QString Client::decorateBuzzBodyLimited(const QString& body, int limit) {
 			//
 			QString lUrlPatternDest = lRule.pattern;
 			//
-			QString lUrl = (lArgs.size() > 1 && lRule.args > 1 ? lArgs[lArgs.size()-2].text : (lArgs.size() ? lArgs[lArgs.size()-1].text : "...")); //lResult.mid(lMatch.capturedStart(), lMatch.capturedLength());
+			QString lUrl = (lArgs.size() > lRule.arg0 ? lArgs[lRule.arg0].text : "");
 			lUrlPatternDest.replace("\\1", lUrl);
 			//			
-			lUrl = (lArgs.size() > 1 && lRule.args > 1 ? lArgs[lArgs.size()-1].text : (lArgs.size() ? lArgs[lArgs.size()-1].text : "...")); //lResult.mid(lMatch.capturedStart(), lMatch.capturedLength());
+			lUrl = (lArgs.size() > lRule.arg1 ? lArgs[lRule.arg1].text : "");
 			if (lRule.truncate && lUrl.length() > 25) {
 				lUrl.truncate(25); lUrl += "...";
 			}

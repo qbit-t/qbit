@@ -503,6 +503,11 @@ Buzzer::VerificationResult BuzzerLightComposer::verifyPublisherLazy(BuzzfeedItem
 					return Buzzer::VerificationResult::SUCCESS;
 				else
 					return Buzzer::VerificationResult::INVALID;				
+			} else if (item->type() == TX_BUZZ_HIDE) {
+				//
+				if (TxBuzzHide::verifySignature(lPKey, item->timestamp(), item->buzzId(), item->signature()))
+					return Buzzer::VerificationResult::SUCCESS;
+				return Buzzer::VerificationResult::INVALID;
 			}
 
 			if (TxBuzz::verifySignature(lPKey, item->type(), item->timestamp(), item->score(),
@@ -590,6 +595,11 @@ Buzzer::VerificationResult BuzzerLightComposer::verifyPublisherStrict(BuzzfeedIt
 					item->buzzerInfoId(), item->value(), lInfo.buzzerId(), item->signature());
 
 				return (lResult == true ? Buzzer::VerificationResult::SUCCESS : Buzzer::VerificationResult::INVALID);
+			} else if (item->type() == TX_BUZZ_HIDE) {
+				//
+				if (TxBuzzHide::verifySignature(lPKey, item->timestamp(), item->buzzId(), item->signature()))
+					return Buzzer::VerificationResult::SUCCESS;
+				return Buzzer::VerificationResult::INVALID;
 			}
 
 			if (TxBuzz::verifySignature(lPKey, item->type(), item->timestamp(), item->score(), item->buzzerInfoId(),
@@ -2033,6 +2043,79 @@ void BuzzerLightComposer::CreateTxBuzzLike::utxoByBuzzerLoaded(const std::vector
 			lTx->addBuzzLikeIn(*lSKey, Transaction::UnlinkedOut::instance(buzzUtxo_[TX_BUZZ_LIKE_OUT].utxo()));
 			// sign
 			lTx->makeSignature(*lSKey, buzzUtxo_[TX_BUZZ_LIKE_OUT].utxo().out().tx());
+
+			// finalize
+			if (!lTx->finalize(*lSKey)) { error_("E_TX_FINALIZE", "Transaction finalization failed."); return; }
+
+			created_(lCtx);
+		} else {
+			error_("E_BUZZ_UTXO_ABSENT", "Buzz utxo was not found."); return;
+		}
+	} else {
+		error_("E_BUZZER_TX_NOT_FOUND", "Local buzzer was not found."); return;
+	}
+}
+
+//
+// CreateTxBuzzHide
+//
+void BuzzerLightComposer::CreateTxBuzzHide::process(errorFunction error) {
+	//
+	error_ = error;
+	buzzUtxo_.clear();
+
+	// 
+	if (!composer_->requestProcessor()->selectUtxoByTransaction(chain_, buzz_, 
+		SelectUtxoByTransaction::instance(
+			boost::bind(&BuzzerLightComposer::CreateTxBuzzHide::utxoByBuzzLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
+			boost::bind(&BuzzerLightComposer::CreateTxBuzzHide::timeout, shared_from_this()))
+	)) { error_("E_LOAD_UTXO_BY_BUZZ", "Buzz loading failed."); return; }
+}
+
+void BuzzerLightComposer::CreateTxBuzzHide::utxoByBuzzLoaded(const std::vector<Transaction::NetworkUnlinkedOut>& utxo, const uint256& tx) {
+	//
+	buzzUtxo_ = utxo;
+
+	//
+	std::vector<Transaction::UnlinkedOut> lMyBuzzerUtxos = composer_->buzzerUtxo();
+	if (!lMyBuzzerUtxos.size()) {
+		composer_->requestProcessor()->selectUtxoByEntity(composer_->buzzerTx()->myName(), 
+			SelectUtxoByEntityName::instance(
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzHide::saveBuzzerUtxo, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzHide::timeout, shared_from_this()))
+		);
+	} else {
+		utxoByBuzzerLoaded(lMyBuzzerUtxos, composer_->buzzerTx()->myName());
+	}
+}
+
+void BuzzerLightComposer::CreateTxBuzzHide::saveBuzzerUtxo(const std::vector<Transaction::UnlinkedOut>& utxo, const std::string& buzzer) {
+	//
+	TxBuzzerPtr lMyBuzzer = composer_->buzzerTx();
+	composer_->writeBuzzerUtxo(utxo);
+	utxoByBuzzerLoaded(utxo, lMyBuzzer->myName());
+}
+
+void BuzzerLightComposer::CreateTxBuzzHide::utxoByBuzzerLoaded(const std::vector<Transaction::UnlinkedOut>& utxo, const std::string& buzzer) {
+	//
+	TxBuzzHidePtr lTx = TransactionHelper::to<TxBuzzHide>(TransactionFactory::create(TX_BUZZ_HIDE));
+	// create context
+	TransactionContextPtr lCtx = TransactionContext::instance(lTx);
+	//
+	lTx->setTimestamp(qbit::getMedianMicroseconds());
+
+	// get buzzer tx (saved/cached)
+	TxBuzzerPtr lMyBuzzer = composer_->buzzerTx();
+	if (lMyBuzzer) {
+		SKeyPtr lSKey = composer_->wallet()->firstKey();
+		//
+		if (buzzUtxo_.size() > TX_BUZZ_HIDE_OUT && utxo.size() > TX_BUZZER_MY_OUT) {
+			// add my byzzer in
+			lTx->addMyBuzzerIn(*lSKey, Transaction::UnlinkedOut::instance(const_cast<Transaction::UnlinkedOut&>(utxo[TX_BUZZER_MY_OUT])));
+			// add buzz in
+			lTx->addBuzzHideIn(*lSKey, Transaction::UnlinkedOut::instance(buzzUtxo_[TX_BUZZ_HIDE_OUT].utxo()));
+			// sign
+			lTx->makeSignature(*lSKey, buzzUtxo_[TX_BUZZ_HIDE_OUT].utxo().out().tx());
 
 			// finalize
 			if (!lTx->finalize(*lSKey)) { error_("E_TX_FINALIZE", "Transaction finalization failed."); return; }

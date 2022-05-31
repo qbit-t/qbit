@@ -7,6 +7,7 @@
 #include "txrebuzznotify.h"
 #include "txbuzzreply.h"
 #include "txbuzzlike.h"
+#include "txbuzzhide.h"
 #include "txbuzzreward.h"
 #include "txbuzzersubscribe.h"
 #include "txbuzzerunsubscribe.h"
@@ -53,6 +54,7 @@ bool BuzzerTransactionStoreExtension::open() {
 			buzzerInfo_.open();
 			endorsements_.open();
 			mistrusts_.open();
+			hiddenIdx_.open();
 
 			opened_ = true;
 		}
@@ -95,6 +97,7 @@ bool BuzzerTransactionStoreExtension::close() {
 	buzzerStat_.close();
 	endorsements_.close();
 	mistrusts_.close();
+	hiddenIdx_.close();
 
 	opened_ = false;
 
@@ -464,7 +467,22 @@ bool BuzzerTransactionStoreExtension::isAllowed(TransactionContextPtr ctx) {
 			lName.find("member" ) != std::string::npos)
 			return false;
 #endif
-	}
+	} else if (ctx->tx()->type() == TX_BUZZ_HIDE) {
+		//
+		TxBuzzHidePtr lBuzzHide = TransactionHelper::to<TxBuzzHide>(ctx->tx());
+		//
+		if (lBuzzHide->in().size() > TX_BUZZ_HIDE_IN) {
+			// extract buzz | buzzer
+			uint256 lBuzzId = lBuzzHide->in()[TX_BUZZ_HIDE_IN].out().tx(); // buzz_id
+			uint256 lBuzzerId = lBuzzHide->in()[TX_BUZZ_MY_BUZZER_IN].out().tx(); // owner
+			
+			// check index
+			db::DbContainer<uint256 /*buzz|rebuzz|reply*/, uint256 /*buzzer*/>::Iterator lHidden = hiddenIdx_.find(lBuzzId);
+			if (lHidden.valid()) // already hidden, without doubts
+				return false;
+
+		} else return false;
+	} 
 
 	return true;
 }
@@ -688,6 +706,8 @@ bool BuzzerTransactionStoreExtension::pushEntity(const uint256& id, TransactionC
 		processDeclineConversation(id, ctx);
 	} else if (ctx->tx()->type() == TX_BUZZER_MESSAGE) {
 		processMessage(id, ctx);
+	} else if (ctx->tx()->type() == TX_BUZZ_HIDE) {
+		processHide(id, ctx);
 	}
 
 	//
@@ -1186,11 +1206,6 @@ void BuzzerTransactionStoreExtension::processEvent(const uint256& id, Transactio
 			db::DbTwoKeyContainer<uint256 /*buzz|rebuzz|reply*/, uint256 /*rebuzzer*/, uint256 /*rebuzz_tx*/>::Iterator 
 				lRebuzzIdx = rebuzzesIdx_.find(lRebuzzNotify->buzzId(), lPublisher);
 
-			// WARNING: breaks current logic
-			/*
-			if (!lRebuzzIdx.valid() && lPublisher != lRebuzzNotify->buzzerId()) 
-				incrementEndorsements(lRebuzzNotify->buzzerId(), BUZZER_ENDORSE_REBUZZ);
-			*/
 			rebuzzesIdx_.write(lRebuzzNotify->buzzId(), lPublisher, lEvent->id());
 			// re-buzz extended info
 			// rebuzzes_.write(lRebuzzNotify->buzzChainId(), lRebuzzNotify->buzzId(), lRebuzzNotify->rebuzzId(), lPublisher); // increment buzzes
@@ -1213,11 +1228,6 @@ void BuzzerTransactionStoreExtension::processEvent(const uint256& id, Transactio
 			db::DbTwoKeyContainer<uint256 /*buzz|rebuzz|reply*/, uint256 /*rebuzzer*/, uint256 /*rebuzz_tx*/>::Iterator 
 				lRebuzzIdx = rebuzzesIdx_.find(lRebuzz->buzzId(), lPublisher);
 
-			// WARNING: breaks current logic
-			/*
-			if (!lRebuzzIdx.valid() && lPublisher != lRebuzz->buzzerId()) 
-				incrementEndorsements(lRebuzz->buzzerId(), BUZZER_ENDORSE_REBUZZ);
-			*/
 			rebuzzesIdx_.write(lRebuzz->buzzId(), lPublisher, lEvent->id());
 			// re-buzz extended info
 			// rebuzzes_.write(lRebuzz->buzzChainId(), lRebuzz->buzzId(), lEvent->id(), lPublisher); // increment buzzes
@@ -1395,22 +1405,38 @@ void BuzzerTransactionStoreExtension::processLike(const uint256& id, Transaction
 			// update like count
 			incrementLikes(lBuzzId);
 
-			TransactionPtr lBuzz = store_->locateTransaction(lBuzzId);
-			if (lBuzz) {
-				//
-				// WARNING: breaks current logic
-				/*
-				uint256 lPublisherBuzzerId = lBuzz->in()[TX_BUZZ_MY_BUZZER_IN].out().tx(); // initiator
-				// update endorsements
-				incrementEndorsements(lPublisherBuzzerId, BUZZER_ENDORSE_LIKE);
-				*/
-			}
-
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: buzz like PUSHED: ") +
 				strprintf("tx = %s, buzz = %s, liker = %s", ctx->tx()->id().toHex(), lBuzzId.toHex(), lBuzzerId.toHex()));
 		} else {
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity/error]: buzz is ALREADY liked: ") +
 				strprintf("tx = %s, buzz = %s, liker = %s", ctx->tx()->id().toHex(), lBuzzId.toHex(), lBuzzerId.toHex()));
+		}
+	}
+}
+
+void BuzzerTransactionStoreExtension::processHide(const uint256& id, TransactionContextPtr ctx) {
+	// extract buzz_id
+	TxBuzzHidePtr lBuzzHide = TransactionHelper::to<TxBuzzHide>(ctx->tx());
+	//
+	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: pushing buzz hide ") +
+		strprintf("%s/%s#", ctx->tx()->id().toHex(), store_->chain().toHex().substr(0, 10)));
+	//
+	if (lBuzzHide->in().size() > TX_BUZZ_HIDE_IN) {
+		// extract buzz | buzzer
+		uint256 lBuzzId = lBuzzHide->in()[TX_BUZZ_HIDE_IN].out().tx(); // buzz_id
+		uint256 lBuzzerId = lBuzzHide->in()[TX_BUZZ_MY_BUZZER_IN].out().tx(); // owner
+		
+		// check index
+		db::DbContainer<uint256 /*buzz|rebuzz|reply*/, uint256 /*buzzer*/>::Iterator lHidden = hiddenIdx_.find(lBuzzId);
+		if (!lHidden.valid()) {
+			// write index
+			hiddenIdx_.write(lBuzzId, lBuzzerId);
+
+			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: buzz hide PUSHED: ") +
+				strprintf("tx = %s, buzz = %s, owner = %s", ctx->tx()->id().toHex(), lBuzzId.toHex(), lBuzzerId.toHex()));
+		} else {
+			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity/error]: buzz is ALREADY hidden: ") +
+				strprintf("tx = %s, buzz = %s, owner = %s", ctx->tx()->id().toHex(), lBuzzId.toHex(), lBuzzerId.toHex()));
 		}
 	}
 }
@@ -1470,20 +1496,16 @@ void BuzzerTransactionStoreExtension::removeTransaction(TransactionPtr tx) {
 			//
 			TxReBuzzPtr lRebuzz = TransactionHelper::to<TxReBuzz>(tx);
 			decrementRebuzzes(lRebuzz->buzzId());
-			// rebuzzes_.remove(lRebuzz->buzzChainId(), lRebuzz->buzzId(), lEvent->id());
-			decrementEndorsements(lRebuzz->buzzerId(), BUZZER_ENDORSE_REBUZZ);			
 		}
 
 		// remove rebuzz/reply count
 		if (tx->type() == TX_REBUZZ ||
 			tx->type() == TX_BUZZ_REPLY) {
 			// direct rebuzz
-			if (tx->type() == TX_REBUZZ) { 
+			if (tx->type() == TX_REBUZZ) {
 				//
 				TxReBuzzPtr lRebuzz = TransactionHelper::to<TxReBuzz>(tx);
 				decrementRebuzzes(lRebuzz->buzzId());
-				// rebuzzes_.remove(lRebuzz->buzzChainId(), lRebuzz->buzzId(), lEvent->id());
-				decrementEndorsements(lRebuzz->buzzerId(), BUZZER_ENDORSE_REBUZZ);
 			}
 			//
 			std::vector<Transaction::In>& lIns = lEvent->in(); 
@@ -1614,15 +1636,31 @@ void BuzzerTransactionStoreExtension::removeTransaction(TransactionPtr tx) {
 				likesIdx_.remove(lBuzzId, lBuzzerId);
 				// update like count
 				decrementLikes(lBuzzId);
-				// remove index
-				TransactionPtr lBuzz = store_->locateTransaction(lBuzzId);
-				if (lBuzz) {
-					uint256 lPublisherBuzzerId = lBuzz->in()[TX_BUZZ_MY_BUZZER_IN].out().tx(); // initiator
-					decrementEndorsements(lPublisherBuzzerId, BUZZER_ENDORSE_LIKE);
-				}
 			}
 
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: buzz like removed ") +
+				strprintf("buzz = %s, liker = %s", lBuzzId.toHex(), lBuzzerId.toHex()));
+		}
+	} else if (tx->type() == TX_BUZZ_HIDE) {
+		// extract buzz_id
+		TxBuzzHidePtr lBuzzHide = TransactionHelper::to<TxBuzzHide>(tx);
+		//
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: removing buzz hide ") +
+			strprintf("%s/%s#", tx->id().toHex(), store_->chain().toHex().substr(0, 10)));
+		//
+		if (lBuzzHide->in().size() > TX_BUZZ_HIDE_IN) {
+			// extract buzz | buzzer
+			uint256 lBuzzId = lBuzzHide->in()[TX_BUZZ_HIDE_IN].out().tx(); //
+			uint256 lBuzzerId = lBuzzHide->in()[TX_BUZZ_MY_BUZZER_IN].out().tx(); //
+			// remove index
+			db::DbContainer<uint256 /*buzz|rebuzz|reply*/, uint256 /*buzzer*/>::Iterator lHidden = hiddenIdx_.find(lBuzzId);
+			//
+			if (lHidden.valid()) {
+				//
+				hiddenIdx_.remove(lBuzzId);
+			}
+
+			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: buzz hide removed ") +
 				strprintf("buzz = %s, liker = %s", lBuzzId.toHex(), lBuzzerId.toHex()));
 		}
 	} else if (tx->type() == TX_BUZZ_REWARD) {
@@ -3525,6 +3563,9 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedByBuzz(uint64_t from, const 
 				lPublisherExtension->readBuzzerStat(lTxPublisher, lPublisherInfo);
 				if (!lPublisherInfo.trusted()) continue;
 			}
+			// check for hidden
+			db::DbContainer<uint256 /*buzz|rebuzz|reply*/, uint256 /*buzzer*/>::Iterator lHidden = hiddenIdx_.find(lEventId);
+			if (lHidden.valid()) continue;
 			//
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectBuzzfeedByBuzz]: try to added item ") +
 				strprintf("buzzer = %s/%s, %s/%s#", lBuzzer->id().toHex(), lTxPublisher.toHex(), lTx->id().toHex(), store_->chain().toHex().substr(0, 10)));
@@ -3625,6 +3666,9 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedByBuzzer(uint64_t from, cons
 				lPublisherExtension->readBuzzerStat(lTxPublisher, lPublisherInfo);
 				if (!lPublisherInfo.trusted()) continue;
 			}
+			// check for hidden
+			db::DbContainer<uint256 /*buzz|rebuzz|reply*/, uint256 /*buzzer*/>::Iterator lHidden = hiddenIdx_.find(*lFrom);
+			if (lHidden.valid()) continue;
 			//
 			bool lProcessed = false;
 			if (lTx->type() == TX_REBUZZ) {
@@ -3787,6 +3831,10 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedGlobal(uint64_t timeframeFro
 				lPublisherExtension->readBuzzerStat(lTxPublisher, lPublisherInfo);
 				if (!lPublisherInfo.trusted()) continue;
 			}
+
+			// check for hidden
+			db::DbContainer<uint256 /*buzz|rebuzz|reply*/, uint256 /*buzzer*/>::Iterator lHidden = hiddenIdx_.find(*lFrom);
+			if (lHidden.valid()) continue;
 
 			// check for personal trust
 			db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*endoser*/, uint256 /*tx*/>::Iterator 
@@ -3954,6 +4002,10 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedByTag(const std::string& tag
 				lPublisherExtension->readBuzzerStat(lTxPublisher, lPublisherInfo);
 				if (!lPublisherInfo.trusted()) continue;
 			}
+
+			// check for hidden
+			db::DbContainer<uint256 /*buzz|rebuzz|reply*/, uint256 /*buzzer*/>::Iterator lHidden = hiddenIdx_.find(*lFrom);
+			if (lHidden.valid()) continue;
 
 			//
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectBuzzfeedByTag]: try to added item ") +
@@ -4133,6 +4185,10 @@ void BuzzerTransactionStoreExtension::selectBuzzfeed(const std::vector<BuzzfeedP
 					lPublisherExtension->readBuzzerStat(lTxPublisher, lPublisherInfo);
 					if (!lPublisherInfo.trusted()) continue;
 				}
+
+				// check for hidden
+				db::DbContainer<uint256 /*buzz|rebuzz|reply*/, uint256 /*buzzer*/>::Iterator lHidden = hiddenIdx_.find(*lFrom);
+				if (lHidden.valid()) continue;
 
 				//
 				bool lProcessed = false;

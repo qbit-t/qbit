@@ -212,7 +212,8 @@ public:
 		mistrusts_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/mistrusts"),
 		buzzInfo_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/buzz_info"),
 		buzzerStat_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/buzzer_stat"),
-		buzzerInfo_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/buzzer_info")
+		buzzerInfo_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/buzzer_info"),
+		hiddenIdx_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/indexes/hidden")
 		{}
 
 	bool open();
@@ -268,6 +269,7 @@ private:
 	void processAcceptConversation(const uint256&, TransactionContextPtr);
 	void processDeclineConversation(const uint256&, TransactionContextPtr);
 	void processMessage(const uint256&, TransactionContextPtr);
+	void processHide(const uint256&, TransactionContextPtr);
 
 	void incrementLikes(const uint256&);
 	void decrementLikes(const uint256&);
@@ -455,6 +457,8 @@ private:
 	db::DbTwoKeyContainer<uint256 /*buzz|rebuzz|reply*/, uint256 /*liker*/, uint256 /*like_tx*/> likesIdx_;
 	// buzz | rebuzzer -> rebuzz_tx
 	db::DbTwoKeyContainer<uint256 /*buzz|rebuzz|reply*/, uint256 /*rebuzzer*/, uint256 /*rebuzz_tx*/> rebuzzesIdx_;
+	// buzz | owner
+	db::DbContainer<uint256 /*buzz|rebuzz|reply*/, uint256 /*buzzer*/> hiddenIdx_;
 
 	// buzz | reply
 	db::DbThreeKeyContainer<

@@ -107,7 +107,7 @@ void BuzzfeedItem::push(const BuzzfeedItem& buzz, const uint160& peer) {
 		//
 		bool lAdd = true;
 		// check for signature if source is !BUZZFEED
-		if (buzz.source() == Source::BUZZ_SUBSCRIPTION && buzz.type() == TX_BUZZ_REPLY) {
+		if (buzz.source() == Source::BUZZ_SUBSCRIPTION && (buzz.type() == TX_BUZZ_REPLY || buzz.type() == TX_BUZZ_HIDE)) {
 			//
 			if (verifyUpdateForMyThread_)
 				lAdd = verifyUpdateForMyThread_(rootBuzzId_, nonce_, buzz.subscriptionSignature());
@@ -191,6 +191,24 @@ bool BuzzfeedItem::mergeInternal(BuzzfeedItemPtr buzz, bool checkSize, bool noti
 		if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[ERROR-03]: %s", lBuzz->toString()));
 
 	if (lResult == Buzzer::VerificationResult::SUCCESS || lResult == Buzzer::VerificationResult::POSTPONED) {
+		// if buzz was hidden by the owner
+		if (buzz->type() == TX_BUZZ_HIDE) {
+			//
+			std::map<Key /*buzz*/, BuzzfeedItemPtr>::iterator lExisting = items_.find(Key(buzz->buzzId(), TX_BUZZ));
+			if (lExisting == items_.end()) lExisting = items_.find(Key(buzz->buzzId(), TX_BUZZER_MESSAGE));
+			//if (lExisting == items_.end()) lExisting = items_.find(Key(buzz->buzzId(), TX_BUZZER_MESSAGE_REPLY));
+			if (lExisting == items_.end()) lExisting = items_.find(Key(buzz->buzzId(), TX_BUZZ_REPLY));
+			if (lExisting == items_.end()) lExisting = items_.find(Key(buzz->buzzId(), TX_REBUZZ));
+
+			// we finally found referenced item
+			if (lExisting != items_.end()) {
+				// notify
+				itemUpdated(lBuzz); // TODO: implement explicit method to remove
+			}
+
+			return true;
+		}
+
 		// check result
 		lBuzz->setSignatureVerification(lResult);
 		// settings
@@ -1045,35 +1063,39 @@ bool BuzzfeedItem::decrypt(const PKey& pkey) {
 	return false;
 }
 
-std::string BuzzfeedItem::buzzBodyString() {
+const std::string& BuzzfeedItem::buzzBodyString() const {
 	//
-	std::string lBody; 
-	if (type_ == TX_BUZZER_MESSAGE || type_ == TX_BUZZER_MESSAGE_REPLY) {
-		//
-		if (!decryptedBody_.size() && buzzBody_.size() && buzzer()) {
-			SKeyPtr lSKey = buzzer()->wallet()->firstKey();
+	if (!preparedBody_.size()) {
+		if (type_ == TX_BUZZER_MESSAGE || type_ == TX_BUZZER_MESSAGE_REPLY) {
 			//
-			PKey lPKey;
-			if (pkeyResolve_ && pkeyResolve_(rootBuzzId_, lPKey)) {
+			if (!decryptedBody_.size() && buzzBody_.size() && buzzer()) {
+				SKeyPtr lSKey = buzzer()->wallet()->firstKey();
 				//
-				uint256 lNonce = lSKey->shared(lPKey);
-				TxBuzzerMessage::decrypt(lNonce, buzzBody_, decryptedBody_);
+				PKey lPKey;
+				if (pkeyResolve_ && pkeyResolve_(rootBuzzId_, lPKey)) {
+					//
+					uint256 lNonce = lSKey->shared(lPKey);
+					TxBuzzerMessage::decrypt(lNonce, buzzBody_, decryptedBody_);
+				}
 			}
+
+			preparedBody_.insert(preparedBody_.end(), decryptedBody_.begin(), decryptedBody_.end());
+			return preparedBody_;
 		}
 
-		lBody.insert(lBody.end(), decryptedBody_.begin(), decryptedBody_.end());
-		return lBody;
+		preparedBody_.insert(preparedBody_.end(), buzzBody_.begin(), buzzBody_.end());
 	}
 
-	lBody.insert(lBody.end(), buzzBody_.begin(), buzzBody_.end());
-	return lBody;
+	return preparedBody_;
 }
 
-std::string BuzzfeedItem::decryptedBuzzBodyString() {
+const std::string& BuzzfeedItem::decryptedBuzzBodyString() const {
 	//
-	std::string lBody; 
-	lBody.insert(lBody.end(), decryptedBody_.begin(), decryptedBody_.end());
-	return lBody;
+	if (!preparedBody_.size()) {
+		preparedBody_.insert(preparedBody_.end(), decryptedBody_.begin(), decryptedBody_.end());
+	}
+
+	return preparedBody_;
 }
 
 //

@@ -1957,6 +1957,37 @@ void BuzzLikeCommand::process(const std::vector<std::string>& args) {
 }
 
 //
+// BuzzHideCommand
+//
+void BuzzHideCommand::process(const std::vector<std::string>& args) {
+	if (args.size() == 1) {
+		// prepare
+		uint256 lBuzzId;
+		lBuzzId.setHex(args[0]);
+		//
+		BuzzfeedItemPtr lItem = buzzFeed_->locateBuzz(lBuzzId);
+		//
+		if (composer_->buzzerId() != lItem->buzzId()) {
+			error("E_BUZZ_OWNER_IS_INCORRECT", "Incorrect buzz owner");
+			return;
+		}
+		//
+		if (lItem) {
+			IComposerMethodPtr lCommand = BuzzerLightComposer::CreateTxBuzzHide::instance(composer_, lItem->buzzChainId(), lItem->buzzId(),
+				boost::bind(&BuzzHideCommand::created, shared_from_this(), boost::placeholders::_1));
+			// async process
+			lCommand->process(boost::bind(&BuzzHideCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
+		} else {
+			error("E_BUZZ_NOT_FOUND_IN_FEED", "Buzz was not found in local feed");
+			return;
+		}
+	} else {
+		error("E_INCORRECT_AGRS", "Incorrect number of arguments");
+		return;
+	}
+}
+
+//
 // BuzzRewardCommand
 //
 void BuzzRewardCommand::process(const std::vector<std::string>& args) {

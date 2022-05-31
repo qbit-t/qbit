@@ -641,11 +641,20 @@ void BuzzfeedListModel::buzzfeedItemUpdatedSlot(const qbit::BuzzfeedItemProxy& b
 	//
 	qbit::BuzzfeedItemPtr lBuzzfeedItem(buzz.get());
 
-	buzzfeedItemUpdatedProcess(lBuzzfeedItem, qbit::Transaction::TX_BUZZ);
-	buzzfeedItemUpdatedProcess(lBuzzfeedItem, qbit::Transaction::TX_REBUZZ);
-	buzzfeedItemUpdatedProcess(lBuzzfeedItem, qbit::Transaction::TX_BUZZ_REPLY);
-	buzzfeedItemUpdatedProcess(lBuzzfeedItem, qbit::Transaction::TX_BUZZ_LIKE);
-	buzzfeedItemUpdatedProcess(lBuzzfeedItem, qbit::Transaction::TX_BUZZ_REWARD);
+	if (lBuzzfeedItem->type() == qbit::Transaction::TX_BUZZ_HIDE) {
+		//
+		buzzfeedItemRemoveProcess(lBuzzfeedItem, qbit::Transaction::TX_BUZZ);
+		buzzfeedItemRemoveProcess(lBuzzfeedItem, qbit::Transaction::TX_REBUZZ);
+		buzzfeedItemRemoveProcess(lBuzzfeedItem, qbit::Transaction::TX_BUZZ_REPLY);
+		buzzfeedItemRemoveProcess(lBuzzfeedItem, qbit::Transaction::TX_BUZZ_LIKE);
+		buzzfeedItemRemoveProcess(lBuzzfeedItem, qbit::Transaction::TX_BUZZ_REWARD);
+	} else {
+		buzzfeedItemUpdatedProcess(lBuzzfeedItem, qbit::Transaction::TX_BUZZ);
+		buzzfeedItemUpdatedProcess(lBuzzfeedItem, qbit::Transaction::TX_REBUZZ);
+		buzzfeedItemUpdatedProcess(lBuzzfeedItem, qbit::Transaction::TX_BUZZ_REPLY);
+		buzzfeedItemUpdatedProcess(lBuzzfeedItem, qbit::Transaction::TX_BUZZ_LIKE);
+		buzzfeedItemUpdatedProcess(lBuzzfeedItem, qbit::Transaction::TX_BUZZ_REWARD);
+	}
 }
 
 void BuzzfeedListModel::buzzfeedItemsUpdatedSlot(const qbit::BuzzfeedItemUpdatesProxy& items) {
@@ -680,6 +689,24 @@ bool BuzzfeedListModel::buzzfeedItemUpdatedProcess(qbit::BuzzfeedItemPtr item, u
 					<< HasPrevLinkRole
 					<< HasNextLinkRole
 					<< WrappedRole);
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool BuzzfeedListModel::buzzfeedItemRemoveProcess(qbit::BuzzfeedItemPtr item, unsigned short type) {
+	//
+	std::map<qbit::BuzzfeedItem::Key, int>::iterator lItem = index_.find(qbit::BuzzfeedItem::Key(item->buzzId(), type));
+	if (lItem != index_.end()) {
+		//
+		int lIndex = lItem->second;
+		if (lIndex >= 0 && lIndex < (int)list_.size()) {
+			// qInfo() << "BuzzfeedListModel::buzzfeedItemRemoveProcess -> remove" << lIndex;
+			beginRemoveRows(QModelIndex(), lIndex, lIndex);
+			endRemoveRows();
+
 			return true;
 		}
 	}

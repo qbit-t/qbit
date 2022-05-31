@@ -37,17 +37,21 @@ BuzzTextHighlighter::BuzzTextHighlighter(QObject* parent): QSyntaxHighlighter(pa
 	highlightingRules_.append(lRule);
 	*/
 
-	lRule.pattern = QRegularExpression("((?:https?|ftp)://\\S+)");
+	lRule.pattern = QRegularExpression("REGEX_UNIVERSAL_URL_PATTERN");
 	lRule.format = tagFormat;
 	highlightingRules_.append(lRule);
 
+	/*
 	lRule.pattern = QRegularExpression("((/data/user)/\\S+)");
 	lRule.format = QTextCharFormat();
 	highlightingRules_.append(lRule);
+	*/
 
+	/*
 	lRule.pattern = QRegularExpression("((?:buzz|msg|qbit)://\\S+)");
 	lRule.format = tagFormat;
 	highlightingRules_.append(lRule);
+	*/
 }
 
 void BuzzTextHighlighter::tryHighlightBlock(const QString& text, int start) {

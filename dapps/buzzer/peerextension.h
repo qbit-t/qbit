@@ -211,8 +211,9 @@ private:
 	void prepareBuzzfeedItem(BuzzfeedItem&, TxBuzzPtr, TxBuzzerPtr, BuzzerTransactionStoreExtensionPtr);
 	void prepareEventsfeedItem(EventsfeedItem&, TxBuzzPtr, TxBuzzerPtr, const uint256&, const uint256&, uint64_t, const uint256&, const uint256&, uint64_t, const uint512&);
 
-	bool processBuzzCommon(TransactionContextPtr ctx);
+	bool processBuzzCommon(TransactionContextPtr ctx, bool processHide = false, uint64_t timestamp = 0, const uint512& signature = uint512());
 	bool processBuzzLike(TransactionContextPtr ctx);
+	bool processBuzzHide(TransactionContextPtr ctx);
 	bool processBuzzReward(TransactionContextPtr ctx);
 	bool processRebuzz(TransactionContextPtr ctx);
 
@@ -227,7 +228,7 @@ private:
 	bool processConversation(TransactionContextPtr ctx);
 	bool processAcceptConversation(TransactionContextPtr ctx);
 	bool processDeclineConversation(TransactionContextPtr ctx);
-	bool processConversationMessage(TransactionContextPtr ctx);
+	bool processConversationMessage(TransactionContextPtr ctx, bool processHide = false, uint64_t timestamp = 0, const uint512& signature = uint512());
 	bool processConversationMessageReply(TransactionContextPtr ctx);
 
 	bool haveBuzzSubscription(TransactionPtr ctx, uint512& signature);

@@ -65,6 +65,7 @@
 	#include "dapps/buzzer/txrebuzz.h"
 	#include "dapps/buzzer/txrebuzznotify.h"
 	#include "dapps/buzzer/txbuzzlike.h"
+	#include "dapps/buzzer/txbuzzhide.h"
 	#include "dapps/buzzer/txbuzzreward.h"
 	#include "dapps/buzzer/txbuzzerendorse.h"
 	#include "dapps/buzzer/txbuzzermistrust.h"
@@ -285,6 +286,7 @@ public:
 		Transaction::registerTransactionType(TX_BUZZER_UNSUBSCRIBE, TxBuzzerUnsubscribeCreator::instance());
 		Transaction::registerTransactionType(TX_BUZZ, TxBuzzCreator::instance());
 		Transaction::registerTransactionType(TX_BUZZ_LIKE, TxBuzzLikeCreator::instance());
+		Transaction::registerTransactionType(TX_BUZZ_HIDE, TxBuzzHideCreator::instance());
 		Transaction::registerTransactionType(TX_BUZZ_REPLY, TxBuzzReplyCreator::instance());
 		Transaction::registerTransactionType(TX_REBUZZ, TxReBuzzCreator::instance());
 		Transaction::registerTransactionType(TX_BUZZ_REBUZZ_NOTIFY, TxReBuzzNotifyCreator::instance());

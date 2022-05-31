@@ -151,6 +151,7 @@ protected:
 private:
 	bool buzzfeedItemsUpdatedProcess(const qbit::BuzzfeedItemUpdate&, unsigned short);
 	bool buzzfeedItemUpdatedProcess(qbit::BuzzfeedItemPtr, unsigned short);
+	bool buzzfeedItemRemoveProcess(qbit::BuzzfeedItemPtr, unsigned short);
 
 protected:
 	qbit::BuzzfeedPtr buzzfeed_;

@@ -1394,6 +1394,49 @@ private:
 	qbit::ICommandPtr command_;
 };
 
+class BuzzHideCommand: public QObject
+{
+	Q_OBJECT
+
+	Q_PROPERTY(BuzzfeedListModel* model READ model WRITE setModel NOTIFY modelChanged)
+
+public:
+	explicit BuzzHideCommand(QObject* parent = nullptr);
+
+	Q_INVOKABLE void process(QString buzz) {
+		//
+		if (!buzzfeedModel_) return;
+
+		//
+		prepare();
+
+		//
+		std::vector<std::string> lArgs;
+		lArgs.push_back(buzz.toStdString());
+		command_->process(lArgs);
+	}
+
+	BuzzfeedListModel* model() { return buzzfeedModel_; }
+	void setModel(BuzzfeedListModel* model) { buzzfeedModel_ = model; emit modelChanged(); }
+
+	void prepare();
+
+	void done(const qbit::ProcessingError& result) {
+		if (result.success()) emit processed();
+		else emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
+	}
+
+signals:
+	void modelChanged();
+	void processed();
+	void error(QString code, QString message);
+
+private:
+	BuzzfeedListModel* buzzfeedModel_ = nullptr;
+	qbit::ICommandPtr command_;
+};
+
+
 class BuzzRewardCommand: public QObject
 {
 	Q_OBJECT

@@ -366,6 +366,22 @@ void BuzzLikeCommand::prepare() {
 	);
 }
 
+BuzzHideCommand::BuzzHideCommand(QObject* /*parent*/) : QObject() {
+	//
+}
+
+void BuzzHideCommand::prepare() {
+	if (!buzzfeedModel_) return;
+
+	Client* lClient = static_cast<Client*>(gApplication->getClient());
+
+	command_ = qbit::BuzzHideCommand::instance(
+		lClient->getBuzzerComposer(),
+		buzzfeedModel_->buzzfeed(),
+		boost::bind(&BuzzHideCommand::done, this, boost::placeholders::_1)
+	);
+}
+
 BuzzRewardCommand::BuzzRewardCommand(QObject* /*parent*/) : QObject() {
 	//
 }

@@ -525,8 +525,8 @@ public:
 	void setBuzzerInfoChainId(const uint256& id) { buzzerInfoChainId_ = id; }
 
 	const std::vector<unsigned char>& buzzBody() const;
-	std::string buzzBodyString();
-	std::string decryptedBuzzBodyString();
+	const std::string& buzzBodyString() const;
+	const std::string& decryptedBuzzBodyString() const;
 	void setBuzzBody(const std::vector<unsigned char>& body) { buzzBody_ = body; }
 	bool decrypt(const PKey&);
 
@@ -1041,6 +1041,7 @@ protected:
 	uint256 buzzerInfoChainId_;
 	std::vector<unsigned char> buzzBody_;
 	mutable std::vector<unsigned char> decryptedBody_;
+	mutable std::string preparedBody_;
 	std::vector<BuzzerMediaPointer> buzzMedia_;
 	uint512 signature_;
 	uint32_t replies_;

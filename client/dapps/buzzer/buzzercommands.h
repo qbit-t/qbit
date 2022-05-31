@@ -1,4 +1,4 @@
-// Copyright (c) 2020 Andrew Demuskov
+// Copyright (c) 2020-2022 Andrew Demuskov
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -1439,6 +1439,87 @@ public:
 				SentTransaction::instance(
 					boost::bind(&BuzzLikeCommand::sent, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 					boost::bind(&BuzzLikeCommand::timeout, shared_from_this())))) {
+			gLog().writeClient(Log::CLIENT, std::string(": tx was not broadcasted, wallet re-init..."));
+			composer_->wallet()->resetCache();
+			composer_->wallet()->prepareCache();
+			done_(ProcessingError("E_TX_NOT_SENT", "Transaction was not sent."));
+		}
+	}
+
+	void sent(const uint256& tx, const std::vector<TransactionContext::Error>& errors) {
+		//
+		if (errors.size()) {
+			for (std::vector<TransactionContext::Error>::iterator lError = const_cast<std::vector<TransactionContext::Error>&>(errors).begin(); 
+					lError != const_cast<std::vector<TransactionContext::Error>&>(errors).end(); lError++) {
+				gLog().writeClient(Log::CLIENT, strprintf("[error]: %s", lError->data()));
+
+				composer_->wallet()->rollback(ctx_); // rollback tx
+				composer_->wallet()->resetCache();
+				composer_->wallet()->prepareCache();
+
+				done_(ProcessingError("E_SENT_TX", lError->data()));
+				break;
+			}
+
+			return;
+		} else {
+			std::cout << tx.toHex() << std::endl;
+		}
+
+		done_(ProcessingError());
+	}
+
+	void timeout() {
+		error("E_TIMEOUT", "Timeout expired during buzz like action.");
+	}
+
+	void error(const std::string& code, const std::string& message) {
+		gLog().writeClient(Log::CLIENT, strprintf(": %s | %s", code, message));
+		done_(ProcessingError(code, message));
+	}
+
+private:
+	BuzzerLightComposerPtr composer_;
+	BuzzfeedPtr buzzFeed_;
+	doneWithErrorFunction done_;
+	TransactionContextPtr ctx_;
+};
+
+class BuzzHideCommand;
+typedef std::shared_ptr<BuzzHideCommand> BuzzHideCommandPtr;
+
+class BuzzHideCommand: public ICommand, public std::enable_shared_from_this<BuzzHideCommand> {
+public:
+	BuzzHideCommand(BuzzerLightComposerPtr composer, BuzzfeedPtr buzzFeed, doneWithErrorFunction done): composer_(composer), buzzFeed_(buzzFeed), done_(done) {}
+
+	void process(const std::vector<std::string>&);
+	std::set<std::string> name() {
+		std::set<std::string> lSet;
+		lSet.insert("buzzHide"); 
+		lSet.insert("hide"); 
+		return lSet;
+	}
+
+	void help() {
+		std::cout << "buzzHide | hide <your_buzz_id>" << std::endl;
+		std::cout << "\tHide your published buzz." << std::endl;
+		std::cout << "\t<buzz_id> - required, your buzz - buzz tx." << std::endl;
+		std::cout << "\texample:\n\t\t>hide a9756f1d84c0e803bdd6993bfdfaaf6ef19ef24accc6d4006e5a874cda6c7bd2" << std::endl << std::endl;
+	}	
+
+	static ICommandPtr instance(BuzzerLightComposerPtr composer, BuzzfeedPtr buzzFeed, doneWithErrorFunction done) { 
+		return std::make_shared<BuzzHideCommand>(composer, buzzFeed, done); 
+	}
+
+	// callbacks
+	void created(TransactionContextPtr ctx) {
+		//
+		ctx_ = ctx;
+		//
+		if (!composer_->requestProcessor()->sendTransaction(ctx,
+				SentTransaction::instance(
+					boost::bind(&BuzzHideCommand::sent, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
+					boost::bind(&BuzzHideCommand::timeout, shared_from_this())))) {
 			gLog().writeClient(Log::CLIENT, std::string(": tx was not broadcasted, wallet re-init..."));
 			composer_->wallet()->resetCache();
 			composer_->wallet()->prepareCache();

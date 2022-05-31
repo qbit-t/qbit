@@ -234,6 +234,16 @@ Item {
 		}
 	}
 
+	BuzzerCommands.BuzzHideCommand {
+		id: buzzHideCommand
+
+		onProcessed: {
+		}
+		onError: {
+			console.error("[buzzHideCommand\onError]: error = " + code + ", " + message);
+		}
+	}
+
 	BuzzerCommands.LoadTransactionCommand {
 		id: checkOnChainCommand
 
@@ -789,6 +799,8 @@ Item {
 				clipboard.setText("msg://" + buzzChainId_ + "/" + buzzId_);
 			} else if (key === "copyselection") {
 				clipboard.setText(buzzText.selectedText);
+			} else if (key === "hide") {
+				buzzHideCommand.process(buzzId_);
 			}
 		}
 
@@ -806,6 +818,14 @@ Item {
 			menuModel.clear();
 
 			//
+			if (buzzerClient.getCurrentBuzzerId() === buzzerId_) {
+				menuModel.append({
+					key: "hide",
+					keySymbol: Fonts.trashSym,
+					name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.hide")});
+			}
+
+			//
 			if (selection) menuModel.append({
 				key: "copyselection",
 				keySymbol: Fonts.copySym,
@@ -816,6 +836,7 @@ Item {
 				key: "copy",
 				keySymbol: Fonts.copySym,
 				name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.conversation.copy.message")});
+
 			//
 			menuModel.append({
 				key: "copytx",

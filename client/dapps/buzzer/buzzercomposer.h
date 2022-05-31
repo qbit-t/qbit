@@ -9,6 +9,7 @@
 #include "../../../dapps/buzzer/txbuzzer.h"
 #include "../../../dapps/buzzer/txbuzz.h"
 #include "../../../dapps/buzzer/txbuzzlike.h"
+#include "../../../dapps/buzzer/txbuzzhide.h"
 #include "../../../dapps/buzzer/txbuzzreward.h"
 #include "../../../dapps/buzzer/txbuzzreply.h"
 #include "../../../dapps/buzzer/txrebuzz.h"
@@ -687,6 +688,35 @@ public:
 	class CreateTxBuzzLike: public IComposerMethod, public std::enable_shared_from_this<CreateTxBuzzLike> {
 	public:
 		CreateTxBuzzLike(BuzzerLightComposerPtr composer, const uint256& chain, const uint256& buzz, transactionCreatedFunction created): composer_(composer), chain_(chain), buzz_(buzz), created_(created) {}
+		void process(errorFunction);
+
+		static IComposerMethodPtr instance(BuzzerLightComposerPtr composer, const uint256& chain, const uint256& buzz, transactionCreatedFunction created) {
+			return std::make_shared<CreateTxBuzzLike>(composer, chain, buzz, created);
+		} 
+
+		// 
+		void timeout() {
+			error_("E_TIMEOUT", "Timeout expired during buzz like creation.");
+		}
+
+		//
+		void utxoByBuzzLoaded(const std::vector<Transaction::NetworkUnlinkedOut>&, const uint256&);
+		void utxoByBuzzerLoaded(const std::vector<Transaction::UnlinkedOut>&, const std::string&);
+		void saveBuzzerUtxo(const std::vector<Transaction::UnlinkedOut>&, const std::string&);		
+
+	private:
+		BuzzerLightComposerPtr composer_;
+		uint256 chain_;
+		uint256 buzz_;
+		transactionCreatedFunction created_;
+		errorFunction error_;
+
+		std::vector<Transaction::NetworkUnlinkedOut> buzzUtxo_;
+	};
+
+	class CreateTxBuzzHide: public IComposerMethod, public std::enable_shared_from_this<CreateTxBuzzHide> {
+	public:
+		CreateTxBuzzHide(BuzzerLightComposerPtr composer, const uint256& chain, const uint256& buzz, transactionCreatedFunction created): composer_(composer), chain_(chain), buzz_(buzz), created_(created) {}
 		void process(errorFunction);
 
 		static IComposerMethodPtr instance(BuzzerLightComposerPtr composer, const uint256& chain, const uint256& buzz, transactionCreatedFunction created) {

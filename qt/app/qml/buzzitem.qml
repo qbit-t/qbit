@@ -1164,6 +1164,8 @@ Item {
 				buzzerMistrustCommand.process(buzzerName_);
 			} else if (key === "copytx") {
 				clipboard.setText("buzz://" + buzzChainId_ + "/" + buzzId_);
+			} else if (key === "hide") {
+				buzzHideCommand.process(buzzId_);
 			} else if (key === "conversation") {
 				//
 				var lId = buzzerClient.getConversationsList().locateConversation(buzzerName_);
@@ -1208,6 +1210,11 @@ Item {
 					key: "conversation",
 					keySymbol: Fonts.conversationMessageSym,
 					name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.conversation")});
+			} else {
+				menuModel.append({
+					key: "hide",
+					keySymbol: Fonts.trashSym,
+					name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.hide")});
 			}
 
 			menuModel.append({
@@ -1310,6 +1317,16 @@ Item {
 				key: "rebuzz-comment",
 				keySymbol: Fonts.rebuzzWithCommantSym,
 				name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.rebuzz.comment")});
+		}
+	}
+
+	BuzzerCommands.BuzzHideCommand {
+		id: buzzHideCommand
+
+		onProcessed: {
+		}
+		onError: {
+			handleError(code, message);
 		}
 	}
 
