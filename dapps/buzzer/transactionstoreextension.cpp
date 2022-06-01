@@ -214,15 +214,12 @@ bool BuzzerTransactionStoreExtension::isAllowed(TransactionContextPtr ctx) {
 																	lReTx->type() == TX_BUZZ)) {
 					// check mistrusts
 					uint256 lOriginalPublisher = lReTx->in()[TX_BUZZ_REPLY_MY_IN /*for the ALL types above*/].out().tx();
-					//
-					db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*endoser*/, uint256 /*tx*/>::Iterator 
-																	lMistrust = mistrusts_.find(lOriginalPublisher, lReplyPublisher);
-					if (lMistrust.valid()) {
+					// check for personal trust
+					uint256 lTrustTx;
+					if (mistrusts_.read(qbit::db::TwoKey<uint256, uint256>(lReplyPublisher, lOriginalPublisher), lTrustTx)) {
 						// re-ceck if we have compensation
-						db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*endoser*/, uint256 /*tx*/>::Iterator 
-																		lEndorsement = endorsements_.find(lOriginalPublisher, lReplyPublisher);
-						if (!lEndorsement.valid())
-							return false; // mistrusted and not able to make replies
+						if (!endorsements_.read(qbit::db::TwoKey<uint256, uint256>(lReplyPublisher, lOriginalPublisher), lTrustTx))
+							continue; // mistrusted and not able to make replies
 					}
 
 					//
@@ -3838,9 +3835,9 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedGlobal(uint64_t timeframeFro
 
 			// check for personal trust
 			uint256 lTrustTx;
-			if (mistrusts_.read(qbit::db::TwoKey<uint256, uint256>(subscriber, lTxPublisher), lTrustTx)) {
+			if (mistrusts_.read(qbit::db::TwoKey<uint256, uint256>(lTxPublisher, subscriber), lTrustTx)) {
 				// re-ceck if we have compensation
-				if (!endorsements_.read(qbit::db::TwoKey<uint256, uint256>(subscriber, lTxPublisher), lTrustTx))
+				if (!endorsements_.read(qbit::db::TwoKey<uint256, uint256>(lTxPublisher, subscriber), lTrustTx))
 					continue; // in case if we have mistrusted and NOT endirsed the publisher
 			}
 
