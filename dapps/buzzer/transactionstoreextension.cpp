@@ -216,11 +216,11 @@ bool BuzzerTransactionStoreExtension::isAllowed(TransactionContextPtr ctx) {
 					uint256 lOriginalPublisher = lReTx->in()[TX_BUZZ_REPLY_MY_IN /*for the ALL types above*/].out().tx();
 					//
 					db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*endoser*/, uint256 /*tx*/>::Iterator 
-																	lMistrust = mistrusts_.find(lReplyPublisher, lOriginalPublisher);
+																	lMistrust = mistrusts_.find(lOriginalPublisher, lReplyPublisher);
 					if (lMistrust.valid()) {
 						// re-ceck if we have compensation
 						db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*endoser*/, uint256 /*tx*/>::Iterator 
-																		lEndorsement = endorsements_.find(lReplyPublisher, lOriginalPublisher);
+																		lEndorsement = endorsements_.find(lOriginalPublisher, lReplyPublisher);
 						if (!lEndorsement.valid())
 							return false; // mistrusted and not able to make replies
 					}
@@ -1425,8 +1425,8 @@ void BuzzerTransactionStoreExtension::processHide(const uint256& id, Transaction
 		uint256 lBuzzerId = lBuzzHide->in()[TX_BUZZ_MY_BUZZER_IN].out().tx(); // owner
 		
 		// check index
-		db::DbContainer<uint256 /*buzz|rebuzz|reply*/, uint256 /*buzzer*/>::Iterator lHidden = hiddenIdx_.find(lBuzzId);
-		if (!lHidden.valid()) {
+		uint256 lOwner;
+		if (!hiddenIdx_.read(lBuzzId, lOwner)) {
 			// write index
 			hiddenIdx_.write(lBuzzId, lBuzzerId);
 
@@ -3837,13 +3837,10 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedGlobal(uint64_t timeframeFro
 			if (hiddenIdx_.read(*lFrom, lOwner)) continue;
 
 			// check for personal trust
-			db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*endoser*/, uint256 /*tx*/>::Iterator 
-															lMistrust = mistrusts_.find(lTxPublisher, subscriber);
-			if (lMistrust.valid()) {
+			uint256 lTrustTx;
+			if (mistrusts_.read(qbit::db::TwoKey<uint256, uint256>(subscriber, lTxPublisher), lTrustTx)) {
 				// re-ceck if we have compensation
-				db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*endoser*/, uint256 /*tx*/>::Iterator 
-																lEndorsement = endorsements_.find(lTxPublisher, subscriber);
-				if (!lEndorsement.valid())
+				if (!endorsements_.read(qbit::db::TwoKey<uint256, uint256>(subscriber, lTxPublisher), lTrustTx))
 					continue; // in case if we have mistrusted and NOT endirsed the publisher
 			}
 
@@ -3852,7 +3849,7 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedGlobal(uint64_t timeframeFro
 				strprintf("buzzer = %s/%s, %s/%s#", lBuzzer->id().toHex(), lTxPublisher.toHex(), lTx->id().toHex(), store_->chain().toHex().substr(0, 10)));
 
 			makeBuzzfeedItem(lContext, lBuzzer, lTx, lMainStore, lRawBuzzfeed, lBuzzItems, subscriber);
-		} else if (lTx->type() == TX_BUZZER_MISTRUST) {
+		} /*else if (lTx->type() == TX_BUZZER_MISTRUST) {
 			//
 			TxBuzzerMistrustPtr lEvent = TransactionHelper::to<TxBuzzerMistrust>(lTx);
 			uint256 lMistruster = lEvent->in()[TX_BUZZER_MISTRUST_MY_IN].out().tx(); 
@@ -3898,7 +3895,7 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedGlobal(uint64_t timeframeFro
 				lRawBuzzfeed.insert(std::multimap<uint64_t, BuzzfeedItem::Key>::value_type(lItem->actualOrder(), lItem->key()));
 				lBuzzItems.insert(std::map<BuzzfeedItem::Key, BuzzfeedItemPtr>::value_type(lItem->key(), lItem));
 			}
-		}
+		}*/
 	}
 
 	lTransaction.commit();
