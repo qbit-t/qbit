@@ -1491,6 +1491,7 @@ typedef std::shared_ptr<BuzzHideCommand> BuzzHideCommandPtr;
 class BuzzHideCommand: public ICommand, public std::enable_shared_from_this<BuzzHideCommand> {
 public:
 	BuzzHideCommand(BuzzerLightComposerPtr composer, BuzzfeedPtr buzzFeed, doneWithErrorFunction done): composer_(composer), buzzFeed_(buzzFeed), done_(done) {}
+	BuzzHideCommand(BuzzerLightComposerPtr composer, BuzzfeedPtr buzzFeed): composer_(composer), buzzFeed_(buzzFeed) {}
 
 	void process(const std::vector<std::string>&);
 	std::set<std::string> name() {
@@ -1507,8 +1508,11 @@ public:
 		std::cout << "\texample:\n\t\t>hide a9756f1d84c0e803bdd6993bfdfaaf6ef19ef24accc6d4006e5a874cda6c7bd2" << std::endl << std::endl;
 	}	
 
-	static ICommandPtr instance(BuzzerLightComposerPtr composer, BuzzfeedPtr buzzFeed, doneWithErrorFunction done) { 
-		return std::make_shared<BuzzHideCommand>(composer, buzzFeed, done); 
+	static ICommandPtr instance(BuzzerLightComposerPtr composer, BuzzfeedPtr buzzFeed, doneWithErrorFunction done) {
+		return std::make_shared<BuzzHideCommand>(composer, buzzFeed, done);
+	}
+	static ICommandPtr instance(BuzzerLightComposerPtr composer, BuzzfeedPtr buzzFeed) {
+		return std::make_shared<BuzzHideCommand>(composer, buzzFeed);
 	}
 
 	// callbacks
@@ -1523,7 +1527,7 @@ public:
 			gLog().writeClient(Log::CLIENT, std::string(": tx was not broadcasted, wallet re-init..."));
 			composer_->wallet()->resetCache();
 			composer_->wallet()->prepareCache();
-			done_(ProcessingError("E_TX_NOT_SENT", "Transaction was not sent."));
+			if (done_) done_(ProcessingError("E_TX_NOT_SENT", "Transaction was not sent."));
 		}
 	}
 
@@ -1538,7 +1542,7 @@ public:
 				composer_->wallet()->resetCache();
 				composer_->wallet()->prepareCache();
 
-				done_(ProcessingError("E_SENT_TX", lError->data()));
+				if (done_) done_(ProcessingError("E_SENT_TX", lError->data()));
 				break;
 			}
 
@@ -1547,7 +1551,7 @@ public:
 			std::cout << tx.toHex() << std::endl;
 		}
 
-		done_(ProcessingError());
+		if (done_) done_(ProcessingError());
 	}
 
 	void timeout() {
@@ -1556,7 +1560,7 @@ public:
 
 	void error(const std::string& code, const std::string& message) {
 		gLog().writeClient(Log::CLIENT, strprintf(": %s | %s", code, message));
-		done_(ProcessingError(code, message));
+		if (done_) done_(ProcessingError(code, message));
 	}
 
 private:

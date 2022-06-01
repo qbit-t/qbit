@@ -377,8 +377,8 @@ void BuzzHideCommand::prepare() {
 
 	command_ = qbit::BuzzHideCommand::instance(
 		lClient->getBuzzerComposer(),
-		buzzfeedModel_->buzzfeed(),
-		boost::bind(&BuzzHideCommand::done, this, boost::placeholders::_1)
+		buzzfeedModel_->buzzfeed()
+		//, boost::bind(&BuzzHideCommand::done, this, boost::placeholders::_1)
 	);
 }
 

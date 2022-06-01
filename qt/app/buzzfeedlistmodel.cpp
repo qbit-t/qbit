@@ -604,12 +604,12 @@ void BuzzfeedListModel::buzzfeedItemNewSlot(const qbit::BuzzfeedItemProxy& buzz)
 			if (!list_.size()) {
 				lIndex = 0;
 				list_.push_back(lBuzzfeedItem);
-				if (adjustData_.size()) adjustData_[adjustData_.size() - 1] = true;
+				if (adjustData_.size()) adjustData_[adjustData_.size() - 1] = !adjustData_[adjustData_.size() - 1];
 				adjustData_.push_back(false);
 			} else {
 				list_.insert(list_.begin() + lIndex, lBuzzfeedItem);
 				adjustData_.insert(adjustData_.begin() + lIndex, false);
-				if (lIndex + 1 < (int)adjustData_.size()) adjustData_[lIndex + 1] = true;
+				if (lIndex + 1 < (int)adjustData_.size()) adjustData_[lIndex + 1] = !adjustData_[lIndex + 1];
 				lModified = true;
 			}
 
@@ -641,8 +641,6 @@ void BuzzfeedListModel::buzzfeedItemUpdatedSlot(const qbit::BuzzfeedItemProxy& b
 	//
 	qbit::BuzzfeedItemPtr lBuzzfeedItem(buzz.get());
 
-	qInfo() << "BuzzfeedListModel::buzzfeedItemUpdatedSlot" << (lBuzzfeedItem->type() == qbit::Transaction::TX_BUZZ_HIDE);
-
 	if (lBuzzfeedItem->type() == qbit::Transaction::TX_BUZZ_HIDE) {
 		//
 		buzzfeedItemRemoveProcess(lBuzzfeedItem, qbit::Transaction::TX_BUZZ);
@@ -650,12 +648,14 @@ void BuzzfeedListModel::buzzfeedItemUpdatedSlot(const qbit::BuzzfeedItemProxy& b
 		buzzfeedItemRemoveProcess(lBuzzfeedItem, qbit::Transaction::TX_BUZZ_REPLY);
 		buzzfeedItemRemoveProcess(lBuzzfeedItem, qbit::Transaction::TX_BUZZ_LIKE);
 		buzzfeedItemRemoveProcess(lBuzzfeedItem, qbit::Transaction::TX_BUZZ_REWARD);
+		buzzfeedItemRemoveProcess(lBuzzfeedItem, qbit::Transaction::TX_BUZZER_MESSAGE);
 	} else {
 		buzzfeedItemUpdatedProcess(lBuzzfeedItem, qbit::Transaction::TX_BUZZ);
 		buzzfeedItemUpdatedProcess(lBuzzfeedItem, qbit::Transaction::TX_REBUZZ);
 		buzzfeedItemUpdatedProcess(lBuzzfeedItem, qbit::Transaction::TX_BUZZ_REPLY);
 		buzzfeedItemUpdatedProcess(lBuzzfeedItem, qbit::Transaction::TX_BUZZ_LIKE);
 		buzzfeedItemUpdatedProcess(lBuzzfeedItem, qbit::Transaction::TX_BUZZ_REWARD);
+		buzzfeedItemUpdatedProcess(lBuzzfeedItem, qbit::Transaction::TX_BUZZER_MESSAGE);
 	}
 }
 
@@ -708,6 +708,25 @@ bool BuzzfeedListModel::buzzfeedItemRemoveProcess(qbit::BuzzfeedItemPtr item, un
 			// qInfo() << "BuzzfeedListModel::buzzfeedItemRemoveProcess -> remove" << lIndex;
 			beginRemoveRows(QModelIndex(), lIndex, lIndex);
 			endRemoveRows();
+
+			// free-up list item
+			list_.erase(list_.begin() + lIndex);
+			adjustData_.erase(adjustData_.begin() + lIndex);
+
+			// re-fill index
+			index_.clear();
+			for (int lItem = 0; lItem < (int)list_.size(); lItem++) {
+				index_[list_[lItem]->key()] = lItem;
+				adjustData_[lItem] = !adjustData_[lItem];
+			}
+
+			if (lIndex < (int)adjustData_.size()) {
+				//
+				QModelIndex lModelIndex0 = createIndex(lIndex, 0);
+				QModelIndex lModelIndex1 = createIndex((int)adjustData_.size() - 1, 0);
+				emit dataChanged(lModelIndex0, lModelIndex1, QVector<int>()
+						<< AdjustDataRole);
+			}
 
 			return true;
 		}

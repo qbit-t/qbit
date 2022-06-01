@@ -277,6 +277,7 @@ Item {
 			itemTopPadding: buzzerApp.isDesktop ? /*buzzerClient.scaleFactor * */5 : 8
 			itemHorizontalAlignment: Text.AlignHCenter
 			leftPadding: buzzerApp.isDesktop ? 0 : -3
+			centerIn: true
 
 			Material.background: "transparent"
 

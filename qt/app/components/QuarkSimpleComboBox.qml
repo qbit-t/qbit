@@ -29,6 +29,7 @@ ComboBox
     property var keySymbols: [];
     property int keyTopPadding: 0;
     property bool readOnly: false;
+	property bool centerIn: false;
 
 	//property var fontFamily: Qt.platform.os == "windows" ? "Segoe UI Emoji" : "Noto Color Emoji N"
 	//font.family: buzzerApp.isDesktop ? fontFamily : font.family
@@ -72,10 +73,15 @@ ComboBox
 				horizontalAlignment: itemHorizontalAlignment
                 Material.background: "transparent"
 				font.pointSize: fontPointSize
+
                 function getText()
                 {
                     return name;
                 }
+
+				Component.onCompleted: {
+					if (comboBox.centerIn) anchors.centerIn = parent;
+				}
             }
         }
 
