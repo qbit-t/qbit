@@ -4223,6 +4223,7 @@ void BuzzerTransactionStoreExtension::selectBuzzfeed(const std::vector<BuzzfeedP
 				uint256 lBuzzerId = lTx->in()[TX_BUZZER_MISTRUST_BUZZER_IN].out().tx(); 
 
 				TransactionPtr lBuzzerTx = lMainStore->locateTransaction(lBuzzerId);
+				if (!lBuzzerTx) continue;
 
 				ITransactionStorePtr lStore = store_->storeManager()->locate(lBuzzerTx->in()[TX_BUZZER_SHARD_IN].out().tx());
 				if (!lStore) continue;
