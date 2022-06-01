@@ -109,7 +109,9 @@ TransactionAction::Result TxBuzzerTimelockOutsVerify::execute(TransactionContext
 						if (lVM.getR(qasm::QA0).getType() != qasm::QNONE) {
 							amount_t lAmount = lVM.getR(qasm::QA0).to<amount_t>();
 							uint256 lAsset = lInTx->out()[TX_BUZZER_ENDORSE_FEE_LOCKED_OUT /*second out*/].asset();
-							if (!(lAsset == store->settings()->proofAsset() && lAmount == store->settings()->oneVoteProofAmount())) {
+							if (!store->settings()->proofAsset().isNull() &&
+									!(lAsset == store->settings()->proofAsset() &&
+										lAmount == store->settings()->oneVoteProofAmount())) {
 								//
 								std::string lError = _getVMStateText(VirtualMachine::INVALID_RESULT) + " | locked amount and/or asset is invalid";
 								wrapper->tx()->setStatus(Transaction::DECLINED);
