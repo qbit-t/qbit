@@ -687,6 +687,7 @@ Item
 					id: txMenu
 					width: 135
 					visible: false
+					freeSizing: true
 
 					property var info;
 

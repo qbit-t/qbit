@@ -194,6 +194,8 @@ bool BuzzfeedItem::mergeInternal(BuzzfeedItemPtr buzz, bool checkSize, bool noti
 		// if buzz was hidden by the owner
 		if (buzz->type() == TX_BUZZ_HIDE) {
 			//
+			if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[INFO-HIDE]: %s", lBuzz->toString()));
+			//
 			std::map<Key /*buzz*/, BuzzfeedItemPtr>::iterator lExisting = items_.find(Key(buzz->buzzId(), TX_BUZZ));
 			if (lExisting == items_.end()) lExisting = items_.find(Key(buzz->buzzId(), TX_BUZZER_MESSAGE));
 			//if (lExisting == items_.end()) lExisting = items_.find(Key(buzz->buzzId(), TX_BUZZER_MESSAGE_REPLY));

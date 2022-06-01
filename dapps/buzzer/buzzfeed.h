@@ -228,6 +228,7 @@ public:
 			else if (type_ == TX_BUZZER_MISTRUST) return "MISTRUST";
 			else if (type_ == TX_BUZZER_ENDORSE) return "ENDORSE";
 			else if (type_ == TX_BUZZER_MESSAGE) return "MESSAGE";
+			else if (type_ == TX_BUZZ_HIDE) return "HIDE";
 			return "NONE";
 		}		
 
@@ -402,7 +403,7 @@ public:
 			READWRITE(value_);
 		}
 
-		if (type_ == TX_BUZZER_MESSAGE || type_ == TX_BUZZER_MESSAGE_REPLY) {
+		if (type_ == TX_BUZZER_MESSAGE || type_ == TX_BUZZER_MESSAGE_REPLY || type_ == TX_BUZZ_HIDE) {
 			READWRITE(rootBuzzId_);
 		}
 
@@ -603,11 +604,11 @@ public:
 	void setRoot(BuzzfeedItemPtr root) { root_ = root; }
 
 	void buzzerInfo(std::string& name, std::string& alias) {
-		buzzerInfo_(buzzerInfoId_, name, alias); 
+		if (buzzerInfo_) buzzerInfo_(buzzerInfoId_, name, alias); 
 	}
 
 	void buzzerInfo(const ItemInfo& info, std::string& name, std::string& alias) {
-		buzzerInfo_(info.buzzerInfoId(), name, alias); 
+		if (buzzerInfo_) buzzerInfo_(info.buzzerInfoId(), name, alias); 
 	}
 
 	static BuzzfeedItemPtr instance(const BuzzfeedItem& item) {
@@ -738,6 +739,7 @@ public:
 		else if (type_ == TX_BUZZER_MISTRUST) return "mt";
 		else if (type_ == TX_BUZZER_ENDORSE) return "es";
 		else if (type_ == TX_BUZZER_MESSAGE) return "msg";
+		else if (type_ == TX_BUZZ_HIDE) return "h(*)";
 		return "N";
 	}
 

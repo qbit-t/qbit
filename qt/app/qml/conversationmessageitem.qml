@@ -787,6 +787,7 @@ Item {
 		y: spaceTop_ + spaceItems_
 		width: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 170) : 150
 		visible: false
+		freeSizing: true
 
 		model: ListModel { id: menuModel }
 

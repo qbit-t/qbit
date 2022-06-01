@@ -641,6 +641,8 @@ void BuzzfeedListModel::buzzfeedItemUpdatedSlot(const qbit::BuzzfeedItemProxy& b
 	//
 	qbit::BuzzfeedItemPtr lBuzzfeedItem(buzz.get());
 
+	qInfo() << "BuzzfeedListModel::buzzfeedItemUpdatedSlot" << (lBuzzfeedItem->type() == qbit::Transaction::TX_BUZZ_HIDE);
+
 	if (lBuzzfeedItem->type() == qbit::Transaction::TX_BUZZ_HIDE) {
 		//
 		buzzfeedItemRemoveProcess(lBuzzfeedItem, qbit::Transaction::TX_BUZZ);
