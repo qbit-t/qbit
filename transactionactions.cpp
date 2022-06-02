@@ -252,7 +252,7 @@ TransactionAction::Result TxSpendVerify::execute(TransactionContextPtr wrapper, 
 TransactionAction::Result TxSpendOutVerify::execute(TransactionContextPtr wrapper, ITransactionStorePtr store, IWalletPtr wallet, IEntityStorePtr entityStore) {
 	//
 	// all transaction types _must_ pass through this checker
-	if (wrapper->tx()->type() != Transaction::ASSET_TYPE) {
+	if (wrapper->tx()->type() != Transaction::ASSET_TYPE && wrapper->tx()->type() != Transaction::ASSET_EMISSION) {
 
 		BlockHeader lCurrentBlock;
 		uint64_t lCurrentHeight = store->currentHeight(lCurrentBlock);
