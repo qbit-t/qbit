@@ -378,7 +378,7 @@ public:
 	void broadcastState(StatePtr state) {
 		//
 		std::set<uint160> lClients;
-		std::map<uint160, std::string> lPeerIdx;
+		std::map<uint160, std::set<std::string>> lPeerIdx;
 		{
 			boost::unique_lock<boost::recursive_mutex> lLock(peersIdxMutex_);
 			lClients = clients_;
@@ -390,15 +390,17 @@ public:
 
 		// traverse peers
 		for (std::set<uint160>::iterator lClient = lClients.begin(); lClient != lClients.end(); lClient++) {
-			std::map<uint160, std::string>::iterator lPeerIter = lPeerIdx.find(*lClient);
+			std::map<uint160, std::set<std::string>>::iterator lPeerIter = lPeerIdx.find(*lClient);
 			if (lPeerIter != lPeerIdx.end()) {
-				IPeerPtr lPeer = locate(lPeerIter->second);
-				if (lPeer) {
-					std::map<uint160, uint512>::iterator lPeerStateSent = peerStateSent_.find(*lClient);
-					if (lPeerStateSent == peerStateSent_.end() || lPeerStateSent->second != state->signature()) {
-						if (!lPeer->state()->daemon()) lPeer->broadcastState(state);
-						if (lPeerStateSent == peerStateSent_.end()) peerStateSent_[*lClient] = state->signature();
-						else lPeerStateSent->second = state->signature();
+				for (std::set<std::string>::iterator lKey = lPeerIter->second.begin(); lKey != lPeerIter->second.end(); lKey++) {
+					IPeerPtr lPeer = locate(*lKey);
+					if (lPeer) {
+						std::map<uint160, uint512>::iterator lPeerStateSent = peerStateSent_.find(*lClient);
+						if (lPeerStateSent == peerStateSent_.end() || lPeerStateSent->second != state->signature()) {
+							if (!lPeer->state()->daemon()) lPeer->broadcastState(state);
+							if (lPeerStateSent == peerStateSent_.end()) peerStateSent_[*lClient] = state->signature();
+							else lPeerStateSent->second = state->signature();
+						}
 					}
 				}
 			}
@@ -408,7 +410,7 @@ public:
 	void notifyTransaction(TransactionContextPtr ctx) {
 		//
 		std::set<uint160> lClients;
-		std::map<uint160, std::string> lPeerIdx;
+		std::map<uint160, std::set<std::string>> lPeerIdx;
 		{
 			boost::unique_lock<boost::recursive_mutex> lLock(peersIdxMutex_);
 			lClients = clients_;
@@ -430,16 +432,18 @@ public:
 				//
 				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: found client ") + strprintf("%s", lAddressId.toHex()));
 
-				std::map<uint160, std::string>::iterator lPeerIter = lPeerIdx.find(lAddressId);
+				std::map<uint160, std::set<std::string>>::iterator lPeerIter = lPeerIdx.find(lAddressId);
 				if (lPeerIter != lPeerIdx.end()) {
 					//
-					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: found client index ") + strprintf("%s", lAddressId.toHex()));
+					for (std::set<std::string>::iterator lKey = lPeerIter->second.begin(); lKey != lPeerIter->second.end(); lKey++) {
+						if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: found client index ") + strprintf("%s/%s", lAddressId.toHex(), *lKey));
 
-					IPeerPtr lPeer = locate(lPeerIter->second);
-					if (lPeer) {
-						lPeer->broadcastTransaction(ctx); // every direct transaction should be delivered (value)
-					} else {
-						if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: peer NOT found for ") + strprintf("%s", lAddressId.toHex()));
+						IPeerPtr lPeer = locate(*lKey);
+						if (lPeer) {
+							lPeer->broadcastTransaction(ctx); // every direct transaction should be delivered (value)
+						} else {
+							if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: peer NOT found for ") + strprintf("%s/%s", lAddressId.toHex(), *lKey));
+						}
 					}
 				}
 			}	
@@ -447,19 +451,21 @@ public:
 
 		// traverse peers
 		for (std::set<uint160>::iterator lClient = lClients.begin(); lClient != lClients.end(); lClient++) {
-			std::map<uint160, std::string>::iterator lPeerIter = lPeerIdx.find(*lClient);
+			std::map<uint160, std::set<std::string>>::iterator lPeerIter = lPeerIdx.find(*lClient);
 			if (lPeerIter != lPeerIdx.end()) {
-				IPeerPtr lPeer = locate(lPeerIter->second);
-				if (lPeer) {
-					std::map<std::string, IPeerExtensionPtr> lExtensions = lPeer->extensions();
-					for (std::map<std::string, IPeerExtensionPtr>::iterator lExtension = lExtensions.begin(); lExtension != lExtensions.end(); lExtension++) {
+				for (std::set<std::string>::iterator lKey = lPeerIter->second.begin(); lKey != lPeerIter->second.end(); lKey++) {
+					IPeerPtr lPeer = locate(*lKey);
+					if (lPeer) {
+						std::map<std::string, IPeerExtensionPtr> lExtensions = lPeer->extensions();
+						for (std::map<std::string, IPeerExtensionPtr>::iterator lExtension = lExtensions.begin(); lExtension != lExtensions.end(); lExtension++) {
+							if (gLog().isEnabled(Log::NET)) 
+								gLog().write(Log::NET, std::string("[peerManager]: processing extension ") + strprintf("tx %s for peer %s", ctx->tx()->id().toHex(), *lKey));
+							lExtension->second->processTransaction(ctx); // every direct transaction should be delivered (value)
+						}
+					} else {
 						if (gLog().isEnabled(Log::NET)) 
-							gLog().write(Log::NET, std::string("[peerManager]: processing extension ") + strprintf("tx %s for peer %s", ctx->tx()->id().toHex(), lPeerIter->second));
-						lExtension->second->processTransaction(ctx); // every direct transaction should be delivered (value)
+							gLog().write(Log::NET, std::string("[peerManager]: ") + strprintf("peer extension was NOT FOUND %s for %s", *lKey, ctx->tx()->id().toHex()));					
 					}
-				} else {
-					if (gLog().isEnabled(Log::NET)) 
-						gLog().write(Log::NET, std::string("[peerManager]: ") + strprintf("peer extension was NOT FOUND %s for %s", lPeerIter->second, ctx->tx()->id().toHex()));					
 				}
 			}
 		}
@@ -764,9 +770,10 @@ public:
 		bool lPop = false;
 		{
 			boost::unique_lock<boost::recursive_mutex> lLock(peersIdxMutex_);
-			std::map<uint160, std::string>::iterator lPeerIter = peerIdx_.find(peer->addressId());
-			if (lPeerIter != peerIdx_.end() && lPeerIter->second == peer->key()) {
-				peerIdx_.erase(peer->addressId());
+			std::map<uint160, std::set<std::string>>::iterator lPeerIter = peerIdx_.find(peer->addressId());
+			if (lPeerIter != peerIdx_.end() && lPeerIter->second.find(peer->key()) != lPeerIter->second.end()) {
+				lPeerIter->second.erase(peer->key());
+				if (!lPeerIter->second.size()) peerIdx_.erase(peer->addressId());
 				if (peer->state()->client()) {
 					clients_.erase(peer->addressId());
 					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: removing client ") + strprintf("%s/%s", peer->key(), peer->addressId().toHex()));					
@@ -808,9 +815,10 @@ public:
 		bool lPop = false;
 		{
 			boost::unique_lock<boost::recursive_mutex> lLock(peersIdxMutex_);
-			std::map<uint160, std::string>::iterator lPeerIter = peerIdx_.find(peer->addressId());
-			if (lPeerIter != peerIdx_.end() && lPeerIter->second == peer->key()) {
-				peerIdx_.erase(peer->addressId());
+			std::map<uint160, std::set<std::string>>::iterator lPeerIter = peerIdx_.find(peer->addressId());
+			if (lPeerIter != peerIdx_.end() && lPeerIter->second.find(peer->key()) != lPeerIter->second.end()) {
+				lPeerIter->second.erase(peer->key());
+				if (!lPeerIter->second.size()) peerIdx_.erase(peer->addressId());
 				if (peer->state()->client()) {
 					clients_.erase(peer->addressId());
 					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: removing client ") + strprintf("%s/%s", peer->key(), peer->addressId().toHex()));					
@@ -863,10 +871,20 @@ public:
 		uint160 lAddress = peer->addressId();
 		{
 			boost::unique_lock<boost::recursive_mutex> lLock(peersIdxMutex_);
-			std::map<uint160, std::string>::iterator lPeerIndex = peerIdx_.find(lAddress);
+			std::map<uint160, std::set<std::string>>::iterator lPeerIndex = peerIdx_.find(lAddress);
 			//
-			if (lPeerIndex == peerIdx_.end() || (peer->state()->client() && lPeerIndex->second != peer->key())) {
+			if (lPeerIndex == peerIdx_.end() || (peer->state()->client() /*&& lPeerIndex->second != peer->key()*/)) {
+				// ONLY in case if peer is CLIENT
 				if (lPeerIndex != peerIdx_.end()) {
+					// try to cleen-up
+					std::set<std::string> lKeys = lPeerIndex->second; // copy
+					for (std::set<std::string>::iterator lKey = lKeys.begin(); lKey != lKeys.end(); lKey++) {
+						//
+						if (locate(*lKey) == nullptr) lPeerIndex->second.erase(*lKey);
+					}
+
+					//
+					/*
 					IPeerPtr lPrevPeer = locate(lPeerIndex->second);
 					if (lPrevPeer) removePeer(lPrevPeer);
 					else {
@@ -875,9 +893,13 @@ public:
 					}
 
 					peerIdx_.erase(lPeerIndex);
+					*/
 				}
+				
+				// add new one or another one
+				peerIdx_[peer->addressId()].insert(peer->key());
+				
 				//
-				peerIdx_.insert(std::map<uint160, std::string>::value_type(peer->addressId(), peer->key()));
 				if (peer->state()->client()) { 
 					clients_.insert(peer->addressId());
 					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: adding client ") + strprintf("%s/%s", peer->key(), peer->addressId().toHex()));
@@ -909,15 +931,17 @@ public:
 					}
 				}
 			} else {
-				IPeerPtr lPeer = locate(peerIdx_[lAddress]);
-				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: peer ALREADY exists - ") + 
-						strprintf("new - %s/%s/%s, old - %s/%s/%s", 
-							peer->key(), peer->statusString(), peer->addressId().toHex(), 
-							lPeer->key(), lPeer->statusString(), lPeer->addressId().toHex()));
+				if (peerIdx_[lAddress].size()) {
+					IPeerPtr lPeer = locate(*(peerIdx_[lAddress].begin()));
+					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: peer ALREADY exists - ") + 
+							strprintf("new - %s/%s/%s, old - %s/%s/%s", 
+								peer->key(), peer->statusString(), peer->addressId().toHex(), 
+								lPeer->key(), lPeer->statusString(), lPeer->addressId().toHex()));
 
-				if (!consensusManager_->peerExists(lAddress) || settings_->isClient()) consensusManager_->pushPeer(lPeer);
-				else consensusManager_->pushPeerLatency(lPeer);
-				return false;
+					if (!consensusManager_->peerExists(lAddress) || settings_->isClient()) consensusManager_->pushPeer(lPeer);
+					else consensusManager_->pushPeerLatency(lPeer);
+					return false;
+				} else return false; // illegal situation
 			}
 		}
 
@@ -990,9 +1014,10 @@ public:
 		bool lPop = false;
 		{
 			boost::unique_lock<boost::recursive_mutex> lLock(peersIdxMutex_);
-			std::map<uint160, std::string>::iterator lPeerIter = peerIdx_.find(peer->addressId());
-			if (lPeerIter != peerIdx_.end() && lPeerIter->second == peer->key()) {
-				peerIdx_.erase(peer->addressId());
+			std::map<uint160, std::set<std::string>>::iterator lPeerIter = peerIdx_.find(peer->addressId());
+			if (lPeerIter != peerIdx_.end() && lPeerIter->second.find(peer->key()) != lPeerIter->second.end()) {
+				lPeerIter->second.erase(peer->key());
+				if (!lPeerIter->second.size()) peerIdx_.erase(peer->addressId());
 				if (peer->state()->client()) { 
 					clients_.erase(peer->addressId()); 
 					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: removing client ") + strprintf("%s/%s", peer->key(), peer->addressId().toHex()));
@@ -1036,10 +1061,18 @@ public:
 			boost::unique_lock<boost::recursive_mutex> lLock(peersIdxMutex_);
 			uint160 lAddress = peer->addressId();
 			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: updating - ") + strprintf("%s/%s", peer->key(), lAddress.toHex()));
-			std::map<uint160, std::string>::iterator lPeerIndex = peerIdx_.find(lAddress);
+			std::map<uint160, std::set<std::string>>::iterator lPeerIndex = peerIdx_.find(lAddress);
 			//
-			if (lPeerIndex == peerIdx_.end() || (peer->state()->client() && lPeerIndex->second != peer->key())) {
+			if (lPeerIndex == peerIdx_.end() || (peer->state()->client() /*&& lPeerIndex->second != peer->key()*/)) {
 				if (lPeerIndex != peerIdx_.end()) {
+					// try to cleen-up
+					std::set<std::string> lKeys = lPeerIndex->second; // copy
+					for (std::set<std::string>::iterator lKey = lKeys.begin(); lKey != lKeys.end(); lKey++) {
+						//
+						if (locate(*lKey) == nullptr) lPeerIndex->second.erase(*lKey);
+					}
+
+					/*
 					IPeerPtr lPrevPeer = locate(lPeerIndex->second);
 					if (lPrevPeer) removePeer(lPrevPeer);
 					else {
@@ -1048,9 +1081,13 @@ public:
 					}
 
 					peerIdx_.erase(lPeerIndex);
+					*/
 				}
+				
+				// add new one or another one
+				peerIdx_[peer->addressId()].insert(peer->key());
+
 				//
-				peerIdx_.insert(std::map<uint160, std::string>::value_type(peer->addressId(), peer->key()));
 				if (peer->state()->client()) { 
 					clients_.insert(peer->addressId());
 					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: adding client ") + strprintf("%s/%s", peer->key(), peer->addressId().toHex()));
@@ -1083,15 +1120,17 @@ public:
 					}
 				}
 			} else {
-				IPeerPtr lPeer = locate(peerIdx_[lAddress]);
-				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: peer ALREADY exists - ") + 
-						strprintf("new - %s/%s/%s, old - %s/%s/%s", 
-							peer->key(), peer->statusString(), peer->addressId().toHex(), 
-							lPeer->key(), lPeer->statusString(), lPeer->addressId().toHex()));
+				if (peerIdx_[lAddress].size()) {
+					IPeerPtr lPeer = locate(*(peerIdx_[lAddress].begin()));
+					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: peer ALREADY exists - ") + 
+							strprintf("new - %s/%s/%s, old - %s/%s/%s", 
+								peer->key(), peer->statusString(), peer->addressId().toHex(), 
+								lPeer->key(), lPeer->statusString(), lPeer->addressId().toHex()));
 
-				if (!consensusManager_->peerExists(lAddress) || settings_->isClient()) consensusManager_->pushPeer(lPeer);
-				else consensusManager_->pushPeerLatency(lPeer);
-				return false;
+					if (!consensusManager_->peerExists(lAddress) || settings_->isClient()) consensusManager_->pushPeer(lPeer);
+					else consensusManager_->pushPeerLatency(lPeer);
+					return false;
+				} else return false;
 			}
 		}
 
@@ -1126,9 +1165,10 @@ public:
 		bool lPop = false;
 		{
 			boost::unique_lock<boost::recursive_mutex> lLock(peersIdxMutex_);
-			std::map<uint160, std::string>::iterator lPeerIter = peerIdx_.find(peer->addressId());
-			if (lPeerIter != peerIdx_.end() && lPeerIter->second == peer->key()) {
-				peerIdx_.erase(peer->addressId());
+			std::map<uint160, std::set<std::string>>::iterator lPeerIter = peerIdx_.find(peer->addressId());
+			if (lPeerIter != peerIdx_.end() && lPeerIter->second.find(peer->key()) != lPeerIter->second.end()) {
+				lPeerIter->second.erase(peer->key());
+				if (!lPeerIter->second.size()) peerIdx_.erase(peer->addressId());
 				if (peer->state()->client()) {
 					clients_.erase(peer->addressId());
 					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: removing client ") + strprintf("%s/%s", peer->key(), peer->addressId().toHex()));					
@@ -1191,7 +1231,7 @@ private:
 	std::set<std::string> explicitEndpoins_;
 
 	boost::recursive_mutex peersIdxMutex_;
-	std::map<uint160, std::string> peerIdx_;
+	std::map<uint160, std::set<std::string>> peerIdx_;
 	std::set<uint160> clients_;
 
 	std::vector<TimerPtr> timers_;
