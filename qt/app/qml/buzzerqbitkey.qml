@@ -239,6 +239,9 @@ QuarkPage
 			}
 
 			onHeadClicked: {
+				//
+				clipboard.setText(buzzerClient.firstSeedWords());
+				//
 				seedView.model.clear();
 			}
 		}

@@ -252,7 +252,7 @@ TransactionAction::Result TxSpendVerify::execute(TransactionContextPtr wrapper, 
 TransactionAction::Result TxSpendOutVerify::execute(TransactionContextPtr wrapper, ITransactionStorePtr store, IWalletPtr wallet, IEntityStorePtr entityStore) {
 	//
 	// all transaction types _must_ pass through this checker
-	if (wrapper->tx()->type() != Transaction::ASSET_TYPE && wrapper->tx()->type() != Transaction::ASSET_EMISSION) {
+	if (wrapper->tx()->type() != Transaction::ASSET_TYPE) {
 
 		BlockHeader lCurrentBlock;
 		uint64_t lCurrentHeight = store->currentHeight(lCurrentBlock);
@@ -338,7 +338,7 @@ TransactionAction::Result TxSpendOutVerify::execute(TransactionContextPtr wrappe
 				if (lVM.getR(qasm::QD0).to<unsigned short>() == 0xffff) lProcess = false;
 
 				//
-				if (lProcess /*not change*/) {
+				if (lProcess /*not change*/ && wrapper->tx()->type() != Transaction::ASSET_EMISSION /*emission is lock-free*/) {
 					if (lVM.getR(qasm::QR1).getType() != qasm::QNONE) {
 						//
 						uint64_t lHeight = lVM.getR(qasm::QR1).to<uint64_t>();

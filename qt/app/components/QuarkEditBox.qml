@@ -190,6 +190,10 @@ Rectangle
 			Keys.onPressed:
 			{
 				infoLabel.text = getPlaceholderText();
+
+				if (event.key === Qt.Key_Return) {
+					addClicked();
+				}
 			}
 
 			onPreeditTextChanged:
