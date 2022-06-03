@@ -1683,8 +1683,8 @@ void TransactionStore::selectUtxoByAddress(const PKey& address, std::vector<Tran
 		uint256 lUtxo;
 
 		if (lBundle.first(lAddress, lAsset, lUtxo)) {
-			Transaction::UnlinkedOut lOut;
-			if (utxo_.read(lUtxo, lOut)) {
+			Transaction::UnlinkedOut lOut, lLOut;
+			if (utxo_.read(lUtxo, lOut) && !ltxo_.read(lUtxo, lLOut)) {
 				//
 				uint64_t lHeight = 0;
 				uint64_t lConfirms = 0;
@@ -1710,8 +1710,8 @@ void TransactionStore::selectUtxoByAddressAndAsset(const PKey& address, const ui
 		uint256 lUtxo;
 
 		if (lBundle.first(lAddress, lAsset, lUtxo)) {
-			Transaction::UnlinkedOut lOut;
-			if (utxo_.read(lUtxo, lOut)) {
+			Transaction::UnlinkedOut lOut, lLOut;
+			if (utxo_.read(lUtxo, lOut) && !ltxo_.read(lUtxo, lLOut)) {
 				//
 				uint64_t lHeight = 0;
 				uint64_t lConfirms = 0;

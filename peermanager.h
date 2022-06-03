@@ -395,10 +395,10 @@ public:
 				for (std::set<std::string>::iterator lKey = lPeerIter->second.begin(); lKey != lPeerIter->second.end(); lKey++) {
 					IPeerPtr lPeer = locate(*lKey);
 					if (lPeer) {
-						std::map<uint160, uint512>::iterator lPeerStateSent = peerStateSent_.find(*lClient);
+						std::map<std::string, uint512>::iterator lPeerStateSent = peerStateSent_.find(*lKey);
 						if (lPeerStateSent == peerStateSent_.end() || lPeerStateSent->second != state->signature()) {
 							if (!lPeer->state()->daemon()) lPeer->broadcastState(state);
-							if (lPeerStateSent == peerStateSent_.end()) peerStateSent_[*lClient] = state->signature();
+							if (lPeerStateSent == peerStateSent_.end()) peerStateSent_[*lKey] = state->signature();
 							else lPeerStateSent->second = state->signature();
 						}
 					}
@@ -1247,7 +1247,7 @@ private:
 	IMemoryPoolManagerPtr mempoolManager_;
 
 	db::DbContainer<std::string /*endpoint*/, Peer::PersistentState> peersContainer_;
-	std::map<uint160, uint512> peerStateSent_;
+	std::map<std::string, uint512> peerStateSent_;
 
 	bool paused_ = false;
 	bool explicitPeersOnly_ = false;
