@@ -676,6 +676,20 @@ QuarkPage {
 					}
 				}
 
+				function mediaImagesSize() {
+					//
+					var lSize = 0;
+					for (var lIdx = 0; lIdx < mediaModel.count; lIdx++) {
+						//
+						var lMedia = mediaModel.get(lIdx);
+						if (lMedia && lMedia.media === "image") {
+							lSize += lMedia.size;
+						}
+					}
+
+					return lSize;
+				}
+
 				function addMedia(file, info) {
 					var lOrientation = 0; // vertical
 					if (buzzeditor_.width > buzzeditor_.height) lOrientation = 1; // horizontal
@@ -685,7 +699,7 @@ QuarkPage {
 						path: "file://" + file,
 						preview: "none",
 						media: "image",
-						size: 0,
+						size: buzzerApp.getFileSize(file),
 						duration: 0,
 						progress: 0,
 						uploaded: 0,
@@ -705,7 +719,7 @@ QuarkPage {
 						path: "file://" + file,
 						preview: "none",
 						media: "audio",
-						size: 0,
+						size: buzzerApp.getFileSize(file),
 						duration: duration,
 						progress: 0,
 						uploaded: 0,
@@ -726,7 +740,7 @@ QuarkPage {
 						path: "file://" + file,
 						preview: preview,
 						media: "video",
-						size: 0,
+						size: buzzerApp.getFileSize(file),
 						duration: duration,
 						progress: 0,
 						uploaded: 0,
@@ -817,6 +831,13 @@ QuarkPage {
 			focusPolicy: Qt.NoFocus
 
 			onClicked: {
+				//
+				if (!buzzerApp.isDesktop && mediaListEditor.mediaImagesSize() > 50*1024*1024) {
+					handleError("E_IMAGES_MEDIA_SIZE_EXCEEDED", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_IMAGES_MEDIA_SIZE_EXCEEDED"));
+					return;
+				}
+
+				//
 				if (sending) return;
 
 				var lComponent = null;
@@ -1198,6 +1219,11 @@ QuarkPage {
 					handleError("E_MEDIA_PREVIEW_ABSENT", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_MEDIA_PREVIEW_ABSENT"));
 				} else {
 					//
+					if (!buzzerApp.isDesktop && mediaListEditor.mediaImagesSize() > 50*1024*1024) {
+						handleError("E_IMAGES_MEDIA_SIZE_EXCEEDED", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_IMAGES_MEDIA_SIZE_EXCEEDED"));
+						return;
+					}
+
 					mediaListEditor.addMedia(file, description);
 				}
 			} else {

@@ -42,6 +42,10 @@ Rectangle {
 	property var frameColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
 
 	//
+	property string mediaViewTheme: "Darkmatter"
+	property string mediaViewSelector: "dark"
+
+	//
 	property var mediaList;
 	property var mediaBox;
 
@@ -131,6 +135,46 @@ Rectangle {
 		fillMode: BuzzerComponents.ImageQx.PreserveAspectFit
 		mipmap: true
 		anchors.centerIn: parent
+	}
+
+	//
+	Rectangle {
+		id: controlsBack
+		x: mediaImage.x + spaceItems_
+		y: mediaImage.y + spaceItems_
+		width: totalSizeControl.width + 2 * spaceItems_
+		height: totalSizeControl.height + 2 * spaceItems_
+		color: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.disabledHidden.uni")
+		radius: 4
+
+		visible: true
+
+		Component.onCompleted: totalSizeControl.setTotalSize(size)
+
+		QuarkLabel {
+			id: totalSizeControl
+			x: spaceItems_
+			y: spaceItems_
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
+			color: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.menu.foreground")
+			text: "0k"
+
+			visible: forceVisible && scaled && size_ !== 0
+
+			function setTotalSize(mediaSize) {
+				//
+				if (mediaSize < 1000) text = mediaSize + "b";
+				else text = NumberFunctions.numberToCompact(mediaSize);
+			}
+		}
+
+		function adjustX() {
+			x = mediaImage.x + spaceItems_;
+		}
+
+		function adjustY() {
+			y = mediaImage.y + spaceItems_;
+		}
 	}
 
 	QuarkRoundSymbolButton	{
