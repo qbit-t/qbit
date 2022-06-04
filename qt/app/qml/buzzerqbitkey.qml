@@ -476,6 +476,11 @@ QuarkPage
 				buzzerClient.alias = alias;
 				buzzerClient.description = description;
 
+				// reset wallet cache
+				buzzerClient.resetWalletCache();
+				// start re-sync, i.e. load owned utxos
+				buzzerClient.resyncWalletCache();
+
 				// update local buzzer info
 				if (!loadBuzzerInfo.updateLocalBuzzer()) {
 					//

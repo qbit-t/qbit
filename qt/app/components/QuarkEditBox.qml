@@ -148,6 +148,7 @@ Rectangle
 			horizontalAlignment: Text.AlignLeft
 			verticalAlignment: Text.AlignVCenter
 			font.pointSize: textFontSize
+			selectionColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.selected")
 
 			property bool focusEnter_: false;
 

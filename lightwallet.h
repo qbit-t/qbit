@@ -225,7 +225,7 @@ public:
 
 	//
 	void updateOut(Transaction::NetworkUnlinkedOutPtr /*out*/, const uint256& /*parent*/, unsigned short /*type*/);
-	void updateIn(Transaction::NetworkUnlinkedOutPtr /*out*/);
+	void updateIn(Transaction::NetworkUnlinkedOutPtr /*out*/, bool);
 	void updateOuts(TransactionPtr /*tx*/);
 
 	//
@@ -282,6 +282,9 @@ private:
 	std::map<std::string, walletReceiveTransactionFunction> walletReceiveTransaction_;
 	std::map<std::string, walletInUpdatedFunction> inUpdated_;
 	std::map<std::string, walletOutUpdatedFunction> outUpdated_;
+
+	//
+	std::map<uint256, std::set<uint256>> initialUtxos_;
 };
 
 } // qbit

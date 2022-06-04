@@ -393,6 +393,10 @@ public:
 	Q_INVOKABLE void setTrustScore(ulong endorsements, ulong mistrusts) {
 		buzzer_->setTrustScore(endorsements, mistrusts);
 	}
+	Q_INVOKABLE void resetWalletCache() {
+		//
+		wallet_->resetCache();
+	}
 	Q_INVOKABLE void resync() {
 		// start re-sync
 		syncTimer_->start(500);
