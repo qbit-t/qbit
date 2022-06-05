@@ -120,7 +120,7 @@ void Peer::processError(const std::string& context, std::list<DataStream>::itera
 		// try to deactivate peer
 		peerManager_->deactivatePeer(shared_from_this());
 		// close socket
-		socket_->close();
+		if (socket_) socket_->close();
 	}
 }
 
