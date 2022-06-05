@@ -1492,12 +1492,16 @@ class BuzzHideCommand: public ICommand, public std::enable_shared_from_this<Buzz
 public:
 	BuzzHideCommand(BuzzerLightComposerPtr composer, BuzzfeedPtr buzzFeed, doneWithErrorFunction done): composer_(composer), buzzFeed_(buzzFeed), done_(done) {}
 	BuzzHideCommand(BuzzerLightComposerPtr composer, BuzzfeedPtr buzzFeed): composer_(composer), buzzFeed_(buzzFeed) {}
+	virtual ~BuzzHideCommand() {
+		// for any reason to avoid false-sharing with late callbacks
+		if (reply_) reply_->cancel();
+	}
 
 	void process(const std::vector<std::string>&);
 	std::set<std::string> name() {
 		std::set<std::string> lSet;
-		lSet.insert("buzzHide"); 
-		lSet.insert("hide"); 
+		lSet.insert("buzzHide");
+		lSet.insert("hide");
 		return lSet;
 	}
 
@@ -1521,9 +1525,9 @@ public:
 		ctx_ = ctx;
 		//
 		if (!composer_->requestProcessor()->sendTransaction(ctx,
-				SentTransaction::instance(
+				(reply_ = SentTransaction::instance(
 					boost::bind(&BuzzHideCommand::sent, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
-					boost::bind(&BuzzHideCommand::timeout, shared_from_this())))) {
+					boost::bind(&BuzzHideCommand::timeout, shared_from_this()))))) {
 			gLog().writeClient(Log::CLIENT, std::string(": tx was not broadcasted, wallet re-init..."));
 			composer_->wallet()->resetCache();
 			composer_->wallet()->prepareCache();
@@ -1564,6 +1568,7 @@ public:
 	}
 
 private:
+	ISentTransactionHandlerPtr reply_ = nullptr;
 	BuzzerLightComposerPtr composer_;
 	BuzzfeedPtr buzzFeed_;
 	doneWithErrorFunction done_;

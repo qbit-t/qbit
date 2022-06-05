@@ -1325,6 +1325,8 @@ Item {
 		model: buzzfeedModel_
 
 		onProcessed: {
+			// signal to remove from model
+			buzzfeedModel_.remove(index);
 		}
 		onError: {
 			handleError(code, message);

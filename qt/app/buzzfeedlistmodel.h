@@ -93,6 +93,8 @@ public:
 	Q_INVOKABLE bool feeding() { return feeding_; }
 	//
 	Q_INVOKABLE QString itemToString(int index);
+	//
+	Q_INVOKABLE void remove(int index);
 
 	void buzzfeedLargeUpdated();
 	void buzzfeedItemNew(qbit::BuzzfeedItemPtr /*buzz*/);

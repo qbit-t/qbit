@@ -142,6 +142,35 @@ void BuzzfeedListModel::setHasRebuzz(int index) {
 	emit dataChanged(lModelIndex, lModelIndex, QVector<int>() << OwnRebuzzRole);
 }
 
+void BuzzfeedListModel::remove(int index) {
+	//
+	int lIndex = index;
+	if (lIndex >= 0 && lIndex < (int)list_.size()) {
+		//
+		beginRemoveRows(QModelIndex(), lIndex, lIndex);
+		endRemoveRows();
+
+		// free-up list item
+		list_.erase(list_.begin() + lIndex);
+		adjustData_.erase(adjustData_.begin() + lIndex);
+
+		// re-fill index
+		index_.clear();
+		for (int lItem = 0; lItem < (int)list_.size(); lItem++) {
+			index_[list_[lItem]->key()] = lItem;
+			adjustData_[lItem] = !adjustData_[lItem];
+		}
+
+		if (lIndex < (int)adjustData_.size()) {
+			//
+			QModelIndex lModelIndex0 = createIndex(lIndex, 0);
+			QModelIndex lModelIndex1 = createIndex((int)adjustData_.size() - 1, 0);
+			emit dataChanged(lModelIndex0, lModelIndex1, QVector<int>()
+					<< AdjustDataRole);
+		}
+	}
+}
+
 QVariant BuzzfeedListModel::data(const QModelIndex& index, int role) const {
 	//
 	if (index.row() < 0 || index.row() >= (int)list_.size()) {

@@ -214,12 +214,13 @@ bool BuzzerTransactionStoreExtension::isAllowed(TransactionContextPtr ctx) {
 																	lReTx->type() == TX_BUZZ)) {
 					// check mistrusts
 					uint256 lOriginalPublisher = lReTx->in()[TX_BUZZ_REPLY_MY_IN /*for the ALL types above*/].out().tx();
-					// check for personal trust
+					// check for personal top buzz owner trust
 					uint256 lTrustTx;
-					if (mistrusts_.read(qbit::db::TwoKey<uint256, uint256>(lReplyPublisher, lOriginalPublisher), lTrustTx)) {
+					if ((lReTx->type() == TX_BUZZ || lReTx->type() == TX_REBUZZ) &&
+							mistrusts_.read(qbit::db::TwoKey<uint256, uint256>(lReplyPublisher, lOriginalPublisher), lTrustTx)) {
 						// re-ceck if we have compensation
 						if (!endorsements_.read(qbit::db::TwoKey<uint256, uint256>(lReplyPublisher, lOriginalPublisher), lTrustTx))
-							continue; // mistrusted and not able to make replies
+							return false; // mistrusted and not able to make replies
 					}
 
 					//
@@ -3560,6 +3561,15 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedByBuzz(uint64_t from, const 
 				lPublisherExtension->readBuzzerStat(lTxPublisher, lPublisherInfo);
 				if (!lPublisherInfo.trusted()) continue;
 			}
+			/*
+			// check for personal trust
+			uint256 lTrustTx;
+			if (mistrusts_.read(qbit::db::TwoKey<uint256, uint256>(lTxPublisher, subscriber), lTrustTx)) {
+				// re-ceck if we have compensation
+				if (!endorsements_.read(qbit::db::TwoKey<uint256, uint256>(lTxPublisher, subscriber), lTrustTx))
+					continue; // in case if we have mistrusted and NOT endorsed the publisher
+			}
+			*/
 			// check for hidden
 			uint256 lOwner;
 			if (hiddenIdx_.read(lEventId, lOwner)) continue;
@@ -4179,6 +4189,16 @@ void BuzzerTransactionStoreExtension::selectBuzzfeed(const std::vector<BuzzfeedP
 					lPublisherExtension->readBuzzerStat(lTxPublisher, lPublisherInfo);
 					if (!lPublisherInfo.trusted()) continue;
 				}
+
+				/*
+				// check for personal trust
+				uint256 lTrustTx;
+				if (mistrusts_.read(qbit::db::TwoKey<uint256, uint256>(lTxPublisher, subscriber), lTrustTx)) {
+					// re-ceck if we have compensation
+					if (!endorsements_.read(qbit::db::TwoKey<uint256, uint256>(lTxPublisher, subscriber), lTrustTx))
+						continue; // in case if we have mistrusted and NOT endorsed the publisher
+				}
+				*/
 
 				// check for hidden
 				uint256 lOwner;

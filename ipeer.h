@@ -36,6 +36,7 @@ class IReplyHandler {
 public:
 	IReplyHandler() {}
 	virtual void timeout() {}
+	virtual void cancel() {}
 };
 typedef std::shared_ptr<IReplyHandler> IReplyHandlerPtr;
 

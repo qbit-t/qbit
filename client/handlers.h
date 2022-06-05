@@ -85,11 +85,15 @@ public:
 
 	// ILoadEntityHandler
 	void handleReply(TransactionPtr tx) {
-		 function_(tx);
+		 if (function_) function_(tx);
 	}
 	// IReplyHandler
 	void timeout() {
-		timeout_();
+		if (timeout_) timeout_();
+	}
+	void cancel() {
+		function_ = 0;
+		timeout_ = 0;
 	}
 
 	static ILoadTransactionHandlerPtr instance(transactionLoadedFunction function, timeoutFunction timeout) { 
@@ -108,11 +112,15 @@ public:
 
 	// ILoadTransactionsHandler
 	void handleReply(const std::vector<TransactionPtr>& txs) {
-		 function_(txs);
+		 if (function_) function_(txs);
 	}
 	// IReplyHandler
 	void timeout() {
-		timeout_();
+		if (timeout_) timeout_();
+	}
+	void cancel() {
+		function_ = 0;
+		timeout_ = 0;
 	}
 
 	static ILoadTransactionsHandlerPtr instance(transactionsLoadedFunction function, timeoutFunction timeout) { 
@@ -131,11 +139,15 @@ public:
 
 	// ILoadEntityHandler
 	void handleReply(const uint256& tx, const std::vector<TransactionContext::Error>& errors) {
-		 function_(tx, errors);
+		 if (function_) function_(tx, errors);
 	}
 	// ISentTransactionHandler
 	void timeout() {
-		timeout_();
+		if (timeout_) timeout_();
+	}
+	void cancel() {
+		function_ = 0;
+		timeout_ = 0;
 	}
 
 	static ISentTransactionHandlerPtr instance(sentTransactionFunction function, timeoutFunction timeout) { 
@@ -154,11 +166,15 @@ public:
 
 	// ILoadEntityHandler
 	void handleReply(EntityPtr entity) {
-		 function_(entity);
+		 if (function_) function_(entity);
 	}
 	// IReplyHandler
 	void timeout() {
-		timeout_();
+		if (timeout_) timeout_();
+	}
+	void cancel() {
+		function_ = 0;
+		timeout_ = 0;
 	}
 
 	static ILoadEntityHandlerPtr instance(entityLoadedFunction function, timeoutFunction timeout) { 
@@ -177,11 +193,15 @@ public:
 
 	// ILoadEntityHandler
 	void handleReply(const std::vector<Transaction::NetworkUnlinkedOut>& utxo, const uint256& tx) {
-		function_(utxo, tx);
+		if (function_) function_(utxo, tx);
 	}
 	// IReplyHandler
 	void timeout() {
-		timeout_();	
+		if (timeout_) timeout_();
+	}
+	void cancel() {
+		function_ = 0;
+		timeout_ = 0;
 	}
 
 	static ISelectUtxoByTransactionHandlerPtr instance(utxoByTransactionSelectedFunction function, timeoutFunction timeout) { 
@@ -200,11 +220,15 @@ public:
 
 	// ILoadEntityHandler
 	void handleReply(const std::vector<Transaction::UnlinkedOut>& utxo, const std::string& entity) {
-		function_(utxo, entity);
+		if (function_) function_(utxo, entity);
 	}
 	// IReplyHandler
 	void timeout() {
-		timeout_();		
+		if (timeout_) timeout_();
+	}
+	void cancel() {
+		function_ = 0;
+		timeout_ = 0;
 	}
 
 	static ISelectUtxoByEntityNameHandlerPtr instance(utxoByEntityNameSelectedFunction function, timeoutFunction timeout) { 
@@ -223,11 +247,15 @@ public:
 
 	// ILoadEntityHandler
 	void handleReply(const std::vector<ISelectUtxoByEntityNamesHandler::EntityUtxo>& entityUtxos) {
-		function_(entityUtxos);
+		if (function_) function_(entityUtxos);
 	}
 	// IReplyHandler
 	void timeout() {
-		timeout_();
+		if (timeout_) timeout_();
+	}
+	void cancel() {
+		function_ = 0;
+		timeout_ = 0;
 	}
 
 	static ISelectUtxoByEntityNamesHandlerPtr instance(utxoByEntityNamesSelectedFunction function, timeoutFunction timeout) { 
@@ -246,11 +274,15 @@ public:
 
 	// ISelectEntityCountByShardsHandler
 	void handleReply(const std::map<uint32_t, uint256>& info, const std::string& dapp) {
-		function_(info, dapp);
+		if (function_) function_(info, dapp);
 	}
 	// IReplyHandler
 	void timeout() {
-		timeout_();		
+		if (timeout_) timeout_();
+	}
+	void cancel() {
+		function_ = 0;
+		timeout_ = 0;
 	}
 
 	static ISelectEntityCountByShardsHandlerPtr instance(entityCountByShardsSelectedFunction function, timeoutFunction timeout) { 
@@ -269,11 +301,15 @@ public:
 
 	// ISelectEntityCountByShardsHandler
 	void handleReply(const std::map<uint256, uint32_t>& info, const std::string& dapp) {
-		function_(info, dapp);
+		if (function_) function_(info, dapp);
 	}
 	// IReplyHandler
 	void timeout() {
-		timeout_();		
+		if (timeout_) timeout_();
+	}
+	void cancel() {
+		function_ = 0;
+		timeout_ = 0;
 	}
 
 	static ISelectEntityCountByDAppHandlerPtr instance(entityCountByDAppSelectedFunction function, timeoutFunction timeout) { 
@@ -292,11 +328,15 @@ public:
 
 	// ISelectEntityCountByShardsHandler
 	void handleReply(const std::string& name, const std::vector<IEntityStore::EntityName>& names) {
-		function_(name, names);
+		if (function_) function_(name, names);
 	}
 	// IReplyHandler
 	void timeout() {
-		timeout_();		
+		if (timeout_) timeout_();
+	}
+	void cancel() {
+		function_ = 0;
+		timeout_ = 0;
 	}
 
 	static ISelectEntityNamesHandlerPtr instance(entityNamesSelectedFunction function, timeoutFunction timeout) { 
