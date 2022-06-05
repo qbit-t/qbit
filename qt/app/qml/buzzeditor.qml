@@ -656,6 +656,10 @@ QuarkPage {
 							mediaItem.adjustHeight.connect(adjustHeight);
 						}
 
+						if (media === "image") {
+							mediaItem.adjustHeight.connect(adjustHeight);
+						}
+
 						mediaItem.width = mediaListEditor.width;
 						mediaItem.mediaList = mediaListEditor;
 						mediaItem.mediaBox = mediaBox;

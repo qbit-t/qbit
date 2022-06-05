@@ -42,10 +42,25 @@ Rectangle {
 	property var frameColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
 
 	//
+	property string mediaViewTheme: "Darkmatter"
+	property string mediaViewSelector: "dark"
+
+	//
 	property var mediaList;
 	property var mediaBox;
 
+	signal adjustHeight(var proposed);
+
 	onMediaBoxChanged: {
+		adjust();
+	}
+
+	onWidthChanged: {
+		adjust();
+	}
+
+	function adjust() {
+		mediaImage.adjustWidth();
 		mediaImage.adjustView();
 	}
 
@@ -60,74 +75,70 @@ Rectangle {
 	color: "transparent"
 	width: mediaImage.width + 2 * spaceItems_
 	height: mediaList.height // mediaImage.height
+	//height: 600 // mediaImage.height
 
-	Image {
+	BuzzerComponents.ImageQx {
 		id: mediaImage
+		asynchronous: true
 		autoTransform: true
-
-		x: getX()
-		y: getY()
-
-		fillMode: Image.PreserveAspectFit
-		mipmap: true
-
-		source: path
-
-		Component.onCompleted: {
-		}
-
-		function getX() {
-			return parent.width / 2 - width / 2;
-		}
-
-		function getY() {
-			return 0;
-		}
+		radius: 8
 
 		function adjustView() {
+			/*
+			if (mediaImage.status === Image.Ready && mediaList) {
+				if (originalWidth > originalHeight) {
+					width = mediaList.width - 4*spaceItems_;
+					parent.height = height;
+				} else {
+					height = parent.parent.height;
+				}
+
+				//adjustHeight(height);
+			}
+			*/
+
 			if (mediaList) {
-				width = mediaList.width - 2 * spaceItems_;
+				//width = mediaList.width - 2 * spaceItems_;
 				mediaList.height = Math.max(mediaBox.calculatedHeight, height);
 				mediaBox.calculatedHeight = mediaList.height;
 			}
 		}
 
+		function adjustWidth() {
+			//
+			var lCoeff;
+			width = mediaList.width - 4*spaceItems_;
+			lCoeff = (width * 1.0) / (originalWidth * 1.0);
+			var lHeight = originalHeight * 1.0;
+			height = lHeight * lCoeff;
+			adjustHeight(height);
+		}
+
+		onHeightChanged: {
+			parent.height = height;
+		}
+
+		onWidthChanged: {
+			//
+		}
+
 		onStatusChanged: {
-			adjustView();
-		}
-
-		layer.enabled: true
-		layer.effect: OpacityMask {
-			id: roundEffect
-			maskSource: Item {
-				width: roundEffect.getWidth()
-				height: roundEffect.getHeight()
-
-				Rectangle {
-					x: roundEffect.getX()
-					y: roundEffect.getY()
-					width: roundEffect.getWidth()
-					height: roundEffect.getHeight()
-					radius: 8
-				}
+			if (status == Image.Ready) {
+				adjustWidth();
+				adjustView();
+				controlsBack.visible = true;
+				removeButton.visible = true;
 			}
 
-			function getX() {
-				return mediaImage.width / 2 - mediaImage.paintedWidth / 2;
-			}
-
-			function getY() {
-				return mediaImage.height / 2 - mediaImage.paintedHeight / 2;
-			}
-
-			function getWidth() {
-				return mediaImage.paintedWidth;
-			}
-
-			function getHeight() {
-				return mediaImage.paintedHeight;
+			if (status == Image.Error) {
+				console.info("[onStatusChanged]: error = " + errorString);
 			}
 		}
+
+		source: path
+		fillMode: BuzzerComponents.ImageQx.PreserveAspectFit
+		mipmap: true
+		anchors.centerIn: parent
 	}
 
 	//
@@ -140,7 +151,7 @@ Rectangle {
 		color: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.disabledHidden.uni")
 		radius: 4
 
-		visible: true
+		visible: false
 
 		Component.onCompleted: totalSizeControl.setTotalSize(size)
 
@@ -152,7 +163,7 @@ Rectangle {
 			color: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.menu.foreground")
 			text: "0k"
 
-			visible: forceVisible && scaled && size_ !== 0
+			visible: true
 
 			function setTotalSize(mediaSize) {
 				//
@@ -173,10 +184,10 @@ Rectangle {
 	QuarkToolButton	{
 		id: removeButton
 
-		x: mediaImage.width - (width + 0*spaceItems_)
-		y: spaceItems_
+		x: mediaImage.x + mediaImage.width - (width + 2*spaceItems_)
+		y: 2 * spaceItems_
 		// Material.background: "transparent"
-		visible: true
+		visible: false
 		labelYOffset: 3
 		symbolColor: (!sending || uploaded) ? buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground") :
 										  buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")

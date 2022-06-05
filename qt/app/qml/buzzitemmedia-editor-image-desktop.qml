@@ -124,6 +124,7 @@ Rectangle {
 			if (status == Image.Ready) {
 				adjustView();
 				adjustWidth();
+				controlsBack.visible = true;
 			}
 
 			if (status == Image.Error) {
@@ -147,7 +148,7 @@ Rectangle {
 		color: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.disabledHidden.uni")
 		radius: 4
 
-		visible: true
+		visible: false
 
 		Component.onCompleted: totalSizeControl.setTotalSize(size)
 
@@ -159,7 +160,7 @@ Rectangle {
 			color: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.menu.foreground")
 			text: "0k"
 
-			visible: forceVisible && scaled && size_ !== 0
+			visible: true
 
 			function setTotalSize(mediaSize) {
 				//
