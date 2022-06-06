@@ -523,6 +523,7 @@ int main(int argv, char** argc) {
 	bool lDebugFound = false;
 	bool lExplicitPeersOnly = false;
 	bool lNoConfig = false;
+	int lExternalPort = 0;
 	std::string lEndpointV4;
 	std::vector<std::string> lPeers;
 	for (int lIdx = 1; lIdx < argv; lIdx++) {
@@ -557,6 +558,15 @@ int main(int argv, char** argc) {
 				lSettings->setServerPort(lPort);
 			} else {
 				std::cout << "port: incorrect value" << std::endl;
+				return -1;
+			}
+		} else if (std::string(argc[lIdx]) == std::string("-external-port")) {
+			//
+			int lPort;
+			if (boost::conversion::try_lexical_convert<int>(std::string(argc[++lIdx]), lPort)) {
+				lExternalPort = lPort;
+			} else {
+				std::cout << "external-port: incorrect value" << std::endl;
 				return -1;
 			}
 		} else if (std::string(argc[lIdx]) == std::string("-endpoint")) {
@@ -868,7 +878,7 @@ int main(int argv, char** argc) {
 	// allow connection to this host
 	if (lEndpointV4.length() && lSettings->serverPort() && lEndpointV4 != "0.0.0.0" && lEndpointV4 != "127.0.0.1") {
 		//
-		lNode->peerManager()->addPeerExplicit(strprintf("%s:%d", lEndpointV4, lSettings->serverPort()));
+		lNode->peerManager()->addPeerExplicit(strprintf("%s:%d", lEndpointV4, lExternalPort ? lExternalPort : lSettings->serverPort()));
 	}
 
 	// start sequence
