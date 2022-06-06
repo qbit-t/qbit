@@ -522,6 +522,7 @@ int main(int argv, char** argc) {
 	bool lDaemon = false;
 	bool lDebugFound = false;
 	bool lExplicitPeersOnly = false;
+	bool lNoConfig = false;
 	std::string lEndpointV4;
 	std::vector<std::string> lPeers;
 	for (int lIdx = 1; lIdx < argv; lIdx++) {
@@ -661,6 +662,9 @@ int main(int argv, char** argc) {
 		} else if (std::string(argc[lIdx]) == std::string("-explicit-peers-only")) {
 			//
 			lExplicitPeersOnly = true;
+		} else if (std::string(argc[lIdx]) == std::string("-no-config")) {
+			//
+			lNoConfig = true;
 		} else if (std::string(argc[lIdx]) == std::string("-roles")) {
 			//
 			std::vector<std::string> lRoles;
@@ -681,85 +685,87 @@ int main(int argv, char** argc) {
 
 	//
 	// check config
-	try {
-		qbit::json::Document lConfig;
-		if (lConfig.loadFromFile(lSettings->dataPath() + "/qbit.config")) {
+	if (!lNoConfig) {
+		try {
+			qbit::json::Document lConfig;
+			if (lConfig.loadFromFile(lSettings->dataPath() + "/qbit.config")) {
 
-			// notify transaction command
-			qbit::json::Value lNotifyTransactionValue;
-			if (lConfig.find("notifyTransaction", lNotifyTransactionValue)) {
-				lSettings->setNotifyTransactionCommand(lNotifyTransactionValue.getString());
-			}
+				// notify transaction command
+				qbit::json::Value lNotifyTransactionValue;
+				if (lConfig.find("notifyTransaction", lNotifyTransactionValue)) {
+					lSettings->setNotifyTransactionCommand(lNotifyTransactionValue.getString());
+				}
 
-			// peers (default if NOT -peers)
-			qbit::json::Value lPeersValue;
-			if (lConfig.find("peers", lPeersValue) && !lPeers.size()) {
-				//
-				boost::split(lPeers, lPeersValue.getString(), boost::is_any_of(","));
-			}
+				// peers (default if NOT -peers)
+				qbit::json::Value lPeersValue;
+				if (lConfig.find("peers", lPeersValue) && !lPeers.size()) {
+					//
+					boost::split(lPeers, lPeersValue.getString(), boost::is_any_of(","));
+				}
 
-			// proof asset
-			qbit::json::Value lProofAsset;
-			if (lConfig.find("proofAsset", lProofAsset)) {
-				uint256 lAsset; lAsset.setHex(lProofAsset.getString());
-				lSettings->setProofAsset(lAsset);
-			}
+				// proof asset
+				qbit::json::Value lProofAsset;
+				if (lConfig.find("proofAsset", lProofAsset)) {
+					uint256 lAsset; lAsset.setHex(lProofAsset.getString());
+					lSettings->setProofAsset(lAsset);
+				}
 
-			// proof asset amount
-			qbit::json::Value lProofAmount;
-			if (lConfig.find("proofAmount", lProofAmount)) {
-				//
-				uint64_t lAmount;
-				if (boost::conversion::try_lexical_convert<uint64_t>(lProofAmount.getString(), lAmount)) {
-					lSettings->setProofAmount(lAmount);
-				} else {
-					std::cout << "proofAmount: incorrect value" << std::endl;
-					return -1;
+				// proof asset amount
+				qbit::json::Value lProofAmount;
+				if (lConfig.find("proofAmount", lProofAmount)) {
+					//
+					uint64_t lAmount;
+					if (boost::conversion::try_lexical_convert<uint64_t>(lProofAmount.getString(), lAmount)) {
+						lSettings->setProofAmount(lAmount);
+					} else {
+						std::cout << "proofAmount: incorrect value" << std::endl;
+						return -1;
+					}
+				}
+
+				// one vote proof asset amount
+				qbit::json::Value lOneVoteProofAmount;
+				if (lConfig.find("oneVoteProofAmount", lOneVoteProofAmount)) {
+					//
+					uint64_t lAmount;
+					if (boost::conversion::try_lexical_convert<uint64_t>(lOneVoteProofAmount.getString(), lAmount)) {
+						lSettings->setOneVoteProofAmount(lAmount);
+					} else {
+						std::cout << "oneVoteProofAmount: incorrect value" << std::endl;
+						return -1;
+					}
+				}
+
+				// proof asset amount
+				qbit::json::Value lProofFrom;
+				if (lConfig.find("proofFrom", lProofFrom)) {
+					//
+					uint64_t lFrom;
+					if (boost::conversion::try_lexical_convert<uint64_t>(lProofFrom.getString(), lFrom)) {
+						lSettings->setProofFrom(lFrom);
+					} else {
+						std::cout << "proofFrom: incorrect value" << std::endl;
+						return -1;
+					}
+				}
+
+				// proof asset lock time
+				qbit::json::Value lProofAssetLockTime;
+				if (lConfig.find("proofAssetLockTime", lProofAssetLockTime)) {
+					//
+					uint64_t lLockTime;
+					if (boost::conversion::try_lexical_convert<uint64_t>(lProofAssetLockTime.getString(), lLockTime)) {
+						lSettings->setProofAssetLockTime(lLockTime);
+					} else {
+						std::cout << "proofAssetLockTime: incorrect value" << std::endl;
+						return -1;
+					}
 				}
 			}
-
-			// one vote proof asset amount
-			qbit::json::Value lOneVoteProofAmount;
-			if (lConfig.find("oneVoteProofAmount", lOneVoteProofAmount)) {
-				//
-				uint64_t lAmount;
-				if (boost::conversion::try_lexical_convert<uint64_t>(lOneVoteProofAmount.getString(), lAmount)) {
-					lSettings->setOneVoteProofAmount(lAmount);
-				} else {
-					std::cout << "oneVoteProofAmount: incorrect value" << std::endl;
-					return -1;
-				}
-			}
-
-			// proof asset amount
-			qbit::json::Value lProofFrom;
-			if (lConfig.find("proofFrom", lProofFrom)) {
-				//
-				uint64_t lFrom;
-				if (boost::conversion::try_lexical_convert<uint64_t>(lProofFrom.getString(), lFrom)) {
-					lSettings->setProofFrom(lFrom);
-				} else {
-					std::cout << "proofFrom: incorrect value" << std::endl;
-					return -1;
-				}
-			}
-
-			// proof asset lock time
-			qbit::json::Value lProofAssetLockTime;
-			if (lConfig.find("proofAssetLockTime", lProofAssetLockTime)) {
-				//
-				uint64_t lLockTime;
-				if (boost::conversion::try_lexical_convert<uint64_t>(lProofAssetLockTime.getString(), lLockTime)) {
-					lSettings->setProofAssetLockTime(lLockTime);
-				} else {
-					std::cout << "proofAssetLockTime: incorrect value" << std::endl;
-					return -1;
-				}
-			}
+		} catch(qbit::exception& ex) {
+			std::cout << ex.code() << ": " << ex.what() << std::endl;
+			return 1;
 		}
-	} catch(qbit::exception& ex) {
-		std::cout << ex.code() << ": " << ex.what() << std::endl;
-		return 1;
 	}
 
 	//
