@@ -299,6 +299,20 @@ QuarkPage
 				color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Market.tabActive");
 				visible: false
 			}
+
+			onClicked: {
+				if (!navigatorBar.indexTransfered && navigatorBar.currentIndex == 2 /*events*/) {
+					// go up
+					eventsfeedPersonal.externalTop();
+				} else navigatorBar.indexTransfered = false;
+			}
+
+			onDoubleClicked: {
+				if (!navigatorBar.indexTransfered && navigatorBar.currentIndex == 2 /*events*/) {
+					// go up
+					eventsfeedPersonal.externalPull();
+				} else navigatorBar.indexTransfered = false;
+			}
 		}
 		TabButton {
 			QuarkSymbolLabel {

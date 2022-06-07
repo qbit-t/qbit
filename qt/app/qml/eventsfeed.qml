@@ -28,6 +28,10 @@ Item
 		modelLoader.restart();
 	}
 
+	function externalTop() {
+		list.positionViewAtBeginning();
+	}
+
 	Component.onCompleted: {
 		//
 		if (buzzerClient.buzzerDAppReady) {
