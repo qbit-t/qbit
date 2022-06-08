@@ -30,9 +30,11 @@ QuarkPage
 		closePageHandler = closePage;
 		activatePageHandler = activatePage;
 
-		if (buzzerClient.cacheReady) {
-			loadTrustScoreCommand.process();
+		if (buzzerClient.buzzerDAppReady) {
+			infoLoaderCommand.process(buzzerClient.name);
 		}
+
+		if (!checkBuzzerInfo.running) checkBuzzerInfo.start();
 
 		// NOTICE: start notificator service for the first time
 		var lValue = buzzerClient.getProperty("Client.runService");

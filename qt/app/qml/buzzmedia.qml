@@ -118,7 +118,7 @@ QuarkPage {
 			if (width > height && height > 0) {
 				if (buzzMedia_.length === 1) {
 					buzzMediaToolBar.height = 0;
-					bottomLine.visible = false;
+					//bottomLine.visible = false;
 					cancelButton.visible = false;
 				} else {
 					buzzMediaToolBar.height = 20;
@@ -127,7 +127,7 @@ QuarkPage {
 			} else {
 				buzzMediaToolBar.height = 45;
 				cancelButton.visible = true;
-				bottomLine.visible = true;
+				//bottomLine.visible = true;
 			}
 		}
 	}

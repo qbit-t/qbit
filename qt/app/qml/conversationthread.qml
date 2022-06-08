@@ -849,7 +849,8 @@ QuarkPage {
 
 			function calculatedHeightModified(value) {
 				//
-				if (!(buzzMedia && buzzMedia.length)) itemDelegate.height = value;
+				// if (!(buzzMedia && buzzMedia.length))
+					itemDelegate.height = value;
 
 				itemDelegate.adjustValue.push(value);
 

@@ -223,6 +223,7 @@ Rectangle {
 			if (status == Image.Error) {
 				//
 				menuControl.forceVisible = true;
+				waitControl.visible = false;
 
 				// force to reload
 				console.info("[buzzmediaview-image/onStatusChanged]: forcing reload of " + (usePreview_ ? preview_ : path_) + ", error = " + errorString);
@@ -230,6 +231,8 @@ Rectangle {
 				//downloadCommand
 				errorLoading();
 			} else if (status == Image.Ready) {
+				//
+				waitControl.visible = false;
 				if (usePreview_) {
 					console.info("[buzzmediaview-image/onStatusChanged]: usePreview_ = " + usePreview_ + ", preview_ = " + preview_);
 					previewLoaded();

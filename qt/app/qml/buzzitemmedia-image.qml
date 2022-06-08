@@ -47,6 +47,7 @@ Rectangle {
 	property var mediaIndex_: 0
 	property var controller_
 	property var playerKey_
+	property var pkey_
 
 	//
 	property var buzzitemmedia_;

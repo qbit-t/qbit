@@ -206,7 +206,7 @@ ApplicationWindow
 		}
 	}
 
-	function openMedia(index, pkey, media, player, instance, buzzId, buzzerAlias, buzzBody) {
+	function openMedia(pkey, index, media, player, instance, buzzId, buzzerAlias, buzzBody) {
 		//
 		var lComponent = null;
 		var lPage = null;

@@ -354,6 +354,7 @@ Item {
 					mediaFrame.mediaItem.width = mediaList.width;
 					mediaFrame.mediaItem.mediaList = mediaList;
 					mediaFrame.mediaItem.playerKey_ = playerKey_;
+					mediaFrame.mediaItem.pkey_ = pkey_;
 					mediaFrame.mediaItem.buzzitemmedia_ = buzzitemmedia_;
 					mediaFrame.mediaItem.sharedMediaPlayer_ = buzzitemmedia_.sharedMediaPlayer_;
 					mediaFrame.mediaItem.mediaIndex_ = index;
