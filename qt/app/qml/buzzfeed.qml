@@ -135,7 +135,11 @@ Item
 			dataReceived = false;
 			dataRequested = false;
 			requestProcessed = true;
-			controller.showError(message);
+
+			// just restart
+			if (code == "E_LOAD_BUZZFEED") {
+				switchDataTimer.start();
+			}
 		}
 
 		function start() {

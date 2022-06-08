@@ -69,7 +69,7 @@ QSGNode* buzzer::ImageQx::updatePaintNode(QSGNode* /*oldNode*/, QQuickItem::Upda
 
 	QSGGeometry::TexturedPoint2D *vertices = _node->geometry()->vertexDataAsTexturedPoint2D();
 
-    const int count = _vertexAtCorner; // Количество точек на закруглённый угол
+	const int count = _vertexAtCorner; // Количество точек на закруглённый угол
 
     Coefficients cf = [this]()->Coefficients {
         switch(this->_fillMode) {

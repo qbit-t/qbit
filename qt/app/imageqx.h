@@ -145,7 +145,7 @@ class ImageQx: public QQuickItem
 
     protected:
         bool _completed = false;
-        int _vertexAtCorner = 20;
+		int _vertexAtCorner = 20;
         int _segmentCount = 4*_vertexAtCorner+3;
 		float _coeff = 1.0;
 		int _originalWidth = 0;

@@ -332,7 +332,7 @@ Item {
 	//
 	// NOTICE: for mobile versions we should consider to use ImageQx
 	//
-	Image { //BuzzerComponents.ImageQx
+	BuzzerComponents.ImageQx {
 		id: avatarImage
 
 		x: spaceLeft_
@@ -341,7 +341,7 @@ Item {
 		height: avatarImage.displayHeight
 		fillMode: Image.PreserveAspectCrop
 		mipmap: true
-		//radius: avatarImage.displayWidth
+		radius: avatarImage.displayWidth
 
 		property bool rounded: true //!
 		property int displayWidth: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 50 : 50
@@ -349,6 +349,7 @@ Item {
 
 		autoTransform: true
 
+		/*
 		layer.enabled: rounded
 		layer.effect: OpacityMask {
 			maskSource: Item {
@@ -363,6 +364,7 @@ Item {
 				}
 			}
 		}
+		*/
 
 		MouseArea {
 			id: buzzerInfoClick
