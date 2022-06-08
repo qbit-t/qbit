@@ -59,13 +59,14 @@ Item
 		target: buzzerClient
 
 		function onBuzzerDAppReadyChanged() {
-			if (buzzerClient.buzzerDAppReady) {
+			if (buzzerClient.buzzerDAppReady && !modelLoader.initialized()) {
 				modelLoader.start();
 			}
 		}
 
 		function onBuzzerDAppResumed() {
 			if (buzzerClient.buzzerDAppReady) {
+				console.log("[events/onBuzzerDAppResumed]: resuming...");
 				modelLoader.processAndMerge();
 			}
 		}
@@ -102,7 +103,11 @@ Item
 			dataReceived = false;
 			dataRequested = false;
 			requestProcessed = true;
-			controller.showError(message);
+
+			// just restart
+			if (code == "E_LOAD_EVENTSFEED") {
+				switchDataTimer.start();
+			}
 		}
 
 		function start() {
@@ -128,6 +133,21 @@ Item
 			if (!start() && !model.noMoreData && !dataRequested) {
 				dataRequested = true;
 				modelLoader.process(true);
+			}
+		}
+
+		function initialized() { return dataReceived && dataRequested; }
+	}
+
+	Timer {
+		id: switchDataTimer
+		interval: 500
+		repeat: false
+		running: false
+
+		onTriggered: {
+			if (buzzerClient.buzzerDAppReady) {
+				modelLoader.restart();
 			}
 		}
 	}

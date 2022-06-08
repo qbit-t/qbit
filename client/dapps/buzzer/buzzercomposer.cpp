@@ -1800,7 +1800,7 @@ void BuzzerLightComposer::LoadHashTags::process(errorFunction error) {
 		SelectHashTags::instance(
 			boost::bind(&BuzzerLightComposer::LoadHashTags::loaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 			boost::bind(&BuzzerLightComposer::LoadHashTags::timeout, shared_from_this()))
-	))) error_("E_LOAD_BUZZFEED", "Hash tags loading failed.");
+	))) error_("E_LOAD_HASHTAGS", "Hash tags loading failed.");
 }
 
 //
@@ -1815,7 +1815,7 @@ void BuzzerLightComposer::LoadEventsfeed::process(errorFunction error) {
 		SelectEventsFeed::instance(
 			boost::bind(&BuzzerLightComposer::LoadEventsfeed::eventsfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 			boost::bind(&BuzzerLightComposer::LoadEventsfeed::timeout, shared_from_this()))
-	))) error_("E_LOAD_CONVERSATIONS", "Eventsfeed loading failed.");
+	))) error_("E_LOAD_EVENTSFEED", "Eventsfeed loading failed.");
 }
 
 //
@@ -1830,7 +1830,7 @@ void BuzzerLightComposer::LoadConversations::process(errorFunction error) {
 		SelectConversationsFeedByEntity::instance(
 			boost::bind(&BuzzerLightComposer::LoadConversations::conversationsLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3),
 			boost::bind(&BuzzerLightComposer::LoadConversations::timeout, shared_from_this()))
-	))) error_("E_LOAD_EVENTSFEED", "Conversations loading failed.");
+	))) error_("E_LOAD_CONVERSATIONS", "Conversations loading failed.");
 }
 
 //
@@ -1846,7 +1846,7 @@ void BuzzerLightComposer::LoadMistrustsByBuzzer::process(errorFunction error) {
 			SelectEventsFeedByEntity::instance(
 				boost::bind(&BuzzerLightComposer::LoadMistrustsByBuzzer::eventsfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3),
 				boost::bind(&BuzzerLightComposer::LoadMistrustsByBuzzer::timeout, shared_from_this()))
-		))) error_("E_LOAD_EVENTSFEED", "Endorsements by buzzer loading failed.");
+		))) error_("E_LOAD_MISTRUSTS", "Endorsements by buzzer loading failed.");
 	} else {
 		if (!composer_->requestProcessor()->loadEntity(buzzerName_, 
 			LoadEntity::instance(
@@ -1867,7 +1867,7 @@ void BuzzerLightComposer::LoadMistrustsByBuzzer::publisherLoaded(EntityPtr publi
 		SelectEventsFeedByEntity::instance(
 			boost::bind(&BuzzerLightComposer::LoadMistrustsByBuzzer::eventsfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3),
 			boost::bind(&BuzzerLightComposer::LoadMistrustsByBuzzer::timeout, shared_from_this()))
-	))) error_("E_LOAD_EVENTSFEED", "Endorsements by buzzer loading failed.");
+	))) error_("E_LOAD_MISTRUSTS", "Mistrusts by buzzer loading failed.");
 }
 
 //
@@ -1883,7 +1883,7 @@ void BuzzerLightComposer::LoadSubscriptionsByBuzzer::process(errorFunction error
 			SelectEventsFeedByEntity::instance(
 				boost::bind(&BuzzerLightComposer::LoadSubscriptionsByBuzzer::eventsfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3),
 				boost::bind(&BuzzerLightComposer::LoadSubscriptionsByBuzzer::timeout, shared_from_this()))
-		))) error_("E_LOAD_EVENTSFEED", "Subscriptions by buzzer loading failed.");
+		))) error_("E_LOAD_SUBSCRIPTIONS", "Subscriptions by buzzer loading failed.");
 	} else {
 		if (!composer_->requestProcessor()->loadEntity(buzzerName_, 
 			LoadEntity::instance(
@@ -1904,7 +1904,7 @@ void BuzzerLightComposer::LoadSubscriptionsByBuzzer::publisherLoaded(EntityPtr p
 		SelectEventsFeedByEntity::instance(
 			boost::bind(&BuzzerLightComposer::LoadSubscriptionsByBuzzer::eventsfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3),
 			boost::bind(&BuzzerLightComposer::LoadSubscriptionsByBuzzer::timeout, shared_from_this()))
-	))) error_("E_LOAD_EVENTSFEED", "Endorsements by buzzer loading failed.");
+	))) error_("E_LOAD_SUBSCRIPTIONS", "Endorsements by buzzer loading failed.");
 }
 
 //
@@ -1920,7 +1920,7 @@ void BuzzerLightComposer::LoadFollowersByBuzzer::process(errorFunction error) {
 			SelectEventsFeedByEntity::instance(
 				boost::bind(&BuzzerLightComposer::LoadFollowersByBuzzer::eventsfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3),
 				boost::bind(&BuzzerLightComposer::LoadFollowersByBuzzer::timeout, shared_from_this()))
-		))) error_("E_LOAD_EVENTSFEED", "Followers by buzzer loading failed.");
+		))) error_("E_LOAD_FOLLOWERS", "Followers by buzzer loading failed.");
 	} else {
 		if (!composer_->requestProcessor()->loadEntity(buzzerName_, 
 			LoadEntity::instance(
@@ -1941,7 +1941,7 @@ void BuzzerLightComposer::LoadFollowersByBuzzer::publisherLoaded(EntityPtr publi
 		SelectEventsFeedByEntity::instance(
 			boost::bind(&BuzzerLightComposer::LoadFollowersByBuzzer::eventsfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3),
 			boost::bind(&BuzzerLightComposer::LoadFollowersByBuzzer::timeout, shared_from_this()))
-	))) error_("E_LOAD_EVENTSFEED", "Endorsements by buzzer loading failed.");
+	))) error_("E_LOAD_FOLLOWERS", "Endorsements by buzzer loading failed.");
 }
 
 //
@@ -1957,7 +1957,7 @@ void BuzzerLightComposer::LoadEndorsementsByBuzzer::process(errorFunction error)
 			SelectEventsFeedByEntity::instance(
 				boost::bind(&BuzzerLightComposer::LoadEndorsementsByBuzzer::eventsfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3),
 				boost::bind(&BuzzerLightComposer::LoadEndorsementsByBuzzer::timeout, shared_from_this()))
-		))) error_("E_LOAD_EVENTSFEED", "Endorsements by buzzer loading failed.");
+		))) error_("E_LOAD_ENDORSEMENTS", "Endorsements by buzzer loading failed.");
 	} else {
 		if (!composer_->requestProcessor()->loadEntity(buzzerName_, 
 			LoadEntity::instance(
@@ -1978,7 +1978,7 @@ void BuzzerLightComposer::LoadEndorsementsByBuzzer::publisherLoaded(EntityPtr pu
 		SelectEventsFeedByEntity::instance(
 			boost::bind(&BuzzerLightComposer::LoadEndorsementsByBuzzer::eventsfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3),
 			boost::bind(&BuzzerLightComposer::LoadEndorsementsByBuzzer::timeout, shared_from_this()))
-	))) error_("E_LOAD_EVENTSFEED", "Endorsements by buzzer loading failed.");
+	))) error_("E_LOAD_ENDORSEMENTS", "Endorsements by buzzer loading failed.");
 }
 
 //

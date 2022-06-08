@@ -95,14 +95,14 @@ Item
 		target: buzzerClient
 
 		function onBuzzerDAppReadyChanged() {
-			if (buzzerClient.buzzerDAppReady) {
+			if (buzzerClient.buzzerDAppReady && !conversationsModelLoader.initialized()) {
 				conversationsModelLoader.start();
 			}
 		}
 
 		function onBuzzerDAppResumed() {
 			if (buzzerClient.buzzerDAppReady) {
-				console.log("[conversation/onBuzzerDAppResumed]: resuming...");
+				console.log("[conversations/onBuzzerDAppResumed]: resuming...");
 				conversationsModelLoader.processAndMerge(true); // preserve data
 			}
 		}
@@ -138,7 +138,11 @@ Item
 			dataReceived = false;
 			dataRequested = false;
 			waitDataTimer.done();
-			controller.showError(message);
+
+			// just restart
+			if (code == "E_LOAD_CONVERSATIONS") {
+				switchDataTimer.start();
+			}
 		}
 
 		function start() {
@@ -166,6 +170,8 @@ Item
 				conversationsModelLoader.process(true);
 			}
 		}
+
+		function initialized() { return dataReceived && dataRequested; }
 	}
 
 	BuzzerCommands.CreateConversationCommand {
