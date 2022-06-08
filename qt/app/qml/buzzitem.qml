@@ -387,7 +387,7 @@ Item {
 		colorBackground: "transparent"
 		arcBegin: 0
 		arcEnd: 360
-		lineWidth: buzzerClient.scaleFactor * 2
+		lineWidth: buzzerClient.scaleFactor * 3
 		beginAnimation: false
 		endAnimation: false
 

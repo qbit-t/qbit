@@ -109,7 +109,7 @@ Rectangle {
 		}
 
 		fillMode: BuzzerComponents.ImageQx.PreserveAspectFit
-		mipmap: true
+		mipmap: buzzerApp.isDesktop
 
 		source: preview_
 

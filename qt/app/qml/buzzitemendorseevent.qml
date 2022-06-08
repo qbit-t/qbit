@@ -118,16 +118,82 @@ Item {
 	}
 
 	//
+	// buzzer avatar
+	//
+
+	//
+	// NOTICE: for mobile versions we should consider to use ImageQx
+	//
+	BuzzerComponents.ImageQx {
+		id: avatarImage
+
+		x: spaceLeft_
+		y: spaceTop_ // + headerInfo.getHeight()
+		width: avatarImage.displayWidth
+		height: avatarImage.displayHeight
+		fillMode: Image.PreserveAspectCrop
+		mipmap: true
+		radius: avatarImage.displayWidth
+
+		property bool rounded: true
+		property int displayWidth: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 50 : 50
+		property int displayHeight: displayWidth
+
+		autoTransform: true
+
+		/*
+		layer.enabled: rounded
+		layer.effect: OpacityMask {
+			maskSource: Item {
+				width: avatarImage.displayWidth
+				height: avatarImage.displayHeight
+
+				Rectangle {
+					anchors.centerIn: parent
+					width: avatarImage.displayWidth
+					height: avatarImage.displayHeight
+					radius: avatarImage.displayWidth
+				}
+			}
+		}
+		*/
+
+		MouseArea {
+			id: buzzerInfoClick
+			anchors.fill: parent
+			cursorShape: Qt.PointingHandCursor
+
+			onClicked: {
+				//
+				controller_.openBuzzfeedByBuzzer(getBuzzerName());
+			}
+
+			function getBuzzerName() {
+				if (eventInfos_.length > 0) {
+					return buzzerClient.getBuzzerName(eventInfos_[0].buzzerInfoId);
+				}
+
+				return buzzerClient.getBuzzerName(publisherInfoId_);
+			}
+		}
+	}
+
+	//
 	// buzzer state
 	//
 
-	QuarkRoundState {
+	QuarkRoundProgress {
 		id: imageFrame
 		x: avatarImage.x - 2
 		y: avatarImage.y - 2
 		size: avatarImage.displayWidth + 4
-		color: getColor()
-		background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
+		colorCircle: getColor()
+		colorBackground: "transparent"
+		arcBegin: 0
+		arcEnd: 360
+		lineWidth: buzzerClient.scaleFactor * 3
+		beginAnimation: false
+		endAnimation: false
 
 		function getColor() {
 			var lScoreBase = buzzerClient.getTrustScoreBase() / 10;
@@ -162,60 +228,6 @@ Item {
 			}
 
 			return score_;
-		}
-	}
-
-	//
-	// buzzer avatar
-	//
-
-	Image {
-		id: avatarImage
-
-		x: spaceLeft_
-		y: spaceTop_ // + headerInfo.getHeight()
-		width: avatarImage.displayWidth
-		height: avatarImage.displayHeight
-		fillMode: Image.PreserveAspectCrop
-
-		property bool rounded: true
-		property int displayWidth: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 50 : 50
-		property int displayHeight: displayWidth
-
-		autoTransform: true
-
-		layer.enabled: rounded
-		layer.effect: OpacityMask {
-			maskSource: Item {
-				width: avatarImage.displayWidth
-				height: avatarImage.displayHeight
-
-				Rectangle {
-					anchors.centerIn: parent
-					width: avatarImage.displayWidth
-					height: avatarImage.displayHeight
-					radius: avatarImage.displayWidth
-				}
-			}
-		}
-
-		MouseArea {
-			id: buzzerInfoClick
-			anchors.fill: parent
-			cursorShape: Qt.PointingHandCursor
-
-			onClicked: {
-				//
-				controller_.openBuzzfeedByBuzzer(getBuzzerName());
-			}
-
-			function getBuzzerName() {
-				if (eventInfos_.length > 0) {
-					return buzzerClient.getBuzzerName(eventInfos_[0].buzzerInfoId);
-				}
-
-				return buzzerClient.getBuzzerName(publisherInfoId_);
-			}
 		}
 	}
 

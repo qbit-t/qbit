@@ -84,7 +84,7 @@ Item {
 
 			width: calculatedWidth
 			fillMode: Image.PreserveAspectFit
-			mipmap: true
+			mipmap: buzzerApp.isDesktop
 
 			transitions: Transition {
 				NumberAnimation {

@@ -283,7 +283,7 @@ Rectangle {
 		source: preview_ == "none" ? "qrc://images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "default.media.cover") :
 									 preview_
 		fillMode: BuzzerComponents.ImageQx.PreserveAspectFit
-		mipmap: true
+		mipmap: buzzerApp.isDesktop
 
 		visible: true //actionButton.needDownload || (!playing && ((player && player.position === 1) || !player) && buzzerApp.isDesktop)
 
