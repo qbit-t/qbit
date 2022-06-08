@@ -1815,7 +1815,7 @@ void BuzzerLightComposer::LoadEventsfeed::process(errorFunction error) {
 		SelectEventsFeed::instance(
 			boost::bind(&BuzzerLightComposer::LoadEventsfeed::eventsfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 			boost::bind(&BuzzerLightComposer::LoadEventsfeed::timeout, shared_from_this()))
-	))) error_("E_LOAD_CONVERSATIONS", "Conversations loading failed.");
+	))) error_("E_LOAD_CONVERSATIONS", "Eventsfeed loading failed.");
 }
 
 //
@@ -1830,7 +1830,7 @@ void BuzzerLightComposer::LoadConversations::process(errorFunction error) {
 		SelectConversationsFeedByEntity::instance(
 			boost::bind(&BuzzerLightComposer::LoadConversations::conversationsLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3),
 			boost::bind(&BuzzerLightComposer::LoadConversations::timeout, shared_from_this()))
-	))) error_("E_LOAD_EVENTSFEED", "Eventsfeed loading failed.");
+	))) error_("E_LOAD_EVENTSFEED", "Conversations loading failed.");
 }
 
 //
