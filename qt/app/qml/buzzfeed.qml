@@ -197,37 +197,6 @@ Item
 			}
 		}
 
-		function adjustVisible() {
-			//
-			var lProcessable;
-			var lBackItem;
-			var lForwardItem;
-			var lVisible;
-			var lBeginIdx = list.indexAt(1, contentY);
-			//
-			if (lBeginIdx > -1) {
-				// trace back
-				for (var lBackIdx = lBeginIdx; lBackIdx >= 0; lBackIdx--) {
-					//
-					lBackItem = list.itemAtIndex(lBackIdx);
-					if (lBackItem) {
-						lBackItem.height = lBackItem.adjustLayoutUp ? lBackItem.height + 1 : lBackItem.height - 1;  //lBackItem.originalHeight;
-						lBackItem.adjustLayoutUp = !lBackItem.adjustLayoutUp;
-					}
-				}
-
-				// trace forward
-				for (var lForwardIdx = lBeginIdx + 1; lForwardIdx < list.count && lForwardIdx < 50; lForwardIdx++) {
-					//
-					lForwardItem = list.itemAtIndex(lForwardIdx);
-					if (lForwardItem) {
-						lForwardItem.height = lForwardItem.adjustLayoutUp ? lForwardItem.height + 1 : lForwardItem.height - 1;
-						lForwardItem.adjustLayoutUp = !lForwardItem.adjustLayoutUp;
-					}
-				}
-			}
-		}
-
 		onContentYChanged: {
 			//
 			var lVisible;
@@ -300,8 +269,7 @@ Item
 			id: itemDelegate
 
 			property var buzzItem;
-			property int originalHeight: 0
-			property bool adjustLayoutUp: true
+			property var adjustValue: []
 
 			hoverEnabled: buzzerApp.isDesktop
 			onHoveredChanged: {
@@ -356,13 +324,20 @@ Item
 			}
 
 			function calculatedHeightModified(value) {
-				//itemDelegate.height = value;
 				//
-				// if (itemDelegate.originalHeight * 100.0 / value > 50)
-				if (buzzItem.dynamic_) { adjustTimer.start(); }
-				//
-				itemDelegate.originalHeight = value;
-				itemDelegate.height = value - 1;
+				itemDelegate.height = value;
+				itemDelegate.adjustValue.push(value);
+
+				//console.info("itemDelegate.adjustValue = " + itemDelegate.adjustValue + ", value = " + value + ", index = " + index);
+
+				if (buzzMedia && buzzMedia.length && itemDelegate.adjustValue.length >= 2) {
+					itemDelegate.height = itemDelegate.adjustValue[itemDelegate.adjustValue.length - 1];
+
+					if (localDynamic) {
+						buzzerClient.getBuzzfeedList().resetLocalDynamic(index);
+						buzzerClient.getBuzzfeedList().forceRelayout(index, 1);
+					}
+				}
 			}
 
 			function unbindCommonControls() {
@@ -374,17 +349,6 @@ Item
 			function forceVisibilityCheck(check) {
 				if (buzzItem) {
 					buzzItem.forceVisibilityCheck(check);
-				}
-			}
-
-			Timer {
-				id: adjustTimer
-				interval: 300
-				repeat: false
-				running: false
-
-				onTriggered: {
-					list.adjustVisible();
 				}
 			}
 		}

@@ -63,6 +63,7 @@ public:
 		HasNextLinkRole,
 		OnChainRole,
 		DynamicRole,
+		LocalDynamicRole,
 		FeedingRole,
 		OwnLikeRole,
 		OwnRebuzzRole,
@@ -87,14 +88,13 @@ public:
 	Q_INVOKABLE void setOnChain(int index);
 	Q_INVOKABLE void setHasLike(int index);
 	Q_INVOKABLE void setHasRebuzz(int index);
+	Q_INVOKABLE void resetLocalDynamic(int index);
 	//
 	Q_INVOKABLE int locateIndex(QString key);
-	//
 	Q_INVOKABLE bool feeding() { return feeding_; }
-	//
 	Q_INVOKABLE QString itemToString(int index);
-	//
 	Q_INVOKABLE void remove(int index);
+	Q_INVOKABLE void forceRelayout(int index, int count);
 
 	void buzzfeedLargeUpdated();
 	void buzzfeedItemNew(qbit::BuzzfeedItemPtr /*buzz*/);

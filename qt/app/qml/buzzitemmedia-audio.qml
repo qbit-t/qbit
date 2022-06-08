@@ -72,6 +72,8 @@ Rectangle {
 	color: fillColor
 	radius: 8
 
+	onHeightChanged: adjustHeight(height)
+
 	onMediaViewChanged: {
 		adjust();
 	}
@@ -416,7 +418,8 @@ Rectangle {
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
 		text: caption_
 		visible: caption_ != "none" && caption_ != ""
-		color: buzzerApp.getColor(mediaView ? mediaViewTheme : buzzerClient.theme, mediaView ? mediaViewSelector : buzzerClient.themeSelector, "Material.menu.foreground")
+		//color: buzzerApp.getColor(mediaView ? mediaViewTheme : buzzerClient.theme, mediaView ? mediaViewSelector : buzzerClient.themeSelector, "Material.menu.foreground")
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 	}
 
 	QuarkLabel {
@@ -425,7 +428,8 @@ Rectangle {
 		y: actionButton.y + (caption.visible ? caption.height + 3 : spaceItems_)
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
 		text: "00:00"
-		color: buzzerApp.getColor(mediaView ? mediaViewTheme : buzzerClient.theme, mediaView ? mediaViewSelector : buzzerClient.themeSelector, "Material.menu.foreground")
+		//color: buzzerApp.getColor(mediaView ? mediaViewTheme : buzzerClient.theme, mediaView ? mediaViewSelector : buzzerClient.themeSelector, "Material.menu.foreground")
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 
 		function setTime(ms) {
 			text = DateFunctions.msToTimeString(ms);
@@ -438,7 +442,8 @@ Rectangle {
 		y: elapsedTime.y
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
 		text: duration_ ? ("/" + DateFunctions.msToTimeString(duration_)) : "/00:00"
-		color: buzzerApp.getColor(mediaView ? mediaViewTheme : buzzerClient.theme, mediaView ? mediaViewSelector : buzzerClient.themeSelector, "Material.menu.foreground")
+		//color: buzzerApp.getColor(mediaView ? mediaViewTheme : buzzerClient.theme, mediaView ? mediaViewSelector : buzzerClient.themeSelector, "Material.menu.foreground")
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 
 		function setTotalTime(ms) {
 			text = "/" + DateFunctions.msToTimeString(ms);
@@ -450,7 +455,8 @@ Rectangle {
 		x: totalTime.x + totalTime.width
 		y: elapsedTime.y
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
-		color: buzzerApp.getColor(mediaView ? mediaViewTheme : buzzerClient.theme, mediaView ? mediaViewSelector : buzzerClient.themeSelector, "Material.menu.foreground")
+		//color: buzzerApp.getColor(mediaView ? mediaViewTheme : buzzerClient.theme, mediaView ? mediaViewSelector : buzzerClient.themeSelector, "Material.menu.foreground")
+		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 		text: ", 0k"
 		visible: size_ !== 0
 

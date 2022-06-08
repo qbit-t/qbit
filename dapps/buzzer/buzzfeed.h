@@ -899,7 +899,13 @@ public:
 		if (dynamic_) return true;
 		return hasMempool();
 	}
-	void setDynamic() { dynamic_ = true; }
+	void setDynamic() { localDynamic_ = dynamic_ = true; }
+	void resetDynamic() { dynamic_ = false; }
+
+	bool localDynamic() {
+		return localDynamic_;
+	}
+	void resetLocalDynamic() { localDynamic_ = false; }
 
 	bool resolvePKey(PKey&);
 
@@ -1108,6 +1114,7 @@ protected:
 	bool wasSuspicious_ = false;
 	bool onChain_ = true;
 	bool dynamic_ = false;
+	bool localDynamic_ = false;
 
 	// resolver
 	buzzerInfoFunction buzzerInfo_;

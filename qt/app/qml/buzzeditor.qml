@@ -947,10 +947,12 @@ QuarkPage {
 					symbol = Fonts.microphoneSym;
 					audioRecorder.stop();
 					recordingAudio.stop();
+					buzzerApp.wakeRelease();
 				} else {
 					symbol = Fonts.dotCircle2Sym;
 					audioRecorder.record();
 					recordingAudio.start();
+					buzzerApp.wakeLock();
 				}
 			}
 
@@ -1274,6 +1276,7 @@ QuarkPage {
 			if (actualFileLocation !== "") {
 				// we have location and content saved
 				mediaListEditor.addAudio(audioRecorder.actualFileLocation, duration, "none");
+				buzzerApp.wakeRelease();
 			}
 		}
 
@@ -1282,6 +1285,7 @@ QuarkPage {
 			if (isStopped) {
 				// we have location and content saved
 				mediaListEditor.addAudio(audioRecorder.actualFileLocation, duration, "none");
+				buzzerApp.wakeRelease();
 			}
 		}
 

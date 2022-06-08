@@ -59,6 +59,7 @@ Item {
 	property var lastUrl_: lastUrl
 	property var accepted_: false
 	property bool dynamic_: dynamic
+	property bool localDynamic_: localDynamic
 	property bool onChain_: onChain
 	property bool adjustData_: adjustData
 

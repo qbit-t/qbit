@@ -543,7 +543,7 @@ Rectangle {
 	QuarkLabel {
 		id: elapsedTime
 		x: actionButton.x + actionButton.width + spaceItems_ + (caption.visible ? 3 : 0)
-		y: actionButton.y + (caption.visible ? caption.height + 3 : spaceItems_)
+		y: actionButton.y + (caption.visible ? caption.height + (buzzerApp.isDesktop ? 0 : 3) : spaceItems_)
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - (caption.visible ? 3 : 0))) : 11
 		text: "00:00"
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")

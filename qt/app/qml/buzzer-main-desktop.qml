@@ -93,11 +93,13 @@ QuarkPage
 		target: buzzerClient
 
 		function onCacheReadyChanged() {
-			infoLoaderCommand.process(buzzerClient.name);
+			//infoLoaderCommand.process(buzzerClient.name);
+			//if (!checkBuzzerInfo.running) checkBuzzerInfo.start();
 		}
 
 		function onBuzzerDAppReadyChanged() {
 			infoLoaderCommand.process(buzzerClient.name);
+			if (!checkBuzzerInfo.running) checkBuzzerInfo.start();
 		}
 
 		function onNewEvents() {
@@ -126,11 +128,20 @@ QuarkPage
 		property var count_: 0;
 
 		onProcessed: {
+			// info
+			console.log("[infoLoaderCommand]: infoLoaderCommand.buzzerId = " + infoLoaderCommand.buzzerId);
+
+			// stop info checker
+			checkBuzzerInfo.stop();
+
 			// reset
 			buzzerClient.avatar = "";
 
 			// name
 			loadTrustScoreCommand.process(infoLoaderCommand.buzzerId + "/" + infoLoaderCommand.buzzerChainId);
+
+			// start score checker
+			checkTrustScore.start();
 
 			if (infoLoaderCommand.avatarId !== "0000000000000000000000000000000000000000000000000000000000000000") {
 				avatarDownloadCommand.url = infoLoaderCommand.avatarUrl;
@@ -163,12 +174,13 @@ QuarkPage
 			//
 			console.log("[checkTrustScore]: checking trust score...");
 			loadTrustScoreCommand.process();
+			checkTrustScore.start(); // re-start
 		}
 	}
 
 	Timer {
 		id: checkBuzzerInfo
-		interval: 1000
+		interval: 2000
 		repeat: false
 		running: false
 
@@ -176,6 +188,7 @@ QuarkPage
 			//
 			console.log("[checkBuzzerInfo]: checking buzzer info...");
 			infoLoaderCommand.process(buzzerClient.name);
+			checkBuzzerInfo.start(); // re-start
 		}
 	}
 
@@ -190,6 +203,7 @@ QuarkPage
 				if (count_++ < 5) checkTrustScore.start();
 			} else {
 				console.log("[loadTrustScoreCommand]: setting endorsements = " + endorsements + ", mistrusts = " + mistrusts);
+				checkTrustScore.stop();
 				buzzerClient.setTrustScore(endorsements, mistrusts);
 				headerBar.adjustTrustScore();
 

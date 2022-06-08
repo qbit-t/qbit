@@ -21,7 +21,7 @@ import "qrc:/qml"
 import "qrc:/lib/numberFunctions.js" as NumberFunctions
 
 QuarkPage {
-	id: conversationthread_
+	id: conversationthreadfeed_
 	key: "conversationthread"
 	stacked: buzzerApp.isDesktop
 
@@ -147,7 +147,7 @@ QuarkPage {
 
 		//
 		stopPage();
-		controller.popPage(conversationthread_);
+		controller.popPage(conversationthreadfeed_);
 		destroy(1000);
 	}
 
@@ -592,6 +592,21 @@ QuarkPage {
 	// thread
 	///
 
+	/*
+	Rectangle {
+		border.color: "transparent"
+		anchors.fill: parent
+		gradient: Gradient {
+			GradientStop { position: 0; color: "#ff9e01"; }
+			GradientStop { position: 0.25; color: "#fd8511"; }
+			GradientStop { position: 0.45; color: "#f32e50"; }
+			GradientStop { position: 0.65; color: "#dd176c"; }
+			GradientStop { position: 0.75; color: "#ac0793"; }
+			GradientStop { position: 1; color: "#9700a5"; }
+		}
+	}
+	*/
+
 	Image {
 		id: back
 		fillMode: Image.Tile
@@ -715,37 +730,6 @@ QuarkPage {
 			return false;
 		}
 
-		function adjustVisible() {
-			//
-			var lProcessable;
-			var lBackItem;
-			var lForwardItem;
-			var lVisible;
-			var lBeginIdx = list.indexAt(1, contentY);
-			//
-			if (lBeginIdx > -1) {
-				// trace back
-				for (var lBackIdx = lBeginIdx; lBackIdx >= 0; lBackIdx--) {
-					//
-					lBackItem = list.itemAtIndex(lBackIdx);
-					if (lBackItem) {
-						lBackItem.height = lBackItem.adjustLayoutUp ? lBackItem.height + 1 : lBackItem.height - 1;  //lBackItem.originalHeight;
-						lBackItem.adjustLayoutUp = !lBackItem.adjustLayoutUp;
-					}
-				}
-
-				// trace forward
-				for (var lForwardIdx = lBeginIdx + 1; lForwardIdx < list.count; lForwardIdx++) {
-					//
-					lForwardItem = list.itemAtIndex(lForwardIdx);
-					if (lForwardItem) {
-						lForwardItem.height = lForwardItem.adjustLayoutUp ? lForwardItem.height + 1 : lForwardItem.height - 1;
-						lForwardItem.adjustLayoutUp = !lForwardItem.adjustLayoutUp;
-					}
-				}
-			}
-		}
-
 		onContentYChanged: {
 			//
 			atTheBottom = isTopItemVisible();
@@ -829,8 +813,7 @@ QuarkPage {
 
 			property var buzzItem;
 			property bool isFullyVisible: y >= list.contentY && y + height < list.contentY + list.height
-			property int originalHeight: 0
-			property bool adjustLayoutUp: true
+			property var adjustValue: []
 
 			onWidthChanged: {
 				if (buzzItem) {
@@ -849,16 +832,15 @@ QuarkPage {
 
 					buzzItem.calculatedHeightModified.connect(itemDelegate.calculatedHeightModified);
 					buzzItem.forceChangeCursorShape.connect(itemDelegate.changeCursorShape);
-					buzzItem.sharedMediaPlayer_ = conversationthread_.mediaPlayerController;
+					buzzItem.sharedMediaPlayer_ = conversationthreadfeed_.mediaPlayerController;
 					buzzItem.accepted_ = conversationState() === conversationAccepted_;
 					buzzItem.width = list.width;
-					buzzItem.controller_ = conversationthread_.controller;
+					buzzItem.controller_ = conversationthreadfeed_.controller;
 					buzzItem.listView_ = list;
 					buzzItem.model_ = conversationThread_;
 					buzzItem.conversationId_ = modelLoader.conversationId;
 
 					itemDelegate.height = buzzItem.calculateHeight();
-					itemDelegate.originalHeight = itemDelegate.height;
 					itemDelegate.width = list.width;
 
 					buzzItem.adjust();
@@ -867,10 +849,18 @@ QuarkPage {
 
 			function calculatedHeightModified(value) {
 				//
-				if (itemDelegate.originalHeight * 100.0 / value > 50) if (buzzItem.dynamic_) { adjustTimer.start(); }
-				//
-				itemDelegate.originalHeight = value;
-				itemDelegate.height = value - 1;
+				if (!(buzzMedia && buzzMedia.length)) itemDelegate.height = value;
+
+				itemDelegate.adjustValue.push(value);
+
+				if (buzzMedia && buzzMedia.length && itemDelegate.adjustValue.length > 2) {
+					itemDelegate.height = itemDelegate.adjustValue[itemDelegate.adjustValue.length - 1];
+
+					if (localDynamic) {
+						conversationthreadfeed_.conversationThread_.resetLocalDynamic(index);
+						conversationthreadfeed_.conversationThread_.forceRelayout(index, 1);
+					}
+				}
 			}
 
 			function changeCursorShape(shape) {
@@ -878,28 +868,15 @@ QuarkPage {
 				mouseArea.cursorShape = shape;
 			}
 
-			Timer {
-				id: adjustTimer
-				interval: 300
-				repeat: false
-				running: false
-
-				property int adjustValue: 0
-
-				onTriggered: {
-					list.adjustVisible();
-				}
-			}
-
 			function unbindCommonControls() {
-				if (buzzItem) {
-					buzzItem.unbindCommonControls();
+				if (itemDelegate.buzzItem) {
+					itemDelegate.buzzItem.unbindCommonControls();
 				}
 			}
 
 			function forceVisibilityCheck(check) {
-				if (buzzItem) {
-					buzzItem.forceVisibilityCheck(check);
+				if (itemDelegate.buzzItem) {
+					itemDelegate.buzzItem.forceVisibilityCheck(check);
 				}
 			}
 		}
@@ -933,7 +910,7 @@ QuarkPage {
 		x: 0
 		y: bottomLine.y1
 		width: parent.width
-		mediaPlayerController: conversationthread_.mediaPlayerController
+		mediaPlayerController: conversationthreadfeed_.mediaPlayerController
 		overlayParent: list
 		overlayRect: Qt.rect(viewPort.x, viewPort.y, viewPort.width, viewPort.height)
 		inverse: true
