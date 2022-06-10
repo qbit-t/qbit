@@ -1305,6 +1305,12 @@ void LightWallet::updateOuts(TransactionPtr tx) {
 void LightWallet::updateIn(Transaction::NetworkUnlinkedOutPtr out, bool force) {
 	//
 	if (out->utxo().change() && !force) return; // change should not be here
+	if (out->utxo().change()) {
+		//
+		db::DbContainer<uint256 /*id*/, Transaction::NetworkUnlinkedOut /*data*/>::Iterator lExists = outs_.begin();
+		if (lExists.valid()) return; // already filled up
+	}
+
 	//
 	Transaction::NetworkUnlinkedOut lOut;
 	if (!outs_.read(out->utxo().hash(), lOut)) {
