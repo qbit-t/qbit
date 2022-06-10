@@ -417,7 +417,7 @@ QuarkPage {
 					}
 
 					onHeightChanged: {
-						player.y = list.y + height + 1;
+						//player.y = list.y + height + 1;
 					}
 
 					Component.onCompleted: {
