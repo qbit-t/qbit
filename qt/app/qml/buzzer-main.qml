@@ -239,6 +239,8 @@ QuarkPage
 				buzzfeedPresonal.externalPull();
 			} else if (navigatorBar.currentIndex === 1) { // global
 				buzzfeedGlobal.externalPull();
+			} else if (navigatorBar.currentIndex === 2) { // events
+				eventsfeedPersonal.externalPull();
 			}
 		}
 
