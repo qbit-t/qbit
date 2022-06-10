@@ -1534,10 +1534,10 @@ QuarkPage {
 
 		for (lIdx = 0; lIdx < mediaModel.count; lIdx++) {
 			console.log("[createBuzz/media]: key = " + mediaModel.get(lIdx).key + ", preview = " + mediaModel.get(lIdx).preview);
-			buzzCommand.addMedia(mediaModel.get(lIdx).key + "," +
-								 mediaModel.get(lIdx).duration + "," +
-								 mediaModel.get(lIdx).preview + "," +
-								 mediaModel.get(lIdx).orientation + "," +
+			buzzCommand.addMedia(mediaModel.get(lIdx).key + "|" +
+								 mediaModel.get(lIdx).duration + "|" +
+								 mediaModel.get(lIdx).preview + "|" +
+								 mediaModel.get(lIdx).orientation + "|" +
 								 mediaModel.get(lIdx).description);
 		}
 
@@ -1577,10 +1577,10 @@ QuarkPage {
 		}
 
 		for (lIdx = 0; lIdx < mediaModel.count; lIdx++) {
-			rebuzzCommand.addMedia(mediaModel.get(lIdx).key + "," +
-								   mediaModel.get(lIdx).duration + "," +
-								   mediaModel.get(lIdx).preview + "," +
-								   mediaModel.get(lIdx).orientation + "," +
+			rebuzzCommand.addMedia(mediaModel.get(lIdx).key + "|" +
+								   mediaModel.get(lIdx).duration + "|" +
+								   mediaModel.get(lIdx).preview + "|" +
+								   mediaModel.get(lIdx).orientation + "|" +
 								   mediaModel.get(lIdx).description);
 		}
 
@@ -1628,10 +1628,10 @@ QuarkPage {
 		}
 
 		for (lIdx = 0; lIdx < mediaModel.count; lIdx++) {
-			replyCommand.addMedia(mediaModel.get(lIdx).key + "," +
-								  mediaModel.get(lIdx).duration + "," +
-								  mediaModel.get(lIdx).preview + "," +
-								  mediaModel.get(lIdx).orientation + "," +
+			replyCommand.addMedia(mediaModel.get(lIdx).key + "|" +
+								  mediaModel.get(lIdx).duration + "|" +
+								  mediaModel.get(lIdx).preview + "|" +
+								  mediaModel.get(lIdx).orientation + "|" +
 								  mediaModel.get(lIdx).description);
 		}
 
@@ -1680,10 +1680,10 @@ QuarkPage {
 		}
 
 		for (lIdx = 0; lIdx < mediaModel.count; lIdx++) {
-			messageCommand.addMedia(mediaModel.get(lIdx).key + "," +
-									mediaModel.get(lIdx).duration + "," +
-									mediaModel.get(lIdx).preview + "," +
-									mediaModel.get(lIdx).orientation + "," +
+			messageCommand.addMedia(mediaModel.get(lIdx).key + "|" +
+									mediaModel.get(lIdx).duration + "|" +
+									mediaModel.get(lIdx).preview + "|" +
+									mediaModel.get(lIdx).orientation + "|" +
 									mediaModel.get(lIdx).description);
 		}
 

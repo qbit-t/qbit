@@ -93,7 +93,7 @@ void UploadMediaCommand::process(const std::vector<std::string>& args, IPeerPtr 
 
 		// check extra parameters
 		std::vector<std::string> lFileParams;
-		boost::split(lFileParams, file_, boost::is_any_of(","));
+		boost::split(lFileParams, file_, boost::is_any_of("|"));
 		if (lFileParams.size() > 1) {
 			// 0 - file
 			file_ = lFileParams[0];

@@ -847,12 +847,12 @@ QString Client::decorateBuzzBodyLimited(const QString& body, int limit) {
 		QRegularExpressionMatchIterator lMatchIterator = lRule.expression.globalMatch(lResult);
 		while (lMatchIterator.hasNext()) {
 			//
-			//qInfo() << "-----------";
+			qInfo() << "-----------";
 			QRegularExpressionMatch lMatch = lMatchIterator.next();
 			QVector<_Arg> lArgs;
 			for (int lArg = 0; lArg <= lMatch.lastCapturedIndex(); lArg++) {
 				lArgs.push_back(_Arg { lMatch.capturedStart(lArg), lMatch.capturedLength(lArg), lMatch.captured(lArg) });
-				//qInfo() << "Captured:" << lMatch.captured(lArg) << lMatch.capturedStart(lArg) << lMatch.capturedLength(lArg);
+				qInfo() << "Captured:" << lMatch.captured(lArg) << lMatch.capturedStart(lArg) << lMatch.capturedLength(lArg);
 			}
 
 			//
