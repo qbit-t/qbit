@@ -76,6 +76,7 @@ Item {
 	property var buzzfeedModel_: buzzfeedModel
 	property var listView_
 	property var sharedMediaPlayer_
+	property var playerKey_
 
 	readonly property int spaceLeft_: 15
 	readonly property int spaceTop_: 12
@@ -718,6 +719,7 @@ Item {
 				bodyControl.buzzMediaItem_.buzzBody_ = buzzitem_.buzzBodyFlat_;
 				bodyControl.buzzMediaItem_.buzzMedia_ = buzzitem_.buzzMedia_;
 				bodyControl.buzzMediaItem_.sharedMediaPlayer_ = buzzitem_.sharedMediaPlayer_;
+				bodyControl.buzzMediaItem_.playerKey_ = playerKey_;
 				bodyControl.buzzMediaItem_.initialize();
 
 				bodyControl.height = bodyControl.getHeight();

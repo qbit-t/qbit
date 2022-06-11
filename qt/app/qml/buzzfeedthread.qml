@@ -426,6 +426,11 @@ QuarkPage {
 						buzzItem = lComponent.createObject(headDelegate);
 
 						buzzItem.sharedMediaPlayer_ = buzzfeedthread_.mediaPlayerController;
+						if (buzzerApp.isDesktop) {
+							player.key = modelLoader.buzzId;
+							buzzItem.playerKey_ = modelLoader.buzzId;
+						}
+
 						buzzItem.width = list.width;
 						buzzItem.controller_ = buzzfeedthread_.controller;
 						buzzItem.buzzfeedModel_ = buzzesThread_;

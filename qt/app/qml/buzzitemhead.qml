@@ -63,6 +63,7 @@ Item {
 	property var buzzfeedModel_: buzzfeedModel
 	property var listView_
 	property var sharedMediaPlayer_
+	property var playerKey_
 
 	readonly property int spaceLeft_: 15
 	readonly property int spaceTop_: 12
@@ -90,6 +91,10 @@ Item {
 
 	onSharedMediaPlayer_Changed: {
 		bodyControl.setSharedMediaPlayer();
+	}
+
+	onPlayerKey_Changed: {
+		bodyControl.setPlayerKey();
 	}
 
 	function calculateHeightInternal() {
@@ -407,6 +412,12 @@ Item {
 			}
 		}
 
+		function setPlayerKey() {
+			if (buzzMediaItem_) {
+				buzzMediaItem_.playerKey_ = buzzitemhead_.playerKey_;
+			}
+		}
+
 		onWidthChanged: {
 			expand();
 
@@ -550,6 +561,7 @@ Item {
 					buzzMediaItem_.buzzId_ = buzzitemhead_.buzzId_;
 					buzzMediaItem_.buzzMedia_ = buzzitemhead_.buzzMedia_;
 					buzzMediaItem_.sharedMediaPlayer_ = buzzitemhead_.sharedMediaPlayer_;
+					buzzMediaItem_.playerKey_ = playerKey_;
 					buzzMediaItem_.initialize();
 
 					bodyControl.height = bodyControl.getHeight();
