@@ -521,7 +521,9 @@ Item {
 		id: buzzerAliasControl
 		x: avatarImage.x + avatarImage.width + spaceAvatarBuzz_
 		y: avatarImage.y
+		width: parent.width - x - (agoControl.width + spaceItems_ * 2 + menuControl.width + spaceItems_) - spaceRightMenu_
 		text: buzzerAlias_
+		elide: Text.ElideRight
 		font.bold: true
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 	}
