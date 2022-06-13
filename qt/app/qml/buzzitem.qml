@@ -530,7 +530,7 @@ Item {
 
 	QuarkLabelRegular {
 		id: buzzerNameControl
-		x: buzzerAliasControl.x + buzzerAliasControl.width + spaceItems_
+		x: buzzerAliasControl.x + buzzerAliasControl.contentWidth + spaceItems_
 		y: avatarImage.y
 		width: parent.width - x - (agoControl.width + spaceItems_ * 2 + menuControl.width + spaceItems_) - spaceRightMenu_
 		elide: Text.ElideRight
