@@ -2066,14 +2066,14 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 		strprintf("from = %s, to = %s, %s#", from.toHex(), to.toHex(), chain_.toHex().substr(0, 10)));
 
 	// params
-	uint64_t /*lLastHeight = 0, lToHeight = 0,*/ lLastBlockDiff = 0, lFromDiff = 0, lLimit = (60/5)*60*24*3; // far check distance
-	uint256 lCommonRoot;
+	uint64_t /*lLastHeight = 0, lToHeight = 0,*/ lLastBlockDiff = 0, lFromDiff = 0, lLimit = 0; //(60/2)*60*24*3; // far check distance
+	uint256 lCommonRoot = BlockHeader().hash();
 
 	// clean-up from lastBlock_
-	bool lCleanUpLastBlock = true;
+	bool lCommonRootFound = true;
 
 	// check for new chain switching
-	if (to == BlockHeader().hash()) {
+	if (to == lCommonRoot /*zero block*/) {
 		//
 		gLog().write(Log::STORE, std::string("[reindex]: performing FULL reindex for new chain ") + 
 			strprintf("%s/%s/%s#", from.toHex(), to.toHex(), chain_.toHex().substr(0, 10)));
@@ -2091,7 +2091,7 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 		*/
 
 		// check is block headers are traceable from the root
-		if ((lCleanUpLastBlock = isRootExists(lastBlock_, from, lCommonRoot, lLastBlockDiff, lLimit))) {
+		if ((lCommonRootFound = isRootExists(lastBlock_, from, lCommonRoot, lLastBlockDiff, lLimit))) {
 			//
 			gLog().write(Log::STORE, std::string("[reindex/warning]: limited clean-up with partial reindex is POSSIBLE for ") + 
 				strprintf("depth = %d, lastBlock = %s, from = %s, root = %s/%s#",
@@ -2130,17 +2130,17 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 		// synchronizing
 		SynchronizingGuard lGuard(shared_from_this());
 		// mark last reindex
-		writeLastReindex(from, to);
+		writeLastReindex(from, lCommonRootFound ? lCommonRoot : to);
 		// remove old index (limited)
-		if (lCleanUpLastBlock) removeBlocks(lastBlock_, lCommonRoot, false, 0);
+		if (lCommonRootFound) removeBlocks(lastBlock_, lCommonRoot, false, 0);
 		// remove new index
-		removeBlocks(from, to, false, 0); // in case of wrapped restarts (re-process blocks may occur)
+		removeBlocks(from, lCommonRootFound ? lCommonRoot : to, false, 0); // in case of wrapped restarts (re-process blocks may occur)
 		// probably last block
 		uint256 lLastPrev;
 		// error reason if any
 		int lErrorReason = 0;
 		// process blocks
-		if (!(lResult = processBlocks(from, to, pool, lLastPrev, lErrorReason))) {
+		if (!(lResult = processBlocks(from, lCommonRootFound ? lCommonRoot : to, pool, lLastPrev, lErrorReason))) {
 			/*
 			//
 			// NOTICE: reset to NULL block and invalidate height map
