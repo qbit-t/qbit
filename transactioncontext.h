@@ -19,7 +19,8 @@ public:
 		COMMON,
 		MEMPOOL_COMMIT,
 		STORE_COMMIT,
-		STORE_PUSH
+		STORE_PUSH,
+		STORE_REINDEX
 	};
 
 public:

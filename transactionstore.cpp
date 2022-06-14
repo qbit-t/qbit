@@ -104,7 +104,7 @@ bool TransactionStore::processBlockTransactions(ITransactionStorePtr store, IEnt
 	TransactionProcessor lProcessor = TransactionProcessor::general(lTransactionStore, lWallet, entityStore);
 	for(TransactionsContainer::iterator lTx = transactions->transactions().begin(); lTx != transactions->transactions().end(); lTx++) {
 		TransactionContextPtr lCtx = TransactionContext::instance(*lTx, 
-			(processWallet ? TransactionContext::STORE_COMMIT : TransactionContext::STORE_PUSH),
+			(!approxHeight ? TransactionContext::STORE_REINDEX : (processWallet ? TransactionContext::STORE_COMMIT : TransactionContext::STORE_PUSH)),
 			ctx->block()->time());
 		//
 		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlockTransactions]: processing tx ") +

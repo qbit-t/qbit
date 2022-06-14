@@ -345,7 +345,7 @@ TransactionAction::Result TxSpendOutVerify::execute(TransactionContextPtr wrappe
 						//
 						uint64_t lHeight = lVM.getR(qasm::QR1).to<uint64_t>();
 						//
-						if (!(lHeight > lCurrentHeight && 
+						if (wrapper->context() != TransactionContext::STORE_REINDEX && !(lHeight > lCurrentHeight && 
 								lHeight - lCurrentHeight >= store->settings()->proofAssetLockTime())) {
 							//
 							std::string lError = _getVMStateText(VirtualMachine::INVALID_RESULT) + strprintf(" | locked height must be at least H+%d", store->settings()->proofAssetLockTime());
