@@ -985,28 +985,12 @@ QuarkPage {
 				//
 				if (!sending /*&& buzzesThread_.count > 0*/) {
 					//
+					buzzText.external_ = true;
+					//
 					controller.openMessageEditor(buzzerClient.getPlainText(buzzText.textDocument),
 												 buzzerClient.getCounterpartyKey(modelLoader.conversationId),
-												 modelLoader.conversationId, buzzerClient.getBuzzerAlias(getBuzzerInfoId()));
-					/*
-					var lComponent = null;
-					var lPage = null;
-					//
-					buzzText.external_ = true;
-
-					lComponent = Qt.createComponent(buzzerApp.isDesktop ? "qrc:/qml/buzzeditor-desktop.qml" : "qrc:/qml/buzzeditor.qml");
-					if (lComponent.status === Component.Error) {
-						showError(lComponent.errorString());
-					} else {
-						lPage = lComponent.createObject(controller);
-						lPage.controller = controller;
-						lPage.initializeMessage(buzzerClient.getPlainText(buzzText.textDocument),
-												buzzerClient.getCounterpartyKey(modelLoader.conversationId),
-												modelLoader.conversationId);
-						buzzText.clear();
-						addPage(lPage);
-					}
-					*/
+												 modelLoader.conversationId, buzzerClient.getBuzzerAlias(getBuzzerInfoId()),
+												 conversationthreadfeed_.keyboardHeight);
 				}
 			}
 		}

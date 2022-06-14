@@ -666,22 +666,6 @@ Item {
 		onClicked: {
 			//
 			controller.openReplyEditor(self_, buzzfeedModel_);
-
-			/*
-			var lComponent = null;
-			var lPage = null;
-
-			lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzeditor-desktop.qml") :
-											   Qt.createComponent("qrc:/qml/buzzeditor.qml");
-			if (lComponent.status === Component.Error) {
-				showError(lComponent.errorString());
-			} else {
-				lPage = lComponent.createObject(controller);
-				lPage.controller = controller;
-				lPage.initializeReply(self_, buzzfeedModel_);
-				addPage(lPage);
-			}
-			*/
 		}
 	}
 
@@ -945,22 +929,6 @@ Item {
 			} else if (key === "rebuzz-comment") {
 				//
 				controller.openRebuzzEditor(self_, buzzfeedModel_);
-
-				/*
-				var lComponent = null;
-				var lPage = null;
-
-				lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzeditor-desktop.qml") :
-												   Qt.createComponent("qrc:/qml/buzzeditor.qml");
-				if (lComponent.status === Component.Error) {
-					showError(lComponent.errorString());
-				} else {
-					lPage = lComponent.createObject(controller);
-					lPage.controller = controller;
-					lPage.initializeRebuzz(self_, buzzfeedModel_);
-					addPage(lPage);
-				}
-				*/
 			}
 		}
 
