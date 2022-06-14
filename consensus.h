@@ -632,6 +632,51 @@ public:
 	}
 
 	//
+	// collect validators
+	void collectValidators(std::map<uint160, IPeerPtr>& peers) {
+		//
+		// prepare
+		std::list<IPeerPtr> lPeers;
+		{
+			boost::unique_lock<boost::mutex> lLock(peersMutex_);
+			for (PeersMap::iterator lItem = directPeerMap_.begin(); lItem != directPeerMap_.end(); lItem++) {
+				if (lItem->second->state()->minerOrValidator()) {
+					//
+					bool lAdd = false;
+					// check collateral if configured
+					uint256 lProofAsset = settings_->proofAsset();
+					if (!lProofAsset.isNull()) {
+						//
+						if (currentTime() >= settings_->proofFrom()) {
+							//
+							std::vector<Transaction::NetworkUnlinkedOut> lUtxo;
+							ITransactionStorePtr lStore = store_->storeManager()->locate(MainChain::id());
+							lStore->selectUtxoByRawAddressAndAsset(lItem->second->address(), lProofAsset, lUtxo, 5 /*top max*/);
+
+							if (lUtxo.size()) {
+								//
+								for (std::vector<Transaction::NetworkUnlinkedOut>::iterator lOut = lUtxo.begin(); lOut != lUtxo.end(); lOut++) {
+									if (lOut->utxo().amount() >= settings_->proofAmount()) {
+										lAdd = true;
+										break;
+									}
+								}
+							}
+						} else lAdd = true;
+					} else lAdd = true;
+
+					if (lAdd) lPeers.push_back(lItem->second);
+				}
+			}
+		}
+
+		// broadcast
+		for (std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
+			peers[(*lPeer)->addressId()] = (*lPeer);
+		}		
+	}
+
+	//
 	// push state
 	bool pushState(StatePtr state) {
 		// prepare

@@ -263,7 +263,7 @@ private:
 
 						// select next leader
 						std::map<uint160, IPeerPtr> lPeers;
-						consensus_->collectPeers(lPeers);
+						consensus_->collectValidators(lPeers);
 
 						// add self
 						uint160 lSelfId = consensus_->mainKey()->createPKey().id();

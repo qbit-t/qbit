@@ -455,6 +455,7 @@ public:
 
 	void selectUtxoByAddress(const PKey& /*address*/, std::vector<Transaction::NetworkUnlinkedOut>& /*utxo*/);	
 	void selectUtxoByAddressAndAsset(const PKey& /*address*/, const uint256& /*asset*/, std::vector<Transaction::NetworkUnlinkedOut>& /*utxo*/);
+	void selectUtxoByRawAddressAndAsset(const PKey& /*address*/, const uint256& /*asset*/, std::vector<Transaction::NetworkUnlinkedOut>& /*utxo*/, int /*limit*/);
 	void selectUtxoByTransaction(const uint256& /*tx*/, std::vector<Transaction::NetworkUnlinkedOut>& /*utxo*/);
 	void selectUtxoByRawTransaction(const uint256& /*tx*/, std::vector<Transaction::NetworkUnlinkedOut>& /*utxo*/);
 	void selectEntityNames(const std::string& /*name*/, std::vector<EntityName>& /*names*/);

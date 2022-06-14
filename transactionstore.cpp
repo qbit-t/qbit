@@ -1724,6 +1724,36 @@ void TransactionStore::selectUtxoByAddressAndAsset(const PKey& address, const ui
 	}
 }
 
+void TransactionStore::selectUtxoByRawAddressAndAsset(const PKey& address, const uint256& asset, std::vector<Transaction::NetworkUnlinkedOut>& utxo, int limit) {
+	//
+	std::map<uint64_t, Transaction::NetworkUnlinkedOut> lUtxos;
+	//
+	int lCount = 0;
+	uint160 lId = address.id();
+	for (db::DbThreeKeyContainer
+			<uint160 /*address*/, 
+				uint256 /*asset*/, 
+				uint256 /*utxo*/, 
+				uint256 /*tx*/>::Iterator lBundle = addressAssetUtxoIdx_.find(lId, asset); lBundle.valid() && (limit == -1 || lCount < limit); ++lBundle, lCount++) {
+		uint160 lAddress;
+		uint256 lAsset;
+		uint256 lUtxo;
+
+		if (lBundle.first(lAddress, lAsset, lUtxo)) {
+			Transaction::UnlinkedOut lOut, lLOut;
+			if (utxo_.read(lUtxo, lOut) && !ltxo_.read(lUtxo, lLOut)) {
+				//
+				lUtxos[lOut.amount()] = Transaction::NetworkUnlinkedOut(lOut, 0, 0);
+			}
+		}
+	}
+
+	// ordering
+	for (std::map<uint64_t, Transaction::NetworkUnlinkedOut>::reverse_iterator lItem = lUtxos.rbegin(); lItem != lUtxos.rend(); lItem++) {
+		utxo.push_back(lItem->second);
+	}
+}
+
 void TransactionStore::selectUtxoByRawTransaction(const uint256& tx, std::vector<Transaction::NetworkUnlinkedOut>& utxo) {
 	//
 	std::map<uint32_t, Transaction::NetworkUnlinkedOut> lUtxos;

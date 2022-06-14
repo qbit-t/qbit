@@ -100,6 +100,7 @@ public:
 
 	virtual void selectUtxoByAddress(const PKey& /*address*/, std::vector<Transaction::NetworkUnlinkedOut>& /*utxo*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::selectUtxoByAddress - not implemented."); }
 	virtual void selectUtxoByAddressAndAsset(const PKey& /*address*/, const uint256& /*asset*/, std::vector<Transaction::NetworkUnlinkedOut>& /*utxo*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::selectUtxoByAddressAndAsset - not implemented."); }
+	virtual void selectUtxoByRawAddressAndAsset(const PKey& /*address*/, const uint256& /*asset*/, std::vector<Transaction::NetworkUnlinkedOut>& /*utxo*/, int limit = -1) { throw qbit::exception("NOT_IMPL", "ITransactionStore::selectUtxoByRawAddressAndAsset - not implemented."); }
 	virtual void selectUtxoByTransaction(const uint256& /*tx*/, std::vector<Transaction::NetworkUnlinkedOut>& /*utxo*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::selectUtxoByTransaction - not implemeted."); }
 	virtual void selectUtxoByRawTransaction(const uint256& /*tx*/, std::vector<Transaction::NetworkUnlinkedOut>& /*utxo*/) { throw qbit::exception("NOT_IMPL", "ITransactionStore::selectUtxoByTransaction - not implemeted."); }
 	
