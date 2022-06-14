@@ -280,7 +280,7 @@ void Peer::synchronizePartialTree(IConsensusPtr consensus, SynchronizationJobPtr
 		uint256 lId = job->nextBlock();
 		if (lId.isNull()) {
 			// log
-			if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: partial synchronization job is done, root = ") + strprintf("%s, %s#", job->block().toHex(), consensus->chain().toHex().substr(0, 10)));
+			if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: partial synchronization job is done, root = ") + strprintf("%s, commonRooot = %s/%s#", job->block().toHex(), job->lastBlock().toHex(), consensus->chain().toHex().substr(0, 10)));
 
 			// cleanup
 			removeJob(consensus->chain());
@@ -295,7 +295,7 @@ void Peer::synchronizePartialTree(IConsensusPtr consensus, SynchronizationJobPtr
 					peerManager_->consensusManager()->broadcastState(lState, addressId());
 				} else {
 					// log
-					if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: partial reindex FAILED skipping subtree switching, root = ") + strprintf("%s, %s#", job->block().toHex(), consensus->chain().toHex().substr(0, 10)));
+					if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: partial reindex FAILED skipping subtree switching, root = ") + strprintf("%s, commonRoot = %s/%s#", job->block().toHex(), job->lastBlock().toHex(), consensus->chain().toHex().substr(0, 10)));
 				}
 			} else {
 				consensus->toNonSynchronized(true);
@@ -388,10 +388,10 @@ void Peer::synchronizeLargePartialTree(IConsensusPtr consensus, SynchronizationJ
 		uint256 lId = job->nextBlock();
 		if (lId.isNull()) {
 			// log
-			if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: large headers synchronization job is done, root = ") + strprintf("%s, %s#", job->block().toHex(), consensus->chain().toHex().substr(0, 10)));
+			if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: large headers synchronization job is done, root = ") + strprintf("%s, commonRoot = %s/%s#", job->block().toHex(), job->lastBlock().toHex(), consensus->chain().toHex().substr(0, 10)));
 
 			if (!consensus->processPartialTreeHeaders(job)) {
-				if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: large pending blocks synchronization is not possible, root = ") + strprintf("%s, %s#", job->block().toHex(), consensus->chain().toHex().substr(0, 10)));
+				if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: large pending blocks synchronization is not possible, root = ") + strprintf("%s, commonRoot = %s/%s#", job->block().toHex(), job->lastBlock().toHex(), consensus->chain().toHex().substr(0, 10)));
 			}
 
 			return;
@@ -3809,7 +3809,7 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 			// try to locate common root
 			if (!lChainFound) {
 				uint256 lCommonRoot;
-				uint64_t lLastBlockDiff = 0, lFromDiff = 0, lLimit = (60/5)*60*24*1; // 1 day
+				uint64_t lLastBlockDiff = 0, lFromDiff = 0, lLimit = (60/2)*60*24*1; // 1 day
 				if (lConsensus->store()->isRootExists(lJob->lastBlock(), lFirst, lCommonRoot, lLastBlockDiff, lLimit)) {
 					if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: common root found for ") + 
 						strprintf("last = %s, current = %s, root = %s/%s#", lJob->lastBlock().toHex(), lFirst.toHex(), lCommonRoot.toHex(), lChain.toHex().substr(0, 10)));

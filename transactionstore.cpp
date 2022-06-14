@@ -104,7 +104,8 @@ bool TransactionStore::processBlockTransactions(ITransactionStorePtr store, IEnt
 	TransactionProcessor lProcessor = TransactionProcessor::general(lTransactionStore, lWallet, entityStore);
 	for(TransactionsContainer::iterator lTx = transactions->transactions().begin(); lTx != transactions->transactions().end(); lTx++) {
 		TransactionContextPtr lCtx = TransactionContext::instance(*lTx, 
-			(processWallet ? TransactionContext::STORE_COMMIT : TransactionContext::STORE_PUSH));
+			(processWallet ? TransactionContext::STORE_COMMIT : TransactionContext::STORE_PUSH),
+			ctx->block()->time());
 		//
 		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlockTransactions]: processing tx ") +
 			strprintf("%s/%s/%s#", lCtx->tx()->id().toHex(), ctx->block()->hash().toHex(), chain_.toHex().substr(0, 10)));
@@ -2066,7 +2067,7 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 		strprintf("from = %s, to = %s, %s#", from.toHex(), to.toHex(), chain_.toHex().substr(0, 10)));
 
 	// params
-	uint64_t /*lLastHeight = 0, lToHeight = 0,*/ lLastBlockDiff = 0, lFromDiff = 0, lLimit = 0; //(60/2)*60*24*3; // far check distance
+	uint64_t /*lLastHeight = 0, lToHeight = 0,*/ lLastBlockDiff = 0, lFromDiff = 0, lLimit = (60/2)*60*24*3; // far check distance
 	uint256 lCommonRoot = BlockHeader().hash();
 
 	// clean-up from lastBlock_

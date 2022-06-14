@@ -338,7 +338,9 @@ TransactionAction::Result TxSpendOutVerify::execute(TransactionContextPtr wrappe
 				if (lVM.getR(qasm::QD0).to<unsigned short>() == 0xffff) lProcess = false;
 
 				//
-				if (lProcess /*not change*/ && wrapper->tx()->type() != Transaction::ASSET_EMISSION /*emission is lock-free*/) {
+				if (lProcess /*not change*/ && wrapper->tx()->type() != Transaction::ASSET_EMISSION /*emission is lock-free*/ &&
+					wrapper->blockTimestamp() >= store->settings()->proofFrom() /*check height only AFTER initial timestamp*/) {
+					//
 					if (lVM.getR(qasm::QR1).getType() != qasm::QNONE) {
 						//
 						uint64_t lHeight = lVM.getR(qasm::QR1).to<uint64_t>();

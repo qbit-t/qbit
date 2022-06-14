@@ -56,6 +56,9 @@ public:
 	TransactionContext(TransactionPtr tx, ProcessingContext context) : tx_(tx), context_(context) { 
 		fee_ = 0; size_ = 0; qbitTx_ = false; 
 	}
+	TransactionContext(TransactionPtr tx, ProcessingContext context, uint64_t blockTime) : tx_(tx), context_(context), blockTime_(blockTime) {
+		fee_ = 0; size_ = 0; qbitTx_ = false; 
+	}
 
 	inline TransactionPtr tx() { return tx_; }
 
@@ -99,6 +102,9 @@ public:
 	inline static TransactionContextPtr instance(TransactionPtr tx, ProcessingContext context) { 
 		return std::make_shared<TransactionContext>(tx, context); 
 	}
+	inline static TransactionContextPtr instance(TransactionPtr tx, ProcessingContext context, uint64_t blockTime) {
+		return std::make_shared<TransactionContext>(tx, context, blockTime); 
+	}
 
 	inline std::list<Transaction::NetworkUnlinkedOutPtr>& externalOuts() { return externalOuts_; }
 
@@ -123,6 +129,8 @@ public:
 
 	inline int incrementReprocessed() { return ++reprocessed_; }
 	inline bool reprocessTimedout() { return reprocessed_ >= 30; /* approx 3 block */}
+
+	inline uint64_t blockTimestamp() { return blockTime_; }
 
 	// estimated rate (feeIn/out maybe excluded)
 	inline qunit_t feeRate() {
@@ -190,6 +198,8 @@ private:
 	int reprocessed_ = 0;
 	// persisted outs
 	std::list<Transaction::NetworkUnlinkedOutPtr> externalOuts_;
+	// block time if exists
+	uint64_t blockTime_ = 0;
 };
 
 } // qbit
