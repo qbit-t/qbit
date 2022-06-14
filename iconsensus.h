@@ -105,6 +105,7 @@ public:
 	virtual bool isSimpleNetwork() { throw qbit::exception("NOT_IMPL", "IConsensus::isSimpleNetwork - not implemented."); }
 
 	virtual void collectPeers(std::map<uint160, IPeerPtr>& /*peers*/) { throw qbit::exception("NOT_IMPL", "IConsensus::collectPeers - not implemented."); }
+	virtual void collectValidators(std::map<uint160, IPeerPtr>& /*peers*/) { throw qbit::exception("NOT_IMPL", "IConsensus::collectValidators - not implemented."); }
 
 	virtual IConsensusManagerPtr consensusManager() { throw qbit::exception("NOT_IMPL", "IConsensus::consensusManager - not implemented."); }
 
