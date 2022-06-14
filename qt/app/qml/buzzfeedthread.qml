@@ -607,25 +607,10 @@ QuarkPage {
 				//
 				if (!sending && buzzesThread_.count > 0) {
 					//
-					controller.openReplyEditor(buzzesThread_.self(0), buzzesThread_, buzzerClient.getPlainText(buzzText.textDocument));
-
-					/*
-					var lComponent = null;
-					var lPage = null;
-					//
 					buzzText.external_ = true;
-
-					lComponent = Qt.createComponent(buzzerApp.isDesktop ? "qrc:/qml/buzzeditor-desktop.qml" : "qrc:/qml/buzzeditor.qml");
-					if (lComponent.status === Component.Error) {
-						showError(lComponent.errorString());
-					} else {
-						lPage = lComponent.createObject(controller);
-						lPage.controller = controller;
-						lPage.initializeReply(buzzesThread_.self(0), buzzesThread_, buzzerClient.getPlainText(buzzText.textDocument));
-						buzzText.clear();
-						addPage(lPage);
-					}
-					*/
+					//
+					controller.openReplyEditor(buzzesThread_.self(0), buzzesThread_,
+											   buzzerClient.getPlainText(buzzText.textDocument), buzzfeedthread_.keyboardHeight);
 				}
 			}
 		}

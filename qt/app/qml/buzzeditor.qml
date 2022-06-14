@@ -63,8 +63,9 @@ QuarkPage {
 	property var conversation_: "";
 	property var text_: "";
 	property var index_;
+	property var initialKeyboardHeight_;
 
-	function initializeRebuzz(item, model, index) {
+	function initializeRebuzz(item, model, index, keyboardHeight) {
 		buzzItem_ = item;
 		buzzfeedModel_ = model;
 		buzz_ = false;
@@ -72,15 +73,23 @@ QuarkPage {
 		message_ = false;
 		index_ = index;
 
+		if (keyboardHeight) {
+			initialKeyboardHeight_ = keyboardHeight;
+		}
+
 		bodyContainer.wrapItem(item);
 	}
 
-	function initializeReply(item, model, text) {
+	function initializeReply(item, model, text, keyboardHeight) {
 		buzzItem_ = item;
 		buzzfeedModel_ = model;
 		buzz_ = false;
 		reply_ = true;
 		message_ = false;
+
+		if (keyboardHeight) {
+			initialKeyboardHeight_ = keyboardHeight;
+		}
 
 		if (text) {
 			// buzzText.text = text;
@@ -91,11 +100,15 @@ QuarkPage {
 		bodyContainer.replyItem(item);
 	}
 
-	function initializeBuzz(text) {
+	function initializeBuzz(text, keyboardHeight) {
 		buzz_ = true;
 		reply_ = false;
 		rebuzz_ = false;
 		message_ = false;
+
+		if (keyboardHeight) {
+			initialKeyboardHeight_ = keyboardHeight;
+		}
 
 		if (text) {
 			// buzzText.text = text;
@@ -104,13 +117,17 @@ QuarkPage {
 		}
 	}
 
-	function initializeMessage(text, pkey, conversation) {
+	function initializeMessage(text, pkey, conversation, keyboardHeight) {
 		buzz_ = false;
 		reply_ = false;
 		rebuzz_ = false;
 		message_ = true;
 		pkey_ = pkey;
 		conversation_ = conversation;
+
+		if (keyboardHeight) {
+			initialKeyboardHeight_ = keyboardHeight;
+		}
 
 		if (text) buzzText.text = text;
 	}
@@ -129,6 +146,15 @@ QuarkPage {
 	readonly property int spaceMedia_: 20
 
 	onWidthChanged: {
+	}
+
+	onHeightChanged: {
+		if (height > 0 && initialKeyboardHeight_) {
+			buzzeditor_.height = buzzeditor_.parent.height - initialKeyboardHeight_;
+			initialKeyboardHeight_ = 0;
+			//
+			buzzText.forceActiveFocus();
+		}
 	}
 
 	// only once to pop-up system keyboard

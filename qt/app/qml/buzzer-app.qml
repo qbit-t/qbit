@@ -230,7 +230,7 @@ ApplicationWindow
 		}
 	}
 
-	function openBuzzEditor(text) {
+	function openBuzzEditor(text, keyboardHeight) {
 		//
 		var lComponent = null;
 		var lPage = null;
@@ -243,13 +243,13 @@ ApplicationWindow
 			lPage.controller = window;
 
 			lPage.updateStakedInfo(buzzerClient.generateRandom(), buzzerClient.alias, buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.editor.buzz.caption"));
-			if (text) lPage.initializeBuzz(text);
+			if (text) lPage.initializeBuzz(text, keyboardHeight);
 
 			addPage(lPage);
 		}
 	}
 
-	function openReplyEditor(self, buzzfeedModel, text) {
+	function openReplyEditor(self, buzzfeedModel, text, keyboardHeight) {
 		//
 		var lComponent = null;
 		var lPage = null;
@@ -262,13 +262,13 @@ ApplicationWindow
 			lPage.controller = window;
 
 			lPage.updateStakedInfo(buzzerClient.generateRandom(), buzzerClient.alias, buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.editor.reply.caption"));
-			lPage.initializeReply(self, buzzfeedModel, text);
+			lPage.initializeReply(self, buzzfeedModel, text, keyboardHeight);
 
 			addPage(lPage);
 		}
 	}
 
-	function openRebuzzEditor(self, buzzfeedModel, index) {
+	function openRebuzzEditor(self, buzzfeedModel, index, keyboardHeight) {
 		//
 		var lComponent = null;
 		var lPage = null;
@@ -281,13 +281,13 @@ ApplicationWindow
 			lPage.controller = window;
 
 			lPage.updateStakedInfo(buzzerClient.generateRandom(), buzzerClient.alias, buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.editor.rebuzz.caption"));
-			lPage.initializeRebuzz(self, buzzfeedModel, index);
+			lPage.initializeRebuzz(self, buzzfeedModel, index, keyboardHeight);
 
 			addPage(lPage);
 		}
 	}
 
-	function openMessageEditor(text, key, conversation, counterparty) {
+	function openMessageEditor(text, key, conversation, counterparty, keyboardHeight) {
 		//
 		var lComponent = null;
 		var lPage = null;
@@ -300,7 +300,7 @@ ApplicationWindow
 			lPage.controller = window;
 
 			lPage.updateStakedInfo(buzzerClient.generateRandom(), buzzerClient.alias, buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.editor.message.caption") + counterparty);
-			lPage.initializeMessage(text, key, conversation);
+			lPage.initializeMessage(text, key, conversation, keyboardHeight);
 			addPage(lPage);
 		}
 	}

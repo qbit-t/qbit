@@ -79,6 +79,7 @@ Page
 
 	property bool followKeyboard: false
 	property int parentHeightDelta: 0
+	property int keyboardHeight: 0
 
 	Connections {
 		target: buzzerApp
@@ -89,6 +90,7 @@ Page
 				var lKeyboardHeight = height / Screen.devicePixelRatio;
 				console.log("[onKeyboardHeightChanged]: parent.height = " + page_.parent.height + ", lKeyboardHeight = " + lKeyboardHeight);
 				page_.height = page_.parent.height - lKeyboardHeight;
+				keyboardHeight = lKeyboardHeight;
 			}
 		}
 	}
