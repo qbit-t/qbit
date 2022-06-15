@@ -296,6 +296,8 @@ void Peer::synchronizePartialTree(IConsensusPtr consensus, SynchronizationJobPtr
 				} else {
 					// log
 					if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: partial reindex FAILED skipping subtree switching, root = ") + strprintf("%s, commonRoot = %s/%s#", job->block().toHex(), job->lastBlock().toHex(), consensus->chain().toHex().substr(0, 10)));
+					//
+					consensus->toNonSynchronized(true);
 				}
 			} else {
 				consensus->toNonSynchronized(true);
@@ -486,6 +488,8 @@ void Peer::synchronizePendingBlocks(IConsensusPtr consensus, SynchronizationJobP
 					} else {
 						// log
 						if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: partial reindex FAILED skipping subtree switching, root = ") + strprintf("%s, %s#", job->block().toHex(), consensus->chain().toHex().substr(0, 10)));
+						//
+						consensus->toNonSynchronized(true);
 					}
 				} else {
 					consensus->toNonSynchronized(true);
