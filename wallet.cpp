@@ -792,7 +792,7 @@ void Wallet::collectCoinbaseUnlinkedOuts(std::list<Transaction::UnlinkedOutPtr>&
 						else lMempool = mempool_;
 
 						//
-						if (lConfirms < lMempool->consensus()->coinbaseMaturity()) {
+						if (lConfirms < lMempool->consensus()->coinbaseMaturity() * 200) {
 							if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[collectCoinbaseUnlinkedOuts]: COINBASE transaction is NOT MATURE ") + 
 								strprintf("%d/%d/%s/%s#", lConfirms, lMempool->consensus()->coinbaseMaturity(), lUtxo->out().tx().toHex(), lUtxo->out().chain().toHex().substr(0, 10)));
 							lAmount++;
