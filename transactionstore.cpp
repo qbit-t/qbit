@@ -1107,7 +1107,7 @@ bool TransactionStore::processBlocks(const uint256& from, const uint256& to, IMe
 			return false;
 		} else if (!lExtended && !settings_->reindex()) {
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlocks/error]: check extended sequence consistency FAILED ") +
-				strprintf("block = %s, prev = %s, chain = %s#", lHash.toHex(), lHeader.prev().toHex(), chain_.toHex().substr(0, 10)));
+				strprintf("block = %s, prev = %s, chain = %s#", lBlockHash.toHex(), (*lBlock).prev().toHex(), chain_.toHex().substr(0, 10)));
 			errorReason = ERROR_REASON_INTEGRITY_ERROR;
 			last = lBlockHash;
 			return false;
@@ -2067,11 +2067,12 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 		strprintf("from = %s, to = %s, %s#", from.toHex(), to.toHex(), chain_.toHex().substr(0, 10)));
 
 	// params
-	uint64_t /*lLastHeight = 0, lToHeight = 0,*/ lLastBlockDiff = 0, lFromDiff = 0, lLimit = (60/2)*60*24*3; // far check distance
+	uint64_t /*lLastHeight = 0, lToHeight = 0,*/ lDestinationDiff = 0, lLastBlockDiff = 0, lFromDiff = 0, lLimit = (60/2)*60*24*3; // far check distance
 	uint256 lCommonRoot = BlockHeader().hash();
 
 	// clean-up from lastBlock_
 	bool lCommonRootFound = true;
+	bool lDestinationFound = false;
 
 	// check for new chain switching
 	if (to == lCommonRoot /*zero block*/) {
@@ -2091,7 +2092,7 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 		}
 		*/
 
-		// check is block headers are traceable from the root
+		// check is block headers (our lastBlock and "from" has common root) are down-traceable (headers only)
 		if ((lCommonRootFound = isRootExists(lastBlock_, from, lCommonRoot, lLastBlockDiff, lLimit))) {
 			//
 			gLog().write(Log::STORE, std::string("[reindex/warning]: limited clean-up with partial reindex is POSSIBLE for ") + 
@@ -2103,18 +2104,18 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 				strprintf("depth = %d, lastBlock = %s, from = %s/%s#", lLastBlockDiff, lastBlock_.toHex(), from.toHex(), chain_.toHex().substr(0, 10)));
 		}
 
-		// NOTICE: block data is checked in processBlocks, so we do not need to control here
-		// if data is absent - that is the error and we need to get synchronized block headers, go through data and load absent
-
-		/*
-		if (!isHeaderReachable(from, to, lFromDiff, lLimit)) {
+		// check is "from" is traceable to "to" (headers and tx existence)
+		if ((lDestinationFound = isHeaderReachable(from, to, lDestinationDiff, lLimit))) {
 			//
-			gLog().write(Log::STORE, std::string("[reindex]: partial reindex is NOT POSSIBLE for ") + 
-				strprintf("from = %s, to = %s/%s#", from.toHex(), to.toHex(), chain_.toHex().substr(0, 10)));
-
-			return false;
+			gLog().write(Log::STORE, std::string("[reindex/info]: from -> to is REACHABLE with ") + 
+				strprintf("depth = %d, from = %s, to = %s/%s#",
+					lDestinationDiff, from.toHex(), to.toHex(), chain_.toHex().substr(0, 10)));
+		} else {
+			//
+			gLog().write(Log::STORE, std::string("[reindex/warning]: from -> to is NOT REACHABLE, using common root with ") + 
+				strprintf("depth = %d, lastBlock = %s, from = %s, root = %s/%s#",
+					lLastBlockDiff, lastBlock_.toHex(), from.toHex(), lCommonRoot.toHex(), chain_.toHex().substr(0, 10)));
 		}
-		*/
 	}
 
 	//
@@ -2130,18 +2131,18 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 		boost::unique_lock<boost::recursive_mutex> lLock(storageCommitMutex_);
 		// synchronizing
 		SynchronizingGuard lGuard(shared_from_this());
-		// mark last reindex
-		writeLastReindex(from, lCommonRootFound ? lCommonRoot : to);
+		// mark last reindex - as requested
+		writeLastReindex(from, to);
 		// remove old index (limited)
 		if (lCommonRootFound) removeBlocks(lastBlock_, lCommonRoot, false, 0);
-		// remove new index
-		removeBlocks(from, lCommonRootFound ? lCommonRoot : to, false, 0); // in case of wrapped restarts (re-process blocks may occur)
+		// remove new index (NOTICE: if "from -!> to" and commot root found - use common root as destination)
+		removeBlocks(from, (!lDestinationFound && lCommonRootFound ? lCommonRoot : to), false, 0); // in case of wrapped restarts (re-process blocks may occur)
 		// probably last block
 		uint256 lLastPrev;
 		// error reason if any
 		int lErrorReason = 0;
-		// process blocks
-		if (!(lResult = processBlocks(from, lCommonRootFound ? lCommonRoot : to, pool, lLastPrev, lErrorReason))) {
+		// process blocks (NOTICE: if "from -!> to" and commot root found - use common root as destination)
+		if (!(lResult = processBlocks(from, (!lDestinationFound && lCommonRootFound ? lCommonRoot : to), pool, lLastPrev, lErrorReason))) {
 			/*
 			//
 			// NOTICE: reset to NULL block and invalidate height map
