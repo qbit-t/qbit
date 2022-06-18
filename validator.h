@@ -199,7 +199,8 @@ private:
 
 	void startMiner() {
 		// start miner
-		if (consensus_->settings()->isMiner() && !minerRunning_ && !store_->synchronizing()) {
+		if (consensus_->settings()->isMiner() && !minerRunning_ &&
+							!store_->synchronizing() && mempool_->wallet()->isOpened()) {
 			BlockHeader lHeader = store_->currentBlockHeader();
 			if (!miner_) miner_ = boost::shared_ptr<boost::thread>(
 						new boost::thread(
