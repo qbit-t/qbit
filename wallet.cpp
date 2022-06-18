@@ -236,7 +236,7 @@ bool Wallet::prepareCache() {
 		opened_ = true;
 
 		//
-		gLog().write(Log::INFO, std::string("[wallet/prepareCache]: wallet cache prepared, fully opened"));
+		gLog().write(Log::INFO, std::string("[wallet/prepareCache]: cache prepared, wallet is fully opened"));
 	}
 	catch(const std::exception& ex) {
 		gLog().write(Log::GENERAL_ERROR, std::string("[wallet/prepareCache]: ") + ex.what());
@@ -248,6 +248,14 @@ bool Wallet::prepareCache() {
 
 bool Wallet::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, TransactionContextPtr ctx) {
 	//
+	if (!opened_) {
+		if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[pushUnlinkedOut]: ") + 
+			strprintf("wallet is NOT opened yet, REJECTING utxo = %s, tx = %s, ctx = %s/%s#", 
+				utxo->hash().toHex(), utxo->out().tx().toHex(), ctx->tx()->id().toHex(), utxo->out().chain().toHex().substr(0, 10)));
+		return false;
+	}
+
+	//
 	uint256 lUtxoId = utxo->hash();
 
 	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[pushUnlinkedOut]: ") + 
@@ -258,7 +266,7 @@ bool Wallet::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, TransactionContex
 	if (ltxo_.read(lUtxoId, lLtxo)) {
 		// already exists - just skip
 		if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[pushUnlinkedOut]: ") + 
-			strprintf("ALREDY USED, skip action for utxo = %s, tx = %s, ctx = %s/%s#", 
+			strprintf("ALREADY USED, skip action for utxo = %s, tx = %s, ctx = %s/%s#", 
 				utxo->hash().toHex(), utxo->out().tx().toHex(), ctx->tx()->id().toHex(), utxo->out().chain().toHex().substr(0, 10)));
 		return true;
 	}
@@ -267,7 +275,7 @@ bool Wallet::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, TransactionContex
 	if (utxo_.read(lUtxoId, lUtxo)) {
 		// already exists - accept
 		if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[pushUnlinkedOut]: ") + 
-			strprintf("ALREDY pushed, skip action for utxo = %s, tx = %s, ctx = %s/%s#", 
+			strprintf("ALREADY pushed, skip action for utxo = %s, tx = %s, ctx = %s/%s#", 
 				utxo->hash().toHex(), utxo->out().tx().toHex(), ctx->tx()->id().toHex(), utxo->out().chain().toHex().substr(0, 10)));
 		return true;
 	}
