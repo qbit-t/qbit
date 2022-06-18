@@ -104,6 +104,9 @@ void Wallet::removeAllKeys() {
 bool Wallet::open(const std::string& /*secret*/) {
 	if (!opened_) {
 		try {
+			//
+			gLog().write(Log::INFO, std::string("[wallet/open]: opening wallet data..."));
+			//
 			if (mkpath(std::string(settings_->dataPath() + "/wallet").c_str(), 0777)) return false;
 
 			keys_.open();
@@ -112,6 +115,9 @@ bool Wallet::open(const std::string& /*secret*/) {
 			assets_.open();
 			assetEntities_.open();
 			pendingtxs_.open();
+
+			//
+			gLog().write(Log::INFO, std::string("[wallet/open]: wallet storage opened..."));
 		}
 		catch(const std::exception& ex) {
 			gLog().write(Log::GENERAL_ERROR, std::string("[wallet/open]: ") + ex.what());
@@ -228,6 +234,9 @@ bool Wallet::prepareCache() {
 		lEntityTransaction.commit();		
 
 		opened_ = true;
+
+		//
+		gLog().write(Log::INFO, std::string("[wallet/prepareCache]: wallet cache prepared, fully opened"));
 	}
 	catch(const std::exception& ex) {
 		gLog().write(Log::GENERAL_ERROR, std::string("[wallet/prepareCache]: ") + ex.what());
