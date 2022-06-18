@@ -449,6 +449,8 @@ private:
 											if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::GENERAL_ERROR, std::string("[miner/error]: DROP transaction from mempool ") + lErrors->first.toHex());
 										}
 									}
+
+									minerRunning_ = false; // stop until next block or timeout
 								}
 							} else {
 								if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[validator/miner]: skip found block ") + strprintf("%s/%s#", lCurrentBlock->hash().toHex(), chain_.toHex().substr(0, 10)));
