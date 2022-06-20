@@ -146,7 +146,7 @@ public:
 	bool pushPeer(IPeerPtr peer) {
 		//
 		// skip peer with client protocol
-		if (peer->state()->client()) return true;
+		if (peer == nullptr || peer->state()->client()) return true;
 
 		//
 		std::map<uint256, IConsensusPtr> lConsensuses;
@@ -178,7 +178,8 @@ public:
 	//
 	// update latency
 	void pushPeerLatency(IPeerPtr peer) {
-		//
+		// NOTICE: latency management is not used in node-to-node communications
+		/*
 		peer_t lPeerId = peer->addressId();
 		boost::unique_lock<boost::mutex> lLock(latencyMutex_);
 		// locate latency
@@ -197,12 +198,16 @@ public:
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[pushPeer]: peer ") + 
 				strprintf("%s, latency = %d", 
 					lPeerId.toHex(), peer->latency()));
+		*/
 	}
 
 
 	//
 	// remove peer from consensus participation
 	void popPeer(IPeerPtr peer) {
+		//
+		if (peer == nullptr) return;
+		
 		//
 		peer_t lPeerId = peer->addressId();
 
@@ -230,6 +235,8 @@ public:
 			lConsensus->second->popPeer(peer);
 		}
 
+		// NOTICE: latency management is not used in node-to-node communications
+		/*
 		{
 			boost::unique_lock<boost::mutex> lLock(latencyMutex_);
 			// locate latency
@@ -242,6 +249,7 @@ public:
 					break;
 				}
 		}
+		*/
 	}	
 
 	bool peerExists(const uint160& peer) {
