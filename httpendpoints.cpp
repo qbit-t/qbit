@@ -162,10 +162,11 @@ void HttpGetKey::process(const std::string& source, const HttpRequest& request, 
 	{
 		"result":						-- (object) address details
 		{
-			"address": "<address>",		-- (string) address, base58 encoded
-			"pkey": "<public_key>",		-- (string) public key, hex encoded
-			"skey": "<secret_key>",		-- (string) secret key, hex encoded
-			"seed": []					-- (string array) seed words
+			"address": "<address>",			-- (string) address, base58 encoded
+			"address_id": "<address_id>",	-- (string) address, uint160
+			"pkey": "<public_key>",			-- (string) public key, hex encoded
+			"skey": "<secret_key>",			-- (string) secret key, hex encoded
+			"seed": []						-- (string array) seed words
 		},
 		"error":						-- (object or null) error description
 		{
@@ -225,6 +226,7 @@ void HttpGetKey::process(const std::string& source, const HttpRequest& request, 
 		
 		json::Value lKeyObject = lReply.addObject("result");
 		lKeyObject.addString("address", lPFoundKey.toString());
+		lKeyObject.addString("address_id", lPFoundKey.id().toHex());
 		lKeyObject.addString("pkey", lPFoundKey.toHex());
 		lKeyObject.addString("skey", lKey->toHex());
 
