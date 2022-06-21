@@ -189,16 +189,65 @@ Item {
 		}
 	}
 
+	BuzzerComponents.ImageQx {
+		id: avatarImage
+
+		x: spaceLeft_
+		y: spaceTop_
+		width: avatarImage.displayWidth
+		height: avatarImage.displayHeight
+		fillMode: Image.PreserveAspectCrop
+		mipmap: true
+		radius: avatarImage.displayWidth
+
+		property bool rounded: false //!
+		property int displayWidth: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 50 : 50
+		property int displayHeight: displayWidth
+
+		autoTransform: true
+
+		/*
+		layer.enabled: rounded
+		layer.effect: OpacityMask {
+			maskSource: Item {
+				width: avatarImage.displayWidth
+				height: avatarImage.displayHeight
+
+				Rectangle {
+					anchors.centerIn: parent
+					width: avatarImage.displayWidth
+					height: avatarImage.displayHeight
+					radius: avatarImage.displayWidth
+				}
+			}
+		}
+		*/
+
+		MouseArea {
+			id: buzzerInfoClick
+			anchors.fill: parent
+
+			onClicked: {
+				controller_.openBuzzfeedByBuzzer(side_ === sideCreator_ ? creatorInfoId_ : counterpartyInfoId_);
+			}
+		}
+	}
+
 	//
 	// score
 	//
-	QuarkRoundState {
+	QuarkRoundProgress {
 		id: imageFrame
 		x: avatarImage.x - 2
 		y: avatarImage.y - 2
 		size: avatarImage.displayWidth + 4
-		color: getColor()
-		background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
+		colorCircle: getColor()
+		colorBackground: "transparent"
+		arcBegin: 0
+		arcEnd: 360
+		lineWidth: buzzerClient.scaleFactor * 3
+		beginAnimation: false
+		endAnimation: false
 
 		function getColor() {
 			var lScoreBase = buzzerClient.getTrustScoreBase() / 10;
@@ -223,60 +272,6 @@ Item {
 				case 8: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.8");
 				case 9: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.9");
 				default: return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.10");
-			}
-		}
-	}
-
-	BuzzerComponents.ImageQx {
-		id: avatarImage
-
-		x: spaceLeft_
-		y: spaceTop_
-		width: avatarImage.displayWidth
-		height: avatarImage.displayHeight
-		fillMode: Image.PreserveAspectCrop
-		mipmap: true
-		radius: avatarImage.displayWidth
-
-		property bool rounded: false //!
-		property int displayWidth: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 50 : 50
-		property int displayHeight: displayWidth
-
-		autoTransform: true
-
-		layer.enabled: rounded
-		layer.effect: OpacityMask {
-			maskSource: Item {
-				width: avatarImage.displayWidth
-				height: avatarImage.displayHeight
-
-				Rectangle {
-					anchors.centerIn: parent
-					width: avatarImage.displayWidth
-					height: avatarImage.displayHeight
-					radius: avatarImage.displayWidth
-				}
-			}
-		}
-
-		MouseArea {
-			id: buzzerInfoClick
-			anchors.fill: parent
-
-			onClicked: {
-				// buzzer
-				var lComponent = null;
-				var lPage = null;
-
-				lComponent = Qt.createComponent("qrc:/qml/buzzfeedbuzzer.qml");
-				if (lComponent.status === Component.Error) {
-					showError(lComponent.errorString());
-				} else {
-					lPage = lComponent.createObject(controller);
-					lPage.controller = controller;
-					lPage.start(buzzerClient.getBuzzerName(side_ === sideCreator_ ? creatorInfoId_ : counterpartyInfoId_));
-					addPage(lPage);
-				}
 			}
 		}
 	}

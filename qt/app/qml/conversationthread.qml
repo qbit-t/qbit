@@ -499,7 +499,7 @@ QuarkPage {
 			id: buzzerAliasControl
 			x: avatarImage.x + avatarImage.width + spaceLeft_
 			y: avatarImage.y + (avatarImage.height / 2 - height / 2)
-			text: buzzerClient.getBuzzerAlias(getBuzzerInfoId())
+			text: buzzerClient.getBuzzerAlias(getBuzzerInfoId()) + " " + buzzerClient.getBuzzerName(getBuzzerInfoId())
 			font.bold: true
 			width: parent.width - (x + spaceRight_)
 			elide: Text.ElideRight

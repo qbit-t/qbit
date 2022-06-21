@@ -357,7 +357,7 @@ void ConversationsfeedListModel::conversationItemNewSlot(const qbit::Conversatio
 	if ((lIndex != -1 && list_.begin() != list_.end()) || !list_.size()) {
 		//
 		if (index_.find(lItem->key()) == index_.end()) {
-			if (lIndex < list_.size()) {
+			if (lIndex < list_.size() || !list_.size()) {
 				if (!list_.size()) {
 					lIndex = 0;
 					list_.push_back(lItem);

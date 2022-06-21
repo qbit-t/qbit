@@ -837,7 +837,7 @@ ApplicationWindow {
 				lCounterpart = conversation.creatorInfoId;
 			}
 
-			lPage.updateStakedInfo(conversationId, buzzerClient.getBuzzerAlias(lCounterpart), buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.conversation.title"));
+			lPage.updateStakedInfo(conversationId, buzzerClient.getBuzzerAlias(lCounterpart) + " " + buzzerClient.getBuzzerName(lCounterpart), buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.conversation.title"));
 			addPage(lPage);
 
 			lPage.start(conversationId, conversation, conversationModel, messageId);
