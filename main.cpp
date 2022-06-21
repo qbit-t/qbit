@@ -228,7 +228,10 @@ public:
 	}
 	void setNotifyTransactionCommand(const std::string& notifyTransaction) {
 		notifyTransaction_ = notifyTransaction;
-	}	
+	}
+
+	bool onlyPublicRestAPIAllowed() { return onlyPublicRestAPIAllowed_; }
+	void allowOnlyPublicRestAPI() { onlyPublicRestAPIAllowed_ = true; }
 
 	static ISettingsPtr instance() { return std::make_shared<NodeSettings>(); }
 	static ISettingsPtr instance(const std::string& dir, ISettingsPtr other) { return std::make_shared<NodeSettings>(dir, other); }
@@ -261,6 +264,7 @@ private:
 	uint64_t proofFrom_ = 0;
 	amount_t oneVoteProofAmount_ = 0;
 	uint64_t proofAssetLockTime_ = 0;
+	bool onlyPublicRestAPIAllowed_ = false;
 };
 
 class Node;
@@ -675,6 +679,9 @@ int main(int argv, char** argc) {
 		} else if (std::string(argc[lIdx]) == std::string("-no-config")) {
 			//
 			lNoConfig = true;
+		} else if (std::string(argc[lIdx]) == std::string("-only-public-rest-api")) {
+			//
+			lSettings->allowOnlyPublicRestAPI();
 		} else if (std::string(argc[lIdx]) == std::string("-roles")) {
 			//
 			std::vector<std::string> lRoles;

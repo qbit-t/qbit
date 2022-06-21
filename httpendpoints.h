@@ -22,8 +22,9 @@ namespace qbit {
 class HttpMallocStats: public IHttpCallEnpoint {
 public:
 	HttpMallocStats() {}
+	HttpMallocStats(bool publicMethod) : IHttpCallEnpoint(publicMethod) {}
 
-	void process(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
+	void run(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
 	std::string method() { return std::string("mallocstats"); }
 
 	static IHttpCallEnpointPtr instance() {
@@ -37,56 +38,61 @@ public:
 class HttpGetKey: public IHttpCallEnpoint {
 public:
 	HttpGetKey() {}
+	HttpGetKey(bool publicMethod) : IHttpCallEnpoint(publicMethod) {}
 
-	void process(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
+	void run(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
 	std::string method() { return std::string("getkey"); }
 
 	static IHttpCallEnpointPtr instance() {
-		return std::make_shared<HttpGetKey>();
+		return std::make_shared<HttpGetKey>(false);
 	}
 };
 
 class HttpNewKey: public IHttpCallEnpoint {
 public:
 	HttpNewKey() {}
+	HttpNewKey(bool publicMethod) : IHttpCallEnpoint(publicMethod) {}
 
-	void process(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
+	void run(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
 	std::string method() { return std::string("newkey"); }
 
 	static IHttpCallEnpointPtr instance() {
-		return std::make_shared<HttpNewKey>();
+		return std::make_shared<HttpNewKey>(false);
 	}
 };
 
 class HttpGetBalance: public IHttpCallEnpoint {
 public:
 	HttpGetBalance() {}
+	HttpGetBalance(bool publicMethod) : IHttpCallEnpoint(publicMethod) {}
 
-	void process(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
+	void run(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
 	std::string method() { return std::string("getbalance"); }
 
 	static IHttpCallEnpointPtr instance() {
-		return std::make_shared<HttpGetBalance>();
+		return std::make_shared<HttpGetBalance>(false);
 	}
 };
 
 class HttpSendToAddress: public IHttpCallEnpoint {
 public:
 	HttpSendToAddress() {}
+	HttpSendToAddress(bool publicMethod) : IHttpCallEnpoint(publicMethod) {}
 
-	void process(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
+	void run(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
 	std::string method() { return std::string("sendtoaddress"); }
 
 	static IHttpCallEnpointPtr instance() {
-		return std::make_shared<HttpSendToAddress>();
+		return std::make_shared<HttpSendToAddress>(false);
 	}
 };
 
 class HttpGetPeerInfo: public IHttpCallEnpoint {
 public:
 	HttpGetPeerInfo() {}
+	HttpGetPeerInfo(bool publicMethod) : IHttpCallEnpoint(publicMethod) {}
 
-	void process(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
+	void run(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
 	std::string method() { return std::string("getpeerinfo"); }
 
 	static IHttpCallEnpointPtr instance() {
@@ -97,20 +103,22 @@ public:
 class HttpReleasePeer: public IHttpCallEnpoint {
 public:
 	HttpReleasePeer() {}
+	HttpReleasePeer(bool publicMethod) : IHttpCallEnpoint(publicMethod) {}
 
-	void process(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
+	void run(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
 	std::string method() { return std::string("releasepeer"); }
 
 	static IHttpCallEnpointPtr instance() {
-		return std::make_shared<HttpReleasePeer>();
+		return std::make_shared<HttpReleasePeer>(false);
 	}
 };
 
 class HttpGetState: public IHttpCallEnpoint {
 public:
 	HttpGetState() {}
+	HttpGetState(bool publicMethod) : IHttpCallEnpoint(publicMethod) {}
 
-	void process(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
+	void run(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
 	std::string method() { return std::string("getstate"); }
 
 	static IHttpCallEnpointPtr instance() {
@@ -121,32 +129,35 @@ public:
 class HttpCreateDApp: public IHttpCallEnpoint {
 public:
 	HttpCreateDApp() {}
+	HttpCreateDApp(bool publicMethod) : IHttpCallEnpoint(publicMethod) {}
 
-	void process(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
+	void run(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
 	std::string method() { return std::string("createdapp"); }
 
 	static IHttpCallEnpointPtr instance() {
-		return std::make_shared<HttpCreateDApp>();
+		return std::make_shared<HttpCreateDApp>(false);
 	}
 };
 
 class HttpCreateShard: public IHttpCallEnpoint {
 public:
 	HttpCreateShard() {}
+	HttpCreateShard(bool publicMethod) : IHttpCallEnpoint(publicMethod) {}
 
-	void process(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
+	void run(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
 	std::string method() { return std::string("createshard"); }
 
 	static IHttpCallEnpointPtr instance() {
-		return std::make_shared<HttpCreateShard>();
+		return std::make_shared<HttpCreateShard>(false);
 	}
 };
 
 class HttpGetTransaction: public IHttpCallEnpoint {
 public:
 	HttpGetTransaction() {}
+	HttpGetTransaction(bool publicMethod) : IHttpCallEnpoint(publicMethod) {}
 
-	void process(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
+	void run(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
 	std::string method() { return std::string("gettransaction"); }
 
 	static IHttpCallEnpointPtr instance() {
@@ -157,8 +168,9 @@ public:
 class HttpGetEntity: public IHttpCallEnpoint {
 public:
 	HttpGetEntity() {}
+	HttpGetEntity(bool publicMethod) : IHttpCallEnpoint(publicMethod) {}
 
-	void process(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
+	void run(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
 	std::string method() { return std::string("getentity"); }
 
 	static IHttpCallEnpointPtr instance() {
@@ -169,8 +181,9 @@ public:
 class HttpGetBlock: public IHttpCallEnpoint {
 public:
 	HttpGetBlock() {}
+	HttpGetBlock(bool publicMethod) : IHttpCallEnpoint(publicMethod) {}
 
-	void process(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
+	void run(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
 	std::string method() { return std::string("getblock"); }
 
 	static IHttpCallEnpointPtr instance() {
@@ -181,8 +194,9 @@ public:
 class HttpGetBlockHeader: public IHttpCallEnpoint {
 public:
 	HttpGetBlockHeader() {}
+	HttpGetBlockHeader(bool publicMethod) : IHttpCallEnpoint(publicMethod) {}
 
-	void process(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
+	void run(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
 	std::string method() { return std::string("getblockheader"); }
 
 	static IHttpCallEnpointPtr instance() {
@@ -193,8 +207,9 @@ public:
 class HttpGetUnconfirmedTransactions: public IHttpCallEnpoint {
 public:
 	HttpGetUnconfirmedTransactions() {}
+	HttpGetUnconfirmedTransactions(bool publicMethod) : IHttpCallEnpoint(publicMethod) {}
 
-	void process(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
+	void run(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
 	std::string method() { return std::string("getunconfirmedtxs"); }
 
 	static IHttpCallEnpointPtr instance() {
@@ -205,8 +220,9 @@ public:
 class HttpGetBlockHeaderByHeight: public IHttpCallEnpoint {
 public:
 	HttpGetBlockHeaderByHeight() {}
+	HttpGetBlockHeaderByHeight(bool publicMethod) : IHttpCallEnpoint(publicMethod) {}
 
-	void process(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
+	void run(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
 	std::string method() { return std::string("getblockheaderbyheight"); }
 
 	static IHttpCallEnpointPtr instance() {
@@ -217,32 +233,35 @@ public:
 class HttpCreateAsset: public IHttpCallEnpoint {
 public:
 	HttpCreateAsset() {}
+	HttpCreateAsset(bool publicMethod) : IHttpCallEnpoint(publicMethod) {}
 
-	void process(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
+	void run(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
 	std::string method() { return std::string("createasset"); }
 
 	static IHttpCallEnpointPtr instance() {
-		return std::make_shared<HttpCreateAsset>();
+		return std::make_shared<HttpCreateAsset>(false);
 	}
 };
 
 class HttpCreateAssetEmission: public IHttpCallEnpoint {
 public:
 	HttpCreateAssetEmission() {}
+	HttpCreateAssetEmission(bool publicMethod) : IHttpCallEnpoint(publicMethod) {}
 
-	void process(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
+	void run(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
 	std::string method() { return std::string("createassetemission"); }
 
 	static IHttpCallEnpointPtr instance() {
-		return std::make_shared<HttpCreateAssetEmission>();
+		return std::make_shared<HttpCreateAssetEmission>(false);
 	}
 };
 
 class HttpGetEntitiesCount: public IHttpCallEnpoint {
 public:
 	HttpGetEntitiesCount() {}
+	HttpGetEntitiesCount(bool publicMethod) : IHttpCallEnpoint(publicMethod) {}
 
-	void process(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
+	void run(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
 	std::string method() { return std::string("getentitiescount"); }
 
 	static IHttpCallEnpointPtr instance() {

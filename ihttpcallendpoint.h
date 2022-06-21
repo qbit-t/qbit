@@ -24,8 +24,19 @@ namespace qbit {
 class IHttpCallEnpoint {
 public:
 	IHttpCallEnpoint() {}
+	IHttpCallEnpoint(bool publicMethod) : public_(publicMethod) {}
 
-	virtual void process(const std::string&, const HttpRequest&, const json::Document&, HttpReply&) { throw qbit::exception("NOT_IMPL", "IHttpCallEnpoint::process - not implemented."); }
+	virtual void run(const std::string&, const HttpRequest&, const json::Document&, HttpReply&) { throw qbit::exception("NOT_IMPL", "IHttpCallEnpoint::process - not implemented."); }
+	virtual void process(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
+		//
+		if (!public_ && peerManager_ && peerManager_->settings()->onlyPublicRestAPIAllowed()) {
+			reply = HttpReply::stockReply("E_PUBLIC_METHODS_ONLY_ALLOWED", "Only public methods is allowed");
+			return;
+		}
+
+		run(source, request, data, reply);
+	}
+
 	virtual std::string method() { throw qbit::exception("NOT_IMPL", "IHttpCallEnpoint::method - not implemented."); }
 	
 	void setWallet(IWalletPtr wallet) { wallet_ = wallet; }
@@ -229,6 +240,7 @@ protected:
 protected:
 	IWalletPtr wallet_;
 	IPeerManagerPtr peerManager_;
+	bool public_ = true;
 };
 
 typedef std::shared_ptr<IHttpCallEnpoint> IHttpCallEnpointPtr;

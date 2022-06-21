@@ -101,6 +101,9 @@ public:
 	virtual void setProofFrom(uint64_t) {}
 	virtual uint64_t proofFrom() { return 0; }
 
+	virtual void allowOnlyPublicRestAPI() {}
+	virtual bool onlyPublicRestAPIAllowed() { return false; }
+
 	virtual std::string userName() { return ""; }
 };
 

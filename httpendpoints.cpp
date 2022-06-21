@@ -11,7 +11,7 @@
 
 using namespace qbit;
 
-void HttpMallocStats::process(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
+void HttpMallocStats::run(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
 	/* request
 	{
 		"jsonrpc": "1.0",
@@ -147,7 +147,7 @@ void HttpMallocStats::process(const std::string& source, const HttpRequest& requ
 	}
 }
 
-void HttpGetKey::process(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
+void HttpGetKey::run(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
 	/* request
 	{
 		"jsonrpc": "1.0",
@@ -249,7 +249,7 @@ void HttpGetKey::process(const std::string& source, const HttpRequest& request, 
 	}
 }
 
-void HttpNewKey::process(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
+void HttpNewKey::run(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
 	/* request
 	{
 		"jsonrpc": "1.0",
@@ -337,7 +337,7 @@ void HttpNewKey::process(const std::string& source, const HttpRequest& request, 
 	}
 }
 
-void HttpGetBalance::process(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
+void HttpGetBalance::run(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
 	/* request
 	{
 		"jsonrpc": "1.0",
@@ -441,7 +441,7 @@ void HttpGetBalance::process(const std::string& source, const HttpRequest& reque
 	}
 }
 
-void HttpSendToAddress::process(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
+void HttpSendToAddress::run(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
 	/* request
 	{
 		"jsonrpc": "1.0",
@@ -613,7 +613,7 @@ void HttpSendToAddress::process(const std::string& source, const HttpRequest& re
 	}
 }
 
-void HttpGetPeerInfo::process(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
+void HttpGetPeerInfo::run(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
 	/* request
 	{
 		"jsonrpc": "1.0",
@@ -757,7 +757,7 @@ void HttpGetPeerInfo::process(const std::string& source, const HttpRequest& requ
 	}
 }
 
-void HttpCreateDApp::process(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
+void HttpCreateDApp::run(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
 	/* request
 	{
 		"jsonrpc": "1.0",
@@ -912,7 +912,7 @@ void HttpCreateDApp::process(const std::string& source, const HttpRequest& reque
 	}
 }
 
-void HttpCreateShard::process(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
+void HttpCreateShard::run(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
 	/* request
 	{
 		"jsonrpc": "1.0",
@@ -1053,7 +1053,7 @@ void HttpCreateShard::process(const std::string& source, const HttpRequest& requ
 	}
 }
 
-void HttpGetTransaction::process(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
+void HttpGetTransaction::run(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
 	/* request
 	{
 		"jsonrpc": "1.0",
@@ -1211,7 +1211,7 @@ void HttpGetTransaction::process(const std::string& source, const HttpRequest& r
 	}
 }
 
-void HttpGetEntity::process(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
+void HttpGetEntity::run(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
 	/* request
 	{
 		"jsonrpc": "1.0",
@@ -1363,7 +1363,7 @@ void HttpGetEntity::process(const std::string& source, const HttpRequest& reques
 	}
 }
 
-void HttpGetBlock::process(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
+void HttpGetBlock::run(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
 	/* request
 	{
 		"jsonrpc": "1.0",
@@ -1520,7 +1520,7 @@ void HttpGetBlock::process(const std::string& source, const HttpRequest& request
 	}
 }
 
-void HttpGetBlockHeader::process(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
+void HttpGetBlockHeader::run(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
 	/* request
 	{
 		"jsonrpc": "1.0",
@@ -1659,7 +1659,7 @@ void HttpGetBlockHeader::process(const std::string& source, const HttpRequest& r
 	}
 }
 
-void HttpGetBlockHeaderByHeight::process(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
+void HttpGetBlockHeaderByHeight::run(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
 	/* request
 	{
 		"jsonrpc": "1.0",
@@ -1798,7 +1798,7 @@ void HttpGetBlockHeaderByHeight::process(const std::string& source, const HttpRe
 	}
 }
 
-void HttpCreateAsset::process(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
+void HttpCreateAsset::run(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
 	/* request
 	{
 		"jsonrpc": "1.0",
@@ -1977,7 +1977,7 @@ void HttpCreateAsset::process(const std::string& source, const HttpRequest& requ
 	}
 }
 
-void HttpCreateAssetEmission::process(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
+void HttpCreateAssetEmission::run(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
 	/* request
 	{
 		"jsonrpc": "1.0",
@@ -2104,7 +2104,7 @@ void HttpCreateAssetEmission::process(const std::string& source, const HttpReque
 	}
 }
 
-void HttpGetState::process(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
+void HttpGetState::run(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
 	/* request
 	{
 		"jsonrpc": "1.0",
@@ -2271,7 +2271,7 @@ void HttpGetState::process(const std::string& source, const HttpRequest& request
 	}
 }
 
-void HttpReleasePeer::process(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
+void HttpReleasePeer::run(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
 	/* request
 	{
 		"jsonrpc": "1.0",
@@ -2338,7 +2338,7 @@ void HttpReleasePeer::process(const std::string& source, const HttpRequest& requ
 	}
 }
 
-void HttpGetEntitiesCount::process(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
+void HttpGetEntitiesCount::run(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
 	/* request
 	{
 		"jsonrpc": "1.0",
@@ -2420,7 +2420,7 @@ void HttpGetEntitiesCount::process(const std::string& source, const HttpRequest&
 	}
 }
 
-void HttpGetUnconfirmedTransactions::process(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
+void HttpGetUnconfirmedTransactions::run(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
 	/* request
 	{
 		"jsonrpc": "1.0",

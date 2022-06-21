@@ -105,11 +105,11 @@ public:
 	// calc current reward
 	amount_t blockReward(uint64_t height) {
 		//
-		uint64_t lBlocksPerYear = 31536000/(blockTime()/1000); // 365*24*60*(60/5)
+		uint64_t lBlocksPerYear = 31536000/(blockTime()/1000); // 365*24*60*(60/2)
 		uint64_t lYear = height / lBlocksPerYear;
 
 		if (height == 1 /*first block*/) {
-			return ((uint64_t)100000000) * ((uint64_t)3000000); // three million qbits as premine for user unboarding
+			return ((uint64_t)100000000) * ((uint64_t)7000000); // three million qbits as premine for user unboarding
 		}
 
 		switch(lYear) {
