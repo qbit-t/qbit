@@ -99,7 +99,7 @@ QuarkPage {
 		mediaIndex_ = mediaIndex;
 		mediaPlayer_ = player;
 		buzzBody_ = buzzBody;
-		playerControl.key = buzzId;
+		playerControl.key = buzzerApp.isDesktop ? buzzId : null;
 		buzzId_ = buzzId;
 
 		console.log("[buzzmedia/initialize]: mediaIndex = " + mediaIndex + ", player = " + player);

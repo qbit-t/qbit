@@ -18,6 +18,7 @@ QuarkPage
 	id: buzzerqbitkey_
 	key: "buzzerqbitkey"
 	stacked: false
+	followKeyboard: true
 
 	property bool setupProcess: false
 
@@ -44,6 +45,10 @@ QuarkPage
 			buzzerClient.preregisterBuzzerInstance();
 			seedView.clear();
 		}
+	}
+
+	onKeyboardHeightChanged: {
+		pageContainer.contentY = keyboardHeight ? keyboardHeight - (toolBar.y + toolBar.height + 3*15) : 0;
 	}
 
 	function closePage() {
