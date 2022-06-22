@@ -339,7 +339,8 @@ TransactionAction::Result TxSpendOutVerify::execute(TransactionContextPtr wrappe
 
 				//
 				if (lProcess /*not change*/ && wrapper->tx()->type() != Transaction::ASSET_EMISSION /*emission is lock-free*/ &&
-					wrapper->blockTimestamp() >= store->settings()->proofFrom() /*check height only AFTER initial timestamp*/) {
+					(!wrapper->blockTimestamp() ||
+						wrapper->blockTimestamp() >= store->settings()->proofFrom()) /*check height only AFTER initial timestamp*/) {
 					//
 					if (lVM.getR(qasm::QR1).getType() != qasm::QNONE) {
 						//
@@ -348,13 +349,21 @@ TransactionAction::Result TxSpendOutVerify::execute(TransactionContextPtr wrappe
 						if (wrapper->context() != TransactionContext::STORE_REINDEX && !(lHeight > lCurrentHeight && 
 								lHeight - lCurrentHeight >= store->settings()->proofAssetLockTime())) {
 							//
-							std::string lError = _getVMStateText(VirtualMachine::INVALID_RESULT) + strprintf(" | locked height must be at least H+%d", store->settings()->proofAssetLockTime());
-							wrapper->tx()->setStatus(Transaction::DECLINED);
-							wrapper->addError(lError);
-							gLog().write(Log::GENERAL_ERROR, std::string("[TxSpendOutVerify]: ") + 
-								strprintf("current = %d, embedded = %d", lCurrentHeight, lHeight));
-							gLog().write(Log::GENERAL_ERROR, std::string("[TxSpendOutVerify]: ") + lError);
-							return TransactionAction::GENERAL_ERROR;
+							// get address and check if dest == source and skip if any
+							// because mistrust \ endorse tx conditions was already checked and processed earliar
+							//
+							VirtualMachine lVMIn(lIns.begin()->ownership());
+							lVMIn.execute();
+							if (lVMIn.getR(qasm::QS0) != lVM.getR(qasm::QD0)) {
+								//
+								std::string lError = _getVMStateText(VirtualMachine::INVALID_RESULT) + strprintf(" | locked height must be at least H+%d", store->settings()->proofAssetLockTime());
+								wrapper->tx()->setStatus(Transaction::DECLINED);
+								wrapper->addError(lError);
+								gLog().write(Log::GENERAL_ERROR, std::string("[TxSpendOutVerify]: ") + 
+									strprintf("current = %d, embedded = %d", lCurrentHeight, lHeight));
+								gLog().write(Log::GENERAL_ERROR, std::string("[TxSpendOutVerify]: ") + lError);
+								return TransactionAction::GENERAL_ERROR;
+							}
 						}
 
 					} else {
