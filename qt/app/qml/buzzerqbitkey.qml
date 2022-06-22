@@ -48,7 +48,8 @@ QuarkPage
 	}
 
 	onKeyboardHeightChanged: {
-		pageContainer.contentY = keyboardHeight ? keyboardHeight - (toolBar.y + toolBar.height + 3*15) : 0;
+		var lOffset = pageContainer.contentHeight > pageContainer.height ? pageContainer.contentHeight - pageContainer.height : 0;
+		pageContainer.contentY = keyboardHeight ? lOffset : 0;
 	}
 
 	function closePage() {
