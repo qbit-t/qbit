@@ -108,6 +108,7 @@ Item {
 		highlightFollowsCurrentItem: true
 		highlightMoveDuration: -1
 		highlightMoveVelocity: -1
+		cacheBuffer: 100000
 
 		property var prevIndex: 0
 
@@ -217,6 +218,9 @@ Item {
 					//
 					prevIndex = mediaIndicator.currentIndex;
 				}
+			} else if (lItem && !lItem.mediaItem) {
+				//if (!buzzerApp.isDesktop)
+					lItem.forceDownload();
 			}
 		}
 
@@ -228,7 +232,7 @@ Item {
 			//
 			id: mediaFrame
 			color: "transparent"
-			//width: mediaItem ? mediaItem.width + 2 * spaceItems_ : 100 //mediaList.width
+			width: mediaItem ? mediaItem.width + 2 * spaceItems_ : 100 //mediaList.width
 			height: mediaItem ? mediaItem.height : 100
 
 			property var mediaItem;
@@ -271,6 +275,14 @@ Item {
 					//console.info("[buzzitemmedia/adjustHeight]: proposed = " + proposed + ", buzzitemmedia_.calculatedHeight = " + buzzitemmedia_.calculatedHeight);
 					buzzitemmedia_.calculatedHeight = proposed;
 					mediaList.height = proposed;
+				}
+			}
+
+			function forceDownload() {
+				//
+				if (!downloadCommand.processed_) {
+					downloadWaitTimer.start();
+					downloadCommand.process();
 				}
 			}
 
@@ -388,7 +400,7 @@ Item {
 
 			Timer {
 				id: downloadTimer
-				interval: 2000
+				interval: 500
 				repeat: false
 				running: false
 
@@ -399,7 +411,7 @@ Item {
 
 			Timer {
 				id: downloadWaitTimer
-				interval: 1000
+				interval: 500
 				repeat: false
 				running: false
 
@@ -409,7 +421,7 @@ Item {
 			}
 
 			Component.onCompleted: {
-				if (!downloadCommand.processed_) {
+				if (!downloadCommand.processed_ && (/*buzzerApp.isDesktop ||*/ !index || mediaModel.count < 4)) {
 					downloadWaitTimer.start();
 					downloadCommand.process();
 				}
