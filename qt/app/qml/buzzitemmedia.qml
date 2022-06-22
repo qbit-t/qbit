@@ -193,7 +193,12 @@ Item {
 		onContentXChanged: {
 			//
 			if (contentX == 0) mediaIndicator.currentIndex = 0;
-			else mediaIndicator.currentIndex = mediaList.indexAt(mediaList.contentX, 0);
+			else {
+				var lOffset = mediaList.width/2;
+				if (mediaIndicator.currentIndex + 1 == mediaModel.count - 1) lOffset = mediaList.width * 0.85;
+				mediaIndicator.currentIndex = mediaList.indexAt(mediaList.contentX + lOffset, 0);
+			}
+
 			//
 			var lItem = mediaList.itemAtIndex(mediaIndicator.currentIndex);
 			if (lItem && lItem.mediaItem) {
@@ -232,7 +237,7 @@ Item {
 			//
 			id: mediaFrame
 			color: "transparent"
-			width: mediaItem ? mediaItem.width + 2 * spaceItems_ : 100 //mediaList.width
+			width: mediaList.width //mediaItem ? mediaItem.width + 2 * spaceItems_ : 100 //mediaList.width
 			height: mediaItem ? mediaItem.height : 100
 
 			property var mediaItem;
@@ -400,7 +405,7 @@ Item {
 
 			Timer {
 				id: downloadTimer
-				interval: 500
+				interval: (!index || mediaModel.count < 4 ? 2000 : 1000)
 				repeat: false
 				running: false
 
@@ -411,7 +416,7 @@ Item {
 
 			Timer {
 				id: downloadWaitTimer
-				interval: 500
+				interval: (!index || mediaModel.count < 4 ? 2000 : 1000)
 				repeat: false
 				running: false
 
