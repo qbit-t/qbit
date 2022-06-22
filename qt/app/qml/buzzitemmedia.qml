@@ -400,7 +400,7 @@ Item {
 
 			Timer {
 				id: downloadTimer
-				interval: 300
+				interval: 500
 				repeat: false
 				running: false
 
@@ -411,7 +411,7 @@ Item {
 
 			Timer {
 				id: downloadWaitTimer
-				interval: 300
+				interval: 500
 				repeat: false
 				running: false
 

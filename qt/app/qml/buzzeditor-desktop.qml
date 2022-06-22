@@ -936,7 +936,7 @@ QuarkPage {
 				var lSize = buzzerApp.getFileSize(lFile);
 				console.info("[onAccepted]: file = " + lFile + " | " + lSize);
 				//
-				if (lFile.includes(".mp4") || lFile.includes(".mp3") || lFile.includes(".m4a")) {
+				if (lFile.toLowerCase().includes(".mp4") || lFile.toLowerCase().includes(".mp3") || lFile.toLowerCase().includes(".m4a")) {
 					mediaList.addVideo(lFile, 0, 0, "qrc://images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "default.media.cover"), buzzerApp.getFileNameAsDescription(lFile));
 				/*} else if (lFile.includes(".m4a")) {
 					mediaList.addAudio(lFile, 0, "none");*/
