@@ -41,6 +41,11 @@ Rectangle
     signal helpClicked();
 	signal addClicked();
 	signal headClicked();
+	signal editingFinished();
+
+	function forceFocus() {
+		textEdit.forceActiveFocus();
+	}
 
 	onPlaceholderTextChanged:
 	{
@@ -200,6 +205,11 @@ Rectangle
 			onPreeditTextChanged:
 			{
 				infoLabel.text = getPlaceholderText();
+			}
+
+			onEditingFinished:
+			{
+				editBox.editingFinished();
 			}
 
 			function getPlaceholderText()

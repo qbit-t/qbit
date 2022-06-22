@@ -403,7 +403,7 @@ QuarkPage
 
 		Component.onCompleted: {
 			if (!buzzerClient.haveSubscriptions()) {
-				startUp = truee
+				startUp = true;
 				currentIndex = 1; // global
 			}
 		}

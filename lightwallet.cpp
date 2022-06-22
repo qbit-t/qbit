@@ -238,8 +238,12 @@ TransactionContextPtr LightWallet::processTransaction(TransactionPtr tx) {
 				}
 			}
 
-			if (lLoaded) { 
+			if (lLoaded) {
+				// change status
 				status_ = IWallet::OPENED;
+				// mark outs
+				outsInitialized();
+				// log
 				if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[processTransaction]: cache is ready"));
 			} else {
 				if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, strprintf("[processTransaction]: still pending %s, %d", lTx->first.toHex(), lTx->second.size()));
@@ -353,7 +357,8 @@ bool LightWallet::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, TransactionC
 	}
 
 	//
-	bool lForceIn = false;
+	bool lForceIn = !isOutsInitialized();
+
 	//
 	if (lInitialTxFound != initialUtxos_.end()) {
 		//
@@ -366,7 +371,6 @@ bool LightWallet::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, TransactionC
 		} else {
 			//
 			lInitialTxFound->second.erase(lUtxoId);
-			lForceIn = true;
 		}
 	}
 
@@ -1305,11 +1309,6 @@ void LightWallet::updateOuts(TransactionPtr tx) {
 void LightWallet::updateIn(Transaction::NetworkUnlinkedOutPtr out, bool force) {
 	//
 	if (out->utxo().change() && !force) return; // change should not be here
-	if (out->utxo().change()) {
-		//
-		db::DbContainer<uint256 /*id*/, Transaction::NetworkUnlinkedOut /*data*/>::Iterator lExists = outs_.begin();
-		if (lExists.valid()) return; // already filled up
-	}
 
 	//
 	Transaction::NetworkUnlinkedOut lOut;

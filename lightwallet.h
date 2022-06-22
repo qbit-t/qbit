@@ -243,6 +243,21 @@ private:
 	void collectUnlinkedOutsByAssetReverse(const uint256&, amount_t, std::list<Transaction::UnlinkedOutPtr>&);
 	void collectUnlinkedOutsByAssetForward(const uint256&, amount_t, std::list<Transaction::UnlinkedOutPtr>&);
 
+	bool isOutsInitialized() {
+		//
+		Transaction::NetworkUnlinkedOut lNull;
+		if (utxo_.read(uint256(), lNull)) {
+			return true;
+		}
+
+		return false;
+	}
+
+	void outsInitialized() {
+		Transaction::NetworkUnlinkedOut lNull;
+		utxo_.write(uint256(), lNull);
+	}
+
 private:
 	// various settings, command line args & config file
 	ISettingsPtr settings_;

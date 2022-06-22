@@ -232,9 +232,17 @@ QuarkPage
 				//
 				if (text !== "") {
 					//
-					seedView.model.append({ name: text });
+					var lWords = text.split(",");
+					for (var lIdx = 0; lIdx < lWords.length; lIdx++) {
+						seedView.model.append({ name: lWords[lIdx] });
+					}
+
 					text = "";
 				}
+			}
+
+			onEditingFinished: {
+				if (!buzzerApp.isDesktop && text != "") wordEditBox.forceFocus();
 			}
 
 			onHelpClicked: {
@@ -379,6 +387,10 @@ QuarkPage
 					lMsgs.push(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.help.name"));
 					infoDialog.show(lMsgs);
 				}
+			}
+
+			onEditingFinished: {
+				//if (!buzzerApp.isDesktop && text != "") nameEditBox.forceFocus();
 			}
 
 			onTextChanged: {
