@@ -315,8 +315,10 @@ DownloadMediaCommand::DownloadMediaCommand(QObject* /*parent*/) : QObject() {
 
 DownloadMediaCommand::~DownloadMediaCommand() {
 	//
-	command_->unlink();
-	command_->terminate();
+	if(command_ != nullptr) {
+		command_->unlink();
+		command_->terminate();
+	}
 }
 
 void DownloadMediaCommand::prepare() {
