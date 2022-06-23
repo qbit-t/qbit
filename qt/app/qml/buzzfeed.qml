@@ -121,12 +121,18 @@ Item
 		property bool dataReceived: false
 		property bool dataRequested: false
 		property bool requestProcessed: true
+		property bool feeding: false
 
 		onProcessed: {
 			console.log("[buzzfeed]: loaded");
 			dataReceived = true;
 			dataRequested = false;
 			requestProcessed = true;
+
+			if (!feeding) {
+				// goto begin unconditionally
+				list.positionViewAtBeginning();
+			} else feeding = false;
 		}
 
 		onError: {
@@ -164,6 +170,7 @@ Item
 			//
 			if (!start() && !model.noMoreData && !dataRequested) {
 				dataRequested = true;
+				feeding = true;
 				modelLoader.process(true);
 			}
 		}
@@ -332,11 +339,9 @@ Item
 				itemDelegate.height = value;
 				itemDelegate.adjustValue.push(value);
 
-				//console.info("itemDelegate.adjustValue = " + itemDelegate.adjustValue + ", value = " + value + ", index = " + index);
-
-				if (buzzMedia && buzzMedia.length && itemDelegate.adjustValue.length >= 2) {
-					itemDelegate.height = itemDelegate.adjustValue[itemDelegate.adjustValue.length - 1];
-
+				if ((buzzMedia && buzzMedia.length || wrapped) && itemDelegate.adjustValue.length >= 2) {
+					//
+					//console.info("[collect]: itemDelegate.adjustValue = " + itemDelegate.adjustValue + ", value = " + value + ", index = " + index);
 					if (localDynamic) {
 						buzzerClient.getBuzzfeedList().resetLocalDynamic(index);
 						buzzerClient.getBuzzfeedList().forceRelayout(index, 1);

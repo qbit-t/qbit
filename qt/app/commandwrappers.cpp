@@ -385,6 +385,9 @@ void BuzzHideCommand::prepare() {
 		buzzfeedModel_->buzzfeed(),
 		boost::bind(&BuzzHideCommand::done, this, boost::placeholders::_1)
 	);
+
+	// pin
+	QQmlEngine::setObjectOwnership(this, QQmlEngine::CppOwnership);
 }
 
 BuzzRewardCommand::BuzzRewardCommand(QObject* /*parent*/) : QObject() {

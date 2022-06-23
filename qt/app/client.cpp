@@ -919,6 +919,23 @@ QString Client::decorateBuzzBody(const QString& body) {
 	return decorateBuzzBodyLimited(body, -1);
 }
 
+bool Client::isEmoji(const QString& body) {
+	//
+	bool lEmojiString = true;
+	int lCount = 0;
+	std::string lBody = body.toStdString();
+	for (size_t lIdx = 0; lIdx < lBody.size() && lCount < 30; ) {
+		//
+		if (lIdx + 1 < lBody.size() && (unsigned char)(lBody.c_str()[lIdx]) == 0xF0 && (unsigned char)(lBody.c_str()[lIdx+1]) == 0x9F) {
+			lCount++; lIdx += 4;
+		} else if (lBody.c_str()[lIdx] == 0x20 || lBody.c_str()[lIdx] == 0x0a) {
+			lIdx++;
+		} else { lEmojiString = false; break; }
+	}
+
+	return lEmojiString;
+}
+
 QString Client::statusBarTheme() {
 	//
 	return gApplication->getColor(theme(), themeSelector(), "StatusBar.theme");

@@ -587,7 +587,9 @@ Item {
 
 		onProcessed: {
 			// tx, chain
+			console.info("[checkOnChainCommand]: tx = " + tx + ", chain = " + chain + ", index = " + index);
 			buzzfeedModel_.setOnChain(index);
+			onChain_ = true;
 		}
 
 		onTransactionNotFound: {
@@ -606,7 +608,17 @@ Item {
 		running: false
 
 		onTriggered: {
-			checkOnChainCommand.process(buzzId_, buzzChainId_);
+			//
+			var lId = buzzId_;
+			var lChain = buzzChainId_;
+
+			if (type_ === buzzerClient.tx_REBUZZ_TYPE() && buzzInfos_.length >= 1) {
+				var lInfo = buzzInfos_[0];
+				lId = lInfo.eventId;
+				lChain = lInfo.eventChainId;
+			}
+
+			checkOnChainCommand.process(lId, lChain);
 		}
 	}
 
@@ -692,8 +704,9 @@ Item {
 				bodyControl.wrappedItem_.buzzerId_ = wrapped_.buzzerId;
 				bodyControl.wrappedItem_.buzzerInfoId_ = wrapped_.buzzerInfoId;
 				bodyControl.wrappedItem_.buzzerInfoChainId_ = wrapped_.buzzerInfoChainId;
-				bodyControl.wrappedItem_.buzzBody_ = buzzerClient.decorateBuzzBody(wrapped_.buzzBody);
 				bodyControl.wrappedItem_.buzzMedia_ = wrapped_.buzzMedia;
+				bodyControl.wrappedItem_.buzzBody_ = buzzerClient.decorateBuzzBodyLimited(wrapped_.buzzBody, 500);
+				bodyControl.wrappedItem_.isEmoji_ = buzzerClient.isEmoji(wrapped_.buzzBody);
 				bodyControl.wrappedItem_.lastUrl_ = buzzerClient.extractLastUrl(wrapped_.buzzBody);
 				bodyControl.wrappedItem_.ago_ = buzzerClient.timestampAgo(wrapped_.timestamp);
 				bodyControl.wrappedItem_.initialize();
@@ -875,8 +888,6 @@ Item {
 			//
 			var lSource;
 			var lComponent;
-
-			//console.info("[expane]: wrapped_ = " + wrapped_);
 
 			// if rebuzz and wapped
 			if (wrapped_ && !wrappedItem_) {

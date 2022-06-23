@@ -674,7 +674,7 @@ void BuzzfeedListModel::buzzfeedItemNewSlot(const qbit::BuzzfeedItemProxy& buzz)
 				index_[list_[lItem]->key()] = lItem;
 			}
 
-			// qInfo() << "BuzzfeedListModel::buzzfeedItemNewSlot -> insert" << lIndex;
+			qInfo() << "BuzzfeedListModel::buzzfeedItemNewSlot -> insert" << lIndex;
 			beginInsertRows(QModelIndex(), lIndex, lIndex);
 			endInsertRows();
 

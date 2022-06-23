@@ -75,6 +75,8 @@ Item {
 		width: calculatedWidthInternal
 		visible: false //sourceInfo.type === 2
 
+		property bool loaded_: false
+
 		clip: true
 
 		height: getHeight()
@@ -85,7 +87,10 @@ Item {
 		}
 
 		function getHeight() {
-			if (!infoContainer.visible) return 0; //spaceItems_;
+			if (!loaded_) {
+				return 0; //spaceItems_;
+			}
+
 			return infoImage.height + spaceTop_ +
 					infoTitle.height + spaceItems_ +
 					(sourceInfo && sourceInfo.description !== "" ? (infoDescription.height + spaceItems_) : 0) +
@@ -118,6 +123,7 @@ Item {
 			onStatusChanged: {
 				if (infoImage.status === Image.Ready) {
 					infoContainer.visible = true;
+					infoContainer.loaded_ = true;
 					infoContainer.height = infoContainer.getHeight();
 					buzzitemurl_.calculatedHeight = infoContainer.getHeight();
 

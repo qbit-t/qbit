@@ -57,6 +57,7 @@ Item {
 	property var childLink_: false
 	property var parentLink_: false
 	property var lastUrl_//: lastUrl
+	property var isEmoji_
 
 	property var controller_: controller
 	//property var buzzfeedModel_: buzzfeedModel
@@ -401,7 +402,7 @@ Item {
 				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize * multiplicator_) : defaultFontPointSize * multiplicator_
 				//lineHeight: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 1.1) : lineHeight
 
-				property real multiplicator_: isEmoji ? 2.5 : 1.0
+				property real multiplicator_: isEmoji_ ? 2.5 : 1.0
 
 				MouseArea {
 					anchors.fill: parent
