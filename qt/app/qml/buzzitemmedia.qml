@@ -51,7 +51,7 @@ Item {
 
 	//
 	// playback controller
-	property alias mediaCount: mediaList.mediaModel.count
+	property int mediaCount: buzzMedia_.length
 	property alias mediaContainer: mediaList
 	//
 	//
