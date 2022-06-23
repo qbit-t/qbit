@@ -51,7 +51,7 @@ Item {
 
 	//
 	// playback controller
-	property alias mediaCount: mediaModel.count
+	property alias mediaCount: mediaList.mediaModel.count
 	property alias mediaContainer: mediaList
 	//
 	//
@@ -108,7 +108,7 @@ Item {
 		highlightFollowsCurrentItem: true
 		highlightMoveDuration: -1
 		highlightMoveVelocity: -1
-		cacheBuffer: 100000
+		//cacheBuffer: 100000
 
 		property var prevIndex: 0
 
@@ -156,12 +156,24 @@ Item {
 
 		function playNext() {
 			//
-			for (var lIdx = mediaIndicator.currentIndex + 1; lIdx < mediaList.count; lIdx++) {
+			for (var lIdx = mediaIndicator.currentIndex + 1; lIdx < buzzMedia_.length; lIdx++) {
 				var lItem = mediaList.itemAtIndex(lIdx);
 				if (lItem && lItem.mediaItem && lItem.mediaItem.playable) {
 					mediaList.currentIndex = lIdx;
 					lItem.mediaItem.tryPlay();
 					sharedMediaPlayer_.showCurrentPlayer(null);
+					return true;
+				} else if (lItem && !lItem.mediaItem) {
+					// absent
+					lItem.forceDownloadAndTryPlay();
+					return true;
+				} else if (!lItem) {
+					// absent at all
+					var lMedia = buzzMedia_[lIdx];
+					mediaList.addMedia(lMedia.url, buzzerClient.getTempFilesPath() + "/" + lMedia.tx, true /*force play when downloaded*/);
+					//console.info("mediaList.count = " + mediaList.count + ", lIdx = " + lIdx);
+					//var lNewItem = mediaList.itemAtIndex(lIdx);
+					//lNewItem.forceDownloadAndTryPlay();
 					return true;
 				}
 			}
@@ -178,29 +190,41 @@ Item {
 					lItem.mediaItem.tryPlay();
 					sharedMediaPlayer_.showCurrentPlayer(null);
 					return true;
+				} else if (lItem && !lItem.mediaItem) {
+					// absent
+					lItem.forceDownloadAndTryPlay();
+					return true;
 				}
 			}
 
 			return false;
 		}
 
-		populate: Transition {
-			NumberAnimation { property: "opacity"; from: 0; to: 1.0; duration: 400 }
-		}
-
-		model: ListModel { id: mediaModel }
+		//model: ListModel { id: mediaModel }
+		property ListModel mediaModel: ListModel { id: media }
 
 		onContentXChanged: {
 			//
-			if (contentX == 0) mediaIndicator.currentIndex = 0;
+			var lLastIndex = mediaIndicator.currentIndex;
+			var lNewIndex = lLastIndex;
+
+			//
+			if (contentX == 0) lNewIndex = 0;
 			else {
 				var lOffset = mediaList.width/2;
-				if (mediaIndicator.currentIndex + 1 == mediaModel.count - 1) lOffset = mediaList.width * 0.85;
-				mediaIndicator.currentIndex = mediaList.indexAt(mediaList.contentX + lOffset, 0);
+				if (lLastIndex + 1 >= mediaList.mediaModel.count - 1) lOffset = mediaList.width * 0.90;
+				lNewIndex = mediaList.indexAt(mediaList.contentX + lOffset, 0);
 			}
 
 			//
-			var lItem = mediaList.itemAtIndex(mediaIndicator.currentIndex);
+			if (lNewIndex === -1 && lLastIndex < buzzMedia_.length - 1) {
+				var lMedia = buzzMedia_[lLastIndex + 1];
+				mediaList.addMedia(lMedia.url, buzzerClient.getTempFilesPath() + "/" + lMedia.tx);
+				lNewIndex = lLastIndex + 1;
+			}
+
+			//
+			var lItem = mediaList.itemAtIndex(lNewIndex);
 			if (lItem && lItem.mediaItem) {
 				//
 				//console.info("[onContentXChanged]: mediaList.contentX = " + mediaList.contentX +
@@ -214,19 +238,21 @@ Item {
 						lItem.mediaItem.height = lPrevItem.mediaItem.height;
 					}
 					//
-					var lModelItem = mediaModel.get(mediaIndicator.currentIndex);
+					var lModelItem = mediaList.mediaModel.get(lNewIndex);
 					lModelItem.preview_ = lModelItem.previewSource_;
 					//
 					mediaList.height = lItem.mediaItem.height;
 					buzzitemmedia_.height = mediaList.height;
 					calculatedHeight = mediaList.height;
 					//
-					prevIndex = mediaIndicator.currentIndex;
+					prevIndex = lNewIndex;
 				}
 			} else if (lItem && !lItem.mediaItem) {
-				//if (!buzzerApp.isDesktop)
-					lItem.forceDownload();
+				// absent
+				lItem.forceDownload();
 			}
+
+			if (lNewIndex !== -1) mediaIndicator.currentIndex = lNewIndex;
 		}
 
 		onWidthChanged: {
@@ -291,6 +317,15 @@ Item {
 				}
 			}
 
+			function forceDownloadAndTryPlay() {
+				//
+				if (!downloadCommand.processed_) {
+					downloadWaitTimer.start();
+					downloadCommand.tryPlay_ = true;
+					downloadCommand.process();
+				}
+			}
+
 			BuzzerCommands.DownloadMediaCommand {
 				id: downloadCommand
 				preview: true
@@ -302,6 +337,7 @@ Item {
 				property int tryCount_: 0;
 				property int tryReloadCount_: 0;
 				property bool processed_: false;
+				property bool tryPlay_: false;
 
 				function errorMediaLoading() {
 					//
@@ -386,7 +422,19 @@ Item {
 						buzzitemmedia_.calculatedHeight = mediaFrame.height;
 					}
 
-					//mediaFrame.mediaItem.adjust();
+					if (tryPlay_) {
+						//
+						if (mediaFrame.mediaItem.playable) {
+							console.info("trying to play...");
+							mediaList.currentIndex = index; // move to
+							mediaFrame.mediaItem.tryPlay();
+							sharedMediaPlayer_.showCurrentPlayer(null);
+							tryPlay_ = false;
+						} else {
+							// release lock in case if lock was take place
+							buzzerApp.wakeRelease();
+						}
+					}
 				}
 
 				onError: {
@@ -405,7 +453,7 @@ Item {
 
 			Timer {
 				id: downloadTimer
-				interval: (!index || mediaModel.count < 4 ? 2000 : 1000)
+				interval: (!index || mediaList.mediaModel.count < 4 ? 2000 : 1000)
 				repeat: false
 				running: false
 
@@ -416,7 +464,7 @@ Item {
 
 			Timer {
 				id: downloadWaitTimer
-				interval: (!index || mediaModel.count < 4 ? 2000 : 1000)
+				interval: (!index || mediaList.mediaModel.count < 4 ? 2000 : 1000)
 				repeat: false
 				running: false
 
@@ -426,15 +474,16 @@ Item {
 			}
 
 			Component.onCompleted: {
-				if (!downloadCommand.processed_ && (/*buzzerApp.isDesktop ||*/ !index || mediaModel.count < 4)) {
+				if (!downloadCommand.processed_ && (!index || forcePlay_ || mediaList.mediaModel.count < 4)) {
 					downloadWaitTimer.start();
+					if (forcePlay_) downloadCommand.tryPlay_ = forcePlay_;
 					downloadCommand.process();
 				}
 			}
 		}
 
-		function addMedia(url, file) {
-			mediaModel.append({
+		function addMedia(url, file, forcePlay) {
+			mediaList.mediaModel.append({
 				key_: file,
 				url_: url,
 				path_: "",
@@ -447,15 +496,18 @@ Item {
 				description_: (buzzBody_ ? buzzBody_ : ""),
 				caption_: "",
 				previewSource_: "",
-				mimeType_: "UNKNOWN"});
+				mimeType_: "UNKNOWN",
+				forcePlay_: (forcePlay ? true : false)});
 		}
 
 		function prepare() {
 			if (mediaList.count) return;
-			for (var lIdx = 0; lIdx < buzzMedia_.length; lIdx++) {
+			for (var lIdx = 0; lIdx < buzzMedia_.length && lIdx < 1 /*just first*/; lIdx++) {
 				var lMedia = buzzMedia_[lIdx];
 				addMedia(lMedia.url, buzzerClient.getTempFilesPath() + "/" + lMedia.tx);
 			}
+
+			mediaList.model = mediaList.mediaModel;
 		}
 	}
 

@@ -607,6 +607,8 @@ Rectangle {
 			videoFrame.sharedMediaPlayer_.playbackDownloadStarted();
 			downloadCommand.process();
 		} else if (actionButton.needDownload && !downloadCommand.downloaded && downloadCommand.processing) {
+			// release lock
+			buzzerApp.wakeRelease();
 			// cancel
 			actionButton.symbol = Fonts.arrowDownHollowSym;
 			mediaLoading.visible = false;
@@ -925,12 +927,16 @@ Rectangle {
 		property bool downloaded: false;
 
 		onProgress: {
+			// locking from sleep
+			buzzerApp.wakeLock();
 			//
 			mediaLoading.progress(pos, size);
 			videoFrame.sharedMediaPlayer_.playbackDownloading(pos, size);
 		}
 
 		onProcessed: {
+			// release lock
+			buzzerApp.wakeRelease();
 			// tx, previewFile, originalFile, orientation, duration, size, type
 			console.info(tx + ", " + previewFile + ", " + originalFile + ", " + orientation + ", " + duration + ", " + size + ", " + type);
 
