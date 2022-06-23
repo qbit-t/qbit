@@ -1064,11 +1064,13 @@ public:
 
 	Q_INVOKABLE void terminate() {
 		// TODO: on terminate and on stop - make proper processing in cubix-download
+		prepare();
 		command_->terminate();
 		processing_ = false;
 	}
 
 	Q_INVOKABLE void cleanUp() {
+		prepare();
 		command_->cleanUp();
 	}
 
