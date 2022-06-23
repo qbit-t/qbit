@@ -311,30 +311,33 @@ BuzzerUnsubscribeCommand::BuzzerUnsubscribeCommand(QObject* /*parent*/) : QObjec
 }
 
 DownloadMediaCommand::DownloadMediaCommand(QObject* /*parent*/) : QObject() {
-	//
-	Client* lClient = static_cast<Client*>(gApplication->getClient());
-
-	command_ = qbit::cubix::DownloadMediaCommand::instance(
-			lClient->getCubixComposer(),
-			boost::bind(&DownloadMediaCommand::downloadProgress, this, boost::placeholders::_1, boost::placeholders::_2),
-			boost::bind(&DownloadMediaCommand::done, this,
-						boost::placeholders::_1,
-						boost::placeholders::_2,
-						boost::placeholders::_3,
-						boost::placeholders::_4,
-						boost::placeholders::_5,
-						boost::placeholders::_6,
-						boost::placeholders::_7,
-						boost::placeholders::_8));
-
-	// TODO: potential leak, need "check list" to track such objects
-	// QQmlEngine::setObjectOwnership(this, QQmlEngine::CppOwnership);
 }
 
 DownloadMediaCommand::~DownloadMediaCommand() {
 	//
 	command_->unlink();
 	command_->terminate();
+}
+
+void DownloadMediaCommand::prepare() {
+	//
+	if (command_ == nullptr) {
+		//
+		Client* lClient = static_cast<Client*>(gApplication->getClient());
+
+		command_ = qbit::cubix::DownloadMediaCommand::instance(
+				lClient->getCubixComposer(),
+				boost::bind(&DownloadMediaCommand::downloadProgress, this, boost::placeholders::_1, boost::placeholders::_2),
+				boost::bind(&DownloadMediaCommand::done, this,
+							boost::placeholders::_1,
+							boost::placeholders::_2,
+							boost::placeholders::_3,
+							boost::placeholders::_4,
+							boost::placeholders::_5,
+							boost::placeholders::_6,
+							boost::placeholders::_7,
+							boost::placeholders::_8));
+	}
 }
 
 UploadMediaCommand::UploadMediaCommand(QObject* /*parent*/) : QObject() {

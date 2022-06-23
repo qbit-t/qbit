@@ -1049,8 +1049,7 @@ public:
 		if (!force && processing_) return false;
 		processing_ = true;
 
-		// TODO: potential leak, need "check list" to track such objects
-		// QQmlEngine::setObjectOwnership(this, QQmlEngine::CppOwnership);
+		prepare();
 
 		std::vector<std::string> lArgs;
 		lArgs.push_back(header_.toStdString() + "/" + chain_.toStdString());
@@ -1072,6 +1071,8 @@ public:
 	Q_INVOKABLE void cleanUp() {
 		command_->cleanUp();
 	}
+
+	void prepare();
 
 	void setUrl(const QString& url) {
 		url_ = url;
