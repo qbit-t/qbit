@@ -150,7 +150,7 @@ QuarkToolBar
 		y: avatarImage.y - 2
 		size: avatarImage.displayWidth + 4
 		color: getColor()
-		background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
+		background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Panel.gradient1")
 
 		function adjust() {
 			color = getColor();
@@ -222,6 +222,9 @@ QuarkToolBar
 					radius: avatarImage.displayWidth
 				}
 			}
+		}
+
+		onStateChanged: {
 		}
 	}
 

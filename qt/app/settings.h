@@ -35,6 +35,8 @@ public:
 	uint64_t proofAssetLockTime();
 	uint64_t oneVoteProofAmount();
 
+	size_t threadPoolSize();
+
 	qbit::ISettingsPtr shared() { return qbit::ISettingsPtr(static_cast<ISettings*>(this)); }
 
 signals:
@@ -43,6 +45,7 @@ signals:
 protected:
 	IClient* client_;
 	std::string path_;
+	bool daemon_ = false;
 };
 
 class SettingsJSON: public Settings
@@ -68,7 +71,6 @@ private:
 
 private:	
     bool opened_;
-	bool daemon_ = false;
 };
 
 class SettingsFactory

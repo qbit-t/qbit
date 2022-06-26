@@ -83,8 +83,10 @@ QuarkPage
 		}
 
 		function onBuzzerDAppReadyChanged() {
-			infoLoaderCommand.process(buzzerClient.name);
-			if (!checkBuzzerInfo.running) checkBuzzerInfo.start();
+			if (buzzerClient.buzzerDAppReady) {
+				infoLoaderCommand.process(buzzerClient.name);
+				if (!checkBuzzerInfo.running) checkBuzzerInfo.start();
+			}
 		}
 
 		function onNewEvents() {

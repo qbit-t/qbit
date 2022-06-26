@@ -1229,8 +1229,8 @@ void Client::setBuzzerDAppReady() {
 	//if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[Client::setBuzzerDAppReady]: peers %d/%d", lSupportNodes, (lMap.size() + lMap2.size())));
 
 	// we have enough nodes to start servicing
-	if ((double)lSupportNodes / (double)G_BUZZ_PEERS_CONFIRMATIONS >= 1.0 &&
-		(double)lSupportNodes2 / (double)G_BUZZ_PEERS_CONFIRMATIONS >= 1.0) {
+	if ((double)lSupportNodes / (double)G_BUZZ_PEERS_CONFIRMATIONS > 1.0 &&
+		(double)lSupportNodes2 / (double)G_BUZZ_PEERS_CONFIRMATIONS > 1.0) {
 		//
 		bool lNotify = !buzzerDAppReady_;
 		buzzerDAppReady_ = true;
@@ -1258,7 +1258,10 @@ void Client::setBuzzerDAppReady() {
 	} else {
 		bool lNotify = buzzerDAppReady_;
 		buzzerDAppReady_ = false;
-		if (lNotify) emit buzzerDAppReadyChanged();
+		if (lNotify) {
+			emit buzzerDAppReadyChanged();
+			if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, std::string("[Client::setBuzzerDAppReady]: buzzer is NOT ready"));
+		}
 	}
 }
 

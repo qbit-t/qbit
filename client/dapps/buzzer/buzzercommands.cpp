@@ -378,10 +378,15 @@ void BuzzerUnsubscribeCommand::process(const std::vector<std::string>& args) {
 // LoadHashTagsCommand
 //
 void LoadHashTagsCommand::process(const std::vector<std::string>& args) {
+	//
+	if (processing_) return;
+	processing_ = true;
+
 	// clean-up
 	chains_.clear();
 	loaded_.clear();
 	feed_.clear();
+	commands_.clear();
 
 	// args - from
 	uint64_t lTimeframeFrom = 0;
@@ -416,6 +421,8 @@ void LoadHashTagsCommand::process(const std::vector<std::string>& args) {
 			boost::bind(&LoadHashTagsCommand::tagsLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 		// async process
 		lCommand->process(boost::bind(&LoadHashTagsCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
+		//
+		commands_.push_back(lCommand);
 	}
 }
 
@@ -453,6 +460,8 @@ void LoadHashTagsCommand::tagsLoaded(const std::vector<Buzzer::HashTag>& feed, c
 			lTags.push_back(lTagsSet->second);
 		}
 
+		processing_ = false;
+
 		done_(tag_, lTags, ProcessingError());
 	}
 }
@@ -463,6 +472,10 @@ void LoadHashTagsCommand::tagsLoaded(const std::vector<Buzzer::HashTag>& feed, c
 void LoadBuzzfeedByTagCommand::process(const std::vector<std::string>& args) {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
+	//
+	if (processing_) return;
+	processing_ = true;
+
 	// clean-up
 	chains_.clear();
 	loaded_.clear();
@@ -471,6 +484,7 @@ void LoadBuzzfeedByTagCommand::process(const std::vector<std::string>& args) {
 	pendingInfos_.clear();
 	pengindChainInfos_.clear();
 	localBuzzFeed_->clear();
+	commands_.clear();
 	pendingChainInfosLoaded_ = 0;
 
 	// args - from
@@ -521,6 +535,8 @@ void LoadBuzzfeedByTagCommand::process(const std::vector<std::string>& args) {
 			boost::bind(&LoadBuzzfeedByTagCommand::buzzfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 		// async process
 		lCommand->process(boost::bind(&LoadBuzzfeedByTagCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
+		//
+		commands_.push_back(lCommand);
 	}
 }
 
@@ -530,6 +546,10 @@ void LoadBuzzfeedByTagCommand::process(const std::vector<std::string>& args) {
 void LoadBuzzesGlobalCommand::process(const std::vector<std::string>& args) {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
+	//
+	if (processing_) return;
+	processing_ = true;
+
 	// clean-up
 	chains_.clear();
 	loaded_.clear();
@@ -538,6 +558,7 @@ void LoadBuzzesGlobalCommand::process(const std::vector<std::string>& args) {
 	pendingInfos_.clear();
 	pengindChainInfos_.clear();
 	localBuzzFeed_->clear();
+	commands_.clear();
 	pendingChainInfosLoaded_ = 0;
 
 	// args - from
@@ -584,6 +605,8 @@ void LoadBuzzesGlobalCommand::process(const std::vector<std::string>& args) {
 			boost::bind(&LoadBuzzesGlobalCommand::buzzfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 		// async process
 		lCommand->process(boost::bind(&LoadBuzzesGlobalCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
+		//
+		commands_.push_back(lCommand);
 	}
 }
 
@@ -593,6 +616,10 @@ void LoadBuzzesGlobalCommand::process(const std::vector<std::string>& args) {
 void LoadBuzzfeedByBuzzerCommand::process(const std::vector<std::string>& args) {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
+	//
+	if (processing_) return;
+	processing_ = true;
+
 	// clean-up
 	chains_.clear();
 	loaded_.clear();
@@ -601,6 +628,7 @@ void LoadBuzzfeedByBuzzerCommand::process(const std::vector<std::string>& args) 
 	pendingInfos_.clear();
 	pengindChainInfos_.clear();
 	localBuzzFeed_->clear();
+	commands_.clear();
 	pendingChainInfosLoaded_ = 0;
 	//buzzFeed_->clear();
 
@@ -648,6 +676,8 @@ void LoadBuzzfeedByBuzzerCommand::process(const std::vector<std::string>& args) 
 			boost::bind(&LoadBuzzfeedByBuzzerCommand::buzzfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 		// async process
 		lCommand->process(boost::bind(&LoadBuzzfeedByBuzzerCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
+		//
+		commands_.push_back(lCommand);
 	}
 }
 
@@ -657,6 +687,10 @@ void LoadBuzzfeedByBuzzerCommand::process(const std::vector<std::string>& args) 
 void LoadBuzzfeedByBuzzCommand::process(const std::vector<std::string>& args) {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
+	//
+	if (processing_) return;
+	processing_ = true;
+
 	// clean-up
 	chains_.clear();
 	loaded_.clear();
@@ -665,6 +699,7 @@ void LoadBuzzfeedByBuzzCommand::process(const std::vector<std::string>& args) {
 	pendingInfos_.clear();
 	pengindChainInfos_.clear();
 	localBuzzFeed_->clear();
+	commands_.clear();
 	pendingChainInfosLoaded_ = 0;
 	//buzzFeed_->clear();
 
@@ -708,6 +743,8 @@ void LoadBuzzfeedByBuzzCommand::process(const std::vector<std::string>& args) {
 			boost::bind(&LoadBuzzfeedByBuzzCommand::buzzfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 		// async process
 		lCommand->process(boost::bind(&LoadBuzzfeedByBuzzCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
+		//
+		commands_.push_back(lCommand);
 	}
 }
 
@@ -717,6 +754,10 @@ void LoadBuzzfeedByBuzzCommand::process(const std::vector<std::string>& args) {
 void LoadMessagesCommand::process(const std::vector<std::string>& args) {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
+	//
+	if (processing_) return;
+	processing_ = true;
+
 	// clean-up
 	chains_.clear();
 	loaded_.clear();
@@ -725,6 +766,7 @@ void LoadMessagesCommand::process(const std::vector<std::string>& args) {
 	pendingInfos_.clear();
 	pengindChainInfos_.clear();
 	localBuzzFeed_->clear();
+	commands_.clear();
 	pendingChainInfosLoaded_ = 0;
 	//buzzFeed_->clear();
 
@@ -768,6 +810,8 @@ void LoadMessagesCommand::process(const std::vector<std::string>& args) {
 			boost::bind(&LoadMessagesCommand::buzzfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 		// async process
 		lCommand->process(boost::bind(&LoadMessagesCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
+		//
+		commands_.push_back(lCommand);
 	}
 }
 
@@ -777,6 +821,10 @@ void LoadMessagesCommand::process(const std::vector<std::string>& args) {
 void LoadBuzzfeedCommand::process(const std::vector<std::string>& args) {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
+	//
+	if (processing_) return;
+	processing_ = true;
+
 	// clean-up
 	chains_.clear();
 	loaded_.clear();
@@ -785,6 +833,7 @@ void LoadBuzzfeedCommand::process(const std::vector<std::string>& args) {
 	pendingInfos_.clear();
 	pengindChainInfos_.clear();
 	localBuzzFeed_->clear();
+	commands_.clear();
 	pendingChainInfosLoaded_ = 0;
 
 	// args - from
@@ -829,6 +878,8 @@ void LoadBuzzfeedCommand::process(const std::vector<std::string>& args) {
 			boost::bind(&LoadBuzzfeedCommand::buzzfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 		// async process
 		lCommand->process(boost::bind(&LoadBuzzfeedCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
+		//
+		commands_.push_back(lCommand);
 	}
 }
 
@@ -996,6 +1047,8 @@ void LoadBuzzfeedCommand::show() {
 		//
 	}
 
+	processing_ = false;
+
 	done_(ProcessingError());
 }
 
@@ -1005,6 +1058,10 @@ void LoadBuzzfeedCommand::show() {
 void LoadEndorsementsByBuzzerCommand::process(const std::vector<std::string>& args) {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
+	//
+	if (processing_) return;
+	processing_ = true;
+
 	// clean-up
 	chains_.clear();
 	loaded_.clear();
@@ -1013,6 +1070,7 @@ void LoadEndorsementsByBuzzerCommand::process(const std::vector<std::string>& ar
 	pendingInfos_.clear();
 	pengindChainInfos_.clear();
 	localEventsFeed_->clear();
+	commands_.clear();
 	pendingChainInfosLoaded_ = 0;
 	eventsFeed_->clear();
 
@@ -1068,6 +1126,8 @@ void LoadEndorsementsByBuzzerCommand::process(const std::vector<std::string>& ar
 
 		// async process
 		lCommand->process(boost::bind(&LoadEndorsementsByBuzzerCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
+		//
+		commands_.push_back(lCommand);
 	}
 }
 
@@ -1077,6 +1137,10 @@ void LoadEndorsementsByBuzzerCommand::process(const std::vector<std::string>& ar
 void LoadMistrustsByBuzzerCommand::process(const std::vector<std::string>& args) {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
+	//
+	if (processing_) return;
+	processing_ = true;
+
 	// clean-up
 	chains_.clear();
 	loaded_.clear();
@@ -1085,6 +1149,7 @@ void LoadMistrustsByBuzzerCommand::process(const std::vector<std::string>& args)
 	pendingInfos_.clear();
 	pengindChainInfos_.clear();
 	localEventsFeed_->clear();
+	commands_.clear();
 	pendingChainInfosLoaded_ = 0;
 	eventsFeed_->clear();
 
@@ -1140,6 +1205,8 @@ void LoadMistrustsByBuzzerCommand::process(const std::vector<std::string>& args)
 
 		// async process
 		lCommand->process(boost::bind(&LoadMistrustsByBuzzerCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
+		//
+		commands_.push_back(lCommand);
 	}
 }
 
@@ -1149,6 +1216,10 @@ void LoadMistrustsByBuzzerCommand::process(const std::vector<std::string>& args)
 void LoadSubscriptionsByBuzzerCommand::process(const std::vector<std::string>& args) {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
+	//
+	if (processing_) return;
+	processing_ = true;
+
 	// clean-up
 	chains_.clear();
 	loaded_.clear();
@@ -1157,6 +1228,7 @@ void LoadSubscriptionsByBuzzerCommand::process(const std::vector<std::string>& a
 	pendingInfos_.clear();
 	pengindChainInfos_.clear();
 	localEventsFeed_->clear();
+	commands_.clear();
 	pendingChainInfosLoaded_ = 0;
 	eventsFeed_->clear();
 
@@ -1214,6 +1286,8 @@ void LoadSubscriptionsByBuzzerCommand::process(const std::vector<std::string>& a
 
 		// async process
 		lCommand->process(boost::bind(&LoadSubscriptionsByBuzzerCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
+		//
+		commands_.push_back(lCommand);
 	}
 }
 
@@ -1223,6 +1297,10 @@ void LoadSubscriptionsByBuzzerCommand::process(const std::vector<std::string>& a
 void LoadFollowersByBuzzerCommand::process(const std::vector<std::string>& args) {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
+	//
+	if (processing_) return;
+	processing_ = true;
+
 	// clean-up
 	chains_.clear();
 	loaded_.clear();
@@ -1233,6 +1311,7 @@ void LoadFollowersByBuzzerCommand::process(const std::vector<std::string>& args)
 	localEventsFeed_->clear();
 	pendingChainInfosLoaded_ = 0;
 	eventsFeed_->clear();
+	commands_.clear();
 
 	// args - from
 	fromBuzzer_.setNull();
@@ -1288,6 +1367,8 @@ void LoadFollowersByBuzzerCommand::process(const std::vector<std::string>& args)
 
 		// async process
 		lCommand->process(boost::bind(&LoadFollowersByBuzzerCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
+		//
+		commands_.push_back(lCommand);
 	}
 }
 
@@ -1297,6 +1378,10 @@ void LoadFollowersByBuzzerCommand::process(const std::vector<std::string>& args)
 void LoadEventsfeedCommand::process(const std::vector<std::string>& args) {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
+	//
+	if (processing_) return;
+	processing_ = true;
+
 	// clean-up
 	chains_.clear();
 	loaded_.clear();
@@ -1305,6 +1390,8 @@ void LoadEventsfeedCommand::process(const std::vector<std::string>& args) {
 	pendingInfos_.clear();
 	pengindChainInfos_.clear();
 	localEventsFeed_->clear();
+	commands_.clear();
+
 	pendingChainInfosLoaded_ = 0;
 	from_ = 0;
 
@@ -1327,13 +1414,22 @@ void LoadEventsfeedCommand::process(const std::vector<std::string>& args) {
 		composer_->requestProcessor()->requestState();
 	}
 
+	//
+	if (gLog().isEnabled(Log::CLIENT))
+		gLog().write(Log::CLIENT, strprintf("[eventsfeed] - loading for %d chains...", chains_.size()));	
+
 	// spead requests
 	for (std::vector<uint256>::iterator lChain = chains_.begin(); lChain != chains_.end(); lChain++) {
+		//
+		if (gLog().isEnabled(Log::CLIENT))
+			gLog().write(Log::CLIENT, strprintf("[eventsfeed] - loading for %s chain", (*lChain).toHex()));
 		//
 		IComposerMethodPtr lCommand = BuzzerLightComposer::LoadEventsfeed::instance(composer_, *lChain, from_, EVENTSFEED_PEERS_CONFIRMATIONS,
 			boost::bind(&LoadEventsfeedCommand::eventsfeedLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 		// async process
 		lCommand->process(boost::bind(&LoadEventsfeedCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
+		// backup
+		commands_.push_back(lCommand);
 	}
 }
 
@@ -1387,6 +1483,9 @@ void LoadEventsfeedCommand::eventsfeedLoaded(const std::vector<EventsfeedItem>& 
 		// merge feed
 		eventsfeed()->merge(feed);
 	} else {
+		//
+		if (gLog().isEnabled(Log::CLIENT))
+			gLog().write(Log::CLIENT, strprintf("[eventsfeed] - merge: chains = %d, commands = %d, n = %d/%d", chains_.size(), commands_.size(), loaded_.size(), requests));
 		// merge and notify
 		eventsfeed()->merge(feed, true);
 		// if we have postponed items, request missing
@@ -1477,6 +1576,8 @@ void LoadEventsfeedCommand::show() {
 		display(eventsFeed_->toItem());
 	}
 
+	processing_ = false;
+
 	done_(ProcessingError());
 }
 
@@ -1486,6 +1587,10 @@ void LoadEventsfeedCommand::show() {
 void LoadConversationsCommand::process(const std::vector<std::string>& args) {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(mutex_);
+	//
+	if (processing_) return;
+	processing_ = true;
+
 	// clean-up
 	chains_.clear();
 	loaded_.clear();
@@ -1494,6 +1599,7 @@ void LoadConversationsCommand::process(const std::vector<std::string>& args) {
 	pendingInfos_.clear();
 	pengindChainInfos_.clear();
 	localConversationsFeed_->clear();
+	commands_.clear();
 	pendingChainInfosLoaded_ = 0;
 
 	// args - from
@@ -1539,6 +1645,8 @@ void LoadConversationsCommand::process(const std::vector<std::string>& args) {
 
 		// async process
 		lCommand->process(boost::bind(&LoadConversationsCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
+		// backup
+		commands_.push_back(lCommand);
 	}
 }
 
@@ -1685,6 +1793,8 @@ void LoadConversationsCommand::show() {
 		std::cout << std::endl;
 		display(conversationsFeed_->toItem());
 	}
+
+	processing_ = false;
 
 	done_(ProcessingError());
 }

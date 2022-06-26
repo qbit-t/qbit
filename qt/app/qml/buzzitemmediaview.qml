@@ -271,6 +271,12 @@ Item {
 						}
 					}
 				}
+
+				//
+				var lNewCurrentItem = mediaList.itemAtIndex(mediaList.currentIndex);
+				if (lNewCurrentItem) {
+					lNewCurrentItem.tryDownload();
+				}
 			}
 		}
 
@@ -291,6 +297,10 @@ Item {
 
 			property var mediaItem;
 			property var mediaType;
+
+			function tryDownload() {
+				downloadCommand.previewMediaLoaded();
+			}
 
 			//property bool isFullyVisible: mediaFrame.x >= mediaList.contentX && mediaFrame.x + mediaFrame.width <= mediaList.contentX + mediaList.width
 
@@ -331,7 +341,7 @@ Item {
 
 				function previewMediaLoaded() {
 					// re-process
-					if (preview) {
+					if (preview && index == mediaList.currentIndex) {
 						preview = false;
 						mediaFrame.mediaItem.showLoading();
 						downloadCommand.process();

@@ -507,6 +507,7 @@ public:
 	void buzzerInfoLoaded(const std::vector<TransactionPtr>&);
 
 	void error(const std::string& code, const std::string& message) {
+		processing_ = false;
 		gLog().writeClient(Log::CLIENT, strprintf(": %s | %s", code, message));
 		done_(ProcessingError(code, message));
 	}
@@ -546,6 +547,8 @@ protected:
 	std::map<uint256 /*info tx*/, Buzzer::Info> pendingInfos_;
 	int pendingChainInfosLoaded_ = 0;
 	std::map<uint256 /*chain*/, std::vector<BuzzfeedPublisherFrom>> fromAny_;
+	std::list<IComposerMethodPtr> commands_;
+	bool processing_ = false;
 	boost::recursive_mutex mutex_;
 };
 
@@ -797,6 +800,7 @@ public:
 	void tagsLoaded(const std::vector<Buzzer::HashTag>& /*feed*/, const uint256& /*chain*/, int /*count*/);
 
 	void error(const std::string& code, const std::string& message) {
+		processing_ = false;
 		gLog().writeClient(Log::CLIENT, strprintf(": %s | %s", code, message));
 		done_(std::string(), std::vector<Buzzer::HashTag>(), ProcessingError(code, message));
 	}
@@ -861,6 +865,8 @@ private:
 	std::vector<uint256> chains_;
 	std::map<uint256, int> loaded_;
 	std::map<uint256, std::map<uint160, Buzzer::HashTag>> feed_;
+	std::list<IComposerMethodPtr> commands_;
+	bool processing_ = false;
 	bool display_ = true;
 };
 
@@ -911,6 +917,7 @@ public:
 	void show();
 
 	void error(const std::string& code, const std::string& message) {
+		processing_ = false;
 		gLog().writeClient(Log::CLIENT, strprintf(": %s | %s", code, message));
 		done_(ProcessingError(code, message));
 	}
@@ -943,8 +950,10 @@ protected:
 	std::set<uint256> pendingLoaded_;
 	std::map<uint256 /*chain*/, std::set<uint256>/*items*/> pengindChainInfos_;
 	std::map<uint256 /*info tx*/, Buzzer::Info> pendingInfos_;
+	std::list<IComposerMethodPtr> commands_;
 	int pendingChainInfosLoaded_ = 0;
 	uint64_t from_ = 0;	
+	bool processing_ = false;
 	boost::recursive_mutex mutex_;
 };
 
@@ -998,6 +1007,7 @@ public:
 	void show();
 
 	void error(const std::string& code, const std::string& message) {
+		processing_ = false;
 		gLog().writeClient(Log::CLIENT, strprintf(": %s | %s", code, message));
 		done_(ProcessingError(code, message));
 	}
@@ -1030,7 +1040,9 @@ protected:
 	std::set<uint256> pendingLoaded_;
 	std::map<uint256 /*chain*/, std::set<uint256>/*items*/> pengindChainInfos_;
 	std::map<uint256 /*info tx*/, Buzzer::Info> pendingInfos_;
+	std::list<IComposerMethodPtr> commands_;
 	int pendingChainInfosLoaded_ = 0;
+	bool processing_ = false;
 	uint64_t from_ = 0;
 	boost::recursive_mutex mutex_;
 };

@@ -1217,7 +1217,7 @@ private:
 	bool skipIfExists_;
 	bool processing_ = false;
 
-	qbit::ICommandPtr command_;
+	qbit::ICommandPtr command_ = nullptr;
 };
 
 class UploadMediaCommand: public QObject

@@ -185,18 +185,21 @@ Item
 		height: parent.height
 		usePull: true
 		clip: true
+		highlightFollowsCurrentItem: false
 
 		model: buzzerClient.getBuzzfeedList()
 
 		// TODO: consumes a lot RAM
-		cacheBuffer: 500
+		//cacheBuffer: 500
 		//displayMarginBeginning: 1000
 		//displayMarginEnd: 1000
 
+		/*
 		add: Transition {
 			enabled: true
 			NumberAnimation { property: "opacity"; from: 0; to: 1.0; duration: 400 }
 		}
+		*/
 
 		function adjust() {
 			//
@@ -307,9 +310,11 @@ Item
 			}
 
 			onWidthChanged: {
-				if (buzzItem) {
-					buzzItem.width = list.width;
-					itemDelegate.height = buzzItem.calculateHeight();
+				if (itemDelegate.buzzItem) {
+					var lHeight = itemDelegate.buzzItem.calculateHeight();
+					itemDelegate.buzzItem.width = list.width;
+					itemDelegate.height = lHeight;
+					itemDelegate.buzzItem.height = lHeight;
 				}
 			}
 
@@ -330,23 +335,14 @@ Item
 				buzzItem.buzzfeedModel_ = buzzerClient.getBuzzfeedList();
 				buzzItem.listView_ = list;
 
-				itemDelegate.height = buzzItem.calculateHeight();
+				//itemDelegate.height = buzzItem.calculateHeight();
 				itemDelegate.width = list.width;
 			}
 
 			function calculatedHeightModified(value) {
-				//
 				itemDelegate.height = value;
+				itemDelegate.buzzItem.height = value;
 				itemDelegate.adjustValue.push(value);
-
-				if ((buzzMedia && buzzMedia.length || wrapped) && itemDelegate.adjustValue.length >= 2) {
-					//
-					//console.info("[collect]: itemDelegate.adjustValue = " + itemDelegate.adjustValue + ", value = " + value + ", index = " + index);
-					if (localDynamic) {
-						buzzerClient.getBuzzfeedList().resetLocalDynamic(index);
-						buzzerClient.getBuzzfeedList().forceRelayout(index, 1);
-					}
-				}
 			}
 
 			function unbindCommonControls() {

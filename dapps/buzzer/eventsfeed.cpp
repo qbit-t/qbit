@@ -5,32 +5,38 @@ using namespace qbit;
 void EventsfeedItem::push(const EventsfeedItem& buzz, const uint160& peer) {
 	// put into unconfirmed
 	Guard lLock(this);
+	bool lProcess = false;
 	std::map<Key /*buzz*/, EventsfeedItemPtr>::iterator lItem = unconfirmed_.find(buzz.key());
 	if (lItem == unconfirmed_.end()) { // absent
 		//
 		EventsfeedItemPtr lBuzz = EventsfeedItem::instance(buzz);
-		lBuzz->addConfirmation(peer);
+		lProcess = lBuzz->addConfirmation(peer) >= G_BUZZ_PEERS_CONFIRMATIONS;
 		unconfirmed_[buzz.key()] = lBuzz;
 	} else {
-		if (lItem->second->addConfirmation(peer) >= G_BUZZ_PEERS_CONFIRMATIONS) {
-			//
-			EventsfeedItemPtr lBuzz = lItem->second;
-			// TODO: remove from unconfirmed?
-			//unconfirmed_.erase(lItem);
+		lProcess = lItem->second->addConfirmation(peer) >= G_BUZZ_PEERS_CONFIRMATIONS;
+	}
 
-			// merge finally
-			mergeInternal(lBuzz, true, true);
+	if (lProcess) {
+		//
+		EventsfeedItemPtr lBuzz = lItem->second;
+		// TODO: remove from unconfirmed?
+		//unconfirmed_.erase(lItem);
 
-			// resolve info
-			if (buzzer()) { 
-				buzzer()->resolvePendingEventsItems();
-				buzzer()->resolveBuzzerInfos();
-			} else {
-				std::cout << "[PUSH-ERROR]: Buzzer not found" << "\n";
-				if (gLog().isEnabled(Log::CLIENT))
-					gLog().write(Log::CLIENT, "[PUSH-ERROR]: Buzzer not found");
-			}
+		// merge finally
+		mergeInternal(lBuzz, true, true);
+
+		// resolve info
+		if (buzzer()) { 
+			buzzer()->resolvePendingEventsItems();
+			buzzer()->resolveBuzzerInfos();
+		} else {
+			std::cout << "[PUSH-ERROR]: Buzzer not found" << "\n";
+			if (gLog().isEnabled(Log::CLIENT))
+				gLog().write(Log::CLIENT, "[PUSH-ERROR]: Buzzer not found");
 		}
+
+		//if (gLog().isEnabled(Log::CLIENT))
+		//	gLog().write(Log::CLIENT, strprintf("[EVENT-PUSHED]: %d, %s", G_BUZZ_PEERS_CONFIRMATIONS, lBuzz->toString()));
 	}
 }
 

@@ -288,7 +288,7 @@ Rectangle {
 		width: parent.width
 		height: parent.height
 		drag.target: mediaImage
-		drag.threshold: 20
+		drag.threshold: mediaImage.scale == 1.0 ? 200 : 20
 		cursorShape: Qt.PointingHandCursor
 
 		drag.onActiveChanged: {
@@ -406,7 +406,7 @@ Rectangle {
 		id: waitControl
 		x: parent.width / 2 - width / 2
 		y: parent.height / 2 - height / 2
-		symbol: Fonts.clockSym
+		//symbol: Fonts.clockSym
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (mediaLoading.size-10)) : (mediaLoading.size-10)
 		color: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.link")
 		visible: false
@@ -428,7 +428,7 @@ Rectangle {
 		QuarkSymbolLabel {
 			id: waitSymbol
 			anchors.fill: parent
-			symbol: Fonts.clockSym
+			//symbol: Fonts.clockSym
 			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (mediaLoading.size-10)) : (mediaLoading.size-10)
 			color: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.link")
 			visible: mediaLoading.visible

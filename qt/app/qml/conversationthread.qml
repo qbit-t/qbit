@@ -633,7 +633,7 @@ QuarkPage {
 		highlightFollowsCurrentItem: true
 		highlightMoveDuration: -1
 		highlightMoveVelocity: -1
-		cacheBuffer: 800
+		//cacheBuffer: 800
 		rotation: 180
 		feedDelta: 20
 
@@ -676,10 +676,12 @@ QuarkPage {
 
 		//model: buzzesThread_
 
+		/*
 		add: Transition {
 			enabled: true
 			NumberAnimation { property: "opacity"; from: 0; to: 1.0; duration: 400 }
 		}
+		*/
 
 		ScrollIndicator.vertical: scrollIndicator
 		//ScrollBar.vertical: scrollBar
@@ -816,9 +818,11 @@ QuarkPage {
 			property var adjustValue: []
 
 			onWidthChanged: {
-				if (buzzItem) {
-					buzzItem.width = list.width;
-					itemDelegate.height = buzzItem.calculateHeight();
+				if (itemDelegate.buzzItem) {
+					var lHeight = itemDelegate.buzzItem.calculateHeight();
+					itemDelegate.buzzItem.width = list.width;
+					itemDelegate.height = lHeight;
+					itemDelegate.buzzItem.height = lHeight;
 				}
 			}
 
@@ -840,7 +844,7 @@ QuarkPage {
 					buzzItem.model_ = conversationThread_;
 					buzzItem.conversationId_ = modelLoader.conversationId;
 
-					itemDelegate.height = buzzItem.calculateHeight();
+					//itemDelegate.height = buzzItem.calculateHeight();
 					itemDelegate.width = list.width;
 
 					buzzItem.adjust();
@@ -849,11 +853,11 @@ QuarkPage {
 
 			function calculatedHeightModified(value) {
 				//
-				// if (!(buzzMedia && buzzMedia.length))
-					itemDelegate.height = value;
-
+				itemDelegate.height = value;
+				itemDelegate.buzzItem.height = value;
 				itemDelegate.adjustValue.push(value);
 
+				/*
 				if (buzzMedia && buzzMedia.length && itemDelegate.adjustValue.length > 2) {
 					itemDelegate.height = itemDelegate.adjustValue[itemDelegate.adjustValue.length - 1];
 
@@ -862,6 +866,7 @@ QuarkPage {
 						conversationthreadfeed_.conversationThread_.forceRelayout(index, 1);
 					}
 				}
+				*/
 			}
 
 			function changeCursorShape(shape) {

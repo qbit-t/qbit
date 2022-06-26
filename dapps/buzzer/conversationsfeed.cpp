@@ -6,11 +6,12 @@ using namespace qbit;
 void ConversationItem::push(const ConversationItem& buzz, const uint160& peer) {
 	// put into unconfirmed
 	Guard lLock(this);
+	bool lProcess = false;
 	std::map<uint256 /*conversation*/, ConversationItemPtr>::iterator lItem = unconfirmed_.find(buzz.key());
 	if (lItem == unconfirmed_.end()) { // absent
 		//
 		ConversationItemPtr lBuzz = ConversationItem::instance(buzz);
-		lBuzz->addConfirmation(peer);
+		lProcess = lBuzz->addConfirmation(peer) >= G_BUZZ_PEERS_CONFIRMATIONS;
 		lBuzz->notOnChain(); // only for the dynamic updates
 		lBuzz->setDynamic(); // dynamic
 		
@@ -18,27 +19,29 @@ void ConversationItem::push(const ConversationItem& buzz, const uint160& peer) {
 		if (gLog().isEnabled(Log::CLIENT))
 			gLog().write(Log::CLIENT, "[PUSH-0]");
 	} else {
-		if (lItem->second->addConfirmation(peer) >= G_BUZZ_PEERS_CONFIRMATIONS) {
-			//
-			ConversationItemPtr lBuzz = lItem->second;
-			// TODO: remove from unconfirmed?
-			// unconfirmed_.erase(lItem);
-			
-			// merge finally
-			mergeInternal(lBuzz, true, true);
+		lProcess = lItem->second->addConfirmation(peer) >= G_BUZZ_PEERS_CONFIRMATIONS;
+	}
 
+	if (lProcess) {
+		//
+		ConversationItemPtr lBuzz = lItem->second;
+		// TODO: remove from unconfirmed?
+		// unconfirmed_.erase(lItem);
+		
+		// merge finally
+		mergeInternal(lBuzz, true, true);
+
+		if (gLog().isEnabled(Log::CLIENT))
+			gLog().write(Log::CLIENT, "[PUSH-1]");
+
+		// resolve info
+		if (buzzer()) { 
+			buzzer()->resolvePendingEventsItems();
+			buzzer()->resolveBuzzerInfos();
+		} else {
+			std::cout << "[PUSH-ERROR]: Buzzer not found" << "\n";
 			if (gLog().isEnabled(Log::CLIENT))
-				gLog().write(Log::CLIENT, "[PUSH-1]");
-
-			// resolve info
-			if (buzzer()) { 
-				buzzer()->resolvePendingEventsItems();
-				buzzer()->resolveBuzzerInfos();
-			} else {
-				std::cout << "[PUSH-ERROR]: Buzzer not found" << "\n";
-				if (gLog().isEnabled(Log::CLIENT))
-					gLog().write(Log::CLIENT, "[PUSH-ERROR]: Buzzer not found");
-			}
+				gLog().write(Log::CLIENT, "[PUSH-ERROR]: Buzzer not found");
 		}
 	}
 }

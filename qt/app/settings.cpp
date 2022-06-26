@@ -30,6 +30,11 @@ uint64_t Settings::oneVoteProofAmount() {
 	return client_->getQttAssetVoteAmount();
 }
 
+size_t Settings::threadPoolSize() {
+	if (daemon_) return 1;
+	return 1;
+}
+
 Settings* SettingsFactory::get()
 {
 	return new SettingsJSON();

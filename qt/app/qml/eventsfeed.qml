@@ -163,10 +163,12 @@ Item
 
 		model: buzzerClient.getEventsfeedList()
 
+		/*
 		add: Transition {
 			enabled: true
 			NumberAnimation { property: "opacity"; from: 0; to: 1.0; duration: 400 }
 		}
+		*/
 
 		function adjust() {
 			//
@@ -260,9 +262,11 @@ Item
 			}
 
 			onWidthChanged: {
-				if (buzzItem) {
-					buzzItem.width = list.width;
-					itemDelegate.height = buzzItem.calculateHeight();
+				if (itemDelegate.buzzItem) {
+					var lHeight = itemDelegate.buzzItem.calculateHeight();
+					itemDelegate.buzzItem.width = list.width;
+					itemDelegate.height = lHeight;
+					itemDelegate.buzzItem.height = lHeight;
 				}
 			}
 
@@ -308,6 +312,7 @@ Item
 
 			function calculatedHeightModified(value) {
 				itemDelegate.height = value;
+				itemDelegate.buzzItem.height = value;
 			}
 		}
 	}
