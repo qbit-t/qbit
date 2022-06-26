@@ -172,12 +172,12 @@ bool BuzzfeedItem::mergeInternal(BuzzfeedItemPtr buzz, bool checkSize, bool noti
 	Buzzer::VerificationResult lResult;
 	if (suspicious && verifyPublisherLazy_) {
 		lResult = verifyPublisherLazy_(lBuzz);
-		if (lResult == Buzzer::VerificationResult::INVALID)
-			if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[ERROR-01]: %s", lBuzz->toString()));
+		//if (lResult == Buzzer::VerificationResult::INVALID)
+			//if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[ERROR-01]: %s", lBuzz->toString()));
 	} else {
 		lResult = verifyPublisher_(lBuzz);
-		if (lResult == Buzzer::VerificationResult::INVALID)
-			if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[ERROR-02]: %s", lBuzz->toString()));
+		//if (lResult == Buzzer::VerificationResult::INVALID)
+			//if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[ERROR-02]: %s", lBuzz->toString()));
 	}
 
 	// supposedly strict
@@ -481,8 +481,8 @@ bool BuzzfeedItem::mergeInternal(BuzzfeedItemPtr buzz, bool checkSize, bool noti
 
 		return lItemAdded;
 	} else {
-		std::cout << "[ERROR]: " << lBuzz->toString() << "\n";
-		if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[ERROR]: %s", lBuzz->toString()));
+		//std::cout << "[ERROR]: " << lBuzz->toString() << "\n";
+		//if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[ERROR]: %s", lBuzz->toString()));
 
 		//
 		std::map<uint256 /*buzz*/, std::set<Key>>::iterator lRoot = orphans_.find(lBuzz->buzzId());

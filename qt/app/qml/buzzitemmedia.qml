@@ -202,8 +202,16 @@ Item {
 
 		//model: ListModel { id: mediaModel }
 		property ListModel mediaModel: ListModel { id: media }
+		property bool inTransation: false
+
+		function resetTransation() {
+			inTransation = false;
+		}
 
 		onContentXChanged: {
+			//
+			if (inTransation) return;
+
 			//
 			var lLastIndex = mediaIndicator.currentIndex;
 			var lNewIndex = lLastIndex;
@@ -211,17 +219,17 @@ Item {
 			//
 			if (contentX == 0) lNewIndex = 0;
 			else {
-				var lOffset = mediaList.width/2;
-				if (lLastIndex + 1 >= mediaList.mediaModel.count - 1) lOffset = mediaList.width * 0.90;
+				var lOffset = mediaList.width * 0.75;
+				if (lLastIndex + 1 >= mediaList.mediaModel.count - 1) lOffset = mediaList.width * 0.98;
 				lNewIndex = mediaList.indexAt(mediaList.contentX + lOffset, 0);
 			}
 
-			//
 			if (lNewIndex === -1 && lLastIndex < buzzMedia_.length - 1) {
 				var lMedia = buzzMedia_[lLastIndex + 1];
 				mediaList.addMedia(lMedia.url, buzzerClient.getTempFilesPath() + "/" + lMedia.tx);
 				lNewIndex = lLastIndex + 1;
-			}
+				inTransation = true;
+			} else inTransation = false;
 
 			//
 			var lItem = mediaList.itemAtIndex(lNewIndex);
@@ -474,6 +482,10 @@ Item {
 			}
 
 			Component.onCompleted: {
+				//
+				mediaList.resetTransation();
+
+				//
 				if (!downloadCommand.processed_ && (!index || forcePlay_ || mediaList.mediaModel.count < 4)) {
 					downloadWaitTimer.start();
 					if (forcePlay_) downloadCommand.tryPlay_ = forcePlay_;
