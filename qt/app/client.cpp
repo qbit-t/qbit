@@ -798,21 +798,21 @@ QString Client::decorateBuzzBodyLimited(const QString& body, int limit) {
 	lDecorationRules.append(lRule);
 
 	lRule.pattern = QString("<b>\\1</b>");
-	lRule.expression = QRegularExpression("(\\*\\*(.*?)\\*\\*)"); // **bold**
+	lRule.expression = QRegularExpression("(\\*\\*((.|\\n\\r|\\n|\\r)*?)\\*\\*)"); // **bold**
 	lRule.truncate = false;
 	lRule.arg0 = 2;
 	lRule.arg1 = 2;
 	lDecorationRules.append(lRule);
 
 	lRule.pattern = QString("<i>\\1</i>");
-	lRule.expression = QRegularExpression("(__(.*?)__)"); // __italic__
+	lRule.expression = QRegularExpression("(__((.|\\n\\r|\\n|\\r)*?)__)"); // __italic__
 	lRule.truncate = false;
 	lRule.arg0 = 2;
 	lRule.arg1 = 2;
 	lDecorationRules.append(lRule);
 
 	lRule.pattern = QString("<code>\\1</code>");
-	lRule.expression = QRegularExpression("(`(.*?)`)"); // code with monotype
+	lRule.expression = QRegularExpression("(`((.|\\n\\r|\\n|\\r)*?)`)"); // code with monotype
 	lRule.truncate = false;
 	lRule.arg0 = 2;
 	lRule.arg1 = 2;

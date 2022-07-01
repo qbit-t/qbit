@@ -665,7 +665,22 @@ public:
 						} else lAdd = true;
 					} else lAdd = true;
 
-					if (lAdd) lPeers.push_back(lItem->second);
+					if (lAdd) {
+						State::BlockInfo lInfo;
+						if (lItem->second->state()->locateChain(chain_, lInfo)) {
+							//
+							BlockHeader lHeader;
+							ITransactionStorePtr lStore = store_->storeManager()->locate(chain_);
+							if (lStore) {
+								uint64_t lHeight = lStore->currentHeight(lHeader);
+								//
+								if ((lHeight > lInfo.height() && lHeight - lInfo.height() < 5) ||
+										(lHeight < lInfo.height() && lInfo.height() - lHeight < 5) || 
+											lHeight == lInfo.height())
+									lPeers.push_back(lItem->second);
+							}
+						}
+					}
 				}
 			}
 		}

@@ -1695,8 +1695,8 @@ void BuzzerLightComposer::LoadBuzzesByBuzzer::process(errorFunction error) {
 				}
 			}
 
-			if (!lSent)
-				error_("E_LOAD_BUZZFEED_BUZZER_TIMESTAMP", "Buzzer timestamp was not found.");
+			//if (!lSent)
+			//	error_("E_LOAD_BUZZFEED_BUZZER_TIMESTAMP", "Buzzer timestamp was not found.");
 		} else {
 			if (!(count_ = composer_->buzzerRequestProcessor()->selectBuzzfeedByBuzzer(chain_, 0, buzzerId_, composer_->buzzerTx()->id(), requests_,
 				SelectBuzzFeedByEntity::instance(
@@ -1729,8 +1729,8 @@ void BuzzerLightComposer::LoadBuzzesByBuzzer::publisherLoaded(EntityPtr publishe
 			}
 		}
 
-		if (!lSent)
-			error_("E_LOAD_BUZZFEED_BUZZER_TIMESTAMP", "Buzzer timestamp was not found.");
+		//if (!lSent)
+		//	error_("E_LOAD_BUZZFEED_BUZZER_TIMESTAMP", "Buzzer timestamp was not found.");
 	} else {
 		if (!(count_ = composer_->buzzerRequestProcessor()->selectBuzzfeedByBuzzer(chain_, 0, publisher->id(), composer_->buzzerTx()->id(), requests_,
 			SelectBuzzFeedByEntity::instance(

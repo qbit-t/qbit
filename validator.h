@@ -516,11 +516,18 @@ private:
 
 			if (lState != IConsensus::SYNCHRONIZED && lState != IConsensus::SYNCHRONIZING && lState != IConsensus::INDEXING) {
 				//
-				if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[touch]: chain ") + strprintf("%s#", chain_.toHex().substr(0, 10)) + std::string(" NOT synchronized, starting synchronization..."));
-				if (consensus_->doSynchronize()) {
-					// already synchronized
-					if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[touch]: chain ") + strprintf("%s#", chain_.toHex().substr(0, 10)) + std::string(" IS synchronized."));
-					startMiner();
+				SynchronizationJobPtr lJob = consensus_->lastJob();
+				if (lJob && getTime() - lJob->timestamp() > consensus_->settings()->consensusSynchronizationLatency()) {
+					consensus_->finishJob(nullptr); // force and restart job
+					if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::GENERAL_ERROR, std::string("[validator/touch/error]: synchronization is seems to be stalled."));
+				} else {
+					//
+					if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[touch]: chain ") + strprintf("%s#", chain_.toHex().substr(0, 10)) + std::string(" NOT synchronized, starting synchronization..."));
+					if (consensus_->doSynchronize()) {
+						// already synchronized
+						if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[touch]: chain ") + strprintf("%s#", chain_.toHex().substr(0, 10)) + std::string(" IS synchronized."));
+						startMiner();
+					}
 				}
 			} else if (lState == IConsensus::SYNCHRONIZING) {
 				//

@@ -829,7 +829,7 @@ Item {
 			x: 0
 			y: 0
 			width: parent.width
-			text: buzzBodyLimited_ // buzzBody_ ? (buzzBody_.length > 500 ? buzzBody_.slice(0, 500) + "..." : buzzBody_) : ""
+			text: rootId_ && rootId_ == buzzId_ ? buzzBody_ : buzzBodyLimited_ // buzzBody_ ? (buzzBody_.length > 500 ? buzzBody_.slice(0, 500) + "..." : buzzBody_) : ""
 			wrapMode: Text.Wrap
 			textFormat: Text.RichText
 			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize * multiplicator_) : defaultFontPointSize * multiplicator_
