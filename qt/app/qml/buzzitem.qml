@@ -901,7 +901,7 @@ Item {
 					//
 					mediaLoader.setSource("qrc:/qml/buzzitemmedia.qml");
 				}
-			} else if (lastUrl_.length) {
+			} else if (!wrapped_ && lastUrl_.length) {
 				//
 				if (!urlInfoItem_) {
 					//

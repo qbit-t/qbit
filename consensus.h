@@ -428,8 +428,8 @@ public:
 		if (lPeer) {
 			if (store_->enqueueBlock(block)) {
 				if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, 
-					strprintf("[acquireBlock]: acquiring BLOCK %s/%s#", 
-						const_cast<NetworkBlockHeader&>(block).blockHeader().hash().toHex(), chain_.toHex().substr(0, 10)));
+					strprintf("[acquireBlock]: acquiring BLOCK %s/%s# from %s", 
+						const_cast<NetworkBlockHeader&>(block).blockHeader().hash().toHex(), chain_.toHex().substr(0, 10), lPeer->key()));
 				lPeer->acquireBlock(block);
 			} else {
 				if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, 

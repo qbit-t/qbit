@@ -567,7 +567,7 @@ Item {
 					bodyControl.height = bodyControl.getHeight();
 					buzzitemhead_.calculateHeight();
 				}
-			} else if (lastUrl_ && lastUrl_.length) {
+			} else if (!wrapped_ && lastUrl_ && lastUrl_.length) {
 				//
 				if (!urlInfoItem_) {
 					lSource = buzzerApp.isDesktop ? "qrc:/qml/buzzitemurl-desktop.qml" : "qrc:/qml/buzzitemurl.qml";

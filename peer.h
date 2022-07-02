@@ -98,8 +98,8 @@ public:
 		timestamp_ = time_;
 
 		controlTimer_.reset(
-			new boost::asio::steady_timer(
-				peerManager->getContext(contextId), boost::asio::chrono::seconds(5))
+			new boost::asio::deadline_timer(
+				peerManager->getContext(contextId))
 		);
 
 		peerManager->incPeersCount();
@@ -118,8 +118,8 @@ public:
 		timestamp_ = time_;
 
 		controlTimer_.reset(
-			new boost::asio::steady_timer(
-				peerManager->getContext(contextId), boost::asio::chrono::seconds(5))
+			new boost::asio::deadline_timer(
+				peerManager->getContext(contextId))
 		);
 
 		peerManager->incPeersCount();
@@ -395,6 +395,7 @@ private:
 		std::list<DataStream>::iterator	msg() { return msg_; }
 		Type type() { return type_; }
 		void toQueued() { type_ = QUEUED; }
+		void toPostponed() { type_ = POSTPONED; }
 
 	private:
 		std::list<DataStream>::iterator msg_;
@@ -402,6 +403,7 @@ private:
 	};
 
 	void messageSentAsync(std::list<OutMessage>::iterator msg, const boost::system::error_code& error);
+	void messageSendTimeout(std::list<OutMessage>::iterator msg, const boost::system::error_code& error);
 
 private:
 	// internal processing
@@ -639,6 +641,8 @@ private:
 		return bytesSent_;
 	}
 
+	void reset();
+
 private:
 	SocketPtr socket_;
 	StrandPtr strand_;
@@ -702,7 +706,7 @@ private:
 	boost::random::mt19937 gen_;
 
 	//
-	typedef std::shared_ptr<boost::asio::steady_timer> TimerPtr;
+	typedef std::shared_ptr<boost::asio::deadline_timer> TimerPtr;
 	TimerPtr controlTimer_;
 };
 
