@@ -392,7 +392,7 @@ public:
 		{
 			boost::unique_lock<boost::mutex> lLock(peersMutex_);
 			PeersMap::iterator lPeerPtr = directPeerMap_.find(const_cast<NetworkBlockHeader&>(block).blockHeader().origin().id());
-			if (lPeerPtr != directPeerMap_.end()) {
+			if (lPeerPtr != directPeerMap_.end() && lPeerPtr->second->status() == IPeer::Status::ACTIVE) {
 				lPeer = lPeerPtr->second;
 			}
 		}
@@ -410,17 +410,19 @@ public:
 					StateMap::iterator lPeerSet = lStateMap->second.find(const_cast<NetworkBlockHeader&>(block).blockHeader().hash());
 					if(lPeerSet != lStateMap->second.end() && lPeerSet->second.size()) {
 						//
-						lPeerId = *lPeerSet->second.begin(); // TODO: take first of? or near by latency
+						for (PeersSet::iterator lPeerIdx = lPeerSet->second.begin(); lPeerIdx != lPeerSet->second.end(); lPeerIdx++) {
+ 							lPeerId = *lPeerIdx;
+							// select peer
+							if (!lPeerId.isEmpty()) {
+								boost::unique_lock<boost::mutex> lLock(peersMutex_);
+								PeersMap::iterator lPeerPtr = directPeerMap_.find(lPeerId);
+								if (lPeerPtr != directPeerMap_.end() && lPeerPtr->second->status() == IPeer::Status::ACTIVE) {
+									lPeer = lPeerPtr->second;
+									break;
+								}
+							}
+ 						}
 					}
-				}
-			}
-
-			// select peer
-			if (!lPeerId.isEmpty()) {
-				boost::unique_lock<boost::mutex> lLock(peersMutex_);
-				PeersMap::iterator lPeerPtr = directPeerMap_.find(lPeerId);
-				if (lPeerPtr != directPeerMap_.end()) {
-					lPeer = lPeerPtr->second;
 				}
 			}
 		}
@@ -477,7 +479,8 @@ public:
 		{
 			boost::unique_lock<boost::mutex> lLock(peersMutex_);
 			for (PeersMap::iterator lItem = directPeerMap_.begin(); lItem != directPeerMap_.end(); lItem++) {
-				lPeers.push_back(lItem->second);
+				if (lItem->second->status() == IPeer::Status::ACTIVE)
+					lPeers.push_back(lItem->second);
 			}
 		}
 
@@ -496,7 +499,8 @@ public:
 		{
 			boost::unique_lock<boost::mutex> lLock(peersMutex_);
 			for (PeersMap::iterator lItem = directPeerMap_.begin(); lItem != directPeerMap_.end(); lItem++) {
-				lPeers.push_back(lItem->second);
+				if (lItem->second->status() == IPeer::Status::ACTIVE)
+					lPeers.push_back(lItem->second);
 			}
 		}
 
@@ -531,7 +535,8 @@ public:
 		{
 			boost::unique_lock<boost::mutex> lLock(peersMutex_);
 			for (PeersMap::iterator lItem = directPeerMap_.begin(); lItem != directPeerMap_.end(); lItem++) {
-				lPeers.push_back(lItem->second);
+				if (lItem->second->status() == IPeer::Status::ACTIVE)
+					lPeers.push_back(lItem->second);
 			}
 		}
 
@@ -564,7 +569,8 @@ public:
 		{
 			boost::unique_lock<boost::mutex> lLock(peersMutex_);
 			for (PeersMap::iterator lItem = directPeerMap_.begin(); lItem != directPeerMap_.end(); lItem++) {
-				lPeers.push_back(lItem->second);
+				if (lItem->second->status() == IPeer::Status::ACTIVE)
+					lPeers.push_back(lItem->second);
 			}
 		}
 
@@ -602,7 +608,8 @@ public:
 		{
 			boost::unique_lock<boost::mutex> lLock(peersMutex_);
 			for (PeersMap::iterator lItem = directPeerMap_.begin(); lItem != directPeerMap_.end(); lItem++) {
-				lPeers.push_back(lItem->second);
+				if (lItem->second->status() == IPeer::Status::ACTIVE)
+					lPeers.push_back(lItem->second);
 			}
 		}
 
@@ -621,7 +628,8 @@ public:
 		{
 			boost::unique_lock<boost::mutex> lLock(peersMutex_);
 			for (PeersMap::iterator lItem = directPeerMap_.begin(); lItem != directPeerMap_.end(); lItem++) {
-				lPeers.push_back(lItem->second);
+				if (lItem->second->status() == IPeer::Status::ACTIVE)
+					lPeers.push_back(lItem->second);
 			}
 		}
 
@@ -640,7 +648,7 @@ public:
 		{
 			boost::unique_lock<boost::mutex> lLock(peersMutex_);
 			for (PeersMap::iterator lItem = directPeerMap_.begin(); lItem != directPeerMap_.end(); lItem++) {
-				if (lItem->second->state()->minerOrValidator()) {
+				if (lItem->second->state()->minerOrValidator() && lItem->second->status() == IPeer::Status::ACTIVE) {
 					//
 					bool lAdd = false;
 					// check collateral if configured
@@ -882,7 +890,7 @@ public:
 			//
 			for (PeersSet::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
 				PeersMap::iterator lPeerPtr = directPeerMap_.find(*lPeer);
-				if (lPeerPtr != directPeerMap_.end()) {
+				if (lPeerPtr != directPeerMap_.end() && lPeerPtr->second->status() == IPeer::Status::ACTIVE) {
 					peers.push_back(lPeerPtr->second);
 				}
 			}
