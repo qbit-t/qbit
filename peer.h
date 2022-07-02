@@ -151,6 +151,7 @@ public:
 			boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
 			if (socket_) {
 				socketStatus_ = CLOSED;
+				controlTimer_->cancel();
 				socket_->close();
 			}
 		}
@@ -206,6 +207,7 @@ public:
 	}
 	void close() {
 		if (socket_) {
+			controlTimer_->cancel();
 			socket_->close();
 			socketStatus_ = CLOSED;
 		}

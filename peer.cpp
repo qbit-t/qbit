@@ -13,12 +13,14 @@ bool Peer::onQuarantine() {
 void Peer::reset() {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
-	//
+	// cancel send wait
+	controlTimer_->cancel();
+	// reset status
 	socketStatus_ = GENERAL_ERROR;
 	// try to deactivate peer
 	peerManager_->deactivatePeer(shared_from_this());
 	// close socket
-	if (socket_) socket_->close();	
+	if (socket_) socket_->close();
 }
 
 void Peer::sendMessageAsync(std::list<DataStream>::iterator msg) {
@@ -89,11 +91,19 @@ void Peer::processPendingMessagesQueue() {
 		{
 			boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
 			if (socketStatus_ == CONNECTED) {
+				//
 				boost::asio::async_write(*socket_,
 					boost::asio::buffer(lMsg->msg()->data(), lMsg->msg()->size()),
 					strand_->wrap(boost::bind(
 						&Peer::messageSentAsync, shared_from_this(), lMsg,
 						boost::asio::placeholders::error)));
+				// control
+				controlTimer_->expires_from_now(boost::posix_time::milliseconds(30*1000 /*TODO: settings*/));
+				controlTimer_->async_wait(
+					strand_->wrap(boost::bind(
+						&Peer::messageSendTimeout, shared_from_this(), lMsg,
+						boost::asio::placeholders::error))
+				);
 				//
 				lProcessed = true;
 			}
@@ -111,7 +121,10 @@ void Peer::processPendingMessagesQueue() {
 
 void Peer::messageSentAsync(std::list<OutMessage>::iterator msg, const boost::system::error_code& error) {
 	// cancel timer
-	controlTimer_->cancel();
+	{
+		boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
+		controlTimer_->cancel();
+	}
 
 	// remove message from queue
 	if (!eraseOutMessage(msg)) {
@@ -135,9 +148,6 @@ void Peer::messageSendTimeout(std::list<OutMessage>::iterator /*msg*/, const boo
 	if (!error) {
 		// log
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, strprintf("[peer/error]: send timeout, closing session %s -> %s", key(), error.message()));
-
-		// cancel timer
-		controlTimer_->cancel();
 
 		//
 		reset();
