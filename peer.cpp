@@ -120,26 +120,28 @@ void Peer::processPendingMessagesQueue() {
 }
 
 void Peer::messageSentAsync(std::list<OutMessage>::iterator msg, const boost::system::error_code& error) {
-	// cancel timer
-	{
-		boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
-		controlTimer_->cancel();
-	}
-
-	// remove message from queue
-	if (!eraseOutMessage(msg)) {
-		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/messageSentAsync]: queue is EMPTY"));
-		return;
-	}
-
 	// if error?
-	if (error) {
-		processError("messageSentAsync", rawInData_.end(), error);
-	} else {
+	if (!error) {
+		// cancel timer
+		{
+			boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
+			controlTimer_->cancel();
+		}
+
+		// remove message from queue
+		if (!eraseOutMessage(msg)) {
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/messageSentAsync]: queue is EMPTY"));
+			return;
+		}
+
 		// log
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, strprintf("[peer/messageSentAsync]: for %s", key()));
+		
 		// re-process pending items
 		processPendingMessagesQueue();
+	} else {
+		// process error
+		processError("messageSentAsync", rawInData_.end(), error);
 	}
 }
 
