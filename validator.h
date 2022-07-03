@@ -550,8 +550,10 @@ private:
 						}
 					} else {
 						// 2.2 nothing to do?
-						if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::GENERAL_ERROR, std::string("[validator/touch/error]: synchronization probably was stalled."));
-						consensus_->toNonSynchronized();
+						if (!lJob) {
+							if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::GENERAL_ERROR, std::string("[validator/touch/error]: synchronization probably was stalled."));
+							consensus_->toNonSynchronized();
+						}
 					}
 				}
 			} else if (lState == IConsensus::SYNCHRONIZED) {
