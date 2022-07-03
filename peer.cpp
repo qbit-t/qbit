@@ -3391,36 +3391,45 @@ void Peer::processNetworkBlock(std::list<DataStream>::iterator msg, const boost:
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing network block ") + strprintf("%s/%s#", lBlock->hash().toHex(), lBlock->chain().toHex().substr(0, 10)) + std::string("..."));
 
 		BlockHeader lHeader;
-		uint64_t lHeight = peerManager_->consensusManager()->locate(lBlock->chain())->store()->currentHeight(lHeader);
+		ITransactionStorePtr lStore = peerManager_->consensusManager()->locate(lBlock->chain())->store();
+		if (lStore) {
+			// current height
+			uint64_t lHeight = lStore->currentHeight(lHeader);
+			// block hash
+			uint256 lBlockHash = lBlock->hash();
+			// check sequence
+			uint256 lCurrentHash = lHeader.hash();
+			if (lCurrentHash != lBlock->prev()) {
+				// sequence is broken
+				if (lCurrentHash == lBlockHash) {
+					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: block already EXISTS ") + 
+						strprintf("current height:%d/hash:%s, proposing hash:%s/%s#", 
+							lHeight, lHeader.hash().toHex(), lBlockHash.toHex(), lBlock->chain().toHex().substr(0, 10)));
+				} else { 
+					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: blocks sequence is BROKEN ") + 
+						strprintf("current height:%d/hash:%s, proposing hash:%s/prev:%s/%s#", 
+							lHeight, lHeader.hash().toHex(), lBlockHash.toHex(), lBlock->prev().toHex(), lBlock->chain().toHex().substr(0, 10)));
+				}
 
-		// check sequence
-		uint256 lCurrentHash = lHeader.hash();
-		if (lCurrentHash != lBlock->prev()) {
-			// sequence is broken
-			if (lCurrentHash == lBlock->hash()) {
-				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: block already EXISTS ") + 
-					strprintf("current height:%d/hash:%s, proposing hash:%s/%s#", 
-						lHeight, lHeader.hash().toHex(), lBlock->hash().toHex(), lBlock->chain().toHex().substr(0, 10)));
-			} else { 
-				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: blocks sequence is BROKEN ") + 
-					strprintf("current height:%d/hash:%s, proposing hash:%s/prev:%s/%s#", 
-						lHeight, lHeader.hash().toHex(), lBlock->hash().toHex(), lBlock->prev().toHex(), lBlock->chain().toHex().substr(0, 10)));
-			}
-		} else {
-			// save block
-			BlockContextPtr lCtx = peerManager_->consensusManager()->locate(lBlock->chain())->store()->pushBlock(lBlock);
-			if (lCtx) {
-				if (!lCtx->errors().size()) {
-					// clean-up mempool
-					peerManager_->memoryPoolManager()->locate(lBlock->chain())->removeTransactions(lBlock);
-					// create state and block info
-					StatePtr lState = peerManager_->consensusManager()->currentState();
-					NetworkBlockHeader lHeader(lCtx->block()->blockHeader(), lCtx->height());
-					// broadcast block and state
-					peerManager_->consensusManager()->broadcastBlockHeaderAndState(lHeader, lState, lState->addressId());
-				} else {
-					// TODO: quarantine
-					//peerManager_->ban(shared_from_this());
+				// remove anyway
+				lStore->dequeueBlock(lBlockHash);
+
+			} else {
+				// save block
+				BlockContextPtr lCtx = lStore->pushBlock(lBlock);
+				if (lCtx) {
+					if (!lCtx->errors().size()) {
+						// clean-up mempool
+						peerManager_->memoryPoolManager()->locate(lBlock->chain())->removeTransactions(lBlock);
+						// create state and block info
+						StatePtr lState = peerManager_->consensusManager()->currentState();
+						NetworkBlockHeader lHeader(lCtx->block()->blockHeader(), lCtx->height());
+						// broadcast block and state
+						peerManager_->consensusManager()->broadcastBlockHeaderAndState(lHeader, lState, lState->addressId());
+					} else {
+						// TODO: quarantine
+						//peerManager_->ban(shared_from_this());
+					}
 				}
 			}
 		}
