@@ -10,11 +10,11 @@ bool Peer::onQuarantine() {
 	return peerManager_->consensusManager()->currentState()->height() < quarantine_;
 }
 
-void Peer::reset() {
+void Peer::reset(bool cancelTimer) {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
 	// cancel send wait
-	controlTimer_->cancel();
+	if (cancelTimer) controlTimer_->cancel();
 	// reset status
 	socketStatus_ = GENERAL_ERROR;
 	// try to deactivate peer
@@ -51,11 +51,11 @@ void Peer::sendMessageAsync(std::list<DataStream>::iterator msg) {
 					&Peer::messageSentAsync, shared_from_this(), lMsg,
 					boost::asio::placeholders::error)));
 			// control
-			controlTimer_->expires_from_now(boost::posix_time::milliseconds(30*1000 /*TODO: settings*/));
+			controlTimer_->expires_after(boost::asio::chrono::seconds(30));
 			controlTimer_->async_wait(
-				strand_->wrap(boost::bind(
-					&Peer::messageSendTimeout, shared_from_this(), lMsg,
-					boost::asio::placeholders::error))
+				boost::bind(
+					&Peer::messageSendTimeout, shared_from_this(),
+					boost::asio::placeholders::error)
 			);
 		}
 	}
@@ -98,11 +98,11 @@ void Peer::processPendingMessagesQueue() {
 						&Peer::messageSentAsync, shared_from_this(), lMsg,
 						boost::asio::placeholders::error)));
 				// control
-				controlTimer_->expires_from_now(boost::posix_time::milliseconds(30*1000 /*TODO: settings*/));
+				controlTimer_->expires_after(boost::asio::chrono::seconds(30));
 				controlTimer_->async_wait(
-					strand_->wrap(boost::bind(
-						&Peer::messageSendTimeout, shared_from_this(), lMsg,
-						boost::asio::placeholders::error))
+					boost::bind(
+						&Peer::messageSendTimeout, shared_from_this(),
+						boost::asio::placeholders::error)
 				);
 				//
 				lProcessed = true;
@@ -145,14 +145,15 @@ void Peer::messageSentAsync(std::list<OutMessage>::iterator msg, const boost::sy
 	}
 }
 
-void Peer::messageSendTimeout(std::list<OutMessage>::iterator /*msg*/, const boost::system::error_code& error) {
+void Peer::messageSendTimeout(const boost::system::error_code& error) {
 	//
-	if (!error) {
+	if (error != boost::asio::error::operation_aborted) {
 		// log
-		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, strprintf("[peer/error]: send timeout, closing session %s -> %s", key(), error.message()));
+		if (gLog().isEnabled(Log::CONSENSUS) /*extra logging*/)
+			gLog().write(Log::NET, strprintf("[peer/error]: send timeout, closing session %s -> %s", key(), error.message()));
 
 		//
-		reset();
+		reset(false);
 	}
 }
 
@@ -166,10 +167,8 @@ void Peer::processError(const std::string& context, std::list<DataStream>::itera
 	if (context != "messageSentAsync") { 
 		boost::unique_lock<boost::recursive_mutex> lLock(readMutex_);
 		reading_ = false;
-	}
-
-	//
-	reset();
+		reset();
+	} else reset(false); // do not call "cancel"
 }
 
 //

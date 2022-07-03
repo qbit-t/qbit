@@ -82,7 +82,7 @@ public:
 	};
 
 public:
-	Peer() : status_(IPeer::UNDEFINED) { 
+	explicit Peer() : status_(IPeer::UNDEFINED) { 
 		quarantine_ = 0; latencyPrev_ = latency_ = 1000000; time_ = getMicroseconds(); timestamp_ = time_;
 		gen_ = boost::random::mt19937(rd_());
 	}
@@ -98,7 +98,7 @@ public:
 		timestamp_ = time_;
 
 		controlTimer_.reset(
-			new boost::asio::deadline_timer(
+			new boost::asio::steady_timer(
 				peerManager->getContext(contextId))
 		);
 
@@ -118,7 +118,7 @@ public:
 		timestamp_ = time_;
 
 		controlTimer_.reset(
-			new boost::asio::deadline_timer(
+			new boost::asio::steady_timer(
 				peerManager->getContext(contextId))
 		);
 
@@ -405,7 +405,7 @@ private:
 	};
 
 	void messageSentAsync(std::list<OutMessage>::iterator msg, const boost::system::error_code& error);
-	void messageSendTimeout(std::list<OutMessage>::iterator msg, const boost::system::error_code& error);
+	void messageSendTimeout(const boost::system::error_code& error);
 
 private:
 	// internal processing
@@ -643,7 +643,7 @@ private:
 		return bytesSent_;
 	}
 
-	void reset();
+	void reset(bool cancelTimer = true);
 
 private:
 	SocketPtr socket_;
@@ -708,7 +708,7 @@ private:
 	boost::random::mt19937 gen_;
 
 	//
-	typedef std::shared_ptr<boost::asio::deadline_timer> TimerPtr;
+	typedef std::shared_ptr<boost::asio::steady_timer> TimerPtr;
 	TimerPtr controlTimer_;
 };
 
