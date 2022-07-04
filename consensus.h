@@ -354,9 +354,8 @@ public:
 		if (peer->state()->containsChain(chain_)) {
 			//
 			peer_t lPeerId = peer->addressId();
-			boost::unique_lock<boost::mutex> lLock(peersMutex_);
-			//if (directPeerMap_.find(lPeerId) == directPeerMap_.end()) 
 			{
+				boost::unique_lock<boost::mutex> lLock(peersMutex_);
 				directPeerMap_[lPeerId] = peer;
 				pushState(peer->state());
 			}
@@ -857,7 +856,7 @@ public:
 			// reverse traversal of heights of the chain
 			bool lFound = false;
 			for (HeightMap::reverse_iterator lHeightPos = heightMap_.rbegin(); !lFound && lHeightPos != heightMap_.rend(); lHeightPos++) {
-				gLog().write(Log::CONSENSUS, 
+				if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, 
 					strprintf("[locateSynchronizedRoot]: try [%d:%d]/%d/%s#", 
 						lHeightPos->first, lHeight, lHeightPos->second.size(), chain_.toHex().substr(0, 10)));
 				for (StateMap::iterator lState = lHeightPos->second.begin(); lState != lHeightPos->second.end(); lState++) {
@@ -869,7 +868,7 @@ public:
 						// block
 						block = lState->first;
 
-						gLog().write(Log::CONSENSUS, 
+						if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, 
 							strprintf("[locateSynchronizedRoot]: ROOT [%d:%d]/%s/%s#", 
 								lResultHeight, lHeight, block.toHex(), chain_.toHex().substr(0, 10)));
 
@@ -877,7 +876,7 @@ public:
 
 						break;
 					} else if (lHeightPos->first == lHeight) {
-						gLog().write(Log::CONSENSUS, 
+						if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, 
 							strprintf("[locateSynchronizedRoot]: already SYNCHRONIZED %d/%s/%s#", 
 								lHeightPos->first, lState->first.toHex(), chain_.toHex().substr(0, 10)));
 						break;
@@ -891,8 +890,11 @@ public:
 			//
 			for (PeersSet::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
 				PeersMap::iterator lPeerPtr = directPeerMap_.find(*lPeer);
-				if (lPeerPtr != directPeerMap_.end() && lPeerPtr->second->status() == IPeer::Status::ACTIVE) {
-					peers.push_back(lPeerPtr->second);
+				if (lPeerPtr != directPeerMap_.end()) {
+					if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS,
+						strprintf("[locateSynchronizedRoot]: try to add peer %s/%s/%s#", 
+							lPeerPtr->second->key(), lPeerPtr->second->statusString(), chain_.toHex().substr(0, 10)));
+					if (lPeerPtr->second->status() == IPeer::Status::ACTIVE) peers.push_back(lPeerPtr->second);
 				}
 			}
 		}

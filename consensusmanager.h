@@ -159,7 +159,7 @@ public:
 			// push
 			boost::unique_lock<boost::mutex> lLock(peersMutex_);
 			uint160 lAddress = peer->addressId();
-			peers_.insert(std::map<uint160 /*peer*/, IPeerPtr>::value_type(lAddress, peer));
+			peers_[lAddress] = peer;
 			std::vector<State::BlockInfo> lInfos = peer->state()->infos();
 			for (std::vector<State::BlockInfo>::iterator lInfo = lInfos.begin(); lInfo != lInfos.end(); lInfo++) {
 				chainPeers_[(*lInfo).chain()].insert(lAddress);
@@ -207,7 +207,7 @@ public:
 	void popPeer(IPeerPtr peer) {
 		//
 		if (peer == nullptr) return;
-		
+
 		//
 		peer_t lPeerId = peer->addressId();
 

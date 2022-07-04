@@ -938,6 +938,7 @@ public:
 								peer->key(), peer->statusString(), peer->addressId().toHex(), 
 								lPeer->key(), lPeer->statusString(), lPeer->addressId().toHex()));
 
+					lPeer->toActive();
 					if (!consensusManager_->peerExists(lAddress) || settings_->isClient()) consensusManager_->pushPeer(lPeer);
 					else consensusManager_->pushPeerLatency(lPeer);
 					return false;
@@ -1127,6 +1128,7 @@ public:
 								peer->key(), peer->statusString(), peer->addressId().toHex(), 
 								lPeer->key(), lPeer->statusString(), lPeer->addressId().toHex()));
 
+					lPeer->toActive();
 					if (!consensusManager_->peerExists(lAddress) || settings_->isClient()) consensusManager_->pushPeer(lPeer);
 					else consensusManager_->pushPeerLatency(lPeer);
 					return false;
