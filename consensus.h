@@ -355,7 +355,8 @@ public:
 			//
 			peer_t lPeerId = peer->addressId();
 			boost::unique_lock<boost::mutex> lLock(peersMutex_);
-			if (directPeerMap_.find(lPeerId) == directPeerMap_.end()) {
+			//if (directPeerMap_.find(lPeerId) == directPeerMap_.end()) 
+			{
 				directPeerMap_[lPeerId] = peer;
 				pushState(peer->state());
 			}
