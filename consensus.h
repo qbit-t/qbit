@@ -715,9 +715,9 @@ public:
 				if (state->equals(lState->second)) return false; // already upated
 
 				// clean-up
-				//peerSet_.erase(lPeerId);
-				peerStateMap_.erase(lPeerId);
+				peerStateMap_.erase(lState);
 
+				/*
 				HeightMap::iterator lStateMap = heightMap_.find(lInfo.height());
 				if (lStateMap != heightMap_.end()) {
 					//
@@ -726,20 +726,17 @@ public:
 						lPeerSet->second.erase(lPeerId);
 
 						// remove set
-						/*
 						if (!lPeerSet->second.size()) {
 							lStateMap->second.erase(lPeerSet);
 						}
-						*/
 					}
 
 					// remove map
-					/*
 					if (!lStateMap->second.size()) {
 						heightMap_.erase(lStateMap);
 					}
-					*/						
 				}
+				*/
 			}
 
 			// height -> block = peer
