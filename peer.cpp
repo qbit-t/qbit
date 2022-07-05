@@ -29,14 +29,16 @@ void Peer::sendMessageAsync(std::list<DataStream>::iterator msg) {
 	{
 		boost::unique_lock<boost::mutex> lLock(rawOutMutex_);
 		bool lSkip = outQueue_.size() > 0;
-		bool lReset = outQueue_.size() > 500;
+		//bool lReset = outQueue_.size() > 500;
 		lMsg = outQueue_.insert(outQueue_.end(), OutMessage(msg, (lSkip ? OutMessage::POSTPONED : OutMessage::QUEUED)));
+		/*
 		if (lReset) {
 			//
 			reset();
 			//
 			return;
 		}
+		*/
 
 		if (lSkip) return;
 	}
