@@ -726,15 +726,19 @@ public:
 						lPeerSet->second.erase(lPeerId);
 
 						// remove set
+						/*
 						if (!lPeerSet->second.size()) {
 							lStateMap->second.erase(lPeerSet);
 						}
+						*/
 					}
 
 					// remove map
+					/*
 					if (!lStateMap->second.size()) {
 						heightMap_.erase(lStateMap);
-					}						
+					}
+					*/						
 				}
 			}
 
@@ -743,7 +747,7 @@ public:
 
 			// clean-up
 			if (heightMap_.size() > 20) {
-				heightMap_.erase(heightMap_.begin());				
+				heightMap_.erase(heightMap_.begin());
 			}
 
 			gLog().write(Log::CONSENSUS, 
