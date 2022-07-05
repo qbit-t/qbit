@@ -786,16 +786,20 @@ public:
 					if(lPeerSet != lStateMap->second.end()) {
 						lPeerSet->second.erase(lPeerId);
 
+						/*
 						// remove set
 						if (!lPeerSet->second.size()) {
 							lStateMap->second.erase(lPeerSet);
 						}
+						*/
 					}
 
+					/*
 					// remove map
 					if (!lStateMap->second.size()) {
 						heightMap_.erase(lStateMap);
 					}
+					*/
 				}
 			}
 		}
