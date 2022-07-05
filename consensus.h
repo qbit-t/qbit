@@ -479,8 +479,7 @@ public:
 		{
 			boost::unique_lock<boost::mutex> lLock(peersMutex_);
 			for (PeersMap::iterator lItem = directPeerMap_.begin(); lItem != directPeerMap_.end(); lItem++) {
-				if (lItem->second->status() == IPeer::Status::ACTIVE)
-					lPeers.push_back(lItem->second);
+				lPeers.push_back(lItem->second);
 			}
 		}
 
@@ -499,8 +498,7 @@ public:
 		{
 			boost::unique_lock<boost::mutex> lLock(peersMutex_);
 			for (PeersMap::iterator lItem = directPeerMap_.begin(); lItem != directPeerMap_.end(); lItem++) {
-				if (lItem->second->status() == IPeer::Status::ACTIVE)
-					lPeers.push_back(lItem->second);
+				lPeers.push_back(lItem->second);
 			}
 		}
 
@@ -535,8 +533,7 @@ public:
 		{
 			boost::unique_lock<boost::mutex> lLock(peersMutex_);
 			for (PeersMap::iterator lItem = directPeerMap_.begin(); lItem != directPeerMap_.end(); lItem++) {
-				if (lItem->second->status() == IPeer::Status::ACTIVE)
-					lPeers.push_back(lItem->second);
+				lPeers.push_back(lItem->second);
 			}
 		}
 
@@ -569,8 +566,7 @@ public:
 		{
 			boost::unique_lock<boost::mutex> lLock(peersMutex_);
 			for (PeersMap::iterator lItem = directPeerMap_.begin(); lItem != directPeerMap_.end(); lItem++) {
-				if (lItem->second->status() == IPeer::Status::ACTIVE)
-					lPeers.push_back(lItem->second);
+				lPeers.push_back(lItem->second);
 			}
 		}
 
@@ -608,8 +604,7 @@ public:
 		{
 			boost::unique_lock<boost::mutex> lLock(peersMutex_);
 			for (PeersMap::iterator lItem = directPeerMap_.begin(); lItem != directPeerMap_.end(); lItem++) {
-				if (lItem->second->status() == IPeer::Status::ACTIVE)
-					lPeers.push_back(lItem->second);
+				lPeers.push_back(lItem->second);
 			}
 		}
 
@@ -636,7 +631,7 @@ public:
 		// broadcast
 		for (std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
 			peers[(*lPeer)->addressId()] = (*lPeer);
-		}		
+		}
 	}
 
 	//
