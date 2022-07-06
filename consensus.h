@@ -724,35 +724,9 @@ public:
 
 			// previous/exists
 			PeersStateMap::iterator lState = peerStateMap_.find(lPeerId);
-			if (lState == peerStateMap_.end()) {
-				peerStateMap_[lPeerId] = state;
-			} else {
+			if (lState != peerStateMap_.end()) {
 				// check for updates
 				if (state->equals(lState->second)) return false; // already upated
-
-				// clean-up
-				peerStateMap_.erase(lState);
-
-				/*
-				HeightMap::iterator lStateMap = heightMap_.find(lInfo.height());
-				if (lStateMap != heightMap_.end()) {
-					//
-					StateMap::iterator lPeerSet = lStateMap->second.find(lInfo.hash());
-					if(lPeerSet != lStateMap->second.end()) {
-						lPeerSet->second.erase(lPeerId);
-
-						// remove set
-						if (!lPeerSet->second.size()) {
-							lStateMap->second.erase(lPeerSet);
-						}
-					}
-
-					// remove map
-					if (!lStateMap->second.size()) {
-						heightMap_.erase(lStateMap);
-					}
-				}
-				*/
 			}
 
 			// height -> block = peer
@@ -795,28 +769,16 @@ public:
 				peerSet_.erase(lPeerId);
 				peerStateMap_.erase(lPeerId);
 
+				/*
 				HeightMap::iterator lStateMap = heightMap_.find(lInfo.height());
 				if (lStateMap != heightMap_.end()) {
 					//
 					StateMap::iterator lPeerSet = lStateMap->second.find(lInfo.hash());
 					if(lPeerSet != lStateMap->second.end()) {
 						lPeerSet->second.erase(lPeerId);
-
-						/*
-						// remove set
-						if (!lPeerSet->second.size()) {
-							lStateMap->second.erase(lPeerSet);
-						}
-						*/
 					}
-
-					/*
-					// remove map
-					if (!lStateMap->second.size()) {
-						heightMap_.erase(lStateMap);
-					}
-					*/
 				}
+				*/
 			}
 		}
 
