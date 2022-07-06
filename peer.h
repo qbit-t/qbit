@@ -646,7 +646,7 @@ private:
 	void reset(bool cancelTimer = true);
 
 private:
-	SocketPtr socket_;
+	SocketPtr socket_ = nullptr;
 	StrandPtr strand_;
 	IPeer::Status status_;
 	StatePtr state_;

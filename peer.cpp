@@ -4497,6 +4497,15 @@ void Peer::connect() {
 			// change status
 			socketStatus_ = CONNECTING;
 
+			// in case if socket still connected
+			if (socket_) {
+				try {
+					socket_->close();
+				} catch(...) {
+					gLog().write(Log::GENERAL_ERROR, std::string("[peer/connect/error]: socket closing failed... "));
+				}
+			}
+
 			// make socket
 			socket_.reset(new boost::asio::ip::tcp::socket(peerManager_->getContext(contextId_)));
 			strand_.reset(new boost::asio::io_service::strand(peerManager_->getContext(contextId_)));
@@ -4510,6 +4519,16 @@ void Peer::connect() {
 						boost::asio::placeholders::error,
 						boost::asio::placeholders::iterator)));			
 			}
+		} else if (socketStatus_ == CONNECTED /*|| CONNECTED == CONNECTING*/) {
+			// just try to check this direction once more; that can be IF upper level of processing logic EPLICITLY
+			// call one of the "send" methods and if status == PENDING we get: soecket == connected and nothing happened ever
+			// so just start with generic exchange - "status"
+
+			// connected - send our state
+			sendState();
+
+			// go to read
+			processed();
 		}
 	}
 }

@@ -387,17 +387,10 @@ public:
 	//
 	//
 	bool acquireBlock(const NetworkBlockHeader& block) {
-		// 1. try to look at direct peers
+		//
 		IPeerPtr lPeer = nullptr;
-		{
-			boost::unique_lock<boost::mutex> lLock(peersMutex_);
-			PeersMap::iterator lPeerPtr = directPeerMap_.find(const_cast<NetworkBlockHeader&>(block).blockHeader().origin().id());
-			if (lPeerPtr != directPeerMap_.end() && lPeerPtr->second->status() == IPeer::Status::ACTIVE) {
-				lPeer = lPeerPtr->second;
-			}
-		}
 
-		// 2. if !lPeer - search for connected peer with such block
+		// 1. search for connected peer with such block
 		if (!lPeer) {
 			//
 			peer_t lPeerId;
@@ -416,7 +409,7 @@ public:
 							if (!lPeerId.isEmpty()) {
 								boost::unique_lock<boost::mutex> lLock(peersMutex_);
 								PeersMap::iterator lPeerPtr = directPeerMap_.find(lPeerId);
-								if (lPeerPtr != directPeerMap_.end() && lPeerPtr->second->status() == IPeer::Status::ACTIVE) {
+								if (lPeerPtr != directPeerMap_.end() /*&& lPeerPtr->second->status() == IPeer::Status::ACTIVE*/) {
 									lPeer = lPeerPtr->second;
 									break;
 								}
@@ -424,6 +417,15 @@ public:
  						}
 					}
 				}
+			}
+		}
+
+		// 2. if absent - try to look at direct peers
+		if (!lPeer) {
+			boost::unique_lock<boost::mutex> lLock(peersMutex_);
+			PeersMap::iterator lPeerPtr = directPeerMap_.find(const_cast<NetworkBlockHeader&>(block).blockHeader().origin().id());
+			if (lPeerPtr != directPeerMap_.end() && lPeerPtr->second->status() == IPeer::Status::ACTIVE) {
+				lPeer = lPeerPtr->second;
 			}
 		}
 
@@ -485,8 +487,15 @@ public:
 
 		// broadcast
 		for (std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
-			if (except.isNull() || (except != (*lPeer)->addressId())) 
-				if (!(*lPeer)->state()->daemon()) (*lPeer)->broadcastBlockHeader(blockHeader);
+			if (except.isNull() || (except != (*lPeer)->addressId())) {
+				if (!(*lPeer)->state()->daemon()) {
+					(*lPeer)->broadcastBlockHeader(blockHeader);
+
+					if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, 
+						strprintf("[broadcastBlockHeader]: block header broadcasted to %s/%s/%s/%s#", 
+							(*lPeer)->key(), (*lPeer)->statusString(), const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().hash().toHex(), chain_.toHex().substr(0, 10)));
+				}
+			}
 		}
 	}
 
@@ -510,11 +519,14 @@ public:
 		// broadcast
 		for (std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
 			if (except.isNull() || (except != (*lPeer)->addressId())) {
-				if (!(*lPeer)->state()->daemon()) (*lPeer)->broadcastBlockHeaderAndState(block, state);
-
-			if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, 
-				strprintf("[broadcastBlockHeaderAndState]: block header and state broadcasted to %s/%s/%s#", 
-					(*lPeer)->addressId().toHex(), const_cast<NetworkBlockHeader&>(block).blockHeader().hash().toHex(), chain_.toHex().substr(0, 10)));
+				if (!(*lPeer)->state()->daemon()) {
+					//
+					(*lPeer)->broadcastBlockHeaderAndState(block, state);
+					//
+					if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, 
+						strprintf("[broadcastBlockHeaderAndState]: block header and state broadcasted to %s/%s/%s/%s#", 
+							(*lPeer)->key(), (*lPeer)->statusString(), const_cast<NetworkBlockHeader&>(block).blockHeader().hash().toHex(), chain_.toHex().substr(0, 10)));
+				}
 			}
 		}
 
@@ -623,8 +635,8 @@ public:
 		{
 			boost::unique_lock<boost::mutex> lLock(peersMutex_);
 			for (PeersMap::iterator lItem = directPeerMap_.begin(); lItem != directPeerMap_.end(); lItem++) {
-				if (lItem->second->status() == IPeer::Status::ACTIVE)
-					lPeers.push_back(lItem->second);
+				//if (lItem->second->status() == IPeer::Status::ACTIVE)
+				lPeers.push_back(lItem->second);
 			}
 		}
 
@@ -643,7 +655,7 @@ public:
 		{
 			boost::unique_lock<boost::mutex> lLock(peersMutex_);
 			for (PeersMap::iterator lItem = directPeerMap_.begin(); lItem != directPeerMap_.end(); lItem++) {
-				if (lItem->second->state()->minerOrValidator() && lItem->second->status() == IPeer::Status::ACTIVE) {
+				if (lItem->second->state()->minerOrValidator() /*&& lItem->second->status() == IPeer::Status::ACTIVE*/) {
 					//
 					bool lAdd = false;
 					// check collateral if configured
@@ -677,8 +689,8 @@ public:
 							if (lStore) {
 								uint64_t lHeight = lStore->currentHeight(lHeader);
 								//
-								if ((lHeight > lInfo.height() && lHeight - lInfo.height() < 5) ||
-										(lHeight < lInfo.height() && lInfo.height() - lHeight < 5) || 
+								if ((lHeight > lInfo.height() && lHeight - lInfo.height() < 10) ||
+										(lHeight < lInfo.height() && lInfo.height() - lHeight < 10) || 
 											lHeight == lInfo.height())
 									lPeers.push_back(lItem->second);
 							}
@@ -894,7 +906,7 @@ public:
 					if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS,
 						strprintf("[locateSynchronizedRoot]: try to add peer %s/%s/%s#", 
 							lPeerPtr->second->key(), lPeerPtr->second->statusString(), chain_.toHex().substr(0, 10)));
-					if (lPeerPtr->second->status() == IPeer::Status::ACTIVE) peers.push_back(lPeerPtr->second);
+					/*if (lPeerPtr->second->status() == IPeer::Status::ACTIVE)*/ peers.push_back(lPeerPtr->second);
 				}
 			}
 		}
