@@ -355,7 +355,7 @@ public:
 			//
 			peer_t lPeerId = peer->addressId();
 			{
-				boost::unique_lock<boost::mutex> lLock(peersMutex_);
+				boost::unique_lock<boost::recursive_mutex> lLock(peersMutex_);
 				directPeerMap_[lPeerId] = peer;
 				pushState(peer->state());
 			}
@@ -373,7 +373,7 @@ public:
 		if (peer->state()->containsChain(chain_)) {
 			//
 			peer_t lPeerId = peer->addressId();
-			boost::unique_lock<boost::mutex> lLock(peersMutex_);
+			boost::unique_lock<boost::recursive_mutex> lLock(peersMutex_);
 			directPeerMap_.erase(lPeerId);
 
 			popState(peer->state());
@@ -389,13 +389,19 @@ public:
 	bool acquireBlock(const NetworkBlockHeader& block) {
 		//
 		IPeerPtr lPeer = nullptr;
+		PeersMap lDirectPeerMap;
+
+		{
+			boost::unique_lock<boost::recursive_mutex> lLock(peersMutex_);
+			lDirectPeerMap = directPeerMap_;
+		}
 
 		// 1. search for connected peer with such block
 		if (!lPeer) {
 			//
 			peer_t lPeerId;
 			{
-				boost::unique_lock<boost::mutex> lLock(stateMutex_);
+				boost::unique_lock<boost::recursive_mutex> lLock(stateMutex_);
 
 				HeightMap::iterator lStateMap = heightMap_.find(const_cast<NetworkBlockHeader&>(block).height());
 				if (lStateMap != heightMap_.end()) {
@@ -407,8 +413,7 @@ public:
  							lPeerId = *lPeerIdx;
 							// select peer
 							if (!lPeerId.isEmpty()) {
-								boost::unique_lock<boost::mutex> lLock(peersMutex_);
-								PeersMap::iterator lPeerPtr = directPeerMap_.find(lPeerId);
+								PeersMap::iterator lPeerPtr = lDirectPeerMap.find(lPeerId);
 								if (lPeerPtr != directPeerMap_.end() /*&& lPeerPtr->second->status() == IPeer::Status::ACTIVE*/) {
 									lPeer = lPeerPtr->second;
 									break;
@@ -422,8 +427,7 @@ public:
 
 		// 2. if absent - try to look at direct peers
 		if (!lPeer) {
-			boost::unique_lock<boost::mutex> lLock(peersMutex_);
-			PeersMap::iterator lPeerPtr = directPeerMap_.find(const_cast<NetworkBlockHeader&>(block).blockHeader().origin().id());
+			PeersMap::iterator lPeerPtr = lDirectPeerMap.find(const_cast<NetworkBlockHeader&>(block).blockHeader().origin().id());
 			if (lPeerPtr != directPeerMap_.end() && lPeerPtr->second->status() == IPeer::Status::ACTIVE) {
 				lPeer = lPeerPtr->second;
 			}
@@ -458,7 +462,7 @@ public:
 			//
 			size_t lPeersCount = 0;
 			{
-				boost::unique_lock<boost::mutex> lLock(peersMutex_);
+				boost::unique_lock<boost::recursive_mutex> lLock(peersMutex_);
 				lPeersCount = directPeerMap_.size();
 			}
 
@@ -479,7 +483,7 @@ public:
 		// prepare
 		std::list<IPeerPtr> lPeers;
 		{
-			boost::unique_lock<boost::mutex> lLock(peersMutex_);
+			boost::unique_lock<boost::recursive_mutex> lLock(peersMutex_);
 			for (PeersMap::iterator lItem = directPeerMap_.begin(); lItem != directPeerMap_.end(); lItem++) {
 				lPeers.push_back(lItem->second);
 			}
@@ -505,7 +509,7 @@ public:
 		// prepare
 		std::list<IPeerPtr> lPeers;
 		{
-			boost::unique_lock<boost::mutex> lLock(peersMutex_);
+			boost::unique_lock<boost::recursive_mutex> lLock(peersMutex_);
 			for (PeersMap::iterator lItem = directPeerMap_.begin(); lItem != directPeerMap_.end(); lItem++) {
 				lPeers.push_back(lItem->second);
 			}
@@ -543,7 +547,7 @@ public:
 		// prepare
 		std::list<IPeerPtr> lPeers;
 		{
-			boost::unique_lock<boost::mutex> lLock(peersMutex_);
+			boost::unique_lock<boost::recursive_mutex> lLock(peersMutex_);
 			for (PeersMap::iterator lItem = directPeerMap_.begin(); lItem != directPeerMap_.end(); lItem++) {
 				lPeers.push_back(lItem->second);
 			}
@@ -576,7 +580,7 @@ public:
 		// prepare
 		std::list<IPeerPtr> lPeers;
 		{
-			boost::unique_lock<boost::mutex> lLock(peersMutex_);
+			boost::unique_lock<boost::recursive_mutex> lLock(peersMutex_);
 			for (PeersMap::iterator lItem = directPeerMap_.begin(); lItem != directPeerMap_.end(); lItem++) {
 				lPeers.push_back(lItem->second);
 			}
@@ -614,7 +618,7 @@ public:
 		// prepare
 		std::list<IPeerPtr> lPeers;
 		{
-			boost::unique_lock<boost::mutex> lLock(peersMutex_);
+			boost::unique_lock<boost::recursive_mutex> lLock(peersMutex_);
 			for (PeersMap::iterator lItem = directPeerMap_.begin(); lItem != directPeerMap_.end(); lItem++) {
 				lPeers.push_back(lItem->second);
 			}
@@ -633,7 +637,7 @@ public:
 		// prepare
 		std::list<IPeerPtr> lPeers;
 		{
-			boost::unique_lock<boost::mutex> lLock(peersMutex_);
+			boost::unique_lock<boost::recursive_mutex> lLock(peersMutex_);
 			for (PeersMap::iterator lItem = directPeerMap_.begin(); lItem != directPeerMap_.end(); lItem++) {
 				//if (lItem->second->status() == IPeer::Status::ACTIVE)
 				lPeers.push_back(lItem->second);
@@ -653,7 +657,7 @@ public:
 		// prepare
 		std::list<IPeerPtr> lPeers;
 		{
-			boost::unique_lock<boost::mutex> lLock(peersMutex_);
+			boost::unique_lock<boost::recursive_mutex> lLock(peersMutex_);
 			for (PeersMap::iterator lItem = directPeerMap_.begin(); lItem != directPeerMap_.end(); lItem++) {
 				if (lItem->second->state()->minerOrValidator() /*&& lItem->second->status() == IPeer::Status::ACTIVE*/) {
 					//
@@ -713,7 +717,7 @@ public:
 		State::BlockInfo lInfo;
 		if (state->locateChain(chain_, lInfo)) {
 			//		
-			boost::unique_lock<boost::mutex> lLock(stateMutex_);
+			boost::unique_lock<boost::recursive_mutex> lLock(stateMutex_);
 
 			// peer id
 			peer_t lPeerId = state->addressId();
@@ -779,7 +783,7 @@ public:
 		State::BlockInfo lInfo;
 		if (state->locateChain(chain_, lInfo)) {
 			//		
-			boost::unique_lock<boost::mutex> lLock(stateMutex_);
+			boost::unique_lock<boost::recursive_mutex> lLock(stateMutex_);
 
 			// peer id
 			peer_t lPeerId = state->addressId();
@@ -822,7 +826,7 @@ public:
 	//
 	// network is simple?  
 	bool isSimpleNetwork() {
-		boost::unique_lock<boost::mutex> lLock(stateMutex_);
+		boost::unique_lock<boost::recursive_mutex> lLock(stateMutex_);
 		return peerSet_.size() < simpleNetworkSize();
 	}
 
@@ -835,7 +839,7 @@ public:
 
 		bool lResult = false;
 		{
-			boost::unique_lock<boost::mutex> lLock(stateMutex_);
+			boost::unique_lock<boost::recursive_mutex> lLock(stateMutex_);
 			//
 			if (heightMap_.size()) {
 				HeightMap::reverse_iterator lStateMap = heightMap_.rbegin();
@@ -862,7 +866,7 @@ public:
 		BlockHeader lHeader;
 		uint64_t lHeight = store_->currentHeight(lHeader);		
 		{
-			boost::unique_lock<boost::mutex> lLock(stateMutex_);
+			boost::unique_lock<boost::recursive_mutex> lLock(stateMutex_);
 			//
 			last = lHeader.hash();
 			// reverse traversal of heights of the chain
@@ -898,7 +902,7 @@ public:
 		}
 
 		{
-			boost::unique_lock<boost::mutex> lLock(peersMutex_);
+			boost::unique_lock<boost::recursive_mutex> lLock(peersMutex_);
 			//
 			for (PeersSet::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
 				PeersMap::iterator lPeerPtr = directPeerMap_.find(*lPeer);
@@ -922,7 +926,7 @@ public:
 			//
 			bool lIsSynchronized = isChainSynchronized();
 			{
-				boost::unique_lock<boost::mutex> lLock(transitionMutex_);
+				boost::unique_lock<boost::recursive_mutex> lLock(transitionMutex_);
 				if (lIsSynchronized) chainState_ = IConsensus::SYNCHRONIZED;
 				else chainState_ = IConsensus::NOT_SYNCHRONIZED;
 			}
@@ -1021,7 +1025,7 @@ public:
 			job_ = nullptr; // reset
 			gLog().write(Log::CONSENSUS, strprintf("[finishJob]: forcing synchronization for %s#", chain_.toHex().substr(0, 10)));
 			{
-				boost::unique_lock<boost::mutex> lLock(transitionMutex_);
+				boost::unique_lock<boost::recursive_mutex> lLock(transitionMutex_);
 				chainState_ = IConsensus::NOT_SYNCHRONIZED;
 			}
 		}
@@ -1033,7 +1037,7 @@ public:
 		//
 		bool lProcess = false; 
 		{
-			boost::unique_lock<boost::mutex> lLock(transitionMutex_);
+			boost::unique_lock<boost::recursive_mutex> lLock(transitionMutex_);
 			if (((chainState_ == IConsensus::UNDEFINED || chainState_ == IConsensus::NOT_SYNCHRONIZED) && 
 					!store_->synchronizing()) || 
 						resync) {
@@ -1144,14 +1148,14 @@ public:
 				} else {
 					if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, "[doSynchronize]: synchronization is allowed for NODE or FULLNODE only.");
 					//
-					boost::unique_lock<boost::mutex> lLock(transitionMutex_);
+					boost::unique_lock<boost::recursive_mutex> lLock(transitionMutex_);
 					chainState_ = IConsensus::SYNCHRONIZED;
 
 					return true;
 				}			
 			} else {
 				// there is no peers
-				boost::unique_lock<boost::mutex> lLock(transitionMutex_);
+				boost::unique_lock<boost::recursive_mutex> lLock(transitionMutex_);
 				chainState_ = IConsensus::SYNCHRONIZED;
 
 				return true;
@@ -1167,7 +1171,7 @@ public:
 		//
 		bool lProcess = false; 
 		{
-			boost::unique_lock<boost::mutex> lLock(transitionMutex_);
+			boost::unique_lock<boost::recursive_mutex> lLock(transitionMutex_);
 			if (chainState_ == IConsensus::SYNCHRONIZING && !job->cancelled() /*|| chainState_ == IConsensus::NOT_SYNCHRONIZED*/) {
 				lProcess = true;
 			}
@@ -1197,14 +1201,14 @@ public:
 				} else {
 					if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, "[processPartialTreeHeaders]: synchronization is allowed for NODE or FULLNODE only.");
 					//
-					boost::unique_lock<boost::mutex> lLock(transitionMutex_);
+					boost::unique_lock<boost::recursive_mutex> lLock(transitionMutex_);
 					chainState_ = IConsensus::SYNCHRONIZED;
 
 					return true;
 				}			
 			} else {
 				// there is no peers
-				boost::unique_lock<boost::mutex> lLock(transitionMutex_);
+				boost::unique_lock<boost::recursive_mutex> lLock(transitionMutex_);
 				chainState_ = IConsensus::NOT_SYNCHRONIZED;
 
 				return false;
@@ -1220,7 +1224,7 @@ public:
 		//
 		bool lProcess = false; 
 		{
-			boost::unique_lock<boost::mutex> lLock(transitionMutex_);
+			boost::unique_lock<boost::recursive_mutex> lLock(transitionMutex_);
 			if (chainState_ == IConsensus::SYNCHRONIZING) {
 				chainState_ = IConsensus::INDEXING;
 				lProcess = true;
@@ -1234,7 +1238,7 @@ public:
 			// check
 			bool lIsSynchronized = isChainSynchronized();
 			{
-				boost::unique_lock<boost::mutex> lLock(transitionMutex_);
+				boost::unique_lock<boost::recursive_mutex> lLock(transitionMutex_);
 				if (lIsSynchronized) chainState_ = IConsensus::SYNCHRONIZED;
 				else chainState_ = IConsensus::NOT_SYNCHRONIZED;
 			}
@@ -1247,7 +1251,7 @@ public:
 		//
 		bool lProcess = false; 
 		{
-			boost::unique_lock<boost::mutex> lLock(transitionMutex_);
+			boost::unique_lock<boost::recursive_mutex> lLock(transitionMutex_);
 			chainState_ = IConsensus::INDEXING;
 		}
 
@@ -1259,7 +1263,7 @@ public:
 		}
 
 		{
-			boost::unique_lock<boost::mutex> lLock(transitionMutex_);
+			boost::unique_lock<boost::recursive_mutex> lLock(transitionMutex_);
 			chainState_ = IConsensus::NOT_SYNCHRONIZED;
 		}
 	}
@@ -1270,7 +1274,7 @@ public:
 		//
 		bool lProcess = false; 
 		{
-			boost::unique_lock<boost::mutex> lLock(transitionMutex_);
+			boost::unique_lock<boost::recursive_mutex> lLock(transitionMutex_);
 			if (chainState_ == IConsensus::SYNCHRONIZING) {
 				chainState_ = IConsensus::INDEXING;
 				lProcess = true;
@@ -1282,7 +1286,7 @@ public:
 			if (!store_->reindex(block, lastBlock, consensusManager_->mempoolManager()->locate(chain_))) {
 				// partial reindex for given blocks intervale is not possible
 				{
-					boost::unique_lock<boost::mutex> lLock(transitionMutex_);
+					boost::unique_lock<boost::recursive_mutex> lLock(transitionMutex_);
 					chainState_ = IConsensus::NOT_SYNCHRONIZED;
 				}
 
@@ -1292,7 +1296,7 @@ public:
 			// check
 			bool lIsSynchronized = isChainSynchronized();
 			{
-				boost::unique_lock<boost::mutex> lLock(transitionMutex_);
+				boost::unique_lock<boost::recursive_mutex> lLock(transitionMutex_);
 				if (lIsSynchronized) chainState_ = IConsensus::SYNCHRONIZED;
 				else chainState_ = IConsensus::NOT_SYNCHRONIZED;
 			}
@@ -1306,7 +1310,7 @@ public:
 	void toNonSynchronized(bool force = false) {
 		//
 		{
-			boost::unique_lock<boost::mutex> lLock(transitionMutex_);
+			boost::unique_lock<boost::recursive_mutex> lLock(transitionMutex_);
 			// NOTICE: if we already synchronizing - do not fallback to non_synchronized
 			if (/*chainState_ == IConsensus::SYNCHRONIZING ||*/ chainState_ == IConsensus::SYNCHRONIZED || chainState_ == IConsensus::UNDEFINED/*|| chainState_ == IConsensus::INDEXING*/ || force) {
 				chainState_ = IConsensus::NOT_SYNCHRONIZED;
@@ -1318,7 +1322,7 @@ public:
 	// to sync'ing
 	void toSynchronizing() {
 		{
-			boost::unique_lock<boost::mutex> lLock(transitionMutex_);
+			boost::unique_lock<boost::recursive_mutex> lLock(transitionMutex_);
 			if (chainState_ == IConsensus::NOT_SYNCHRONIZED || chainState_ == IConsensus::SYNCHRONIZED) {
 				chainState_ = IConsensus::SYNCHRONIZING;
 			}
@@ -1386,11 +1390,11 @@ protected:
 	// chain -> active peers
 	typedef std::map<chain_t, std::set<peer_t>> ChainPeersMap;
 
-	boost::mutex peersMutex_;
-	boost::mutex stateMutex_;
-	boost::mutex queueMutex_;
+	boost::recursive_mutex peersMutex_;
+	boost::recursive_mutex stateMutex_;
+	boost::recursive_mutex queueMutex_;
 
-	boost::mutex transitionMutex_;
+	boost::recursive_mutex transitionMutex_;
 
 	PeersStateMap peerStateMap_; // peer_id -> State
 	PeersMap directPeerMap_; // peer_id -> IPeer
