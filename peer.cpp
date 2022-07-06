@@ -39,9 +39,9 @@ void Peer::sendMessageAsync(std::list<DataStream>::iterator msg) {
 			// control
 			controlTimer_->expires_after(boost::asio::chrono::seconds(30));
 			controlTimer_->async_wait(
-				boost::bind(
+				strand_->wrap(boost::bind(
 					&Peer::messageSendTimeout, shared_from_this(),
-					boost::asio::placeholders::error)
+					boost::asio::placeholders::error))
 			);
 			// send
 			boost::asio::async_write(*socket_,
@@ -86,9 +86,9 @@ void Peer::processPendingMessagesQueue() {
 				// control
 				controlTimer_->expires_after(boost::asio::chrono::seconds(30));
 				controlTimer_->async_wait(
-					boost::bind(
+					strand_->wrap(boost::bind(
 						&Peer::messageSendTimeout, shared_from_this(),
-						boost::asio::placeholders::error)
+						boost::asio::placeholders::error))
 				);
 				// send
 				boost::asio::async_write(*socket_,
@@ -141,7 +141,7 @@ void Peer::messageSentAsync(std::list<OutMessage>::iterator msg, const boost::sy
 
 void Peer::messageSendTimeout(const boost::system::error_code& error) {
 	//
-	if (error != boost::asio::error::operation_aborted) {
+	if (!error /*boost::asio::error::operation_aborted*/) {
 		// log
 		if (gLog().isEnabled(Log::CONSENSUS) /*extra logging*/)
 			gLog().write(Log::NET, strprintf("[peer/error]: send timeout, closing session %s -> %s", key(), error.message()));
