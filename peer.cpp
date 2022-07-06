@@ -29,29 +29,13 @@ void Peer::sendMessageAsync(std::list<DataStream>::iterator msg) {
 	{
 		boost::unique_lock<boost::mutex> lLock(rawOutMutex_);
 		bool lSkip = outQueue_.size() > 0;
-		//bool lReset = outQueue_.size() > 500;
 		lMsg = outQueue_.insert(outQueue_.end(), OutMessage(msg, (lSkip ? OutMessage::POSTPONED : OutMessage::QUEUED)));
-		/*
-		if (lReset) {
-			//
-			reset();
-			//
-			return;
-		}
-		*/
-
 		if (lSkip) return;
 	}
 
 	{
 		boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
 		if (socketStatus_ == CONNECTED) {
-			// send
-			boost::asio::async_write(*socket_,
-				boost::asio::buffer(lMsg->msg()->data(), lMsg->msg()->size()),
-				strand_->wrap(boost::bind(
-					&Peer::messageSentAsync, shared_from_this(), lMsg,
-					boost::asio::placeholders::error)));
 			// control
 			controlTimer_->expires_after(boost::asio::chrono::seconds(30));
 			controlTimer_->async_wait(
@@ -59,6 +43,12 @@ void Peer::sendMessageAsync(std::list<DataStream>::iterator msg) {
 					&Peer::messageSendTimeout, shared_from_this(),
 					boost::asio::placeholders::error)
 			);
+			// send
+			boost::asio::async_write(*socket_,
+				boost::asio::buffer(lMsg->msg()->data(), lMsg->msg()->size()),
+				strand_->wrap(boost::bind(
+					&Peer::messageSentAsync, shared_from_this(), lMsg,
+					boost::asio::placeholders::error)));
 		}
 	}
 }
@@ -93,12 +83,6 @@ void Peer::processPendingMessagesQueue() {
 		{
 			boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
 			if (socketStatus_ == CONNECTED) {
-				//
-				boost::asio::async_write(*socket_,
-					boost::asio::buffer(lMsg->msg()->data(), lMsg->msg()->size()),
-					strand_->wrap(boost::bind(
-						&Peer::messageSentAsync, shared_from_this(), lMsg,
-						boost::asio::placeholders::error)));
 				// control
 				controlTimer_->expires_after(boost::asio::chrono::seconds(30));
 				controlTimer_->async_wait(
@@ -106,16 +90,24 @@ void Peer::processPendingMessagesQueue() {
 						&Peer::messageSendTimeout, shared_from_this(),
 						boost::asio::placeholders::error)
 				);
+				// send
+				boost::asio::async_write(*socket_,
+					boost::asio::buffer(lMsg->msg()->data(), lMsg->msg()->size()),
+					strand_->wrap(boost::bind(
+						&Peer::messageSentAsync, shared_from_this(), lMsg,
+						boost::asio::placeholders::error)));
 				//
 				lProcessed = true;
 			}
 		}
 
+		/*
 		if (!lProcessed) {
 			boost::unique_lock<boost::mutex> lLock(rawOutMutex_);
 			outQueue_.clear();
 			rawOutMessages_.clear();
 		}
+		*/
 	}
 	else 
 		waitForMessage();
