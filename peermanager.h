@@ -948,11 +948,8 @@ public:
 					if (lPeerIndex != peerIdx_.end() && force) {
 						// deactivate old
 						IPeerPtr lPeer = locate(*(lPeerIndex->second.begin()));
-						if (lPeer->key() != peer->key()) {
+						if (lPeer && lPeer->key() != peer->key()) {
 							deactivatePeer(lPeer);
-							// remove old
-							lPeerIndex->second.clear();
-							peerIdx_.erase(lPeerIndex);
 							// add new one
 							peerIdx_[peer->addressId()].insert(peer->key());
 							//
@@ -1167,11 +1164,8 @@ public:
 					if (lPeerIndex != peerIdx_.end() && force) {
 						// deactivate old
 						IPeerPtr lPeer = locate(*(lPeerIndex->second.begin()));
-						if (lPeer->key() != peer->key()) {
+						if (lPeer && lPeer->key() != peer->key()) {
 							deactivatePeer(lPeer);
-							// remove old
-							lPeerIndex->second.clear();
-							peerIdx_.erase(lPeerIndex);
 							// add new one
 							peerIdx_[peer->addressId()].insert(peer->key());
 							//
@@ -1249,7 +1243,7 @@ public:
 		if (!peer->isOutbound() /*double check*/) removePeer(peer);
 
 		//
-		if (gLog().isEnabled(Log::NET)) gLog().write(Log::INFO, std::string("[peerManager]: deactivate peer ") + peer->key());
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::INFO, std::string("[peerManager]: peer deactivated ") + peer->key());
 	}
 
 	void updatePeer(IPeerPtr peer) {
