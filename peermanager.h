@@ -193,7 +193,7 @@ public:
 		IPeerPtr lPeer = peer;
 		if (lPeer) {
 			if (lPeer->isOutbound()) pending(lPeer); // just move to pending state
-			else deactivate(lPeer); // deactivate if inbound
+			else deactivate(lPeer); // deactivate if inbound (will be removed)
 		}
 	}
 
@@ -250,7 +250,7 @@ public:
 		}
 	}
 
-	bool updatePeerState(IPeerPtr peer, StatePtr state, IPeer::UpdatePeerResult& peerResult) {
+	bool updatePeerState(IPeerPtr peer, StatePtr state, IPeer::UpdatePeerResult& peerResult, bool force) {
 		// forward
 		peerResult = IPeer::SUCCESSED;
 
@@ -299,7 +299,7 @@ public:
 					return false;
 
 				// update state and data
-				bool lResult = update(lPeer);
+				bool lResult = update(lPeer, force);
 				if (!lResult) peerResult = IPeer::EXISTS;
 				return lResult;
 			} else {
@@ -310,7 +310,7 @@ public:
 		} else {
 			if (state->valid()) {
 				lPeer->setState(state);
-				bool lResult = activate(lPeer);
+				bool lResult = activate(lPeer, force);
 				if (!lResult) peerResult = IPeer::EXISTS;
 				return lResult;
 			} else {
@@ -867,7 +867,7 @@ public:
 		peer->toPostponed();
 	}
 
-	bool activate(IPeerPtr peer) {
+	bool activate(IPeerPtr peer, bool force = false) {
 		uint160 lAddress = peer->addressId();
 		{
 			boost::unique_lock<boost::recursive_mutex> lLock(peersIdxMutex_);
@@ -931,18 +931,44 @@ public:
 					}
 				}
 			} else {
-				if (peerIdx_[lAddress].size()) {
-					IPeerPtr lPeer = locate(*(peerIdx_[lAddress].begin()));
-					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: peer ALREADY exists - ") + 
-							strprintf("new - %s/%s/%s, old - %s/%s/%s", 
-								peer->key(), peer->statusString(), peer->addressId().toHex(), 
-								lPeer->key(), lPeer->statusString(), lPeer->addressId().toHex()));
+				if (lPeerIndex->second.size() && !force) {
+					IPeerPtr lPeer = locate(*(lPeerIndex->second.begin()));
+					if (lPeer) {
+						if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: peer ALREADY exists - ") + 
+								strprintf("new - %s/%s/%s, old - %s/%s/%s", 
+									peer->key(), peer->statusString(), peer->addressId().toHex(), 
+									lPeer->key(), lPeer->statusString(), lPeer->addressId().toHex()));
 
-					lPeer->toActive();
-					if (!consensusManager_->peerExists(lAddress) || settings_->isClient()) consensusManager_->pushPeer(lPeer);
-					else consensusManager_->pushPeerLatency(lPeer);
-					return false;
-				} else return false; // illegal situation
+						lPeer->toActive();
+						if (!consensusManager_->peerExists(lAddress) || settings_->isClient()) consensusManager_->pushPeer(lPeer);
+						else consensusManager_->pushPeerLatency(lPeer);
+						return false;
+					}
+				} else {
+					if (force) {
+						// deactivate old
+						IPeerPtr lPeer = locate(*(lPeerIndex->second.begin()));
+						deactivatePeer(lPeer);
+						// remove old
+						peerIdx_.erase(lPeerIndex);
+						// add new one
+						peerIdx_[peer->addressId()].insert(peer->key());
+						//
+						for (std::vector<State::BlockInfo>::iterator lInfo = peer->state()->infos().begin(); lInfo != peer->state()->infos().end(); lInfo++) {
+							//
+							if (lInfo->dApp().size() && lInfo->dApp() != "none") {
+								if (!peer->extension(lInfo->dApp())) {
+									//
+									if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: adding peer extension ") + strprintf("%s/%s/%s", lInfo->dApp(), peer->key(), peer->addressId().toHex()));
+									PeerExtensionCreatorPtr lCreator = locateExtensionCreator(lInfo->dApp());
+									if (lCreator) {
+										peer->setExtension(lInfo->dApp(), lCreator->create(State::DAppInstance(lInfo->dApp(), uint256()), peer, shared_from_this()));
+									}
+								}
+							}
+						}
+					}
+				}
 			}
 		}
 
@@ -1057,7 +1083,7 @@ public:
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: pending state ") + peer->key());
 	}
 
-	bool update(IPeerPtr peer) {
+	bool update(IPeerPtr peer, bool force = false) {
 		{
 			boost::unique_lock<boost::recursive_mutex> lLock(peersIdxMutex_);
 			uint160 lAddress = peer->addressId();
@@ -1121,18 +1147,44 @@ public:
 					}
 				}
 			} else {
-				if (peerIdx_[lAddress].size()) {
-					IPeerPtr lPeer = locate(*(peerIdx_[lAddress].begin()));
-					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: peer ALREADY exists - ") + 
-							strprintf("new - %s/%s/%s, old - %s/%s/%s", 
-								peer->key(), peer->statusString(), peer->addressId().toHex(), 
-								lPeer->key(), lPeer->statusString(), lPeer->addressId().toHex()));
+				if (lPeerIndex->second.size() && !force) {
+					IPeerPtr lPeer = locate(*(lPeerIndex->second.begin()));
+					if (lPeer) {
+						if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: peer ALREADY exists - ") + 
+								strprintf("new - %s/%s/%s, old - %s/%s/%s", 
+									peer->key(), peer->statusString(), peer->addressId().toHex(), 
+									lPeer->key(), lPeer->statusString(), lPeer->addressId().toHex()));
 
-					lPeer->toActive();
-					if (!consensusManager_->peerExists(lAddress) || settings_->isClient()) consensusManager_->pushPeer(lPeer);
-					else consensusManager_->pushPeerLatency(lPeer);
-					return false;
-				} else return false;
+						lPeer->toActive();
+						if (!consensusManager_->peerExists(lAddress) || settings_->isClient()) consensusManager_->pushPeer(lPeer);
+						else consensusManager_->pushPeerLatency(lPeer);
+						return false;
+					}
+				} else {
+					if (force) {
+						// deactivate old
+						IPeerPtr lPeer = locate(*(lPeerIndex->second.begin()));
+						deactivatePeer(lPeer);
+						// remove old
+						peerIdx_.erase(lPeerIndex);
+						// add new one
+						peerIdx_[peer->addressId()].insert(peer->key());
+						//
+						for (std::vector<State::BlockInfo>::iterator lInfo = peer->state()->infos().begin(); lInfo != peer->state()->infos().end(); lInfo++) {
+							//
+							if (lInfo->dApp().size() && lInfo->dApp() != "none") {
+								if (!peer->extension(lInfo->dApp())) {
+									//
+									if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: adding peer extension ") + strprintf("%s/%s/%s", lInfo->dApp(), peer->key(), peer->addressId().toHex()));
+									PeerExtensionCreatorPtr lCreator = locateExtensionCreator(lInfo->dApp());
+									if (lCreator) {
+										peer->setExtension(lInfo->dApp(), lCreator->create(State::DAppInstance(lInfo->dApp(), uint256()), peer, shared_from_this()));
+									}
+								}
+							}
+						}
+					}
+				}
 			}
 		}
 
@@ -1142,6 +1194,7 @@ public:
 
 			if (peers_[peer->contextId()].find(peer->key()) == peers_[peer->contextId()].end())
 				peers_[peer->contextId()].insert(std::map<std::string /*endpoint*/, IPeerPtr>::value_type(peer->key(), peer));
+			
 			active_[peer->contextId()].insert(peer->key());
 			quarantine_[peer->contextId()].erase(peer->key());
 			banned_[peer->contextId()].erase(peer->key());

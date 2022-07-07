@@ -33,7 +33,7 @@ public:
 	virtual bool existsPostponed(const std::string& /*endpoint*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::existsPostponed - not implemented."); }
 	virtual bool existsExplicit(const std::string& /*endpoint*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::existsExplicit - not implemented."); }
 
-	virtual bool updatePeerState(IPeerPtr /*peer*/, StatePtr /*state*/, IPeer::UpdatePeerResult& /*peerResult*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::updatePeerState - not implemented."); }
+	virtual bool updatePeerState(IPeerPtr /*peer*/, StatePtr /*state*/, IPeer::UpdatePeerResult& /*peerResult*/, bool force = false) { throw qbit::exception("NOT_IMPL", "IPeerManager::updatePeerState - not implemented."); }
 	virtual bool updatePeerLatency(IPeerPtr /*peer*/, uint32_t /*latency*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::updatePeerLatency - not implemented."); }
 
 	virtual void postpone(IPeerPtr /*peer*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::postpone - not implemented."); }

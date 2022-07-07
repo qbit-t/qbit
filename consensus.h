@@ -363,7 +363,7 @@ public:
 
 			if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, 
 				strprintf("[pushPeer]: peer pushed %s/%s/%s#", 
-					lPeerId.toHex(), peer->key(), chain_.toHex().substr(0, 10)));			
+					lPeerId.toHex(), peer->key(), chain_.toHex().substr(0, 10)));
 		}
 	}
 
@@ -721,13 +721,6 @@ public:
 			// peer id
 			peer_t lPeerId = state->addressId();
 
-			// previous/exists
-			PeersStateMap::iterator lState = peerStateMap_.find(lPeerId);
-			if (lState != peerStateMap_.end()) {
-				// check for updates
-				if (state->equals(lState->second)) return false; // already upated
-			}
-
 			// height -> block = peer
 			heightMap_[lInfo.height()][lInfo.hash()].insert(lPeerId);
 
@@ -741,9 +734,6 @@ public:
 
 			// all peers
 			peerSet_.insert(lPeerId);
-
-			// update state
-			peerStateMap_[lPeerId] = state;
 		}
 
 		return true;
@@ -761,24 +751,8 @@ public:
 			// peer id
 			peer_t lPeerId = state->addressId();
 
-			// previous/exists
-			PeersStateMap::iterator lState = peerStateMap_.find(lPeerId);
-			if (lState != peerStateMap_.end()) {
-				// clean-up
-				peerSet_.erase(lPeerId);
-				peerStateMap_.erase(lPeerId);
-
-				/*
-				HeightMap::iterator lStateMap = heightMap_.find(lInfo.height());
-				if (lStateMap != heightMap_.end()) {
-					//
-					StateMap::iterator lPeerSet = lStateMap->second.find(lInfo.hash());
-					if(lPeerSet != lStateMap->second.end()) {
-						lPeerSet->second.erase(lPeerId);
-					}
-				}
-				*/
-			}
+			// clean-up
+			peerSet_.erase(lPeerId);
 		}
 
 		return true;
@@ -1335,7 +1309,6 @@ protected:
 
 	//
 	typedef std::map<peer_t, IPeerPtr> PeersMap;
-	typedef std::map<peer_t, StatePtr> PeersStateMap;
 
 	//
 	// chain -> height -> block_id -> peer
@@ -1347,17 +1320,12 @@ protected:
 	// chain -> time -> peer
 	typedef std::map<time_t, peer_t> BlockTimePeerMap;
 
-	//
-	// chain -> active peers
-	typedef std::map<chain_t, std::set<peer_t>> ChainPeersMap;
-
 	boost::recursive_mutex peersMutex_;
 	boost::recursive_mutex stateMutex_;
 	boost::recursive_mutex queueMutex_;
 
 	boost::recursive_mutex transitionMutex_;
 
-	PeersStateMap peerStateMap_; // peer_id -> State
 	PeersMap directPeerMap_; // peer_id -> IPeer
 	PeersSet peerSet_;
 

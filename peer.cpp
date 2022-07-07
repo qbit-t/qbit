@@ -3938,7 +3938,7 @@ void Peer::processBlockHeaderAndState(std::list<DataStream>::iterator msg, const
 			
 			StatePtr lStatePtr = State::instance(lState);
 			IPeer::UpdatePeerResult lPeerResult;
-			if (!peerManager_->updatePeerState(shared_from_this(), lStatePtr, lPeerResult)) {
+			if (!peerManager_->updatePeerState(shared_from_this(), lStatePtr, lPeerResult, true /*force*/)) {
 				setState(lStatePtr);
 				peerManager_->consensusManager()->pushPeer(shared_from_this());
 			}
@@ -3960,18 +3960,18 @@ void Peer::processBlockHeaderAndState(std::list<DataStream>::iterator msg, const
 				IValidator::BlockCheckResult lResult = peerManager_->consensusManager()->pushBlockHeader(lNetworkBlockHeader);
 				switch(lResult) {
 					case IValidator::SUCCESS: {
-						if (!peerManager_->settings()->isMiner()) {
-							StatePtr lLocalState = peerManager_->consensusManager()->currentState();
-							if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: notifying state changes ") + key() + " -> " + lLocalState->toString());
-							peerManager_->consensusManager()->broadcastState(lLocalState, peerManager_->consensusManager()->mainPKey().id());
-						}	
-					}
+							if (!peerManager_->settings()->isMiner()) {
+								StatePtr lLocalState = peerManager_->consensusManager()->currentState();
+								if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: notifying state changes ") + key() + " -> " + lLocalState->toString());
+								peerManager_->consensusManager()->broadcastState(lLocalState, peerManager_->consensusManager()->mainPKey().id());
+							}	
+						} // continue below
 					case IValidator::BROKEN_CHAIN: {
 							// process state
 							if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing state from ") + key() + " -> " + lState.toString());
 							StatePtr lStatePtr = State::instance(lState);
 							IPeer::UpdatePeerResult lPeerResult;
-							if (!peerManager_->updatePeerState(shared_from_this(), lStatePtr, lPeerResult)) {
+							if (!peerManager_->updatePeerState(shared_from_this(), lStatePtr, lPeerResult, true /*force*/)) {
 								setState(lStatePtr);
 								peerManager_->consensusManager()->pushPeer(shared_from_this());
 							}
