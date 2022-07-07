@@ -357,8 +357,9 @@ public:
 			{
 				boost::unique_lock<boost::recursive_mutex> lLock(peersMutex_);
 				directPeerMap_[lPeerId] = peer;
-				pushState(peer->state());
 			}
+
+			pushState(peer->state());
 
 			if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, 
 				strprintf("[pushPeer]: peer pushed %s/%s/%s#", 
@@ -373,8 +374,10 @@ public:
 		if (peer->state()->containsChain(chain_)) {
 			//
 			peer_t lPeerId = peer->addressId();
-			boost::unique_lock<boost::recursive_mutex> lLock(peersMutex_);
-			directPeerMap_.erase(lPeerId);
+			{
+				boost::unique_lock<boost::recursive_mutex> lLock(peersMutex_);
+				directPeerMap_.erase(lPeerId);
+			}
 
 			popState(peer->state());
 
@@ -390,7 +393,6 @@ public:
 		//
 		IPeerPtr lPeer = nullptr;
 		PeersMap lDirectPeerMap;
-
 		{
 			boost::unique_lock<boost::recursive_mutex> lLock(peersMutex_);
 			lDirectPeerMap = directPeerMap_;
@@ -414,7 +416,7 @@ public:
 							// select peer
 							if (!lPeerId.isEmpty()) {
 								PeersMap::iterator lPeerPtr = lDirectPeerMap.find(lPeerId);
-								if (lPeerPtr != directPeerMap_.end() /*&& lPeerPtr->second->status() == IPeer::Status::ACTIVE*/) {
+								if (lPeerPtr != lDirectPeerMap.end() /*&& lPeerPtr->second->status() == IPeer::Status::ACTIVE*/) {
 									lPeer = lPeerPtr->second;
 									break;
 								}
@@ -428,7 +430,7 @@ public:
 		// 2. if absent - try to look at direct peers
 		if (!lPeer) {
 			PeersMap::iterator lPeerPtr = lDirectPeerMap.find(const_cast<NetworkBlockHeader&>(block).blockHeader().origin().id());
-			if (lPeerPtr != directPeerMap_.end() && lPeerPtr->second->status() == IPeer::Status::ACTIVE) {
+			if (lPeerPtr != lDirectPeerMap.end() && lPeerPtr->second->status() == IPeer::Status::ACTIVE) {
 				lPeer = lPeerPtr->second;
 			}
 		}
@@ -459,13 +461,6 @@ public:
 
 		//
 		if (lResult == IValidator::SUCCESS) {
-			//
-			size_t lPeersCount = 0;
-			{
-				boost::unique_lock<boost::recursive_mutex> lLock(peersMutex_);
-				lPeersCount = directPeerMap_.size();
-			}
-
 			// process
 			if (!validator->acceptBlockHeader(blockHeader)) {
 				// peers not found
@@ -654,11 +649,15 @@ public:
 	// collect validators
 	void collectValidators(std::map<uint160, IPeerPtr>& peers) {
 		//
-		// prepare
 		std::list<IPeerPtr> lPeers;
+		PeersMap lDirectPeerMap;
 		{
 			boost::unique_lock<boost::recursive_mutex> lLock(peersMutex_);
-			for (PeersMap::iterator lItem = directPeerMap_.begin(); lItem != directPeerMap_.end(); lItem++) {
+			lDirectPeerMap = directPeerMap_;
+		}
+
+		{
+			for (PeersMap::iterator lItem = lDirectPeerMap.begin(); lItem != lDirectPeerMap.end(); lItem++) {
 				if (lItem->second->state()->minerOrValidator() /*&& lItem->second->status() == IPeer::Status::ACTIVE*/) {
 					//
 					bool lAdd = false;
