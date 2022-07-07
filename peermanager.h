@@ -963,7 +963,7 @@ public:
 
 		// push to consensus
 		if (!consensusManager_->pushPeer(peer)) {
-			deactivate(peer);
+			deactivatePeer(peer);
 			return false;
 		}
 
@@ -1150,7 +1150,7 @@ public:
 
 		// push to consensus
 		if (!consensusManager_->pushPeer(peer)) {
-			deactivate(peer);
+			deactivatePeer(peer);
 			return false;
 		}
 
@@ -1180,22 +1180,14 @@ public:
 			}
 		}
 
-		{
-			if (peer->state()->client()) {
-				removePeer(peer);
-			} else {
-				boost::unique_lock<boost::recursive_mutex> lLock(contextMutex_[peer->contextId()]);
-				peer->deactivate();
-
-				active_[peer->contextId()].erase(peer->key());
-				if (peer->isOutbound()) inactive_[peer->contextId()].insert(peer->key());
-			}
-		}
-
+		// pop from manager
 		consensusManager_->popPeer(peer);
 
 		// update peers db
 		updatePeer(peer);
+
+		// inbound connections only
+		if (!peer->isOutbound() /*double check*/) removePeer(peer);
 
 		//
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::INFO, std::string("[peerManager]: deactivate peer ") + peer->key());
