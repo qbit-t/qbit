@@ -931,7 +931,7 @@ public:
 					}
 				}
 			} else {
-				if (lPeerIndex->second.size() && !force) {
+				if (lPeerIndex != peerIdx_.end() && lPeerIndex->second.size() && !force) {
 					IPeerPtr lPeer = locate(*(lPeerIndex->second.begin()));
 					if (lPeer) {
 						if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: peer ALREADY exists - ") + 
@@ -945,28 +945,31 @@ public:
 						return false;
 					}
 				} else {
-					if (force) {
+					if (lPeerIndex != peerIdx_.end() && force) {
 						// deactivate old
 						IPeerPtr lPeer = locate(*(lPeerIndex->second.begin()));
-						deactivatePeer(lPeer);
-						// remove old
-						peerIdx_.erase(lPeerIndex);
-						// add new one
-						peerIdx_[peer->addressId()].insert(peer->key());
-						//
-						for (std::vector<State::BlockInfo>::iterator lInfo = peer->state()->infos().begin(); lInfo != peer->state()->infos().end(); lInfo++) {
+						if (lPeer->key() != peer->key()) {
+							deactivatePeer(lPeer);
+							// remove old
+							lPeerIndex->second.clear();
+							peerIdx_.erase(lPeerIndex);
+							// add new one
+							peerIdx_[peer->addressId()].insert(peer->key());
 							//
-							if (lInfo->dApp().size() && lInfo->dApp() != "none") {
-								if (!peer->extension(lInfo->dApp())) {
-									//
-									if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: adding peer extension ") + strprintf("%s/%s/%s", lInfo->dApp(), peer->key(), peer->addressId().toHex()));
-									PeerExtensionCreatorPtr lCreator = locateExtensionCreator(lInfo->dApp());
-									if (lCreator) {
-										peer->setExtension(lInfo->dApp(), lCreator->create(State::DAppInstance(lInfo->dApp(), uint256()), peer, shared_from_this()));
+							for (std::vector<State::BlockInfo>::iterator lInfo = peer->state()->infos().begin(); lInfo != peer->state()->infos().end(); lInfo++) {
+								//
+								if (lInfo->dApp().size() && lInfo->dApp() != "none") {
+									if (!peer->extension(lInfo->dApp())) {
+										//
+										if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: adding peer extension ") + strprintf("%s/%s/%s", lInfo->dApp(), peer->key(), peer->addressId().toHex()));
+										PeerExtensionCreatorPtr lCreator = locateExtensionCreator(lInfo->dApp());
+										if (lCreator) {
+											peer->setExtension(lInfo->dApp(), lCreator->create(State::DAppInstance(lInfo->dApp(), uint256()), peer, shared_from_this()));
+										}
 									}
 								}
 							}
-						}
+						} else return false;
 					}
 				}
 			}
@@ -1147,7 +1150,7 @@ public:
 					}
 				}
 			} else {
-				if (lPeerIndex->second.size() && !force) {
+				if (lPeerIndex != peerIdx_.end() && lPeerIndex->second.size() && !force) {
 					IPeerPtr lPeer = locate(*(lPeerIndex->second.begin()));
 					if (lPeer) {
 						if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: peer ALREADY exists - ") + 
@@ -1161,28 +1164,31 @@ public:
 						return false;
 					}
 				} else {
-					if (force) {
+					if (lPeerIndex != peerIdx_.end() && force) {
 						// deactivate old
 						IPeerPtr lPeer = locate(*(lPeerIndex->second.begin()));
-						deactivatePeer(lPeer);
-						// remove old
-						peerIdx_.erase(lPeerIndex);
-						// add new one
-						peerIdx_[peer->addressId()].insert(peer->key());
-						//
-						for (std::vector<State::BlockInfo>::iterator lInfo = peer->state()->infos().begin(); lInfo != peer->state()->infos().end(); lInfo++) {
+						if (lPeer->key() != peer->key()) {
+							deactivatePeer(lPeer);
+							// remove old
+							lPeerIndex->second.clear();
+							peerIdx_.erase(lPeerIndex);
+							// add new one
+							peerIdx_[peer->addressId()].insert(peer->key());
 							//
-							if (lInfo->dApp().size() && lInfo->dApp() != "none") {
-								if (!peer->extension(lInfo->dApp())) {
-									//
-									if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: adding peer extension ") + strprintf("%s/%s/%s", lInfo->dApp(), peer->key(), peer->addressId().toHex()));
-									PeerExtensionCreatorPtr lCreator = locateExtensionCreator(lInfo->dApp());
-									if (lCreator) {
-										peer->setExtension(lInfo->dApp(), lCreator->create(State::DAppInstance(lInfo->dApp(), uint256()), peer, shared_from_this()));
+							for (std::vector<State::BlockInfo>::iterator lInfo = peer->state()->infos().begin(); lInfo != peer->state()->infos().end(); lInfo++) {
+								//
+								if (lInfo->dApp().size() && lInfo->dApp() != "none") {
+									if (!peer->extension(lInfo->dApp())) {
+										//
+										if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: adding peer extension ") + strprintf("%s/%s/%s", lInfo->dApp(), peer->key(), peer->addressId().toHex()));
+										PeerExtensionCreatorPtr lCreator = locateExtensionCreator(lInfo->dApp());
+										if (lCreator) {
+											peer->setExtension(lInfo->dApp(), lCreator->create(State::DAppInstance(lInfo->dApp(), uint256()), peer, shared_from_this()));
+										}
 									}
 								}
 							}
-						}
+						} else return false;
 					}
 				}
 			}
