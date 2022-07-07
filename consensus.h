@@ -720,20 +720,24 @@ public:
 
 			// peer id
 			peer_t lPeerId = state->addressId();
+			std::map<peer_t, uint512>::iterator lPeerState = peerSet_.find(lPeerId);
+			if (lPeerState != peerSet_.end() && lPeerState->second == state->signature()) // already updated
+				return false;
 
 			// height -> block = peer
 			heightMap_[lInfo.height()][lInfo.hash()].insert(lPeerId);
 
 			// clean-up
 			if (heightMap_.size() > 20) {
-				heightMap_.erase(heightMap_.begin());
+				HeightMap::iterator lFirst = heightMap_.begin();
+				heightMap_.erase(lFirst->first);
 			}
 
 			gLog().write(Log::CONSENSUS, 
 				strprintf("[pushState]: %d/%s/%s/%s#", lInfo.height(), lInfo.hash().toHex(), lPeerId.toHex(), chain_.toHex().substr(0, 10)));
 
 			// all peers
-			peerSet_.insert(lPeerId);
+			peerSet_[lPeerId] = state->signature();
 		}
 
 		return true;
@@ -1327,7 +1331,7 @@ protected:
 	boost::recursive_mutex transitionMutex_;
 
 	PeersMap directPeerMap_; // peer_id -> IPeer
-	PeersSet peerSet_;
+	std::map<peer_t, uint512> peerSet_;
 
 	BlockTimePeerMap blockTimePeer_;
 
