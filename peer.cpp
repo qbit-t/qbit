@@ -13,14 +13,17 @@ bool Peer::onQuarantine() {
 void Peer::reset(bool cancelTimer) {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
-	// cancel send wait
-	if (cancelTimer) controlTimer_->cancel();
-	// reset status
-	socketStatus_ = GENERAL_ERROR;
-	// try to deactivate peer
-	peerManager_->deactivatePeer(shared_from_this());
-	// close socket
-	if (socket_) socket_->close();
+	//
+	if (socketStatus_ == CONNECTED) {
+		// reset status
+		socketStatus_ = GENERAL_ERROR;
+		// cancel send wait
+		if (cancelTimer) controlTimer_->cancel();
+		// try to deactivate peer
+		peerManager_->deactivatePeer(shared_from_this());
+		// close socket
+		if (socket_) socket_->close();
+	}
 }
 
 void Peer::sendMessageAsync(std::list<DataStream>::iterator msg) {
@@ -79,7 +82,6 @@ void Peer::processPendingMessagesQueue() {
 	}
 
 	if (lFound) {
-		bool lProcessed = false;
 		{
 			boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
 			if (socketStatus_ == CONNECTED) {
@@ -96,18 +98,8 @@ void Peer::processPendingMessagesQueue() {
 					strand_->wrap(boost::bind(
 						&Peer::messageSentAsync, shared_from_this(), lMsg,
 						boost::asio::placeholders::error)));
-				//
-				lProcessed = true;
 			}
 		}
-
-		/*
-		if (!lProcessed) {
-			boost::unique_lock<boost::mutex> lLock(rawOutMutex_);
-			outQueue_.clear();
-			rawOutMessages_.clear();
-		}
-		*/
 	}
 	else 
 		waitForMessage();
@@ -115,7 +107,7 @@ void Peer::processPendingMessagesQueue() {
 
 void Peer::messageSentAsync(std::list<OutMessage>::iterator msg, const boost::system::error_code& error) {
 	// if error?
-	if (!error) {
+	if (!error && socketStatus_ == CONNECTED) {
 		// cancel timer
 		{
 			boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
@@ -141,7 +133,7 @@ void Peer::messageSentAsync(std::list<OutMessage>::iterator msg, const boost::sy
 
 void Peer::messageSendTimeout(const boost::system::error_code& error) {
 	//
-	if (!error /*boost::asio::error::operation_aborted*/) {
+	if (error != boost::asio::error::operation_aborted) {
 		// log
 		if (gLog().isEnabled(Log::CONSENSUS) /*extra logging*/)
 			gLog().write(Log::NET, strprintf("[peer/error]: send timeout, closing session %s -> %s", key(), error.message()));
@@ -1589,12 +1581,14 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 				//
 				{
 					boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
-					//
-					socketStatus_ = GENERAL_ERROR;
-					// try to deactivate peer
-					peerManager_->deactivatePeer(shared_from_this());
-					// close socket
-					socket_->close();
+					if (socketStatus_ == CONNECTED) {
+						//
+						socketStatus_ = GENERAL_ERROR;
+						// try to deactivate peer
+						peerManager_->deactivatePeer(shared_from_this());
+						// close socket
+						socket_->close();
+					}
 				}
 			}
 
@@ -1617,12 +1611,14 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 			//
 			{
 				boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
-				//
-				socketStatus_ = GENERAL_ERROR;
-				// try to deactivate peer
-				peerManager_->deactivatePeer(shared_from_this());
-				// close socket
-				socket_->close();
+				if (socketStatus_ == CONNECTED) {
+					//
+					socketStatus_ = GENERAL_ERROR;
+					// try to deactivate peer
+					peerManager_->deactivatePeer(shared_from_this());
+					// close socket
+					socket_->close();
+				}
 			}
 		}
 	}
@@ -4456,12 +4452,14 @@ void Peer::processState(std::list<DataStream>::iterator msg, bool broadcast, con
 				//
 				{
 					boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
-					//
-					socketStatus_ = GENERAL_ERROR;
-					// try to deactivate peer
-					peerManager_->deactivatePeer(shared_from_this());
-					// close socket
-					socket_->close();
+					if (socketStatus_ == CONNECTED) {
+						//
+						socketStatus_ = GENERAL_ERROR;
+						// try to deactivate peer
+						peerManager_->deactivatePeer(shared_from_this());
+						// close socket
+						socket_->close();
+					}
 				}
 			}
 		} else if (broadcast) {

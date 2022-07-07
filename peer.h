@@ -149,7 +149,7 @@ public:
 
 		{
 			boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
-			if (socket_) {
+			if (socket_ && socketStatus_ == CONNECTED) {
 				socketStatus_ = CLOSED;
 				controlTimer_->cancel();
 				socket_->close();
@@ -157,8 +157,8 @@ public:
 		}
 
 		{
-			boost::unique_lock<boost::recursive_mutex> lLock(readMutex_);
-			state_.reset();
+			//boost::unique_lock<boost::recursive_mutex> lLock(readMutex_);
+			//state_.reset();
 		}
 
 		if (gLog().isEnabled(Log::NET)) 
@@ -206,7 +206,7 @@ public:
 		return state_; 
 	}
 	void close() {
-		if (socket_) {
+		if (socket_ && socketStatus_ == CONNECTED) {
 			controlTimer_->cancel();
 			socket_->close();
 			socketStatus_ = CLOSED;

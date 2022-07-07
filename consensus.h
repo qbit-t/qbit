@@ -416,7 +416,7 @@ public:
 							// select peer
 							if (!lPeerId.isEmpty()) {
 								PeersMap::iterator lPeerPtr = lDirectPeerMap.find(lPeerId);
-								if (lPeerPtr != lDirectPeerMap.end() /*&& lPeerPtr->second->status() == IPeer::Status::ACTIVE*/) {
+								if (lPeerPtr != lDirectPeerMap.end() && lPeerPtr->second->status() == IPeer::Status::ACTIVE) {
 									lPeer = lPeerPtr->second;
 									break;
 								}
@@ -871,7 +871,7 @@ public:
 					if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS,
 						strprintf("[locateSynchronizedRoot]: try to add peer %s/%s/%s#", 
 							lPeerPtr->second->key(), lPeerPtr->second->statusString(), chain_.toHex().substr(0, 10)));
-					/*if (lPeerPtr->second->status() == IPeer::Status::ACTIVE)*/ peers.push_back(lPeerPtr->second);
+					if (lPeerPtr->second->status() == IPeer::Status::ACTIVE) peers.push_back(lPeerPtr->second);
 				}
 			}
 		}
