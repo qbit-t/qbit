@@ -4515,10 +4515,10 @@ void Peer::connect() {
 			// so just start with generic exchange - "status"
 
 			// connected - send our state
-			sendState();
+			//sendState();
 
 			// go to read
-			processed();
+			//processed();
 		}
 	}
 }

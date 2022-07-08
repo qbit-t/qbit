@@ -416,7 +416,7 @@ public:
 							// select peer
 							if (!lPeerId.isEmpty()) {
 								PeersMap::iterator lPeerPtr = lDirectPeerMap.find(lPeerId);
-								if (lPeerPtr != lDirectPeerMap.end() && lPeerPtr->second->status() == IPeer::Status::ACTIVE) {
+								if (lPeerPtr != lDirectPeerMap.end() /*&& lPeerPtr->second->status() == IPeer::Status::ACTIVE*/) {
 									lPeer = lPeerPtr->second;
 									break;
 								}
@@ -430,7 +430,7 @@ public:
 		// 2. if absent - try to look at direct peers
 		if (!lPeer) {
 			PeersMap::iterator lPeerPtr = lDirectPeerMap.find(const_cast<NetworkBlockHeader&>(block).blockHeader().origin().id());
-			if (lPeerPtr != lDirectPeerMap.end() && lPeerPtr->second->status() == IPeer::Status::ACTIVE) {
+			if (lPeerPtr != lDirectPeerMap.end() /*&& lPeerPtr->second->status() == IPeer::Status::ACTIVE*/) {
 				lPeer = lPeerPtr->second;
 			}
 		}
@@ -692,8 +692,8 @@ public:
 							if (lStore) {
 								uint64_t lHeight = lStore->currentHeight(lHeader);
 								//
-								if ((lHeight > lInfo.height() && lHeight - lInfo.height() < 10) ||
-										(lHeight < lInfo.height() && lInfo.height() - lHeight < 10) || 
+								if ((lHeight > lInfo.height() && lHeight - lInfo.height() < 5) ||
+										(lHeight < lInfo.height() && lInfo.height() - lHeight < 5) || 
 											lHeight == lInfo.height())
 									lPeers.push_back(lItem->second);
 							}
@@ -731,7 +731,7 @@ public:
 					lState->second.clear();
 				lFirst->second.clear();
 				//
-				heightMap_.erase(lFirst);
+				//heightMap_.erase(lFirst);
 			}
 
 			// height -> block = peer
@@ -853,7 +853,7 @@ public:
 					if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS,
 						strprintf("[locateSynchronizedRoot]: try to add peer %s/%s/%s#", 
 							lPeerPtr->second->key(), lPeerPtr->second->statusString(), chain_.toHex().substr(0, 10)));
-					if (lPeerPtr->second->status() == IPeer::Status::ACTIVE) peers.push_back(lPeerPtr->second);
+					/*if (lPeerPtr->second->status() == IPeer::Status::ACTIVE)*/ peers.push_back(lPeerPtr->second);
 				}
 			}
 		}
