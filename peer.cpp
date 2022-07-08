@@ -4510,15 +4510,12 @@ void Peer::connect() {
 						boost::asio::placeholders::iterator)));			
 			}
 		} else if (socketStatus_ == CONNECTED /*|| CONNECTED == CONNECTING*/) {
-			// just try to check this direction once more; that can be IF upper level of processing logic EPLICITLY
+			// just try to check this direction once more; that can be IF upper level of processing logic EXPLICITLY
 			// call one of the "send" methods and if status == PENDING we get: soecket == connected and nothing happened ever
 			// so just start with generic exchange - "status"
 
-			// connected - send our state
-			//sendState();
-
 			// go to read
-			//processed();
+			processed();
 		}
 	}
 }
