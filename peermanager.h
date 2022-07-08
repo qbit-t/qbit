@@ -931,7 +931,7 @@ public:
 					}
 				}
 			} else {
-				if (lPeerIndex != peerIdx_.end() && lPeerIndex->second.size() && !force) {
+				if (lPeerIndex != peerIdx_.end() && lPeerIndex->second.size() /*&& !force*/) {
 					IPeerPtr lPeer = locate(*(lPeerIndex->second.begin()));
 					if (lPeer) {
 						if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: peer ALREADY exists - ") + 
@@ -944,7 +944,7 @@ public:
 						else consensusManager_->pushPeerLatency(lPeer);
 						return false;
 					}
-				} else {
+				} /*else {
 					if (lPeerIndex != peerIdx_.end() && force) {
 						// deactivate old
 						IPeerPtr lPeer = locate(*(lPeerIndex->second.begin()));
@@ -968,7 +968,7 @@ public:
 							}
 						} else return false;
 					}
-				}
+				}*/
 			}
 		}
 
@@ -1146,7 +1146,7 @@ public:
 					}
 				}
 			} else {
-				if (lPeerIndex != peerIdx_.end() && lPeerIndex->second.size() && !force) {
+				if (lPeerIndex != peerIdx_.end() && lPeerIndex->second.size() /*&& !force*/) {
 					IPeerPtr lPeer = locate(*(lPeerIndex->second.begin()));
 					if (lPeer) {
 						if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: peer ALREADY exists - ") + 
@@ -1159,7 +1159,7 @@ public:
 						else consensusManager_->pushPeerLatency(lPeer);
 						return false;
 					}
-				} else {
+				} /*else {
 					if (lPeerIndex != peerIdx_.end() && force) {
 						// deactivate old
 						IPeerPtr lPeer = locate(*(lPeerIndex->second.begin()));
@@ -1183,7 +1183,7 @@ public:
 							}
 						} else return false;
 					}
-				}
+				} */
 			}
 		}
 
