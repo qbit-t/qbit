@@ -724,20 +724,24 @@ public:
 			if (lPeerState != peerSet_.end() && lPeerState->second == state->signature()) // already updated
 				return false;
 
+			// clean-up
+			if (heightMap_.size() > 50) {
+				HeightMap::iterator lFirst = heightMap_.begin();
+				for (StateMap::iterator lState = lFirst->second.begin(); lState != lFirst->second.end(); lState++)
+					lState->second.clear();
+				lFirst->second.clear();
+				//
+				heightMap_.erase(lFirst);
+			}
+
 			// height -> block = peer
 			heightMap_[lInfo.height()][lInfo.hash()].insert(lPeerId);
 
-			// clean-up
-			if (heightMap_.size() > 20) {
-				HeightMap::iterator lFirst = heightMap_.begin();
-				heightMap_.erase(lFirst->first);
-			}
-
-			gLog().write(Log::CONSENSUS, 
-				strprintf("[pushState]: %d/%s/%s/%s#", lInfo.height(), lInfo.hash().toHex(), lPeerId.toHex(), chain_.toHex().substr(0, 10)));
-
 			// all peers
 			peerSet_[lPeerId] = state->signature();
+
+			gLog().write(Log::CONSENSUS, 
+				strprintf("[pushState]: state pushed %d/%s/%s/%s#", lInfo.height(), lInfo.hash().toHex(), lPeerId.toHex(), chain_.toHex().substr(0, 10)));
 		}
 
 		return true;
