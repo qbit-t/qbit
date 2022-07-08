@@ -931,24 +931,27 @@ public:
 					}
 				}
 			} else {
-				if (lPeerIndex != peerIdx_.end() && lPeerIndex->second.size() && !force) {
-					IPeerPtr lPeer = locate(*(lPeerIndex->second.begin()));
-					if (lPeer) {
-						if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: peer ALREADY exists - ") + 
-								strprintf("new - %s/%s/%s, old - %s/%s/%s", 
-									peer->key(), peer->statusString(), peer->addressId().toHex(), 
-									lPeer->key(), lPeer->statusString(), lPeer->addressId().toHex()));
+				//
+				IPeerPtr lPeer = nullptr;
+				if (lPeerIndex != peerIdx_.end() && lPeerIndex->second.size()) {
+					lPeer = locate(*(lPeerIndex->second.begin()));
+					if (lPeer->status() == IPeer::PENDING_STATE) force = true; // accept incoming state and peer
+				}
 
-						lPeer->toActive();
-						if (!consensusManager_->peerExists(lAddress) || settings_->isClient()) consensusManager_->pushPeer(lPeer);
-						else consensusManager_->pushPeerLatency(lPeer);
-						return false;
-					}
+				if (lPeer && !force) {
+					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: peer ALREADY exists - ") + 
+							strprintf("new - %s/%s/%s, old - %s/%s/%s", 
+								peer->key(), peer->statusString(), peer->addressId().toHex(), 
+								lPeer->key(), lPeer->statusString(), lPeer->addressId().toHex()));
+
+					lPeer->toActive();
+					if (!consensusManager_->peerExists(lAddress) || settings_->isClient()) consensusManager_->pushPeer(lPeer);
+					else consensusManager_->pushPeerLatency(lPeer);
+					return false;
 				} else {
-					if (lPeerIndex != peerIdx_.end() && force) {
+					if (lPeer && force) {
 						// deactivate old
-						IPeerPtr lPeer = locate(*(lPeerIndex->second.begin()));
-						if (lPeer && lPeer->key() != peer->key()) {
+						if (lPeer->key() != peer->key()) {
 							deactivatePeer(lPeer);
 							// add new one
 							peerIdx_[peer->addressId()].insert(peer->key());
@@ -1143,24 +1146,27 @@ public:
 					}
 				}
 			} else {
-				if (lPeerIndex != peerIdx_.end() && lPeerIndex->second.size() && !force) {
-					IPeerPtr lPeer = locate(*(lPeerIndex->second.begin()));
-					if (lPeer) {
-						if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: peer ALREADY exists - ") + 
-								strprintf("new - %s/%s/%s, old - %s/%s/%s", 
-									peer->key(), peer->statusString(), peer->addressId().toHex(), 
-									lPeer->key(), lPeer->statusString(), lPeer->addressId().toHex()));
+				//
+				IPeerPtr lPeer = nullptr;
+				if (lPeerIndex != peerIdx_.end() && lPeerIndex->second.size()) {
+					lPeer = locate(*(lPeerIndex->second.begin()));
+					if (lPeer->status() == IPeer::PENDING_STATE) force = true; // accept incoming state and peer
+				}
 
-						lPeer->toActive();
-						if (!consensusManager_->peerExists(lAddress) || settings_->isClient()) consensusManager_->pushPeer(lPeer);
-						else consensusManager_->pushPeerLatency(lPeer);
-						return false;
-					}
+				if (lPeer && !force) {
+					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: peer ALREADY exists - ") + 
+							strprintf("new - %s/%s/%s, old - %s/%s/%s", 
+								peer->key(), peer->statusString(), peer->addressId().toHex(), 
+								lPeer->key(), lPeer->statusString(), lPeer->addressId().toHex()));
+
+					lPeer->toActive();
+					if (!consensusManager_->peerExists(lAddress) || settings_->isClient()) consensusManager_->pushPeer(lPeer);
+					else consensusManager_->pushPeerLatency(lPeer);
+					return false;
 				} else {
-					if (lPeerIndex != peerIdx_.end() && force) {
+					if (lPeer && force) {
 						// deactivate old
-						IPeerPtr lPeer = locate(*(lPeerIndex->second.begin()));
-						if (lPeer && lPeer->key() != peer->key()) {
+						if (lPeer->key() != peer->key()) {
 							deactivatePeer(lPeer);
 							// add new one
 							peerIdx_[peer->addressId()].insert(peer->key());

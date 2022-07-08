@@ -18,7 +18,7 @@ void Peer::reset(bool cancelTimer) {
 		// reset status
 		socketStatus_ = GENERAL_ERROR;
 		// cancel send wait
-		if (cancelTimer) controlTimer_->cancel();
+		// if (cancelTimer) controlTimer_->cancel();
 		// try to deactivate peer
 		peerManager_->deactivatePeer(shared_from_this());
 		// close socket
@@ -39,6 +39,7 @@ void Peer::sendMessageAsync(std::list<DataStream>::iterator msg) {
 	{
 		boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
 		if (socketStatus_ == CONNECTED) {
+			/*
 			// control
 			controlTimer_->expires_after(boost::asio::chrono::seconds(30));
 			controlTimer_->async_wait(
@@ -46,6 +47,7 @@ void Peer::sendMessageAsync(std::list<DataStream>::iterator msg) {
 					&Peer::messageSendTimeout, shared_from_this(),
 					boost::asio::placeholders::error))
 			);
+			*/
 			// send
 			boost::asio::async_write(*socket_,
 				boost::asio::buffer(lMsg->msg()->data(), lMsg->msg()->size()),
@@ -85,6 +87,7 @@ void Peer::processPendingMessagesQueue() {
 		{
 			boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
 			if (socketStatus_ == CONNECTED) {
+				/*
 				// control
 				controlTimer_->expires_after(boost::asio::chrono::seconds(30));
 				controlTimer_->async_wait(
@@ -92,6 +95,7 @@ void Peer::processPendingMessagesQueue() {
 						&Peer::messageSendTimeout, shared_from_this(),
 						boost::asio::placeholders::error))
 				);
+				*/
 				// send
 				boost::asio::async_write(*socket_,
 					boost::asio::buffer(lMsg->msg()->data(), lMsg->msg()->size()),
@@ -100,19 +104,19 @@ void Peer::processPendingMessagesQueue() {
 						boost::asio::placeholders::error)));
 			}
 		}
-	}
-	else 
-		waitForMessage();
+	} else waitForMessage();
 }
 
 void Peer::messageSentAsync(std::list<OutMessage>::iterator msg, const boost::system::error_code& error) {
 	// if error?
 	if (!error) {
 		// cancel timer
+		/*
 		{
 			boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
 			controlTimer_->cancel();
 		}
+		*/
 
 		// remove message from queue
 		if (!eraseOutMessage(msg)) {
