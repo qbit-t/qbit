@@ -14,7 +14,7 @@ void Peer::reset(bool cancelTimer) {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
 	//
-	if (socketStatus_ == CONNECTED) {
+	{
 		// reset status
 		socketStatus_ = GENERAL_ERROR;
 		// cancel send wait
@@ -107,7 +107,7 @@ void Peer::processPendingMessagesQueue() {
 
 void Peer::messageSentAsync(std::list<OutMessage>::iterator msg, const boost::system::error_code& error) {
 	// if error?
-	if (!error && socketStatus_ == CONNECTED) {
+	if (!error) {
 		// cancel timer
 		{
 			boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
@@ -1581,7 +1581,7 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 				//
 				{
 					boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
-					if (socketStatus_ == CONNECTED) {
+					{
 						//
 						socketStatus_ = GENERAL_ERROR;
 						// try to deactivate peer
@@ -1611,7 +1611,7 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 			//
 			{
 				boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
-				if (socketStatus_ == CONNECTED) {
+				{
 					//
 					socketStatus_ = GENERAL_ERROR;
 					// try to deactivate peer
