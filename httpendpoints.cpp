@@ -2169,19 +2169,6 @@ void HttpGetState::run(const std::string& source, const HttpRequest& request, co
 			//
 			if ((*lPeer)->status() == IPeer::UNDEFINED) continue;
 			//
-			if ((*lPeer)->status() == IPeer::BANNED || (*lPeer)->status() == IPeer::POSTPONED) {
-				//
-				lInQueue += (*lPeer)->inQueueLength();
-				lOutQueue += (*lPeer)->outQueueLength();
-				lPendingQueue += (*lPeer)->pendingQueueLength();
-				lReceivedCount += (*lPeer)->receivedMessagesCount();
-				lReceivedBytes += (*lPeer)->bytesReceived();
-				lSentCount += (*lPeer)->sentMessagesCount();
-				lSentBytes += (*lPeer)->bytesSent();
-				continue;				
-			}
-
-
 			lInQueue += (*lPeer)->inQueueLength();
 			lOutQueue += (*lPeer)->outQueueLength();
 			lPendingQueue += (*lPeer)->pendingQueueLength();

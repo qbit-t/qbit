@@ -639,7 +639,6 @@ public:
 			}
 		}
 
-		// broadcast
 		for (std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
 			peers[(*lPeer)->addressId()] = (*lPeer);
 		}
@@ -691,9 +690,9 @@ public:
 							ITransactionStorePtr lStore = store_->storeManager()->locate(chain_);
 							if (lStore) {
 								uint64_t lHeight = lStore->currentHeight(lHeader);
-								//
-								if ((lHeight > lInfo.height() && lHeight - lInfo.height() < 5) ||
-										(lHeight < lInfo.height() && lInfo.height() - lHeight < 5) || 
+								// +\- 100 from our height 
+								if ((lHeight > lInfo.height() && lHeight - lInfo.height() < 100) ||
+										(lHeight < lInfo.height() && lInfo.height() - lHeight < 100) || 
 											lHeight == lInfo.height())
 									lPeers.push_back(lItem->second);
 							}
@@ -781,7 +780,8 @@ public:
 		uint64_t lHeight = store_->currentHeight(lHeader);
 
 		bool lResult = false;
-		{
+		if (lHeight) {
+			//
 			boost::unique_lock<boost::recursive_mutex> lLock(stateMutex_);
 			//
 			if (heightMap_.size()) {
@@ -815,6 +815,9 @@ public:
 			// reverse traversal of heights of the chain
 			bool lFound = false;
 			for (HeightMap::reverse_iterator lHeightPos = heightMap_.rbegin(); !lFound && lHeightPos != heightMap_.rend(); lHeightPos++) {
+				// check 
+				if (!lHeightPos->second.size()) { lFound = true; continue; }
+				// try
 				if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, 
 					strprintf("[locateSynchronizedRoot]: try [%d:%d]/%d/%s#", 
 						lHeightPos->first, lHeight, lHeightPos->second.size(), chain_.toHex().substr(0, 10)));
@@ -838,6 +841,8 @@ public:
 						if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, 
 							strprintf("[locateSynchronizedRoot]: already SYNCHRONIZED %d/%s/%s#", 
 								lHeightPos->first, lState->first.toHex(), chain_.toHex().substr(0, 10)));
+
+						lFound = true;
 						break;
 					}
 				}

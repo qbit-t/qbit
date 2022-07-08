@@ -206,7 +206,8 @@ public:
 		return state_; 
 	}
 	void close() {
-		if (socket_ && socketStatus_ == CONNECTED) {
+		boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
+		if (socket_ ) {
 			controlTimer_->cancel();
 			socket_->close();
 			socketStatus_ = CLOSED;
@@ -251,6 +252,7 @@ public:
 	}
 
 	inline std::string key() {
+		boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
 		std::string lKey = key(socket_); 
 		if (lKey.size()) return lKey;
 		return endpoint_;
@@ -258,6 +260,7 @@ public:
 
 	inline std::string key(SocketPtr socket) {
 		// TODO: we need to consider removing :port part from key for production
+		boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
 		if (socket != nullptr) {
 			if (socketType_ == CLIENT) {
 				boost::system::error_code lEndpoint; socket->remote_endpoint(lEndpoint);
@@ -275,6 +278,7 @@ public:
 	}
 
 	virtual bool isLocal() {
+		boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
 		if (socket_ != nullptr) {
 			boost::system::error_code lLocalEndpoint; socket_->local_endpoint(lLocalEndpoint);
 			boost::system::error_code lRemoteEndpoint; socket_->remote_endpoint(lRemoteEndpoint);
@@ -287,6 +291,7 @@ public:
 
 	inline uint160 keyId() {
 		//
+		boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
 		std::string lAddress;
 		if (socket_ != nullptr) {
 			if (socketType_ == CLIENT) {
@@ -478,10 +483,12 @@ private:
 	void internalSendState(StatePtr state, bool global);
 
 	bool hasPendingRequests() {
-		return replyHandlers_.size(); 
+		boost::unique_lock<boost::mutex> lLock(replyHandlersMutex_);
+		return replyHandlers_.size();
 	}
 
 	bool hasActiveJobs() {
+		boost::unique_lock<boost::mutex> lLock(jobsMutex_);
 		return jobs_.size();
 	}
 
@@ -526,6 +533,7 @@ private:
 	}
 
 	std::list<DataStream>::iterator newInData(const Message& msg) {
+		boost::unique_lock<boost::mutex> lLock(rawInMutex_);
 		DataStream lMessage(SER_NETWORK, PROTOCOL_VERSION, const_cast<Message&>(msg).checkSum());
 		return rawInData_.insert(rawInData_.end(), lMessage);
 	}
@@ -567,7 +575,10 @@ private:
 			reading_ = false;
 		}
 
-		if (msg != rawInData_.end()) rawInData_.erase(msg);
+		{
+			boost::unique_lock<boost::mutex> lLock(rawInMutex_);
+			if (msg != rawInData_.end()) rawInData_.erase(msg);
+		}
 	}
 
 	bool jobExists(const uint256& chain) {
@@ -624,6 +635,7 @@ private:
 	}
 
 	uint32_t pendingQueueLength() {
+		boost::unique_lock<boost::mutex> lLock(rawInMutex_);
 		return rawInData_.size();
 	}
 
