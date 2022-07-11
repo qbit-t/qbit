@@ -568,12 +568,9 @@ private:
 		boost::unique_lock<boost::mutex> lLock(rawOutMutex_);
 		if (outQueue_.size()) {
 			sentMessagesCount_++;
-			if (msg->epoch() == epoch_) {
-				msg->msg()->reset();
-				bytesSent_ += msg->msg()->size();
-				rawOutMessages_.erase(msg->msg());
-			}
-
+			msg->msg()->reset();
+			bytesSent_ += msg->msg()->size();
+			rawOutMessages_.erase(msg->msg());
 			outQueue_.erase(msg);
 			return true;
 		}
@@ -582,23 +579,17 @@ private:
 	}
 
 	void clearQueues() {
-		{
-			boost::unique_lock<boost::mutex> lLock(rawOutMutex_);
-			rawOutMessages_.clear();
-			epoch_++; // push epoch
-		}
-	}
-
-	void cleanUpOutQueue() {
-		//
 		boost::unique_lock<boost::mutex> lLock(rawOutMutex_);
-		
+		//
 		for (std::list<OutMessage>::iterator lMsg = outQueue_.begin(); lMsg != outQueue_.end(); lMsg++) {
-			if (lMsg->epoch() != epoch_) {
+			if (lMsg->type() == OutMessage::POSTPONED) {
+				rawOutMessages_.erase(lMsg->msg()); // remove ONLY postponed
 				outQueue_.erase(lMsg);
 				lMsg = outQueue_.begin();
 			}
 		}
+
+		epoch_++; // push epoch
 	}
 
 	void eraseInMessage(std::list<DataStream>::iterator msg) {
