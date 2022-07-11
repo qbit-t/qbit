@@ -942,6 +942,7 @@ public:
 						strprintf("%d/%s-%s/%s#", lHeight, lBlock.toHex(), lLast.toHex(), chain_.toHex().substr(0, 10)));
 
 					std::list<IPeerPtr>::iterator lPeer = lPeers.begin();
+					job_->renew();
 					job_->setNextBlock(job_->currentBlock());
 					(*lPeer)->synchronizeLargePartialTree(shared_from_this(), job_);
 

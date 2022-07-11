@@ -69,6 +69,7 @@ public:
 	}
 
 	void cancel() { cancelled_ = true; }
+	void renew() { cancelled_ = false; }
 	bool cancelled() { return cancelled_; }
 
 	uint64_t acquireNextJob(IPeerPtr peer) {
