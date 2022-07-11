@@ -565,13 +565,8 @@ private:
 	void clearQueues() {
 		{
 			boost::unique_lock<boost::mutex> lLock(rawOutMutex_);
-			rawOutMessages_.clear();
 			outQueue_.clear();
-		}
-
-		{
-			boost::unique_lock<boost::mutex> lLock(rawInMutex_);
-			rawInMessages_.clear();
+			rawOutMessages_.clear();
 		}
 	}
 

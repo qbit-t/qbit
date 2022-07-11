@@ -24,9 +24,6 @@ void Peer::reset(bool cancelTimer) {
 		// close socket
 		if (socket_) socket_->close();
 	}
-
-	// we not need any more remaining messages
-	clearQueues();
 }
 
 void Peer::sendMessageAsync(std::list<DataStream>::iterator msg) {
@@ -34,7 +31,8 @@ void Peer::sendMessageAsync(std::list<DataStream>::iterator msg) {
 	if (sendExpired(30 /*30 seconds was expired*/)) {
 		// log
 		if (gLog().isEnabled(Log::CONSENSUS) /*extra logging*/)
-			gLog().write(Log::NET, strprintf("[peer/error]: send timeout, closing session for %s", key()));
+			gLog().write(Log::NET, strprintf("[peer/error]: send timeout, closing session for %s, time: last = %d, now = %d",
+				key(), lastSendTimestamp_, qbit::getMicroseconds()));
 		//
 		reset();
 		return;
@@ -113,7 +111,7 @@ void Peer::messageSentAsync(std::list<OutMessage>::iterator msg, const boost::sy
 		{
 			boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
 			// renew ticks
-			lastSendTimestamp_ = getMicroseconds();
+			lastSendTimestamp_ = 0;
 		}
 
 		// remove message from queue
@@ -130,6 +128,8 @@ void Peer::messageSentAsync(std::list<OutMessage>::iterator msg, const boost::sy
 	} else {
 		// process error
 		processError("messageSentAsync", rawInData_.end(), error);
+		// clean-up
+		clearQueues();
 	}
 }
 
@@ -1095,6 +1095,11 @@ void Peer::waitForMessage() {
 	// log
 	if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, strprintf("[peer]: %s - waiting for message...", key()));
 
+	{
+		boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
+		lastSendTimestamp_ = 0;
+	}
+
 	// new message entry
 	std::list<DataStream>::iterator lMsg = newInMessage();
 
@@ -1121,17 +1126,27 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 
 	{
 		//
-		boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
+		bool lCleanUp = false;
+		{
+			//
+			boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
 
-		//
-		if (socketStatus_ != CONNECTED) {
 			//
-			gLog().write(Log::NET, "[peer/processMessage/error]: session is invalid, cancel reading...");
-			//
-			socketStatus_ = GENERAL_ERROR;
-			//
-			reading_ = false;
-			//
+			if (socketStatus_ != CONNECTED) {
+				//
+				gLog().write(Log::NET, "[peer/processMessage/error]: session is invalid, cancel reading...");
+				//
+				socketStatus_ = GENERAL_ERROR;
+				//
+				reading_ = false;
+				//
+				lCleanUp = true;
+			}
+		}
+
+		if (lCleanUp) {
+			// clean-up queued messages
+			clearQueues();
 			return;
 		}
 	}
@@ -1174,6 +1189,8 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 				boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
 				//
 				socketStatus_ = GENERAL_ERROR;
+				// reset send ticks
+				lastSendTimestamp_ = 0;				
 				// close socket
 				socket_->close();
 				return;
@@ -1579,10 +1596,15 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 						socketStatus_ = GENERAL_ERROR;
 						// try to deactivate peer
 						peerManager_->deactivatePeer(shared_from_this());
+						// reset send ticks
+						lastSendTimestamp_ = 0;
 						// close socket
 						socket_->close();
 					}
 				}
+
+				// clean-up outgoing queues
+				clearQueues();
 			}
 
 			return;
@@ -1607,12 +1629,17 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 				{
 					//
 					socketStatus_ = GENERAL_ERROR;
+					// reset tick
+					lastSendTimestamp_ = 0;
 					// try to deactivate peer
 					peerManager_->deactivatePeer(shared_from_this());
 					// close socket
 					socket_->close();
 				}
 			}
+
+			// clean-up outgoing queues
+			clearQueues();
 		}
 	}
 }
