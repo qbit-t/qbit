@@ -97,7 +97,8 @@ void Peer::processPendingMessagesQueue() {
 		if (lProcess){
 			lMsg = outQueue_.begin();
 			for (; lMsg != outQueue_.end(); lMsg++) {
-				if (lMsg->type() == OutMessage::POSTPONED) {
+				// postponed and current epoch
+				if (lMsg->type() == OutMessage::POSTPONED && lMsg->epoch() == epoch_) {
 					lMsg->toQueued(); // we are ready to re-queue
 					lFound = true;
 					break;
@@ -146,9 +147,6 @@ void Peer::messageSentAsync(std::list<OutMessage>::iterator msg, const boost::sy
 		// re-process pending items
 		processPendingMessagesQueue();
 	} else {
-		// clean-up message & links - msg has QUEUED type
-		// WARNING: msg should be valid iterator
-		eraseOutMessage(msg);
 		// process error
 		processError("messageSentAsync", rawInData_.end(), error);
 		// clean-up PENDING items
