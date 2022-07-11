@@ -378,7 +378,7 @@ public:
 	}
 
 	std::string socketStatusString() {
-		switch(status_) {
+		switch(socketStatus_) {
 			case CLOSED: return "CLOSED";
 			case CONNECTING: return "CONNECTING";
 			case CONNECTED: return "CONNECTED";
@@ -573,7 +573,7 @@ private:
 				bytesSent_ += msg->msg()->size();
 				rawOutMessages_.erase(msg->msg());
 			}
-			
+
 			outQueue_.erase(msg);
 			return true;
 		}
@@ -585,7 +585,19 @@ private:
 		{
 			boost::unique_lock<boost::mutex> lLock(rawOutMutex_);
 			rawOutMessages_.clear();
-			epoch_++;
+			epoch_++; // push epoch
+		}
+	}
+
+	void cleanUpOutQueue() {
+		//
+		boost::unique_lock<boost::mutex> lLock(rawOutMutex_);
+		
+		for (std::list<OutMessage>::iterator lMsg = outQueue_.begin(); lMsg != outQueue_.end(); lMsg++) {
+			if (lMsg->epoch() != epoch_) {
+				outQueue_.erase(lMsg);
+				lMsg = outQueue_.begin();
+			}
 		}
 	}
 

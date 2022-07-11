@@ -4540,6 +4540,9 @@ void Peer::connect() {
 			socket_.reset(new boost::asio::ip::tcp::socket(peerManager_->getContext(contextId_)));
 			strand_.reset(new boost::asio::io_service::strand(peerManager_->getContext(contextId_)));
 
+			// clean-up queues
+			cleanUpOutQueue();
+
 			std::vector<std::string> lParts;
 			boost::split(lParts, endpoint_, boost::is_any_of(":"), boost::token_compress_on);
 
