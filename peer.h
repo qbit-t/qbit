@@ -406,20 +406,23 @@ private:
 	public:
 		enum Type {
 			QUEUED = 0,
-			POSTPONED = 1
+			POSTPONED = 1,
+			EMPTY = 2
 		};
 	public:
 		OutMessage() {}
-		OutMessage(std::list<DataStream>::iterator msg, OutMessage::Type type) : msg_(msg), type_(type) {}
+		OutMessage(std::list<DataStream>::iterator msg, OutMessage::Type type, unsigned short epoch) : msg_(msg), type_(type), epoch_(epoch) {}
 
 		std::list<DataStream>::iterator	msg() { return msg_; }
 		Type type() { return type_; }
 		void toQueued() { type_ = QUEUED; }
 		void toPostponed() { type_ = POSTPONED; }
+		unsigned short epoch() { return epoch_; }
 
 	private:
 		std::list<DataStream>::iterator msg_;
 		Type type_;
+		unsigned short epoch_ = 0;
 	};
 
 	void messageSentAsync(std::list<OutMessage>::iterator msg, const boost::system::error_code& error);
@@ -565,9 +568,12 @@ private:
 		boost::unique_lock<boost::mutex> lLock(rawOutMutex_);
 		if (outQueue_.size()) {
 			sentMessagesCount_++;
-			msg->msg()->reset();
-			bytesSent_ += msg->msg()->size();
-			rawOutMessages_.erase(msg->msg());
+			if (msg->epoch() == epoch_) {
+				msg->msg()->reset();
+				bytesSent_ += msg->msg()->size();
+				rawOutMessages_.erase(msg->msg());
+			}
+			
 			outQueue_.erase(msg);
 			return true;
 		}
@@ -578,8 +584,8 @@ private:
 	void clearQueues() {
 		{
 			boost::unique_lock<boost::mutex> lLock(rawOutMutex_);
-			outQueue_.clear();
 			rawOutMessages_.clear();
+			epoch_++;
 		}
 	}
 
@@ -733,6 +739,7 @@ private:
 
 	uint64_t peersPoll_ = 0;
 	uint64_t lastSendTimestamp_ = 0;
+	unsigned short epoch_ = 0;
 
 	IPeer::Type type_ = IPeer::Type::IMPLICIT;
 

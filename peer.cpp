@@ -38,23 +38,26 @@ void Peer::sendMessageAsync(std::list<DataStream>::iterator msg) {
 		return;
 	}
 
+	/*
 	// check if error occured
 	if (socketStatus_ == GENERAL_ERROR) {
 		// log
-		if (gLog().isEnabled(Log::NET) /*extra logging*/)
+		if (gLog().isEnabled(Log::NET))
 			gLog().write(Log::NET, strprintf("[peer/error]: was general error, resetting session for %s, time: last = %d, now = %d",
 				key(), lastSendTimestamp_, qbit::getMicroseconds()));
 		//
 		reset();
 		return;
 	}
+	*/
 
 	// check if we still sending
 	std::list<OutMessage>::iterator lMsg;
 	{
 		boost::unique_lock<boost::mutex> lLock(rawOutMutex_);
 		bool lSkip = outQueue_.size() > 0;
-		lMsg = outQueue_.insert(outQueue_.end(), OutMessage(msg, (lSkip ? OutMessage::POSTPONED : OutMessage::QUEUED)));
+		lMsg = outQueue_.insert(outQueue_.end(),
+			OutMessage(msg, (lSkip && lastSendTimestamp_ > 0 ? OutMessage::POSTPONED : OutMessage::QUEUED), epoch_));
 		if (lSkip && lastSendTimestamp_ > 0) return;
 	}
 
@@ -94,7 +97,7 @@ void Peer::processPendingMessagesQueue() {
 		if (lProcess){
 			lMsg = outQueue_.begin();
 			for (; lMsg != outQueue_.end(); lMsg++) {
-				if (lMsg->type() == OutMessage::POSTPONED) {
+				if (lMsg->type() == OutMessage::POSTPONED && lMsg->epoch() == epoch_) {
 					lMsg->toQueued(); // we are ready to re-queue
 					lFound = true;
 					break;
