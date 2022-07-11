@@ -26,6 +26,21 @@ void Peer::reset(bool cancelTimer) {
 	}
 }
 
+void Peer::clearQueues() {
+	/*
+	boost::unique_lock<boost::mutex> lLock(rawOutMutex_);
+	//
+	for (std::list<OutMessage>::iterator lMsg = outQueue_.begin(); lMsg != outQueue_.end(); lMsg++) {
+		if (lMsg->type() == OutMessage::POSTPONED) {
+			lMsg->empty();
+			rawOutMessages_.erase(lMsg->msg()); // remove ONLY postponed
+		}
+	}
+
+	epoch_++; // push epoch
+	*/
+}
+
 void Peer::sendMessageAsync(std::list<DataStream>::iterator msg) {
 	// check if previous send was expired
 	if (sendExpired(30 /*30 seconds was expired*/)) {
