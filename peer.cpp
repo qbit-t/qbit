@@ -97,8 +97,8 @@ void Peer::processPendingMessagesQueue() {
 		if (lProcess){
 			lMsg = outQueue_.begin();
 			for (; lMsg != outQueue_.end(); lMsg++) {
-				// postponed and current epoch
-				if (lMsg->type() == OutMessage::POSTPONED && lMsg->epoch() == epoch_) {
+				// postponed
+				if (lMsg->type() == OutMessage::POSTPONED) {
 					lMsg->toQueued(); // we are ready to re-queue
 					lFound = true;
 					break;

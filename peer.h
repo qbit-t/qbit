@@ -568,7 +568,8 @@ private:
 		boost::unique_lock<boost::mutex> lLock(rawOutMutex_);
 		if (outQueue_.size()) {
 			sentMessagesCount_++;
-			if (msg->epoch() == epoch_) {
+			//if (msg->epoch() == epoch_) 
+			{
 				msg->msg()->reset();
 				bytesSent_ += msg->msg()->size();
 				rawOutMessages_.erase(msg->msg());
@@ -585,7 +586,7 @@ private:
 		boost::unique_lock<boost::mutex> lLock(rawOutMutex_);
 		//
 		for (std::list<OutMessage>::iterator lMsg = outQueue_.begin(); lMsg != outQueue_.end(); lMsg++) {
-			if (lMsg->type() == OutMessage::POSTPONED && lMsg->epoch() == epoch_) {
+			if (lMsg->type() == OutMessage::POSTPONED) {
 				rawOutMessages_.erase(lMsg->msg()); // remove ONLY postponed
 				outQueue_.erase(lMsg);
 				lMsg = outQueue_.begin();
