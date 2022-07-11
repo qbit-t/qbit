@@ -410,7 +410,6 @@ private:
 	};
 
 	void messageSentAsync(std::list<OutMessage>::iterator msg, const boost::system::error_code& error);
-	void messageSendTimeout(const boost::system::error_code& error);
 
 private:
 	// internal processing
@@ -563,6 +562,19 @@ private:
 		return false;
 	}
 
+	void clearQueues() {
+		{
+			boost::unique_lock<boost::mutex> lLock(rawOutMutex_);
+			rawOutMessages_.clear();
+			outQueue_.clear();
+		}
+
+		{
+			boost::unique_lock<boost::mutex> lLock(rawInMutex_);
+			rawInMessages_.clear();
+		}
+	}
+
 	void eraseInMessage(std::list<DataStream>::iterator msg) {
 		boost::unique_lock<boost::mutex> lLock(rawInMutex_);
 		if (rawInMessages_.size() && msg != rawInMessages_.end()) rawInMessages_.erase(msg);
@@ -655,6 +667,12 @@ private:
 		return bytesSent_;
 	}
 
+	bool sendExpired(uint64_t secs) {
+		//
+		uint64_t lTime = qbit::getMicroseconds();
+		return (lastSendTimestamp_ > 0 && lTime - lastSendTimestamp_ > secs * 1000000);
+	}
+
 	void reset(bool cancelTimer = true);
 
 private:
@@ -706,6 +724,7 @@ private:
 	bool reading_ = false;
 
 	uint64_t peersPoll_ = 0;
+	uint64_t lastSendTimestamp_ = 0;
 
 	IPeer::Type type_ = IPeer::Type::IMPLICIT;
 
