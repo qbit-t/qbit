@@ -27,7 +27,7 @@ void Peer::reset(bool cancelTimer) {
 }
 
 void Peer::sendMessageAsync(std::list<DataStream>::iterator msg) {
-	// check if previous send was espired
+	// check if previous send was expired
 	if (sendExpired(30 /*30 seconds was expired*/)) {
 		// log
 		if (gLog().isEnabled(Log::CONSENSUS) /*extra logging*/)
@@ -50,17 +50,21 @@ void Peer::sendMessageAsync(std::list<DataStream>::iterator msg) {
 	//
 	{
 		boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
+		lastSendTimestamp_ = getMicroseconds();
 		if (socketStatus_ == CONNECTED) {
-			// tick
-			lastSendTimestamp_ = getMicroseconds();
 			// send
 			boost::asio::async_write(*socket_,
 				boost::asio::buffer(lMsg->msg()->data(), lMsg->msg()->size()),
 				strand_->wrap(boost::bind(
 					&Peer::messageSentAsync, shared_from_this(), lMsg,
 					boost::asio::placeholders::error)));
+
+			return;
 		}
 	}
+
+	// in case if we failed to send something
+	waitForMessage();
 }
 
 void Peer::sendMessage(std::list<DataStream>::iterator msg) {
@@ -91,18 +95,20 @@ void Peer::processPendingMessagesQueue() {
 	if (lFound) {
 		{
 			boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
+			lastSendTimestamp_ = getMicroseconds();
 			if (socketStatus_ == CONNECTED) {
-				// tick
-				lastSendTimestamp_ = getMicroseconds();
 				// send
 				boost::asio::async_write(*socket_,
 					boost::asio::buffer(lMsg->msg()->data(), lMsg->msg()->size()),
 					strand_->wrap(boost::bind(
 						&Peer::messageSentAsync, shared_from_this(), lMsg,
 						boost::asio::placeholders::error)));
+				return;
 			}
 		}
-	} else waitForMessage();
+	}
+
+	waitForMessage();
 }
 
 void Peer::messageSentAsync(std::list<OutMessage>::iterator msg, const boost::system::error_code& error) {
