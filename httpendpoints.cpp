@@ -702,6 +702,7 @@ void HttpGetPeerInfo::run(const std::string& source, const HttpRequest& request,
 			lItem.addString("id", (*lPeer)->addressId().toHex());
 			lItem.addString("endpoint", (*lPeer)->key());
 			lItem.addString("status", (*lPeer)->statusString());
+			lItem.addString("socket", (*lPeer)->socketStatusString());
 			lItem.addUInt64("time", (*lPeer)->time());
 			lItem.addBool("outbound", (*lPeer)->isOutbound() ? true : false);
 			lItem.addUInt("latency", (*lPeer)->latency());

@@ -30,8 +30,19 @@ void Peer::sendMessageAsync(std::list<DataStream>::iterator msg) {
 	// check if previous send was expired
 	if (sendExpired(30 /*30 seconds was expired*/)) {
 		// log
-		if (gLog().isEnabled(Log::CONSENSUS) /*extra logging*/)
+		if (gLog().isEnabled(Log::NET) /*extra logging*/)
 			gLog().write(Log::NET, strprintf("[peer/error]: send timeout, closing session for %s, time: last = %d, now = %d",
+				key(), lastSendTimestamp_, qbit::getMicroseconds()));
+		//
+		reset();
+		return;
+	}
+
+	// check if error occured
+	if (socketStatus_ == GENERAL_ERROR) {
+		// log
+		if (gLog().isEnabled(Log::NET) /*extra logging*/)
+			gLog().write(Log::NET, strprintf("[peer/error]: was general error, resetting session for %s, time: last = %d, now = %d",
 				key(), lastSendTimestamp_, qbit::getMicroseconds()));
 		//
 		reset();
@@ -44,7 +55,7 @@ void Peer::sendMessageAsync(std::list<DataStream>::iterator msg) {
 		boost::unique_lock<boost::mutex> lLock(rawOutMutex_);
 		bool lSkip = outQueue_.size() > 0;
 		lMsg = outQueue_.insert(outQueue_.end(), OutMessage(msg, (lSkip ? OutMessage::POSTPONED : OutMessage::QUEUED)));
-		if (lSkip) return;
+		if (lSkip && lastSendTimestamp_ > 0) return;
 	}
 
 	//

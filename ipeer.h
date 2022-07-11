@@ -310,6 +310,7 @@ public:
 	virtual void close() { throw qbit::exception("NOT_IMPL", "IPeer::close - not implemented."); }
 
 	virtual std::string statusString() { throw qbit::exception("NOT_IMPL", "IPeer::statusString - not implemented."); }
+	virtual std::string socketStatusString() { throw qbit::exception("NOT_IMPL", "IPeer::socketStatusString - not implemented."); }
 
 	virtual void requestState() { throw qbit::exception("NOT_IMPL", "IPeer::requestState - not implemented."); }
 

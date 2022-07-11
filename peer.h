@@ -377,6 +377,19 @@ public:
 		return "ESTATUS";
 	}
 
+	std::string socketStatusString() {
+		switch(status_) {
+			case CLOSED: return "CLOSED";
+			case CONNECTING: return "CONNECTING";
+			case CONNECTED: return "CONNECTED";
+			case GENERAL_ERROR: return "GENERAL_ERROR";
+			default: return "UNDEFINED";
+		}
+
+		return "ESTATUS";
+	}
+
+
 	void processed() {
 		//
 		waitForMessage();
