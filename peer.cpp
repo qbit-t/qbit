@@ -4519,7 +4519,8 @@ void Peer::connect() {
 	}
 
 	// clean-up queues
-	cleanUpOutQueue();
+	// TODO: inconsistent clean-up
+	// cleanUpOutQueue();
 
 	// create socket
 	{
