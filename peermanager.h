@@ -201,15 +201,17 @@ public:
 		if (peer) {
 			boost::unique_lock<boost::recursive_mutex> lLock(contextMutex_[peer->contextId()]);
 
-			peer->release();
-
 			peers_[peer->contextId()].erase(peer->key());
 			active_[peer->contextId()].erase(peer->key());
 			inactive_[peer->contextId()].erase(peer->key());	
 			quarantine_[peer->contextId()].erase(peer->key());	
 			banned_[peer->contextId()].erase(peer->key());	
 
-			gLog().write(Log::NET, std::string("[peerManager]: peer ") + strprintf("%s/%s deleted", peer->key(), peer->addressId().toHex()));
+			std::string lKey = peer->key();
+			peer->release();
+
+			if (gLog().isEnabled(Log::NET)) 
+				gLog().write(Log::NET, std::string("[peerManager]: peer ") + strprintf("%s/%s deleted", lKey, peer->addressId().toHex()));
 		} else {
 			if (gLog().isEnabled(Log::NET)) 
 				gLog().write(Log::NET, std::string("[peerManager]: peer was NOT FOUND! "));

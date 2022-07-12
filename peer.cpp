@@ -27,50 +27,42 @@ void Peer::reset(bool cancelTimer) {
 }
 
 void Peer::clearQueues() {
-	/*
-	boost::unique_lock<boost::mutex> lLock(rawOutMutex_);
 	//
-	for (std::list<OutMessage>::iterator lMsg = outQueue_.begin(); lMsg != outQueue_.end(); lMsg++) {
-		if (lMsg->type() == OutMessage::POSTPONED) {
-			lMsg->empty();
-			rawOutMessages_.erase(lMsg->msg()); // remove ONLY postponed
+	if (gLog().isEnabled(Log::NET) /*extra logging*/)
+		gLog().write(Log::NET, strprintf("[peer]: clearing out queues for %s, time: last = %d, now = %d",
+			key(), lastSendTimestamp_, qbit::getMicroseconds()));
+	{
+		boost::unique_lock<boost::mutex> lLock(rawOutMutex_);
+		//
+		for (std::list<OutMessage>::iterator lMsg = outQueue_.begin(); lMsg != outQueue_.end(); lMsg++) {
+			if (lMsg->type() == OutMessage::POSTPONED) {
+				lMsg->empty();
+				rawOutMessages_.erase(lMsg->msg()); // remove ONLY postponed
+			}
 		}
-	}
 
-	epoch_++; // push epoch
-	*/
+		epoch_++; // push epoch
+	}
 }
 
 void Peer::sendMessageAsync(std::list<DataStream>::iterator msg) {
+	//
+	bool lForce = false;
 	// check if previous send was expired
 	if (sendExpired(30 /*30 seconds was expired*/)) {
 		// log
 		if (gLog().isEnabled(Log::NET) /*extra logging*/)
-			gLog().write(Log::NET, strprintf("[peer/error]: send timeout, closing session for %s, time: last = %d, now = %d",
+			gLog().write(Log::NET, strprintf("[peer/error]: send timeout, force send to %s, time: last = %d, now = %d",
 				key(), lastSendTimestamp_, qbit::getMicroseconds()));
 		//
-		reset();
-		return;
+		lForce = true;
 	}
-
-	/*
-	// check if error occured
-	if (socketStatus_ == GENERAL_ERROR) {
-		// log
-		if (gLog().isEnabled(Log::NET))
-			gLog().write(Log::NET, strprintf("[peer/error]: was general error, resetting session for %s, time: last = %d, now = %d",
-				key(), lastSendTimestamp_, qbit::getMicroseconds()));
-		//
-		reset();
-		return;
-	}
-	*/
 
 	// check if we still sending
 	std::list<OutMessage>::iterator lMsg;
 	{
 		boost::unique_lock<boost::mutex> lLock(rawOutMutex_);
-		bool lSkip = outQueue_.size() > 0;
+		bool lSkip = outQueue_.size() > 0 && !lForce;
 		lMsg = outQueue_.insert(outQueue_.end(),
 			OutMessage(msg, (lSkip && lastSendTimestamp_ > 0 ? OutMessage::POSTPONED : OutMessage::QUEUED), epoch_));
 		if (lSkip && lastSendTimestamp_ > 0) return;
