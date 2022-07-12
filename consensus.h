@@ -691,8 +691,8 @@ public:
 							if (lStore) {
 								uint64_t lHeight = lStore->currentHeight(lHeader);
 								// +\- 100 from our height 
-								if ((lHeight > lInfo.height() && lHeight - lInfo.height() < 1000) ||
-										(lHeight < lInfo.height() && lInfo.height() - lHeight < 1000) || 
+								if ((lHeight > lInfo.height() && lHeight - lInfo.height() < 100) ||
+										(lHeight < lInfo.height() && lInfo.height() - lHeight < 100) || 
 											lHeight == lInfo.height())
 									lPeers.push_back(lItem->second);
 							}
