@@ -944,8 +944,13 @@ public:
 					if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[finishJob]: continue LARGE PARTIAL tree synchronization ") + 
 						strprintf("%d/%s-%s/%s# for %s", lHeight, lBlock.toHex(), lLast.toHex(), chain_.toHex().substr(0, 10), lPeer->second->key()));
 
-					job_->renew();
-					job_->setNextBlock(lBlock);
+					if (job_->cancelled()) {
+						job_->renew(); // in case if job was cancelled: current block is absent
+						job_->setNextBlock(lBlock); // set latest new
+					} else {
+						job_->setNextBlock(job_->currentBlock()); // reset to last one
+					}
+
 					lPeer->second->synchronizeLargePartialTree(shared_from_this(), job_);
 
 					// 3. jump out
