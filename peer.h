@@ -199,7 +199,7 @@ public:
 					socket_->cancel(); // cancels any awating operation
 				}
 			} catch(const boost::system::system_error& ex) {
-				gLog().write(Log::GENERAL_ERROR, strprintf("[peer/close/error]: socket closing failed: %s", ex.what()));
+				gLog().write(Log::GENERAL_ERROR, strprintf("[peer/close/error]: socket closing failed for %s | %s", key(), ex.what()));
 			}
 
 			socketStatus_ = status;

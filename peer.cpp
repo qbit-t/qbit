@@ -54,21 +54,26 @@ template<typename _time> void Peer::sendTimeout(const _time& duration) {
 
 void Peer::sendMessageAsync(std::list<DataStream>::iterator msg) {
 	//
-	boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
+	// WARNING: could be potencial memory leack in case if socket is not connected, but message was created
 	//
-	if (gLog().isEnabled(Log::NET))	gLog().write(Log::NET, strprintf("[peer]: posting message for %s", key()));
-	strand_->post([this, msg]() {
-		//
-		if (gLog().isEnabled(Log::NET))	gLog().write(Log::NET, strprintf("[peer]: queue message for %s", key()));
-		// push
-		{
-			boost::unique_lock<boost::mutex> lLock(rawOutMutex_);
-			outQueue_.insert(outQueue_.end(),
-				OutMessage(msg, OutMessage::POSTPONED, epoch_));
-		}
-		// process
-		processPendingMessagesQueue();
-	});
+	boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
+	if (socketStatus_ == CONNECTED) {
+		if (gLog().isEnabled(Log::NET))	gLog().write(Log::NET, strprintf("[peer]: posting message for %s", key()));
+		strand_->post([this, msg]() {
+			//
+			if (gLog().isEnabled(Log::NET))	gLog().write(Log::NET, strprintf("[peer]: queue message for %s", key()));
+			// push
+			{
+				boost::unique_lock<boost::mutex> lLock(rawOutMutex_);
+				outQueue_.insert(outQueue_.end(),
+					OutMessage(msg, OutMessage::POSTPONED, epoch_));
+			}
+			// process
+			processPendingMessagesQueue();
+		});
+	} else {
+		// TODO: remove outstanding message
+	}
 }
 
 void Peer::sendMessage(std::list<DataStream>::iterator msg) {
@@ -1542,12 +1547,14 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 				eraseInData(lMsg);
 				processed();
 			} else if (lMessage.type() == Message::PEER_EXISTS) {
-				// mark peer
+				// remove peer
 				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/msg]: peer already exists ") + key());				
-				// keep as is
-				// peerManager_->postpone(shared_from_this());
+				// close socket and remove from control
+				close();
+				// erase message
 				eraseInData(lMsg);
-				processed();
+				// ... and we are done
+				return;
 			} else if (lMessage.type() == Message::PEER_BANNED) {
 				// mark peer
 				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/msg]: peer banned ") + key());				
@@ -4387,9 +4394,7 @@ void Peer::processState(std::list<DataStream>::iterator msg, bool broadcast, con
 		//
 		State lState;
 		lState.deserialize<DataStream>(*msg);
-		eraseInData(msg); // 
-
-		processed();		
+		eraseInData(msg); //
 
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing state from ") + key() + " -> " + lState.toString());
 
@@ -4397,51 +4402,40 @@ void Peer::processState(std::list<DataStream>::iterator msg, bool broadcast, con
 		if (!peerManager_->updatePeerState(shared_from_this(), State::instance(lState), lPeerResult)) {
 			// if peer aleady exists
 			if (lPeerResult == IPeer::EXISTS) {
-				Message lMessage(Message::PEER_EXISTS, sizeof(uint64_t), uint160());
-				std::list<DataStream>::iterator lMsg = newOutMessage();
-
-				(*lMsg) << lMessage;
-
+				//
 				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: peer already exists ") + key());
-
-				sendMessage(lMsg);
+				// terminate
+				close();
+				// ... and we are done
+				return;
 			} else if (lPeerResult == IPeer::BAN) {
 				Message lMessage(Message::PEER_BANNED, sizeof(uint64_t), uint160());
 				std::list<DataStream>::iterator lMsg = newOutMessage();
-
 				(*lMsg) << lMessage;
 
 				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: peer banned ") + key());
 
 				sendMessage(lMsg);
+				// the only action for now
+				processed();
 			} else if (lPeerResult == IPeer::SESSIONS_EXCEEDED) {
-				Message lMessage(Message::CLIENT_SESSIONS_EXCEEDED, sizeof(uint64_t), uint160());
-				std::list<DataStream>::iterator lMsg = newOutMessage();
-
-				(*lMsg) << lMessage;
-
-				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: node overloaded ") + key());
-
-				sendMessage(lMsg);
+				//
+				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: node is overloaded ") + key());
+				// terminate
+				close();
+				// ... and we are done
+				return;
 			} else {
 				// log
 				gLog().write(Log::NET, "[peer]: closing session " + key() + " -> " + error.message());
 				//
-				{
-					boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
-					if (socketStatus_ == CONNECTED) {
-						//
-						socketStatus_ = GENERAL_ERROR;
-						// try to deactivate peer
-						peerManager_->deactivatePeer(shared_from_this());
-						// close socket
-						if (socket_->is_open()) socket_->close();
-					}
-				}
+				close(GENERAL_ERROR);
 			}
 		} else if (broadcast) {
 			// send state only for inbound peers
 			if (!isOutbound()) sendState();
+			// go to read
+			processed();
 		}
 	} else {
 		processError("processState", msg, error);
