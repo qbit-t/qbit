@@ -55,7 +55,10 @@ void Peer::sendMessageAsync(std::list<DataStream>::iterator msg) {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
 	//
+	if (gLog().isEnabled(Log::NET))	gLog().write(Log::NET, strprintf("[peer]: posting message for %s", key()));
 	strand_->post([this, msg]() {
+		//
+		if (gLog().isEnabled(Log::NET))	gLog().write(Log::NET, strprintf("[peer]: queue message for %s", key()));
 		// push
 		boost::unique_lock<boost::mutex> lLock(rawOutMutex_);
 		outQueue_.insert(outQueue_.end(),
@@ -105,7 +108,8 @@ void Peer::processPendingMessagesQueue() {
 					&Peer::messageSentAsync, shared_from_this(), lMsg,
 					boost::asio::placeholders::error)));
 		}
-	}
+	} else
+		waitForMessage();
 }
 
 void Peer::messageSentAsync(std::list<OutMessage>::iterator msg, const boost::system::error_code& error) {
