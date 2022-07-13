@@ -938,12 +938,12 @@ public:
 					}
 
 					// 2. push
-					if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[finishJob]: continue LARGE PARTIAL tree synchronization ") + 
-						strprintf("%d/%s-%s/%s#", lHeight, lBlock.toHex(), lLast.toHex(), chain_.toHex().substr(0, 10)));
-
 					std::list<IPeerPtr>::iterator lPeer = lPeers.begin();
+					if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[finishJob]: continue LARGE PARTIAL tree synchronization ") + 
+						strprintf("%d/%s-%s/%s# for %s", lHeight, lBlock.toHex(), lLast.toHex(), chain_.toHex().substr(0, 10), (*lPeer)->key()));
+
 					job_->renew();
-					job_->setNextBlock(job_->currentBlock());
+					job_->setNextBlock(lBlock);
 					(*lPeer)->synchronizeLargePartialTree(shared_from_this(), job_);
 
 					// 3. jump out
