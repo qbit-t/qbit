@@ -77,7 +77,7 @@ public:
 	virtual void setValidatorManager(IValidatorManagerPtr /*validatorManager*/) { throw qbit::exception("NOT_IMPL", "IConsensus::setValidatorManager - not implemented."); }
 
 	virtual bool isChainSynchronized() { throw qbit::exception("NOT_IMPL", "IConsensus::isChainSynchronized - not implemented."); }
-	virtual uint64_t locateSynchronizedRoot(std::list<IPeerPtr>& /*peers*/, uint256& /*block*/) { throw qbit::exception("NOT_IMPL", "IConsensus::locateSynchronizedRoot - not implemented."); }
+	virtual uint64_t locateSynchronizedRoot(std::multimap<uint32_t /*latency*/, IPeerPtr>& /*peers*/, uint256& /*block*/) { throw qbit::exception("NOT_IMPL", "IConsensus::locateSynchronizedRoot - not implemented."); }
 
 	virtual ChainState chainState() { throw qbit::exception("NOT_IMPL", "IConsensus::chainState - not implemented."); }
 	virtual bool doSynchronize(bool resync = false) { throw qbit::exception("NOT_IMPL", "IConsensus::doSynchrinize - not implemented."); }
