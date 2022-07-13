@@ -28,7 +28,8 @@ void Peer::reset(bool cancelTimer) {
 
 void Peer::clearQueues() {
 	//
-	if (gLog().isEnabled(Log::NET) /*extra logging*/)
+	/*
+	if (gLog().isEnabled(Log::NET))
 		gLog().write(Log::NET, strprintf("[peer]: clearing out queues for %s, time: last = %d, now = %d",
 			key(), lastSendTimestamp_, qbit::getMicroseconds()));
 	{
@@ -43,6 +44,7 @@ void Peer::clearQueues() {
 
 		epoch_++; // push epoch
 	}
+	*/
 }
 
 void Peer::sendMessageAsync(std::list<DataStream>::iterator msg) {
