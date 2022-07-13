@@ -97,11 +97,6 @@ public:
 		time_ = getMicroseconds();
 		timestamp_ = time_;
 
-		controlTimer_.reset(
-			new boost::asio::steady_timer(
-				peerManager->getContext(contextId))
-		);
-
 		peerManager->incPeersCount();
 
 		gen_ = boost::random::mt19937(rd_());
@@ -116,11 +111,6 @@ public:
 		strand_.reset(new boost::asio::io_service::strand(peerManager->getContext(contextId_)));
 		time_ = getMicroseconds();
 		timestamp_ = time_;
-
-		controlTimer_.reset(
-			new boost::asio::steady_timer(
-				peerManager->getContext(contextId))
-		);
 
 		peerManager->incPeersCount();
 
@@ -147,14 +137,7 @@ public:
 			extension_.clear();
 		}
 
-		{
-			boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
-			if (socket_) {
-				socketStatus_ = CLOSED;
-				//controlTimer_->cancel();
-				socket_->close();
-			}
-		}
+		close();
 
 		{
 			boost::unique_lock<boost::recursive_mutex> lLock(readMutex_);
@@ -205,12 +188,23 @@ public:
 		if (!state_) { PKey lPKey; state_ = State::instance(0, 0, lPKey); }
 		return state_; 
 	}
-	void close() {
+	void close(SocketStatus status = CLOSED) {
 		boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
-		if (socket_ ) {
-			//controlTimer_->cancel();
-			socket_->close();
-			socketStatus_ = CLOSED;
+		if (socket_) {
+			try {
+				if (socket_->is_open()) {
+					socket_->shutdown(boost::asio::ip::tcp::socket::shutdown_both);
+					socket_->close(); // close and cancel
+				} else {
+					socket_->cancel(); // cancels any awating operation
+				}
+			} catch(const boost::system::system_error& ex) {
+				gLog().write(Log::GENERAL_ERROR, strprintf("[peer/close/error]: socket closing failed: %s", ex.what()));
+			}
+
+			socketStatus_ = status;
+			if (status == GENERAL_ERROR)
+				peerManager_->deactivatePeer(shared_from_this());			
 		}
 	}
 
@@ -428,6 +422,7 @@ private:
 	};
 
 	void messageSentAsync(std::list<OutMessage>::iterator msg, const boost::system::error_code& error);
+	template<typename _time> void sendTimeout(const _time&);
 
 private:
 	// internal processing
@@ -570,13 +565,10 @@ private:
 		boost::unique_lock<boost::mutex> lLock(rawOutMutex_);
 		if (outQueue_.size()) {
 			sentMessagesCount_++;
-			//if (msg->epoch() == epoch_)
-			{
-				msg->msg()->reset();
-				bytesSent_ += msg->msg()->size();
-				rawOutMessages_.erase(msg->msg());
-				outQueue_.erase(msg);
-			}
+			msg->msg()->reset();
+			bytesSent_ += msg->msg()->size();
+			rawOutMessages_.erase(msg->msg());
+			outQueue_.erase(msg);
 
 			return true;
 		}
@@ -678,13 +670,7 @@ private:
 		return bytesSent_;
 	}
 
-	bool sendExpired(uint64_t secs) {
-		//
-		uint64_t lTime = qbit::getMicroseconds();
-		return (lastSendTimestamp_ > 0 && lTime - lastSendTimestamp_ > secs * 1000000);
-	}
-
-	void reset(bool cancelTimer = true);
+	void reset();
 
 private:
 	SocketPtr socket_ = nullptr;
@@ -735,7 +721,6 @@ private:
 	bool reading_ = false;
 
 	uint64_t peersPoll_ = 0;
-	uint64_t lastSendTimestamp_ = 0;
 	unsigned short epoch_ = 0;
 
 	IPeer::Type type_ = IPeer::Type::IMPLICIT;
@@ -751,7 +736,7 @@ private:
 	boost::random::mt19937 gen_;
 
 	//
-	typedef std::shared_ptr<boost::asio::steady_timer> TimerPtr;
+	typedef std::shared_ptr<boost::asio::high_resolution_timer> TimerPtr;
 	TimerPtr controlTimer_;
 };
 
