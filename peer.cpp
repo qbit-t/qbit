@@ -43,10 +43,11 @@ template<typename _time> void Peer::sendTimeout(const _time& duration) {
 	controlTimer_->async_wait(strand_->wrap([this](boost::system::error_code error) {
 		//
 		if (error != boost::asio::error::operation_aborted) {
-		//
-		if (gLog().isEnabled(Log::NET))
-			gLog().write(Log::NET, strprintf("[peer]: send timeout for %s", key()));
-			socket_->cancel();
+			//
+			boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
+			if (gLog().isEnabled(Log::NET))
+				gLog().write(Log::NET, strprintf("[peer]: send timeout for %s", key()));
+				socket_->cancel();
 		}
 	}));
 }
@@ -60,9 +61,11 @@ void Peer::sendMessageAsync(std::list<DataStream>::iterator msg) {
 		//
 		if (gLog().isEnabled(Log::NET))	gLog().write(Log::NET, strprintf("[peer]: queue message for %s", key()));
 		// push
-		boost::unique_lock<boost::mutex> lLock(rawOutMutex_);
-		outQueue_.insert(outQueue_.end(),
-			OutMessage(msg, OutMessage::POSTPONED, epoch_));
+		{
+			boost::unique_lock<boost::mutex> lLock(rawOutMutex_);
+			outQueue_.insert(outQueue_.end(),
+				OutMessage(msg, OutMessage::POSTPONED, epoch_));
+		}
 		// process
 		processPendingMessagesQueue();
 	});
