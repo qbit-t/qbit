@@ -1550,7 +1550,7 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 				// remove peer
 				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/msg]: peer already exists ") + key());				
 				// close socket and remove from control
-				close();
+				close(GENERAL_ERROR);
 				// erase message
 				eraseInData(lMsg);
 				// ... and we are done
@@ -4405,7 +4405,7 @@ void Peer::processState(std::list<DataStream>::iterator msg, bool broadcast, con
 				//
 				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: peer already exists ") + key());
 				// terminate
-				close();
+				close(GENERAL_ERROR);
 				// ... and we are done
 				return;
 			} else if (lPeerResult == IPeer::BAN) {
@@ -4422,7 +4422,7 @@ void Peer::processState(std::list<DataStream>::iterator msg, bool broadcast, con
 				//
 				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: node is overloaded ") + key());
 				// terminate
-				close();
+				close(GENERAL_ERROR);
 				// ... and we are done
 				return;
 			} else {
