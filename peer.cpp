@@ -62,8 +62,6 @@ template<typename _time> void Peer::sendTimeout(const _time& duration) {
 
 void Peer::sendMessageAsync(std::list<DataStream>::iterator msg) {
 	//
-	// WARNING: could be potencial memory leack in case if socket is not connected, but message was created
-	//
 	boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
 	if (socketStatus_ == CONNECTED) {
 		if (gLog().isEnabled(Log::NET))	gLog().write(Log::NET, strprintf("[peer]: posting message for %s", key()));
@@ -82,7 +80,7 @@ void Peer::sendMessageAsync(std::list<DataStream>::iterator msg) {
 			if (lProcess) processPendingMessagesQueue();
 		});
 	} else {
-		// TODO: remove outstanding message
+		removeUnqueuedOutMessage(msg);
 	}
 }
 

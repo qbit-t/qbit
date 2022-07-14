@@ -556,6 +556,12 @@ private:
 		return rawOutMessages_.end();
 	}
 
+	void removeUnqueuedOutMessage(std::list<DataStream>::iterator msg) {
+		//
+		boost::unique_lock<boost::mutex> lLock(rawOutMutex_);
+		if (rawOutMessages_.size()) rawOutMessages_.erase(msg);
+	}
+
 	bool eraseOutMessage(std::list<OutMessage>::iterator msg) {
 		boost::unique_lock<boost::mutex> lLock(rawOutMutex_);
 		if (outQueue_.size()) {
