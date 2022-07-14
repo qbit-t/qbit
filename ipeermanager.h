@@ -74,6 +74,7 @@ public:
 	virtual void incPeersCount() { throw qbit::exception("NOT_IMPL", "IPeerManager::incPeersCount - not implemented."); }
 	virtual void decPeersCount() { throw qbit::exception("NOT_IMPL", "IPeerManager::decPeersCount - not implemented."); }
 	virtual int peersCount() { throw qbit::exception("NOT_IMPL", "IPeerManager::peersCount - not implemented."); }
+	virtual int removalQueueLength() { throw qbit::exception("NOT_IMPL", "IPeerManager::removalQueueLength - not implemented."); }
 
 	virtual PeerExtensionCreatorPtr locateExtensionCreator(const std::string& /*dappName*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::locateExtensionCreator - not implemented."); }
 

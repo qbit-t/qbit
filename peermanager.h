@@ -199,19 +199,27 @@ public:
 
 	void removePeer(IPeerPtr peer) {
 		if (peer) {
-			boost::unique_lock<boost::recursive_mutex> lLock(contextMutex_[peer->contextId()]);
+			{
+				// push peer to pending removal queue
+				boost::unique_lock<boost::recursive_mutex> lLock(peersIdxMutex_);
+				deleting_.push_back(peer);
+			}
 
-			peers_[peer->contextId()].erase(peer->key());
-			active_[peer->contextId()].erase(peer->key());
-			inactive_[peer->contextId()].erase(peer->key());	
-			quarantine_[peer->contextId()].erase(peer->key());	
-			banned_[peer->contextId()].erase(peer->key());	
+			{
+				boost::unique_lock<boost::recursive_mutex> lLock(contextMutex_[peer->contextId()]);
 
-			std::string lKey = peer->key();
-			peer->release();
+				peers_[peer->contextId()].erase(peer->key());
+				active_[peer->contextId()].erase(peer->key());
+				inactive_[peer->contextId()].erase(peer->key());	
+				quarantine_[peer->contextId()].erase(peer->key());	
+				banned_[peer->contextId()].erase(peer->key());	
 
-			if (gLog().isEnabled(Log::NET)) 
-				gLog().write(Log::NET, std::string("[peerManager]: peer ") + strprintf("%s/%s deleted", lKey, peer->addressId().toHex()));
+				std::string lKey = peer->key();
+				peer->release();
+
+				if (gLog().isEnabled(Log::NET)) 
+					gLog().write(Log::NET, std::string("[peerManager]: peer ") + strprintf("%s/%s deleted", lKey, peer->addressId().toHex()));
+			}
 		} else {
 			if (gLog().isEnabled(Log::NET)) 
 				gLog().write(Log::NET, std::string("[peerManager]: peer was NOT FOUND! "));
@@ -494,7 +502,7 @@ public:
 		for (std::list<IPeerPtr>::iterator lPeer = lPeersToRemove.begin(); lPeer != lPeersToRemove.end(); lPeer++) {
 			//
 			deactivatePeer(*lPeer);
-			(*lPeer)->close();
+			(*lPeer)->close(IPeer::CLOSED);
 		}
 	}
 
@@ -704,6 +712,10 @@ public:
 	void useExplicitPeersOnly() { explicitPeersOnly_ = true; }
 	bool explicitPeersOnly() { return explicitPeersOnly_; }
 
+	int removalQueueLength() {
+		return (int)deleting_.size();
+	}
+
 private:
 	void openPeersContainer() {
 		// open container
@@ -745,17 +757,32 @@ private:
 		// touch active peers
 		if (!paused_) {
 			if (!error) {
-				boost::unique_lock<boost::recursive_mutex> lLock(contextMutex_[id]);
-				for (std::set<std::string /*endpoint*/>::iterator lPeer = inactive_[id].begin(); lPeer != inactive_[id].end(); lPeer++) {
-					IPeerPtr lPeerPtr = peers_[id][*lPeer];
-					if (lPeerPtr->status() != IPeer::POSTPONED || (lPeerPtr->status() == IPeer::POSTPONED && lPeerPtr->postponedTick()))
-						lPeerPtr->connect();
+				// process pending peers
+				{
+					boost::unique_lock<boost::recursive_mutex> lLock(contextMutex_[id]);
+					for (std::set<std::string /*endpoint*/>::iterator lPeer = inactive_[id].begin(); lPeer != inactive_[id].end(); lPeer++) {
+						IPeerPtr lPeerPtr = peers_[id][*lPeer];
+						if (lPeerPtr->status() != IPeer::POSTPONED || (lPeerPtr->status() == IPeer::POSTPONED && lPeerPtr->postponedTick()))
+							lPeerPtr->connect();
+					}
+
+					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager/touch]: active count = ") + strprintf("%d", active_[id].size()));
+					for (std::set<std::string /*endpoint*/>::iterator lPeer = active_[id].begin(); lPeer != active_[id].end(); lPeer++) {
+						// TODO?: DAEMON - no need to support latency updates
+						if (!peers_[id][*lPeer]->state()->daemon())	peers_[id][*lPeer]->ping();
+					}
 				}
 
-				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager/touch]: active count = ") + strprintf("%d", active_[id].size()));
-				for (std::set<std::string /*endpoint*/>::iterator lPeer = active_[id].begin(); lPeer != active_[id].end(); lPeer++) {
-					// TODO?: DAEMON - no need to support latency updates
-					if (!peers_[id][*lPeer]->state()->daemon())	peers_[id][*lPeer]->ping();
+				// process peers removal queue
+				{
+					boost::unique_lock<boost::recursive_mutex> lLock(peersIdxMutex_);
+					for (std::list<IPeerPtr>:: iterator lPeer = deleting_.begin(); lPeer != deleting_.end(); lPeer++) {
+						//
+						if (!(*lPeer)->outQueueLength()) {
+							deleting_.erase(lPeer);
+							lPeer = deleting_.begin();
+						}
+					}
 				}
 			} else {
 				// log
@@ -1277,6 +1304,7 @@ private:
 	std::map<int, PeersSet> explicit_;	
 	std::set<std::string> bannedEndpoins_;
 	std::set<std::string> explicitEndpoins_;
+	std::list<IPeerPtr> deleting_;
 
 	boost::recursive_mutex peersIdxMutex_;
 	std::map<uint160, std::set<std::string>> peerIdx_;

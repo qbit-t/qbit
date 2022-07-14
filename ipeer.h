@@ -266,6 +266,13 @@ typedef std::shared_ptr<ISelectEntityCountByDAppHandler> ISelectEntityCountByDAp
 // p2p protocol processor
 class IPeer {
 public:
+	enum SocketStatus {
+		CLOSED = 0,
+		CONNECTING = 1,
+		CONNECTED = 2,
+		GENERAL_ERROR = 3
+	};
+
 	enum Status {
 		UNDEFINED = 0,
 		ACTIVE = 1,
@@ -307,7 +314,7 @@ public:
 	virtual uint160 addressId() { throw qbit::exception("NOT_IMPL", "IPeer::addressId - not implemented."); }
 	virtual bool hasRole(State::PeerRoles /*role*/) { throw qbit::exception("NOT_IMPL", "IPeer::hasRole - not implemented."); }
 
-	virtual void close() { throw qbit::exception("NOT_IMPL", "IPeer::close - not implemented."); }
+	virtual void close(SocketStatus /*close status*/) { throw qbit::exception("NOT_IMPL", "IPeer::close - not implemented."); }
 
 	virtual std::string statusString() { throw qbit::exception("NOT_IMPL", "IPeer::statusString - not implemented."); }
 	virtual std::string socketStatusString() { throw qbit::exception("NOT_IMPL", "IPeer::socketStatusString - not implemented."); }

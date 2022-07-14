@@ -678,6 +678,7 @@ void HttpGetPeerInfo::run(const std::string& source, const HttpRequest& request,
 		json::Value lPeerManagerObject = lReply.addObject("manager");
 		lPeerManagerObject.addUInt("clients", peerManager_->clients());
 		lPeerManagerObject.addUInt("peers_count", lPeers.size());
+		lPeerManagerObject.addUInt("removal_queue", peerManager_->removalQueueLength());
 
 		for (std::list<IPeerPtr>::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
 			//
@@ -2157,6 +2158,7 @@ void HttpGetState::run(const std::string& source, const HttpRequest& request, co
 			QBIT_VERSION_MAJOR, QBIT_VERSION_MINOR, QBIT_VERSION_REVISION, QBIT_VERSION_BUILD));
 		lStateObject.addUInt("clients", peerManager_->clients());
 		lStateObject.addUInt("peers_count", lPeers.size());
+		lStateObject.addUInt("removal_queue", peerManager_->removalQueueLength());
 
 		uint64_t lInQueue = 0;
 		uint64_t lOutQueue = 0;

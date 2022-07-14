@@ -4456,7 +4456,7 @@ void Peer::connect() {
 			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: connecting ") + key());
 
 			// close socket
-			close();
+			close(CLOSED);
 
 			// change status
 			socketStatus_ = CONNECTING;

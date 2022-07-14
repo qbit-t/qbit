@@ -31,13 +31,6 @@ namespace qbit {
 
 class Peer: public IPeer, public std::enable_shared_from_this<Peer> {
 public:
-	enum SocketStatus {
-		CLOSED = 0,
-		CONNECTING = 1,
-		CONNECTED = 2,
-		GENERAL_ERROR = 3
-	};
-
 	enum SocketType {
 		DEFAULT = 0,
 		SERVER = 1,
@@ -137,7 +130,7 @@ public:
 			extension_.clear();
 		}
 
-		close();
+		close(IPeer::CLOSED);
 
 		{
 			boost::unique_lock<boost::recursive_mutex> lLock(readMutex_);
@@ -188,9 +181,9 @@ public:
 		if (!state_) { PKey lPKey; state_ = State::instance(0, 0, lPKey); }
 		return state_; 
 	}
-	void close(SocketStatus status = CLOSED) {
+	void close(SocketStatus status) {
 		boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
-		if (socket_) {
+		if (socket_ && socketStatus_ != GENERAL_ERROR) {
 			try {
 				if (socket_->is_open()) {
 					socket_->shutdown(boost::asio::ip::tcp::socket::shutdown_both);
