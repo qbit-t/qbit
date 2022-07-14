@@ -186,13 +186,17 @@ public:
 		if (socket_ && socketStatus_ != GENERAL_ERROR) {
 			try {
 				if (socket_->is_open()) {
-					socket_->shutdown(boost::asio::ip::tcp::socket::shutdown_both);
+					try {
+						socket_->shutdown(boost::asio::ip::tcp::socket::shutdown_both);
+					} catch(const boost::system::system_error& ex) {
+						gLog().write(Log::GENERAL_ERROR, strprintf("[peer/close/error]: socket shutdown failed for %s | %s", key(), ex.what()));
+					}
 					socket_->close(); // close and cancel
 				} else {
 					socket_->cancel(); // cancels any awating operation
 				}
 			} catch(const boost::system::system_error& ex) {
-				gLog().write(Log::GENERAL_ERROR, strprintf("[peer/close/error]: socket closing failed for %s | %s", key(), ex.what()));
+				gLog().write(Log::GENERAL_ERROR, strprintf("[peer/close/error]: socket close failed for %s | %s", key(), ex.what()));
 			}
 
 			socketStatus_ = status;
@@ -405,8 +409,6 @@ private:
 		void toQueued() { type_ = OutMessage::QUEUED; }
 		void toPostponed() { type_ = OutMessage::POSTPONED; }
 		unsigned short epoch() { return epoch_; }
-
-		void empty() { type_ = OutMessage::EMPTY; }
 
 	private:
 		std::list<DataStream>::iterator msg_;

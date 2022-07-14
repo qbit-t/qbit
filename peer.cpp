@@ -20,19 +20,22 @@ void Peer::clearQueues() {
 	boost::unique_lock<boost::mutex> lLock(rawOutMutex_);
 	if (outQueue_.size()) {
 		//
+		if (gLog().isEnabled(Log::NET))
+			gLog().write(Log::NET, strprintf("[peer]: clearing out queues for %d/%d/%s",
+				outQueue_.size(), rawOutMessages_.size(), key()));
+		//
 		int lPending = 0;
 		for (std::list<OutMessage>::iterator lMsg = outQueue_.begin(); lMsg != outQueue_.end(); lMsg++) {
 			if (lMsg->type() == OutMessage::POSTPONED) {
-				lMsg->empty();
 				rawOutMessages_.erase(lMsg->msg()); // remove ONLY postponed
 				outQueue_.erase(lMsg);
 				lMsg = outQueue_.begin();
-			} else lPending++;
+			} else ++lPending;
 		}
 		//
 		if (gLog().isEnabled(Log::NET))
-			gLog().write(Log::NET, strprintf("[peer]: clearing out queues for %d/%d/%d/%s",
-				outQueue_.size(), rawOutMessages_.size(), lPending, key()));
+			gLog().write(Log::NET, strprintf("[peer]: cleared out queues for %s, results: %d/%d/%d",
+				key(), outQueue_.size(), rawOutMessages_.size(), lPending));
 	}
 }
 
@@ -124,11 +127,12 @@ void Peer::processPendingMessagesQueue() {
 }
 
 void Peer::messageSentAsync(std::list<OutMessage>::iterator msg, const boost::system::error_code& error) {
+	// cancel timeout wait
+	if (controlTimer_)
+		controlTimer_->cancel();
+
 	// if error?
 	if (!error) {
-		// cancel wait
-		if (controlTimer_) controlTimer_->cancel();
-
 		// remove message from queue
 		if (!eraseOutMessage(msg)) {
 			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, strprintf("[peer/messageSentAsync]: queue is EMPTY for %s", key()));
