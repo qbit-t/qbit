@@ -63,13 +63,15 @@ void Peer::sendMessageAsync(std::list<DataStream>::iterator msg) {
 			//
 			if (gLog().isEnabled(Log::NET))	gLog().write(Log::NET, strprintf("[peer]: queue message for %s", key()));
 			// push
+			bool lProcess = false;
 			{
 				boost::unique_lock<boost::mutex> lLock(rawOutMutex_);
+				lProcess = !outQueue_.size();
 				outQueue_.insert(outQueue_.end(),
 					OutMessage(msg, OutMessage::POSTPONED, epoch_));
 			}
 			// process
-			processPendingMessagesQueue();
+			if (lProcess) processPendingMessagesQueue();
 		});
 	} else {
 		// TODO: remove outstanding message
