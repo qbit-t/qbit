@@ -20,18 +20,19 @@ void Peer::clearQueues() {
 	boost::unique_lock<boost::mutex> lLock(rawOutMutex_);
 	if (outQueue_.size()) {
 		//
-		if (gLog().isEnabled(Log::NET))
-			gLog().write(Log::NET, strprintf("[peer]: clearing out queues for %d/%d/%s",
-				outQueue_.size(), rawOutMessages_.size(), key()));
-
+		int lPending = 0;
 		for (std::list<OutMessage>::iterator lMsg = outQueue_.begin(); lMsg != outQueue_.end(); lMsg++) {
 			if (lMsg->type() == OutMessage::POSTPONED) {
 				lMsg->empty();
 				rawOutMessages_.erase(lMsg->msg()); // remove ONLY postponed
 				outQueue_.erase(lMsg);
 				lMsg = outQueue_.begin();
-			}
+			} else lPending++;
 		}
+		//
+		if (gLog().isEnabled(Log::NET))
+			gLog().write(Log::NET, strprintf("[peer]: clearing out queues for %d/%d/%d/%s",
+				outQueue_.size(), rawOutMessages_.size(), lPending, key()));
 	}
 }
 
