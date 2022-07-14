@@ -25,12 +25,16 @@ void Peer::clearQueues() {
 				outQueue_.size(), rawOutMessages_.size(), key()));
 		//
 		int lPending = 0;
-		for (std::list<OutMessage>::iterator lMsg = outQueue_.begin(); lMsg != outQueue_.end(); lMsg++) {
+		std::list<OutMessage>::iterator lMsg = outQueue_.begin();
+		while (lMsg != outQueue_.end()) {
 			if (lMsg->type() == OutMessage::POSTPONED) {
 				rawOutMessages_.erase(lMsg->msg()); // remove ONLY postponed
 				outQueue_.erase(lMsg);
-				lMsg = outQueue_.begin();
-			} else ++lPending;
+				lMsg = outQueue_.begin(); // reset to begin
+			} else {
+				lPending++;
+				lMsg++; // move next
+			}
 		}
 		//
 		if (gLog().isEnabled(Log::NET))
