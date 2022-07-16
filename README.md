@@ -85,6 +85,22 @@ Build Windows (on Linux with special toolset - https://mxe.cc):
 
 Please, note - (4) it can take long time, very long and not all from the packages you need. During compilation you may experience building errors, consider to add to the EXCLUDE_PKGS and rerun make
 
+Build MacOS:
+1. install HomeBrew
+2. brew install autoconf
+3. brew install automake
+4. brew install cmake
+5. cd ./secp256k1
+6. ./autogen.sh
+7. ./configure --enable-experimental --enable-module-schnorrsig --enable-module-musig --enable-module-ecdh --enable-module-generator --enable-module-rangeproof --with-bignum=no
+8. cd ..
+9. cd ./boost
+10. ./bootstrap.sh --with-libraries=system,thread,chrono,random,filesystem --prefix=../
+11. ./b2
+12. cd ..
+13. cmake -DCMAKE_BUILD_TYPE=Release
+14. make
+
 ## Requests
 
 curl --data-binary '{"jsonrpc":"1.0","id":"curltext","method":"getkey","params":[]}' -i -H 'content-type: text/plain' http://127.0.0.1:8080

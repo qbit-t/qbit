@@ -1,3 +1,6 @@
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wimplicit-function-declaration"
+#pragma GCC diagnostic ignored "-Wformat="
 
 #include "include/jm_backend.h"
 #include "include/jm_allocator.h"
@@ -1651,3 +1654,5 @@ JET_MALLOC_DEF void _jm_thread_dump_chunk(size_t thread_id, size_t chunk, int cl
 	// ulock arenas
 	_jm_mutex_unlock(&_jm_arenas_mutex);
 }
+
+#pragma GCC diagnostic pop
