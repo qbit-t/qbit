@@ -120,7 +120,11 @@ void Peer::processPendingMessagesQueue() {
 		{
 			boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
 			// set timeout
+#ifdef MOBILE_PLATFORM
+			sendTimeout(std::chrono::steady_clock::now() + std::chrono::seconds(30));
+#else
 			sendTimeout(std::chrono::system_clock::now() + std::chrono::seconds(30));
+#endif
 			// send
 			boost::asio::async_write(*socket_,
 				boost::asio::buffer(lMsg->msg()->data(), lMsg->msg()->size()),
