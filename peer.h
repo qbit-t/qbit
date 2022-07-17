@@ -182,27 +182,32 @@ public:
 		return state_; 
 	}
 	void close(SocketStatus status) {
-		boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
-		if (socket_ && socketStatus_ != GENERAL_ERROR) {
-			try {
-				if (socket_->is_open()) {
-					try {
-						socket_->shutdown(boost::asio::ip::tcp::socket::shutdown_both);
-					} catch(const boost::system::system_error& ex) {
-						gLog().write(Log::GENERAL_ERROR, strprintf("[peer/close/error]: socket shutdown failed for %s | %s", key(), ex.what()));
+		bool lDeactivate = false;
+		{
+			boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
+			if (socket_ && socketStatus_ != GENERAL_ERROR) {
+				try {
+					if (socket_->is_open()) {
+						try {
+							socket_->shutdown(boost::asio::ip::tcp::socket::shutdown_both);
+						} catch(const boost::system::system_error& ex) {
+							gLog().write(Log::GENERAL_ERROR, strprintf("[peer/close/error]: socket shutdown failed for %s | %s", key(), ex.what()));
+						}
+						socket_->close(); // close and cancel
+					} else {
+						socket_->cancel(); // cancels any awating operation
 					}
-					socket_->close(); // close and cancel
-				} else {
-					socket_->cancel(); // cancels any awating operation
+				} catch(const boost::system::system_error& ex) {
+					gLog().write(Log::GENERAL_ERROR, strprintf("[peer/close/error]: socket close failed for %s | %s", key(), ex.what()));
 				}
-			} catch(const boost::system::system_error& ex) {
-				gLog().write(Log::GENERAL_ERROR, strprintf("[peer/close/error]: socket close failed for %s | %s", key(), ex.what()));
-			}
 
-			socketStatus_ = status;
-			if (status == GENERAL_ERROR)
-				peerManager_->deactivatePeer(shared_from_this());			
+				socketStatus_ = status;
+				if (status == GENERAL_ERROR)
+					lDeactivate = true;
+			}
 		}
+
+		if (lDeactivate) peerManager_->deactivatePeer(shared_from_this());
 	}
 
 	PKey address() { boost::unique_lock<boost::recursive_mutex> lLock(readMutex_); return address_; }
