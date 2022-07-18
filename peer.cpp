@@ -54,7 +54,7 @@ template<typename _time> void Peer::sendTimeout(const _time& duration) {
 			//
 			boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
 			if (gLog().isEnabled(Log::NET))
-				gLog().write(Log::NET, strprintf("[peer]: send timeout for %s", key()));
+				gLog().write(Log::NET, strprintf("[peer/error]: send timeout for %s", key()));
 				socket_->cancel();
 		}
 	}));
@@ -4472,8 +4472,8 @@ void Peer::connect() {
 		if (socketType_ == CLIENT && (socketStatus_ == CLOSED || socketStatus_ == GENERAL_ERROR) && peerManager_) {
 			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: connecting ") + key());
 
-			// close socket
-			close(CLOSED);
+			// WARNING: closing socket here will cause data race
+			// close(CLOSED);
 
 			// change status
 			socketStatus_ = CONNECTING;
@@ -4511,8 +4511,10 @@ void Peer::resolved(const boost::system::error_code& error, tcp::resolver::itera
 				boost::asio::placeholders::error, ++endpoint_iterator)));
 	} else {
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/resolve]: resolve failed for ") + key() + " -> " + error.message());
-		socketStatus_ = GENERAL_ERROR;
-		socket_ = nullptr;
+		{
+			boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
+			socketStatus_ = GENERAL_ERROR;
+		}
 	}
 }
 
@@ -4553,7 +4555,9 @@ void Peer::connected(const boost::system::error_code& error, tcp::resolver::iter
 				boost::asio::placeholders::error, ++endpoint_iterator)));
 	} else {
 		gLog().write(Log::NET, std::string("[peer/connect/error]: connection failed for ") + key() + " -> " + error.message());
-		socketStatus_ = GENERAL_ERROR;
-		socket_ = nullptr;
+		{
+			boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
+			socketStatus_ = GENERAL_ERROR;
+		}
 	}
 }
