@@ -926,7 +926,7 @@ public:
 				}
 				
 				// add new one or another one
-				lPeerIndex->second.insert(peer->key());
+				peerIdx_[peer->addressId()].insert(peer->key());
 				
 				//
 				if (peer->state()->client()) { 
@@ -981,10 +981,9 @@ public:
 					if (lPeer && force) {
 						// deactivate old
 						if (lPeer->key() != peer->key()) {
-							//TODO: move out from upper <peersIdxMutex_>
 							deactivatePeer(lPeer);
 							// add new one
-							lPeerIndex->second.insert(peer->key());
+							peerIdx_[peer->addressId()].insert(peer->key());
 							//
 							for (std::vector<State::BlockInfo>::iterator lInfo = peer->state()->infos().begin(); lInfo != peer->state()->infos().end(); lInfo++) {
 								//
@@ -1141,7 +1140,7 @@ public:
 				}
 				
 				// add new one or another one
-				lPeerIndex->second.insert(peer->key());
+				peerIdx_[peer->addressId()].insert(peer->key());
 
 				//
 				if (peer->state()->client()) { 
@@ -1197,10 +1196,9 @@ public:
 					if (lPeer && force) {
 						// deactivate old
 						if (lPeer->key() != peer->key()) {
-							//TODO: move out from upper <peersIdxMutex_>
 							deactivatePeer(lPeer);
 							// add new one
-							lPeerIndex->second.insert(peer->key());
+							peerIdx_[peer->addressId()].insert(peer->key());
 							//
 							for (std::vector<State::BlockInfo>::iterator lInfo = peer->state()->infos().begin(); lInfo != peer->state()->infos().end(); lInfo++) {
 								//
