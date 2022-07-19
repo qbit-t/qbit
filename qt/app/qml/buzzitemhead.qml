@@ -62,7 +62,7 @@ Item {
 	property var controller_: controller
 	property var buzzfeedModel_: buzzfeedModel
 	property var listView_
-	property var sharedMediaPlayer_
+	property var sharedMediaPlayer_: buzzerApp.sharedMediaPlayerController()
 	property var playerKey_
 
 	readonly property int spaceLeft_: 15

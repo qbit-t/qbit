@@ -31,7 +31,7 @@ Item {
 	property var controller_: controller
 	property var frameColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
 	property var fillColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.background.simple")
-	property var sharedMediaPlayer_
+	property var sharedMediaPlayer_: buzzerApp.sharedMediaPlayerController()
 	property var playerKey_
 
 	readonly property int maxCalculatedWidth_: 600
