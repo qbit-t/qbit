@@ -43,11 +43,11 @@ void Peer::clearQueues() {
 	}
 }
 
-template<typename _time> void Peer::sendTimeout(const _time& duration) {
+void Peer::sendTimeout(int seconds) {
 	//
 	controlTimer_.reset(
 			new boost::asio::high_resolution_timer(
-				peerManager_->getContext(contextId_), duration));
+				peerManager_->getContext(contextId_), boost::asio::chrono::system_clock::now() + boost::asio::chrono::seconds(seconds)));
 	controlTimer_->async_wait(strand_->wrap([this](boost::system::error_code error) {
 		//
 		if (error != boost::asio::error::operation_aborted) {
@@ -120,11 +120,7 @@ void Peer::processPendingMessagesQueue() {
 		{
 			boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
 			// set timeout
-#if defined(__linux__)
-			sendTimeout(std::chrono::system_clock::now() + std::chrono::seconds(30));
-#else
-			sendTimeout(std::chrono::steady_clock::now() + std::chrono::seconds(30));
-#endif
+			sendTimeout(30);
 			// send
 			boost::asio::async_write(*socket_,
 				boost::asio::buffer(lMsg->msg()->data(), lMsg->msg()->size()),

@@ -422,7 +422,7 @@ private:
 	};
 
 	void messageSentAsync(std::list<OutMessage>::iterator msg, const boost::system::error_code& error);
-	template<typename _time> void sendTimeout(const _time&);
+	void sendTimeout(int seconds);
 
 private:
 	// internal processing
