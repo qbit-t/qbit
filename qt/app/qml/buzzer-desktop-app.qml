@@ -23,7 +23,7 @@ ApplicationWindow {
 
     property string onlineCount: "";
 	property var pagesView;
-	property int bottomBarHeight: 0;
+	property real bottomBarHeight: 0;
 	property var mainToolBar;
 	property string activePageBackground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Window.background")
 	property var rootComponent;

@@ -32,7 +32,7 @@ TableView {
 
 		QuarkLabel {
 			id: emoji
-			font.pointSize: buzzerClient.scaleFactor * 23
+			font.pointSize: buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 12)
 			text: symbol
 			anchors.centerIn: parent
 

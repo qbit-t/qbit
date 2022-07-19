@@ -119,7 +119,10 @@ QuarkPage
 		}
 
 		function onScaleFactorChanged() {
-			if (buzzerApp.isDesktop) navigatorBar.contentHeight = 48 * buzzerClient.scaleFactor;
+			if (buzzerApp.isDesktop) {
+				navigatorBar.contentHeight = 48.0 * buzzerClient.scaleFactor;
+				controller.bottomBarHeight = navigatorBar.contentHeight;
+			}
 		}
 	}
 
@@ -315,8 +318,13 @@ QuarkPage
 					controller.bottomBarHeight = height;
 				}
 
+				onHeightChanged:  {
+					controller.bottomBarHeight = height;
+				}
+
 				Component.onCompleted: {
-					contentHeight = contentHeight * buzzerClient.scaleFactor;
+					contentHeight = 48.0 * buzzerClient.scaleFactor;
+					controller.bottomBarHeight = contentHeight;
 				}
 
 				TabButton {
