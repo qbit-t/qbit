@@ -47,7 +47,7 @@ void Peer::sendTimeout(int seconds) {
 	//
 	controlTimer_.reset(
 			new boost::asio::high_resolution_timer(
-				peerManager_->getContext(contextId_), boost::asio::chrono::system_clock::now() + boost::asio::chrono::seconds(seconds)));
+				peerManager_->getContext(contextId_), boost::asio::chrono::high_resolution_clock::now() + boost::asio::chrono::seconds(seconds)));
 	controlTimer_->async_wait(strand_->wrap([this](boost::system::error_code error) {
 		//
 		if (error != boost::asio::error::operation_aborted) {
