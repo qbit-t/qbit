@@ -43,7 +43,7 @@ QuarkPage {
 	readonly property int spaceRight_: 15
 	readonly property int spaceBottom_: 12
 	readonly property int spaceItems_: 5
-	readonly property real defaultFontSize: 11
+	readonly property real defaultFontSize: buzzerApp.defaultFontSize()
 
 	readonly property int conversationPending_: 0
 	readonly property int conversationAccepted_: 1
@@ -924,7 +924,7 @@ QuarkPage {
 		y: list.y + list.height - (height + spaceItems_ * 2)
 
 		symbol: Fonts.arrowBottomSym
-		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 7)) : 18
+		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 7)) : (buzzerApp.defaultFontSize() + 7)
 		radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius)) : defaultRadius
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.highlight")
 		opacity: 0.6

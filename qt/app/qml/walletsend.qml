@@ -40,7 +40,7 @@ Item
 	readonly property int spaceThreaded_: 33
 	readonly property int spaceThreadedItems_: 4
 	property double balance_: 0.0;
-	readonly property real defaultFontSize: 11
+	readonly property real defaultFontSize: buzzerApp.defaultFontSize()
 
 	function init() {
 		sendToAddress.rollback();
@@ -116,7 +116,7 @@ Item
 			width: parent.width - spaceLeft_*2
 			wrapMode: Label.Wrap
 			text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.send." + unit_.toLowerCase())
-			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 2)) : 16
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 2)) : (buzzerApp.defaultFontSize() + 5)
 			Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground");
 
 			onLinkActivated: {
@@ -139,8 +139,8 @@ Item
 			placeholderText: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.wallet.address")
 			editor: true
 			scan: buzzerApp.isDesktop ? false : true
-			textFontSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 1)) : 16
-			symbolFontSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 4)) : 18 //20
+			textFontSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 1)) : (buzzerApp.defaultFontSize() + 5)
+			symbolFontSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 4)) : (buzzerApp.defaultFontSize() + 7) //20
 			height: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 50) : 50
 
 			model: ListModel { id: contactsModel_ }
@@ -271,8 +271,8 @@ Item
 				xButtons: false
 				//percentButtons: true
 
-				fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 1)) : 18
-				buzztonsFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 3)) : 20
+				fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 1)) : (buzzerApp.defaultFontSize() + 7)
+				buzztonsFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 3)) : (buzzerApp.defaultFontSize() + 9)
 
 				function getFixed() {
 					return scaleSend_; //
@@ -316,9 +316,9 @@ Item
 				leftLimit: 1.0
 				rightLimit: 100.0
 
-				fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 1)) : 18
-				buzztonsFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 2)) : 20
-				unitsFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 4)) : 10
+				fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 1)) : (buzzerApp.defaultFontSize() + 7)
+				buzztonsFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 2)) : (buzzerApp.defaultFontSize() + 9)
+				unitsFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 4)) : (buzzerApp.defaultFontSize() - 1)
 
 				onNumberStringModified: {
 					amountInfo.prepare();
@@ -380,7 +380,7 @@ Item
 				id: sendAmount
 				x: totalInfo.width / 2 - sendAmount.calculatedWidth / 2
 				y: amountEdit.height / 2 - sendAmount.height / 2 + (Qt.platform.os == "android" ? 0 : 1)
-				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 1)) : 16
+				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 1)) : (buzzerApp.defaultFontSize() + 5)
 
 				zeroesColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Price.zeroes")
 
@@ -417,7 +417,7 @@ Item
 				id: availableAmount
 				x: sendAmount.x + sendAmount.calculatedWidth - calculatedWidth
 				y: sendAmount.y + sendAmount.calculatedHeight + 2 * spaceItems_
-				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 1)) : 16
+				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 1)) : (buzzerApp.defaultFontSize() + 5)
 
 				zeroesColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Price.zeroes")
 
@@ -451,7 +451,7 @@ Item
 			contentItem: QuarkText {
 				id: buttonText
 				text: sendButton.text
-				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 1)) : 18
+				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 1)) : (buzzerApp.defaultFontSize() + 7)
 				color: sendButton.enabled ?
 						   buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground") :
 						   buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
@@ -520,7 +520,7 @@ Item
 			labelColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Price.zeroes");
 			width: amountEdit.height - 1
 			height: amountEdit.height - 1
-			fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 1)) : 18
+			fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 1)) : (buzzerApp.defaultFontSize() + 7)
 
 			color: "transparent"
 
@@ -554,7 +554,7 @@ Item
 				x: spaceLeft_
 				y: historyInfo.height / 2 - historyLabel.height / 2
 				text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.wallet.transactions") //.toUpperCase();
-				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 2)) : 16
+				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 2)) : (buzzerApp.defaultFontSize() + 5)
 				Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.altAccent");
 			}
 		}

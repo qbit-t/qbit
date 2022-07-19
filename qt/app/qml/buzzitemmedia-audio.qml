@@ -44,7 +44,7 @@ Rectangle {
 	readonly property int spaceLine_: 4
 	readonly property int spaceThreaded_: 33
 	readonly property int spaceThreadedItems_: 4
-	readonly property real defaultFontSize: 11
+	readonly property real defaultFontSize: buzzerApp.defaultFontSize()
 	property bool mediaView: false
 	property int originalDuration: duration_
 	property int totalSize_: size_
@@ -377,7 +377,7 @@ Rectangle {
 		*/
 		symbol: needDownload && !downloadCommand.downloaded ? Fonts.arrowDownHollowSym :
 									(player.playing ? Fonts.pauseSym : Fonts.playSym)
-		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 7)) : 18
+		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 7)) : (buzzerApp.defaultFontSize() + 7)
 		radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius)) : defaultRadius
 		color: buzzerApp.getColor(mediaView ? mediaViewTheme : buzzerClient.theme, mediaView ? mediaViewSelector : buzzerClient.themeSelector, "Material.menu.highlight")
 		Material.background: buzzerApp.getColor(mediaView ? mediaViewTheme : buzzerClient.theme, mediaView ? mediaViewSelector : buzzerClient.themeSelector, "Material.menu.background");
@@ -416,7 +416,7 @@ Rectangle {
 		y: actionButton.y + 1
 		width: playSlider.width
 		elide: Text.ElideRight
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : buzzerApp.defaultFontSize()
 		text: caption_
 		visible: caption_ != "none" && caption_ != ""
 		//color: buzzerApp.getColor(mediaView ? mediaViewTheme : buzzerClient.theme, mediaView ? mediaViewSelector : buzzerClient.themeSelector, "Material.menu.foreground")
@@ -427,7 +427,7 @@ Rectangle {
 		id: elapsedTime
 		x: actionButton.x + actionButton.width + spaceItems_ + (caption.visible ? 3 : 0)
 		y: actionButton.y + (caption.visible ? caption.height + 3 : spaceItems_)
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : buzzerApp.defaultFontSize()
 		text: "00:00"
 		//color: buzzerApp.getColor(mediaView ? mediaViewTheme : buzzerClient.theme, mediaView ? mediaViewSelector : buzzerClient.themeSelector, "Material.menu.foreground")
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
@@ -441,7 +441,7 @@ Rectangle {
 		id: totalTime
 		x: elapsedTime.x + elapsedTime.width
 		y: elapsedTime.y
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : buzzerApp.defaultFontSize()
 		text: duration_ ? ("/" + DateFunctions.msToTimeString(duration_)) : "/00:00"
 		//color: buzzerApp.getColor(mediaView ? mediaViewTheme : buzzerClient.theme, mediaView ? mediaViewSelector : buzzerClient.themeSelector, "Material.menu.foreground")
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
@@ -455,7 +455,7 @@ Rectangle {
 		id: totalSize
 		x: totalTime.x + totalTime.width
 		y: elapsedTime.y
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : buzzerApp.defaultFontSize()
 		//color: buzzerApp.getColor(mediaView ? mediaViewTheme : buzzerClient.theme, mediaView ? mediaViewSelector : buzzerClient.themeSelector, "Material.menu.foreground")
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 		text: ", 0k"

@@ -84,7 +84,7 @@ Item {
 	readonly property int spaceLine_: 4
 	readonly property real maxWidth: 0.8
 	readonly property real minSpace: 0.2
-	readonly property real defaultFontSize: 11
+	readonly property real defaultFontSize: buzzerApp.defaultFontSize()
 
 	property bool myMessage_
 	property bool enableAvatar_: false
@@ -742,7 +742,7 @@ Item {
 			y: bodyControl.y + bodyControl.height + (conversationMessage().length ? spaceHalfItems_ : spaceItems_)
 			text: ago_
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
-			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 3)) : 14
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 3)) : (buzzerApp.defaultFontSize() + 3)
 		}
 
 		QuarkSymbolLabel {
@@ -752,7 +752,7 @@ Item {
 			x: parent.width - (width + spaceItems_)
 			y: bodyControl.y + bodyControl.height + (conversationMessage().length ? spaceHalfItems_ : spaceItems_) + 2
 			symbol: !onChain_ ? Fonts.clockSym : Fonts.checkedCircleSym
-			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 10)) : 12
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 10)) : (buzzerApp.defaultFontSize() + 1)
 			color: !onChain_ ? buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzz.wait.chat") :
 							   buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzz.done.chat");
 

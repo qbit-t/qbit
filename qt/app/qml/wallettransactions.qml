@@ -44,7 +44,7 @@ Item
 	readonly property int spaceLine_: 4
 	readonly property int spaceThreaded_: 33
 	readonly property int spaceThreadedItems_: 4
-	readonly property real defaultFontSize: 11
+	readonly property real defaultFontSize: buzzerApp.defaultFontSize()
 
 	signal timelockReached();
 
@@ -87,7 +87,7 @@ Item
 		height: parent.height
 		clip: true
 
-		property int fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : 14;
+		property int fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : (buzzerApp.defaultFontSize() + 3);
 
 		onWidthChanged: {
 		}

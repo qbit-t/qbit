@@ -92,14 +92,14 @@ QuarkPopup
 					Material.foreground: menuForegroundColor
 					visible: true
 					symbol: keySymbol
-					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : defaultFontSize
+					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 1)) : defaultFontSize
 				}
 
 				TextMetrics
 				{
 					id: sizingMetrics
 					text: name
-					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 11) : 16
+					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * buzzerApp.defaultFontSize()) : (buzzerApp.defaultFontSize() + 5)
 				}
 
 				TextMetrics
@@ -108,7 +108,7 @@ QuarkPopup
 					elide: Text.ElideRight
 					text: name
 					elideWidth: popupBox.width - (textLabel.x + 15)
-					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 11) : 16
+					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * buzzerApp.defaultFontSize()) : (buzzerApp.defaultFontSize() + 5)
 				}
 
 				QuarkLabel
@@ -122,7 +122,7 @@ QuarkPopup
 					Material.background: "transparent"
 					Material.foreground: menuForegroundColor
 					visible: true
-					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 11) : 16
+					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * buzzerApp.defaultFontSize()) : (buzzerApp.defaultFontSize() + 5)
 				}
 			}
 		}

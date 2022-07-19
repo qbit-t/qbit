@@ -73,7 +73,7 @@ QuarkPage {
 	readonly property int spaceStats_: -5
 	readonly property int spaceLine_: 4
 	readonly property int spaceMedia_: 20
-	readonly property real defaultFontSize: 11
+	readonly property real defaultFontSize: buzzerApp.defaultFontSize()
 
 	//
 	// toolbar
@@ -175,8 +175,8 @@ QuarkPage {
 		symbol: Fonts.tagSym
 		clipboardButton: true
 		height: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 40) : 40
-		textFontSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 16
-		symbolFontSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 2)) : 20
+		textFontSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : (buzzerApp.defaultFontSize() + 5)
+		symbolFontSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 2)) : (buzzerApp.defaultFontSize() + 9)
 
 		text: address_
 	}
@@ -191,8 +191,8 @@ QuarkPage {
 		clipboardButton: true
 		isNumber: true
 		height: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 40) : 40
-		textFontSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 16
-		symbolFontSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 2)) : 20
+		textFontSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : (buzzerApp.defaultFontSize() + 5)
+		symbolFontSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 2)) : (buzzerApp.defaultFontSize() + 9)
 
 		number: amount_
 	}

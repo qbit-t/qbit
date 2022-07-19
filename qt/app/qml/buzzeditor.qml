@@ -788,8 +788,8 @@ QuarkPage {
 
 			QuarkLabel {
 				id: mediaIndicator
-				property var defaultFontSize: 11
-				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 1)) : defaultFontSize + 1
+				property var defaultFontSize: buzzerApp.defaultFontSize()
+				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 1)) : (defaultFontSize + 1)
 				text: "0/0"
 				color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 				visible: count > 1
@@ -1002,7 +1002,7 @@ QuarkPage {
 			id: elapsedAudioTime
 			x: addAudioButton.x + addAudioButton.width + spaceItems_
 			y: addAudioButton.y + addAudioButton.height / 2 - height / 2
-			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize())) : buzzerApp.defaultFontSize()
 			text: "00:00"
 			visible: audioRecorder.isRecording
 

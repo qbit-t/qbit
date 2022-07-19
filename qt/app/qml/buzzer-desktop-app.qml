@@ -1124,7 +1124,7 @@ ApplicationWindow {
 						Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 						visible: true
 						symbol: keySymbol
-						font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : defaultFontSize
+						font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 1)) : defaultFontSize
 					}
 
 					QuarkLabelRegular {

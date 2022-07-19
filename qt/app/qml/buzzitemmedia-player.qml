@@ -40,7 +40,7 @@ Rectangle {
 	readonly property int spaceLine_: 4
 	readonly property int spaceThreaded_: 33
 	readonly property int spaceThreadedItems_: 4
-	readonly property real defaultFontSize: 11
+	readonly property real defaultFontSize: buzzerApp.defaultFontSize()
 
 	property var mediaPlayerController
 	property var player
@@ -356,7 +356,7 @@ Rectangle {
 		spaceLeft: 0
 		spaceTop: 0
 		symbol: Fonts.backwardSym
-		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 4)) : 14
+		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 4)) : (buzzerApp.defaultFontSize() + 3)
 		radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius - 10)) : defaultRadius - 10
 		color: buzzerApp.getColor(gallery ? galleryTheme : buzzerClient.theme, gallery ? gallerySelector : buzzerClient.themeSelector, "Material.menu.highlight")
 		opacity: 1.0
@@ -385,7 +385,7 @@ Rectangle {
 		*/
 
 		symbol: player ? (player.playing ? Fonts.pauseSym : Fonts.playSym) : Fonts.playSym
-		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 7)) : 18
+		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 7)) : (buzzerApp.defaultFontSize() + 7)
 		radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius)) : defaultRadius
 		color: buzzerApp.getColor(gallery ? galleryTheme : buzzerClient.theme, gallery ? gallerySelector : buzzerClient.themeSelector, "Material.menu.highlight")
 		opacity: 1.0
@@ -427,7 +427,7 @@ Rectangle {
 		spaceLeft: 0
 		spaceTop: 0
 		symbol: Fonts.forwardSym
-		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 4)) : 14
+		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 4)) : (buzzerApp.defaultFontSize() + 3)
 		radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius - 10)) : defaultRadius - 10
 		color: buzzerApp.getColor(gallery ? galleryTheme : buzzerClient.theme, gallery ? gallerySelector : buzzerClient.themeSelector, "Material.menu.highlight")
 		opacity: 1.0
@@ -449,7 +449,7 @@ Rectangle {
 		spaceLeft: buzzerClient.isDesktop ? buzzerClient.scaleFactor : 2
 		spaceTop: buzzerClient.isDesktop ? buzzerClient.scaleFactor : 2
 		symbol: Fonts.cancelSym
-		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 10)) : 18
+		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 10)) : (buzzerApp.defaultFontSize() + 7)
 		radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius)) : defaultRadius
 		color: "transparent" //buzzerApp.getColor(gallery ? galleryTheme : buzzerClient.theme, gallery ? gallerySelector : buzzerClient.themeSelector, "Material.menu.highlight")
 		textColor: buzzerApp.getColorStatusBar(gallery ? galleryTheme : buzzerClient.theme, gallery ? gallerySelector : buzzerClient.themeSelector, "Material.foreground")
@@ -476,7 +476,7 @@ Rectangle {
 		y: actionButton.y + 1
 		width: playSlider.width
 		elide: Text.ElideRight
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : buzzerApp.defaultFontSize()
 		text: player ? player.caption : "none"
 		visible: text != "none" && text != ""
 		opacity: 1.0
@@ -488,7 +488,7 @@ Rectangle {
 		x: nextButton.visible ? (nextButton.x + nextButton.width + 2*spaceItems_ + (caption.visible ? 3 : 0)) :
 								(actionButton.x + actionButton.width + 2*spaceItems_ + (caption.visible ? 3 : 0))
 		y: actionButton.y + (caption.visible ? caption.height + 3 : spaceItems_)
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - (caption.visible ? 3 : 0))) : 11
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - (caption.visible ? 3 : 0))) : buzzerApp.defaultFontSize()
 		text: "00:00"
 		opacity: 1.0
 		color: buzzerApp.getColor(gallery ? galleryTheme : buzzerClient.theme, gallery ? gallerySelector : buzzerClient.themeSelector, "Material.foreground")
@@ -502,7 +502,7 @@ Rectangle {
 		id: totalTime
 		x: elapsedTime.x + elapsedTime.width
 		y: elapsedTime.y
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - (caption.visible ? 3 : 0))) : 11
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - (caption.visible ? 3 : 0))) : buzzerApp.defaultFontSize()
 		text: player ? (player.duration ? ("/" + DateFunctions.msToTimeString(player.duration)) : "/00:00") : "/00:00"
 		opacity: 1.0
 		color: buzzerApp.getColor(gallery ? galleryTheme : buzzerClient.theme, gallery ? gallerySelector : buzzerClient.themeSelector, "Material.foreground")
@@ -516,7 +516,7 @@ Rectangle {
 		id: totalSize
 		x: totalTime.x + totalTime.width
 		y: elapsedTime.y
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - (caption.visible ? 3 : 0))) : 11
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - (caption.visible ? 3 : 0))) : buzzerApp.defaultFontSize()
 		text: ", 0k"
 		visible: player && player.size !== 0 || false
 		opacity: 1.0

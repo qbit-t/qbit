@@ -44,7 +44,7 @@ Rectangle {
 	readonly property int spaceLine_: 4
 	readonly property int spaceThreaded_: 33
 	readonly property int spaceThreadedItems_: 4
-	readonly property real defaultFontSize: 11
+	readonly property real defaultFontSize: buzzerApp.defaultFontSize()
 	property int originalDuration: duration_
 	property int totalSize_: size_
 	property var sharedMediaPlayer_
@@ -769,7 +769,7 @@ Rectangle {
 			elide: Text.ElideRight
 			text: caption_
 			elideWidth: (previewImageVideo.width ? previewImageVideo.width : parent.width) - 4 * spaceItems_
-			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : 11
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : buzzerApp.defaultFontSize()
 		}
 
 		QuarkLabel {
@@ -778,7 +778,7 @@ Rectangle {
 			y: spaceItems_
 			width: (previewImageVideo.width ? previewImageVideo.width : parent.width) - 4 * spaceItems_
 			elide: Text.ElideRight
-			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : buzzerApp.defaultFontSize()
 			text: captionTextMetrics.elidedText +
 				  (captionTextMetrics.elidedText !== caption_ && buzzerApp.isDesktop ? "..." : "")
 			visible: caption_ != "none" && forceVisible && scaled && caption_ != ""
@@ -790,7 +790,7 @@ Rectangle {
 			x: spaceItems_
 			y: captionControl.visible ? captionControl.y + captionControl.height + spaceItems_ :
 								 spaceItems_
-			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : buzzerApp.defaultFontSize()
 			text: duration_ ? (DateFunctions.msToTimeString(duration_)) : "00:00"
 			color: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.menu.foreground")
 
@@ -805,7 +805,7 @@ Rectangle {
 			id: totalSizeControl
 			x: totalTimeControl.x + totalTimeControl.width
 			y: totalTimeControl.y
-			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 11
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : buzzerApp.defaultFontSize()
 			color: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.menu.foreground")
 			text: ", 0k"
 
@@ -840,7 +840,7 @@ Rectangle {
 
 		symbol: needDownload && !downloadCommand.downloaded ? Fonts.arrowDownHollowSym :
 									(videoFrame.playing ? Fonts.pauseSym : Fonts.playSym)
-		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 17)) : 27
+		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 17)) : (buzzerApp.defaultFontSize() + 6)
 		radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius * 1.5)) : defaultRadius * 1.5
 		color: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.menu.highlight")
 		Material.background: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.menu.background");

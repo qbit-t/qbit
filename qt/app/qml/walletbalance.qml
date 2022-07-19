@@ -38,7 +38,7 @@ Item
 	readonly property int spaceLine_: 4
 	readonly property int spaceThreaded_: 33
 	readonly property int spaceThreadedItems_: 4
-	readonly property real defaultFontSize: 11
+	readonly property real defaultFontSize: buzzerApp.defaultFontSize()
 
 	function init() {
 		transactions.timelockReached.connect(function() { balanceCommand.process(asset_); });
@@ -173,7 +173,7 @@ Item
 				 x: availableNumber.x + availableNumber.calculatedWidth + spaceItems_
 				 y: availableNumber.y
 				 text: unit_
-				 font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : 16
+				 font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : (buzzerApp.defaultFontSize() + 5)
 				 color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
 			 }
 
@@ -195,13 +195,13 @@ Item
 				 x: parent.width / 2 - (width + pendingNumber.calculatedWidth + /*qbitText2.width + 2*/ + spaceItems_)/ 2
 				 y: middleLine.y1 + spaceItems_
 				 text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.balance.pending")
-				 font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 1)) : 14
+				 font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 1)) : (buzzerApp.defaultFontSize() + 3)
 				 color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
 
 				 QuarkNumberLabel {
 					 id: pendingNumber
 					 number: 0.00000000
-					 font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 1)) : 14
+					 font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 1)) : (buzzerApp.defaultFontSize() + 3)
 					 fillTo: scale_
 					 x: pendingControl.width + spaceItems_
 					 y: 0
@@ -241,7 +241,7 @@ Item
 			 id: heartBeatSymbol
 			 x: assetBackImage.x + 1.0 * buzzerClient.scaleFactor
 			 y: assetBackImage.y + assetBackImage.height + spaceTop_
-			 font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 3)) : 22
+			 font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 3)) : (buzzerApp.defaultFontSize() + 11)
 			 symbol: Fonts.heartBeatSym
 
 			 function beat() {
@@ -281,7 +281,7 @@ Item
 			 id: blockSymbol
 			 x: assetBackImage.x + 1
 			 y: blockControl.y + blockControl.height / 2 - height / 2
-			 font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 3)) : 20
+			 font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 3)) : (buzzerApp.defaultFontSize() + 9)
 			 symbol: Fonts.blockSym
 
 			 visible: lifePulse_
@@ -291,7 +291,7 @@ Item
 			 id: blockTimeSymbol
 			 x: assetBackImage.x + 1
 			 y: timeControl.y + timeControl.height / 2 - height / 2
-			 font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 3)) : 20
+			 font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 3)) : (buzzerApp.defaultFontSize() + 9)
 			 symbol: Fonts.clockSym
 
 			 visible: lifePulse_
@@ -382,7 +382,7 @@ Item
 				 x: spaceLeft_
 				 y: historyInfo.height / 2 - historyLabel.height / 2
 				 text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.wallet.transactions") //.toUpperCase();
-				 font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 2)) : 16
+				 font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 2)) : (buzzerApp.defaultFontSize() + 5)
 				 Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.altAccent");
 			 }
 		 }

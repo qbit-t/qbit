@@ -27,7 +27,7 @@ Text
 	//font.preferShaping: buzzerApp.isDesktop ? false : true
 	//font.hintingPreference: buzzerApp.isDesktop ? Font.PreferNoHinting : font.hintingPreference
 
-	property real defaultFontPointSize: buzzerApp.isDesktop ? 11 : 16
+	property real defaultFontPointSize: buzzerApp.isDesktop ? buzzerApp.defaultFontSize() : buzzerApp.defaultFontSize() + 5
 	font.pointSize: defaultFontPointSize
 
 	// reflect theme changes

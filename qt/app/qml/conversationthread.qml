@@ -506,7 +506,7 @@ QuarkPage {
 			color: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.link")
 			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 
-			property real defaultFontSize: 11
+			property real defaultFontSize: buzzerApp.defaultFontSize()
 		}
 
 		//
@@ -928,10 +928,10 @@ QuarkPage {
 		x: list.width - (width + spaceItems_ * 2)
 		y: list.y + list.height - (height + spaceItems_ * 2)
 
-		property real defaultFontSize: 11
+		property real defaultFontSize: buzzerApp.defaultFontSize()
 
 		symbol: Fonts.arrowBottomSym
-		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 7)) : 18
+		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 7)) : (buzzerApp.defaultFontSize() + 7)
 		radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius)) : defaultRadius
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.highlight")
 		opacity: 0.8

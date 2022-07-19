@@ -63,7 +63,7 @@ Item
 				x: parent.width / 2 - width / 2
 				y: parent.height / 2 - height / 2
 				symbol: Fonts.tipSym
-				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 16) : defaultFontSize
+				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 5)) : defaultFontSize
 			}
 		}
 		TabButton {
@@ -71,7 +71,7 @@ Item
 				x: parent.width / 2 - width / 2
 				y: parent.height / 2 - height / 2
 				symbol: Fonts.inboxInSym
-				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 16) : defaultFontSize
+				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 5)) : defaultFontSize
 			}
 		}
 		TabButton {
@@ -80,7 +80,7 @@ Item
 				x: parent.width / 2 - width / 2
 				y: parent.height / 2 - height / 2
 				symbol: Fonts.inboxOutSym
-				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 16) : defaultFontSize
+				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 5)) : defaultFontSize
 			}
 		}
 

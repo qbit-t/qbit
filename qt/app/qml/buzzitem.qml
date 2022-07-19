@@ -93,7 +93,7 @@ Item {
 	readonly property int spaceLine_: 4
 	readonly property int spaceThreaded_: 33
 	readonly property int spaceThreadedItems_: 4
-	readonly property real defaultFontSize: 11
+	readonly property real defaultFontSize: buzzerApp.defaultFontSize()
 
 	signal calculatedHeightModified(var value);
 
@@ -258,14 +258,14 @@ Item {
 			elide: Text.ElideRight
 			text: actionText.actualText
 			elideWidth: parent.width - (actionText.x + (buzzerApp.isDesktop ? 2 * spaceRight_ : spaceRight_))
-			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : 16
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : (buzzerApp.defaultFontSize() + 5)
 		}
 
 		QuarkLabel {
 			id: actionText
 			x: avatarImage.x + avatarImage.width + spaceAvatarBuzz_
 			y: -2
-			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : 12
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : (buzzerApp.defaultFontSize() + 1)
 			width: parent.width - x - spaceRight_
 			elide: Text.ElideRight
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
@@ -424,7 +424,7 @@ Item {
 		x: avatarImage.x + avatarImage.displayWidth / 2 - width / 2
 		y: avatarImage.y + avatarImage.displayHeight + spaceItems_
 		symbol: endorsed_ ? Fonts.endorseSym : Fonts.mistrustSym
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzitem_.defaultFontSize + 2)) : 14
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzitem_.defaultFontSize + 2)) : (buzzerApp.defaultFontSize() + 3)
 		color: endorsed_ ? buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.endorsed") :
 						   buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.mistrusted");
 
@@ -553,7 +553,7 @@ Item {
 		x: parent.width - width - spaceRightMenu_
 		y: avatarImage.y
 		symbol: Fonts.shevronDownSym
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 7)) : 12
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 7)) : (buzzerApp.defaultFontSize() + 1)
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
 	}
 	MouseArea {
@@ -965,7 +965,7 @@ Item {
 		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 		Layout.alignment: Qt.AlignHCenter
 		font.family: Fonts.icons
-		symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 14) : symbolFontPointSize
+		symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 3)) : symbolFontPointSize
 
 		onClicked: {
 			//
@@ -995,7 +995,7 @@ Item {
 			buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.event.rebuzz") :
 			buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 		Layout.alignment: Qt.AlignHCenter
-		symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 14) : symbolFontPointSize
+		symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 3)) : symbolFontPointSize
 
 		onClicked: {
 			if (rebuzzMenu.visible) rebuzzMenu.close();
@@ -1025,7 +1025,7 @@ Item {
 			buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.event.like") :
 			buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 		Layout.alignment: Qt.AlignHCenter
-		symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 14) : symbolFontPointSize
+		symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 3)) : symbolFontPointSize
 
 		onClicked: {
 			buzzLikeCommand.process(buzzId_);
@@ -1052,7 +1052,7 @@ Item {
 		labelYOffset: 3
 		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 		Layout.alignment: Qt.AlignHCenter
-		symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 14) : symbolFontPointSize
+		symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 3)) : symbolFontPointSize
 
 		onClicked: {
 			if (tipMenu.visible) tipMenu.close();
@@ -1081,7 +1081,7 @@ Item {
 		width: bodyControl.width
 		elide: Text.ElideRight
 		text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.buzz.threaded")
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : 14
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : (buzzerApp.defaultFontSize() + 3)
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.link")
 		visible: getVisible() //threaded_ || showMore()
 

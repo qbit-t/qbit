@@ -61,7 +61,7 @@ Item {
 	readonly property int spaceLine_: 4
 	readonly property int spaceThreaded_: 33
 	readonly property int spaceThreadedItems_: 4
-	readonly property real defaultFontSize: 11
+	readonly property real defaultFontSize: buzzerApp.defaultFontSize()
 
 	readonly property int sideCreator_: 0
 	readonly property int sideCounterparty_: 1
@@ -314,7 +314,7 @@ Item {
 		x: agoControl.x - (spaceItems_ + width)
 		y: avatarImage.y + 3
 		symbol: getSymbol()
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 10)) : 12
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 10)) : (buzzerApp.defaultFontSize() + 1)
 		color: getColor()
 		visible: getVisible()
 
@@ -344,7 +344,7 @@ Item {
 		x: agoControl.x + agoControl.width - width
 		y: stateSymbol.y + stateSymbol.height + spaceItems_
 		symbol: !onChain_ ? Fonts.clockSym : Fonts.checkedCircleSym //linkSym
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 10)) : 12
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 10)) : (buzzerApp.defaultFontSize() + 1)
 		color: !onChain_ ? buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzz.wait") :
 						   buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzz.done");
 

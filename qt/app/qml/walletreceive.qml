@@ -37,7 +37,7 @@ Item
 	readonly property int spaceLine_: 4
 	readonly property int spaceThreaded_: 33
 	readonly property int spaceThreadedItems_: 4
-	readonly property real defaultFontSize: 11
+	readonly property real defaultFontSize: buzzerApp.defaultFontSize()
 
 	function init() {
 	}
@@ -86,7 +86,7 @@ Item
 			 width: parent.width - spaceLeft_*2
 			 wrapMode: Label.Wrap
 			 text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.receive." + unit_.toLowerCase())
-			 font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 2)) : 16
+			 font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 2)) : (buzzerApp.defaultFontSize() + 5)
 			 Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground");
 
 			 onLinkActivated: {
@@ -150,8 +150,8 @@ Item
 			symbol: Fonts.tagSym
 			clipboardButton: true
 			height: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 37) : 42
-			textFontSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : 16
-			symbolFontSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 2)) : 20
+			textFontSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize)) : (buzzerApp.defaultFontSize() + 5)
+			symbolFontSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 2)) : (buzzerApp.defaultFontSize() + 9)
 
 
 			text: buzzerClient.address // default
@@ -175,7 +175,7 @@ Item
 				border.color: "transparent"
 				labelColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Price.zeroes");
 				width: amountInfo.height - 1
-				fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 1)) : 20
+				fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 1)) : (buzzerApp.defaultFontSize() + 9)
 
 				color: "transparent"
 
@@ -197,8 +197,8 @@ Item
 				xButtons: false
 				//minDelta: "" + 1.0 / (scaleSend_ > 0 ? scaleSend_ : 1.0)
 
-				fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 2)) : 18
-				buzztonsFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 4)) : 20
+				fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 2)) : (buzzerApp.defaultFontSize() + 7)
+				buzztonsFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 4)) : (buzzerApp.defaultFontSize() + 9)
 
 				function getFixed() {
 					return scaleSend_; //
@@ -231,7 +231,7 @@ Item
 			contentItem: QuarkText {
 				id: buttonText
 				text: receiptButton.text
-				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 1)) : 16
+				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 1)) : (buzzerApp.defaultFontSize() + 5)
 				color: receiptButton.enabled ?
 						   buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground") :
 						   buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
@@ -300,7 +300,7 @@ Item
 				x: spaceLeft_
 				y: historyInfo.height / 2 - historyLabel.height / 2
 				text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.wallet.transactions") //.toUpperCase();
-				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 2)) : 16
+				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 2)) : (buzzerApp.defaultFontSize() + 5)
 				Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.altAccent");
 			}
 		}

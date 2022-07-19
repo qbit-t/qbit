@@ -59,7 +59,7 @@ Item {
 	readonly property int spaceLine_: 4
 	readonly property int spaceThreaded_: 33
 	readonly property int spaceThreadedItems_: 4
-	readonly property real defaultFontSize: 11
+	readonly property real defaultFontSize: buzzerApp.defaultFontSize()
 
 	signal calculatedHeightModified(var value);
 
@@ -334,7 +334,7 @@ Item {
 		y: buzzerAliasControl.y + buzzerAliasControl.height + 3
 		width: parent.width - (x + spaceRight_)
 		elide: Text.ElideRight
-		font.pointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * defaultFontSize : 14
+		font.pointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * defaultFontSize : (buzzerApp.defaultFontSize() + 3)
 		text: getText()
 
 		function getText() {
@@ -404,7 +404,7 @@ Item {
 		x: parent.width - width - spaceRightMenu_
 		y: avatarImage.y
 		symbol: Fonts.shevronDownSym
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 7)) : 12
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 7)) : (buzzerApp.defaultFontSize() + 1)
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
 	}
 	MouseArea {

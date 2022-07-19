@@ -722,8 +722,8 @@ QuarkPage {
 
 			QuarkLabel {
 				id: mediaIndicator
-				property var defaultFontSize: 11
-				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 1)) : defaultFontSize + 1
+				property var defaultFontSize: buzzerApp.defaultFontSize()
+				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 1)) : (defaultFontSize + 1)
 				text: "0/0"
 				color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 				visible: count > 1
