@@ -297,6 +297,14 @@ public:
     Q_INVOKABLE bool hasLightOnly(QString theme);
     Q_INVOKABLE bool hasDarkOnly(QString theme);
 
+	Q_INVOKABLE qreal defaultFontSize() {
+#if defined(Q_OS_MACOS)
+		return 14.0;
+#else
+		return 11.0;
+#endif
+	}
+
     Q_INVOKABLE QString getEndPoint();
     Q_INVOKABLE QString getRealtimeHost();
     Q_INVOKABLE int getRealtimePort();
