@@ -323,7 +323,7 @@ QuarkPage {
 		id: elapsedAudioTime
 		x: photoButton.x + (photoButton.width / 2 - width / 2)
 		y: photoButton.y + photoButton.height + (parent.height - (photoButton.y + photoButton.height)) / 2 - height / 2
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 14) : 14
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 3)) : (buzzerApp.defaultFontSize() + 3)
 		text: "00:00 / 00:00"
 		visible: true
 		color: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")

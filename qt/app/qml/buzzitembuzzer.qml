@@ -327,7 +327,7 @@ Item {
 		x: parent.width - width - spaceItems_
 		y: headerContainer.height + spaceTop_ // headerImage.height + spaceTop_
 		Layout.alignment: Qt.AlignHCenter
-		symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 14) : symbolFontPointSize
+		symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 3)) : symbolFontPointSize
 
 		//spacing: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 5) : 10
 		//padding: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 9) : 18
@@ -478,7 +478,7 @@ Item {
 
 	QuarkNumberLabel {
 		id: scoreControl
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 18) : 24
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 7)) : (buzzerApp.defaultFontSize() + 13)
 		visible: true
 		fillTo: 8
 		useSign: false

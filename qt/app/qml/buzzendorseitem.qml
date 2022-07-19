@@ -434,12 +434,12 @@ Item {
 
 			text: /*"0x" +*/ publisherBuzzerId_
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
-			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : 12
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 1)) : (buzzerApp.defaultFontSize() + 1)
 		}
 
 		QuarkNumberLabel {
 			id: scoreControl
-			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 18) : 24
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 7)) : (buzzerApp.defaultFontSize() + 13)
 			visible: true
 			fillTo: 1
 			useSign: true

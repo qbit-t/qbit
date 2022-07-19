@@ -26,7 +26,7 @@ Rectangle
 	property string preeditText: "";
 	property string placeHolder: buzzerApp.getLocalization(buzzerClient.locale, "Markets.Filter.Search");
     property int calculatedHeight: 0;
-	property real fontPointSize: 14
+	property real fontPointSize: buzzerApp.defaultFontSize() + 3
 	property int itemSpacing: 3;
 	property int spacingLeft: 0
 	property int spacingRight: 0

@@ -175,7 +175,7 @@ QuarkPage {
 			symbolColor: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 			Layout.alignment: Qt.AlignHCenter
 			symbol: Fonts.leftArrowSym
-			symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 16) : symbolFontPointSize
+			symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 5)) : symbolFontPointSize
 
 			onClicked: {
 				closePage();
@@ -192,7 +192,7 @@ QuarkPage {
 			labelYOffset: buzzerApp.isDesktop ? 0 : 3
 			symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 			Layout.alignment: Qt.AlignHCenter
-			symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 16) : symbolFontPointSize
+			symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 5)) : symbolFontPointSize
 
 			onClicked: {
 				if (headerMenu.visible) headerMenu.close();

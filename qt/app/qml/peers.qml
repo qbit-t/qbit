@@ -141,7 +141,7 @@ QuarkPage
 			symbolColor: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 			Layout.alignment: Qt.AlignHCenter
 			symbol: Fonts.cancelSym
-			symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 16) : symbolFontPointSize
+			symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 5)) : symbolFontPointSize
 
 			onClicked: {
 				closePage();
@@ -155,7 +155,7 @@ QuarkPage
 			width: parent.width - (x)
 			elide: Text.ElideRight
 			text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.peers")
-			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 16) : 18
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 5)) : (buzzerApp.defaultFontSize() + 7)
 			color: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.link")
 		}
 

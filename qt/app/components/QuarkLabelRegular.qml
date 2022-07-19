@@ -25,6 +25,6 @@ Label {
 	//antialiasing: buzzerApp.isDesktop ? false : antialiasing
 	//font.kerning: buzzerApp.isDesktop ? false : font.kerning
 
-	property real defaultFontPointSize: buzzerApp.isDesktop ? buzzerApp.defaultFontSize() : buzzerApp.defaultFontSize() + 5
+	property real defaultFontPointSize: buzzerApp.isDesktop ? buzzerApp.defaultFontSize() : (buzzerApp.defaultFontSize() + 5)
 	font.pointSize: defaultFontPointSize
 }

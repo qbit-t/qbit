@@ -309,7 +309,7 @@ Item
 		id: search
 		width: buzzerApp.isDesktop ? parent.width - x - 5 : parent.width - x // - 14
 		placeHolder: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.global.search")
-		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : fontPointSize
+		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 1)) : fontPointSize
 		visible: !buzzerApp.isDesktop
 
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.statusBar")

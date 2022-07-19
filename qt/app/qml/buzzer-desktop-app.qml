@@ -1138,7 +1138,7 @@ ApplicationWindow {
 						Material.background: "transparent"
 						Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 						visible: true
-						font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 11) : defaultFontPointSize
+						font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * buzzerApp.defaultFontSize()) : defaultFontPointSize
 					}
 				}
 			}

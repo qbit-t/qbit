@@ -167,7 +167,7 @@ Item {
 				   (infoTitle.y + infoTitle.height + spaceItems_ + 3)
 			symbol: Fonts.externalLinkSym
 			color: "transparent"
-			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 11) : 12
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * buzzerApp.defaultFontSize()) : (buzzerApp.defaultFontSize() + 1)
 		}
 
 		QuarkLabelRegular {
@@ -258,7 +258,7 @@ Item {
 				   (infoTitle.y + infoTitle.height + spaceItems_ + 3)
 			symbol: Fonts.externalLinkSym
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
-			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 11) : 12
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * buzzerApp.defaultFontSize()) : (buzzerApp.defaultFontSize() + 1)
 		}
 
 		QuarkLabelRegular {

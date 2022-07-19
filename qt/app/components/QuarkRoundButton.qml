@@ -19,7 +19,7 @@ Rectangle
 	id: frame
 
 	property string text;
-	property int fontPointSize: 14
+	property int fontPointSize: buzzerApp.defaultFontSize() + 3
 	property int spaceLeft: 12
 	property int spaceRight: 12
 	property int spaceTop: 7

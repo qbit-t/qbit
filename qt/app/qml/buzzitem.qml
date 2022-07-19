@@ -235,7 +235,7 @@ Item {
 			x: avatarImage.x + avatarImage.width - width
 			y: -1
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
-			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : 12
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 1)) : (buzzerApp.defaultFontSize() + 1)
 			symbol: getSymbol()
 
 			function getSymbol() {
@@ -575,7 +575,7 @@ Item {
 		x: menuControl.x + 1
 		y: menuControl.y + menuControl.height + (spaceItems_ - 2)
 		symbol: !onChain_ ? Fonts.clockSym : Fonts.checkedCircleSym //linkSym
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 8) : 12
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() - 3)) : (buzzerApp.defaultFontSize() + 1)
 		color: !onChain_ ? buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzz.wait") :
 						   buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzz.done");
 

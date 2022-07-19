@@ -414,7 +414,7 @@ Item {
 		x: scaleCombo.x - width
 		y: scaleCombo.y + scaleCombo.height / 2 - height / 2
 		symbol: Fonts.searchSym
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : (defaultFontPointSize + 1)
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 1)) : (defaultFontPointSize + 1)
 		visible: buzzerApp.isDesktop
 	}
 
@@ -493,7 +493,7 @@ Item {
 		x: spaceLeft_
 		y: avatarImage.y + avatarImage.displayHeight + spaceTop_
 		symbol: Fonts.userTagSym
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : (defaultFontPointSize + 1)
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 1)) : (defaultFontPointSize + 1)
 	}
 
 	QuarkLabel {
@@ -514,7 +514,7 @@ Item {
 		x: spaceLeft_
 		y: aliasSymbol.y + aliasSymbol.height + spaceItems_
 		symbol: Fonts.userAliasSym
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : (defaultFontPointSize + 1)
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 1)) : (defaultFontPointSize + 1)
 	}
 
 	QuarkLabelRegular {
@@ -535,7 +535,7 @@ Item {
 		x: spaceLeft_
 		y: nameSymbol.y + nameSymbol.height + spaceItems_
 		symbol: Fonts.hashSym
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : (defaultFontPointSize + 1)
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 1)) : (defaultFontPointSize + 1)
 	}
 
 	QuarkLabelRegular {
@@ -555,7 +555,7 @@ Item {
 		x: parent.width - (spaceRight_ + width)
 		y: idSymbol.y - 2
 		symbol: Fonts.externalLinkSym
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : (defaultFontPointSize + 1)
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 1)) : (defaultFontPointSize + 1)
 	}
 	MouseArea {
 		x: copySymbol.x - spaceItems_
@@ -579,7 +579,7 @@ Item {
 		x: spaceLeft_
 		y: idSymbol.y + idSymbol.height + spaceItems_
 		symbol: Fonts.walletSym
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : (defaultFontPointSize + 1)
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 1)) : (defaultFontPointSize + 1)
 	}
 
 	QuarkNumberLabel {
@@ -674,7 +674,7 @@ Item {
 		x: qbitText2.x + qbitText2.width + spaceItems_
 		y: qbitText2.y
 		symbol: Fonts.questionCircleSym
-		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : (defaultFontPointSize + 1)
+		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 1)) : (defaultFontPointSize + 1)
 	}
 
 	MouseArea {

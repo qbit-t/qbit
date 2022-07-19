@@ -34,8 +34,8 @@ QuarkPage
 	readonly property int spaceLine_: 4
 	readonly property int spaceThreaded_: 33
 	readonly property int spaceThreadedItems_: 4
-	readonly property var hederFontSize_: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 20) : 24
-	readonly property var bodyFontSize_: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 14) : 18
+	readonly property var hederFontSize_: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 9)) : (buzzerApp.defaultFontSize() + 13)
+	readonly property var bodyFontSize_: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 3)) : (buzzerApp.defaultFontSize() + 7)
 
 	Component.onCompleted: {
 		buzzerApp.lockPortraitOrientation();
@@ -95,7 +95,7 @@ QuarkPage
 			symbolColor: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 			Layout.alignment: Qt.AlignHCenter
 			symbol: Fonts.cancelSym
-			symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 16) : symbolFontPointSize
+			symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 5)) : symbolFontPointSize
 
 			onClicked: {
 				closePage();
@@ -109,7 +109,7 @@ QuarkPage
 			width: parent.width - (x)
 			text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.help")
 			color: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.link")
-			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 16) : 18
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 5)) : (buzzerApp.defaultFontSize() + 7)
 		}
 
 		QuarkHLine {

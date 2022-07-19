@@ -21,7 +21,7 @@ T.Button {
 	implicitHeight: Math.max(implicitBackgroundHeight + topInset + bottomInset,
 							 implicitContentHeight + topPadding + bottomPadding)
 
-	property real defaultFontPointSize: buzzerApp.isDesktop ? 11 : 16
+	property real defaultFontPointSize: buzzerApp.isDesktop ? buzzerApp.defaultFontSize() : (buzzerApp.defaultFontSize() + 5)
 
 	font.pointSize: defaultFontPointSize
 

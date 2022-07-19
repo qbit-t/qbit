@@ -243,7 +243,7 @@ QuarkPage {
 			symbolColor: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 			Layout.alignment: Qt.AlignHCenter
 			symbol: Fonts.leftArrowSym
-			symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 16) : symbolFontPointSize
+			symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 5)) : symbolFontPointSize
 
 			onClicked: {
 				closePage();
@@ -260,7 +260,7 @@ QuarkPage {
 			labelYOffset: buzzerApp.isDesktop ? 0 : 3
 			symbolColor: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 			Layout.alignment: Qt.AlignHCenter
-			symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 16) : symbolFontPointSize
+			symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 5)) : symbolFontPointSize
 
 			onClicked: {
 				if (headerMenu.visible) headerMenu.close();
@@ -598,7 +598,7 @@ QuarkPage {
 							 buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 			Layout.alignment: Qt.AlignHCenter
 			symbol: Fonts.richEditSym
-			symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 18) : symbolFontPointSize
+			symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 7)) : symbolFontPointSize
 
 			x: 0
 			y: parent.height - (height + (buzzerApp.isDesktop ? 0 : spaceItems_ - 2))
@@ -624,7 +624,7 @@ QuarkPage {
 							 buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 			Layout.alignment: Qt.AlignHCenter
 			symbol: Fonts.peopleEmojiSym
-			symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 18) : symbolFontPointSize
+			symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 7)) : symbolFontPointSize
 
 			x: richEditorButton.x + richEditorButton.width // + spaceItems_
 			y: parent.height - (height + (buzzerApp.isDesktop ? 0 : spaceItems_ - 2))
@@ -703,7 +703,7 @@ QuarkPage {
 				wrapMode: Text.Wrap
 				textFormat: Text.RichText
 				color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
-				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : (defaultFontPointSize + 1)
+				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 1)) : (defaultFontPointSize + 1)
 				selectionColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.selected")
 				selectByMouse: true
 				focus: buzzerApp.isDesktop
@@ -720,7 +720,7 @@ QuarkPage {
 
 					text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.editor.message")
 					color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.textDisabled")
-					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 12) : (defaultFontPointSize + 1)
+					font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 1)) : (defaultFontPointSize + 1)
 
 					visible: !buzzText.activeFocus && !buzzText.hasText_
 				}
@@ -808,7 +808,7 @@ QuarkPage {
 							 buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 			Layout.alignment: Qt.AlignHCenter
 			symbol: Fonts.sendSym
-			symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 18) : 20
+			symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 7)) : (buzzerApp.defaultFontSize() + 9)
 
 			x: hiddenCountFrame.x - width - spaceItems_
 			y: parent.height - (height + (buzzerApp.isDesktop ? 0 : spaceItems_ - 2))

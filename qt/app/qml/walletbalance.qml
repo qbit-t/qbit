@@ -145,7 +145,7 @@ Item
 			 QuarkNumberLabel {
 				 id: availableNumber
 				 number: 0.00000000
-				 font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 22) : 30
+				 font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 11)) : (buzzerApp.defaultFontSize() + 19)
 				 fillTo: scale_
 				 mayCompact: true
 				 x: parent.width / 2 - calculatedWidth / 2
@@ -223,7 +223,7 @@ Item
 
 			 radius: buzzerClient.scaleFactor * 20
 			 opacity: 0.6
-			 fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 14) : 18
+			 fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 3)) : (buzzerApp.defaultFontSize() + 5)
 
 			 onClick: {
 				 // refeed balance
