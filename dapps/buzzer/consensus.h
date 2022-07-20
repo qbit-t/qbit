@@ -57,7 +57,7 @@ public:
 	//
 	// mini-tree for sync
 	// TODO: settings
-	virtual uint32_t partialTreeThreshold() { return 30; }
+	virtual uint32_t partialTreeThreshold() { return 100; }
 
 	virtual bool checkBalance(amount_t /*coinbaseAmount*/, amount_t /*blockFee*/, uint64_t /*height*/) {
 		//
