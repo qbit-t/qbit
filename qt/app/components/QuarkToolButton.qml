@@ -73,7 +73,7 @@ T.RoundButton
 	contentItem: Label
     {
         id: label
-		topPadding: labelYOffset + (Qt.platform.os == "osx" ? 3 * buzzerClient.scaleFactor : 0)
+		topPadding: labelYOffset + (Qt.platform.os == "osx" ? 1 * buzzerClient.scaleFactor : 0)
 		horizontalAlignment: Text.AlignHCenter
 		//verticalAlignment: Text.AlignVCenter
 		text: button.symbol

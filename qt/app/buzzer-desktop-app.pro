@@ -143,10 +143,11 @@ INCLUDEPATH += $$PWD/../../secp256k1
 INCLUDEPATH += $$PWD/../..
 INCLUDEPATH += $$PWD/../
 
-unix {
+unix:!macx {
     QMAKE_LFLAGS += -no-pie
 
     INCLUDEPATH += $$PWD/../../boost
+    INCLUDEPATH += /usr/local/include
 
     LIBS += "../../leveldb/libleveldb.a"
     LIBS += "../../boost/stage/lib/libboost_random.a"
@@ -157,6 +158,23 @@ unix {
 
     LIBS += -ljpeg
     LIBS += -lpng
+}
+
+macx {
+    INCLUDEPATH += $$PWD/../../boost
+    INCLUDEPATH += /usr/local/include
+
+    LIBS += "../../leveldb/libleveldb.a"
+    LIBS += "../../boost/stage/lib/libboost_random.a"
+    LIBS += "../../boost/stage/lib/libboost_system.a"
+    LIBS += "../../boost/stage/lib/libboost_thread.a"
+    LIBS += "../../boost/stage/lib/libboost_chrono.a"
+    LIBS += "../../boost/stage/lib/libboost_filesystem.a"
+
+    LIBS += -ljpeg
+    LIBS += -lpng
+
+    ICON = macos/buzzer.icns
 }
 
 win32 {

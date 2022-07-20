@@ -198,14 +198,12 @@ int secp256k1_musig_session_initialize(const secp256k1_context* ctx, secp256k1_m
     secp256k1_ge_set_gej(&rp, &rj);
     secp256k1_pubkey_save(&session->nonce, &rp);
 
-    if (nonce_commitment32 != NULL) {
-        unsigned char commit[33];
-        size_t commit_size = sizeof(commit);
-        secp256k1_sha256_initialize(&sha);
-        secp256k1_ec_pubkey_serialize(ctx, commit, &commit_size, &session->nonce, SECP256K1_EC_COMPRESSED);
-        secp256k1_sha256_write(&sha, commit, commit_size);
-        secp256k1_sha256_finalize(&sha, nonce_commitment32);
-    }
+    unsigned char commit[33];
+    size_t commit_size = sizeof(commit);
+    secp256k1_sha256_initialize(&sha);
+    secp256k1_ec_pubkey_serialize(ctx, commit, &commit_size, &session->nonce, SECP256K1_EC_COMPRESSED);
+    secp256k1_sha256_write(&sha, commit, commit_size);
+    secp256k1_sha256_finalize(&sha, nonce_commitment32);
 
     secp256k1_scalar_clear(&secret);
     return 1;

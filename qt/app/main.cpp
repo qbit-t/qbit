@@ -99,6 +99,21 @@ int main(int argc, char *argv[]) {
 
 #endif
 
+#if defined(Q_OS_MACOS)
+	QString lSubDir = "/usr/local/lib/gstreamer-1.0";
+	QString lCurrentDir = qApp->applicationDirPath();
+	int lPos = lCurrentDir.indexOf("MacOS");
+	if (lPos != -1) {
+		lSubDir = lCurrentDir.mid(0, lPos);
+		lSubDir += "Frameworks";
+	}
+
+	qputenv("GST_PLUGIN_PATH", (lSubDir).toUtf8());
+	qputenv("GST_PLUGIN_SCANNER", (lSubDir + "/gst-plugin-scanner" ).toUtf8());
+	qInfo() << "Current GStreamer directory is" << lSubDir;
+	qInfo() << "Current app directory is" << lCurrentDir;
+#endif
+
 #endif
 	// buzzer global application
 	try {

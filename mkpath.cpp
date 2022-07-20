@@ -13,7 +13,11 @@
 #include <unistd.h>
 
 #if !defined(JM_MALLOC)
-#include <malloc.h>
+#if defined(_WIN32) || defined(__linux__)
+    #include <malloc.h>
+#else
+    #include <stdlib.h>
+#endif
 #endif
 
 typedef struct stat Stat;

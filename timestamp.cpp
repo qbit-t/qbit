@@ -32,7 +32,7 @@ uint64_t qbit::getMicroseconds() {
 		uint64_t lMicroseconds = static_cast<uint64_t>(lFt.dwHighDateTime) << 32 | lFt.dwLowDateTime;
 		lMicroseconds -= 116444736000000000LL;
     	return lMicroseconds / 10; // interval in microseconds
-#elif defined(__linux__)
+#else //if defined(__linux__)
 		struct timespec now;
 		clock_gettime(CLOCK_REALTIME, &now);
 		uint64_t lMicroseconds = ((uint64_t)now.tv_sec) * 1000000;
