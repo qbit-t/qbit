@@ -95,6 +95,16 @@ private:
 	QString pkey_;
 };
 
+struct DecorationRule {
+	QRegularExpression expression;
+	QString pattern;
+	bool truncate;
+	int arg0 = 0;
+	int arg1 = 0;
+};
+
+struct _Arg { int start; int length; QString text; };
+
 class Settings;
 class Client: public QObject, public IClient
 {
@@ -487,6 +497,7 @@ public:
 	Q_INVOKABLE QString timeAgo(long long timestamp);
 	Q_INVOKABLE QString decorateBuzzBody(const QString&);
 	Q_INVOKABLE QString decorateBuzzBodyLimited(const QString&, int);
+	Q_INVOKABLE QString unMarkdownBuzzBodyLimited(const QString&, int);
 	Q_INVOKABLE bool isEmoji(const QString&);
 	Q_INVOKABLE QString extractLastUrl(const QString&);
 
@@ -630,6 +641,8 @@ private:
 	void peerPopped(qbit::IPeerPtr /*peer*/, int /*count*/);
 
 	QString internalTimestampAgo(long long, long long);
+
+	void processDecoration(QVector<DecorationRule>& rules, const QString& body, int limit, bool simplify, QString& result);
 
 signals:
 	void nameChanged();

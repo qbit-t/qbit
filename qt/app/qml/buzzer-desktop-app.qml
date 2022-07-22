@@ -535,7 +535,7 @@ ApplicationWindow {
 			lPage = lComponent.createObject(pagesView);
 			lPage.controller = window;
 
-			lPage.updateStakedInfo(buzzId, buzzerAlias, buzzBody ? buzzBody.replace(/(\r\n|\n|\r)/gm, " ") : "");
+			lPage.updateStakedInfo(buzzId, buzzerAlias, buzzBody ? buzzerClient.unMarkdownBuzzBodyLimited(buzzBody, 200).replace(/(\r\n|\n|\r)/gm, " ") : "");
 			lPage.start(buzzChainId, buzzId);
 
 			addPage(lPage);
@@ -566,7 +566,7 @@ ApplicationWindow {
 			lPage.initialize(pkey, index, instance, buzzId, buzzBody);
 
 			var lTitle = "Media";
-			if (buzzBody !== "") lTitle = buzzBody.replace(/(\r\n|\n|\r)/gm, " ");
+			if (buzzBody !== "") lTitle = buzzerClient.unMarkdownBuzzBodyLimited(buzzBody, -1).replace(/(\r\n|\n|\r)/gm, " ");
 			lPage.updateStakedInfo(buzzId + "-media", buzzerAlias, lTitle);
 
 			addPage(lPage);

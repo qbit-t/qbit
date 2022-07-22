@@ -25,9 +25,9 @@ typedef std::shared_ptr<PushNotification> PushNotificationPtr;
 
 class PushNotification: public std::enable_shared_from_this<PushNotification> {
 public:
-	PushNotification(qbit::EventsfeedItemPtr buzz, bool autohide) : buzz_(buzz), autohide_(autohide) {}
+	PushNotification(qbit::EventsfeedItemPtr buzz, QString buzzBody, bool autohide) : buzz_(buzz), buzzBody_(buzzBody), autohide_(autohide) {}
 
-	static PushNotificationPtr instance(qbit::EventsfeedItemPtr /*buzz*/, bool /*autohide*/);
+	static PushNotificationPtr instance(qbit::EventsfeedItemPtr /*buzz*/, QString /*body*/, bool /*autohide*/);
 
 	void downloadProgress(uint64_t, uint64_t) {
 		//
@@ -71,6 +71,7 @@ public:
 
 private:
 	qbit::EventsfeedItemPtr buzz_;
+	QString buzzBody_;
 	bool autohide_ = false;
 	qbit::ICommandPtr downloadAvatar_;
 	qbit::ICommandPtr downloadMedia_;

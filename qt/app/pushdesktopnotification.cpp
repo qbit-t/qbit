@@ -161,6 +161,7 @@ QString PushNotification::getText() {
 		return message_;
 	}
 
+	if (buzzBody_.length()) return buzzBody_;
 	return QString::fromStdString(buzz_->buzzBodyString());
 }
 
@@ -326,9 +327,9 @@ void PushNotification::process() {
 	}
 }
 
-PushNotificationPtr PushNotification::instance(qbit::EventsfeedItemPtr buzz, bool autohide) {
+PushNotificationPtr PushNotification::instance(qbit::EventsfeedItemPtr buzz, QString body, bool autohide) {
 	//
-	PushNotificationPtr lPush = std::make_shared<PushNotification>(buzz, autohide);
+	PushNotificationPtr lPush = std::make_shared<PushNotification>(buzz, body, autohide);
 	instances_[buzz->key()] = lPush;
 	return lPush;
 }

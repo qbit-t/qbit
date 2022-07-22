@@ -373,7 +373,7 @@ QuarkPage {
 			onLengthChanged: {
 				// TODO: may be too expensive
 				var lText = buzzerClient.getPlainText(buzzText.textDocument);
-				buzzeditor_.extraInfo = lText.slice(0, 100).replace(/(\r\n|\n|\r)/gm, " ");
+				buzzeditor_.extraInfo = buzzerClient.unMarkdownBuzzBodyLimited(lText, 100).replace(/(\r\n|\n|\r)/gm, " ");
 				countProgress.adjust(buzzerClient.getBuzzBodySize(lText + preeditText.length));
 				buzzersList.close();
 				tagsList.close();

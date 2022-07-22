@@ -114,6 +114,9 @@ public:
         return clipboard_->text();
     }
 
+public slots:
+	void dataChanged();
+
 private:
     QClipboard* clipboard_;
 };

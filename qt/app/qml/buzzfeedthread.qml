@@ -441,7 +441,7 @@ QuarkPage {
 						headDelegate.width = list.width;
 
 						buzzfeedthread_.alias = buzzerAlias;
-						buzzfeedthread_.caption = buzzBodyFlat ? buzzBodyFlat.slice(0, 100).replace(/(\r\n|\n|\r)/gm, " ") : "...";
+						buzzfeedthread_.caption = buzzBodyFlat ? buzzerClient.unMarkdownBuzzBodyLimited(buzzBodyFlat, 200).replace(/(\r\n|\n|\r)/gm, " ") : "...";
 
 						buzzItem.calculatedHeightModified.connect(headDelegate.calculatedHeightModified);
 					}
