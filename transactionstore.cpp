@@ -626,7 +626,7 @@ bool TransactionStore::resyncHeight(const uint256& to) {
 
 	//
 	IMemoryPoolPtr lMempool = wallet_->mempoolManager()->locate(chain_);
-	lPartialTree = (lMempool ? lMempool->consensus()->partialTreeThreshold() : 10);
+	lPartialTree = (lMempool ? lMempool->consensus()->partialTreeThreshold() : 10) * 10; // ten's size of partial tree
 
 	//
 	std::list<uint256> lSeq;
