@@ -1,4 +1,8 @@
-TARGET = buzzer
+macx {
+    TARGET = Buzzer
+} else {
+    TARGET = buzzer
+}
 
 #QT += qml quick quickcontrols2 multimedia multimediawidgets widgets quickwidgets
 QT += multimedia multimediawidgets qml quick quickcontrols2 widgets quickwidgets
