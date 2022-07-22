@@ -18,11 +18,12 @@ IApplication* buzzer::gApplication = nullptr;
 ClipboardAdapter::ClipboardAdapter(QObject *parent) : QObject(parent)
 {
     clipboard_ = QGuiApplication::clipboard();
-	connect(clipboard_, SIGNAL(dataChanged()), this, SLOT(dataChanged()));
+	//connect(clipboard_, SIGNAL(dataChanged()), this, SLOT(dataChanged()));
 }
 
 void ClipboardAdapter::dataChanged()
 {
+	/*
 	QString lText = clipboard_->text();
 
 	 if (clipboard_->mimeData()->hasHtml()) {
@@ -30,6 +31,7 @@ void ClipboardAdapter::dataChanged()
 		lMimeData->setText(lText);
 		clipboard_->setMimeData(lMimeData);
 	}
+	*/
 }
 
 int Application::load()
