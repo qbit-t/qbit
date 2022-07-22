@@ -701,7 +701,7 @@ QuarkPage {
 				//height: 1000 //parent.height - spaceItems_
 				width: parent.width - spaceItems_
 				wrapMode: Text.Wrap
-				textFormat: Text.RichText
+				textFormat: Text.PlainText //Text.RichText
 				color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 				font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 1)) : (defaultFontPointSize + 1)
 				selectionColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.selected")
