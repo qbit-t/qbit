@@ -327,7 +327,7 @@ Item {
 		x: parent.width - width - spaceItems_
 		y: headerContainer.height + spaceTop_ // headerImage.height + spaceTop_
 		Layout.alignment: Qt.AlignHCenter
-		symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 3)) : symbolFontPointSize
+		symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 3)) : defaultSymbolFontPointSize
 
 		//spacing: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 5) : 10
 		//padding: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 9) : 18
@@ -463,7 +463,7 @@ Item {
 		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 		Layout.alignment: Qt.AlignHCenter
 		opacity: 0.7
-		symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 14) : symbolFontPointSize
+		symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 14) : defaultSymbolFontPointSize
 
 		onClicked: {
 			if (buzzerId_ === buzzerClient.getCurrentBuzzerId()) return; // no actions

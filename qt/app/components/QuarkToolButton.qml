@@ -20,10 +20,11 @@ T.RoundButton
     property alias symbol: button.text
     property string symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 	property alias symbolFont: label.font
+	property real defaultSymbolFontPointSize: buzzerApp.defaultFontSize() + 7
 
 	property int labelXOffset: 0;
 	property int labelYOffset: 0;
-	property real symbolFontPointSize: buzzerApp.defaultFontSize() + 7
+	property real symbolFontPointSize: defaultSymbolFontPointSize
 	property real symbolRotation: 0
 
 	font.family: Fonts.icons

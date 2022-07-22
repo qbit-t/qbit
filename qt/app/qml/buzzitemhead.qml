@@ -661,7 +661,7 @@ Item {
 		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 		Layout.alignment: Qt.AlignHCenter
 		font.family: Fonts.icons
-		symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 3)) : symbolFontPointSize
+		symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 3)) : defaultSymbolFontPointSize
 
 		onClicked: {
 			//
@@ -689,7 +689,7 @@ Item {
 		labelYOffset: /*buzzerApp.isDesktop ? 0 :*/ buzzerClient.scaleFactor * 2
 		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 		Layout.alignment: Qt.AlignHCenter
-		symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 3)) : symbolFontPointSize
+		symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 3)) : defaultSymbolFontPointSize
 
 		onClicked: {
 			if (rebuzzMenu.visible) rebuzzMenu.close();
@@ -717,7 +717,7 @@ Item {
 		labelYOffset: 3
 		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 		Layout.alignment: Qt.AlignHCenter
-		symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 3)) : symbolFontPointSize
+		symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 3)) : defaultSymbolFontPointSize
 
 		onClicked: {
 			buzzLikeCommand.process(buzzId_);
@@ -744,7 +744,7 @@ Item {
 		labelYOffset: 3
 		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 		Layout.alignment: Qt.AlignHCenter
-		symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 3)) : symbolFontPointSize
+		symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 3)) : defaultSymbolFontPointSize
 
 		onClicked: {
 			if (tipMenu.visible) tipMenu.close();

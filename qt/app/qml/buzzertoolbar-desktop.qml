@@ -247,7 +247,7 @@ QuarkToolBar
 		id: search
 		width: parent.width - (x + networkButton.width + themeButton.width)
 		placeHolder: searchPlaceHolder
-		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * buzzerApp.defaultFontSize()) : fontPointSize
+		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * buzzerApp.defaultFontSize()) : defaultFontPointSize
 		visible: searchVisible
 		clearButton: false
 
@@ -301,7 +301,7 @@ QuarkToolBar
 						 buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground") :
 						 buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.peer.pending")
 		Layout.alignment: Qt.AlignHCenter
-		symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 5)) : symbolFontPointSize
+		symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 5)) : defaultSymbolFontPointSize
 
 		x: themeButton.x - width + 5
 		y: avatarImage.y + avatarImage.height / 2 - height / 2
@@ -340,7 +340,7 @@ QuarkToolBar
 		//labelYOffset: buzzerApp.isDesktop ? (buzzerClient.scaleFactor > 1.0 ? 1 : 2) : 3
 		symbolColor: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 		Layout.alignment: Qt.AlignHCenter
-		symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 5)) : symbolFontPointSize
+		symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 5)) : defaultSymbolFontPointSize
 
 		x: parent.width - width// - 8
 		y: avatarImage.y + avatarImage.height / 2 - height / 2

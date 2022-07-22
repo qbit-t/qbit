@@ -29,6 +29,8 @@ QuarkPopup {
 	implicitHeight: contentItem.implicitHeight
 	padding: 0
 
+	enabled: buzzerApp.isDesktop
+
 	signal emojiSelected(var emoji);
 
 	contentItem: Rectangle {

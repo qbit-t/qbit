@@ -330,7 +330,7 @@ Rectangle {
 		labelYOffset: /*buzzerApp.isDesktop ? 0 :*/ 3
 		Layout.alignment: Qt.AlignHCenter
 		opacity: 0.6
-		symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 3)) : symbolFontPointSize
+		symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 3)) : defaultSymbolFontPointSize
 
 		symbolColor: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.menu.foreground")
 		Material.background: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.menu.background");

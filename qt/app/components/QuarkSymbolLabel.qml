@@ -13,7 +13,8 @@ QuarkLabel
     id: symbolLabel
 
     property alias symbol: symbolLabel.text
-	property real defaultFontSize: buzzerApp.defaultFontSize() + 7
+	property real defaultFontSize_: buzzerApp.defaultFontSize() + 7
+	property real defaultFontSize: defaultFontSize_
 
     font.family: Fonts.icons
     font.weight: Font.Normal
