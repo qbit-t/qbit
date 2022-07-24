@@ -104,6 +104,7 @@ Item
 			dataReceived = false;
 			dataRequested = false;
 			requestProcessed = true;
+			list.reuseItems = true;
 
 			// just restart
 			if (code == "E_LOAD_EVENTSFEED") {

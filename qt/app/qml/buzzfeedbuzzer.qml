@@ -129,6 +129,7 @@ QuarkPage {
 			// code, message
 			console.log("[globalfeed/buzzer/error]: " + code + " | " + message);
 			waitDataTimer.done();
+			list.reuseItems = true;
 
 			if (code !== "E_LOAD_BUZZFEED_BUZZER_TIMESTAMP") {
 				//

@@ -60,8 +60,9 @@ Item
 
 	function start(force) {
 		//
-		if (!buzzerApp.isDesktop) search.setText("");
-		else {
+		if (!buzzerApp.isDesktop) {
+			// search.setText("");
+		} else {
 			disconnect();
 			controller.mainToolBar.searchTextEdited.connect(buzzfeed_.startSearch);
 			controller.mainToolBar.searchTextCleared.connect(buzzfeed_.searchTextCleared);
@@ -167,6 +168,7 @@ Item
 			dataReceived = true;
 			dataRequested = false;
 			waitDataTimer.done();
+			list.reuseItems = true;
 		}
 
 		onError: {
@@ -175,12 +177,14 @@ Item
 			dataReceived = false;
 			dataRequested = false;
 			waitDataTimer.done();
+			list.reuseItems = true;
 			controller.showError(message);
 		}
 
 		function start() {
 			//
 			if (!dataReceived && !dataRequested) {
+				list.reuseItems = false;
 				dataRequested = true;
 				globalModelLoader.process(false);
 				waitDataTimer.start();
@@ -217,6 +221,7 @@ Item
 			dataReceived = true;
 			dataRequested = false;
 			waitDataTimer.done();
+			list.reuseItems = true;
 		}
 
 		onError: {
@@ -225,12 +230,14 @@ Item
 			dataReceived = false;
 			dataRequested = false;
 			waitDataTimer.done();
+			list.reuseItems = true;
 			controller.showError(message);
 		}
 
 		function start() {
 			//
 			if (!dataReceived && !dataRequested) {
+				list.reuseItems = false;
 				dataRequested = true;
 				tagModelLoader.process(false);
 				waitDataTimer.start();
@@ -276,6 +283,7 @@ Item
 			dataReceived = false;
 			dataRequested = false;
 			waitDataTimer.done();
+			list.reuseItems = true;
 			controller.showError(message);
 		}
 

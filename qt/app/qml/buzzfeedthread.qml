@@ -191,6 +191,7 @@ QuarkPage {
 			dataReceived = false;
 			dataRequested = false;
 			waitDataTimer.done();
+			list.reuseItems = true;
 			controller.showError(message);
 		}
 

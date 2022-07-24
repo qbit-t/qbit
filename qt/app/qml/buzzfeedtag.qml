@@ -113,6 +113,7 @@ QuarkPage {
 			dataReceived = true;
 			dataRequested = false;
 			waitDataTimer.done();
+			list.reuseItems = true;
 		}
 
 		onError: {
@@ -121,12 +122,14 @@ QuarkPage {
 			dataReceived = false;
 			dataRequested = false;
 			waitDataTimer.done();
+			list.reuseItems = true;
 			controller.showError(message);
 		}
 
 		function start() {
 			//
 			if (!dataReceived && !dataRequested) {
+				list.reuseItems = false;
 				dataRequested = true;
 				waitDataTimer.start();
 				modelLoader.process(false);
