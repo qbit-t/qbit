@@ -95,6 +95,7 @@ Item
 			dataReceived = true;
 			dataRequested = false;
 			requestProcessed = true;
+			list.reuseItems = true;
 		}
 
 		onError: {
@@ -113,6 +114,7 @@ Item
 		function start() {
 			//
 			if (!dataReceived && !dataRequested) {
+				list.reuseItems = false;
 				dataRequested = true;
 				requestProcessed = false;
 				modelLoader.process(false);
@@ -160,15 +162,10 @@ Item
 		height: parent.height
 		usePull: true
 		clip: true
+		cacheBuffer: 500
+		reuseItems: true
 
 		model: buzzerClient.getEventsfeedList()
-
-		/*
-		add: Transition {
-			enabled: true
-			NumberAnimation { property: "opacity"; from: 0; to: 1.0; duration: 400 }
-		}
-		*/
 
 		function adjust() {
 			//
@@ -201,6 +198,24 @@ Item
 			id: itemDelegate
 
 			property var buzzItem;
+			property int buzzType: 0;
+
+			ListView.onPooled: {
+				unbindItem();
+				unbindCommonControls();
+			}
+
+			ListView.onReused: {
+				// replace inner instance
+				if (buzzItem && buzzType !== type) {
+					// create and replace
+					buzzItem.destroy();
+					createItem();
+				} else {
+					// just rebind
+					bindItem();
+				}
+			}
 
 			hoverEnabled: buzzerApp.isDesktop
 			onHoveredChanged: {
@@ -270,7 +285,9 @@ Item
 				}
 			}
 
-			Component.onCompleted: {
+			Component.onCompleted: createItem()
+
+			function createItem() {
 				var lSource = "";
 				if (type === buzzerClient.tx_BUZZER_SUBSCRIBE_TYPE()) {
 					lSource = "qrc:/qml/eventsubscribeitem.qml";
@@ -292,27 +309,51 @@ Item
 					lSource = "qrc:/qml/eventconversationitem.qml";
 				}
 
+				var lType = type;
+				buzzType = lType; // avoid binding
+
 				var lComponent = Qt.createComponent(lSource);
 				if (lComponent.status === Component.Error) {
 					eventsfeed_.controller.showError(lComponent.errorString());
 				} else {
 					buzzItem = lComponent.createObject(itemDelegate);
-
-					buzzItem.width = list.width;
-					buzzItem.controller_ = eventsfeed_.controller;
-					buzzItem.eventsfeedModel_ = buzzerClient.getEventsfeedList();
-					buzzItem.listView_ = list;
-
-					itemDelegate.height = buzzItem.calculateHeight();
-					itemDelegate.width = list.width;
-
-					buzzItem.calculatedHeightModified.connect(itemDelegate.calculatedHeightModified);
+					bindItem();
 				}
+			}
+
+			function bindItem() {
+				//
+				buzzItem.calculatedHeightModified.connect(itemDelegate.calculatedHeightModified);
+				buzzItem.bindItem();
+				//
+				buzzItem.width = list.width;
+				buzzItem.controller_ = eventsfeed_.controller;
+				buzzItem.eventsfeedModel_ = buzzerClient.getEventsfeedList();
+				buzzItem.listView_ = list;
+
+				itemDelegate.height = buzzItem.calculateHeight();
+				itemDelegate.width = list.width;
 			}
 
 			function calculatedHeightModified(value) {
 				itemDelegate.height = value;
 				itemDelegate.buzzItem.height = value;
+			}
+
+			function unbindItem() {
+				if (buzzItem)
+					buzzItem.calculatedHeightModified.disconnect(itemDelegate.calculatedHeightModified);
+			}
+
+			function unbindCommonControls() {
+				if (buzzItem)
+					buzzItem.unbindCommonControls();
+			}
+
+			function forceVisibilityCheck(check) {
+				if (buzzItem) {
+					buzzItem.forceVisibilityCheck(check);
+				}
 			}
 		}
 	}

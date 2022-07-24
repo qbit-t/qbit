@@ -68,7 +68,6 @@ Item {
 	}
 
 	Component.onCompleted: {
-		avatarDownloadCommand.process();
 	}
 
 	function calculateHeightInternal() {
@@ -80,6 +79,24 @@ Item {
 	function calculateHeight() {
 		calculatedHeight = calculateHeightInternal();
 		return calculatedHeight;
+	}
+
+	function finalizeCreation() {
+		//
+		avatarDownloadCommand.process();
+	}
+
+	function bindItem() {
+		//
+		calculatedHeight = 0;
+		//
+		finalizeCreation();
+	}
+
+	function forceVisibilityCheck(isFullyVisible) {
+	}
+
+	function unbindCommonControls() {
 	}
 
 	//

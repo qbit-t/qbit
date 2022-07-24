@@ -68,7 +68,6 @@ Item {
 	}
 
 	Component.onCompleted: {
-		avatarDownloadCommand.process();
 	}
 
 	function calculateHeightInternal() {
@@ -80,6 +79,26 @@ Item {
 	function calculateHeight() {
 		calculatedHeight = calculateHeightInternal();
 		return calculatedHeight;
+	}
+
+	function finalizeCreation() {
+		//
+		avatarDownloadCommand.process();
+	}
+
+	function bindItem() {
+		//
+		calculatedHeight = 0;
+		//
+		finalizeCreation();
+		bodyControl.resetItem();
+		bodyControl.forceExpand();
+	}
+
+	function forceVisibilityCheck(isFullyVisible) {
+	}
+
+	function unbindCommonControls() {
 	}
 
 	//
@@ -389,18 +408,25 @@ Item {
 
 		property var wrappedItem_;
 
-		onWidthChanged: {
+		onWidthChanged: forceExpand()
+
+		onHeightChanged: {
+			expand();
+			eventLikeRebuzzItem_.calculateHeight();
+		}
+
+		function resetItem() {
+			if (wrappedItem_) { wrappedItem_.destroy(); wrappedItem_ = null; }
+		}
+
+		function forceExpand() {
+			//
 			expand();
 
 			if (wrappedItem_ && bodyControl.width > 0) {
 				wrappedItem_.width = bodyControl.width;
 			}
 
-			eventLikeRebuzzItem_.calculateHeight();
-		}
-
-		onHeightChanged: {
-			expand();
 			eventLikeRebuzzItem_.calculateHeight();
 		}
 
@@ -462,6 +488,11 @@ Item {
 		penWidth: 1
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
 		visible: true
+
+		onY1Changed: {
+			bodyControl.height = bodyControl.getHeight();
+			calculateHeight();
+		}
 	}
 
 	//

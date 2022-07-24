@@ -242,6 +242,7 @@ QuarkPage {
 			dataReceived = true;
 			dataRequested = false;
 			waitDataTimer.done();
+			list.reuseItems = true;
 
 			if (initialFeed) {
 				initialFeed = false;
@@ -261,6 +262,7 @@ QuarkPage {
 		function start() {
 			//
 			if (!dataReceived && !dataRequested) {
+				list.reuseItems = false;
 				dataRequested = true;
 				initialFeed = true;
 				waitDataTimer.start();
@@ -592,21 +594,6 @@ QuarkPage {
 	// thread
 	///
 
-	/*
-	Rectangle {
-		border.color: "transparent"
-		anchors.fill: parent
-		gradient: Gradient {
-			GradientStop { position: 0; color: "#ff9e01"; }
-			GradientStop { position: 0.25; color: "#fd8511"; }
-			GradientStop { position: 0.45; color: "#f32e50"; }
-			GradientStop { position: 0.65; color: "#dd176c"; }
-			GradientStop { position: 0.75; color: "#ac0793"; }
-			GradientStop { position: 1; color: "#9700a5"; }
-		}
-	}
-	*/
-
 	Image {
 		id: back
 		fillMode: Image.Tile
@@ -634,6 +621,7 @@ QuarkPage {
 		highlightMoveDuration: -1
 		highlightMoveVelocity: -1
 		//cacheBuffer: 800
+		reuseItems: true
 		rotation: 180
 		feedDelta: 20
 
@@ -674,17 +662,8 @@ QuarkPage {
 			}
 		}
 
-		//model: buzzesThread_
-
-		/*
-		add: Transition {
-			enabled: true
-			NumberAnimation { property: "opacity"; from: 0; to: 1.0; duration: 400 }
-		}
-		*/
 
 		ScrollIndicator.vertical: scrollIndicator
-		//ScrollBar.vertical: scrollBar
 
 		function adjust() {
 			//
@@ -817,6 +796,15 @@ QuarkPage {
 			property bool isFullyVisible: y >= list.contentY && y + height < list.contentY + list.height
 			property var adjustValue: []
 
+			ListView.onPooled: {
+				unbindItem();
+				unbindCommonControls();
+			}
+
+			ListView.onReused: {
+				bindItem();
+			}
+
 			onWidthChanged: {
 				if (itemDelegate.buzzItem) {
 					var lHeight = itemDelegate.buzzItem.calculateHeight();
@@ -826,29 +814,37 @@ QuarkPage {
 				}
 			}
 
-			Component.onCompleted: {
+			Component.onCompleted: createItem()
+
+			function createItem() {
 				var lSource = "qrc:/qml/conversationmessageitem.qml";
 				var lComponent = Qt.createComponent(lSource);
 				if (lComponent.status === Component.Error) {
 					controller.showError(lComponent.errorString());
 				} else {
 					buzzItem = lComponent.createObject(itemDelegate);
-
-					buzzItem.calculatedHeightModified.connect(itemDelegate.calculatedHeightModified);
-					buzzItem.forceChangeCursorShape.connect(itemDelegate.changeCursorShape);
-					buzzItem.sharedMediaPlayer_ = conversationthreadfeed_.mediaPlayerController;
-					buzzItem.accepted_ = conversationState() === conversationAccepted_;
-					buzzItem.width = list.width;
-					buzzItem.controller_ = conversationthreadfeed_.controller;
-					buzzItem.listView_ = list;
-					buzzItem.model_ = conversationThread_;
-					buzzItem.conversationId_ = modelLoader.conversationId;
-
-					//itemDelegate.height = buzzItem.calculateHeight();
-					itemDelegate.width = list.width;
-
-					buzzItem.adjust();
+					bindItem();
 				}
+			}
+
+			function bindItem() {
+				//
+				buzzItem.calculatedHeightModified.connect(itemDelegate.calculatedHeightModified);
+				buzzItem.bindItem();
+				//
+				buzzItem.forceChangeCursorShape.connect(itemDelegate.changeCursorShape);
+				buzzItem.sharedMediaPlayer_ = conversationthreadfeed_.mediaPlayerController;
+				buzzItem.accepted_ = conversationState() === conversationAccepted_;
+				buzzItem.width = list.width;
+				buzzItem.controller_ = conversationthreadfeed_.controller;
+				buzzItem.listView_ = list;
+				buzzItem.model_ = conversationThread_;
+				buzzItem.conversationId_ = modelLoader.conversationId;
+
+				//itemDelegate.height = buzzItem.calculateHeight();
+				itemDelegate.width = list.width;
+
+				buzzItem.adjust();
 			}
 
 			function calculatedHeightModified(value) {
@@ -856,17 +852,6 @@ QuarkPage {
 				itemDelegate.height = value;
 				itemDelegate.buzzItem.height = value;
 				itemDelegate.adjustValue.push(value);
-
-				/*
-				if (buzzMedia && buzzMedia.length && itemDelegate.adjustValue.length > 2) {
-					itemDelegate.height = itemDelegate.adjustValue[itemDelegate.adjustValue.length - 1];
-
-					if (localDynamic) {
-						conversationthreadfeed_.conversationThread_.resetLocalDynamic(index);
-						conversationthreadfeed_.conversationThread_.forceRelayout(index, 1);
-					}
-				}
-				*/
 			}
 
 			function changeCursorShape(shape) {
@@ -874,10 +859,14 @@ QuarkPage {
 				mouseArea.cursorShape = shape;
 			}
 
+			function unbindItem() {
+				if (itemDelegate.buzzItem)
+					itemDelegate.buzzItem.calculatedHeightModified.disconnect(itemDelegate.calculatedHeightModified);
+			}
+
 			function unbindCommonControls() {
-				if (itemDelegate.buzzItem) {
+				if (itemDelegate.buzzItem)
 					itemDelegate.buzzItem.unbindCommonControls();
-				}
 			}
 
 			function forceVisibilityCheck(check) {

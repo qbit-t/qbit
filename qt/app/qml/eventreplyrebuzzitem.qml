@@ -83,6 +83,26 @@ Item {
 		return calculatedHeight;
 	}
 
+	function finalizeCreation() {
+		//
+		avatarDownloadCommand.process();
+	}
+
+	function bindItem() {
+		//
+		calculatedHeight = 0;
+		//
+		finalizeCreation();
+		bodyControl.resetItem();
+		bodyControl.forceExpand();
+	}
+
+	function forceVisibilityCheck(isFullyVisible) {
+	}
+
+	function unbindCommonControls() {
+	}
+
 	//
 	// avatar download
 	//
@@ -392,7 +412,21 @@ Item {
 		property var urlInfoItem_;
 		property var wrappedItem_;
 
-		onWidthChanged: {
+		onWidthChanged: forceExpand()
+
+		onHeightChanged: {
+			expand();
+			eventReplyRebuzzItem_.calculateHeight();
+		}
+
+		function resetItem() {
+			if (buzzMediaItem_) { buzzMediaItem_.destroy(); buzzMediaItem_ = null; }
+			if (urlInfoItem_) { urlInfoItem_.destroy(); urlInfoItem_ = null; }
+			if (wrappedItem_) { wrappedItem_.destroy(); wrappedItem_ = null; }
+		}
+
+		function forceExpand() {
+			//
 			expand();
 
 			if (buzzMediaItem_ && bodyControl.width > 0) {
@@ -407,11 +441,6 @@ Item {
 				wrappedItem_.width = bodyControl.width;
 			}
 
-			eventReplyRebuzzItem_.calculateHeight();
-		}
-
-		onHeightChanged: {
-			expand();
 			eventReplyRebuzzItem_.calculateHeight();
 		}
 

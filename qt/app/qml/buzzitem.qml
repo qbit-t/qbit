@@ -74,7 +74,7 @@ Item {
 	property bool suspended_: false
 
 	property var controller_: controller
-	property var buzzfeedModel_: buzzfeedModel
+	property var buzzfeedModel_
 	property var listView_
 	property var sharedMediaPlayer_
 	property var playerKey_
@@ -103,8 +103,6 @@ Item {
 	}
 
 	Component.onCompleted: {
-		//
-		//finalizeCreation();
 	}
 
 	function finalizeCreation() {
@@ -133,18 +131,7 @@ Item {
 		finalizeCreation();
 		bodyControl.resetItem();
 		bodyControl.forceExpand();
-		//if (!wrapped_ && !lastUrl_ && !buzzMedia_) //calculateHeight(); //
-		//	bodyControl.height = bodyControl.getHeight();
 	}
-
-	/*
-	function initialize() {
-		//
-		avatarDownloadCommand.url = buzzerClient.getBuzzerAvatarUrl(buzzerInfoId_)
-		avatarDownloadCommand.localFile = buzzerClient.getTempFilesPath() + "/" + buzzerClient.getBuzzerAvatarUrlHeader(buzzerInfoId_)
-		avatarDownloadCommand.process();
-	}
-	*/
 
 	function calculateHeightInternal() {
 		var lCalculatedInnerHeight = spaceTop_ + headerInfo.getHeight() + spaceHeader_ + buzzerAliasControl.height +
@@ -1148,7 +1135,6 @@ Item {
 		onY1Changed: {
 			bodyControl.height = bodyControl.getHeight();
 			calculateHeight();
-			//if (buzzBodyLimited_.includes("406")) console.log("[innerHeightChanged]: bodyControl.height = " + bodyControl.height + ", buzzBodyLimited_ = " + buzzBodyLimited_);
 		}
 	}
 

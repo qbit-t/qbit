@@ -267,6 +267,7 @@ Item
 			dataReceived = true;
 			dataRequested = false;
 			waitDataTimer.done();
+			list.reuseItems = true;
 		}
 
 		onError: {
@@ -281,6 +282,7 @@ Item
 		function start() {
 			//
 			if (!dataReceived && !dataRequested) {
+				list.reuseItems = false;
 				dataRequested = true;
 				buzzerModelLoader.process(false);
 				waitDataTimer.start();
@@ -481,7 +483,7 @@ Item
 			id: itemDelegate
 
 			property var buzzItem;
-			property var targetHeight;
+			property bool commonType: false;
 
 			ListView.onPooled: {
 				unbindItem();
@@ -489,7 +491,18 @@ Item
 			}
 
 			ListView.onReused: {
-				bindItem();
+				// replace inner instance
+				if (buzzItem && ((commonType && (type === buzzerClient.tx_BUZZER_MISTRUST_TYPE() ||
+												 type === buzzerClient.tx_BUZZER_ENDORSE_TYPE())) ||
+								 !commonType && (type !== buzzerClient.tx_BUZZER_MISTRUST_TYPE() &&
+												 type !== buzzerClient.tx_BUZZER_ENDORSE_TYPE()))) {
+					// create and replace
+					buzzItem.destroy();
+					createItem();
+				} else {
+					// just rebind
+					bindItem();
+				}
 			}
 
 			hoverEnabled: buzzerApp.isDesktop
@@ -515,12 +528,15 @@ Item
 				}
 			}
 
-			Component.onCompleted: {
+			Component.onCompleted: createItem()
+
+			function createItem() {
 				var lSource = "qrc:/qml/buzzitem.qml";
 				if (type === buzzerClient.tx_BUZZER_ENDORSE_TYPE() ||
 						type === buzzerClient.tx_BUZZER_MISTRUST_TYPE()) {
 					lSource = "qrc:/qml/buzzendorseitem.qml";
-				}
+					commonType = false;
+				} else commonType = true;
 
 				var lComponent = Qt.createComponent(lSource);
 				buzzItem = lComponent.createObject(itemDelegate);

@@ -60,7 +60,7 @@ Item {
 	property var rootId_
 
 	property var controller_: controller
-	property var buzzfeedModel_: buzzfeedModel
+	property var buzzfeedModel_
 	property var listView_
 	property var sharedMediaPlayer_: buzzerApp.sharedMediaPlayerController()
 	property var playerKey_
@@ -86,7 +86,6 @@ Item {
 	}
 
 	Component.onCompleted: {
-		avatarDownloadCommand.process();
 	}
 
 	onSharedMediaPlayer_Changed: {
@@ -99,9 +98,22 @@ Item {
 
 	function calculateHeightInternal() {
 		return bottomLine.y1;
-		//spaceTop_ + headerInfo.getHeight() + avatarImage.displayHeight + spaceTop_ +
-		//							bodyControl.height + spaceItems_ + localDateTimeControl.height + spaceBottom_ +
-		//							replyButton.height + 1;
+	}
+
+	function finalizeCreation() {
+		//
+		avatarDownloadCommand.process();
+	}
+
+	function bindItem() {
+		//
+		rootId_ = null;
+		calculatedHeight = 0;
+
+		//
+		finalizeCreation();
+		bodyControl.resetItem();
+		bodyControl.forceExpand();
 	}
 
 	function calculateHeight() {
@@ -418,7 +430,14 @@ Item {
 			}
 		}
 
-		onWidthChanged: {
+		function resetItem() {
+			if (buzzMediaItem_) { buzzMediaItem_.destroy(); buzzMediaItem_ = null; }
+			if (urlInfoItem_) { urlInfoItem_.destroy(); urlInfoItem_ = null; }
+			if (wrappedItem_) { wrappedItem_.destroy(); wrappedItem_ = null; }
+		}
+
+		function forceExpand() {
+			//
 			expand();
 
 			if (buzzMediaItem_ && bodyControl.width > 0) {
@@ -435,6 +454,8 @@ Item {
 
 			buzzitemhead_.calculateHeight();
 		}
+
+		onWidthChanged: forceExpand()
 
 		onHeightChanged: {
 			expand();

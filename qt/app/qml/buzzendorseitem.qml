@@ -60,7 +60,7 @@ Item {
 	property bool endorsed_: false
 
 	property var controller_: controller
-	property var buzzfeedModel_: buzzfeedModel
+	property var buzzfeedModel_
 	property var listView_
 	property var sharedMediaPlayer_
 
@@ -112,15 +112,6 @@ Item {
 
 	function unbindCommonControls() {
 	}
-
-	/*
-	function initialize() {
-		//
-		avatarDownloadCommand.url = buzzerClient.getBuzzerAvatarUrl(publisherBuzzerInfoId_)
-		avatarDownloadCommand.localFile = buzzerClient.getTempFilesPath() + "/" + buzzerClient.getBuzzerAvatarUrlHeader(buzzerInfoId_)
-		avatarDownloadCommand.process();
-	}
-	*/
 
 	function calculateHeight() {
 		calculatedHeight = calculateHeightInternal();

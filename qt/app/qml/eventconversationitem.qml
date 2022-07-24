@@ -68,15 +68,6 @@ Item {
 	}
 
 	Component.onCompleted: {
-		avatarDownloadCommand.process();
-
-		if (/*buzzerApp.isDesktop &&*/
-				(type_ === buzzerClient.tx_BUZZER_MESSAGE() ||
-					type_ === buzzerClient.tx_BUZZER_MESSAGE_REPLY()) && eventInfos_.length > 0) {
-			var lHex = eventInfos_[0].buzzBodyHex;
-			if (lHex.length > 0)
-				decryptBodyCommand.processBody(eventInfos_[0].eventId, eventInfos_[0].buzzBodyHex);
-		}
 	}
 
 	function calculateHeightInternal() {
@@ -88,6 +79,32 @@ Item {
 	function calculateHeight() {
 		calculatedHeight = calculateHeightInternal();
 		return calculatedHeight;
+	}
+
+	function finalizeCreation() {
+		//
+		avatarDownloadCommand.process();
+
+		if (/*buzzerApp.isDesktop &&*/
+				(type_ === buzzerClient.tx_BUZZER_MESSAGE() ||
+					type_ === buzzerClient.tx_BUZZER_MESSAGE_REPLY()) && eventInfos_.length > 0) {
+			var lHex = eventInfos_[0].buzzBodyHex;
+			if (lHex.length > 0)
+				decryptBodyCommand.processBody(eventInfos_[0].eventId, eventInfos_[0].buzzBodyHex);
+		}
+	}
+
+	function bindItem() {
+		//
+		calculatedHeight = 0;
+		//
+		finalizeCreation();
+	}
+
+	function forceVisibilityCheck(isFullyVisible) {
+	}
+
+	function unbindCommonControls() {
 	}
 
 	//

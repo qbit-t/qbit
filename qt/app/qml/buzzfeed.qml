@@ -36,11 +36,6 @@ Item
 	Component.onCompleted: {
 		//
 		switchDataTimer.start();
-		/*
-		if (buzzerClient.buzzerDAppReady) {
-			modelLoader.start();
-		}
-		*/
 	}
 
 	onWidthChanged: {
@@ -128,6 +123,7 @@ Item
 			dataReceived = true;
 			dataRequested = false;
 			requestProcessed = true;
+			list.reuseItems = true;
 
 			if (!feeding) {
 				// goto begin unconditionally
@@ -151,6 +147,7 @@ Item
 		function start() {
 			//
 			if (!dataReceived && !dataRequested) {
+				list.reuseItems = false;
 				dataRequested = true;
 				requestProcessed = false;
 				modelLoader.process(false);
@@ -259,7 +256,6 @@ Item
 
 		onDragEnded: {
 			if (list.pullReady) {
-				//modelLoader.restart();
 				switchDataTimer.start();
 			}
 		}
@@ -273,6 +269,7 @@ Item
 			id: itemDelegate
 
 			property var buzzItem;
+			property bool commonType: false;
 			property var adjustValue: []
 
 			ListView.onPooled: {
@@ -281,7 +278,18 @@ Item
 			}
 
 			ListView.onReused: {
-				bindItem();
+				// replace inner instance
+				if (buzzItem && ((commonType && (type === buzzerClient.tx_BUZZER_MISTRUST_TYPE() ||
+												 type === buzzerClient.tx_BUZZER_ENDORSE_TYPE())) ||
+								 !commonType && (type !== buzzerClient.tx_BUZZER_MISTRUST_TYPE() &&
+												 type !== buzzerClient.tx_BUZZER_ENDORSE_TYPE()))) {
+					// create and replace
+					buzzItem.destroy();
+					createItem();
+				} else {
+					// just rebind
+					bindItem();
+				}
 			}
 
 			hoverEnabled: buzzerApp.isDesktop
@@ -317,12 +325,15 @@ Item
 				}
 			}
 
-			Component.onCompleted: {
+			Component.onCompleted: createItem()
+
+			function createItem() {
 				var lSource = "qrc:/qml/buzzitem.qml";
 				if (type === buzzerClient.tx_BUZZER_ENDORSE_TYPE() ||
 						type === buzzerClient.tx_BUZZER_MISTRUST_TYPE()) {
 					lSource = "qrc:/qml/buzzendorseitem.qml";
-				}
+					commonType = false;
+				} else commonType = true;
 
 				var lComponent = Qt.createComponent(lSource);
 				buzzItem = lComponent.createObject(itemDelegate);
@@ -340,7 +351,6 @@ Item
 				//
 				buzzItem.calculatedHeightModified.connect(itemDelegate.calculatedHeightModified);
 				buzzItem.bindItem();
-
 				//
 				buzzItem.sharedMediaPlayer_ = buzzfeed_.mediaPlayerController;
 				buzzItem.width = list.width;

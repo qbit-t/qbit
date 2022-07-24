@@ -152,7 +152,6 @@ Item {
 	}
 
 	Component.onCompleted: {
-		if (!onChain_ && dynamic_) checkOnChain.start();
 	}
 
 	function adjustAvatar() {
@@ -163,7 +162,7 @@ Item {
 	}
 
 	function calculateHeightInternal() {
-		var lCalculatedInnerHeight = spaceItems_ + (spaceTop_ + bodyControl.height +
+		var lCalculatedInnerHeight = spaceItems_ + (spaceTop_ + bodyControl.getHeight() +
 				(decryptButton.visible ? decryptButton.height : 0) + spaceBottom_ +
 													(!decryptButton.visible ? spaceItems_ * 2 : 0)) + spaceItems_;
 		return lCalculatedInnerHeight;
@@ -205,6 +204,21 @@ Item {
 			//
 			adjustAvatar();
 		}
+	}
+
+	function finalizeCreation() {
+		//
+		if (!onChain_ && dynamic_) checkOnChain.start();
+		avatarDownloadCommand.process();
+	}
+
+	function bindItem() {
+		//
+		calculatedHeight = 0;
+		//
+		finalizeCreation();
+		bodyControl.resetItem();
+		bodyControl.forceExpand();
 	}
 
 	function forceVisibilityCheck(isFullyVisible) {
@@ -520,7 +534,20 @@ Item {
 				}
 			}
 
-			onWidthChanged: {
+			onWidthChanged: forceExpand()
+
+			onHeightChanged: {
+				expand(buzzerClient.getCounterpartyKey(conversationId_));
+				conversationmessageitem_.calculateHeight();
+			}
+
+			function resetItem() {
+				if (buzzMediaItem_) { buzzMediaItem_.destroy(); buzzMediaItem_ = null; }
+				if (urlInfoItem_) { urlInfoItem_.destroy(); urlInfoItem_ = null; }
+			}
+
+			function forceExpand() {
+				//
 				expand(buzzerClient.getCounterpartyKey(conversationId_));
 
 				if (buzzMediaItem_ && bodyControl.width > 0) {
@@ -531,11 +558,6 @@ Item {
 					urlInfoItem_.calculatedWidth = bodyControl.width;
 				}
 
-				conversationmessageitem_.calculateHeight();
-			}
-
-			onHeightChanged: {
-				expand(buzzerClient.getCounterpartyKey(conversationId_));
 				conversationmessageitem_.calculateHeight();
 			}
 
@@ -739,10 +761,14 @@ Item {
 		QuarkLabel {
 			id: agoControl
 			x: dynamic_ ? (onChainSymbol.x - (width + spaceItems_)) : (parent.width - (width + spaceItems_))
-			y: bodyControl.y + bodyControl.height + (conversationMessage().length ? spaceHalfItems_ : spaceItems_)
+			y: bodyControl.y + bodyControl.getHeight() + (conversationMessage().length ? spaceHalfItems_ : spaceItems_)
 			text: ago_
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
 			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 3)) : (buzzerApp.defaultFontSize() + 3)
+
+			function adjust() {
+				y = bodyControl.y + bodyControl.height + (conversationMessage().length ? spaceHalfItems_ : spaceItems_);
+			}
 		}
 
 		QuarkSymbolLabel {
@@ -750,13 +776,17 @@ Item {
 			//x: agoControl.x - (width + spaceItems_)
 			//y: agoControl.y + 2
 			x: parent.width - (width + spaceItems_)
-			y: bodyControl.y + bodyControl.height + (conversationMessage().length ? spaceHalfItems_ : spaceItems_) + 2
+			y: bodyControl.y + bodyControl.getHeight() + (conversationMessage().length ? spaceHalfItems_ : spaceItems_) + 2
 			symbol: !onChain_ ? Fonts.clockSym : Fonts.checkedCircleSym
 			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 10)) : (buzzerApp.defaultFontSize() + 1)
 			color: !onChain_ ? buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzz.wait.chat") :
 							   buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzz.done.chat");
 
 			visible: dynamic_
+
+			function adjust() {
+				y = bodyControl.y + bodyControl.height + (conversationMessage().length ? spaceHalfItems_ : spaceItems_) + 2;
+			}
 		}
 
 		/*

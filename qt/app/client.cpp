@@ -786,6 +786,7 @@ void Client::processDecoration(QVector<DecorationRule>& rules, const QString& bo
 			for (int lArg = 0; lArg <= lMatch.lastCapturedIndex(); lArg++) {
 				lArgs.push_back(_Arg { lMatch.capturedStart(lArg), lMatch.capturedLength(lArg), lMatch.captured(lArg) });
 				//qInfo() << "Captured:" << lMatch.captured(lArg) << lMatch.capturedStart(lArg) << lMatch.capturedLength(lArg);
+				//qInfo() << lRule.pattern;
 			}
 
 			//
@@ -873,7 +874,8 @@ QString Client::decorateBuzzBodyLimited(const QString& body, int limit) {
 	lRule.arg1 = 0;
 	lDecorationRules.append(lRule);
 
-	gApplication->getColor(theme(), themeSelector(), "Material.link.rgb") +
+	lRule.pattern = QString("<a href='\\1' style='text-decoration:none;color:") +
+			gApplication->getColor(theme(), themeSelector(), "Material.link.rgb") +
 			QString("'>\\2</a>");
 	lRule.expression = QRegularExpression("(?<=\\s|^)(#[\\w\u0400-\u04FF]+)"); // #tags
 	lRule.truncate = false;

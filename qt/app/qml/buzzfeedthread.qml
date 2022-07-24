@@ -180,6 +180,7 @@ QuarkPage {
 			dataReceived = true;
 			dataRequested = false;
 			waitDataTimer.done();
+			list.reuseItems = true;
 			//
 			buzzSubscribeCommand.process();
 		}
@@ -196,6 +197,7 @@ QuarkPage {
 		function start() {
 			//
 			if (!dataReceived && !dataRequested) {
+				list.reuseItems = false;
 				dataRequested = true;
 				waitDataTimer.start();
 				modelLoader.process(false);
@@ -292,7 +294,7 @@ QuarkPage {
 		height: parent.height - (buzzThreadToolBar.y + buzzThreadToolBar.height + replyContainer.height - 1)
 		usePull: true
 		clip: true
-		//reuseItems: true
+		reuseItems: true
 		cacheBuffer: 500
 
 		add: Transition {
@@ -391,166 +393,186 @@ QuarkPage {
 			modelLoader.feed();
 		}
 
-		DelegateChooser {
-			id: itemChooser
-			role: "index"
-			DelegateChoice {
-				index: 0
-				Item {
-					id: headDelegate
+		delegate: ItemDelegate {
+			id: itemDelegate
 
-					property var buzzItem;
+			property var buzzItem;
+			property bool head: false;
+			property bool commonType: false;
 
-					property bool isFullyVisible: y >= list.contentY && y + height < list.contentY + list.height
+			property bool isFullyVisible: y >= list.contentY && y + height < list.contentY + list.height
+			property bool isCompleted: false
+			property bool isVisible: isCompleted && itemDelegate.y >= list.contentY && itemDelegate.y + height < list.contentY + list.height
 
-					onWidthChanged: {
-						if (buzzItem) {
-							buzzItem.width = list.width;
-							headDelegate.height = buzzItem.calculateHeight();
-						}
-					}
+			ListView.onPooled: {
+				unbindItem();
+				unbindCommonControls();
+			}
 
-					onHeightChanged: {
-						//player.y = list.y + height + 1;
-					}
-
-					Component.onCompleted: {
-						var lSource = "qrc:/qml/buzzitemhead.qml";
-						var lComponent = Qt.createComponent(lSource);
-						buzzItem = lComponent.createObject(headDelegate);
-
-						buzzItem.sharedMediaPlayer_ = buzzfeedthread_.mediaPlayerController;
-						if (buzzerApp.isDesktop) {
-							player.key = modelLoader.buzzId;
-							buzzItem.playerKey_ = modelLoader.buzzId;
-						}
-
-						buzzItem.width = list.width;
-						buzzItem.controller_ = buzzfeedthread_.controller;
-						buzzItem.buzzfeedModel_ = buzzesThread_;
-						buzzItem.listView_ = list;
-						buzzItem.rootId_ = modelLoader.buzzId;
-
-						headDelegate.height = buzzItem.calculateHeight();
-						headDelegate.width = list.width;
-
-						buzzfeedthread_.alias = buzzerAlias;
-						buzzfeedthread_.caption = buzzBodyFlat ? buzzerClient.unMarkdownBuzzBodyLimited(buzzBodyFlat, 200).replace(/(\r\n|\n|\r)/gm, " ") : "...";
-
-						buzzItem.calculatedHeightModified.connect(headDelegate.calculatedHeightModified);
-					}
-
-					function calculatedHeightModified(value) {
-						headDelegate.height = value;
-						if (atTheBottom)
-							toTheTimer.start();
-					}
-
-					function forceVisibilityCheck(check) {
-						if (buzzItem) {
-							buzzItem.forceVisibilityCheck(check);
-						}
-					}
-
-					function unbindCommonControls() {
-						if (buzzItem) {
-							buzzItem.unbindCommonControls();
-						}
+			ListView.onReused: {
+				//
+				if (head && index === 0) bindItem();
+				else if (head) {
+					// create and replace
+					buzzItem.destroy();
+					createItem();
+				} else if (index === 0) {
+					// create and replace
+					buzzItem.destroy();
+					createHeadItem();
+				} else {
+					// replace inner instance
+					if (buzzItem && ((commonType && (type === buzzerClient.tx_BUZZER_MISTRUST_TYPE() ||
+													 type === buzzerClient.tx_BUZZER_ENDORSE_TYPE())) ||
+									 !commonType && (type !== buzzerClient.tx_BUZZER_MISTRUST_TYPE() &&
+													 type !== buzzerClient.tx_BUZZER_ENDORSE_TYPE()))) {
+						// create and replace
+						buzzItem.destroy();
+						createItem();
+					} else {
+						// just rebind
+						bindItem();
 					}
 				}
 			}
 
-			DelegateChoice {
-				ItemDelegate {
-					id: itemDelegate
-
-					property var buzzItem;
-
-					property bool isFullyVisible: y >= list.contentY && y + height < list.contentY + list.height
-					property bool isCompleted: false
-					property bool isVisible: isCompleted && itemDelegate.y >= list.contentY && itemDelegate.y + height < list.contentY + list.height
-
-					onIsVisibleChanged: {
-						if (isCompleted && itemDelegate !== null && itemDelegate.buzzItem !== null && itemDelegate.buzzItem !== undefined) {
-							try {
-								itemDelegate.buzzItem.forceVisibilityCheck(isVisible);
-							} catch (err) {
-								console.log("[onIsVisibleChanged]: " + err + ", itemDelegate.buzzItem = " + itemDelegate.buzzItem);
-							}
-						}
+			onIsVisibleChanged: {
+				if (isCompleted && itemDelegate !== null && itemDelegate.buzzItem !== null && itemDelegate.buzzItem !== undefined) {
+					try {
+						itemDelegate.buzzItem.forceVisibilityCheck(isVisible);
+					} catch (err) {
+						console.log("[onIsVisibleChanged]: " + err + ", itemDelegate.buzzItem = " + itemDelegate.buzzItem);
 					}
+				}
+			}
 
-					onClicked: {
-						//
-						if (index === 0) return;
+			onClicked: {
+				//
+				if (index === 0) return;
 
-						// open thread
-						controller.openThread(buzzChainId, buzzId, buzzerAlias, buzzBodyFlat);
-					}
+				// open thread
+				controller.openThread(buzzChainId, buzzId, buzzerAlias, buzzBodyFlat);
+			}
 
-					onWidthChanged: {
-						if (buzzItem) {
-							buzzItem.width = list.width;
-							itemDelegate.height = buzzItem.calculateHeight();
-						}
-					}
+			onWidthChanged: {
+				if (buzzItem) {
+					buzzItem.width = list.width;
+					itemDelegate.height = buzzItem.calculateHeight();
+				}
+			}
 
-					Component.onDestruction: {
-						isCompleted = false;
-					}
+			Component.onDestruction: {
+				isCompleted = false;
+			}
 
-					Component.onCompleted: {
-						var lSource = "qrc:/qml/buzzitem.qml";
-						if (type === buzzerClient.tx_BUZZER_ENDORSE_TYPE() ||
-								type === buzzerClient.tx_BUZZER_MISTRUST_TYPE()) {
-							lSource = "qrc:/qml/buzzendorseitem.qml";
-						}
+			Component.onCompleted: {
+				if (index === 0) createHeadItem();
+				else createItem();
+			}
 
-						var lComponent = Qt.createComponent(lSource);
-						buzzItem = lComponent.createObject(itemDelegate);
+			function createHeadItem() {
+				var lSource = "qrc:/qml/buzzitemhead.qml";
+				var lComponent = Qt.createComponent(lSource);
 
-						buzzItem.sharedMediaPlayer_ = buzzfeedthread_.mediaPlayerController;
-						buzzItem.width = list.width;
-						buzzItem.controller_ = buzzfeedthread_.controller;
-						buzzItem.buzzfeedModel_ = buzzesThread_;
-						buzzItem.listView_ = list;
-						buzzItem.rootId_ = modelLoader.buzzId;
+				head = true;
+				commonType = false;
 
-						itemDelegate.height = buzzItem.calculateHeight();
-						itemDelegate.width = list.width;
+				buzzItem = lComponent.createObject(itemDelegate);
 
-						buzzItem.calculatedHeightModified.connect(itemDelegate.calculatedHeightModified);
+				bindHeadItem();
+			}
 
-						isCompleted = true;
-					}
+			function bindHeadItem() {
+				//
+				itemDelegate.hoverEnabled = false;
+				//
+				buzzItem.calculatedHeightModified.connect(itemDelegate.calculatedHeightModified);
+				buzzItem.bindItem();
+				//
+				buzzItem.sharedMediaPlayer_ = buzzfeedthread_.mediaPlayerController;
+				if (buzzerApp.isDesktop) {
+					player.key = modelLoader.buzzId;
+					buzzItem.playerKey_ = modelLoader.buzzId;
+				}
 
-					function calculatedHeightModified(value) {
-						itemDelegate.height = value;
-					}
+				buzzItem.width = list.width;
+				buzzItem.controller_ = buzzfeedthread_.controller;
+				buzzItem.buzzfeedModel_ = buzzesThread_;
+				buzzItem.listView_ = list;
+				buzzItem.rootId_ = modelLoader.buzzId;
 
-					function forceVisibilityCheck(check) {
-						if (buzzItem) {
-							buzzItem.forceVisibilityCheck(check);
-						}
-					}
+				itemDelegate.height = buzzItem.calculateHeight();
+				itemDelegate.width = list.width;
 
-					function unbindCommonControls() {
-						if (buzzItem) {
-							buzzItem.unbindCommonControls();
-						}
-					}
+				buzzfeedthread_.alias = buzzerAlias;
+				buzzfeedthread_.caption = buzzBodyFlat ? buzzerClient.unMarkdownBuzzBodyLimited(buzzBodyFlat, 200).replace(/(\r\n|\n|\r)/gm, " ") : "...";
+			}
+
+			function createItem() {
+				var lSource = "qrc:/qml/buzzitem.qml";
+				if (type === buzzerClient.tx_BUZZER_ENDORSE_TYPE() ||
+						type === buzzerClient.tx_BUZZER_MISTRUST_TYPE()) {
+					lSource = "qrc:/qml/buzzendorseitem.qml";
+					commonType = false;
+				} else commonType = true;
+
+				head = false;
+
+				var lComponent = Qt.createComponent(lSource);
+				buzzItem = lComponent.createObject(itemDelegate);
+
+				bindItem();
+			}
+
+			function bindItem() {
+				//
+				itemDelegate.hoverEnabled = true;
+				//
+				buzzItem.calculatedHeightModified.connect(itemDelegate.calculatedHeightModified);
+				buzzItem.bindItem();
+				//
+				buzzItem.sharedMediaPlayer_ = buzzfeedthread_.mediaPlayerController;
+				buzzItem.width = list.width;
+				buzzItem.controller_ = buzzfeedthread_.controller;
+				buzzItem.buzzfeedModel_ = buzzesThread_;
+				buzzItem.listView_ = list;
+				buzzItem.rootId_ = modelLoader.buzzId;
+
+				itemDelegate.height = buzzItem.calculateHeight();
+				itemDelegate.width = list.width;
+
+				isCompleted = true;
+			}
+
+			function calculatedHeightModified(value) {
+				itemDelegate.height = value;
+				buzzItem.height = value;
+			}
+
+			function unbindItem() {
+				if (buzzItem)
+					buzzItem.calculatedHeightModified.disconnect(itemDelegate.calculatedHeightModified);
+			}
+
+			function forceVisibilityCheck(check) {
+				if (buzzItem) {
+					buzzItem.forceVisibilityCheck(check);
+				}
+			}
+
+			function unbindCommonControls() {
+				if (buzzItem) {
+					buzzItem.unbindCommonControls();
 				}
 			}
 		}
-
-		delegate: itemChooser
 	}
 
 	//
 	BuzzItemMediaPlayer {
 		id: player
 		x: 0
-		y: (list.y + list.height) - height // bottomLine.y1 + 1
+		y: (list.y + list.height) - height
 		width: parent.width
 		mediaPlayerController: buzzfeedthread_.mediaPlayerController
 		overlayParent: list

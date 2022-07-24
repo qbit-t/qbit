@@ -233,13 +233,10 @@ QuarkPage {
 		height: parent.height - (buzzThreadToolBar.y + buzzThreadToolBar.height)
 		usePull: true
 		clip: true
+		cacheBuffer: 500
+		reuseItems: true
 
 		model: buzzesThread_
-
-		// TODO: consumes a lot RAM
-		//cacheBuffer: 10000
-		displayMarginBeginning: 1000
-		displayMarginEnd: 1000
 
 		function adjust() {
 			//
@@ -323,6 +320,27 @@ QuarkPage {
 			id: itemDelegate
 
 			property var buzzItem;
+			property bool commonType: false;
+
+			ListView.onPooled: {
+				unbindItem();
+				unbindCommonControls();
+			}
+
+			ListView.onReused: {
+				// replace inner instance
+				if (buzzItem && ((commonType && (type === buzzerClient.tx_BUZZER_MISTRUST_TYPE() ||
+												 type === buzzerClient.tx_BUZZER_ENDORSE_TYPE())) ||
+								 !commonType && (type !== buzzerClient.tx_BUZZER_MISTRUST_TYPE() &&
+												 type !== buzzerClient.tx_BUZZER_ENDORSE_TYPE()))) {
+					// create and replace
+					buzzItem.destroy();
+					createItem();
+				} else {
+					// just rebind
+					bindItem();
+				}
+			}
 
 			onClicked: {
 				// open thread
@@ -336,16 +354,27 @@ QuarkPage {
 				}
 			}
 
-			Component.onCompleted: {
+			Component.onCompleted: createItem()
+
+			function createItem() {
 				var lSource = "qrc:/qml/buzzitem.qml";
 				if (type === buzzerClient.tx_BUZZER_ENDORSE_TYPE() ||
 						type === buzzerClient.tx_BUZZER_MISTRUST_TYPE()) {
 					lSource = "qrc:/qml/buzzendorseitem.qml";
-				}
+					commonType = false;
+				} else commonType = true;
 
 				var lComponent = Qt.createComponent(lSource);
 				buzzItem = lComponent.createObject(itemDelegate);
 
+				bindItem();
+			}
+
+			function bindItem() {
+				//
+				buzzItem.calculatedHeightModified.connect(itemDelegate.calculatedHeightModified);
+				buzzItem.bindItem();
+				//
 				buzzItem.sharedMediaPlayer_ = buzzfeedtag_.mediaPlayerController;
 				buzzItem.width = list.width;
 				buzzItem.controller_ = buzzfeedtag_.controller;
@@ -355,23 +384,26 @@ QuarkPage {
 
 				itemDelegate.height = buzzItem.calculateHeight();
 				itemDelegate.width = list.width;
-
-				buzzItem.calculatedHeightModified.connect(itemDelegate.calculatedHeightModified);
 			}
 
 			function calculatedHeightModified(value) {
 				itemDelegate.height = value;
 			}
 
-			function forceVisibilityCheck(check) {
-				if (buzzItem) {
-					buzzItem.forceVisibilityCheck(check);
-				}
+			function unbindItem() {
+				if (buzzItem)
+					buzzItem.calculatedHeightModified.disconnect(itemDelegate.calculatedHeightModified);
 			}
 
 			function unbindCommonControls() {
 				if (buzzItem) {
 					buzzItem.unbindCommonControls();
+				}
+			}
+
+			function forceVisibilityCheck(check) {
+				if (buzzItem) {
+					buzzItem.forceVisibilityCheck(check);
 				}
 			}
 		}
