@@ -341,7 +341,9 @@ Rectangle {
 		if (!audioFrame || !audioFrame.player) return;
 		switch(audioFrame.player.status) {
 			case MediaPlayer.Buffered:
-				totalTime.setTotalTime(audioFrame.player.duration ? audioFrame.player.duration : duration_);
+				var lDuration = audioFrame.player.duration ? audioFrame.player.duration : duration_;
+				audioFrame.sharedMediaPlayer_.playbackDurationChanged(lDuration);
+				totalTime.setTotalTime(lDuration);
 				totalSize.setTotalSize(size_);
 				playSlider.to = audioFrame.player.duration ? audioFrame.player.duration : duration_;
 			break;

@@ -722,7 +722,9 @@ Rectangle {
 		if (!videoFrame || !videoFrame.player) return;
 		switch(videoFrame.player.status) {
 			case MediaPlayer.Buffered:
-				totalTimeControl.setTotalTime(videoFrame.player.duration ? videoFrame.player.duration : duration_);
+				var lDuration = videoFrame.player.duration ? videoFrame.player.duration : duration_;
+				videoFrame.sharedMediaPlayer_.playbackDurationChanged(lDuration);
+				totalTimeControl.setTotalTime(lDuration);
 				totalSizeControl.setTotalSize(size_);
 				videoOut.fillMode = VideoOutput.PreserveAspectFit;
 				videoOut.anchors.fill = frameContainer;

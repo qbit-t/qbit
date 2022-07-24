@@ -34,6 +34,7 @@ Item {
 	signal playbackDownloadStarted();
 	signal playbackDownloading(var pos, var size);
 	signal playbackDownloadCompleted();
+	signal playbackDurationChanged(var duration);
 	signal cancelDownload();
 
 	//

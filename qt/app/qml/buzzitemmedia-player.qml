@@ -84,6 +84,7 @@ Rectangle {
 		mediaPlayerController.playbackDownloadStarted.connect(playerDownloadStarted);
 		mediaPlayerController.playbackDownloading.connect(playerDownloading);
 		mediaPlayerController.playbackDownloadCompleted.connect(playerDownloadCompleted);
+		mediaPlayerController.playbackDurationChanged.connect(playerDurationChanged);
 		mediaPlayerController.toggleCurrentPlayer.connect(playerToggle);
 
 		// try to connect
@@ -100,6 +101,7 @@ Rectangle {
 			mediaPlayerController.playbackDownloadStarted.disconnect(playerDownloadStarted);
 			mediaPlayerController.playbackDownloading.disconnect(playerDownloading);
 			mediaPlayerController.playbackDownloadCompleted.disconnect(playerDownloadCompleted);
+			mediaPlayerController.playbackDurationChanged.disconnect(playerDurationChanged);
 			mediaPlayerController.toggleCurrentPlayer.disconnect(playerToggle);
 
 			if (player) {
@@ -121,9 +123,9 @@ Rectangle {
 			playerNewInstanceCreated(mediaPlayerController.lastInstance, null);
 			// attach properties
 				if (player) {
-				totalTime.setTotalTime(player.duration);
-				totalSize.setTotalSize(player.size);
-				playSlider.to = player.duration;
+					totalTime.setTotalTime(player.duration);
+					totalSize.setTotalSize(player.size);
+					playSlider.to = player.duration;
 			}
 		}
 	}
@@ -241,13 +243,26 @@ Rectangle {
 		}
 	}
 
+	function playerDurationChanged(duration) {
+		if (!player) return;
+		console.info("[playerDurationChanged]: duration = " + duration);
+		totalTime.setTotalTime(duration);
+		playSlider.to = duration;
+
+		if (showOnChanges) playerShow(key);
+	}
+
 	function playerStatusChanged(status) {
 		if (!player) return;
 		switch(player.status) {
 			case MediaPlayer.Buffered:
-				totalTime.setTotalTime(player.duration);
+				console.info("[playerStatusChanged]: player.duration = " + player.duration + ", player.size = " + player.size);
+				if (player.duration > 0) {
+					totalTime.setTotalTime(player.duration);
+					playSlider.to = player.duration;
+				}
+
 				totalSize.setTotalSize(player.size);
-				playSlider.to = player.duration;
 
 				if (showOnChanges) playerShow(key);
 			break;
@@ -535,7 +550,7 @@ Rectangle {
 								actionButton.x + actionButton.width + spaceItems_
 		y: actionButton.y + actionButton.height - (height - 3 * spaceItems_) + (buzzerApp.isDesktop && caption.visible ? 3 : 0)
 		from: 0
-		to: 1
+		to: 0
 		orientation: Qt.Horizontal
 		stepSize: 0.1
 		width: closeButton.x - (nextButton.visible ? nextButton.x + nextButton.width : actionButton.x + actionButton.width)
