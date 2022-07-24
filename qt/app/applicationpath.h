@@ -58,6 +58,10 @@ public:
 		return QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
 	#endif
 
+	#ifdef Q_OS_MACOS
+		return QStandardPaths::writableLocation(QStandardPaths::HomeLocation) + "/.buzzer";
+	#endif
+
 		return qApp->applicationDirPath() + "/data";
 	}
 	
