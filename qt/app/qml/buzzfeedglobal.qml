@@ -388,6 +388,7 @@ Item
 		usePull: true
 		clip: true
 		cacheBuffer: 500
+		reuseItems: true
 
 		function adjust() {
 			//
@@ -482,6 +483,15 @@ Item
 			property var buzzItem;
 			property var targetHeight;
 
+			ListView.onPooled: {
+				unbindItem();
+				unbindCommonControls();
+			}
+
+			ListView.onReused: {
+				bindItem();
+			}
+
 			hoverEnabled: buzzerApp.isDesktop
 			onHoveredChanged: {
 				if (buzzfeed_.mediaPlayerController &&
@@ -490,14 +500,6 @@ Item
 					buzzfeed_.mediaPlayerController.showCurrentPlayer(null);
 				}
 			}
-
-			/*
-			ParallelAnimation {
-				id: heightAnimation
-				running: false
-				NumberAnimation { target: itemDelegate; easing.type: Easing.OutSine; property: "height"; to: targetHeight; duration: 200 }
-			}
-			*/
 
 			onWidthChanged: {
 				if (buzzItem) {
@@ -528,11 +530,14 @@ Item
 
 			function calculatedHeightModified(value) {
 				itemDelegate.height = value;
-				//targetHeight = value;
-				//heightAnimation.start();
+				buzzItem.height = value;
 			}
 
 			function bindItem() {
+				//
+				buzzItem.calculatedHeightModified.connect(itemDelegate.calculatedHeightModified);
+				buzzItem.bindItem();
+
 				//
 				buzzItem.sharedMediaPlayer_ = buzzfeed_.mediaPlayerController;
 				buzzItem.width = list.width;
@@ -542,18 +547,16 @@ Item
 
 				itemDelegate.height = buzzItem.calculateHeight();
 				itemDelegate.width = list.width;
-
-				buzzItem.calculatedHeightModified.connect(itemDelegate.calculatedHeightModified);
 			}
 
 			function unbindItem() {
-				buzzItem.calculatedHeightModified.disconnect(itemDelegate.calculatedHeightModified);
+				if (buzzItem)
+					buzzItem.calculatedHeightModified.disconnect(itemDelegate.calculatedHeightModified);
 			}
 
 			function unbindCommonControls() {
-				if (buzzItem) {
+				if (buzzItem)
 					buzzItem.unbindCommonControls();
-				}
 			}
 
 			function forceVisibilityCheck(check) {

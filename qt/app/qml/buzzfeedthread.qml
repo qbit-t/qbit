@@ -290,16 +290,10 @@ QuarkPage {
 		y: buzzThreadToolBar.y + buzzThreadToolBar.height
 		width: parent.width
 		height: parent.height - (buzzThreadToolBar.y + buzzThreadToolBar.height + replyContainer.height - 1)
-		//contentHeight: 1000
 		usePull: true
 		clip: true
-
-		//model: buzzesThread_
-
-		// TODO: consumes a lot RAM
+		//reuseItems: true
 		cacheBuffer: 500
-		//displayMarginBeginning: 1000
-		//displayMarginEnd: 1000
 
 		add: Transition {
 			enabled: true

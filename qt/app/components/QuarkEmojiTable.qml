@@ -33,11 +33,11 @@ TableView {
 		QuarkLabel {
 			id: emoji
 			font.pointSize: buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 12)
-			text: symbol
+			text: symbol ? symbol : ""
 			anchors.centerIn: parent
 
 			property bool tooltipVisible: false
-			ToolTip.text: caption
+			ToolTip.text: caption ? caption : ""
 			ToolTip.visible: tooltipVisible
 
 			MouseArea {

@@ -71,6 +71,7 @@ Item {
 	property bool ownLike_: ownLike
 	property bool ownRebuzz_: ownRebuzz
 	property bool adjustData_: adjustData
+	property bool suspended_: false
 
 	property var controller_: controller
 	property var buzzfeedModel_: buzzfeedModel
@@ -103,7 +104,7 @@ Item {
 
 	Component.onCompleted: {
 		//
-		finalizeCreation();
+		//finalizeCreation();
 	}
 
 	function finalizeCreation() {
@@ -120,9 +121,20 @@ Item {
 	}
 
 	function bindItem() {
+		//
+		rootId_ = null;
+		mistrusted_ = false;
+		endorsed_ = false;
+		hasMore_ = false;
+		calculatedHeight = 0;
+		suspended_ = false;
+
+		//
 		finalizeCreation();
 		bodyControl.resetItem();
 		bodyControl.forceExpand();
+		//if (!wrapped_ && !lastUrl_ && !buzzMedia_) //calculateHeight(); //
+		//	bodyControl.height = bodyControl.getHeight();
 	}
 
 	/*
@@ -182,6 +194,7 @@ Item {
 	}
 
 	function unbindCommonControls() {
+		suspended_ = true;
 		bodyControl.unbindCommonControls();
 	}
 
@@ -810,6 +823,9 @@ Item {
 			buzzMediaItem_ = null;
 			urlInfoItem_ = null;
 			wrappedItem_ = null;
+			mediaLoader.source = "";
+			urlLoader.source = "";
+			wrapperLoader.source = "";
 		}
 
 		onWidthChanged: {
@@ -867,19 +883,20 @@ Item {
 			onHeightChanged: {
 				if (bodyControl.buzzMediaItem_) {
 					bodyControl.buzzMediaItem_.y = bodyControl.getNextY();
-					bodyControl.height = bodyControl.getHeight();
+					//bodyControl.height = bodyControl.getHeight();
 				}
 
 				if (bodyControl.urlInfoItem_) {
 					bodyControl.urlInfoItem_.y = bodyControl.getNextY();
-					bodyControl.height = bodyControl.getHeight();
+					//bodyControl.height = bodyControl.getHeight();
 				}
 
 				if (bodyControl.wrappedItem_) {
 					bodyControl.wrappedItem_.y = bodyControl.getY();
-					bodyControl.height = bodyControl.getHeight();
+					//bodyControl.height = bodyControl.getHeight();
 				}
 
+				bodyControl.height = bodyControl.getHeight();
 				buzzitem_.calculateHeight();
 			}
 		}
@@ -896,7 +913,7 @@ Item {
 			}
 
 			// expand media
-			if (buzzMedia_.length) {
+			if (buzzMedia_ && buzzMedia_.length) {
 				if (!buzzMediaItem_) {
 					//
 					mediaLoader.setSource("qrc:/qml/buzzitemmedia.qml");
@@ -916,7 +933,7 @@ Item {
 			bodyControl.height = bodyControl.getHeight();
 			buzzitem_.calculateHeight();
 
-			//console.log("[innerHeightChanged]: value = " + value + ", bodyControl.height = " + bodyControl.height);
+			//console.log("[innerHeightChanged]: value = " + value + ", bodyControl.height = " + bodyControl.height + ", buzzBodyLimited_ = " + buzzBodyLimited_);
 		}
 
 		function getY() {
@@ -1129,7 +1146,9 @@ Item {
 		visible: true
 
 		onY1Changed: {
+			bodyControl.height = bodyControl.getHeight();
 			calculateHeight();
+			//if (buzzBodyLimited_.includes("406")) console.log("[innerHeightChanged]: bodyControl.height = " + bodyControl.height + ", buzzBodyLimited_ = " + buzzBodyLimited_);
 		}
 	}
 

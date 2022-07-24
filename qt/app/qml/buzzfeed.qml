@@ -186,20 +186,10 @@ Item
 		usePull: true
 		clip: true
 		highlightFollowsCurrentItem: false
+		cacheBuffer: 500
+		reuseItems: true
 
 		model: buzzerClient.getBuzzfeedList()
-
-		// TODO: consumes a lot RAM
-		//cacheBuffer: 500
-		//displayMarginBeginning: 1000
-		//displayMarginEnd: 1000
-
-		/*
-		add: Transition {
-			enabled: true
-			NumberAnimation { property: "opacity"; from: 0; to: 1.0; duration: 400 }
-		}
-		*/
 
 		function adjust() {
 			//
@@ -285,6 +275,15 @@ Item
 			property var buzzItem;
 			property var adjustValue: []
 
+			ListView.onPooled: {
+				unbindItem();
+				unbindCommonControls();
+			}
+
+			ListView.onReused: {
+				bindItem();
+			}
+
 			hoverEnabled: buzzerApp.isDesktop
 			onHoveredChanged: {
 				if (buzzfeed_.mediaPlayerController &&
@@ -327,16 +326,8 @@ Item
 
 				var lComponent = Qt.createComponent(lSource);
 				buzzItem = lComponent.createObject(itemDelegate);
-				buzzItem.calculatedHeightModified.connect(itemDelegate.calculatedHeightModified);
 
-				buzzItem.sharedMediaPlayer_ = buzzfeed_.mediaPlayerController;
-				buzzItem.width = list.width;
-				buzzItem.controller_ = buzzfeed_.controller;
-				buzzItem.buzzfeedModel_ = buzzerClient.getBuzzfeedList();
-				buzzItem.listView_ = list;
-
-				//itemDelegate.height = buzzItem.calculateHeight();
-				itemDelegate.width = list.width;
+				bindItem();
 			}
 
 			function calculatedHeightModified(value) {
@@ -345,10 +336,30 @@ Item
 				itemDelegate.adjustValue.push(value);
 			}
 
+			function bindItem() {
+				//
+				buzzItem.calculatedHeightModified.connect(itemDelegate.calculatedHeightModified);
+				buzzItem.bindItem();
+
+				//
+				buzzItem.sharedMediaPlayer_ = buzzfeed_.mediaPlayerController;
+				buzzItem.width = list.width;
+				buzzItem.controller_ = buzzfeed_.controller;
+				buzzItem.buzzfeedModel_ = buzzerClient.getBuzzfeedList();
+				buzzItem.listView_ = list;
+
+				itemDelegate.height = buzzItem.calculateHeight();
+				itemDelegate.width = list.width;
+			}
+
+			function unbindItem() {
+				if (buzzItem)
+					buzzItem.calculatedHeightModified.disconnect(itemDelegate.calculatedHeightModified);
+			}
+
 			function unbindCommonControls() {
-				if (buzzItem) {
+				if (buzzItem)
 					buzzItem.unbindCommonControls();
-				}
 			}
 
 			function forceVisibilityCheck(check) {
