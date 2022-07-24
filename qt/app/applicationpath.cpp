@@ -42,11 +42,11 @@ QString ApplicationPath::logsDirPath()
 
 QString ApplicationPath::tempFilesDir()
 {
-#ifdef Q_OS_ANDROID
+#if defined(Q_OS_ANDROID)
 	return QStandardPaths::writableLocation(QStandardPaths::TempLocation);
-#elseif Q_OS_IOS
+#elif defined(Q_OS_IOS)
 	return QStandardPaths::writableLocation(QStandardPaths::TempLocation);
-#elseif Q_OS_MACOS
+#elif defined(Q_OS_MACOS)
 	QString lHome = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
 	QString lGlobalDataPath = lHome + "/.buzzer";
 	QDir lDataDir(lGlobalDataPath);
