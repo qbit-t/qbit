@@ -178,18 +178,18 @@ QuarkPage {
 		Component.onCompleted: {
 		}
 
-		QuarkToolButton	{
+		QuarkRoundSymbolButton {
 			id: cancelButton
-			y: topOffset + parent.height / 2 - height / 2
-			Material.background: "transparent"
-			visible: true
-			labelYOffset: buzzerApp.isDesktop ? 0 : 3
-			symbolColor: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
-			Layout.alignment: Qt.AlignHCenter
+			x: spaceItems_
+			y: parent.height / 2 - height / 2
 			symbol: Fonts.cancelSym
-			symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 5)) : defaultSymbolFontPointSize
+			fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 5)) : buzzerApp.defaultFontSize() + 7
+			radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius - 7)) : (defaultRadius - 7)
+			color: "transparent"
+			textColor: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+			opacity: 1.0
 
-			onClicked: {
+			onClick: {
 				controller.popPage();
 			}
 		}
@@ -222,19 +222,19 @@ QuarkPage {
 			}
 		}
 
-		QuarkToolButton {
+		QuarkRoundSymbolButton {
 			id: menuControl
-			x: parent.width - width //- spaceItems_
+			x: parent.width - width - spaceItems_
 			y: parent.height / 2 - height / 2
-			Material.background: "transparent"
 			symbol: Fonts.elipsisVerticalSym
+			fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 5)) : buzzerApp.defaultFontSize() + 7
+			radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius - 7)) : (defaultRadius - 7)
+			color: "transparent"
+			textColor: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+			opacity: 1.0
 			visible: buzzerApp.isDesktop
-			labelYOffset: buzzerApp.isDesktop ? 0 : 3
-			symbolColor: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
-			Layout.alignment: Qt.AlignHCenter
-			symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 5)) : defaultSymbolFontPointSize
 
-			onClicked: {
+			onClick: {
 				if (headerMenu.visible) headerMenu.close();
 				else { headerMenu.prepare(); headerMenu.open(); }
 			}

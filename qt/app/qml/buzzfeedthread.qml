@@ -237,24 +237,6 @@ QuarkPage {
 		Component.onCompleted: {
 		}
 
-		/*
-		QuarkToolButton	{
-			id: cancelButton
-			y: parent.height / 2 - height / 2
-			Material.background: "transparent"
-			visible: true
-			labelYOffset: buzzerApp.isDesktop ? 0 : 3
-			symbolColor: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
-			Layout.alignment: Qt.AlignHCenter
-			symbol: Fonts.leftArrowSym
-			symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 5)) : defaultSymbolFontPointSize
-
-			onClicked: {
-				closePage();
-			}
-		}
-		*/
-
 		QuarkRoundSymbolButton {
 			id: cancelButton
 			x: spaceItems_
@@ -263,33 +245,13 @@ QuarkPage {
 			fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 5)) : buzzerApp.defaultFontSize() + 7
 			radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius - 7)) : (defaultRadius - 7)
 			color: "transparent"
-			textColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+			textColor: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 			opacity: 1.0
 
 			onClick: {
 				closePage();
 			}
 		}
-
-		/*
-		QuarkToolButton {
-			id: menuControl
-			x: parent.width - width //- spaceItems_
-			y: parent.height / 2 - height / 2
-			Material.background: "transparent"
-			symbol: Fonts.elipsisVerticalSym
-			visible: buzzerApp.isDesktop
-			labelYOffset: buzzerApp.isDesktop ? 0 : 3
-			symbolColor: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
-			Layout.alignment: Qt.AlignHCenter
-			symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 5)) : defaultSymbolFontPointSize
-
-			onClicked: {
-				if (headerMenu.visible) headerMenu.close();
-				else { headerMenu.prepare(); headerMenu.open(); }
-			}
-		}
-		*/
 
 		QuarkRoundSymbolButton {
 			id: menuControl
@@ -299,8 +261,9 @@ QuarkPage {
 			fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 5)) : buzzerApp.defaultFontSize() + 7
 			radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius - 7)) : (defaultRadius - 7)
 			color: "transparent"
-			textColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+			textColor: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 			opacity: 1.0
+			visible: buzzerApp.isDesktop
 
 			onClick: {
 				if (headerMenu.visible) headerMenu.close();

@@ -88,16 +88,18 @@ QuarkPage {
 		Component.onCompleted: {
 		}
 
-		QuarkToolButton	{
+		QuarkRoundSymbolButton {
 			id: cancelButton
-			Material.background: "transparent"
-			visible: true
-			labelYOffset: buzzerApp.isDesktop ? 0 : 3
-			symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
-			Layout.alignment: Qt.AlignHCenter
-			symbol: Fonts.cancelSym
+			x: spaceItems_
+			y: parent.height / 2 - height / 2
+			symbol: Fonts.leftArrowSym
+			fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 5)) : buzzerApp.defaultFontSize() + 7
+			radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius - 7)) : (defaultRadius - 7)
+			color: "transparent"
+			textColor: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+			opacity: 1.0
 
-			onClicked: {
+			onClick: {
 				closePage();
 			}
 		}

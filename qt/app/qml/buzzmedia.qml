@@ -183,24 +183,6 @@ QuarkPage {
 		Component.onCompleted: {
 		}
 
-		/*
-		QuarkToolButton	{
-			id: cancelButton
-			y: parent.height / 2 - height / 2
-			Material.background: "transparent"
-			visible: true
-			labelYOffset: buzzerApp.isDesktop ? 0 : 3
-			symbolColor: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.foreground")
-			Layout.alignment: Qt.AlignHCenter
-			symbol: Fonts.cancelSym
-			symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 5)) : defaultSymbolFontPointSize
-
-			onClicked: {
-				closePage();
-			}
-		}
-		*/
-
 		QuarkRoundSymbolButton {
 			id: cancelButton
 			x: spaceItems_
@@ -217,26 +199,6 @@ QuarkPage {
 			}
 		}
 
-		/*
-		QuarkToolButton {
-			id: menuControl
-			x: parent.width - width //- spaceItems_
-			y: parent.height / 2 - height / 2
-			Material.background: "transparent"
-			symbol: Fonts.elipsisVerticalSym
-			visible: buzzerApp.isDesktop
-			labelYOffset: buzzerApp.isDesktop ? 0 : 3
-			symbolColor: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.foreground")
-			Layout.alignment: Qt.AlignHCenter
-			symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 5)) : defaultSymbolFontPointSize
-
-			onClicked: {
-				if (headerMenu.visible) headerMenu.close();
-				else { headerMenu.prepare(); headerMenu.open(); }
-			}
-		}
-		*/
-
 		QuarkRoundSymbolButton {
 			id: menuControl
 			x: parent.width - width - spaceItems_
@@ -247,6 +209,7 @@ QuarkPage {
 			color: "transparent"
 			textColor: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.foreground")
 			opacity: 1.0
+			visible: buzzerApp.isDesktop
 
 			onClick: {
 				if (headerMenu.visible) headerMenu.close();

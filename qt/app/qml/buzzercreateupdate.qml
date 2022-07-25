@@ -18,6 +18,19 @@ QuarkPage
 	id: buzzercreateupdate_
 	key: "buzzercreateupdate"
 
+	// spacing
+	readonly property int spaceLeft_: 15
+	readonly property int spaceTop_: 12
+	readonly property int spaceRight_: 15
+	readonly property int spaceBottom_: 12
+	readonly property int spaceAvatarBuzz_: 10
+	readonly property int spaceItems_: 5
+	readonly property int spaceHeader_: 5
+	readonly property int spaceRightMenu_: 15
+	readonly property int spaceStats_: -5
+	readonly property int spaceLine_: 4
+	readonly property int spaceMedia_: 20
+
 	Component.onCompleted: {
 		buzzerApp.lockPortraitOrientation();
         closePageHandler = closePage;
@@ -75,16 +88,18 @@ QuarkPage
 		Component.onCompleted: {
 		}
 
-		QuarkToolButton	{
+		QuarkRoundSymbolButton {
 			id: cancelButton
-			Material.background: "transparent"
-			visible: true
-			labelYOffset: 3
-			symbolColor: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
-			Layout.alignment: Qt.AlignHCenter
+			x: spaceItems_
+			y: parent.height / 2 - height / 2
 			symbol: Fonts.leftArrowSym
+			fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 5)) : buzzerApp.defaultFontSize() + 7
+			radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius - 7)) : (defaultRadius - 7)
+			color: "transparent"
+			textColor: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+			opacity: 1.0
 
-			onClicked: {
+			onClick: {
 				closePage();
 			}
 		}
