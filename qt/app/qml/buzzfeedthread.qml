@@ -237,6 +237,7 @@ QuarkPage {
 		Component.onCompleted: {
 		}
 
+		/*
 		QuarkToolButton	{
 			id: cancelButton
 			y: parent.height / 2 - height / 2
@@ -252,7 +253,25 @@ QuarkPage {
 				closePage();
 			}
 		}
+		*/
 
+		QuarkRoundSymbolButton {
+			id: cancelButton
+			x: spaceItems_
+			y: parent.height / 2 - height / 2
+			symbol: Fonts.leftArrowSym
+			fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 5)) : buzzerApp.defaultFontSize() + 7
+			radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius - 7)) : (defaultRadius - 7)
+			color: "transparent"
+			textColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+			opacity: 1.0
+
+			onClick: {
+				closePage();
+			}
+		}
+
+		/*
 		QuarkToolButton {
 			id: menuControl
 			x: parent.width - width //- spaceItems_
@@ -266,6 +285,24 @@ QuarkPage {
 			symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 5)) : defaultSymbolFontPointSize
 
 			onClicked: {
+				if (headerMenu.visible) headerMenu.close();
+				else { headerMenu.prepare(); headerMenu.open(); }
+			}
+		}
+		*/
+
+		QuarkRoundSymbolButton {
+			id: menuControl
+			x: parent.width - width - spaceItems_
+			y: parent.height / 2 - height / 2
+			symbol: Fonts.elipsisVerticalSym
+			fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 5)) : buzzerApp.defaultFontSize() + 7
+			radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius - 7)) : (defaultRadius - 7)
+			color: "transparent"
+			textColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+			opacity: 1.0
+
+			onClick: {
 				if (headerMenu.visible) headerMenu.close();
 				else { headerMenu.prepare(); headerMenu.open(); }
 			}

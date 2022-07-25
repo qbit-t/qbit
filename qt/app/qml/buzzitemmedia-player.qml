@@ -461,8 +461,8 @@ Rectangle {
 		id: closeButton
 		x: controlsBack.width - (closeButton.width + spaceItems_)
 		y: controlsBack.y + spaceItems_
-		spaceLeft: buzzerClient.isDesktop ? buzzerClient.scaleFactor : 2
-		spaceTop: buzzerClient.isDesktop ? buzzerClient.scaleFactor : 2
+		//spaceLeft: buzzerClient.isDesktop ? buzzerClient.scaleFactor : 2
+		//spaceTop: buzzerClient.isDesktop ? buzzerClient.scaleFactor : 2
 		symbol: Fonts.cancelSym
 		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 10)) : (buzzerApp.defaultFontSize() + 7)
 		radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius)) : defaultRadius
