@@ -758,20 +758,13 @@ private:
 		if (!paused_) {
 			if (!error) {
 				// process pending peers
+				std::list<IPeerPtr> lReadyToConnect;
 				{
 					boost::unique_lock<boost::recursive_mutex> lLock(contextMutex_[id]);
 					for (std::set<std::string /*endpoint*/>::iterator lPeer = inactive_[id].begin(); lPeer != inactive_[id].end(); lPeer++) {
 						IPeerPtr lPeerPtr = peers_[id][*lPeer];
 						if (lPeerPtr->status() != IPeer::POSTPONED || (lPeerPtr->status() == IPeer::POSTPONED && lPeerPtr->postponedTick())) {
-							// 1. locate peer by address_id
-							IPeerPtr lOther = locatePeer(lPeerPtr->addressId());
-							if (lOther && lOther->status() == IPeer::ACTIVE) {
-								if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, strprintf("[peerManager]: peer %s is active, postponning %s", lOther->key(), lPeerPtr->key()));
-								continue;
-							}
-
-							// 2. if there is no ACTIVE peer - try to connect
-							lPeerPtr->connect();
+							lReadyToConnect.push_back(lPeerPtr);
 						}
 					}
 
@@ -779,6 +772,25 @@ private:
 					for (std::set<std::string /*endpoint*/>::iterator lPeer = active_[id].begin(); lPeer != active_[id].end(); lPeer++) {
 						// TODO?: DAEMON - no need to support latency updates
 						if (!peers_[id][*lPeer]->state()->daemon())	peers_[id][*lPeer]->ping();
+					}
+				}
+
+				// process ready peers
+				{
+					for (std::list<IPeerPtr>::iterator lPeerPtr = lReadyToConnect.begin(); lPeerPtr != lReadyToConnect.end(); lPeerPtr++) {
+						// 1. locate peer by address_id
+						std::string lPeerKey;
+						if (!settings_->isClient() && locatePeer((*lPeerPtr)->addressId(), lPeerKey)) {
+							IPeerPtr lOther = locate(lPeerKey);
+							if (lOther && lOther->status() == IPeer::ACTIVE) {
+								if (gLog().isEnabled(Log::NET))
+									gLog().write(Log::NET, strprintf("[peerManager]: peer %s is active, postponning %s", lOther->key(), (*lPeerPtr)->key()));
+								continue;
+							}
+						}
+
+						// 2. if there is no ACTIVE peer - try to connect
+						(*lPeerPtr)->connect();
 					}
 				}
 
@@ -803,18 +815,23 @@ private:
 		timer->async_wait(boost::bind(&PeerManager::touch, shared_from_this(), id, timer, boost::asio::placeholders::error));
 	}
 
-	IPeerPtr locatePeer(const uint160& id) {
+	bool locatePeer(const uint160& id, std::string& key) {
 		//
-		boost::unique_lock<boost::recursive_mutex> lLock(peersIdxMutex_);
-
-		// traverse peers
-		std::map<uint160, std::set<std::string>>::iterator lPeerIter = peerIdx_.find(id);
-		if (lPeerIter != peerIdx_.end() && lPeerIter->second.size()) {
-			std::set<std::string>::iterator lKey = lPeerIter->second.begin();
-			return locate(*lKey);
+		std::map<uint160, std::set<std::string>> lPeerIdx;
+		{
+			boost::unique_lock<boost::recursive_mutex> lLock(peersIdxMutex_);
+			lPeerIdx = peerIdx_;
 		}
 
-		return nullptr;
+		// traverse peers
+		std::map<uint160, std::set<std::string>>::iterator lPeerIter = lPeerIdx.find(id);
+		if (lPeerIter != lPeerIdx.end() && lPeerIter->second.size()) {
+			std::set<std::string>::iterator lKey = lPeerIter->second.begin();
+			key = *lKey;
+			return true;
+		}
+
+		return false;
 	}
 
 public:

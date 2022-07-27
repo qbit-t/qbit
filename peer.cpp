@@ -4366,6 +4366,10 @@ void Peer::processPing(std::list<DataStream>::iterator msg, const boost::system:
 
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: pong to ") + key());
 
+		// update and median time
+		peerManager_->updatePeerLatency(shared_from_this(), (uint32_t)(getMicroseconds() - lTimestamp));
+		if (!state()->client()) peerManager_->updateMedianTime();
+
 		sendMessage(lMsg);
 	} else {
 		processError("processPing", msg, error);
