@@ -855,17 +855,19 @@ public:
 			for (PeersSet::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
 				PeersMap::iterator lPeerPtr = directPeerMap_.find(*lPeer);
 				if (lPeerPtr != directPeerMap_.end()) {
-					if (!lPeerPtr->second->syncRequestsHeaders() && !lPeerPtr->second->syncRequestsBlocks())
+					if (!lPeerPtr->second->syncRequestsHeaders() && !lPeerPtr->second->syncRequestsBlocks()) {
 						if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS,
 							strprintf("[locateSynchronizedRoot]: try to add peer %s/%s/%s#", 
 								lPeerPtr->second->key(), lPeerPtr->second->statusString(),
 								chain_.toHex().substr(0, 10)));
-					else
+					} else {
 						if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS,
 							strprintf("[locateSynchronizedRoot]: try to add peer %s/%s/%s#, h = %d, b = %d", 
 								lPeerPtr->second->key(), lPeerPtr->second->statusString(),
 								chain_.toHex().substr(0, 10),
 								lPeerPtr->second->syncRequestsHeaders(), lPeerPtr->second->syncRequestsBlocks()));
+					}
+
 					if (lPeerPtr->second->state()->minerOrValidator()) {
 						peers.insert(std::multimap<uint32_t, IPeerPtr>::value_type(lPeerPtr->second->latency(), lPeerPtr->second));
 					}
