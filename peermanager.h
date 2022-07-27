@@ -790,7 +790,7 @@ private:
 			}
 		}
 
-		timer->expires_at(timer->expiry() + (settings_->isDaemon() ? boost::asio::chrono::seconds(6) : boost::asio::chrono::seconds(2)));
+		timer->expires_at(boost::asio::chrono::steady_clock::now() + (settings_->isDaemon() ? boost::asio::chrono::seconds(6) : boost::asio::chrono::seconds(2)));
 		timer->async_wait(boost::bind(&PeerManager::touch, shared_from_this(), id, timer, boost::asio::placeholders::error));
 	}
 

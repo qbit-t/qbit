@@ -112,6 +112,11 @@ public:
 	~Peer() {
 		release();
 
+		{
+			boost::unique_lock<boost::recursive_mutex> lLock(readMutex_);
+			state_.reset();
+		}
+
 		peerManager_->decPeersCount();
 
 		if (gLog().isEnabled(Log::NET)) 
@@ -132,10 +137,13 @@ public:
 
 		close(IPeer::CLOSED);
 
+		/*
 		{
+			// NOTICE: peer pop\push in this case will not work - we need LAST actual state
 			boost::unique_lock<boost::recursive_mutex> lLock(readMutex_);
 			state_.reset();
 		}
+		*/
 
 		if (gLog().isEnabled(Log::NET)) 
 			gLog().write(Log::NET, std::string("[peer]: peer released ") + key());

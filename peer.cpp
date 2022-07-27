@@ -99,9 +99,9 @@ void Peer::processPendingMessagesQueue() {
 	bool lFound = false;
 	{
 		boost::unique_lock<boost::mutex> lLock(rawOutMutex_);
-		bool lProcess = outQueue_.size() > 0;
+		bool lProcess = outQueue_.size() > 0 && socketStatus_ == CONNECTED; //?
 
-		if (lProcess){
+		if (lProcess) {
 			lMsg = outQueue_.begin();
 			for (; lMsg != outQueue_.end(); lMsg++) {
 				// postponed
@@ -4549,7 +4549,10 @@ void Peer::resolved(const boost::system::error_code& error, tcp::resolver::itera
 
 void Peer::connected(const boost::system::error_code& error, tcp::resolver::iterator endpoint_iterator) {
 	if (!error) {
-		socketStatus_ = CONNECTED;
+		{
+			boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
+			socketStatus_ = CONNECTED;
+		}
 
 		// connected
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: connected to ") + key());

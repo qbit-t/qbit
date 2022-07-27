@@ -160,6 +160,7 @@ public:
 			boost::unique_lock<boost::mutex> lLock(peersMutex_);
 			uint160 lAddress = peer->addressId();
 			peers_[lAddress] = peer;
+			pushedPeers_.insert(peer->key()); // push control
 			std::vector<State::BlockInfo> lInfos = peer->state()->infos();
 			for (std::vector<State::BlockInfo>::iterator lInfo = lInfos.begin(); lInfo != lInfos.end(); lInfo++) {
 				chainPeers_[(*lInfo).chain()].insert(lAddress);
@@ -210,6 +211,7 @@ public:
 
 		//
 		peer_t lPeerId = peer->addressId();
+		std::string lPeerKey = peer->key();
 
 		//
 		std::map<uint256, IConsensusPtr> lConsensuses;
@@ -221,6 +223,12 @@ public:
 		{
 			// pop
 			boost::unique_lock<boost::mutex> lLock(peersMutex_);
+			if (pushedPeers_.find(lPeerKey) == pushedPeers_.end()) {
+				if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS,
+					strprintf("[popPeer]: peer %s was not pushed, skipping...", lPeerKey));
+				return;
+			}
+
 			uint160 lAddress = peer->addressId();
 			std::vector<State::BlockInfo> lInfos = peer->state()->infos();
 			for (std::vector<State::BlockInfo>::iterator lInfo = lInfos.begin(); lInfo != lInfos.end(); lInfo++) {
@@ -229,6 +237,7 @@ public:
 			}
 
 			peers_.erase(lAddress);
+			pushedPeers_.erase(lPeerKey); // pop control
 		}		
 
 		for (std::map<uint256, IConsensusPtr>::iterator lConsensus = lConsensuses.begin(); lConsensus != lConsensuses.end(); lConsensus++) {
@@ -541,6 +550,7 @@ private:
 	typedef std::multimap<uint32_t /*latency*/, IPeerPtr> LatencyMap;
 	LatencyMap latencyMap_;
 
+	std::set<std::string> pushedPeers_;
 	std::map<uint160 /*peer*/, IPeerPtr> peers_;
 	std::map<uint256 /*chain*/, std::set<uint160>> chainPeers_;
 };
