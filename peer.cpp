@@ -1221,9 +1221,12 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 			std::string lEndpoint = key();
 			if (peerManager_->existsBanned(lEndpoint)) {
 				// log
-				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: peer ") + key() + std::string(" is BANNED."));
+				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: peer ") + lEndpoint + std::string(" is BANNED."));
+				// total shutdown
+				peerManager_->ban(shared_from_this());
+				// erase data
 				eraseInData(lMsg);
-				//
+				// close socket
 				close(GENERAL_ERROR);
 				return;
 			}
@@ -3951,6 +3954,12 @@ void Peer::processBlockHeaderAndState(std::list<DataStream>::iterator msg, const
 	bool lMsgValid = (*msg).valid();
 	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: checksum is INVALID for message from ") + key());
 	if (!error && lMsgValid) {
+		//
+		{
+			boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
+			if (socketStatus_ == GENERAL_ERROR) return;
+		}
+
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: raw block header and state from ") + key() + " -> " + HexStr(msg->begin(), msg->end()));
 
 		// extract block header data
@@ -4367,8 +4376,11 @@ void Peer::processPing(std::list<DataStream>::iterator msg, const boost::system:
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: pong to ") + key());
 
 		// update and median time
-		peerManager_->updatePeerLatency(shared_from_this(), (uint32_t)(getMicroseconds() - lTimestamp));
-		if (!state()->client()) peerManager_->updateMedianTime();
+		uint64_t lTime = getMicroseconds();
+		if (lTime > lTimestamp && lTime - lTimestamp < 1000 * 1000 * 30 /*less than 30 seconds*/) {
+			peerManager_->updatePeerLatency(shared_from_this(), (uint32_t)(lTime - lTimestamp));
+			if (!state()->client()) peerManager_->updateMedianTime();
+		}
 
 		sendMessage(lMsg);
 	} else {
@@ -4453,6 +4465,11 @@ void Peer::processState(std::list<DataStream>::iterator msg, bool broadcast, con
 	bool lMsgValid = (*msg).valid();
 	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: checksum is INVALID for message from ") + key());
 	if (!error && lMsgValid) {
+		//
+		{
+			boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
+			if (socketStatus_ == GENERAL_ERROR) return;
+		}
 		//
 		State lState;
 		lState.deserialize<DataStream>(*msg);
