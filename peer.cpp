@@ -3938,7 +3938,7 @@ void Peer::processBlockHeaderAndState(std::list<DataStream>::iterator msg, const
 	//
 	bool lMsgValid = (*msg).valid();
 	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: checksum is INVALID for message from ") + key());
-	if (!error && lMsgValid && status() == IPeer::ACTIVE) {
+	if (!error && lMsgValid) {
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: raw block header and state from ") + key() + " -> " + HexStr(msg->begin(), msg->end()));
 
 		// extract block header data
@@ -4436,7 +4436,7 @@ void Peer::processState(std::list<DataStream>::iterator msg, bool broadcast, con
 	//
 	bool lMsgValid = (*msg).valid();
 	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: checksum is INVALID for message from ") + key());
-	if (!error && lMsgValid && status() == IPeer::ACTIVE) {
+	if (!error && lMsgValid) {
 		//
 		State lState;
 		lState.deserialize<DataStream>(*msg);
