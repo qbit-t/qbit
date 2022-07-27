@@ -1141,14 +1141,26 @@ void Peer::waitForMessage() {
 	// new message entry
 	std::list<DataStream>::iterator lMsg = newInMessage();
 
+	bool lProcessed = false;
 	{
 		boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
-		if (socketStatus_ == CONNECTED)
+		if (socketStatus_ == CONNECTED) {
+			lProcessed = true;
 			boost::asio::async_read(*socket_,
 				boost::asio::buffer(lMsg->data(), Message::size()),
 				strand_->wrap(boost::bind(
 					&Peer::processMessage, shared_from_this(), lMsg,
 					boost::asio::placeholders::error)));
+		}
+	}
+
+	if (!lProcessed) {
+		boost::unique_lock<boost::recursive_mutex> lLock(readMutex_);
+		//
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, strprintf("[peer]: %s is NOT connected, resetting flags...", key()));
+		// un mark
+		waitingForMessage_ = false;
+		reading_ = false;
 	}
 }
 
