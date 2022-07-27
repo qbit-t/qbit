@@ -392,6 +392,10 @@ public:
 	virtual void eraseInMessage(std::list<DataStream>::iterator) { throw qbit::exception("NOT_IMPL", "IPeer::eraseInMessage - not implemented."); }
 	virtual void eraseInData(std::list<DataStream>::iterator) { throw qbit::exception("NOT_IMPL", "IPeer::eraseInData - not implemented."); }
 
+	virtual int syncRequestsBlocks() { throw qbit::exception("NOT_IMPL", "IPeer::syncRequestsBlocks - not implemented."); }
+	virtual int syncRequestsHeaders() { throw qbit::exception("NOT_IMPL", "IPeer::syncRequestsHeaders - not implemented."); }
+	virtual int syncRequestsBalance() { throw qbit::exception("NOT_IMPL", "IPeer::syncRequestsBalance - not implemented."); }
+
 	// open requests
 	virtual void acquireBlockHeaderWithCoinbase(const uint256& /*block*/, const uint256& /*chain*/, INetworkBlockHandlerWithCoinBasePtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IPeer::acquireBlockHeaderWithCoinbase - not implemented."); }
 	virtual void loadTransaction(const uint256& /*chain*/, const uint256& /*tx*/, ILoadTransactionHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IPeer::loadTransaction - not implemented."); }

@@ -299,6 +299,9 @@ void Peer::synchronizeFullChain(IConsensusPtr consensus, SynchronizationJobPtr j
 
 		// write
 		sendMessageAsync(lMsg);
+
+		//
+		incReqBlocks();
 	}
 }
 
@@ -421,6 +424,9 @@ void Peer::synchronizePartialTree(IConsensusPtr consensus, SynchronizationJobPtr
 
 		// write
 		sendMessageAsync(lMsg);
+
+		// inc req count
+		incReqBlocks();
 	}
 }
 
@@ -479,6 +485,9 @@ void Peer::synchronizeLargePartialTree(IConsensusPtr consensus, SynchronizationJ
 
 		// write
 		sendMessageAsync(lMsg);
+
+		//
+		incReqHeaders();
 	}
 }
 
@@ -617,6 +626,9 @@ void Peer::synchronizePendingBlocks(IConsensusPtr consensus, SynchronizationJobP
 
 		// write
 		sendMessageAsync(lMsg);
+
+		//
+		incReqBlocks();
 	}
 }
 
@@ -697,6 +709,9 @@ void Peer::acquireBlock(const NetworkBlockHeader& block) {
 
 		// write
 		sendMessageAsync(lMsg);
+
+		// inc counter
+		incReqBlocks();
 	}
 }
 
@@ -3053,6 +3068,9 @@ void Peer::processBlockByHeight(std::list<DataStream>::iterator msg, const boost
 		//
 		processed();
 
+		//
+		decReqBlocks();
+
 		// locate job
 		SynchronizationJobPtr lJob = locateJob(lBlock->chain());
 		if (lJob && lJob->releaseJob(lHeight)) {
@@ -3151,6 +3169,8 @@ void Peer::processBlockById(std::list<DataStream>::iterator msg, const boost::sy
 
 		processed();
 
+		decReqBlocks();
+
 		//
 		IConsensusPtr lConsensus = peerManager_->consensusManager()->locate(lBlock->chain());
 		if (!lConsensus) {
@@ -3218,6 +3238,9 @@ void Peer::processBlock(std::list<DataStream>::iterator msg, const boost::system
 
 		//
 		processed();
+
+		//
+		decReqBlocks();
 
 		// save block
 		peerManager_->consensusManager()->locate(lBlock->chain())->store()->saveBlock(lBlock);
@@ -3373,6 +3396,9 @@ void Peer::processNetworkBlock(std::list<DataStream>::iterator msg, const boost:
 
 		//
 		processed();
+
+		//
+		decReqBlocks();
 
 		// log
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: processing network block ") + strprintf("%s/%s#", lBlock->hash().toHex(), lBlock->chain().toHex().substr(0, 10)) + std::string("..."));
@@ -3724,6 +3750,9 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 
 		//
 		processed();
+
+		//
+		decReqHeaders();
 
 		//
 		// locate job
@@ -4139,9 +4168,12 @@ void Peer::processPushTransaction(std::list<DataStream>::iterator msg, const boo
 
 void Peer::broadcastBlockHeader(const NetworkBlockHeader& blockHeader) {
 	//
+	// NOTICE: this method is not legit; broadcastBlockHeaderAndState now is used for notification abound found block
+	//
 	if (socketStatus_ == CLOSED || socketStatus_ == GENERAL_ERROR) { connect(); return; } // TODO: connect will skip current call
 	else if (socketStatus_ == CONNECTED) {
 
+		/*
 		// new message
 		std::list<DataStream>::iterator lMsg = newOutMessage();
 
@@ -4158,6 +4190,7 @@ void Peer::broadcastBlockHeader(const NetworkBlockHeader& blockHeader) {
 
 		// write
 		sendMessageAsync(lMsg);
+		*/
 	}
 }
 

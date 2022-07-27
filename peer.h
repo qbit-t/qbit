@@ -397,6 +397,18 @@ public:
 	void processPendingMessagesQueue();
 	StrandPtr strand() { return strand_; }
 
+	int syncRequestsBlocks() {
+		return reqBlocks_.load(std::memory_order_relaxed);
+	}
+
+	int syncRequestsHeaders() {
+		return reqHeaders_.load(std::memory_order_relaxed);
+	}
+
+	int syncRequestsBalance() {
+		return syncRequestsBlocks() + syncRequestsHeaders();
+	}
+
 private:
 	class OutMessage {
 	public:
@@ -645,7 +657,24 @@ private:
 		return lResult;
 	}
 
+	void incReqBlocks() {
+		reqBlocks_.fetch_add(1, std::memory_order_relaxed);
+	}
+
+	void incReqHeaders() {
+		reqHeaders_.fetch_add(1, std::memory_order_relaxed);
+	}
+
+	void decReqBlocks() {
+		reqBlocks_.fetch_sub(1, std::memory_order_relaxed);
+	}
+
+	void decReqHeaders() {
+		reqHeaders_.fetch_sub(1, std::memory_order_relaxed);
+	}
+
 	uint32_t inQueueLength() {
+
 		boost::unique_lock<boost::mutex> lLock(rawInMutex_);
 		return rawInMessages_.size();
 	}
@@ -722,6 +751,9 @@ private:
 	IPeerManagerPtr peerManager_;
 	int contextId_ = -1;
 	int postponeTime_ = 0;
+
+	std::atomic<int> reqBlocks_ { 0 };
+	std::atomic<int> reqHeaders_ { 0 };
 
 	bool waitingForMessage_ = false;
 	bool reading_ = false;

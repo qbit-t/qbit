@@ -856,8 +856,10 @@ public:
 				PeersMap::iterator lPeerPtr = directPeerMap_.find(*lPeer);
 				if (lPeerPtr != directPeerMap_.end()) {
 					if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS,
-						strprintf("[locateSynchronizedRoot]: try to add peer %s/%s/%s#", 
-							lPeerPtr->second->key(), lPeerPtr->second->statusString(), chain_.toHex().substr(0, 10)));
+						strprintf("[locateSynchronizedRoot]: try to add peer h = %d, b = %d, %s/%s/h[%d]/b[%d]/%s#", 
+							lPeerPtr->second->key(), lPeerPtr->second->statusString(),
+							lPeerPtr->second->syncRequestsHeaders(), lPeerPtr->second->syncRequestsBlocks(),
+							chain_.toHex().substr(0, 10)));
 					if (lPeerPtr->second->state()->minerOrValidator()) {
 						peers.insert(std::multimap<uint32_t, IPeerPtr>::value_type(lPeerPtr->second->latency(), lPeerPtr->second));
 					}
