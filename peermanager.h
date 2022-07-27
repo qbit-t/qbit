@@ -762,8 +762,17 @@ private:
 					boost::unique_lock<boost::recursive_mutex> lLock(contextMutex_[id]);
 					for (std::set<std::string /*endpoint*/>::iterator lPeer = inactive_[id].begin(); lPeer != inactive_[id].end(); lPeer++) {
 						IPeerPtr lPeerPtr = peers_[id][*lPeer];
-						if (lPeerPtr->status() != IPeer::POSTPONED || (lPeerPtr->status() == IPeer::POSTPONED && lPeerPtr->postponedTick()))
+						if (lPeerPtr->status() != IPeer::POSTPONED || (lPeerPtr->status() == IPeer::POSTPONED && lPeerPtr->postponedTick())) {
+							// 1. locate peer by address_id
+							IPeerPtr lOther = locatePeer(lPeerPtr->addressId());
+							if (lOther && lOther->status() == IPeer::ACTIVE) {
+								if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, strprintf("[peerManager]: peer %s is active, postponning %s", lOther->key(), lPeerPtr->key()));
+								continue;
+							}
+
+							// 2. if there is no ACTIVE peer - try to connect
 							lPeerPtr->connect();
+						}
 					}
 
 					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager/touch]: active count = ") + strprintf("%d", active_[id].size()));
@@ -794,6 +803,20 @@ private:
 		timer->async_wait(boost::bind(&PeerManager::touch, shared_from_this(), id, timer, boost::asio::placeholders::error));
 	}
 
+	IPeerPtr locatePeer(const uint160& id) {
+		//
+		boost::unique_lock<boost::recursive_mutex> lLock(peersIdxMutex_);
+
+		// traverse peers
+		std::map<uint160, std::set<std::string>>::iterator lPeerIter = peerIdx_.find(id);
+		if (lPeerIter != peerIdx_.end() && lPeerIter->second.size()) {
+			std::set<std::string>::iterator lKey = lPeerIter->second.begin();
+			return locate(*lKey);
+		}
+
+		return nullptr;
+	}
+
 public:
 	void quarantine(IPeerPtr peer) {
 		bool lPop = false;
@@ -805,7 +828,7 @@ public:
 				if (!lPeerIter->second.size()) peerIdx_.erase(peer->addressId());
 				if (peer->state()->client()) {
 					clients_.erase(peer->addressId());
-					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: removing client ") + strprintf("%s/%s", peer->key(), peer->addressId().toHex()));					
+					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: removing client ") + strprintf("%s/%s", peer->key(), peer->addressId().toHex()));
 				}
 
 				lPop = true;

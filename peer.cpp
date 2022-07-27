@@ -99,7 +99,7 @@ void Peer::processPendingMessagesQueue() {
 	bool lFound = false;
 	{
 		boost::unique_lock<boost::mutex> lLock(rawOutMutex_);
-		bool lProcess = outQueue_.size() > 0 && socketStatus_ == CONNECTED; //?
+		bool lProcess = outQueue_.size() > 0; // && socketStatus_ == CONNECTED;
 
 		if (lProcess) {
 			lMsg = outQueue_.begin();
@@ -3938,7 +3938,7 @@ void Peer::processBlockHeaderAndState(std::list<DataStream>::iterator msg, const
 	//
 	bool lMsgValid = (*msg).valid();
 	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: checksum is INVALID for message from ") + key());
-	if (!error && lMsgValid) {
+	if (!error && lMsgValid && status() == IPeer::ACTIVE) {
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: raw block header and state from ") + key() + " -> " + HexStr(msg->begin(), msg->end()));
 
 		// extract block header data
@@ -3948,7 +3948,7 @@ void Peer::processBlockHeaderAndState(std::list<DataStream>::iterator msg, const
 		// extract state
 		State lState;
 		lState.deserialize<DataStream>(*msg);
-		eraseInData(msg); // erase		
+		eraseInData(msg); // erase
 
 		//
 		processed();
@@ -4436,7 +4436,7 @@ void Peer::processState(std::list<DataStream>::iterator msg, bool broadcast, con
 	//
 	bool lMsgValid = (*msg).valid();
 	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: checksum is INVALID for message from ") + key());
-	if (!error && lMsgValid) {
+	if (!error && lMsgValid && status() == IPeer::ACTIVE) {
 		//
 		State lState;
 		lState.deserialize<DataStream>(*msg);
