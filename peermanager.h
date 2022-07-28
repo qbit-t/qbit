@@ -417,6 +417,9 @@ public:
 		}
 	}
 
+	//
+	// TODO: make separate thread (or even pool) able to process NOTIFICATIONS out of the main scope
+	//
 	void notifyTransaction(TransactionContextPtr ctx) {
 		//
 		std::set<uint160> lClients;
