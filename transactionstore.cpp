@@ -2153,8 +2153,8 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 
 			if (lErrorReason == ERROR_REASON_TX_DATA_MISSING ||
 				lErrorReason == ERROR_REASON_EXTENDED_CHECK_NOT_PASSED ||
-				lErrorReason == ERROR_REASON_INTEGRITY_ERROR ||
-				lErrorReason == ERROR_REASON_TX_INTEGRITY_ERROR) {
+				lErrorReason == ERROR_REASON_INTEGRITY_ERROR /*||
+				lErrorReason == ERROR_REASON_TX_INTEGRITY_ERROR*/) {
 				//
 				gLog().write(Log::STORE, std::string("[reindex/warning]: fallback to ") + 
 					strprintf("block = %s/%s#",
