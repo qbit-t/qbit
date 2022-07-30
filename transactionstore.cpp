@@ -113,7 +113,7 @@ bool TransactionStore::processBlockTransactions(ITransactionStorePtr store, IEnt
 		if (!lProcessor.process(lCtx)) {
 			//
 			bool lHandled = false;
-			if ((lCtx->errorsContains("UNKNOWN_REFTX") || lCtx->errorsContains("INVALID_UTXO")) && lCtx->errorsContains("0000000000#") && !approxHeight) {
+			if ((lCtx->errorsContains("UNKNOWN_REFTX") || lCtx->errorsContains("INVALID_UTXO")) && /*lCtx->errorsContains("0000000000#") &&*/ !approxHeight) {
 				lHandled = true; // skipped and will NOT be indexed
 			} else  {
 				lHasErrors = true;
