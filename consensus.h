@@ -416,7 +416,9 @@ public:
 							// select peer
 							if (!lPeerId.isEmpty()) {
 								PeersMap::iterator lPeerPtr = lDirectPeerMap.find(lPeerId);
-								if (lPeerPtr != lDirectPeerMap.end() && lPeerPtr->second->state()->minerOrValidator()) {
+								if (lPeerPtr != lDirectPeerMap.end() && lPeerPtr->second->state()->minerOrValidator() &&
+									lPeerPtr->second->syncRequestsHeaders() < 25 &&
+									lPeerPtr->second->syncRequestsBlocks() < 25) {
 									lPeer = lPeerPtr->second;
 									break;
 								}
@@ -430,7 +432,9 @@ public:
 		// 2. if absent - try to look at direct peers
 		if (!lPeer) {
 			PeersMap::iterator lPeerPtr = lDirectPeerMap.find(const_cast<NetworkBlockHeader&>(block).blockHeader().origin().id());
-			if (lPeerPtr != lDirectPeerMap.end() && lPeerPtr->second->state()->minerOrValidator()) {
+			if (lPeerPtr != lDirectPeerMap.end() && lPeerPtr->second->state()->minerOrValidator() &&
+				lPeerPtr->second->syncRequestsHeaders() < 25 &&
+				lPeerPtr->second->syncRequestsBlocks() < 25) {
 				lPeer = lPeerPtr->second;
 			}
 		}
