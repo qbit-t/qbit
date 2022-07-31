@@ -807,7 +807,7 @@ public:
 		//
 		PeersSet lPeers;
 		BlockHeader lHeader;
-		uint64_t lHeight = store_->currentHeight(lHeader);		
+		uint64_t lHeight = store_->currentHeight(lHeader);
 		{
 			boost::unique_lock<boost::recursive_mutex> lLock(stateMutex_);
 			//
@@ -868,7 +868,13 @@ public:
 								lPeerPtr->second->syncRequestsHeaders(), lPeerPtr->second->syncRequestsBlocks()));
 					}
 
-					if (lPeerPtr->second->state()->minerOrValidator()) {
+					if (lPeerPtr->second->state()->minerOrValidator() &&
+						lPeerPtr->second->syncRequestsHeaders() < 25 &&
+						lPeerPtr->second->syncRequestsBlocks() < 25) {
+						if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS,
+							strprintf("[locateSynchronizedRoot]: peer added %s/%s/%s#", 
+								lPeerPtr->second->key(), lPeerPtr->second->statusString(),
+								chain_.toHex().substr(0, 10)));
 						peers.insert(std::multimap<uint32_t, IPeerPtr>::value_type(lPeerPtr->second->latency(), lPeerPtr->second));
 					}
 				}
