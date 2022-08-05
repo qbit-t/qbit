@@ -113,6 +113,19 @@ public:
 	}
 };
 
+class HttpBanPeer: public IHttpCallEnpoint {
+public:
+	HttpBanPeer() {}
+	HttpBanPeer(bool publicMethod) : IHttpCallEnpoint(publicMethod) {}
+
+	void run(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
+	std::string method() { return std::string("banpeer"); }
+
+	static IHttpCallEnpointPtr instance() {
+		return std::make_shared<HttpBanPeer>(false);
+	}
+};
+
 class HttpGetState: public IHttpCallEnpoint {
 public:
 	HttpGetState() {}

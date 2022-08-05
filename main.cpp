@@ -443,6 +443,7 @@ public:
 		httpRequestHandler_->push(HttpMallocStats::instance());
 		httpRequestHandler_->push(HttpGetPeerInfo::instance());
 		httpRequestHandler_->push(HttpReleasePeer::instance());
+		httpRequestHandler_->push(HttpBanPeer::instance());
 		httpRequestHandler_->push(HttpGetState::instance());
 		httpRequestHandler_->push(HttpGetKey::instance());
 		httpRequestHandler_->push(HttpNewKey::instance());

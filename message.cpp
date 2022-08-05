@@ -67,8 +67,10 @@ std::string Message::toString() {
 		case GET_ENTITY_COUNT_BY_DAPP: lMsg = "GET_ENTITY_COUNT_BY_DAPP"; break;
 		case ENTITY_COUNT_BY_DAPP: lMsg = "ENTITY_COUNT_BY_DAPP"; break;
 		case GET_TRANSACTIONS_DATA: lMsg = "GET_TRANSACTIONS_DATA"; break;
+		case TRANSACTIONS_DATA: lMsg = "TRANSACTIONS_DATA"; break;
 		case GET_ENTITY_NAMES: lMsg = "GET_ENTITY_NAMES"; break;
 		case ENTITY_NAMES: lMsg = "ENTITY_NAMES"; break;
+		case GET_SOME_QBITS: lMsg = "GET_SOME_QBITS"; break;
 
 		default:  {
 			lMsg = "UNKNOWN";

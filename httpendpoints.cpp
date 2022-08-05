@@ -286,6 +286,7 @@ void HttpNewKey::run(const std::string& source, const HttpRequest& request, cons
 	}
 
 	// params
+	bool lRemoveAll = false;
 	json::Value lParams;
 	if (const_cast<json::Document&>(data).find("params", lParams) && lParams.isArray()) {
 		//
@@ -295,10 +296,17 @@ void HttpNewKey::run(const std::string& source, const HttpRequest& request, cons
 			for (int lIdx = 0; lIdx < lParams.size(); lIdx++) {
 				//
 				json::Value lP0 = lParams[lIdx];
-				if (lP0.isString()) lSeedWords.push_back(lP0.getString());
-				else { reply = HttpReply::stockReply(HttpReply::bad_request); return; }
+				if (lP0.isString()) {
+					std::string lStr = lP0.getString();
+					if (lStr == "remove-all") lRemoveAll = true;
+					else lSeedWords.push_back(lP0.getString());
+				} else { reply = HttpReply::stockReply(HttpReply::bad_request); return; }
 			}
 		}
+
+
+		// remove
+		if (lRemoveAll) wallet_->removeAllKeys();
 
 		// process
 		SKeyPtr lKey = wallet_->createKey(lSeedWords);
@@ -2313,6 +2321,79 @@ void HttpReleasePeer::run(const std::string& source, const HttpRequest& request,
 		lReply.loadFromString("{}");
 
 		peerManager_->release(lAddress);
+
+		lReply.addString("result", lAddress);
+		lReply.addObject("error").toNull();
+		lReply.addString("id", lId.getString());
+
+		// pack
+		pack(reply, lReply);
+		// finalize
+		finalize(reply);
+	} else {
+		reply = HttpReply::stockReply(HttpReply::bad_request);
+		return;
+	}
+}
+
+void HttpBanPeer::run(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
+	/* request
+	{
+		"jsonrpc": "1.0",
+		"id": "curltext",
+		"method": "banpeer",
+		"params": [
+			"<peer_address:port>" 	-- (string) peer key
+		]
+	}
+	*/
+	/* reply
+	{
+		"result": "<peer_address:port>",	-- (string) peer key
+		"error":							-- (object or null) error description
+		{
+			"code": "EFAIL", 
+			"message": "<explanation>" 
+		},
+		"id": "curltext"					-- (string) request id
+	}
+	*/
+
+	// id
+	json::Value lId;
+	if (!(const_cast<json::Document&>(data).find("id", lId) && lId.isString())) {
+		reply = HttpReply::stockReply(HttpReply::bad_request);
+		return;
+	}
+
+	// params
+	json::Value lParams;
+	if (const_cast<json::Document&>(data).find("params", lParams) && lParams.isArray()) {
+		// extract parameters
+		std::string lAddress; // 0
+
+		if (lParams.size() == 1) {
+			// param[0]
+			json::Value lP0 = lParams[0];
+			if (lP0.isString()) lAddress = lP0.getString();
+			else { reply = HttpReply::stockReply(HttpReply::bad_request); return; }
+
+		} else {
+			reply = HttpReply::stockReply("E_PARAMS", "Insufficient or extra parameters"); 
+			return;
+		}
+
+		// prepare reply
+		json::Document lReply;
+		lReply.loadFromString("{}");
+
+		IPeerPtr lPeer = peerManager_->locate(lAddress);
+		if (lPeer) {
+			peerManager_->ban(lPeer);
+		} else {
+			reply = HttpReply::stockReply("E_PEER_NOT_FOUND", "Peer not found");
+			return;
+		}
 
 		lReply.addString("result", lAddress);
 		lReply.addObject("error").toNull();
