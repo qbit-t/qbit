@@ -2459,9 +2459,9 @@ void BuzzerTransactionStoreExtension::selectSubscriptions(const uint256& from, c
 			if (!lPublisherStore->extension()) continue;
 			BuzzerTransactionStoreExtensionPtr lPublisherExtension = std::static_pointer_cast<BuzzerTransactionStoreExtension>(lPublisherStore->extension());
 
-			TxBuzzerInfoPtr lBuzzerInfo = lExtension->readBuzzerInfo(lSubscriber);
+			//TxBuzzerInfoPtr lBuzzerInfo = lExtension->readBuzzerInfo(lSubscriber);
 			TxBuzzerInfoPtr lPublisherInfo = lPublisherExtension->readBuzzerInfo(lPublisher);
-			if (lBuzzerInfo && lPublisherInfo) {
+			if (/*lBuzzerInfo &&*/ lPublisherInfo) {
 				//
 				EventsfeedItemPtr lItem = EventsfeedItem::instance();
 				lItem->setType(TX_BUZZER_SUBSCRIBE);
@@ -2473,7 +2473,7 @@ void BuzzerTransactionStoreExtension::selectSubscriptions(const uint256& from, c
 				lItem->setPublisherInfo(lPublisherInfo->id());
 				lItem->setPublisherInfoChain(lPublisherInfo->chain());
 
-				EventsfeedItem::EventInfo lInfo(lSubscribe->timestamp(), lSubscriber, lBuzzerInfo->chain(), lBuzzerInfo->id(), lSubscribe->score());
+				EventsfeedItem::EventInfo lInfo(lSubscribe->timestamp(), lSubscriber, lSubscribe->buzzerInfoChain(), lSubscribe->buzzerInfo(), lSubscribe->score());
 				lInfo.setEvent(lSubscribe->chain(), lSubscribe->id(), lSubscribe->signature());
 				lItem->addEventInfo(lInfo);
 
@@ -2559,9 +2559,9 @@ void BuzzerTransactionStoreExtension::selectFollowers(const uint256& from, const
 			if (!lPublisherStore->extension()) continue;
 			BuzzerTransactionStoreExtensionPtr lPublisherExtension = std::static_pointer_cast<BuzzerTransactionStoreExtension>(lPublisherStore->extension());
 
-			TxBuzzerInfoPtr lBuzzerInfo = lExtension->readBuzzerInfo(lSubscriber);
+			//TxBuzzerInfoPtr lBuzzerInfo = lExtension->readBuzzerInfo(lSubscriber);
 			TxBuzzerInfoPtr lPublisherInfo = lPublisherExtension->readBuzzerInfo(lPublisher);
-			if (lBuzzerInfo && lPublisherInfo) {
+			if (/*lBuzzerInfo &&*/ lPublisherInfo) {
 				//
 				EventsfeedItemPtr lItem = EventsfeedItem::instance();
 				lItem->setType(TX_BUZZER_SUBSCRIBE);
@@ -2573,7 +2573,7 @@ void BuzzerTransactionStoreExtension::selectFollowers(const uint256& from, const
 				lItem->setPublisherInfo(lPublisherInfo->id());
 				lItem->setPublisherInfoChain(lPublisherInfo->chain());
 
-				EventsfeedItem::EventInfo lInfo(lSubscribe->timestamp(), lSubscriber, lBuzzerInfo->chain(), lBuzzerInfo->id(), lSubscribe->score());
+				EventsfeedItem::EventInfo lInfo(lSubscribe->timestamp(), lSubscriber, lSubscribe->buzzerInfoChain(), lSubscribe->buzzerInfo(), lSubscribe->score());
 				lInfo.setEvent(lSubscribe->chain(), lSubscribe->id(), lSubscribe->signature());
 				lItem->addEventInfo(lInfo);
 

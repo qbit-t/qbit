@@ -4484,7 +4484,7 @@ void BuzzerPeerExtension::processEventUpdateNotify(std::list<DataStream>::iterat
 		}
 
 		// update
-		eventsfeed_->merge(lBuzzUpdates);
+		eventsfeed_->merge(lBuzzUpdates, -1);
 
 		// WARNING: in case of async_read for large data
 		peer_->processed();

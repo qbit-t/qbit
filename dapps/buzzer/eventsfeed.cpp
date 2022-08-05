@@ -178,7 +178,7 @@ void EventsfeedItem::mergeUpdate(const std::vector<EventsfeedItem>& chunk, const
 	}
 }
 
-void EventsfeedItem::merge(const std::vector<EventsfeedItem>& chunk, bool notify) {
+void EventsfeedItem::merge(const std::vector<EventsfeedItem>& chunk, int requests, bool notify) {
 	//
 	{
 		Guard lLock(this);
@@ -198,8 +198,8 @@ void EventsfeedItem::merge(const std::vector<EventsfeedItem>& chunk, bool notify
 			//
 			for (std::map<Key /*id*/, _commit>::iterator lCandidate = commit_.begin(); lCandidate != commit_.end(); lCandidate++) {
 				if (merge_ == Merge::UNION ||
-						lCandidate->second.count_ == EVENTSFEED_PEERS_CONFIRMATIONS ||
-						lCandidate->second.count_ == EVENTSFEED_PEERS_CONFIRMATIONS-1) {
+						lCandidate->second.count_ == requests ||
+						requests == -1) {
 					mergeInternal(lCandidate->second.candidate_, true, false);
 				}
 			}

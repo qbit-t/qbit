@@ -19,10 +19,6 @@
 
 namespace qbit {
 
-//
-// number of load confirmations
-#define EVENTSFEED_PEERS_CONFIRMATIONS 3 // default
-
 // forward
 class EventsfeedItem;
 typedef std::shared_ptr<EventsfeedItem> EventsfeedItemPtr;
@@ -312,7 +308,7 @@ public:
 	void push(const EventsfeedItem&, const uint160&);
 	void merge(const EventsfeedItem&, bool checkSize = true, bool notify = true);
 	void mergeInternal(EventsfeedItemPtr, bool checkSize = true, bool notify = true);
-	void merge(const std::vector<EventsfeedItem>&, bool notify = false);
+	void merge(const std::vector<EventsfeedItem>&, int requests, bool notify = false);
 	void mergeUpdate(const std::vector<EventsfeedItem>&, const uint160&);
 	bool mergeAppend(const std::vector<EventsfeedItemPtr>&);
 
