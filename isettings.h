@@ -22,6 +22,7 @@ public:
 
 	virtual qunit_t maxFeeRate() { return QUNIT * 10; } // 10 qunits per byte
 	virtual PKey changeKey() { return PKey(); } // for change output
+	virtual PKey shadowKey() { return PKey(); } // main shadow key
 
 	virtual int serverPort() { return 31415; } // main net
 	virtual size_t maxMessageSize() { return 12 * 1024 * 1024; } // max incoming message size
@@ -69,6 +70,9 @@ public:
 	virtual void setThreadPoolSize(size_t) {}
 	virtual void setHttpServerPort(int) {}
 	virtual void setSupportAirdrop() {}
+
+	virtual void setShadowKey(const std::string&) {}
+	virtual void setChangeKey(const std::string&) {}
 
 	virtual void notifyTransaction(const uint256&) {}
 	virtual void setNotifyTransactionCommand(const std::string&) {}

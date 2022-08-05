@@ -233,6 +233,12 @@ public:
 	bool onlyPublicRestAPIAllowed() { return onlyPublicRestAPIAllowed_; }
 	void allowOnlyPublicRestAPI() { onlyPublicRestAPIAllowed_ = true; }
 
+	PKey shadowKey() { return shadowKey_; }
+	void setShadowKey(const std::string& src) { shadowKey_.fromString(src); }
+
+	PKey changeKey() { return changeKey_; }
+	void setChangeKey(const std::string& src) { changeKey_.fromString(src); }
+
 	static ISettingsPtr instance() { return std::make_shared<NodeSettings>(); }
 	static ISettingsPtr instance(const std::string& dir, ISettingsPtr other) { return std::make_shared<NodeSettings>(dir, other); }
 
@@ -265,6 +271,8 @@ private:
 	amount_t oneVoteProofAmount_ = 0;
 	uint64_t proofAssetLockTime_ = 0;
 	bool onlyPublicRestAPIAllowed_ = false;
+	PKey shadowKey_;
+	PKey changeKey_;
 };
 
 class Node;
@@ -683,6 +691,12 @@ int main(int argv, char** argc) {
 		} else if (std::string(argc[lIdx]) == std::string("-only-public-rest-api")) {
 			//
 			lSettings->allowOnlyPublicRestAPI();
+		} else if (std::string(argc[lIdx]) == std::string("-shadow-key")) {
+			//
+			lSettings->setShadowKey(std::string(argc[++lIdx]));
+		} else if (std::string(argc[lIdx]) == std::string("-change-key")) {
+			//
+			lSettings->setChangeKey(std::string(argc[++lIdx]));
 		} else if (std::string(argc[lIdx]) == std::string("-roles")) {
 			//
 			std::vector<std::string> lRoles;
