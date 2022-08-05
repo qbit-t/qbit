@@ -63,9 +63,11 @@ public:
 	// key management
 	SKeyPtr createKey(const std::list<std::string>&);
 	SKeyPtr findKey(const PKey& pkey);
+	SKeyPtr removeKey(const PKey& pkey);
 	SKeyPtr firstKey();
 	SKeyPtr changeKey();
 	void removeAllKeys();
+	void allKeys(std::list<SKeyPtr>& keys);
 
 	// utxo management
 	bool pushUnlinkedOut(Transaction::UnlinkedOutPtr, TransactionContextPtr);

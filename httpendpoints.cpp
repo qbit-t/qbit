@@ -154,7 +154,7 @@ void HttpGetKey::run(const std::string& source, const HttpRequest& request, cons
 		"id": "curltext",
 		"method": "getkey",
 		"params": [
-			"<address_id>" 	-- (string, optional) address
+			"<pkey>" 	-- (string, optional) address
 		]
 	}
 	*/
@@ -214,6 +214,193 @@ void HttpGetKey::run(const std::string& source, const HttpRequest& request, cons
 			lKey = wallet_->firstKey();
 			if (!lKey->valid()) {
 				reply = HttpReply::stockReply("E_SKEY_IS_ABSENT", "Key is absent"); 
+				return;
+			}
+		}
+
+		PKey lPFoundKey = lKey->createPKey();
+
+		// prepare reply
+		json::Document lReply;
+		lReply.loadFromString("{}");
+		
+		json::Value lKeyObject = lReply.addObject("result");
+		lKeyObject.addString("address", lPFoundKey.toString());
+		lKeyObject.addString("address_id", lPFoundKey.id().toHex());
+		lKeyObject.addString("pkey", lPFoundKey.toHex());
+		lKeyObject.addString("skey", lKey->toHex());
+
+		json::Value lKeyArrayObject = lKeyObject.addArray("seed");
+		for (std::vector<SKey::Word>::iterator lWord = lKey->seed().begin(); lWord != lKey->seed().end(); lWord++) {
+			json::Value lItem = lKeyArrayObject.newArrayItem();
+			lItem.setString((*lWord).wordA());
+		}
+
+		lReply.addObject("error").toNull();
+		lReply.addString("id", lId.getString());
+
+		// pack
+		pack(reply, lReply);
+		// finalize
+		finalize(reply);
+	} else {
+		reply = HttpReply::stockReply(HttpReply::bad_request);
+		return;
+	}
+}
+
+void HttpGetAllKeys::run(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
+	/* request
+	{
+		"jsonrpc": "1.0",
+		"id": "curltext",
+		"method": "getallkeys",
+		"params": [
+		]
+	}
+	*/
+	/* reply
+	{
+		"result":						-- (object) addresses
+		[
+			{
+				"address": "<address>",			-- (string) address, base58 encoded
+				"address_id": "<address_id>",	-- (string) address, uint160
+				"pkey": "<public_key>",			-- (string) public key, hex encoded
+				"skey": "<secret_key>",			-- (string) secret key, hex encoded
+				"seed": []						-- (string array) seed words
+			},
+			...
+			{
+				...
+			}
+		},
+		"error":						-- (object or null) error description
+		{
+			"code": "EFAIL", 
+			"message": "<explanation>" 
+		},
+		"id": "curltext"				-- (string) request id
+	}
+	*/
+
+	// id
+	json::Value lId;
+	if (!(const_cast<json::Document&>(data).find("id", lId) && lId.isString())) {
+		reply = HttpReply::stockReply(HttpReply::bad_request);
+		return;
+	}
+
+	// params
+	json::Value lParams;
+	if (const_cast<json::Document&>(data).find("params", lParams) && lParams.isArray()) {
+		// prepare reply
+		json::Document lReply;
+		lReply.loadFromString("{}");
+
+		//
+		std::list<SKeyPtr> lKeys;
+		wallet_->allKeys(lKeys);
+
+		//
+		json::Value lObject = lReply.addArray("result");
+		//
+		for (std::list<SKeyPtr>::iterator lKey = lKeys.begin(); lKey != lKeys.end(); lKey++) {
+			//
+			json::Value lItem = lObject.newArrayItem();
+			lItem.toObject(); // make object
+
+			PKey lPFoundKey = (*lKey)->createPKey();
+			lItem.addString("address", lPFoundKey.toString());
+			lItem.addString("address_id", lPFoundKey.id().toHex());
+			lItem.addString("pkey", lPFoundKey.toHex());
+			lItem.addString("skey", (*lKey)->toHex());
+
+			json::Value lKeyArrayObject = lItem.addArray("seed");
+			for (std::vector<SKey::Word>::iterator lWord = (*lKey)->seed().begin(); lWord != (*lKey)->seed().end(); lWord++) {
+				json::Value lWordItem = lKeyArrayObject.newArrayItem();
+				lWordItem.setString((*lWord).wordA());
+			}
+		}
+
+		// finalize
+		lReply.addObject("error").toNull();
+		lReply.addString("id", lId.getString());
+
+		// pack
+		pack(reply, lReply);
+		// finalize
+		finalize(reply);
+	} else {
+		reply = HttpReply::stockReply(HttpReply::bad_request);
+		return;
+	}
+}
+
+void HttpRemoveKey::run(const std::string& source, const HttpRequest& request, const json::Document& data, HttpReply& reply) {
+	/* request
+	{
+		"jsonrpc": "1.0",
+		"id": "curltext",
+		"method": "removekey",
+		"params": [
+			"<pkey>" 	-- (string, optional) address
+		]
+	}
+	*/
+	/* reply
+	{
+		"result":						-- (object) address details
+		{
+			"address": "<address>",			-- (string) address, base58 encoded
+			"address_id": "<address_id>",	-- (string) address, uint160
+			"pkey": "<public_key>",			-- (string) public key, hex encoded
+			"skey": "<secret_key>",			-- (string) secret key, hex encoded
+			"seed": []						-- (string array) seed words
+		},
+		"error":						-- (object or null) error description
+		{
+			"code": "EFAIL", 
+			"message": "<explanation>" 
+		},
+		"id": "curltext"				-- (string) request id
+	}
+	*/
+
+	// id
+	json::Value lId;
+	if (!(const_cast<json::Document&>(data).find("id", lId) && lId.isString())) {
+		reply = HttpReply::stockReply(HttpReply::bad_request);
+		return;
+	}
+
+	// params
+	json::Value lParams;
+	if (const_cast<json::Document&>(data).find("params", lParams) && lParams.isArray()) {
+		// extract parameters
+		std::string lAddress; // 0
+		if (lParams.size()) {
+			// param[0]
+			json::Value lP0 = lParams[0];
+			if (lP0.isString()) lAddress = lP0.getString();
+			else { reply = HttpReply::stockReply(HttpReply::bad_request); return; }
+		} else {
+			reply = HttpReply::stockReply("E_INSUFFICIENT_PARAMS", "Insufficient parameters"); 
+			return;
+		}
+
+		// process
+		SKeyPtr lKey;
+		if (lAddress.size()) {
+			PKey lPKey; 
+			if (!lPKey.fromString(lAddress)) {
+				reply = HttpReply::stockReply("E_PKEY_INVALID", "Public key is invalid"); 
+				return;
+			}
+
+			lKey = wallet_->removeKey(lPKey);
+			if (!lKey || !lKey->valid()) {
+				reply = HttpReply::stockReply("E_SKEY_NOT_FOUND", "Key was not found"); 
 				return;
 			}
 		}

@@ -454,7 +454,9 @@ public:
 		httpRequestHandler_->push(HttpBanPeer::instance());
 		httpRequestHandler_->push(HttpGetState::instance());
 		httpRequestHandler_->push(HttpGetKey::instance());
+		httpRequestHandler_->push(HttpGetAllKeys::instance());
 		httpRequestHandler_->push(HttpNewKey::instance());
+		httpRequestHandler_->push(HttpRemoveKey::instance());
 		httpRequestHandler_->push(HttpGetBalance::instance());
 		httpRequestHandler_->push(HttpSendToAddress::instance());
 		httpRequestHandler_->push(HttpCreateDApp::instance());

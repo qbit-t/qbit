@@ -48,6 +48,19 @@ public:
 	}
 };
 
+class HttpGetAllKeys: public IHttpCallEnpoint {
+public:
+	HttpGetAllKeys() {}
+	HttpGetAllKeys(bool publicMethod) : IHttpCallEnpoint(publicMethod) {}
+
+	void run(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
+	std::string method() { return std::string("getallkeys"); }
+
+	static IHttpCallEnpointPtr instance() {
+		return std::make_shared<HttpGetAllKeys>(false);
+	}
+};
+
 class HttpNewKey: public IHttpCallEnpoint {
 public:
 	HttpNewKey() {}
@@ -58,6 +71,19 @@ public:
 
 	static IHttpCallEnpointPtr instance() {
 		return std::make_shared<HttpNewKey>(false);
+	}
+};
+
+class HttpRemoveKey: public IHttpCallEnpoint {
+public:
+	HttpRemoveKey() {}
+	HttpRemoveKey(bool publicMethod) : IHttpCallEnpoint(publicMethod) {}
+
+	void run(const std::string&, const HttpRequest&, const json::Document&, HttpReply&);
+	std::string method() { return std::string("removekey"); }
+
+	static IHttpCallEnpointPtr instance() {
+		return std::make_shared<HttpRemoveKey>(false);
 	}
 };
 
