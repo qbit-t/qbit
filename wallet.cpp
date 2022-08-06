@@ -71,13 +71,18 @@ SKeyPtr Wallet::removeKey(const PKey& pkey) {
 
 SKeyPtr Wallet::firstKey() {
 	//
+	PKey lMainKey = settings_->mainKey();
+	if (lMainKey.valid()) {
+		return findKey(lMainKey);
+	}
+	//
 	{
 		boost::unique_lock<boost::recursive_mutex> lLock(keyMutex_);
 		std::map<uint160 /*id*/, SKeyPtr>::iterator lSKeyIter = keysCache_.begin();
 		if (lSKeyIter != keysCache_.end() && lSKeyIter->first == settings_->shadowKey().id()) lSKeyIter++;
 		if (lSKeyIter != keysCache_.end()) return lSKeyIter->second;
 	}
-
+	//
 	uint160 lKeyId;
 	db::DbContainer<uint160 /*id*/, SKey>::Iterator lKey = keys_.begin();
 	if (lKey.valid() && lKey.first(lKeyId) && lKeyId == settings_->shadowKey().id()) lKey++;
@@ -90,7 +95,6 @@ SKeyPtr Wallet::firstKey() {
 			return lSKeyPtr;
 		}
 	}
-
 	// try create from scratch
 	return createKey(std::list<std::string>());
 }
