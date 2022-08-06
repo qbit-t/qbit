@@ -3897,10 +3897,19 @@ void Peer::processBlockHeader(std::list<DataStream>::iterator msg, const boost::
 			}
 			*/
 
+			// depth analisys limit
+			uint64_t lLimit = (60/2)*60*24*1; // 1 day
 			// try to locate common root
-			if (!lChainFound) {
+			uint256 lBlock, lLocalLast;
+			std::multimap<uint32_t, IPeerPtr> lPeers;
+			uint64_t lTargetHeight = lConsensus->locateSynchronizedRoot(lPeers, lBlock, lLocalLast); // get peers, height and block
+			// local info
+			BlockHeader lLocalHeader;
+			uint64_t lLocalHeight = lConsensus->store()->currentHeight(lLocalHeader);
+			// process deep check
+			if (!lChainFound && ((lTargetHeight >= lLocalHeight && (lTargetHeight - lLocalHeight < lLimit)) || lTargetHeight < lLocalHeight)) {
 				uint256 lCommonRoot;
-				uint64_t lLastBlockDiff = 0, lFromDiff = 0, lLimit = (60/2)*60*24*1; // 1 day
+				uint64_t lLastBlockDiff = 0, lFromDiff = 0;
 				if (lConsensus->store()->isRootExists(lJob->lastBlock(), lFirst, lCommonRoot, lLastBlockDiff, lLimit)) {
 					if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: common root found for ") + 
 						strprintf("last = %s, current = %s, root = %s/%s#", lJob->lastBlock().toHex(), lFirst.toHex(), lCommonRoot.toHex(), lChain.toHex().substr(0, 10)));

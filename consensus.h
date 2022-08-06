@@ -1024,8 +1024,8 @@ public:
 		}
 
 		if (lProcess) {
+			//
 			std::multimap<uint32_t, IPeerPtr> lPeers;
-
 			uint256 lBlock, lLast;
 			uint64_t lHeight = locateSynchronizedRoot(lPeers, lBlock, lLast); // get peers, height and block
 			if (lHeight && lPeers.size()) {
