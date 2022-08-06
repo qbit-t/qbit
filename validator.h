@@ -255,13 +255,10 @@ private:
 							lCurrentTime - lLastHeader.time() >= (consensus_->blockTime())/1000)) {
 					//
 					if (!consensus_->settings()->isMiner()) {
-						//
-						if (lTimeout && gLog().isEnabled(Log::VALIDATOR))
-							gLog().write(Log::VALIDATOR, std::string("[miner]: clean-up ") + strprintf("%s#", chain_.toHex().substr(0, 10)));
 						// get block template
 						BlockPtr lCurrentBlock = Block::instance();
 						// make pseudo-block
-						mempool_->beginBlock(lCurrentBlock);
+						/*BlockContextPtr lCurrentBlockContext =*/ mempool_->beginBlock(lCurrentBlock);
 					} else {
 						//
 						try {
