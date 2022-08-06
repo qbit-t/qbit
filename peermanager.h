@@ -45,6 +45,8 @@ public:
 		//
 		notificationContext_.reset(new boost::asio::io_context());
 		notificationStrand_.reset(new boost::asio::io_service::strand(*notificationContext_));
+		//
+		work_.push_back(boost::asio::make_work_guard(*notificationContext_));
 	}
 
 	inline bool exists(const std::string& endpoint) {
@@ -608,6 +610,8 @@ public:
 			// wait for all threads in the pool to exit
 			for (std::vector<boost::shared_ptr<boost::thread> >::iterator lThread = threads_.begin(); lThread != threads_.end(); lThread++)
 				(*lThread)->join();
+			// join
+			notificationThread_->join();
 		}
 	}
 
@@ -617,6 +621,11 @@ public:
 			(*lCtx)->stop();
 
 		if (!settings_->isClient()) {
+			// stop notificator
+			gLog().write(Log::INFO, std::string("[peerManager]: stopping notificator..."));
+			notificationContext_->stop();
+
+			// wait
 			boost::this_thread::sleep_for(boost::chrono::milliseconds(2000));
 
 			// stop validators

@@ -239,6 +239,9 @@ public:
 	PKey changeKey() { return changeKey_; }
 	void setChangeKey(const std::string& src) { changeKey_.fromString(src); }
 
+	PKey mainKey() { return mainKey_; }
+	void setMainKey(const std::string& src) { mainKey_.fromString(src); }
+
 	static ISettingsPtr instance() { return std::make_shared<NodeSettings>(); }
 	static ISettingsPtr instance(const std::string& dir, ISettingsPtr other) { return std::make_shared<NodeSettings>(dir, other); }
 
@@ -273,6 +276,7 @@ private:
 	bool onlyPublicRestAPIAllowed_ = false;
 	PKey shadowKey_;
 	PKey changeKey_;
+	PKey mainKey_;
 };
 
 class Node;
@@ -699,6 +703,9 @@ int main(int argv, char** argc) {
 		} else if (std::string(argc[lIdx]) == std::string("-change-key")) {
 			//
 			lSettings->setChangeKey(std::string(argc[++lIdx]));
+		} else if (std::string(argc[lIdx]) == std::string("-main-key")) {
+			//
+			lSettings->setMainKey(std::string(argc[++lIdx]));
 		} else if (std::string(argc[lIdx]) == std::string("-roles")) {
 			//
 			std::vector<std::string> lRoles;
