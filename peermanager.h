@@ -41,6 +41,10 @@ public:
 
 			contextMutex_.push_back(new boost::recursive_mutex());
 		}
+
+		//
+		notificationContext_.reset(new boost::asio::io_context());
+		notificationStrand_.reset(new boost::asio::io_service::strand(*notificationContext_));
 	}
 
 	inline bool exists(const std::string& endpoint) {
@@ -390,34 +394,39 @@ public:
 	//
 	void broadcastState(StatePtr state) {
 		//
-		std::map<std::string, uint160> lClients;
-		std::map<uint160, std::set<std::string>> lPeerIdx;
-		{
-			boost::unique_lock<boost::recursive_mutex> lLock(peersIdxMutex_);
-			lClients = clients_;
-			lPeerIdx = peerIdx_;
-		}
+		if (gLog().isEnabled(Log::NET))	gLog().write(Log::NET, strprintf("[peerManager]: queue state notification %s", state->toString()));
+		//
+		notificationStrand_->post([this, state]() {
+			//
+			std::map<std::string, uint160> lClients;
+			std::map<uint160, std::set<std::string>> lPeerIdx;
+			{
+				boost::unique_lock<boost::recursive_mutex> lLock(peersIdxMutex_);
+				lClients = clients_;
+				lPeerIdx = peerIdx_;
+			}
 
-		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, 
-			strprintf("[peerManager]: broadcasting state - %s", state->toStringShort()));
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, 
+				strprintf("[peerManager]: broadcasting state - %s", state->toStringShort()));
 
-		// traverse peers
-		for (std::map<std::string, uint160>::iterator lClient = lClients.begin(); lClient != lClients.end(); lClient++) {
-			std::map<uint160, std::set<std::string>>::iterator lPeerIter = lPeerIdx.find(lClient->second);
-			if (lPeerIter != lPeerIdx.end()) {
-				for (std::set<std::string>::iterator lKey = lPeerIter->second.begin(); lKey != lPeerIter->second.end(); lKey++) {
-					IPeerPtr lPeer = locate(*lKey);
-					if (lPeer) {
-						std::map<std::string, uint512>::iterator lPeerStateSent = peerStateSent_.find(*lKey);
-						if (lPeerStateSent == peerStateSent_.end() || lPeerStateSent->second != state->signature()) {
-							if (!lPeer->state()->daemon()) lPeer->broadcastState(state);
-							if (lPeerStateSent == peerStateSent_.end()) peerStateSent_[*lKey] = state->signature();
-							else lPeerStateSent->second = state->signature();
+			// traverse peers
+			for (std::map<std::string, uint160>::iterator lClient = lClients.begin(); lClient != lClients.end(); lClient++) {
+				std::map<uint160, std::set<std::string>>::iterator lPeerIter = lPeerIdx.find(lClient->second);
+				if (lPeerIter != lPeerIdx.end()) {
+					for (std::set<std::string>::iterator lKey = lPeerIter->second.begin(); lKey != lPeerIter->second.end(); lKey++) {
+						IPeerPtr lPeer = locate(*lKey);
+						if (lPeer) {
+							std::map<std::string, uint512>::iterator lPeerStateSent = peerStateSent_.find(*lKey);
+							if (lPeerStateSent == peerStateSent_.end() || lPeerStateSent->second != state->signature()) {
+								if (!lPeer->state()->daemon()) lPeer->broadcastState(state);
+								if (lPeerStateSent == peerStateSent_.end()) peerStateSent_[*lKey] = state->signature();
+								else lPeerStateSent->second = state->signature();
+							}
 						}
 					}
 				}
 			}
-		}
+		});
 	}
 
 	//
@@ -425,62 +434,67 @@ public:
 	//
 	void notifyTransaction(TransactionContextPtr ctx) {
 		//
-		std::map<std::string, uint160> lClients;
-		std::map<uint160, std::set<std::string>> lPeerIdx;
-		{
-			boost::unique_lock<boost::recursive_mutex> lLock(peersIdxMutex_);
-			lClients = clients_;
-			lPeerIdx = peerIdx_;
-		}
-
 		if (gLog().isEnabled(Log::NET)) 
-			gLog().write(Log::NET, std::string("[peerManager]: try broadcast ") + strprintf("tx %s for %d addresses", ctx->tx()->id().toHex(), ctx->addresses().size()));
+			gLog().write(Log::NET, std::string("[peerManager]: queue notification for ") + strprintf("tx %s/%s#", ctx->tx()->id().toHex(), ctx->tx()->chain().toHex().substr(0, 10)));
+		//
+		notificationStrand_->post([this, ctx]() {
+			std::map<std::string, uint160> lClients;
+			std::map<uint160, std::set<std::string>> lPeerIdx;
+			{
+				boost::unique_lock<boost::recursive_mutex> lLock(peersIdxMutex_);
+				lClients = clients_;
+				lPeerIdx = peerIdx_;
+			}
 
-		// traverse addresses for tx
-		std::set<PKey>& lOutAddresses = ctx->outAddresses(); // ref out
-		std::set<PKey>& lInAddresses = ctx->addresses(); // ref in
-		for (std::set<PKey>::iterator lAddress = lOutAddresses.begin(); lAddress != lOutAddresses.end(); lAddress++) {
-			//
-			uint160 lAddressId = lAddress->id();
-			//
-			std::map<uint160, std::set<std::string>>::iterator lPeerIter = lPeerIdx.find(lAddressId);			
-			if (lPeerIter != lPeerIdx.end() && lInAddresses.find(*lAddress) == lInAddresses.end()) {
+			if (gLog().isEnabled(Log::NET)) 
+				gLog().write(Log::NET, std::string("[peerManager]: try broadcast ") + strprintf("tx %s for %d addresses", ctx->tx()->id().toHex(), ctx->addresses().size()));
+
+			// traverse addresses for tx
+			std::set<PKey>& lOutAddresses = ctx->outAddresses(); // ref out
+			std::set<PKey>& lInAddresses = ctx->addresses(); // ref in
+			for (std::set<PKey>::iterator lAddress = lOutAddresses.begin(); lAddress != lOutAddresses.end(); lAddress++) {
 				//
-				for (std::set<std::string>::iterator lKey = lPeerIter->second.begin(); lKey != lPeerIter->second.end(); lKey++) {
+				uint160 lAddressId = lAddress->id();
+				//
+				std::map<uint160, std::set<std::string>>::iterator lPeerIter = lPeerIdx.find(lAddressId);			
+				if (lPeerIter != lPeerIdx.end() && lInAddresses.find(*lAddress) == lInAddresses.end()) {
 					//
-					IPeerPtr lPeer = locate(*lKey);
-					if (lPeer && !lPeer->state()->client()) continue;
-					//
-					if (lPeer) {
-						if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: broadcasting to ") + strprintf("%s/%s", lAddressId.toHex(), *lKey));
-						lPeer->broadcastTransaction(ctx); // every direct transaction should be delivered (value)
-					} else {
-						if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: peer NOT found for ") + strprintf("%s/%s", lAddressId.toHex(), *lKey));
-					}
-				}
-			}	
-		}
-
-		// traverse peers
-		for (std::map<std::string, uint160>::iterator lClient = lClients.begin(); lClient != lClients.end(); lClient++) {
-			std::map<uint160, std::set<std::string>>::iterator lPeerIter = lPeerIdx.find(lClient->second);
-			if (lPeerIter != lPeerIdx.end()) {
-				for (std::set<std::string>::iterator lKey = lPeerIter->second.begin(); lKey != lPeerIter->second.end(); lKey++) {
-					IPeerPtr lPeer = locate(*lKey);
-					if (lPeer) {
-						std::map<std::string, IPeerExtensionPtr> lExtensions = lPeer->extensions();
-						for (std::map<std::string, IPeerExtensionPtr>::iterator lExtension = lExtensions.begin(); lExtension != lExtensions.end(); lExtension++) {
-							if (gLog().isEnabled(Log::NET)) 
-								gLog().write(Log::NET, std::string("[peerManager]: processing extension ") + strprintf("tx %s for peer %s", ctx->tx()->id().toHex(), *lKey));
-							lExtension->second->processTransaction(ctx); // every direct transaction should be delivered (value)
+					for (std::set<std::string>::iterator lKey = lPeerIter->second.begin(); lKey != lPeerIter->second.end(); lKey++) {
+						//
+						IPeerPtr lPeer = locate(*lKey);
+						if (lPeer && !lPeer->state()->client()) continue;
+						//
+						if (lPeer) {
+							if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: broadcasting to ") + strprintf("%s/%s", lAddressId.toHex(), *lKey));
+							lPeer->broadcastTransaction(ctx); // every direct transaction should be delivered (value)
+						} else {
+							if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: peer NOT found for ") + strprintf("%s/%s", lAddressId.toHex(), *lKey));
 						}
-					} else {
-						if (gLog().isEnabled(Log::NET)) 
-							gLog().write(Log::NET, std::string("[peerManager]: ") + strprintf("peer extension was NOT FOUND %s for %s", *lKey, ctx->tx()->id().toHex()));					
+					}
+				}	
+			}
+
+			// traverse peers
+			for (std::map<std::string, uint160>::iterator lClient = lClients.begin(); lClient != lClients.end(); lClient++) {
+				std::map<uint160, std::set<std::string>>::iterator lPeerIter = lPeerIdx.find(lClient->second);
+				if (lPeerIter != lPeerIdx.end()) {
+					for (std::set<std::string>::iterator lKey = lPeerIter->second.begin(); lKey != lPeerIter->second.end(); lKey++) {
+						IPeerPtr lPeer = locate(*lKey);
+						if (lPeer) {
+							std::map<std::string, IPeerExtensionPtr> lExtensions = lPeer->extensions();
+							for (std::map<std::string, IPeerExtensionPtr>::iterator lExtension = lExtensions.begin(); lExtension != lExtensions.end(); lExtension++) {
+								if (gLog().isEnabled(Log::NET)) 
+									gLog().write(Log::NET, std::string("[peerManager]: processing extension ") + strprintf("tx %s for peer %s", ctx->tx()->id().toHex(), *lKey));
+								lExtension->second->processTransaction(ctx); // every direct transaction should be delivered (value)
+							}
+						} else {
+							if (gLog().isEnabled(Log::NET)) 
+								gLog().write(Log::NET, std::string("[peerManager]: ") + strprintf("peer extension was NOT FOUND %s for %s", *lKey, ctx->tx()->id().toHex()));					
+						}
 					}
 				}
 			}
-		}
+		});
 	}
 
 	void suspend() {
@@ -581,6 +595,13 @@ public:
 				new boost::thread(
 					boost::bind(&PeerManager::processor, shared_from_this(), *lCtx)));
 			threads_.push_back(lThread);
+		}
+
+		// create notification thread (node only)
+		if (!settings_->isClient()) {
+			gLog().write(Log::INFO, std::string("[peerManager]: starting notificator..."));
+			notificationThread_.reset(new boost::thread(
+					boost::bind(&PeerManager::processor, shared_from_this(), notificationContext_)));
 		}
 
 		if (!settings_->isClient()) {
@@ -1358,8 +1379,11 @@ private:
 	std::list<IOContextWork> work_;
 	std::vector<boost::shared_ptr<boost::thread> > threads_;
 	int nextContext_ = 0;
-
 	int peersCount_ = 0;
+
+	IOContextPtr notificationContext_;
+	StrandPtr notificationStrand_;
+	boost::shared_ptr<boost::thread> notificationThread_;
 
 	ISettingsPtr settings_;
 	IConsensusManagerPtr consensusManager_;
