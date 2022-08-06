@@ -258,7 +258,7 @@ private:
 						// get block template
 						BlockPtr lCurrentBlock = Block::instance();
 						// make pseudo-block
-						/*BlockContextPtr lCurrentBlockContext =*/ mempool_->beginBlock(lCurrentBlock);
+						mempool_->beginBlock(lCurrentBlock);
 					} else {
 						//
 						try {

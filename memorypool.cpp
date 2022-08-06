@@ -576,8 +576,20 @@ BlockContextPtr MemoryPool::beginBlock(BlockPtr block) {
 								// 3. check address and amount
 								if (lBaseKey.id() == lBlockBaseKey.id() && lBaseAmount == lBlockBaseAmount) {
 									// we good
-									if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[fillBlock]: approving blockbase transaction - ") + 
-											strprintf("%s/%s#", lBlockBaseTx->id().toHex(), lBlockInfo.base()->chain().toHex().substr(0, 10)));
+									if (!consensus_->settings()->isMiner()) {
+										if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[fillBlock]: clean-up blockbase transaction - ") + 
+												strprintf("%s/%s#", lBlockBaseTx->id().toHex(), lBlockInfo.base()->chain().toHex().substr(0, 10)));
+										// remove request
+										removeConfirmedBlock(lBlockHash);
+										// remove from pool
+										removeTx(lEntry->second);
+										reverseMap_.erase(lEntry->second);
+										map_.erase(std::next(lEntry).base());
+										continue;
+									} else {
+										if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[fillBlock]: approving blockbase transaction - ") + 
+												strprintf("%s/%s#", lBlockBaseTx->id().toHex(), lBlockInfo.base()->chain().toHex().substr(0, 10)));
+									}
 								} else {
 									if (gLog().isEnabled(Log::GENERAL_ERROR)) gLog().write(Log::GENERAL_ERROR, std::string("[fillBlock]: amounts/addresses are NOT EQUALS - ") + 
 											strprintf("base(%d/%s), blockbase(%d/%s)", lBaseAmount, lBaseKey.id().toHex(), lBlockBaseAmount, lBlockBaseKey.id().toHex()));
