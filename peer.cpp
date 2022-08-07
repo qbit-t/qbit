@@ -53,9 +53,15 @@ void Peer::sendTimeout(int seconds) {
 		if (error != boost::asio::error::operation_aborted) {
 			//
 			boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
-			if (gLog().isEnabled(Log::NET))
-				gLog().write(Log::NET, strprintf("[peer/error]: send timeout for %s", key()));
+			try {
+				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, strprintf("[peer/error]: send timeout for %s", key()));
 				socket_->cancel();
+			} catch(const boost::system::system_error& ex) {
+				//
+				gLog().write(Log::GENERAL_ERROR, strprintf("[peer/sendTimeout/error]: cancel failed for %s | %s", key(), ex.what()));
+				// unsuccessfull cancel, we should force socket and peer to stop all activity
+				close(GENERAL_ERROR);
+			}
 		}
 	}));
 }

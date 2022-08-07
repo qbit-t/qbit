@@ -249,232 +249,249 @@ private:
 				BlockHeader lLastHeader = store_->currentBlockHeader();
 				// get seed
 				uint64_t lCurrentTime = consensus_->currentTime();
+
+				// !miner -> control and track clean-ups
+				if (!consensus_->settings()->isMiner()) {
+					//
+					if (lCurrentTime > lWaitTo) {
+						if (lWaitTo) {
+							//
+							if (gLog().isEnabled(Log::VALIDATOR))
+								gLog().write(Log::VALIDATOR, std::string("[miner]: cleaning-up ") + strprintf("%s#", chain_.toHex().substr(0, 10)));
+							// get block template
+							BlockPtr lCurrentBlock = Block::instance();
+							// make pseudo-block
+							mempool_->beginBlock(lCurrentBlock);
+						}
+
+						// calc next run
+						lWaitTo = lCurrentTime + ((consensus_->blockTime())/1000) * 10; // next +10 blocks
+					}
+
+					// switch-out
+					boost::this_thread::sleep_for(boost::chrono::milliseconds(100)); // TODO: not good, but it's ok for this case
+					//
+					continue;
+				}
+
 				// check if time passage was take a place
 				if ((lTimeout && lCurrentTime >= lWaitTo) || 
 						(!lTimeout && lCurrentTime > lLastHeader.time() &&
 							lCurrentTime - lLastHeader.time() >= (consensus_->blockTime())/1000)) {
 					//
-					if (!consensus_->settings()->isMiner()) {
-						// get block template
-						BlockPtr lCurrentBlock = Block::instance();
-						// make pseudo-block
-						mempool_->beginBlock(lCurrentBlock);
-					} else {
+					try {
 						//
-						try {
-							//
-							if (lTimeout && gLog().isEnabled(Log::VALIDATOR))
-								gLog().write(Log::VALIDATOR, std::string("[miner]: timedout for ") + strprintf("%s#", chain_.toHex().substr(0, 10)));
+						if (lTimeout && gLog().isEnabled(Log::VALIDATOR))
+							gLog().write(Log::VALIDATOR, std::string("[miner]: timedout for ") + strprintf("%s#", chain_.toHex().substr(0, 10)));
 
-							lTimeout = false;
+						lTimeout = false;
 
-							// select next leader
-							std::map<uint160, IPeerPtr> lPeers;
-							consensus_->collectValidators(lPeers);
+						// select next leader
+						std::map<uint160, IPeerPtr> lPeers;
+						consensus_->collectValidators(lPeers);
 
-							// add self
-							uint160 lSelfId = consensus_->mainKey()->createPKey().id();
-							lPeers[lSelfId] = nullptr; // just stub
+						// add self
+						uint160 lSelfId = consensus_->mainKey()->createPKey().id();
+						lPeers[lSelfId] = nullptr; // just stub
 
-							// prepare generator
-							boost::random::mt19937 lGen(lCurrentTime);
-							// prepare distribution
-							boost::random::uniform_int_distribution<> lDistribute(0, lPeers.size()-1);
-							// get NEXT index
-							int lNodeIndex = lDistribute(lGen);
+						// prepare generator
+						boost::random::mt19937 lGen(lCurrentTime);
+						// prepare distribution
+						boost::random::uniform_int_distribution<> lDistribute(0, lPeers.size()-1);
+						// get NEXT index
+						int lNodeIndex = lDistribute(lGen);
 
-							//
-							uint160 lNextId = std::next(lPeers.begin(), lNodeIndex)->first;
+						//
+						uint160 lNextId = std::next(lPeers.begin(), lNodeIndex)->first;
 
-							// check
-							if (lNextId == lSelfId) {
-								// get block template
-								BlockPtr lCurrentBlock = Block::instance();
+						// check
+						if (lNextId == lSelfId) {
+							// get block template
+							BlockPtr lCurrentBlock = Block::instance();
 
-								// prepare block
-								BlockContextPtr lCurrentBlockContext = mempool_->beginBlock(lCurrentBlock);
+							// prepare block
+							BlockContextPtr lCurrentBlockContext = mempool_->beginBlock(lCurrentBlock);
 
-								// make coinbase tx
-								BlockHeader lHeader;
-								uint64_t lCurrentHeight = store_->currentHeight(lHeader);
-								TransactionContextPtr lCoinbase = mempool_->wallet()->createTxCoinBase(
-									consensus_->blockReward(lCurrentHeight + 1 /*next height*/) + 
-										lCurrentBlockContext->fee());
-								lCurrentBlock->prepend(lCoinbase->tx());
+							// make coinbase tx
+							BlockHeader lHeader;
+							uint64_t lCurrentHeight = store_->currentHeight(lHeader);
+							TransactionContextPtr lCoinbase = mempool_->wallet()->createTxCoinBase(
+								consensus_->blockReward(lCurrentHeight + 1 /*next height*/) + 
+									lCurrentBlockContext->fee());
+							lCurrentBlock->prepend(lCoinbase->tx());
 
-								// set effective time (need for integrity check)
-								lCurrentBlock->setTime(lCurrentTime);
+							// set effective time (need for integrity check)
+							lCurrentBlock->setTime(lCurrentTime);
 
-								// reset current block linkage
-								lCurrentBlock->setPrev(lLastHeader.hash());
+							// reset current block linkage
+							lCurrentBlock->setPrev(lLastHeader.hash());
 
-								// fill-up nodes with order (need for integrity check)
-								for (std::map<uint160, IPeerPtr>::iterator lNode = lPeers.begin(); lNode != lPeers.end(); lNode++) {
-									//
-									lCurrentBlock->cycle_.push_back(lNode->first);
-								}
-
-								// prepare next challenge
-								BlockHeader lCurrentBlockHeader;
-								int32_t lChallengeBlockTx = -1;
-								uint256 lNextBlockChallenge;
-								uint64_t lChallengeBlock = 0, lCurrentBlockChallenge = 0;
-								bool lChallengeSaved = false;
-								// ONLY approx value to measure height
-								uint64_t lCurrentBlockHeight = store_->currentHeight(lCurrentBlockHeader);
-								if (lCurrentBlockHeight > 100) {
-									// define dig deep
-									boost::random::uniform_int_distribution<uint64_t> lBlockDistribution(1, 100);
-									lChallengeBlock = lBlockDistribution(lGen);
-
-									BlockPtr lBlock;
-									uint256 lPrevBlock = lLastHeader.prev();
-									while ((lBlock = store_->block(lPrevBlock)) != nullptr &&
-															lCurrentBlockChallenge < lChallengeBlock) {
-										lPrevBlock = lBlock->prev();
-										lCurrentBlockChallenge++;
-									}
-
-									if (lBlock && lCurrentBlockChallenge == lChallengeBlock) {
-										lNextBlockChallenge = lBlock->hash();
-										if (lBlock->transactions().size()) {
-											//
-											boost::random::uniform_int_distribution<> lTxDistribution(0, lBlock->transactions().size()-1);
-											lChallengeBlockTx = lTxDistribution(lGen);
-
-											// finally - set
-											lCurrentBlock->setChallenge(lNextBlockChallenge, lChallengeBlockTx);
-											lChallengeSaved = true;
-										}
-									}
-								}
-
-								// resolve previous challenge
-								bool lPrevChallengeResolved = false;
-								if (!lLastHeader.nextBlockChallenge().isNull()) {
-									//
-									BlockPtr lTargetBlock = store_->block(lLastHeader.nextBlockChallenge());
-									if (lTargetBlock != nullptr) {
-										//
-										if (lTargetBlock->transactions().size() > lLastHeader.nextTxChallenge() &&
-											lLastHeader.nextTxChallenge() >= 0) {
-											//
-											TransactionPtr lTransaction = lTargetBlock->transactions()[lLastHeader.nextTxChallenge()];
-											uint256 lTxId = lTransaction->hash();
-
-											// make hash
-											DataStream lSource(SER_NETWORK, PROTOCOL_VERSION);
-											lSource << lLastHeader.nextBlockChallenge();
-											lSource << lTxId;
-											lSource << lCurrentTime;
-											
-											uint256 lHashChallenge = Hash(lSource.begin(), lSource.end());
-											lCurrentBlock->setPrevChallenge(lHashChallenge);
-											lPrevChallengeResolved = true;
-										}
-									}
-								} else lPrevChallengeResolved = true;
-
-								if (!lPrevChallengeResolved) {
-									// timeout
-									if (!lTimeout) {
-										lTimeout = true;
-										lWaitTo = lCurrentTime + (consensus_->blockTime())/1000;
-										if (gLog().isEnabled(Log::VALIDATOR))
-											gLog().write(Log::VALIDATOR, std::string("[miner]: going for timeout ") + strprintf("%s#", chain_.toHex().substr(0, 10)));
-									}
-
-									continue;
-								}
-
-								// prepare proof
-								uint256 lProofTx;
-								uint256 lProofAsset = consensus_->settings()->proofAsset();
-								std::vector<Transaction::NetworkUnlinkedOut> lFreeOuts;
-								if (!lProofAsset.isNull()) {
-									ITransactionStorePtr lStore = store_->storeManager()->locate(MainChain::id());
-									lStore->selectUtxoByAddressAndAsset(consensus_->mainKey()->createPKey(), lProofAsset, lFreeOuts);
-
-									if (lFreeOuts.size()) {
-										//
-										for (std::vector<Transaction::NetworkUnlinkedOut>::iterator lOut = lFreeOuts.begin(); lOut != lFreeOuts.end(); lOut++) {
-											if (lOut->utxo().amount() >= consensus_->settings()->proofAmount()) {
-												lProofTx = lOut->utxo().out().tx();
-												break;
-											}
-										}
-
-										if (!lProofTx.isNull()) lCurrentBlock->setProofTx(lProofTx);
-									}
-								}
-
-
-								if (gLog().isEnabled(Log::VALIDATOR))
-									gLog().write(Log::VALIDATOR, std::string("[validator/miner]: challenge and proof ") +
-										strprintf("b = %s/%d/%d/%d, h = %d, proof = %d/%s, saved = %d, %s#",
-											lNextBlockChallenge.toHex(),
-											lChallengeBlock, 
-											lCurrentBlockChallenge,
-											lChallengeBlockTx,
-											lCurrentBlockHeight, lFreeOuts.size(), lProofTx.toHex(), lChallengeSaved, chain_.toHex().substr(0, 10)));
-
-								// calc merkle root
-								lCurrentBlock->setRoot(lCurrentBlockContext->calculateMerkleRoot());
-
-								// make signature
-								consensus_->mainKey()->sign(lCurrentBlock->hash(), lCurrentBlock->signature_);
-
-								// get current header
-								currentBlockHeader_ = lCurrentBlock->blockHeader();
-
+							// fill-up nodes with order (need for integrity check)
+							for (std::map<uint160, IPeerPtr>::iterator lNode = lPeers.begin(); lNode != lPeers.end(); lNode++) {
 								//
-								if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[validator/miner]: new block found ") + strprintf("%s/%s#", lCurrentBlock->hash().toHex(), chain_.toHex().substr(0, 10)));
-								
-								IConsensus::ChainState lState = consensus_->chainState();
-								if (minerRunning_ && lState == IConsensus::SYNCHRONIZED) {
-									// commit block
-									uint64_t lHeight = 0;
-									mempool_->commit(lCurrentBlockContext);
-									if (store_->commitBlock(lCurrentBlockContext, lHeight)) {
-										// clean-up mempool (sanity)
-										mempool_->removeTransactions(lCurrentBlockContext->block());
-										// broadcast
-										if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[validator/miner]: broadcasting found block ") + strprintf("%s/%s#", lCurrentBlock->hash().toHex(), chain_.toHex().substr(0, 10)));
-										NetworkBlockHeader lHeader(lCurrentBlock->blockHeader(), lHeight);
-										StatePtr lState = consensus_->currentState();
-										consensus_->broadcastBlockHeaderAndState(lHeader, lState, lState->addressId()); // broadcast new header and state
-										minerRunning_ = false; // stop until next block or timeout
-									} else {
-										if (lCurrentBlockContext->errors().size()) {
-											for (std::map<uint256, std::list<std::string>>::iterator lErrors = lCurrentBlockContext->errors().begin(); lErrors != lCurrentBlockContext->errors().end(); lErrors++) {
-												for (std::list<std::string>::iterator lError = lErrors->second.begin(); lError != lErrors->second.end(); lError++) {
-													gLog().write(Log::GENERAL_ERROR, std::string("[miner/error]: ") + (*lError));
-												}
+								lCurrentBlock->cycle_.push_back(lNode->first);
+							}
 
-												// drop from mempool
-												mempool_->removeTransaction(lErrors->first);
-												if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::GENERAL_ERROR, std::string("[miner/error]: DROP transaction from mempool ") + lErrors->first.toHex());
-											}
-										}
+							// prepare next challenge
+							BlockHeader lCurrentBlockHeader;
+							int32_t lChallengeBlockTx = -1;
+							uint256 lNextBlockChallenge;
+							uint64_t lChallengeBlock = 0, lCurrentBlockChallenge = 0;
+							bool lChallengeSaved = false;
+							// ONLY approx value to measure height
+							uint64_t lCurrentBlockHeight = store_->currentHeight(lCurrentBlockHeader);
+							if (lCurrentBlockHeight > 100) {
+								// define dig deep
+								boost::random::uniform_int_distribution<uint64_t> lBlockDistribution(1, 100);
+								lChallengeBlock = lBlockDistribution(lGen);
 
-										minerRunning_ = false; // stop until next block or timeout
-									}
-								} else {
-									if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[validator/miner]: skip found block ") + strprintf("%s/%s#", lCurrentBlock->hash().toHex(), chain_.toHex().substr(0, 10)));
+								BlockPtr lBlock;
+								uint256 lPrevBlock = lLastHeader.prev();
+								while ((lBlock = store_->block(lPrevBlock)) != nullptr &&
+														lCurrentBlockChallenge < lChallengeBlock) {
+									lPrevBlock = lBlock->prev();
+									lCurrentBlockChallenge++;
 								}
-							} else {
+
+								if (lBlock && lCurrentBlockChallenge == lChallengeBlock) {
+									lNextBlockChallenge = lBlock->hash();
+									if (lBlock->transactions().size()) {
+										//
+										boost::random::uniform_int_distribution<> lTxDistribution(0, lBlock->transactions().size()-1);
+										lChallengeBlockTx = lTxDistribution(lGen);
+
+										// finally - set
+										lCurrentBlock->setChallenge(lNextBlockChallenge, lChallengeBlockTx);
+										lChallengeSaved = true;
+									}
+								}
+							}
+
+							// resolve previous challenge
+							bool lPrevChallengeResolved = false;
+							if (!lLastHeader.nextBlockChallenge().isNull()) {
+								//
+								BlockPtr lTargetBlock = store_->block(lLastHeader.nextBlockChallenge());
+								if (lTargetBlock != nullptr) {
+									//
+									if (lTargetBlock->transactions().size() > lLastHeader.nextTxChallenge() &&
+										lLastHeader.nextTxChallenge() >= 0) {
+										//
+										TransactionPtr lTransaction = lTargetBlock->transactions()[lLastHeader.nextTxChallenge()];
+										uint256 lTxId = lTransaction->hash();
+
+										// make hash
+										DataStream lSource(SER_NETWORK, PROTOCOL_VERSION);
+										lSource << lLastHeader.nextBlockChallenge();
+										lSource << lTxId;
+										lSource << lCurrentTime;
+										
+										uint256 lHashChallenge = Hash(lSource.begin(), lSource.end());
+										lCurrentBlock->setPrevChallenge(lHashChallenge);
+										lPrevChallengeResolved = true;
+									}
+								}
+							} else lPrevChallengeResolved = true;
+
+							if (!lPrevChallengeResolved) {
 								// timeout
 								if (!lTimeout) {
 									lTimeout = true;
 									lWaitTo = lCurrentTime + (consensus_->blockTime())/1000;
 									if (gLog().isEnabled(Log::VALIDATOR))
-										gLog().write(Log::VALIDATOR, std::string("[miner]: timeout for ") + strprintf("%s#", chain_.toHex().substr(0, 10)));
+										gLog().write(Log::VALIDATOR, std::string("[miner]: going for timeout ") + strprintf("%s#", chain_.toHex().substr(0, 10)));
+								}
+
+								continue;
+							}
+
+							// prepare proof
+							uint256 lProofTx;
+							uint256 lProofAsset = consensus_->settings()->proofAsset();
+							std::vector<Transaction::NetworkUnlinkedOut> lFreeOuts;
+							if (!lProofAsset.isNull()) {
+								ITransactionStorePtr lStore = store_->storeManager()->locate(MainChain::id());
+								lStore->selectUtxoByAddressAndAsset(consensus_->mainKey()->createPKey(), lProofAsset, lFreeOuts);
+
+								if (lFreeOuts.size()) {
+									//
+									for (std::vector<Transaction::NetworkUnlinkedOut>::iterator lOut = lFreeOuts.begin(); lOut != lFreeOuts.end(); lOut++) {
+										if (lOut->utxo().amount() >= consensus_->settings()->proofAmount()) {
+											lProofTx = lOut->utxo().out().tx();
+											break;
+										}
+									}
+
+									if (!lProofTx.isNull()) lCurrentBlock->setProofTx(lProofTx);
 								}
 							}
+
+
+							if (gLog().isEnabled(Log::VALIDATOR))
+								gLog().write(Log::VALIDATOR, std::string("[validator/miner]: challenge and proof ") +
+									strprintf("b = %s/%d/%d/%d, h = %d, proof = %d/%s, saved = %d, %s#",
+										lNextBlockChallenge.toHex(),
+										lChallengeBlock, 
+										lCurrentBlockChallenge,
+										lChallengeBlockTx,
+										lCurrentBlockHeight, lFreeOuts.size(), lProofTx.toHex(), lChallengeSaved, chain_.toHex().substr(0, 10)));
+
+							// calc merkle root
+							lCurrentBlock->setRoot(lCurrentBlockContext->calculateMerkleRoot());
+
+							// make signature
+							consensus_->mainKey()->sign(lCurrentBlock->hash(), lCurrentBlock->signature_);
+
+							// get current header
+							currentBlockHeader_ = lCurrentBlock->blockHeader();
+
+							//
+							if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[validator/miner]: new block found ") + strprintf("%s/%s#", lCurrentBlock->hash().toHex(), chain_.toHex().substr(0, 10)));
+							
+							IConsensus::ChainState lState = consensus_->chainState();
+							if (minerRunning_ && lState == IConsensus::SYNCHRONIZED) {
+								// commit block
+								uint64_t lHeight = 0;
+								mempool_->commit(lCurrentBlockContext);
+								if (store_->commitBlock(lCurrentBlockContext, lHeight)) {
+									// clean-up mempool (sanity)
+									mempool_->removeTransactions(lCurrentBlockContext->block());
+									// broadcast
+									if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[validator/miner]: broadcasting found block ") + strprintf("%s/%s#", lCurrentBlock->hash().toHex(), chain_.toHex().substr(0, 10)));
+									NetworkBlockHeader lHeader(lCurrentBlock->blockHeader(), lHeight);
+									StatePtr lState = consensus_->currentState();
+									consensus_->broadcastBlockHeaderAndState(lHeader, lState, lState->addressId()); // broadcast new header and state
+									minerRunning_ = false; // stop until next block or timeout
+								} else {
+									if (lCurrentBlockContext->errors().size()) {
+										for (std::map<uint256, std::list<std::string>>::iterator lErrors = lCurrentBlockContext->errors().begin(); lErrors != lCurrentBlockContext->errors().end(); lErrors++) {
+											for (std::list<std::string>::iterator lError = lErrors->second.begin(); lError != lErrors->second.end(); lError++) {
+												gLog().write(Log::GENERAL_ERROR, std::string("[miner/error]: ") + (*lError));
+											}
+
+											// drop from mempool
+											mempool_->removeTransaction(lErrors->first);
+											if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::GENERAL_ERROR, std::string("[miner/error]: DROP transaction from mempool ") + lErrors->first.toHex());
+										}
+									}
+
+									minerRunning_ = false; // stop until next block or timeout
+								}
+							} else {
+								if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::VALIDATOR, std::string("[validator/miner]: skip found block ") + strprintf("%s/%s#", lCurrentBlock->hash().toHex(), chain_.toHex().substr(0, 10)));
+							}
+						} else {
+							// timeout
+							if (!lTimeout) {
+								lTimeout = true;
+								lWaitTo = lCurrentTime + (consensus_->blockTime())/1000;
+								if (gLog().isEnabled(Log::VALIDATOR))
+									gLog().write(Log::VALIDATOR, std::string("[miner]: timeout for ") + strprintf("%s#", chain_.toHex().substr(0, 10)));
+							}
 						}
-						catch(boost::thread_interrupted&) {
-							minerRunning_ = false;
-						}
+					}
+					catch(boost::thread_interrupted&) {
+						minerRunning_ = false;
 					}
 				}
 

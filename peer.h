@@ -267,14 +267,18 @@ public:
 		boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
 		if (socket != nullptr) {
 			if (socketType_ == CLIENT) {
-				boost::system::error_code lEndpoint; socket->remote_endpoint(lEndpoint);
-				if (!lEndpoint)
-					return (endpoint_ = socket->remote_endpoint().address().to_string() + ":" + std::to_string(socket->remote_endpoint().port()));
+				boost::system::error_code lErr; 
+				boost::asio::ip::tcp::endpoint lEndpoint = socket->remote_endpoint(lErr);
+				if (!lErr)
+					return (endpoint_ = lEndpoint.address().to_string() + ":" + std::to_string(lEndpoint.port()));
 			} else {
-				boost::system::error_code lLocalEndpoint; socket->local_endpoint(lLocalEndpoint);
-				boost::system::error_code lRemoteEndpoint; socket->remote_endpoint(lRemoteEndpoint);
-				if (!lLocalEndpoint && !lRemoteEndpoint)
-					return (endpoint_ = socket->remote_endpoint().address().to_string() + ":" + std::to_string(socket->remote_endpoint().port()));
+				boost::system::error_code lLocalErr;
+				boost::asio::ip::tcp::endpoint lLocalEndpoint = socket->local_endpoint(lLocalErr);
+				boost::system::error_code lRemoteErr;
+				boost::asio::ip::tcp::endpoint lRemoteEndpoint = socket->remote_endpoint(lRemoteErr);
+
+				if (!lLocalErr && !lRemoteErr)
+					return (endpoint_ = lRemoteEndpoint.address().to_string() + ":" + std::to_string(lRemoteEndpoint.port()));
 			}
 		}
 
@@ -284,10 +288,12 @@ public:
 	virtual bool isLocal() {
 		boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
 		if (socket_ != nullptr) {
-			boost::system::error_code lLocalEndpoint; socket_->local_endpoint(lLocalEndpoint);
-			boost::system::error_code lRemoteEndpoint; socket_->remote_endpoint(lRemoteEndpoint);
-			if (!lLocalEndpoint && !lRemoteEndpoint)
-				return socket_->local_endpoint().address().to_string() == socket_->remote_endpoint().address().to_string();
+			boost::system::error_code lLocalErr;
+			boost::asio::ip::tcp::endpoint lLocalEndpoint = socket_->local_endpoint(lLocalErr);
+			boost::system::error_code lRemoteErr;
+			boost::asio::ip::tcp::endpoint lRemoteEndpoint = socket_->remote_endpoint(lRemoteErr);
+			if (!lLocalErr && !lRemoteErr)
+				return lLocalEndpoint.address().to_string() == lRemoteEndpoint.address().to_string();
 		}
 
 		return false;
