@@ -228,7 +228,7 @@ Item {
 			anchors.fill: parent
 
 			onClicked: {
-				controller_.openBuzzfeedByBuzzer(side_ === sideCreator_ ? creatorInfoId_ : counterpartyInfoId_);
+				controller_.openBuzzfeedByBuzzer(buzzerClient.getBuzzerName(side_ === sideCreator_ ? creatorInfoId_ : counterpartyInfoId_));
 			}
 		}
 	}
