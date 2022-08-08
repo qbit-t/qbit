@@ -84,7 +84,7 @@ QVariant PeersListModel::data(const QModelIndex& index, int role) const {
 		for (std::vector<qbit::State::BlockInfo>::const_iterator lInfo = lItem->chains().begin(); lInfo != lItem->chains().end(); lInfo++) {
 			std::string lName = (lInfo->dApp().size() ? lInfo->dApp() : "none");
 			std::string lHash = lInfo->hash().toHex();
-			std::string lBlock = lHash.substr(0, 8) + "..." + lHash.substr(lHash.size()-9, lHash.size()-1);
+			std::string lBlock = lHash.substr(0, 6) + "..." + lHash.substr(lHash.size()-6, lHash.size()-1);
 			lChains += strprintf("<li>%s - (%s, %s)</li>", lBlock, lInfo->height(), lName);
 		}
 
