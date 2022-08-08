@@ -452,7 +452,8 @@ public:
 		std::map<IRequestProcessor::KeyOrder, IPeerPtr> lOrder;
 		collectPeersByChain(MainChain::id(), lOrder);
 
-		for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::iterator lPeer = lOrder.begin(); lPeer != lOrder.end(); lPeer++) {
+		int lCount = 0;
+		for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::reverse_iterator lPeer = lOrder.rbegin(); lPeer != lOrder.rend() && lCount < 3 /* it's enough */; lPeer++, lCount++) {
 			lPeer->second->tryAskForQbits();
 		}
 
@@ -468,18 +469,26 @@ public:
 		destinations = 0;
 		//
 		if (lOrder.size()) {
-			// use nearest
+			//
+			std::set<uint160> lControl;
 			std::list<IPeerPtr> lDests;
 			for (std::map<uint256, std::map<uint32_t, IPeerPtr>>::iterator lItem = lOrder.begin(); lItem != lOrder.end(); lItem++) {
 				//
-				if (!lDests.size() || (lDests.size() && (*lDests.rbegin())->addressId() != lItem->second.begin()->second->addressId())) {
-					lDests.push_back(lItem->second.begin()->second);
+				std::map<IRequestProcessor::KeyOrder, IPeerPtr> lPeers;
+				collectPeersByChain(lItem->first, lPeers);
+				//
+				for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::reverse_iterator lPeer = lPeers.rbegin(); lPeer != lPeers.rend(); lPeer++) {
+					if (lControl.insert(lPeer->second->addressId()).second) {
+						lDests.push_back(lPeer->second);
+					}
 				}
 			}
 
-			destinations = lDests.size();
-			for (std::list<IPeerPtr>::iterator lPeer = lDests.begin(); lPeer != lDests.end(); lPeer++)
+			destinations = 0;
+			for (std::list<IPeerPtr>::iterator lPeer = lDests.begin(); lPeer != lDests.end() && destinations < 3; lPeer++, destinations++) {
 				(*lPeer)->selectEntityCountByDApp(dapp, handler);
+			}
+
 			return true;
 		}
 
@@ -635,8 +644,18 @@ public:
 					if (((mostSuitable && lStateData->infos().size() > 1) || !mostSuitable) && // NOTICE: only nodes with multiple shards support
 					        lStateData->locateChain(chain, lInfo)) {
 						//
+						// aggregate ALL chain heights
+						uint64_t lHeights = 0;
+						std::vector<State::BlockInfo> lInfos = lStateData->infos();
+						for (std::vector<State::BlockInfo>::iterator lHeightInfo = lInfos.begin(); lHeightInfo != lInfos.end(); lHeightInfo++) {
+							//
+							lHeights += (*lHeightInfo).height();
+						}
+
+						//
+						// ordering
 						order.insert(std::map<IRequestProcessor::KeyOrder, IPeerPtr>::value_type(
-							IRequestProcessor::KeyOrder(lInfo.height(), lLatency->second), lPeer->second));
+							IRequestProcessor::KeyOrder(lHeights, lLatency->second), lPeer->second));
 					}
 				}
 			}
@@ -656,7 +675,7 @@ public:
 				continue;
 			}
 
-			if (lLastHeight - (int64_t)lItem->first.height() > 5 /*more that 5 blocks*/) {
+			if (lLastHeight - (int64_t)lItem->first.height() > 10 /*more that 10 blocks - remove*/) {
 				order.erase(std::next(lItem).base());
 				continue;
 			}
@@ -664,6 +683,16 @@ public:
 			lLastHeight = (int64_t)lItem->first.height();
 			lItem++;
 		}
+
+		/*
+		if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, std::string("[collectPeersByChain]: ") +
+					strprintf("chain - %s#", chain.toHex().substr(0, 10)));
+		for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::reverse_iterator lItem = order.rbegin(); lItem != order.rend(); lItem++) {
+			//
+			if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, std::string("[collectPeersByChain]: ") +
+						strprintf("%s, %d, %d", lItem->second->key(), lItem->first.height(), lItem->first.latency()));
+		}
+		*/		
 	}
 
 	void collectPeersByDApp(const std::string& dapp, std::map<uint256, std::map<uint32_t, IPeerPtr>>& order) {
