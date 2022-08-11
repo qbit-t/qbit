@@ -74,7 +74,7 @@ bool Peer::sendMessageAsync(std::list<DataStream>::iterator msg) {
 			if (gLog().isEnabled(Log::NET))	gLog().write(Log::NET, strprintf("[peer]: posting message for %s", key()));
 			strand_->post([this, msg]() {
 				//
-				if (gLog().isEnabled(Log::NET))	gLog().write(Log::NET, strprintf("[peer]: queue message for %s", key()));
+				if (gLog().isEnabled(Log::NET))	gLog().write(Log::NET, strprintf("[peer]: queue message for %s, ctx = %d", key(), contextId_));
 				// push
 				bool lProcess = false;
 				{
@@ -126,7 +126,7 @@ void Peer::processPendingMessagesQueue() {
 
 	if (lFound) {
 		//
-		if (gLog().isEnabled(Log::NET))	gLog().write(Log::NET, strprintf("[peer]: sending queued message to %s", key()));
+		if (gLog().isEnabled(Log::NET))	gLog().write(Log::NET, strprintf("[peer]: sending queued message to %s, ctx = %d", key(), contextId_));
 		{
 			boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
 			// set timeout

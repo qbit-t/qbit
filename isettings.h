@@ -29,6 +29,7 @@ public:
 	virtual size_t maxMessageSize() { return 12 * 1024 * 1024; } // max incoming message size
 
 	virtual size_t threadPoolSize() { if (!isClient()) return 4; return 1; } // tread pool size
+	virtual size_t clientsPoolSize() { return 0; } // clients context processing pool
 
 	virtual uint64_t consensusSynchronizationLatency() { return 30; } // latency in seconds
 
@@ -69,6 +70,7 @@ public:
 
 	virtual void setServerPort(int) {}
 	virtual void setThreadPoolSize(size_t) {}
+	virtual void setClientsPoolSize(size_t) {}
 	virtual void setHttpServerPort(int) {}
 	virtual void setSupportAirdrop() {}
 

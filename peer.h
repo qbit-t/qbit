@@ -109,6 +109,7 @@ public:
 
 		gen_ = boost::random::mt19937(rd_());
 	}
+
 	~Peer() {
 		release();
 
@@ -121,6 +122,29 @@ public:
 
 		if (gLog().isEnabled(Log::NET)) 
 			gLog().write(Log::NET, std::string("[peer]: peer destroyed ") + key());
+	}
+
+	void moveToContext(int contextId) {
+		//
+		// NOTICE: this method should be called from syhcnronously from the previous context thread, between "read" and "wait"
+		//		   but there still can be ongoing "write" operation
+		//
+		if (gLog().isEnabled(Log::NET)) 
+			gLog().write(Log::NET, strprintf("[peer]: peer %s moving to the NEW context = %d, old = %d", key(), contextId, contextId_));
+
+		boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
+		if (socket_) {
+			//
+			try {
+				auto lDescriptor = socket_->release(); // cancel all async operations
+				contextId_ = contextId; // new context
+				socket_.reset(new boost::asio::ip::tcp::socket(peerManager_->getContext(contextId_)));
+				strand_.reset(new boost::asio::io_service::strand(peerManager_->getContext(contextId_)));
+				socket_->assign(boost::asio::ip::tcp::v4(), lDescriptor);
+			} catch(const boost::system::system_error& ex) {
+				gLog().write(Log::GENERAL_ERROR, strprintf("[peer/moveToContext/error]: move failed for %s | %s", key(), ex.what()));
+			}
+		}
 	}
 
 	void release() {

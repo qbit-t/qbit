@@ -309,6 +309,8 @@ public:
 	virtual Type type() { throw qbit::exception("NOT_IMPL", "IPeer::type - not implemented."); }
 	virtual void setType(Type) { throw qbit::exception("NOT_IMPL", "IPeer::setType - not implemented."); }
 
+	virtual void moveToContext(int /*contextId*/) { throw qbit::exception("NOT_IMPL", "IPeer::moveToContext - not implemented."); }
+
 	virtual Status status() { throw qbit::exception("NOT_IMPL", "IPeer::status - not implemented."); }
 	virtual StatePtr state() { throw qbit::exception("NOT_IMPL", "IPeer::state - not implemented."); }
 	virtual uint160 addressId() { throw qbit::exception("NOT_IMPL", "IPeer::addressId - not implemented."); }

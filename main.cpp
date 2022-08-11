@@ -159,6 +159,9 @@ public:
 	size_t threadPoolSize() { return threadPoolSize_; }
 	void setThreadPoolSize(size_t pool) { threadPoolSize_ = pool; }
 
+	size_t clientsPoolSize() { return clientsPoolSize_; }
+	void setClientsPoolSize(size_t pool) { clientsPoolSize_ = pool; }
+
 	uint32_t roles() { return roles_; }
 	void addMinerRole() { roles_ |= State::PeerRoles::MINER; }
 	void addNodeRole() { roles_ |= State::PeerRoles::NODE; }
@@ -260,6 +263,7 @@ private:
 	uint32_t roles_ = State::PeerRoles::UNDEFINED;
 	int serverPort_ = 31415;
 	size_t threadPoolSize_ = 2;
+	size_t clientsPoolSize_ = 0;
 	int httpServerPort_ = 8080;
 	bool supportAirdrop_ = false;
 	size_t clientSessionsLimit_ = 50;
@@ -598,6 +602,15 @@ int main(int argv, char** argc) {
 				lSettings->setThreadPoolSize(lPool);
 			} else {
 				std::cout << "threadpool: incorrect value" << std::endl;
+				return -1;
+			}
+		} else if (std::string(argc[lIdx]) == std::string("-clients-pool")) {
+			//
+			size_t lPool;
+			if (boost::conversion::try_lexical_convert<size_t>(std::string(argc[++lIdx]), lPool)) {
+				lSettings->setClientsPoolSize(lPool);
+			} else {
+				std::cout << "clients-pool: incorrect value" << std::endl;
 				return -1;
 			}
 		} else if (std::string(argc[lIdx]) == std::string("-http")) {

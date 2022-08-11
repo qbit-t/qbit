@@ -28,7 +28,7 @@ public:
 		peersContainer_(settings->dataPath() + "/peers") {
 
 		// prepare pool contexts
-		for (std::size_t lIdx = 0; lIdx < settings_->threadPoolSize(); ++lIdx) {
+		for (std::size_t lIdx = 0; lIdx < settings_->threadPoolSize() + settings_->clientsPoolSize(); ++lIdx) {
 			IOContextPtr lContext(new boost::asio::io_context());
 			contexts_.push_back(lContext);
 			work_.push_back(boost::asio::make_work_guard(*lContext));
@@ -43,8 +43,12 @@ public:
 		}
 
 		//
+		nextClientContext_ = settings_->threadPoolSize();
+
+		//
 		notificationContext_.reset(new boost::asio::io_context());
 		notificationStrand_.reset(new boost::asio::io_service::strand(*notificationContext_));
+
 		//
 		work_.push_back(boost::asio::make_work_guard(*notificationContext_));
 	}
@@ -652,7 +656,18 @@ public:
 
 		int lId = nextContext_++;
 		
-		if (nextContext_ == contexts_.size()) nextContext_ = 0;
+		if (nextContext_ == settings_->threadPoolSize()) nextContext_ = 0;
+		return lId;
+	}
+
+	int getClientContextId() {
+		// lock peers - use the same mutex as for the peers
+		boost::unique_lock<boost::recursive_mutex> lLock(nextContextMutex_);
+
+		int lId = nextClientContext_++;
+		
+		if (nextClientContext_ == settings_->threadPoolSize() + settings_->clientsPoolSize())
+				nextClientContext_ = settings_->threadPoolSize();
 		return lId;
 	}
 
@@ -971,6 +986,7 @@ public:
 
 	bool activate(IPeerPtr peer, bool force = false) {
 		uint160 lAddress = peer->addressId();
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: activating - ") + strprintf("%s/%s", peer->key(), lAddress.toHex()));
 		{
 			boost::unique_lock<boost::recursive_mutex> lLock(peersIdxMutex_);
 			std::map<uint160, std::set<std::string>>::iterator lPeerIndex = peerIdx_.find(lAddress);
@@ -996,6 +1012,12 @@ public:
 
 					peerIdx_.erase(lPeerIndex);
 					*/
+				}
+
+				// if peer is in the main pool
+				if (peer->state()->client() && settings_->clientsPoolSize() && peer->contextId() < settings_->threadPoolSize()) {
+					// move to the clients context
+					peer->moveToContext(getClientContextId());
 				}
 				
 				// add new one or another one
@@ -1212,6 +1234,14 @@ public:
 					*/
 				}
 				
+				/*
+				// if peer is in the main pool
+				if (peer->state()->client() && settings_->clientsPoolSize() && peer->contextId() < settings_->threadPoolSize()) {
+					// move to the clients context
+					peer->moveToContext(getClientContextId());
+				}
+				*/
+
 				// add new one or another one
 				peerIdx_[peer->addressId()].insert(peer->key());
 
@@ -1388,6 +1418,7 @@ private:
 	std::list<IOContextWork> work_;
 	std::vector<boost::shared_ptr<boost::thread> > threads_;
 	int nextContext_ = 0;
+	int nextClientContext_ = 0;
 	int peersCount_ = 0;
 
 	IOContextPtr notificationContext_;
