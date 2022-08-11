@@ -69,7 +69,7 @@ public:
 	virtual IPeerPtr sendTransaction(TransactionContextPtr /*ctx*/, ISentTransactionHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IRequestProcessor::sendTransaction - not implemented."); }
 	virtual IPeerPtr sendTransaction(const uint256& /*destination*/, TransactionContextPtr /*ctx*/, ISentTransactionHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IRequestProcessor::sendTransaction - not implemented."); }
 	virtual IPeerPtr sendTransaction(IPeerPtr /*peer*/, const uint256& /*destination*/, TransactionContextPtr /*ctx*/, ISentTransactionHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IRequestProcessor::sendTransaction - not implemented."); }
-	virtual void sendTransaction(IPeerPtr /*peer*/, TransactionContextPtr /*ctx*/, ISentTransactionHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IRequestProcessor::sendTransaction - not implemented."); }
+	virtual bool sendTransaction(IPeerPtr /*peer*/, TransactionContextPtr /*ctx*/, ISentTransactionHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IRequestProcessor::sendTransaction - not implemented."); }
 	virtual bool askForQbits() { throw qbit::exception("NOT_IMPL", "IRequestProcessor::askForQbits - not implemented."); }
 };
 

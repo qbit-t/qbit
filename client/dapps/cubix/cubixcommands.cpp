@@ -179,13 +179,23 @@ void UploadMediaCommand::summaryCreated(TransactionContextPtr ctx, Transaction::
 
 	TransactionContextPtr lFee = ctx->locateByType(Transaction::FEE);
 	// send tx and define peer to interact with (may be different returned)
-	if (!(peer_ = composer_->requestProcessor()->sendTransaction(peer_, ctx->tx()->chain(), lFee,
+	// if peer is NULL -> retry N times and then fail
+	int lTryCount = 0;
+	IPeerPtr lPeer = peer_;
+	while (lTryCount < 5 && !(lPeer = composer_->requestProcessor()->sendTransaction(peer_, ctx->tx()->chain(), lFee,
 			SentTransaction::instance(
 				boost::bind(&UploadMediaCommand::feeSent, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
 				boost::bind(&UploadMediaCommand::timeout, shared_from_this()))))) {
+		lTryCount++;
+		boost::this_thread::sleep_for(boost::chrono::milliseconds(50)); // TODO: not good, but it's ok for now
+	}
+
+	if (!lPeer) {
 		composer_->wallet()->resetCache();
 		composer_->wallet()->prepareCache();
 		error("E_TX_NOT_SENT", "Transaction was not sent");
+	} else {
+		peer_ = lPeer;
 	}
 }
 
@@ -206,12 +216,21 @@ void UploadMediaCommand::feeSent(const uint256& tx, const std::vector<Transactio
 	}
 
 	//
-	composer_->requestProcessor()->sendTransaction(peer_, ctx_,
+	int lTryCount = 0;
+	bool lSent = false;
+	while (lTryCount < 5 && !(lSent = composer_->requestProcessor()->sendTransaction(peer_, ctx_,
 			SentTransaction::instance(
 				boost::bind(&UploadMediaCommand::summarySent, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
-				boost::bind(&UploadMediaCommand::timeout, shared_from_this())));
+				boost::bind(&UploadMediaCommand::timeout, shared_from_this()))))) {
+		lTryCount++;
+		boost::this_thread::sleep_for(boost::chrono::milliseconds(50)); // TODO: not good, but it's ok for now		
+	}
 
-	if (summarySent_ && feeSent_) {
+	if (!lSent) {
+		composer_->wallet()->resetCache();
+		composer_->wallet()->prepareCache();
+		error("E_TX_NOT_SENT", "Transaction was not sent");
+	} else if (summarySent_ && feeSent_) {
 		startSendData();
 	}
 }
@@ -630,10 +649,21 @@ void UploadMediaCommand::dataCreated(TransactionContextPtr ctx, Transaction::Unl
 	//
 	prev_ = utxo;
 
-	composer_->requestProcessor()->sendTransaction(peer_, ctx,
+	int lTryCount = 0;
+	bool lSent = false;
+	while (lTryCount < 5 && !(lSent = composer_->requestProcessor()->sendTransaction(peer_, ctx,
 			SentTransaction::instance(
 				boost::bind(&UploadMediaCommand::dataSent, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
-				boost::bind(&UploadMediaCommand::timeout, shared_from_this())));
+				boost::bind(&UploadMediaCommand::timeout, shared_from_this()))))) {
+		lTryCount++;
+		boost::this_thread::sleep_for(boost::chrono::milliseconds(50)); // TODO: not good, but it's ok for now		
+	}
+
+	if (!lSent) {
+		composer_->wallet()->resetCache();
+		composer_->wallet()->prepareCache();
+		error("E_TX_NOT_SENT", "Transaction was not sent");
+	}
 }
 
 void UploadMediaCommand::dataSent(const uint256& tx, const std::vector<TransactionContext::Error>& errors) {
@@ -651,10 +681,22 @@ void UploadMediaCommand::headerCreated(TransactionContextPtr ctx) {
 	//
 	header_ = TransactionHelper::to<TxMediaHeader>(ctx->tx());
 
-	composer_->requestProcessor()->sendTransaction(peer_, ctx,
+	//
+	int lTryCount = 0;
+	bool lSent = false;
+	while (lTryCount < 5 && !(lSent = composer_->requestProcessor()->sendTransaction(peer_, ctx,
 			SentTransaction::instance(
 				boost::bind(&UploadMediaCommand::headerSent, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
-				boost::bind(&UploadMediaCommand::timeout, shared_from_this())));
+				boost::bind(&UploadMediaCommand::timeout, shared_from_this()))))) {
+		lTryCount++;
+		boost::this_thread::sleep_for(boost::chrono::milliseconds(50)); // TODO: not good, but it's ok for now		
+	}
+
+	if (!lSent) {
+		composer_->wallet()->resetCache();
+		composer_->wallet()->prepareCache();
+		error("E_TX_NOT_SENT", "Transaction was not sent");
+	}
 }
 
 void UploadMediaCommand::headerSent(const uint256& tx, const std::vector<TransactionContext::Error>& errors) {

@@ -356,7 +356,7 @@ public:
 	virtual SocketPtr socket() { throw qbit::exception("NOT_IMPL", "IPeer::socket - not implemented."); }
 	virtual std::string key() { throw qbit::exception("NOT_IMPL", "IPeer::key - not implemented."); }
 	virtual StrandPtr strand() { throw qbit::exception("NOT_IMPL", "IPeer::strand - not implemented."); }	
-	virtual void sendMessageAsync(std::list<DataStream>::iterator /*msg*/) { throw qbit::exception("NOT_IMPL", "IPeer::sendMessageAsync - not implemented."); }
+	virtual bool sendMessageAsync(std::list<DataStream>::iterator /*msg*/) { throw qbit::exception("NOT_IMPL", "IPeer::sendMessageAsync - not implemented."); }
 	virtual void sendMessage(std::list<DataStream>::iterator /*msg*/) { throw qbit::exception("NOT_IMPL", "IPeer::sendMessage - not implemented."); }
 
 	virtual void waitForMessage() { throw qbit::exception("NOT_IMPL", "IPeer::waitForMessage - not implemented."); }
@@ -409,7 +409,7 @@ public:
 	virtual void selectUtxoByEntityNames(const std::vector<std::string>& /*entityNames*/, ISelectUtxoByEntityNamesHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IPeer::selectUtxoByEntityNames - not implemented."); }
 	virtual void selectEntityCountByShards(const std::string& /*dapp*/, ISelectEntityCountByShardsHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IPeer::selectEntityCountByShards - not implemented."); }
 	virtual void selectEntityCountByDApp(const std::string& /*dapp*/, ISelectEntityCountByDAppHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IPeer::selectEntityCountByDApp - not implemented."); }
-	virtual void sendTransaction(TransactionContextPtr /*ctx*/, ISentTransactionHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IPeer::sendTransaction - not implemented."); }
+	virtual bool sendTransaction(TransactionContextPtr /*ctx*/, ISentTransactionHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IPeer::sendTransaction - not implemented."); }
 	virtual void selectEntityNames(const std::string& /*pattern*/, ISelectEntityNamesHandlerPtr /*handler*/) { throw qbit::exception("NOT_IMPL", "IPeer::selectEntityNames - not implemented."); }
 	virtual void tryAskForQbits() { throw qbit::exception("NOT_IMPL", "IPeer::tryAskForQbits - not implemented."); }
 	virtual void tryAskForQbits(const PKey& /*key*/) { throw qbit::exception("NOT_IMPL", "IPeer::tryAskForQbits - not implemented."); }

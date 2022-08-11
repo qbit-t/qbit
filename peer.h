@@ -369,7 +369,7 @@ public:
 	void selectUtxoByEntityNames(const std::vector<std::string>& /*entityNames*/, ISelectUtxoByEntityNamesHandlerPtr /*handler*/);
 	void selectEntityCountByShards(const std::string& /*dapp*/, ISelectEntityCountByShardsHandlerPtr /*handler*/);
 	void selectEntityCountByDApp(const std::string& /*dapp*/, ISelectEntityCountByDAppHandlerPtr /*handler*/);
-	void sendTransaction(TransactionContextPtr /*ctx*/, ISentTransactionHandlerPtr /*handler*/);
+	bool sendTransaction(TransactionContextPtr /*ctx*/, ISentTransactionHandlerPtr /*handler*/);
 	void selectEntityNames(const std::string& /*pattern*/, ISelectEntityNamesHandlerPtr /*handler*/);
 	void tryAskForQbits();
 	void tryAskForQbits(const PKey& /*key*/);
@@ -406,7 +406,7 @@ public:
 	}
 	// error processing
 	void processError(const std::string& context, std::list<DataStream>::iterator msg, const boost::system::error_code& error);	
-	void sendMessageAsync(std::list<DataStream>::iterator msg);
+	bool sendMessageAsync(std::list<DataStream>::iterator msg);
 	void sendMessage(std::list<DataStream>::iterator msg);
 	void processPendingMessagesQueue();
 	StrandPtr strand() { return strand_; }

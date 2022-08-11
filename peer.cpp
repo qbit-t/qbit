@@ -66,7 +66,7 @@ void Peer::sendTimeout(int seconds) {
 	}));
 }
 
-void Peer::sendMessageAsync(std::list<DataStream>::iterator msg) {
+bool Peer::sendMessageAsync(std::list<DataStream>::iterator msg) {
 	//
 	{
 		boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
@@ -87,11 +87,15 @@ void Peer::sendMessageAsync(std::list<DataStream>::iterator msg) {
 				if (lProcess) processPendingMessagesQueue();
 			});
 
-			return;
+			return true;
 		}
 	}
 
+	//
 	removeUnqueuedOutMessage(msg);
+
+	//
+	return false;
 }
 
 void Peer::sendMessage(std::list<DataStream>::iterator msg) {
@@ -830,9 +834,9 @@ void Peer::loadEntity(const std::string& name, ILoadEntityHandlerPtr handler) {
 	}
 }
 
-void Peer::sendTransaction(TransactionContextPtr ctx, ISentTransactionHandlerPtr handler) {
+bool Peer::sendTransaction(TransactionContextPtr ctx, ISentTransactionHandlerPtr handler) {
 	//
-	if (socketStatus_ == CLOSED || socketStatus_ == GENERAL_ERROR) { /*connect();*/ return; } // TODO: connect will skip current call
+	if (socketStatus_ == CLOSED || socketStatus_ == GENERAL_ERROR) { /*connect();*/ return false; } // TODO: connect will skip current call
 	else if (socketStatus_ == CONNECTED) {
 		// new message
 		std::list<DataStream>::iterator lMsg = newOutMessage();
@@ -854,8 +858,10 @@ void Peer::sendTransaction(TransactionContextPtr ctx, ISentTransactionHandlerPtr
 			gLog().write(Log::NET, strprintf("[peer]: sending transaction %s to %s", ctx->tx()->id().toHex(), key()));
 
 		// write
-		sendMessageAsync(lMsg);
+		return sendMessageAsync(lMsg);
 	}
+
+	return false;
 }
 
 void Peer::selectUtxoByAddress(const PKey& source, const uint256& chain, ISelectUtxoByAddressHandlerPtr handler) {

@@ -504,6 +504,7 @@ public:
 		IPeerPtr lLastPeer = nullptr;
 		for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::reverse_iterator lPeer = lOrder.rbegin(); lPeer != lOrder.rend(); lPeer++) {
 			//
+			// if (!lPeer->second->state()->minerOrValidator()) continue; // ONLY validators can take a part
 			if (lPeer->second->addressId() == lastPeer_) {
 				lLastPeer = lPeer->second;
 				break;
@@ -513,14 +514,12 @@ public:
 		if (!lLastPeer && lOrder.size()) {
 			// use nearest
 			lastPeer_ = lOrder.rbegin()->second->addressId();
-			lOrder.rbegin()->second->sendTransaction(ctx, handler);
+			if (!lOrder.rbegin()->second->sendTransaction(ctx, handler)) return nullptr;
 			return lOrder.rbegin()->second;
-		} else {
-			lLastPeer->sendTransaction(ctx, handler);
-			return lLastPeer;
 		}
 
-		return nullptr;
+		if (!lLastPeer->sendTransaction(ctx, handler)) return nullptr;
+		return lLastPeer;
 	}	
 
 	IPeerPtr sendTransaction(const uint256& destination, TransactionContextPtr ctx, ISentTransactionHandlerPtr handler) {
@@ -532,11 +531,8 @@ public:
 		//
 		if (peer) {
 			//
-			StatePtr lState = peer->state();
-			if (lState->containsChain(destination)) {
-				peer->sendTransaction(ctx, handler);
-				return peer;
-			}
+			if (!peer->sendTransaction(ctx, handler)) return nullptr;
+			return peer;
 		}
 
 		// doing hard
@@ -547,6 +543,7 @@ public:
 		IPeerPtr lLastPeer = nullptr;
 		for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::reverse_iterator lPeer = lOrder.rbegin(); lPeer != lOrder.rend(); lPeer++) {
 			//
+			// if (!lPeer->second->state()->minerOrValidator()) continue; // ONLY validators can take a part
 			if (lPeer->second->addressId() == lastPeer_) {
 				lLastPeer = lPeer->second;
 				break;
@@ -556,21 +553,25 @@ public:
 		if (!lLastPeer && lOrder.size()) {
 			// use nearest
 			lastPeer_ = lOrder.rbegin()->second->addressId();
-			lOrder.rbegin()->second->sendTransaction(ctx, handler);
+			if (!lOrder.rbegin()->second->sendTransaction(ctx, handler)) {
+				//
+				return nullptr;
+			}
+
 			return lOrder.rbegin()->second;
-		} else {
-			lLastPeer->sendTransaction(ctx, handler);
-			return lLastPeer;
 		}
 
-		return nullptr;
+		if (!lLastPeer->sendTransaction(ctx, handler)) return nullptr;
+		return lLastPeer;
 	}
 
-	void sendTransaction(IPeerPtr peer, TransactionContextPtr ctx, ISentTransactionHandlerPtr handler) {
+	bool sendTransaction(IPeerPtr peer, TransactionContextPtr ctx, ISentTransactionHandlerPtr handler) {
 		//
 		if (peer) {
-			peer->sendTransaction(ctx, handler);
+			return peer->sendTransaction(ctx, handler);
 		}
+
+		return false;
 	}
 
 	bool broadcastTransaction(TransactionContextPtr ctx) {
