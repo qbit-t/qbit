@@ -70,7 +70,7 @@ public:
 
 	bool loadBuzzerAndInfo(const std::string& buzzer, ILoadBuzzerAndInfoHandlerPtr handler) {
 		//
-		std::map<uint256, std::map<uint32_t, IPeerPtr>> lOrder;
+		std::map<uint256, std::multimap<uint32_t, IPeerPtr>> lOrder;
 		requestProcessor_->collectPeersByDApp("buzzer", lOrder);
 
 		//

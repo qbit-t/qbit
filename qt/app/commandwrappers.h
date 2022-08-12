@@ -1583,7 +1583,7 @@ public:
 			//
 			if (result.error() == "E_SENT_TX" && result.message().find("UNKNOWN_REFTX") != std::string::npos) {
 				//
-				if (retryCount_ >= RETRY_MAX_COUNT) {
+				if (retryCount_ >= 0 /*RETRY_MAX_COUNT*/) {
 					emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
 				} else {
 					// can retry
@@ -1709,7 +1709,7 @@ public:
 			//
 			if (result.error() == "E_SENT_TX" && result.message().find("UNKNOWN_REFTX") != std::string::npos) {
 				//
-				if (retryCount_ >= RETRY_MAX_COUNT) {
+				if (retryCount_ >= 0 /*RETRY_MAX_COUNT*/) {
 					emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
 				} else {
 					// can retry
@@ -1838,7 +1838,7 @@ public:
 			//
 			if (result.error() == "E_SENT_TX" && result.message().find("UNKNOWN_REFTX") != std::string::npos) {
 				//
-				if (retryCount_ >= RETRY_MAX_COUNT) {
+				if (retryCount_ >= 0/*RETRY_MAX_COUNT*/) {
 					emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
 				} else {
 					// can retry
@@ -3357,7 +3357,7 @@ public:
 			//
 			if (result.error() == "E_SENT_TX" && result.message().find("UNKNOWN_REFTX") != std::string::npos) {
 				//
-				if (retryCount_ >= RETRY_MAX_COUNT) {
+				if (retryCount_ >= 0 /*RETRY_MAX_COUNT*/) {
 					emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
 				} else {
 					// can retry

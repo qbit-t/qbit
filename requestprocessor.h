@@ -463,7 +463,7 @@ public:
 
 	bool selectEntityCountByDApp(const std::string& dapp, ISelectEntityCountByDAppHandlerPtr handler, int& destinations) {
 		//
-		std::map<uint256, std::map<uint32_t, IPeerPtr>> lOrder;
+		std::map<uint256, std::multimap<uint32_t, IPeerPtr>> lOrder;
 		collectPeersByDApp(dapp, lOrder);
 
 		destinations = 0;
@@ -472,7 +472,7 @@ public:
 			//
 			std::set<uint160> lControl;
 			std::list<IPeerPtr> lDests;
-			for (std::map<uint256, std::map<uint32_t, IPeerPtr>>::iterator lItem = lOrder.begin(); lItem != lOrder.end(); lItem++) {
+			for (std::map<uint256, std::multimap<uint32_t, IPeerPtr>>::iterator lItem = lOrder.begin(); lItem != lOrder.end(); lItem++) {
 				//
 				std::map<IRequestProcessor::KeyOrder, IPeerPtr> lPeers;
 				collectPeersByChain(lItem->first, lPeers);
@@ -696,7 +696,7 @@ public:
 		*/		
 	}
 
-	void collectPeersByDApp(const std::string& dapp, std::map<uint256, std::map<uint32_t, IPeerPtr>>& order) {
+	void collectPeersByDApp(const std::string& dapp, std::map<uint256, std::multimap<uint32_t, IPeerPtr>>& order) {
 		//
 		boost::unique_lock<boost::recursive_mutex> lLock(peersMutex_);
 		std::map<std::string /*dapp*/, std::set<uint160>>::iterator lDApp = dappPeers_.find(dapp);
