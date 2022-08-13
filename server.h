@@ -65,13 +65,25 @@ public:
 
 private:	
 	void startEndpoint() {
-		gLog().write(Log::NET, "[server]: starting endpoints...");
-		endpoint4_.reset(new tcp::endpoint(tcp::v4(), port_));
+		//
+		gLog().write(Log::NET, "[server]: starting V6 endpoint...");
+		boost::system::error_code lError;
 		endpoint6_.reset(new tcp::endpoint(tcp::v6(), port_));
+		acceptor6_.reset(new tcp::acceptor(peerManager_->getContext(0)));
+		acceptor6_->open(endpoint6_->protocol());
+		acceptor6_->set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
+		acceptor6_->set_option(boost::asio::ip::v6_only(true), lError); // ONLY IPV6 connections accepting
+		if (lError) gLog().write(Log::NET, "[server/v6/error]: acceptor set option - " + lError.message());
+		else {
+			acceptor6_->bind(*endpoint6_);
+			acceptor6_->listen();
+			accept6();
+		}
+
+		gLog().write(Log::NET, "[server]: starting V4 endpoint...");
+		endpoint4_.reset(new tcp::endpoint(tcp::v4(), port_));
 		acceptor4_.reset(new tcp::acceptor(peerManager_->getContext(0), (tcp::endpoint&)(*endpoint4_)));
-		acceptor6_.reset(new tcp::acceptor(peerManager_->getContext(0), (tcp::endpoint&)(*endpoint6_)));
 		accept4();
-		accept6();
 	}
 
 	void accept4() {
@@ -88,7 +100,6 @@ private:
 		gLog().write(Log::NET, "[server]: V6 accepting...");
 
 		IPeerPtr lPeer(new Peer(peerManager_->getContextId(), peerManager_));
-		lPeer->socket()->set_option(boost::asio::ip::v6_only(true)); // ONLY IPV6 connections accepting
 		acceptor6_->async_accept(*lPeer->socket(),
 			boost::bind(
 				&Server::processAccept6, this, lPeer,
@@ -101,6 +112,8 @@ private:
 			// log
 			gLog().write(Log::NET, "[server]: starting V4 session for " + peer->key());
 			peer->waitForMessage();
+		} else {
+			gLog().write(Log::NET, "[server/v4/error]: accept - " + error.message());
 		}
 
 		accept4();
@@ -112,6 +125,8 @@ private:
 			// log
 			gLog().write(Log::NET, "[server]: starting V6 session for " + peer->key());
 			peer->waitForMessage();
+		} else {
+			gLog().write(Log::NET, "[server/v6/error]: accept - " + error.message());
 		}
 
 		accept6();
