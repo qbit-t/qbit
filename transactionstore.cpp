@@ -1841,10 +1841,16 @@ bool TransactionStore::pushEntity(const uint256& id, TransactionContextPtr ctx) 
 		strprintf("'%s'/%s", ctx->tx()->entityName(), id.toHex()));
 
 	// try regular index
-	if (entities_.read(ctx->tx()->entityName(), lId)) {
+	if (entities_.read(ctx->tx()->entityName(), lId) && lId != id) {
 		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[pushEntity]: entity ALREADY EXISTS - ") +
 			strprintf("'%s'/%s", ctx->tx()->entityName(), id.toHex()));
 		return false;
+	}
+
+	// double
+	if (lId == id) {
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[pushEntity]: DOUBLE PUSHED entity ") +
+			strprintf("'%s'/%s", ctx->tx()->entityName(), id.toHex()));
 	}
 
 	// try entity name full text index
