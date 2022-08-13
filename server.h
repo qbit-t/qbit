@@ -66,18 +66,20 @@ public:
 private:	
 	void startEndpoint() {
 		//
-		gLog().write(Log::NET, "[server]: starting V6 endpoint...");
-		boost::system::error_code lError;
-		endpoint6_.reset(new tcp::endpoint(tcp::v6(), port_));
-		acceptor6_.reset(new tcp::acceptor(peerManager_->getContext(0)));
-		acceptor6_->open(endpoint6_->protocol());
-		acceptor6_->set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
-		acceptor6_->set_option(boost::asio::ip::v6_only(true), lError); // ONLY IPV6 connections accepting
-		if (lError) gLog().write(Log::NET, "[server/v6/error]: acceptor set option - " + lError.message());
-		else {
-			acceptor6_->bind(*endpoint6_);
-			acceptor6_->listen();
-			accept6();
+		if (settings_->ipV6Enabled()) {
+			gLog().write(Log::NET, "[server]: starting V6 endpoint...");
+			boost::system::error_code lError;
+			endpoint6_.reset(new tcp::endpoint(tcp::v6(), port_));
+			acceptor6_.reset(new tcp::acceptor(peerManager_->getContext(0)));
+			acceptor6_->open(endpoint6_->protocol());
+			acceptor6_->set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
+			acceptor6_->set_option(boost::asio::ip::v6_only(true), lError); // ONLY IPV6 connections accepting
+			if (lError) gLog().write(Log::NET, "[server/v6/error]: acceptor set option - " + lError.message());
+			else {
+				acceptor6_->bind(*endpoint6_);
+				acceptor6_->listen();
+				accept6();
+			}
 		}
 
 		gLog().write(Log::NET, "[server]: starting V4 endpoint...");

@@ -245,6 +245,9 @@ public:
 	PKey mainKey() { return mainKey_; }
 	void setMainKey(const std::string& src) { mainKey_.fromString(src); }
 
+	void enableIPV6Support() { ipv6Enabled_ = true; }
+	bool ipV6Enabled() { return ipv6Enabled_; }
+
 	static ISettingsPtr instance() { return std::make_shared<NodeSettings>(); }
 	static ISettingsPtr instance(const std::string& dir, ISettingsPtr other) { return std::make_shared<NodeSettings>(dir, other); }
 
@@ -278,6 +281,7 @@ private:
 	amount_t oneVoteProofAmount_ = 0;
 	uint64_t proofAssetLockTime_ = 0;
 	bool onlyPublicRestAPIAllowed_ = false;
+	bool ipv6Enabled_ = false;
 	PKey shadowKey_;
 	PKey changeKey_;
 	PKey mainKey_;
@@ -596,9 +600,12 @@ int main(int argv, char** argc) {
 		} else if (std::string(argc[lIdx]) == std::string("-endpoint")) {
 			//
 			lEndpointV4 = std::string(argc[++lIdx]);
-		} else if (std::string(argc[lIdx]) == std::string("-endpoint-v6")) {
+		} else if (std::string(argc[lIdx]) == std::string("-endpoint-ipv6")) {
 			//
 			lEndpointV6 = std::string(argc[++lIdx]);
+		} else if (std::string(argc[lIdx]) == std::string("-ipv6-enable")) {
+			//
+			lSettings->enableIPV6Support();
 		} else if (std::string(argc[lIdx]) == std::string("-threadpool")) {
 			//
 			size_t lPool;

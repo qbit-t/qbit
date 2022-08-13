@@ -112,6 +112,9 @@ public:
 	virtual void allowOnlyPublicRestAPI() {}
 	virtual bool onlyPublicRestAPIAllowed() { return false; }
 
+	virtual void enableIPV6Support() {}
+	virtual bool ipV6Enabled() { return false; }
+
 	virtual std::string userName() { return ""; }
 };
 
