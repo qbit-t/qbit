@@ -109,38 +109,56 @@ bool TransactionStore::processBlockTransactions(ITransactionStorePtr store, IEnt
 		//
 		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlockTransactions]: processing tx ") +
 			strprintf("%s/%s/%s#", lCtx->tx()->id().toHex(), ctx->block()->hash().toHex(), chain_.toHex().substr(0, 10)));
-		//
-		if (!lProcessor.process(lCtx)) {
+
+		// check presence
+		uint256 lTxIdUtxo;
+		db::DbMultiContainer<uint256 /*tx*/, uint256 /*utxo*/>::Iterator lTxUtxo = txUtxo_.find(lCtx->tx()->id());
+		if (approxHeight && lTxUtxo.valid() && lTxUtxo.first(lTxIdUtxo) && lTxIdUtxo == lCtx->tx()->id() /* double check */) {
 			//
-			bool lHandled = false;
-			if ((lCtx->errorsContains("UNKNOWN_REFTX") || lCtx->errorsContains("INVALID_UTXO")) && /*lCtx->errorsContains("0000000000#") &&*/ !approxHeight) {
-				lHandled = true; // skipped and will NOT be indexed
-			} else  {
+			Transaction::UnlinkedOut lUtxo;
+			if (utxo_.read(*lTxUtxo, lUtxo) || ltxo_.read(*lTxUtxo, lUtxo)) {
+				gLog().write(Log::GENERAL_ERROR,
+					strprintf("[processBlockTransactions/error]: transaction ALREADY processed %s/%s/%s#",
+						lCtx->tx()->id().toHex(), ctx->block()->hash().toHex(), chain_.toHex().substr(0, 10)));
 				lHasErrors = true;
-				lBlockCtx->addErrors(lCtx->tx()->id(), lCtx->errors());
+				lBlockCtx->addError(lCtx->tx()->id(), "E_TX_ALREADY_PROCESSED - Transaction is already processed");
 			}
+		}
 
-			for (std::list<std::string>::iterator lErr = lCtx->errors().begin(); lErr != lCtx->errors().end(); lErr++) {
-				gLog().write(Log::GENERAL_ERROR, strprintf("[processBlockTransactions/error]: %s / %s",
-					(lHandled ? "SKIPPED" : "elevated"), (*lErr)));
-			}
-
-		} else {
-			lTransactionStore->pushTransaction(lCtx);
-
-			// if coinbase
-			if (lCtx->tx()->type() == Transaction::COINBASE) {
-				if (!lCoinBaseAmount) {
-					lCoinBaseAmount = lCtx->amount();
-				} else {
+		// check rules
+		if (!lHasErrors) {
+			if (!lProcessor.process(lCtx)) {
+				//
+				bool lHandled = false;
+				if ((lCtx->errorsContains("UNKNOWN_REFTX") || lCtx->errorsContains("INVALID_UTXO")) && /*lCtx->errorsContains("0000000000#") &&*/ !approxHeight) {
+					lHandled = true; // skipped and will NOT be indexed
+				} else  {
 					lHasErrors = true;
-					if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlockTransactions]: COINBASE already exists ") +
-						strprintf("%s/%s/%s#", lCtx->tx()->id().toHex(), ctx->block()->hash().toHex(), chain_.toHex().substr(0, 10)));
-					lBlockCtx->addError(lCtx->tx()->id(), std::string("COINBASE already exists ") +
-						strprintf("%s/%s/%s#", lCtx->tx()->id().toHex(), ctx->block()->hash().toHex(), chain_.toHex().substr(0, 10)));
+					lBlockCtx->addErrors(lCtx->tx()->id(), lCtx->errors());
 				}
+
+				for (std::list<std::string>::iterator lErr = lCtx->errors().begin(); lErr != lCtx->errors().end(); lErr++) {
+					gLog().write(Log::GENERAL_ERROR, strprintf("[processBlockTransactions/error]: %s / %s",
+						(lHandled ? "SKIPPED" : "elevated"), (*lErr)));
+				}
+
 			} else {
-				lFeeAmount += lCtx->fee();
+				lTransactionStore->pushTransaction(lCtx);
+
+				// if coinbase
+				if (lCtx->tx()->type() == Transaction::COINBASE) {
+					if (!lCoinBaseAmount) {
+						lCoinBaseAmount = lCtx->amount();
+					} else {
+						lHasErrors = true;
+						if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlockTransactions]: COINBASE already exists ") +
+							strprintf("%s/%s/%s#", lCtx->tx()->id().toHex(), ctx->block()->hash().toHex(), chain_.toHex().substr(0, 10)));
+						lBlockCtx->addError(lCtx->tx()->id(), std::string("COINBASE already exists ") +
+							strprintf("%s/%s/%s#", lCtx->tx()->id().toHex(), ctx->block()->hash().toHex(), chain_.toHex().substr(0, 10)));
+					}
+				} else {
+					lFeeAmount += lCtx->fee();
+				}
 			}
 		}
 	}
@@ -2169,30 +2187,13 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 				setLastBlock(lLastPrev);
 				resyncHeight();
 			} else {
-				/*
 				//
-				gLog().write(Log::STORE, std::string("[reindex/warning]: rollback to ") + 
-					strprintf("lastBlock = %s, from = %s, to = %s, root = %s/%s#",
-						lLastBlock.toHex(), from.toHex(), to.toHex(), lCommonRoot.toHex(), chain_.toHex().substr(0, 10)));
-
-				// 1. clean-up newly created indexes if any
-				removeBlocks(from, to, false, 0);
-				// 2. re-process index from last-known good branch
-				processBlocks(lLastBlock, lCleanUpLastBlock ? lCommonRoot : to, pool, lLastPrev, lErrorReason);
-				// 3. set last block
-				setLastBlock(lLastBlock);
-				// 4. height should be intact
-				*/
-
-				gLog().write(Log::STORE, std::string("[reindex/warning]: reset to end for ") + 
-					strprintf("%s#", chain_.toHex().substr(0, 10)));
-				//
-				// NOTICE: reset to NULL block and invalidate height map
-				// we have inner consistency errors and let sync procedure will decide
-				//
-				BlockHeader lNull;
-				setLastBlock(lNull.hash());
-				invalidateHeightMap();				
+				gLog().write(Log::STORE, std::string("[reindex/error]: consistency errors occured, fallback to last known ") + 
+					strprintf("block = %s/%s#",
+						lLastPrev.toHex(), chain_.toHex().substr(0, 10)));
+				// rollback
+				setLastBlock(lLastPrev);
+				resyncHeight();
 			}
 		} else {
 			//
