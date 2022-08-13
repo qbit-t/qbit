@@ -4572,7 +4572,7 @@ void Peer::connect() {
 				resolver_->async_resolve(tcp::resolver::query(lAddress, lPort),
 					strand_->wrap(boost::bind(&Peer::resolved, shared_from_this(),
 						boost::asio::placeholders::error,
-						boost::asio::placeholders::iterator)));			
+						boost::asio::placeholders::iterator)));
 			}
 		} else if (socketStatus_ == CONNECTED /*|| CONNECTED == CONNECTING*/) {
 			// just try to check this direction once more; that can be IF upper level of processing logic EXPLICITLY

@@ -937,7 +937,7 @@ int main(int argv, char** argc) {
 	}
 
 	// allow connection to this host, v6
-	if (lEndpointV6.length() && lSettings->serverPort() && lEndpointV6 != "::1") {
+	if (lEndpointV6.length() && lSettings->serverPort() && lEndpointV6 != "::1" && lEndpointV6 != "::") {
 		//
 		lNode->peerManager()->addPeerExplicit(strprintf("[%s]:%d", lEndpointV6, lExternalPort ? lExternalPort : lSettings->serverPort()));
 	}
