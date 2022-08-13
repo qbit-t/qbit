@@ -294,7 +294,8 @@ public:
 				boost::system::error_code lErr; 
 				boost::asio::ip::tcp::endpoint lEndpoint = socket->remote_endpoint(lErr);
 				if (!lErr)
-					return (endpoint_ = lEndpoint.address().to_string() + ":" + std::to_string(lEndpoint.port()));
+					return (endpoint_ = (lEndpoint.address().is_v4() ? strprintf("%s:%s", lEndpoint.address().to_string(), std::to_string(lEndpoint.port())) :
+																		strprintf("[%s]:%s", lEndpoint.address().to_string(), std::to_string(lEndpoint.port()))));
 			} else {
 				boost::system::error_code lLocalErr;
 				boost::asio::ip::tcp::endpoint lLocalEndpoint = socket->local_endpoint(lLocalErr);
@@ -302,7 +303,8 @@ public:
 				boost::asio::ip::tcp::endpoint lRemoteEndpoint = socket->remote_endpoint(lRemoteErr);
 
 				if (!lLocalErr && !lRemoteErr)
-					return (endpoint_ = lRemoteEndpoint.address().to_string() + ":" + std::to_string(lRemoteEndpoint.port()));
+					return (endpoint_ = (lRemoteEndpoint.address().is_v4() ? strprintf("%s:%s", lRemoteEndpoint.address().to_string(), std::to_string(lRemoteEndpoint.port())) :
+																		strprintf("[%s]:%s", lRemoteEndpoint.address().to_string(), std::to_string(lRemoteEndpoint.port()))));
 			}
 		}
 

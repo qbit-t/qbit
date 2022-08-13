@@ -76,13 +76,14 @@ public:
 		{
 			boost::unique_lock<boost::recursive_mutex> lLock(peersIdxMutex_);
 			// check banned hosts
-			std::string lHost = endpoint.substr(0, endpoint.find(":"));
-			//
-			if (lHost.length()) {
-				if (bannedEndpoins_.find(lHost) != bannedEndpoins_.end()) return true;
+			bool lV6 = false;
+			bool lExplicit = false;
+			std::string lAddress, lPort;
+			if (extractAddressInfo(endpoint, lAddress, lPort, lExplicit, lV6)) {
+				if (bannedEndpoins_.find(lAddress) != bannedEndpoins_.end()) return true;
 			}
 		}
-		
+
 		return false;
 	}
 
@@ -247,22 +248,6 @@ public:
 					explicit_[lIdx].erase(lPeer->key());
 				}
 
-				//
-				/*
-				{
-					//
-					std::vector<std::string> lParts;
-					boost::split(lParts, lPeer->key(), boost::is_any_of(":"), boost::token_compress_on);
-
-					//
-					bool lResult = false;
-					if (lParts.size() > 1) {
-						boost::unique_lock<boost::recursive_mutex> lLock(peersIdxMutex_);
-						explicitEndpoins_.erase(lParts[0]);
-					}
-				}
-				*/
-
 				peersContainer_.remove(lPeer->key()); // remove from storage
 			}
 
@@ -347,27 +332,25 @@ public:
 
 	IPeerPtr addPeerInternal(const std::string& endpoint, IPeer::Type type) {
 		//
-		std::vector<std::string> lParts;
-		boost::split(lParts, endpoint, boost::is_any_of(":"), boost::token_compress_on);
+		bool lV6 = false;
+		bool lExplicit = false;
+		std::string lAddress, lPort;
+		if (extractAddressInfo(endpoint, lAddress, lPort, lExplicit, lV6)) {
+			//
+			if ((lAddress == "0.0.0.0" || lAddress == "127.0.0.1" || lAddress == "::1") && !qbit::gTestNet) return nullptr;
+			//
+			std::string lEndpoint = lV6 ? strprintf("[%s]:%s", lAddress, lPort) :
+											strprintf("%s:%s", lAddress, lPort);
 
-		std::string lEndpoint;
-		if (lParts.size() >= 2) {
-			//
-			if (lParts[0] == "0.0.0.0" || lParts[0] == "127.0.0.1" && !qbit::gTestNet) return nullptr;
-			//
-			lEndpoint = strprintf("%s:%s", lParts[0], lParts[1]);
-			//
 			if (locate(lEndpoint) == nullptr) {
 				//
-				if (lParts.size() >= 2) {
-					IPeerPtr lPeer = Peer::instance(getContextId(), lEndpoint, std::static_pointer_cast<IPeerManager>(shared_from_this()));
-					
-					if (lParts.size() > 2 && lParts[2] == "e") lPeer->setType(IPeer::Type::EXPLICIT);
-					else lPeer->setType(type);
-					add(lPeer);
+				IPeerPtr lPeer = Peer::instance(getContextId(), lEndpoint, std::static_pointer_cast<IPeerManager>(shared_from_this()));
+				
+				if (lExplicit) lPeer->setType(IPeer::Type::EXPLICIT);
+				else lPeer->setType(type);
+				add(lPeer);
 
-					return lPeer;
-				}
+				return lPeer;
 			}
 		}
 
@@ -709,15 +692,14 @@ public:
 		const uint64_t CHANGE_PROTO_TIME_0 = 1614422850; // in seconds since 1614163650 + 3 days
 		if (qbit::getTime() > CHANGE_PROTO_TIME_0) {
 			//
-			std::vector<std::string> lParts;
-			boost::split(lParts, key, boost::is_any_of(":"), boost::token_compress_on);
-
-			//
+			bool lV6 = false;
 			bool lResult = false;
-			if (lParts.size() > 1) {
+			bool lExplicit = false;
+			std::string lAddress, lPort;
+			if (extractAddressInfo(key, lAddress, lPort, lExplicit, lV6)) {
 				//
 				boost::unique_lock<boost::recursive_mutex> lLock(peersIdxMutex_);
-				std::set<std::string>::iterator lEndpoint = explicitEndpoins_.find(lParts[0]);
+				std::set<std::string>::iterator lEndpoint = explicitEndpoins_.find(lAddress);
 				if (lEndpoint != explicitEndpoins_.end()) {
 					// just potencially reachable address
 					lResult = true;
@@ -960,11 +942,11 @@ public:
 
 				{
 					boost::unique_lock<boost::recursive_mutex> lLock(peersIdxMutex_);
-					std::vector<std::string> lParts;
-					boost::split(lParts, peer->key(), boost::is_any_of(":"), boost::token_compress_on);
-
-					if (lParts.size() == 2) {
-						bannedEndpoins_.insert(lParts[0]); // push host
+					bool lV6 = false;
+					bool lExplicit = false;
+					std::string lAddress, lPort;
+					if (extractAddressInfo(peer->key(), lAddress, lPort, lExplicit, lV6)) {
+						bannedEndpoins_.insert(lAddress); // push host
 					}
 				}
 			}
@@ -1141,14 +1123,14 @@ public:
 
 		if (peer->type() == IPeer::Type::EXPLICIT) {
 			//
-			std::vector<std::string> lParts;
-			boost::split(lParts, peer->key(), boost::is_any_of(":"), boost::token_compress_on);
-
-			if (lParts.size() > 1) {
+			bool lV6 = false;
+			bool lExplicit = false;
+			std::string lAddress, lPort;
+			if (extractAddressInfo(peer->key(), lAddress, lPort, lExplicit, lV6)) {
 				boost::unique_lock<boost::recursive_mutex> lLock(peersIdxMutex_);
-				explicitEndpoins_.insert(lParts[0]);
+				explicitEndpoins_.insert(lAddress);
 				//
-				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: explicit peer added ") + peer->key() + " / " + lParts[0]);
+				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: explicit peer added ") + peer->key() + " / " + lAddress);
 			}
 		}
 

@@ -82,6 +82,47 @@ public:
 	// client facade
 	virtual void notifyTransaction(TransactionContextPtr /*ctx*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::notifyTransaction - not implemented."); }
 	virtual void broadcastState(StatePtr /*state*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::broadcastStateToClients - not implemented."); }
+
+	//
+	static bool extractAddressInfo(const std::string& key, std::string& ip, std::string& port, bool& ex, bool& v6) {
+		//
+		std::vector<std::string> lPartsV6;
+		boost::split(lPartsV6, key, boost::is_any_of("[]"), boost::token_compress_on);
+		// ipv6 semantic found [ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff]:port:e
+		if (lPartsV6.size() >= 2) {
+			//
+			std::vector<std::string> lPortV6;
+			boost::split(lPortV6, lPartsV6[1], boost::is_any_of(":"), boost::token_compress_on); // extract port and mark
+			//
+			ip = lPartsV6[0];
+			port = lPortV6[0];
+			v6 = true;
+			//
+			if (lPortV6.size() > 1 && lPortV6[1] == "e") ex = true;
+			else ex = false;
+			//
+			return true;
+		} else {
+			std::vector<std::string> lParts;
+			boost::split(lParts, key, boost::is_any_of(":"), boost::token_compress_on);
+
+			std::string lEndpoint;
+			// ipv4
+			if (lParts.size() >= 2) {
+				//
+				ip = lParts[0];
+				port = lParts[1];
+				v6 = false;
+				//
+				if (lParts.size() > 2 && lParts[2] == "e") ex = true;
+				else ex = false;
+			}
+
+			return true;
+		}
+
+		return false;
+	}
 };
 
 //

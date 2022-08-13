@@ -548,6 +548,7 @@ int main(int argv, char** argc) {
 	bool lNoConfig = false;
 	int lExternalPort = 0;
 	std::string lEndpointV4;
+	std::string lEndpointV6;
 	std::vector<std::string> lPeers;
 	for (int lIdx = 1; lIdx < argv; lIdx++) {
 		//
@@ -595,6 +596,9 @@ int main(int argv, char** argc) {
 		} else if (std::string(argc[lIdx]) == std::string("-endpoint")) {
 			//
 			lEndpointV4 = std::string(argc[++lIdx]);
+		} else if (std::string(argc[lIdx]) == std::string("-endpoint-v6")) {
+			//
+			lEndpointV6 = std::string(argc[++lIdx]);
 		} else if (std::string(argc[lIdx]) == std::string("-threadpool")) {
 			//
 			size_t lPool;
@@ -923,6 +927,12 @@ int main(int argv, char** argc) {
 	if (lEndpointV4.length() && lSettings->serverPort() && lEndpointV4 != "0.0.0.0" && lEndpointV4 != "127.0.0.1") {
 		//
 		lNode->peerManager()->addPeerExplicit(strprintf("%s:%d", lEndpointV4, lExternalPort ? lExternalPort : lSettings->serverPort()));
+	}
+
+	// allow connection to this host, v6
+	if (lEndpointV6.length() && lSettings->serverPort() && lEndpointV6 != "::1") {
+		//
+		lNode->peerManager()->addPeerExplicit(strprintf("[%s]:%d", lEndpointV6, lExternalPort ? lExternalPort : lSettings->serverPort()));
 	}
 
 	// start sequence

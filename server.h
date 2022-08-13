@@ -65,14 +65,17 @@ public:
 
 private:	
 	void startEndpoint() {
-		gLog().write(Log::NET, "[server]: starting endpoint...");
+		gLog().write(Log::NET, "[server]: starting endpoints...");
 		endpoint4_.reset(new tcp::endpoint(tcp::v4(), port_));
+		endpoint6_.reset(new tcp::endpoint(tcp::v6(), port_));
 		acceptor4_.reset(new tcp::acceptor(peerManager_->getContext(0), (tcp::endpoint&)(*endpoint4_)));
+		acceptor6_.reset(new tcp::acceptor(peerManager_->getContext(0), (tcp::endpoint&)(*endpoint6_)));
 		accept4();
+		accept6();
 	}
 
 	void accept4() {
-		gLog().write(Log::NET, "[server]: accepting...");
+		gLog().write(Log::NET, "[server]: V4 accepting...");
 
 		IPeerPtr lPeer(new Peer(peerManager_->getContextId(), peerManager_));
 		acceptor4_->async_accept(*lPeer->socket(),
@@ -81,15 +84,37 @@ private:
 				boost::asio::placeholders::error));
 	}
 
+	void accept6() {
+		gLog().write(Log::NET, "[server]: V6 accepting...");
+
+		IPeerPtr lPeer(new Peer(peerManager_->getContextId(), peerManager_));
+		lPeer->socket()->set_option(boost::asio::ip::v6_only(true)); // ONLY IPV6 connections accepting
+		acceptor6_->async_accept(*lPeer->socket(),
+			boost::bind(
+				&Server::processAccept6, this, lPeer,
+				boost::asio::placeholders::error));
+	}
+
 	void processAccept4(IPeerPtr peer, const boost::system::error_code& error) {
 		//
 		if (!error) {
 			// log
-			gLog().write(Log::NET, "[server]: starting session for " + peer->key());
+			gLog().write(Log::NET, "[server]: starting V4 session for " + peer->key());
 			peer->waitForMessage();
 		}
 
 		accept4();
+	}
+
+	void processAccept6(IPeerPtr peer, const boost::system::error_code& error) {
+		//
+		if (!error) {
+			// log
+			gLog().write(Log::NET, "[server]: starting V6 session for " + peer->key());
+			peer->waitForMessage();
+		}
+
+		accept6();
 	}
 
 private:
@@ -105,6 +130,8 @@ private:
 	boost::asio::signal_set signals_;
 	EndpointPtr endpoint4_;
 	AcceptorPtr acceptor4_;
+	EndpointPtr endpoint6_;
+	AcceptorPtr acceptor6_;
 };
 
 }
