@@ -416,7 +416,7 @@ public:
 							// select peer
 							if (!lPeerId.isEmpty()) {
 								PeersMap::iterator lPeerPtr = lDirectPeerMap.find(lPeerId);
-								if (lPeerPtr != lDirectPeerMap.end() && lPeerPtr->second->state()->minerOrValidator() &&
+								if (lPeerPtr != lDirectPeerMap.end() && /*lPeerPtr->second->state()->minerOrValidator() &&*/
 									lPeerPtr->second->syncRequestsHeaders() < 25 &&
 									lPeerPtr->second->syncRequestsBlocks() < 25) {
 									lPeer = lPeerPtr->second;
@@ -432,7 +432,7 @@ public:
 		// 2. if absent - try to look at direct peers
 		if (!lPeer) {
 			PeersMap::iterator lPeerPtr = lDirectPeerMap.find(const_cast<NetworkBlockHeader&>(block).blockHeader().origin().id());
-			if (lPeerPtr != lDirectPeerMap.end() && lPeerPtr->second->state()->minerOrValidator() &&
+			if (lPeerPtr != lDirectPeerMap.end() && /*lPeerPtr->second->state()->minerOrValidator() &&*/
 				lPeerPtr->second->syncRequestsHeaders() < 25 &&
 				lPeerPtr->second->syncRequestsBlocks() < 25) {
 				lPeer = lPeerPtr->second;
@@ -872,7 +872,7 @@ public:
 								lPeerPtr->second->syncRequestsHeaders(), lPeerPtr->second->syncRequestsBlocks()));
 					}
 
-					if (lPeerPtr->second->state()->minerOrValidator() &&
+					if (/*lPeerPtr->second->state()->minerOrValidator() &&*/
 						lPeerPtr->second->syncRequestsHeaders() < 25 &&
 						lPeerPtr->second->syncRequestsBlocks() < 25) {
 						if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS,
