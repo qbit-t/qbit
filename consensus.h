@@ -416,9 +416,9 @@ public:
 							// select peer
 							if (!lPeerId.isEmpty()) {
 								PeersMap::iterator lPeerPtr = lDirectPeerMap.find(lPeerId);
-								if (lPeerPtr != lDirectPeerMap.end() && /*lPeerPtr->second->state()->minerOrValidator() &&*/
-									lPeerPtr->second->syncRequestsHeaders() < 25 &&
-									lPeerPtr->second->syncRequestsBlocks() < 25) {
+								if (lPeerPtr != lDirectPeerMap.end() && lPeerPtr->second->state()->minerOrValidator() &&
+									lPeerPtr->second->syncRequestsHeaders() < 5 &&
+									lPeerPtr->second->syncRequestsBlocks() < 5) {
 									lPeer = lPeerPtr->second;
 									break;
 								}
@@ -432,9 +432,9 @@ public:
 		// 2. if absent - try to look at direct peers
 		if (!lPeer) {
 			PeersMap::iterator lPeerPtr = lDirectPeerMap.find(const_cast<NetworkBlockHeader&>(block).blockHeader().origin().id());
-			if (lPeerPtr != lDirectPeerMap.end() && /*lPeerPtr->second->state()->minerOrValidator() &&*/
-				lPeerPtr->second->syncRequestsHeaders() < 25 &&
-				lPeerPtr->second->syncRequestsBlocks() < 25) {
+			if (lPeerPtr != lDirectPeerMap.end() && lPeerPtr->second->state()->minerOrValidator() &&
+				lPeerPtr->second->syncRequestsHeaders() < 5 &&
+				lPeerPtr->second->syncRequestsBlocks() < 5) {
 				lPeer = lPeerPtr->second;
 			}
 		}
@@ -805,6 +805,7 @@ public:
 
 	//
 	// find fully synced root
+	//
 	uint64_t locateSynchronizedRoot(std::multimap<uint32_t, IPeerPtr>& peers, uint256& block, uint256& last) {
 		//
 		uint64_t lResultHeight = 0;
@@ -835,11 +836,8 @@ public:
 						block = lState->first;
 
 						if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, 
-							strprintf("[locateSynchronizedRoot]: ROOT [%d:%d]/%s/%s#", 
-								lResultHeight, lHeight, block.toHex(), chain_.toHex().substr(0, 10)));
-
-						lFound = true;
-
+							strprintf("[locateSynchronizedRoot]: ROOT candidate [%d:%d:%d]/%s/%s#", 
+								lResultHeight, lHeight, lPeers.size(), block.toHex(), chain_.toHex().substr(0, 10)));
 						break;
 					} else if (lHeightPos->first == lHeight) {
 						if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, 
@@ -850,6 +848,22 @@ public:
 						break;
 					}
 				}
+
+				// check
+				for (PeersSet::iterator lPeer = lPeers.begin(); !lFound && lPeer != lPeers.end(); lPeer++) {
+					PeersMap::iterator lPeerPtr = directPeerMap_.find(*lPeer);
+					if (lPeerPtr != directPeerMap_.end()) {
+						if (lPeerPtr->second->state()->minerOrValidator() &&
+							lPeerPtr->second->syncRequestsHeaders() < 5 &&
+							lPeerPtr->second->syncRequestsBlocks() < 5) {
+							lFound = true;
+							break;
+						}
+					}
+				}
+
+				//
+				if (!lFound) lPeers.clear();
 			}
 		}
 
@@ -872,9 +886,9 @@ public:
 								lPeerPtr->second->syncRequestsHeaders(), lPeerPtr->second->syncRequestsBlocks()));
 					}
 
-					if (/*lPeerPtr->second->state()->minerOrValidator() &&*/
-						lPeerPtr->second->syncRequestsHeaders() < 25 &&
-						lPeerPtr->second->syncRequestsBlocks() < 25) {
+					if (lPeerPtr->second->state()->minerOrValidator() &&
+						lPeerPtr->second->syncRequestsHeaders() < 5 &&
+						lPeerPtr->second->syncRequestsBlocks() < 5) {
 						if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS,
 							strprintf("[locateSynchronizedRoot]: peer added %s/%s/%s#", 
 								lPeerPtr->second->key(), lPeerPtr->second->statusString(),

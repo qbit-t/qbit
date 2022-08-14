@@ -666,23 +666,25 @@ public:
 			collectPeersByChain(chain, order, false);
 		}
 
+		// make distance map
+		std::map<int64_t, std::map<IRequestProcessor::KeyOrder, IPeerPtr>::iterator> lDistances;
+		if (order.size() >= 3 /*at least 3 nodes shoukd be available*/) {
+			for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::iterator lItem = order.begin(); lItem != order.end(); lItem++) {
+				//
+				std::map<IRequestProcessor::KeyOrder, IPeerPtr>::iterator lNext = std::next(lItem, 1);
+				if (lNext != order.end()) {
+					lDistances.insert(std::map<int64_t, std::map<IRequestProcessor::KeyOrder, IPeerPtr>::iterator>::value_type(
+						abs((int64_t)lItem->first.height() - (int64_t)lNext->first.height()),
+						lItem
+					));
+				}
+			}
+		}
+
 		// cleanup
-		int64_t lLastHeight = -1;
-		for (std::map<IRequestProcessor::KeyOrder, IPeerPtr>::reverse_iterator lItem = order.rbegin(); lItem != order.rend();) {
+		for (std::map<int64_t, std::map<IRequestProcessor::KeyOrder, IPeerPtr>::iterator>::iterator lDist = lDistances.begin(); lDist != lDistances.end(); lDist++) {
 			//
-			if (lLastHeight == -1) {
-				lLastHeight = (int64_t)lItem->first.height();
-				lItem++;
-				continue;
-			}
-
-			if (lLastHeight - (int64_t)lItem->first.height() > 10 /*more that 10 blocks - remove*/) {
-				order.erase(std::next(lItem).base());
-				continue;
-			}
-
-			lLastHeight = (int64_t)lItem->first.height();
-			lItem++;
+			if (lDist->first > 20) order.erase(lDist->second);
 		}
 
 		/*

@@ -1271,8 +1271,8 @@ void Client::setBuzzerDAppReady() {
 	// if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[Client::setBuzzerDAppReady]: peers %d, %d - confirmations = %d", lPeersControl.size(), lPeersControl2.size(), G_BUZZFEED_PEERS_CONFIRMATIONS));
 
 	// we have enough nodes to start servicing
-	if ((double)lPeersControl.size() / (double)G_BUZZFEED_PEERS_CONFIRMATIONS > 1.0 &&
-		(double)lPeersControl2.size() / (double)G_BUZZFEED_PEERS_CONFIRMATIONS > 1.0) {
+	if ((double)lPeersControl.size() / (double)G_BUZZ_PEERS_CONFIRMATIONS > 1.0 &&
+		(double)lPeersControl2.size() / (double)G_BUZZ_PEERS_CONFIRMATIONS > 1.0) {
 		//
 		bool lNotify = !buzzerDAppReady_;
 		buzzerDAppReady_ = true;

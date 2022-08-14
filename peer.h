@@ -706,11 +706,13 @@ private:
 	}
 
 	void decReqBlocks() {
-		reqBlocks_.fetch_sub(1, std::memory_order_relaxed);
+		//reqBlocks_.fetch_sub(1, std::memory_order_relaxed);
+		reqBlocks_.store(0, std::memory_order_relaxed);
 	}
 
 	void decReqHeaders() {
-		reqHeaders_.fetch_sub(1, std::memory_order_relaxed);
+		//reqHeaders_.fetch_sub(1, std::memory_order_relaxed);
+		reqHeaders_.store(0, std::memory_order_relaxed);
 	}
 
 	uint32_t inQueueLength() {
