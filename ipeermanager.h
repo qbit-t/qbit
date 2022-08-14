@@ -90,15 +90,14 @@ public:
 		boost::split(lPartsV6, key, boost::is_any_of("[]"), boost::token_compress_on);
 		// ipv6 semantic found [ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff]:port:e
 		if (lPartsV6.size() >= 2) {
-			//
 			std::vector<std::string> lPortV6;
-			boost::split(lPortV6, lPartsV6[1], boost::is_any_of(":"), boost::token_compress_on); // extract port and mark
+			boost::split(lPortV6, lPartsV6[2], boost::is_any_of(":"), boost::token_compress_on); // extract port and mark
 			//
-			ip = lPartsV6[0];
-			port = lPortV6[0];
+			ip = lPartsV6[1];
+			port = lPortV6[1];
 			v6 = true;
 			//
-			if (lPortV6.size() > 1 && lPortV6[1] == "e") ex = true;
+			if (lPortV6.size() > 2 && lPortV6[2] == "e") ex = true;
 			else ex = false;
 			//
 			return true;
