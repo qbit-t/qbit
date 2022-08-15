@@ -1031,7 +1031,7 @@ public:
 			OP(QCHECKA) 	<<
 			OP(QATXOA) 		<<
 			OP(QEQADDR) 	<<
-			OP(QTIFMC)		<<
+			//OP(QTIFMC)		<<
 			OP(QMOV) 		<< REG(QR0) << CU8(0x01) <<	
 			OP(QRET));
 
