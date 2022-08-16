@@ -181,11 +181,13 @@ bool MemoryPool::PoolStore::popUnlinkedOut(const uint256& utxo, TransactionConte
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[PoolStore::popUnlinkedOut]: POPPED in MAIN ") +
 				strprintf("utxo = %s, tx = ?, ctx = %s", utxo.toHex(), ctx->tx()->id().toHex()));					
 
+			// we good?
 			return true;
 		}
 	}
 
-	return lUtxo != nullptr;
+	/* NOTICE: in case if UTXO was NOT found - we should go process here, because of a) linked utxo is not there for the moment, b) if used utxo is invalid - further processing does not allow to be tx become commited */
+	return true; // lUtxo != nullptr
 }
 
 TransactionPtr MemoryPool::PoolStore::locateTransaction(const uint256& hash) {
