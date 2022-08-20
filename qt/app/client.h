@@ -63,8 +63,7 @@ Q_DECLARE_METATYPE(qbit::EventsfeedItem*)
 Q_DECLARE_METATYPE(qbit::Conversationsfeed*)
 Q_DECLARE_METATYPE(qbit::ConversationItem*)
 
-//#define REGEX_UNIVERSAL_URL_PATTERN "((((https?|ftp|buzz|msg|qbit):(?://)?)(?:[-;:&=\\+\\$,\\w]+@)?[A-Za-z0-9.-]+|(?:www.|[-;:&=\\+\\$,\\w]+@)[A-Za-z0-9.-]+)((?:\\/[\\+~%\\/.\\w\\(\\)-:]*)?\\??(?:[-\\+=&;%@.\\w_]*)#?(?:[\\w]*))?)"
-#define REGEX_UNIVERSAL_URL_PATTERN "((((https?|ftp|buzz|msg|qbit):(?://)?)(?:[-;:&=\\+\\$,\\w]+@)?[A-Za-z0-9.-]+)((?:\\/[\\+~%\\/.\\w\\(\\)-:]*)?\\??(?:[-\\+=&;%@.\\w_]*)#?(?:[\\w]*))?)"
+#define REGEX_UNIVERSAL_URL_PATTERN "((((https?|ftp|buzz|msg|qbit):(?://)?)(?:[-;:&=\\+\\$,\\w]+@)?[A-Za-z0-9.-\u0401\u0451\u0410-\u044f]+)((?:\\/[\\+~%\\/.\\w\\(\\)-:]*)?\\??(?:[-\\+=&;%@.\\w_]*)#?(?:[\\w]*))?)"
 #define REGEX_EMBEDDED_LINK_START "(\\[(.*?)\\|"
 #define REGEX_EMBEDDED_LINK_STOP "\\])"
 #define REGEX_EMBEDDED_LINK REGEX_EMBEDDED_LINK_START REGEX_UNIVERSAL_URL_PATTERN REGEX_EMBEDDED_LINK_STOP
