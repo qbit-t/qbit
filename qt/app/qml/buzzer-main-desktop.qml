@@ -442,6 +442,8 @@ QuarkPage
 					//
 					if (!startUp) indexTransfered = true;
 					else startUp = false;
+
+					console.info("onCurrentIndexChanged = " + currentIndex)
 					//
 					if (currentIndex == 0 /*feed*/) {
 						headerBar.showBottomLine = true;

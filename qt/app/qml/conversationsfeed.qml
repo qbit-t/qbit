@@ -45,7 +45,7 @@ Item
 			search.prevText_ = "";
 			search.setText("");
 		} else {
-			controller.mainToolBar.setSearchText("", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.global.search.add"));
+			//controller.mainToolBar.setSearchText("", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.global.search.add"));
 		}
 	}
 
@@ -59,7 +59,7 @@ Item
 
 	function resetModel() {
 		//
-		if (buzzerApp.isDesktop){
+		if (buzzerApp.isDesktop) {
 			controller.mainToolBar.searchTextEdited.connect(conversationsfeed_.startSearch);
 			controller.mainToolBar.searchTextCleared.connect(conversationsfeed_.searchTextCleared);
 			controller.mainToolBar.setSearchText("", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.global.search.add"));
