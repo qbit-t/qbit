@@ -753,7 +753,8 @@ void VirtualMachine::qtifmc() {
 
 	if (wrapper_) {
 		if (wrapper_->tx()->chain() == MainChain::id()) {
-			state_ = VirtualMachine::INVALID_CHAIN; // general failure
+			// NOTICE: due to multimple fails with media publishing client eventually will have some unspent outs...
+			// state_ = VirtualMachine::INVALID_CHAIN; // general failure
 		}
 	}
 }
