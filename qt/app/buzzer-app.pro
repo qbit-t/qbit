@@ -256,64 +256,68 @@ dep_root.files += android/*
 dep_root.path = /assets
 INSTALLS += dep_root
 
-ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android
+android {
 
-contains(ANDROID_TARGET_ARCH,armeabi-v7a) {
-    INCLUDEPATH += $$PWD/boost/boost_1_73_0
+    ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android
 
-    #QMAKE_CXXFLAGS += -fPIC
+    contains(ANDROID_TARGET_ARCH,armeabi-v7a) {
+        INCLUDEPATH += $$PWD/boost/boost_1_73_0
 
-    DEFINES += OS_ANDROID
-	DEFINES += MOBILE_PLATFORM_32
+        #QMAKE_CXXFLAGS += -fPIC
 
-    DEPENDPATH += $$PWD/leveldb/android/obj/local/armeabi-v7a
-    DEPENDPATH += $$PWD/boost/boost_1_73_0/stage/lib
-    DEPENDPATH += $$PWD/libjpeg/android/obj/local/armeabi-v7a
-    DEPENDPATH += $$PWD/libpng/android/obj/local/armeabi-v7a
+        DEFINES += OS_ANDROID
+    	DEFINES += MOBILE_PLATFORM_32
 
-    LIBS += -L$$PWD/leveldb/android/obj/local/armeabi-v7a/ -lleveldb
-	LIBS += -L$$PWD/boost/boost_1_73_0/stage/lib/ -lboost_random-clang-mt-s-a32-1_73
-	LIBS += -L$$PWD/boost/boost_1_73_0/stage/lib/ -lboost_system-clang-mt-s-a32-1_73
-	LIBS += -L$$PWD/boost/boost_1_73_0/stage/lib/ -lboost_thread-clang-mt-s-a32-1_73
-	LIBS += -L$$PWD/boost/boost_1_73_0/stage/lib/ -lboost_chrono-clang-mt-s-a32-1_73
-	LIBS += -L$$PWD/boost/boost_1_73_0/stage/lib/ -lboost_filesystem-clang-mt-s-a32-1_73
+        DEPENDPATH += $$PWD/leveldb/android/obj/local/armeabi-v7a
+        DEPENDPATH += $$PWD/boost/boost_1_73_0/stage/lib
+        DEPENDPATH += $$PWD/libjpeg/android/obj/local/armeabi-v7a
+        DEPENDPATH += $$PWD/libpng/android/obj/local/armeabi-v7a
 
-    LIBS += -L$$PWD/libjpeg/android/obj/local/armeabi-v7a/ -ljpeg
-	LIBS += -L$$PWD/libpng/android/obj/local/armeabi-v7a/ -lpng
+        LIBS += -L$$PWD/leveldb/android/obj/local/armeabi-v7a/ -lleveldb
+    	LIBS += -L$$PWD/boost/boost_1_73_0/stage/lib/ -lboost_random-clang-mt-s-a32-1_73
+    	LIBS += -L$$PWD/boost/boost_1_73_0/stage/lib/ -lboost_system-clang-mt-s-a32-1_73
+    	LIBS += -L$$PWD/boost/boost_1_73_0/stage/lib/ -lboost_thread-clang-mt-s-a32-1_73
+    	LIBS += -L$$PWD/boost/boost_1_73_0/stage/lib/ -lboost_chrono-clang-mt-s-a32-1_73
+    	LIBS += -L$$PWD/boost/boost_1_73_0/stage/lib/ -lboost_filesystem-clang-mt-s-a32-1_73
 
-    # BUG: https://bugreports.qt.io/browse/QTBUG-81866
-	# ANDROID_EXTRA_LIBS = \
-	#    $$PWD/leveldb/android/obj/local/armeabi-v7a/libleveldb.so \
-	#	$$PWD/bin/android/arm/libcrypto_1_1.so \
-	#	$$PWD/bin/android/arm/libssl_1_1.so
-}
+        LIBS += -L$$PWD/libjpeg/android/obj/local/armeabi-v7a/ -ljpeg
+    	LIBS += -L$$PWD/libpng/android/obj/local/armeabi-v7a/ -lpng
 
-contains(ANDROID_TARGET_ARCH,arm64-v8a) {
-    INCLUDEPATH += $$PWD/boost/boost_64_1_73_0
+        # BUG: https://bugreports.qt.io/browse/QTBUG-81866
+    	# ANDROID_EXTRA_LIBS = \
+    	#    $$PWD/leveldb/android/obj/local/armeabi-v7a/libleveldb.so \
+    	#	$$PWD/bin/android/arm/libcrypto_1_1.so \
+    	#	$$PWD/bin/android/arm/libssl_1_1.so
+    }
 
-    DEFINES += OS_ANDROID
-	DEFINES += MOBILE_PLATFORM_64
+    contains(ANDROID_TARGET_ARCH,arm64-v8a) {
+        INCLUDEPATH += $$PWD/boost/boost_64_1_73_0
 
-    DEPENDPATH += $$PWD/leveldb/android/obj/local/arm64-v8a
-    DEPENDPATH += $$PWD/boost/boost_64_1_73_0/stage/lib
-    DEPENDPATH += $$PWD/libjpeg/android/obj/local/arm64-v8a
-    DEPENDPATH += $$PWD/libpng/android/obj/local/arm64-v8a
+        DEFINES += OS_ANDROID
+    	DEFINES += MOBILE_PLATFORM_64
 
-    LIBS += -L$$PWD/leveldb/android/obj/local/arm64-v8a/ -lleveldb
-	LIBS += -L$$PWD/boost/boost_64_1_73_0/stage/lib/ -lboost_random-clang-mt-s-a64-1_73
-	LIBS += -L$$PWD/boost/boost_64_1_73_0/stage/lib/ -lboost_system-clang-mt-s-a64-1_73
-	LIBS += -L$$PWD/boost/boost_64_1_73_0/stage/lib/ -lboost_thread-clang-mt-s-a64-1_73
-	LIBS += -L$$PWD/boost/boost_64_1_73_0/stage/lib/ -lboost_chrono-clang-mt-s-a64-1_73
-	LIBS += -L$$PWD/boost/boost_64_1_73_0/stage/lib/ -lboost_filesystem-clang-mt-s-a64-1_73
+        DEPENDPATH += $$PWD/leveldb/android/obj/local/arm64-v8a
+        DEPENDPATH += $$PWD/boost/boost_64_1_73_0/stage/lib
+        DEPENDPATH += $$PWD/libjpeg/android/obj/local/arm64-v8a
+        DEPENDPATH += $$PWD/libpng/android/obj/local/arm64-v8a
 
-    LIBS += -L$$PWD/libjpeg/android/obj/local/arm64-v8a/ -ljpeg
-	LIBS += -L$$PWD/libpng/android/obj/local/arm64-v8a/ -lpng
+        LIBS += -L$$PWD/leveldb/android/obj/local/arm64-v8a/ -lleveldb
+    	LIBS += -L$$PWD/boost/boost_64_1_73_0/stage/lib/ -lboost_random-clang-mt-s-a64-1_73
+    	LIBS += -L$$PWD/boost/boost_64_1_73_0/stage/lib/ -lboost_system-clang-mt-s-a64-1_73
+    	LIBS += -L$$PWD/boost/boost_64_1_73_0/stage/lib/ -lboost_thread-clang-mt-s-a64-1_73
+    	LIBS += -L$$PWD/boost/boost_64_1_73_0/stage/lib/ -lboost_chrono-clang-mt-s-a64-1_73
+    	LIBS += -L$$PWD/boost/boost_64_1_73_0/stage/lib/ -lboost_filesystem-clang-mt-s-a64-1_73
 
-    # BUG: https://bugreports.qt.io/browse/QTBUG-81866
-	# ANDROID_EXTRA_LIBS = \
-	#    $$PWD/leveldb/android/obj/local/arm64-v8a/libleveldb.so \
-	#	$$PWD/bin/android/arm64/libcrypto_1_1.so \
-	#	$$PWD/bin/android/arm64/libssl_1_1.so
+        LIBS += -L$$PWD/libjpeg/android/obj/local/arm64-v8a/ -ljpeg
+    	LIBS += -L$$PWD/libpng/android/obj/local/arm64-v8a/ -lpng
+
+        # BUG: https://bugreports.qt.io/browse/QTBUG-81866
+    	# ANDROID_EXTRA_LIBS = \
+    	#    $$PWD/leveldb/android/obj/local/arm64-v8a/libleveldb.so \
+    	#	$$PWD/bin/android/arm64/libcrypto_1_1.so \
+    	#	$$PWD/bin/android/arm64/libssl_1_1.so
+    }
+
 }
 
 android {
@@ -329,21 +333,33 @@ ios {
     IOS_TARGET_OS = "iphoneos"
     CONFIG(iphonesimulator, iphoneos|iphonesimulator): IOS_TARGET_OS = "iphonesimulator"
 
+    INCLUDEPATH += $$PWD/boost/dist/boost.xcframework/Headers
+
     QMAKE_INFO_PLIST = ios/Info.plist
 
-    OBJECTIVE_SOURCES += \
-        $$PWD/ios/biometricauthenticator.m \
-        $$PWD/ios/localnotificator.mm
+    #OBJECTIVE_SOURCES += \
+    #    $$PWD/ios/biometricauthenticator.m \
+    #    $$PWD/ios/localnotificator.mm
 
     LIBS += -framework UIKit
     LIBS += -framework UserNotifications
+
+    DEFINES += MOBILE_PLATFORM_64
+
+    DEPENDPATH += $$PWD/leveldb/ios/out-ios-universal
+    DEPENDPATH += $$PWD/boost/dist/boost.xc.framework
+    # DEPENDPATH += $$PWD/libjpeg/android/obj/local/armeabi-v7a
+    # DEPENDPATH += $$PWD/libpng/android/obj/local/armeabi-v7a
+
+    LIBS += -L$$PWD/leveldb/ios/out-ios-universal/ -lleveldb
+    LIBS += -L$$PWD/boost/dist/boost.xc.framework/ -lboost
 
     #Q_PRODUCT_BUNDLE_IDENTIFIER.name = PRODUCT_BUNDLE_IDENTIFIER
     #Q_PRODUCT_BUNDLE_IDENTIFIER.value = app.buzzer.ios
     #QMAKE_MAC_XCODE_SETTINGS += Q_PRODUCT_BUNDLE_IDENTIFIER
 
     QMAKE_TARGET_BUNDLE_PREFIX = app.buzzer
-    QMAKE_BUNDLE = ios
+    #QMAKE_BUNDLE = ios
 
     MY_DEVELOPMENT_TEAM.value = 97PSCD5842 # fix for production
     #QMAKE_PROVISINOING_PROFILE = 5d8e82be-4740-435c-848c-f0ab72d23ba7
@@ -351,9 +367,9 @@ ios {
     MY_DEVELOPMENT_TEAM.name = DEVELOPMENT_TEAM
     QMAKE_MAC_XCODE_SETTINGS += MY_DEVELOPMENT_TEAM
 
-    MY_ENTITLEMENTS.name = CODE_SIGN_ENTITLEMENTS
-    MY_ENTITLEMENTS.value = $$PWD/ios/localnotificator_production.entitlements # fix for production
-    QMAKE_MAC_XCODE_SETTINGS += MY_ENTITLEMENTS
+    #MY_ENTITLEMENTS.name = CODE_SIGN_ENTITLEMENTS
+    #MY_ENTITLEMENTS.value = $$PWD/ios/localnotificator_production.entitlements # fix for production
+    #QMAKE_MAC_XCODE_SETTINGS += MY_ENTITLEMENTS
 
     #plugins.path = PlugIns
     #plugins.files = $$OUT_PWD/Release-iphoneos/buzzer-notification.appex
