@@ -528,13 +528,17 @@ amount_t Wallet::balance(const uint256& asset) {
 
 void Wallet::balance(const uint256& asset, amount_t& pending, amount_t& actual) {
 	//
-	boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
+	std::map<uint256 /*asset*/, std::multimap<amount_t /*amount*/, uint256 /*utxo*/>> lAssetsCache;
+	{
+		boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
+		lAssetsCache = assetsCache_;
+	}
 	//
 	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[balance]: ") + strprintf("computing balance for %s", asset.toHex()));
 	//
 	amount_t lBalance = 0;
-	std::map<uint256 /*asset*/, std::multimap<amount_t /*amount*/, uint256 /*utxo*/>>::iterator lAsset = assetsCache_.find(asset);
-	if (lAsset != assetsCache_.end()) {
+	std::map<uint256 /*asset*/, std::multimap<amount_t /*amount*/, uint256 /*utxo*/>>::iterator lAsset = lAssetsCache.find(asset);
+	if (lAsset != lAssetsCache.end()) {
 		for (std::multimap<amount_t /*amount*/, uint256 /*utxo*/>::iterator lAmount = lAsset->second.begin(); 
 			lAmount != lAsset->second.end();) {
 
@@ -552,7 +556,11 @@ void Wallet::balance(const uint256& asset, amount_t& pending, amount_t& actual) 
 							strprintf("utxo NOT FOUND %s/%s", lAmount->second.toHex(), asset.toHex()));
 				// delete from store
 				utxo_.remove(lAmount->second);
-				assetsUtxoPresence_.erase(lAmount->second);
+				{
+					boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
+					assetsUtxoPresence_.erase(lAmount->second);
+				}
+				
 				lAsset->second.erase(lAmount);
 				lAmount++;
 			} else {
@@ -627,10 +635,15 @@ void Wallet::collectUnlinkedOutsByAsset(const uint256& asset, amount_t amount, b
 
 void Wallet::collectUnlinkedOutsByAssetReverse(const uint256& asset, amount_t amount, std::list<Transaction::UnlinkedOutPtr>& list) {
 	//
-	boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
-	std::map<uint256 /*asset*/, std::multimap<amount_t /*amount*/, uint256 /*utxo*/>>::iterator lAsset = assetsCache_.find(asset);
+	std::map<uint256 /*asset*/, std::multimap<amount_t /*amount*/, uint256 /*utxo*/>> lAssetsCache;
+	{
+		boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
+		lAssetsCache = assetsCache_;
+	}
+
+	std::map<uint256 /*asset*/, std::multimap<amount_t /*amount*/, uint256 /*utxo*/>>::iterator lAsset = lAssetsCache.find(asset);
 	amount_t lTotal = 0;
-	if (lAsset != assetsCache_.end()) {
+	if (lAsset != lAssetsCache.end()) {
 		for (std::multimap<amount_t /*amount*/, uint256 /*utxo*/>::iterator lAmount = lAsset->second.begin(); 
 			lAmount != lAsset->second.end();) {
 						
@@ -644,7 +657,11 @@ void Wallet::collectUnlinkedOutsByAssetReverse(const uint256& asset, amount_t am
 			if (lUtxo == nullptr) {
 				// delete from store
 				utxo_.remove(lAmount->second);
-				assetsUtxoPresence_.erase(lAmount->second);
+				{
+					boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
+					assetsUtxoPresence_.erase(lAmount->second);
+				}
+
 				lAsset->second.erase(lAmount);
 				continue;
 			}
@@ -718,10 +735,15 @@ void Wallet::collectUnlinkedOutsByAssetReverse(const uint256& asset, amount_t am
 
 void Wallet::collectUnlinkedOutsByAssetForward(const uint256& asset, amount_t amount, std::list<Transaction::UnlinkedOutPtr>& list) {
 	//
-	boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
-	std::map<uint256 /*asset*/, std::multimap<amount_t /*amount*/, uint256 /*utxo*/>>::iterator lAsset = assetsCache_.find(asset);
+	std::map<uint256 /*asset*/, std::multimap<amount_t /*amount*/, uint256 /*utxo*/>> lAssetsCache;
+	{
+		boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
+		lAssetsCache = assetsCache_;
+	}
+
+	std::map<uint256 /*asset*/, std::multimap<amount_t /*amount*/, uint256 /*utxo*/>>::iterator lAsset = lAssetsCache.find(asset);
 	amount_t lTotal = 0;
-	if (lAsset != assetsCache_.end()) {
+	if (lAsset != lAssetsCache.end()) {
 		for (std::multimap<amount_t /*amount*/, uint256 /*utxo*/>::reverse_iterator lAmount = lAsset->second.rbegin(); 
 			lAmount != lAsset->second.rend();) {
 						
@@ -735,7 +757,12 @@ void Wallet::collectUnlinkedOutsByAssetForward(const uint256& asset, amount_t am
 			if (lUtxo == nullptr) {
 				// delete from store
 				utxo_.remove(lAmount->second);
-				assetsUtxoPresence_.erase(lAmount->second);
+				{
+					boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
+					assetsUtxoPresence_.erase(lAmount->second);
+				}
+
+				// TODO: need to remove from original map also
 				lAsset->second.erase(std::next(lAmount).base());
 				continue;
 			}
@@ -809,9 +836,14 @@ void Wallet::collectUnlinkedOutsByAssetForward(const uint256& asset, amount_t am
 
 void Wallet::collectCoinbaseUnlinkedOuts(std::list<Transaction::UnlinkedOutPtr>& list) {
 	//
-	boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
-	std::map<uint256 /*asset*/, std::multimap<amount_t /*amount*/, uint256 /*utxo*/>>::iterator lAsset = assetsCache_.find(TxAssetType::qbitAsset());
-	if (lAsset != assetsCache_.end()) {
+	std::map<uint256 /*asset*/, std::multimap<amount_t /*amount*/, uint256 /*utxo*/>> lAssetsCache;
+	{
+		boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
+		lAssetsCache = assetsCache_;
+	}
+
+	std::map<uint256 /*asset*/, std::multimap<amount_t /*amount*/, uint256 /*utxo*/>>::iterator lAsset = lAssetsCache.find(TxAssetType::qbitAsset());
+	if (lAsset != lAssetsCache.end()) {
 		for (std::multimap<amount_t /*amount*/, uint256 /*utxo*/>::iterator lAmount = lAsset->second.begin(); 
 			lAmount != lAsset->second.end();) {
 						
