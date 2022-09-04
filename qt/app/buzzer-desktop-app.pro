@@ -10,7 +10,7 @@ QT += multimedia multimediawidgets qml quick quickcontrols2 widgets quickwidgets
 CONFIG += c++11
 CONFIG += static
 
-VERSION = 0.1.6.86
+VERSION = 0.1.6.87
 DEFINES += VERSION_STRING=\\\"$${VERSION}\\\"
 DEFINES += QT_ENVIRONMENT
 DEFINES += HAVE_CONFIG_H
@@ -22,7 +22,7 @@ DEFINES += DESKTOP_PLATFORM
 DEFINES += QBIT_VERSION_MAJOR=0
 DEFINES += QBIT_VERSION_MINOR=1
 DEFINES += QBIT_VERSION_REVISION=6
-DEFINES += QBIT_VERSION_BUILD=86
+DEFINES += QBIT_VERSION_BUILD=87
 
 DEFINES += BUZZER_MOD
 DEFINES += CUBIX_MOD
@@ -88,6 +88,7 @@ SOURCES += \
     emojimodel.cpp \
     eventsfeedlistmodel.cpp \
 	imagelisting.cpp \
+    macos/macxutils.mm \
     main.cpp \
     logger.cpp \
     application.cpp \
@@ -253,6 +254,7 @@ HEADERS += \
     iapplication.h \
     applicationpath.h \
 	line.h \
+    macos/macxutils.h \
     notificator.h \
     notificator_p.h \
     pushdesktopnotification.h \

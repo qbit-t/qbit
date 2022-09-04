@@ -40,7 +40,12 @@ ApplicationWindow {
 	}
 
 	Component.onCompleted: {
+		//
+		if (Qt.platform.os !== "osx") toolBar = windowBar;
+
+		//
 		buzzerApp.setBackgroundColor(activePageBackground);
+		buzzerApp.setStatusBarColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.statusBar"));
 
 		var lWidth = buzzerClient.getProperty("Client.width");
 		if (lWidth !== "") width = parseInt(lWidth);
@@ -63,7 +68,7 @@ ApplicationWindow {
 	{
 	}
 
-	flags: Qt.Window |
+	flags: Qt.platform.os === "osx" ? Qt.Window : Qt.Window |
 		   Qt.MaximizeUsingFullscreenGeometryHint |
 		   Qt.FramelessWindowHint |
 		   Qt.WindowMinimizeButtonHint
@@ -74,11 +79,20 @@ ApplicationWindow {
 			closePage();
 	}
 
-	toolBar: Rectangle {
+	Connections {
+		target: buzzerClient
+		function onThemeChanged() {
+			buzzerApp.setStatusBarColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.statusBar"));
+		}
+	}
+
+	// toolBar:
+	Rectangle {
 		id: windowBar
 		width: parent.width
 		height: buzzerClient.scaleFactor * 25
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.background.transparent")
+		visible: Qt.platform.os !== "osx"
 
 		MouseArea {
 			id: topArea

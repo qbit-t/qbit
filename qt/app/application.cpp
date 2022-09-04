@@ -193,6 +193,7 @@ int Application::execute()
 #endif
 
 	qInfo() << "Loading main qml:" <<  QString("qrc:/qml/") + APP_NAME + ".qml";
+	view_ = nullptr;
 	engine_.load(QString("qrc:/qml/") + APP_NAME + ".qml");
 
 	if (engine_.rootObjects().isEmpty()) {
@@ -206,6 +207,11 @@ int Application::execute()
 #ifdef Q_OS_IOS
 	QISystemDispatcher* lSystem = QISystemDispatcher::instance();
 	connect(lSystem, SIGNAL(dispatched(QString,QVariantMap)), this, SLOT(externalKeyboardHeightChanged(QString, QVariantMap)));
+#endif
+
+#ifdef Q_OS_MACX
+	// TODO: make external settings
+	setStatusBarColor(getColor(client_.theme(), client_.themeSelector(), "Material.statusBar"));
 #endif
 
     qInfo() << "Executing app:" << APP_NAME;
@@ -705,6 +711,13 @@ void Application::unlockOrientation()
 #endif
 
 #ifdef Q_OS_IOS
+#endif
+}
+
+void Application::setStatusBarColor(QString color) {
+	//
+#ifdef Q_OS_MACX
+	MacXUtils::setStatusBarColor(view_, color);
 #endif
 }
 
