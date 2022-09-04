@@ -572,7 +572,7 @@ void HttpGetBalance::run(const std::string& source, const HttpRequest& request, 
 			// param[0]
 			json::Value lP0 = lParams[0];
 			if (lP0.isString()) {
-				if (lP0.getString() == "*") lAsset != TxAssetType::qbitAsset();
+				if (lP0.getString() == "*") lAsset = TxAssetType::qbitAsset();
 				else lAsset.setHex(lP0.getString()); 
 			} else { reply = HttpReply::stockReply(HttpReply::bad_request); return; }
 		}
