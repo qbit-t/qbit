@@ -273,7 +273,7 @@ QuarkToolBar
 		symbolColor: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 		Layout.alignment: Qt.AlignHCenter
 
-		x: parent.width - width - (Qt.platform.os === "ios" ? 0 : 8)
+		x: parent.width - width // - (Qt.platform.os === "ios" ? 0 : 5)
 		y: extraOffset
 
 		onClicked:

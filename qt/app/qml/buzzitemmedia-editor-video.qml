@@ -265,7 +265,7 @@ Rectangle {
 						//player.seek(1);
 
 						// adjust orientation
-						if (orientation !== 0) {
+						if (orientation !== 0 && Qt.platform.os === "ios") {
 							if (orientation == 6) videoOutput.orientation = -90;
 							else if (orientation == 3) videoOutput.orientation = -180;
 							else if (orientation == 8) videoOutput.orientation = 90;

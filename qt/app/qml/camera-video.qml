@@ -280,9 +280,9 @@ QuarkPage {
 		onClicked: {
 			//
 			if (videoRecorder.isRecording) {
-				buzzerApp.wakeRelease(); // release
-				videoRecorder.stop();
 				recordingVideo.stop();
+				videoRecorder.stop();
+				buzzerApp.wakeRelease(); // release
 			} else {
 				//
 				videoRecorder.camera = cameraDevice;
