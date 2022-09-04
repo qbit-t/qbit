@@ -96,8 +96,10 @@ void VideoRecorder::toggleRecord() {
 		}
 
 		//video codecs
+		bool lHas264 = false;
 		for (auto &codecName: videoRecorder_->supportedVideoCodecs()) {
 			qInfo() << "Video" << codecName;
+			if (codecName == "264") lHas264 = true;
 		}
 
 		//video resolutions
@@ -111,13 +113,21 @@ void VideoRecorder::toggleRecord() {
 		}
 
 		//audio codecs
+		bool lHasAmr = false;
 		for (auto &codecName: videoRecorder_->supportedAudioCodecs()) {
 			qInfo() << "Audio" << codecName;
+			if (codecName == "audio/amr") lHasAmr = true;
 		}
 
 		//sample rate
+		bool lHas96000 = false;
+		bool lHas48000 = false;
+		bool lHas44000 = false;
 		for (int sampleRate: videoRecorder_->supportedAudioSampleRates()) {
 			qInfo() << "Audio rate" << sampleRate;
+			if (sampleRate == 96000) lHas96000 = true;
+			if (sampleRate == 48000) lHas48000 = true;
+			if (sampleRate == 44000) lHas44000 = true;
 		}
 
 		//
@@ -125,29 +135,29 @@ void VideoRecorder::toggleRecord() {
 
 		//
 		QAudioEncoderSettings lAudioSettings;
-		lAudioSettings.setCodec("audio/amr");
+		if (lHasAmr) lAudioSettings.setCodec("audio/amr");
 		lAudioSettings.setEncodingMode(QMultimedia::AverageBitRateEncoding);
 
 		QVideoEncoderSettings lVideoSettings;
-		lVideoSettings.setCodec("h264");
+		if (lHas264) lVideoSettings.setCodec("h264");
 		lVideoSettings.setEncodingMode(QMultimedia::AverageBitRateEncoding);
 
 		if (resolution_ == "1080p" || !resolution_.size()) {
 			lVideoSettings.setBitRate(4*1024*1024); // 4 Mbit/s
 			lAudioSettings.setChannelCount(2);
-			lAudioSettings.setBitRate(96000);
+			if (lHas96000) lAudioSettings.setBitRate(96000);
 			maxDuration_ = 1 * 60 * 1000; // 1 minute
 			emit maxDurationChanged();
 		} else if (resolution_ == "720p") {
 			lVideoSettings.setBitRate(2*1024*1024); // 2 Mbit/s
 			lAudioSettings.setChannelCount(2);
-			lAudioSettings.setBitRate(48000);
+			if (lHas48000) lAudioSettings.setBitRate(48000);
 			maxDuration_ = 3 * 60 * 1000; // 3 minutes
 			emit maxDurationChanged();
 		} else if (resolution_ == "480p") {
 			lVideoSettings.setBitRate(1024*1024); // 1 Mbit/s
 			lAudioSettings.setChannelCount(2);
-			lAudioSettings.setBitRate(44000);
+			if (lHas44000) lAudioSettings.setBitRate(44000);
 			maxDuration_ = 5 * 60 * 1000; // 5 minutes
 			emit maxDurationChanged();
 		}
@@ -159,11 +169,10 @@ void VideoRecorder::toggleRecord() {
 		localFile_ = QString::fromStdString(qbit::Random::generate().toHex());
 		emit localFileChanged();
 
-		//videoRecorder_->setEncodingSettings(lAudioSettings, lVideoSettings, "mp4");
 		videoRecorder_->setVideoSettings(lVideoSettings);
 		videoRecorder_->setAudioSettings(lAudioSettings);
 		videoRecorder_->setContainerFormat("mp4");
-		videoRecorder_->setOutputLocation(QUrl::fromLocalFile(localPath_ + "/" + localFile_));
+		videoRecorder_->setOutputLocation(QUrl::fromLocalFile(localPath_ + "/" + localFile_ + ".mp4"));
 		videoRecorder_->record();
 
 		qInfo() << "START RECORDING" << videoRecorder_->videoSettings().resolution() << videoRecorder_->videoSettings().bitRate();
@@ -175,11 +184,18 @@ void VideoRecorder::toggleRecord() {
 void VideoRecorder::actualLocationChanged(const QUrl& location) {
 	//
 	actualFileLocation_ = location.toLocalFile();
+
+	qInfo() << "[VideoRecorder::actualLocationChanged]:" << actualFileLocation_;
+
 	//
-	previewSaved_ = savePreview();
 	videoCaptured_ = true;
 
-	if (previewSaved_) emit actualFileLocationChanged();
+	//
+	if (!previewSaved_ && frame_ >= 10) {
+		previewSaved_ = savePreview();
+
+		if (previewSaved_) emit actualFileLocationChanged();
+	}
 }
 
 bool VideoRecorder::savePreview() {
@@ -239,6 +255,8 @@ bool VideoRecorder::savePreview() {
 			lMatrix.translate(lCenter.x(), lCenter.y());
 
 #if !defined(DESKTOP_PLATFORM)
+
+#ifdef Q_OS_ANDROID
 			if (lInfo.orientation() == 270 && (orientation_ == QOrientationReading::TopUp || orientation_ == QOrientationReading::FaceUp)) {
 				lMatrix.rotate(90);
 				unifiedOrientation_ = 6;
@@ -265,6 +283,37 @@ bool VideoRecorder::savePreview() {
 				unifiedOrientation_ = 3;
 				emit unifiedOrientationChanged();
 			}
+#endif
+
+#ifdef Q_OS_IOS
+			if (lInfo.orientation() == 270 && (orientation_ == QOrientationReading::TopUp || orientation_ == QOrientationReading::FaceUp)) {
+				lMatrix.rotate(90);
+				unifiedOrientation_ = 6;
+				emit unifiedOrientationChanged();
+			} else if (lInfo.orientation() == 270 && orientation_ == QOrientationReading::TopDown) {
+				lMatrix.rotate(-90);
+				unifiedOrientation_ = 8;
+				emit unifiedOrientationChanged();
+			} else if (lInfo.orientation() == 270 && orientation_ == QOrientationReading::LeftUp) {
+				lMatrix.rotate(180);
+				unifiedOrientation_ = 3;
+				emit unifiedOrientationChanged();
+
+			} else if (lInfo.orientation() == 90 && (orientation_ == QOrientationReading::TopUp || orientation_ == QOrientationReading::FaceUp)) {
+				lMatrix.rotate(-90);
+				unifiedOrientation_ = 8;
+				emit unifiedOrientationChanged();
+			} else if (lInfo.orientation() == 90 && orientation_ == QOrientationReading::TopDown) {
+				lMatrix.rotate(90);
+				unifiedOrientation_ = 6;
+				emit unifiedOrientationChanged();
+			} else if (lInfo.orientation() == 90 && orientation_ == QOrientationReading::LeftUp) {
+				lMatrix.rotate(180);
+				unifiedOrientation_ = 3;
+				emit unifiedOrientationChanged();
+			}
+#endif
+
 #endif
 
 			QImage lNewImage = preview_->transformed(lMatrix);
@@ -305,6 +354,7 @@ void VideoRecorder::updateStatus(QMediaRecorder::Status status) {
 
 void VideoRecorder::onStateChanged(QMediaRecorder::State state) {
 	//
+	qInfo() << "VideoRecorder::onStateChanged" << state;
 	switch (state) {
 	case QMediaRecorder::RecordingState:
 			emit isRecordingChanged();
@@ -345,7 +395,7 @@ void VideoRecorder::videoFrameProbed(const QVideoFrame& buffer) {
 	preview_ = new QImage(buffer.image());
 
 	//
-	if (videoCaptured_ && !previewSaved_) {
+	if (videoCaptured_ && !previewSaved_ && frame_ >= 10) {
 		//
 		previewSaved_ = savePreview();
 		if (previewSaved_) emit actualFileLocationChanged();

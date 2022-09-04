@@ -15,11 +15,12 @@ import "qrc:/components"
 QuarkToolBar
 {
 	id: setupToolBar
-	height: 45
+	height: 45 + extraOffset
 	width: parent.width
 
 	property int extraOffset: 0;
 	property int totalHeight: setupToolBar.height;
+	property var controller_;
 
 	Component.onCompleted: {
 		localeCombo.prepare();
@@ -34,6 +35,7 @@ QuarkToolBar
 		symbol: getSymbol()
 		Material.background: "transparent"
 		visible: true
+		y: extraOffset
 		labelYOffset: 3
 		symbolColor: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 		Layout.alignment: Qt.AlignHCenter
@@ -61,7 +63,7 @@ QuarkToolBar
 		fillMode: Image.PreserveAspectFit
 		width: 15
 		x: parent.width / 2 - logo.width / 2
-		y: parent.height / 2 - logo.height / 2
+		y: parent.height / 2 - logo.height / 2 + extraOffset / 2
 		Layout.alignment: Qt.AlignCenter
 		mipmap: true
 		//source: "../images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "buzzer.logo")
@@ -93,6 +95,24 @@ QuarkToolBar
 
 				addPage(lPage);
 			}
+		}
+	}
+
+	QuarkToolButton	{
+		id: backButton
+		symbol: Fonts.leftArrowSym
+		Material.background: "transparent"
+		visible: Qt.platform.os === "ios" && controller_ && controller_.getDepth() > 1 //
+		labelYOffset: 3
+		symbolColor: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+		Layout.alignment: Qt.AlignHCenter
+
+		x: (networkButton.x + networkButton.width) - 5
+		y: extraOffset
+
+		onClicked: {
+			//
+			controller_.popBack();
 		}
 	}
 

@@ -339,6 +339,9 @@ void DownloadMediaCommand::prepare() {
 							boost::placeholders::_6,
 							boost::placeholders::_7,
 							boost::placeholders::_8));
+
+		// block from sweeping
+		QQmlEngine::setObjectOwnership(this, QQmlEngine::CppOwnership);
 	}
 }
 

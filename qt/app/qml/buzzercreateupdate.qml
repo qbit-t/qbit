@@ -70,7 +70,7 @@ QuarkPage
 
 	QuarkToolBar {
 		id: toolBar
-		height: 45
+		height: 45 + topOffset
 		width: parent.width
 
 		property int totalHeight: height
@@ -91,7 +91,7 @@ QuarkPage
 		QuarkRoundSymbolButton {
 			id: cancelButton
 			x: spaceItems_
-			y: parent.height / 2 - height / 2
+			y: parent.height / 2 - height / 2 +  + topOffset / 2
 			symbol: Fonts.leftArrowSym
 			fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 5)) : buzzerApp.defaultFontSize() + 7
 			radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius - 7)) : (defaultRadius - 7)
@@ -107,7 +107,7 @@ QuarkPage
 		QuarkLabelRegular {
 			id: buzzerControl
 			x: cancelButton.x + cancelButton.width + 5
-			y: parent.height / 2 - height / 2
+			y: parent.height / 2 - height / 2 +  + topOffset / 2
 			width: parent.width - (x)
 			elide: Text.ElideRight
 			text: action_ !== "CREATE" ? buzzerClient.name : ""

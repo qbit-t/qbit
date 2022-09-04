@@ -18,7 +18,7 @@ import app.buzzer.commands 1.0 as BuzzerCommands
 QuarkToolBar
 {
 	id: buzzerToolBar
-	height: 45
+	height: 45 + extraOffset
 	width: parent.width
 
 	property int extraOffset: 0;
@@ -118,8 +118,8 @@ QuarkToolBar
 
 		function getColor() {
 			//
-			if (!buzzerClient.endorsements && !buzzerClient.mistrusts) {
-				return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.background");
+			if (buzzerClient.endorsements == 0 && buzzerClient.mistrusts == 0) {
+				return buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Panel.gradient1");
 			}
 
 			var lScoreBase = buzzerClient.getTrustScoreBase() / 10;
@@ -154,14 +154,14 @@ QuarkToolBar
 		id: avatarImage
 
 		x: 15
-		y: parent.height / 2 - height / 2
+		y: parent.height / 2 - height / 2 + extraOffset / 2
 
 		width: avatarImage.displayWidth
 		height: avatarImage.displayHeight
 		fillMode: Image.PreserveAspectCrop
 
 		property bool rounded: true
-		property int displayWidth: buzzerToolBar.height - 15
+		property int displayWidth: buzzerToolBar.height - (15 + extraOffset)
 		property int displayHeight: displayWidth
 
 		autoTransform: true
@@ -207,7 +207,7 @@ QuarkToolBar
 		fillMode: Image.PreserveAspectFit
 		width: 15
 		x: parent.width / 2 - logo.width / 2
-		y: parent.height / 2 - logo.height / 2 // extraOffset
+		y: parent.height / 2 - logo.height / 2 + extraOffset / 2
 		Layout.alignment: Qt.AlignCenter
 		mipmap: true
 		//source: "../images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "buzzer.logo")
@@ -273,7 +273,7 @@ QuarkToolBar
 		symbolColor: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 		Layout.alignment: Qt.AlignHCenter
 
-		x: parent.width - width - 8
+		x: parent.width - width - (Qt.platform.os === "ios" ? 0 : 8)
 		y: extraOffset
 
 		onClicked:

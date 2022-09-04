@@ -7,6 +7,7 @@
 #include <QQuickItem>
 #include <QMap>
 #include <QQmlApplicationEngine>
+#include <QThread>
 
 #include "transaction.h"
 #include "iwallet.h"
@@ -146,7 +147,8 @@ public:
 
 public:
 	PeersListModel();
-	virtual ~PeersListModel() {}
+	virtual ~PeersListModel() {
+	}
 
 	int rowCount(const QModelIndex& parent = QModelIndex()) const;
 	QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const;
@@ -166,11 +168,12 @@ public slots:
 	void peerPoppedSlot(buzzer::PeerProxy /*peer*/, int /*count*/);
 
 signals:
+	void peerPushedSignal(buzzer::PeerProxy /*peer*/, bool /*update*/, int /*count*/);
 	void countChanged();
 	void noMoreDataChanged();
 	void assetChanged();
 
-protected:
+public:
 	QHash<int, QByteArray> roleNames() const;
 	virtual void feedInternal(std::vector<PeerItemPtr>&);
 	virtual void feedRawInternal(std::list<qbit::IPeerPtr>&);
@@ -201,6 +204,28 @@ public:
 protected:
 	void feedInternal(std::vector<PeerItemPtr>&);
 	void feedRawInternal(std::list<qbit::IPeerPtr>&);
+};
+
+//
+typedef QSharedPointer<PeersListModel> PeersListModelSharedPtr;
+typedef QWeakPointer<PeersListModel> PeersListModelWeakPtr;
+
+class PeerlistLoader: public QObject {
+	Q_OBJECT
+	PeerlistLoader();
+public:
+	static PeerlistLoader& instance();
+	static void stop();
+
+public slots:
+	void load(PeersListModelSharedPtr);
+
+signals:
+	void loadTo(PeersListModelSharedPtr);
+	void loaded(PeersListModelWeakPtr);
+
+private:
+	QThread thread_;
 };
 
 }

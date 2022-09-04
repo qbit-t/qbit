@@ -63,6 +63,12 @@
 #include "pushdesktopnotification.h"
 #endif
 
+#include "iosimagepicker.h"
+
+#ifdef Q_OS_IOS
+#include <iosaudioplayer.h>
+#endif
+
 using namespace buzzer;
 using namespace qbit;
 
@@ -449,6 +455,15 @@ int Client::open(QString secret) {
 	qmlRegisterType<buzzer::AudioRecorder>("app.buzzer.components", 1, 0, "AudioRecorder");
 	qmlRegisterType<buzzer::VideoRecorder>("app.buzzer.components", 1, 0, "VideoRecorder");
 #endif
+
+#ifdef Q_OS_IOS
+	qmlRegisterType<buzzer::AudioRecorder>("app.buzzer.components", 1, 0, "AudioRecorder");
+	qmlRegisterType<buzzer::VideoRecorder>("app.buzzer.components", 1, 0, "VideoRecorder");
+	qmlRegisterType<buzzer::AudioPlayer>("app.buzzer.components", 1, 0, "AudioPlayer");
+#endif
+
+	qmlRegisterType<QIImagePicker>("app.buzzer.components", 1, 0, "ImagePicker");
+
 	qmlRegisterType<buzzer::BuzzTextHighlighter>("app.buzzer.components", 1, 0, "BuzzTextHighlighter");
 	qmlRegisterType<buzzer::WebSourceInfo>("app.buzzer.components", 1, 0, "WebSourceInfo");
 

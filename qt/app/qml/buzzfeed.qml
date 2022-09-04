@@ -198,6 +198,26 @@ Item
 			}
 		}
 
+		function unbind() {
+			//
+			var lVisible;
+			var lProcessable;
+			var lForwardItem;
+			// trace forward
+			for (var lForwardIdx = 0; lForwardIdx < list.count; lForwardIdx++) {
+				//
+				lForwardItem = list.itemAtIndex(lForwardIdx);
+				if (lForwardItem) {
+					lVisible = lForwardItem.y >= list.contentY && lForwardItem.y + lForwardItem.height < list.contentY + list.height;
+					lProcessable = (lForwardItem.y + lForwardItem.height) > list.contentY + list.height && (lForwardItem.y + lForwardItem.height) - (list.contentY + list.height) >= (cacheBuffer * 0.7);
+
+					if (!lProcessable || lVisible) {
+						lForwardItem.unbindCommonControls();
+					}
+				}
+			}
+		}
+
 		onContentYChanged: {
 			//
 			var lVisible;
@@ -256,6 +276,7 @@ Item
 
 		onDragEnded: {
 			if (list.pullReady) {
+				list.unbind();
 				switchDataTimer.start();
 			}
 		}

@@ -12,6 +12,10 @@
 #include "videosurface.h"
 #include "videoframesprovider.h"
 
+#ifdef Q_OS_IOS
+#include "iossystemdispatcher.h"
+#endif
+
 using namespace buzzer;
 IApplication* buzzer::gApplication = nullptr;
 
@@ -105,10 +109,6 @@ void Application::appStateChanged(Qt::ApplicationState state) {
 void Application::deviceTokenChanged()
 {
 #ifdef Q_OS_IOS
-	if (account_.getProperty("Client.deviceId") == "")
-    {
-        emit deviceTokenUpdated(localNotificator_->getDeviceToken());
-    }
 #endif
 }
 
@@ -151,9 +151,9 @@ int Application::execute()
 
 
 #ifdef Q_OS_IOS
-    localNotificator_ = LocalNotificator::instance();
-    connect(localNotificator_, SIGNAL(deviceTokenChanged()), this, SLOT(deviceTokenChanged()));
-    engine_.rootContext()->setContextProperty("localNotificator", localNotificator_);
+//    localNotificator_ = LocalNotificator::instance();
+//    connect(localNotificator_, SIGNAL(deviceTokenChanged()), this, SLOT(deviceTokenChanged()));
+//    engine_.rootContext()->setContextProperty("localNotificator", localNotificator_);
 #endif
 
     connect(&app_, SIGNAL(aboutToQuit()), this, SLOT(appQuit()));
@@ -193,6 +193,7 @@ int Application::execute()
 #endif
 
 	qInfo() << "Loading main qml:" <<  QString("qrc:/qml/") + APP_NAME + ".qml";
+	view_ = nullptr;
 	engine_.load(QString("qrc:/qml/") + APP_NAME + ".qml");
 
 	if (engine_.rootObjects().isEmpty()) {
@@ -203,8 +204,28 @@ int Application::execute()
 	QObject* lAppWindow = *(engine_.rootObjects().begin());
 	view_ = qobject_cast<QQuickWindow*>(lAppWindow);
 
+#ifdef Q_OS_IOS
+	QISystemDispatcher* lSystem = QISystemDispatcher::instance();
+	connect(lSystem, SIGNAL(dispatched(QString,QVariantMap)), this, SLOT(externalKeyboardHeightChanged(QString, QVariantMap)));
+#endif
+
+#ifdef Q_OS_MACX
+	// TODO: make external settings
+	setStatusBarColor(getColor(client_.theme(), client_.themeSelector(), "Material.statusBar"));
+#endif
+
     qInfo() << "Executing app:" << APP_NAME;
 	return app_.exec();
+}
+
+void Application::externalKeyboardHeightChanged(QString name, QVariantMap data) {
+	//
+	if (name != "keyboardHeightChanged") return;
+
+	int lHeight = data["keyboardHeight"].value<int>();
+	if (!buzzer::gApplication) return;
+	qDebug() << "[Objective-C::keyboardHeightChanged]: height =" << lHeight;
+	((Application*)buzzer::gApplication)->emit_keyboardHeightChanged(lHeight);	
 }
 
 void Application::commitCurrentInput() {
@@ -631,6 +652,15 @@ void Application::wakeLock()
 		window.callMethod<void>("addFlags", "(I)V", 0x00000080);
 	});
 #endif
+
+    // TODO: maybe we need to setup this mode at startup?
+#ifdef Q_OS_IOS
+    QISystemDispatcher* system = QISystemDispatcher::instance();
+    QVariantMap data;
+    system->dispatch("makeBackgroundAudioAvailable", data);
+    qDebug() << "[Application::setWakeLock]: acquire lock";
+    isWakeLocked_ = true;
+#endif
 }
 
 void Application::wakeRelease()
@@ -641,6 +671,14 @@ void Application::wakeRelease()
 		QAndroidJniObject window = QtAndroid::androidActivity().callObjectMethod("getWindow", "()Landroid/view/Window;");
 		window.callMethod<void>("clearFlags", "(I)V", 0x00000080);
 	});
+#endif
+
+#ifdef Q_OS_IOS
+    QISystemDispatcher* system = QISystemDispatcher::instance();
+    QVariantMap data;
+    system->dispatch("releaseBackgroundAudio", data);
+    qDebug() << "[Application::setWakeLock]: release lock";
+    isWakeLocked_ = false;
 #endif
 }
 
@@ -673,6 +711,13 @@ void Application::unlockOrientation()
 #endif
 
 #ifdef Q_OS_IOS
+#endif
+}
+
+void Application::setStatusBarColor(QString color) {
+	//
+#ifdef Q_OS_MACX
+	MacXUtils::setStatusBarColor(view_, color);
 #endif
 }
 

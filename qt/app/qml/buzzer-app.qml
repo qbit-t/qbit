@@ -82,6 +82,14 @@ ApplicationWindow
         return lPage;
     }
 
+	function popBack()
+	{
+		if (getDepth() > 1)
+		{
+			pagesView.get(pagesView.depth-1).closePageHandler();
+		}
+	}
+
     function getDepth()
     {
 		if (buzzerClient.configured())

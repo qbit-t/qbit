@@ -15,6 +15,8 @@ leveldb/leveldbutil
 *.err
 boost/bin.v2/
 boost/stage/
+boost/dist/
+qt/app/boost/dist/
 b2
 bjam
 *.list

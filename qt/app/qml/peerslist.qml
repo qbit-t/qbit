@@ -73,8 +73,9 @@ Item
 		width: parent.width
 		height: parent.height
 		clip: true
+		cacheBuffer: 1000
 
-		property int fontPointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 12 : 15;
+		property int fontPointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 1) : (buzzerApp.defaultFontSize() + 4);
 
 		onWidthChanged: {
 		}

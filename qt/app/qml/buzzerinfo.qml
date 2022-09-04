@@ -225,6 +225,7 @@ Item
 		lineWidth: 3
 	}
 
+	/*
 	BuzzerComponents.ImageListing {
 		id: imageListing
 
@@ -234,6 +235,7 @@ Item
 			avatarImage.source = "file://" + buzzerAvatar_;
 		}
 	}
+	*/
 
 	Connections {
 		id: selectImage
@@ -258,6 +260,35 @@ Item
 		}
 	}
 
+	BuzzerComponents.ImagePicker {
+		id: avatarPicker
+		sourceType: BuzzerComponents.ImagePicker.PhotoLibrary
+		mediaTypes: BuzzerComponents.ImagePicker.Images
+
+		onReady: {
+			if (status === BuzzerComponents.ImagePicker.Ready) {
+				avatarPicker.busy = true;
+				avatarPicker.saveAsTemp();
+			}
+		}
+
+		onSaved: {
+			console.log("The image is saved to " + url);
+			avatarPicker.close();
+			avatarPicker.busy = false;
+
+			avatarImage.mipmap = false;
+			buzzerAvatar_ = buzzerApp.getFilePath(url);
+			avatarImage.source = "file://" + buzzerAvatar_;
+			selectImage.destination = "header";
+		}
+
+		onAbsoluteUrlChanged: {
+			// Video only
+			// console.log("Url for media is " + url);
+		}
+	}
+
 	QuarkToolButton {
 		id: chooseAvatarButton
 		x: parent.width / 2 + avatarImage.width / 2 + 10
@@ -271,7 +302,8 @@ Item
 		onClicked: {
 			//imageListing.listImages();
 			selectImage.destination = "avatar";
-			buzzerApp.pickImageFromGallery();
+			if (Qt.platform.os === "android") buzzerApp.pickImageFromGallery();
+			else if (Qt.platform.os === "ios") avatarPicker.show();
 		}
 	}
 
@@ -395,12 +427,42 @@ Item
 		}
 	}
 
+	/*
 	BuzzerComponents.ImageListing {
 		id: headerListing
 
 		onImageFound: {
 			buzzerHeader_ = file;
 			headerImage.source = "file://" + buzzerHeader_;
+		}
+	}
+	*/
+
+	BuzzerComponents.ImagePicker {
+		id: headerPicker
+		sourceType: BuzzerComponents.ImagePicker.PhotoLibrary
+		mediaTypes: BuzzerComponents.ImagePicker.Images
+
+		onReady: {
+			if (status === BuzzerComponents.ImagePicker.Ready) {
+				headerPicker.busy = true;
+				headerPicker.saveAsTemp();
+			}
+		}
+
+		onSaved: {
+			console.log("The image is saved to " + url);
+			headerPicker.close();
+			headerPicker.busy = false;
+
+			buzzerHeader_ = buzzerApp.getFilePath(url);
+			headerImage.source = "file://" + buzzerHeader_;
+			selectImage.destination = "none";
+		}
+
+		onAbsoluteUrlChanged: {
+			// Video only
+			// console.log("Url for media is " + url);
 		}
 	}
 
@@ -417,7 +479,8 @@ Item
 		onClicked: {
 			//headerListing.listImages();
 			selectImage.destination = "header";
-			buzzerApp.pickImageFromGallery();
+			if (Qt.platform.os === "android") buzzerApp.pickImageFromGallery();
+			else if (Qt.platform.os === "ios") headerPicker.show();
 		}
 	}
 

@@ -14,16 +14,24 @@ MediaPlayer {
 	property var caption: "";
 
 	function pushSurface(surface) {
-		surfaces.pushSurface(surface);
-		videoOutput = surfaces;
+		if (Qt.platform.os === "ios") {
+			videoOutput = surface;
+		} else {
+			surfaces.pushSurface(surface);
+			videoOutput = surfaces;
+		}
 	}
 
 	function popSurface() {
-		surfaces.popSurface();
+		if (Qt.platform.os === "ios") {
+			videoOutput = surfaces;
+		} else surfaces.popSurface();
 	}
 
 	function clearSurfaces() {
-		surfaces.clearSurfaces();
+		if (Qt.platform.os === "ios") {
+			videoOutput = surfaces;
+		} else surfaces.clearSurfaces();
 	}
 
 	//videoOutput: surfaces
@@ -47,6 +55,8 @@ MediaPlayer {
 				size = buzzerApp.getFileSize(source);
 			break;
 		}
+
+		console.info("[onStatusChanged]: volume = " + volume);
 	}
 
 	onError: {

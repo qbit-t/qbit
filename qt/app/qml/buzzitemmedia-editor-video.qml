@@ -8,7 +8,7 @@ import QtQuick.Dialogs 1.1
 //import QtGraphicalEffects 1.0
 import QtGraphicalEffects 1.15
 import Qt.labs.folderlistmodel 2.11
-import QtMultimedia 5.8
+import QtMultimedia 5.15
 
 import app.buzzer.components 1.0 as BuzzerComponents
 import app.buzzer.commands 1.0 as BuzzerCommands
@@ -92,6 +92,8 @@ Rectangle {
 	//
 	VideoOutput {
 		id: videoOutput
+		//autoOrientation: Qt.platform.os === "ios" ? true : false
+		//flushMode: VideoOutput.FirstFrame
 
 		x: getX()
 		y: getY()
@@ -151,6 +153,7 @@ Rectangle {
 	BuzzerComponents.ImageQx {
 		id: previewImage
 		asynchronous: true
+		autoTransform: true
 		radius: 8
 
 		function adjustView() {
@@ -166,6 +169,10 @@ Rectangle {
 
 		onStatusChanged: {
 			adjustView();
+			if (status == Image.Error) {
+				// force to reload
+				console.info("[image/onStatusChanged/error]: source = " + source + ", error = " + errorString);
+			}
 		}
 
 		onWidthChanged: {
@@ -181,12 +188,12 @@ Rectangle {
 			}
 		}
 
-		source: "file://" + preview
+		source: preview.startsWith("qrc") ? preview : (Qt.platform.os == "windows" ? "file:///" : "file://") + preview
 		fillMode: BuzzerComponents.ImageQx.PreserveAspectFit
 		mipmap: true
 		anchors.centerIn: parent
 
-		visible: (preview !== "none" || preview !== "") && !player.hasVideo //||
+		visible: true //(preview !== "none" || preview !== "") && !(player.position > 1) 
 					//(player.hasVideo && !player.playing && !player.paused))
 	}
 
@@ -230,43 +237,71 @@ Rectangle {
 
 		onPlaying: { playing = true; paused = false; }
 		onPaused: { playing = false; paused = true; }
-		onStopped: { playing = false; paused = false; }
+		onStopped: {
+			playing = false;
+			paused = false; 
+
+			playSlider.value = 0;
+			elapsedTime.setTime(0);
+			//player.seek(1);
+
+			previewImage.visible = true;
+		}
 
 		onStatusChanged: {
 			//
+			var lStatus = "Unknown";
 			switch(status) {
 				case MediaPlayer.Loaded:
+					lStatus = "Loaded";
 					if (!intialized) {
 						size = buzzerApp.getFileSize(key);
 						totalTime.setTotalTime(duration);
 						totalSize.setTotalSize(size);
 						playSlider.to = duration;
 						//videoOutput.fillMode = VideoOutput.PreserveAspectFit;
+						
 						//
-						player.seek(1);
+						//player.seek(1);
+
+						// adjust orientation
+						if (orientation !== 0) {
+							if (orientation == 6) videoOutput.orientation = -90;
+							else if (orientation == 3) videoOutput.orientation = -180;
+							else if (orientation == 8) videoOutput.orientation = 90;
+							else videoOutput.orientation = 0;
+						}
+
+						//						
 						videoOutput.adjustView();
 						previewImage.adjustView();
-						loadTimer.start();
 
-						intialized = true;
+						// duration
+						adjustDuration(duration);
 
 						//
-						adjustDuration(duration);
+						intialized = true;
 					}
 				break;
 				case MediaPlayer.Buffered:
-					player.seek(1);
-					videoOutput.adjustView();
-					previewImage.adjustView();
+					lStatus = "Buffered";
+				break;
+				case MediaPlayer.EndOfMedia:
+					lStatus = "EndOfMedia";
+				break;
+				case MediaPlayer.InvalidMedia:
+					lStatus = "InvalidMedia";
 				break;
 			}
 
-			console.log("[onStatusChanged(9)]: status = " + status + ", duration = " + duration + ", path = " + path + ", size = " + size);
+			console.log("[onStatusChanged(9)]: status = " + lStatus + ", duration = " + duration + ", path = " + path + ", size = " + size);
 		}
 
 		onPositionChanged: {
 			elapsedTime.setTime(position);
 			playSlider.value = position;
+
+			if (position >= 250 && previewImage.visible && playing && hasVideo) previewImage.visible = false;
 		}
 
 		onPlaybackStateChanged: {
@@ -426,6 +461,26 @@ Rectangle {
 		onClicked: {
 			if (!sending) {
 				description = "none";
+			}
+		}
+	}
+
+	QuarkToolButton	{
+		id: flipButton
+
+		x: frameContainer.x + frameContainer.width - (width + 2*spaceItems_)
+		y: clearDescriptionButton.y + clearDescriptionButton.height
+		// Material.background: "transparent"
+		visible: true
+		labelYOffset: 3
+		symbolColor: (!sending || uploaded) ? buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground") :
+										  buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
+		symbol: Fonts.refreshSym
+
+		onClicked: {
+			if (!sending) {
+				if (orientation === 0) { orientation = 3; videoOutput.orientation = -180; }
+				else { orientation = 0; videoOutput.orientation = 0; }
 			}
 		}
 	}

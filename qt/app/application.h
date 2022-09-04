@@ -42,7 +42,11 @@
 #include "shareutils.h"
 
 #ifdef Q_OS_IOS
-#include "ios/localnotificator.h"
+//#include "ios/notification/localnotificator.h"
+#endif
+
+#ifdef Q_OS_MACX
+#include "macos/macxutils.h"
 #endif
 
 //
@@ -131,6 +135,23 @@ public:
 };
 #endif
 
+#include <QInputMethodQueryEvent>
+
+class ImFixer : public QObject {
+	Q_OBJECT
+protected:
+	bool eventFilter(QObject *obj, QEvent *event) override {
+		if (event->type() == QEvent::InputMethodQuery) {
+			QInputMethodQueryEvent *imEvt = static_cast<QInputMethodQueryEvent *>(event);
+			if (imEvt->queries() == Qt::InputMethodQuery::ImCursorRectangle) {
+				imEvt->setValue(Qt::InputMethodQuery::ImCursorRectangle, QRectF());
+				return true;
+			}
+		}
+		return QObject::eventFilter(obj, event);
+	}
+};
+
 /**
  * @brief The Application class
  * Entry point to the buzzer.app
@@ -152,7 +173,7 @@ public:
         connectionState_ = "offline"; isWakeLocked_ = false;
         serviceRunning_ = false; fingertipAuthState_ = 0;
 #ifdef Q_OS_IOS
-        localNotificator_ = nullptr;
+        //localNotificator_ = nullptr;
 #endif
     }
 
@@ -273,6 +294,14 @@ public:
 		return lInfo.fileName();
 	}
 
+	Q_INVOKABLE QString getFilePath(QString file) {
+		QString lFile = file;
+		if (lFile.startsWith("qrc:/")) lFile = file.mid(3);
+		else if (lFile.startsWith("file://")) lFile = file.mid(7);
+
+		return lFile;
+	}
+
 	Q_INVOKABLE QString getFileNameAsDescription(QString file) {
 		QString lFile = file;
 		if (lFile.startsWith("qrc:/")) lFile = file.mid(3);
@@ -297,7 +326,9 @@ public:
 	Q_INVOKABLE QString getColorStatusBar(QString theme, QString selector, QString key);
 	Q_INVOKABLE QString getLocalization(QString locale, QString key);
 
-    Q_INVOKABLE bool hasLightOnly(QString theme);
+	Q_INVOKABLE void setStatusBarColor(QString color);
+
+	Q_INVOKABLE bool hasLightOnly(QString theme);
     Q_INVOKABLE bool hasDarkOnly(QString theme);
 
 	Q_INVOKABLE qreal defaultFontSize() {
@@ -331,7 +362,12 @@ public:
 		return getQttAssetLockTime();
 	}
 
-	Q_INVOKABLE QString getLanguages();
+	Q_INVOKABLE void setupImEventFilter(QQuickItem *item) {
+		static thread_local ImFixer imf;
+		item->installEventFilter(&imf);
+	}
+
+    Q_INVOKABLE QString getLanguages();
     Q_INVOKABLE QString getColorSchemes();
 
     Q_INVOKABLE void wakeLock();
@@ -408,6 +444,7 @@ public slots:
 #if defined(Q_OS_ANDROID)
 	 void onApplicationStateChanged(Qt::ApplicationState applicationState);
 #endif
+    void externalKeyboardHeightChanged(QString name,QVariantMap data);
 
 signals:
     void appSuspending();
@@ -456,7 +493,7 @@ private:
     bool isWakeLocked_;
 
 #ifdef Q_OS_IOS
-    LocalNotificator* localNotificator_;
+    // LocalNotificator* localNotificator_;
 #endif
 
     bool serviceRunning_;
