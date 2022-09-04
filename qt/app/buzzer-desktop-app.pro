@@ -66,28 +66,28 @@ SOURCES += \
     ../../pow.cpp \
     ../../dapps/buzzer/buzzer.cpp \
     ../../dapps/buzzer/buzzfeed.cpp \
-	../../dapps/buzzer/eventsfeed.cpp \
-	../../dapps/buzzer/conversationsfeed.cpp \
-	../../dapps/buzzer/peerextension.cpp \
+    ../../dapps/buzzer/eventsfeed.cpp \
+    ../../dapps/buzzer/conversationsfeed.cpp \
+    ../../dapps/buzzer/peerextension.cpp \
     ../../dapps/buzzer/transactionstoreextension.cpp \
     ../../dapps/buzzer/transactionactions.cpp \
     ../../client/dapps/buzzer/buzzercommands.cpp \
     ../../client/dapps/buzzer/buzzercomposer.cpp \
     ../../client/dapps/cubix/cubixcommands.cpp \
     ../../client/dapps/cubix/cubixcomposer.cpp \
-	../../client/dapps/cubix/exif.cpp \
-	../../client/commands.cpp \
+    ../../client/dapps/cubix/exif.cpp \
+    ../../client/commands.cpp \
     ../../client/commandshandler.cpp \
     asiodispatcher.cpp \
     buzzfeedlistmodel.cpp \
     buzztexthighlighter.cpp \
     client.cpp \
     commandwrappers.cpp \
-	conversationsfeedlistmodel.cpp \
+    conversationsfeedlistmodel.cpp \
     emojidata.cpp \
     emojimodel.cpp \
     eventsfeedlistmodel.cpp \
-	imagelisting.cpp \
+    imagelisting.cpp \
     macos/macxutils.mm \
     main.cpp \
     logger.cpp \
@@ -98,15 +98,17 @@ SOURCES += \
     peerslistmodel.cpp \
     pushdesktopnotification.cpp \
     settings.cpp \
-	videoframesprovider.cpp \
-	videorecorder.cpp \
-	videosurface.cpp \
-	wallettransactionslistmodel.cpp \
-	websourceinfo.cpp \
-	imageqx.cpp \
-	imageqxloader.cpp \
-	imageqxnode.cpp \
-	shareutils.cpp
+    videoframesprovider.cpp \
+    videorecorder.cpp \
+    videosurface.cpp \
+    wallettransactionslistmodel.cpp \
+    websourceinfo.cpp \
+    imageqx.cpp \
+    imageqxloader.cpp \
+    imageqxnode.cpp \
+    shareutils.cpp \
+    iosimagepicker.cpp \
+    iossystemdispatcher.cpp
 
 SUBDIRS += \
     ../../client \
@@ -243,7 +245,7 @@ HEADERS += \
     buzzfeedlistmodel.h \
     buzztexthighlighter.h \
     client.h \
-	conversationsfeedlistmodel.h \
+    conversationsfeedlistmodel.h \
     emojidata.h \
     emojimodel.h \
     error.h \
@@ -253,63 +255,65 @@ HEADERS += \
     application.h \
     iapplication.h \
     applicationpath.h \
-	line.h \
+    line.h \
     macos/macxutils.h \
     notificator.h \
     notificator_p.h \
     pushdesktopnotification.h \
-	roundframe.h \
-	cameracontroler.h \
+    roundframe.h \
+    cameracontroler.h \
     peerslistmodel.h \
-	settings.h \
-	commandwrappers.h \
-	imagelisting.h \
-	../../dapps/buzzer/buzzer.h \
-	../../dapps/buzzer/buzzfeed.h \
-	../../dapps/buzzer/buzzfeedview.h \
-	../../dapps/buzzer/eventsfeed.h \
-	../../dapps/buzzer/eventsfeedview.h \
-	../../dapps/buzzer/conversationsfeed.h \
-	../../dapps/buzzer/conversationsfeedview.h \
-	../../client/dapps/buzzer/buzzercommands.h \
-	../../client/dapps/buzzer/buzzercomposer.h \
-	../../client/dapps/cubix/cubixcommands.h \
-	../../client/dapps/cubix/cubixcomposer.h \
-	../../client/commands.h \
-	videoframesprovider.h \
-	videorecorder.h \
-	videosurface.h \
-	wallettransactionslistmodel.h \
-	websourceinfo.h \
-	imageqx.h \
-	imageqxloader.h \
-	imageqxnode.h \
-	shareutils.h
+    settings.h \
+    commandwrappers.h \
+    imagelisting.h \
+    ../../dapps/buzzer/buzzer.h \
+    ../../dapps/buzzer/buzzfeed.h \
+    ../../dapps/buzzer/buzzfeedview.h \
+    ../../dapps/buzzer/eventsfeed.h \
+    ../../dapps/buzzer/eventsfeedview.h \
+    ../../dapps/buzzer/conversationsfeed.h \
+    ../../dapps/buzzer/conversationsfeedview.h \
+    ../../client/dapps/buzzer/buzzercommands.h \
+    ../../client/dapps/buzzer/buzzercomposer.h \
+    ../../client/dapps/cubix/cubixcommands.h \
+    ../../client/dapps/cubix/cubixcomposer.h \
+    ../../client/commands.h \
+    videoframesprovider.h \
+    videorecorder.h \
+    videosurface.h \
+    wallettransactionslistmodel.h \
+    websourceinfo.h \
+    imageqx.h \
+    imageqxloader.h \
+    imageqxnode.h \
+    shareutils.h \
+    iosimagepicker.h \
+    iossystemdispatcher.h
 
 RESOURCES += \
     $$files(../fonts/*) \
-#	$$files(../fonts-desktop/*) \
+    #	$$files(../fonts-desktop/*) \
     $$files(../images/*) \
     $$files(backend/*) \
     $$files(qml/*) \
     $$files(lib/*) \
     $$files(components/*) \
-	$$files(models/*) \
-	$$files(emoji/*) \
-	./buzzer-app.config \
-	./buzzer.desktop \
-	../fonts-desktop/NotoColorEmojiN.ttf \
-	../fonts-desktop/NotoColorEmoji_WindowsCompatible.ttf \
-	../fonts-desktop/NotoSans-Regular.ttf \
-	../fonts-desktop/NotoSans-Bold.ttf \
-	../fonts-desktop/NotoSans-ExtraBold.ttf \
-	../fonts-desktop/NotoSans-Black.ttf \
-	../fonts-desktop/NotoSans-SemiBold.ttf \
-	../fonts-desktop/NotoSans-Light.ttf \
-	../fonts-desktop/NotoSans-Italic.ttf \
-	../fonts-desktop/NotoSans-Medium.ttf \
-	../fonts-desktop/NotoSans-Thin.ttf \
-	../fonts-desktop/NotoSansMono-Regular.ttf
+    $$files(models/*) \
+    $$files(emoji/*) \
+    ./buzzer-app.config \
+    ./buzzer.desktop \
+    ../fonts-desktop/NotoColorEmojiN.ttf \
+    ../fonts-desktop/NotoColorEmoji_WindowsCompatible.ttf \
+    ../fonts-desktop/NotoSans-Regular.ttf \
+    ../fonts-desktop/NotoSans-Bold.ttf \
+    ../fonts-desktop/NotoSans-ExtraBold.ttf \
+    ../fonts-desktop/NotoSans-Black.ttf \
+    ../fonts-desktop/NotoSans-SemiBold.ttf \
+    ../fonts-desktop/NotoSans-Light.ttf \
+    ../fonts-desktop/NotoSans-Italic.ttf \
+    ../fonts-desktop/NotoSans-Medium.ttf \
+    ../fonts-desktop/NotoSans-Thin.ttf \
+    ../fonts-desktop/NotoSansMono-Regular.ttf
 
 FORMS +=
 
