@@ -376,7 +376,10 @@ ios {
     DEFINES += MOBILE_PLATFORM_64
 
     DEPENDPATH += $$PWD/leveldb/ios/out-ios-universal
-    DEPENDPATH += $$PWD/boost/dist/boost.xcframework/ios-arm64
+
+    CONFIG(iphonesimulator, iphoneos|iphonesimulator): DEPENDPATH += $$PWD/boost/dist/boost.xcframework/ios-arm64_x86_64-simulator
+    CONFIG(iphoneos, iphoneos|iphonesimulator): DEPENDPATH += $$PWD/boost/dist/boost.xcframework/ios-arm64
+
     # DEPENDPATH += $$PWD/libjpeg/android/obj/local/armeabi-v7a
     # DEPENDPATH += $$PWD/libpng/android/obj/local/armeabi-v7a
 
