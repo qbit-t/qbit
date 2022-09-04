@@ -573,6 +573,12 @@ int Client::open(QString secret) {
 	connect(syncTimer_, &QTimer::timeout, this, &Client::prepareCache);
 	connect(this, &Client::fireResyncWalletCache, this, &Client::resyncWalletCache);
 
+	// explicit peers only
+	QString lExplicitPeersOnly = getProperty("Client.explicitPeersOnly");
+	if (lExplicitPeersOnly == "true") {
+		peerManager_->useExplicitPeersOnly();
+	}
+
 	// fill up peers
 	peerManager_->run();
 
