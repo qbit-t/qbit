@@ -149,6 +149,7 @@ Item {
 		onProcessed: {
 			// tx, previewFile, originalFile, orientation, duration, size, type
 			avatarImage.source = "file://" + originalFile;
+			buzzerClient.avatar = originalFile;
 		}
 
 		onError: {
@@ -168,6 +169,7 @@ Item {
 		onProcessed: {
 			// tx, previewFile, originalFile
 			headerImage.source = "file://" + originalFile;
+			buzzerClient.header = originalFile;
 		}
 
 		onError: {
