@@ -88,7 +88,6 @@ SOURCES += \
     emojimodel.cpp \
     eventsfeedlistmodel.cpp \
     imagelisting.cpp \
-    macos/macxutils.mm \
     main.cpp \
     logger.cpp \
     application.cpp \
@@ -182,6 +181,12 @@ macx {
     LIBS += -lpng
 
     ICON = macos/buzzer.icns
+
+    SOURCES += \
+	    macos/macxutils.mm
+
+    HEADERS += \
+	    macos/macxutils.h
 }
 
 win32 {
@@ -256,7 +261,6 @@ HEADERS += \
     iapplication.h \
     applicationpath.h \
     line.h \
-    macos/macxutils.h \
     notificator.h \
     notificator_p.h \
     pushdesktopnotification.h \

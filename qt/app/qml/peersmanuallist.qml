@@ -83,7 +83,7 @@ Item
 		id: peerEditBox
 		x: spaceLeft_
 		y: spaceTop_
-		width: parent.width - (spaceLeft_ + spaceRight_)
+		width: parent.width - (spaceLeft_ + spaceTop_)
 		symbol: Fonts.globeSym
 		clipboardButton: false
 		helpButton: true
@@ -235,6 +235,7 @@ Item
 		color: "transparent"
 		border.color: "transparent"
 		text: buzzerApp.getLocalization(buzzerClient.locale, "Peers.manual.explicit")
+		checked: buzzerClient.getProperty("Client.explicitPeersOnly") === "true"
 
 		onCheckedChanged: {
 			//
