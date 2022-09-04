@@ -45,6 +45,10 @@
 #include "ios/localnotificator.h"
 #endif
 
+#ifdef Q_OS_MACX
+#include "macos/macxutils.h"
+#endif
+
 //
 // Android Icon generator
 // https://romannurik.github.io/AndroidAssetStudio/icons-notification.html#source.type=image&source.space.trim=1&source.space.pad=0
@@ -297,7 +301,9 @@ public:
 	Q_INVOKABLE QString getColorStatusBar(QString theme, QString selector, QString key);
 	Q_INVOKABLE QString getLocalization(QString locale, QString key);
 
-    Q_INVOKABLE bool hasLightOnly(QString theme);
+	Q_INVOKABLE void setStatusBarColor(QString color);
+
+	Q_INVOKABLE bool hasLightOnly(QString theme);
     Q_INVOKABLE bool hasDarkOnly(QString theme);
 
 	Q_INVOKABLE qreal defaultFontSize() {
