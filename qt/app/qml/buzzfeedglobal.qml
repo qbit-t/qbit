@@ -51,6 +51,7 @@ Item
 	property var buzzerBuzzfedModel_: buzzerClient.createBuzzerBuzzfeedList();
 
 	function externalPull() {
+		list.unbind();
 		modelLoader_.restart();
 	}
 
@@ -114,6 +115,7 @@ Item
 	function stopFeed() {
 		// unregister
 		if (buzzfeedModel_ && buzzfeedModel_ !== buzzerClient.getGlobalBuzzfeedList()) {
+			list.unbind();
 			buzzfeedModel_.clear();
 		}
 	}
@@ -317,7 +319,7 @@ Item
 
 	QuarkSearchField {
 		id: search
-		width: buzzerApp.isDesktop ? parent.width - x - 5 : parent.width - x // - 14
+		width: buzzerApp.isDesktop ? parent.width - x - 5 : (parent.width - x + (Qt.platform.os === "ios" ? 8 : 0))
 		placeHolder: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.global.search")
 		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 1)) : defaultFontPointSize
 		visible: !buzzerApp.isDesktop
@@ -420,6 +422,26 @@ Item
 			return true;
 		}
 
+		function unbind() {
+			//
+			var lVisible;
+			var lProcessable;
+			var lForwardItem;
+			// trace forward
+			for (var lForwardIdx = 0; lForwardIdx < list.count; lForwardIdx++) {
+				//
+				lForwardItem = list.itemAtIndex(lForwardIdx);
+				if (lForwardItem) {
+					lVisible = lForwardItem.y >= list.contentY && lForwardItem.y + lForwardItem.height < list.contentY + list.height;
+					lProcessable = (lForwardItem.y + lForwardItem.height) > list.contentY + list.height && (lForwardItem.y + lForwardItem.height) - (list.contentY + list.height) >= (cacheBuffer * 0.7);
+
+					if (!lProcessable || lVisible) {
+						lForwardItem.unbindCommonControls();
+					}
+				}
+			}
+		}
+
 		onContentYChanged: {
 			//
 			var lVisible;
@@ -478,6 +500,7 @@ Item
 
 		onDragEnded: {
 			if (list.pullReady) {
+				list.unbind();
 				switchDataTimer.start();
 			}
 		}

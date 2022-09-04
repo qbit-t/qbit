@@ -67,7 +67,7 @@ QuarkPage {
 	OrientationSensor {
 		id: orientationSensor
 		onReadingChanged: {
-			// console.log("[onReadingChanged]: " + reading.orientation);
+			console.log("[onReadingChanged]: " + reading.orientation);
 			videoRecorder.orientation = reading.orientation;
 		}
 	}

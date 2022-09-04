@@ -53,6 +53,7 @@ QuarkPage
 	SetupToolBar {
 		id: toolBar
 		extraOffset: topOffset
+		controller_: controller
 	}
 
 	//

@@ -111,7 +111,7 @@ Rectangle {
 
 	function unbindCommonControls() {
 		//
-		if (player && (playing || downloadCommand.processing)) {
+		if (player /*&& (playing || downloadCommand.processing)*/) {
 			//
 			// reset playback
 			videoFrame.sharedMediaPlayer_.continuePlayback = false;

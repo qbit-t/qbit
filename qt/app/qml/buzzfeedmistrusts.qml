@@ -158,7 +158,7 @@ QuarkPage {
 
 	QuarkToolBar {
 		id: buzzThreadToolBar
-		height: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 50) : 45
+		height: (buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 50) : 45) + topOffset
 		width: parent.width
 
 		property int totalHeight: height
@@ -169,7 +169,7 @@ QuarkPage {
 		QuarkRoundSymbolButton {
 			id: cancelButton
 			x: spaceItems_
-			y: parent.height / 2 - height / 2
+			y: parent.height / 2 - height / 2 + topOffset / 2
 			symbol: Fonts.leftArrowSym
 			fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 5)) : buzzerApp.defaultFontSize() + 7
 			radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius - 7)) : (defaultRadius - 7)
@@ -185,7 +185,7 @@ QuarkPage {
 		QuarkRoundSymbolButton {
 			id: menuControl
 			x: parent.width - width - spaceItems_
-			y: parent.height / 2 - height / 2
+			y: parent.height / 2 - height / 2 + topOffset / 2
 			symbol: Fonts.elipsisVerticalSym
 			fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 5)) : buzzerApp.defaultFontSize() + 7
 			radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius - 7)) : (defaultRadius - 7)

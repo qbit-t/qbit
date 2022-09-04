@@ -119,7 +119,7 @@ private:
 	bool previewSaved_ = false;
 	bool videoCaptured_ = false;
 #if !defined(DESKTOP_PLATFORM)
-	QOrientationReading::Orientation orientation_;
+	QOrientationReading::Orientation orientation_ = QOrientationReading::Undefined;
 #endif
 	unsigned short unifiedOrientation_ = 0;
 	QString previewLocation_;

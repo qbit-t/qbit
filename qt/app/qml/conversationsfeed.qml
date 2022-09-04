@@ -185,7 +185,7 @@ Item
 
 	QuarkSearchField {
 		id: search
-		width: parent.width - x //- 14
+		width: parent.width - x + (Qt.platform.os === "ios" ? 8 : 0)
 		placeHolder: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.global.search.add")
 		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 1)) : defaultFontPointSize
 		visible: !buzzerApp.isDesktop

@@ -7,6 +7,35 @@
 
 using namespace buzzer;
 
+#ifdef __clang__
+#  pragma clang diagnostic push
+#  pragma clang diagnostic ignored "-Wmissing-variable-declarations"
+#endif
+int __idPeersListModelSharedPtr = qRegisterMetaType<PeersListModelSharedPtr>("PeersListModelSharedPtr");
+int __idPeersListModelWeakPtr = qRegisterMetaType<PeersListModelWeakPtr>("PeersListModelWeakPtr");
+#ifdef __clang__
+#  pragma clang diagnostic pop
+#endif
+
+PeerlistLoader::PeerlistLoader(): QObject (nullptr) {
+	moveToThread(&thread_);
+	connect (this, SIGNAL(loadTo(PeersListModelSharedPtr)), SLOT(get(QString, ImageSharedPtr, bool)), Qt::QueuedConnection);
+	thread_.start();
+}
+
+PeerlistLoader& PeerlistLoader::instance() {
+	static PeerlistLoader instance;
+	return instance;
+}
+
+void PeerlistLoader::stop() {
+	PeerlistLoader::instance().thread_.quit();
+}
+
+void PeerlistLoader::load(PeersListModelSharedPtr model) {
+	//
+}
+
 PeersListModel::PeersListModel() {
 	//
 	Client* lClient = static_cast<Client*>(gApplication->getClient());
@@ -295,7 +324,6 @@ void PeersListModel::peerPushedSlot(buzzer::PeerProxy peer, bool update, int cou
 }
 
 void PeersListModel::peerPoppedSlot(buzzer::PeerProxy peer, int count) {
-	// qInfo() << "[peerPoppedSlot]" << QString::fromStdString(peer.get()->key());
 	peerPoppedInternal(peer, count);
 }
 

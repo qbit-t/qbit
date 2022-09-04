@@ -5,7 +5,7 @@
 #include "shareutils.h"
 
 #ifdef Q_OS_IOS
-#include "cpp/ios/iosshareutils.hpp"
+#include "iosshareutils.h"
 #endif
 
 #ifdef Q_OS_ANDROID

@@ -105,6 +105,22 @@ void StatusBarPrivate::setTheme_sys(StatusBar::Theme)
     }, Qt::UniqueConnection);
 }
 
+void StatusBarPrivate::setNavigatorTheme_sys(StatusBar::Theme)
+{
+    updatePreferredStatusBarStyle();
+
+    QObject::connect(qApp, &QGuiApplication::applicationStateChanged, qApp, [](Qt::ApplicationState state) {
+        if (state == Qt::ApplicationActive)
+            updatePreferredStatusBarStyle();
+    }, Qt::UniqueConnection);
+
+    QScreen *screen = qApp->primaryScreen();
+    screen->setOrientationUpdateMask(Qt::PortraitOrientation | Qt::LandscapeOrientation | Qt::InvertedPortraitOrientation | Qt::InvertedLandscapeOrientation);
+    QObject::connect(screen, &QScreen::orientationChanged, qApp, [](Qt::ScreenOrientation) {
+        togglePreferredStatusBarStyle();
+    }, Qt::UniqueConnection);
+}
+
 int StatusBarPrivate::getPadding()
 {
     int lPadding = 0;

@@ -35,7 +35,7 @@ QuarkPage {
 	readonly property int spaceRight_: 15
 	readonly property int spaceBottom_: 12
 	readonly property int spaceItems_: 5
-	readonly property int toolbarTotalHeight_: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 50) : 45
+	readonly property int toolbarTotalHeight_: (buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 50) : 45) + topOffset
 
 	function start(tag) {
 		//
@@ -51,6 +51,7 @@ QuarkPage {
 	}
 
 	function closePage() {
+		list.unbind();
 		stopPage();
 		controller.popPage(buzzfeedtag_);
 		destroy(1000);
@@ -171,7 +172,7 @@ QuarkPage {
 		QuarkRoundSymbolButton {
 			id: cancelButton
 			x: spaceItems_
-			y: parent.height / 2 - height / 2
+			y: parent.height / 2 - height / 2 + topOffset / 2
 			symbol: Fonts.leftArrowSym
 			fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 5)) : buzzerApp.defaultFontSize() + 7
 			radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius - 7)) : (defaultRadius - 7)
@@ -187,7 +188,7 @@ QuarkPage {
 		QuarkLabelRegular {
 			id: tagControl
 			x: cancelButton.x + cancelButton.width + spaceItems_
-			y: parent.height / 2 - height / 2
+			y: parent.height / 2 - height / 2 + topOffset / 2
 			width: parent.width - (x /*+ spaceRightMenu_*/)
 			elide: Text.ElideRight
 			text: modelLoader.tag
@@ -198,7 +199,7 @@ QuarkPage {
 		QuarkRoundSymbolButton {
 			id: menuControl
 			x: parent.width - width - spaceItems_
-			y: parent.height / 2 - height / 2
+			y: parent.height / 2 - height / 2 + topOffset / 2
 			symbol: Fonts.elipsisVerticalSym
 			fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 5)) : buzzerApp.defaultFontSize() + 7
 			radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius - 7)) : (defaultRadius - 7)
@@ -248,6 +249,26 @@ QuarkPage {
 				var lItem = list.itemAtIndex(lIdx);
 				if (lItem) {
 					lItem.width = list.width;
+				}
+			}
+		}
+
+		function unbind() {
+			//
+			var lVisible;
+			var lProcessable;
+			var lForwardItem;
+			// trace forward
+			for (var lForwardIdx = 0; lForwardIdx < list.count; lForwardIdx++) {
+				//
+				lForwardItem = list.itemAtIndex(lForwardIdx);
+				if (lForwardItem) {
+					lVisible = lForwardItem.y >= list.contentY && lForwardItem.y + lForwardItem.height < list.contentY + list.height;
+					lProcessable = (lForwardItem.y + lForwardItem.height) > list.contentY + list.height && (lForwardItem.y + lForwardItem.height) - (list.contentY + list.height) >= (cacheBuffer * 0.7);
+
+					if (!lProcessable || lVisible) {
+						lForwardItem.unbindCommonControls();
+					}
 				}
 			}
 		}
@@ -310,6 +331,7 @@ QuarkPage {
 
 		onDragEnded: {
 			if (list.pullReady) {
+				list.unbind();
 				modelLoader.restart();
 			}
 		}

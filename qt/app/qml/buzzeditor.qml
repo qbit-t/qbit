@@ -7,7 +7,8 @@ import Qt.labs.settings 1.0
 import QtQuick.Dialogs 1.1
 import QtGraphicalEffects 1.0
 import Qt.labs.folderlistmodel 2.11
-import QtMultimedia 5.8
+import QtMultimedia 5.15
+import QtQuick.Window 2.12
 
 import app.buzzer.components 1.0 as BuzzerComponents
 import app.buzzer.commands 1.0 as BuzzerCommands
@@ -186,7 +187,7 @@ QuarkPage {
 	//
 	QuarkToolBar {
 		id: buzzEditorToolBar
-		height: 45
+		height: 45 + topOffset
 		width: parent.width
 
 		property int totalHeight: height
@@ -197,7 +198,7 @@ QuarkPage {
 		QuarkRoundSymbolButton {
 			id: cancelButton
 			x: spaceItems_
-			y: parent.height / 2 - height / 2
+			y: parent.height / 2 - height / 2 + topOffset / 2
 			symbol: Fonts.cancelSym
 			fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 5)) : buzzerApp.defaultFontSize() + 7
 			radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius - 7)) : (defaultRadius - 7)
@@ -213,7 +214,7 @@ QuarkPage {
 		QuarkRoundButton {
 			id: sendButton
 			x: parent.width - width - 12
-			y: topOffset + parent.height / 2 - height / 2
+			y: parent.height / 2 - height / 2 + topOffset / 2
 			text: buzz_ ? buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.editor.buzz") :
 						  rebuzz_ ? buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.editor.rebuzz") :
 									message_ ? buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.editor.send") :
@@ -270,6 +271,9 @@ QuarkPage {
 
 		onHeightChanged: {
 			bodyContainer.ensureVisible(buzzText);
+		}
+
+		onContentHeightChanged: {
 		}
 
 		function ensureVisible(item) {
@@ -425,6 +429,10 @@ QuarkPage {
 
 			focus: true
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+
+			Component.onCompleted: {
+				if (Qt.platform.os === "ios") buzzerApp.setupImEventFilter(buzzText);
+			}
 
 			onLengthChanged: {
 				// TODO: may by too expensive
@@ -678,22 +686,26 @@ QuarkPage {
 						}
 
 						var lComponent = Qt.createComponent(lSource);
-						mediaItem = lComponent.createObject(itemDelegate);
-						if (media === "video") {
-							mediaItem.adjustDuration.connect(adjustDuration);
-							mediaItem.adjustHeight.connect(adjustHeight);
+						if (lComponent.status === Component.Error) {
+							handleError("E_CREATE_COMPONENT", lComponent.errorString());
+						} else {
+							mediaItem = lComponent.createObject(itemDelegate);
+							if (media === "video") {
+								mediaItem.adjustDuration.connect(adjustDuration);
+								mediaItem.adjustHeight.connect(adjustHeight);
+							}
+
+							if (media === "image") {
+								mediaItem.adjustHeight.connect(adjustHeight);
+							}
+
+							mediaItem.width = mediaListEditor.width;
+							mediaItem.mediaList = mediaListEditor;
+							mediaItem.mediaBox = mediaBox;
+
+							itemDelegate.height = mediaItem.height;
+							itemDelegate.width = mediaListEditor.width;
 						}
-
-						if (media === "image") {
-							mediaItem.adjustHeight.connect(adjustHeight);
-						}
-
-						mediaItem.width = mediaListEditor.width;
-						mediaItem.mediaList = mediaListEditor;
-						mediaItem.mediaBox = mediaBox;
-
-						itemDelegate.height = mediaItem.height;
-						itemDelegate.width = mediaListEditor.width;
 					}
 
 					function adjustDuration(value) {
@@ -840,9 +852,10 @@ QuarkPage {
 			y: parent.height / 2 - height / 2
 
 			onClicked: {
-				if (!sending)
-					//imageListing.listImages();
-					buzzerApp.pickImageFromGallery();
+				if (!sending) {
+					if (Qt.platform.os === "android") buzzerApp.pickImageFromGallery();
+					else if (Qt.platform.os === "ios") mediaPicker.show();
+				}
 			}
 		}
 
@@ -954,7 +967,7 @@ QuarkPage {
 		QuarkToolButton {
 			id: addAudioButton
 			Material.background: "transparent"
-			visible: true
+			visible: Qt.platform.os !== "ios" //
 			labelYOffset: 3
 			symbolColor:
 				audioRecorder.isRecording ?
@@ -1225,11 +1238,59 @@ QuarkPage {
 	// Image listing - gallery
 	//
 
+	/*
 	BuzzerComponents.ImageListing {
 		id: imageListing
 
 		onImageFound:  {
 			mediaListEditor.addMedia(file);
+		}
+	}
+	*/
+
+	BuzzerComponents.ImagePicker {
+		id: mediaPicker
+		sourceType: BuzzerComponents.ImagePicker.PhotoLibrary
+		mediaTypes: BuzzerComponents.ImagePicker.ImagesAndVideo
+
+		onReady: {
+			if (status === BuzzerComponents.ImagePicker.Ready) {
+				mediaPicker.busy = true;
+				mediaPicker.saveAsTemp();
+			}
+		}
+
+		onSaved: {
+			console.log("The media is saved to " + url);
+			mediaPicker.close();
+			mediaPicker.busy = false;
+
+			//
+			var lFile = buzzerApp.getFilePath(url);
+			var lPreviewFile = "";
+			if (urlPreview !== "") lPreviewFile = buzzerApp.getFilePath(urlPreview);
+
+			//
+			if (mediaModel.count < 31) {
+				//
+				var lSize = buzzerApp.getFileSize(lFile);
+				console.info("[onAccepted]: file = " + lFile + " | " + lSize + ", mediaType = " + mediaType + ", preview = " + urlPreview + ", orientation = " + orientation);
+				//
+				if (lFile.toLowerCase().includes(".mp4") || lFile.toLowerCase().includes(".mp3") || lFile.toLowerCase().includes(".m4a") || lFile.toLowerCase().includes(".mov")) {
+					mediaListEditor.addVideo(
+						lFile,
+						0,
+						orientation,
+						(lPreviewFile == "" ? ("qrc://images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "default.media.cover")) : lPreviewFile),
+						buzzerApp.getFileNameAsDescription(lFile)
+					);
+				} else {
+					//
+					mediaListEditor.addMedia(lFile, "none");
+				}
+			} else {
+				handleError("E_MAX_ATTACHMENTS", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_MAX_ATTACHMENTS"));
+			}
 		}
 	}
 
@@ -1303,6 +1364,7 @@ QuarkPage {
 			//
 			if (actualFileLocation !== "") {
 				// we have location and content saved
+				console.log("[AudioRecorder.stopped]: adding media " + actualFileLocation + ", duration = " + duration);
 				mediaListEditor.addAudio(audioRecorder.actualFileLocation, duration, "none");
 				buzzerApp.wakeRelease();
 			}
@@ -1561,7 +1623,7 @@ QuarkPage {
 		}
 
 		for (lIdx = 0; lIdx < mediaModel.count; lIdx++) {
-			console.log("[createBuzz/media]: key = " + mediaModel.get(lIdx).key + ", preview = " + mediaModel.get(lIdx).preview);
+			console.log("[createBuzz/media]: key = " + mediaModel.get(lIdx).key + ", preview = " + mediaModel.get(lIdx).preview + ", orientation = " + mediaModel.get(lIdx).orientation);
 			buzzCommand.addMedia(mediaModel.get(lIdx).key + "|" +
 								 mediaModel.get(lIdx).duration + "|" +
 								 mediaModel.get(lIdx).preview + "|" +

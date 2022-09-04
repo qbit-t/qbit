@@ -87,10 +87,16 @@ Page
 		function onKeyboardHeightChanged(height) {
 			//
 			if (followKeyboard) {
-				var lKeyboardHeight = height / Screen.devicePixelRatio;
-				console.log("[onKeyboardHeightChanged]: parent.height = " + page_.parent.height + ", lKeyboardHeight = " + lKeyboardHeight);
-				page_.height = page_.parent.height - lKeyboardHeight;
+				//
+				var lKeyboardHeight = height;
+				if (Qt.platform.os !== "ios") lKeyboardHeight = height / Screen.devicePixelRatio;
 				keyboardHeight = lKeyboardHeight;
+
+				//
+				page_.height = page_.parent.height - lKeyboardHeight;
+				
+				//
+				console.log("[onKeyboardHeightChanged]: parent.height = " + page_.parent.height + ", lKeyboardHeight = " + lKeyboardHeight + ", Screen.devicePixelRatio = " + Screen.devicePixelRatio);
 			}
 		}
 	}

@@ -53,6 +53,7 @@ QuarkPage {
 	}
 
 	function closePage() {
+		list.unbind();
 		stopPage();
 		controller.popPage(buzzfeedbuzzer_);
 		destroy(1000);
@@ -176,7 +177,7 @@ QuarkPage {
 
 	QuarkToolBar {
 		id: buzzerThreadToolBar
-		height: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 50) : 45
+		height: (buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 50) : 45) + topOffset
 		width: parent.width
 		//backgroundColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.background")
 
@@ -190,7 +191,7 @@ QuarkPage {
 				height = 0;
 			} else {
 				visible = true;
-				height = 45;
+				height = (buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 50) : 45) + topOffset;
 			}
 		}
 
@@ -200,7 +201,7 @@ QuarkPage {
 		QuarkRoundSymbolButton {
 			id: cancelButton
 			x: spaceItems_
-			y: parent.height / 2 - height / 2
+			y: parent.height / 2 - height / 2 + topOffset / 2
 			symbol: Fonts.leftArrowSym
 			fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 5)) : buzzerApp.defaultFontSize() + 7
 			radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius - 7)) : (defaultRadius - 7)
@@ -216,7 +217,7 @@ QuarkPage {
 		QuarkLabelRegular {
 			id: buzzerControl
 			x: cancelButton.x + cancelButton.width + spaceItems_
-			y: parent.height / 2 - height / 2
+			y: parent.height / 2 - height / 2 + topOffset / 2
 			width: parent.width - (x /*+ spaceRightMenu_*/)
 			elide: Text.ElideRight
 			text: buzzerModelLoader.buzzer
@@ -227,7 +228,7 @@ QuarkPage {
 		QuarkRoundSymbolButton {
 			id: menuControl
 			x: parent.width - width - spaceItems_
-			y: parent.height / 2 - height / 2
+			y: parent.height / 2 - height / 2 + topOffset / 2
 			symbol: Fonts.elipsisVerticalSym
 			fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 5)) : buzzerApp.defaultFontSize() + 7
 			radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius - 7)) : (defaultRadius - 7)
@@ -296,6 +297,26 @@ QuarkPage {
 			}
 		}
 
+		function unbind() {
+			//
+			var lVisible;
+			var lProcessable;
+			var lForwardItem;
+			// trace forward
+			for (var lForwardIdx = 0; lForwardIdx < list.count; lForwardIdx++) {
+				//
+				lForwardItem = list.itemAtIndex(lForwardIdx);
+				if (lForwardItem) {
+					lVisible = lForwardItem.y >= list.contentY && lForwardItem.y + lForwardItem.height < list.contentY + list.height;
+					lProcessable = (lForwardItem.y + lForwardItem.height) > list.contentY + list.height && (lForwardItem.y + lForwardItem.height) - (list.contentY + list.height) >= (cacheBuffer * 0.7);
+
+					if (!lProcessable || lVisible) {
+						lForwardItem.unbindCommonControls();
+					}
+				}
+			}
+		}
+
 		onContentYChanged: {
 			//
 			var lVisible;
@@ -354,6 +375,7 @@ QuarkPage {
 
 		onDragEnded: {
 			if (list.pullReady) {
+				list.unbind();
 				buzzerModelLoader.restart();
 			}
 		}

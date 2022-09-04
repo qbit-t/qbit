@@ -5,6 +5,9 @@
 #include <QAudioProbe>
 #include <QAudioRecorder>
 #include <QMediaRecorder>
+#include <QAudioInput>
+#include <QTimer>
+#include <QFile>
 
 namespace buzzer {
 
@@ -32,21 +35,29 @@ public:
 	QString actualFileLocation() { return actualFileLocation_; }
 	void setLocalPath(const QString& localPath) { localPath_ = localPath; emit localPathChanged(); }
 	bool isRecording() {
+#ifdef Q_OS_IOS
+		return recording_;
+#else
 		if (audioRecorder_) {
 			//
 			return audioRecorder_->state() == QMediaRecorder::RecordingState;
 		}
 
 		return false;
+#endif
 	}
 
 	bool isStopped() {
+#ifdef Q_OS_IOS
+		return !recording_;
+#else
 		if (audioRecorder_) {
 			//
 			return audioRecorder_->state() == QMediaRecorder::StoppedState;
 		}
 
 		return false;
+#endif
 	}
 
 signals:
@@ -71,6 +82,8 @@ private slots:
 	void processBuffer(const QAudioBuffer&);
 	void errorMessage();
 	void actualLocationChanged(const QUrl&);
+	void onReceived(QString name, QVariantMap data);
+	void queryQurrentTime();
 
 private:
 	QAudioRecorder* audioRecorder_ = nullptr;
@@ -80,6 +93,8 @@ private:
 	QString localPath_;
 	QString localFile_;
 	QString actualFileLocation_;
+	bool recording_ = false;
+	QTimer* checkTimer_ = nullptr;
 };
 
 } // buzzer

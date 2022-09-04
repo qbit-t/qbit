@@ -1,11 +1,11 @@
 TARGET = buzzer
 
 android: QT += qml quick quickcontrols2 androidextras multimedia sensors
-else: QT += qml quick quickcontrols2 multimedia
+else: QT += qml quick quickcontrols2 multimedia sensors
 
 CONFIG += c++11
 
-VERSION = 0.1.6.86
+VERSION = 0.1.6.87
 DEFINES += VERSION_STRING=\\\"$${VERSION}\\\"
 DEFINES += QT_ENVIRONMENT
 DEFINES += BUZZER_MOD
@@ -18,7 +18,7 @@ DEFINES += CLIENT_PLATFORM
 DEFINES += QBIT_VERSION_MAJOR=0
 DEFINES += QBIT_VERSION_MINOR=1
 DEFINES += QBIT_VERSION_REVISION=6
-DEFINES += QBIT_VERSION_BUILD=86
+DEFINES += QBIT_VERSION_BUILD=87
 
 DEFINES += BUZZER_MOD
 DEFINES += CUBIX_MOD
@@ -98,10 +98,11 @@ SOURCES += \
 	imageqx.cpp \
 	imageqxloader.cpp \
 	imageqxnode.cpp \
-	androidshareutils.cpp \
 	shareutils.cpp \
 	emojimodel.cpp \
-	emojidata.cpp
+	emojidata.cpp \
+    iosimagepicker.cpp \
+    iossystemdispatcher.cpp    
 
 SUBDIRS += \
     ../../client \
@@ -192,7 +193,12 @@ DISTFILES += \
     qml/peers.qml \
     qml/peerslist.qml \
     qml/peersmanuallist.qml \
-    qml/walletlist.qml
+    qml/walletlist.qml \
+    qml/setuptoolbar.qml \
+    qml/buzzer-app.qml \
+    qml/buzzfeedthread.qml \
+    qml/buzzeditor.qml \
+    qml/buzzertoolbar.qml
 
 HEADERS += \
     asiodispatcher.h \
@@ -235,10 +241,12 @@ HEADERS += \
 	imageqx.h \
 	imageqxloader.h \
 	imageqxnode.h \
-	androidshareutils.h \
 	shareutils.h \
 	emojimodel.h \
-	emojidata.h
+	emojidata.h \
+    iosimagepicker.h \
+    iossystemdispatcher.h
+
 
 RESOURCES += \
     $$files(../fonts/*) \
@@ -259,6 +267,9 @@ INSTALLS += dep_root
 android {
 
     ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android
+
+    SOURCES += androidshareutils.cpp
+    HEADERS += androidshareutils.h
 
     contains(ANDROID_TARGET_ARCH,armeabi-v7a) {
         INCLUDEPATH += $$PWD/boost/boost_1_73_0
@@ -333,7 +344,7 @@ ios {
     IOS_TARGET_OS = "iphoneos"
     CONFIG(iphonesimulator, iphoneos|iphonesimulator): IOS_TARGET_OS = "iphonesimulator"
 
-    INCLUDEPATH += $$PWD/boost/dist/boost.xcframework/Headers
+    INCLUDEPATH += $$PWD/boost/src/boost_1_73_0
 
     QMAKE_INFO_PLIST = ios/Info.plist
 
@@ -341,25 +352,43 @@ ios {
     #    $$PWD/ios/biometricauthenticator.m \
     #    $$PWD/ios/localnotificator.mm
 
+    OBJECTIVE_SOURCES += \
+        $$PWD/ios/share/iosshareutils.mm \
+        $$PWD/ios/share/docviewcontroller.mm \
+        $$PWD/ios/util/qisystemutils.mm \
+        $$PWD/ios/util/qiviewdelegate.mm \
+        $$PWD/ios/util/qiaudio.mm
+
+    SOURCES += \
+        iosaudioplayer.cpp
+
+    HEADERS += \
+        $$PWD/iosshareutils.h \
+        $$PWD/docviewcontroller.h \
+        $$PWD/ios/util/qiviewdelegate.h \
+        $$PWD/iosaudioplayer.h \
+        $$PWD/ios/util/qiaudio.h
+
     LIBS += -framework UIKit
     LIBS += -framework UserNotifications
+    LIBS += -framework MediaPlayer
 
     DEFINES += MOBILE_PLATFORM_64
 
     DEPENDPATH += $$PWD/leveldb/ios/out-ios-universal
-    DEPENDPATH += $$PWD/boost/dist/boost.xc.framework
+    DEPENDPATH += $$PWD/boost/dist/boost.xcframework/ios-arm64
     # DEPENDPATH += $$PWD/libjpeg/android/obj/local/armeabi-v7a
     # DEPENDPATH += $$PWD/libpng/android/obj/local/armeabi-v7a
 
     LIBS += -L$$PWD/leveldb/ios/out-ios-universal/ -lleveldb
-    LIBS += -L$$PWD/boost/dist/boost.xc.framework/ -lboost
+    LIBS += -L$$PWD/boost/dist/boost.xcframework/ios-arm64 -lboost
 
     #Q_PRODUCT_BUNDLE_IDENTIFIER.name = PRODUCT_BUNDLE_IDENTIFIER
     #Q_PRODUCT_BUNDLE_IDENTIFIER.value = app.buzzer.ios
     #QMAKE_MAC_XCODE_SETTINGS += Q_PRODUCT_BUNDLE_IDENTIFIER
 
-    QMAKE_TARGET_BUNDLE_PREFIX = app.buzzer
-    #QMAKE_BUNDLE = ios
+    QMAKE_TARGET_BUNDLE_PREFIX = app
+    QMAKE_BUNDLE = buzzer
 
     MY_DEVELOPMENT_TEAM.value = 97PSCD5842 # fix for production
     #QMAKE_PROVISINOING_PROFILE = 5d8e82be-4740-435c-848c-f0ab72d23ba7
@@ -376,12 +405,12 @@ ios {
     #QMAKE_BUNDLE_DATA += plugins
 
     # app_launch_images.files = $$PWD/ios/Launch.xib $$files($$PWD/ios/LaunchImage*.png)
-    app_launch_images.files = $$PWD/ios/Launch.xib $$PWD/buzzer-icon-128.png $$PWD/buzzer-icon-256.png $$PWD/buzzer-icon-512.png $$PWD/buzzer-app.config
+    app_launch_images.files = $$PWD/ios/Launch.xib $$PWD/buzzer-app.config
     QMAKE_BUNDLE_DATA += app_launch_images
     EXTRA_FILES += \
-        $$PWD/buzzer-icon-128.png \
-        $$PWD/buzzer-icon-256.png \
-        $$PWD/buzzer-icon-512.png \
+    #    $$PWD/buzzer-icon-128.png \
+    #    $$PWD/buzzer-icon-256.png \
+    #    $$PWD/buzzer-icon-512.png \
         $$PWD/buzzer-app.config
     for(FILE,EXTRA_FILES){
         QMAKE_POST_LINK += $$quote(cp $${FILE} $$OUT_PWD/Release-$$IOS_TARGET_OS/buzzer.app$$escape_expand(\n\t))

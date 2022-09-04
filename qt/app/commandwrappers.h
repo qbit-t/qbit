@@ -1067,11 +1067,15 @@ public:
 		if(command_ != nullptr)
 			command_->terminate();
 		processing_ = false;
+		// release
+		QQmlEngine::setObjectOwnership(this, QQmlEngine::JavaScriptOwnership);		
 	}
 
 	Q_INVOKABLE void cleanUp() {
 		if(command_ != nullptr)
 			command_->cleanUp();
+		// release
+		QQmlEngine::setObjectOwnership(this, QQmlEngine::JavaScriptOwnership);		
 	}
 
 	void prepare();
@@ -1188,6 +1192,9 @@ public:
 		} else {
 			emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
 		}
+
+		// release
+		QQmlEngine::setObjectOwnership(this, QQmlEngine::JavaScriptOwnership);
 	}
 
 	void downloadProgress(uint64_t pos, uint64_t size) {

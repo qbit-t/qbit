@@ -146,6 +146,9 @@ QuarkPage {
 		}
 
 		//
+		list.unbind();
+
+		//
 		stopPage();
 		controller.popPage(conversationthreadfeed_);
 		destroy(1000);
@@ -349,8 +352,8 @@ QuarkPage {
 	//
 
 	QuarkToolBar {
-		property int defaultHeight_: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 50) : 55
-		property int buttonsHeight_: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 50) : 55
+		property int defaultHeight_: (buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 50) : 55) + topOffset
+		property int buttonsHeight_: (buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 50) : 55) + topOffset
 
 		id: buzzThreadToolBar
 		height: getHeight()
@@ -370,7 +373,7 @@ QuarkPage {
 		QuarkRoundSymbolButton {
 			id: cancelButton
 			x: spaceItems_
-			y: parent.height / 2 - height / 2
+			y: parent.height / 2 - height / 2 + topOffset / 2
 			symbol: Fonts.leftArrowSym
 			fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 5)) : buzzerApp.defaultFontSize() + 7
 			radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius - 7)) : (defaultRadius - 7)
@@ -386,7 +389,7 @@ QuarkPage {
 		QuarkRoundSymbolButton {
 			id: menuControl
 			x: parent.width - width - spaceItems_
-			y: parent.height / 2 - height / 2
+			y: parent.height / 2 - height / 2 + topOffset / 2
 			symbol: Fonts.elipsisVerticalSym
 			fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 5)) : buzzerApp.defaultFontSize() + 7
 			radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius - 7)) : (defaultRadius - 7)
@@ -460,14 +463,14 @@ QuarkPage {
 			id: avatarImage
 
 			x: cancelButton.x + cancelButton.width + spaceItems_
-			y: buzzThreadToolBar.defaultHeight_ / 2 - height / 2
+			y: buzzThreadToolBar.defaultHeight_ / 2 - height / 2 + topOffset / 2
 
 			width: avatarImage.displayWidth
 			height: avatarImage.displayHeight
 			fillMode: Image.PreserveAspectCrop
 
 			property bool rounded: true
-			property int displayWidth: buzzThreadToolBar.defaultHeight_ - 15
+			property int displayWidth: buzzThreadToolBar.defaultHeight_ - (15 + topOffset)
 			property int displayHeight: displayWidth
 
 			autoTransform: true
@@ -677,6 +680,26 @@ QuarkPage {
 			}
 		}
 
+		function unbind() {
+			//
+			var lVisible;
+			var lProcessable;
+			var lForwardItem;
+			// trace forward
+			for (var lForwardIdx = 0; lForwardIdx < list.count; lForwardIdx++) {
+				//
+				lForwardItem = list.itemAtIndex(lForwardIdx);
+				if (lForwardItem) {
+					lVisible = lForwardItem.y >= list.contentY && lForwardItem.y + lForwardItem.height < list.contentY + list.height;
+					lProcessable = (lForwardItem.y + lForwardItem.height) > list.contentY + list.height && (lForwardItem.y + lForwardItem.height) - (list.contentY + list.height) >= (cacheBuffer * 0.9);
+
+					if (!lProcessable || lVisible) {
+						lForwardItem.unbindCommonControls();
+					}
+				}
+			}
+		}
+
 		function toTheBottom() {
 		}
 
@@ -777,6 +800,7 @@ QuarkPage {
 
 		onDragEnded: {
 			if (list.pullReady) {
+				list.undind();
 				modelLoader.restart();
 			}
 		}
@@ -1083,6 +1107,10 @@ QuarkPage {
 				selectionColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.selected")
 				selectByMouse: true
 				focus: buzzerApp.isDesktop
+
+				Component.onCompleted: {
+					if (Qt.platform.os === "ios") buzzerApp.setupImEventFilter(buzzText);
+				}
 
 				QuarkLabelRegular {
 					id: placeHolder
