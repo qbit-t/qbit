@@ -191,7 +191,11 @@ void VideoRecorder::actualLocationChanged(const QUrl& location) {
 	videoCaptured_ = true;
 
 	//
+#ifdef Q_OS_IOS
 	if (!previewSaved_ && frame_ >= 10) {
+#else
+	if (!previewSaved_ && frame_ >= 1) {
+#endif
 		previewSaved_ = savePreview();
 
 		if (previewSaved_) emit actualFileLocationChanged();
@@ -395,7 +399,11 @@ void VideoRecorder::videoFrameProbed(const QVideoFrame& buffer) {
 	preview_ = new QImage(buffer.image());
 
 	//
+#ifdef Q_OS_IOS
 	if (videoCaptured_ && !previewSaved_ && frame_ >= 10) {
+#else
+	if (videoCaptured_ && !previewSaved_) {
+#endif
 		//
 		previewSaved_ = savePreview();
 		if (previewSaved_) emit actualFileLocationChanged();

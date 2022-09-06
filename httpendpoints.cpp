@@ -539,7 +539,8 @@ void HttpGetBalance::run(const std::string& source, const HttpRequest& request, 
 		"id": "curltext",
 		"method": "getbalance",
 		"params": [
-			"<asset_id>" 				-- (string, optional) asset
+			"<asset_id>", 				-- (string, optional) asset
+			"<address>"					-- (string, optional) address
 		]
 	}
 	*/
@@ -570,11 +571,21 @@ void HttpGetBalance::run(const std::string& source, const HttpRequest& request, 
 		if (lParams.size()) {
 			// param[0]
 			json::Value lP0 = lParams[0];
-			if (lP0.isString()) lAsset.setHex(lP0.getString());
+			if (lP0.isString()) {
+				if (lP0.getString() == "*") lAsset = TxAssetType::qbitAsset();
+				else lAsset.setHex(lP0.getString()); 
+			} else { reply = HttpReply::stockReply(HttpReply::bad_request); return; }
+		}
+
+		PKey lAddress; // 1
+		if (lParams.size() > 1) {
+			// param[0]
+			json::Value lP1 = lParams[1];
+			if (lP1.isString()) lAddress.fromString(lP1.getString());
 			else { reply = HttpReply::stockReply(HttpReply::bad_request); return; }
 		}
 
-		// process
+		// process - get asset
 		amount_t lScale = QBIT;
 		if (!lAsset.isNull() && lAsset != TxAssetType::qbitAsset()) {
 			// locate asset type
@@ -588,48 +599,82 @@ void HttpGetBalance::run(const std::string& source, const HttpRequest& request, 
 			}
 		}
 
-		// process
-		double lBalance = 0.0;
-		double lPendingBalance = 0.0;
-		IMemoryPoolPtr lMempool = wallet_->mempoolManager()->locate(MainChain::id()); // main chain only
-		IConsensus::ChainState lState = lMempool->consensus()->chainState();
+		if (lAddress.valid()) {
+			//
+			std::vector<Transaction::NetworkUnlinkedOut> lFreeOuts;
+			ITransactionStorePtr lStore = wallet_->storeManager()->locate(MainChain::id());
+			lStore->selectUtxoByAddressAndAsset(lAddress, lAsset, lFreeOuts);
 
-		if (lState == IConsensus::SYNCHRONIZED) {
-			if (!lAsset.isNull()) { 
-				amount_t lPending = 0, lActual = 0;
-				wallet_->balance(lAsset, lPending, lActual);
-				lPendingBalance = ((double)lPending) / lScale;
-				lBalance = ((double)lActual) / lScale;
-			} else { 
-				amount_t lPending = 0, lActual = 0;
-				wallet_->balance(TxAssetType::qbitAsset(), lPending, lActual);
-				lPendingBalance = ((double)wallet_->pendingBalance()) / lScale;
-				lBalance = ((double)wallet_->balance()) / lScale;
+			double lBalance = 0.0;
+			if (lFreeOuts.size()) {
+				//
+				amount_t lRawBalance = 0;
+				for (std::vector<Transaction::NetworkUnlinkedOut>::iterator lOut = lFreeOuts.begin(); lOut != lFreeOuts.end(); lOut++) {
+					lRawBalance += lOut->utxo().amount();
+				}
+
+				lBalance = ((double)lRawBalance) / lScale;
 			}
-		} else if (lState == IConsensus::SYNCHRONIZING) {
-			reply = HttpReply::stockReply("E_NODE_SYNCHRONIZING", "Synchronization is in progress..."); 
-			return;
+
+			// prepare reply
+			json::Document lReply;
+			lReply.loadFromString("{}");
+
+			json::Value lKeyObject = lReply.addObject("result");
+			lKeyObject.addString("balance", strprintf(TxAssetType::scaleFormat(lScale), lBalance));
+
+			lReply.addObject("error").toNull();
+			lReply.addString("id", lId.getString());
+
+			// pack
+			pack(reply, lReply);
+			// finalize
+			finalize(reply);
+
 		} else {
-			reply = HttpReply::stockReply("E_NODE_NOT_SYNCHRONIZED", "Not synchronized"); 
-			return;
+			// process
+			double lBalance = 0.0;
+			double lPendingBalance = 0.0;
+			IMemoryPoolPtr lMempool = wallet_->mempoolManager()->locate(MainChain::id()); // main chain only
+			IConsensus::ChainState lState = lMempool->consensus()->chainState();
+
+			if (lState == IConsensus::SYNCHRONIZED) {
+				if (!lAsset.isNull()) { 
+					amount_t lPending = 0, lActual = 0;
+					wallet_->balance(lAsset, lPending, lActual);
+					lPendingBalance = ((double)lPending) / lScale;
+					lBalance = ((double)lActual) / lScale;
+				} else { 
+					amount_t lPending = 0, lActual = 0;
+					wallet_->balance(TxAssetType::qbitAsset(), lPending, lActual);
+					lPendingBalance = ((double)wallet_->pendingBalance()) / lScale;
+					lBalance = ((double)wallet_->balance()) / lScale;
+				}
+			} else if (lState == IConsensus::SYNCHRONIZING) {
+				reply = HttpReply::stockReply("E_NODE_SYNCHRONIZING", "Synchronization is in progress..."); 
+				return;
+			} else {
+				reply = HttpReply::stockReply("E_NODE_NOT_SYNCHRONIZED", "Not synchronized"); 
+				return;
+			}
+
+			// prepare reply
+			json::Document lReply;
+			lReply.loadFromString("{}");
+
+			json::Value lKeyObject = lReply.addObject("result");
+			lKeyObject.addString("available", strprintf(TxAssetType::scaleFormat(lScale), lBalance));
+			if (lPendingBalance > lBalance) lKeyObject.addString("pending", strprintf(TxAssetType::scaleFormat(lScale), lPendingBalance-lBalance));
+			else lKeyObject.addString("pending", strprintf(TxAssetType::scaleFormat(lScale), 0));
+
+			lReply.addObject("error").toNull();
+			lReply.addString("id", lId.getString());
+
+			// pack
+			pack(reply, lReply);
+			// finalize
+			finalize(reply);
 		}
-
-		// prepare reply
-		json::Document lReply;
-		lReply.loadFromString("{}");
-
-		json::Value lKeyObject = lReply.addObject("result");
-		lKeyObject.addString("available", strprintf(TxAssetType::scaleFormat(lScale), lBalance));
-		if (lPendingBalance > lBalance) lKeyObject.addString("pending", strprintf(TxAssetType::scaleFormat(lScale), lPendingBalance-lBalance));
-		else lKeyObject.addString("pending", strprintf(TxAssetType::scaleFormat(lScale), 0));
-
-		lReply.addObject("error").toNull();
-		lReply.addString("id", lId.getString());
-
-		// pack
-		pack(reply, lReply);
-		// finalize
-		finalize(reply);
 	} else {
 		reply = HttpReply::stockReply(HttpReply::bad_request);
 		return;

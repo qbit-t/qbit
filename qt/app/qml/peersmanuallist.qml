@@ -118,7 +118,7 @@ Item
 		id: backRect
 		x: spaceLeft_ + 1
 		y: peerEditBox.y + peerEditBox.height
-		height: parent.height - (y + spaceBottom_)
+		height: parent.height - (y + spaceItems_ + explicitPeersBox.height + spaceItems_)
 		width: parent.width - (spaceLeft_ + spaceRight_)
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Box.background");
 	}
@@ -134,7 +134,7 @@ Item
 		height: backRect.height
 		clip: true
 
-		property int fontPointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 11 : 15;
+		property int fontPointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * buzzerApp.defaultFontSize() : (buzzerApp.defaultFontSize() + 4);
 
 		onWidthChanged: {
 		}
@@ -188,7 +188,7 @@ Item
 					text: endpoint
 					x: 10
 					y: parent.height / 2 - height / 2
-					font.pointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 12 : 16
+					font.pointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 1) : (buzzerApp.defaultFontSize() + 4)
 				}
 			}
 
@@ -200,7 +200,7 @@ Item
 
 				QuarkSymbolLabel {
 					symbol: Fonts.trashSym
-					font.pointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 12 : 16
+					font.pointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 1) : (buzzerApp.defaultFontSize() + 4)
 					color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
 
 					x: parent.width / 2 - width / 2
@@ -224,6 +224,22 @@ Item
 
 				anchors.right: parent.right
 			}
+		}
+	}
+
+	QuarkSwitchBox {
+		id: explicitPeersBox
+		x: spaceLeft_ - 2
+		y: backRect.y + backRect.height + spaceItems_
+		width: parent.width - (spaceLeft_ + spaceTop_)
+		color: "transparent"
+		border.color: "transparent"
+		text: buzzerApp.getLocalization(buzzerClient.locale, "Peers.manual.explicit")
+		checked: buzzerClient.getProperty("Client.explicitPeersOnly") === "true"
+
+		onCheckedChanged: {
+			//
+			buzzerClient.setProperty("Client.explicitPeersOnly", checked === true ? "true" : "false");
 		}
 	}
 
