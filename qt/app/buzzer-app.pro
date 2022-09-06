@@ -5,7 +5,7 @@ else: QT += qml quick quickcontrols2 multimedia sensors
 
 CONFIG += c++11
 
-VERSION = 0.1.6.87
+VERSION = 0.1.6.89
 DEFINES += VERSION_STRING=\\\"$${VERSION}\\\"
 DEFINES += QT_ENVIRONMENT
 DEFINES += BUZZER_MOD
@@ -18,7 +18,7 @@ DEFINES += CLIENT_PLATFORM
 DEFINES += QBIT_VERSION_MAJOR=0
 DEFINES += QBIT_VERSION_MINOR=1
 DEFINES += QBIT_VERSION_REVISION=6
-DEFINES += QBIT_VERSION_BUILD=87
+DEFINES += QBIT_VERSION_BUILD=89
 
 DEFINES += BUZZER_MOD
 DEFINES += CUBIX_MOD
@@ -372,6 +372,9 @@ ios {
     LIBS += -framework UIKit
     LIBS += -framework UserNotifications
     LIBS += -framework MediaPlayer
+
+    QMAKE_ASSET_CATALOGS = $$PWD/ios/Images.xcassets
+    QMAKE_ASSET_CATALOGS_APP_ICON = "AppIcon"
 
     DEFINES += MOBILE_PLATFORM_64
 
