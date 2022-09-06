@@ -134,7 +134,7 @@ Item
 		height: backRect.height
 		clip: true
 
-		property int fontPointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 11 : 15;
+		property int fontPointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * buzzerApp.defaultFontSize() : (buzzerApp.defaultFontSize() + 4);
 
 		onWidthChanged: {
 		}
@@ -188,7 +188,7 @@ Item
 					text: endpoint
 					x: 10
 					y: parent.height / 2 - height / 2
-					font.pointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 12 : 16
+					font.pointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 1) : (buzzerApp.defaultFontSize() + 4)
 				}
 			}
 
@@ -200,7 +200,7 @@ Item
 
 				QuarkSymbolLabel {
 					symbol: Fonts.trashSym
-					font.pointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 12 : 16
+					font.pointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 1) : (buzzerApp.defaultFontSize() + 4)
 					color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground")
 
 					x: parent.width / 2 - width / 2

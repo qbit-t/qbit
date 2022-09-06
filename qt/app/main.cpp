@@ -107,7 +107,7 @@ int main(int argc, char *argv[]) {
 	if (lPos != -1) {
 		lSubDir = lCurrentDir.mid(0, lPos);
 		lScanner = lSubDir;
-		lScanner += "PlugIns";
+		lScanner += "Resources";
 		lSubDir += "Frameworks";
 	}
 
