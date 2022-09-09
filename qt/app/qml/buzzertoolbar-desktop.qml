@@ -64,6 +64,7 @@ QuarkToolBar
 
 	signal goHome();
 	signal goDrawer();
+	signal toggleLimited();
 
 	signal searchTextEdited(var searchText);
 	signal searchTextCleared();
@@ -237,9 +238,14 @@ QuarkToolBar
 		height: imageFrame.height + 20
 		enabled: buzzerClient.buzzerDAppReady === true
 		cursorShape: Qt.PointingHandCursor
+		pressAndHoldInterval: 2000
 
 		onClicked: {
 			goDrawer();
+		}
+
+		onPressAndHold: {
+			toggleLimited();
 		}
 	}
 

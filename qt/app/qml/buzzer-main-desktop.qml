@@ -304,6 +304,10 @@ QuarkPage
 				onGoDrawer: {
 					controller.openDrawer();
 				}
+
+				onToggleLimited: {
+					navigatorBar.toggleLimited();
+				}
 			}
 
 			TabBar {
@@ -427,12 +431,19 @@ QuarkPage
 					}
 				}
 				TabButton {
+					id: walletTab
+					parent: buzzerApp.getLimited() ? null : navigatorBar
 					QuarkSymbolLabel {
 						x: parent.width / 2 - width / 2
 						y: parent.height / 2 - height / 2
 						symbol: Fonts.walletSym
 						font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 5)) : (defaultFontPointSize + 2)
 					}
+				}
+
+				function toggleLimited() {
+					if (walletTab.parent) walletTab.parent = null;
+					else walletTab.parent = navigatorBar;
 				}
 
 				property bool startUp: false

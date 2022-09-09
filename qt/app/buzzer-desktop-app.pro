@@ -10,7 +10,7 @@ QT += multimedia multimediawidgets qml quick quickcontrols2 widgets quickwidgets
 CONFIG += c++11
 CONFIG += static
 
-VERSION = 1.6.89
+VERSION = 1.6.90
 DEFINES += VERSION_STRING=\\\"$${VERSION}\\\"
 DEFINES += QT_ENVIRONMENT
 DEFINES += HAVE_CONFIG_H
@@ -22,7 +22,7 @@ DEFINES += DESKTOP_PLATFORM
 DEFINES += QBIT_VERSION_MAJOR=0
 DEFINES += QBIT_VERSION_MINOR=1
 DEFINES += QBIT_VERSION_REVISION=6
-DEFINES += QBIT_VERSION_BUILD=89
+DEFINES += QBIT_VERSION_BUILD=90
 
 DEFINES += BUZZER_MOD
 DEFINES += CUBIX_MOD
@@ -236,6 +236,8 @@ DISTFILES += \
     qml/conversationthread-desktop.qml \
     qml/setupaskqbit-desktop.qml \
     qml/setupbuzzer-desktop.qml \
+    qml/setupeula-desktop.qml \
+    qml/setupeula.qml \
     qml/setupinfo-desktop.qml \
     qml/setupqbit-desktop.qml \
     qml/setupqbitaddress-desktop.qml \

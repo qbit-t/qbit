@@ -92,7 +92,7 @@ QuarkPage
 			var lComponent = null;
 			var lPage = null;
 
-			lComponent = Qt.createComponent("qrc:/qml/setupqbit-desktop.qml");
+			lComponent = Qt.createComponent(buzzerApp.getLimited() ? "qrc:/qml/setupeula-desktop.qml" : "qrc:/qml/setupqbit-desktop.qml");
 			lPage = lComponent.createObject(window);
 			lPage.controller = controller;
 

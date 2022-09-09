@@ -27,6 +27,7 @@ QuarkToolBar
 
 	signal goHome();
 	signal goDrawer();
+	signal toggleLimited();
 
 	Component.onCompleted: {
 	}
@@ -195,9 +196,14 @@ QuarkToolBar
 		width: imageFrame.width + 20
 		height: imageFrame.height + 20
 		enabled: buzzerClient.buzzerDAppReady === true
+		pressAndHoldInterval: 2000
 
 		onClicked: {
 			goDrawer();
+		}
+
+		onPressAndHold: {
+			toggleLimited();
 		}
 	}
 

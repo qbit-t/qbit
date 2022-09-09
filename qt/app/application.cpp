@@ -434,6 +434,12 @@ bool Application::getDebug()
     return lValue.getBool();
 }
 
+bool Application::getLimited()
+{
+	qbit::json::Value lValue = appConfig_["limited"];
+	return lValue.getBool();
+}
+
 bool Application::getInterceptOutput()
 {
 	qbit::json::Value lValue = appConfig_["interceptOutput"];

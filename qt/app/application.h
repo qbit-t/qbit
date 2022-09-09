@@ -349,6 +349,7 @@ public:
 
     Q_INVOKABLE bool getDebug();
 	Q_INVOKABLE bool getInterceptOutput();
+	Q_INVOKABLE bool getLimited();
 
 	Q_INVOKABLE QString qttAsset() {
 		return QString::fromStdString(getQttAsset());
