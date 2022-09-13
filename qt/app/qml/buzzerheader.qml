@@ -37,6 +37,7 @@ Item {
 	property var listView_
 	property int following_: 0
 	property int followers_: 0
+	property int topOffset_: 0
 
 	readonly property int spaceLeft_: 15
 	readonly property int spaceTop_: 12
@@ -272,7 +273,7 @@ Item {
 		QuarkSimpleComboBox {
 			id: localeCombo
 			x: parent.width - width - 8
-			y: 0
+			y: buzzerheader_.topOffset_
 			width: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 50 : 40
 			fontPointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 22 : 24
 			itemLeftPadding: buzzerApp.isDesktop ? /*buzzerClient.scaleFactor * */12 : 8

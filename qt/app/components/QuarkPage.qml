@@ -31,6 +31,7 @@ Page
 	property string navigatorTheme: buzzerClient.themeSelector
 
     property int topOffset: Qt.platform.os === "ios" ? Screen.height - Screen.desktopAvailableHeight - statusBar.extraPadding : 0
+    property int bottomOffset: Qt.platform.os === "ios" ? statusBar.extraBottomPadding : 0
 
 	onExtraInfoChanged: {
 		page_.caption = page_.captionOriginal + page_.extraInfo;

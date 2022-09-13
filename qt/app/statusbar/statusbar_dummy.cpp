@@ -52,3 +52,8 @@ int StatusBarPrivate::getPadding()
 {
     return 0;
 }
+
+int StatusBarPrivate::getBottomPadding()
+{
+    return 0;
+}

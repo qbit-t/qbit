@@ -125,7 +125,7 @@ QuarkPage {
 					cancelButton.visible = false;
 				}
 			} else {
-				buzzMediaToolBar.height = 45;
+				buzzMediaToolBar.height = 45 + topOffset;
 				cancelButton.visible = true;
 				//bottomLine.visible = true;
 			}
@@ -302,7 +302,7 @@ QuarkPage {
 	BuzzItemMediaPlayer {
 		id: playerControl
 		x: 0
-		y: (mediaGalleryContainer.y + mediaGalleryContainer.height) - height // buzzMediaToolBar.y + buzzMediaToolBar.height
+		y: (mediaGalleryContainer.y + mediaGalleryContainer.height) - (height + bottomOffset) // buzzMediaToolBar.y + buzzMediaToolBar.height
 		width: mediaGalleryContainer.width
 		showOnChanges: true
 		mediaPlayerController: buzzmediaPage_.mediaPlayerController

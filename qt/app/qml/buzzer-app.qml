@@ -645,6 +645,7 @@ ApplicationWindow
 		height: window.height
 
 		onAboutToShow: {
+			myBuzzer.topOffset_ = mainStatusBar.extraPadding;
 			myBuzzer.initialize();
 			drawerMenu.prepare();
 		}

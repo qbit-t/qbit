@@ -93,3 +93,8 @@ int StatusBar::extraPadding()
 {
     return StatusBarPrivate::getPadding();
 }
+
+int StatusBar::extraBottomPadding()
+{
+    return StatusBarPrivate::getBottomPadding();
+}

@@ -260,6 +260,7 @@ QuarkPage
 		x: 0
 		y: parent.height - (height)
 		width: parent.width
+		height: 50 + (bottomOffset > 30 ? bottomOffset : 0)
 		currentIndex: 0
 		position: TabBar.Footer
 
@@ -268,6 +269,7 @@ QuarkPage
 				x: parent.width / 2 - width / 2
 				y: parent.height / 2 - height / 2
 				symbol: Fonts.homeSym
+				font.pointSize: bottomOffset > 30 ? defaultFontSize_ + 3 : defaultFontSize_
 			}
 
 			onClicked: {
@@ -289,6 +291,7 @@ QuarkPage
 				x: parent.width / 2 - width / 2
 				y: parent.height / 2 - height / 2
 				symbol: Fonts.hashSym
+				font.pointSize: bottomOffset > 30 ? defaultFontSize_ + 3 : defaultFontSize_
 			}
 
 			onClicked: {
@@ -311,6 +314,7 @@ QuarkPage
 				x: parent.width / 2 - width / 2
 				y: parent.height / 2 - height / 2
 				symbol: Fonts.bellSym
+				font.pointSize: bottomOffset > 30 ? defaultFontSize_ + 3 : defaultFontSize_
 			}
 
 			Rectangle {
@@ -344,6 +348,7 @@ QuarkPage
 				x: parent.width / 2 - width / 2
 				y: parent.height / 2 - height / 2
 				symbol: Fonts.chatsSym
+				font.pointSize: bottomOffset > 30 ? defaultFontSize_ + 3 : defaultFontSize_
 			}
 
 			Rectangle {
@@ -364,6 +369,7 @@ QuarkPage
 				x: parent.width / 2 - width / 2
 				y: parent.height / 2 - height / 2
 				symbol: Fonts.walletSym
+				font.pointSize: bottomOffset > 30 ? defaultFontSize_ + 3 : defaultFontSize_
 			}
 		}
 

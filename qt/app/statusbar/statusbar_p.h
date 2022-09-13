@@ -34,6 +34,7 @@ public:
 	static void setTheme_sys(StatusBar::Theme theme);
 	static void setNavigatorTheme_sys(StatusBar::Theme theme);
 	static int getPadding();
+    static int getBottomPadding();
 
     static QColor color;
     static QColor navigationBarColor;

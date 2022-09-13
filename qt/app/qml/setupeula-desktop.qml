@@ -71,9 +71,9 @@ QuarkPage
 	Flickable {
 		 id: pageContainer
 		 x: 0
-		 y: toolBar.y + toolBar.height + 20
+		 y: toolBar.y + toolBar.height /* + 20 */
 		 width: parent.width
-		 height: parent.height - (toolBar.y + toolBar.height + 20 + nextButton.height + 10 + 20)
+		 height: parent.height - (toolBar.y + toolBar.height + 20 + nextButton.height + 10 /* + 20 */)
 		 contentHeight: buzzerText5.y + buzzerText5.height + toolBar.height + spaceBottom_
 		 clip: true
 

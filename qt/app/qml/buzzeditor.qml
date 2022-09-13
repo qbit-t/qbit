@@ -826,11 +826,13 @@ QuarkPage {
 	//
 	QuarkToolBar {
 		id: buzzFooterBar
-		height: 45
+		height: 45 + adjustedOffset
 		width: parent.width
-		y: parent.height - 45
+		y: parent.height - (45 + adjustedOffset)
 
 		property int totalHeight: height
+		property int defaultHeight: 45
+		property var adjustedOffset: buzzeditor_.keyboardHeight == 0 && bottomOffset > 30 ? bottomOffset : 0
 
 		backgroundColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Market.tabBackground")
 
@@ -849,7 +851,7 @@ QuarkPage {
 
 			focusPolicy: Qt.NoFocus
 
-			y: parent.height / 2 - height / 2
+			y: buzzFooterBar.defaultHeight / 2 - height / 2
 
 			onClicked: {
 				if (!sending) {
@@ -871,7 +873,7 @@ QuarkPage {
 			symbol: Fonts.cameraSym
 
 			x: addFromGalleryButton.x + addFromGalleryButton.width // + spaceItems_
-			y: parent.height / 2 - height / 2
+			y: buzzFooterBar.defaultHeight / 2 - height / 2
 
 			focusPolicy: Qt.NoFocus
 
@@ -920,7 +922,7 @@ QuarkPage {
 			symbol: Fonts.videoSym
 
 			x: addPhotoButton.x + addPhotoButton.width // + spaceItems_
-			y: parent.height / 2 - height / 2
+			y: buzzFooterBar.defaultHeight / 2 - height / 2
 
 			focusPolicy: Qt.NoFocus
 
@@ -979,7 +981,7 @@ QuarkPage {
 			symbol: audioRecorder.isRecording ? Fonts.dotCircle2Sym : Fonts.microphoneSym
 
 			x: addVideoButton.x + addVideoButton.width // + spaceItems_
-			y: parent.height / 2 - height / 2
+			y: buzzFooterBar.defaultHeight / 2 - height / 2
 
 			focusPolicy: Qt.NoFocus
 
@@ -1030,7 +1032,7 @@ QuarkPage {
 			id: createProgressBar
 
 			x: addAudioButton.x + addAudioButton.width + spaceItems_
-			y: parent.height / 2 - height / 2
+			y: buzzFooterBar.defaultHeight / 2 - height / 2
 			width: countProgress.x - x - spaceRight_
 			visible: false
 			value: 0.0
@@ -1060,7 +1062,7 @@ QuarkPage {
 		QuarkRoundState {
 			id: hiddenCountFrame
 			x: parent.width - (size + spaceRight_)
-			y: parent.height / 2 - size / 2
+			y: buzzFooterBar.defaultHeight / 2 - size / 2
 			size: 28
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.hiddenLight")
 			background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Market.tabBackground") //Page.background

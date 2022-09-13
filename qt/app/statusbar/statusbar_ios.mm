@@ -121,6 +121,8 @@ void StatusBarPrivate::setNavigatorTheme_sys(StatusBar::Theme)
     }, Qt::UniqueConnection);
 }
 
+#include <QDebug>
+
 int StatusBarPrivate::getPadding()
 {
     int lPadding = 0;
@@ -128,14 +130,27 @@ int StatusBarPrivate::getPadding()
     UIWindow *mainWindow = [[UIApplication sharedApplication] keyWindow];
     if (mainWindow.safeAreaInsets.top > 24.0) {
         lPadding = 40;
-    }
+    } 
 
     /*
-    if ([UIDevice currentDevice].userInterfaceIdiom == UIUserInterfaceIdiomPhone && UIScreen.mainScreen.nativeBounds.size.height == 2436)
-    {
-        lPadding = 40;
+    else if (mainWindow.safeAreaInsets.top > 40.0) {
+        lPadding = mainWindow.safeAreaInsets.top;
     }
     */
+
+    qWarning() << "mainWindow.safeAreaInsets.top" << mainWindow.safeAreaInsets.top;
+
+    return lPadding;
+}
+
+int StatusBarPrivate::getBottomPadding()
+{
+    int lPadding = 0;
+
+    UIWindow *mainWindow = [[UIApplication sharedApplication] keyWindow];
+    lPadding = mainWindow.safeAreaInsets.bottom;
+
+    qWarning() << "mainWindow.safeAreaInsets.bottom" << mainWindow.safeAreaInsets.bottom;
 
     return lPadding;
 }

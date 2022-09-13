@@ -37,6 +37,7 @@ Rectangle
 	property bool helpButton: false;
 	property bool addButton: false;
 	property bool openUrl: false;
+	property bool imFilter: false;
 
     signal helpClicked();
 	signal addClicked();
@@ -156,6 +157,10 @@ Rectangle
 			selectionColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.selected")
 
 			property bool focusEnter_: false;
+
+			Component.onCompleted: {
+				if (editBox.imFilter && Qt.platform.os === "ios") buzzerApp.setupImEventFilter(textEdit);
+			}			
 
 			QuarkLabelRegular
 			{

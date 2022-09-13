@@ -61,8 +61,15 @@ QuarkPage
 	}
 
 	onKeyboardHeightChanged: {
-		var lOffset = pageContainer.contentHeight > pageContainer.height ? pageContainer.contentHeight - pageContainer.height : 0;
-		pageContainer.contentY = keyboardHeight ? lOffset : 0;
+		//var lOffset = pageContainer.contentHeight > buzzerqbitkey_.height ? pageContainer.contentHeight - buzzerqbitkey_.height : 0;
+		//pageContainer.contentY = keyboardHeight ? lOffset : 0;
+		//console.info("[onKeyboardHeightChanged]: lOffset = " + lOffset + ", keyboardHeight = " + keyboardHeight);
+	}
+
+	onHeightChanged: {
+		var lOffset = pageContainer.contentHeight > buzzerqbitkey_.height ? pageContainer.contentHeight - buzzerqbitkey_.height : 0;
+		if (lOffset > 0 && keyboardHeight) pageContainer.flick(0.0, (-1.0)*1000);
+		console.info("[onHeightChanged]: lOffset = " + lOffset + ", keyboardHeight = " + keyboardHeight);
 	}
 
 	function closePage() {
@@ -277,9 +284,9 @@ QuarkPage
 			id: backRect
 			x: 21
 			y: wordEditBox.y + wordEditBox.height
-			height: buzzerqbitkey_.height - (y + toolBar.height + linkButton.height + nameEditBox.height + 15 + 15 + 10) < 200 ?
-						200 :
-						buzzerqbitkey_.height - (y + toolBar.height + linkButton.height + nameEditBox.height + 15 + 15 + 10)
+			height: buzzerqbitkey_.height - (y + toolBar.height + linkButton.height + nameEditBox.height + bottomOffset + 15 + 15 + 10) < 180 ?
+						180 :
+						buzzerqbitkey_.height - (y + toolBar.height + linkButton.height + nameEditBox.height + bottomOffset + 15 + 15 + 10)
 			width: parent.width - 43
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Box.background");
 		}
@@ -394,6 +401,7 @@ QuarkPage
 			placeholderText: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.placeholder.name")
 			textFontSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 14 : 16
 			symbolFontSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 16 : 20
+			imFilter: true
 
 			onHelpClicked:  {
 				if (enabled) {

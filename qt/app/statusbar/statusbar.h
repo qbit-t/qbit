@@ -34,7 +34,8 @@ class StatusBar : public QObject
     Q_PROPERTY(QColor navigationBarColor READ navigationBarColor WRITE setNavigationBarColor)
 	Q_PROPERTY(Theme theme READ theme WRITE setTheme)
 	Q_PROPERTY(Theme navigationTheme READ navigationTheme WRITE setNavigationTheme NOTIFY navigationThemeChanged)
-	Q_PROPERTY(int extraPadding READ extraPadding)
+    Q_PROPERTY(int extraPadding READ extraPadding)
+    Q_PROPERTY(int extraBottomPadding READ extraBottomPadding)
 	Q_PROPERTY(bool enabled READ enabled WRITE setEnabled NOTIFY enabledChanged)
 
 public:
@@ -47,6 +48,7 @@ public:
 	void setColor(const QColor &color);
 	void setNavigationBarColor(const QColor &color);
 	int extraPadding();
+    int extraBottomPadding();
 
     enum Theme { Light, Dark };
     Q_ENUM(Theme)

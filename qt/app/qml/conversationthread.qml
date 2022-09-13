@@ -971,8 +971,10 @@ QuarkPage {
 		width: parent.width
 		height: buzzerApp.isDesktop ? (buzzText.lineCount > 1 ? replyEditorContainer.getHeight() + spaceTop_ + spaceBottom_:
 																controller.bottomBarHeight) :
-									  (buzzText.contentHeight + spaceTop_ + spaceBottom_ + 2 * spaceItems_)
+									  (buzzText.contentHeight + spaceTop_ + spaceBottom_ + 2 * spaceItems_ + adjustedOffset)
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Market.tabBackground")
+
+		property var adjustedOffset: conversationthreadfeed_.keyboardHeight == 0 && bottomOffset > 30 ? bottomOffset : 0
 
 		QuarkHLine {
 			id: topLine
@@ -999,7 +1001,7 @@ QuarkPage {
 			symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 7)) : defaultSymbolFontPointSize
 
 			x: 0
-			y: parent.height - (height + (buzzerApp.isDesktop ? 0 : spaceItems_ - 2))
+			y: parent.height - (height + messageContainer.adjustedOffset + (buzzerApp.isDesktop ? 0 : spaceItems_ - 2))
 
 			onClicked: {
 				//
@@ -1215,7 +1217,7 @@ QuarkPage {
 			symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 7)) : (buzzerApp.defaultFontSize() + 9)
 
 			x: hiddenCountFrame.x - width - spaceItems_
-			y: parent.height - (height + (buzzerApp.isDesktop ? 0 : spaceItems_ - 2))
+			y: parent.height - (height + messageContainer.adjustedOffset + (buzzerApp.isDesktop ? 0 : spaceItems_ - 2))
 
 			onClicked: {
 				sendButton.send();
@@ -1244,7 +1246,7 @@ QuarkPage {
 		QuarkRoundState {
 			id: hiddenCountFrame
 			x: parent.width - (size + spaceRight_)
-			y: parent.height - (size + spaceBottom_ + (buzzerApp.isDesktop ? 0 : spaceItems_ - 2))
+			y: parent.height - (size + messageContainer.adjustedOffset + spaceBottom_ + (buzzerApp.isDesktop ? 0 : spaceItems_ - 2))
 			size: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 26) : 24
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.hiddenLight")
 			background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Market.tabBackground")
