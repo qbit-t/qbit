@@ -173,6 +173,13 @@ int Client::open(QString secret) {
 			if (gLog().isEnabled(Log::GENERAL_ERROR))
 				gLog().write(Log::GENERAL_ERROR, std::string("[Client::open]: font NotoColorEmoji.ttf was not loaded"));
 		}
+
+		/*
+		if (QFontDatabase::addApplicationFont(":/fonts/fa-light-300.ttf") == -1) {
+			if (gLog().isEnabled(Log::GENERAL_ERROR))
+				gLog().write(Log::GENERAL_ERROR, std::string("[Client::open]: font fa-light-300.ttf was not loaded"));
+		}
+		*/
 #else
 		if (QFontDatabase::addApplicationFont(":/fonts-desktop/NotoColorEmojiN.ttf") == -1) {
 			if (gLog().isEnabled(Log::GENERAL_ERROR))
@@ -616,16 +623,17 @@ void Client::eventsfeedUpdated(const qbit::EventsfeedItemProxy& event) {
 	//
 	qbit::EventsfeedItemPtr lEventsfeedItem(event.get());
 	QString lLastTimestamp = getProperty("Client.lastTimestamp");
+	//qInfo() << "[eventsfeedUpdated]" << lEventsfeedItem->actualTimestamp() << !suspended_ << lLastTimestamp;
 	if (lLastTimestamp.length()) {
-		if (lLastTimestamp.toULongLong() < lEventsfeedItem->timestamp()) {
+		if (lLastTimestamp.toULongLong() < lEventsfeedItem->actualTimestamp()) {
 			emit newEvents();
-			setProperty("Client.lastTimestamp", QString::number(lEventsfeedItem->timestamp()));
+			setProperty("Client.lastTimestamp", QString::number(lEventsfeedItem->actualTimestamp()));
 #if defined(DESKTOP_PLATFORM)
 			// notify
 			if (suspended_ || (QString::fromStdString(lEventsfeedItem->buzzId().toHex()) != topId_ &&
 					(!lEventsfeedItem->buzzers().size() ||
 					 QString::fromStdString(lEventsfeedItem->beginInfo()->eventId().toHex()) != topId_))) {
-				qInfo() << "[eventsfeedUpdated/0]" << lEventsfeedItem->timestamp() << !suspended_;
+				qInfo() << "[eventsfeedUpdated/0]" << lEventsfeedItem->actualTimestamp() << !suspended_;
 				PushNotification::instance(
 							lEventsfeedItem,
 							unMarkdownBuzzBodyLimited(QString::fromStdString(lEventsfeedItem->buzzBodyString()), -1),
@@ -635,13 +643,13 @@ void Client::eventsfeedUpdated(const qbit::EventsfeedItemProxy& event) {
 		}
 	} else {
 		emit newEvents();
-		setProperty("Client.lastTimestamp", QString::number(lEventsfeedItem->timestamp()));
+		setProperty("Client.lastTimestamp", QString::number(lEventsfeedItem->actualTimestamp()));
 #if defined(DESKTOP_PLATFORM)
 		// notify
 		if (suspended_ || (QString::fromStdString(lEventsfeedItem->buzzId().toHex()) != topId_ &&
 				(!lEventsfeedItem->buzzers().size() ||
 				 QString::fromStdString(lEventsfeedItem->beginInfo()->eventId().toHex()) != topId_))) {
-			qInfo() << "[eventsfeedUpdated/1]" << lEventsfeedItem->timestamp() << !suspended_;
+			qInfo() << "[eventsfeedUpdated/1]" << lEventsfeedItem->actualTimestamp() << !suspended_;
 			PushNotification::instance(
 						lEventsfeedItem,
 						unMarkdownBuzzBodyLimited(QString::fromStdString(lEventsfeedItem->buzzBodyString()), -1),

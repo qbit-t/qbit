@@ -5,6 +5,12 @@
 #include <QtGui>
 #include <QGraphicsOpacityEffect>
 
+#if defined(Q_OS_MACOS)
+#define FONT_AWESOME_NAME "Font Awesome 5 Pro"
+#else
+#define FONT_AWESOME_NAME "Font Awesome 5 Pro Light"
+#endif
+
 namespace {
 	const float WINDOW_TRANSPARENT_OPACITY = 0.9;
 	const float WINDOW_NONTRANSPARENT_OPACITY = 1.0;
@@ -215,11 +221,16 @@ void buzzer::Notificator::notify(buzzer::PushNotificationPtr item, bool display)
 void buzzer::Notificator::initializeLayout() {
 	//
 	QGridLayout* lLayout = new QGridLayout(this);
+#if defined(Q_OS_MACOS)
+	lLayout->setHorizontalSpacing(5);
+	lLayout->setVerticalSpacing(5);
+#else
 	lLayout->setHorizontalSpacing(7);
 	lLayout->setVerticalSpacing(7);
+#endif
 
 	QBoxLayout* lHeader = new QBoxLayout(QBoxLayout::LeftToRight);
-	lHeader->setSpacing(5);
+	lHeader->setSpacing(5); // 5
 	lHeader->addWidget(d->alias(), Qt::AlignLeft);
 	lHeader->addWidget(d->buzzer(), Qt::AlignLeft);
 	lHeader->addStretch(110);
@@ -239,6 +250,10 @@ void buzzer::Notificator::initializeLayout() {
 		lLayout->addWidget(d->media(), 1, 26, 4, 4, Qt::AlignTop);
 }
 
+#ifdef Q_OS_MAC
+#include <Carbon/Carbon.h>
+#endif
+
 void buzzer::Notificator::initializeUI() {
 	QPalette lPalette = this->palette();
 	buzzer::Client* lClient = static_cast<buzzer::Client*>(buzzer::gApplication->getClient());
@@ -246,8 +261,10 @@ void buzzer::Notificator::initializeUI() {
 	setAutoFillBackground(true);
 	setPalette(lPalette);
 
-	setWindowFlags(Qt::ToolTip | Qt::FramelessWindowHint);
-	//setAttribute(Qt::WA_Hover, true);
+	setWindowFlags(
+		Qt::Tool |
+		Qt::FramelessWindowHint
+	);
 
 	// type
 	QString lTypeColor;
@@ -499,7 +516,7 @@ QLabel* buzzer::NotificatorPrivate::type() {
 		type_->setMinimumSize(20, 20);
 
 		buzzer::Client* lClient = static_cast<buzzer::Client*>(buzzer::gApplication->getClient());
-		QFont lFont("Font Awesome 5 Pro Light", lClient->scaleFactor() * 12, QFont::Normal);
+		QFont lFont(FONT_AWESOME_NAME, lClient->scaleFactor() * (buzzer::gApplication->defaultFontSize()+1.0), QFont::Normal);
 		type_->setFont(lFont);
 	}
 
@@ -527,9 +544,9 @@ QLabel* buzzer::NotificatorPrivate::alias() {
 
 		buzzer::Client* lClient = static_cast<buzzer::Client*>(buzzer::gApplication->getClient());
 #if defined(Q_OS_WINDOWS)
-		QFont lFont("Segoe UI Emoji", lClient->scaleFactor() * 11, QFont::Bold);
+		QFont lFont("Segoe UI Emoji", lClient->scaleFactor() * buzzer::gApplication->defaultFontSize(), QFont::Bold);
 #else
-		QFont lFont("Noto Color Emoji N", lClient->scaleFactor() * 11, QFont::Bold);
+		QFont lFont("Noto Color Emoji N", lClient->scaleFactor() * buzzer::gApplication->defaultFontSize(), QFont::Bold);
 #endif
 		alias_->setFont(lFont);
 	}
@@ -545,7 +562,7 @@ QLabel* buzzer::NotificatorPrivate::buzzer() {
 
 		buzzer::Client* lClient = static_cast<buzzer::Client*>(buzzer::gApplication->getClient());
 		QFont lFont = buzzer_->font();
-		lFont.setPointSize(lClient->scaleFactor() * 11);
+		lFont.setPointSize(lClient->scaleFactor() * buzzer::gApplication->defaultFontSize());
 		buzzer_->setFont(lFont);
 	}
 
@@ -565,9 +582,9 @@ QLabel* buzzer::NotificatorPrivate::text() {
 
 		buzzer::Client* lClient = static_cast<buzzer::Client*>(buzzer::gApplication->getClient());
 #if defined(Q_OS_WINDOWS)
-		QFont lFont("Segoe UI Emoji", lClient->scaleFactor() * 11, QFont::Normal);
+		QFont lFont("Segoe UI Emoji", lClient->scaleFactor() * buzzer::gApplication->defaultFontSize(), QFont::Normal);
 #else
-		QFont lFont("Noto Color Emoji N", lClient->scaleFactor() * 11, QFont::Normal);
+		QFont lFont("Noto Color Emoji N", lClient->scaleFactor() * buzzer::gApplication->defaultFontSize(), QFont::Normal);
 #endif
 		text_->setFont(lFont);
 	}
@@ -587,9 +604,9 @@ QLabel* buzzer::NotificatorPrivate::caption() {
 
 		buzzer::Client* lClient = static_cast<buzzer::Client*>(buzzer::gApplication->getClient());
 #if defined(Q_OS_WINDOWS)		
-		QFont lFont("Segoe UI Emoji", lClient->scaleFactor() * 11, QFont::Normal);
+		QFont lFont("Segoe UI Emoji", lClient->scaleFactor() * buzzer::gApplication->defaultFontSize(), QFont::Normal);
 #else
-		QFont lFont("Noto Color Emoji N", lClient->scaleFactor() * 11, QFont::Normal);
+		QFont lFont("Noto Color Emoji N", lClient->scaleFactor() * buzzer::gApplication->defaultFontSize(), QFont::Normal);
 #endif
 		caption_->setFont(lFont);
 	}
@@ -621,7 +638,7 @@ QLabel* buzzer::NotificatorPrivate::close() {
 		close_->setText("\uf00d");
 
 		buzzer::Client* lClient = static_cast<buzzer::Client*>(buzzer::gApplication->getClient());
-		QFont lFont("Font Awesome 5 Pro Light", lClient->scaleFactor() * 12, QFont::Normal);
+		QFont lFont(FONT_AWESOME_NAME, lClient->scaleFactor() * (buzzer::gApplication->defaultFontSize()+1), QFont::Normal);
 		close_->setFont(lFont);
 	}
 
@@ -639,7 +656,7 @@ QLabel* buzzer::NotificatorPrivate::closeAll() {
 		closeAll_->setText("\uf100");
 
 		buzzer::Client* lClient = static_cast<buzzer::Client*>(buzzer::gApplication->getClient());
-		QFont lFont("Font Awesome 5 Pro Light", lClient->scaleFactor() * 12, QFont::Normal);
+		QFont lFont(FONT_AWESOME_NAME, lClient->scaleFactor() * (buzzer::gApplication->defaultFontSize()+1), QFont::Normal);
 		closeAll_->setFont(lFont);
 	}
 

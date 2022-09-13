@@ -263,6 +263,10 @@ public:
 	void setPublisherInfoChain(const uint256& id) { publisherInfoChain_ = id; }
 
 	uint64_t timestamp() const { return timestamp_; }
+	uint64_t actualTimestamp() const {
+		if (buzzers_.size()) return buzzers_.begin()->timestamp() > timestamp_ ? buzzers_.begin()->timestamp() : timestamp_;
+		return timestamp_;
+	}
 	void setTimestamp(uint64_t timestamp) { timestamp_ = timestamp; }
 
 	uint64_t score() const { return score_; }

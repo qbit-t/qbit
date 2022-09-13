@@ -27,6 +27,7 @@ public:
 	virtual std::string getQttAsset() = 0;
 	virtual uint64_t getQttAssetVoteAmount() = 0;
 	virtual int getQttAssetLockTime() = 0;
+	virtual qreal defaultFontSize() = 0;
 	virtual bool getTestNet() = 0;
 	virtual bool getDebug() = 0;
 	virtual bool getInterceptOutput() = 0;
