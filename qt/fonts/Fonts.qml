@@ -262,5 +262,13 @@ Item
 	readonly property string shareSym: "\uf1e0";
 	readonly property string mediaSym: "\uf87c";
 	readonly property string filmSym: "\uf008";
+
+	readonly property string leftShevronSym: "\uf323";
+	readonly property string rightShevronSym: "\uf324";
+
+	readonly property string expandSym: "\uf320";
+	readonly property string collapseSym: "\uf326";
+
+	readonly property string collapse2Sym: "\uf08b";
 }
 

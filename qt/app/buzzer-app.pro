@@ -5,7 +5,7 @@ else: QT += qml quick quickcontrols2 multimedia sensors
 
 CONFIG += c++11
 
-VERSION = 1.6.90
+VERSION = 1.6.91
 DEFINES += VERSION_STRING=\\\"$${VERSION}\\\"
 DEFINES += QT_ENVIRONMENT
 DEFINES += BUZZER_MOD
@@ -18,7 +18,7 @@ DEFINES += CLIENT_PLATFORM
 DEFINES += QBIT_VERSION_MAJOR=0
 DEFINES += QBIT_VERSION_MINOR=1
 DEFINES += QBIT_VERSION_REVISION=6
-DEFINES += QBIT_VERSION_BUILD=90
+DEFINES += QBIT_VERSION_BUILD=91
 
 DEFINES += BUZZER_MOD
 DEFINES += CUBIX_MOD
@@ -167,6 +167,8 @@ DISTFILES += \
     components/QuarkRoundSymbolButton.qml \
     ios/Info.plist \
     ios/Launch.xib \
+    qml/buzzer-main-tablet.qml \
+    qml/buzzer-tablet-app.qml \
     qml/buzzercreateupdate.qml \
     qml/buzzerheader.qml \
     qml/buzzerqbitkey.qml \

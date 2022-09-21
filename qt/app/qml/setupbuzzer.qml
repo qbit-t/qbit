@@ -61,13 +61,19 @@ QuarkPage
 	//
 	QuarkLabel {
 		id: welcomeText
-		x: 20
+		x: parent.width > buzzerApp.deviceHeight() ? parent.width / 2 - width / 2 : 20
 		y: toolBar.y + toolBar.totalHeight + 20
-		width: parent.width-40
+		width: parent.width > buzzerApp.deviceHeight() ? welcomeMetrix.width : parent.width - 40
 		wrapMode: Label.Wrap
 		font.pointSize: 18
 
 		text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.setupbuzzer")
+	}
+
+	TextMetrics {
+		id: welcomeMetrix
+		text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.setupbuzzer")
+		font: welcomeText.font
 	}
 
 	Flickable {
@@ -91,7 +97,9 @@ QuarkPage
 			controller: setupbuzzer_.controller
 
 			onProcessed: {
-				nextButton.enabled = true;
+				nextButton.forceVisible = true;
+				nextButton.forceEnabled = true;
+				nextButton.buttonAction = "next";
 			}
 		}
 	}
@@ -103,28 +111,43 @@ QuarkPage
 
 	QuarkButton	{
 		id: nextButton
-		x: welcomeText.x + 2
+		x: 20
 		y: parent.height - height - 20
-		text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.next")
-		visible: true
-		enabled: false
-		width: welcomeText.width
+		text: buttonAction === "down" ? Fonts.arrowDownSym : buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.next")
+		visible: buzzerInfo.calculatedHeight > pageContainer.height && pageContainer.contentHeight - pageContainer.contentY > pageContainer.height ||
+				 forceVisible
+		enabled: buttonAction === "down" || forceEnabled ? true : false
+		width: parent.width - 40
+
+		font.family: buttonAction === "down" ? Fonts.icons : ""
+		font.pointSize: buttonAction === "down" ? defaultFontPointSize + 5 : defaultFontPointSize
+		font.capitalization: Font.AllUppercase
+
+		property bool forceVisible: false
+		property bool forceEnabled: false
+		property string buttonAction: buzzerInfo.calculatedHeight > pageContainer.height ? "down" : "next" // "down|next"
 
 		Layout.minimumWidth: 150
 		Layout.alignment: Qt.AlignHCenter
 
 		onClicked: {
-			var lComponent = null;
-			var lPage = null;
-
-			lComponent = Qt.createComponent("qrc:/qml/buzzer-main.qml");
-			if (lComponent.status === Component.Error) {
-				controller.showError(lComponent.errorString());
+			//
+			if (buttonAction === "down") {
+				//
+				pageContainer.flick(0.0, (-1.0)*5000);
 			} else {
-				lPage = lComponent.createObject(window);
-				lPage.controller = controller;
+				var lComponent = null;
+				var lPage = null;
 
-				addPage(lPage);
+				lComponent = Qt.createComponent(buzzerApp.isTablet ? "qrc:/qml/buzzer-main-tablet.qml" : "qrc:/qml/buzzer-main.qml");
+				if (lComponent.status === Component.Error) {
+					controller.showError(lComponent.errorString());
+				} else {
+					lPage = lComponent.createObject(window);
+					lPage.controller = controller;
+
+					addPage(lPage);
+				}
 			}
 		}
 	}

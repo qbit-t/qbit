@@ -25,7 +25,7 @@ QuarkPage {
 	key: "buzzeditor"
 
 	// adjust height by virtual keyboard
-	followKeyboard: true
+	followKeyboard: !buzzerApp.isTablet ? true : buzzerApp.isPortrait()
 
 	Component.onCompleted: {
 		closePageHandler = closePage;
@@ -116,6 +116,8 @@ QuarkPage {
 			text_ = text;
 			injectText.start();
 		}
+
+		buzzFooterBar.adjustHeight();
 	}
 
 	function initializeMessage(text, pkey, conversation, keyboardHeight) {
@@ -156,6 +158,8 @@ QuarkPage {
 			//
 			buzzText.forceActiveFocus();
 		}
+
+		console.info("[buzzeditor/onHeightChanged]: controller.bottomBarHeight = " + controller.bottomBarHeight + ", bodyContainer.height = " + bodyContainer.height);
 	}
 
 	// only once to pop-up system keyboard
@@ -187,7 +191,7 @@ QuarkPage {
 	//
 	QuarkToolBar {
 		id: buzzEditorToolBar
-		height: 45 + topOffset
+		height: (buzzerApp.isDesktop || buzzerApp.isTablet ? (buzzerClient.scaleFactor * 50) : 45) + topOffset
 		width: parent.width
 
 		property int totalHeight: height
@@ -213,7 +217,7 @@ QuarkPage {
 
 		QuarkRoundButton {
 			id: sendButton
-			x: parent.width - width - 12
+			x: menuControl.visible ? menuControl.x - width - spaceItems_ :  parent.width - width - 12
 			y: parent.height / 2 - height / 2 + topOffset / 2
 			text: buzz_ ? buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.editor.buzz") :
 						  rebuzz_ ? buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.editor.rebuzz") :
@@ -241,6 +245,24 @@ QuarkPage {
 			}
 		}
 
+		QuarkRoundSymbolButton {
+			id: menuControl
+			x: parent.width - width - spaceItems_
+			y: parent.height / 2 - height / 2
+			symbol: Fonts.elipsisVerticalSym
+			fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 5)) : buzzerApp.defaultFontSize() + 7
+			radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius - 7)) : (defaultRadius - 7)
+			color: "transparent"
+			textColor: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+			opacity: 1.0
+			visible: buzzerApp.isTablet && !buzzerApp.isPortrait()
+
+			onClick: {
+				if (headerMenu.visible) headerMenu.close();
+				else { headerMenu.prepare(); headerMenu.open(); }
+			}
+		}
+
 		QuarkHLine {
 			id: bottomLine
 			x1: 0
@@ -263,11 +285,13 @@ QuarkPage {
 		x: 0
 		y: buzzEditorToolBar.y + buzzEditorToolBar.height
 		width: parent.width
-		height: parent.height - (buzzEditorToolBar.height + buzzFooterBar.height)
+		height: parent.height - (buzzEditorToolBar.height + buzzFooterBar.height) + (buzzerApp.isTablet ? heightDiff : 0)
 		contentHeight: buzzText.contentHeight + (mediaListEditor.model.count ? mediaBox.height : 0) + spaceMedia_ + spaceBottom_ * 2 +
 							wrapContainer.getHeight() + wrapContainer.getSpace() +
 							replyContainer.getHeight() + replyContainer.getSpace()
 		clip: true
+
+		property var heightDiff: controller.workAreaHeight - (parent.height - (buzzEditorToolBar.height + buzzFooterBar.height))
 
 		onHeightChanged: {
 			bodyContainer.ensureVisible(buzzText);
@@ -826,13 +850,17 @@ QuarkPage {
 	//
 	QuarkToolBar {
 		id: buzzFooterBar
-		height: 45 + adjustedOffset
+		height: buzzerApp.isTablet ? controller.bottomBarHeight + adjustedOffset : defaultHeight + adjustedOffset
 		width: parent.width
-		y: parent.height - (45 + adjustedOffset)
+		y: parent.height - (height) + (buzzerApp.isTablet && !buzzerApp.isPortrait() && keyboardVisible > 0 ? bodyContainer.heightDiff : 0)
 
 		property int totalHeight: height
-		property int defaultHeight: 45
+		property int defaultHeight: controller ? (buzzerApp.isTablet ? controller.bottomBarHeight : 45) : 45
 		property var adjustedOffset: buzzeditor_.keyboardHeight == 0 && bottomOffset > 30 ? bottomOffset : 0
+
+		function adjustHeight() {
+			buzzFooterBar.height = buzzerApp.isTablet ? controller.bottomBarHeight + adjustedOffset : defaultHeight + adjustedOffset;
+		}
 
 		backgroundColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Market.tabBackground")
 
@@ -1099,6 +1127,38 @@ QuarkPage {
 	//
 	// menus and dropdowns
 	//
+
+	QuarkPopupMenu {
+		id: headerMenu
+		x: parent.width - width - spaceRight_
+		y: menuControl.y + menuControl.height + spaceItems_
+		width: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 350) : 350
+		visible: false
+
+		model: ListModel { id: menuModel }
+
+		onAboutToShow: prepare()
+
+		onClick: {
+			// key, activate
+			controller.activatePage(key);
+		}
+
+		function prepare() {
+			//
+			menuModel.clear();
+
+			//
+			var lArray = controller.enumStakedPages();
+			for (var lI = 0; lI < lArray.length; lI++) {
+				//
+				menuModel.append({
+					key: lArray[lI].key,
+					keySymbol: "",
+					name: lArray[lI].alias + " // " + lArray[lI].caption.substring(0, 100)});
+			}
+		}
+	}
 
 	QuarkPopupMenu {
 		id: buzzersList

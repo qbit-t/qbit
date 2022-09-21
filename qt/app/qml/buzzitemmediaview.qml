@@ -561,7 +561,7 @@ Item {
 
 	QuarkLabel {
 		id: mediaPagesIndicator
-		x: buzzerApp.isDesktop ? calculatedWidth / 2 - width / 2 : (calculatedWidth - (width + 2*spaceItems_))
+		x: buzzerApp.isDesktop || (buzzerApp.isTablet && !buzzerApp.isPortrait()) ? calculatedWidth / 2 - width / 2 : (calculatedWidth - (width + 2*spaceItems_))
 		y: spaceStats_ - (height + (landscape ? 0 : 5))
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize + 1)) : defaultFontSize + 1
 		text: "0/0"

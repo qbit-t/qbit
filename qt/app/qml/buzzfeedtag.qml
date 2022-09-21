@@ -35,7 +35,7 @@ QuarkPage {
 	readonly property int spaceRight_: 15
 	readonly property int spaceBottom_: 12
 	readonly property int spaceItems_: 5
-	readonly property int toolbarTotalHeight_: (buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 50) : 45) + topOffset
+	readonly property int toolbarTotalHeight_: (buzzerApp.isDesktop || buzzerApp.isTablet ? (buzzerClient.scaleFactor * 50) : 45) + topOffset
 
 	function start(tag) {
 		//
@@ -206,7 +206,7 @@ QuarkPage {
 			color: "transparent"
 			textColor: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 			opacity: 1.0
-			visible: buzzerApp.isDesktop
+			visible: buzzerApp.isDesktop || (buzzerApp.isTablet && !buzzerApp.isPortrait())
 
 			onClick: {
 				if (headerMenu.visible) headerMenu.close();

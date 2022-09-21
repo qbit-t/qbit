@@ -177,14 +177,14 @@ QuarkPage {
 
 	QuarkToolBar {
 		id: buzzerThreadToolBar
-		height: (buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 50) : 45) + topOffset
+		height: (buzzerApp.isDesktop || buzzerApp.isTablet? (buzzerClient.scaleFactor * 50) : 45) + topOffset
 		width: parent.width
 		//backgroundColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.background")
 
 		property int totalHeight: height
 
 		function adjust() {
-			if (buzzerApp.isDesktop) return;
+			if (buzzerApp.isDesktop || buzzerApp.isTablet) return;
 
 			if (parent.width > parent.height) {
 				visible = false;
@@ -235,7 +235,7 @@ QuarkPage {
 			color: "transparent"
 			textColor: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 			opacity: 1.0
-			visible: buzzerApp.isDesktop
+			visible: buzzerApp.isDesktop || (buzzerApp.isTablet && !buzzerApp.isPortrait())
 
 			onClick: {
 				if (headerMenu.visible) headerMenu.close();

@@ -61,14 +61,11 @@ QuarkPage
 	}
 
 	onKeyboardHeightChanged: {
-		//var lOffset = pageContainer.contentHeight > buzzerqbitkey_.height ? pageContainer.contentHeight - buzzerqbitkey_.height : 0;
-		//pageContainer.contentY = keyboardHeight ? lOffset : 0;
-		//console.info("[onKeyboardHeightChanged]: lOffset = " + lOffset + ", keyboardHeight = " + keyboardHeight);
 	}
 
 	onHeightChanged: {
 		var lOffset = pageContainer.contentHeight > buzzerqbitkey_.height ? pageContainer.contentHeight - buzzerqbitkey_.height : 0;
-		if (lOffset > 0 && keyboardHeight) pageContainer.flick(0.0, (-1.0)*1000);
+		if (lOffset > 0 && keyboardHeight) pageContainer.flick(0.0, (-1.0)*5000);
 		console.info("[onHeightChanged]: lOffset = " + lOffset + ", keyboardHeight = " + keyboardHeight);
 	}
 
@@ -98,12 +95,14 @@ QuarkPage
 
 	QuarkToolBar {
 		id: toolBar
-		height: (buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 50) : 45) + topOffset
+		height: (buzzerApp.isDesktop || buzzerApp.isTablet ? (buzzerClient.scaleFactor * 50) : 45) + topOffset
 		width: parent.width
 
 		property int totalHeight: height
 
 		function adjust() {
+			if (buzzerApp.isDesktop || buzzerApp.isTablet) return;
+
 			if (parent.width > parent.height) {
 				visible = false;
 				height = 0;
@@ -479,22 +478,47 @@ QuarkPage
 
 				// try to import key
 				if (buzzerClient.checkKey(lWords)) {
-					// if ok - remove all & reimport
+					// starting...
 					progressBar.visible = true;
 					progressBar.indeterminate = true;
 					linkButton.enabled = false;
 
-					// WARNING: remove all previous keys
-					buzzerClient.removeAllKeys();
-
-					// import
-					buzzerClient.importKey(lWords);
-					addressBox.text = buzzerClient.firstPKey();
-					keyBox.text = buzzerClient.firstSKey();
-
-					// try to load buzzer and check pkey
-					loadBuzzerInfo.process(nameEditBox.text);
+					// push timer
+					tryLink.start();
 				}
+			}
+		}
+	}
+
+	Timer {
+		id: tryLink
+		interval: 200
+		repeat: false
+		running: false
+
+		onTriggered: {
+			//
+			console.log("[tryLink]: trying to link key...");
+			//
+			if (buzzerClient.buzzerDAppReady) {
+				// WARNING: remove all previous keys
+				buzzerClient.removeAllKeys();
+
+				// prepare new key
+				var lWords = [];
+				for (var lIdx = 0; lIdx < model_.count; lIdx++) {
+					lWords.push(model_.get(lIdx).name);
+				}
+
+				// import
+				buzzerClient.importKey(lWords);
+				addressBox.text = buzzerClient.firstPKey();
+				keyBox.text = buzzerClient.firstSKey();
+
+				// try to load buzzer and check pkey
+				loadBuzzerInfo.process(nameEditBox.text);
+			} else {
+				tryLink.start();
 			}
 		}
 	}
@@ -554,14 +578,15 @@ QuarkPage
 						var lComponent = null;
 						var lPage = null;
 
-						lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzer-main-desktop.qml") : Qt.createComponent("qrc:/qml/buzzer-main.qml");
+						lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzer-main-desktop.qml") :
+														   Qt.createComponent(buzzerApp.isTablet ? "qrc:/qml/buzzer-main-tablet.qml" : "qrc:/qml/buzzer-main.qml");
 						if (lComponent.status === Component.Error) {
 							controller.showError(lComponent.errorString());
 						} else {
 							lPage = lComponent.createObject(controller);
 							lPage.controller = controller;
 
-							if (buzzerApp.isDesktop)
+							if (buzzerApp.isDesktop || buzzerApp.isTablet)
 								addPageLocal(lPage);
 							else
 								addPage(lPage);
@@ -656,14 +681,15 @@ QuarkPage
 				var lComponent = null;
 				var lPage = null;
 
-				lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzer-main-desktop.qml") : Qt.createComponent("qrc:/qml/buzzer-main.qml");
+				lComponent = buzzerApp.isDesktop ? Qt.createComponent("qrc:/qml/buzzer-main-desktop.qml") :
+												   Qt.createComponent(buzzerApp.isTablet ? "qrc:/qml/buzzer-main-tablet.qml" : "qrc:/qml/buzzer-main.qml");
 				if (lComponent.status === Component.Error) {
 					controller.showError(lComponent.errorString());
 				} else {
 					lPage = lComponent.createObject(controller);
 					lPage.controller = controller;
 
-					if (buzzerApp.isDesktop)
+					if (buzzerApp.isDesktop || buzzerApp.isTablet)
 						addPageLocal(lPage);
 					else
 						addPage(lPage);

@@ -65,7 +65,7 @@ QuarkPage
 		fillMode: Image.PreserveAspectFit
 		x: parent.width / 2 - qbitImage.width / 2
 		y: welcomeText.y + welcomeText.height + 30
-		width: parent.width - 200
+		width: parent.height > parent.width ? parent.width - 200 : parent.height - 300
 		Layout.alignment: Qt.AlignCenter
 		mipmap: true
 		source: "../images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "qbit.splash")
@@ -92,6 +92,7 @@ QuarkPage
 		text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.next")
 		visible: true
 		width: welcomeText.width
+		font.capitalization: Font.AllUppercase
 
 		Layout.minimumWidth: 150
 		Layout.alignment: Qt.AlignHCenter

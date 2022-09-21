@@ -21,7 +21,7 @@ import "qrc:/lib/numberFunctions.js" as NumberFunctions
 QuarkPage {
 	id: buzzmediaPage_
 	key: "buzzmedia"
-	stacked: buzzerApp.isDesktop
+	stacked: buzzerApp.isDesktop || (buzzerApp.isTablet && !buzzerApp.isPortrait())
 
 	//
 	property string mediaViewTheme: "Darkmatter"
@@ -36,18 +36,21 @@ QuarkPage {
 	property var mediaPlayer_: null
 	property var buzzId_: null
 	property var buzzBody_: ""
-
-	statusBarColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "MediaView.statusBar")
-	navigationBarColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "MediaView.navigationBar")
-	Material.background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "MediaView.pageBackground")
-	statusBarTheme: "dark"
-	navigatorTheme: "dark"
+	property bool expanded_: false;
 
 	Component.onCompleted: {
 		closePageHandler = closePage;
 		activatePageHandler = activatePage;
 
-		buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "MediaView.pageBackground"));
+		if (!(buzzerApp.isDesktop || (buzzerApp.isTablet && !buzzerApp.isPortrait()))) {
+			statusBarTheme = "dark";
+			navigatorTheme = "dark";
+			statusBarColor = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "MediaView.statusBar");
+			navigationBarColor = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "MediaView.navigationBar");
+			buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "MediaView.pageBackground"));
+		}
+
+		Material.background = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "MediaView.pageBackground");
 	}
 
 	onMediaPlayerControllerChanged: {
@@ -60,21 +63,37 @@ QuarkPage {
 	}
 
 	function closePage() {
-		stopPage();
-		controller.popPage();
-		destroy(1000);
-
 		// set back
-		statusBarColor = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.statusBar")
-		navigationBarColor = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.navigationBar")
+		if (expanded_) {
+			controller.rootComponent.collapse();
+			expanded_ = false;
+		}
+
+		statusBarColor = buzzerApp.isTablet ? (buzzerApp.isPortrait() ? buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.statusBar") :
+																		buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.statusBar")) :
+											  buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.statusBar");
+		navigationBarColor = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.navigationBar");
 		statusBarTheme = buzzerClient.statusBarTheme;
 		navigatorTheme = buzzerClient.themeSelector;
 		buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Window.background"));
 		controller.activePageBackground = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Window.background");
+		tryUpdateStatusBar();
+
+		//
+		stopPage();
+		controller.popPage();
+		destroy(1000);
+	}
+
+	function getStatusBarColor() {
+		return buzzerApp.isTablet && !expanded_ ? (buzzerApp.isPortrait() ? buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "MediaView.statusBar") :
+																			buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.statusBar")) :
+												  buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "MediaView.statusBar");
 	}
 
 	function activatePage() {
-		buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "MediaView.pageBackground"));
+		if (!(buzzerApp.isDesktop || (buzzerApp.isTablet && !buzzerApp.isPortrait())))
+			buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "MediaView.pageBackground"));
 	}
 
 	function onErrorCallback(error)	{
@@ -82,6 +101,11 @@ QuarkPage {
 	}
 
 	function stopPage() {
+		//
+		if (expanded_) {
+			buzzmediaPage_.controller.rootComponent.collapse();
+			expanded_ = false;
+		}
 		//
 		mediaGalleryContainer.checkPlaying();
 		//
@@ -99,7 +123,7 @@ QuarkPage {
 		mediaIndex_ = mediaIndex;
 		mediaPlayer_ = player;
 		buzzBody_ = buzzBody;
-		playerControl.key = buzzerApp.isDesktop ? buzzId : null;
+		playerControl.key = buzzerApp.isDesktop || (buzzerApp.isTablet && !buzzerApp.isPortrait()) ? buzzId : null;
 		buzzId_ = buzzId;
 
 		console.log("[buzzmedia/initialize]: mediaIndex = " + mediaIndex + ", player = " + player);
@@ -108,12 +132,14 @@ QuarkPage {
 		//
 		initialized_ = true;
 		//
-		controller.activePageBackground = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "MediaView.pageBackground");
-		buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "MediaView.pageBackground"));
+		if (!(buzzerApp.isDesktop || (buzzerApp.isTablet && !buzzerApp.isPortrait()))) {
+			controller.activePageBackground = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "MediaView.pageBackground");
+			buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "MediaView.pageBackground"));
+		}
 	}
 
 	function adjustToolBar() {
-		if (initialized_ && !buzzerApp.isDesktop) {
+		if (initialized_ && !buzzerApp.isDesktop && !buzzerApp.isTablet) {
 			//console.log("w = " + width + ", h = " + height);
 			if (width > height && height > 0) {
 				if (buzzMedia_.length === 1) {
@@ -134,7 +160,8 @@ QuarkPage {
 
 	onWidthChanged: {
 		//
-		buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "MediaView.pageBackground"));
+		if (!(buzzerApp.isDesktop || (buzzerApp.isTablet && !buzzerApp.isPortrait())))
+			buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "MediaView.pageBackground"));
 		//
 		adjustToolBar();
 		orientationChangedTimer.start();
@@ -174,7 +201,7 @@ QuarkPage {
 	//
 	QuarkToolBar {
 		id: buzzMediaToolBar
-		height: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 50) : 45 + topOffset
+		height: buzzerApp.isDesktop || buzzerApp.isTablet ? (buzzerClient.scaleFactor * 50) : 45 + topOffset
 		width: parent.width
 		backgroundColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "MediaView.pageBackground")
 
@@ -200,6 +227,49 @@ QuarkPage {
 		}
 
 		QuarkRoundSymbolButton {
+			id: expandButton
+			x: cancelButton.x + cancelButton.width + spaceItems_
+			y: parent.height / 2 - height / 2 + topOffset / 2
+			symbol: expanded_ ? Fonts.collapse2Sym : Fonts.expandSym
+			fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 5)) : buzzerApp.defaultFontSize() + 7
+			radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius - 7)) : (defaultRadius - 7)
+			color: "transparent"
+			textColor: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.foreground")
+			opacity: 1.0
+			visible: buzzerApp.isTablet && !buzzerApp.isPortrait()
+
+			onClick: {
+				//
+				if (!buzzmediaPage_.controller.rootComponent) return;
+				//
+				if (buzzmediaPage_.expanded_) {
+					buzzmediaPage_.controller.rootComponent.collapse();
+					buzzmediaPage_.expanded_ = false;
+					// set back
+					controller.activePageBackground = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Window.background");
+					buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Window.background"));
+					buzzmediaPage_.statusBarColor = getStatusBarColor(); //buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.statusBar");
+					buzzmediaPage_.navigationBarColor = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.navigationBar");
+					buzzmediaPage_.statusBarTheme = buzzerClient.statusBarTheme;
+					buzzmediaPage_.navigatorTheme = buzzerClient.themeSelector;
+					buzzmediaPage_.tryUpdateStatusBar();
+				} else {
+					buzzmediaPage_.controller.rootComponent.expand();
+					buzzmediaPage_.expanded_ = true;
+					//
+					buzzmediaPage_.statusBarTheme = "dark";
+					buzzmediaPage_.navigatorTheme = "dark";
+					buzzmediaPage_.statusBarColor = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "MediaView.statusBar");
+					buzzmediaPage_.navigationBarColor = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "MediaView.navigationBar");
+					buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "MediaView.pageBackground"));
+					controller.activePageBackground = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "MediaView.pageBackground");
+					buzzmediaPage_.tryUpdateStatusBar();
+					//
+				}
+			}
+		}
+
+		QuarkRoundSymbolButton {
 			id: menuControl
 			x: parent.width - width - spaceItems_
 			y: parent.height / 2 - height / 2 + topOffset / 2
@@ -209,7 +279,7 @@ QuarkPage {
 			color: "transparent"
 			textColor: buzzerApp.getColor(mediaViewTheme, mediaViewSelector, "Material.foreground")
 			opacity: 1.0
-			visible: buzzerApp.isDesktop
+			visible: buzzerApp.isDesktop || (buzzerApp.isTablet && !buzzerApp.isPortrait() && !expanded_)
 
 			onClick: {
 				if (headerMenu.visible) headerMenu.close();

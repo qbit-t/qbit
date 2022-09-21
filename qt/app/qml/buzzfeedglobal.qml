@@ -61,13 +61,17 @@ Item
 
 	function start(force) {
 		//
-		if (!buzzerApp.isDesktop) {
+		if (!buzzerApp.isDesktop && !buzzerApp.isTablet) {
 			// search.setText("");
 		} else {
 			disconnect();
-			controller.mainToolBar.searchTextEdited.connect(buzzfeed_.startSearch);
-			controller.mainToolBar.searchTextCleared.connect(buzzfeed_.searchTextCleared);
-			controller.mainToolBar.setSearchText("", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.global.search"));
+			try {
+				controller.mainToolBar.searchTextEdited.connect(buzzfeed_.startSearch);
+				controller.mainToolBar.searchTextCleared.connect(buzzfeed_.searchTextCleared);
+				controller.mainToolBar.setSearchText("", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.global.search"));
+			} catch(err) {
+				console.error("[buzzfeedglobal/start/error]: " + err);
+			}
 		}
 
 		//
@@ -84,9 +88,13 @@ Item
 	}
 
 	function disconnect() {
-		if (buzzerApp.isDesktop) {
-			controller.mainToolBar.searchTextEdited.disconnect(buzzfeed_.startSearch);
-			controller.mainToolBar.searchTextCleared.disconnect(buzzfeed_.searchTextCleared);
+		if (buzzerApp.isDesktop || buzzerApp.isTablet) {
+			try {
+				controller.mainToolBar.searchTextEdited.disconnect(buzzfeed_.startSearch);
+				controller.mainToolBar.searchTextCleared.disconnect(buzzfeed_.searchTextCleared);
+			} catch(err) {
+				console.error("[buzzfeedglobal/disconnect/error]: " + err);
+			}
 		}
 	}
 
@@ -322,7 +330,7 @@ Item
 		width: buzzerApp.isDesktop ? parent.width - x - 5 : (parent.width - x + (Qt.platform.os === "ios" ? 8 : 8))
 		placeHolder: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.global.search")
 		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 1)) : defaultFontPointSize
-		visible: !buzzerApp.isDesktop
+		visible: !buzzerApp.isDesktop && !buzzerApp.isTablet
 
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.statusBar")
 
@@ -387,16 +395,16 @@ Item
 		y2: search.y + search.height
 		penWidth: 1
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Panel.bottom.separator")
-		visible: !buzzerApp.isDesktop
+		visible: !buzzerApp.isDesktop && !buzzerApp.isTablet
 	}
 
 	//
 	QuarkListView {
 		id: list
 		x: 0
-		y: buzzerApp.isDesktop ? 0 : search.y + search.calculatedHeight
+		y: buzzerApp.isDesktop || buzzerApp.isTablet ? 0 : search.y + search.calculatedHeight
 		width: parent.width
-		height: parent.height - (buzzerApp.isDesktop ? 0 : search.calculatedHeight)
+		height: parent.height - (buzzerApp.isDesktop || buzzerApp.isTablet ? 0 : search.calculatedHeight)
 		usePull: true
 		clip: true
 		cacheBuffer: 500
@@ -618,7 +626,7 @@ Item
 	BuzzItemMediaPlayer {
 		id: player
 		x: 0
-		y: (list.y + list.height) - height // buzzerApp.isDesktop ? 0 : search.y + search.calculatedHeight
+		y: (list.y + list.height) - height
 		width: parent.width
 		mediaPlayerController: buzzfeed_.mediaPlayerController
 		overlayParent: list
@@ -673,7 +681,7 @@ Item
 
 	QuarkPopupMenu {
 		id: buzzersList
-		width: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 170) : 170
+		width: buzzerApp.isDesktop || buzzerApp.isTablet ? (buzzerClient.scaleFactor * 170) : 170
 		visible: false
 
 		model: ListModel { id: buzzersModel }
@@ -682,7 +690,7 @@ Item
 
 		onClick: {
 			//
-			if (!buzzerApp.isDesktop) {
+			if (!buzzerApp.isDesktop && !buzzerApp.isTablet) {
 				search.prevText_ = key;
 				search.setText(key);
 			} else {
@@ -713,7 +721,7 @@ Item
 					name: buzzers[lIdx]});
 			}
 
-			if (!buzzerApp.isDesktop) {
+			if (!buzzerApp.isDesktop && !buzzerApp.isTablet) {
 				x = search.x;
 				y = search.y + search.calculatedHeight;
 			} else {
@@ -727,7 +735,7 @@ Item
 
 	QuarkPopupMenu {
 		id: tagsList
-		width: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 170) : 170
+		width: buzzerApp.isDesktop || buzzerApp.isTablet ? (buzzerClient.scaleFactor * 170) : 170
 		visible: false
 
 		model: ListModel { id: tagsModel }
@@ -736,7 +744,7 @@ Item
 
 		onClick: {
 			//
-			if (!buzzerApp.isDesktop) {
+			if (!buzzerApp.isDesktop && !buzzerApp.isTablet) {
 				search.prevText_ = key;
 				search.setText(key);
 			} else {
@@ -767,7 +775,7 @@ Item
 					name: tags[lIdx]});
 			}
 
-			if (!buzzerApp.isDesktop) {
+			if (!buzzerApp.isDesktop && !buzzerApp.isTablet) {
 				x = search.x;
 				y = search.y + search.calculatedHeight;
 			} else {

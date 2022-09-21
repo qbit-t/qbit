@@ -24,8 +24,10 @@ Page
 	property bool stacked: false;
 	property string alias: "";
 	property string extraInfo: "";
+	property bool activated: false;
+	property bool releaseFocus: true;
 
-	property string statusBarColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.statusBar")
+	property string statusBarColor: getStatusBarColor()
 	property string navigationBarColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.navigationBar")
 	property string statusBarTheme: buzzerClient.statusBarTheme
 	property string navigatorTheme: buzzerClient.themeSelector
@@ -35,6 +37,19 @@ Page
 
 	onExtraInfoChanged: {
 		page_.caption = page_.captionOriginal + page_.extraInfo;
+	}
+
+	onHeightChanged: {
+		if (page_.activated) {
+			console.info("[page/onHeightChanged]: height = " + height + ", buzzerApp.isPortrait() = " + buzzerApp.isPortrait());
+			page_.updateStatusBar();
+		}
+	}
+
+	function getStatusBarColor() {
+		return buzzerApp.isTablet ? (buzzerApp.isPortrait() ? buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.statusBar") :
+															  buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.statusBar")) :
+									buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.statusBar");
 	}
 
 	function updateStakedInfo(key, alias, caption) {
@@ -81,11 +96,15 @@ Page
 	property bool followKeyboard: false
 	property int parentHeightDelta: 0
 	property int keyboardHeight: 0
+	property bool keyboardVisible: false
 
 	Connections {
 		target: buzzerApp
 
 		function onKeyboardHeightChanged(height) {
+			//
+			keyboardVisible = height > 0;
+
 			//
 			if (followKeyboard) {
 				//
@@ -127,9 +146,16 @@ Page
 
     function updateStatusBar()
     {
+		statusBarColor = getStatusBarColor();
         statusBar.color = statusBarColor;
         statusBar.navigationBarColor = navigationBarColor;
     }
+
+	function tryUpdateStatusBar()
+	{
+		statusBar.color = statusBarColor;
+		statusBar.navigationBarColor = navigationBarColor;
+	}
 
 	Material.theme: buzzerClient.themeSelector == "dark" ? Material.Dark : Material.Light;
 	Material.accent: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.accent");

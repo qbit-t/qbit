@@ -23,7 +23,7 @@ import "qrc:/lib/numberFunctions.js" as NumberFunctions
 QuarkPage {
 	id: buzzfeedthread_
 	key: "buzzfeedthread"
-	stacked: buzzerApp.isDesktop
+	stacked: buzzerApp.isDesktop || buzzerApp.isTablet
 
 	property var infoDialog;
 	property var controller;
@@ -41,7 +41,16 @@ QuarkPage {
 	property bool atTheBottom: false
 
 	// adjust height by virtual keyboard
-	followKeyboard: true
+	followKeyboard: !buzzerApp.isTablet ? true : buzzerApp.isPortrait()
+
+	onKeyboardVisibleChanged: {
+		//
+		console.log("[onKeyboardVisibleChanged]: keyboardVisible = " + keyboardVisible);
+		if (!keyboardVisible) {
+			releaseFocus = true;
+			list.forceActiveFocus();
+		}
+	}
 
 	Connections {
 		target: buzzesThread_
@@ -74,6 +83,9 @@ QuarkPage {
 
 	function closePage() {
 		//
+		releaseFocus = true;
+
+		//
 		if (mediaPlayerController && mediaPlayerController.isCurrentInstancePlaying()) {
 			mediaPlayerController.disableContinousPlayback();
 			mediaPlayerController.popVideoInstance();
@@ -87,6 +99,7 @@ QuarkPage {
 	}
 
 	function activatePage() {
+		releaseFocus = true;
 		buzzText.external_ = false;
 		buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Window.background"));
 		//
@@ -229,7 +242,7 @@ QuarkPage {
 
 	QuarkToolBar {
 		id: buzzThreadToolBar
-		height: (buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 50) : 45) + topOffset
+		height: (buzzerApp.isDesktop || buzzerApp.isTablet ? (buzzerClient.scaleFactor * 50) : 45) + topOffset
 		width: parent.width
 
 		property int totalHeight: height
@@ -263,7 +276,7 @@ QuarkPage {
 			color: "transparent"
 			textColor: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 			opacity: 1.0
-			visible: buzzerApp.isDesktop
+			visible: buzzerApp.isDesktop || (buzzerApp.isTablet && !buzzerApp.isPortrait())
 
 			onClick: {
 				if (headerMenu.visible) headerMenu.close();
@@ -292,11 +305,13 @@ QuarkPage {
 		x: 0
 		y: buzzThreadToolBar.y + buzzThreadToolBar.height
 		width: parent.width
-		height: parent.height - (buzzThreadToolBar.y + buzzThreadToolBar.height + replyContainer.height - 1)
+		height: parent.height - (buzzThreadToolBar.y + buzzThreadToolBar.height + replyContainer.height) + (buzzerApp.isTablet ? heightDiff : 0)
 		usePull: true
 		clip: true
 		reuseItems: true
 		cacheBuffer: 500
+
+		property var heightDiff: controller.workAreaHeight - (parent.height - (buzzThreadToolBar.y + buzzThreadToolBar.height + replyContainer.height))
 
 		add: Transition {
 			enabled: true
@@ -586,11 +601,12 @@ QuarkPage {
 	Rectangle {
 		id: replyContainer
 		x: 0
-		y: parent.height - (height)
+		y: parent.height - (height) + (buzzerApp.isTablet && !buzzerApp.isPortrait() && keyboardVisible ? list.heightDiff : 0)
 		width: parent.width
-		height: buzzerApp.isDesktop ? (buzzText.lineCount > 1 ? replyEditorContainer.getHeight() + spaceTop_ + spaceBottom_:
-																controller.bottomBarHeight) :
-									  (buzzText.contentHeight + spaceTop_ + spaceBottom_ + 2 * spaceItems_ + adjustedOffset)
+		height: buzzerApp.isDesktop || (buzzerApp.isTablet && !buzzerApp.isPortrait()) ?
+					(buzzText.lineCount > 1 ? replyEditorContainer.getHeight() + spaceTop_ + spaceBottom_ :
+											  controller.bottomBarHeight) :
+					(buzzText.contentHeight + spaceTop_ + spaceBottom_ + 2 * spaceItems_ + adjustedOffset)
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Market.tabBackground") // Page.background
 
 		property var adjustedOffset: buzzfeedthread_.keyboardHeight == 0 && bottomOffset > 30 ? bottomOffset : 0
@@ -602,7 +618,7 @@ QuarkPage {
 			x2: parent.width
 			y2: 0
 			penWidth: 1
-			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, buzzerApp.isDesktop ? "Material.disabledHidden" : "Panel.top.separator")
+			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, buzzerApp.isDesktop || (buzzerApp.isTablet && !buzzerApp.isPortrait()) ? "Material.disabledHidden" : "Panel.top.separator")
 			visible: true
 		}
 
@@ -620,7 +636,7 @@ QuarkPage {
 			symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 7)) : defaultSymbolFontPointSize
 
 			x: 0
-			y: parent.height - (height + replyContainer.adjustedOffset + (buzzerApp.isDesktop ? 0 : spaceItems_ - 2))
+			y: parent.height - (height + replyContainer.adjustedOffset + (buzzerApp.isDesktop || buzzerApp.isTablet && !buzzerApp.isPortrait() ? 0 : spaceItems_ - 2))
 
 			onClicked: {
 				//
@@ -646,7 +662,7 @@ QuarkPage {
 			symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 7)) : defaultSymbolFontPointSize
 
 			x: richEditorButton.x + richEditorButton.width // + spaceItems_
-			y: parent.height - (height + (buzzerApp.isDesktop ? 0 : spaceItems_ - 2))
+			y: parent.height - (height + (buzzerApp.isDesktop || buzzerApp.isTablet && !buzzerApp.isPortrait() ? 0 : spaceItems_ - 2))
 
 			onClicked: {
 				emojiPopup.popup(addEmojiButton.x, replyContainer.y - (emojiPopup.height));
@@ -792,11 +808,18 @@ QuarkPage {
 				}
 
 				onFocusChanged: {
-					//editBuzzTimer.start();
+					if (activeFocus) {
+						releaseFocus = false;
+					} else {
+						// releaseFocus = true;
+					}
 				}
 
 				onEditingFinished: {
-					if (!external_ && !buzzerApp.isDesktop) buzzText.forceActiveFocus();
+					console.info("[onEditingFinished]: keyboardVisible = " + keyboardVisible + ", releaseFocus = " + releaseFocus);
+					if (!external_ && !buzzerApp.isDesktop && keyboardVisible && !releaseFocus) {
+						buzzText.forceActiveFocus();
+					}
 				}
 
 				property bool ctrlEnter: false
@@ -834,13 +857,14 @@ QuarkPage {
 			symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 7)) : (buzzerApp.defaultFontSize() + 9)
 
 			x: hiddenCountFrame.x - width - spaceItems_
-			y: parent.height - (height + replyContainer.adjustedOffset + (buzzerApp.isDesktop ? 0 : spaceItems_ - 2))
+			y: parent.height - (height + replyContainer.adjustedOffset + (buzzerApp.isDesktop || buzzerApp.isTablet && !buzzerApp.isPortrait() ? 0 : spaceItems_ - 2))
 
 			onClicked: {
 				sendButton.send();
 			}
 
 			function send() {
+				//
 				if (!sending) {
 					//
 					if (buzzesThread_.count > 0) {
@@ -864,7 +888,7 @@ QuarkPage {
 		QuarkRoundState {
 			id: hiddenCountFrame
 			x: parent.width - (size + spaceRight_)
-			y: parent.height - (size + replyContainer.adjustedOffset + spaceBottom_ + (buzzerApp.isDesktop ? 0 : spaceItems_ - 2))
+			y: parent.height - (size + replyContainer.adjustedOffset + spaceBottom_ + (buzzerApp.isDesktop || buzzerApp.isTablet && !buzzerApp.isPortrait() ? 0 : spaceItems_ - 2))
 			size: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 26) : 24
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.hiddenLight")
 			background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Market.tabBackground")
@@ -1004,6 +1028,8 @@ QuarkPage {
 		onAboutToShow: prepare()
 
 		onClick: {
+			//
+			releaseFocus = true;
 			// key, activate
 			controller.activatePage(key);
 		}

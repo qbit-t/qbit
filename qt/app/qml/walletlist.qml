@@ -43,13 +43,13 @@ Item
 	Component.onCompleted: list.prepare()
 
 	onWidthChanged: {
-		if (buzzerApp.isDesktop) {
+		if (buzzerApp.isDesktop || buzzerApp.isTablet) {
 			list.adjustItems();
 		}
 	}
 
 	onHeightChanged: {
-		if (buzzerApp.isDesktop) {
+		if (buzzerApp.isDesktop || buzzerApp.isTablet) {
 			list.adjustItems();
 		}
 	}
@@ -59,11 +59,11 @@ Item
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, /*buzzerApp.isDesktop ? "Page.background" :*/
 																										"Page.statusBar")
 		x: 0
-		y: buzzerApp.isDesktop ? (-1) * (height + 2) : 0
+		y: buzzerApp.isDesktop || buzzerApp.isTablet ? (-1) * (height + 2) : 0
 		width: parent.width
 		height: walletIndicator.height
 
-		visible: !buzzerApp.isDesktop
+		visible: !buzzerApp.isDesktop && !buzzerApp.isTablet
 	}
 
 	PageIndicator {
@@ -72,7 +72,7 @@ Item
 		currentIndex: list.currentIndex
 
 		x: parent.width / 2 - width / 2
-		y: buzzerApp.isDesktop ? (-1) * (height + 2) : 0
+		y: buzzerApp.isDesktop || buzzerApp.isTablet ? (-1) * (height + 2) : 0
 
 		Material.theme: buzzerClient.themeSelector == "dark" ? Material.Dark : Material.Light;
 		Material.accent: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.accent");
@@ -89,9 +89,9 @@ Item
 		id: list
 
 		x: 0
-		y: buzzerApp.isDesktop ? 0 : walletIndicator.y + walletIndicator.height
+		y: buzzerApp.isDesktop || buzzerApp.isTablet ? 0 : walletIndicator.y + walletIndicator.height
 		width: parent.width
-		height: buzzerApp.isDesktop ? parent.height : parent.height - (walletIndicator.y + walletIndicator.height)
+		height: buzzerApp.isDesktop || buzzerApp.isTablet ? parent.height : parent.height - (walletIndicator.y + walletIndicator.height)
 
 		clip: true
 		orientation: Qt.Horizontal
@@ -112,7 +112,7 @@ Item
 				var lItem = list.itemAtIndex(lIdx);
 				if (lItem) {
 					lItem.width = list.width;
-					lItem.height = buzzerApp.isDesktop ? parent.height : parent.height - (walletIndicator.y + walletIndicator.height);
+					lItem.height = buzzerApp.isDesktop || buzzerApp.isTablet ? parent.height : parent.height - (walletIndicator.y + walletIndicator.height);
 					lItem.walletItem.adjustWidth(lItem.width);
 					lItem.walletItem.adjustHeight(lItem.height);
 				}

@@ -106,6 +106,11 @@ Item {
 					//console.log("Ready for " + sourceInfo.image);
 				}
 			}
+
+			onSourceSizeChanged: {
+				if (sourceSize.width < calculatedWidth)
+					calculatedWidth = sourceSize.width;
+			}
 		}
 
 		QuarkLabelRegular {

@@ -18,7 +18,7 @@ import app.buzzer.commands 1.0 as BuzzerCommands
 QuarkToolBar
 {
 	id: buzzerToolBar
-	height: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 50 : 45
+	height: buzzerApp.isDesktop || buzzerApp.isTablet ? buzzerClient.scaleFactor * 50 : 45
 	width: parent.width
 
 	property int extraOffset: 0;
@@ -255,7 +255,7 @@ QuarkToolBar
 		placeHolder: searchPlaceHolder
 		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * buzzerApp.defaultFontSize()) : defaultFontPointSize
 		visible: searchVisible
-		clearButton: false
+		clearButton: false // buzzerApp.isTablet
 
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.statusBar")
 
@@ -357,13 +357,13 @@ QuarkToolBar
 			if (symbol === Fonts.sunSym)
 			{
 				buzzerClient.setTheme("Nova", "light");
-				buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background"));
+				buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, buzzerApp.isTablet ? "Window.background" : "Page.background"));
 				buzzerClient.save();
 			}
 			else
 			{
 				buzzerClient.setTheme("Darkmatter", "dark");
-				buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background"));
+				buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, buzzerApp.isTablet ? "Window.background" : "Page.background"));
 				buzzerClient.save();
 			}
 		}

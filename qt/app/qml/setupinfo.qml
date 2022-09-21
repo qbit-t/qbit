@@ -69,7 +69,7 @@ QuarkPage
 		fillMode: Image.PreserveAspectFit
 		x: parent.width / 2 - decentralized.width / 2
 		y: welcomeText.y + welcomeText.height
-		width: parent.width + 20
+		width: parent.height > parent.width ? parent.width + 20 : parent.height
 		Layout.alignment: Qt.AlignCenter
 		mipmap: true
 		source: "../images/decentralized.png"
@@ -82,6 +82,7 @@ QuarkPage
 		text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.next")
 		visible: true
 		width: welcomeText.width
+		font.capitalization: Font.AllUppercase
 
 		Layout.minimumWidth: 150
 		Layout.alignment: Qt.AlignHCenter

@@ -84,6 +84,7 @@ QuarkPage
 		text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.next")
 		visible: true
 		width: welcomeText.width
+		font.capitalization: Font.AllUppercase
 
 		Layout.minimumWidth: 150
 		Layout.alignment: Qt.AlignHCenter

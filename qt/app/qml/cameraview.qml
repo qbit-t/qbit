@@ -72,14 +72,14 @@ Rectangle
 
 	QuarkRoundProgress {
 		id: roundFrame
-		x: -57
-		y: -57
-		size: innerCameraContainer.width + 114
+		x: -62
+		y: -62
+		size: innerCameraContainer.width + 124
 		colorCircle: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
 		colorBackground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background")
 		arcBegin: 0
 		arcEnd: 360
-		lineWidth: 57
+		lineWidth: 62
 		animationDuration: 0
 	}
 

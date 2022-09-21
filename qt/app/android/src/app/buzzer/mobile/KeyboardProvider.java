@@ -68,6 +68,12 @@ public class KeyboardProvider extends PopupWindow implements OnGlobalLayoutListe
         Rect rect = new Rect();
         rootView.getWindowVisibleDisplayFrame(rect);
 		int height = rect.bottom - rect.top;
+		int width = rect.right - rect.left;
+
+		if (listener != null) {
+			Log.i("buzzer", "global.width = " + width + ", global.height = " + height);
+			listener.onGlobalGeometryChanged(width, height);
+		}
 
 		if (height > absoluteMax) absoluteMax = height;
 
@@ -111,5 +117,6 @@ public class KeyboardProvider extends PopupWindow implements OnGlobalLayoutListe
 
     public interface KeyboardListener {
         void onHeightChanged(int height);
+		void onGlobalGeometryChanged(int width, int height);
     }
 }

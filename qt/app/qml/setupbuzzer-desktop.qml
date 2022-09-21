@@ -104,28 +104,43 @@ QuarkPage
 
 	QuarkButton	{
 		id: nextButton
-		x: welcomeText.x + 2
+		x: 20
 		y: parent.height - height - 20
-		text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.next")
-		visible: true
-		enabled: false
-		width: welcomeText.width
+		text: buttonAction === "down" ? Fonts.arrowDownSym : buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.next")
+		visible: buzzerInfo.calculatedHeight > pageContainer.height && pageContainer.contentHeight - pageContainer.contentY > pageContainer.height ||
+				 forceVisible
+		enabled: buttonAction === "down" || forceEnabled ? true : false
+		width: parent.width - 40
+
+		font.family: buttonAction === "down" ? Fonts.icons : ""
+		font.pointSize: buttonAction === "down" ? defaultFontPointSize + 5 : defaultFontPointSize
+		font.capitalization: Font.AllUppercase
+
+		property bool forceVisible: false
+		property bool forceEnabled: false
+		property string buttonAction: buzzerInfo.calculatedHeight > pageContainer.height ? "down" : "next" // "down|next"
 
 		Layout.minimumWidth: 150
 		Layout.alignment: Qt.AlignHCenter
 
 		onClicked: {
-			var lComponent = null;
-			var lPage = null;
-
-			lComponent = Qt.createComponent("qrc:/qml/buzzer-main-desktop.qml");
-			if (lComponent.status === Component.Error) {
-				controller.showError(lComponent.errorString());
+			//
+			if (buttonAction === "down") {
+				//
+				pageContainer.flick(0.0, (-1.0)*5000);
 			} else {
-				lPage = lComponent.createObject(window);
-				lPage.controller = controller;
+				var lComponent = null;
+				var lPage = null;
 
-				addPageLocal(lPage);
+				lComponent = Qt.createComponent("qrc:/qml/buzzer-main-desktop.qml");
+				if (lComponent.status === Component.Error) {
+					controller.showError(lComponent.errorString());
+				} else {
+					lPage = lComponent.createObject(window);
+					lPage.controller = controller;
+
+					addPageLocal(lPage);
+				}
 			}
 		}
 	}

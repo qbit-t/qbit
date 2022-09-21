@@ -192,9 +192,12 @@ int Application::execute()
 	// QQuickWindow::setSceneGraphBackend(QSGRendererInterface::OpenGL);
 #endif
 
-	qInfo() << "Loading main qml:" <<  QString("qrc:/qml/") + APP_NAME + ".qml";
+	QString lAppName = APP_NAME;
+	if (isTablet()) lAppName = APP_TABLET_NAME;
+	//
+	qInfo() << "Loading main qml:" <<  QString("qrc:/qml/") + lAppName + ".qml";
 	view_ = nullptr;
-	engine_.load(QString("qrc:/qml/") + APP_NAME + ".qml");
+	engine_.load(QString("qrc:/qml/") + lAppName + ".qml");
 
 	if (engine_.rootObjects().isEmpty()) {
 		qCritical() << "Root object is empty. Exiting...";
@@ -214,7 +217,7 @@ int Application::execute()
 	setStatusBarColor(getColor(client_.theme(), client_.themeSelector(), "Material.statusBar"));
 #endif
 
-    qInfo() << "Executing app:" << APP_NAME;
+	qInfo() << "Executing app:" << lAppName;
 	return app_.exec();
 }
 
@@ -226,6 +229,34 @@ void Application::externalKeyboardHeightChanged(QString name, QVariantMap data) 
 	if (!buzzer::gApplication) return;
 	qDebug() << "[Objective-C::keyboardHeightChanged]: height =" << lHeight;
 	((Application*)buzzer::gApplication)->emit_keyboardHeightChanged(lHeight);	
+}
+
+bool Application::isTablet() {
+	//
+	QRect lRect = QGuiApplication::primaryScreen()->geometry();
+	qreal lDensity = QGuiApplication::primaryScreen()->physicalDotsPerInch();
+
+	qreal lWidth = lRect.width() / lDensity;
+	qreal lHeight = lRect.height() / lDensity;
+	return sqrt((lWidth * lWidth) + (lHeight * lHeight)) > 7.0; // If diagonal > 7" it's a tablet
+}
+
+bool Application::isPortrait() {
+	//
+	QRect lRect = QGuiApplication::primaryScreen()->geometry();
+	return lRect.height() > lRect.width();
+}
+
+qreal Application::deviceWidth() {
+	//
+	QRect lRect = QGuiApplication::primaryScreen()->geometry();
+	return lRect.width();
+}
+
+qreal Application::deviceHeight() {
+	//
+	QRect lRect = QGuiApplication::primaryScreen()->geometry();
+	return lRect.height();
 }
 
 void Application::commitCurrentInput() {
@@ -691,6 +722,7 @@ void Application::wakeRelease()
 void Application::lockPortraitOrientation()
 {
 #ifdef Q_OS_ANDROID
+	if (isTablet()) return;
     setAndroidOrientation(1);
 #endif
 
@@ -702,6 +734,7 @@ void Application::lockPortraitOrientation()
 void Application::lockLandscapeOrientation()
 {
 #ifdef Q_OS_ANDROID
+	if (isTablet()) return;
     setAndroidOrientation(0);
 #endif
 
@@ -713,6 +746,7 @@ void Application::lockLandscapeOrientation()
 void Application::unlockOrientation()
 {
 #ifdef Q_OS_ANDROID
+	if (isTablet()) return;
 	setAndroidOrientation(-1);
 #endif
 
@@ -811,6 +845,11 @@ void Application::emit_externalActivityCalled(int type, QString chain, QString t
 void Application::emit_keyboardHeightChanged(int height)
 {
 	emit keyboardHeightChanged(height);
+}
+
+void Application::emit_globalGeometryChanged(int width, int height)
+{
+	emit globalGeometryChanged(width, height);
 }
 
 #if defined(Q_OS_ANDROID)
@@ -913,6 +952,12 @@ JNIEXPORT void JNICALL Java_app_buzzer_mobile_MainActivity_keyboardHeightChanged
 	if (!buzzer::gApplication) return;
 	qDebug() << "[JAVA::keyboardHeightChanged]: height =" << height;
 	((Application*)buzzer::gApplication)->emit_keyboardHeightChanged(height);
+}
+
+JNIEXPORT void JNICALL Java_app_buzzer_mobile_MainActivity_globalGeometryChanged(JNIEnv* /*env*/, jobject, jint width, jint height) {
+	if (!buzzer::gApplication) return;
+	qDebug() << "[JAVA::globalGeometryChanged]: width =" << width << ", height =" << height;
+	((Application*)buzzer::gApplication)->emit_globalGeometryChanged(width, height);
 }
 
 JNIEXPORT void JNICALL Java_app_buzzer_mobile_MainActivity_externalActivityCalled(JNIEnv* env, jobject, jint type, jstring chain, jstring tx, jstring buzzer)

@@ -616,8 +616,8 @@ ApplicationWindow
                 Image
                 {
                     id: welcomeImage
-					width: parent.width - parent.width / 2
-                    fillMode: Image.PreserveAspectFit
+					width: parent.width - parent.width / 2 > 300 ? 300 : parent.width - parent.width / 2
+					fillMode: Image.PreserveAspectFit
                     mipmap: true
 					x: parent.width / 2 - (width) / 2
                     y: parent.height / 2 - paintedHeight / 2
@@ -856,7 +856,7 @@ ApplicationWindow
 
 					addPage(lPage);
 				} else {
-					lComponent = Qt.createComponent("qrc:/qml/buzzer-main.qml");
+					lComponent = Qt.createComponent(buzzerApp.isTablet ? "qrc:/qml/buzzer-main-tablet.qml" : "qrc:/qml/buzzer-main.qml");
 					if (lComponent.status === Component.Error) {
 						showError(lComponent.errorString());
 					} else {

@@ -41,7 +41,7 @@ Item
 	}
 
 	function restart() {
-		if (!buzzerApp.isDesktop) {
+		if (!buzzerApp.isDesktop && !buzzerApp.isTablet) {
 			search.prevText_ = "";
 			search.setText("");
 		} else {
@@ -50,7 +50,7 @@ Item
 	}
 
 	function disconnect() {
-		if (buzzerApp.isDesktop) {
+		if (buzzerApp.isDesktop || buzzerApp.isTablet) {
 			console.log("[conversations/disconnect]: disconnecting");
 			controller.mainToolBar.searchTextEdited.disconnect(conversationsfeed_.startSearch);
 			controller.mainToolBar.searchTextCleared.disconnect(conversationsfeed_.searchTextCleared);
@@ -59,7 +59,7 @@ Item
 
 	function resetModel() {
 		//
-		if (buzzerApp.isDesktop) {
+		if (buzzerApp.isDesktop || buzzerApp.isTablet) {
 			controller.mainToolBar.searchTextEdited.connect(conversationsfeed_.startSearch);
 			controller.mainToolBar.searchTextCleared.connect(conversationsfeed_.searchTextCleared);
 			controller.mainToolBar.setSearchText("", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.global.search.add"));
@@ -188,7 +188,7 @@ Item
 		width: parent.width - x + (Qt.platform.os === "ios" ? 8 : 8)
 		placeHolder: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.global.search.add")
 		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 1)) : defaultFontPointSize
-		visible: !buzzerApp.isDesktop
+		visible: !buzzerApp.isDesktop && !buzzerApp.isTablet
 
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.statusBar")
 
@@ -237,7 +237,7 @@ Item
 		y2: search.y + search.height
 		penWidth: 1
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Panel.bottom.separator")
-		visible: !buzzerApp.isDesktop
+		visible: !buzzerApp.isDesktop && !buzzerApp.isTablet
 	}
 
 	function startSearch(searchText) {
@@ -260,9 +260,9 @@ Item
 	QuarkListView {
 		id: list
 		x: 0
-		y: buzzerApp.isDesktop ? 0 : search.y + search.calculatedHeight
+		y: buzzerApp.isDesktop || buzzerApp.isTablet ? 0 : search.y + search.calculatedHeight
 		width: parent.width
-		height: parent.height - (buzzerApp.isDesktop ? 0 : search.calculatedHeight)
+		height: parent.height - (buzzerApp.isDesktop || buzzerApp.isTablet ? 0 : search.calculatedHeight)
 		usePull: true
 		clip: true
 		model: conversationModel_
@@ -352,7 +352,7 @@ Item
 	BuzzItemMediaPlayer {
 		id: player
 		x: 0
-		y: (list.y + list.height) - height // buzzerApp.isDesktop ? 0 : search.y + search.calculatedHeight
+		y: (list.y + list.height) - height
 		width: parent.width
 		mediaPlayerController: conversationsfeed_.mediaPlayerController
 		overlayParent: list
@@ -398,7 +398,7 @@ Item
 
 	QuarkPopupMenu {
 		id: buzzersList
-		width: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 170) : 170
+		width: buzzerApp.isDesktop || buzzerApp.isTablet ? (buzzerClient.scaleFactor * 170) : 170
 		visible: false
 
 		model: ListModel { id: buzzersModel }

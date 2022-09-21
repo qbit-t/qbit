@@ -70,12 +70,14 @@ QuarkPage
 
 	QuarkToolBar {
 		id: toolBar
-		height: 45 + topOffset
+		height: (buzzerApp.isDesktop || buzzerApp.isTablet ? (buzzerClient.scaleFactor * 50) : 45) + topOffset
 		width: parent.width
 
 		property int totalHeight: height
 
 		function adjust() {
+			if (buzzerApp.isDesktop || buzzerApp.isTablet) return;
+
 			if (parent.width > parent.height) {
 				visible = false;
 				height = 0;

@@ -57,6 +57,7 @@ namespace buzzer {
 
 #if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
 const char APP_NAME[] = { "buzzer-app" };
+const char APP_TABLET_NAME[] = { "buzzer-tablet-app" };
 #else
 const char APP_NAME[] = { "buzzer-desktop-app" };
 #endif
@@ -165,6 +166,7 @@ class Application : public QQuickItem, public IApplication
 	Q_PROPERTY(QStringList picturesLocation READ picturesLocation)
 	Q_PROPERTY(QString filesLocation READ filesLocation)
 	Q_PROPERTY(bool isDesktop READ isDesktop NOTIFY isDesktopChanged)
+	Q_PROPERTY(bool isTablet READ isTablet NOTIFY isTabletChanged)
 
 public:
 	Application(QApplication& app) : app_(app), shareUtils_(new ShareUtils(this))
@@ -244,6 +246,8 @@ public:
 		return true;
 #endif
 	}
+
+	bool isTablet();
 
     QQmlApplicationEngine* getEngine() { return &engine_; }
 	IClient* getClient() { return &client_; }
@@ -351,6 +355,10 @@ public:
 	Q_INVOKABLE bool getInterceptOutput();
 	Q_INVOKABLE bool getLimited();
 
+	Q_INVOKABLE qreal deviceWidth();
+	Q_INVOKABLE qreal deviceHeight();
+	Q_INVOKABLE bool isPortrait();
+
 	Q_INVOKABLE QString qttAsset() {
 		return QString::fromStdString(getQttAsset());
 	}
@@ -432,6 +440,7 @@ public:
     void emit_fingertipAuthFailed();
 	void emit_fileSelected(QString, QString, QString);
 	void emit_keyboardHeightChanged(int);
+	void emit_globalGeometryChanged(int, int);
 	void emit_externalActivityCalled(int type, QString chain, QString tx, QString buzzer);
 
 #if defined(Q_OS_ANDROID)
@@ -445,7 +454,7 @@ public slots:
 #if defined(Q_OS_ANDROID)
 	 void onApplicationStateChanged(Qt::ApplicationState applicationState);
 #endif
-    void externalKeyboardHeightChanged(QString name,QVariantMap data);
+	 void externalKeyboardHeightChanged(QString name,QVariantMap data);
 
 signals:
     void appSuspending();
@@ -456,8 +465,10 @@ signals:
     void deviceTokenUpdated(QString token);
 	void fileSelected(QString file, QString preview, QString description);
 	void isDesktopChanged();
+	void isTabletChanged();
 	void noDocumentsWorkLocation();
 	void keyboardHeightChanged(int height);
+	void globalGeometryChanged(int width, int height);
 	void externalActivityCalled(int type, QString chain, QString tx, QString buzzer);
 
 private:

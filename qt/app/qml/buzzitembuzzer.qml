@@ -455,7 +455,7 @@ Item {
 
 	QuarkToolButton {
 		id: menuControl
-		x: parent.width - width - (buzzerApp.isDesktop ? 0 : spaceItems_)
+		x: parent.width - width - (buzzerApp.isDesktop || buzzerApp.isTablet ? 0 : spaceItems_)
 		y: spaceItems_
 		symbol: buzzerApp.isDesktop ? Fonts.shevronDownSym : Fonts.elipsisVerticalSym
 		visible: true

@@ -70,8 +70,8 @@ QuarkPage
 		x: parent.width / 2 - width / 2
 		y: welcomeText.y + welcomeText.height +
 		   ((parent.height - (welcomeText.y + welcomeText.height + nextButton.height)) / 2 - height / 2) - 15
-		width: parent.width - 140
-		height: parent.width - 140
+		width: parent.width > 300 ? 300 : parent.width - 140 // parent.width - 140
+		height: width //parent.width - 140
 		visible: true
 		labelYOffset: height / 2 - metrics.tightBoundingRect.height
 		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
@@ -158,7 +158,7 @@ QuarkPage
 		id: progressBar
 		x: parent.width / 2 - (askButton.width + 20) / 2
 		y: askButton.y - 10
-		size: parent.width - 140 + 20
+		size: askButton.width + 20
 		colorCircle: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.accentUltra");
 		colorBackground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.accentUltra");
 		arcBegin: 0
@@ -200,6 +200,7 @@ QuarkPage
 		visible: true
 		enabled: false
 		width: welcomeText.width
+		font.capitalization: Font.AllUppercase
 
 		Layout.minimumWidth: 150
 		Layout.alignment: Qt.AlignHCenter

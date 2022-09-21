@@ -1193,6 +1193,7 @@ public:
 	void proposeDAppInstance() {
 		//
 		requestProcessor_->addDAppInstance(State::DAppInstance("buzzer", uint256()));
+		requestProcessor_->addDAppInstance(State::DAppInstance("cubix", uint256()));
 	}
 
 	bool writeBuzzerInfoTx(TxBuzzerInfoPtr buzzerInfoTx) {

@@ -102,9 +102,9 @@ Rectangle {
 		if (player && (playing || downloadCommand.processing)) {
 			//
 			if (!isFullyVisible && frameContainer.scale == 1.0) {
-				videoFrame.sharedMediaPlayer_.showCurrentPlayer(buzzerApp.isDesktop ? buzzitemmedia_.buzzId_ : null);
+				videoFrame.sharedMediaPlayer_.showCurrentPlayer(buzzerApp.isDesktop || (buzzerApp.isTablet && !buzzerApp.isPortrait()) ? buzzitemmedia_.buzzId_ : null);
 			} else {
-				videoFrame.sharedMediaPlayer_.hideCurrentPlayer(buzzerApp.isDesktop ? buzzitemmedia_.buzzId_ : null);
+				videoFrame.sharedMediaPlayer_.hideCurrentPlayer(buzzerApp.isDesktop || (buzzerApp.isTablet && !buzzerApp.isPortrait()) ? buzzitemmedia_.buzzId_ : null);
 			}
 		}
 	}
@@ -239,8 +239,8 @@ Rectangle {
 
 		onTriggered: {
 			menuControl.enforceVisible = false;
-			if (menuControl.enforceVisible) videoFrame.sharedMediaPlayer_.showCurrentPlayer(buzzerApp.isDesktop ? buzzitemmedia_.buzzId_ : null);
-			else videoFrame.sharedMediaPlayer_.hideCurrentPlayer(buzzerApp.isDesktop ? buzzitemmedia_.buzzId_ : null);
+			if (menuControl.enforceVisible) videoFrame.sharedMediaPlayer_.showCurrentPlayer(buzzerApp.isDesktop || (buzzerApp.isTablet && !buzzerApp.isPortrait()) ? buzzitemmedia_.buzzId_ : null);
+			else videoFrame.sharedMediaPlayer_.hideCurrentPlayer(buzzerApp.isDesktop || (buzzerApp.isTablet && !buzzerApp.isPortrait()) ? buzzitemmedia_.buzzId_ : null);
 		}
 	}
 
@@ -273,8 +273,8 @@ Rectangle {
 				hideControlsTimer.stop();
 				//
 				menuControl.enforceVisible = !menuControl.enforceVisible;
-				if (menuControl.enforceVisible) videoFrame.sharedMediaPlayer_.showCurrentPlayer(buzzerApp.isDesktop ? buzzitemmedia_.buzzId_ : null);
-				else videoFrame.sharedMediaPlayer_.hideCurrentPlayer(buzzerApp.isDesktop ? buzzitemmedia_.buzzId_ : null);
+				if (menuControl.enforceVisible) videoFrame.sharedMediaPlayer_.showCurrentPlayer(buzzerApp.isDesktop || (buzzerApp.isTablet && !buzzerApp.isPortrait()) ? buzzitemmedia_.buzzId_ : null);
+				else videoFrame.sharedMediaPlayer_.hideCurrentPlayer(buzzerApp.isDesktop || (buzzerApp.isTablet && !buzzerApp.isPortrait()) ? buzzitemmedia_.buzzId_ : null);
 
 				return true;
 			}
@@ -283,14 +283,14 @@ Rectangle {
 		}
 
 		function showPlayer() {
-			if (buzzerApp.isDesktop) {
+			if (buzzerApp.isDesktop || (buzzerApp.isTablet && !buzzerApp.isPortrait())) {
 				//
 				if (videoFrame.sharedMediaPlayer_.isCurrentInstance(path_) && !menuControl.enforceVisible) {
 					//
 					hideControlsTimer.start();
 					//
 					menuControl.enforceVisible = true;
-					videoFrame.sharedMediaPlayer_.showCurrentPlayer(buzzerApp.isDesktop ? buzzitemmedia_.buzzId_ : null);
+					videoFrame.sharedMediaPlayer_.showCurrentPlayer(buzzerApp.isDesktop || (buzzerApp.isTablet && !buzzerApp.isPortrait()) ? buzzitemmedia_.buzzId_ : null);
 				}
 			}
 		}

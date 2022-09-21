@@ -204,6 +204,7 @@ QuarkPage
 		visible: true
 		enabled: false
 		width: welcomeText.width
+		font.capitalization: Font.AllUppercase
 
 		Layout.minimumWidth: 150
 		Layout.alignment: Qt.AlignHCenter

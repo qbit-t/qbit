@@ -87,7 +87,8 @@ public:
 	bool pushPeer(IPeerPtr peer) {
 		//
 		uint160 lAddress = peer->addressId();
-		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[pushPeer]: try to push peer ") + 
+		if (gLog().isEnabled(Log::NET))
+			gLog().write(Log::NET, std::string("[pushPeer]: try to push peer ") +
 				strprintf("%s", lAddress.toHex()));
 
 		bool lAdded = false;
@@ -171,7 +172,8 @@ public:
 	void popPeer(IPeerPtr peer) {
 		//
 		peer_t lPeerId = peer->addressId();
-		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[popPeer]: popping peer ") + 
+		//if (gLog().isEnabled(Log::NET))
+		    gLog().write(Log::NET, std::string("[popPeer]: popping peer ") +
 				strprintf("%s", lPeerId.toHex()));
 
 		int lSize = 0;
@@ -695,7 +697,7 @@ public:
 			if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, std::string("[collectPeersByChain]: ") +
 						strprintf("%s, %d, %d", lItem->second->key(), lItem->first.height(), lItem->first.latency()));
 		}
-		*/		
+		*/
 	}
 
 	void collectPeersByDApp(const std::string& dapp, std::map<uint256, std::multimap<uint32_t, IPeerPtr>>& order) {
@@ -719,6 +721,9 @@ public:
 					}
 				}
 			}
+		} else {
+			if (gLog().isEnabled(Log::CLIENT))
+				gLog().write(Log::CLIENT, std::string("[collectPeersByDApp]: ") + strprintf("dApp not found - %s", dapp));
 		}
 	}
 

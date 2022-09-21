@@ -52,6 +52,7 @@ QColor StatusBar::navigationBarColor()
 void StatusBar::setColor(const QColor &color)
 {
 	if (!enabled_) return;
+	qInfo() << "[StatusBar::setColor]:" << color;
     StatusBarPrivate::color = color;
     StatusBarPrivate::setColor_sys(color);
 }
@@ -59,6 +60,7 @@ void StatusBar::setColor(const QColor &color)
 void StatusBar::setNavigationBarColor(const QColor &color)
 {
 	if (!enabled_) return;
+	qInfo() << "[StatusBar::setNavigationBarColor]:" << color;
     StatusBarPrivate::navigationBarColor = color;
     StatusBarPrivate::setNavigationBarColor_sys(color);
 }

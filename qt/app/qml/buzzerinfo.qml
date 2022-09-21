@@ -34,6 +34,8 @@ Item
 	property string buzzerFinalName_: "";
 
 	signal processed();
+	signal hideButton();
+	signal showButton();
 
 	//
 	// Buzzer avatar
@@ -119,7 +121,8 @@ Item
 
 		property bool rounded: true
 		property bool adapt: true
-		property int displayWidth: parent.width * 65 / 100
+		property int displayWidth: (buzzerApp.isTablet ? (parent.width * 65 / 100 > 300 ? 300 : parent.width * 65 / 100) :
+														 (parent.width * 65 / 100))
 		property int displayHeight: displayWidth
 
 		autoTransform: true
@@ -329,9 +332,9 @@ Item
 	//
 	QuarkEditBox {
 		id: nameEditBox
-		x: 20
+		x: parent.width / 2 - width / 2
 		y: avatarImage.y + avatarImage.displayHeight + 20
-		width: parent.width - 20 * 2
+		width: parent.width > buzzerApp.deviceHeight() ? (buzzerApp.deviceHeight() - 20 * 2) : (parent.width - 20 * 2)
 		symbol: Fonts.userTagSym
 		clipboardButton: false
 		helpButton: true
@@ -356,10 +359,10 @@ Item
 
 	QuarkEditBox {
 		id: aliasEditBox
-		x: 20
+		x: parent.width / 2 - width / 2
 		y: nameEditBox.visible ? nameEditBox.y + nameEditBox.height + 10 :
 								 avatarImage.y + avatarImage.displayHeight + 20
-		width: parent.width - 20 * 2
+		width: parent.width > buzzerApp.deviceHeight() ? (buzzerApp.deviceHeight() - 20 * 2) : (parent.width - 20 * 2)
 		symbol: Fonts.userAliasSym
 		clipboardButton: false
 		helpButton: true
@@ -380,9 +383,9 @@ Item
 
 	QuarkEditBox {
 		id: descriptionEditBox
-		x: 20
+		x: parent.width / 2 - width / 2
 		y: aliasEditBox.y + aliasEditBox.height + 10
-		width: parent.width - 20 * 2
+		width: parent.width > buzzerApp.deviceHeight() ? (buzzerApp.deviceHeight() - 20 * 2) : (parent.width - 20 * 2)
 		symbol: Fonts.featherSym
 		clipboardButton: false
 		helpButton: true
@@ -406,9 +409,9 @@ Item
 	//
 	Rectangle {
 		id: headerContainer
-		x: 22
+		x: (parent.width / 2 - width / 2) - 1
 		y: descriptionEditBox.y + descriptionEditBox.height + 12
-		width: parent.width - 44
+		width: parent.width > buzzerApp.deviceHeight() ? (buzzerApp.deviceHeight() - 44) : (parent.width - 44)
 		height: (width / 16) * 9
 
 		border.color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.accentUltra");
@@ -522,7 +525,7 @@ Item
 		target: buzzerClient
 
 		function onBuzzerDAppReadyChanged() {
-			createBuzzer.enabled = buzzerClient.buzzerDAppReady;
+			createBuzzer.enabled = !createBuzzer.actionCompleted && buzzerClient.buzzerDAppReady;
 		}
 
 		function onBuzzerDAppSuspended() {
@@ -537,7 +540,7 @@ Item
 		id: createBuzzer
 		x: parent.width / 2 - width / 2
 		y: headerContainer.y + headerContainer.height + 15
-		width: parent.width * 45 / 100
+		width: buzzerApp.isTablet ? (parent.width * 45 / 100 > 200 ? 200 : parent.width * 45 / 100) : parent.width * 45 / 100
 		height: width
 		visible: true
 		labelYOffset: height / 2 //- metrics.tightBoundingRect.height
@@ -545,13 +548,33 @@ Item
 		Layout.alignment: Qt.AlignHCenter
 		radius: width / 2 //- 10
 
-		enabled: true
+		enabled: !actionCompleted
+
+		property bool actionCompleted: false
 
 		Image {
 			id: buzzerStartImage
 			x: parent.width / 2 - width / 2 + 3
 			y: parent.height / 2 - height / 2 + 5
 			source: "../images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "lightning-light.logo")
+		}
+
+		Glow {
+			id: glow
+			anchors.fill: buzzerStartImage
+			radius: 0
+			samples: 17
+			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.accentUltra")
+			source: buzzerStartImage
+			enabled: createBuzzer.enabled
+			visible: buzzerStartImage.visible
+
+			SequentialAnimation on radius {
+				running: glow.enabled
+				loops: Animation.Infinite
+				PropertyAnimation { to: 10; duration: buzzerApp.isTablet ? 1200 : 600 }
+				PropertyAnimation { to: 0; duration: buzzerApp.isTablet ? 1200 : 600 }
+			}
 		}
 
 		Image {
@@ -702,6 +725,9 @@ Item
 
 			// setup completed
 			buzzerClient.setProperty("Client.configured", "true");
+
+			//
+			createBuzzer.actionCompleted = true;
 		}
 
 		onAvatarProcessed: {
@@ -740,6 +766,7 @@ Item
 			console.log("[error]: code = " + code + ", message = " + message);
 			//
 			createBuzzer.enabled = true;
+			createBuzzer.actionCompleted = false;
 
 			waitTimer.stop();
 			progressBar.arcEnd = 0;
@@ -792,6 +819,9 @@ Item
 
 			// processed
 			buzzerinfo_.processed();
+
+			//
+			createBuzzer.actionCompleted = true;
 		}
 
 		onAvatarProcessed: {
@@ -830,6 +860,7 @@ Item
 			console.log("[error]: code = " + code + ", message = " + message);
 			//
 			createBuzzer.enabled = true;
+			createBuzzer.actionCompleted = false;
 
 			waitTimer.stop();
 			progressBar.arcEnd = 0;

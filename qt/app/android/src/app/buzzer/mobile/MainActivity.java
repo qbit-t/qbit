@@ -101,6 +101,7 @@ public class MainActivity extends QtActivity
 	public static native void fireActivityResult(int requestCode, int resultCode);
 	public static native boolean checkFileExits(String url);
 	public static native void keyboardHeightChanged(int height);
+	public static native void globalGeometryChanged(int width, int height);
 	public static native void externalActivityCalled(int type, String chain, String tx, String buzzer);
 	public native void fileSelected(String key, String preview, String description);
 
@@ -122,6 +123,10 @@ public class MainActivity extends QtActivity
 			@Override
 			public void onHeightChanged(int height) {
 				keyboardHeightChanged(height);
+			}
+		    @Override
+			public void onGlobalGeometryChanged(int width, int height) {
+				globalGeometryChanged(width, height);
 			}
 		});
 
