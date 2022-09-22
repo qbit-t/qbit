@@ -92,7 +92,9 @@ QuarkPage
 			controller: setupbuzzer_.controller
 
 			onProcessed: {
-				nextButton.enabled = true;
+				nextButton.forceVisible = true;
+				nextButton.forceEnabled = true;
+				nextButton.buttonAction = "next";
 			}
 		}
 	}

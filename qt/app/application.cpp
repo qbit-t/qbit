@@ -193,7 +193,9 @@ int Application::execute()
 #endif
 
 	QString lAppName = APP_NAME;
+#if !defined (DESKTOP_PLATFORM)
 	if (isTablet()) lAppName = APP_TABLET_NAME;
+#endif
 	//
 	qInfo() << "Loading main qml:" <<  QString("qrc:/qml/") + lAppName + ".qml";
 	view_ = nullptr;
@@ -233,12 +235,16 @@ void Application::externalKeyboardHeightChanged(QString name, QVariantMap data) 
 
 bool Application::isTablet() {
 	//
+#if !defined (DESKTOP_PLATFORM)
 	QRect lRect = QGuiApplication::primaryScreen()->geometry();
 	qreal lDensity = QGuiApplication::primaryScreen()->physicalDotsPerInch();
 
 	qreal lWidth = lRect.width() / lDensity;
 	qreal lHeight = lRect.height() / lDensity;
 	return sqrt((lWidth * lWidth) + (lHeight * lHeight)) > 7.0; // If diagonal > 7" it's a tablet
+#else
+	return false;
+#endif
 }
 
 bool Application::isPortrait() {
