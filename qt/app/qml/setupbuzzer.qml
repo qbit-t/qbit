@@ -18,6 +18,10 @@ QuarkPage
 	id: setupbuzzer_
 	key: "setupbuzzer"
 
+	onKeyboardHeightChanged: {
+		buzzerInfo.adjust();
+	}
+
 	Component.onCompleted: {
 		buzzerApp.lockPortraitOrientation();
         closePageHandler = closePage;
@@ -96,10 +100,25 @@ QuarkPage
 			width: parent.width
 			controller: setupbuzzer_.controller
 
+			property var lastControlY: 0
+			property var lastControlHeight: 0
+
 			onProcessed: {
 				nextButton.forceVisible = true;
 				nextButton.forceEnabled = true;
 				nextButton.buttonAction = "next";
+			}
+
+			onControlActivated: {
+				lastControlY = cy;
+				lastControlHeight = cheight;
+			}
+
+			function adjust() {
+				//
+				console.info("[adjust]: diff = " + (setupbuzzer_.height - keyboardHeight) + ", cy = " + (pageContainer.y - pageContainer.contentY + lastControlY + lastControlHeight));
+				if (setupbuzzer_.height - keyboardHeight < pageContainer.y - pageContainer.contentY + lastControlY + lastControlHeight)
+					pageContainer.contentY += (pageContainer.y - pageContainer.contentY + lastControlY + lastControlHeight) - (setupbuzzer_.height - keyboardHeight) + 10;
 			}
 		}
 	}

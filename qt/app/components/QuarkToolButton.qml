@@ -27,6 +27,11 @@ T.RoundButton
 	property real symbolFontPointSize: defaultSymbolFontPointSize
 	property real symbolRotation: 0
 
+	function adjustText() {
+		label.verticalAlignment = Text.AlignVCenter;
+		label.wrapMode = Label.Wrap;
+	}
+
 	font.family: Fonts.icons
     font.weight: Font.Normal
 	font.pointSize: symbolFontPointSize
@@ -82,6 +87,7 @@ T.RoundButton
         font.pointSize: symbolFontPointSize
 		antialiasing: buzzerApp.isDesktop ? false : antialiasing
 		rotation: symbolRotation
+		width: parent.width
     }
 
 	background: Rectangle

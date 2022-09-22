@@ -70,15 +70,16 @@ QuarkPage
 		x: parent.width / 2 - width / 2
 		y: welcomeText.y + welcomeText.height +
 		   ((parent.height - (welcomeText.y + welcomeText.height + nextButton.height)) / 2 - height / 2) - 15
-		width: parent.width > 300 ? 300 : parent.width - 140 // parent.width - 140
-		height: width //parent.width - 140
+		width: parent.width > parent.height ? (nextButton.y - (welcomeText.y + welcomeText.height) - 50 > 300 ? 300 : nextButton.y - (welcomeText.y + welcomeText.height) - 50) : parent.width - 140
+
+		height: width
 		visible: true
-		labelYOffset: height / 2 - metrics.tightBoundingRect.height
+		//labelYOffset: height / 2 - metrics.tightBoundingRect.height
 		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 		Layout.alignment: Qt.AlignHCenter
 		radius: width / 2 - 10
 		text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.askqbits.button");
-		symbolFontPointSize: 24
+		symbolFontPointSize: parent.width > parent.height && (nextButton.y - (welcomeText.y + welcomeText.height) - 50) < 300 ? 14 : 24
 
 		TextMetrics {
 			id: metrics
@@ -95,6 +96,10 @@ QuarkPage
 			askForQbitsCommand.process();
 
 			enabled = false;
+		}
+
+		Component.onCompleted: {
+			adjustText();
 		}
 	}
 
@@ -183,12 +188,12 @@ QuarkPage
 	//
 	QuarkNumberLabel {
 		id: qbitBalance
-		font.pointSize: 34
+		font.pointSize: parent.width > parent.height && (nextButton.y - (welcomeText.y + welcomeText.height) - 50) < 300 ? 18 : 34
 		visible: false
 		fillTo: 1
 		unitsGap: 10
 		units: "QBIT"
-		x: parent.width / 2 - qbitBalance.calculatedWidth / 2
+		x: parent.width / 2 - qbitBalance.calculatedWidth / 2 - 5
 		y: askButton.y + askButton.height / 2 - qbitBalance.calculatedHeight / 2
 	}
 

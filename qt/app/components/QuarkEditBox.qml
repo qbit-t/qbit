@@ -43,6 +43,7 @@ Rectangle
 	signal addClicked();
 	signal headClicked();
 	signal editingFinished();
+	signal entered();
 
 	function forceFocus() {
 		textEdit.forceActiveFocus();
@@ -182,6 +183,7 @@ Rectangle
 
 			onFocusChanged:
 			{
+				if (focus) entered();
 				if (!focusEnter_) { infoLabel.text = ""; focusEnter_ = true; }
 				else { infoLabel.text = getPlaceholderText(); focusEnter_ = false; }
 			}

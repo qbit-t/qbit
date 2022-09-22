@@ -36,6 +36,7 @@ Item
 	signal processed();
 	signal hideButton();
 	signal showButton();
+	signal controlActivated(var cy, var cheight);
 
 	//
 	// Buzzer avatar
@@ -122,11 +123,10 @@ Item
 		property bool rounded: true
 		property bool adapt: true
 		property int displayWidth: (buzzerApp.isTablet ? (parent.width * 65 / 100 > 300 ? 300 : parent.width * 65 / 100) :
-														 (parent.width * 65 / 100))
+														 (parent.width > buzzerApp.deviceHeight() ? buzzerApp.deviceHeight() * 65 / 100 : parent.width * 65 / 100))
 		property int displayHeight: displayWidth
 
 		autoTransform: true
-
 
 		MouseArea {
 			x: parent.x
@@ -334,7 +334,7 @@ Item
 		id: nameEditBox
 		x: parent.width / 2 - width / 2
 		y: avatarImage.y + avatarImage.displayHeight + 20
-		width: parent.width > buzzerApp.deviceHeight() ? (buzzerApp.deviceHeight() - 20 * 2) : (parent.width - 20 * 2)
+		width: buzzerApp.isTablet && parent.width > buzzerApp.deviceHeight() ? (buzzerApp.deviceHeight() - 20 * 2) : (parent.width - 20 * 2)
 		symbol: Fonts.userTagSym
 		clipboardButton: false
 		helpButton: true
@@ -342,6 +342,7 @@ Item
 		text: action !== "CREATE" ? buzzerName_ : ""
 		enabled: action === "CREATE"
 		visible: action === "CREATE"
+		imFilter: true
 
 		onHelpClicked:  {
 			if (enabled) {
@@ -355,6 +356,10 @@ Item
 			buzzerName_ = text;
 			//createBuzzer.enabled = createBuzzer.getEnabled();
 		}
+
+		onEntered: {
+			controlActivated(y, height);
+		}
 	}
 
 	QuarkEditBox {
@@ -362,12 +367,13 @@ Item
 		x: parent.width / 2 - width / 2
 		y: nameEditBox.visible ? nameEditBox.y + nameEditBox.height + 10 :
 								 avatarImage.y + avatarImage.displayHeight + 20
-		width: parent.width > buzzerApp.deviceHeight() ? (buzzerApp.deviceHeight() - 20 * 2) : (parent.width - 20 * 2)
+		width: buzzerApp.isTablet && parent.width > buzzerApp.deviceHeight() ? (buzzerApp.deviceHeight() - 20 * 2) : (parent.width - 20 * 2)
 		symbol: Fonts.userAliasSym
 		clipboardButton: false
 		helpButton: true
 		placeholderText: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.placeholder.alias")
 		text: action !== "CREATE" ? buzzerAlias_ : ""
+		imFilter: true
 
 		onHelpClicked: {
 			var lMsgs = [];
@@ -379,18 +385,23 @@ Item
 			buzzerAlias_ = text;
 			//createBuzzer.enabled = createBuzzer.getEnabled();
 		}
+
+		onEntered: {
+			controlActivated(y, height);
+		}		
 	}
 
 	QuarkEditBox {
 		id: descriptionEditBox
 		x: parent.width / 2 - width / 2
 		y: aliasEditBox.y + aliasEditBox.height + 10
-		width: parent.width > buzzerApp.deviceHeight() ? (buzzerApp.deviceHeight() - 20 * 2) : (parent.width - 20 * 2)
+		width: buzzerApp.isTablet && parent.width > buzzerApp.deviceHeight() ? (buzzerApp.deviceHeight() - 20 * 2) : (parent.width - 20 * 2)
 		symbol: Fonts.featherSym
 		clipboardButton: false
 		helpButton: true
 		placeholderText: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.placeholder.description")
 		text: action !== "CREATE" ? buzzerDescription_ : ""
+		imFilter: true
 
 		onHelpClicked: {
 			var lMsgs = [];
@@ -402,6 +413,10 @@ Item
 			buzzerDescription_ = text;
 			//createBuzzer.enabled = createBuzzer.getEnabled();
 		}
+
+		onEntered: {
+			controlActivated(y, height);
+		}		
 	}
 
 	//
@@ -411,7 +426,7 @@ Item
 		id: headerContainer
 		x: (parent.width / 2 - width / 2) - 1
 		y: descriptionEditBox.y + descriptionEditBox.height + 12
-		width: parent.width > buzzerApp.deviceHeight() ? (buzzerApp.deviceHeight() - 44) : (parent.width - 44)
+		width: buzzerApp.isTablet && parent.width > buzzerApp.deviceHeight() ? (buzzerApp.deviceHeight() - 44) : (parent.width - 44)
 		height: (width / 16) * 9
 
 		border.color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.accentUltra");
@@ -540,7 +555,8 @@ Item
 		id: createBuzzer
 		x: parent.width / 2 - width / 2
 		y: headerContainer.y + headerContainer.height + 15
-		width: buzzerApp.isTablet ? (parent.width * 45 / 100 > 200 ? 200 : parent.width * 45 / 100) : parent.width * 45 / 100
+		width: buzzerApp.isTablet ? (parent.width * 45 / 100 > 200 ? 200 : parent.width * 45 / 100) :
+									(parent.width > buzzerApp.deviceHeight() ? buzzerApp.deviceHeight() * 45 / 100 : parent.width * 45 / 100)
 		height: width
 		visible: true
 		labelYOffset: height / 2 //- metrics.tightBoundingRect.height

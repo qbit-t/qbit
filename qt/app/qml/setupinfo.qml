@@ -69,7 +69,7 @@ QuarkPage
 		fillMode: Image.PreserveAspectFit
 		x: parent.width / 2 - decentralized.width / 2
 		y: welcomeText.y + welcomeText.height
-		width: parent.height > parent.width ? parent.width + 20 : parent.height
+		width: parent.height > parent.width ? parent.width + 20 : nextButton.y - welcomeText.height // parent.height
 		Layout.alignment: Qt.AlignCenter
 		mipmap: true
 		source: "../images/decentralized.png"
