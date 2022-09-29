@@ -1606,14 +1606,14 @@ void _jm_arena_dump_chunk_internal(struct _jm_arena* arena, size_t chunk, int cl
 	{
 		if (chunk == 0 || chunk == (size_t)lCurrent)
 		{
-			sprintf(lInfo, "\n[chunk = 0x%X, class = %d, block_size = %ld, blocks_count = %ld, free_blocks = %ld, dirty_blocks = %ld]\n", lCurrent, class_index, lCurrent->block_size, lCurrent->blocks_count, lCurrent->free_blocks_count, lCurrent->dirty_blocks_count);
+			sprintf(lInfo, "\n[chunk = 0x%X, class = %d, block_size = %ld, blocks_count = %ld, free_blocks = %ld, dirty_blocks = %ld, flags = %ld]\n", lCurrent, class_index, lCurrent->block_size, lCurrent->blocks_count, lCurrent->free_blocks_count, lCurrent->dirty_blocks_count, lCurrent->flags);
 			_jm_file_write(lHeader, lInfo, strlen(lInfo));
 			for(lIdx = 0; lIdx < lCurrent->blocks_count; lIdx++)
 			{
 				lBlock = (struct _jm_free_block*)((unsigned char*)lCurrent->blocks + lIdx * sizeof(struct _jm_free_block));
 				if (lBlock->next || lBlock->prev) continue;
 				
-				sprintf(lInfo, "\n[block = %ld]\n", lIdx);
+				sprintf(lInfo, "\n[block = %ld, flags = %ld]\n", lIdx, lBlock->flags);
 				_jm_file_write(lHeader, lInfo, strlen(lInfo));
 
 #if defined(JM_ALLOCATION_INFO)
