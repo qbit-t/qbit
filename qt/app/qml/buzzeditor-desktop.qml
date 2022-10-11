@@ -912,40 +912,46 @@ QuarkPage {
 		nameFilters: [ "Media files (*.jpg *.png *.jpeg *.mp3 *.mp4 *.m4a)" ]
 		selectExisting: true
 		selectFolder: false
-		selectMultiple: false
+		selectMultiple: true
 
 		onAccepted: {
 			//
-			var lPath = fileUrl.toString();
-			console.info("[onAccepted]: raw path = " + lPath);
-
+			var lUrls = fileUrls;
+			console.info("[onAccepted]: urls count = " + lUrls.length);
 			//
-			if (Qt.platform.os == "windows") {
-				lPath = lPath.replace(/^(file:\/{3})/, "");
-			} else {
-				lPath = lPath.replace(/^(file:\/{2})/, "");
-			}
-
-			//
-			var lFile = decodeURIComponent(lPath);
-			var lPreview = "";
-
-			//
-			if (mediaModel.count < 31) {
+			for (var lIdx = 0; lIdx < lUrls.length; lIdx++) {
 				//
-				var lSize = buzzerApp.getFileSize(lFile);
-				console.info("[onAccepted]: file = " + lFile + " | " + lSize);
+				var lPath = lUrls[lIdx].toString();
+				console.info("[onAccepted]: raw path = " + lPath);
+
 				//
-				if (lFile.toLowerCase().includes(".mp4") || lFile.toLowerCase().includes(".mp3") || lFile.toLowerCase().includes(".m4a")) {
-					mediaList.addVideo(lFile, 0, 0, "qrc://images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "default.media.cover"), buzzerApp.getFileNameAsDescription(lFile));
-				/*} else if (lFile.includes(".m4a")) {
-					mediaList.addAudio(lFile, 0, "none");*/
+				if (Qt.platform.os == "windows") {
+					lPath = lPath.replace(/^(file:\/{3})/, "");
 				} else {
-					//
-					mediaList.addMedia(lFile, "none");
+					lPath = lPath.replace(/^(file:\/{2})/, "");
 				}
-			} else {
-				handleError("E_MAX_ATTACHMENTS", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_MAX_ATTACHMENTS"));
+
+				//
+				var lFile = decodeURIComponent(lPath);
+				var lPreview = "";
+
+				//
+				if (mediaModel.count < 256) {
+					//
+					var lSize = buzzerApp.getFileSize(lFile);
+					console.info("[onAccepted]: file = " + lFile + " | " + lSize);
+					//
+					if (lFile.toLowerCase().includes(".mp4") || lFile.toLowerCase().includes(".mp3") || lFile.toLowerCase().includes(".m4a")) {
+						mediaList.addVideo(lFile, 0, 0, "qrc://images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "default.media.cover"), buzzerApp.getFileNameAsDescription(lFile));
+					/*} else if (lFile.includes(".m4a")) {
+						mediaList.addAudio(lFile, 0, "none");*/
+					} else {
+						//
+						mediaList.addMedia(lFile, "none");
+					}
+				} else {
+					handleError("E_MAX_ATTACHMENTS", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_MAX_ATTACHMENTS"));
+				}
 			}
 		}
 	}
