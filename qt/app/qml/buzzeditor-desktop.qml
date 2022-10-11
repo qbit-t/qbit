@@ -936,7 +936,7 @@ QuarkPage {
 				var lPreview = "";
 
 				//
-				if (mediaModel.count < 256) {
+				if (mediaModel.count < 31) {
 					//
 					var lSize = buzzerApp.getFileSize(lFile);
 					console.info("[onAccepted]: file = " + lFile + " | " + lSize);
