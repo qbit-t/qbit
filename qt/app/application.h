@@ -167,6 +167,7 @@ class Application : public QQuickItem, public IApplication
 	Q_PROPERTY(QString filesLocation READ filesLocation)
 	Q_PROPERTY(bool isDesktop READ isDesktop NOTIFY isDesktopChanged)
 	Q_PROPERTY(bool isTablet READ isTablet NOTIFY isTabletChanged)
+	Q_PROPERTY(bool isLimited READ isLimited WRITE setIsLimited NOTIFY isLimitedChanged)
 
 public:
 	Application(QApplication& app) : app_(app), shareUtils_(new ShareUtils(this))
@@ -435,6 +436,8 @@ public:
 	std::string getQttAsset();
 	uint64_t getQttAssetVoteAmount();
 	int getQttAssetLockTime();
+	bool isLimited();
+	void setIsLimited(bool);
 
     void emit_fingertipAuthSuccessed(QString);
     void emit_fingertipAuthFailed();
@@ -466,6 +469,7 @@ signals:
 	void fileSelected(QString file, QString preview, QString description);
 	void isDesktopChanged();
 	void isTabletChanged();
+	void isLimitedChanged();
 	void noDocumentsWorkLocation();
 	void keyboardHeightChanged(int height);
 	void globalGeometryChanged(int width, int height);
@@ -503,6 +507,7 @@ private:
 #endif
 
     bool isWakeLocked_;
+	bool isLimited_;
 
 #ifdef Q_OS_IOS
     // LocalNotificator* localNotificator_;

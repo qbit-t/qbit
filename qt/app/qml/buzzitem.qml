@@ -1052,7 +1052,7 @@ Item {
 		y: bodyControl.y + bodyControl.getHeight() + spaceItems_
 		symbol: Fonts.tipSym
 		Material.background: "transparent"
-		visible: true
+		visible: !buzzerApp.isLimited
 		labelYOffset: 3
 		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 		Layout.alignment: Qt.AlignHCenter
@@ -1070,7 +1070,7 @@ Item {
 		y: tipButton.y + (tipButton.height / 2 - height / 2)
 		text: NumberFunctions.numberToCompact(rewards_).toString()
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
-		visible: rewards_ > 0
+		visible: rewards_ > 0 && !buzzerApp.isLimited
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
 	}
 

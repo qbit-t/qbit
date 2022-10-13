@@ -252,6 +252,7 @@ QuarkPage
 
 		onToggleLimited: {
 			navigatorBar.toggleLimited();
+			buzzerApp.isLimited = !buzzerApp.isLimited;
 		}
 	}
 

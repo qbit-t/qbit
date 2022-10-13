@@ -186,6 +186,9 @@ int Application::execute()
         startNotificator();
     }
 
+	//
+	isLimited_ = getLimited();
+
 #if defined(DESKTOP_PLATFORM)
 	QQuickWindow::setDefaultAlphaBuffer(true);
 	// NOTICE: software rendeder lacks some functionality
@@ -496,6 +499,19 @@ uint64_t Application::getQttAssetVoteAmount() {
 int Application::getQttAssetLockTime() {
 	qbit::json::Value lValue = appConfig_["qttAssetLockTime"];
 	return lValue.getInt();
+}
+
+bool Application::isLimited()
+{
+	return isLimited_;
+}
+
+void Application::setIsLimited(bool limited)
+{
+	if (isLimited_ != limited) {
+		isLimited_ = limited;
+		emit isLimitedChanged();
+	}
 }
 
 std::string Application::getLogCategories()
