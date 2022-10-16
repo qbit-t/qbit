@@ -334,6 +334,8 @@ void BuzzerLightComposer::checkSubscription(const uint256& chain, const uint256&
 	}
 
 	//
+	gLog().write(Log::INFO, strprintf("[checkSubscription]: loading subscription for %s", publisher.toHex()));
+	//
 	buzzerRequestProcessor()->loadSubscription(chain, buzzerTx()->id(), publisher, 
 		LoadTransaction::instance(
 			boost::bind(&BuzzerLightComposer::subscriptionLoaded, shared_from_this(), boost::placeholders::_1),
@@ -358,6 +360,8 @@ void BuzzerLightComposer::subscriptionLoaded(TransactionPtr subscription) {
 
 		if (lResult) {
 			//
+			gLog().write(Log::INFO, strprintf("[subscriptionLoaded]: loading publisher %s", lPublisher.toHex()));
+			//
 			requestProcessor()->loadTransaction(MainChain::id(), lPublisher, 
 				LoadTransaction::instance(
 					boost::bind(&BuzzerLightComposer::publisherLoaded, shared_from_this(), boost::placeholders::_1),
@@ -377,12 +381,41 @@ void BuzzerLightComposer::publisherLoaded(TransactionPtr publisher) {
 		//
 		addSubscription(publisher->id(), lPKey);
 
+		//
+		gLog().write(Log::INFO, strprintf("[publisherLoaded]: %s", publisher->id().toHex()));
+
 		// update
 		{
 			boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
 			absentSubscriptions_[publisher->id()] = true;
+
+			// notify
+			std::map<uint256 /*buzzer*/, std::list<buzzerReadyFunction>>::iterator lPending = buzzerPending_.find(publisher->id());
+			if (lPending != buzzerPending_.end()) {
+				//
+				for (std::list<buzzerReadyFunction>::iterator lFunction = lPending->second.begin(); lFunction != lPending->second.end(); lFunction++) {
+					(*lFunction)(publisher->id());
+				}
+
+				//
+				buzzerPending_.erase(lPending);
+			}
 		}
 	}
+}
+
+bool BuzzerLightComposer::buzzerSubscriptionResolve(const uint256& buzzer, buzzerReadyFunction readyFunction) {
+	//
+	boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
+	std::map<uint256 /*publisher*/, bool>::iterator lCandidate = absentSubscriptions_.find(buzzer);
+	if (lCandidate != absentSubscriptions_.end() && lCandidate->second) return true;
+
+	//
+	gLog().write(Log::INFO, strprintf("[buzzerSubscriptionResolve]: register publisher candidate %s", buzzer.toHex()));
+	//
+	buzzerPending_[buzzer].push_back(readyFunction);
+
+	return false;
 }
 
 Buzzer::VerificationResult BuzzerLightComposer::verifyPublisherLazy(BuzzfeedItemPtr item) {

@@ -451,6 +451,7 @@ int main(int argv, char** argc) {
 	// buzzfeed
 	BuzzfeedPtr lBuzzfeed = Buzzfeed::instance(lBuzzer,
 		boost::bind(&BuzzerLightComposer::verifyPublisherStrict, lBuzzerComposer, _1),
+		boost::bind(&BuzzerLightComposer::buzzerSubscriptionResolve, lBuzzerComposer, _1, _2),
 		boost::bind(&BuzzerLightComposer::verifyPublisherLazy, lBuzzerComposer, _1), // for bounded buzzes
 		boost::bind(&buzzfeedLargeUpdated), 
 		boost::bind(&buzzfeedItemNew, _1), 

@@ -46,6 +46,10 @@ typedef boost::function<void (const uint256& /*buzzerInfoId*/, std::string& /*na
 typedef boost::function<bool (const uint256& /*buzzerChainId*/, const uint256& /*buzzerId*/, const uint256& /*buzzerInfoId*/, buzzerInfoReadyFunction /*readyFunction*/)> buzzerInfoResolveFunction;
 
 //
+// subscription resolver
+typedef boost::function<bool (const uint256& /*buzzer*/, buzzerReadyFunction /*readyFunction*/)> buzzerResolveFunction;
+
+//
 // buzzfeed callbacks
 typedef boost::function<void (void)> buzzfeedLargeUpdatedFunction;
 typedef boost::function<void (BuzzfeedItemPtr)> buzzfeedItemNewFunction;
@@ -701,6 +705,9 @@ public:
 		}
 	}
 
+	bool publisherResolve();
+	void publisherResolved(const uint256& /*publisher*/);
+
 	std::string infosToString() {
 		//
 		if (!infos_.size()) return "?";
@@ -990,6 +997,7 @@ public:
 		//		
 		buzzerInfo_ = item->buzzerInfo_;
 		buzzerInfoResolve_ = item->buzzerInfoResolve_;
+		buzzerResolve_ = item->buzzerResolve_;
 		verifyPublisher_ = item->verifyPublisher_;
 		verifyPublisherLazy_ = item->verifyPublisherLazy_;
 		verifyUpdateForMyThread_ = item->verifyUpdateForMyThread_;
@@ -1119,6 +1127,7 @@ protected:
 	// resolver
 	buzzerInfoFunction buzzerInfo_;
 	buzzerInfoResolveFunction buzzerInfoResolve_;
+	buzzerResolveFunction buzzerResolve_;
 	buzzfeedItemVerifyFunction verifyPublisher_;
 	buzzfeedItemVerifyFunction verifyPublisherLazy_;
 	verifyUpdateForMyThreadFunction verifyUpdateForMyThread_;
@@ -1210,7 +1219,7 @@ public:
 		key_ = key;
 	}
 
-	Buzzfeed(BuzzerPtr buzzer,	buzzfeedItemVerifyFunction verifyPublisher, 
+	Buzzfeed(BuzzerPtr buzzer,	buzzfeedItemVerifyFunction verifyPublisher, buzzerResolveFunction buzzerResolve,
 								buzzfeedItemVerifyFunction verifyPublisherLazy,
 								buzzfeedLargeUpdatedFunction largeUpdated, 
 								buzzfeedItemNewFunction itemNew, 
@@ -1220,9 +1229,10 @@ public:
 								Merge merge, Order order, Group key) : 
 		Buzzfeed (buzzer, verifyPublisher, largeUpdated, itemNew, itemUpdated, itemsUpdated, itemAbsent, merge, order, key) {
 		verifyPublisherLazy_ = verifyPublisherLazy;
+		buzzerResolve_ = buzzerResolve;
 	}
 
-	Buzzfeed(BuzzerPtr buzzer,	buzzfeedItemVerifyFunction verifyPublisher,
+	Buzzfeed(BuzzerPtr buzzer,	buzzfeedItemVerifyFunction verifyPublisher, buzzerResolveFunction buzzerResolve,
 								buzzfeedItemVerifyFunction verifyPublisherLazy, 
 								verifyUpdateForMyThreadFunction verifyUpdateForMyThread,
 								buzzfeedLargeUpdatedFunction largeUpdated, 
@@ -1231,7 +1241,7 @@ public:
 								buzzfeedItemsUpdatedFunction itemsUpdated,
 								buzzfeedItemAbsentFunction itemAbsent, 
 								Merge merge, Order order, Group key, Expand expand) :
-		Buzzfeed (buzzer, verifyPublisher, verifyPublisherLazy, largeUpdated, itemNew, itemUpdated, itemsUpdated, itemAbsent, merge, order, key) {
+		Buzzfeed (buzzer, verifyPublisher, buzzerResolve, verifyPublisherLazy, largeUpdated, itemNew, itemUpdated, itemsUpdated, itemAbsent, merge, order, key) {
 		verifyUpdateForMyThread_ = verifyUpdateForMyThread;
 		expand_ = expand;
 	}
@@ -1253,7 +1263,7 @@ public:
 		merge_ = merge;
 	}
 
-	Buzzfeed(BuzzerPtr buzzer,	buzzfeedItemVerifyFunction verifyPublisher, 
+	Buzzfeed(BuzzerPtr buzzer,	buzzfeedItemVerifyFunction verifyPublisher, buzzerResolveFunction buzzerResolve,
 								buzzfeedItemVerifyFunction verifyPublisherLazy,
 								buzzfeedLargeUpdatedFunction largeUpdated, 
 								buzzfeedItemNewFunction itemNew, 
@@ -1263,10 +1273,11 @@ public:
 								Merge merge, Expand expand) :
 		Buzzfeed (buzzer, verifyPublisher, largeUpdated, itemNew, itemUpdated, itemsUpdated, itemAbsent, merge) {
 		verifyPublisherLazy_ = verifyPublisherLazy;
+		buzzerResolve_ = buzzerResolve;
 		expand_ = expand;
 	}
 
-	Buzzfeed(BuzzerPtr buzzer,	buzzfeedItemVerifyFunction verifyPublisher,
+	Buzzfeed(BuzzerPtr buzzer,	buzzfeedItemVerifyFunction verifyPublisher, buzzerResolveFunction buzzerResolve,
 								buzzfeedItemVerifyFunction verifyPublisherLazy,
 								verifyUpdateForMyThreadFunction verifyUpdateForMyThread,
 								buzzfeedLargeUpdatedFunction largeUpdated, 
@@ -1275,7 +1286,7 @@ public:
 								buzzfeedItemsUpdatedFunction itemsUpdated,
 								buzzfeedItemAbsentFunction itemAbsent, 
 								Merge merge) :
-		Buzzfeed (buzzer, verifyPublisher, verifyPublisherLazy, largeUpdated, itemNew, itemUpdated, itemsUpdated, itemAbsent, merge, Expand::SMART) {
+		Buzzfeed (buzzer, verifyPublisher, buzzerResolve, verifyPublisherLazy, largeUpdated, itemNew, itemUpdated, itemsUpdated, itemAbsent, merge, Expand::SMART) {
 		verifyUpdateForMyThread_ = verifyUpdateForMyThread;
 	}
 
@@ -1287,6 +1298,7 @@ public:
 		itemsUpdated_ = buzzfeed->itemsUpdated_;
 		itemAbsent_ = buzzfeed->itemAbsent_;
 		verifyPublisher_ = buzzfeed->verifyPublisher_;
+		buzzerResolve_ = buzzfeed->buzzerResolve_;
 		verifyPublisherLazy_ = buzzfeed->verifyPublisherLazy_;
 		verifyUpdateForMyThread_ = buzzfeed->verifyUpdateForMyThread_;
 		pkeyResolve_ = buzzfeed->pkeyResolve_;
@@ -1331,7 +1343,8 @@ public:
 	BuzzfeedItemPtr locateBuzz(const uint256& id) { return BuzzfeedItem::locateBuzz(id); }
 	void clear();
 
-	static BuzzfeedPtr instance(BuzzerPtr buzzer, buzzfeedItemVerifyFunction verifyPublisher,
+	static BuzzfeedPtr instance(BuzzerPtr buzzer,
+			buzzfeedItemVerifyFunction verifyPublisher,
 			buzzfeedLargeUpdatedFunction largeUpdated, 
 			buzzfeedItemNewFunction itemNew, 
 			buzzfeedItemUpdatedFunction itemUpdated,
@@ -1366,7 +1379,7 @@ public:
 	}*/
 
 	static BuzzfeedPtr instance(BuzzerPtr buzzer, 
-			buzzfeedItemVerifyFunction verifyPublisher,
+			buzzfeedItemVerifyFunction verifyPublisher, buzzerResolveFunction buzzerResolve,
 			buzzfeedItemVerifyFunction verifyPublisherLazy, 
 			verifyUpdateForMyThreadFunction verifyUpdateForMyThread,
 			buzzfeedLargeUpdatedFunction largeUpdated, 
@@ -1374,11 +1387,12 @@ public:
 			buzzfeedItemUpdatedFunction itemUpdated,
 			buzzfeedItemsUpdatedFunction itemsUpdated,
 			buzzfeedItemAbsentFunction itemAbsent, Merge merge, Order order, Group key, Expand expand) {
-		return std::make_shared<Buzzfeed>(buzzer, verifyPublisher, verifyPublisherLazy, verifyUpdateForMyThread,
+		return std::make_shared<Buzzfeed>(buzzer, verifyPublisher, buzzerResolve, verifyPublisherLazy, verifyUpdateForMyThread,
 					largeUpdated, itemNew, itemUpdated, itemsUpdated, itemAbsent, merge, order, key, expand);
 	}
 
-	static BuzzfeedPtr instance(BuzzerPtr buzzer, buzzfeedItemVerifyFunction verifyPublisher,
+	static BuzzfeedPtr instance(BuzzerPtr buzzer,
+			buzzfeedItemVerifyFunction verifyPublisher,
 			buzzfeedLargeUpdatedFunction largeUpdated, 
 			buzzfeedItemNewFunction itemNew, 
 			buzzfeedItemUpdatedFunction itemUpdated,
@@ -1389,19 +1403,19 @@ public:
 	}
 
 	static BuzzfeedPtr instance(BuzzerPtr buzzer, 
-			buzzfeedItemVerifyFunction verifyPublisher,
+			buzzfeedItemVerifyFunction verifyPublisher, buzzerResolveFunction buzzerResolve,
 			buzzfeedItemVerifyFunction verifyPublisherLazy,
 			buzzfeedLargeUpdatedFunction largeUpdated, 
 			buzzfeedItemNewFunction itemNew, 
 			buzzfeedItemUpdatedFunction itemUpdated,
 			buzzfeedItemsUpdatedFunction itemsUpdated,
 			buzzfeedItemAbsentFunction itemAbsent, Merge merge, Expand expand) {
-		return std::make_shared<Buzzfeed>(buzzer, verifyPublisher, verifyPublisherLazy,
+		return std::make_shared<Buzzfeed>(buzzer, verifyPublisher, buzzerResolve, verifyPublisherLazy,
 					largeUpdated, itemNew, itemUpdated, itemsUpdated, itemAbsent, merge, expand);
 	}
 
 	static BuzzfeedPtr instance(BuzzerPtr buzzer, 
-			buzzfeedItemVerifyFunction verifyPublisher,
+			buzzfeedItemVerifyFunction verifyPublisher, buzzerResolveFunction buzzerResolve,
 			buzzfeedItemVerifyFunction verifyPublisherLazy,
 			verifyUpdateForMyThreadFunction verifyUpdateForMyThread,
 			buzzfeedLargeUpdatedFunction largeUpdated, 
@@ -1409,7 +1423,7 @@ public:
 			buzzfeedItemUpdatedFunction itemUpdated,
 			buzzfeedItemsUpdatedFunction itemsUpdated,
 			buzzfeedItemAbsentFunction itemAbsent, Merge merge) {
-		return std::make_shared<Buzzfeed>(buzzer, verifyPublisher, verifyPublisherLazy, verifyUpdateForMyThread,
+		return std::make_shared<Buzzfeed>(buzzer, verifyPublisher, buzzerResolve, verifyPublisherLazy, verifyUpdateForMyThread,
 					largeUpdated, itemNew, itemUpdated, itemsUpdated, itemAbsent, merge);
 	}
 

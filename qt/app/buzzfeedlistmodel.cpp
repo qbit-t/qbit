@@ -824,6 +824,7 @@ BuzzfeedListModelPersonal::BuzzfeedListModelPersonal() {
 	//
 	buzzfeed_ = qbit::Buzzfeed::instance(lClient->getBuzzer(),
 		boost::bind(&qbit::BuzzerLightComposer::verifyPublisherStrict, lClient->getBuzzerComposer(), boost::placeholders::_1),
+		boost::bind(&qbit::BuzzerLightComposer::buzzerSubscriptionResolve, lClient->getBuzzerComposer(), boost::placeholders::_1, boost::placeholders::_2),
 		boost::bind(&qbit::BuzzerLightComposer::verifyPublisherLazy, lClient->getBuzzerComposer(), boost::placeholders::_1),
 		boost::bind(&BuzzfeedListModel::buzzfeedLargeUpdated, this),
 		boost::bind(&BuzzfeedListModel::buzzfeedItemNew, this, boost::placeholders::_1),
@@ -881,6 +882,7 @@ BuzzfeedListModelBuzzes::BuzzfeedListModelBuzzes() {
 	//
 	buzzfeed_ = qbit::Buzzfeed::instance(lClient->getBuzzer(),
 		boost::bind(&qbit::BuzzerLightComposer::verifyPublisherLazy, lClient->getBuzzerComposer(), boost::placeholders::_1),
+		boost::bind(&qbit::BuzzerLightComposer::buzzerSubscriptionResolve, lClient->getBuzzerComposer(), boost::placeholders::_1, boost::placeholders::_2),
 		boost::bind(&qbit::BuzzerLightComposer::verifyPublisherLazy, lClient->getBuzzerComposer(), boost::placeholders::_1),
 		boost::bind(&qbit::BuzzerLightComposer::verifyMyThreadUpdates, lClient->getBuzzerComposer(), boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3),
 		boost::bind(&BuzzfeedListModel::buzzfeedLargeUpdated, this),

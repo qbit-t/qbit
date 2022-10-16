@@ -761,7 +761,7 @@ Item {
 		y: localDateTimeControl.y + localDateTimeControl.height + spaceBottom_
 		symbol: Fonts.tipSym
 		Material.background: "transparent"
-		visible: true
+		visible: !buzzerApp.isLimited
 		labelYOffset: 3
 		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
 		Layout.alignment: Qt.AlignHCenter

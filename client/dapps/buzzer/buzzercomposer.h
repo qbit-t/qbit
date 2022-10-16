@@ -1307,6 +1307,8 @@ public:
 	void publisherLoaded(TransactionPtr /*publisher*/);
 	void timeout() {}
 
+	bool buzzerSubscriptionResolve(const uint256& /*buzzer*/, buzzerReadyFunction /*readyFunction*/);
+
 private:
 	// various settings, command line args & config file
 	ISettingsPtr settings_;
@@ -1333,6 +1335,9 @@ private:
 	db::DbContainer<uint256 /*publisher*/, PKey /*pubkey*/> subscriptions_;
 	// contacts
 	db::DbContainer<std::string /*buzzer*/, std::string /*packed-pkey*/> contacts_;
+
+	// cache
+	std::map<uint256 /*buzzer*/, std::list<buzzerReadyFunction>> buzzerPending_;
 
 	// flag
 	bool opened_ = false;

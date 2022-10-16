@@ -38,6 +38,7 @@ typedef std::shared_ptr<BuzzerRequestProcessor> BuzzerRequestProcessorPtr;
 
 //
 typedef boost::function<void (const uint256&)> buzzerInfoReadyFunction;
+typedef boost::function<void (const uint256&)> buzzerReadyFunction;
 
 //
 // buzzer callbacks

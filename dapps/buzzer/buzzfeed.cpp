@@ -153,6 +153,22 @@ void BuzzfeedItem::push(const BuzzfeedItem& buzz, const uint160& peer) {
 	}
 }
 
+bool BuzzfeedItem::publisherResolve() {
+	//
+	if (buzzerResolve_)
+		return buzzerResolve_(
+			buzzerId(),
+			boost::bind(&BuzzfeedItem::publisherResolved, shared_from_this(), boost::placeholders::_1));
+	return false;
+}
+
+void BuzzfeedItem::publisherResolved(const uint256& /*publisher*/) {
+	//
+	if (root_) {
+		root_->mergeInternal(shared_from_this(), false, true, false);
+	}
+}
+
 bool BuzzfeedItem::mergeInternal(BuzzfeedItemPtr buzz, bool checkSize, bool notify, bool suspicious) {
 	//
 	BuzzfeedItemPtr lBuzz = buzz;
@@ -190,8 +206,10 @@ bool BuzzfeedItem::mergeInternal(BuzzfeedItemPtr buzz, bool checkSize, bool noti
 		}
 	}
 
-	if (lResult == Buzzer::VerificationResult::INVALID)
+	if (lResult == Buzzer::VerificationResult::INVALID) {
 		if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[ERROR-03]: %s", lBuzz->toString()));
+		lBuzz->publisherResolve();
+	}
 
 	if (lResult == Buzzer::VerificationResult::SUCCESS || lResult == Buzzer::VerificationResult::POSTPONED) {
 		// if buzz was hidden by the owner
@@ -1163,7 +1181,7 @@ void Buzzfeed::insertNewItem(BuzzfeedItemPtr item) {
 			}
 		}
 	} else if (!list_.size() && fed_) {
-		// push first
+		// push first, BUG?
 		list_.push_back(item);
 		index_[item->key()] = 0;
 	}
