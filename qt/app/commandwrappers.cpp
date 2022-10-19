@@ -310,6 +310,16 @@ BuzzerUnsubscribeCommand::BuzzerUnsubscribeCommand(QObject* /*parent*/) : QObjec
 	);
 }
 
+BuzzerHideCommand::BuzzerHideCommand(QObject* /*parent*/) : QObject() {
+	//
+	Client* lClient = static_cast<Client*>(gApplication->getClient());
+
+	command_ = qbit::BuzzerHideCommand::instance(
+		lClient->getBuzzerComposer(),
+		boost::bind(&BuzzerHideCommand::done, this, boost::placeholders::_1)
+	);
+}
+
 DownloadMediaCommand::DownloadMediaCommand(QObject* /*parent*/) : QObject() {
 }
 

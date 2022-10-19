@@ -859,6 +859,37 @@ private:
 	QString name_;
 };
 
+class BuzzerHideCommand: public QObject
+{
+	Q_OBJECT
+
+public:
+	explicit BuzzerHideCommand(QObject* parent = nullptr);
+
+	Q_INVOKABLE void process() {
+		std::vector<std::string> lArgs;
+		command_->process(lArgs);
+	}
+
+	Q_INVOKABLE void process(QString buzzer) {
+		std::vector<std::string> lArgs;
+		lArgs.push_back(buzzer.toStdString());
+		command_->process(lArgs);
+	}
+
+	void done(const qbit::ProcessingError& result) {
+		if (result.success()) emit processed();
+		else emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
+	}
+
+signals:
+	void processed();
+	void error(QString code, QString message);
+
+private:
+	qbit::ICommandPtr command_;
+};
+
 class BuzzerEndorseCommand: public QObject
 {
 	Q_OBJECT

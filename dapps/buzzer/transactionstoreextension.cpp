@@ -8,6 +8,7 @@
 #include "txbuzzreply.h"
 #include "txbuzzlike.h"
 #include "txbuzzhide.h"
+#include "txbuzzerhide.h"
 #include "txbuzzreward.h"
 #include "txbuzzersubscribe.h"
 #include "txbuzzerunsubscribe.h"
@@ -484,6 +485,15 @@ bool BuzzerTransactionStoreExtension::isAllowed(TransactionContextPtr ctx) {
 			uint256 lOwner;
 			if (hiddenIdx_.read(lBuzzId, lOwner)) return false;
 		}
+	} else if (ctx->tx()->type() == TX_BUZZER_HIDE) {
+		//
+		TxBuzzerHidePtr lBuzzerHide = TransactionHelper::to<TxBuzzerHide>(ctx->tx());
+		// extract buzzer
+		uint256 lBuzzerId = lBuzzerHide->in()[TX_BUZZ_MY_BUZZER_IN].out().tx(); // owner
+		
+		//
+		uint256 lOwner;
+		if (hiddenIdx_.read(lBuzzerId, lOwner)) return false;
 	} 
 
 	return true;
@@ -714,6 +724,8 @@ bool BuzzerTransactionStoreExtension::pushEntity(const uint256& id, TransactionC
 		processMessage(id, ctx);
 	} else if (ctx->tx()->type() == TX_BUZZ_HIDE) {
 		processHide(id, ctx);
+	} else if (ctx->tx()->type() == TX_BUZZER_HIDE) {
+		processBuzzerHide(id, ctx);
 	}
 
 	//
@@ -1451,6 +1463,30 @@ void BuzzerTransactionStoreExtension::processHide(const uint256& id, Transaction
 	}
 }
 
+void BuzzerTransactionStoreExtension::processBuzzerHide(const uint256& id, TransactionContextPtr ctx) {
+	// extract
+	TxBuzzerHidePtr lBuzzerHide = TransactionHelper::to<TxBuzzerHide>(ctx->tx());
+	//
+	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: pushing buzzer hide ") +
+		strprintf("%s/%s#", ctx->tx()->id().toHex(), store_->chain().toHex().substr(0, 10)));
+	//
+	// extract buzzer
+	uint256 lBuzzerId = lBuzzerHide->in()[TX_BUZZ_MY_BUZZER_IN].out().tx(); // owner
+	
+	// check index
+	uint256 lOwner;
+	if (!hiddenIdx_.read(lBuzzerId, lOwner)) {
+		// write index
+		hiddenIdx_.write(lBuzzerId, lBuzzerId);
+
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: buzzer hide PUSHED: ") +
+			strprintf("tx = %s, buzzer = %s", ctx->tx()->id().toHex(), lBuzzerId.toHex()));
+	} else {
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity/error]: buzzer is ALREADY hidden: ") +
+			strprintf("tx = %s, buzzer = %s", ctx->tx()->id().toHex(), lBuzzerId.toHex()));
+	}
+}
+
 void BuzzerTransactionStoreExtension::processReward(const uint256& id, TransactionContextPtr ctx) {
 	// extract buzz_id
 	TxBuzzRewardPtr lBuzzReward = TransactionHelper::to<TxBuzzReward>(ctx->tx());
@@ -1672,8 +1708,26 @@ void BuzzerTransactionStoreExtension::removeTransaction(TransactionPtr tx) {
 			}
 
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: buzz hide removed ") +
-				strprintf("buzz = %s, liker = %s", lBuzzId.toHex(), lBuzzerId.toHex()));
+				strprintf("buzz = %s, owner = %s", lBuzzId.toHex(), lBuzzerId.toHex()));
 		}
+	} else if (tx->type() == TX_BUZZER_HIDE) {
+		// extract buzz_id
+		TxBuzzerHidePtr lBuzzerHide = TransactionHelper::to<TxBuzzerHide>(tx);
+		//
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: removing buzzre hide ") +
+			strprintf("%s/%s#", tx->id().toHex(), store_->chain().toHex().substr(0, 10)));
+		//
+		// extract buzzer
+		uint256 lBuzzerId = lBuzzerHide->in()[TX_BUZZ_MY_BUZZER_IN].out().tx(); //
+		// remove index
+		uint256 lOwner;
+		if (hiddenIdx_.read(lBuzzerId, lOwner)) {
+			//
+			hiddenIdx_.remove(lBuzzerId);
+		}
+
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: buzzer hide removed ") +
+			strprintf("buzzer = %s", lBuzzerId.toHex()));
 	} else if (tx->type() == TX_BUZZ_REWARD) {
 		// extract buzz_id
 		TxBuzzRewardPtr lBuzzReward = TransactionHelper::to<TxBuzzReward>(tx);
@@ -2188,6 +2242,10 @@ TxBuzzerInfoPtr BuzzerTransactionStoreExtension::readBuzzerInfo(const uint256& b
 	//
 	uint256 lInfo;
 	if (buzzerInfo_.read(buzzer, lInfo)) {
+		//
+		uint256 lOwner;
+		if (hiddenIdx_.read(buzzer, lOwner)) return nullptr; // if buzzer was hidden
+
 		//
 		TransactionPtr lTx = store_->locateTransaction(lInfo);
 		if (lTx) {
@@ -2889,6 +2947,7 @@ void BuzzerTransactionStoreExtension::selectMessages(uint64_t from, const uint25
 			// check for hidden
 			uint256 lOwner;
 			if (hiddenIdx_.read(*lFrom, lOwner)) continue;
+			if (hiddenIdx_.read(lTxPublisher, lOwner)) continue; // if buzzer was hidden
 			//
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectMessages]: try to added item ") +
 				strprintf("buzzer = %s/%s, %s/%s#", lBuzzer->id().toHex(), lTxPublisher.toHex(), lTx->id().toHex(), store_->chain().toHex().substr(0, 10)));
@@ -3720,6 +3779,13 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedByBuzzer(uint64_t from, cons
 	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectBuzzfeedByBuzzer]: selecting buzzfeed for ") +
 		strprintf("buzzer = %s, from = %d, chain = %s#", buzzer.toHex(), from, store_->chain().toHex().substr(0, 10)));
 
+	uint256 lEntity;
+	if (hiddenIdx_.read(buzzer, lEntity)) {
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectBuzzfeedByBuzzer]: buzzer ") +
+			strprintf("buzzer = %s IS hidden, skip...", buzzer.toHex()));
+		return;
+	}
+
 	uint64_t lTimeFrom = from;
 	if (lTimeFrom == 0) lTimeFrom = qbit::getMicroseconds();
 
@@ -3934,6 +4000,7 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedGlobal(uint64_t timeframeFro
 			// check for hidden
 			uint256 lOwner;
 			if (hiddenIdx_.read(*lFrom, lOwner)) continue;
+			if (hiddenIdx_.read(lTxPublisher, lOwner)) continue;
 
 			// check for personal trust
 			uint256 lTrustTx;
@@ -4104,6 +4171,7 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedByTag(const std::string& tag
 			// check for hidden
 			uint256 lOwner;
 			if (hiddenIdx_.read(*lFrom, lOwner)) continue;
+			if (hiddenIdx_.read(lTxPublisher, lOwner)) continue;
 
 			//
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectBuzzfeedByTag]: try to added item ") +
@@ -4301,6 +4369,7 @@ void BuzzerTransactionStoreExtension::selectBuzzfeed(const std::vector<BuzzfeedP
 				// check for hidden
 				uint256 lOwner;
 				if (hiddenIdx_.read(*lFrom, lOwner)) continue;
+				if (hiddenIdx_.read(lTxPublisher, lOwner)) continue;
 
 				//
 				bool lProcessed = false;

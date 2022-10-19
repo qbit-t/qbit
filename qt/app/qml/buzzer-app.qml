@@ -21,9 +21,15 @@ ApplicationWindow
     visible: true
     title: "buzzer"
 
+    property bool forceClose_: false
     property string onlineCount: "";
 	property int bottomBarHeight: 0;
 	property string activePageBackground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Window.background")
+
+	function forceClose() {
+		forceClose_ = false;
+		close();
+	}
 
 	color: activePageBackground
 
@@ -39,7 +45,7 @@ ApplicationWindow
 
 	onClosing:
     {
-        if (Qt.platform.os == "android")
+        if (Qt.platform.os == "android" && !forceClose_)
         {
             close.accepted = false;
             if (getDepth() > 1)
@@ -699,6 +705,16 @@ ApplicationWindow
 
 							addPage(lPage);
 						}
+					} else if (key === "removeBuzzer") {
+						lComponent = Qt.createComponent("qrc:/qml/buzzerremove.qml");
+						if (lComponent.status === Component.Error) {
+							showError(lComponent.errorString());
+						} else {
+							lPage = lComponent.createObject(window);
+							lPage.controller = window;
+
+							addPage(lPage);
+						}
 					} else if (key === "qbitKey") {
 						lComponent = Qt.createComponent("qrc:/qml/buzzerqbitkey.qml");
 						if (lComponent.status === Component.Error) {
@@ -796,6 +812,11 @@ ApplicationWindow
 					key: "editBuzzer",
 					keySymbol: Fonts.userEditSym,
 					name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.edit.buzzer")});
+				//if (Qt.platform.os == "ios" || Qt.platform.os == "osx")
+				menuModel_.append({
+					key: "removeBuzzer",
+					keySymbol: Fonts.userMinusSym,
+					name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.remove.current")});
 				menuModel_.append({
 					key: "qbitKey",
 					keySymbol: Fonts.secretSym,

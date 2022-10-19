@@ -112,6 +112,7 @@ Item
 	readonly property string addressBookSym: "\uf2b9";
 
 	readonly property string userPlusSym: "\uf234";
+	readonly property string userMinusSym: "\uf503";
 	readonly property string userEditSym: "\uf4ff";
 	readonly property string userSecretSym: "\uf21b";
 

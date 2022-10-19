@@ -9,6 +9,7 @@
 #include "txbuzzreply.h"
 #include "txbuzzlike.h"
 #include "txbuzzhide.h"
+#include "txbuzzerhide.h"
 #include "txbuzzreward.h"
 #include "txbuzzerendorse.h"
 #include "txbuzzermistrust.h"

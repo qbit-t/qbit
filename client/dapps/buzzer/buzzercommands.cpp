@@ -2099,6 +2099,17 @@ void BuzzHideCommand::process(const std::vector<std::string>& args) {
 }
 
 //
+// BuzzerHideCommand
+//
+void BuzzerHideCommand::process(const std::vector<std::string>& args) {
+	//
+	IComposerMethodPtr lCommand = BuzzerLightComposer::CreateTxBuzzerHide::instance(composer_,
+		boost::bind(&BuzzerHideCommand::created, shared_from_this(), boost::placeholders::_1));
+	// async process
+	lCommand->process(boost::bind(&BuzzerHideCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
+}
+
+//
 // BuzzRewardCommand
 //
 void BuzzRewardCommand::process(const std::vector<std::string>& args) {
