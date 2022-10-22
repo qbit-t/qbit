@@ -336,10 +336,76 @@ Item
 		padding: 20
 		spacing: 10
 
+		property var imageIndex: 1
+
 		onClicked: {
 			buzzerAvatar_ = "";
 			avatarImage.source = "";
 			//createBuzzer.enabled = createBuzzer.getEnabled();
+		}
+	}
+
+	QuarkToolButton {
+		id: nextAvatarButton
+		x: parent.width / 2 + avatarImage.width / 2 - 45
+		y: avatarImage.y + avatarImage.height - 45
+		symbol: Fonts.rightArrowSym
+		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+		Layout.alignment: Qt.AlignHCenter
+
+		topInset: 10
+		leftInset: 10
+		rightInset: 10
+		bottomInset: 10
+		padding: 20
+		spacing: 10
+
+		onClicked: {
+			//
+			if (prevAvatarButton.imageIndex + 1 > 6) prevAvatarButton.imageIndex = 1;
+			else prevAvatarButton.imageIndex += 1;
+			//
+			setupAvatar();
+		}
+
+		Component.onCompleted: {
+			//
+			if (buzzerClient.avatar === "") setupAvatar();
+		}
+
+		function setupAvatar() {
+			//
+			var lPath = "qrc://res/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "avatar0" + prevAvatarButton.imageIndex);
+			var lNewPath = buzzerApp.tempFilesPath() + "/" + buzzerApp.getFileName(lPath);
+			buzzerApp.copyFile(lPath, lNewPath);
+			avatarImage.source = "file://" + lNewPath;
+			buzzerAvatar_ = lNewPath;
+		}
+	}
+
+	QuarkToolButton {
+		id: prevAvatarButton
+		x: (parent.width / 2 - avatarImage.width / 2 - (prevAvatarButton.width)) + 45
+		y: avatarImage.y + avatarImage.height - 45
+		symbol: Fonts.leftArrowSym
+		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+		Layout.alignment: Qt.AlignHCenter
+
+		topInset: 10
+		leftInset: 10
+		rightInset: 10
+		bottomInset: 10
+		padding: 20
+		spacing: 10
+
+		property var imageIndex: 5
+
+		onClicked: {
+			//
+			if (prevAvatarButton.imageIndex - 1 < 1) prevAvatarButton.imageIndex = 6;
+			else prevAvatarButton.imageIndex -= 1;
+			//
+			nextAvatarButton.setupAvatar();
 		}
 	}
 
@@ -469,6 +535,70 @@ Item
 			buzzerHeader_ = decodeURIComponent(lPath);
 
 			//createBuzzer.enabled = createBuzzer.getEnabled();
+		}
+	}
+
+	QuarkToolButton {
+		id: prevHeaderButton
+		x: headerContainer.x + 5
+		y: headerContainer.y + 5
+		symbol: Fonts.leftArrowSym
+		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+		Layout.alignment: Qt.AlignHCenter
+
+		topInset: 10
+		leftInset: 10
+		rightInset: 10
+		bottomInset: 10
+		padding: 20
+		spacing: 10
+
+		property var imageIndex: 5
+
+		onClicked: {
+			//
+			if (prevHeaderButton.imageIndex - 1 < 1) prevHeaderButton.imageIndex = 6;
+			else prevHeaderButton.imageIndex -= 1;
+			//
+			nextHeaderButton.setupHeader();
+		}
+	}
+
+	QuarkToolButton {
+		id: nextHeaderButton
+		x: prevHeaderButton.x + prevHeaderButton.width + 5
+		y: headerContainer.y + 5
+		symbol: Fonts.rightArrowSym
+		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+		Layout.alignment: Qt.AlignHCenter
+
+		topInset: 10
+		leftInset: 10
+		rightInset: 10
+		bottomInset: 10
+		padding: 20
+		spacing: 10
+
+		onClicked: {
+			//
+			if (prevHeaderButton.imageIndex + 1 > 6) prevHeaderButton.imageIndex = 1;
+			else prevHeaderButton.imageIndex += 1;
+			//
+			setupHeader();
+		}
+
+		Component.onCompleted: {
+			//
+			if (buzzerClient.header === "") setupHeader();
+		}
+
+		function setupHeader() {
+			//
+			var lPath = "qrc://res/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "header0" + prevHeaderButton.imageIndex);
+			var lNewPath = buzzerApp.tempFilesPath() + "/" + buzzerApp.getFileName(lPath);
+			buzzerApp.copyFile(lPath, lNewPath);
+			headerImage.source = "file://" + lNewPath;
+			buzzerHeader_ = lNewPath;
 		}
 	}
 
