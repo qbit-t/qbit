@@ -77,6 +77,7 @@ Item
 	readonly property string circleArrowDownSym: "\uf358";
 	readonly property string circleArrowUpSym: "\uf35b";
 	readonly property string shevronLeftSym: "\uf053";
+	readonly property string shevronRightSym: "\uf054";
 	readonly property string minusSym: "\uf068";
 	readonly property string plusSym: "\uf067";
 	readonly property string lockedSym: "\uf30d";
@@ -202,6 +203,7 @@ Item
 
 	readonly property string richEditSym: "\uf1ea";
 	readonly property string leftArrowSym: "\uf060";
+	readonly property string rightArrowSym: "\uf061";
 	readonly property string elipsisVerticalSym: "\uf142";
 
 	readonly property string blockSym: "\uf1b2";
