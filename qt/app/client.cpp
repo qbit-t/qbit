@@ -1421,6 +1421,16 @@ void Client::unlink() {
 
 	// reset configured flag
 	setProperty("Client.configured", "");
+
+	//
+	name_ = "";
+	alias_ = "";
+	description_ = "";
+	avatar_ = "";
+	header_ = "";
+
+	//
+	save();
 }
 
 bool Client::configured() {

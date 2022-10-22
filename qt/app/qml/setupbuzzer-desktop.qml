@@ -114,16 +114,25 @@ QuarkPage
 		enabled: buttonAction === "down" || forceEnabled ? true : false
 		width: parent.width - 40
 
-		font.family: buttonAction === "down" ? Fonts.icons : ""
+		//font.family: buttonAction === "down" ? Fonts.icons : ""
 		font.pointSize: buttonAction === "down" ? defaultFontPointSize + 5 : defaultFontPointSize
 		font.capitalization: Font.AllUppercase
 
 		property bool forceVisible: false
 		property bool forceEnabled: false
 		property string buttonAction: buzzerInfo.calculatedHeight > pageContainer.height ? "down" : "next" // "down|next"
+		property string defaultFontFamily;
 
 		Layout.minimumWidth: 150
 		Layout.alignment: Qt.AlignHCenter
+
+		onButtonActionChanged: {
+			font.family = (buttonAction === "down" ? Fonts.icons : defaultFontFamily);
+		}
+
+		Component.onCompleted: {
+			defaultFontFamily = font.family;
+		}
 
 		onClicked: {
 			//
