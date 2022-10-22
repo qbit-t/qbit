@@ -194,6 +194,10 @@ public:
 		return ApplicationPath::logsDirPath();
 	}
 
+	Q_INVOKABLE QString tempFilesPath() {
+		return ApplicationPath::tempFilesDir();
+	}
+
 	std::string getLogsLocation() {
 		// by default
 		return ApplicationPath::logsDirPath().toStdString();

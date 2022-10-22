@@ -10,7 +10,7 @@ QT += multimedia multimediawidgets qml quick quickcontrols2 widgets quickwidgets
 CONFIG += c++11
 CONFIG += static
 
-VERSION = 1.6.93
+VERSION = 1.6.94
 DEFINES += VERSION_STRING=\\\"$${VERSION}\\\"
 DEFINES += QT_ENVIRONMENT
 DEFINES += HAVE_CONFIG_H
@@ -22,7 +22,7 @@ DEFINES += DESKTOP_PLATFORM
 DEFINES += QBIT_VERSION_MAJOR=0
 DEFINES += QBIT_VERSION_MINOR=1
 DEFINES += QBIT_VERSION_REVISION=6
-DEFINES += QBIT_VERSION_BUILD=93
+DEFINES += QBIT_VERSION_BUILD=94
 
 DEFINES += BUZZER_MOD
 DEFINES += CUBIX_MOD
@@ -301,8 +301,9 @@ HEADERS += \
 RESOURCES += \
     $$files(../fonts/*) \
     #	$$files(../fonts-desktop/*) \
-    $$files(../images/*) \
-    $$files(backend/*) \
+	$$files(../images/*) \
+	$$files(../../res/*) \
+	$$files(backend/*) \
     $$files(qml/*) \
     $$files(lib/*) \
     $$files(components/*) \
