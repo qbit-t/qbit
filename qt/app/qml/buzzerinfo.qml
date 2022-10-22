@@ -329,8 +329,8 @@ Item
 
 	QuarkToolButton {
 		id: nextAvatarButton
-		x: parent.width / 2 + avatarImage.width / 2 - 45
-		y: avatarImage.y + avatarImage.height - 45
+		x: parent.width / 2 + avatarImage.width / 2 - 42
+		y: avatarImage.y + avatarImage.height - 42
 		symbol: Fonts.rightArrowSym
 		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 		Layout.alignment: Qt.AlignHCenter
@@ -339,8 +339,6 @@ Item
 		leftInset: 10
 		rightInset: 10
 		bottomInset: 10
-		padding: 20
-		spacing: 10
 
 		onClicked: {
 			//
@@ -367,8 +365,8 @@ Item
 
 	QuarkToolButton {
 		id: prevAvatarButton
-		x: (parent.width / 2 - avatarImage.width / 2 - (prevAvatarButton.width)) + 45
-		y: avatarImage.y + avatarImage.height - 45
+		x: (parent.width / 2 - avatarImage.width / 2 - (prevAvatarButton.width)) + 42
+		y: avatarImage.y + avatarImage.height - 42
 		symbol: Fonts.leftArrowSym
 		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 		Layout.alignment: Qt.AlignHCenter
@@ -377,8 +375,6 @@ Item
 		leftInset: 10
 		rightInset: 10
 		bottomInset: 10
-		padding: 20
-		spacing: 10
 
 		property var imageIndex: 5
 
@@ -560,8 +556,6 @@ Item
 		leftInset: 10
 		rightInset: 10
 		bottomInset: 10
-		padding: 20
-		spacing: 10
 
 		property var imageIndex: 5
 
@@ -586,8 +580,6 @@ Item
 		leftInset: 10
 		rightInset: 10
 		bottomInset: 10
-		padding: 20
-		spacing: 10
 
 		onClicked: {
 			//

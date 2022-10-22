@@ -81,7 +81,7 @@ T.RoundButton
         id: label
 		topPadding: labelYOffset + (Qt.platform.os == "osx" ? 1 * buzzerClient.scaleFactor : 0)
 		horizontalAlignment: Text.AlignHCenter
-		//verticalAlignment: Text.AlignVCenter
+		verticalAlignment: labelYOffset !== 0 ? Text.AlignTop : Text.AlignVCenter
 		text: button.symbol
         color: symbolColor
         font.pointSize: symbolFontPointSize
