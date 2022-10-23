@@ -546,8 +546,6 @@ Item
 		leftInset: 10
 		rightInset: 10
 		bottomInset: 10
-		padding: 20
-		spacing: 10
 
 		property var imageIndex: 5
 
@@ -572,8 +570,6 @@ Item
 		leftInset: 10
 		rightInset: 10
 		bottomInset: 10
-		padding: 20
-		spacing: 10
 
 		onClicked: {
 			//

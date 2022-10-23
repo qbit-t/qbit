@@ -723,7 +723,7 @@ QuarkPage
 			//buzzerClient.resync();
 			controller.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.UNKNOWN_REFTX"));
 		} else {
-			controller.showError(message);
+			controller.showError(message, true);
 		}
 	}
 }

@@ -614,6 +614,13 @@ Item
 		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 		Layout.alignment: Qt.AlignHCenter
 
+		topInset: 10
+		leftInset: 10
+		rightInset: 10
+		bottomInset: 10
+		//padding: 20
+		//spacing: 10
+
 		onClicked: {
 			//headerListing.listImages();
 			selectImage.destination = "header";
@@ -632,6 +639,11 @@ Item
 		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 		Layout.alignment: Qt.AlignHCenter
 
+		topInset: 10
+		leftInset: 10
+		rightInset: 10
+		bottomInset: 10
+
 		onClicked: {
 			buzzerHeader_ = "";
 			headerImage.source = "";
@@ -648,6 +660,11 @@ Item
 		labelYOffset: 3
 		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 		Layout.alignment: Qt.AlignHCenter
+
+		topInset: 10
+		leftInset: 10
+		rightInset: 10
+		bottomInset: 10
 
 		onClicked: {
 			var lMsgs = [];
