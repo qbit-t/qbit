@@ -1190,7 +1190,8 @@ QuarkPage {
 				}
 
 				onFocusChanged: {
-					if (activeFocus) {
+					console.info("[onFocusChanged]: activeFocus = " + activeFocus + ", focus = " + focus);
+					if (activeFocus || focus) {
 						releaseFocus = false;
 					} else {
 						// releaseFocus = true;

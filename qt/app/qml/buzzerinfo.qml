@@ -610,7 +610,7 @@ Item
 		y: headerContainer.y + 5
 		symbol: Fonts.folderSym
 		visible: true
-		labelYOffset: 3
+		//labelYOffset: 3
 		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 		Layout.alignment: Qt.AlignHCenter
 
@@ -635,7 +635,7 @@ Item
 		y: chooseHeaderButton.y + chooseHeaderButton.height + 5
 		symbol: Fonts.trashSym
 		visible: true
-		labelYOffset: 3
+		//labelYOffset: 3
 		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 		Layout.alignment: Qt.AlignHCenter
 
@@ -657,7 +657,7 @@ Item
 		y: clearHeaderButton.y + clearHeaderButton.height + 5
 		symbol: Fonts.helpSym
 		visible: true
-		labelYOffset: 3
+		//labelYOffset: 3
 		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
 		Layout.alignment: Qt.AlignHCenter
 

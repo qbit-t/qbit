@@ -808,7 +808,7 @@ QuarkPage {
 				}
 
 				onFocusChanged: {
-					if (activeFocus) {
+					if (activeFocus || focus) {
 						releaseFocus = false;
 					} else {
 						// releaseFocus = true;
