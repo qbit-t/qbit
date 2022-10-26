@@ -376,7 +376,7 @@ Item
 			var lPath = "qrc://res/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "avatar0" + prevAvatarButton.imageIndex);
 			var lNewPath = buzzerApp.tempFilesPath() + "/" + buzzerApp.getFileName(lPath);
 			buzzerApp.copyFile(lPath, lNewPath);
-			avatarImage.source = "file://" + lNewPath;
+			avatarImage.source = (Qt.platform.os === "windows" ? "file:///" : "file://") + lNewPath;
 			buzzerAvatar_ = lNewPath;
 		}
 	}
@@ -589,7 +589,7 @@ Item
 			var lPath = "qrc://res/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "header0" + prevHeaderButton.imageIndex);
 			var lNewPath = buzzerApp.tempFilesPath() + "/" + buzzerApp.getFileName(lPath);
 			buzzerApp.copyFile(lPath, lNewPath);
-			headerImage.source = "file://" + lNewPath;
+			headerImage.source = (Qt.platform.os === "windows" ? "file:///" : "file://") + lNewPath;
 			buzzerHeader_ = lNewPath;
 		}
 	}
