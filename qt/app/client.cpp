@@ -1175,7 +1175,7 @@ QString Client::resolveBuzzerDescription(QString buzzerInfoId) {
 
 void Client::peerPushed(qbit::IPeerPtr peer, bool update, int count) {
 	//
-	//qInfo() << "peerPushed" << QString::fromStdString(peer->key()) << update << count;
+	// qInfo() << "peerPushed" << QString::fromStdString(peer->key()) << update << count;
 
 	//
 	if (count == 1) {
@@ -1300,11 +1300,12 @@ void Client::setBuzzerDAppReady() {
 		}
 	}
 
-	//if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[Client::setBuzzerDAppReady]: peers %d, %d - confirmations = %d", lPeersControl.size(), lPeersControl2.size(), G_BUZZFEED_PEERS_CONFIRMATIONS));
+	// if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("[Client::setBuzzerDAppReady]: peers %d, %d - confirmations = %d", lPeersControl.size(), lPeersControl2.size(), G_BUZZFEED_PEERS_CONFIRMATIONS));
 
 	// we have enough nodes to start servicing
-	if ((double)lPeersControl.size() / (double)G_BUZZ_PEERS_CONFIRMATIONS > 1.0 &&
-		(double)lPeersControl2.size() / (double)G_BUZZ_PEERS_CONFIRMATIONS > 1.0) {
+	bool lProcess = (double)lPeersControl.size() / (double)G_BUZZ_PEERS_CONFIRMATIONS > 1.0 && (double)lPeersControl2.size() / (double)G_BUZZ_PEERS_CONFIRMATIONS > 1.0;
+	if (qbit::gTestNet) lProcess = (double)lPeersControl.size() / (double)G_BUZZ_PEERS_CONFIRMATIONS >= 1.0 && (double)lPeersControl2.size() / (double)G_BUZZ_PEERS_CONFIRMATIONS >= 1.0;
+	if (lProcess) {
 		//
 		bool lNotify = !buzzerDAppReady_;
 		buzzerDAppReady_ = true;

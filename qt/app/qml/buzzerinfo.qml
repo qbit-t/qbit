@@ -782,6 +782,7 @@ Item
 				createBuzzerCommand.avatar = buzzerAvatar_;
 				createBuzzerCommand.header = buzzerHeader_;
 
+				enabled = false;
 				createBuzzerCommand.process();
 			} else {
 				//
@@ -813,10 +814,9 @@ Item
 				createBuzzerInfoCommand.avatar = buzzerAvatar_;
 				createBuzzerInfoCommand.header = buzzerHeader_;
 
+				enabled = false;
 				createBuzzerInfoCommand.process();
 			}
-
-			enabled = false;
 		}
 	}
 
@@ -933,6 +933,12 @@ Item
 			} else if (code === "E_BUZZER_EXISTS") {
 				//
 				controller.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZER_EXISTS"), true);
+			} else if (code === "E_BUZZER_NAME_INCORRECT") {
+				//
+				controller.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZER_NAME_INCORRECT"), true);
+			} else if (code === "E_BUZZER_NAME_TOO_SHORT") {
+				//
+				controller.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZER_NAME_TOO_SHORT"), true);
 			} else if (message === "UNKNOWN_REFTX" || code === "E_TX_NOT_SENT") {
 				// NOTICE: probably buzzer is sucessfully was created, so just try to create info
 				buzzerinfo_.buzzerCreated = true;

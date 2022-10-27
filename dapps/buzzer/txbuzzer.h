@@ -40,6 +40,13 @@ typedef LimitedString<64> buzzer_name_t;
 #define TX_BUZZER_MESSAGE_REPLY			Transaction::CUSTOM_18 //
 #define TX_BUZZ_HIDE					Transaction::CUSTOM_19 //
 #define TX_BUZZER_HIDE					Transaction::CUSTOM_20 //
+#define TX_BUZZER_BLOCK					Transaction::CUSTOM_21 //
+#define TX_BUZZER_UNBLOCK				Transaction::CUSTOM_22 //
+#define TX_BUZZER_GROUP					Transaction::CUSTOM_23 //
+#define TX_BUZZER_GROUP_INVITE			Transaction::CUSTOM_24 //
+#define TX_BUZZER_GROUP_KEYS			Transaction::CUSTOM_25 //
+#define TX_BUZZER_GROUP_JOIN			Transaction::CUSTOM_26 //
+#define TX_BUZZER_GROUP_LEAVE			Transaction::CUSTOM_27 //
 
 #define TX_BUZZER_ALIAS_SIZE 128 
 #define TX_BUZZER_DESCRIPTION_SIZE 512
