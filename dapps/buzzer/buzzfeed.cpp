@@ -122,7 +122,7 @@ void BuzzfeedItem::push(const BuzzfeedItem& buzz, const uint160& peer) {
 			lBuzz->notOnChain(); // only for the dynamic updates
 			lBuzz->setDynamic(); // dynamic
 			//
-			unconfirmed_[buzz.key()] = lBuzz;
+			lItem = unconfirmed_.insert(std::map<Key /*buzz*/, BuzzfeedItemPtr>::value_type(buzz.key(), lBuzz)).first;
 		} else {
 			BuzzfeedItemPtr lBuzz = BuzzfeedItem::instance(buzz);
 			std::cout << "[PUSH-ERROR]: signature is wrong, buzz = " << rootBuzzId_.toHex() << ", nonce = " << nonce_ << "\n";

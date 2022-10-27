@@ -229,7 +229,7 @@ public:
 		}
 
 		//if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, std::string("[pushState]: ") +
-		//			strprintf("%d/%d", chainHeights_.size(), lChainHeights.size()));
+		//            strprintf("%d/%d", chainHeights_.size(), lChainHeights.size()));
 
 		// check if new block confirmed (at least 2 peers) - notification
 		if (chainStateChanged_) {
@@ -238,15 +238,15 @@ public:
 			            lChain != chainHeights_.end() /*&& lChainHeights.size()*/; lChain++) {
 				//
 				//if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, std::string("[pushState]: ") +
-				//			strprintf("%s, %d, %d", lChain->first.toHex(), lChain->second.rbegin()->first, lChain->second.rbegin()->second.size()));
+				//            strprintf("%s, %d, %d", lChain->first.toHex(), lChain->second.rbegin()->first, lChain->second.rbegin()->second.size()));
 				//
 				std::map<uint64_t, std::set<uint160>>& lChainMap = lChainHeights[lChain->first];
 				if (lChainMap.rbegin() != lChainMap.rend() &&
 				        lChain->second.rbegin()->first >= lChainMap.rbegin()->first &&
-				            lChain->second.rbegin()->second.size() >= 2 /*at least two nodes*/) {
+				            lChain->second.rbegin()->second.size() >= (qbit::gTestNet ? 1 : 2)) {
 					//
 					//if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, std::string("[pushState]: ") +
-					//			strprintf(" -> %d", lChainMap.rbegin()->first));
+					//            strprintf(" -> %d", lChainMap.rbegin()->first));
 					//
 					uint160 lAddressId = *lChain->second.rbegin()->second.begin();
 					StatePtr lState = states_[lAddressId];
@@ -254,7 +254,7 @@ public:
 						State::BlockInfo lInfo;
 						if (lState->locateChain(lChain->first, lInfo)) {
 							//if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, std::string("[pushState]: ") +
-							//			strprintf("%s, %d, %d", lChain->first.toHex(), lInfo.height(), lInfo.timestamp()));
+							//            strprintf("%s, %d, %d", lChain->first.toHex(), lInfo.height(), lInfo.timestamp()));
 							chainStateChanged_(lChain->first, lInfo.hash(), lInfo.height(), lInfo.timestamp());
 						}
 					}

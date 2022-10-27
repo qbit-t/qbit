@@ -612,6 +612,7 @@ public:
 	virtual bool isEntity(UnlinkedOutPtr) { return false; }
 	virtual bool isEntity() { return false; }
 	virtual bool isFeeFee() { return false; }
+	virtual bool isPersistent() { return true; }
 	
 	virtual bool isContinuousData() { return false; }
 	
