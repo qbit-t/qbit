@@ -888,6 +888,9 @@ public:
 	void wasSuspicious() { wasSuspicious_ = true; }
 	virtual bool isRoot() { return false; }
 
+	bool blocked() { return blocked_; }
+	void setBlocked(bool value) { blocked_ = value; }	
+
 	bool hasPrevLink() { return hasPrevLink_; }
 	void setHasPrevLink(bool value) { hasPrevLink_ = value; }
 
@@ -1155,6 +1158,9 @@ protected:
 	bool hasPrevLink_ = false;
 	bool hasNextLink_ = false;
 	bool pulled_ = false;
+
+	// blocked?
+	bool blocked_ = false;
 
 	//
 	struct _commit {

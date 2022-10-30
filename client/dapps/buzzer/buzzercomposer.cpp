@@ -2224,6 +2224,62 @@ void BuzzerLightComposer::CreateTxBuzzerHide::utxoByBuzzerLoaded(const std::vect
 }
 
 //
+// CreateTxBuzzerBlock
+//
+void BuzzerLightComposer::CreateTxBuzzerBlock::process(errorFunction error) {
+	//
+	error_ = error;
+	//
+	std::vector<Transaction::UnlinkedOut> lMyBuzzerUtxos = composer_->buzzerUtxo();
+	if (!lMyBuzzerUtxos.size()) {
+		composer_->requestProcessor()->selectUtxoByEntity(composer_->buzzerTx()->myName(), 
+			SelectUtxoByEntityName::instance(
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzerBlock::saveBuzzerUtxo, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzerBlock::timeout, shared_from_this()))
+		);
+	} else {
+		utxoByBuzzerLoaded(lMyBuzzerUtxos, composer_->buzzerTx()->myName());
+	}
+}
+
+void BuzzerLightComposer::CreateTxBuzzerBlock::saveBuzzerUtxo(const std::vector<Transaction::UnlinkedOut>& utxo, const std::string& buzzer) {
+	//
+	TxBuzzerPtr lMyBuzzer = composer_->buzzerTx();
+	composer_->writeBuzzerUtxo(utxo);
+	utxoByBuzzerLoaded(utxo, lMyBuzzer->myName());
+}
+
+void BuzzerLightComposer::CreateTxBuzzerBlock::utxoByBuzzerLoaded(const std::vector<Transaction::UnlinkedOut>& utxo, const std::string& buzzer) {
+	//
+	TxBuzzerBlockPtr lTx = TransactionHelper::to<TxBuzzerBlock>(TransactionFactory::create(TX_BUZZER_BLOCK));
+	// create context
+	TransactionContextPtr lCtx = TransactionContext::instance(lTx);
+	//
+	lTx->setTimestamp(qbit::getMedianMicroseconds());
+
+	// get buzzer tx (saved/cached)
+	TxBuzzerPtr lMyBuzzer = composer_->buzzerTx();
+	if (lMyBuzzer) {
+		SKeyPtr lSKey = composer_->wallet()->firstKey();
+		//
+		Transaction::In& lShardIn = *(++(lMyBuzzer->in().begin())); // second in
+		uint256 lShardTx = lShardIn.out().tx();
+		lTx->setChain(lShardTx);
+		lTx->setBuzzer(buzzer_);
+
+		// add my byzzer in
+		lTx->addMyBuzzerIn(*lSKey, Transaction::UnlinkedOut::instance(const_cast<Transaction::UnlinkedOut&>(utxo[TX_BUZZER_MY_OUT])));
+
+		// finalize
+		if (!lTx->finalize(*lSKey)) { error_("E_TX_FINALIZE", "Transaction finalization failed."); return; }
+
+		created_(lCtx);
+	} else {
+		error_("E_BUZZER_TX_NOT_FOUND", "Local buzzer was not found."); return;
+	}
+}
+
+//
 // CreateTxBuzzReward
 //
 void BuzzerLightComposer::CreateTxBuzzReward::process(errorFunction error) {

@@ -210,6 +210,7 @@ public:
 		//rebuzzes_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/rebuzzes"),
 		endorsements_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/endorsements"),
 		mistrusts_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/mistrusts"),
+		blocks_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/blocks"),
 		buzzInfo_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/buzz_info"),
 		buzzerStat_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/buzzer_stat"),
 		buzzerInfo_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/buzzer_info"),
@@ -271,6 +272,7 @@ private:
 	void processMessage(const uint256&, TransactionContextPtr);
 	void processHide(const uint256&, TransactionContextPtr);
 	void processBuzzerHide(const uint256&, TransactionContextPtr);
+	void processBuzzerBlock(const uint256&, TransactionContextPtr);
 
 	void incrementLikes(const uint256&);
 	void decrementLikes(const uint256&);
@@ -485,6 +487,8 @@ private:
 	db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*endoser*/, uint256 /*tx*/> endorsements_;
 	// buzzer | mistruster -> tx
 	db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*mistruster*/, uint256 /*tx*/> mistrusts_;
+	// buzzer | blocker -> tx
+	db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*blocker*/, uint256 /*tx*/> blocks_;
 };
 
 //

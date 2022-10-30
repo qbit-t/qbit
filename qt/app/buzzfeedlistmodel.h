@@ -68,7 +68,8 @@ public:
 		OwnLikeRole,
 		OwnRebuzzRole,
 		AdjustDataRole,
-		IsEmojiRole
+		IsEmojiRole,
+		BlockedRole
 	};
 
 public:
@@ -95,6 +96,8 @@ public:
 	Q_INVOKABLE QString itemToString(int index);
 	Q_INVOKABLE void remove(int index);
 	Q_INVOKABLE void forceRelayout(int index, int count);
+	Q_INVOKABLE void markBlocked(const QString&);
+	Q_INVOKABLE void removeBlocked();
 
 	void buzzfeedLargeUpdated();
 	void buzzfeedItemNew(qbit::BuzzfeedItemPtr /*buzz*/);
@@ -103,7 +106,7 @@ public:
 	void buzzfeedItemAbsent(const uint256& /*chain*/, const uint256& /*buzz*/);
 
 	void feed(qbit::BuzzfeedPtr /*local*/, bool /*more*/, bool /*merge*/);
-	void merge();
+	Q_INVOKABLE void merge();
 
 	qbit::BuzzfeedPtr buzzfeed() { return buzzfeed_; }
 

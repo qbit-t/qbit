@@ -183,6 +183,25 @@ void BuzzfeedListModel::remove(int index) {
 	}
 }
 
+void BuzzfeedListModel::markBlocked(const QString& buzzer) {
+	//
+	uint256 lId; lId.setHex(buzzer.toStdString());
+	for (size_t lIdx = 0; lIdx < list_.size(); lIdx++) {
+		//
+		qbit::BuzzfeedItemPtr lItem = list_[lIdx];
+		if (lId == lItem->buzzerId()) {
+			lItem->setBlocked(true);
+			//
+			QModelIndex lModelIndex = createIndex(lIdx, lIdx);
+			emit dataChanged(lModelIndex, lModelIndex, QVector<int>() << BlockedRole);
+		}
+	}
+}
+
+void BuzzfeedListModel::removeBlocked() {
+	//
+}
+
 void BuzzfeedListModel::forceRelayout(int index, int count) {
 	//
 	QList<QPersistentModelIndex> lParents;
@@ -339,6 +358,8 @@ QVariant BuzzfeedListModel::data(const QModelIndex& index, int role) const {
 		return lItem->hasLike();
 	} else if (role == OwnRebuzzRole) {
 		return lItem->hasRebuzz();
+	} else if (role == BlockedRole) {
+		return lItem->blocked();
 	} else if (role == IsEmojiRole) {
 		//
 		bool lEmojiString = true;
@@ -420,6 +441,7 @@ QHash<int, QByteArray> BuzzfeedListModel::roleNames() const {
 	lRoles[OwnRebuzzRole] = "ownRebuzz";
 	lRoles[AdjustDataRole] = "adjustData";
 	lRoles[IsEmojiRole] = "isEmoji";
+	lRoles[BlockedRole] = "blocked";
 
 	return lRoles;
 }

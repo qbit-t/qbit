@@ -9,6 +9,7 @@
 #include "txbuzzlike.h"
 #include "txbuzzhide.h"
 #include "txbuzzerhide.h"
+#include "txbuzzerblock.h"
 #include "txbuzzreward.h"
 #include "txbuzzersubscribe.h"
 #include "txbuzzerunsubscribe.h"
@@ -55,6 +56,7 @@ bool BuzzerTransactionStoreExtension::open() {
 			buzzerInfo_.open();
 			endorsements_.open();
 			mistrusts_.open();
+			blocks_.open();
 			hiddenIdx_.open();
 
 			opened_ = true;
@@ -98,6 +100,7 @@ bool BuzzerTransactionStoreExtension::close() {
 	buzzerStat_.close();
 	endorsements_.close();
 	mistrusts_.close();
+	blocks_.close();
 	hiddenIdx_.close();
 
 	opened_ = false;
@@ -494,7 +497,17 @@ bool BuzzerTransactionStoreExtension::isAllowed(TransactionContextPtr ctx) {
 		//
 		uint256 lOwner;
 		if (hiddenIdx_.read(lBuzzerId, lOwner)) return false;
-	} 
+	} else if (ctx->tx()->type() == TX_BUZZER_BLOCK) {
+		//
+		TxBuzzerBlockPtr lBuzzerBlock = TransactionHelper::to<TxBuzzerBlock>(ctx->tx());
+		// extract buzzer
+		uint256 lBuzzerId = lBuzzerBlock->in()[TX_BUZZ_MY_BUZZER_IN].out().tx(); // owner
+		uint256 lBlockId = lBuzzerBlock->buzzer();
+		
+		// check
+		uint256 lBlockTx;
+		if (blocks_.read(qbit::db::TwoKey<uint256, uint256>(lBlockId, lBuzzerId), lBlockTx)) return false;
+	}
 
 	return true;
 }
@@ -726,6 +739,8 @@ bool BuzzerTransactionStoreExtension::pushEntity(const uint256& id, TransactionC
 		processHide(id, ctx);
 	} else if (ctx->tx()->type() == TX_BUZZER_HIDE) {
 		processBuzzerHide(id, ctx);
+	} else if (ctx->tx()->type() == TX_BUZZER_BLOCK) {
+		processBuzzerBlock(id, ctx);
 	}
 
 	//
@@ -1487,6 +1502,31 @@ void BuzzerTransactionStoreExtension::processBuzzerHide(const uint256& id, Trans
 	}
 }
 
+void BuzzerTransactionStoreExtension::processBuzzerBlock(const uint256& id, TransactionContextPtr ctx) {
+	// extract
+	TxBuzzerBlockPtr lBuzzerBlock = TransactionHelper::to<TxBuzzerBlock>(ctx->tx());
+	//
+	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: pushing buzzer block ") +
+		strprintf("%s/%s#", ctx->tx()->id().toHex(), store_->chain().toHex().substr(0, 10)));
+	//
+	// extract buzzer
+	uint256 lBuzzerId = lBuzzerBlock->in()[TX_BUZZ_MY_BUZZER_IN].out().tx(); // owner
+	uint256 lBlockId = lBuzzerBlock->buzzer();
+	
+	// check
+	uint256 lBlockTx;
+	if (!blocks_.read(qbit::db::TwoKey<uint256, uint256>(lBlockId, lBuzzerId), lBlockTx)) {
+		// write
+		blocks_.write(lBlockId, lBuzzerId, lBuzzerBlock->id());
+		//
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: buzzer block PUSHED: ") +
+			strprintf("tx = %s, buzzer = %s", ctx->tx()->id().toHex(), lBlockId.toHex()));
+	} else {
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity/error]: buzzer is ALREADY blocked: ") +
+			strprintf("tx = %s, buzzer = %s", ctx->tx()->id().toHex(), lBlockId.toHex()));
+	}
+}
+
 void BuzzerTransactionStoreExtension::processReward(const uint256& id, TransactionContextPtr ctx) {
 	// extract buzz_id
 	TxBuzzRewardPtr lBuzzReward = TransactionHelper::to<TxBuzzReward>(ctx->tx());
@@ -1728,6 +1768,25 @@ void BuzzerTransactionStoreExtension::removeTransaction(TransactionPtr tx) {
 
 		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: buzzer hide removed ") +
 			strprintf("buzzer = %s", lBuzzerId.toHex()));
+	} else if (tx->type() == TX_BUZZER_BLOCK) {
+		// extract buzz_id
+		TxBuzzerBlockPtr lBuzzerBlock = TransactionHelper::to<TxBuzzerBlock>(tx);
+		//
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: removing buzzre block ") +
+			strprintf("%s/%s#", tx->id().toHex(), store_->chain().toHex().substr(0, 10)));
+		//
+		// extract buzzer
+		uint256 lBuzzerId = lBuzzerBlock->in()[TX_BUZZ_MY_BUZZER_IN].out().tx(); //
+		uint256 lBlockId = lBuzzerBlock->buzzer();
+		// check
+		uint256 lBlockTx;
+		if (blocks_.read(qbit::db::TwoKey<uint256, uint256>(lBlockId, lBuzzerId), lBlockTx)) {
+			//
+			blocks_.remove(lBlockId, lBuzzerId);
+		}
+
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: buzzer block removed ") +
+			strprintf("buzzer = %s", lBlockId.toHex()));
 	} else if (tx->type() == TX_BUZZ_REWARD) {
 		// extract buzz_id
 		TxBuzzRewardPtr lBuzzReward = TransactionHelper::to<TxBuzzReward>(tx);
@@ -3708,6 +3767,7 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedByBuzz(uint64_t from, const 
 				lPublisherExtension->readBuzzerStat(lTxPublisher, lPublisherInfo);
 				if (!lPublisherInfo.trusted()) continue;
 			}
+
 			/*
 			// check for personal trust
 			uint256 lTrustTx;
@@ -3717,6 +3777,13 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedByBuzz(uint64_t from, const 
 					continue; // in case if we have mistrusted and NOT endorsed the publisher
 			}
 			*/
+
+			// check for explicitly blocked buzzers
+			uint256 lBlockTx;
+			if (blocks_.read(qbit::db::TwoKey<uint256, uint256>(lTxPublisher, subscriber), lBlockTx)) {
+				continue;
+			}
+
 			// check for hidden
 			uint256 lOwner;
 			if (hiddenIdx_.read(lEventId, lOwner)) continue;
@@ -4002,13 +4069,19 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedGlobal(uint64_t timeframeFro
 			if (hiddenIdx_.read(*lFrom, lOwner)) continue;
 			if (hiddenIdx_.read(lTxPublisher, lOwner)) continue;
 
+			// check for explicitly blocked buzzers
+			uint256 lBlockTx;
+			if (blocks_.read(qbit::db::TwoKey<uint256, uint256>(lTxPublisher, subscriber), lBlockTx)) {
+				continue;
+			}
+
 			// check for personal trust
 			uint256 lTrustTx;
 			if (mistrusts_.read(qbit::db::TwoKey<uint256, uint256>(lTxPublisher, subscriber), lTrustTx)) {
 				// re-ceck if we have compensation
 				if (!endorsements_.read(qbit::db::TwoKey<uint256, uint256>(lTxPublisher, subscriber), lTrustTx))
 					continue; // in case if we have mistrusted and NOT endirsed the publisher
-			}
+			}			
 
 			//
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectBuzzfeedGlobal]: try to added item ") +
@@ -4365,6 +4438,12 @@ void BuzzerTransactionStoreExtension::selectBuzzfeed(const std::vector<BuzzfeedP
 						continue; // in case if we have mistrusted and NOT endorsed the publisher
 				}
 				*/
+
+				// check for explicitly blocked buzzers
+				uint256 lBlockTx;
+				if (blocks_.read(qbit::db::TwoKey<uint256, uint256>(lTxPublisher, subscriber), lBlockTx)) {
+					continue;
+				}
 
 				// check for hidden
 				uint256 lOwner;
@@ -4912,6 +4991,12 @@ BuzzfeedItemPtr BuzzerTransactionStoreExtension::makeBuzzfeedItem(int& context, 
 				TransactionPtr lBuzzerTx = mainStore->locateTransaction(lBuzzerId);
 				if (lBuzzerTx) lBuzzer = TransactionHelper::to<TxBuzzer>(lBuzzerTx);
 				else return nullptr;
+
+				// check for explicitly blocked buzzers
+				uint256 lBlockTx;
+				if (blocks_.read(qbit::db::TwoKey<uint256, uint256>(lBuzzerId, subscriber), lBlockTx)) {
+					return nullptr;
+				}
 
 				// add buzz
 				makeBuzzfeedItem(++context, lBuzzer, lOriginalTx, mainStore, rawBuzzfeed, buzzes, subscriber);

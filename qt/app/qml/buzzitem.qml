@@ -72,6 +72,7 @@ Item {
 	property bool ownRebuzz_: ownRebuzz
 	property bool adjustData_: adjustData
 	property bool suspended_: false
+	property bool blocked_: blocked
 
 	property var controller_: controller
 	property var buzzfeedModel_
@@ -423,12 +424,12 @@ Item {
 		id: endorseSymbol
 		x: avatarImage.x + avatarImage.displayWidth / 2 - width / 2
 		y: avatarImage.y + avatarImage.displayHeight + spaceItems_
-		symbol: endorsed_ ? Fonts.endorseSym : Fonts.mistrustSym
+		symbol: blocked_ ? Fonts.banSym : (endorsed_ ? Fonts.endorseSym : Fonts.mistrustSym)
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzitem_.defaultFontSize + 2)) : (buzzerApp.defaultFontSize() + 3)
 		color: endorsed_ ? buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.endorsed") :
 						   buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.mistrusted");
 
-		visible: endorsed_ || mistrusted_
+		visible: endorsed_ || mistrusted_ || blocked_
 	}
 
 	QuarkVLine {
@@ -1168,6 +1169,14 @@ Item {
 				buzzerEndorseCommand.process(buzzerName_);
 			} else if (key === "mistrust") {
 				buzzerMistrustCommand.process(buzzerName_);
+			} else if (key === "block") {
+				controller.confirmAction(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.confirm.block").
+										   replace("{buzzer}", buzzerName_), function() {
+						//
+						buzzfeedModel_.markBlocked(buzzerId_);
+						buzzerBlockCommand.process(buzzerId_);
+					}
+				);
 			} else if (key === "copytx") {
 				clipboard.setText("buzz://" + buzzChainId_ + "/" + buzzId_);
 			} else if (key === "hide") {
@@ -1199,6 +1208,11 @@ Item {
 					key: "mistrust",
 					keySymbol: Fonts.mistrustSym,
 					name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.mistrust")});
+
+				menuModel.append({
+					key: "block",
+					keySymbol: Fonts.banSym,
+					name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.block")});
 
 				if (!buzzerClient.subscriptionExists(buzzerId_)) {
 					menuModel.append({
@@ -1384,7 +1398,7 @@ Item {
 		}
 		onRetry: {
 			// was specific error, retrying...
-			retryBuzzerEndorseCommand.start();
+			retryBuzzerMistrustCommand.start();
 		}
 		onError: {
 			if (code === "E_CHAINS_ABSENT") return;
@@ -1407,6 +1421,24 @@ Item {
 
 		onTriggered: {
 			buzzerMistrustCommand.reprocess();
+		}
+	}
+
+	BuzzerCommands.BuzzerBlockCommand {
+		id: buzzerBlockCommand
+
+		onProcessed: {
+			// adjust model
+			buzzfeedModel_.merge();
+		}
+		onError: {
+			if (code === "E_CHAINS_ABSENT") return;
+			if (message === "UNKNOWN_REFTX" || code == "E_TX_NOT_SENT") {
+				//buzzerClient.resync();
+				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.UNKNOWN_REFTX"), true);
+			} else {
+				controller_.showError(message, true);
+			}
 		}
 	}
 

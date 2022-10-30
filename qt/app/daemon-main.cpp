@@ -631,6 +631,7 @@ int main(int argc, char** argv) {
 	Transaction::registerTransactionType(TX_BUZZ_LIKE, TxBuzzLikeCreator::instance());
 	Transaction::registerTransactionType(TX_BUZZ_HIDE, TxBuzzHideCreator::instance());
 	Transaction::registerTransactionType(TX_BUZZER_HIDE, TxBuzzerHideCreator::instance());
+	Transaction::registerTransactionType(TX_BUZZER_BLOCk, TxBuzzerBlockCreator::instance());
 	Transaction::registerTransactionType(TX_BUZZ_REPLY, TxBuzzReplyCreator::instance());
 	Transaction::registerTransactionType(TX_REBUZZ, TxReBuzzCreator::instance());
 	Transaction::registerTransactionType(TX_BUZZ_REBUZZ_NOTIFY, TxReBuzzNotifyCreator::instance());

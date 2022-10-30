@@ -924,6 +924,12 @@ ApplicationWindow {
         return false;
     }
 
+    function confirmAction(message, callback) {
+    	//
+    	confirmActionDialog.acceptHandler = callback;
+    	confirmActionDialog.show(message);
+    }
+
 	function openDrawer() {
 		myBuzzer.initialize();
 		drawerMenu.prepare();
@@ -1213,6 +1219,24 @@ ApplicationWindow {
 					name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.quick.help"),
 					leftOffset: 0});
 			}
+		}
+	}
+
+	ConfirmSendDialog 
+	{
+		id: confirmActionDialog
+		y: parent.height / 2 - height / 2
+
+		property var acceptHandler: null;
+		property var rejectHandler: null;
+
+		onAccepted: {
+			if (acceptHandler) acceptHandler();
+		}
+
+		onRejected: {
+			confirmActionDialog.close();
+			if (rejectHandler) rejectHandler.close();
 		}
 	}
 

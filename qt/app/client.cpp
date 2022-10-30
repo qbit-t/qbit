@@ -29,6 +29,7 @@
 	#include "dapps/buzzer/txbuzzlike.h"
 	#include "dapps/buzzer/txbuzzhide.h"
 	#include "dapps/buzzer/txbuzzerhide.h"
+	#include "dapps/buzzer/txbuzzerblock.h"
 	#include "dapps/buzzer/txbuzzreward.h"
 	#include "dapps/buzzer/txbuzzreply.h"
 	#include "dapps/buzzer/txrebuzz.h"
@@ -325,6 +326,7 @@ int Client::open(QString secret) {
 	Transaction::registerTransactionType(TX_BUZZ_LIKE, TxBuzzLikeCreator::instance());
 	Transaction::registerTransactionType(TX_BUZZ_HIDE, TxBuzzHideCreator::instance());
 	Transaction::registerTransactionType(TX_BUZZER_HIDE, TxBuzzerHideCreator::instance());
+	Transaction::registerTransactionType(TX_BUZZER_BLOCK, TxBuzzerBlockCreator::instance());
 	Transaction::registerTransactionType(TX_BUZZ_REPLY, TxBuzzReplyCreator::instance());
 	Transaction::registerTransactionType(TX_REBUZZ, TxReBuzzCreator::instance());
 	Transaction::registerTransactionType(TX_BUZZ_REBUZZ_NOTIFY, TxReBuzzNotifyCreator::instance());
@@ -495,6 +497,7 @@ int Client::open(QString secret) {
 	qmlRegisterType<buzzer::BuzzLikeCommand>("app.buzzer.commands", 1, 0, "BuzzLikeCommand");
 	qmlRegisterType<buzzer::BuzzHideCommand>("app.buzzer.commands", 1, 0, "BuzzHideCommand");
 	qmlRegisterType<buzzer::BuzzerHideCommand>("app.buzzer.commands", 1, 0, "BuzzerHideCommand");
+	qmlRegisterType<buzzer::BuzzerBlockCommand>("app.buzzer.commands", 1, 0, "BuzzerBlockCommand");
 	qmlRegisterType<buzzer::BuzzRewardCommand>("app.buzzer.commands", 1, 0, "BuzzRewardCommand");
 	qmlRegisterType<buzzer::BuzzCommand>("app.buzzer.commands", 1, 0, "BuzzCommand");
 	qmlRegisterType<buzzer::ReBuzzCommand>("app.buzzer.commands", 1, 0, "ReBuzzCommand");

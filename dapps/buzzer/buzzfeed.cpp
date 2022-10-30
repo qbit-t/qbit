@@ -636,7 +636,7 @@ void BuzzfeedItem::feed(std::vector<BuzzfeedItemPtr>& feed, bool expanded) {
 				std::map<Key /*buzz*/, BuzzfeedItemPtr>::iterator lBuzz = items_.find(lItem->second);
 				// if exists and VALID (signature checked)
 				if (lBuzz != items_.end()) {
-					if (lBuzz->second->valid()) {
+					if (lBuzz->second->valid() && !lBuzz->second->blocked()) {
 						//
 						if (!buzzId_.isEmpty() && lBuzz->second->originalBuzzId() == buzzId_ && buzzId_ != rootBuzzId_) {
 							setHasNextLink(true);
@@ -675,7 +675,7 @@ void BuzzfeedItem::feed(std::vector<BuzzfeedItemPtr>& feed, bool expanded) {
 				std::map<Key /*buzz*/, BuzzfeedItemPtr>::iterator lBuzz = items_.find(lItem->second);
 				// if exists and VALID (signature checked)
 				if (lBuzz != items_.end()) {
-					if (lBuzz->second->valid()) {
+					if (lBuzz->second->valid() && !lBuzz->second->blocked()) {
 						// push
 						bool lAdd = true;
 						std::vector<BuzzfeedItemPtr>::reverse_iterator lLastItem = feed.rbegin();
@@ -727,7 +727,7 @@ void BuzzfeedItem::feed(std::vector<BuzzfeedItemPtr>& feed, bool expanded) {
 				std::map<Key /*buzz*/, BuzzfeedItemPtr>::iterator lBuzz = items_.find(lItem->second);
 				// if exists and VALID (signature checked)
 				if (lBuzz != items_.end()) {
-					if (lBuzz->second->valid()) {
+					if (lBuzz->second->valid() && !lBuzz->second->blocked()) {
 						//
 						if (!buzzId_.isEmpty() && lBuzz->second->originalBuzzId() == buzzId_ && buzzId_ != rootBuzzId_) {
 							setHasNextLink(true);
@@ -764,7 +764,7 @@ void BuzzfeedItem::feed(std::vector<BuzzfeedItemPtr>& feed, bool expanded) {
 				std::map<Key /*buzz*/, BuzzfeedItemPtr>::iterator lBuzz = items_.find(lItem->second);
 				// if exists and VALID (signature checked)
 				if (lBuzz != items_.end()) {
-					if (lBuzz->second->valid()) {
+					if (lBuzz->second->valid() && !lBuzz->second->blocked()) {
 						// push
 						bool lReplace = false;
 						std::vector<BuzzfeedItemPtr>::reverse_iterator lLastItem = feed.rbegin();

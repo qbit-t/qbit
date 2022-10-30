@@ -11,6 +11,7 @@
 #include "../../../dapps/buzzer/txbuzzlike.h"
 #include "../../../dapps/buzzer/txbuzzhide.h"
 #include "../../../dapps/buzzer/txbuzzerhide.h"
+#include "../../../dapps/buzzer/txbuzzerblock.h"
 #include "../../../dapps/buzzer/txbuzzreward.h"
 #include "../../../dapps/buzzer/txbuzzreply.h"
 #include "../../../dapps/buzzer/txrebuzz.h"
@@ -764,6 +765,31 @@ public:
 
 	private:
 		BuzzerLightComposerPtr composer_;
+		transactionCreatedFunction created_;
+		errorFunction error_;
+	};
+
+	class CreateTxBuzzerBlock: public IComposerMethod, public std::enable_shared_from_this<CreateTxBuzzerBlock> {
+	public:
+		CreateTxBuzzerBlock(BuzzerLightComposerPtr composer, const uint256& buzzer, transactionCreatedFunction created): composer_(composer), buzzer_(buzzer), created_(created) {}
+		void process(errorFunction);
+
+		static IComposerMethodPtr instance(BuzzerLightComposerPtr composer, const uint256& buzzer, transactionCreatedFunction created) {
+			return std::make_shared<CreateTxBuzzerBlock>(composer, buzzer, created);
+		}
+
+		// 
+		void timeout() {
+			error_("E_TIMEOUT", "Timeout expired during buzzer block.");
+		}
+
+		//
+		void utxoByBuzzerLoaded(const std::vector<Transaction::UnlinkedOut>&, const std::string&);
+		void saveBuzzerUtxo(const std::vector<Transaction::UnlinkedOut>&, const std::string&);		
+
+	private:
+		BuzzerLightComposerPtr composer_;
+		uint256 buzzer_;
 		transactionCreatedFunction created_;
 		errorFunction error_;
 	};

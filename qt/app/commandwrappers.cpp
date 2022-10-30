@@ -403,6 +403,23 @@ void BuzzHideCommand::prepare() {
 	QQmlEngine::setObjectOwnership(this, QQmlEngine::CppOwnership);
 }
 
+BuzzerBlockCommand::BuzzerBlockCommand(QObject* /*parent*/) : QObject() {
+	//
+}
+
+void BuzzerBlockCommand::prepare() {
+	//
+	Client* lClient = static_cast<Client*>(gApplication->getClient());
+
+	command_ = qbit::BuzzerBlockCommand::instance(
+		lClient->getBuzzerComposer(),
+		boost::bind(&BuzzerBlockCommand::done, this, boost::placeholders::_1)
+	);
+
+	// pin
+	QQmlEngine::setObjectOwnership(this, QQmlEngine::CppOwnership);
+}
+
 BuzzRewardCommand::BuzzRewardCommand(QObject* /*parent*/) : QObject() {
 	//
 }
@@ -439,6 +456,7 @@ void BuzzCommand::prepare() {
 		uploadCommand_->setDone(boost::bind(&qbit::CreateBuzzCommand::mediaUploaded, command_, boost::placeholders::_1, boost::placeholders::_2));
 
 		// link notification
+
 		command_->setMediaUploaded(boost::bind(&BuzzCommand::mediaUploaded, this, boost::placeholders::_1, boost::placeholders::_2));
 	}
 }

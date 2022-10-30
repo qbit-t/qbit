@@ -10,6 +10,7 @@
 #include "txbuzzlike.h"
 #include "txbuzzhide.h"
 #include "txbuzzerhide.h"
+#include "txbuzzerblock.h"
 #include "txbuzzreward.h"
 #include "txbuzzerendorse.h"
 #include "txbuzzermistrust.h"
@@ -429,7 +430,6 @@ bool BuzzerPeerExtension::processBuzzHide(TransactionContextPtr ctx) {
 
 	return false;
 }
-
 
 bool BuzzerPeerExtension::processBuzzLike(TransactionContextPtr ctx) {
 	//

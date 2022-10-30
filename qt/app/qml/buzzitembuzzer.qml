@@ -728,6 +728,14 @@ Item {
 				buzzerEndorseCommand.process(buzzer_);
 			} else if (key === "mistrust") {
 				buzzerMistrustCommand.process(buzzer_);
+			} else if (key === "block") {
+				controller.confirmAction(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.confirm.block").
+										   replace("{buzzer}", buzzerName_), function() {
+						//
+						buzzfeedModel_.markBlocked(buzzerId_);
+						buzzerBlockCommand.process(buzzerId_);
+					}
+				);
 			} else if (key === "conversation") {
 				//
 				var lId = buzzerClient.getConversationsList().locateConversation(buzzer_);
@@ -753,6 +761,11 @@ Item {
 				key: "mistrust",
 				keySymbol: Fonts.mistrustSym,
 				name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.mistrust")});
+
+			menuModel.append({
+				key: "block",
+				keySymbol: Fonts.banSym,
+				name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.block")});
 
 			if (!buzzerClient.subscriptionExists(buzzerId_)) {
 				menuModel.append({
@@ -824,6 +837,24 @@ Item {
 				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_INSUFFICIENT_QTT_BALANCE"), true);
 			} else {
 				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_MISTRUST"), true);
+			}
+		}
+	}
+
+	BuzzerCommands.BuzzerBlockCommand {
+		id: buzzerBlockCommand
+
+		onProcessed: {
+			// adjust model
+			buzzfeedModel_.merge();
+		}
+		onError: {
+			if (code === "E_CHAINS_ABSENT") return;
+			if (message === "UNKNOWN_REFTX" || code == "E_TX_NOT_SENT") {
+				//buzzerClient.resync();
+				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.UNKNOWN_REFTX"), true);
+			} else {
+				controller_.showError(message, true);
 			}
 		}
 	}
