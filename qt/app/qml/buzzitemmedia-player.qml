@@ -502,7 +502,7 @@ Rectangle {
 		id: elapsedTime
 		x: nextButton.visible ? (nextButton.x + nextButton.width + 2*spaceItems_ + (caption.visible ? 3 : 0)) :
 								(actionButton.x + actionButton.width + 2*spaceItems_ + (caption.visible ? 3 : 0))
-		y: actionButton.y + (caption.visible ? caption.height + 3 : spaceItems_)
+		y: actionButton.y + (caption.visible ? caption.height + (buzzerApp.isDesktop ? 0 : 3) : spaceItems_)
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - (caption.visible ? 3 : 0))) : buzzerApp.defaultFontSize()
 		text: "00:00"
 		opacity: 1.0
