@@ -2262,9 +2262,7 @@ void BuzzerLightComposer::CreateTxBuzzerBlock::utxoByBuzzerLoaded(const std::vec
 	if (lMyBuzzer) {
 		SKeyPtr lSKey = composer_->wallet()->firstKey();
 		//
-		Transaction::In& lShardIn = *(++(lMyBuzzer->in().begin())); // second in
-		uint256 lShardTx = lShardIn.out().tx();
-		lTx->setChain(lShardTx);
+		lTx->setChain(chain_);
 		lTx->setBuzzer(buzzer_);
 
 		// add my byzzer in

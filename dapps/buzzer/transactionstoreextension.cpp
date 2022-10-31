@@ -1520,7 +1520,7 @@ void BuzzerTransactionStoreExtension::processBuzzerBlock(const uint256& id, Tran
 		blocks_.write(lBlockId, lBuzzerId, lBuzzerBlock->id());
 		//
 		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: buzzer block PUSHED: ") +
-			strprintf("tx = %s, buzzer = %s", ctx->tx()->id().toHex(), lBlockId.toHex()));
+			strprintf("tx = %s, blocked = %s, initiator = %s", ctx->tx()->id().toHex(), lBlockId.toHex(), lBuzzerId.toHex()));
 	} else {
 		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity/error]: buzzer is ALREADY blocked: ") +
 			strprintf("tx = %s, buzzer = %s", ctx->tx()->id().toHex(), lBlockId.toHex()));
@@ -4007,8 +4007,8 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedGlobal(uint64_t timeframeFro
 	if (!opened_) return;
 	//
 	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectBuzzfeedGlobal]: selecting global buzzfeed for ") +
-		strprintf("timeframe = %d, score = %d, timestamp = %d, publisher = %s, chain = %s#", 
-			timeframeFrom, scoreFrom, timestampFrom, publisher.toHex(), store_->chain().toHex().substr(0, 10)));
+		strprintf("timeframe = %d, score = %d, timestamp = %d, publisher = %s, subscriber = %s, chain = %s#", 
+			timeframeFrom, scoreFrom, timestampFrom, publisher.toHex(), subscriber.toHex(), store_->chain().toHex().substr(0, 10)));
 
 	ITransactionStorePtr lMainStore = store_->storeManager()->locate(MainChain::id());
 	std::multimap<uint64_t, BuzzfeedItem::Key> lRawBuzzfeed;

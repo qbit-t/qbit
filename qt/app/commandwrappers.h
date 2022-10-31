@@ -1484,13 +1484,14 @@ class BuzzerBlockCommand: public QObject
 public:
 	explicit BuzzerBlockCommand(QObject* parent = nullptr);
 
-	Q_INVOKABLE void process(QString buzzer) {
+	Q_INVOKABLE void process(QString buzzer, QString chain) {
 		//
 		prepare();
 
 		//
 		std::vector<std::string> lArgs;
 		lArgs.push_back(buzzer.toStdString());
+		lArgs.push_back(chain.toStdString());
 		command_->process(lArgs);
 	}
 

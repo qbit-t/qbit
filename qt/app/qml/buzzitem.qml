@@ -1174,7 +1174,7 @@ Item {
 										   replace("{buzzer}", buzzerName_), function() {
 						//
 						buzzfeedModel_.markBlocked(buzzerId_);
-						buzzerBlockCommand.process(buzzerId_);
+						buzzerBlockCommand.process(buzzerId_, buzzerInfoChainId_);
 					}
 				);
 			} else if (key === "copytx") {

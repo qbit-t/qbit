@@ -2113,12 +2113,15 @@ void BuzzerHideCommand::process(const std::vector<std::string>& args) {
 // BuzzerBlockCommand
 //
 void BuzzerBlockCommand::process(const std::vector<std::string>& args) {
-	if (args.size() == 1) {
+	if (args.size() == 2) {
 		// prepare
 		uint256 lBuzzerId;
 		lBuzzerId.setHex(args[0]);
 		//
-		IComposerMethodPtr lCommand = BuzzerLightComposer::CreateTxBuzzerBlock::instance(composer_, lBuzzerId,
+		uint256 lChainId;
+		lChainId.setHex(args[1]);
+		//
+		IComposerMethodPtr lCommand = BuzzerLightComposer::CreateTxBuzzerBlock::instance(composer_, lBuzzerId, lChainId,
 			boost::bind(&BuzzerBlockCommand::created, shared_from_this(), boost::placeholders::_1));
 		// async process
 		lCommand->process(boost::bind(&BuzzerBlockCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));

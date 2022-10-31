@@ -32,6 +32,7 @@ Item {
 	property var description_
 	property var buzzerId_
 	property var buzzerInfoId_
+	property var buzzerInfoChainId_
 	property var controller_
 	property var buzzfeedModel_
 	property var listView_
@@ -86,6 +87,7 @@ Item {
 			description_ = buzzerClient.decorateBuzzBody(infoLoaderCommand.description);
 			buzzerId_ = infoLoaderCommand.buzzerId;
 			buzzerInfoId_ = infoLoaderCommand.infoId;
+			buzzerInfoChainId_ = infoLoaderCommand.buzzerChainId;
 
 			trustScoreLoader.process(infoLoaderCommand.buzzerId + "/" + infoLoaderCommand.buzzerChainId);
 
@@ -733,7 +735,7 @@ Item {
 										   replace("{buzzer}", buzzerName_), function() {
 						//
 						buzzfeedModel_.markBlocked(buzzerId_);
-						buzzerBlockCommand.process(buzzerId_);
+						buzzerBlockCommand.process(buzzerId_, buzzerInfoChainId_);
 					}
 				);
 			} else if (key === "conversation") {

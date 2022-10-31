@@ -771,11 +771,11 @@ public:
 
 	class CreateTxBuzzerBlock: public IComposerMethod, public std::enable_shared_from_this<CreateTxBuzzerBlock> {
 	public:
-		CreateTxBuzzerBlock(BuzzerLightComposerPtr composer, const uint256& buzzer, transactionCreatedFunction created): composer_(composer), buzzer_(buzzer), created_(created) {}
+		CreateTxBuzzerBlock(BuzzerLightComposerPtr composer, const uint256& buzzer, const uint256& chain, transactionCreatedFunction created): composer_(composer), buzzer_(buzzer), chain_(chain), created_(created) {}
 		void process(errorFunction);
 
-		static IComposerMethodPtr instance(BuzzerLightComposerPtr composer, const uint256& buzzer, transactionCreatedFunction created) {
-			return std::make_shared<CreateTxBuzzerBlock>(composer, buzzer, created);
+		static IComposerMethodPtr instance(BuzzerLightComposerPtr composer, const uint256& buzzer, const uint256& chain, transactionCreatedFunction created) {
+			return std::make_shared<CreateTxBuzzerBlock>(composer, buzzer, chain, created);
 		}
 
 		// 
@@ -790,6 +790,7 @@ public:
 	private:
 		BuzzerLightComposerPtr composer_;
 		uint256 buzzer_;
+		uint256 chain_;
 		transactionCreatedFunction created_;
 		errorFunction error_;
 	};
