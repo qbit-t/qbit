@@ -1511,6 +1511,40 @@ private:
 	qbit::ICommandPtr command_;
 };
 
+class BuzzerUnBlockCommand: public QObject
+{
+	Q_OBJECT
+
+public:
+	explicit BuzzerUnBlockCommand(QObject* parent = nullptr);
+
+	Q_INVOKABLE void process(QString buzzer, QString chain) {
+		//
+		prepare();
+
+		//
+		std::vector<std::string> lArgs;
+		lArgs.push_back(buzzer.toStdString());
+		lArgs.push_back(chain.toStdString());
+		command_->process(lArgs);
+	}
+
+	void prepare();
+
+	void done(const qbit::ProcessingError& result) {
+		if (result.success()) emit processed();
+		else emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
+	}
+
+signals:
+	void modelChanged();
+	void processed();
+	void error(QString code, QString message);
+
+private:
+	qbit::ICommandPtr command_;
+};
+
 class BuzzRewardCommand: public QObject
 {
 	Q_OBJECT

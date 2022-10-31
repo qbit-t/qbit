@@ -1777,6 +1777,95 @@ private:
 	TransactionContextPtr ctx_;
 };
 
+class BuzzerUnBlockCommand;
+typedef std::shared_ptr<BuzzerUnBlockCommand> BuzzerUnBlockCommandPtr;
+
+class BuzzerUnBlockCommand: public ICommand, public std::enable_shared_from_this<BuzzerUnBlockCommand> {
+public:
+	BuzzerUnBlockCommand(BuzzerLightComposerPtr composer, doneWithErrorFunction done): composer_(composer), done_(done) {}
+	BuzzerUnBlockCommand(BuzzerLightComposerPtr composer): composer_(composer) {}
+	virtual ~BuzzerUnBlockCommand() {
+		// for any reason to avoid false-sharing with late callbacks
+		if (reply_) reply_->cancel();
+	}
+
+	void process(const std::vector<std::string>&);
+	std::set<std::string> name() {
+		std::set<std::string> lSet;
+		lSet.insert("buzzerUnBlock");
+		lSet.insert("unblock");
+		return lSet;
+	}
+
+	void help() {
+		std::cout << "buzzerUnBlock | unblock <buzzer_id>" << std::endl;
+		std::cout << "\tUnblock buzzer." << std::endl;
+		std::cout << "\t<buzzer_id> - required, buzzer id to unblock." << std::endl;
+		std::cout << "\texample:\n\t\t>unblock c9756f1d84c0e803bdd6993bfdfaaf6ef19ef24accc6d4006e5a874cda6c7bd2" << std::endl << std::endl;
+	}	
+
+	static ICommandPtr instance(BuzzerLightComposerPtr composer, doneWithErrorFunction done) {
+		return std::make_shared<BuzzerUnBlockCommand>(composer, done);
+	}
+	static ICommandPtr instance(BuzzerLightComposerPtr composer) {
+		return std::make_shared<BuzzerUnBlockCommand>(composer);
+	}
+
+	// callbacks
+	void created(TransactionContextPtr ctx) {
+		//
+		ctx_ = ctx;
+		//
+		if (!composer_->requestProcessor()->sendTransaction(ctx,
+				(reply_ = SentTransaction::instance(
+					boost::bind(&BuzzerUnBlockCommand::sent, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
+					boost::bind(&BuzzerUnBlockCommand::timeout, shared_from_this()))))) {
+			gLog().writeClient(Log::CLIENT, std::string(": tx was not broadcasted, wallet re-init..."));
+			composer_->wallet()->resetCache();
+			composer_->wallet()->prepareCache();
+			if (done_) done_(ProcessingError("E_TX_NOT_SENT", "Transaction was not sent."));
+		}
+	}
+
+	void sent(const uint256& tx, const std::vector<TransactionContext::Error>& errors) {
+		//
+		if (errors.size()) {
+			for (std::vector<TransactionContext::Error>::iterator lError = const_cast<std::vector<TransactionContext::Error>&>(errors).begin(); 
+					lError != const_cast<std::vector<TransactionContext::Error>&>(errors).end(); lError++) {
+				gLog().writeClient(Log::CLIENT, strprintf("[error]: %s", lError->data()));
+
+				composer_->wallet()->rollback(ctx_); // rollback tx
+				composer_->wallet()->resetCache();
+				composer_->wallet()->prepareCache();
+
+				if (done_) done_(ProcessingError("E_SENT_TX", lError->data()));
+				break;
+			}
+
+			return;
+		} else {
+			std::cout << tx.toHex() << std::endl;
+		}
+
+		if (done_) done_(ProcessingError());
+	}
+
+	void timeout() {
+		error("E_TIMEOUT", "Timeout expired during buzz like action.");
+	}
+
+	void error(const std::string& code, const std::string& message) {
+		gLog().writeClient(Log::CLIENT, strprintf(": %s | %s", code, message));
+		if (done_) done_(ProcessingError(code, message));
+	}
+
+private:
+	ISentTransactionHandlerPtr reply_ = nullptr;
+	BuzzerLightComposerPtr composer_;
+	doneWithErrorFunction done_;
+	TransactionContextPtr ctx_;
+};
+
 class BuzzRewardCommand;
 typedef std::shared_ptr<BuzzRewardCommand> BuzzRewardCommandPtr;
 

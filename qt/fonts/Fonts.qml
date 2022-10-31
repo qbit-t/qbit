@@ -273,5 +273,7 @@ Item
 	readonly property string collapseSym: "\uf326";
 
 	readonly property string collapse2Sym: "\uf08b";
+
+	readonly property string badgeCheckSym: "\uf336";
 }
 

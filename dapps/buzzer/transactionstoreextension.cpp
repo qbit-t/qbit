@@ -10,6 +10,7 @@
 #include "txbuzzhide.h"
 #include "txbuzzerhide.h"
 #include "txbuzzerblock.h"
+#include "txbuzzerunblock.h"
 #include "txbuzzreward.h"
 #include "txbuzzersubscribe.h"
 #include "txbuzzerunsubscribe.h"
@@ -741,6 +742,8 @@ bool BuzzerTransactionStoreExtension::pushEntity(const uint256& id, TransactionC
 		processBuzzerHide(id, ctx);
 	} else if (ctx->tx()->type() == TX_BUZZER_BLOCK) {
 		processBuzzerBlock(id, ctx);
+	} else if (ctx->tx()->type() == TX_BUZZER_UNBLOCK) {
+		processBuzzerUnBlock(id, ctx);
 	}
 
 	//
@@ -1527,6 +1530,31 @@ void BuzzerTransactionStoreExtension::processBuzzerBlock(const uint256& id, Tran
 	}
 }
 
+void BuzzerTransactionStoreExtension::processBuzzerUnBlock(const uint256& id, TransactionContextPtr ctx) {
+	// extract
+	TxBuzzerUnBlockPtr lBuzzerBlock = TransactionHelper::to<TxBuzzerUnBlock>(ctx->tx());
+	//
+	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: pushing buzzer unblock ") +
+		strprintf("%s/%s#", ctx->tx()->id().toHex(), store_->chain().toHex().substr(0, 10)));
+	//
+	// extract buzzer
+	uint256 lBuzzerId = lBuzzerBlock->in()[TX_BUZZ_MY_BUZZER_IN].out().tx(); // owner
+	uint256 lBlockId = lBuzzerBlock->buzzer();
+	
+	// check
+	uint256 lBlockTx;
+	if (blocks_.read(qbit::db::TwoKey<uint256, uint256>(lBlockId, lBuzzerId), lBlockTx)) {
+		// write
+		blocks_.remove(lBlockId, lBuzzerId);
+		//
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: buzzer unblock PUSHED: ") +
+			strprintf("tx = %s, blocked = %s, initiator = %s", ctx->tx()->id().toHex(), lBlockId.toHex(), lBuzzerId.toHex()));
+	} else {
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity/error]: buzzer is NOT blocked: ") +
+			strprintf("tx = %s, buzzer = %s", ctx->tx()->id().toHex(), lBlockId.toHex()));
+	}
+}
+
 void BuzzerTransactionStoreExtension::processReward(const uint256& id, TransactionContextPtr ctx) {
 	// extract buzz_id
 	TxBuzzRewardPtr lBuzzReward = TransactionHelper::to<TxBuzzReward>(ctx->tx());
@@ -1772,7 +1800,7 @@ void BuzzerTransactionStoreExtension::removeTransaction(TransactionPtr tx) {
 		// extract buzz_id
 		TxBuzzerBlockPtr lBuzzerBlock = TransactionHelper::to<TxBuzzerBlock>(tx);
 		//
-		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: removing buzzre block ") +
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: removing buzzer block ") +
 			strprintf("%s/%s#", tx->id().toHex(), store_->chain().toHex().substr(0, 10)));
 		//
 		// extract buzzer
@@ -1786,6 +1814,25 @@ void BuzzerTransactionStoreExtension::removeTransaction(TransactionPtr tx) {
 		}
 
 		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: buzzer block removed ") +
+			strprintf("buzzer = %s", lBlockId.toHex()));
+	} else if (tx->type() == TX_BUZZER_UNBLOCK) {
+		// extract buzz_id
+		TxBuzzerUnBlockPtr lBuzzerBlock = TransactionHelper::to<TxBuzzerUnBlock>(tx);
+		//
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: removing buzzer unblock ") +
+			strprintf("%s/%s#", tx->id().toHex(), store_->chain().toHex().substr(0, 10)));
+		//
+		// extract buzzer
+		uint256 lBuzzerId = lBuzzerBlock->in()[TX_BUZZ_MY_BUZZER_IN].out().tx(); //
+		uint256 lBlockId = lBuzzerBlock->buzzer();
+		// check
+		uint256 lBlockTx;
+		if (!blocks_.read(qbit::db::TwoKey<uint256, uint256>(lBlockId, lBuzzerId), lBlockTx)) {
+			// NOTICE: not now
+			// blocks_.write(lBlockId, lBuzzerId, lBuzzerBlock->id() /*TODO: find and place BLOCK tx*/);
+		}
+
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: buzzer unblock removed ") +
 			strprintf("buzzer = %s", lBlockId.toHex()));
 	} else if (tx->type() == TX_BUZZ_REWARD) {
 		// extract buzz_id

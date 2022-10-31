@@ -273,6 +273,7 @@ private:
 	void processHide(const uint256&, TransactionContextPtr);
 	void processBuzzerHide(const uint256&, TransactionContextPtr);
 	void processBuzzerBlock(const uint256&, TransactionContextPtr);
+	void processBuzzerUnBlock(const uint256&, TransactionContextPtr);
 
 	void incrementLikes(const uint256&);
 	void decrementLikes(const uint256&);

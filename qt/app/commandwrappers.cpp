@@ -420,6 +420,23 @@ void BuzzerBlockCommand::prepare() {
 	QQmlEngine::setObjectOwnership(this, QQmlEngine::CppOwnership);
 }
 
+BuzzerUnBlockCommand::BuzzerUnBlockCommand(QObject* /*parent*/) : QObject() {
+	//
+}
+
+void BuzzerUnBlockCommand::prepare() {
+	//
+	Client* lClient = static_cast<Client*>(gApplication->getClient());
+
+	command_ = qbit::BuzzerUnBlockCommand::instance(
+		lClient->getBuzzerComposer(),
+		boost::bind(&BuzzerUnBlockCommand::done, this, boost::placeholders::_1)
+	);
+
+	// pin
+	QQmlEngine::setObjectOwnership(this, QQmlEngine::CppOwnership);
+}
+
 BuzzRewardCommand::BuzzRewardCommand(QObject* /*parent*/) : QObject() {
 	//
 }

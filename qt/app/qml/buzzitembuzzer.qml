@@ -732,10 +732,17 @@ Item {
 				buzzerMistrustCommand.process(buzzer_);
 			} else if (key === "block") {
 				controller.confirmAction(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.confirm.block").
-										   replace("{buzzer}", buzzerName_), function() {
+										   replace("{buzzer}", buzzer_), function() {
 						//
 						buzzfeedModel_.markBlocked(buzzerId_);
 						buzzerBlockCommand.process(buzzerId_, buzzerInfoChainId_);
+					}
+				);
+			} else if (key === "unblock") {
+				controller.confirmAction(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.confirm.unblock").
+										   replace("{buzzer}", buzzer_), function() {
+						//
+						buzzerUnBlockCommand.process(buzzerId_, buzzerInfoChainId_);
 					}
 				);
 			} else if (key === "conversation") {
@@ -768,6 +775,11 @@ Item {
 				key: "block",
 				keySymbol: Fonts.banSym,
 				name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.block")});
+
+			menuModel.append({
+				key: "unblock",
+				keySymbol: Fonts.badgeCheckSym, //Fonts.checkedCircleSym,
+				name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.unblock")});
 
 			if (!buzzerClient.subscriptionExists(buzzerId_)) {
 				menuModel.append({
@@ -848,7 +860,25 @@ Item {
 
 		onProcessed: {
 			// adjust model
-			buzzfeedModel_.merge();
+			// buzzfeedModel_.merge();
+		}
+		onError: {
+			if (code === "E_CHAINS_ABSENT") return;
+			if (message === "UNKNOWN_REFTX" || code == "E_TX_NOT_SENT") {
+				//buzzerClient.resync();
+				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.UNKNOWN_REFTX"), true);
+			} else {
+				controller_.showError(message, true);
+			}
+		}
+	}
+
+	BuzzerCommands.BuzzerUnBlockCommand {
+		id: buzzerUnBlockCommand
+
+		onProcessed: {
+			// adjust model
+			// buzzfeedModel_.merge();
 		}
 		onError: {
 			if (code === "E_CHAINS_ABSENT") return;

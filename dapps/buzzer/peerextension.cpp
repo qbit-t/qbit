@@ -11,6 +11,7 @@
 #include "txbuzzhide.h"
 #include "txbuzzerhide.h"
 #include "txbuzzerblock.h"
+#include "txbuzzerunblock.h"
 #include "txbuzzreward.h"
 #include "txbuzzerendorse.h"
 #include "txbuzzermistrust.h"

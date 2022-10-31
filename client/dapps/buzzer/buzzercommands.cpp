@@ -2132,6 +2132,28 @@ void BuzzerBlockCommand::process(const std::vector<std::string>& args) {
 }
 
 //
+// BuzzerUnBlockCommand
+//
+void BuzzerUnBlockCommand::process(const std::vector<std::string>& args) {
+	if (args.size() == 2) {
+		// prepare
+		uint256 lBuzzerId;
+		lBuzzerId.setHex(args[0]);
+		//
+		uint256 lChainId;
+		lChainId.setHex(args[1]);
+		//
+		IComposerMethodPtr lCommand = BuzzerLightComposer::CreateTxBuzzerUnBlock::instance(composer_, lBuzzerId, lChainId,
+			boost::bind(&BuzzerUnBlockCommand::created, shared_from_this(), boost::placeholders::_1));
+		// async process
+		lCommand->process(boost::bind(&BuzzerUnBlockCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
+	} else {
+		error("E_INCORRECT_AGRS", "Incorrect number of arguments");
+		return;
+	}
+}
+
+//
 // BuzzRewardCommand
 //
 void BuzzRewardCommand::process(const std::vector<std::string>& args) {
