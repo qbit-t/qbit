@@ -778,7 +778,7 @@ Item {
 
 			menuModel.append({
 				key: "unblock",
-				keySymbol: Fonts.badgeCheckSym, //Fonts.checkedCircleSym,
+				keySymbol: Fonts.checkedCircleSym, //Fonts.badgeCheckSym,
 				name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.unblock")});
 
 			if (!buzzerClient.subscriptionExists(buzzerId_)) {
