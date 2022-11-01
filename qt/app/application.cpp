@@ -150,12 +150,6 @@ int Application::execute()
 	engine_.rootContext()->setContextProperty("keyEmitter", &keyEmitter_);
 
 
-#ifdef Q_OS_IOS
-//    localNotificator_ = LocalNotificator::instance();
-//    connect(localNotificator_, SIGNAL(deviceTokenChanged()), this, SLOT(deviceTokenChanged()));
-//    engine_.rootContext()->setContextProperty("localNotificator", localNotificator_);
-#endif
-
     connect(&app_, SIGNAL(aboutToQuit()), this, SLOT(appQuit()));
 	connect(&app_, SIGNAL(applicationStateChanged(Qt::ApplicationState)), this, SLOT(appStateChanged(Qt::ApplicationState)));
 
@@ -168,6 +162,15 @@ int Application::execute()
 	// TODO: this _must_ be postponed until: pin entered or just UI transited into first screen
 	// open client - fow now
 	client_.open("");
+
+#ifdef Q_OS_IOS
+	// to force AVPlayer keep playing in background
+	client_.setProperty("Client.wakeLock", "true"); // allways ON for now
+
+	//localNotificator_ = LocalNotificator::instance();
+	//connect(localNotificator_, SIGNAL(deviceTokenChanged()), this, SLOT(deviceTokenChanged()));
+	//engine_.rootContext()->setContextProperty("localNotificator", localNotificator_);
+#endif
 
     // check background mode
 	if (client_.getProperty("Client.runInBackground") == "true")
@@ -733,11 +736,13 @@ void Application::wakeRelease()
 #endif
 
 #ifdef Q_OS_IOS
-    QISystemDispatcher* system = QISystemDispatcher::instance();
-    QVariantMap data;
-    system->dispatch("releaseBackgroundAudio", data);
-    qDebug() << "[Application::setWakeLock]: release lock";
-    isWakeLocked_ = false;
+	if (client_.getProperty("Client.wakeLock") != "true") {
+		QISystemDispatcher* system = QISystemDispatcher::instance();
+		QVariantMap data;
+		system->dispatch("releaseBackgroundAudio", data);
+		qDebug() << "[Application::setWakeLock]: release lock";
+		isWakeLocked_ = false;
+	}
 #endif
 }
 
