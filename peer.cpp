@@ -4634,8 +4634,9 @@ void Peer::keyExchange() {
 void Peer::processKeyExchange(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
 	//
 	uint160 lCheckSum = (*msg).calculateCheckSum();
+	uint160 lExternalCheckSum = (*msg).externalCheckSum();
 	bool lMsgValid = (*msg).valid();
-	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, strprintf("[peer]: checksum %s is INVALID for message from %s", lCheckSum.toHex(), key()));
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, strprintf("[peer]: checksum %s/%s is INVALID for message from %s", lCheckSum.toHex(), lExternalCheckSum.toHex(), key()));
 	if (!error && lMsgValid) {
 		//
 		{

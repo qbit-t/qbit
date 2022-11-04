@@ -301,12 +301,14 @@ public:
         Init(nTypeIn, nVersionIn); secret = nSecret;
     }
 
-    explicit DataStream(int nTypeIn, int nVersionIn, uint160 bCheckSum)
+    /*
+    explicit DataStream(int nTypeIn, int nVersionIn, const uint160& bCheckSum)
     {
         Init(nTypeIn, nVersionIn); checkSum = bCheckSum;
     }
+    */
 
-    explicit DataStream(int nTypeIn, int nVersionIn, uint160 bCheckSum, const uint256& nSecret)
+    explicit DataStream(int nTypeIn, int nVersionIn, const uint160& bCheckSum, const uint256& nSecret)
     {
         Init(nTypeIn, nVersionIn); checkSum = bCheckSum; secret = nSecret;
     }
@@ -402,6 +404,7 @@ public:
     value_type* data()                               { return vch.data() + nReadPos; }
     const value_type* data() const                   { return vch.data() + nReadPos; }
     uint160 calculateCheckSum()                      { return Hash160(begin(), end()); }
+    uint160 externalCheckSum()                       { return checkSum; }
 
     void insert(iterator it, std::vector<char>::const_iterator first, std::vector<char>::const_iterator last)
     {
