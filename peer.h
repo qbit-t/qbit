@@ -613,7 +613,7 @@ private:
 		boost::unique_lock<boost::mutex> lLock(rawInMutex_);
 		DataStream lMessage(SER_NETWORK, PROTOCOL_VERSION);
 		lMessage.setCheckSum(const_cast<Message&>(msg).checkSum());
-		lMessage.setSecret(sharedSecret());
+		if (const_cast<Message&>(msg).encrypted()) lMessage.setSecret(sharedSecret());
 		return rawInData_.insert(rawInData_.end(), lMessage);
 	}
 
