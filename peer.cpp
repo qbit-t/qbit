@@ -1259,7 +1259,7 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 		if (lMessage.valid() && lMessage.dataSize() < peerManager_->settings()->maxMessageSize()) {
 			// new data entry
 			std::list<DataStream>::iterator lMsg = newInData(lMessage);
-			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, strprintf("[peer]: message with checksum %s / %s", lMsg->externalCheckSum().toHex(), lMessage.checkSum()));
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, strprintf("[peer]: message with checksum %s / %s", lMsg->externalCheckSum().toHex(), lMessage.checkSum().toHex()));
 			lMsg->resize(lMessage.dataSize());
 			bytesReceived_ += lMessage.dataSize() + Message::size();
 
