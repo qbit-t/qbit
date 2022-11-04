@@ -20,13 +20,24 @@ uint256 Peer::sharedSecret() {
 	if (!other_.valid()) return uint256();
 
 	//
+	uint256 lSecret;
+
+	//
 	if (!isOutbound()) {
+		//
 		SKeyPtr lSKey = peerManager_->consensusManager()->wallet()->firstKey();
-		return lSKey->shared(other_);
+		lSecret = lSKey->shared(other_);
+	} else {
+		//
+		lSecret = secret_->shared(other_);
 	}
 
 	//
-	return secret_->shared(other_);
+	if (gLog().isEnabled(Log::NET))
+		gLog().write(Log::NET, strprintf("[peer]: shared secret %s / %s for %s",
+			other_.id().toHex(), lSecret.toHex(), key()));
+
+	return lSecret;
 }
 
 void Peer::clearQueues() {
@@ -1253,13 +1264,12 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 		eraseInMessage(msg); // erase
 
 		// log
-		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: message from ") + key() + " -> " + lMessage.toString() + (lMessage.valid()?" - valid":" - invalid"));
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, (lMessage.encrypted() ? std::string("[peer]: encrypted message from ") : std::string("[peer]: message from ")) + key() + " -> " + lMessage.toString() + (lMessage.valid()?" - valid":" - invalid"));
 
 		// process
 		if (lMessage.valid() && lMessage.dataSize() < peerManager_->settings()->maxMessageSize()) {
 			// new data entry
 			std::list<DataStream>::iterator lMsg = newInData(lMessage);
-			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, strprintf("[peer]: message with checksum %s / %s", lMsg->externalCheckSum().toHex(), lMessage.checkSum().toHex()));
 			lMsg->resize(lMessage.dataSize());
 			bytesReceived_ += lMessage.dataSize() + Message::size();
 
@@ -4634,10 +4644,8 @@ void Peer::keyExchange() {
 
 void Peer::processKeyExchange(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
 	//
-	uint160 lCheckSum = (*msg).calculateCheckSum();
-	uint160 lExternalCheckSum = (*msg).externalCheckSum();
 	bool lMsgValid = (*msg).valid();
-	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, strprintf("[peer]: checksum %s/%s is INVALID for message from %s", lCheckSum.toHex(), lExternalCheckSum.toHex(), key()));
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, strprintf("[peer]: checksum is INVALID for message from %s", key()));
 	if (!error && lMsgValid) {
 		//
 		{
