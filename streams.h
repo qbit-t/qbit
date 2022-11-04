@@ -15,6 +15,8 @@
 #include "serialize.h"
 #include "uint256.h"
 #include "hash.h"
+#include "crypto/aes.h"
+#include "crypto/sha256.h"
 
 #include <algorithm>
 #include <assert.h>
@@ -214,9 +216,69 @@ protected:
     vector_type vch;
     unsigned int nReadPos;
     uint160 checkSum;
+    uint256 secret;
 
     int nType;
     int nVersion;
+
+private:
+    bool bEncrypted = false;
+    bool bDecrypted = false;
+
+public:
+    bool encrypted() { return bEncrypted; }
+    bool decrypted() { return bDecrypted; }
+
+    void encrypt() {
+        // check if secret was supplied OR already encrypted
+        if (secret.isEmpty() || bEncrypted) return;
+
+        // prepare secret
+        unsigned char lMix[AES_BLOCKSIZE] = {0};
+        // prepare padding
+        uint160 lNonce = Hash160(secret.begin(), secret.end());
+        memcpy(lMix, lNonce.begin(), AES_BLOCKSIZE);
+
+        // make cypher
+        std::vector<unsigned char> lCypher; lCypher.resize(vch.size() + AES_BLOCKSIZE /*padding*/, 0);
+        AES256CBCEncrypt lEncrypt(secret.begin(), lMix, true);
+        unsigned lLen = lEncrypt.Encrypt((unsigned char*)&vch[0], vch.size(), &lCypher[0]);
+        lCypher.resize(lLen);
+
+        // set
+        vch.clear();
+        vch.insert(vch.end(), lCypher.begin(), lCypher.end());
+        nReadPos = 0;
+
+        //
+        bEncrypted = true;
+    }
+
+    void decrypt() {
+        // check if secret was supplied
+        if (secret.isEmpty() || bDecrypted) return;
+
+        // prepare secret
+        unsigned char lMix[AES_BLOCKSIZE] = {0};
+        // prepare padding
+        uint160 lNonce = Hash160(secret.begin(), secret.end());
+        memcpy(lMix, lNonce.begin(), AES_BLOCKSIZE);
+
+        // decrypt
+        std::vector<unsigned char> lCypher; lCypher.resize(vch.size() + 1, 0);
+        AES256CBCDecrypt lDecrypt(secret.begin(), lMix, true);
+        unsigned lLen = lDecrypt.Decrypt((unsigned char*)&vch[0], vch.size(), &lCypher[0]);
+        lCypher.resize(lLen);
+
+        // set
+        vch.clear();
+        vch.insert(vch.end(), lCypher.begin(), lCypher.end());
+        nReadPos = 0;
+
+        //
+        bDecrypted = true;
+    }
+
 public:
 
     typedef vector_type::allocator_type   allocator_type;
@@ -234,9 +296,19 @@ public:
         Init(nTypeIn, nVersionIn);
     }
 
+    explicit DataStream(int nTypeIn, int nVersionIn, const uint256& nSecret)
+    {
+        Init(nTypeIn, nVersionIn); secret = nSecret;
+    }
+
     explicit DataStream(int nTypeIn, int nVersionIn, uint160 bCheckSum)
     {
         Init(nTypeIn, nVersionIn); checkSum = bCheckSum;
+    }
+
+    explicit DataStream(int nTypeIn, int nVersionIn, uint160 bCheckSum, const uint256& nSecret)
+    {
+        Init(nTypeIn, nVersionIn); checkSum = bCheckSum; secret = nSecret;
     }
 
     DataStream(const_iterator pbegin, const_iterator pend, int nTypeIn, int nVersionIn) : vch(pbegin, pend)
@@ -303,7 +375,9 @@ public:
         //
         if (size() > sizeof(uint160)) {
             uint160 lSum = calculateCheckSum();
-            return lSum == checkSum;
+            bool lValid = lSum == checkSum;
+            decrypt(); // if "secret" was supplied
+            return lValid;
         }
 
         return true;

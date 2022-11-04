@@ -23,6 +23,8 @@
 #define QBIT_TEST_MESSAGE_2 0x33
 #define QBIT_TEST_MESSAGE_3 0x36
 
+#define QBIT_MESSAGE_ENCRYPTED 0x9000
+
 namespace qbit {
 
 extern bool gTestNet;
@@ -31,6 +33,7 @@ extern bool gSparingMode;
 class Message {
 public:
 	enum Type {
+		KEY_EXCHANGE = 0x0000,
 		PING = 0x0001,
 		PONG = 0x0002,
 		STATE = 0x0003,
@@ -193,13 +196,15 @@ public:
 
 public:
 	Message() {}
-	Message(Message::Type type, uint32_t size, const uint160& checksum) {
+	Message(bool enc, Message::Type type, uint32_t size, const uint160& checksum) {
 		if (!gTestNet) { prolog_[0] = QBIT_MESSAGE_0; prolog_[1] = QBIT_MESSAGE_1; prolog_[2] = QBIT_MESSAGE_2; prolog_[3] = QBIT_MESSAGE_3; }
 		else { prolog_[0] = QBIT_TEST_MESSAGE_0; prolog_[1] = QBIT_TEST_MESSAGE_1; prolog_[2] = QBIT_TEST_MESSAGE_2; prolog_[3] = QBIT_TEST_MESSAGE_3; }
 		version_ = QBIT_VERSION;
 		type_ = type;
 		size_ = size;
 		if (size_ > sizeof(uint160)) checksum_ = checksum;
+
+		if (enc) setEncrypted();
 	}
 
 	ADD_SERIALIZE_METHODS;
@@ -223,9 +228,11 @@ public:
 			UNPACK_REVISION(version_) == QBIT_VERSION_REVISION;
 	}
 
-	Message::Type type() { return (Message::Type)type_; }
+	Message::Type type() { if (encrypted()) return (Message::Type)((type_<<1)>>1); else return (Message::Type)type_; }
 	uint32_t dataSize() { return size_; }
 	uint160 checkSum() { return checksum_; }
+	inline bool encrypted() { return (type_ & QBIT_MESSAGE_ENCRYPTED) != 0; }
+	void setEncrypted() { type_ |= QBIT_MESSAGE_ENCRYPTED; }
 
 	static size_t size() { return sizeof(prolog_) + sizeof(version_) + sizeof(type_) + sizeof(size_) + (sizeof(uint8_t) * 160/8); }
 	static void registerMessageType(Message::Type type, const std::string& name);

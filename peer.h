@@ -78,6 +78,7 @@ public:
 	explicit Peer() : status_(IPeer::UNDEFINED) { 
 		quarantine_ = 0; latencyPrev_ = latency_ = 1000000; time_ = getMicroseconds(); timestamp_ = time_;
 		gen_ = boost::random::mt19937(rd_());
+		secret_ = SKey::instance();
 	}
 
 	Peer(int contextId, const std::string endpoint, IPeerManagerPtr peerManager) : 
@@ -93,6 +94,7 @@ public:
 		peerManager->incPeersCount();
 
 		gen_ = boost::random::mt19937(rd_());
+		secret_ = SKey::instance();
 	}
 
 	Peer(int contextId, IPeerManagerPtr peerManager) : 
@@ -108,6 +110,7 @@ public:
 		peerManager->incPeersCount();
 
 		gen_ = boost::random::mt19937(rd_());
+		secret_ = SKey::instance();
 	}
 
 	~Peer() {
@@ -357,6 +360,7 @@ public:
 	void broadcastBlockHeader(const NetworkBlockHeader& /*blockHeader*/);
 	void broadcastTransaction(TransactionContextPtr /*ctx*/);
 	void broadcastBlockHeaderAndState(const NetworkBlockHeader& /*block*/, StatePtr /*state*/);
+	void keyExchange();
 
 	void synchronizeFullChain(IConsensusPtr, SynchronizationJobPtr /*job*/, const boost::system::error_code& error = boost::system::error_code());
 	void synchronizePartialTree(IConsensusPtr, SynchronizationJobPtr /*job*/, const boost::system::error_code& error = boost::system::error_code());
@@ -381,6 +385,8 @@ public:
 
 	IPeer::Type type() { return type_; }
 	void setType(IPeer::Type type) { type_ = type; }
+
+	uint256 sharedSecret();
 
 	// open requests
 	void acquireBlockHeaderWithCoinbase(const uint256& /*block*/, const uint256& /*chain*/, INetworkBlockHandlerWithCoinBasePtr /*handler*/);
@@ -539,6 +545,7 @@ private:
 	void processTransactionAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processEntityAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void processUnknownMessage(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
+	void processKeyExchange(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 
 	//void peerFinalize(std::list<DataStream>::iterator msg, const boost::system::error_code& error);
 	void connected(const boost::system::error_code& error, tcp::resolver::iterator endpoint_iterator);
@@ -598,7 +605,7 @@ private:
 
 	std::list<DataStream>::iterator newInData(const Message& msg) {
 		boost::unique_lock<boost::mutex> lLock(rawInMutex_);
-		DataStream lMessage(SER_NETWORK, PROTOCOL_VERSION, const_cast<Message&>(msg).checkSum());
+		DataStream lMessage(SER_NETWORK, PROTOCOL_VERSION, const_cast<Message&>(msg).checkSum(), sharedSecret());
 		return rawInData_.insert(rawInData_.end(), lMessage);
 	}
 
@@ -818,6 +825,10 @@ private:
 	//
 	typedef std::shared_ptr<boost::asio::high_resolution_timer> TimerPtr;
 	TimerPtr controlTimer_;
+
+	//
+	SKeyPtr secret_;
+	PKey other_;
 };
 
 }

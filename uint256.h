@@ -57,7 +57,7 @@ public:
         return true;
     }
 
-    bool isEmpty() const { return data[0] == data[WIDTH-1] && data[0] == (uint8_t)0x00; }
+    bool isEmpty() const { return data[0] == data[WIDTH-1] && data[0] == data[1] && data[0] == (uint8_t)0x00; }
 
     void setNull()
     {
