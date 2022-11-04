@@ -4668,6 +4668,12 @@ void Peer::processKeyExchange(std::list<DataStream>::iterator msg, const boost::
 			// write
 			sendMessage(lMsg);
 		} else {
+			// connected - send our state
+			sendState();
+
+			// connected - request peers
+			requestPeers();
+
 			// go to read
 			processed();
 		}

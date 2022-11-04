@@ -71,6 +71,7 @@ std::string Message::toString() {
 		case GET_ENTITY_NAMES: lMsg = "GET_ENTITY_NAMES"; break;
 		case ENTITY_NAMES: lMsg = "ENTITY_NAMES"; break;
 		case GET_SOME_QBITS: lMsg = "GET_SOME_QBITS"; break;
+		case KEY_EXCHANGE: lMsg = "KEY_EXCHANGE"; break;
 
 		default:  {
 			lMsg = "UNKNOWN";
