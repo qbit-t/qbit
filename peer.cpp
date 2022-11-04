@@ -1288,6 +1288,8 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 				return;
 			}
 
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: message with checksum ") + lMsg->externalCheckSum().toHex());
+
 			if (lMessage.type() == Message::KEY_EXCHANGE) {
 				boost::asio::async_read(*socket_,
 					boost::asio::buffer(lMsg->data(), lMessage.dataSize()),
