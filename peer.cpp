@@ -1259,6 +1259,7 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 		if (lMessage.valid() && lMessage.dataSize() < peerManager_->settings()->maxMessageSize()) {
 			// new data entry
 			std::list<DataStream>::iterator lMsg = newInData(lMessage);
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, strprintf("[peer]: message with checksum %s / %s", lMsg->externalCheckSum().toHex(), lMessage.checkSum()));
 			lMsg->resize(lMessage.dataSize());
 			bytesReceived_ += lMessage.dataSize() + Message::size();
 
@@ -1287,8 +1288,6 @@ void Peer::processMessage(std::list<DataStream>::iterator msg, const boost::syst
 			if (lHandled) { // handled in proto extension, just continue
 				return;
 			}
-
-			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: message with checksum ") + lMsg->externalCheckSum().toHex());
 
 			if (lMessage.type() == Message::KEY_EXCHANGE) {
 				boost::asio::async_read(*socket_,
