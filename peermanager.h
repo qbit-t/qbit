@@ -834,6 +834,16 @@ private:
 							lPeer = deleting_.begin();
 						}
 					}
+
+					// traverse pending handshaking
+					std::map<uint160, uint64_t> lTimings = handshakingTimestamp_;
+					for (std::map<uint160, uint64_t>::iterator lTiming = lTimings.begin(); lTiming != lTimings.end(); lTiming++) {
+						//
+						if (qbit::getTime() - lTiming->second > 5 /*seconds*/) {
+							handshaking_.erase(lTiming->first);
+							handshakingTimestamp_.erase(lTiming->first);
+						}
+					}
 				}
 			} else {
 				// log
@@ -966,12 +976,23 @@ public:
 		peer->toPostponed();
 	}
 
+	void handshaking(const uint160& id, IPeerPtr peer) {
+		//
+		boost::unique_lock<boost::recursive_mutex> lLock(peersIdxMutex_);
+		handshaking_[id] = peer;
+		handshakingTimestamp_[id] = qbit::getTime();
+	}
+
 	bool activate(IPeerPtr peer, bool force = false) {
 		uint160 lAddress = peer->addressId();
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager]: activating - ") + strprintf("%s/%s", peer->key(), lAddress.toHex()));
 		{
 			boost::unique_lock<boost::recursive_mutex> lLock(peersIdxMutex_);
 			std::map<uint160, std::set<std::string>>::iterator lPeerIndex = peerIdx_.find(lAddress);
+			//
+			// release handshake
+			handshaking_.erase(peer->encryptionId());
+			handshakingTimestamp_.erase(peer->encryptionId());
 			//
 			if (lPeerIndex == peerIdx_.end() || (peer->state()->client() /*&& lPeerIndex->second != peer->key()*/)) {
 				// ONLY in case if peer is CLIENT
@@ -1394,6 +1415,9 @@ private:
 	boost::recursive_mutex peersIdxMutex_;
 	std::map<uint160, std::set<std::string>> peerIdx_;
 	std::map<std::string, uint160> clients_;
+
+	std::map<uint160, IPeerPtr> handshaking_;
+	std::map<uint160, uint64_t> handshakingTimestamp_;
 
 	std::vector<TimerPtr> timers_;
 	std::vector<IOContextPtr> contexts_;

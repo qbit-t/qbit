@@ -4668,6 +4668,9 @@ void Peer::processKeyExchange(std::list<DataStream>::iterator msg, const boost::
 			// log
 			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: exchanging keys") + std::string(" with ") + key());
 
+			// put in handshaking queue
+			peerManager_->handshaking(other_.id(), shared_from_this());
+
 			// write
 			sendMessage(lMsg);
 		} else {

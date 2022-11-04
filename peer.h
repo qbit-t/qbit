@@ -387,6 +387,7 @@ public:
 	void setType(IPeer::Type type) { type_ = type; }
 
 	uint256 sharedSecret();
+	uint160 encryptionId() { return other_.id(); }
 
 	// open requests
 	void acquireBlockHeaderWithCoinbase(const uint256& /*block*/, const uint256& /*chain*/, INetworkBlockHandlerWithCoinBasePtr /*handler*/);
