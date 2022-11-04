@@ -293,7 +293,7 @@ public:
 
     explicit DataStream(int nTypeIn, int nVersionIn)
     {
-        Init(nTypeIn, nVersionIn);
+        Init(nTypeIn, nVersionIn); secret.setNull();
     }
 
     explicit DataStream(int nTypeIn, int nVersionIn, const uint256& nSecret)
@@ -375,9 +375,8 @@ public:
         //
         if (size() > sizeof(uint160)) {
             uint160 lSum = calculateCheckSum();
-            bool lValid = lSum == checkSum;
             decrypt(); // if "secret" was supplied
-            return lValid;
+            return lSum == checkSum;
         }
 
         return true;
