@@ -605,7 +605,9 @@ private:
 
 	std::list<DataStream>::iterator newInData(const Message& msg) {
 		boost::unique_lock<boost::mutex> lLock(rawInMutex_);
-		DataStream lMessage(SER_NETWORK, PROTOCOL_VERSION, const_cast<Message&>(msg).checkSum(), sharedSecret());
+		DataStream lMessage(SER_NETWORK, PROTOCOL_VERSION);
+		lMessage.setCheckSum(const_cast<Message&>(msg).checkSum());
+		lMessage.setSecret(sharedSecret());
 		return rawInData_.insert(rawInData_.end(), lMessage);
 	}
 
