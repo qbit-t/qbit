@@ -79,6 +79,7 @@ public:
 		quarantine_ = 0; latencyPrev_ = latency_ = 1000000; time_ = getMicroseconds(); timestamp_ = time_;
 		gen_ = boost::random::mt19937(rd_());
 		secret_ = SKey::instance();
+		secret_->create();
 	}
 
 	Peer(int contextId, const std::string endpoint, IPeerManagerPtr peerManager) : 
@@ -94,7 +95,9 @@ public:
 		peerManager->incPeersCount();
 
 		gen_ = boost::random::mt19937(rd_());
+
 		secret_ = SKey::instance();
+		secret_->create();
 	}
 
 	Peer(int contextId, IPeerManagerPtr peerManager) : 
@@ -110,7 +113,9 @@ public:
 		peerManager->incPeersCount();
 
 		gen_ = boost::random::mt19937(rd_());
+
 		secret_ = SKey::instance();
+		secret_->create();
 	}
 
 	~Peer() {
