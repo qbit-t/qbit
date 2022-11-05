@@ -3529,7 +3529,9 @@ void BuzzerPeerExtension::processBuzzerAndInfoAbsent(std::list<DataStream>::iter
 
 void BuzzerPeerExtension::processSubscriptionAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
 	//
-	if (!error) {
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: checksum is INVALID for message from ") + peer_->key());
+	if (!error && lMsgValid) {
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: subscription is absent from ") + peer_->key());
 
 		// extract

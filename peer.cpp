@@ -2332,7 +2332,9 @@ void Peer::processGetEntityNames(std::list<DataStream>::iterator msg, const boos
 
 void Peer::processTransactionAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
 	//
-	if (!error) {
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: checksum is INVALID for message from ") + key());
+	if (!error && lMsgValid) {
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: transaction is absent from ") + key());
 
 		// extract
@@ -2433,7 +2435,9 @@ void Peer::processTransactionsData(std::list<DataStream>::iterator msg, const bo
 
 void Peer::processEntityAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
 	//
-	if (!error) {
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: checksum is INVALID for message from ") + key());
+	if (!error && lMsgValid) {
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: entity is absent from ") + key());
 
 		// extract
@@ -2980,7 +2984,9 @@ void Peer::processTransactionPushed(std::list<DataStream>::iterator msg, const b
 
 void Peer::processBlockByHeightAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
 	//
-	if (!error) {
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: checksum is INVALID for message from ") + key());
+	if (!error && lMsgValid) {
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: block by height is absent from ") + key());
 
 		// extract
@@ -3001,7 +3007,9 @@ void Peer::processBlockByHeightAbsent(std::list<DataStream>::iterator msg, const
 
 void Peer::processBlockByIdAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error){
 	//
-	if (!error) {
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: checksum is INVALID for message from ") + key());
+	if (!error && lMsgValid) {
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: block by id is absent from ") + key());
 
 		// extract
@@ -3029,7 +3037,9 @@ void Peer::processBlockByIdAbsent(std::list<DataStream>::iterator msg, const boo
 
 void Peer::processNetworkBlockAbsent(std::list<DataStream>::iterator msg, const boost::system::error_code& error) {
 	//
-	if (!error) {
+	bool lMsgValid = (*msg).valid();
+	if (!lMsgValid) if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: checksum is INVALID for message from ") + key());
+	if (!error && lMsgValid) {
 		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: network block is absent from ") + key());
 
 		// extract
