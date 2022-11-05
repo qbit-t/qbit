@@ -267,7 +267,9 @@ void Peer::internalSendState(StatePtr state, bool global) {
 		lMsg->write(lStateStream.data(), lStateStream.size());
 
 		// log
-		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: sending ") + (global ? "global ": "") + std::string("state to ") + key() + " -> " + lState->toString());
+		if (gLog().isEnabled(Log::NET)) 
+			gLog().write(Log::NET, strprintf("[peer]: sending %d/0x%x message %s state to %s -> %s", lStateStream.encrypted(), lMessage.toString(), key(), lState->toString()));
+		//if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: sending ") + (global ? "global ": "") + std::string("state to ") + key() + " -> " + lState->toString());
 
 		// write
 		sendMessageAsync(lMsg);

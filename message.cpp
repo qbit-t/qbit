@@ -82,8 +82,8 @@ std::string Message::toString() {
 		break;
 	}
 
-	return lMsg += "/" + strprintf("%d/%d[%d:%d:%d]/%s", size_, version_, 
+	return lMsg += "/" + strprintf("%s/%d/%d[%d:%d:%d]/%s", (encrypted() ? "*" : "-"), size_, version_, 
 			UNPACK_MAJOR(version_), 
-			UNPACK_MINOR(version_), 
+			UNPACK_MINOR(version_),
 			UNPACK_REVISION(version_), checksum_.toHex());
 }
