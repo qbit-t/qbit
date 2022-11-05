@@ -23,7 +23,8 @@
 #define QBIT_TEST_MESSAGE_2 0x33
 #define QBIT_TEST_MESSAGE_3 0x36
 
-#define QBIT_MESSAGE_ENCRYPTED 0x9000
+#define QBIT_MESSAGE_ENCRYPTED 0x8000
+#define QBIT_MESSAGE_TYPE 0x7fff
 
 namespace qbit {
 
@@ -204,7 +205,7 @@ public:
 		size_ = size;
 		if (size_ > sizeof(uint160)) checksum_ = checksum;
 
-		if (enc) setEncrypted();
+		if (enc) type_ |= QBIT_MESSAGE_ENCRYPTED;
 	}
 
 	ADD_SERIALIZE_METHODS;
@@ -228,11 +229,10 @@ public:
 			UNPACK_REVISION(version_) == QBIT_VERSION_REVISION;
 	}
 
-	Message::Type type() { if (encrypted()) return (Message::Type)((type_<<1)>>1); else return (Message::Type)type_; }
+	Message::Type type() { if (encrypted()) return (Message::Type)(type_ & QBIT_MESSAGE_TYPE); else return (Message::Type)type_; }
 	uint32_t dataSize() { return size_; }
 	uint160 checkSum() { return checksum_; }
 	inline bool encrypted() { return (type_ & QBIT_MESSAGE_ENCRYPTED) != 0; }
-	void setEncrypted() { type_ |= QBIT_MESSAGE_ENCRYPTED; }
 
 	static size_t size() { return sizeof(prolog_) + sizeof(version_) + sizeof(type_) + sizeof(size_) + (sizeof(uint8_t) * 160/8); }
 	static void registerMessageType(Message::Type type, const std::string& name);

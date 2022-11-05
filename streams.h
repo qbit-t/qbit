@@ -407,6 +407,7 @@ public:
     const value_type* data() const                   { return vch.data() + nReadPos; }
     uint160 calculateCheckSum()                      { return Hash160(begin(), end()); }
     uint160 externalCheckSum()                       { return checkSum; }
+    uint256 externalSecret()                         { return secret; }
     void setCheckSum(const uint160& s) { checkSum = s; }
 	void setSecret(const uint256& s) { secret = s; }
 

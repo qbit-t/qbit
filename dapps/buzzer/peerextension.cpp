@@ -2185,7 +2185,7 @@ void BuzzerPeerExtension::processGetSubscription(std::list<DataStream>::iterator
 				std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
 
 				// fill data
-				DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+				DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(peer_->sharedSecret());
 				lStream << lRequestId;
 				Transaction::Serializer::serialize<DataStream>(lStream, lSubscription); // tx
 				lStream.encrypt();
@@ -2210,7 +2210,7 @@ void BuzzerPeerExtension::processGetSubscription(std::list<DataStream>::iterator
 			std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
 
 			// fill data
-			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(peer_->sharedSecret());
 			lStream << lRequestId;
 			lStream.encrypt();
 
@@ -2268,7 +2268,7 @@ void BuzzerPeerExtension::processGetBuzzerTrustScore(std::list<DataStream>::iter
 			std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
 
 			// fill data
-			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(peer_->sharedSecret());
 			lStream << lRequestId;
 			lStream << lScore;
 			lStream.encrypt();
@@ -2330,7 +2330,7 @@ void BuzzerPeerExtension::processGetBuzzerEndorseTx(std::list<DataStream>::itera
 			std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
 
 			// fill data
-			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(peer_->sharedSecret());
 			lStream << lRequestId;
 			lStream << lTx;
 			lStream.encrypt();
@@ -2392,7 +2392,7 @@ void BuzzerPeerExtension::processGetBuzzerMistrustTx(std::list<DataStream>::iter
 			std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
 
 			// fill data
-			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(peer_->sharedSecret());
 			lStream << lRequestId;
 			lStream << lTx;
 			lStream.encrypt();
@@ -2527,7 +2527,7 @@ void BuzzerPeerExtension::processGetConversationsFeedByBuzzer(std::list<DataStre
 			std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
 
 			// fill data
-			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(peer_->sharedSecret());
 			lStream << lRequestId;
 			lStream << lChain;
 			lStream << lBuzzer;
@@ -2588,7 +2588,7 @@ void BuzzerPeerExtension::processGetMessagesFeedByConversation(std::list<DataStr
 			std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
 
 			// fill data
-			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(peer_->sharedSecret());
 			lStream << lRequestId;
 			lStream << lChain;
 			lStream << lConversation;
@@ -2649,7 +2649,7 @@ void BuzzerPeerExtension::processGetBuzzfeed(std::list<DataStream>::iterator msg
 			std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
 
 			// fill data
-			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(peer_->sharedSecret());
 			lStream << lRequestId;
 			lStream << lChain;
 			lStream << lFeed;
@@ -2716,7 +2716,7 @@ void BuzzerPeerExtension::processGetBuzzfeedGlobal(std::list<DataStream>::iterat
 			std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
 
 			// fill data
-			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(peer_->sharedSecret());
 			lStream << lRequestId;
 			lStream << lChain;
 			lStream << lFeed;
@@ -2785,7 +2785,7 @@ void BuzzerPeerExtension::processGetBuzzfeedByTag(std::list<DataStream>::iterato
 			std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
 
 			// fill data
-			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(peer_->sharedSecret());
 			lStream << lRequestId;
 			lStream << lChain;
 			lStream << lFeed;
@@ -2843,7 +2843,7 @@ void BuzzerPeerExtension::processGetHashTags(std::list<DataStream>::iterator msg
 			std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
 
 			// fill data
-			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(peer_->sharedSecret());
 			lStream << lRequestId;
 			lStream << lChain;
 			lStream << lFeed;
@@ -2906,7 +2906,7 @@ void BuzzerPeerExtension::processGetBuzzfeedByBuzz(std::list<DataStream>::iterat
 			std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
 
 			// fill data
-			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(peer_->sharedSecret());
 			lStream << lRequestId;
 			lStream << lChain;
 			lStream << lBuzz;
@@ -2970,7 +2970,7 @@ void BuzzerPeerExtension::processGetBuzzfeedByBuzzer(std::list<DataStream>::iter
 			std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
 
 			// fill data
-			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(peer_->sharedSecret());
 			lStream << lRequestId;
 			lStream << lChain;
 			lStream << lBuzzer;
@@ -3031,7 +3031,7 @@ void BuzzerPeerExtension::processGetMistrustsByBuzzer(std::list<DataStream>::ite
 			std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
 
 			// fill data
-			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(peer_->sharedSecret());
 			lStream << lRequestId;
 			lStream << lChain;
 			lStream << lBuzzer;
@@ -3092,7 +3092,7 @@ void BuzzerPeerExtension::processGetEndorsementsByBuzzer(std::list<DataStream>::
 			std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
 
 			// fill data
-			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(peer_->sharedSecret());
 			lStream << lRequestId;
 			lStream << lChain;
 			lStream << lBuzzer;
@@ -3153,7 +3153,7 @@ void BuzzerPeerExtension::processGetSubscriptionsByBuzzer(std::list<DataStream>:
 			std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
 
 			// fill data
-			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(peer_->sharedSecret());
 			lStream << lRequestId;
 			lStream << lChain;
 			lStream << lBuzzer;
@@ -3214,7 +3214,7 @@ void BuzzerPeerExtension::processGetFollowersByBuzzer(std::list<DataStream>::ite
 			std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
 
 			// fill data
-			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(peer_->sharedSecret());
 			lStream << lRequestId;
 			lStream << lChain;
 			lStream << lBuzzer;
@@ -3275,7 +3275,7 @@ void BuzzerPeerExtension::processGetEventsfeed(std::list<DataStream>::iterator m
 			std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
 
 			// fill data
-			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(peer_->sharedSecret());
 			lStream << lRequestId;
 			lStream << lChain;
 			lStream << lFeed;
@@ -3339,7 +3339,7 @@ void BuzzerPeerExtension::processGetBuzzes(std::list<DataStream>::iterator msg, 
 			std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
 
 			// fill data
-			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(peer_->sharedSecret());
 			lStream << lRequestId;
 			lStream << lChain;
 			lStream << lFeed;
@@ -3403,7 +3403,7 @@ void BuzzerPeerExtension::processGetBuzzerAndInfo(std::list<DataStream>::iterato
 					std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
 
 					// fill data
-					DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+					DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(peer_->sharedSecret());
 					lStream << lRequestId;
 					Transaction::Serializer::serialize<DataStream>(lStream, lTx); // buzzer
 					if (lInfo != nullptr)
@@ -3428,7 +3428,7 @@ void BuzzerPeerExtension::processGetBuzzerAndInfo(std::list<DataStream>::iterato
 
 		if (!lSent) {
 			// fill data
-			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(peer_->sharedSecret());
 			lStream << lRequestId;
 
 			// make message, serialize, send back
@@ -4528,7 +4528,7 @@ bool BuzzerPeerExtension::loadSubscription(const uint256& chain, const uint256& 
 		
 		// new message
 		std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(peer_->sharedSecret());
 
 		uint256 lRequestId = peer_->addRequest(handler);
 		lStateStream << lRequestId;
@@ -4558,7 +4558,7 @@ bool BuzzerPeerExtension::selectBuzzfeed(const uint256& chain, const std::vector
 		
 		// new message
 		std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(peer_->sharedSecret());
 
 		uint256 lRequestId = peer_->addRequest(handler);
 		lStateStream << lRequestId;
@@ -4588,7 +4588,7 @@ bool BuzzerPeerExtension::selectHashTags(const uint256& chain, const std::string
 		
 		// new message
 		std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(peer_->sharedSecret());
 
 		uint256 lRequestId = peer_->addRequest(handler);
 		lStateStream << lRequestId;
@@ -4617,7 +4617,7 @@ bool BuzzerPeerExtension::selectBuzzfeedGlobal(const uint256& chain, uint64_t ti
 		
 		// new message
 		std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(peer_->sharedSecret());
 
 		uint256 lRequestId = peer_->addRequest(handler);
 		lStateStream << lRequestId;
@@ -4650,7 +4650,7 @@ bool BuzzerPeerExtension::selectBuzzfeedByTag(const uint256& chain, const std::s
 		
 		// new message
 		std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(peer_->sharedSecret());
 
 		uint256 lRequestId = peer_->addRequest(handler);
 		lStateStream << lRequestId;
@@ -4684,7 +4684,7 @@ bool BuzzerPeerExtension::selectBuzzfeedByBuzz(const uint256& chain, uint64_t fr
 		
 		// new message
 		std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(peer_->sharedSecret());
 
 		uint256 lRequestId = peer_->addRequest(handler);
 		lStateStream << lRequestId;
@@ -4715,7 +4715,7 @@ bool BuzzerPeerExtension::selectBuzzfeedByBuzzer(const uint256& chain, uint64_t 
 		
 		// new message
 		std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(peer_->sharedSecret());
 
 		uint256 lRequestId = peer_->addRequest(handler);
 		lStateStream << lRequestId;
@@ -4746,7 +4746,7 @@ bool BuzzerPeerExtension::selectMistrustsByBuzzer(const uint256& chain, const ui
 		
 		// new message
 		std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(peer_->sharedSecret());
 
 		uint256 lRequestId = peer_->addRequest(handler);
 		lStateStream << lRequestId;
@@ -4776,7 +4776,7 @@ bool BuzzerPeerExtension::selectEndorsementsByBuzzer(const uint256& chain, const
 		
 		// new message
 		std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(peer_->sharedSecret());
 
 		uint256 lRequestId = peer_->addRequest(handler);
 		lStateStream << lRequestId;
@@ -4806,7 +4806,7 @@ bool BuzzerPeerExtension::selectSubscriptionsByBuzzer(const uint256& chain, cons
 		
 		// new message
 		std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(peer_->sharedSecret());
 
 		uint256 lRequestId = peer_->addRequest(handler);
 		lStateStream << lRequestId;
@@ -4836,7 +4836,7 @@ bool BuzzerPeerExtension::selectFollowersByBuzzer(const uint256& chain, const ui
 		
 		// new message
 		std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(peer_->sharedSecret());
 
 		uint256 lRequestId = peer_->addRequest(handler);
 		lStateStream << lRequestId;
@@ -4866,7 +4866,7 @@ bool BuzzerPeerExtension::selectEventsfeed(const uint256& chain, uint64_t from, 
 		
 		// new message
 		std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(peer_->sharedSecret());
 
 		uint256 lRequestId = peer_->addRequest(handler);
 		lStateStream << lRequestId;
@@ -4896,7 +4896,7 @@ bool BuzzerPeerExtension::selectBuzzes(const uint256& chain, const std::vector<u
 		
 		// new message
 		std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(peer_->sharedSecret());
 
 		uint256 lRequestId = peer_->addRequest(handler);
 		lStateStream << lRequestId;
@@ -4925,7 +4925,7 @@ bool BuzzerPeerExtension::selectConversations(const uint256& chain, uint64_t fro
 		
 		// new message
 		std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(peer_->sharedSecret());
 
 		uint256 lRequestId = peer_->addRequest(handler);
 		lStateStream << lRequestId;
@@ -4955,7 +4955,7 @@ bool BuzzerPeerExtension::selectMessages(const uint256& chain, uint64_t from, co
 		
 		// new message
 		std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(peer_->sharedSecret());
 
 		uint256 lRequestId = peer_->addRequest(handler);
 		lStateStream << lRequestId;
@@ -4986,7 +4986,7 @@ bool BuzzerPeerExtension::notifyNewBuzz(const BuzzfeedItem& buzz) {
 		
 		// new message
 		std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(peer_->sharedSecret());
 
 		lStateStream << buzz;
 		lStateStream.encrypt();
@@ -5015,7 +5015,7 @@ bool BuzzerPeerExtension::notifyNewMessage(const BuzzfeedItem& buzz) {
 		
 		// new message
 		std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(peer_->sharedSecret());
 
 		lStateStream << buzz;
 		lStateStream.encrypt();
@@ -5066,7 +5066,7 @@ bool BuzzerPeerExtension::notifyNewEvent(const EventsfeedItem& buzz, bool tryFor
 		if (lProcess) {
 			// new message
 			std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
-			DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+			DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(peer_->sharedSecret());
 
 			lStateStream << lUpdates;
 			lStateStream.encrypt();
@@ -5098,7 +5098,7 @@ bool BuzzerPeerExtension::notifyNewConversation(const ConversationItem& conversa
 
 		// new message
 		std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(peer_->sharedSecret());
 
 		lStateStream << lUpdates;
 		lStateStream.encrypt();
@@ -5129,7 +5129,7 @@ bool BuzzerPeerExtension::notifyUpdateConversation(const ConversationItem::Event
 
 		// new message
 		std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(peer_->sharedSecret());
 
 		lStateStream << lUpdates;
 		lStateStream.encrypt();
@@ -5180,7 +5180,7 @@ bool BuzzerPeerExtension::notifyUpdateBuzz(const std::vector<BuzzfeedItemUpdate>
 		if (lProcess) {
 			// new message
 			std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
-			DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+			DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(peer_->sharedSecret());
 
 			lStateStream << lUpdates;
 			lStateStream.encrypt();
@@ -5219,7 +5219,7 @@ bool BuzzerPeerExtension::loadTrustScore(const uint256& chain, const uint256& bu
 		
 		// new message
 		std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(peer_->sharedSecret());
 
 		uint256 lRequestId = peer_->addRequest(handler);
 		lStateStream << lRequestId;
@@ -5260,7 +5260,7 @@ bool BuzzerPeerExtension::notifyUpdateTrustScore(const BuzzerTransactionStoreExt
 		if (lProcess) {
 			// new message
 			std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
-			DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+			DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(peer_->sharedSecret());
 
 			lStateStream << lastScore_;
 			lStateStream.encrypt();
@@ -5323,7 +5323,7 @@ bool BuzzerPeerExtension::selectBuzzerEndorse(const uint256& chain, const uint25
 		
 		// new message
 		std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(peer_->sharedSecret());
 
 		uint256 lRequestId = peer_->addRequest(handler);
 		lStateStream << lRequestId;
@@ -5353,7 +5353,7 @@ bool BuzzerPeerExtension::selectBuzzerMistrust(const uint256& chain, const uint2
 		
 		// new message
 		std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(peer_->sharedSecret());
 
 		uint256 lRequestId = peer_->addRequest(handler);
 		lStateStream << lRequestId;
@@ -5383,7 +5383,7 @@ bool BuzzerPeerExtension::subscribeBuzzThread(const uint256& chain, const uint25
 		
 		// new message
 		std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(peer_->sharedSecret());
 
 		lStateStream << chain;
 		lStateStream << buzzId;
@@ -5411,7 +5411,7 @@ bool BuzzerPeerExtension::unsubscribeBuzzThread(const uint256& chain, const uint
 		
 		// new message
 		std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(peer_->sharedSecret());
 
 		lStateStream << chain;
 		lStateStream << buzzId;
@@ -5438,7 +5438,7 @@ bool BuzzerPeerExtension::loadBuzzerAndInfo(const std::string& buzzer, ILoadBuzz
 		
 		// new message
 		std::list<DataStream>::iterator lMsg = peer_->newOutMessage();
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, peer_->sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(peer_->sharedSecret());
 
 		uint256 lRequestId = peer_->addRequest(handler);
 		std::string lName(buzzer);

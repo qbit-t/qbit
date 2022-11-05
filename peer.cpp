@@ -33,9 +33,9 @@ uint256 Peer::sharedSecret() {
 	}
 
 	//
-	if (gLog().isEnabled(Log::NET))
-		gLog().write(Log::NET, strprintf("[peer]: shared secret %s / %s for %s",
-			other_.id().toHex(), lSecret.toHex(), key()));
+	//if (gLog().isEnabled(Log::NET))
+	//	gLog().write(Log::NET, strprintf("[peer]: shared secret %s / %s for %s",
+	//		other_.id().toHex(), lSecret.toHex(), key()));
 
 	return lSecret;
 }
@@ -251,7 +251,7 @@ void Peer::internalSendState(StatePtr state, bool global) {
 
 		// push own current state
 		StatePtr lState = state;
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(sharedSecret());
 		/*
 		if (!global || state->addressId() == peerManager_->consensusManager()->mainPKey().id())  {
 			lState->serialize<DataStream>(lStateStream, peerManager_->consensusManager()->mainKey());
@@ -268,7 +268,7 @@ void Peer::internalSendState(StatePtr state, bool global) {
 
 		// log
 		if (gLog().isEnabled(Log::NET)) 
-			gLog().write(Log::NET, strprintf("[peer]: sending %d/0x%x message %s state to %s -> %s", lStateStream.encrypted(), (lMessage.type() | QBIT_MESSAGE_ENCRYPTED), lMessage.toString(), key(), lState->toString()));
+			gLog().write(Log::NET, strprintf("[peer]: sending %smessage %s to %s -> %s", (global ? "global ": ""), lMessage.toString(), key(), lState->toString()));
 		//if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: sending ") + (global ? "global ": "") + std::string("state to ") + key() + " -> " + lState->toString());
 
 		// write
@@ -290,7 +290,7 @@ void Peer::synchronizeFullChain(IConsensusPtr consensus, SynchronizationJobPtr j
 		addJob(consensus->chain(), job);
 
 		// prepare message
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(sharedSecret());
 		uint64_t lHeight = job->acquireNextJob(shared_from_this());
 
 		// done?
@@ -451,7 +451,7 @@ void Peer::synchronizePartialTree(IConsensusPtr consensus, SynchronizationJobPtr
 
 		// new message
 		std::list<DataStream>::iterator lMsg = newOutMessage();
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(sharedSecret());
 
 		lStateStream << consensus->chain();
 		lStateStream << lId;
@@ -513,7 +513,7 @@ void Peer::synchronizeLargePartialTree(IConsensusPtr consensus, SynchronizationJ
 
 		// new message
 		std::list<DataStream>::iterator lMsg = newOutMessage();
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(sharedSecret());
 
 		lStateStream << consensus->chain();
 		lStateStream << lId;
@@ -654,7 +654,7 @@ void Peer::synchronizePendingBlocks(IConsensusPtr consensus, SynchronizationJobP
 		*/
 
 		// new message
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(sharedSecret());
 		std::list<DataStream>::iterator lMsg = newOutMessage();
 
 		lStateStream << consensus->chain();
@@ -689,7 +689,7 @@ void Peer::tryAskForQbits(const PKey& pkey) {
 		
 		// new message
 		std::list<DataStream>::iterator lMsg = newOutMessage();
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(sharedSecret());
 		lStateStream << pkey;
 		lStateStream.encrypt();
 		Message lMessage(lStateStream.encrypted(), Message::GET_SOME_QBITS, lStateStream.size(), Hash160(lStateStream.begin(), lStateStream.end()));
@@ -715,7 +715,7 @@ void Peer::requestState() {
 
 		// new message
 		std::list<DataStream>::iterator lMsg = newOutMessage();
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(sharedSecret());
 		lStateStream << lState->addressId();
 		lStateStream.encrypt();
 		Message lMessage(lStateStream.encrypted(), Message::GET_STATE, lStateStream.size(), Hash160(lStateStream.begin(), lStateStream.end()));
@@ -738,7 +738,7 @@ void Peer::acquireBlock(const NetworkBlockHeader& block) {
 		
 		// new message
 		std::list<DataStream>::iterator lMsg = newOutMessage();
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(sharedSecret());
 
 		uint256 lId = const_cast<NetworkBlockHeader&>(block).blockHeader().hash();
 		lStateStream << const_cast<NetworkBlockHeader&>(block).blockHeader().chain();
@@ -767,7 +767,7 @@ void Peer::acquireBlockHeaderWithCoinbase(const uint256& block, const uint256& c
 		
 		// new message
 		std::list<DataStream>::iterator lMsg = newOutMessage();
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(sharedSecret());
 
 		uint256 lRequestId = addRequest(handler);
 		lStateStream << lRequestId;
@@ -798,7 +798,7 @@ void Peer::loadTransaction(const uint256& chain, const uint256& tx, bool tryMemp
 		
 		// new message
 		std::list<DataStream>::iterator lMsg = newOutMessage();
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(sharedSecret());
 
 		uint256 lRequestId = addRequest(handler);
 		lStateStream << lRequestId;
@@ -825,7 +825,7 @@ void Peer::loadTransactions(const uint256& chain, const std::vector<uint256>& tx
 		
 		// new message
 		std::list<DataStream>::iterator lMsg = newOutMessage();
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(sharedSecret());
 
 		uint256 lRequestId = addRequest(handler);
 		lStateStream << lRequestId;
@@ -852,7 +852,7 @@ void Peer::loadEntity(const std::string& name, ILoadEntityHandlerPtr handler) {
 		
 		// new message
 		std::list<DataStream>::iterator lMsg = newOutMessage();
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(sharedSecret());
 
 		uint256 lRequestId = addRequest(handler);
 		std::string lName(name);
@@ -884,7 +884,7 @@ bool Peer::sendTransaction(TransactionContextPtr ctx, ISentTransactionHandlerPtr
 		uint256 lRequestId = addRequest(handler);
 
 		// push tx
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(sharedSecret());
 		lStateStream << lRequestId;		
 		Transaction::Serializer::serialize<DataStream>(lStateStream, ctx->tx());
 		lStateStream.encrypt();
@@ -910,7 +910,7 @@ void Peer::selectUtxoByAddress(const PKey& source, const uint256& chain, ISelect
 		
 		// new message
 		std::list<DataStream>::iterator lMsg = newOutMessage();
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(sharedSecret());
 
 		uint256 lRequestId = addRequest(handler);
 		lStateStream << lRequestId;
@@ -937,7 +937,7 @@ void Peer::selectUtxoByAddressAndAsset(const PKey& source, const uint256& chain,
 		
 		// new message
 		std::list<DataStream>::iterator lMsg = newOutMessage();
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(sharedSecret());
 
 		uint256 lRequestId = addRequest(handler);
 		lStateStream << lRequestId;
@@ -965,7 +965,7 @@ void Peer::selectUtxoByTransaction(const uint256& chain, const uint256& tx, ISel
 		
 		// new message
 		std::list<DataStream>::iterator lMsg = newOutMessage();
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(sharedSecret());
 
 		uint256 lRequestId = addRequest(handler);
 		lStateStream << lRequestId;
@@ -992,7 +992,7 @@ void Peer::selectUtxoByEntity(const std::string& name, ISelectUtxoByEntityNameHa
 		
 		// new message
 		std::list<DataStream>::iterator lMsg = newOutMessage();
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(sharedSecret());
 
 		uint256 lRequestId = addRequest(handler);
 		std::string lName(name);
@@ -1020,7 +1020,7 @@ void Peer::selectUtxoByEntityNames(const std::vector<std::string>& entityNames, 
 		
 		// new message
 		std::list<DataStream>::iterator lMsg = newOutMessage();
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(sharedSecret());
 
 		// pack req
 		uint256 lRequestId = addRequest(handler);
@@ -1062,7 +1062,7 @@ void Peer::selectEntityCountByShards(const std::string& name, ISelectEntityCount
 		
 		// new message
 		std::list<DataStream>::iterator lMsg = newOutMessage();
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(sharedSecret());
 
 		uint256 lRequestId = addRequest(handler);
 		std::string lName(name);
@@ -1090,7 +1090,7 @@ void Peer::selectEntityCountByDApp(const std::string& name, ISelectEntityCountBy
 		
 		// new message
 		std::list<DataStream>::iterator lMsg = newOutMessage();
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(sharedSecret());
 
 		uint256 lRequestId = addRequest(handler);
 		std::string lName(name);
@@ -1118,7 +1118,7 @@ void Peer::selectEntityNames(const std::string& pattern, ISelectEntityNamesHandl
 		
 		// new message
 		std::list<DataStream>::iterator lMsg = newOutMessage();
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(sharedSecret());
 
 		uint256 lRequestId = addRequest(handler);
 		std::string lName(pattern);
@@ -1155,7 +1155,7 @@ void Peer::requestPeers() {
 		}
 
 		// push own current state
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(sharedSecret());
 		lStateStream << lPeers;
 		lStateStream.encrypt();
 		// make message
@@ -1791,7 +1791,7 @@ void Peer::processGetTransactionData(std::list<DataStream>::iterator msg, const 
 			lTx->setIndex(lIndex);
 
 			// fill data
-			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(sharedSecret());
 			lStream << lRequestId;
 			lStream << lTxId;
 			Transaction::Serializer::serialize<DataStream>(lStream, lTx); // tx
@@ -1813,7 +1813,7 @@ void Peer::processGetTransactionData(std::list<DataStream>::iterator msg, const 
 			std::list<DataStream>::iterator lMsg = newOutMessage();
 
 			// fill data
-			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(sharedSecret());
 			lStream << lRequestId;
 			lStream << lTxId; // tx
 			lStream.encrypt();
@@ -1866,7 +1866,7 @@ void Peer::processGetTransactionsData(std::list<DataStream>::iterator msg, const
 		std::list<DataStream>::iterator lMsg = newOutMessage();
 
 		// fill data
-		DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+		DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(sharedSecret());
 		lStream << lRequestId;
 		BlockTransactions::Serializer::serialize<DataStream>(lStream, lTransactions); //
 		lStream.encrypt();
@@ -2031,7 +2031,7 @@ void Peer::processGetEntity(std::list<DataStream>::iterator msg, const boost::sy
 			std::list<DataStream>::iterator lMsg = newOutMessage();
 
 			// fill data
-			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(sharedSecret());
 			lStream << lRequestId;
 			Transaction::Serializer::serialize<DataStream>(lStream, lTx); // tx
 			lStream.encrypt();
@@ -2051,7 +2051,7 @@ void Peer::processGetEntity(std::list<DataStream>::iterator msg, const boost::sy
 			std::list<DataStream>::iterator lMsg = newOutMessage();
 
 			// fill data
-			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(sharedSecret());
 			lStream << lRequestId;
 			lStream << lLimitedName; // tx
 			lStream.encrypt();
@@ -2093,7 +2093,7 @@ void Peer::processGetUtxoByEntity(std::list<DataStream>::iterator msg, const boo
 		// make message, serialize, send back
 		std::list<DataStream>::iterator lMsg = newOutMessage();
 		// fill data
-		DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+		DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(sharedSecret());
 		lStream << lRequestId;
 		lStream << lLimitedName;
 
@@ -2163,7 +2163,7 @@ void Peer::processGetUtxoByEntityNames(std::list<DataStream>::iterator msg, cons
 		// make message, serialize, send back
 		std::list<DataStream>::iterator lMsg = newOutMessage();
 		// fill data
-		DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+		DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(sharedSecret());
 		lStream << lRequestId;
 		lStream << lEntityUtxos;
 		lStream.encrypt();
@@ -2201,7 +2201,7 @@ void Peer::processGetEntityCountByShards(std::list<DataStream>::iterator msg, co
 		// make message, serialize, send back
 		std::list<DataStream>::iterator lMsg = newOutMessage();
 		// fill data
-		DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+		DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(sharedSecret());
 		lStream << lRequestId;
 		lStream << lLimitedName;
 
@@ -2252,7 +2252,7 @@ void Peer::processGetEntityCountByDApp(std::list<DataStream>::iterator msg, cons
 		// make message, serialize, send back
 		std::list<DataStream>::iterator lMsg = newOutMessage();
 		// fill data
-		DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+		DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(sharedSecret());
 		lStream << lRequestId;
 		lStream << lLimitedName;
 
@@ -2303,7 +2303,7 @@ void Peer::processGetEntityNames(std::list<DataStream>::iterator msg, const boos
 		// make message, serialize, send back
 		std::list<DataStream>::iterator lMsg = newOutMessage();
 		// fill data
-		DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+		DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(sharedSecret());
 		lStream << lRequestId;
 		lStream << lLimitedName;
 
@@ -2520,7 +2520,7 @@ void Peer::processGetUtxoByAddress(std::list<DataStream>::iterator msg, const bo
 		std::list<DataStream>::iterator lMsg = newOutMessage();
 
 		// fill data
-		DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+		DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(sharedSecret());
 		lStream << lRequestId;
 		lStream << lPKey;
 		lStream << lChain;
@@ -2570,7 +2570,7 @@ void Peer::processGetUtxoByAddressAndAsset(std::list<DataStream>::iterator msg, 
 		std::list<DataStream>::iterator lMsg = newOutMessage();
 
 		// fill data
-		DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+		DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(sharedSecret());
 		lStream << lRequestId;
 		lStream << lPKey;
 		lStream << lChain;
@@ -2619,7 +2619,7 @@ void Peer::processGetUtxoByTransaction(std::list<DataStream>::iterator msg, cons
 		std::list<DataStream>::iterator lMsg = newOutMessage();
 
 		// fill data
-		DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+		DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(sharedSecret());
 		lStream << lRequestId;
 		lStream << lChain;
 		lStream << lTx;
@@ -3202,7 +3202,7 @@ void Peer::processGetBlockByHeight(std::list<DataStream>::iterator msg, const bo
 			std::list<DataStream>::iterator lMsg = newOutMessage();
 
 			// fill data
-			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(sharedSecret());
 			lStream << lHeight;
 			Block::Serializer::serialize<DataStream>(lStream, lBlock); // block
 			lStream.encrypt();
@@ -3223,7 +3223,7 @@ void Peer::processGetBlockByHeight(std::list<DataStream>::iterator msg, const bo
 			std::list<DataStream>::iterator lMsg = newOutMessage();
 
 			// fill data
-			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(sharedSecret());
 			lStream << lChain; // chain
 			lStream << lHeight; // height
 			lStream.encrypt();
@@ -3372,7 +3372,7 @@ void Peer::processGetBlockById(std::list<DataStream>::iterator msg, const boost:
 			std::list<DataStream>::iterator lMsg = newOutMessage();
 
 			// fill data
-			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(sharedSecret());
 			Block::Serializer::serialize<DataStream>(lStream, lBlock); // block
 			lStream.encrypt();
 
@@ -3392,7 +3392,7 @@ void Peer::processGetBlockById(std::list<DataStream>::iterator msg, const boost:
 			std::list<DataStream>::iterator lMsg = newOutMessage();
 
 			// fill data
-			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(sharedSecret());
 			lStream << lChain; // chain
 			lStream << lId; // id
 			lStream.encrypt();
@@ -3435,7 +3435,7 @@ void Peer::processGetBlockData(std::list<DataStream>::iterator msg, const boost:
 			std::list<DataStream>::iterator lMsg = newOutMessage();
 
 			// fill data
-			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(sharedSecret());
 			Block::Serializer::serialize<DataStream>(lStream, lBlock); // block
 			lStream.encrypt();
 
@@ -3455,7 +3455,7 @@ void Peer::processGetBlockData(std::list<DataStream>::iterator msg, const boost:
 			std::list<DataStream>::iterator lMsg = newOutMessage();
 
 			// fill data
-			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(sharedSecret());
 			lStream << lChain; // chain
 			lStream << lId; // id
 			lStream.encrypt();
@@ -3602,7 +3602,7 @@ void Peer::processGetNetworkBlock(std::list<DataStream>::iterator msg, const boo
 			std::list<DataStream>::iterator lMsg = newOutMessage();
 
 			// fill data
-			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(sharedSecret());
 			Block::Serializer::serialize<DataStream>(lStream, lBlock); // block
 			lStream.encrypt();
 
@@ -3622,7 +3622,7 @@ void Peer::processGetNetworkBlock(std::list<DataStream>::iterator msg, const boo
 			std::list<DataStream>::iterator lMsg = newOutMessage();
 
 			// fill data
-			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(sharedSecret());
 			lStream << lChain; // chain
 			lStream << lId; // id
 			lStream.encrypt();
@@ -3686,7 +3686,7 @@ void Peer::processGetNetworkBlockHeader(std::list<DataStream>::iterator msg, con
 				std::list<DataStream>::iterator lMsg = newOutMessage();
 
 				// fill data
-				DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+				DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(sharedSecret());
 				lStream << lRequestId;
 				lStream << lNetworkBlockHeader;
 				Transaction::Serializer::serialize<DataStream>(lStream, lTx);
@@ -3708,7 +3708,7 @@ void Peer::processGetNetworkBlockHeader(std::list<DataStream>::iterator msg, con
 				std::list<DataStream>::iterator lMsg = newOutMessage();
 
 				// fill data
-				DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+				DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(sharedSecret());
 				lStream << lRequestId;
 				lStream << lChain; // chain
 				lStream << lId; // id
@@ -3732,7 +3732,7 @@ void Peer::processGetNetworkBlockHeader(std::list<DataStream>::iterator msg, con
 			std::list<DataStream>::iterator lMsg = newOutMessage();
 
 			// fill data
-			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(sharedSecret());
 			lStream << lRequestId;
 			lStream << lChain; // chain
 			lStream << lId; // id
@@ -3789,7 +3789,7 @@ void Peer::processGetBlockHeader(std::list<DataStream>::iterator msg, const boos
 			);
 
 			// fill data
-			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(sharedSecret());
 			lStream << lHeaders;
 			lStream.encrypt();
 
@@ -3809,7 +3809,7 @@ void Peer::processGetBlockHeader(std::list<DataStream>::iterator msg, const boos
 			std::list<DataStream>::iterator lMsg = newOutMessage();
 
 			// fill data
-			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(sharedSecret());
 			lStream << lChain; // chain
 			lStream << lId; // id
 			lStream.encrypt();
@@ -4260,7 +4260,7 @@ void Peer::processPushTransaction(std::list<DataStream>::iterator msg, const boo
 			std::list<DataStream>::iterator lMsg = newOutMessage();
 
 			// fill data
-			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+			DataStream lStream(SER_NETWORK, PROTOCOL_VERSION); lStream.setSecret(sharedSecret());
 			lStream << lRequestId;
 			lStream << lTx->id();
 			lStream << lErrors;
@@ -4294,7 +4294,7 @@ void Peer::broadcastBlockHeader(const NetworkBlockHeader& blockHeader) {
 		std::list<DataStream>::iterator lMsg = newOutMessage();
 
 		// push blockheader
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(sharedSecret());
 		lStateStream << blockHeader;
 		lStateStream.encrypt();
 
@@ -4320,7 +4320,7 @@ void Peer::broadcastBlockHeaderAndState(const NetworkBlockHeader& blockHeader, S
 		std::list<DataStream>::iterator lMsg = newOutMessage();
 
 		// push blockheader
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(sharedSecret());
 		lStateStream << blockHeader;
 
 		if (state->addressId() == peerManager_->consensusManager()->mainPKey().id()) {
@@ -4370,7 +4370,7 @@ void Peer::broadcastTransaction(TransactionContextPtr ctx) {
 		std::list<DataStream>::iterator lMsg = newOutMessage();
 
 		// push tx
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(sharedSecret());
 		Transaction::Serializer::serialize<DataStream>(lStateStream, ctx->tx());
 		lStateStream.encrypt();
 
@@ -4412,7 +4412,7 @@ void Peer::processRequestPeers(std::list<DataStream>::iterator msg, const boost:
 		peerManager_->activePeers(lPeers);
 
 		// push own current state
-		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION, sharedSecret());
+		DataStream lStateStream(SER_NETWORK, PROTOCOL_VERSION); lStateStream.setSecret(sharedSecret());
 		lStateStream << lPeers;
 		lStateStream.encrypt();
 
