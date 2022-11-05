@@ -13,7 +13,7 @@ void Message::registerMessageType(Message::Type type, const std::string& name) {
 
 std::string Message::toString() {
 	std::string lMsg = "";
-	switch(type_) {
+	switch(type()) {
 		case PING: lMsg = "PING"; break;
 		case PONG: lMsg = "PONG"; break;
 		case STATE: lMsg = "STATE"; break;

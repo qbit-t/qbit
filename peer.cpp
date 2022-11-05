@@ -268,7 +268,7 @@ void Peer::internalSendState(StatePtr state, bool global) {
 
 		// log
 		if (gLog().isEnabled(Log::NET)) 
-			gLog().write(Log::NET, strprintf("[peer]: sending %d/0x%x message %s state to %s -> %s", lStateStream.encrypted(), lMessage.toString(), key(), lState->toString()));
+			gLog().write(Log::NET, strprintf("[peer]: sending %d/0x%x message %s state to %s -> %s", lStateStream.encrypted(), (lMessage.type() | QBIT_MESSAGE_ENCRYPTED), lMessage.toString(), key(), lState->toString()));
 		//if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer]: sending ") + (global ? "global ": "") + std::string("state to ") + key() + " -> " + lState->toString());
 
 		// write
