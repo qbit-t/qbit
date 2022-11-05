@@ -383,6 +383,7 @@ public:
             return lSum == checkSum;
         }
 
+        decrypt(); // if "secret" was supplied
         return true;
     }
 

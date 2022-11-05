@@ -5452,7 +5452,7 @@ bool BuzzerPeerExtension::loadBuzzerAndInfo(const std::string& buzzer, ILoadBuzz
 		lMsg->write(lStateStream.data(), lStateStream.size());
 
 		// log
-		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: loading buzzer and info ") + strprintf("%s from %s -> %s", buzzer, peer_->key(), HexStr(lStateStream.begin(), lStateStream.end())));
+		if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peer/buzzer]: loading buzzer and info ") + strprintf("%s from %s -> %s", buzzer, peer_->key(), lMessage.toString()));
 
 		// write
 		peer_->sendMessageAsync(lMsg);
