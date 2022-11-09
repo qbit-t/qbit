@@ -469,6 +469,20 @@ void BuzzfeedListModel::buzzfeedItemsUpdated(const std::vector<qbit::BuzzfeedIte
 	emit buzzfeedItemsUpdatedSignal(qbit::BuzzfeedItemUpdatesProxy(items));
 }
 
+bool BuzzfeedListModel::readyToFeed(int position, int threshold) {
+	//
+	std::map<uint256 /*chain*/, qbit::BuzzfeedItem::Key /*buzz*/> lLast = buzzfeed_->lastItemsByChain();
+	for (std::map<uint256 /*chain*/, qbit::BuzzfeedItem::Key /*buzz*/>::iterator lItem = lLast.begin(); lItem != lLast.end(); lItem++) {
+		std::map<qbit::BuzzfeedItem::Key, int>::iterator lPointer = index_.find(lItem->second);
+		if (lPointer != index_.end()) {
+			//
+			if (lPointer->second < position + threshold) return true;
+		}
+	}
+
+	return false;
+}
+
 void BuzzfeedListModel::feed(qbit::BuzzfeedPtr local, bool more, bool merge) {
 	//
 	if (merge) {
@@ -498,6 +512,7 @@ void BuzzfeedListModel::feed(qbit::BuzzfeedPtr local, bool more, bool merge) {
 			adjustData_.push_back(false);
 			//qInfo() << "Initial: " << QString::fromStdString(list_[lItem]->key().toString()) << QString::fromStdString(list_[lItem]->buzzBodyString());
 		}
+		qInfo() << "count = " << list_.size();
 
 		//
 		endResetModel();
@@ -552,7 +567,7 @@ void BuzzfeedListModel::feed(qbit::BuzzfeedPtr local, bool more, bool merge) {
 			if ((int)list_.size() == lFrom) {
 				noMoreData_ = true;
 			} else {
-				if (lFrom >= (int)list_.size()) {
+				if (lFrom > (int)list_.size()) {
 					for (std::map<qbit::BuzzfeedItem::Key, int>::iterator lIdx = lOldIndex.begin(); lIdx != lOldIndex.end(); lIdx++) {
 						//
 						if (index_.find(lIdx->first) == index_.end()) {

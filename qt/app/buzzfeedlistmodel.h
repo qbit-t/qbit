@@ -108,6 +108,8 @@ public:
 	void feed(qbit::BuzzfeedPtr /*local*/, bool /*more*/, bool /*merge*/);
 	Q_INVOKABLE void merge();
 
+	Q_INVOKABLE bool readyToFeed(int /*position*/, int /*threshold*/);
+
 	qbit::BuzzfeedPtr buzzfeed() { return buzzfeed_; }
 
 	Q_INVOKABLE void clear() {

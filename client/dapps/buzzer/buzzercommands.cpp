@@ -526,6 +526,10 @@ void LoadBuzzfeedByTagCommand::process(const std::vector<std::string>& args) {
 			lPublisher = lLast->second->actualPublisher();
 		}
 
+		if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, std::string("[LoadBuzzfeedByTagCommand::process]: selecting buzzfeed by tag for ") +
+			strprintf("timeframe = %d, score = %d, timestamp = %d, publisher = %s, chain = %s#", 
+				lTimeframeFrom, lScoreFrom, lTimestampFrom, lPublisher.toHex(), (*lChain).toHex().substr(0, 10)));
+
 		//
 		IComposerMethodPtr lCommand = BuzzerLightComposer::LoadBuzzesByTag::instance(
 			composer_, 
@@ -596,6 +600,10 @@ void LoadBuzzesGlobalCommand::process(const std::vector<std::string>& args) {
 			lTimestampFrom = lLast->second->actualTimestamp();
 			lPublisher = lLast->second->actualPublisher();
 		}
+
+		if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, std::string("[LoadBuzzesGlobalCommand::process]: selecting global buzzfeed for ") +
+			strprintf("timeframe = %d, score = %d, timestamp = %d, publisher = %s, chain = %s#", 
+				lTimeframeFrom, lScoreFrom, lTimestampFrom, lPublisher.toHex(), (*lChain).toHex().substr(0, 10)));
 
 		IComposerMethodPtr lCommand = BuzzerLightComposer::LoadBuzzesGlobal::instance(
 			composer_, 
