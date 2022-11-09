@@ -343,11 +343,12 @@ Item {
 					// re-process
 					if (preview && index == mediaList.currentIndex) {
 						preview = false;
-						mediaFrame.mediaItem.showLoading();
+						if (mediaFrame.mediaItem && media_ === "image")
+							mediaFrame.mediaItem.showLoading();
 						downloadCommand.process();
 					}
 				}
-
+				
 				onProgress: {
 					//
 					if (media_ === "image") {
