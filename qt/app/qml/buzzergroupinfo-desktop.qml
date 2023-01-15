@@ -19,7 +19,7 @@ import "qrc:/qml"
 
 Item
 {
-	id: buzzerinfo_
+	id: buzzergroupinfo_
 
 	property var infoDialog;
 	property int calculatedHeight: progressBar.y + progressBar.height + 15;
@@ -39,7 +39,7 @@ Item
 
 	onSourceChanged: {
 		//
-		if (buzzerinfo_.source === "wizard") {
+		if (buzzergroupinfo_.source === "wizard") {
 			nextAvatarButton.setupAvatar();
 			nextHeaderButton.setupHeader();
 		}
@@ -377,7 +377,7 @@ Item
 
 		Component.onCompleted: {
 			//
-			if (buzzerClient.avatar === "" || buzzerinfo_.source === "wizard") setupAvatar();
+			if (buzzerClient.avatar === "" || buzzergroupinfo_.source === "wizard") setupAvatar();
 		}
 
 		function setupAvatar() {
@@ -494,184 +494,6 @@ Item
 		}
 	}
 
-	//
-	// Buzzer header
-	//
-	Rectangle {
-		id: headerContainer
-		x: 22
-		y: descriptionEditBox.y + descriptionEditBox.height + 12
-		width: parent.width - 44
-		height: (width / 16) * 9
-
-		border.color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.accentUltra");
-		border.width: 3
-		color: "transparent"
-
-		Image {
-			id: headerImage
-			x: 10
-			y: 10
-			width: parent.width - 20
-			height: parent.height - 20
-			fillMode: Image.PreserveAspectCrop
-			autoTransform: true
-			source: action !== "CREATE" ? "file://" + buzzerHeader_ : ""
-		}
-	}
-
-	QtFileDialog {
-		id: headerFileSelector
-		nameFilters: [ "Image files (*.jpg *.png *.jpeg)" ]
-		selectExisting: true
-		selectFolder: false
-		selectMultiple: false
-
-		onAccepted: {
-			headerImage.source = fileUrl;
-
-			var lPath = fileUrl.toString();
-			if (Qt.platform.os == "windows") {
-				lPath = lPath.replace(/^(file:\/{3})/,"");
-			} else {
-				lPath = lPath.replace(/^(file:\/{2})/,"");
-			}
-
-			buzzerHeader_ = decodeURIComponent(lPath);
-
-			//createBuzzer.enabled = createBuzzer.getEnabled();
-		}
-	}
-
-	QuarkToolButton {
-		id: prevHeaderButton
-		x: headerContainer.x + 5
-		y: headerContainer.y + 5
-		symbol: Fonts.leftArrowSym
-		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
-		Layout.alignment: Qt.AlignHCenter
-
-		topInset: 10
-		leftInset: 10
-		rightInset: 10
-		bottomInset: 10
-
-		property var imageIndex: 5
-
-		onClicked: {
-			//
-			if (prevHeaderButton.imageIndex - 1 < 1) prevHeaderButton.imageIndex = 6;
-			else prevHeaderButton.imageIndex -= 1;
-			//
-			nextHeaderButton.setupHeader();
-		}
-	}
-
-	QuarkToolButton {
-		id: nextHeaderButton
-		x: prevHeaderButton.x + prevHeaderButton.width + 5
-		y: headerContainer.y + 5
-		symbol: Fonts.rightArrowSym
-		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
-		Layout.alignment: Qt.AlignHCenter
-
-		topInset: 10
-		leftInset: 10
-		rightInset: 10
-		bottomInset: 10
-
-		onClicked: {
-			//
-			if (prevHeaderButton.imageIndex + 1 > 6) prevHeaderButton.imageIndex = 1;
-			else prevHeaderButton.imageIndex += 1;
-			//
-			setupHeader();
-		}
-
-		Component.onCompleted: {
-			//
-			if (buzzerClient.header === "" || buzzerinfo_.source === "wizard") setupHeader();
-		}
-
-		function setupHeader() {
-			//
-			var lPath = "qrc://res/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "header0" + prevHeaderButton.imageIndex);
-			var lNewPath = buzzerApp.tempFilesPath() + "/" + buzzerApp.getFileName(lPath);
-			buzzerApp.copyFile(lPath, lNewPath);
-			headerImage.source = (Qt.platform.os === "windows" ? "file:///" : "file://") + lNewPath;
-			buzzerHeader_ = lNewPath;
-		}
-	}
-
-	QuarkToolButton {
-		id: chooseHeaderButton
-		x: headerContainer.x + headerContainer.width - width - 5
-		y: headerContainer.y + 5
-		symbol: Fonts.folderSym
-		visible: true
-		//labelYOffset: 3
-		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
-		Layout.alignment: Qt.AlignHCenter
-
-		topInset: 10
-		leftInset: 10
-		rightInset: 10
-		bottomInset: 10
-		padding: 20
-		spacing: 10
-
-		onClicked: {
-			headerFileSelector.open();
-		}
-	}
-
-	QuarkToolButton {
-		id: clearHeaderButton
-		x: chooseHeaderButton.x
-		y: chooseHeaderButton.y + chooseHeaderButton.height + 5
-		symbol: Fonts.trashSym
-		visible: true
-		//labelYOffset: 3
-		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
-		Layout.alignment: Qt.AlignHCenter
-
-		topInset: 10
-		leftInset: 10
-		rightInset: 10
-		bottomInset: 10
-		padding: 20
-		spacing: 10
-
-		onClicked: {
-			buzzerHeader_ = "";
-			headerImage.source = "";
-			//createBuzzer.enabled = createBuzzer.getEnabled();
-		}
-	}
-
-	QuarkToolButton {
-		id: helpHeaderButton
-		x: clearHeaderButton.x
-		y: clearHeaderButton.y + clearHeaderButton.height + 5
-		symbol: Fonts.helpSym
-		visible: true
-		//labelYOffset: 3
-		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
-		Layout.alignment: Qt.AlignHCenter
-
-		topInset: 10
-		leftInset: 10
-		rightInset: 10
-		bottomInset: 10
-		padding: 20
-		spacing: 10
-
-		onClicked: {
-			var lMsgs = [];
-			lMsgs.push(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.help.header"));
-			infoDialog.show(lMsgs);
-		}
-	}
 
 	Connections {
 		target: buzzerClient
@@ -688,38 +510,53 @@ Item
 	//
 	// Create/update buzzer/buzzer info
 	//
-	QuarkToolButton {
+	ProgressBar {
+		id: progressBar
+
+		x: descriptionEditBox.x
+		y: descriptionEditBox.y + descriptionEditBox.height + 8
+		width: descriptionEditBox.width
+		visible: false
+		value: 0.0
+
+		Material.theme: buzzerClient.themeSelector == "dark" ? Material.Dark : Material.Light;
+		Material.accent: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.accent");
+		Material.background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.background");
+		Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground");
+		Material.primary: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.primary");
+	}
+
+	QuarkButton	{
 		id: createBuzzer
 		x: parent.width / 2 - width / 2
-		y: headerContainer.y + headerContainer.height + 15
-		width: parent.width * 45 / 100 > 200 ? 200 : parent.width * 45 / 100
-		height: width
+		y: descriptionEditBox.y + descriptionEditBox.height + 15
 		visible: true
-		labelYOffset: height / 2 //- metrics.tightBoundingRect.height
-		symbolColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground")
+		width: descriptionEditBox.width
+		Material.background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.4")
+
+		Layout.minimumWidth: 150
 		Layout.alignment: Qt.AlignHCenter
-		radius: width / 2 //- 10
 
-		enabled: true
+		contentItem: QuarkText {
+			id: buttonText
+			text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.link")
+			font.pointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 16 : 16
+			color: createBuzzer.enabled ?
+					   buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground") :
+					   buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled")
+			horizontalAlignment: Text.AlignHCenter
+			verticalAlignment: Text.AlignVCenter
 
-		Image {
-			id: buzzerStartImage
-			x: parent.width / 2 - width / 2 + 3
-			y: parent.height / 2 - height / 2 + 5
-			source: "../images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "lightning-light.logo")
-		}
-
-		Image {
-			id: buzzerStopImage
-			x: parent.width / 2 - width / 2 + 3
-			y: parent.height / 2 - height / 2 + 5
-			source: "../images/" + buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "lightning.logo")
-			visible: false
+			function adjust(val) {
+				color = val ?
+							buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.foreground") :
+							buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
+			}
 		}
 
 		onClicked: {
 			// create buzzer
-			if (buzzerinfo_.action === "CREATE" && !buzzerinfo_.buzzerCreated) {
+			if (buzzergroupinfo_.action === "CREATE" && !buzzergroupinfo_.buzzerCreated) {
 				//
 				if (buzzerName_ === "" /*|| buzzerName_[0] !== '@'*/) {
 					controller.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZER_NAME_INCORRECT"), true);
@@ -741,26 +578,20 @@ Item
 					return;
 				}
 
-				if (buzzerHeader_ === "") {
-					controller.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZER_HEADER_ABSENT"), true);
-					return;
-				}
-
-				//
-				waitTimer.start();
-
 				var lBuzzerName = buzzerName_.trim();
 				if (lBuzzerName[0] !== '@') buzzerFinalName_ = "@" + lBuzzerName;
 				else buzzerFinalName_ = lBuzzerName;
 
-				console.info("[createBuzzer]: creating buzzer = '" + buzzerFinalName_ + "'...");
+				console.info("[createGroup]: creating group = '" + buzzerFinalName_ + "'...");
 
 				createBuzzerCommand.name = buzzerFinalName_;
 				createBuzzerCommand.alias = buzzerAlias_;
 				createBuzzerCommand.description = buzzerDescription_;
 				createBuzzerCommand.avatar = buzzerAvatar_;
-				createBuzzerCommand.header = buzzerHeader_;
+				//createBuzzerCommand.header = buzzerHeader_; //TODO: check how to set empty
 
+				progressBar.visible = true;
+				progressBar.indeterminate = true;
 				enabled = false;
 				createBuzzerCommand.process();
 			} else {
@@ -780,47 +611,15 @@ Item
 					return;
 				}
 
-				if (buzzerHeader_ === "") {
-					controller.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZER_HEADER_ABSENT"), true);
-					return;
-				}
-
-				//
-				waitTimer.start();
-
 				createBuzzerInfoCommand.alias = buzzerAlias_;
 				createBuzzerInfoCommand.description = buzzerDescription_;
 				createBuzzerInfoCommand.avatar = buzzerAvatar_;
-				createBuzzerInfoCommand.header = buzzerHeader_;
+				// createBuzzerInfoCommand.header = buzzerHeader_; //TODO: check how to set empty
 
+				progressBar.visible = true;
+				progressBar.indeterminate = true;
 				enabled = false;
 				createBuzzerInfoCommand.process();
-			}
-		}
-	}
-
-	QuarkRoundProgress {
-		id: progressBar
-		x: parent.width / 2 - (createBuzzer.width + 10) / 2
-		y: createBuzzer.y - (size - createBuzzer.height) / 2
-		size: createBuzzer.width + 10
-		colorCircle: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.accentUltra");
-		colorBackground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.accentUltra");
-		arcBegin: 0
-		arcEnd: 0
-		lineWidth: 3
-
-		Timer {
-			id: waitTimer
-			running: false
-			repeat: true
-			interval: 100
-
-			onTriggered: {
-				progressBar.arcEnd += 1;
-				if (progressBar.arcEnd >= 360) {
-					running = false;
-				}
 			}
 		}
 	}
@@ -835,63 +634,34 @@ Item
 
 		onProcessed: {
 			// buzzer, buzzerChain, buzzerInfo, buzzerInfoChain
-			waitTimer.stop();
-			progressBar.arcEnd = 360;
-
-			buzzerStartImage.visible = false;
-			buzzerStopImage.visible = true;
-
 			console.info("[createBuzzerCommand]: buzzer = '" + buzzerFinalName_ + "' created, saving...");
+
+			progressBar.indeterminate = false;
 
 			buzzerClient.name = buzzerFinalName_;
 			buzzerClient.alias = buzzerAlias_;
 			buzzerClient.description = buzzerDescription_;
 			buzzerClient.avatar = buzzerAvatar_;
-			buzzerClient.header = buzzerHeader_;
-
-			// extract "first" key, setCurrentKey should be set in case if we creating new one before buzzer creation
-			buzzerClient.setCurrentKey(buzzerClient.firstPKey());
-
-			// update local info
-			buzzerClient.save();
+			// buzzerClient.header = buzzerHeader_;
 
 			// processed
-			buzzerinfo_.processed();
-
-			// setup completed
-			buzzerClient.setProperty("Client.configured", "true");
+			buzzergroupinfo_.processed();
 		}
 
 		onAvatarProcessed: {
 			// tx, chain
-			if (progressBar.arcEnd < 120) progressBar.arcEnd = 120;
+			progressBar.value = 1.0;
+			progressBar.indeterminate = true;
 
 			console.log("[avatar]: tx = " + tx + ", chain = " + chain);
-		}
-
-		onHeaderProcessed: {
-			// tx, chain
-			if (progressBar.arcEnd < 240) progressBar.arcEnd = 240;
-
-			console.log("[header]: tx = " + tx + ", chain = " + chain);
 		}
 
 		onAvatarProgress: {
 			// pos, size
 			console.log("[avatar/progress]: pos = " + pos + ", size = " + size);
 
-			var lPrcent = (pos * 100) / size;
-			var lArc = (120 * lPrcent) / 100;
-			progressBar.arcEnd = lArc;
-		}
-
-		onHeaderProgress: {
-			// pos, size
-			console.log("[header/progress]: pos = " + pos + ", size = " + size);
-
-			var lPrcent = (pos * 100) / size;
-			var lArc = 120 + (120 * lPrcent) / 100;
-			progressBar.arcEnd = lArc;
+			var lPercent = (pos * 100.0) / size;
+			progressBar.value = lPercent / 100.0;
 		}
 
 		onError: {
@@ -899,8 +669,9 @@ Item
 			//
 			createBuzzer.enabled = true;
 
-			waitTimer.stop();
-			progressBar.arcEnd = 0;
+			progressBar.value = 0.0;
+			progressBar.visible = false;
+			progressBar.indeterminate = false;
 
 			// insufficient amount
 			if (code === "E_AMOUNT") {
@@ -919,14 +690,14 @@ Item
 				controller.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZER_NAME_TOO_SHORT"), true);
 			} else if (message === "UNKNOWN_REFTX" || code === "E_TX_NOT_SENT") {
 				// NOTICE: probably buzzer is sucessfully was created, so just try to create info
-				buzzerinfo_.buzzerCreated = true;
+				buzzergroupinfo_.buzzerCreated = true;
 				buzzerClient.name = buzzerName_;
 				//
 				buzzerClient.resync();
 				controller.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.UNKNOWN_REFTX"), true);
 			} else {
 				// NOTICE: probably buzzer is sucessfully was created, so just try to create info
-				buzzerinfo_.buzzerCreated = true;
+				buzzergroupinfo_.buzzerCreated = true;
 				buzzerClient.name = buzzerName_;
 				//
 				controller.showError(message, true);
@@ -939,13 +710,10 @@ Item
 		id: createBuzzerInfoCommand
 
 		onProcessed: {
+			//
+			progressBar.indeterminate = false;
+
 			// buzzer, buzzerChain, buzzerInfo, buzzerInfoChain
-			waitTimer.stop();
-			progressBar.arcEnd = 360;
-
-			buzzerStartImage.visible = false;
-			buzzerStopImage.visible = true;
-
 			buzzerClient.alias = buzzerAlias_;
 			buzzerClient.description = buzzerDescription_;
 			buzzerClient.avatar = buzzerAvatar_;
@@ -955,39 +723,23 @@ Item
 			buzzerClient.save();
 
 			// processed
-			buzzerinfo_.processed();
+			buzzergroupinfo_.processed();
 		}
 
 		onAvatarProcessed: {
 			// tx, chain
-			if (progressBar.arcEnd < 120) progressBar.arcEnd = 120;
+			progressBar.value = 1.0;
+			progressBar.indeterminate = true;
 
 			console.log("[avatar]: tx = " + tx + ", chain = " + chain);
-		}
-
-		onHeaderProcessed: {
-			// tx, chain
-			if (progressBar.arcEnd < 240) progressBar.arcEnd = 240;
-
-			console.log("[header]: tx = " + tx + ", chain = " + chain);
 		}
 
 		onAvatarProgress: {
 			// pos, size
 			console.log("[avatar/progress]: pos = " + pos + ", size = " + size);
 
-			var lPrcent = (pos * 100) / size;
-			var lArc = (120 * lPrcent) / 100;
-			progressBar.arcEnd = lArc;
-		}
-
-		onHeaderProgress: {
-			// pos, size
-			console.log("[header/progress]: pos = " + pos + ", size = " + size);
-
-			var lPrcent = (pos * 100) / size;
-			var lArc = 120 + (120 * lPrcent) / 100;
-			progressBar.arcEnd = lArc;
+			var lPercent = (pos * 100.0) / size;
+			progressBar.value = lPercent / 100.0;
 		}
 
 		onError: {
@@ -995,8 +747,9 @@ Item
 			//
 			createBuzzer.enabled = true;
 
-			waitTimer.stop();
-			progressBar.arcEnd = 0;
+			progressBar.value = 0.0;
+			progressBar.visible = false;
+			progressBar.indeterminate = false;
 
 			// insufficient amount
 			if (code === "E_AMOUNT") {

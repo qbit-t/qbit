@@ -19,6 +19,7 @@ namespace qbit {
 
 //
 // Light Wallet implementation, client side
+//
 class LightWallet: 
 		public IWallet, 
 		public ISelectUtxoByAddressHandler, 
@@ -104,6 +105,7 @@ public:
 	SKeyPtr firstKey();
 	SKeyPtr changeKey();
 	void removeAllKeys();
+	void setCurrentKey(const PKey& key) { currentKey_ = key.id(); }
 
 	// utxo management
 	bool pushUnlinkedOut(Transaction::UnlinkedOutPtr, TransactionContextPtr);
@@ -287,7 +289,9 @@ private:
 	IWallet::Status status_ = IWallet::UNKNOWN;
 
 	// cached keys
-	std::map<uint160 /*id*/, SKeyPtr> keysCache_;	
+	std::map<uint160 /*id*/, SKeyPtr> keysCache_;
+	//
+	uint160 currentKey_;
 
 	// lock
 	boost::recursive_mutex cacheMutex_;

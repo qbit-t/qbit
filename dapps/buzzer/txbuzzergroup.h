@@ -15,20 +15,22 @@ namespace qbit {
 #define TX_BUZZER_GROUP_INVITE_OUT 1
 #define TX_BUZZER_GROUP_KEYS_OUT 2
 
+typedef LimitedString<128> buzzer_group_name_t;
+
 //
 class TxBuzzerGroup: public Entity {
 public:
-	TxBuzzer() { type_ = TX_BUZZER_GROUP; }
+	TxBuzzerGroup() { type_ = TX_BUZZER_GROUP; }
 
 	ADD_INHERITABLE_SERIALIZE_METHODS;
 
 	template<typename Stream> void serialize(Stream& s) {
-		buzzer_name_t lName(name_);
+		buzzer_group_name_t lName(name_);
 		lName.serialize(s);
 	}
 	
 	inline void deserialize(DataStream& s) {
-		buzzer_name_t lName(name_);
+		buzzer_group_name_t lName(name_);
 		lName.deserialize(s);
 	}
 

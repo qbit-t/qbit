@@ -529,6 +529,107 @@ Item {
 		text: buzzer_
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabled");
 		font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : defaultFontPointSize
+
+		TextMetrics {
+			id: sizingMetrics
+			text: buzzer_
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * defaultFontSize) : buzzerNameControl.defaultFontPointSize
+		}
+
+		property var exactWidth: sizingMetrics.width > buzzerNameControl.width ? buzzerNameControl.width + 2 :
+																				 sizingMetrics.width + spaceItems_*2 + indicator.width
+
+		QuarkSymbolLabel {
+			id: indicator
+			x: sizingMetrics.width > buzzerNameControl.width ? buzzerNameControl.width + 2 : sizingMetrics.width + spaceItems_*2
+			y: 2 //sizingMetrics.height / 2
+			font.pointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultFontSize - 3)) : buzzerNameControl.defaultFontPointSize - 3
+			symbol: Fonts.expandSimpleDownSym //shevronDownSym
+		}
+	}
+
+	MouseArea {
+		id: buzzersClick
+		x: buzzerNameControl.x
+		y: buzzerNameControl.y
+		width: buzzerNameControl.exactWidth
+		height: buzzerNameControl.height
+		onClicked: {
+			if (buzzersMenu.opened) {
+				buzzersMenu.close();
+			} else {
+				buzzersMenu.open();
+			}
+		}
+	}
+
+	QuarkPopupMenu {
+		id: buzzersMenu
+		x: buzzerNameControl.x
+		y: buzzerNameControl.y + buzzerNameControl.height
+		width: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 190) : 190
+		visible: false
+		freeSizing: true
+
+		model: ListModel { id: buzzersModel_ }
+
+		onAboutToShow: {
+			activate();
+		}
+
+		onClick: {
+			// switch buzzer
+			if (buzzerClient.name !== key) {
+				//
+				// starting...
+				progressBar.visible = true;
+				progressBar.indeterminate = true;
+
+				// select pkey
+				var lPKey = "";
+				for (var lIdx = 0; lIdx < buzzersModel_.count; lIdx++) {
+					if (buzzersModel_.get(lIdx).key === key) {
+						lPKey = buzzersModel_.get(lIdx).pkey;
+						break;
+					}
+				}
+
+				// push timer
+				if (lPKey !== "") {
+					//
+					progressBar.visible = true;
+					progressBar.indeterminate = true;
+					//
+					tryLink.selectedBuzzer = key;
+					tryLink.selectedBuzzerKey = lPKey;
+					tryLink.start();
+				} else {
+					controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZER_KEY_INCORRECT"), true);
+				}
+			}
+		}
+
+		function activate() {
+			prepare();
+			for (var lIdx = 0; lIdx < buzzersModel_.count; lIdx++) {
+				if (buzzersModel_.get(lIdx).id === buzzerClient.name) {
+					buzzersModel_.currentIndex = lIdx;
+					break;
+				}
+			}
+		}
+
+		function prepare() {
+			//
+			buzzersModel_.clear();
+
+			//
+			var lList = buzzerClient.ownBuzzers();
+			for (var lIdx = 0; lIdx < lList.length; lIdx++) {
+				var lParts = lList[lIdx].split("|");
+				buzzersModel_.append({ key: lParts[0], keySymbol: "", name: lParts[0], pkey: lParts[1] });
+			}
+		}
 	}
 
 	//
@@ -627,6 +728,11 @@ Item {
 		onProcessed: {
 			// amount, pending, scale
 			availableNumber.number = amount;
+			//
+			if (amount < 0.00000001)
+				checkBalance.start();
+			else
+				buzzerClient.dAppStatusChanged();
 		}
 
 		onError: {
@@ -721,6 +827,212 @@ Item {
 		penWidth: 1
 		color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.disabledHidden")
 		visible: true
+	}
+
+	//
+	// link selected buzzer
+	//
+
+	ProgressBar {
+		id: progressBar
+		x: 0
+		y: sharesNumber.y + sharesNumber.height + spaceBottom_ + 1
+		width: parent.width
+		visible: false
+		value: 0.0
+
+		Material.theme: buzzerClient.themeSelector == "dark" ? Material.Dark : Material.Light;
+		Material.accent: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.accent");
+		Material.background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.background");
+		Material.foreground: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground");
+		Material.primary: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.primary");
+	}
+
+	Timer {
+		id: tryLink
+		interval: 200
+		repeat: false
+		running: false
+
+		property var selectedBuzzer: ""
+		property var selectedBuzzerKey: ""
+
+		onTriggered: {
+			//
+			console.log("[tryLink]: trying to link key...");
+			//
+			if (buzzerClient.buzzerDAppReady) {
+				// set current key
+				buzzerClient.setCurrentKey(selectedBuzzerKey);
+				// try to load buzzer and check pkey
+				loadBuzzerInfo.process(selectedBuzzer);
+			} else {
+				tryLink.start();
+			}
+		}
+	}
+
+	//
+	Timer {
+		id: checkBalance
+		interval: 2000
+		repeat: false
+		running: false
+
+		onTriggered: {
+			// force balance check (qbit)
+			balanceCommand.process();
+			// force balance check (qtt)
+			balanceQttCommand.process(buzzerApp.qttAsset());
+		}
+	}
+
+	BuzzerCommands.LoadBuzzerInfoCommand {
+		id: loadBuzzerInfo
+		loadUtxo: true
+
+		onProcessed: {
+			// check
+			if (pkey === tryLink.selectedBuzzerKey) {
+				// state
+				progressBar.indeterminate = false;
+				progressBar.value = 0.3;
+
+				// save
+				buzzerClient.name = name;
+				buzzerClient.alias = alias;
+				buzzerClient.description = description;
+				buzzer_ = name;
+				alias_ = alias;
+				description_ = buzzerClient.decorateBuzzBody(description);
+				buzzerId_ = buzzerId;
+
+				// reset wallet cache
+				buzzerClient.resetWalletCache();
+				// start re-sync, i.e. load owned utxos
+				buzzerClient.resyncWalletCache();
+				// bump balance
+				checkBalance.start();
+
+				// update local buzzer info
+				if (!loadBuzzerInfo.updateLocalBuzzer()) {
+					//
+					progressBar.visible = false;
+					progressBar.indeterminate = false;
+
+					controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZER_INFO_INCORRECT"), true);
+					return;
+				}
+
+				// load trust score
+				trustScoreLoader.process(buzzerId + "/" + buzzerChainId);
+
+				// update local info
+				buzzerClient.save();
+
+				if (avatarId !== "0000000000000000000000000000000000000000000000000000000000000000") {
+					selectedAvatarDownloadCommand.url = avatarUrl;
+					selectedAvatarDownloadCommand.localFile = buzzerClient.getTempFilesPath() + "/" + avatarId;
+					selectedAvatarDownloadCommand.process();
+				} else {
+					// clean-up cache
+					buzzerClient.cleanUpBuzzerCache();
+					// notify changes
+					buzzerClient.notifyBuzzerChanged();
+				}
+			} else {
+				progressBar.visible = false;
+				progressBar.indeterminate = false;
+
+				controller_.showError(buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.error.E_BUZZER_KEY_INCORRECT"), true);
+			}
+		}
+
+		onError: {
+			progressBar.visible = false;
+			progressBar.indeterminate = false;
+
+			handleError(code, message);
+		}
+	}
+
+	BuzzerCommands.DownloadMediaCommand {
+		id: selectedAvatarDownloadCommand
+		preview: false
+		skipIfExists: false
+
+		onProcessed: {
+			// tx, previewFile, originalFile
+			buzzerClient.avatar = originalFile;
+			avatarImage.source = "file://" + originalFile;
+
+			// update local info
+			buzzerClient.save();
+
+			// start header
+			selectedHeaderDownloadCommand.url = loadBuzzerInfo.headerUrl;
+			selectedHeaderDownloadCommand.localFile = buzzerClient.getTempFilesPath() + "/" + loadBuzzerInfo.headerId;
+			selectedHeaderDownloadCommand.process();
+		}
+
+		onProgress: {
+			// pos, size
+			var lPercent = (pos * 100.0) / size;
+			progressBar.value = 0.3 + (0.3 * lPercent) / 100.0;
+
+			if (progressBar.value >= 0.6)
+				progressBar.indeterminate = true;
+			else
+				progressBar.indeterminate = false;
+		}
+
+		onError: {
+			progressBar.visible = false;
+			progressBar.indeterminate = false;
+
+			handleError(code, message);
+		}
+	}
+
+	BuzzerCommands.DownloadMediaCommand {
+		id: selectedHeaderDownloadCommand
+		preview: false
+		skipIfExists: false
+
+		onProcessed: {
+			// tx, previewFile, originalFile
+			buzzerClient.header = originalFile;
+			headerImage.source = "file://" + originalFile;
+
+			// update local info
+			buzzerClient.save();
+			// clean-up cache
+			buzzerClient.cleanUpBuzzerCache();
+			// notify changes
+			buzzerClient.notifyBuzzerChanged();
+
+			//
+			progressBar.visible = false;
+			progressBar.indeterminate = false;
+		}
+
+		onProgress: {
+			// pos, size
+			var lPercent = (pos * 100.0) / size;
+			progressBar.value = 0.6 + (0.3 * lPercent) / 100.0;
+
+			if (progressBar.value >= 0.9)
+				progressBar.indeterminate = true;
+			else
+				progressBar.indeterminate = false;
+		}
+
+		onError: {
+			progressBar.visible = false;
+			progressBar.indeterminate = false;
+
+			handleError(code, message);
+		}
 	}
 
 	function handleError(code, message) {

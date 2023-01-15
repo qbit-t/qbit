@@ -156,8 +156,6 @@ void Peer::processPendingMessagesQueue() {
 			boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
 			// set timeout
 			sendTimeout(30);
-			// finalize & encrypt message
-			// lMsg->msg()->encrypt?
 			// send
 			boost::asio::async_write(*socket_,
 				boost::asio::buffer(lMsg->msg()->data(), lMsg->msg()->size()),

@@ -274,6 +274,11 @@ public:
 	buzzer::EmojiData* emojiData() { return emojiData_; }
 	ConversationsListModel* getConversationsModel() { return conversationsList_; }
 
+	Q_INVOKABLE void broadcastCurrentState() {
+		//
+		requestProcessor_->broadcastCurrentState();
+	}
+
 	Q_INVOKABLE QVariant getGlobalBuzzfeedList() { return QVariant::fromValue(globalBuzzfeedList_); }
 	Q_INVOKABLE QVariant getBuzzfeedList() { return QVariant::fromValue(buzzfeedList_); }
 	Q_INVOKABLE QVariant getEventsfeedList() { return QVariant::fromValue(eventsfeedList_); }
@@ -433,6 +438,10 @@ public:
 		return lList;
 	}
 
+	Q_INVOKABLE void dAppStatusChanged() {
+		emit buzzerDAppReadyChanged();
+	}
+
 	Q_INVOKABLE void addContact(QString, QString);
 	Q_INVOKABLE void removeContact(QString);
 	QList<buzzer::Contact*> selectContacts();
@@ -554,10 +563,17 @@ public:
 	// Wallet
 	Q_INVOKABLE QString firstPKey();
 	Q_INVOKABLE QString firstSKey();
+	Q_INVOKABLE QString findSKey(const QString&);
 	Q_INVOKABLE QStringList firstSeedWords();
 	Q_INVOKABLE void removeAllKeys();
-	Q_INVOKABLE bool importKey(QStringList);
+	Q_INVOKABLE QString importKey(QStringList);
 	Q_INVOKABLE bool checkKey(QStringList);
+	Q_INVOKABLE bool setCurrentKey(const QString&);
+	Q_INVOKABLE QStringList ownBuzzers();
+	Q_INVOKABLE bool isOwnBuzzer(const QString&);
+
+	Q_INVOKABLE QString newKeyPair();
+	Q_INVOKABLE QStringList keySeedWords(const QString&);
 
 private:
 	//

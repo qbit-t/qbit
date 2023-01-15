@@ -1198,7 +1198,7 @@ Item {
 			menuModel.clear();
 
 			//
-			if (buzzerId_ !== buzzerClient.getCurrentBuzzerId()) {
+			if (!buzzerClient.isOwnBuzzer(buzzerName_) /*buzzerId_ !== buzzerClient.getCurrentBuzzerId()*/) {
 				menuModel.append({
 					key: "endorse",
 					keySymbol: Fonts.endorseSym,

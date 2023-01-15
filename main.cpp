@@ -60,6 +60,9 @@
 	#include "dapps/buzzer/validator.h"
 	#include "dapps/buzzer/consensus.h"
 	#include "dapps/buzzer/txbuzzer.h"
+	#include "dapps/buzzer/txbuzzergroup.h"
+	#include "dapps/buzzer/txbuzzergroupkeys.h"
+	#include "dapps/buzzer/txbuzzerruleallowedconversations.h"
 	#include "dapps/buzzer/txbuzz.h"
 	#include "dapps/buzzer/txbuzzreply.h"
 	#include "dapps/buzzer/txrebuzz.h"
@@ -309,6 +312,9 @@ public:
 
 #if defined (BUZZER_MOD)
 		Transaction::registerTransactionType(TX_BUZZER, TxBuzzerCreator::instance());
+		Transaction::registerTransactionType(TX_BUZZER_GROUP, TxBuzzerGroupCreator::instance());
+		Transaction::registerTransactionType(TX_BUZZER_GROUP_KEYS, TxBuzzerGroupKeysCreator::instance());
+		Transaction::registerTransactionType(TX_BUZZER_RULE_ALLOWED_CONVERSATIONS, TxBuzzerRuleAllowedConversationsCreator::instance());
 		Transaction::registerTransactionType(TX_BUZZER_SUBSCRIBE, TxBuzzerSubscribeCreator::instance());
 		Transaction::registerTransactionType(TX_BUZZER_UNSUBSCRIBE, TxBuzzerUnsubscribeCreator::instance());
 		Transaction::registerTransactionType(TX_BUZZ, TxBuzzCreator::instance());

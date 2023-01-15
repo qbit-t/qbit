@@ -119,7 +119,7 @@ QuarkPage
 			id: cancelButton
 			x: spaceItems_
 			y: parent.height / 2 - height / 2 + topOffset / 2
-			symbol: Fonts.cancelSym
+			symbol: Fonts.leftArrowSym //cancelSym
 			fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 5)) : buzzerApp.defaultFontSize() + 7
 			radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius - 7)) : (defaultRadius - 7)
 			color: "transparent"
@@ -137,7 +137,7 @@ QuarkPage
 			y: parent.height / 2 - height / 2 + topOffset / 2 //
 			width: parent.width - (x)
 			elide: Text.ElideRight
-			text: buzzerClient.name
+			text: !setupProcess ? buzzerClient.name : ""
 			font.pointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 14 : 18
 			color: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.link")
 		}
@@ -177,7 +177,8 @@ QuarkPage
 			wrapMode: Label.Wrap
 			font.pointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 14 : 18
 
-			text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.qbitKeys.manage")
+			text: !setupProcess ? buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.qbitKeys.manage") :
+								  buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.qbitKeys.link")
 		}
 
 		QuarkInfoBox {
@@ -501,9 +502,6 @@ QuarkPage
 			console.log("[tryLink]: trying to link key...");
 			//
 			if (buzzerClient.buzzerDAppReady) {
-				// WARNING: remove all previous keys
-				buzzerClient.removeAllKeys();
-
 				// prepare new key
 				var lWords = [];
 				for (var lIdx = 0; lIdx < model_.count; lIdx++) {
@@ -511,9 +509,12 @@ QuarkPage
 				}
 
 				// import
-				buzzerClient.importKey(lWords);
-				addressBox.text = buzzerClient.firstPKey();
-				keyBox.text = buzzerClient.firstSKey();
+				var lPKey = buzzerClient.importKey(lWords);
+				addressBox.text = lPKey;
+				keyBox.text = buzzerClient.findSKey(lPKey);
+
+				// set current key
+				buzzerClient.setCurrentKey(lPKey);
 
 				// try to load buzzer and check pkey
 				loadBuzzerInfo.process(nameEditBox.text);
@@ -569,7 +570,7 @@ QuarkPage
 					buzzerClient.notifyBuzzerChanged();
 					//
 					if (!setupProcess) {
-						closePage();
+						controller.popNonStacked();
 					} else {
 						// setup completed
 						buzzerClient.setProperty("Client.configured", "true");
@@ -672,7 +673,7 @@ QuarkPage
 
 			//
 			if (!setupProcess) {
-				closePage();
+				controller.popNonStacked();
 			} else {
 				// setup completed
 				buzzerClient.setProperty("Client.configured", "true");

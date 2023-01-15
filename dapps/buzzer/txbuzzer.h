@@ -19,34 +19,38 @@ namespace qbit {
 
 typedef LimitedString<64> buzzer_name_t;
 
-#define TX_BUZZER 						Transaction::CUSTOM_00 // main chain: entity, fees
-#define TX_BUZZ 						Transaction::CUSTOM_01 // shard: fees
-#define TX_BUZZER_SUBSCRIBE 			Transaction::CUSTOM_02 // shard: fee-free
-#define TX_BUZZER_UNSUBSCRIBE 			Transaction::CUSTOM_03 // shard: fee-free 
-#define TX_BUZZER_ENDORSE 				Transaction::CUSTOM_04 // ?
-#define TX_BUZZER_MISTRUST				Transaction::CUSTOM_05 // ?
-#define TX_REBUZZ						Transaction::CUSTOM_06 // shard: fees
-#define TX_BUZZ_LIKE					Transaction::CUSTOM_07 // shard: fee-free
-#define TX_BUZZ_REPLY					Transaction::CUSTOM_08 // shard: fees
-#define TX_BUZZ_PIN						Transaction::CUSTOM_09 // shard: fee-free
-#define TX_BUZZ_REBUZZ_NOTIFY			Transaction::CUSTOM_10 // shard: fee-free, action
-#define TX_BUZZER_INFO					Transaction::CUSTOM_11 //
-#define TX_BUZZ_REWARD					Transaction::CUSTOM_12 //
-#define TX_REBUZZ_REPLY					Transaction::CUSTOM_13 // dummy
-#define TX_BUZZER_CONVERSATION			Transaction::CUSTOM_14 //
-#define TX_BUZZER_ACCEPT_CONVERSATION	Transaction::CUSTOM_15 //
-#define TX_BUZZER_DECLINE_CONVERSATION	Transaction::CUSTOM_16 //
-#define TX_BUZZER_MESSAGE				Transaction::CUSTOM_17 //
-#define TX_BUZZER_MESSAGE_REPLY			Transaction::CUSTOM_18 //
-#define TX_BUZZ_HIDE					Transaction::CUSTOM_19 //
-#define TX_BUZZER_HIDE					Transaction::CUSTOM_20 //
-#define TX_BUZZER_BLOCK					Transaction::CUSTOM_21 //
-#define TX_BUZZER_UNBLOCK				Transaction::CUSTOM_22 //
-#define TX_BUZZER_GROUP					Transaction::CUSTOM_23 //
-#define TX_BUZZER_GROUP_INVITE			Transaction::CUSTOM_24 //
-#define TX_BUZZER_GROUP_KEYS			Transaction::CUSTOM_25 //
-#define TX_BUZZER_GROUP_JOIN			Transaction::CUSTOM_26 //
-#define TX_BUZZER_GROUP_LEAVE			Transaction::CUSTOM_27 //
+#define TX_BUZZER 								Transaction::CUSTOM_00 // main chain: entity, fees
+#define TX_BUZZ 								Transaction::CUSTOM_01 // shard: fees
+#define TX_BUZZER_SUBSCRIBE 					Transaction::CUSTOM_02 // shard: fee-free
+#define TX_BUZZER_UNSUBSCRIBE 					Transaction::CUSTOM_03 // shard: fee-free 
+#define TX_BUZZER_ENDORSE 						Transaction::CUSTOM_04 // ?
+#define TX_BUZZER_MISTRUST						Transaction::CUSTOM_05 // ?
+#define TX_REBUZZ								Transaction::CUSTOM_06 // shard: fees
+#define TX_BUZZ_LIKE							Transaction::CUSTOM_07 // shard: fee-free
+#define TX_BUZZ_REPLY							Transaction::CUSTOM_08 // shard: fees
+#define TX_BUZZ_PIN								Transaction::CUSTOM_09 // shard: fee-free
+#define TX_BUZZ_REBUZZ_NOTIFY					Transaction::CUSTOM_10 // shard: fee-free, action
+#define TX_BUZZER_INFO							Transaction::CUSTOM_11 //
+#define TX_BUZZ_REWARD							Transaction::CUSTOM_12 //
+#define TX_REBUZZ_REPLY							Transaction::CUSTOM_13 // dummy
+#define TX_BUZZER_CONVERSATION					Transaction::CUSTOM_14 //
+#define TX_BUZZER_ACCEPT_CONVERSATION			Transaction::CUSTOM_15 //
+#define TX_BUZZER_DECLINE_CONVERSATION			Transaction::CUSTOM_16 //
+#define TX_BUZZER_MESSAGE						Transaction::CUSTOM_17 //
+#define TX_BUZZER_MESSAGE_REPLY					Transaction::CUSTOM_18 //
+#define TX_BUZZ_HIDE							Transaction::CUSTOM_19 //
+#define TX_BUZZER_HIDE							Transaction::CUSTOM_20 //
+#define TX_BUZZER_BLOCK							Transaction::CUSTOM_21 //
+#define TX_BUZZER_UNBLOCK						Transaction::CUSTOM_22 //
+#define TX_BUZZER_GROUP							Transaction::CUSTOM_23 //
+#define TX_BUZZER_GROUP_INVITE					Transaction::CUSTOM_24 //
+#define TX_BUZZER_GROUP_KEYS					Transaction::CUSTOM_25 //
+#define TX_BUZZER_GROUP_JOIN					Transaction::CUSTOM_26 //
+#define TX_BUZZER_GROUP_LEAVE					Transaction::CUSTOM_27 //
+
+#define TX_BUZZER_RULE							Transaction::CUSTOM_28 //
+#define TX_BUZZER_RULE_ALLOWED_CONVERSATIONS	Transaction::CUSTOM_29 //
+#define TX_BUZZER_RULE_ALLOWED_GROUPS			Transaction::CUSTOM_30 //
 
 #define TX_BUZZER_ALIAS_SIZE 128 
 #define TX_BUZZER_DESCRIPTION_SIZE 512

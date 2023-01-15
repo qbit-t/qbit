@@ -336,7 +336,7 @@ Item {
 		spacing: 10
 		padding: 18
 
-		visible: buzzerId_ !== buzzerClient.getCurrentBuzzerId()
+		visible: !buzzerClient.isOwnBuzzer(buzzer_) // buzzerId_ !== buzzerClient.getCurrentBuzzerId()
 
 		text: !buzzerClient.subscriptionExists(buzzerId_) ? buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.subscribe") :
 															buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.unsubscribe")
@@ -468,7 +468,7 @@ Item {
 		symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 14) : defaultSymbolFontPointSize
 
 		onClicked: {
-			if (buzzerId_ === buzzerClient.getCurrentBuzzerId()) return; // no actions
+			if (buzzerClient.isOwnBuzzer(buzzer_) /*buzzerId_ === buzzerClient.getCurrentBuzzerId()*/) return; // no actions
 			if (headerMenu.visible) headerMenu.close();
 			else { headerMenu.prepare(); headerMenu.open(); }
 		}

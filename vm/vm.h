@@ -257,6 +257,8 @@ public:
 
 	void setDryRun() { dryRun_ = true; }
 
+	std::set<uint256>& getLog() { return log_; }
+
 public:
 	class DisassemblyLine {
 	public:
@@ -404,6 +406,7 @@ private:
 	qasm::ByteCode code_; // program byte-code
 	bool allowLoops_; // allow loops
 	std::map<unsigned short, int> labels_; // labels and positions
+	std::set<uint256> log_;
 
 private:
 	// all registers

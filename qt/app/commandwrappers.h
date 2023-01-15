@@ -266,6 +266,82 @@ private:
 	qbit::CreateBuzzerCommandPtr command_;
 };
 
+class CreateBuzzerGroupCommand: public QObject
+{
+	Q_OBJECT
+
+	Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
+	Q_PROPERTY(QString alias READ alias WRITE setAlias NOTIFY aliasChanged)
+	Q_PROPERTY(QString description READ description WRITE setDescription NOTIFY descriptionChanged)
+	Q_PROPERTY(QString avatar READ avatar WRITE setAvatar NOTIFY avatarChanged)
+
+public:
+	explicit CreateBuzzerGroupCommand(QObject* parent = nullptr);
+
+	Q_INVOKABLE void process() {
+		std::vector<std::string> lArgs;
+		lArgs.push_back(name_.toStdString());
+		lArgs.push_back(alias_.toStdString());
+		lArgs.push_back(description_.toStdString());
+
+		lArgs.push_back(avatar_.toStdString()); // full path
+		lArgs.push_back("-s");
+		lArgs.push_back("160x100");
+
+		qInfo() << "create group" << name_ << alias_ << avatar_;
+
+		command_->process(lArgs);
+	}
+
+	void setName(const QString& name) { name_ = name; emit nameChanged(); }
+	QString name() const { return name_; }
+
+	void setAlias(const QString& alias) { alias_ = alias; emit aliasChanged(); }
+	QString alias() const { return alias_; }
+
+	void setDescription(const QString& description) { description_ = description; emit descriptionChanged(); }
+	QString description() const { return description_; }
+
+	void setAvatar(const QString& avatar) { avatar_ = avatar; emit avatarChanged(); }
+	QString avatar() const { return avatar_; }
+
+	void done(qbit::TransactionPtr buzzerTx, qbit::TransactionPtr buzzerInfoTx, const qbit::ProcessingError& result) {
+		if (result.success())
+			emit processed(
+					QString::fromStdString(buzzerTx->id().toHex()), QString::fromStdString(buzzerTx->chain().toHex()),
+					QString::fromStdString(buzzerInfoTx->id().toHex()), QString::fromStdString(buzzerInfoTx->chain().toHex())
+			);
+		else emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
+	}
+
+	void avatarUploadProgress(const std::string& /*file*/, uint64_t pos, uint64_t size) {
+		emit avatarProgress(pos, size);
+	}
+
+	void avatarUploaded(qbit::TransactionPtr tx, const qbit::ProcessingError& result) {
+		if (result.success()) emit avatarProcessed(QString::fromStdString(tx->id().toHex()), QString::fromStdString(tx->chain().toHex()));
+		else emit error(QString::fromStdString(result.error()), QString::fromStdString(result.message()));
+	}
+
+signals:
+	void processed(QString buzzer, QString buzzerChain, QString buzzerInfo, QString buzzerInfoChain);
+	void avatarProcessed(QString tx, QString chain);
+	void avatarProgress(ulong pos, ulong size);
+	void error(QString code, QString message);
+	void nameChanged();
+	void aliasChanged();
+	void descriptionChanged();
+	void avatarChanged();
+
+private:
+	QString name_;
+	QString alias_;
+	QString description_;
+	QString avatar_;
+
+	qbit::CreateBuzzerGroupCommandPtr command_;
+};
+
 class CreateBuzzerInfoCommand: public QObject
 {
 	Q_OBJECT
@@ -2155,7 +2231,7 @@ public:
 
 	Q_INVOKABLE void process(QString buzzer) {
 		std::vector<std::string> lArgs;
-		lArgs.push_back(buzzer.toStdString());
+		lArgs.push_back((buzzerName_ = buzzer.toStdString()));
 		if (loadUtxo_) lArgs.push_back("-utxo");
 		command_->process(lArgs);
 	}
@@ -2179,6 +2255,7 @@ public:
 			qbit::PKey lPKey;
 			if (info_->extractAddress(lPKey)) {
 				lClient->getBuzzerComposer()->addSubscription(buzzer_->id(), lPKey); // recover at least yourself subscription
+				lClient->getBuzzerComposer()->addOwnBuzzer(buzzerName_, lPKey);
 			}
 
 			// TODO: lazy subcription recovering - if buzz apeared in list and there is no subscription, try
@@ -2312,6 +2389,7 @@ private:
 	qbit::EntityPtr buzzer_;
 	std::vector<qbit::Transaction::NetworkUnlinkedOut> outs_;
 	qbit::TxBuzzerInfoPtr info_;
+	std::string buzzerName_;
 	bool loadUtxo_ = false;
 };
 

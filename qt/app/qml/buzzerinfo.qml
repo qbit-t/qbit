@@ -23,6 +23,7 @@ Item
 	property var infoDialog;
 	property int calculatedHeight: progressBar.y + progressBar.height + 15;
 	property string action: "CREATE"; // UPDATE
+	property string source: "setup";
 	property bool buzzerCreated: false
 	property var controller;
 
@@ -37,6 +38,14 @@ Item
 	signal hideButton();
 	signal showButton();
 	signal controlActivated(var cy, var cheight);
+
+	onSourceChanged: {
+		//
+		if (buzzerinfo_.source === "wizard") {
+			nextAvatarButton.setupAvatar();
+			nextHeaderButton.setupHeader();
+		}
+	}
 
 	//
 	// Buzzer avatar
@@ -350,7 +359,7 @@ Item
 
 		Component.onCompleted: {
 			//
-			if (buzzerClient.avatar === "") setupAvatar();
+			if (buzzerClient.avatar === "" || buzzerinfo_.source === "wizard") setupAvatar();
 		}
 
 		function setupAvatar() {
@@ -591,7 +600,7 @@ Item
 
 		Component.onCompleted: {
 			//
-			if (buzzerClient.header === "") setupHeader();
+			if (buzzerClient.header === "" || buzzerinfo_.source === "wizard") setupHeader();
 		}
 
 		function setupHeader() {
@@ -869,6 +878,9 @@ Item
 			buzzerClient.description = buzzerDescription_;
 			buzzerClient.avatar = buzzerAvatar_;
 			buzzerClient.header = buzzerHeader_;
+
+			// extract "first" key, setCurrentKey should be set in case if we creating new one before buzzer creation
+			buzzerClient.setCurrentKey(buzzerClient.firstPKey());
 
 			// update local info
 			buzzerClient.save();

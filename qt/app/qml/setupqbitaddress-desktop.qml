@@ -39,6 +39,10 @@ QuarkPage
         controller.showError(error);
     }
 
+	function initialize(makeNewKey) {
+		//
+	}
+
 	//
 	// toolbar
 	//

@@ -161,6 +161,8 @@ std::string qasm::_getRegisterText(_register reg) {
 
 		case QE0: 	return "e00";
 		case QC1: 	return "c01";
+
+		case QL0: 	return "l00";
 	}
 
 	return "EREG";

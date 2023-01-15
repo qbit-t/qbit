@@ -95,6 +95,7 @@ Item
 	readonly property string languageSym: "\uf1ab";
 	readonly property string colorSym: "\uf53f";
 	readonly property string usersSym: "\uf500";
+	readonly property string groupSym: "\ue533";
 	readonly property string fingerPrintSym: "\uf577";
 	readonly property string globe2Sym: "\uf57d";
 	readonly property string globe0Sym: "\uf57c";
@@ -116,6 +117,8 @@ Item
 	readonly property string userMinusSym: "\uf503";
 	readonly property string userEditSym: "\uf4ff";
 	readonly property string userSecretSym: "\uf21b";
+
+	readonly property string plusSimpleSym: "\uf02b";
 
 	readonly property string conversationStartedSym: "\uf234";
 	readonly property string conversationPendingSym: "\uf4fd";

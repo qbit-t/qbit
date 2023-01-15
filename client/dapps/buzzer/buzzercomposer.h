@@ -7,6 +7,8 @@
 
 #include "../../handlers.h"
 #include "../../../dapps/buzzer/txbuzzer.h"
+#include "../../../dapps/buzzer/txbuzzergroup.h"
+#include "../../../dapps/buzzer/txbuzzergroupkeys.h"
 #include "../../../dapps/buzzer/txbuzz.h"
 #include "../../../dapps/buzzer/txbuzzlike.h"
 #include "../../../dapps/buzzer/txbuzzhide.h"
@@ -83,6 +85,43 @@ public:
 		Transaction::UnlinkedOutPtr buzzerOut_;
 	};
 
+	class CreateTxBuzzerGroup: public IComposerMethod, public std::enable_shared_from_this<CreateTxBuzzerGroup> {
+	public:
+		CreateTxBuzzerGroup(BuzzerLightComposerPtr composer, const std::string& buzzer, const uint256& pkey, transactionCreatedWithUTXOFunction created): 
+			composer_(composer), buzzer_(buzzer), pkey_(pkey), created_(created) {}
+		void process(errorFunction);
+
+		static IComposerMethodPtr instance(BuzzerLightComposerPtr composer, const std::string& buzzer, const uint256& pkey, transactionCreatedWithUTXOFunction created) {
+			return std::make_shared<CreateTxBuzzerGroup>(composer, buzzer, pkey, created); 
+		}
+
+		// 
+		void timeout() {
+			error_("E_TIMEOUT", "Timeout expired during creating group.");
+		}
+
+		//
+		void utxoByDAppLoaded(const std::vector<Transaction::UnlinkedOut>&, const std::string&);
+		void dAppInstancesCountByShardsLoaded(const std::map<uint32_t, uint256>&, const std::string&);
+		void shardLoaded(TransactionPtr);
+		void utxoByShardLoaded(const std::vector<Transaction::UnlinkedOut>&, const std::string&);
+		void assetNamesLoaded(const std::string&, const std::vector<IEntityStore::EntityName>&);
+
+	private:
+		BuzzerLightComposerPtr composer_;
+		std::string buzzer_;
+		uint256 pkey_;
+		transactionCreatedWithUTXOFunction created_;
+		errorFunction error_;
+
+		std::string buzzerName_;
+
+		TxBuzzerGroupPtr buzzerTx_;
+		TransactionContextPtr ctx_;
+		TxShardPtr shardTx_;
+		Transaction::UnlinkedOutPtr buzzerOut_;
+	};
+
 	class CreateTxBuzzerInfo: public IComposerMethod, public std::enable_shared_from_this<CreateTxBuzzerInfo> {
 	public:
 		CreateTxBuzzerInfo(BuzzerLightComposerPtr composer, Transaction::UnlinkedOutPtr buzzer,
@@ -129,6 +168,88 @@ public:
 		errorFunction error_;
 
 		TxBuzzerInfoPtr tx_;
+		TransactionContextPtr ctx_;
+	};
+
+	class CreateTxBuzzerGroupInfo: public IComposerMethod, public std::enable_shared_from_this<CreateTxBuzzerGroupInfo> {
+	public:
+		CreateTxBuzzerGroupInfo(BuzzerLightComposerPtr composer, TransactionPtr group, TransactionPtr keys,
+			const std::string& alias,
+			const std::string& description,
+			const BuzzerMediaPointer& avatar,
+			transactionCreatedFunction created): 
+			composer_(composer),
+			group_(group),
+			keys_(keys),
+			alias_(alias), 
+			description_(description), 
+			avatar_(avatar),
+			created_(created) {}
+		void process(errorFunction);
+
+		static IComposerMethodPtr instance(BuzzerLightComposerPtr composer, TransactionPtr group, TransactionPtr keys,
+				const std::string& alias,
+				const std::string& description,
+				const BuzzerMediaPointer& avatar,
+				transactionCreatedFunction created) {
+			return std::make_shared<CreateTxBuzzerGroupInfo>(composer, group, keys, alias, description, avatar, created); 
+		}
+
+		// 
+		void timeout() {
+			error_("E_TIMEOUT", "Timeout expired during group info creation.");
+		}
+
+		//
+		void utxoByBuzzerLoaded(const std::vector<Transaction::UnlinkedOut>&, const std::string&);
+
+	private:
+		BuzzerLightComposerPtr composer_;
+		TransactionPtr group_;
+		TransactionPtr keys_;
+		std::string alias_;
+		std::string description_;
+		BuzzerMediaPointer avatar_;
+		transactionCreatedFunction created_;
+		errorFunction error_;
+
+		TxBuzzerInfoPtr tx_;
+		TransactionContextPtr ctx_;
+	};
+
+	class CreateTxBuzzerGroupKeys: public IComposerMethod, public std::enable_shared_from_this<CreateTxBuzzerGroupKeys> {
+	public:
+		CreateTxBuzzerGroupKeys(BuzzerLightComposerPtr composer, TransactionPtr group, const uint256& pkey,
+			transactionCreatedFunction created):
+			composer_(composer),
+			group_(group),
+			pkey_(pkey),
+			created_(created) {}
+		void process(errorFunction);
+
+		static IComposerMethodPtr instance(BuzzerLightComposerPtr composer, TransactionPtr group,
+				const uint256& pkey,
+				transactionCreatedFunction created) {
+			return std::make_shared<CreateTxBuzzerGroupKeys>(composer, group, pkey, created); 
+		}
+
+		// 
+		void timeout() {
+			error_("E_TIMEOUT", "Timeout expired during buzzer keys creation.");
+		}
+
+		//
+		void utxoByBuzzerLoaded(const std::vector<Transaction::UnlinkedOut>&, const std::string&);
+		void saveBuzzerUtxo(const std::vector<Transaction::UnlinkedOut>&, const std::string&);
+
+	private:
+		BuzzerLightComposerPtr composer_;
+		TransactionPtr group_;
+		uint256 pkey_;
+		transactionCreatedFunction created_;
+		errorFunction error_;
+
+		TxBuzzerGroupKeysPtr tx_;
 		TransactionContextPtr ctx_;
 	};
 
@@ -1368,6 +1489,97 @@ public:
 	void removeContact(const std::string& buzzer) {
 		contacts_.remove(buzzer);
 	}
+
+	bool addOwnBuzzer(const std::string& buzzer, const PKey& pkey) {
+		//
+		if (!open()) return false;
+
+		// save new buzzer
+		workingSettings_.write(buzzer, pkey.toString());
+
+		//
+		cachedWorkingSettings_.erase(buzzer);
+		cachedWorkingSettings_[buzzer] = pkey.toString();
+
+		writeWorkingSetings();
+
+		return true;
+	}
+
+	bool addOwnBuzzerGroup(const std::string& buzzer, const PKey& pkey) {
+		//
+		if (!open()) return false;
+
+		// save new buzzer
+		workingSettings_.write(buzzer, pkey.toString());
+
+		//
+		cachedWorkingSettings_.erase(buzzer + "|g");
+		cachedWorkingSettings_[buzzer + "|g"] = pkey.toString();
+
+		writeWorkingSetings();
+
+		return true;
+	}
+
+	bool removeOwnBuzzer(const std::string& buzzer) {
+		//
+		if (!open()) return false;
+
+		// save new buzzer
+		workingSettings_.remove(buzzer);
+
+		//
+		cachedWorkingSettings_.erase(buzzer);
+
+		writeWorkingSetings();
+
+		return true;
+	}
+
+	bool removeOwnBuzzerGroup(const std::string& buzzer) {
+		//
+		if (!open()) return false;
+
+		// save new buzzer
+		workingSettings_.remove(buzzer + "|g");
+
+		//
+		cachedWorkingSettings_.erase(buzzer + "|g");
+
+		writeWorkingSetings();
+
+		return true;
+	}
+
+	void selectOwnBuzzers(std::map<std::string, PKey>& results) {
+		//		
+		for (std::map<std::string /*name*/, std::string /*data*/>::iterator lSetting = cachedWorkingSettings_.begin(); lSetting != cachedWorkingSettings_.end(); lSetting++) {
+			//
+			if ((*lSetting->first.begin()) == '@' && lSetting->first.find("|g") == std::string::npos) {
+				results[lSetting->first] = PKey(lSetting->second);
+			}
+		}
+	}
+
+	void selectOwnBuzzerGroups(std::map<std::string, PKey>& results) {
+		//		
+		for (std::map<std::string /*name*/, std::string /*data*/>::iterator lSetting = cachedWorkingSettings_.begin(); lSetting != cachedWorkingSettings_.end(); lSetting++) {
+			//
+			if ((*lSetting->first.begin()) == '@' && lSetting->first.find("|g") != std::string::npos) {
+				results[lSetting->first] = PKey(lSetting->second);
+			}
+		}
+	}
+
+	bool isOwnBuzzer(const std::string& buzzer) {
+		//
+		return cachedWorkingSettings_.find(buzzer) != cachedWorkingSettings_.end();
+	}
+
+	void addGroupOwnership(const uint256&, const PKey&);
+	void removeGroupOwnership(const uint256&);
+	bool getGroupOwnership(const uint256&, PKey&);
 
 	void selectContacts(std::map<std::string, std::string>& contacts) {
 		//

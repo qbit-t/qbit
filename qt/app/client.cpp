@@ -25,6 +25,9 @@
 
 #if defined (BUZZER_MOD)
 	#include "dapps/buzzer/txbuzzer.h"
+	#include "dapps/buzzer/txbuzzergroup.h"
+	#include "dapps/buzzer/txbuzzergroupkeys.h"
+	#include "dapps/buzzer/txbuzzerruleallowedconversations.h"
 	#include "dapps/buzzer/txbuzz.h"
 	#include "dapps/buzzer/txbuzzlike.h"
 	#include "dapps/buzzer/txbuzzhide.h"
@@ -321,6 +324,9 @@ int Client::open(QString secret) {
 
 	// buzzer transactions
 	Transaction::registerTransactionType(TX_BUZZER, TxBuzzerCreator::instance());
+	Transaction::registerTransactionType(TX_BUZZER_GROUP, TxBuzzerGroupCreator::instance());
+	Transaction::registerTransactionType(TX_BUZZER_GROUP_KEYS, TxBuzzerGroupKeysCreator::instance());
+	Transaction::registerTransactionType(TX_BUZZER_RULE_ALLOWED_CONVERSATIONS, TxBuzzerRuleAllowedConversationsCreator::instance());
 	Transaction::registerTransactionType(TX_BUZZER_SUBSCRIBE, TxBuzzerSubscribeCreator::instance());
 	Transaction::registerTransactionType(TX_BUZZER_UNSUBSCRIBE, TxBuzzerUnsubscribeCreator::instance());
 	Transaction::registerTransactionType(TX_BUZZ, TxBuzzCreator::instance());
@@ -483,6 +489,7 @@ int Client::open(QString secret) {
 	qmlRegisterType<buzzer::AskForQbitsCommand>("app.buzzer.commands", 1, 0, "AskForQbitsCommand");
 	qmlRegisterType<buzzer::BalanceCommand>("app.buzzer.commands", 1, 0, "BalanceCommand");
 	qmlRegisterType<buzzer::CreateBuzzerCommand>("app.buzzer.commands", 1, 0, "CreateBuzzerCommand");
+	qmlRegisterType<buzzer::CreateBuzzerGroupCommand>("app.buzzer.commands", 1, 0, "CreateBuzzerGroupCommand");
 	qmlRegisterType<buzzer::CreateBuzzerInfoCommand>("app.buzzer.commands", 1, 0, "CreateBuzzerInfoCommand");
 	qmlRegisterType<buzzer::LoadBuzzerTrustScoreCommand>("app.buzzer.commands", 1, 0, "LoadBuzzerTrustScoreCommand");
 	qmlRegisterType<buzzer::LoadBuzzesGlobalCommand>("app.buzzer.commands", 1, 0, "LoadBuzzesGlobalCommand");
@@ -608,6 +615,32 @@ int Client::open(QString secret) {
 	QString lExplicitPeersOnly = getProperty("Client.explicitPeersOnly");
 	if (lExplicitPeersOnly == "true") {
 		peerManager_->useExplicitPeersOnly();
+	}
+
+	// load current key
+	QString lCurrentKey = getProperty("Client.currentKey");
+	if (lCurrentKey != "") {
+		//
+		std::map<std::string, PKey> lBuzzers;
+		getBuzzerComposer()->selectOwnBuzzers(lBuzzers);
+
+		//
+		std::map<std::string, PKey>::iterator lBuzzer = lBuzzers.find(name().toStdString());
+		if (lBuzzer->second.toString() != lCurrentKey.toStdString()) {
+			// replace current key
+			wallet_->setCurrentKey(lBuzzer->second);
+			setProperty("Client.currentKey", QString::fromStdString(lBuzzer->second.toString()));
+		} else {
+			// it's ok
+			wallet_->setCurrentKey(PKey(lCurrentKey.toStdString()));
+		}
+	} else {
+		//
+		if (name() != "") {
+			//
+			SKeyPtr lSKey = wallet_->firstKey();
+			if (lSKey) buzzerComposer_->addOwnBuzzer(name().toStdString(), lSKey->createPKey());
+		}
 	}
 
 	// fill up peers
@@ -1366,6 +1399,28 @@ QString Client::firstSKey() {
 	return QString();
 }
 
+
+QString Client::findSKey(const QString& key) {
+	//
+	if (wallet_) {
+		SKeyPtr lSKey = wallet_->findKey(PKey(key.toStdString()));
+		return QString::fromStdString(lSKey->toHex());
+	}
+
+	return QString();
+}
+
+bool Client::setCurrentKey(const QString& key) {
+	//
+	if (wallet_) {
+		wallet_->setCurrentKey(PKey(key.toStdString()));
+		setProperty("Client.currentKey", key);
+		return true;
+	}
+
+	return false;
+}
+
 QStringList Client::firstSeedWords() {
 	//
 	if (wallet_) {
@@ -1392,7 +1447,7 @@ void Client::removeAllKeys() {
 	}
 }
 
-bool Client::importKey(QStringList words) {
+QString Client::importKey(QStringList words) {
 	//
 	std::list<std::string> lWords;
 	for (QStringList::iterator lWord = words.begin(); lWord != words.end(); lWord++) {
@@ -1401,10 +1456,12 @@ bool Client::importKey(QStringList words) {
 
 	if (wallet_) {
 		qbit::SKeyPtr lSKey = wallet_->createKey(lWords);
-		return lSKey->valid();
+		if (lSKey->valid()) {
+			return QString::fromStdString(lSKey->createPKey().toString());
+		}
 	}
 
-	return false;
+	return QString();
 }
 
 bool Client::checkKey(QStringList words) {
@@ -1417,6 +1474,68 @@ bool Client::checkKey(QStringList words) {
 	qbit::SKey lSKey(lWords);
 	lSKey.create();
 	return lSKey.valid();
+}
+
+QStringList Client::ownBuzzers() {
+	//
+	if (wallet_) {
+		//
+		std::map<std::string, PKey> lBuzzers;
+		getBuzzerComposer()->selectOwnBuzzers(lBuzzers);
+		//
+		QStringList lList;
+		for (std::map<std::string, PKey>::iterator lBuzzer = lBuzzers.begin(); lBuzzer != lBuzzers.end(); lBuzzer++) {
+			lList.push_back(QString::fromStdString(strprintf("%s|%s", lBuzzer->first, lBuzzer->second.toString())));
+		}
+
+		//
+		if (lBuzzers.find(name().toStdString()) == lBuzzers.end()) {
+			SKeyPtr lSKey = wallet_->firstKey();
+			lList.push_back(QString::fromStdString(strprintf("%s|%s", name().toStdString(), lSKey->createPKey().toString())));
+		}
+
+		return lList;
+	}
+
+	return QStringList();
+}
+
+bool Client::isOwnBuzzer(const QString& buzzer) {
+	//
+	if (wallet_) {
+		//
+		return getBuzzerComposer()->isOwnBuzzer(buzzer.toStdString());
+	}
+
+	return false;
+}
+
+QString Client::newKeyPair() {
+	//
+	if (wallet_) {
+		qbit::SKeyPtr lSKey = wallet_->createKey(std::list<std::string>());
+		if (lSKey->valid()) {
+			return QString::fromStdString(lSKey->createPKey().toString());
+		}
+	}
+
+	return QString();
+}
+
+QStringList Client::keySeedWords(const QString& key) {
+	//
+	if (wallet_) {
+		SKeyPtr lSKey = wallet_->findKey(PKey(key.toStdString()));
+		//
+		QStringList lList;
+		for (std::vector<SKey::Word>::iterator lWord = lSKey->seed().begin(); lWord != lSKey->seed().end(); lWord++) {
+			lList.push_back(QString::fromStdString(lWord->wordA()));
+		}
+
+		return lList;
+	}
+
+	return QStringList();
 }
 
 void Client::unlink() {

@@ -168,7 +168,9 @@ enum _register {
 	QP0		= 0x42,
 
 	QE0		= 0x43,
-	QC1		= 0x44
+	QC1		= 0x44,
+
+	QL0		= 0x45
 };
 
 extern int LAB_LEN;

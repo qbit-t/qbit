@@ -221,13 +221,20 @@ DISTFILES += \
     components/QuarkEmojiPopup.qml \
     components/QuarkEmojiTable.qml \
     components/QuarkLabelRegular.qml \
+    components/QuarkRadioButton.qml \
     emoji/emoji-google.json \
     qml/buzzeditor-desktop.qml \
     qml/buzzer-desktop-app.qml \
     qml/buzzer-main-desktop.qml \
     qml/buzzer-stackview-desktop.qml \
+    qml/buzzeraskqbit.qml \
+    qml/buzzercreatelink.qml \
     qml/buzzercreateupdate-desktop.qml \
+    qml/buzzergroupcreateupdate-desktop.qml \
+    qml/buzzergroupinfo-desktop.qml \
     qml/buzzerinfo-desktop.qml \
+    qml/buzzernew.qml \
+    qml/buzzerqbitaddress.qml \
     qml/buzzertoolbar-desktop.qml \
     qml/buzzfeedthread-desktop.qml \
     qml/buzzitemmedia-editor-image-desktop.qml \

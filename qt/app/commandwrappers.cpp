@@ -71,6 +71,32 @@ CreateBuzzerCommand::CreateBuzzerCommand(QObject* /*parent*/) : QObject() {
 	);
 }
 
+CreateBuzzerGroupCommand::CreateBuzzerGroupCommand(QObject* /*parent*/) : QObject() {
+	//
+	Client* lClient = static_cast<Client*>(gApplication->getClient());
+
+	command_ = std::static_pointer_cast<qbit::CreateBuzzerGroupCommand>(
+		qbit::CreateBuzzerGroupCommand::instance(lClient->getBuzzerComposer(), boost::bind(&CreateBuzzerGroupCommand::done, this, boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3))
+	);
+
+	command_->setUploadAvatar(
+		qbit::cubix::UploadMediaCommand::instance(
+			lClient->getCubixComposer(),
+			boost::bind(&CreateBuzzerGroupCommand::avatarUploadProgress, this, boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3),
+			boost::bind(&qbit::CreateBuzzerGroupCommand::avatarUploaded, command_, boost::placeholders::_1, boost::placeholders::_2))
+	);
+
+	/*
+	command_->setUploadHeader(
+		qbit::cubix::UploadMediaCommand::instance(
+			lClient->getCubixComposer(),
+			boost::bind(&CreateBuzzerCommand::headerUploadProgress, this, boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3),
+			"760x570", // special header case - higher resolution for image
+			boost::bind(&qbit::CreateBuzzerCommand::headerUploaded, command_, boost::placeholders::_1, boost::placeholders::_2))
+	);
+	*/
+}
+
 CreateBuzzerInfoCommand::CreateBuzzerInfoCommand(QObject* /*parent*/) : QObject() {
 	//
 	Client* lClient = static_cast<Client*>(gApplication->getClient());
