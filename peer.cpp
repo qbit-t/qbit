@@ -4789,18 +4789,17 @@ void Peer::connected(const boost::system::error_code& error, tcp::resolver::iter
 		}
 
 		// initiate key exchange
-		keyExchange();
+		if (peerManager_->protoEncryption()) keyExchange();
+		else {
+			// connected - send our state
+			sendState();
 
-		/*
-		// connected - send our state
-		sendState();
+			// connected - request peers
+			requestPeers();
 
-		// connected - request peers
-		requestPeers();
-
-		// go to read
-		processed();
-		*/
+			// go to read
+			processed();
+		}
 	} else if (endpoint_iterator != tcp::resolver::iterator()) {
 		socket_->close();
 		

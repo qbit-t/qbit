@@ -355,6 +355,7 @@ public:
     Q_INVOKABLE bool getRealtimeDebug();
 	Q_INVOKABLE QString getExploreTx();
 	Q_INVOKABLE QString getExploreTxRaw();
+	Q_INVOKABLE bool getProtoEncryption();
 
     Q_INVOKABLE bool getDebug();
 	Q_INVOKABLE bool getInterceptOutput();

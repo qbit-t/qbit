@@ -745,6 +745,9 @@ public:
 		return (int)deleting_.size();
 	}
 
+	bool protoEncryption() { return protoEncryption_; }
+	void setProtoEncryption(bool protoEncryption) { protoEncryption_ = protoEncryption; }
+
 private:
 	void openPeersContainer() {
 		// open container
@@ -1440,6 +1443,7 @@ private:
 
 	bool paused_ = false;
 	bool explicitPeersOnly_ = false;
+	bool protoEncryption_ = true;
 };
 
 }

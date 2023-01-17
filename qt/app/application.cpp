@@ -626,6 +626,16 @@ bool Application::getRealtimeDebug()
     return lValue.getBool();
 }
 
+bool Application::getProtoEncryption()
+{
+	qbit::json::Value lValue;
+	if (appConfig_.find("protoEncryption", lValue)) {
+		return lValue.getBool();
+	}
+
+	return false;
+}
+
 QString Application::getEndPoint()
 {
 	qbit::json::Value lValue = appConfig_["endPoint"];
