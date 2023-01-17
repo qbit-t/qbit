@@ -13,7 +13,7 @@ void Message::registerMessageType(Message::Type type, const std::string& name) {
 
 std::string Message::toString() {
 	std::string lMsg = "";
-	switch(type_) {
+	switch(type()) {
 		case PING: lMsg = "PING"; break;
 		case PONG: lMsg = "PONG"; break;
 		case STATE: lMsg = "STATE"; break;
@@ -71,6 +71,7 @@ std::string Message::toString() {
 		case GET_ENTITY_NAMES: lMsg = "GET_ENTITY_NAMES"; break;
 		case ENTITY_NAMES: lMsg = "ENTITY_NAMES"; break;
 		case GET_SOME_QBITS: lMsg = "GET_SOME_QBITS"; break;
+		case KEY_EXCHANGE: lMsg = "KEY_EXCHANGE"; break;
 
 		default:  {
 			lMsg = "UNKNOWN";
@@ -81,8 +82,8 @@ std::string Message::toString() {
 		break;
 	}
 
-	return lMsg += "/" + strprintf("%d/%d[%d:%d:%d]/%s", size_, version_, 
+	return lMsg += "/" + strprintf("%s/%d/%d[%d:%d:%d]/%s", (encrypted() ? "*" : "-"), size_, version_, 
 			UNPACK_MAJOR(version_), 
-			UNPACK_MINOR(version_), 
+			UNPACK_MINOR(version_),
 			UNPACK_REVISION(version_), checksum_.toHex());
 }

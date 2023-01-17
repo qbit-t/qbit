@@ -20,6 +20,19 @@ Item
 {
 	id: conversationsfeed_
 
+	// spacing
+	readonly property int spaceLeft_: 15
+	readonly property int spaceTop_: 12
+	readonly property int spaceRight_: 15
+	readonly property int spaceBottom_: 12
+	readonly property int spaceAvatarBuzz_: 10
+	readonly property int spaceItems_: 5
+	readonly property int spaceHeader_: 5
+	readonly property int spaceRightMenu_: 15
+	readonly property int spaceStats_: -5
+	readonly property int spaceLine_: 4
+	readonly property int spaceMedia_: 20
+
 	property var infoDialog;
 	property var controller;
 	property var mediaPlayerController;
@@ -54,6 +67,7 @@ Item
 			console.log("[conversations/disconnect]: disconnecting");
 			controller.mainToolBar.searchTextEdited.disconnect(conversationsfeed_.startSearch);
 			controller.mainToolBar.searchTextCleared.disconnect(conversationsfeed_.searchTextCleared);
+			controller.mainToolBar.doAction.disconnect(conversationsfeed_.openMenu);
 		}
 	}
 
@@ -63,6 +77,7 @@ Item
 			controller.mainToolBar.searchTextEdited.connect(conversationsfeed_.startSearch);
 			controller.mainToolBar.searchTextCleared.connect(conversationsfeed_.searchTextCleared);
 			controller.mainToolBar.setSearchText("", buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.global.search.add"));
+			controller.mainToolBar.doAction.connect(conversationsfeed_.openMenu);
 		}
 
 		conversationModel_.resetModel();
@@ -255,6 +270,70 @@ Item
 	function searchTextCleared() {
 		buzzerClient.getConversationsList().resetFilter();
 		//start();
+	}
+
+	QuarkPopupMenu {
+		id: actionMenu
+		x: parent.width - width - spaceLeft_
+		y: 0 // spaceItems_
+		width: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 150) : 150
+		visible: false
+		freeSizing: true
+
+		model: ListModel { id: menuModel }
+
+		onAboutToShow: {
+			prepare();
+		}
+
+		onClick: {
+			var lComponent = null;
+			var lPage = null;
+
+			if (key === "creategroup") {
+				//
+				lComponent = Qt.createComponent("qrc:/qml/buzzerqbitaddress.qml");
+				if (lComponent.status === Component.Error) {
+					controller.showError(lComponent.errorString());
+				} else {
+					lPage = lComponent.createObject(window);
+					lPage.controller = controller;
+					lPage.initialize(true /*new key*/, false /*activate key*/,
+						function() {
+							lComponent = Qt.createComponent(buzzerApp.isDesktop ? "qrc:/qml/buzzergroupcreateupdate-desktop.qml" :
+																				  "qrc:/qml/buzzergroupcreateupdate.qml");
+							if (lComponent.status === Component.Error) {
+								controller.showError(lComponent.errorString());
+							} else {
+								lPage = lComponent.createObject(window);
+								lPage.controller = controller;
+								lPage.initialize("CREATE", "wizard");
+
+								addPage(lPage);
+							}
+						}
+					);
+
+					controller.addPage(lPage);
+				}
+			}
+		}
+
+		function prepare() {
+			//
+			menuModel.clear();
+
+			//
+			menuModel.append({
+				key: "creategroup",
+				keySymbol: Fonts.usersSym,
+				name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.group.create")});
+		}
+	}
+
+	function openMenu() {
+		if (actionMenu.opened) actionMenu.close();
+		else actionMenu.open();
 	}
 
 	QuarkListView {

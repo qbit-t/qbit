@@ -159,6 +159,158 @@ void CreateBuzzerCommand::buzzerInfoSent(const uint256& tx, const std::vector<Tr
 }
 
 //
+// CreateBuzzerGroupCommand
+//
+void CreateBuzzerGroupCommand::process(const std::vector<std::string>& args) {
+	//
+	args_ = args;
+	buzzerOut_ = nullptr;
+
+	if (args.size() >= 2) {
+		//
+		uint256 lPKey; lPKey.setHex(args[1]);
+		// prepare
+		IComposerMethodPtr lCommander = BuzzerLightComposer::CreateTxBuzzerGroup::instance(composer_, 
+			std::string(args[0]),
+			lPKey,
+			boost::bind(&CreateBuzzerGroupCommand::buzzerCreated, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
+		// async process
+		lCommander->process(boost::bind(&CreateBuzzerGroupCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
+	} else {
+		error("E_INCORRECT_AGRS", "Incorrect number of arguments");
+		return;
+	}
+}
+
+void CreateBuzzerGroupCommand::buzzerCreated(TransactionContextPtr ctx, Transaction::UnlinkedOutPtr buzzerOut) {
+	//
+	buzzerOut_ = buzzerOut;
+	buzzerTx_ = ctx->tx();
+	//
+	if (!(peer_ = composer_->requestProcessor()->sendTransaction(ctx,
+			SentTransaction::instance(
+				boost::bind(&CreateBuzzerGroupCommand::buzzerSent, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
+				boost::bind(&CreateBuzzerGroupCommand::timeout, shared_from_this()))))) {
+		composer_->wallet()->resetCache();
+		composer_->wallet()->prepareCache();
+		error("E_TX_NOT_SENT", "Transaction was not sent");
+	}
+}
+
+void CreateBuzzerGroupCommand::buzzerSent(const uint256& tx, const std::vector<TransactionContext::Error>& errors) {
+	//
+	if (errors.size()) {
+		for (std::vector<TransactionContext::Error>::iterator lError = const_cast<std::vector<TransactionContext::Error>&>(errors).begin(); 
+				lError != const_cast<std::vector<TransactionContext::Error>&>(errors).end(); lError++) {
+			error("E_CREATE_BUZZER", lError->data());
+		}
+	} else {
+		std::cout << "      group: " << tx.toHex() << std::endl;
+		if (gLog().isEnabled(Log::CLIENT)) gLog().write(Log::CLIENT, strprintf("      group: %s", tx.toHex()));
+	}
+
+	//	
+#if defined(CUBIX_MOD)
+	if (args_.size() > 3 && uploadAvatar_) {
+		//
+		// upload avatar
+		std::vector<std::string> lArgs;
+		lArgs.push_back(args_[3]);
+		if (args_.size() > 6 && args_[4] == "-s") {
+			lArgs.push_back(args_[4]);
+			lArgs.push_back(args_[5]);
+		}
+		uploadAvatar_->process(lArgs, peer_);
+	} else {
+		createBuzzerInfo();
+	}
+#else
+	createBuzzerInfo();
+#endif
+}
+
+void CreateBuzzerGroupCommand::avatarUploaded(TransactionPtr tx, const ProcessingError& err) {
+	//
+	if (tx && uploadHeader_) {
+		//
+		avatarTx_ = tx;
+
+		// upload header
+		std::vector<std::string> lArgs;
+		if (args_.size() > 6) {
+			lArgs.push_back(args_[6]);
+		} else if (args_.size() > 4) {
+			lArgs.push_back(args_[4]);
+		}
+
+		uploadHeader_->process(lArgs, peer_);
+		return;
+	} else if (!tx) {
+		error(err.error(), err.message());
+		return;
+	}
+
+	createBuzzerInfo();
+}
+
+void CreateBuzzerGroupCommand::headerUploaded(TransactionPtr tx, const ProcessingError& err) {
+	if (tx) {
+		//
+		headerTx_ = tx;
+	} else {
+		error(err.error(), err.message());
+		return;
+	}
+
+	createBuzzerInfo();
+}
+
+void CreateBuzzerGroupCommand::createBuzzerInfo() {
+	//
+	BuzzerMediaPointer lAvatar;
+	BuzzerMediaPointer lHeader;
+
+	if (avatarTx_) lAvatar = BuzzerMediaPointer(avatarTx_->chain(), avatarTx_->id());
+	if (headerTx_) lHeader = BuzzerMediaPointer(headerTx_->chain(), headerTx_->id());
+
+	// prepare
+	IComposerMethodPtr lCommanderInfo = BuzzerLightComposer::CreateTxBuzzerGroupInfo::instance(
+		composer_, buzzerTx_, buzzerKeysTx_, args_[1], args_[2], lAvatar,
+		boost::bind(&CreateBuzzerGroupCommand::buzzerInfoCreated, shared_from_this(), boost::placeholders::_1));
+	// async process
+	lCommanderInfo->process(boost::bind(&CreateBuzzerGroupCommand::error, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2));
+}
+
+void CreateBuzzerGroupCommand::buzzerInfoCreated(TransactionContextPtr ctx) {
+	//
+	buzzerInfoTx_ = ctx->tx();
+	//
+	if (!composer_->requestProcessor()->sendTransaction(peer_, ctx->tx()->chain(), ctx, 
+			SentTransaction::instance(
+				boost::bind(&CreateBuzzerGroupCommand::buzzerInfoSent, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
+				boost::bind(&CreateBuzzerGroupCommand::timeout, shared_from_this())))) {
+		composer_->wallet()->resetCache();
+		composer_->wallet()->prepareCache();
+		error("E_TX_INFO_NOT_SENT", "Transaction was not sent");
+	}
+}
+
+void CreateBuzzerGroupCommand::buzzerInfoSent(const uint256& tx, const std::vector<TransactionContext::Error>& errors) {
+	//
+	if (errors.size()) {
+		for (std::vector<TransactionContext::Error>::iterator lError = const_cast<std::vector<TransactionContext::Error>&>(errors).begin(); 
+				lError != const_cast<std::vector<TransactionContext::Error>&>(errors).end(); lError++) {
+			error("E_CREATE_BUZZER_INFO", lError->data());
+		}
+
+		return;			
+	}
+
+	std::cout << " group info: " << tx.toHex() << std::endl;
+	done_(buzzerTx_, buzzerInfoTx_, ProcessingError());
+}
+
+//
 // CreateBuzzerInfoCommand
 //
 void CreateBuzzerInfoCommand::process(const std::vector<std::string>& args) {

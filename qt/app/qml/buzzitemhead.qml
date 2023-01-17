@@ -854,7 +854,7 @@ Item {
 				name: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.copyselection")});
 
 			//
-			if (buzzerId_ !== buzzerClient.getCurrentBuzzerId()) {
+			if (!buzzerClient.isOwnBuzzer(buzzerName_) /*buzzerId_ !== buzzerClient.getCurrentBuzzerId()*/) {
 				menuModel.append({
 					key: "endorse",
 					keySymbol: Fonts.endorseSym,

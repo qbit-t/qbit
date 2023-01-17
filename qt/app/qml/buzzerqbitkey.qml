@@ -21,6 +21,7 @@ QuarkPage
 	followKeyboard: true
 
 	property bool setupProcess: false
+	property bool showKeys: false
 
 	property var menuHighlightColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.highlight")
 	property var menuBackgroundColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.background")
@@ -119,7 +120,7 @@ QuarkPage
 			id: cancelButton
 			x: spaceItems_
 			y: parent.height / 2 - height / 2 + topOffset / 2
-			symbol: Fonts.cancelSym
+			symbol: Fonts.leftArrowSym //cancelSym
 			fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 5)) : buzzerApp.defaultFontSize() + 7
 			radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius - 7)) : (defaultRadius - 7)
 			color: "transparent"
@@ -137,7 +138,7 @@ QuarkPage
 			y: parent.height / 2 - height / 2 + topOffset / 2 //
 			width: parent.width - (x)
 			elide: Text.ElideRight
-			text: buzzerClient.name
+			text: !setupProcess ? buzzerClient.name : ""
 			font.pointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 14 : 18
 			color: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.link")
 		}
@@ -160,7 +161,7 @@ QuarkPage
 		 y: toolBar.y + toolBar.height
 		 width: parent.width
 		 height: parent.height - (toolBar.y + toolBar.height)
-		 contentHeight: linkButton.y + linkButton.height + 15
+		 contentHeight: !buzzerqbitkey_.showKeys ? (linkButton.y + linkButton.height + 15) : (backRect.y + backRect.height + 15)
 		 clip: true
 
 		 onDragStarted: {
@@ -177,7 +178,10 @@ QuarkPage
 			wrapMode: Label.Wrap
 			font.pointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 14 : 18
 
-			text: buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.qbitKeys.manage")
+			text:
+				showKeys ? buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.qbitKeys.show") :
+					(!setupProcess ? buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.qbitKeys.manage") :
+										 buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.qbitKeys.link"))
 		}
 
 		QuarkInfoBox {
@@ -283,9 +287,9 @@ QuarkPage
 			id: backRect
 			x: 21
 			y: wordEditBox.y + wordEditBox.height
-			height: buzzerqbitkey_.height - (y + toolBar.height + linkButton.height + nameEditBox.height + bottomOffset + 15 + 15 + 10) < 180 ?
+			height: buzzerqbitkey_.height - (y + toolBar.height + (buzzerqbitkey_.showKeys ? 0 : linkButton.height + nameEditBox.height) + bottomOffset + 15 + 15 + 10) < 180 ?
 						180 :
-						buzzerqbitkey_.height - (y + toolBar.height + linkButton.height + nameEditBox.height + bottomOffset + 15 + 15 + 10)
+						buzzerqbitkey_.height - (y + toolBar.height + (buzzerqbitkey_.showKeys ? 0 : linkButton.height + nameEditBox.height) + bottomOffset + 15 + 15 + 10)
 			width: parent.width - 43
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Box.background");
 		}
@@ -401,6 +405,7 @@ QuarkPage
 			textFontSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 14 : 16
 			symbolFontSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 16 : 20
 			imFilter: true
+			visible: !buzzerqbitkey_.showKeys
 
 			onHelpClicked:  {
 				if (enabled) {
@@ -438,7 +443,7 @@ QuarkPage
 			id: linkButton
 			x: qbitKeysText.x + 1
 			y: nameEditBox.y + nameEditBox.height + 15 // parent.height - height - 15
-			visible: true
+			visible: !buzzerqbitkey_.showKeys
 			enabled: seedView.model.count
 			width: seedView.width - 1
 			Material.background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.4")
@@ -501,9 +506,6 @@ QuarkPage
 			console.log("[tryLink]: trying to link key...");
 			//
 			if (buzzerClient.buzzerDAppReady) {
-				// WARNING: remove all previous keys
-				buzzerClient.removeAllKeys();
-
 				// prepare new key
 				var lWords = [];
 				for (var lIdx = 0; lIdx < model_.count; lIdx++) {
@@ -511,9 +513,12 @@ QuarkPage
 				}
 
 				// import
-				buzzerClient.importKey(lWords);
-				addressBox.text = buzzerClient.firstPKey();
-				keyBox.text = buzzerClient.firstSKey();
+				var lPKey = buzzerClient.importKey(lWords);
+				addressBox.text = lPKey;
+				keyBox.text = buzzerClient.findSKey(lPKey);
+
+				// set current key
+				buzzerClient.setCurrentKey(lPKey);
 
 				// try to load buzzer and check pkey
 				loadBuzzerInfo.process(nameEditBox.text);
@@ -569,7 +574,7 @@ QuarkPage
 					buzzerClient.notifyBuzzerChanged();
 					//
 					if (!setupProcess) {
-						closePage();
+						controller.popNonStacked();
 					} else {
 						// setup completed
 						buzzerClient.setProperty("Client.configured", "true");
@@ -672,7 +677,7 @@ QuarkPage
 
 			//
 			if (!setupProcess) {
-				closePage();
+				controller.popNonStacked();
 			} else {
 				// setup completed
 				buzzerClient.setProperty("Client.configured", "true");

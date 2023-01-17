@@ -71,6 +71,13 @@ public:
 	}
 
 	//
+	// broadcast current state with instances
+	void broadcastCurrentState() {
+		broadcastState(currentState(), uint160());	
+	}
+
+
+	//
 	// client dapp instance
 	void clearDApps() {
 		dapps_.resize(0);

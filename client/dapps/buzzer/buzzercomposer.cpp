@@ -155,6 +155,21 @@ bool BuzzerLightComposer::getCounterparty(const uint256& publisher, PKey& key) {
 	return subscriptions_.read(publisher, key);
 }
 
+void BuzzerLightComposer::addGroupOwnership(const uint256& group, const PKey& key) {
+	//
+	subscriptions_.write(group, key);
+}
+
+bool BuzzerLightComposer::getGroupOwnership(const uint256& group, PKey& key) {
+	//
+	return subscriptions_.read(group, key);
+}
+
+void BuzzerLightComposer::removeGroupOwnership(const uint256& group) {
+	//
+	subscriptions_.remove(group);
+}
+
 void BuzzerLightComposer::checkSubscriptions() {
 	//
 	if (!gLightDaemon) return;
@@ -263,6 +278,16 @@ bool BuzzerLightComposer::open() {
 				DataStream lStream(lBuzzerUtxoHex, SER_DISK, PROTOCOL_VERSION);
 				lStream >> buzzerUtxo_;
 			}
+
+			db::DbContainer<std::string /*buzzer*/, std::string /*packed-pkey*/>::Iterator lItem = workingSettings_.begin();
+			for (; lItem.valid(); ++lItem) {
+				//
+				std::string lBuzzer;
+				if (lItem.first(lBuzzer) && (*lBuzzer.begin()) == '@') {
+					cachedWorkingSettings_[lBuzzer] = *lItem;
+				}
+			}
+
 			//
 			opened_ = true;
 			//
@@ -1066,48 +1091,6 @@ void BuzzerLightComposer::CreateTxBuzzer::assetNamesLoaded(const std::string& na
 	);
 }
 
-/*
-void BuzzerLightComposer::CreateTxBuzzer::buzzerEntityLoaded(EntityPtr buzzer) {
-	//
-	if (buzzer) {
-		error_("E_BUZZER_EXISTS", "Buzzer name already taken.");
-		return;
-	}
-
-	// create empty tx
-	buzzerTx_ = TransactionHelper::to<TxBuzzer>(TransactionFactory::create(TX_BUZZER));
-	// create context
-	ctx_ = TransactionContext::instance(buzzerTx_);
-	//
-	buzzerTx_->setMyName(buzzerName_);
-
-	SKeyPtr lSChangeKey = composer_->wallet()->changeKey();
-	SKeyPtr lSKey = composer_->wallet()->firstKey();
-	if (!lSKey->valid() || !lSChangeKey->valid()) { error_("E_KEY", "Secret key is invalid."); return; }
-
-	SKeyPtr lFirstKey = composer_->wallet()->firstKey();
-	PKey lSelf = lSKey->createPKey();
-	// make buzzer out (for buzz creation)
-	buzzerOut_ = buzzerTx_->addBuzzerOut(*lSKey, lSelf); // out[0]
-	// for subscriptions
-	buzzerTx_->addBuzzerSubscriptionOut(*lSKey, lSelf); // out[1]
-	// endorse
-	buzzerTx_->addBuzzerEndorseOut(*lSKey, lSelf); // 2
-	// mistrust
-	buzzerTx_->addBuzzerMistrustOut(*lSKey, lSelf); // 3
-	// buzzin
-	buzzerTx_->addBuzzerBuzzOut(*lSKey, lSelf); // 4
-	// conversation
-	buzzerTx_->addBuzzerConversationOut(*lSKey, lSelf); // 5
-
-	composer_->requestProcessor()->selectUtxoByEntity(composer_->dAppName(), 
-		SelectUtxoByEntityName::instance(
-			boost::bind(&BuzzerLightComposer::CreateTxBuzzer::utxoByDAppLoaded, shared_from_this(), _1, _2),
-			boost::bind(&BuzzerLightComposer::CreateTxBuzzer::timeout, shared_from_this()))
-	);
-}
-*/
-
 void BuzzerLightComposer::CreateTxBuzzer::utxoByDAppLoaded(const std::vector<Transaction::UnlinkedOut>& utxo, const std::string& dapp) {
 	//
 	SKeyPtr lSChangeKey = composer_->wallet()->changeKey();
@@ -1191,6 +1174,196 @@ void BuzzerLightComposer::CreateTxBuzzer::utxoByShardLoaded(const std::vector<Tr
 	
 	if (!buzzerTx_->finalize(*lSKey)) { error_("E_TX_FINALIZE", "Transaction finalization failed."); return; }
 	if (!composer_->writeBuzzerTx(buzzerTx_)) { error_("E_BUZZER_NOT_OPEN", "Buzzer was not open."); return; }
+	if (!composer_->addOwnBuzzer(buzzerName_, lSKey->createPKey())) { error_("E_BUZZER_NOT_OPEN", "Buzzer was not open."); return; }
+
+	composer_->addSubscription(buzzerTx_->id(), lSKey->createPKey());
+
+	// we good
+	composer_->wallet()->removeUnlinkedOut(lFeeUtxos);
+
+	if (lChangeUtxo) { 
+		composer_->wallet()->cacheUnlinkedOut(lChangeUtxo);
+	}	
+
+	created_(ctx_, buzzerOut_);
+}
+
+//
+// CreateTxBuzzerGroup
+//
+void BuzzerLightComposer::CreateTxBuzzerGroup::process(errorFunction error) {
+	//
+	error_ = error;
+
+	// check buzzerName
+	std::string lBuzzerName;
+	if (*buzzer_.begin() != '@') lBuzzerName += '@';
+	lBuzzerName += buzzer_;
+
+	//
+	if (lBuzzerName.length() < 5) {
+		error_("E_BUZZER_NAME_TOO_SHORT", "Group name should be at least 5 symbols long.");
+		return;
+	}
+
+	//
+	bool lFail = false;
+	for (std::string::iterator lChar = ++lBuzzerName.begin(); lChar != lBuzzerName.end(); lChar++) {
+		//
+		if((*lChar >= 'a' && *lChar <= 'z') || 
+			(*lChar >= 'A' && *lChar <= 'Z') ||
+			(*lChar >= '0' && *lChar <= '9')) continue;
+
+		lFail = true;
+		break;
+	}
+
+	//
+	if (lFail) {
+		error_("E_BUZZER_NAME_INCORRECT", "Buzzer name is incorrect.");
+		return;
+	}
+	
+	//
+	buzzerName_ = lBuzzerName;
+
+	//
+	composer_->requestProcessor()->selectEntityNames(buzzerName_, 
+		SelectEntityNames::instance(
+			boost::bind(&BuzzerLightComposer::CreateTxBuzzerGroup::assetNamesLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
+			boost::bind(&BuzzerLightComposer::CreateTxBuzzerGroup::timeout, shared_from_this()))
+	);
+}
+
+void BuzzerLightComposer::CreateTxBuzzerGroup::assetNamesLoaded(const std::string& name, const std::vector<IEntityStore::EntityName>& names) {
+	//
+	std::string lBuzzerName = name;
+	std::transform(lBuzzerName.begin(), lBuzzerName.end(), lBuzzerName.begin(), ::tolower);
+	//
+	bool lExists = false;
+	for (std::vector<IEntityStore::EntityName>::const_iterator lName = names.begin(); lName != names.end(); lName++) {
+		//
+		std::string lSelectedName = (*lName).data();
+		std::transform(lSelectedName.begin(), lSelectedName.end(), lSelectedName.begin(), ::tolower);
+		//
+		if (lBuzzerName == lSelectedName) {
+			lExists = true;
+		}
+	}
+
+	if (lExists) {
+		error_("E_BUZZER_EXISTS", "Buzzer name already taken.");
+		return;		
+	}
+
+	// create empty tx
+	buzzerTx_ = TransactionHelper::to<TxBuzzerGroup>(TransactionFactory::create(TX_BUZZER_GROUP));
+	// create context
+	ctx_ = TransactionContext::instance(buzzerTx_);
+	//
+	buzzerTx_->setMyName(buzzerName_);
+
+	PKey lPKey; lPKey.set(pkey_.begin(), pkey_.end());
+	SKeyPtr lSKey = composer_->wallet()->findKey(lPKey);
+	if (!lSKey->valid()) { error_("E_KEY", "Secret key is invalid."); return; }
+
+	PKey lSelf = lSKey->createPKey();
+	// make group out
+	buzzerOut_ = buzzerTx_->addBuzzerGroupOut(*lSKey, lSelf); // out[0]
+	// for invitations
+	buzzerTx_->addBuzzerGroupInviteOut(*lSKey, lSelf); // out[1]
+	// for keys
+	buzzerTx_->addBuzzerGroupKeysOut(*lSKey, lSelf); // 2
+
+	composer_->requestProcessor()->selectUtxoByEntity(composer_->dAppName(), 
+		SelectUtxoByEntityName::instance(
+			boost::bind(&BuzzerLightComposer::CreateTxBuzzerGroup::utxoByDAppLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
+			boost::bind(&BuzzerLightComposer::CreateTxBuzzerGroup::timeout, shared_from_this()))
+	);
+}
+
+void BuzzerLightComposer::CreateTxBuzzerGroup::utxoByDAppLoaded(const std::vector<Transaction::UnlinkedOut>& utxo, const std::string& dapp) {
+	//
+	SKeyPtr lSKey = composer_->wallet()->findKey(pkey_.toHex());
+	if (!lSKey->valid()) { error_("E_KEY", "Secret key is invalid."); return; }
+
+	//
+	if (utxo.size() >= 2)
+		buzzerTx_->addDAppIn(*lSKey, Transaction::UnlinkedOut::instance(*(++utxo.begin()))); // second out
+	else { error_("E_ENTITY_INCORRECT", "DApp outs is incorrect.");	return; }
+
+	//
+	composer_->requestProcessor()->selectEntityCountByShards(composer_->dAppName(), 
+		SelectEntityCountByShards::instance(
+			boost::bind(&BuzzerLightComposer::CreateTxBuzzerGroup::dAppInstancesCountByShardsLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
+			boost::bind(&BuzzerLightComposer::CreateTxBuzzerGroup::timeout, shared_from_this()))
+	);
+}
+
+void BuzzerLightComposer::CreateTxBuzzerGroup::dAppInstancesCountByShardsLoaded(const std::map<uint32_t, uint256>& info, const std::string& dapp) {
+	//
+	if (info.size()) {
+		composer_->requestProcessor()->loadTransaction(MainChain::id(), info.begin()->second, 
+			LoadTransaction::instance(
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzerGroup::shardLoaded, shared_from_this(), boost::placeholders::_1),
+				boost::bind(&BuzzerLightComposer::CreateTxBuzzerGroup::timeout, shared_from_this()))
+		);
+	} else {
+		error_("E_SHARDS_ABSENT", "Shards was not found for DApp."); return;
+	}
+}
+
+void BuzzerLightComposer::CreateTxBuzzerGroup::shardLoaded(TransactionPtr shard) {
+	//
+	if (!shard) {
+		error_("E_SHARD_ABSENT", "Specified shard was not found for DApp.");	
+	}
+
+	shardTx_ = TransactionHelper::to<TxShard>(shard);
+
+	composer_->requestProcessor()->selectUtxoByEntity(shardTx_->entityName(), 
+		SelectUtxoByEntityName::instance(
+			boost::bind(&BuzzerLightComposer::CreateTxBuzzerGroup::utxoByShardLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
+			boost::bind(&BuzzerLightComposer::CreateTxBuzzerGroup::timeout, shared_from_this()))
+	);
+}
+
+void BuzzerLightComposer::CreateTxBuzzerGroup::utxoByShardLoaded(const std::vector<Transaction::UnlinkedOut>& utxo, const std::string& shardName) {
+	//
+	SKeyPtr lSChangeKey = composer_->wallet()->changeKey();
+	SKeyPtr lSKey = composer_->wallet()->findKey(pkey_.toHex());
+	if (!lSKey->valid() || !lSChangeKey->valid()) { error_("E_KEY", "Secret key is invalid."); return; }
+
+	//
+	if (utxo.size() >= 1) {
+		buzzerTx_->addShardIn(*lSKey, Transaction::UnlinkedOut::instance(*(utxo.begin()))); // first out
+	} else { 
+		error_("E_SHARD_INCORRECT", "Shard outs is incorrect."); return; 
+	}
+
+	// try to estimate fee
+	qunit_t lRate = composer_->settings()->maxFeeRate();
+	amount_t lFee = lRate * ctx_->size(); 
+
+	Transaction::UnlinkedOutPtr lChangeUtxo = nullptr;
+	std::list<Transaction::UnlinkedOutPtr> lFeeUtxos;
+	//
+	try {
+		amount_t lFeeAmount = composer_->wallet()->fillInputs(buzzerTx_, TxAssetType::qbitAsset(), lFee, false, lFeeUtxos);
+		// NOTICE: first key here = qbit wallet key (can be equals to found by pkey_ OR separate one)
+		buzzerTx_->addFeeOut(*composer_->wallet()->firstKey(), TxAssetType::qbitAsset(), lFee); // to miner
+		if (lFeeAmount > lFee) { // make change
+			lChangeUtxo = buzzerTx_->addOut(*lSChangeKey, lSChangeKey->createPKey()/*change*/, TxAssetType::qbitAsset(), lFeeAmount - lFee);
+		}
+	}
+	catch(qbit::exception& ex) {
+		error_(ex.code(), ex.what()); return;
+	}
+	catch(std::exception& ex) {
+		error_("E_TX_CREATE", ex.what()); return;
+	}
+	
+	if (!buzzerTx_->finalize(*composer_->wallet()->firstKey())) { error_("E_TX_FINALIZE", "Transaction finalization failed."); return; }
 
 	composer_->addSubscription(buzzerTx_->id(), lSKey->createPKey());
 
@@ -1286,6 +1459,135 @@ void BuzzerLightComposer::CreateTxBuzzerInfo::utxoByBuzzerLoaded(const std::vect
 
 	if (!tx_->finalize(*lSKey)) { error_("E_TX_FINALIZE", "Transaction finalization failed."); return; }
 	if (!composer_->writeBuzzerInfoTx(tx_)) { error_("E_BUZZER_NOT_OPEN", "Buzzer was not open."); return; }	
+
+	created_(ctx_);
+}
+
+//
+// CreateTxBuzzerGroupInfo
+//
+void BuzzerLightComposer::CreateTxBuzzerGroupInfo::process(errorFunction error) {
+	//
+	error_ = error;
+
+	// create empty tx
+	tx_ = TransactionHelper::to<TxBuzzerInfo>(TransactionFactory::create(TX_BUZZER_INFO));
+	// create context
+	ctx_ = TransactionContext::instance(tx_);
+	// get buzzer group
+	TxBuzzerGroupPtr lMyBuzzer = TransactionHelper::to<TxBuzzerGroup>(group_);
+
+	if (lMyBuzzer) {
+		// extract bound shard
+		if (lMyBuzzer->in().size() > 1) {
+			//
+			PKey lPKey;
+			if (!lMyBuzzer->extractAddress(lPKey)) { error_("E_PKEY", "Public key is not found."); return; }
+			//
+			SKeyPtr lSKey = composer_->wallet()->findKey(lPKey);
+			if (!lSKey->valid()) { error_("E_KEY", "Secret key is invalid."); return; }
+			//
+			Transaction::In& lShardIn = *(++(lMyBuzzer->in().begin())); // second in
+			uint256 lShardTx = lShardIn.out().tx();
+			// set name
+			tx_->setMyName(lMyBuzzer->myName());
+			// set shard/chain
+			tx_->setChain(lShardTx);
+			// set avatar
+			tx_->setAvatar(avatar_);
+			// set alias
+			tx_->setAlias(alias_);
+			// set desc
+			tx_->setDescription(description_);
+			// sign
+			tx_->makeSignature(*lSKey);
+
+			std::vector<Transaction::UnlinkedOut> lMyBuzzerUtxos;
+			composer_->requestProcessor()->selectUtxoByEntity(lMyBuzzer->myName(), 
+				SelectUtxoByEntityName::instance(
+					boost::bind(&BuzzerLightComposer::CreateTxBuzzerGroupInfo::utxoByBuzzerLoaded, shared_from_this(), boost::placeholders::_1, boost::placeholders::_2),
+					boost::bind(&BuzzerLightComposer::CreateTxBuzzerGroupInfo::timeout, shared_from_this()))
+			);
+		} else {
+			error_("E_BUZZER_TX_INCONSISTENT", "Buzzer tx is inconsistent."); return;	
+		}
+	} else {
+		error_("E_BUZZER_TX_NOT_FOUND", "Local buzzer was not found."); return;
+	}
+}
+
+void BuzzerLightComposer::CreateTxBuzzerGroupInfo::utxoByBuzzerLoaded(const std::vector<Transaction::UnlinkedOut>& utxo, const std::string& buzzer) {
+	//
+	SKeyPtr lSKey; // = composer_->wallet()->findKey(pkey_.toHex());
+	if (!lSKey->valid()) { error_("E_KEY", "Secret key is invalid."); return; }
+
+	if (!utxo.size()) {
+		error_("E_BUZZER_TX_INCONSISTENT", "Group tx is inconsistent."); return;	
+	}
+
+	// out[0] - group utxo
+	tx_->addMyBuzzerIn(*lSKey, Transaction::UnlinkedOut::instance(*(utxo.begin()))); // first out
+	//
+	if (!tx_->finalize(*composer_->wallet()->firstKey())) { error_("E_TX_FINALIZE", "Transaction finalization failed."); return; }
+	if (!composer_->writeBuzzerInfoTx(tx_)) { error_("E_BUZZER_NOT_OPEN", "Buzzer was not open."); return; }	
+
+	created_(ctx_);
+}
+
+//
+// CreateTxBuzzerGroupKeys
+//
+void BuzzerLightComposer::CreateTxBuzzerGroupKeys::process(errorFunction error) {
+	//
+	error_ = error;
+
+	// create empty tx
+	tx_ = TransactionHelper::to<TxBuzzerGroupKeys>(TransactionFactory::create(TX_BUZZER_GROUP_KEYS));
+	// create context
+	ctx_ = TransactionContext::instance(tx_);
+	// get buzzer group
+	TxBuzzerGroupPtr lMyBuzzer = TransactionHelper::to<TxBuzzerGroup>(group_);
+
+	if (lMyBuzzer) {
+		// extract bound shard
+		if (lMyBuzzer->in().size() > 1) {
+			//
+			PKey lPKey;
+			if (!lMyBuzzer->extractAddress(lPKey)) { error_("E_PKEY", "Public key is not found."); return; }
+			//
+			SKeyPtr lSKey = composer_->wallet()->findKey(lPKey);
+			if (!lSKey->valid()) { error_("E_KEY", "Secret key is invalid."); return; }
+			//
+			Transaction::In& lShardIn = *(++(lMyBuzzer->in().begin())); // second in
+			uint256 lShardTx = lShardIn.out().tx();
+			//
+			// TODO!
+			// ...
+		} else {
+			error_("E_BUZZER_TX_INCONSISTENT", "Buzzer tx is inconsistent."); return;	
+		}
+	} else {
+		error_("E_BUZZER_TX_NOT_FOUND", "Local buzzer was not found."); return;
+	}
+}
+
+void BuzzerLightComposer::CreateTxBuzzerGroupKeys::saveBuzzerUtxo(const std::vector<Transaction::UnlinkedOut>& utxo, const std::string& buzzer) {
+	//
+	TxBuzzerPtr lMyBuzzer = composer_->buzzerTx();
+	composer_->writeBuzzerUtxo(utxo);
+	utxoByBuzzerLoaded(utxo, lMyBuzzer->myName());
+}
+
+void BuzzerLightComposer::CreateTxBuzzerGroupKeys::utxoByBuzzerLoaded(const std::vector<Transaction::UnlinkedOut>& utxo, const std::string& buzzer) {
+	//
+	SKeyPtr lSKey = composer_->wallet()->firstKey();
+	PKey lPKey = lSKey->createPKey();	
+
+	if (!lSKey->valid()) { error_("E_KEY", "Secret key is invalid."); return; }
+
+	// TODO!
+
+	if (!tx_->finalize(*lSKey)) { error_("E_TX_FINALIZE", "Transaction finalization failed."); return; }
 
 	created_(ctx_);
 }

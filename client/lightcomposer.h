@@ -26,13 +26,19 @@ public:
 
 			if (!asset_.isNull()) {
 				//
-				composer_->requestProcessor()->loadTransaction(MainChain::id(), asset_, 
-					LoadTransaction::instance(
-				        boost::bind(&LightComposer::Balance::assetLoaded, shared_from_this(), boost::placeholders::_1),
-						boost::bind(&LightComposer::Balance::timeout, shared_from_this()))
-				);
+				TransactionPtr lAsset = composer_->locateAsset(asset_);
+				if (lAsset == nullptr) {
+					//
+					composer_->requestProcessor()->loadTransaction(MainChain::id(), asset_, 
+						LoadTransaction::instance(
+					        boost::bind(&LightComposer::Balance::assetLoaded, shared_from_this(), boost::placeholders::_1),
+							boost::bind(&LightComposer::Balance::timeout, shared_from_this()))
+					);
+				} else {
+					assetLoaded(lAsset);
+				}
 			} else {
-				assetLoaded(nullptr);		
+				assetLoaded(nullptr);
 			}
 		}
 
@@ -56,6 +62,8 @@ public:
 					TxAssetTypePtr lAssetType = TransactionHelper::to<TxAssetType>(asset);
 					lScale = lAssetType->scale();
 					lAsset = asset->id();
+
+					composer_->registerAsset(asset_, asset);
 				}
 			}
 
@@ -82,13 +90,19 @@ public:
 
 			if (!asset_.isNull()) {
 				//
-				composer_->requestProcessor()->loadTransaction(MainChain::id(), asset_, 
-					LoadTransaction::instance(
-				        boost::bind(&LightComposer::SendToAddress::assetLoaded, shared_from_this(), boost::placeholders::_1),
-						boost::bind(&LightComposer::SendToAddress::timeout, shared_from_this()))
-				);
+				TransactionPtr lAsset = composer_->locateAsset(asset_);
+				if (lAsset == nullptr) {
+					//
+					composer_->requestProcessor()->loadTransaction(MainChain::id(), asset_, 
+						LoadTransaction::instance(
+					        boost::bind(&LightComposer::SendToAddress::assetLoaded, shared_from_this(), boost::placeholders::_1),
+							boost::bind(&LightComposer::SendToAddress::timeout, shared_from_this()))
+					);
+				} else {
+					assetLoaded(lAsset);
+				}
 			} else {
-				assetLoaded(nullptr);		
+				assetLoaded(nullptr);
 			}
 		}
 
@@ -116,6 +130,8 @@ public:
 					TxAssetTypePtr lAssetType = TransactionHelper::to<TxAssetType>(asset);
 					lScale = lAssetType->scale();	
 					lAsset = lAssetType->id();
+
+					composer_->registerAsset(asset_, asset);
 				}
 			}
 
@@ -159,13 +175,19 @@ public:
 
 			if (!asset_.isNull()) {
 				//
-				composer_->requestProcessor()->loadTransaction(MainChain::id(), asset_, 
-					LoadTransaction::instance(
-				        boost::bind(&LightComposer::SendPrivateToAddress::assetLoaded, shared_from_this(), boost::placeholders::_1),
-						boost::bind(&LightComposer::SendPrivateToAddress::timeout, shared_from_this()))
-				);
+				TransactionPtr lAsset = composer_->locateAsset(asset_);
+				if (lAsset == nullptr) {
+					//
+					composer_->requestProcessor()->loadTransaction(MainChain::id(), asset_, 
+						LoadTransaction::instance(
+					        boost::bind(&LightComposer::SendPrivateToAddress::assetLoaded, shared_from_this(), boost::placeholders::_1),
+							boost::bind(&LightComposer::SendPrivateToAddress::timeout, shared_from_this()))
+					);
+				} else {
+					assetLoaded(lAsset);
+				}
 			} else {
-				assetLoaded(nullptr);		
+				assetLoaded(nullptr);
 			}
 		}
 
@@ -193,6 +215,8 @@ public:
 					TxAssetTypePtr lAssetType = TransactionHelper::to<TxAssetType>(asset);
 					lScale = lAssetType->scale();	
 					lAsset = lAssetType->id();
+
+					composer_->registerAsset(asset_, asset);
 				}
 			}
 
@@ -243,6 +267,21 @@ public:
 	ISettingsPtr settings() { return settings_; }
 	IRequestProcessorPtr requestProcessor() { return requestProcessor_; }
 
+	TransactionPtr locateAsset(const uint256& asset) {
+		//
+		boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
+		std::map<uint256 /*asset type*/, TransactionPtr /*asset*/>::iterator lItem = assets_.find(asset);
+		if (lItem != assets_.end()) return lItem->second;
+		return nullptr;
+	}
+
+	void registerAsset(const uint256& asset, TransactionPtr tx) {
+		//
+		boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
+		std::map<uint256 /*asset type*/, TransactionPtr /*asset*/>::iterator lItem = assets_.find(asset);
+		if (lItem == assets_.end()) assets_[asset] = tx;
+	}
+
 private:
 	// various settings, command line args & config file
 	ISettingsPtr settings_;
@@ -250,6 +289,10 @@ private:
 	IWalletPtr wallet_;
 	// request processor
 	IRequestProcessorPtr requestProcessor_;
+	// assets cache mutex
+	boost::recursive_mutex cacheMutex_;
+	// assets cache
+	std::map<uint256 /*asset type*/, TransactionPtr /*asset*/> assets_;
 };
 
 } // qbit

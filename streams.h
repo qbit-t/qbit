@@ -15,6 +15,8 @@
 #include "serialize.h"
 #include "uint256.h"
 #include "hash.h"
+#include "crypto/aes.h"
+#include "crypto/sha256.h"
 
 #include <algorithm>
 #include <assert.h>
@@ -214,9 +216,69 @@ protected:
     vector_type vch;
     unsigned int nReadPos;
     uint160 checkSum;
+    uint256 secret;
 
     int nType;
     int nVersion;
+
+private:
+    bool bEncrypted = false;
+    bool bDecrypted = false;
+
+public:
+    bool encrypted() { return bEncrypted; }
+    bool decrypted() { return bDecrypted; }
+
+    void encrypt() {
+        // check if secret was supplied OR already encrypted
+        if (secret.isEmpty() || bEncrypted) return;
+
+        // prepare secret
+        unsigned char lMix[AES_BLOCKSIZE] = {0};
+        // prepare padding
+        uint160 lNonce = Hash160(secret.begin(), secret.end());
+        memcpy(lMix, lNonce.begin(), AES_BLOCKSIZE);
+
+        // make cypher
+        std::vector<unsigned char> lCypher; lCypher.resize(vch.size() + AES_BLOCKSIZE /*padding*/, 0);
+        AES256CBCEncrypt lEncrypt(secret.begin(), lMix, true);
+        unsigned lLen = lEncrypt.Encrypt((unsigned char*)&vch[0], vch.size(), &lCypher[0]);
+        lCypher.resize(lLen);
+
+        // set
+        vch.clear();
+        vch.insert(vch.end(), lCypher.begin(), lCypher.end());
+        nReadPos = 0;
+
+        //
+        bEncrypted = true;
+    }
+
+    void decrypt() {
+        // check if secret was supplied
+        if (secret.isEmpty() || bDecrypted) return;
+
+        // prepare secret
+        unsigned char lMix[AES_BLOCKSIZE] = {0};
+        // prepare padding
+        uint160 lNonce = Hash160(secret.begin(), secret.end());
+        memcpy(lMix, lNonce.begin(), AES_BLOCKSIZE);
+
+        // decrypt
+        std::vector<unsigned char> lCypher; lCypher.resize(vch.size() + 1, 0);
+        AES256CBCDecrypt lDecrypt(secret.begin(), lMix, true);
+        unsigned lLen = lDecrypt.Decrypt((unsigned char*)&vch[0], vch.size(), &lCypher[0]);
+        lCypher.resize(lLen);
+
+        // set
+        vch.clear();
+        vch.insert(vch.end(), lCypher.begin(), lCypher.end());
+        nReadPos = 0;
+
+        //
+        bDecrypted = true;
+    }
+
 public:
 
     typedef vector_type::allocator_type   allocator_type;
@@ -231,13 +293,27 @@ public:
 
     explicit DataStream(int nTypeIn, int nVersionIn)
     {
-        Init(nTypeIn, nVersionIn);
+        Init(nTypeIn, nVersionIn); secret.setNull();
     }
 
-    explicit DataStream(int nTypeIn, int nVersionIn, uint160 bCheckSum)
+    explicit DataStream(int nTypeIn, int nVersionIn, const uint256& nSecret)
+    {
+        Init(nTypeIn, nVersionIn); secret = nSecret;
+    }
+
+    /*
+    explicit DataStream(int nTypeIn, int nVersionIn, const uint160& bCheckSum)
     {
         Init(nTypeIn, nVersionIn); checkSum = bCheckSum;
     }
+    */
+
+    /*
+    explicit DataStream(int nTypeIn, int nVersionIn, const uint160& bCheckSum, const uint256& nSecret)
+    {
+        Init(nTypeIn, nVersionIn); checkSum = bCheckSum; secret = nSecret;
+    }
+    */
 
     DataStream(const_iterator pbegin, const_iterator pend, int nTypeIn, int nVersionIn) : vch(pbegin, pend)
     {
@@ -303,9 +379,11 @@ public:
         //
         if (size() > sizeof(uint160)) {
             uint160 lSum = calculateCheckSum();
+            decrypt(); // if "secret" was supplied
             return lSum == checkSum;
         }
 
+        decrypt(); // if "secret" was supplied
         return true;
     }
 
@@ -329,6 +407,10 @@ public:
     value_type* data()                               { return vch.data() + nReadPos; }
     const value_type* data() const                   { return vch.data() + nReadPos; }
     uint160 calculateCheckSum()                      { return Hash160(begin(), end()); }
+    uint160 externalCheckSum()                       { return checkSum; }
+    uint256 externalSecret()                         { return secret; }
+    void setCheckSum(const uint160& s) { checkSum = s; }
+	void setSecret(const uint256& s) { secret = s; }
 
     void insert(iterator it, std::vector<char>::const_iterator first, std::vector<char>::const_iterator last)
     {

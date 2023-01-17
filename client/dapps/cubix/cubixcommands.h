@@ -59,13 +59,14 @@ public:
 	IPeerPtr peer() { return peer_; }
 
 	void help() {
-		std::cout << "uploadMedia | upload \"<file>\" [-p <public key>] [-s <000x000>] [-d <\"description\">]" << std::endl;
+		std::cout << "uploadMedia | upload \"<file>\" [-p <public key>] [-k <secret>] [-s <000x000>] [-d <\"description\">]" << std::endl;
 		std::cout << "\tUpload media file to the cubix network." << std::endl;
 		std::cout << "\t<file> 				- path to media file (jpeg, png, more to come...)" << std::endl;
 		std::cout << "\t[-p <public key>] 	- optional, counterparty public key for encryption" << std::endl;
 		std::cout << "\t[-s <000x000>] 		- optional, preview with specified size" << std::endl;
 		std::cout << "\t[-d <description>]	- optional, media file description" << std::endl;
 		std::cout << "\t[-l <duration>]		- optional, audio/video duration in secs" << std::endl;
+		std::cout << "\t[-k <secret>]		- optional, explicit secret for encryption" << std::endl;
 		std::cout << "\texample:\n\t\t>upload \"./my_photo.png\" \"My photo\"" << std::endl << std::endl;
 	}	
 
@@ -161,6 +162,7 @@ private:
 	IPeerPtr peer_;
 
 	PKey pkey_;
+	uint256 secret_;
 
 	bool feeSent_ = false;
 	bool summarySent_ = false;
@@ -184,7 +186,7 @@ public:
 	}
 
 	void help() {
-		std::cout << "downloadMedia | download [<header>/<chain>] \"<local_file>\" [-p <public_key>] [-preview] [-skip]" << std::endl;
+		std::cout << "downloadMedia | download [<header>/<chain>] \"<local_file>\" [-p <public_key>] [-k <secret>] [-preview] [-skip]" << std::endl;
 		std::cout << "\tDownload media from cubix network." << std::endl;
 		std::cout << "\t<header> 	 - required, header tx" << std::endl;
 		std::cout << "\t<chain>		 - required, cubix chain" << std::endl;
@@ -254,6 +256,7 @@ private:
 	std::string localFile_;
 
 	PKey pkey_;
+	uint256 secret_;
 	
 	bool previewOnly_ = false;
 	bool skipIfExists_ = false;

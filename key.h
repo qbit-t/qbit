@@ -172,7 +172,7 @@ public:
 		unsigned char word_[WORD_LEN] = {0};
 	};
 public:
-	SKey() { valid_ = false; }
+	SKey() { memset(vch_, 0, KEY_LEN); valid_ = false; }
 	SKey(ContextPtr);
 	SKey(ContextPtr, const std::list<std::string>&);
 	SKey(const std::list<std::string>&);

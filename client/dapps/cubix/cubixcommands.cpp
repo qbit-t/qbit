@@ -38,6 +38,7 @@ void UploadMediaCommand::process(const std::vector<std::string>& args, IPeerPtr 
 	previewFile_ = "";
 	orientation_ = 0;
 	duration_ = 0;
+	secret_.setNull();
 
 	args_ = args;
 
@@ -76,7 +77,9 @@ void UploadMediaCommand::process(const std::vector<std::string>& args, IPeerPtr 
 
 					//
 				} else if (*lArg == "-p") {
-					pkey_.fromString(*(++lArg));
+					pkey_.fromString(*(++lArg)); // pub-key to make shared secret
+				} else if (*lArg == "-k") {
+					secret_.setHex(*(++lArg)); // explicit secret
 				} else if (*lArg == "-d") {
 					description_ = *(++lArg);
 				} else if (*lArg == "-l") {
@@ -429,7 +432,7 @@ bool UploadMediaCommand::prepareImage() {
 			else if (mediaType_ == TxMediaHeader::MediaType::IMAGE_PNG)
 				boost::gil::write_view(lStream, boost::gil::view(lPreviewImage), boost::gil::png_tag());
 
-			if (pkey_.valid()) {
+			if (pkey_.valid() || !secret_.isEmpty()) {
 				// data
 				std::vector<unsigned char> lPreviewData;
 				lPreviewData.insert(lPreviewData.end(),
@@ -438,7 +441,7 @@ bool UploadMediaCommand::prepareImage() {
 
 				// make cypher
 				SKeyPtr lSKey = composer_->wallet()->firstKey();
-				uint256 lNonce = lSKey->shared(pkey_);
+				uint256 lNonce = secret_.isEmpty() ? lSKey->shared(pkey_) : secret_;
 				encrypt(lNonce, lPreviewData, previewData_);
 			} else {
 				//
@@ -450,7 +453,7 @@ bool UploadMediaCommand::prepareImage() {
 			// just read data into preview
 			std::ifstream lStream(file_, std::ios::binary);
 
-			if (pkey_.valid()) {
+			if (pkey_.valid() || !secret_.isEmpty()) {
 				// data
 				std::vector<unsigned char> lPreviewData;
 				lPreviewData.insert(lPreviewData.end(),
@@ -459,7 +462,7 @@ bool UploadMediaCommand::prepareImage() {
 
 				// make cypher
 				SKeyPtr lSKey = composer_->wallet()->firstKey();
-				uint256 lNonce = lSKey->shared(pkey_);
+				uint256 lNonce = secret_.isEmpty() ? lSKey->shared(pkey_) : secret_;
 				encrypt(lNonce, lPreviewData, previewData_);
 			} else {
 				previewData_.insert(previewData_.end(),
@@ -558,7 +561,7 @@ void UploadMediaCommand::startSendData() {
 		// preview WAS supplied explicitly
 		std::ifstream lStream(previewFile_, std::ios::binary);
 		//
-		if (pkey_.valid()) {
+		if (pkey_.valid() || !secret_.isEmpty()) {
 			// data
 			std::vector<unsigned char> lPreviewData;
 			lPreviewData.insert(lPreviewData.end(),
@@ -567,7 +570,7 @@ void UploadMediaCommand::startSendData() {
 
 			// make cypher
 			SKeyPtr lSKey = composer_->wallet()->firstKey();
-			uint256 lNonce = lSKey->shared(pkey_);
+			uint256 lNonce = secret_.isEmpty() ? lSKey->shared(pkey_) : secret_;
 			encrypt(lNonce, lPreviewData, previewData_);
 		} else {
 			previewData_.insert(previewData_.end(),
@@ -612,13 +615,13 @@ void UploadMediaCommand::continueSendData() {
 		//
 		bool lEnd = false;
 		std::vector<unsigned char> lData;
-		if (pkey_.valid()) {
+		if (pkey_.valid() || !secret_.isEmpty()) {
 			// read
 			std::vector<unsigned char> lTemp;
 			lEnd = readNextChunk(pos_, lTemp);
 			// make cypher
 			SKeyPtr lSKey = composer_->wallet()->firstKey();
-			uint256 lNonce = lSKey->shared(pkey_);
+			uint256 lNonce = secret_.isEmpty() ? lSKey->shared(pkey_) : secret_;
 			encrypt(lNonce, lTemp, lData);
 		} else {
 			lEnd = readNextChunk(pos_, lData);
@@ -743,6 +746,7 @@ void DownloadMediaCommand::process(const std::vector<std::string>& args) {
 		downloading_ = true;
 		terminate_ = false;
 		pos_ = 0;
+		secret_.setNull();
 
 		localFile_ = args[1];
 
@@ -751,6 +755,9 @@ void DownloadMediaCommand::process(const std::vector<std::string>& args) {
 			while (lArg != args.end()) {
 				if (*lArg == "-p") {
 					pkey_.fromString(*(++lArg));
+				} else if (*lArg == "-k") {
+					uint256 lPKey; lPKey.setHex(*(++lArg));
+					pkey_.set(lPKey.begin(), lPKey.end());
 				} else if (*lArg == "-preview") {
 					previewOnly_ = true;
 				} else if (*lArg == "-skip") {
@@ -909,9 +916,9 @@ void DownloadMediaCommand::headerLoaded(TransactionPtr tx) {
 		size_t lFirstSize = 0;
 		std::vector<unsigned char> lData;
 		std::ofstream lPreviewFile = std::ofstream(localPreviewFileName_, std::ios::binary);
-		if (pkey_.valid()) {
+		if (pkey_.valid() || !secret_.isEmpty()) {
 			SKeyPtr lSKey = composer_->wallet()->firstKey();
-			uint256 lNonce = lSKey->shared(pkey_);
+			uint256 lNonce = secret_.isEmpty() ? lSKey->shared(pkey_) : secret_;
 			decrypt(lNonce, header_->data(), lData);
 			//
 			lFirstSize = lData.size();
@@ -1058,10 +1065,10 @@ void DownloadMediaCommand::dataLoaded(TransactionPtr tx) {
 			if (progress_) progress_(pos_, header_->size());
 
 			//
-			if (pkey_.valid()) {
+			if (pkey_.valid() || !secret_.isEmpty()) {
 				std::vector<unsigned char> lTemp;
 				SKeyPtr lSKey = composer_->wallet()->firstKey();
-				uint256 lNonce = lSKey->shared(pkey_);
+				uint256 lNonce = secret_.isEmpty() ? lSKey->shared(pkey_) : secret_;
 				decrypt(lNonce, lData->data(), lTemp);
 				//
 				outLocalFile_.write((char*)&lTemp[0], lTemp.size());

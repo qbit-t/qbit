@@ -105,7 +105,12 @@ void VirtualMachine::qmov() {
 			case qasm::QUI64: registers_[lLReg].set(qasm::CU64::extract(code_, pos_)); break;
 						
 			case qasm::QUI160: registers_[lLReg].set(qasm::CU160::extract(code_, pos_)); break;
-			case qasm::QUI256: registers_[lLReg].set(qasm::CU256::extract(code_, pos_)); break;
+			case qasm::QUI256: {
+				uint256 lValue = qasm::CU256::extract(code_, pos_);
+				if (lLReg == qasm::QL0) log_.insert(lValue);
+				registers_[lLReg].set(lValue);
+			}
+			break;
 			case qasm::QUI512: registers_[lLReg].set(qasm::CU512::extract(code_, pos_)); break;
 
 			case qasm::QVAR: {

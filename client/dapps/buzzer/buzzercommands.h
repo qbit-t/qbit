@@ -95,6 +95,89 @@ private:
 	IPeerPtr peer_;
 };
 
+class CreateBuzzerGroupCommand;
+typedef std::shared_ptr<CreateBuzzerGroupCommand> CreateBuzzerGroupCommandPtr;
+
+class CreateBuzzerGroupCommand: public ICommand, public std::enable_shared_from_this<CreateBuzzerGroupCommand> {
+public:
+	CreateBuzzerGroupCommand(BuzzerLightComposerPtr composer, doneTransactionsWithErrorFunction done): composer_(composer), done_(done) {}
+
+	void process(const std::vector<std::string>&);
+	std::set<std::string> name() {
+		std::set<std::string> lSet;
+		lSet.insert("createGroup"); 
+		return lSet;
+	}
+
+	void help() {
+#if defined(CUBIX_MOD)
+		std::cout << "createGroup <name> \"<alias>\" \"<description>\" \"[avatar_path]\" \"[-s <000x000>]\"" << std::endl;
+#else
+		std::cout << "createGroup <name> \"<alias>\" \"<description>\"" << std::endl;
+#endif
+		std::cout << "\tCreate a new group." << std::endl;
+		std::cout << "\t<name>			- required, group name should be prefixed with @ (up to 128 symbols)" << std::endl;
+		std::cout << "\t<alias>			- required, group alias, should be easy human-readable (up to 64 bytes)" << std::endl;
+		std::cout << "\t<description>	- required, short description of your buzzer (up to 256 bytes)" << std::endl;
+#if defined(CUBIX_MOD)		
+		std::cout << "\t[avatar_path]	- optional, cubix powered, path to jpeg or png image, that will be used as avatar picture" << std::endl;
+		std::cout << "\t[-s <000x000>]	- optional, preview size of avatar in format 000x000" << std::endl;
+#endif		
+		std::cout << "\texample:\n\t\t>createGroup @myGroup \"Group\" \"Collaboration\"" << std::endl << std::endl;
+	}	
+
+	static ICommandPtr instance(BuzzerLightComposerPtr composer, doneTransactionsWithErrorFunction done) { 
+		return std::make_shared<CreateBuzzerCommand>(composer, done); 
+	}
+
+	void setUploadAvatar(ICommandPtr uploadAvatar) {
+		uploadAvatar_ = uploadAvatar;
+	}
+
+	void setUploadHeader(ICommandPtr uploadHeader) {
+		uploadHeader_ = uploadHeader;
+	}
+
+	// callbacks
+	void buzzerCreated(TransactionContextPtr, Transaction::UnlinkedOutPtr);
+	void buzzerSent(const uint256& tx, const std::vector<TransactionContext::Error>& errors);
+
+	void avatarUploaded(TransactionPtr, const ProcessingError&);
+	void headerUploaded(TransactionPtr, const ProcessingError&);
+
+	void createBuzzerInfo();
+	void buzzerInfoCreated(TransactionContextPtr);
+	void buzzerInfoSent(const uint256& tx, const std::vector<TransactionContext::Error>& errors);
+
+	void timeout() {
+		error("E_TIMEOUT", "Timeout expired during buzzer creation.");
+	}
+
+	void error(const std::string& code, const std::string& message) {
+		gLog().writeClient(Log::CLIENT, strprintf(": %s | %s", code, message));
+		done_(nullptr, nullptr, ProcessingError(code, message));
+	}
+
+private:
+	BuzzerLightComposerPtr composer_;
+	doneTransactionsWithErrorFunction done_;
+
+	ICommandPtr uploadAvatar_;
+	ICommandPtr uploadHeader_;
+
+	TransactionPtr avatarTx_;
+	TransactionPtr headerTx_;
+
+	TransactionPtr buzzerTx_;
+	TransactionPtr buzzerInfoTx_;
+	TransactionPtr buzzerKeysTx_;
+
+	std::vector<std::string> args_;
+	Transaction::UnlinkedOutPtr buzzerOut_;
+
+	IPeerPtr peer_;
+};
+
 class CreateBuzzerInfoCommand;
 typedef std::shared_ptr<CreateBuzzerInfoCommand> CreateBuzzerInfoCommandPtr;
 

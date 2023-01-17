@@ -460,6 +460,7 @@ QuarkPage
 					if (currentIndex == 0 /*feed*/) {
 						headerBar.showBottomLine = true;
 						headerBar.resetSearchText();
+						headerBar.actionButtonVisible = false;
 						buzzfeedGlobal.disconnect();
 						conversations.disconnect();
 					}
@@ -468,6 +469,7 @@ QuarkPage
 					if (currentIndex == 1 /*global*/) {
 						if (!buzzerApp.isDesktop) headerBar.showBottomLine = true;
 						headerBar.resetSearchText();
+						headerBar.actionButtonVisible = false;
 						buzzfeedGlobal.start();
 						conversations.disconnect();
 					}
@@ -475,6 +477,7 @@ QuarkPage
 					//
 					if (currentIndex == 2 /*events*/) {
 						headerBar.showBottomLine = true;
+						headerBar.actionButtonVisible = false;
 						newEventsDot.visible = false;
 						headerBar.resetSearchText();
 						buzzfeedGlobal.disconnect();
@@ -488,6 +491,9 @@ QuarkPage
 						conversations.resetModel();
 						//conversations.start();
 						buzzfeedGlobal.disconnect();
+
+						headerBar.actionButtonSymbol = Fonts.plusSym;
+						headerBar.actionButtonVisible = false; // true
 					}
 
 					if (currentIndex == 4 /*wallet*/) {
@@ -496,6 +502,7 @@ QuarkPage
 						buzzerApp.lockPortraitOrientation();
 						buzzfeedGlobal.disconnect();
 						conversations.disconnect();
+						headerBar.actionButtonVisible = false;
 					} else {
 						buzzerApp.unlockOrientation();
 					}

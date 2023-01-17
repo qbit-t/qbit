@@ -360,6 +360,8 @@ public:
 	virtual StrandPtr strand() { throw qbit::exception("NOT_IMPL", "IPeer::strand - not implemented."); }	
 	virtual bool sendMessageAsync(std::list<DataStream>::iterator /*msg*/) { throw qbit::exception("NOT_IMPL", "IPeer::sendMessageAsync - not implemented."); }
 	virtual void sendMessage(std::list<DataStream>::iterator /*msg*/) { throw qbit::exception("NOT_IMPL", "IPeer::sendMessage - not implemented."); }
+	virtual uint256 sharedSecret() { throw qbit::exception("NOT_IMPL", "IPeer::sharedSecret - not implemented."); }
+	virtual uint160 encryptionId() { throw qbit::exception("NOT_IMPL", "IPeer::encryptionId - not implemented."); }
 
 	virtual void waitForMessage() { throw qbit::exception("NOT_IMPL", "IPeer::waitForMessage - not implemented."); }
 	virtual void processed() { throw qbit::exception("NOT_IMPL", "IPeer::processed - not implemented."); }

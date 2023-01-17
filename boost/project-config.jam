@@ -7,12 +7,15 @@ import feature ;
 # Compiler configuration. This definition will be used unless
 # you already have defined some toolsets in your user-config.jam
 # file.
-if ! clang in [ feature.values <toolset> ]
+if ! gcc in [ feature.values <toolset> ]
 {
-    using clang ; 
+    using gcc ; 
 }
 
-project : default-build <toolset>clang ;
+project : default-build <toolset>gcc ;
+
+path-constant ICU_PATH : /usr ;
+
 
 # List of --with-<library> and --without-<library>
 # options. If left empty, all libraries will be built.

@@ -31,6 +31,7 @@
 
 #if defined (BUZZER_MOD)
 	#include "../dapps/buzzer/txbuzzer.h"
+	#include "../dapps/buzzer/txbuzzergroup.h"
 	#include "../dapps/buzzer/txbuzz.h"
 	#include "../dapps/buzzer/txbuzzlike.h"
 	#include "../dapps/buzzer/txbuzzreward.h"
@@ -578,6 +579,10 @@ int main(int argv, char** argc) {
 		CreateBuzzerCommand::instance(lBuzzerComposer, boost::bind(&commandDone)));
 	lCommandsHandler->push(lBuzzerCommand);
 
+	CreateBuzzerGroupCommandPtr lBuzzerGroupCommand = std::static_pointer_cast<CreateBuzzerGroupCommand>(
+		CreateBuzzerGroupCommand::instance(lBuzzerComposer, boost::bind(&commandDone)));
+	lCommandsHandler->push(lBuzzerGroupCommand);
+
 	CreateBuzzCommandPtr lBuzzCommand = std::static_pointer_cast<CreateBuzzCommand>(
 		CreateBuzzCommand::instance(lBuzzerComposer, boost::bind(&commandDone)));
 	lCommandsHandler->push(lBuzzCommand);
@@ -669,6 +674,10 @@ int main(int argv, char** argc) {
 	);
 	lBuzzerCommand->setUploadHeader(
 		cubix::UploadMediaCommand::instance(lCubixComposer, boost::bind(&cubixUploadProgress, _1, _2, _3), boost::bind(&CreateBuzzerCommand::headerUploaded, lBuzzerCommand, _1, _2))
+	);
+
+	lBuzzerGroupCommand->setUploadAvatar(
+		cubix::UploadMediaCommand::instance(lCubixComposer, boost::bind(&cubixUploadProgress, _1, _2, _3), boost::bind(&CreateBuzzerGroupCommand::avatarUploaded, lBuzzerGroupCommand, _1, _2))
 	);
 
 	lBuzzCommand->setUploadMedia(

@@ -41,6 +41,7 @@ public:
 	virtual void ban(IPeerPtr /*peer*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::ban - not implemented."); }
 	virtual void quarantine(IPeerPtr /*peer*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::quarantine - not implemented."); }
 	virtual void release(const std::string& /*endpoint*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::ban - not implemented."); }
+	virtual void handshaking(const uint160& /*id*/, IPeerPtr /*peer*/) { throw qbit::exception("NOT_IMPL", "IPeerManager::handshaking - not implemented."); }
 
 	virtual void run() { throw qbit::exception("NOT_IMPL", "IPeerManager::run - not implemented."); }
 	virtual void stop() { throw qbit::exception("NOT_IMPL", "IPeerManager::stop - not implemented."); }

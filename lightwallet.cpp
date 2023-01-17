@@ -57,12 +57,16 @@ SKeyPtr LightWallet::firstKey() {
 	//
 	{
 		boost::unique_lock<boost::recursive_mutex> lLock(keyMutex_);
-		std::map<uint160 /*id*/, SKeyPtr>::iterator lSKeyIter = keysCache_.begin();
+		std::map<uint160 /*id*/, SKeyPtr>::iterator lSKeyIter;
+		if (currentKey_.isEmpty()) lSKeyIter = keysCache_.begin();
+		else lSKeyIter = keysCache_.find(currentKey_);
 		if (lSKeyIter != keysCache_.end()) return lSKeyIter->second;
 	}
 
 	if (opened_) {
-		db::DbContainer<uint160 /*id*/, SKey>::Iterator lKey = keys_.begin();
+		db::DbContainer<uint160 /*id*/, SKey>::Iterator lKey;
+		if (currentKey_.isEmpty()) lKey = keys_.begin();
+		else lKey = keys_.find(currentKey_);
 		if (lKey.valid()) {
 			SKeyPtr lSKeyPtr = SKey::instance(*lKey);
 			if (lSKeyPtr->encrypted()) lSKeyPtr->decrypt(secret_);

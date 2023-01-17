@@ -15,8 +15,9 @@ import "qrc:/qml"
 
 QuarkPage
 {
-	id: buzzercreateupdate_
-	key: "buzzercreateupdate"
+	id: buzzergroupcreateupdate_
+	key: "buzzergroupcreateupdate"
+	stacked: false
 
 	// spacing
 	readonly property int spaceLeft_: 15
@@ -51,7 +52,7 @@ QuarkPage
 
 	function activatePage() {
 		buzzerApp.lockPortraitOrientation();
-		buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Window.background"));
+		buzzerApp.setBackgroundColor(buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Page.background"));
 		toolBar.activate();
 	}
 
@@ -59,7 +60,7 @@ QuarkPage
         controller.showError(error);
     }
 
-	function initialize(action) {
+	function initialize(action, source) {
 		//
 		action_ = action; // CREATE | UPDATE
 		if (source) source_ = source;
@@ -73,14 +74,12 @@ QuarkPage
 
 	QuarkToolBar {
 		id: toolBar
-		height: (buzzerApp.isDesktop || buzzerApp.isTablet ? (buzzerClient.scaleFactor * 50) : 45) + topOffset
+		height: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * 50) : 45
 		width: parent.width
 
 		property int totalHeight: height
 
 		function adjust() {
-			if (buzzerApp.isDesktop || buzzerApp.isTablet) return;
-
 			if (parent.width > parent.height) {
 				visible = false;
 				height = 0;
@@ -96,8 +95,8 @@ QuarkPage
 		QuarkRoundSymbolButton {
 			id: cancelButton
 			x: spaceItems_
-			y: parent.height / 2 - height / 2 +  + topOffset / 2
-			symbol: Fonts.leftArrowSym
+			y: parent.height / 2 - height / 2
+			symbol: source_ === "wizard" ? Fonts.leftArrowSym : Fonts.cancelSym
 			fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 5)) : buzzerApp.defaultFontSize() + 7
 			radius: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (defaultRadius - 7)) : (defaultRadius - 7)
 			color: "transparent"
@@ -112,11 +111,11 @@ QuarkPage
 		QuarkLabelRegular {
 			id: buzzerControl
 			x: cancelButton.x + cancelButton.width + 5
-			y: parent.height / 2 - height / 2 +  + topOffset / 2
+			y: parent.height / 2 - height / 2
 			width: parent.width - (x)
 			elide: Text.ElideRight
 			text: action_ !== "CREATE" ? buzzerClient.name : ""
-			font.pointSize: 18
+			font.pointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 14 : 18
 			color: buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.link")
 		}
 
@@ -141,11 +140,11 @@ QuarkPage
 		y: toolBar.y + toolBar.totalHeight + 20
 		width: parent.width-40
 		wrapMode: Label.Wrap
-		font.pointSize: 18
+		font.pointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 14 : 18
 
 		text: action_ !== "CREATE" ?
-				  buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.updateBuzzer") :
-				  buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.createBuzzer")
+				  buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.group.update.memo") :
+				  buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.group.create.memo")
 	}
 
 	Flickable {
@@ -160,13 +159,13 @@ QuarkPage
 		 onDragStarted: {
 		 }
 
-		BuzzerInfo {
+		BuzzerGroupInfoDesktop {
 			id: buzzerInfo
 			x: 0
 			y: 10
 			infoDialog: rootInfoDialog
 			width: parent.width
-			controller: buzzercreateupdate_.controller
+			controller: buzzergroupcreateupdate_.controller
 			action: action_
 			source: source_
 
@@ -174,18 +173,6 @@ QuarkPage
 				//
 				if (source_ === "wizard") controller.popNonStacked();
 				else closePage();
-
-				//
-				if (action_ === "CREATE") {
-					buzzerClient.getBuzzfeedList().clear();
-					buzzerClient.getBuzzfeedList().resetModel();
-
-					buzzerClient.getEventsfeedList().clear();
-					buzzerClient.getEventsfeedList().resetModel();
-
-					buzzerClient.getConversationsList().clear();
-					buzzerClient.getConversationsList().resetModel();
-				}
 			}
 		}
 	}

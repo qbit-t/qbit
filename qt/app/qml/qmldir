@@ -35,3 +35,6 @@ BuzzerStackView 1.0 buzzer-stackview-desktop.qml
 BuzzerDesktopToolBar 1.0 buzzertoolbar-desktop.qml
 BuzzItemMediaPlayer 1.0 buzzitemmedia-player.qml
 BuzzerMediaPlayerController 1.0 buzzitemmedia-player-controller.qml
+BuzzerGroupInfo 1.0 buzzergroupinfo.qml
+BuzzerGroupInfoDesktop 1.0 buzzergroupinfo-desktop.qml
+

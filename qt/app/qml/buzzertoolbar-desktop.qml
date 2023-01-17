@@ -32,6 +32,10 @@ QuarkToolBar
 	property string searchPlaceHolder: "";
 	property bool searchVisible: false;
 
+	property bool actionButtonVisible: false;
+	property var actionButtonSymbol: "";
+	signal doAction();
+
 	onSearchTextChanged: {
 		search.setText(searchText);
 	}
@@ -97,7 +101,7 @@ QuarkToolBar
 
 		function onCacheReadyChanged() {
 			openDrawer.enabled = buzzerClient.buzzerDAppReady === true;
-			networkButton.ready(buzzerClient.buzzerDAppReady);
+			//networkButton.ready(buzzerClient.buzzerDAppReady);
 		}
 
 		function onBuzzerDAppReadyChanged() {
@@ -105,11 +109,11 @@ QuarkToolBar
 				openDrawer.enabled = buzzerClient.buzzerDAppReady === true;
 			}
 
-			networkButton.ready(buzzerClient.buzzerDAppReady);
+			//networkButton.ready(buzzerClient.buzzerDAppReady);
 		}
 
 		function onThemeChanged() {
-			networkButton.ready(buzzerClient.buzzerDAppReady);
+			//networkButton.ready(buzzerClient.buzzerDAppReady);
 		}
 	}
 
@@ -251,7 +255,7 @@ QuarkToolBar
 
 	QuarkSearchField {
 		id: search
-		width: parent.width - (x + networkButton.width + themeButton.width)
+		width: parent.width - (x + (actionButton.visible ? actionButton.width : 0) + themeButton.width)
 		placeHolder: searchPlaceHolder
 		fontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * buzzerApp.defaultFontSize()) : defaultFontPointSize
 		visible: searchVisible
@@ -297,15 +301,16 @@ QuarkToolBar
 
 	QuarkToolButton
 	{
-		id: networkButton
-		symbol: Fonts.networkSym
+		id: actionButton
+		symbol: actionButtonSymbol
 		Material.background: "transparent"
-		visible: true
+		visible: actionButtonVisible
+		/*
 		labelYOffset: buzzerApp.isDesktop ? 0 : 3
-		//labelYOffset: buzzerApp.isDesktop ? (buzzerClient.scaleFactor > 1.0 ? 1 : 2) : 3
 		symbolColor: buzzerClient.buzzerDAppReady ?
 						 buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground") :
 						 buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.peer.pending")
+		*/
 		Layout.alignment: Qt.AlignHCenter
 		symbolFontPointSize: buzzerApp.isDesktop ? (buzzerClient.scaleFactor * (buzzerApp.defaultFontSize() + 5)) : defaultSymbolFontPointSize
 
@@ -313,26 +318,7 @@ QuarkToolBar
 		y: avatarImage.y + avatarImage.height / 2 - height / 2
 
 		onClicked: {
-			//
-			var lComponent = null;
-			var lPage = null;
-			lComponent = Qt.createComponent("qrc:/qml/peers.qml");
-			if (lComponent.status === Component.Error) {
-				showError(lComponent.errorString());
-			} else {
-				// pop no-stacked page(s)
-				popNonStacked();
-
-				lPage = lComponent.createObject(window);
-				lPage.controller = window;
-
-				addPage(lPage);
-			}
-		}
-
-		function ready(isReady) {
-			if (isReady) symbolColor = buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground");
-			else symbolColor = buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.peer.pending");
+			doAction();
 		}
 	}
 

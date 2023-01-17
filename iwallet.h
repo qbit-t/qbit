@@ -53,6 +53,7 @@ public:
 	virtual SKeyPtr changeKey() { throw qbit::exception("NOT_IMPL", "IWallet::changeKey - not implemented."); }
 	virtual void removeAllKeys() { throw qbit::exception("NOT_IMPL", "IWallet::removeAllKeys - not implemented."); }
 	virtual void allKeys(std::list<SKeyPtr>&) { throw qbit::exception("NOT_IMPL", "IWallet::allKeys - not implemented."); }
+	virtual void setCurrentKey(const PKey&) { throw qbit::exception("NOT_IMPL", "IWallet::setCurrentKey - not implemented."); }
 
 	// new utxo and tx context to process deeply
 	virtual bool pushUnlinkedOut(Transaction::UnlinkedOutPtr, TransactionContextPtr) { throw qbit::exception("NOT_IMPL", "IWallet::pushUnlinkedOut - not implemented."); }
