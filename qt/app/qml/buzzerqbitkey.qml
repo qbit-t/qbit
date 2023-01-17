@@ -21,6 +21,7 @@ QuarkPage
 	followKeyboard: true
 
 	property bool setupProcess: false
+	property bool showKeys: false
 
 	property var menuHighlightColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.highlight")
 	property var menuBackgroundColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Material.menu.background")
@@ -160,7 +161,7 @@ QuarkPage
 		 y: toolBar.y + toolBar.height
 		 width: parent.width
 		 height: parent.height - (toolBar.y + toolBar.height)
-		 contentHeight: linkButton.y + linkButton.height + 15
+		 contentHeight: !buzzerqbitkey_.showKeys ? (linkButton.y + linkButton.height + 15) : (backRect.y + backRect.height + 15)
 		 clip: true
 
 		 onDragStarted: {
@@ -177,8 +178,10 @@ QuarkPage
 			wrapMode: Label.Wrap
 			font.pointSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 14 : 18
 
-			text: !setupProcess ? buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.qbitKeys.manage") :
-								  buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.qbitKeys.link")
+			text:
+				showKeys ? buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.qbitKeys.show") :
+					(!setupProcess ? buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.qbitKeys.manage") :
+										 buzzerApp.getLocalization(buzzerClient.locale, "Buzzer.qbitKeys.link"))
 		}
 
 		QuarkInfoBox {
@@ -284,9 +287,9 @@ QuarkPage
 			id: backRect
 			x: 21
 			y: wordEditBox.y + wordEditBox.height
-			height: buzzerqbitkey_.height - (y + toolBar.height + linkButton.height + nameEditBox.height + bottomOffset + 15 + 15 + 10) < 180 ?
+			height: buzzerqbitkey_.height - (y + toolBar.height + (buzzerqbitkey_.showKeys ? 0 : linkButton.height + nameEditBox.height) + bottomOffset + 15 + 15 + 10) < 180 ?
 						180 :
-						buzzerqbitkey_.height - (y + toolBar.height + linkButton.height + nameEditBox.height + bottomOffset + 15 + 15 + 10)
+						buzzerqbitkey_.height - (y + toolBar.height + (buzzerqbitkey_.showKeys ? 0 : linkButton.height + nameEditBox.height) + bottomOffset + 15 + 15 + 10)
 			width: parent.width - 43
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Box.background");
 		}
@@ -402,6 +405,7 @@ QuarkPage
 			textFontSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 14 : 16
 			symbolFontSize: buzzerApp.isDesktop ? buzzerClient.scaleFactor * 16 : 20
 			imFilter: true
+			visible: !buzzerqbitkey_.showKeys
 
 			onHelpClicked:  {
 				if (enabled) {
@@ -439,7 +443,7 @@ QuarkPage
 			id: linkButton
 			x: qbitKeysText.x + 1
 			y: nameEditBox.y + nameEditBox.height + 15 // parent.height - height - 15
-			visible: true
+			visible: !buzzerqbitkey_.showKeys
 			enabled: seedView.model.count
 			width: seedView.width - 1
 			Material.background: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Buzzer.trustScore.4")

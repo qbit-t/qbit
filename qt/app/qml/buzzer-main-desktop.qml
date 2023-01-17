@@ -493,7 +493,7 @@ QuarkPage
 						buzzfeedGlobal.disconnect();
 
 						headerBar.actionButtonSymbol = Fonts.plusSym;
-						headerBar.actionButtonVisible = true;
+						headerBar.actionButtonVisible = false; // true
 					}
 
 					if (currentIndex == 4 /*wallet*/) {

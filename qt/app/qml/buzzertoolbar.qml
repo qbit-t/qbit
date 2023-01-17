@@ -238,7 +238,7 @@ QuarkToolBar
 		id: networkButton
 		symbol: Fonts.networkSym
 		Material.background: "transparent"
-		visible: true
+		visible: false
 		labelYOffset: 3
 		symbolColor: buzzerClient.buzzerDAppReady ?
 						 buzzerApp.getColorStatusBar(buzzerClient.theme, buzzerClient.themeSelector, "Material.foreground") :

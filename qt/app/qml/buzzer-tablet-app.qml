@@ -1052,7 +1052,17 @@ ApplicationWindow {
 					var lComponent = null;
 					var lPage = null;
 
-					if (key === "createNewBuzzer" || key === "editBuzzer") {
+					if (key === "createNewBuzzer") {
+						lComponent = Qt.createComponent("qrc:/qml/buzzercreatelink.qml");
+						if (lComponent.status === Component.Error) {
+							showError(lComponent.errorString());
+						} else {
+							lPage = lComponent.createObject(window);
+							lPage.controller = window;
+
+							addPage(lPage);
+						}
+					} else if (key === "editBuzzer") {
 						lComponent = Qt.createComponent("qrc:/qml/buzzercreateupdate.qml");
 						if (lComponent.status === Component.Error) {
 							showError(lComponent.errorString());
@@ -1080,6 +1090,7 @@ ApplicationWindow {
 						} else {
 							lPage = lComponent.createObject(window);
 							lPage.controller = window;
+							lPage.showKeys = true;
 
 							addPage(lPage);
 						}

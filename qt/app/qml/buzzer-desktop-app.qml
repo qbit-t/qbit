@@ -1116,6 +1116,7 @@ ApplicationWindow {
 						} else {
 							lPage = lComponent.createObject(window);
 							lPage.controller = window;
+							lPage.showKeys = true;
 
 							addPage(lPage);
 						}
