@@ -931,9 +931,24 @@ ApplicationWindow {
     }
 
 	function openDrawer() {
-		myBuzzer.initialize();
-		drawerMenu.prepare();
-		drawer.open();
+		if (buzzerClient.buzzerDAppReady) {
+			myBuzzer.initialize();
+			drawerMenu.prepare();
+			drawer.open();
+		} else {
+			//
+			var lComponent = null;
+			var lPage = null;
+			lComponent = Qt.createComponent("qrc:/qml/peers.qml");
+			if (lComponent.status === Component.Error) {
+				showError(lComponent.errorString());
+			} else {
+				lPage = lComponent.createObject(window);
+				lPage.controller = window;
+
+				addPage(lPage);
+			}
+		}
 	}
 
 	function closeDrawer() {

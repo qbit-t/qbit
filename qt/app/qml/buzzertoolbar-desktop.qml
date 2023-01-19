@@ -100,13 +100,13 @@ QuarkToolBar
 		}
 
 		function onCacheReadyChanged() {
-			openDrawer.enabled = buzzerClient.buzzerDAppReady === true;
+			//openDrawer.enabled = buzzerClient.buzzerDAppReady === true;
 			//networkButton.ready(buzzerClient.buzzerDAppReady);
 		}
 
 		function onBuzzerDAppReadyChanged() {
 			if (buzzerClient.buzzerDAppReady) {
-				openDrawer.enabled = buzzerClient.buzzerDAppReady === true;
+				//openDrawer.enabled = buzzerClient.buzzerDAppReady === true;
 			}
 
 			//networkButton.ready(buzzerClient.buzzerDAppReady);
@@ -240,7 +240,7 @@ QuarkToolBar
 		y: imageFrame.y - 10
 		width: imageFrame.width + 20
 		height: imageFrame.height + 20
-		enabled: buzzerClient.buzzerDAppReady === true
+		enabled: true //buzzerClient.buzzerDAppReady === true
 		cursorShape: Qt.PointingHandCursor
 		pressAndHoldInterval: 2000
 
