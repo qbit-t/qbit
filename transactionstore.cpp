@@ -1444,7 +1444,10 @@ bool TransactionStore::open() {
 
 			if (settings_->supportAirdrop()) {
 				airDropAddressesTx_.open();
+				airDropAddressesTx_.attach();
+
 				airDropPeers_.open();
+				airDropPeers_.attach();
 			}
 
 			std::string lLastBlock;
