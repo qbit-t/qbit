@@ -1546,6 +1546,8 @@ bool TransactionStore::close() {
 		airDropPeers_.close();
 	}
 
+	space_->close();
+
 	if (extension_) extension_->close();
 
 	settings_.reset();

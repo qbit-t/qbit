@@ -190,7 +190,7 @@ public:
 private:
 	void stopMiner() {
 		// stop miner
-		if (consensus_->settings()->isMiner() && minerRunning_) {
+		if (consensus_ && consensus_->settings()->isMiner() && minerRunning_) {
 			gLog().write(Log::VALIDATOR, std::string("[miner]: stopping for ") + strprintf("%s#", chain_.toHex().substr(0, 10)));
 			minerRunning_ = false;
 			minerActive_.notify_one();
