@@ -1395,8 +1395,6 @@ bool TransactionStore::open() {
 		try {
 			gLog().write(Log::INFO, std::string("[open]: opening store for ") + strprintf("%s", chain_.toHex()));
 
-			if (mkpath(std::string(settings_->dataPath() + "/" + chain_.toHex() + "/indexes").c_str(), 0777)) return false;
-
 			space_->open();
 
 			workingSettings_.open();

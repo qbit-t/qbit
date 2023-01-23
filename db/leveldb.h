@@ -439,6 +439,9 @@ public:
 		uint160 lLeftId((unsigned char*)left.data());
 		uint160 lRightId((unsigned char*)right.data());
 
+		if (lLeftId < lRightId) return -1;
+		if (lLeftId > lRightId) return  1;
+
 		key lLeftKey;
 		DataStream lLeftStream(SER_DISK, PROTOCOL_VERSION);
 		lLeftStream.insert(lLeftStream.end(), left.data() + sizeof(uint160), left.data() + left.size());
@@ -448,9 +451,6 @@ public:
 		DataStream lRightStream(SER_DISK, PROTOCOL_VERSION);
 		lRightStream.insert(lRightStream.end(), right.data() + sizeof(uint160), right.data() + right.size());
 		lRightStream >> lRightKey;
-
-		if (lLeftId < lRightId) return -1;
-		if (lLeftId > lRightId) return  1;
 
 		if (lLeftKey < lRightKey) return -1;
 		if (lLeftKey > lRightKey) return  1;
