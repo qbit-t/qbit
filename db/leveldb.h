@@ -436,8 +436,8 @@ class LevelDBContainerComparator: public ILevelDBContainerComparator {
 public:
 	int compare(const leveldb::Slice& left, const leveldb::Slice& right) const {
 		//
-		uint160 lLeftId(left.data());
-		uint160 lRightId(right.data());
+		uint160 lLeftId((unsigned char*)left.data());
+		uint160 lRightId((unsigned char*)right.data());
 
 		key lLeftKey;
 		DataStream lLeftStream(SER_DISK, PROTOCOL_VERSION);
@@ -666,7 +666,7 @@ public:
 		//
 		space_ = space;
 #ifndef MOBILE_PLATFORM		
-		typedComparator_ = new LevelDBContainerComparator<key, value>();
+		typedComparator_ = std::make_shared<LevelDBContainerComparator<key, value>>();
 		space_->comparator().push(hash_, typedComparator_);
 #endif
 	}

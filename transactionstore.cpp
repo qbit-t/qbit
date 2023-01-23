@@ -1397,21 +1397,52 @@ bool TransactionStore::open() {
 
 			if (mkpath(std::string(settings_->dataPath() + "/" + chain_.toHex() + "/indexes").c_str(), 0777)) return false;
 
+			space_->open();
+
 			workingSettings_.open();
+			workingSettings_.attach();
+
 			headers_.open();
+			headers_.attach();
+
 			transactions_.open();
+			transactions_.attach();
+
 			utxo_.open();
+			utxo_.attach();
+
 			ltxo_.open();
+			ltxo_.attach();
+
 			entities_.open();
+			entities_.attach();
+
 			blockUtxoIdx_.open();
+			blockUtxoIdx_.attach();
+
 			utxoBlock_.open();
+			utxoBlock_.attach();
+
 			transactionsIdx_.open();
+			transactionsIdx_.attach();
+
 			entitiesIdx_.open();
+			entitiesIdx_.attach();
+
 			addressAssetUtxoIdx_.open();
+			addressAssetUtxoIdx_.attach();
+
 			shards_.open();
+			shards_.attach();
+
 			entityUtxo_.open();
+			entityUtxo_.attach();
+
 			shardEntities_.open();
+			shardEntities_.attach();
+
 			txUtxo_.open();
+			txUtxo_.attach();
 
 			if (settings_->supportAirdrop()) {
 				airDropAddressesTx_.open();

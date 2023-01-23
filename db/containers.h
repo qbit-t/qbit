@@ -15,7 +15,12 @@ namespace db {
 
 class DbContainerSpace: public LevelDbContainerSpace {
 public: 
-	DbContainerSpace(const std::string& name) : LevelDbContainerSpace() {}
+	DbContainerSpace(const std::string& name) : LevelDbContainerSpace() { name_ = name; }
+	bool open() {
+		return LevelDbContainerSpace::open(name_, true, 0 /*cache*/);
+	}
+private:
+	std::string name_;
 };
 typedef std::shared_ptr<DbContainerSpace> DbContainerSpacePtr;
 
@@ -25,7 +30,7 @@ public:
 	DbContainerShared(const std::string& name, DbContainerSpacePtr space) : Container<key, value, LevelDbContainerProxy>(name) { space_ = space; }
 	void attach() {
 		//
-		typename LevelDbContainerProxy<key, value>::attachTo(space_);
+		this->attachTo(space_);
 	}
 
 private:
@@ -38,7 +43,7 @@ public:
 	DbMultiContainerShared(const std::string& name, DbContainerSpacePtr space) : MultiContainer<key, value, LevelDbContainerProxy>(name) { space_ = space; }
 	void attach() {
 		//
-		typename LevelDbContainerProxy<key, value>::attachTo(space_);
+		this->attachTo(space_);
 	}
 
 private:
@@ -51,7 +56,7 @@ public:
 	DbEntityContainerShared(const std::string& name, DbContainerSpacePtr space) : EntityContainer<key, value, LevelDbContainerProxy>(name) { space_ = space; }
 	void attach() {
 		//
-		typename LevelDbContainerProxy<key, value>::attachTo(space_);
+		this->attachTo(space_);
 	}
 
 private:
@@ -64,7 +69,7 @@ public:
 	DbTwoKeyContainerShared(const std::string& name, DbContainerSpacePtr space) : TwoKeyContainer<key1, key2, value, LevelDbContainerProxy>(name) { space_ = space; }
 	void attach() {
 		//
-		typename LevelDbContainerProxy<TwoKey<key1, key2>, value>::attachTo(space_);
+		this->attachTo(space_);
 	}
 
 private:
@@ -77,7 +82,7 @@ public:
 	DbThreeKeyContainerShared(const std::string& name, DbContainerSpacePtr space) : ThreeKeyContainer<key1, key2, key3, value, LevelDbContainerProxy>(name) { space_ = space; }
 	void attach() {
 		//
-		typename LevelDbContainerProxy<ThreeKey<key1, key2, key3>, value>::attachTo(space_);
+		this->attachTo(space_);
 	}
 
 private:
@@ -90,7 +95,7 @@ public:
 	DbFourKeyContainerShared(const std::string& name, DbContainerSpacePtr space) : FourKeyContainer<key1, key2, key3, key4, value, LevelDbContainerProxy>(name) { space_ = space; }
 	void attach() {
 		//
-		typename LevelDbContainerProxy<FourKey<key1, key2, key3, key4>, value>::attachTo(space_);
+		this->attachTo(space_);
 	}
 
 private:
@@ -103,7 +108,7 @@ public:
 	DbFiveKeyContainerShared(const std::string& name, DbContainerSpacePtr space) : FiveKeyContainer<key1, key2, key3, key4, key5, value, LevelDbContainerProxy>(name) { space_ = space; }
 	void attach() {
 		//
-		typename LevelDbContainerProxy<FiveKey<key1, key2, key3, key4, key5>, value>::attachTo(space_);
+		this->attachTo(space_);
 	}
 
 private:
