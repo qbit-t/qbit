@@ -13,6 +13,105 @@
 namespace qbit {
 namespace db {
 
+class DbContainerSpace: public LevelDbContainerSpace {
+public: 
+	DbContainerSpace(const std::string& name) : LevelDbContainerSpace() {}
+};
+typedef std::shared_ptr<DbContainerSpace> DbContainerSpacePtr;
+
+template<typename key, typename value>
+class DbContainerShared: public Container<key, value, LevelDbContainerProxy> {
+public: 
+	DbContainerShared(const std::string& name, DbContainerSpacePtr space) : Container<key, value, LevelDbContainerProxy>(name) { space_ = space; }
+	void attach() {
+		//
+		typename LevelDbContainerProxy<key, value>::attachTo(space_);
+	}
+
+private:
+	DbContainerSpacePtr space_;
+};
+
+template<typename key, typename value>
+class DbMultiContainerShared: public MultiContainer<key, value, LevelDbContainerProxy> {
+public: 
+	DbMultiContainerShared(const std::string& name, DbContainerSpacePtr space) : MultiContainer<key, value, LevelDbContainerProxy>(name) { space_ = space; }
+	void attach() {
+		//
+		typename LevelDbContainerProxy<key, value>::attachTo(space_);
+	}
+
+private:
+	DbContainerSpacePtr space_;
+};
+
+template<typename key, typename value>
+class DbEntityContainerShared: public EntityContainer<key, value, LevelDbContainerProxy> {
+public: 
+	DbEntityContainerShared(const std::string& name, DbContainerSpacePtr space) : EntityContainer<key, value, LevelDbContainerProxy>(name) { space_ = space; }
+	void attach() {
+		//
+		typename LevelDbContainerProxy<key, value>::attachTo(space_);
+	}
+
+private:
+	DbContainerSpacePtr space_;
+};
+
+template<typename key1, typename key2, typename value>
+class DbTwoKeyContainerShared: public TwoKeyContainer<key1, key2, value, LevelDbContainerProxy> {
+public: 
+	DbTwoKeyContainerShared(const std::string& name, DbContainerSpacePtr space) : TwoKeyContainer<key1, key2, value, LevelDbContainerProxy>(name) { space_ = space; }
+	void attach() {
+		//
+		typename LevelDbContainerProxy<TwoKey<key1, key2>, value>::attachTo(space_);
+	}
+
+private:
+	DbContainerSpacePtr space_;
+};
+
+template<typename key1, typename key2, typename key3, typename value>
+class DbThreeKeyContainerShared: public ThreeKeyContainer<key1, key2, key3, value, LevelDbContainerProxy> {
+public: 
+	DbThreeKeyContainerShared(const std::string& name, DbContainerSpacePtr space) : ThreeKeyContainer<key1, key2, key3, value, LevelDbContainerProxy>(name) { space_ = space; }
+	void attach() {
+		//
+		typename LevelDbContainerProxy<ThreeKey<key1, key2, key3>, value>::attachTo(space_);
+	}
+
+private:
+	DbContainerSpacePtr space_;
+};
+
+template<typename key1, typename key2, typename key3, typename key4, typename value>
+class DbFourKeyContainerShared: public FourKeyContainer<key1, key2, key3, key4, value, LevelDbContainerProxy> {
+public: 
+	DbFourKeyContainerShared(const std::string& name, DbContainerSpacePtr space) : FourKeyContainer<key1, key2, key3, key4, value, LevelDbContainerProxy>(name) { space_ = space; }
+	void attach() {
+		//
+		typename LevelDbContainerProxy<FourKey<key1, key2, key3, key4>, value>::attachTo(space_);
+	}
+
+private:
+	DbContainerSpacePtr space_;
+};
+
+template<typename key1, typename key2, typename key3, typename key4, typename key5, typename value>
+class DbFiveKeyContainerShared: public FiveKeyContainer<key1, key2, key3, key4, key5, value, LevelDbContainerProxy> {
+public: 
+	DbFiveKeyContainerShared(const std::string& name, DbContainerSpacePtr space) : FiveKeyContainer<key1, key2, key3, key4, key5, value, LevelDbContainerProxy>(name) { space_ = space; }
+	void attach() {
+		//
+		typename LevelDbContainerProxy<FiveKey<key1, key2, key3, key4, key5>, value>::attachTo(space_);
+	}
+
+private:
+	DbContainerSpacePtr space_;
+};
+
+//
+
 template<typename key, typename value>
 class DbContainer: public Container<key, value, LevelDBContainer> {
 public: 

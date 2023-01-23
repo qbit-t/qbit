@@ -112,7 +112,7 @@ bool TransactionStore::processBlockTransactions(ITransactionStorePtr store, IEnt
 
 		// check presence
 		uint256 lTxIdUtxo;
-		db::DbMultiContainer<uint256 /*tx*/, uint256 /*utxo*/>::Iterator lTxUtxo = txUtxo_.find(lCtx->tx()->id());
+		db::DbMultiContainerShared<uint256 /*tx*/, uint256 /*utxo*/>::Iterator lTxUtxo = txUtxo_.find(lCtx->tx()->id());
 		if (approxHeight && lTxUtxo.valid() && lTxUtxo.first(lTxIdUtxo) && lTxIdUtxo == lCtx->tx()->id() /* double check */) {
 			//
 			Transaction::UnlinkedOut lUtxo;
@@ -310,15 +310,15 @@ bool TransactionStore::processBlockTransactions(ITransactionStorePtr store, IEnt
 					entitiesIdx_.remove(lEntityName);
 
 					// iterate
-					db::DbMultiContainer<std::string /*short name*/, uint256 /*utxo*/>::Transaction lEntityUtxoTransaction = entityUtxo_.transaction();
-					for (db::DbMultiContainer<std::string /*short name*/, uint256 /*utxo*/>::Iterator lEntityUtxo = entityUtxo_.find(lTx->entityName()); lEntityUtxo.valid(); ++lEntityUtxo) {
+					db::DbMultiContainerShared<std::string /*short name*/, uint256 /*utxo*/>::Transaction lEntityUtxoTransaction = entityUtxo_.transaction();
+					for (db::DbMultiContainerShared<std::string /*short name*/, uint256 /*utxo*/>::Iterator lEntityUtxo = entityUtxo_.find(lTx->entityName()); lEntityUtxo.valid(); ++lEntityUtxo) {
 						lEntityUtxoTransaction.remove(lEntityUtxo);
 					}
 
 					lEntityUtxoTransaction.commit();
 
-					db::DbMultiContainer<uint256 /*entity*/, uint256 /*shard*/>::Transaction lShardsTransaction = shards_.transaction();
-					for (db::DbMultiContainer<uint256 /*entity*/, uint256 /*shard*/>::Iterator lShards = shards_.find(lTx->id()); lShards.valid(); ++lShards) {
+					db::DbMultiContainerShared<uint256 /*entity*/, uint256 /*shard*/>::Transaction lShardsTransaction = shards_.transaction();
+					for (db::DbMultiContainerShared<uint256 /*entity*/, uint256 /*shard*/>::Iterator lShards = shards_.find(lTx->id()); lShards.valid(); ++lShards) {
 						shardEntities_.remove(*lShards);
 						lShardsTransaction.remove(lShards);
 					}
@@ -806,13 +806,13 @@ void TransactionStore::removeBlocks(const uint256& from, const uint256& to, bool
 	BlockHeader lHeader;
 	while(lHash != to && headers_.read(lHash, lHeader) && (!limit || lLimit++ < limit)) {
 		// begin transaction
-		db::DbMultiContainer<uint256 /*block*/, TxBlockAction /*utxo action*/>::Transaction lBlockIdxTransaction = blockUtxoIdx_.transaction();
+		db::DbMultiContainerShared<uint256 /*block*/, TxBlockAction /*utxo action*/>::Transaction lBlockIdxTransaction = blockUtxoIdx_.transaction();
 		// prepare reverse queue
 		std::list<TxBlockAction> lQueue;
 		std::set<uint256> lTouchedTxs;
 		uint256 lNullUtxo;
 		// iterate
-		for (db::DbMultiContainer<uint256 /*block*/, TxBlockAction /*utxo action*/>::Iterator lUtxo = blockUtxoIdx_.find(lHash); lUtxo.valid(); ++lUtxo) {
+		for (db::DbMultiContainerShared<uint256 /*block*/, TxBlockAction /*utxo action*/>::Iterator lUtxo = blockUtxoIdx_.find(lHash); lUtxo.valid(); ++lUtxo) {
 			// check & push
 			if ((*lUtxo).utxo() != lNullUtxo) lQueue.push_back(*lUtxo);
 			// mark to remove
@@ -906,8 +906,8 @@ void TransactionStore::removeBlocks(const uint256& from, const uint256& to, bool
 				transactionsIdx_.remove((*lTx)->id());
 
 				// iterate
-				db::DbMultiContainer<uint256 /*tx*/, uint256 /*utxo*/>::Transaction lTxUtxoTransaction = txUtxo_.transaction();
-				for (db::DbMultiContainer<uint256 /*tx*/, uint256 /*utxo*/>::Iterator lTxUtxo = txUtxo_.find((*lTx)->id()); lTxUtxo.valid(); ++lTxUtxo) {
+				db::DbMultiContainerShared<uint256 /*tx*/, uint256 /*utxo*/>::Transaction lTxUtxoTransaction = txUtxo_.transaction();
+				for (db::DbMultiContainerShared<uint256 /*tx*/, uint256 /*utxo*/>::Iterator lTxUtxo = txUtxo_.find((*lTx)->id()); lTxUtxo.valid(); ++lTxUtxo) {
 					lTxUtxoTransaction.remove(lTxUtxo);
 
 					// double check for the "lost" utxo's
@@ -927,15 +927,15 @@ void TransactionStore::removeBlocks(const uint256& from, const uint256& to, bool
 					entitiesIdx_.remove(lEntityName);
 
 					// iterate
-					db::DbMultiContainer<std::string /*short name*/, uint256 /*utxo*/>::Transaction lEntityUtxoTransaction = entityUtxo_.transaction();
-					for (db::DbMultiContainer<std::string /*short name*/, uint256 /*utxo*/>::Iterator lEntityUtxo = entityUtxo_.find((*lTx)->entityName()); lEntityUtxo.valid(); ++lEntityUtxo) {
+					db::DbMultiContainerShared<std::string /*short name*/, uint256 /*utxo*/>::Transaction lEntityUtxoTransaction = entityUtxo_.transaction();
+					for (db::DbMultiContainerShared<std::string /*short name*/, uint256 /*utxo*/>::Iterator lEntityUtxo = entityUtxo_.find((*lTx)->entityName()); lEntityUtxo.valid(); ++lEntityUtxo) {
 						lEntityUtxoTransaction.remove(lEntityUtxo);
 					}
 
 					lEntityUtxoTransaction.commit();
 
-					db::DbMultiContainer<uint256 /*entity*/, uint256 /*shard*/>::Transaction lShardsTransaction = shards_.transaction();
-					for (db::DbMultiContainer<uint256 /*entity*/, uint256 /*shard*/>::Iterator lShards = shards_.find((*lTx)->id()); lShards.valid(); ++lShards) {
+					db::DbMultiContainerShared<uint256 /*entity*/, uint256 /*shard*/>::Transaction lShardsTransaction = shards_.transaction();
+					for (db::DbMultiContainerShared<uint256 /*entity*/, uint256 /*shard*/>::Iterator lShards = shards_.find((*lTx)->id()); lShards.valid(); ++lShards) {
 						shardEntities_.remove(*lShards);
 						lShardsTransaction.remove(lShards);
 					}
@@ -967,7 +967,7 @@ bool TransactionStore::collectUtxoByEntityName(const std::string& name, std::vec
 	std::map<uint32_t, Transaction::UnlinkedOutPtr> lUtxos;
 
 	// iterate
-	for (db::DbMultiContainer<std::string /*short name*/, uint256 /*utxo*/>::Iterator lUtxo = entityUtxo_.find(name); lUtxo.valid(); ++lUtxo) {
+	for (db::DbMultiContainerShared<std::string /*short name*/, uint256 /*utxo*/>::Iterator lUtxo = entityUtxo_.find(name); lUtxo.valid(); ++lUtxo) {
 		Transaction::UnlinkedOut lUtxoObj;
 		if (utxo_.read(*lUtxo, lUtxoObj)) {
 			lUtxos[lUtxoObj.out().index()] = Transaction::UnlinkedOut::instance(lUtxoObj);
@@ -990,7 +990,7 @@ bool TransactionStore::entityCountByShards(const std::string& name, std::map<uin
 	uint256 lDAppTx;
 	if(entities_.read(name, lDAppTx)) {
 		//
-		for (db::DbMultiContainer<uint256 /*entity*/, uint256 /*shard*/>::Iterator lShard = shards_.find(lDAppTx); lShard.valid(); ++lShard) {
+		for (db::DbMultiContainerShared<uint256 /*entity*/, uint256 /*shard*/>::Iterator lShard = shards_.find(lDAppTx); lShard.valid(); ++lShard) {
 			//
 			uint32_t lCount = 0;
 			shardEntities_.read(*lShard, lCount);
@@ -1009,7 +1009,7 @@ bool TransactionStore::entityCountByDApp(const std::string& name, std::map<uint2
 	uint256 lDAppTx;
 	if(entities_.read(name, lDAppTx)) {
 		//
-		for (db::DbMultiContainer<uint256 /*entity*/, uint256 /*shard*/>::Iterator lShard = shards_.find(lDAppTx); lShard.valid(); ++lShard) {
+		for (db::DbMultiContainerShared<uint256 /*entity*/, uint256 /*shard*/>::Iterator lShard = shards_.find(lDAppTx); lShard.valid(); ++lShard) {
 			//
 			uint32_t lCount = 0;
 			uint32_t lMainCount = 0;
@@ -1429,7 +1429,7 @@ bool TransactionStore::open() {
 			resyncHeight();
 
 			// push shards
-			for (db::DbMultiContainer<uint256 /*entity*/, uint256 /*shard*/>::Iterator lShard = shards_.begin(); lShard.valid(); ++lShard) {
+			for (db::DbMultiContainerShared<uint256 /*entity*/, uint256 /*shard*/>::Iterator lShard = shards_.begin(); lShard.valid(); ++lShard) {
 				//
 				uint256 lDAppId;
 				gLog().write(Log::INFO, std::string("[open]: try to open shard ") + strprintf("%s/%s#", (*lShard).toHex(), chain_.toHex().substr(0, 10)));
@@ -1526,7 +1526,7 @@ bool TransactionStore::enumUnlinkedOuts(const uint256& tx, std::vector<Transacti
 	//
 	bool lResult = false;
 	std::map<uint32_t, Transaction::UnlinkedOutPtr> lUtxos;
-	for (db::DbMultiContainer<uint256 /*tx*/, uint256 /*utxo*/>::Iterator lTxUtxo = txUtxo_.find(tx); lTxUtxo.valid(); ++lTxUtxo) {
+	for (db::DbMultiContainerShared<uint256 /*tx*/, uint256 /*utxo*/>::Iterator lTxUtxo = txUtxo_.find(tx); lTxUtxo.valid(); ++lTxUtxo) {
 		Transaction::UnlinkedOut lUtxo;
 		if (utxo_.read(*lTxUtxo, lUtxo)) {
 			lUtxos[lUtxo.out().index()] = Transaction::UnlinkedOut::instance(lUtxo);
@@ -1690,7 +1690,7 @@ EntityPtr TransactionStore::locateEntity(const std::string& entity) {
 
 void TransactionStore::selectUtxoByAddress(const PKey& address, std::vector<Transaction::NetworkUnlinkedOut>& utxo) {
 	//
-	for (db::DbThreeKeyContainer
+	for (db::DbThreeKeyContainerShared
 			<uint160 /*address*/, 
 				uint256 /*asset*/, 
 				uint256 /*utxo*/, 
@@ -1717,7 +1717,7 @@ void TransactionStore::selectUtxoByAddress(const PKey& address, std::vector<Tran
 void TransactionStore::selectUtxoByAddressAndAsset(const PKey& address, const uint256& asset, std::vector<Transaction::NetworkUnlinkedOut>& utxo) {
 	//
 	uint160 lId = address.id();
-	for (db::DbThreeKeyContainer
+	for (db::DbThreeKeyContainerShared
 			<uint160 /*address*/, 
 				uint256 /*asset*/, 
 				uint256 /*utxo*/, 
@@ -1747,7 +1747,7 @@ void TransactionStore::selectUtxoByRawAddressAndAsset(const PKey& address, const
 	//
 	int lCount = 0;
 	uint160 lId = address.id();
-	for (db::DbThreeKeyContainer
+	for (db::DbThreeKeyContainerShared
 			<uint160 /*address*/, 
 				uint256 /*asset*/, 
 				uint256 /*utxo*/, 
@@ -1774,7 +1774,7 @@ void TransactionStore::selectUtxoByRawAddressAndAsset(const PKey& address, const
 void TransactionStore::selectUtxoByRawTransaction(const uint256& tx, std::vector<Transaction::NetworkUnlinkedOut>& utxo) {
 	//
 	std::map<uint32_t, Transaction::NetworkUnlinkedOut> lUtxos;
-	db::DbMultiContainer<uint256 /*tx*/, uint256 /*utxo*/>::Iterator lTxRoot = txUtxo_.find(tx);
+	db::DbMultiContainerShared<uint256 /*tx*/, uint256 /*utxo*/>::Iterator lTxRoot = txUtxo_.find(tx);
 	for (; lTxRoot.valid(); ++lTxRoot) {
 		Transaction::UnlinkedOut lOut;
 		if (utxo_.read(*lTxRoot, lOut)) {
@@ -1797,7 +1797,7 @@ void TransactionStore::selectUtxoByTransaction(const uint256& tx, std::vector<Tr
 	transactionHeight(tx, lHeight, lConfirms, lCoinbase);
 	//
 	std::map<uint32_t, Transaction::NetworkUnlinkedOut> lUtxos;
-	db::DbMultiContainer<uint256 /*tx*/, uint256 /*utxo*/>::Iterator lTxRoot = txUtxo_.find(tx);
+	db::DbMultiContainerShared<uint256 /*tx*/, uint256 /*utxo*/>::Iterator lTxRoot = txUtxo_.find(tx);
 	for (; lTxRoot.valid(); ++lTxRoot) {
 		Transaction::UnlinkedOut lOut;
 		if (utxo_.read(*lTxRoot, lOut)) {
@@ -1833,7 +1833,7 @@ void TransactionStore::selectEntityNames(const std::string& name, std::vector<IE
 		std::string lArgName = name;
 		std::transform(lArgName.begin(), lArgName.end(), lArgName.begin(), ::tolower);
 		//
-		db::DbContainer<std::string, std::string>::Iterator lFromIndex = entitiesIdx_.find(lArgName);
+		db::DbContainerShared<std::string, std::string>::Iterator lFromIndex = entitiesIdx_.find(lArgName);
 		for (int lCount = 0; lFromIndex.valid() && names.size() < 6 && lCount < 100; ++lFromIndex, ++lCount) {
 			std::string lName;
 			if (lFromIndex.first(lName) && lName.find(lArgName) != std::string::npos && lControl.insert(*lFromIndex).second) {
@@ -2001,7 +2001,7 @@ bool TransactionStore::blockExists(const uint256& id) {
 
 bool TransactionStore::blockIndexed(const uint256& id) {
 	//
-	db::DbMultiContainer<uint256 /*block*/, TxBlockAction /*utxo action*/>::Iterator lAction = blockUtxoIdx_.find(id);
+	db::DbMultiContainerShared<uint256 /*block*/, TxBlockAction /*utxo action*/>::Iterator lAction = blockUtxoIdx_.find(id);
 	return lAction.valid();
 }
 
