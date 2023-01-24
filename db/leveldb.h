@@ -565,7 +565,7 @@ public:
 	class _iterator {
 	public:
 		_iterator() {}
-		explicit _iterator(leveldb::Iterator* iterator) { iterator_ = std::shared_ptr<leveldb::Iterator>(iterator); }
+		explicit _iterator(leveldb::Iterator* iterator, uint160 hash) { iterator_ = std::shared_ptr<leveldb::Iterator>(iterator); hash = hash_; }
 		_iterator(const _iterator& other) : iterator_(other.iterator_) {}
 		~_iterator() {}
 
@@ -587,7 +587,10 @@ public:
 
 			try {
 				leveldb::Slice lKey = iterator_->key();
-				k.insert(k.end(), lKey.data() + sizeof(uint160), lKey.data() + lKey.size());
+				uint160 lId((unsigned char*)lKey.data());
+				if (lId == hash_)
+					k.insert(k.end(), lKey.data() + sizeof(uint160), lKey.data() + lKey.size());
+				else return false;
 			}
 			catch (const std::exception&) {
 				return false;
@@ -619,6 +622,7 @@ public:
 
 	private:
 		std::shared_ptr<leveldb::Iterator> iterator_ { nullptr };
+		uint160 hash_;
 	};
 
 	class _transaction {
