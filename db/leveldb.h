@@ -415,7 +415,9 @@ public:
 			return lComparator->second->compare(left, right);
 		}
 
-		return 0; // TODO: that is an exception
+		const std::string lMessage = std::string("[Db]: comparator not found for ") + lLeftId.toHex();
+		gLog().write(Log::GENERAL_ERROR, lMessage);
+		throw db::exception(lMessage);
 	}
 
 	const char* Name() const { return "SharedComparator"; }

@@ -1395,8 +1395,6 @@ bool TransactionStore::open() {
 		try {
 			gLog().write(Log::INFO, std::string("[open]: opening store for ") + strprintf("%s", chain_.toHex()));
 
-			space_->open();
-
 			workingSettings_.open();
 			workingSettings_.attach();
 
@@ -1450,6 +1448,10 @@ bool TransactionStore::open() {
 				airDropPeers_.attach();
 			}
 
+			// finally - open space
+			space_->open();
+
+			// very first read begins here
 			std::string lLastBlock;
 			if (workingSettings_.read("lastBlock", lLastBlock)) {
 				lastBlock_.setHex(lLastBlock);
