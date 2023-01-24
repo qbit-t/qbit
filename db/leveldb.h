@@ -695,7 +695,7 @@ public:
 		if (useTypedComparer_)
 			space_->comparator().push(hash_, std::make_shared<LevelDBContainerComparator<key, value>>());
 		else
-			space_->comparator().push(hash_, std::make_shared<LevelDBContainerSimpleComparator());
+			space_->comparator().push(hash_, std::make_shared<LevelDBContainerSimpleComparator>());
 #endif
 	}
 
