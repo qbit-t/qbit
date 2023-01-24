@@ -669,11 +669,9 @@ public:
 		space_ = space;
 #ifndef MOBILE_PLATFORM		
 		if (useTypedComparer_)
-			typedComparator_ = std::make_shared<LevelDBContainerComparator<key, value>>();
+			space_->comparator().push(hash_, std::make_shared<LevelDBContainerComparator<key, value>>());
 		else
-			typedComparator_ = std::make_shared<LevelDBContainerComparator<std::string, value>>();
-
-		space_->comparator().push(hash_, typedComparator_);
+			space_->comparator().push(hash_, std::make_shared<LevelDBContainerComparator<std::string, value>>());
 #endif
 	}
 
@@ -863,9 +861,6 @@ private:
 	uint160 hash_;
 	LevelDbContainerSpacePtr space_;
 	bool useTypedComparer_ = true;
-#ifndef MOBILE_PLATFORM	
-	typename std::shared_ptr<LevelDBContainerComparator<key, value>> typedComparator_;
-#endif
 };
 
 
