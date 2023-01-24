@@ -460,6 +460,30 @@ public:
 		return 0;
 	}
 };
+
+class LevelDBContainerSimpleComparator: public ILevelDBContainerComparator {
+public:
+	int compare(const leveldb::Slice& left, const leveldb::Slice& right) const {
+		//
+		uint160 lLeftId((unsigned char*)left.data());
+		uint160 lRightId((unsigned char*)right.data());
+
+		if (lLeftId < lRightId) return -1;
+		if (lLeftId > lRightId) return  1;
+
+		std::string lLeftKey;
+		lLeftKey.insert(lLeftKey.end(), left.data() + sizeof(uint160), left.data() + left.size());
+
+		std::string lRightKey;
+		lRightKey.insert(lRightKey.end(), right.data() + sizeof(uint160), right.data() + right.size());
+
+		if (lLeftKey < lRightKey) return -1;
+		if (lLeftKey > lRightKey) return  1;
+		
+		return 0;
+	}
+};
+
 #endif
 
 class LevelDbContainerSpace {
@@ -671,7 +695,7 @@ public:
 		if (useTypedComparer_)
 			space_->comparator().push(hash_, std::make_shared<LevelDBContainerComparator<key, value>>());
 		else
-			space_->comparator().push(hash_, std::make_shared<LevelDBContainerComparator<std::string, value>>());
+			space_->comparator().push(hash_, std::make_shared<LevelDBContainerSimpleComparator());
 #endif
 	}
 
