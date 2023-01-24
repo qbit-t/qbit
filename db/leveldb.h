@@ -477,7 +477,7 @@ public:
 		std::string lRightKey;
 		lRightKey.insert(lRightKey.end(), right.data() + sizeof(uint160), right.data() + right.size());
 
-		if (lLeftKey == std::string("__init__") || lRightKey == std::string("__init__")) return 0;
+		//if (lLeftKey == std::string("__init__") || lRightKey == std::string("__init__")) return 0;
 
 		if (lLeftKey < lRightKey) return -1;
 		if (lLeftKey > lRightKey) return  1;
@@ -736,7 +736,7 @@ public:
 			key lDefaultKey;
 			lKeyStream << lDefaultKey; // default key
 		} else {
-			lKeyStream << std::string("__init__"); // default key
+			lKeyStream << uint64_t(0); //std::string("__init__"); // default key
 		}
 
 		try {
