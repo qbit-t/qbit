@@ -477,6 +477,8 @@ public:
 		std::string lRightKey;
 		lRightKey.insert(lRightKey.end(), right.data() + sizeof(uint160), right.data() + right.size());
 
+		if (lLeftKey == std::string("__init__") || lRightKey == std::string("__init__")) return 0;
+
 		if (lLeftKey < lRightKey) return -1;
 		if (lLeftKey > lRightKey) return  1;
 		
@@ -727,10 +729,15 @@ public:
 		leveldb::Iterator* lIterator = space_->shared()->NewIterator(lOptions);
 
 		// prepare container key (default)
-		key lDefaultKey;
 		DataStream lKeyStream(SER_DISK, PROTOCOL_VERSION);
 		lKeyStream << hash_;
-		lKeyStream << lDefaultKey; // default key
+		//
+		if (useTypedComparer_) {
+			key lDefaultKey;
+			lKeyStream << lDefaultKey; // default key
+		} else {
+			lKeyStream << std::string("__init__"); // default key
+		}
 
 		try {
 			leveldb::Slice lKey(lKeyStream.data(), lKeyStream.size()); // it will be the first item (or near)
