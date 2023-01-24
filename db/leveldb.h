@@ -668,7 +668,11 @@ public:
 		//
 		space_ = space;
 #ifndef MOBILE_PLATFORM		
-		typedComparator_ = std::make_shared<LevelDBContainerComparator<key, value>>();
+		if (useTypedComparer_)
+			typedComparator_ = std::make_shared<LevelDBContainerComparator<key, value>>();
+		else
+			typedComparator_ = std::make_shared<LevelDBContainerComparator<std::string, value>>();
+
 		space_->comparator().push(hash_, typedComparator_);
 #endif
 	}
@@ -679,6 +683,7 @@ public:
 
 		std::vector<unsigned char> lName; lName.insert(lName.end(), name_.begin(), name_.end());
 		hash_ = Hash160(lName);
+		useTypedComparer_ = useTypedComparer;
 		//
 		return true;
 	}
@@ -857,6 +862,7 @@ private:
 	std::string name_;
 	uint160 hash_;
 	LevelDbContainerSpacePtr space_;
+	bool useTypedComparer_ = true;
 #ifndef MOBILE_PLATFORM	
 	typename std::shared_ptr<LevelDBContainerComparator<key, value>> typedComparator_;
 #endif
