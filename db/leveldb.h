@@ -752,7 +752,7 @@ public:
 			lIterator = nullptr;
 		}
 
-		return _iterator(lIterator);
+		return _iterator(lIterator, hash_);
 	}
 
 	_iterator find(const DataStream& k) {
@@ -776,7 +776,7 @@ public:
 			lIterator = nullptr;
 		}
 
-		return _iterator(lIterator);
+		return _iterator(lIterator, hash_);
 	}
 
 	_iterator find(const key& k) {
