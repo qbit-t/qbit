@@ -570,19 +570,20 @@ public:
 		~_iterator() {}
 
 		bool valid() {
-			bool lValid = false;
-			try {
-				if (iterator_) {
-					leveldb::Slice lKey = iterator_->key();
-					uint160 lId((unsigned char*)lKey.data());
-					if (lId == hash_) lValid = true;
+			if (iterator_ && iterator_->Valid()) {
+				try {
+					 {
+						leveldb::Slice lKey = iterator_->key();
+						uint160 lId((unsigned char*)lKey.data());
+						if (lId == hash_) return true;
+					}
+				}
+				catch (const std::exception&) {
+					return false;
 				}
 			}
-			catch (const std::exception&) {
-				return false;
-			}
-			
-			return (iterator_ && iterator_->Valid() && lValid);
+
+			return false;
 		}
 		void next() { iterator_->Next(); }
 		void prev() { iterator_->Prev(); }
