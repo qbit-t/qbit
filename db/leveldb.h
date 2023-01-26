@@ -574,7 +574,7 @@ public:
 			try {
 				leveldb::Slice lKey = iterator_->key();
 				uint160 lId((unsigned char*)lKey.data());
-				if (lId == hash_) lValid = true
+				if (lId == hash_) lValid = true;
 			}
 			catch (const std::exception&) {
 				return false;
