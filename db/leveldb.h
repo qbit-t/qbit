@@ -565,11 +565,23 @@ public:
 	class _iterator {
 	public:
 		_iterator() {}
-		explicit _iterator(leveldb::Iterator* iterator, uint160 hash) { iterator_ = std::shared_ptr<leveldb::Iterator>(iterator); hash = hash_; }
-		_iterator(const _iterator& other) : iterator_(other.iterator_) {}
+		explicit _iterator(leveldb::Iterator* iterator, uint160 hash) { iterator_ = std::shared_ptr<leveldb::Iterator>(iterator); hash_ = hash; }
+		_iterator(const _iterator& other) : iterator_(other.iterator_), hash_(other.hash_) {}
 		~_iterator() {}
 
-		bool valid() { return (iterator_ && iterator_->Valid()); }
+		bool valid() {
+			bool lValid = false;
+			try {
+				leveldb::Slice lKey = iterator_->key();
+				uint160 lId((unsigned char*)lKey.data());
+				if (lId == hash_) lValid = true
+			}
+			catch (const std::exception&) {
+				return false;
+			}
+			
+			return (iterator_ && iterator_->Valid() && lValid);
+		}
 		void next() { iterator_->Next(); }
 		void prev() { iterator_->Prev(); }
 
