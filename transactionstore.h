@@ -336,7 +336,7 @@ public:
 		settings_(settings),
 		storeManager_(storeManager),
 		opened_(false),
-		space_(std::make_shared<db::DbContainerSpace>(settings_->dataPath() + "/" + chain.toHex())),
+		space_(std::make_shared<db::DbContainerSpace>(settings_->dataPath() + "/" + chain.toHex() + "/data")),
 		workingSettings_("settings", space_),
 		headers_("headers", space_),
 		transactions_("transactions", space_),

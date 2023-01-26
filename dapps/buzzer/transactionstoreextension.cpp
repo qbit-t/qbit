@@ -32,33 +32,85 @@ bool BuzzerTransactionStoreExtension::open() {
 		try {
 			gLog().write(Log::INFO, std::string("[extension/open]: opening storage extension for ") + strprintf("%s", store_->chain().toHex()));
 
-			if (mkpath(std::string(settings_->dataPath() + "/" + store_->chain().toHex() + "/buzzer/indexes").c_str(), 0777)) return false;
+			if (mkpath(std::string(settings_->dataPath() + "/" + store_->chain().toHex() + "/buzzer").c_str(), 0777)) return false;
 
 			timeline_.open();
+			timeline_.attach();
+
 			conversations_.open();
+			conversations_.attach();
+
 			conversationsOrder_.open();
+			conversationsOrder_.attach();
+
 			conversationsIndex_.open();
+			conversationsIndex_.attach();
+
 			conversationsActivity_.open();
+			conversationsActivity_.attach();
+
 			globalTimeline_.open();
+			globalTimeline_.attach();
+
 			hashTagTimeline_.open();
+			hashTagTimeline_.attach();
+
 			hashTags_.open();
+			hashTags_.attach();
+
 			hashTagUpdates_.open();
+			hashTagUpdates_.attach();
+
 			events_.open();
+			events_.attach();
+
 			subscriptionsIdx_.open();
+			subscriptionsIdx_.attach();
+
 			publishersIdx_.open();
+			publishersIdx_.attach();
+
 			likesIdx_.open();
+			likesIdx_.attach();
+
 			rebuzzesIdx_.open();
+			rebuzzesIdx_.attach();
+
 			replies_.open();
+			replies_.attach();
+
 			//rebuzzes_.open();
+			//rebuzzes_.attach();
+
 			publisherUpdates_.open();
+			publisherUpdates_.attach();
+
 			subscriberUpdates_.open();
+			subscriberUpdates_.attach();
+
 			buzzInfo_.open();
+			buzzInfo_.attach();
+
 			buzzerStat_.open();
+			buzzerStat_.attach();
+
 			buzzerInfo_.open();
+			buzzerInfo_.attach();
+
 			endorsements_.open();
+			endorsements_.attach();
+
 			mistrusts_.open();
+			mistrusts_.attach();
+
 			blocks_.open();
+			blocks_.attach();
+
 			hiddenIdx_.open();
+			hiddenIdx_.attach();
+
+			// finally - open space
+			space_->open();
 
 			opened_ = true;
 		}
@@ -113,7 +165,7 @@ bool BuzzerTransactionStoreExtension::selectBuzzerEndorseTx(const uint256& actor
 	//
 	if (!opened_) return false;
 	//
-	db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*endoser*/, uint256 /*tx*/>::Iterator 
+	db::DbTwoKeyContainerShared<uint256 /*buzzer*/, uint256 /*endoser*/, uint256 /*tx*/>::Iterator 
 													lEndorsement = endorsements_.find(buzzer, actor);
 	if (lEndorsement.valid()) {
 		//
@@ -128,7 +180,7 @@ bool BuzzerTransactionStoreExtension::selectBuzzerMistrustTx(const uint256& acto
 	//
 	if (!opened_) return false;
 	//
-	db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*endoser*/, uint256 /*tx*/>::Iterator 
+	db::DbTwoKeyContainerShared<uint256 /*buzzer*/, uint256 /*endoser*/, uint256 /*tx*/>::Iterator 
 													lMitrust = mistrusts_.find(buzzer, actor);
 	if (lMitrust.valid()) {
 		//
@@ -200,7 +252,7 @@ bool BuzzerTransactionStoreExtension::isAllowed(TransactionContextPtr ctx) {
 				//
 				TxReBuzzPtr lRebuzz = TransactionHelper::to<TxReBuzz>(ctx->tx());
 				// re-buzz index
-				db::DbTwoKeyContainer<uint256 /*buzz|rebuzz|reply*/, uint256 /*rebuzzer*/, uint256 /*rebuzz_tx*/>::Iterator 
+				db::DbTwoKeyContainerShared<uint256 /*buzz|rebuzz|reply*/, uint256 /*rebuzzer*/, uint256 /*rebuzz_tx*/>::Iterator 
 					lRebuzzIdx = rebuzzesIdx_.find(lRebuzz->buzzId(), lPublisher);
 
 				if (lRebuzzIdx.valid())
@@ -251,7 +303,7 @@ bool BuzzerTransactionStoreExtension::isAllowed(TransactionContextPtr ctx) {
 			//
 			TxReBuzzNotifyPtr lRebuzzNotify = TransactionHelper::to<TxReBuzzNotify>(ctx->tx());
 			// re-buzz index
-			db::DbTwoKeyContainer<uint256 /*buzz|rebuzz|reply*/, uint256 /*rebuzzer*/, uint256 /*rebuzz_tx*/>::Iterator 
+			db::DbTwoKeyContainerShared<uint256 /*buzz|rebuzz|reply*/, uint256 /*rebuzzer*/, uint256 /*rebuzz_tx*/>::Iterator 
 				lRebuzzIdx = rebuzzesIdx_.find(lRebuzzNotify->buzzId(), lPublisher);
 
 			if (lRebuzzIdx.valid())
@@ -263,7 +315,7 @@ bool BuzzerTransactionStoreExtension::isAllowed(TransactionContextPtr ctx) {
 			// in[1] - publisher/initiator
 			uint256 lEndoser = lEvent->in()[TX_BUZZER_ENDORSE_BUZZER_IN].out().tx(); 
 			//
-			db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*endoser*/, uint256 /*tx*/>::Iterator 
+			db::DbTwoKeyContainerShared<uint256 /*buzzer*/, uint256 /*endoser*/, uint256 /*tx*/>::Iterator 
 															lEndorsement = endorsements_.find(lBuzzer, lEndoser);
 			if (lEndorsement.valid()) {
 				//
@@ -308,7 +360,7 @@ bool BuzzerTransactionStoreExtension::isAllowed(TransactionContextPtr ctx) {
 			// in[1] - publisher/initiator
 			uint256 lMistruster = lEvent->in()[TX_BUZZER_MISTRUST_BUZZER_IN].out().tx(); 
 			//
-			db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*endoser*/, uint256 /*tx*/>::Iterator 
+			db::DbTwoKeyContainerShared<uint256 /*buzzer*/, uint256 /*endoser*/, uint256 /*tx*/>::Iterator 
 															lMistrust = mistrusts_.find(lBuzzer, lMistruster);
 			if (lMistrust.valid()) {
 				//
@@ -407,7 +459,7 @@ bool BuzzerTransactionStoreExtension::isAllowed(TransactionContextPtr ctx) {
 				uint256 lInitiator = lConversationTx->in()[TX_BUZZER_CONVERSATION_MY_IN].out().tx(); 
 				uint256 lCounterparty = lConversationTx->in()[TX_BUZZER_CONVERSATION_BUZZER_IN].out().tx(); 
 
-				db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*conversation*/, ConversationInfo /*state*/>::Iterator 
+				db::DbTwoKeyContainerShared<uint256 /*buzzer*/, uint256 /*conversation*/, ConversationInfo /*state*/>::Iterator 
 													lConversationItem = conversations_.find(lCounterparty, lConversation);
 
 				if (lConversationItem.valid()) {
@@ -423,7 +475,7 @@ bool BuzzerTransactionStoreExtension::isAllowed(TransactionContextPtr ctx) {
 		uint256 lInitiator = lEvent->in()[TX_BUZZER_CONVERSATION_MY_IN].out().tx(); 
 		uint256 lCounterparty = lEvent->in()[TX_BUZZER_CONVERSATION_BUZZER_IN].out().tx(); 
 
-		db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*conversation*/, ConversationInfo /*state*/>::Iterator 
+		db::DbTwoKeyContainerShared<uint256 /*buzzer*/, uint256 /*conversation*/, ConversationInfo /*state*/>::Iterator 
 											lConversationItem = conversations_.find(lInitiator, lCounterparty);
 		if (lConversationItem.valid()) {
 			return false;
@@ -645,7 +697,7 @@ bool BuzzerTransactionStoreExtension::locateParents(TransactionContextPtr ctx, s
 		uint256 lEndoser = lEvent->in()[TX_BUZZER_ENDORSE_MY_IN].out().tx(); 
 		uint256 lBuzzer = lEvent->in()[TX_BUZZER_ENDORSE_BUZZER_IN].out().tx(); 
 		//
-		db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*endoser*/, uint256 /*tx*/>::Iterator 
+		db::DbTwoKeyContainerShared<uint256 /*buzzer*/, uint256 /*endoser*/, uint256 /*tx*/>::Iterator 
 														lEndorsement = endorsements_.find(lBuzzer, lEndoser);
 		if (!lEndorsement.valid()) {
 			parents.push_back(lBuzzer);
@@ -657,7 +709,7 @@ bool BuzzerTransactionStoreExtension::locateParents(TransactionContextPtr ctx, s
 		uint256 lMistruster = lEvent->in()[TX_BUZZER_MISTRUST_MY_IN].out().tx(); 
 		uint256 lBuzzer = lEvent->in()[TX_BUZZER_MISTRUST_BUZZER_IN].out().tx(); 
 		//
-		db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*endoser*/, uint256 /*tx*/>::Iterator 
+		db::DbTwoKeyContainerShared<uint256 /*buzzer*/, uint256 /*endoser*/, uint256 /*tx*/>::Iterator 
 														lMistrust = mistrusts_.find(lBuzzer, lMistruster);
 		if (!lMistrust.valid()) {
 			parents.push_back(lBuzzer);
@@ -771,7 +823,7 @@ void BuzzerTransactionStoreExtension::processConversation(const uint256& id, Tra
 		//
 		bool lAdded = false;
 		//
-		db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*conversation*/, ConversationInfo /*state*/>::Iterator 
+		db::DbTwoKeyContainerShared<uint256 /*buzzer*/, uint256 /*conversation*/, ConversationInfo /*state*/>::Iterator 
 											lOriginatorConversation = conversations_.find(lOriginator, lEvent->id());
 		if (!lOriginatorConversation.valid()) {
 			conversations_.write(lOriginator, lEvent->id(), ConversationInfo(lEvent->id(), lEvent->chain(), ConversationInfo::PENDING));
@@ -786,7 +838,7 @@ void BuzzerTransactionStoreExtension::processConversation(const uint256& id, Tra
 		}
 
 		//
-		db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*conversation*/, ConversationInfo /*state*/>::Iterator 
+		db::DbTwoKeyContainerShared<uint256 /*buzzer*/, uint256 /*conversation*/, ConversationInfo /*state*/>::Iterator 
 											lBuzzerConversation = conversations_.find(lBuzzer, lEvent->id());
 		if (!lBuzzerConversation.valid()) {
 			conversations_.write(lBuzzer, lEvent->id(), ConversationInfo(lEvent->id(), lEvent->chain(), ConversationInfo::PENDING));
@@ -838,7 +890,7 @@ void BuzzerTransactionStoreExtension::processAcceptConversation(const uint256& i
 		}
 
 		//
-		db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*conversation*/, ConversationInfo /*state*/>::Iterator 
+		db::DbTwoKeyContainerShared<uint256 /*buzzer*/, uint256 /*conversation*/, ConversationInfo /*state*/>::Iterator 
 											lConversation = conversations_.find(lBuzzer, lConversationId);
 		if (lConversation.valid()) {
 			ConversationInfo lInfo = *lConversation;
@@ -850,7 +902,7 @@ void BuzzerTransactionStoreExtension::processAcceptConversation(const uint256& i
 		}
 
 		//
-		db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*conversation*/, ConversationInfo /*state*/>::Iterator 
+		db::DbTwoKeyContainerShared<uint256 /*buzzer*/, uint256 /*conversation*/, ConversationInfo /*state*/>::Iterator 
 											lCounterpartyConversation = conversations_.find(lCounterparty, lConversationId);
 		if (lCounterpartyConversation.valid()) {
 			ConversationInfo lInfo = *lCounterpartyConversation;
@@ -899,7 +951,7 @@ void BuzzerTransactionStoreExtension::processDeclineConversation(const uint256& 
 		}
 
 		//
-		db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*conversation*/, ConversationInfo /*state*/>::Iterator 
+		db::DbTwoKeyContainerShared<uint256 /*buzzer*/, uint256 /*conversation*/, ConversationInfo /*state*/>::Iterator 
 											lConversation = conversations_.find(lBuzzer, lConversationId);
 		if (lConversation.valid()) {
 			ConversationInfo lInfo = *lConversation;
@@ -911,7 +963,7 @@ void BuzzerTransactionStoreExtension::processDeclineConversation(const uint256& 
 		}
 
 		//
-		db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*conversation*/, ConversationInfo /*state*/>::Iterator 
+		db::DbTwoKeyContainerShared<uint256 /*buzzer*/, uint256 /*conversation*/, ConversationInfo /*state*/>::Iterator 
 											lCounterpartyConversation = conversations_.find(lCounterparty, lConversationId);
 		if (lCounterpartyConversation.valid()) {
 			ConversationInfo lInfo = *lCounterpartyConversation;
@@ -954,7 +1006,7 @@ void BuzzerTransactionStoreExtension::processMessage(const uint256& id, Transact
 				uint256 lCounterparty = lConversationTx->in()[TX_BUZZER_CONVERSATION_BUZZER_IN].out().tx(); 
 
 				// initiator
-				db::DbTwoKeyContainer<
+				db::DbTwoKeyContainerShared<
 					uint256 /*buzzer*/, 
 					uint256 /*conversation*/,
 					uint64_t /*timestamp*/>::Iterator lIndex = conversationsIndex_.find(lInitiator, lConversation);
@@ -977,7 +1029,7 @@ void BuzzerTransactionStoreExtension::processMessage(const uint256& id, Transact
 				conversationsActivity_.write(lCounterparty, lEvent->timestamp());
 
 				//
-				db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*conversation*/, ConversationInfo /*state*/>::Iterator 
+				db::DbTwoKeyContainerShared<uint256 /*buzzer*/, uint256 /*conversation*/, ConversationInfo /*state*/>::Iterator 
 													lConversationIter = conversations_.find(lInitiator, lConversation);
 				if (lConversationIter.valid()) {
 					ConversationInfo lInfo = *lConversationIter;
@@ -986,7 +1038,7 @@ void BuzzerTransactionStoreExtension::processMessage(const uint256& id, Transact
 				}
 
 				//
-				db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*conversation*/, ConversationInfo /*state*/>::Iterator 
+				db::DbTwoKeyContainerShared<uint256 /*buzzer*/, uint256 /*conversation*/, ConversationInfo /*state*/>::Iterator 
 													lCounterpartyConversationIter = conversations_.find(lCounterparty, lConversation);
 				if (lCounterpartyConversationIter.valid()) {
 					ConversationInfo lInfo = *lCounterpartyConversationIter;
@@ -1031,7 +1083,7 @@ void BuzzerTransactionStoreExtension::processEndorse(const uint256& id, Transact
 		// in[1] - publisher/initiator
 		uint256 lBuzzer = lEvent->in()[TX_BUZZER_ENDORSE_BUZZER_IN].out().tx(); 
 		//
-		db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*endoser*/, uint256 /*tx*/>::Iterator 
+		db::DbTwoKeyContainerShared<uint256 /*buzzer*/, uint256 /*endoser*/, uint256 /*tx*/>::Iterator 
 														lEndorsement = endorsements_.find(lBuzzer, lEndoser);
 		if (!lEndorsement.valid()) {
 			//
@@ -1097,7 +1149,7 @@ void BuzzerTransactionStoreExtension::processMistrust(const uint256& id, Transac
 		// in[1] - publisher/initiator
 		uint256 lBuzzer = lEvent->in()[TX_BUZZER_MISTRUST_BUZZER_IN].out().tx(); 
 		//
-		db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*endoser*/, uint256 /*tx*/>::Iterator 
+		db::DbTwoKeyContainerShared<uint256 /*buzzer*/, uint256 /*endoser*/, uint256 /*tx*/>::Iterator 
 														lMistrust = mistrusts_.find(lBuzzer, lMistruster);
 		if (!lMistrust.valid()) {
 			//
@@ -1243,7 +1295,7 @@ void BuzzerTransactionStoreExtension::processEvent(const uint256& id, Transactio
 			// inc re-buzzes
 			incrementRebuzzes(lRebuzzNotify->buzzId());
 			// re-buzz index
-			db::DbTwoKeyContainer<uint256 /*buzz|rebuzz|reply*/, uint256 /*rebuzzer*/, uint256 /*rebuzz_tx*/>::Iterator 
+			db::DbTwoKeyContainerShared<uint256 /*buzz|rebuzz|reply*/, uint256 /*rebuzzer*/, uint256 /*rebuzz_tx*/>::Iterator 
 				lRebuzzIdx = rebuzzesIdx_.find(lRebuzzNotify->buzzId(), lPublisher);
 
 			rebuzzesIdx_.write(lRebuzzNotify->buzzId(), lPublisher, lEvent->id());
@@ -1265,7 +1317,7 @@ void BuzzerTransactionStoreExtension::processEvent(const uint256& id, Transactio
 			// inc re-buzzes
 			incrementRebuzzes(lRebuzz->buzzId());
 			// re-buzz index
-			db::DbTwoKeyContainer<uint256 /*buzz|rebuzz|reply*/, uint256 /*rebuzzer*/, uint256 /*rebuzz_tx*/>::Iterator 
+			db::DbTwoKeyContainerShared<uint256 /*buzz|rebuzz|reply*/, uint256 /*rebuzzer*/, uint256 /*rebuzz_tx*/>::Iterator 
 				lRebuzzIdx = rebuzzesIdx_.find(lRebuzz->buzzId(), lPublisher);
 
 			rebuzzesIdx_.write(lRebuzz->buzzId(), lPublisher, lEvent->id());
@@ -1665,8 +1717,8 @@ void BuzzerTransactionStoreExtension::removeTransaction(TransactionPtr tx) {
 			}
 		}
 
-		db::DbTwoKeyContainer<uint256, uint64_t /*timestamp*/, uint256>::Transaction lTimelineTransaction = timeline_.transaction();
-		db::DbTwoKeyContainer<uint256, uint64_t /*timestamp*/, uint256>::Iterator lPoint = timeline_.find(lPublisher, lEvent->timestamp());
+		db::DbTwoKeyContainerShared<uint256, uint64_t /*timestamp*/, uint256>::Transaction lTimelineTransaction = timeline_.transaction();
+		db::DbTwoKeyContainerShared<uint256, uint64_t /*timestamp*/, uint256>::Iterator lPoint = timeline_.find(lPublisher, lEvent->timestamp());
 
 		for (; lPoint.valid(); lPoint++) {
 			lTimelineTransaction.remove(lPoint);
@@ -1683,8 +1735,8 @@ void BuzzerTransactionStoreExtension::removeTransaction(TransactionPtr tx) {
 			tx->type() == TX_REBUZZ ||
 			tx->type() == TX_BUZZ_REPLY) {
 			//
-			db::DbTwoKeyContainer<uint256 /*buzz*/, uint256 /*liker*/, uint256 /*like_tx*/>::Iterator lBuzzPos = likesIdx_.find(tx->id());
-			db::DbTwoKeyContainer<uint256 /*buzz*/, uint256 /*liker*/, uint256 /*like_tx*/>::Transaction lBuzzTransaction = likesIdx_.transaction(); 
+			db::DbTwoKeyContainerShared<uint256 /*buzz*/, uint256 /*liker*/, uint256 /*like_tx*/>::Iterator lBuzzPos = likesIdx_.find(tx->id());
+			db::DbTwoKeyContainerShared<uint256 /*buzz*/, uint256 /*liker*/, uint256 /*like_tx*/>::Transaction lBuzzTransaction = likesIdx_.transaction(); 
 
 			for (; lBuzzPos.valid(); ++lBuzzPos) {
 				lBuzzTransaction.remove(lBuzzPos);
@@ -1744,7 +1796,7 @@ void BuzzerTransactionStoreExtension::removeTransaction(TransactionPtr tx) {
 			uint256 lBuzzId = lBuzzLike->in()[1].out().tx(); //
 			uint256 lBuzzerId = lBuzzLike->in()[0].out().tx(); //
 			// remove index
-			db::DbTwoKeyContainer<uint256 /*buzz|rebuzz|reply*/, uint256 /*liker*/, uint256 /*like_tx*/>::Iterator lLikeIdx = 
+			db::DbTwoKeyContainerShared<uint256 /*buzz|rebuzz|reply*/, uint256 /*liker*/, uint256 /*like_tx*/>::Iterator lLikeIdx = 
 				likesIdx_.find(lBuzzId, lBuzzerId);
 			//
 			if (lLikeIdx.valid()) {
@@ -1873,7 +1925,7 @@ void BuzzerTransactionStoreExtension::removeTransaction(TransactionPtr tx) {
 		// in[1] - publisher/initiator
 		uint256 lBuzzer = lEvent->in()[TX_BUZZER_ENDORSE_BUZZER_IN].out().tx(); 
 		//
-		db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*endoser*/, uint256 /*tx*/>::Iterator 
+		db::DbTwoKeyContainerShared<uint256 /*buzzer*/, uint256 /*endoser*/, uint256 /*tx*/>::Iterator 
 														lEndorse = endorsements_.find(lBuzzer, lEndoser);
 		//
 		if (lEndorse.valid()) {
@@ -1913,7 +1965,7 @@ void BuzzerTransactionStoreExtension::removeTransaction(TransactionPtr tx) {
 		// in[1] - publisher/initiator
 		uint256 lBuzzer = lEvent->in()[TX_BUZZER_MISTRUST_BUZZER_IN].out().tx(); 
 		//
-		db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*endoser*/, uint256 /*tx*/>::Iterator 
+		db::DbTwoKeyContainerShared<uint256 /*buzzer*/, uint256 /*endoser*/, uint256 /*tx*/>::Iterator 
 														lMistrust = mistrusts_.find(lBuzzer, lMistruster);
 
 		if (lMistrust.valid()) {
@@ -2044,7 +2096,7 @@ void BuzzerTransactionStoreExtension::processBuzzerStat(const uint256& buzzer) {
 		strprintf("buzzer %s/%s#", buzzer.toHex(), store_->chain().toHex().substr(0, 10)));
 
 	{
-		db::DbTwoKeyContainer<
+		db::DbTwoKeyContainerShared<
 			uint256 /*buzzer*/, 
 			uint256 /*endorser*/, 
 			uint256 /*tx*/>::Iterator lFrom = endorsements_.find(buzzer, uint256());
@@ -2069,7 +2121,7 @@ void BuzzerTransactionStoreExtension::processBuzzerStat(const uint256& buzzer) {
 	}
 
 	{			
-		db::DbTwoKeyContainer<
+		db::DbTwoKeyContainerShared<
 			uint256 /*buzzer*/, 
 			uint256 /*endorser*/, 
 			uint256 /*tx*/>::Iterator lFrom = mistrusts_.find(buzzer, uint256());
@@ -2094,7 +2146,7 @@ void BuzzerTransactionStoreExtension::processBuzzerStat(const uint256& buzzer) {
 	}
 
 	{
-		db::DbTwoKeyContainer<
+		db::DbTwoKeyContainerShared<
 			uint256 /*publisher*/, 
 			uint256 /*subscriber*/, 
 			uint256 /*tx*/>::Iterator lFrom = publishersIdx_.find(buzzer, uint256());
@@ -2126,7 +2178,7 @@ TransactionPtr BuzzerTransactionStoreExtension::locateSubscription(const uint256
 	//
 	if (!opened_) return nullptr;
 	//
-	db::DbTwoKeyContainer<uint256 /*subscriber*/, uint256 /*publisher*/, uint256 /*tx*/>::Iterator lItem = subscriptionsIdx_.find(subscriber, publisher);
+	db::DbTwoKeyContainerShared<uint256 /*subscriber*/, uint256 /*publisher*/, uint256 /*tx*/>::Iterator lItem = subscriptionsIdx_.find(subscriber, publisher);
 	if (lItem.valid()) {
 		//
 		TransactionPtr lTx = store_->locateTransaction(*lItem);
@@ -2316,7 +2368,7 @@ bool BuzzerTransactionStoreExtension::checkSubscription(const uint256& subscribe
 	//
 	if (!opened_) return false;
 	//
-	db::DbTwoKeyContainer<uint256 /*subscriber*/, uint256 /*publisher*/, uint256 /*tx*/>::Iterator lItem = subscriptionsIdx_.find(subscriber, publisher);
+	db::DbTwoKeyContainerShared<uint256 /*subscriber*/, uint256 /*publisher*/, uint256 /*tx*/>::Iterator lItem = subscriptionsIdx_.find(subscriber, publisher);
 	return lItem.valid();
 }
 
@@ -2324,7 +2376,7 @@ bool BuzzerTransactionStoreExtension::checkLike(const uint256& buzz, const uint2
 	//
 	if (!opened_) return false;
 	//
-	db::DbTwoKeyContainer<uint256 /*nuzz*/, uint256 /*liker*/, uint256 /*like_tx*/>::Iterator lItem = likesIdx_.find(buzz, liker);
+	db::DbTwoKeyContainerShared<uint256 /*nuzz*/, uint256 /*liker*/, uint256 /*like_tx*/>::Iterator lItem = likesIdx_.find(buzz, liker);
 	return lItem.valid();
 }
 
@@ -2417,12 +2469,12 @@ void BuzzerTransactionStoreExtension::selectMistrusts(const uint256& from, const
 	std::multimap<uint64_t, EventsfeedItem::Key> lRawBuzzfeed;
 	std::map<EventsfeedItem::Key, EventsfeedItemPtr> lBuzzItems;
 
-	db::DbTwoKeyContainer<
+	db::DbTwoKeyContainerShared<
 		uint256 /*buzzer*/, 
 		uint256 /*mistruster*/, 
 		uint256 /*tx*/>::Transaction lTransaction = mistrusts_.transaction();
 
-	db::DbTwoKeyContainer<
+	db::DbTwoKeyContainerShared<
 		uint256 /*buzzer*/, 
 		uint256 /*mistruster*/, 
 		uint256 /*tx*/>::Iterator lFrom = mistrusts_.find(buzzer, from);
@@ -2492,12 +2544,12 @@ void BuzzerTransactionStoreExtension::selectEndorsements(const uint256& from, co
 	std::multimap<uint64_t, EventsfeedItem::Key> lRawBuzzfeed;
 	std::map<EventsfeedItem::Key, EventsfeedItemPtr> lBuzzItems;
 
-	db::DbTwoKeyContainer<
+	db::DbTwoKeyContainerShared<
 		uint256 /*buzzer*/, 
 		uint256 /*endorser*/, 
 		uint256 /*tx*/>::Transaction lTransaction = endorsements_.transaction();
 
-	db::DbTwoKeyContainer<
+	db::DbTwoKeyContainerShared<
 		uint256 /*buzzer*/, 
 		uint256 /*endorser*/, 
 		uint256 /*tx*/>::Iterator lFrom = endorsements_.find(buzzer, from);
@@ -2567,12 +2619,12 @@ void BuzzerTransactionStoreExtension::selectSubscriptions(const uint256& from, c
 	std::multimap<uint64_t, EventsfeedItem::Key> lRawBuzzfeed;
 	std::map<EventsfeedItem::Key, EventsfeedItemPtr> lBuzzItems;
 
-	db::DbTwoKeyContainer<
+	db::DbTwoKeyContainerShared<
 		uint256 /*subscriber*/, 
 		uint256 /*publisher*/, 
 		uint256 /*tx*/>::Transaction lTransaction = subscriptionsIdx_.transaction();
 
-	db::DbTwoKeyContainer<
+	db::DbTwoKeyContainerShared<
 		uint256 /*subscriber*/, 
 		uint256 /*publisher*/, 
 		uint256 /*tx*/>::Iterator lFrom;
@@ -2673,12 +2725,12 @@ void BuzzerTransactionStoreExtension::selectFollowers(const uint256& from, const
 	std::multimap<uint64_t, EventsfeedItem::Key> lRawBuzzfeed;
 	std::map<EventsfeedItem::Key, EventsfeedItemPtr> lBuzzItems;
 
-	db::DbTwoKeyContainer<
+	db::DbTwoKeyContainerShared<
 		uint256 /*publisher*/, 
 		uint256 /*subscriber*/, 
 		uint256 /*tx*/>::Transaction lTransaction = publishersIdx_.transaction();
 
-	db::DbTwoKeyContainer<
+	db::DbTwoKeyContainerShared<
 		uint256 /*publisher*/, 
 		uint256 /*subscriber*/, 
 		uint256 /*tx*/>::Iterator lFrom = publishersIdx_.find(buzzer, from);
@@ -2796,13 +2848,17 @@ void BuzzerTransactionStoreExtension::selectConversations(uint64_t from, const u
 		}
 	}
 
-	db::DbTwoKeyContainer<
+	db::DbTwoKeyContainerShared<
 		uint256 /*buzzer*/, 
 		uint64_t /*timestamp*/,
 		uint256 /*conversation*/>::Iterator lFrom;
 
-	if (lTimeFrom == 0) lFrom = conversationsOrder_.last(); // just in case
-	else lFrom = conversationsOrder_.find(buzzer, lTimeFrom);
+	if (lTimeFrom == 0) {
+		uint256 lMax = uint256S("fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0");
+		lFrom = conversationsOrder_.find(lMax, qbit::getMicroseconds()); // just in case 
+	} else {
+		lFrom = conversationsOrder_.find(buzzer, lTimeFrom);
+	}
 
 	// 1.0 resetting timestamp to ensure appropriate backtracing
 	lFrom.setKey2Empty();
@@ -2818,7 +2874,7 @@ void BuzzerTransactionStoreExtension::selectConversations(uint64_t from, const u
 		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectConversations]: order... "));
 
 		//
-		db::DbTwoKeyContainer<
+		db::DbTwoKeyContainerShared<
 			uint256 /*buzzer*/,
 			uint256 /*conversation*/,
 			ConversationInfo /*state*/>::Iterator lConversationInfo = conversations_.find(buzzer, lConversation);
@@ -2983,9 +3039,9 @@ void BuzzerTransactionStoreExtension::selectMessages(uint64_t from, const uint25
 	std::multimap<uint64_t, BuzzfeedItem::Key> lRawBuzzfeed;
 	std::map<BuzzfeedItem::Key, BuzzfeedItemPtr> lBuzzItems;
 
-	db::DbTwoKeyContainer<uint256 /*publisher*/, uint64_t /*timestamp*/, uint256 /*tx*/>::Iterator lFrom = 
+	db::DbTwoKeyContainerShared<uint256 /*publisher*/, uint64_t /*timestamp*/, uint256 /*tx*/>::Iterator lFrom = 
 			timeline_.find(conversation, lPublisherTime);
-	db::DbTwoKeyContainer<uint256 /*publisher*/, uint64_t /*timestamp*/, uint256 /*tx*/>::Transaction lTransaction = 
+	db::DbTwoKeyContainerShared<uint256 /*publisher*/, uint64_t /*timestamp*/, uint256 /*tx*/>::Transaction lTransaction = 
 			timeline_.transaction();
 	lFrom.setKey2Empty();
 
@@ -3447,9 +3503,9 @@ void BuzzerTransactionStoreExtension::selectEventsfeed(uint64_t from, const uint
 	}
 
 	// 1.0. prepare clean-up transaction
-	db::DbThreeKeyContainer<uint256, uint64_t, uint256, unsigned short>::Transaction lEventsTransaction = events_.transaction();
+	db::DbThreeKeyContainerShared<uint256, uint64_t, uint256, unsigned short>::Transaction lEventsTransaction = events_.transaction();
 	// 1.1. locating most recent event made by publisher
-	db::DbThreeKeyContainer<uint256 /*subscriber*/, uint64_t /*timestamp*/, uint256 /*tx*/, unsigned short /*type*/>::Iterator lFromEvent = 
+	db::DbThreeKeyContainerShared<uint256 /*subscriber*/, uint64_t /*timestamp*/, uint256 /*tx*/, unsigned short /*type*/>::Iterator lFromEvent = 
 			events_.find(subscriber, lTimeFrom < lSubscriberTime ? lTimeFrom : lSubscriberTime);
 	// 1.2. resetting timestamp to ensure appropriate backtracing
 	lFromEvent.setKey2Empty();
@@ -3685,12 +3741,12 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedByBuzz(uint64_t from, const 
 	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectBuzzfeedByBuzz]: selecting buzzfeed for ") +
 		strprintf("buzz = %s, from = %d, chain = %s#", buzz.toHex(), from, store_->chain().toHex().substr(0, 10)));
 	//
-	db::DbThreeKeyContainer<
+	db::DbThreeKeyContainerShared<
 		uint256 /*buzz|rebuzz|reply*/, 
 		uint64_t /*timestamp*/, 
 		uint256 /*rebuzz|reply*/, 
 		uint256 /*publisher*/>::Iterator lFrom = replies_.find(buzz, from);
-	db::DbThreeKeyContainer<
+	db::DbThreeKeyContainerShared<
 		uint256 /*buzz|rebuzz|reply*/, 
 		uint64_t /*timestamp*/, 
 		uint256 /*rebuzz|reply*/, 
@@ -3914,9 +3970,9 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedByBuzzer(uint64_t from, cons
 	std::multimap<uint64_t, BuzzfeedItem::Key> lRawBuzzfeed;
 	std::map<BuzzfeedItem::Key, BuzzfeedItemPtr> lBuzzItems;
 
-	db::DbTwoKeyContainer<uint256 /*publisher*/, uint64_t /*timestamp*/, uint256 /*tx*/>::Iterator lFrom = 
+	db::DbTwoKeyContainerShared<uint256 /*publisher*/, uint64_t /*timestamp*/, uint256 /*tx*/>::Iterator lFrom = 
 			timeline_.find(buzzer, lTimeFrom < lPublisherTime ? lTimeFrom : lPublisherTime);
-	db::DbTwoKeyContainer<uint256 /*publisher*/, uint64_t /*timestamp*/, uint256 /*tx*/>::Transaction lTransaction = 
+	db::DbTwoKeyContainerShared<uint256 /*publisher*/, uint64_t /*timestamp*/, uint256 /*tx*/>::Transaction lTransaction = 
 			timeline_.transaction();
 	lFrom.setKey2Empty();
 
@@ -4061,23 +4117,24 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedGlobal(uint64_t timeframeFro
 	std::multimap<uint64_t, BuzzfeedItem::Key> lRawBuzzfeed;
 	std::map<BuzzfeedItem::Key, BuzzfeedItemPtr> lBuzzItems;
 
-	db::DbFourKeyContainer<
+	db::DbFourKeyContainerShared<
 		uint64_t /*timeframe*/, 
 		uint64_t /*score*/, 
 		uint64_t /*timestamp*/, 
 		uint256 /*publisher*/,
 		uint256 /*buzz/reply/rebuzz/like/...*/>::Iterator lFrom;
 
-	db::DbFourKeyContainer<
+	db::DbFourKeyContainerShared<
 		uint64_t /*timeframe*/, 
 		uint64_t /*score*/,
 		uint64_t /*timestamp*/, 
 		uint256 /*publisher*/, 
 		uint256 /*buzz/reply/rebuzz/like/...*/>::Transaction lTransaction = globalTimeline_.transaction();
 
-	if (!timeframeFrom){
+	if (!timeframeFrom) {
 		//
-		lFrom = globalTimeline_.last();
+		uint64_t lTimeframe = (qbit::getMicroseconds() / BUZZFEED_TIMEFRAME) + 1; // now frame
+		lFrom = globalTimeline_.find(lTimeframe);
 	} else {
 		//
 		lFrom = globalTimeline_.find(timeframeFrom, scoreFrom, timestampFrom, publisher);
@@ -4224,7 +4281,7 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedByTag(const std::string& tag
 		strprintf("tag = %s, hash = %s, timeframe = %d, score = %d, timestamp = %d, publisher = %s, chain = %s#", 
 			tag, lHash.toHex(), timeframeFrom, scoreFrom, timestampFrom, publisher.toHex(), store_->chain().toHex().substr(0, 10)));
 
-	db::DbFiveKeyContainer<
+	db::DbFiveKeyContainerShared<
 		uint160 /*hash*/,
 		uint64_t /*timeframe*/, 
 		uint64_t /*score*/, 
@@ -4232,7 +4289,7 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedByTag(const std::string& tag
 		uint256 /*publisher*/, 
 		uint256 /*buzz/reply/rebuzz/like/...*/>::Iterator lFrom;
 
-	db::DbFiveKeyContainer<
+	db::DbFiveKeyContainerShared<
 		uint160 /*hash*/,
 		uint64_t /*timeframe*/, 
 		uint64_t /*score*/, 
@@ -4328,7 +4385,7 @@ void BuzzerTransactionStoreExtension::selectHashTags(const std::string& tag, std
 	std::string lLower(tag);
 	UTFStringToLowerCase((unsigned char*)lLower.c_str());
 	//
-	db::DbContainer<std::string, std::string>::Iterator lFrom = hashTags_.find(lLower);
+	db::DbContainerShared<std::string, std::string>::Iterator lFrom = hashTags_.find(lLower);
 	for (int lCount = 0; lFrom.valid() && feed.size() < 6 && lCount < 100; ++lFrom, ++lCount) {
 		std::string lTag;
 		if (lFrom.first(lTag) && lTag.find(lLower) != std::string::npos) {
@@ -4361,7 +4418,7 @@ void BuzzerTransactionStoreExtension::selectBuzzfeed(const std::vector<BuzzfeedP
 	}
 
 	// 1.1. get publishers by subscriber
-	db::DbTwoKeyContainer<uint256 /*subscriber*/, uint256 /*publisher*/, uint256 /*tx*/>::Iterator lSubscription = subscriptionsIdx_.find(subscriber);
+	db::DbTwoKeyContainerShared<uint256 /*subscriber*/, uint256 /*publisher*/, uint256 /*tx*/>::Iterator lSubscription = subscriptionsIdx_.find(subscriber);
 	if (!lSubscription.valid()) {
 		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/selectBuzzfeed]: publishers NOT FOUND for ") +
 			strprintf("subscriber = %s, chain = %s#", subscriber.toHex(), store_->chain().toHex().substr(0, 10)));		
@@ -4440,10 +4497,10 @@ void BuzzerTransactionStoreExtension::selectBuzzfeed(const std::vector<BuzzfeedP
 			strprintf("p = %s, t = %d, chain = %s#", lPublisher->second.toHex(), lTimeFrom, store_->chain().toHex().substr(0, 10)));
 
 		// 2.2 positioning
-		db::DbTwoKeyContainer<uint256 /*publisher*/, uint64_t /*timestamp*/, uint256 /*tx*/>::Iterator lFrom = 
+		db::DbTwoKeyContainerShared<uint256 /*publisher*/, uint64_t /*timestamp*/, uint256 /*tx*/>::Iterator lFrom = 
 				timeline_.find(lPublisher->second, lTimeFrom);
 
-		db::DbTwoKeyContainer<uint256 /*publisher*/, uint64_t /*timestamp*/, uint256 /*tx*/>::Transaction lTransaction = 
+		db::DbTwoKeyContainerShared<uint256 /*publisher*/, uint64_t /*timestamp*/, uint256 /*tx*/>::Transaction lTransaction = 
 				timeline_.transaction();
 
 		// 2.3. resetting timestamp to ensure appropriate backtracing
@@ -4648,7 +4705,7 @@ void BuzzerTransactionStoreExtension::makeBuzzfeedLikeItem(TransactionPtr tx, IT
 	if (!subscriber.isNull()) {
 		uint256 lBuzzerId = lBuzzTx->in()[TX_BUZZ_REPLY_MY_IN].out().tx();
 
-		db::DbTwoKeyContainer<
+		db::DbTwoKeyContainerShared<
 			uint256 /*subscriber*/, 
 			uint256 /*publisher*/, 
 			uint256 /*tx*/>::Iterator lSubscription = subscriptionsIdx_.find(subscriber, lBuzzerId);
@@ -4700,14 +4757,14 @@ void BuzzerTransactionStoreExtension::makeBuzzfeedLikeItem(TransactionPtr tx, IT
 
 			if (!subscriber.isNull()) {
 				// try likes, rebuzzes by subscriber
-				db::DbTwoKeyContainer<uint256 /*buzz|rebuzz|reply*/, uint256 /*liker*/, uint256 /*like_tx*/>::Iterator lLikeIdx = 
+				db::DbTwoKeyContainerShared<uint256 /*buzz|rebuzz|reply*/, uint256 /*liker*/, uint256 /*like_tx*/>::Iterator lLikeIdx = 
 					likesIdx_.find(lBuzz->id(), subscriber);
 				//
 				if (lLikeIdx.valid()) {
 					lItem->setLike(); // liked by subscriber
 				}
 
-				db::DbTwoKeyContainer<uint256 /*buzz|rebuzz|reply*/, uint256 /*liker*/, uint256 /*like_tx*/>::Iterator lRebuzzIdx = 
+				db::DbTwoKeyContainerShared<uint256 /*buzz|rebuzz|reply*/, uint256 /*liker*/, uint256 /*like_tx*/>::Iterator lRebuzzIdx = 
 					rebuzzesIdx_.find(lBuzz->id(), subscriber);
 				//
 				if (lRebuzzIdx.valid()) {
@@ -4758,7 +4815,7 @@ void BuzzerTransactionStoreExtension::makeBuzzfeedRewardItem(TransactionPtr tx, 
 	if (!subscriber.isNull()) {
 		uint256 lBuzzerId = lBuzzTx->in()[TX_BUZZ_REPLY_MY_IN].out().tx();
 
-		db::DbTwoKeyContainer<
+		db::DbTwoKeyContainerShared<
 			uint256 /*subscriber*/, 
 			uint256 /*publisher*/, 
 			uint256 /*tx*/>::Iterator lSubscription = subscriptionsIdx_.find(subscriber, lBuzzerId);
@@ -4858,7 +4915,7 @@ void BuzzerTransactionStoreExtension::makeBuzzfeedRebuzzItem(TransactionPtr tx, 
 	if (!subscriber.isNull() && lBuzzTx) {
 		uint256 lBuzzerId = lBuzzTx->in()[TX_BUZZ_REPLY_MY_IN].out().tx();
 
-		db::DbTwoKeyContainer<
+		db::DbTwoKeyContainerShared<
 			uint256 /*subscriber*/, 
 			uint256 /*publisher*/, 
 			uint256 /*tx*/>::Iterator lSubscription = subscriptionsIdx_.find(subscriber, lBuzzerId);
@@ -4912,14 +4969,14 @@ void BuzzerTransactionStoreExtension::makeBuzzfeedRebuzzItem(TransactionPtr tx, 
 
 			if (!subscriber.isNull()) {
 				// try likes, rebuzzes by subscriber
-				db::DbTwoKeyContainer<uint256 /*buzz|rebuzz|reply*/, uint256 /*liker*/, uint256 /*like_tx*/>::Iterator lLikeIdx = 
+				db::DbTwoKeyContainerShared<uint256 /*buzz|rebuzz|reply*/, uint256 /*liker*/, uint256 /*like_tx*/>::Iterator lLikeIdx = 
 					likesIdx_.find(lBuzz->id(), subscriber);
 				//
 				if (lLikeIdx.valid()) {
 					lItem->setLike(); // liked by subscriber
 				}
 
-				db::DbTwoKeyContainer<uint256 /*buzz|rebuzz|reply*/, uint256 /*liker*/, uint256 /*like_tx*/>::Iterator lRebuzzIdx = 
+				db::DbTwoKeyContainerShared<uint256 /*buzz|rebuzz|reply*/, uint256 /*liker*/, uint256 /*like_tx*/>::Iterator lRebuzzIdx = 
 					rebuzzesIdx_.find(lBuzz->id(), subscriber);
 				//
 				if (lRebuzzIdx.valid()) {
@@ -5006,14 +5063,14 @@ BuzzfeedItemPtr BuzzerTransactionStoreExtension::makeBuzzfeedItem(int& context, 
 
 		if (!subscriber.isNull()) {
 			// try likes, rebuzzes by subscriber
-			db::DbTwoKeyContainer<uint256 /*buzz|rebuzz|reply*/, uint256 /*liker*/, uint256 /*like_tx*/>::Iterator lLikeIdx = 
+			db::DbTwoKeyContainerShared<uint256 /*buzz|rebuzz|reply*/, uint256 /*liker*/, uint256 /*like_tx*/>::Iterator lLikeIdx = 
 				likesIdx_.find(lBuzz->id(), subscriber);
 			//
 			if (lLikeIdx.valid()) {
 				lItem->setLike(); // liked by subscriber
 			}
 
-			db::DbTwoKeyContainer<uint256 /*buzz|rebuzz|reply*/, uint256 /*liker*/, uint256 /*like_tx*/>::Iterator lRebuzzIdx = 
+			db::DbTwoKeyContainerShared<uint256 /*buzz|rebuzz|reply*/, uint256 /*liker*/, uint256 /*like_tx*/>::Iterator lRebuzzIdx = 
 				rebuzzesIdx_.find(lBuzz->id(), subscriber);
 			//
 			if (lRebuzzIdx.valid()) {
