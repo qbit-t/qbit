@@ -4117,14 +4117,14 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedGlobal(uint64_t timeframeFro
 	std::multimap<uint64_t, BuzzfeedItem::Key> lRawBuzzfeed;
 	std::map<BuzzfeedItem::Key, BuzzfeedItemPtr> lBuzzItems;
 
-	db::DbFourKeyContainerShared<
+	db::DbFourKeyContainer<
 		uint64_t /*timeframe*/, 
 		uint64_t /*score*/, 
 		uint64_t /*timestamp*/, 
 		uint256 /*publisher*/,
 		uint256 /*buzz/reply/rebuzz/like/...*/>::Iterator lFrom;
 
-	db::DbFourKeyContainerShared<
+	db::DbFourKeyContainer<
 		uint64_t /*timeframe*/, 
 		uint64_t /*score*/,
 		uint64_t /*timestamp*/, 
