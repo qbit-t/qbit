@@ -50,7 +50,7 @@ bool BuzzerTransactionStoreExtension::open() {
 			conversationsActivity_.attach();
 
 			globalTimeline_.open();
-			globalTimeline_.attach();
+			// globalTimeline_.attach();
 
 			hashTagTimeline_.open();
 			hashTagTimeline_.attach();
@@ -4133,8 +4133,7 @@ void BuzzerTransactionStoreExtension::selectBuzzfeedGlobal(uint64_t timeframeFro
 
 	if (!timeframeFrom) {
 		//
-		uint64_t lTimeframe = (qbit::getMicroseconds() / BUZZFEED_TIMEFRAME) + 1; // now frame
-		lFrom = globalTimeline_.find(lTimeframe);
+		lFrom = globalTimeline_.last();
 	} else {
 		//
 		lFrom = globalTimeline_.find(timeframeFrom, scoreFrom, timestampFrom, publisher);

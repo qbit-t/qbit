@@ -190,13 +190,13 @@ public:
 	BuzzerTransactionStoreExtension(ISettingsPtr settings, ITransactionStorePtr store) : 
 		settings_(settings),
 		store_(store),
-		space_(std::make_shared<db::DbContainerSpace>(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer")),
+		space_(std::make_shared<db::DbContainerSpace>(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/common")),
 		timeline_("buzzer_timeline", space_),
 		conversations_("buzzer_conversations", space_),
 		conversationsIndex_("buzzer_indexes_conversations", space_),
 		conversationsOrder_("buzzer_indexes_conversations_order", space_),
 		conversationsActivity_("buzzer_indexes_conversations_activity", space_),
-		globalTimeline_("buzzer_global_timeline", space_),
+		globalTimeline_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/global_timeline"),
 		hashTagTimeline_("buzzer_hashed_timeline", space_),
 		hashTagUpdates_("buzzerhash_tag_updates", space_),
 		hashTags_("buzzer_hash_tags", space_),
@@ -424,8 +424,9 @@ private:
 	//
 
 	// global timeline: timeframe | score | publisher -> tx
-	// NOTICE: this index is not absolute unique, but very close
-	db::DbFourKeyContainerShared<
+	// NOTICE(1): this index is not absolute unique, but very close
+	// NOTICE(2): that is separate db container
+	db::DbFourKeyContainer<
 		uint64_t /*timeframe*/,
 		uint64_t /*score*/,
 		uint64_t /*timestamp*/,
