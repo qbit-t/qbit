@@ -90,13 +90,21 @@ void MemoryPool::PoolStore::remove(TransactionContextPtr ctx) {
 		freeUtxo_.erase(lInHash);
 	}
 
+	/*
+	for (std::vector<Transaction::Out>::iterator lOut = ctx->tx()->out().begin(); lOut != ctx->tx()->out().end(); lOut++) {
+		uint256 lOutHash = (*lOut).hash();
+		usedUtxo_.erase(lOutHash);
+		freeUtxo_.erase(lOutHash);
+	}
+	*/
+
 	forward_.erase(ctx->tx()->id()); // clean-up
 	reverse_.erase(ctx->tx()->id()); // clean-up
 	tx_.erase(ctx->tx()->id());
 
 	if (gLog().isEnabled(Log::POOL)) gLog().write(Log::STORE, std::string("[STAT(2)]: ") +
-		strprintf("tx_ = %d, candidateTx_ = %d, postponedTx_ = %d, forward_ = %d, reverse_ = %d, usedUtxo_ = %d, freeUtxo_ = %d, %s#", 
-			tx_.size(), candidateTx_.size(), postponedTx_.size(), forward_.size(), reverse_.size(), usedUtxo_.size(), freeUtxo_.size(), ctx->tx()->chain().toHex().substr(0, 10)));
+		strprintf("tx_ = %d, candidateTx_ = %d, postponedTx_ = %d, forward_ = %d, reverse_ = %d, usedUtxo_ = %d, freeUtxo_ = %d, ctx->out() = %d, %s#", 
+			tx_.size(), candidateTx_.size(), postponedTx_.size(), forward_.size(), reverse_.size(), usedUtxo_.size(), freeUtxo_.size(), ctx->out().size(), ctx->tx()->chain().toHex().substr(0, 10)));
 }
 
 bool MemoryPool::PoolStore::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, TransactionContextPtr ctx) {
@@ -117,12 +125,12 @@ bool MemoryPool::PoolStore::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, Tr
 			strprintf("utxo = %s, tx = %s, ctx = %s", 
 				lHash.toHex(), utxo->out().tx().toHex(), ctx->tx()->id().toHex()));
 
+		if (gLog().isEnabled(Log::POOL)) gLog().write(Log::STORE, std::string("[STAT(3)]: ") +
+			strprintf("tx_ = %d, candidateTx_ = %d, postponedTx_ = %d, forward_ = %d, reverse_ = %d, usedUtxo_ = %d, freeUtxo_ = %d, %s#", 
+				tx_.size(), candidateTx_.size(), postponedTx_.size(), forward_.size(), reverse_.size(), usedUtxo_.size(), freeUtxo_.size(), ctx->tx()->chain().toHex().substr(0, 10)));
+
 		return true;
 	}
-
-	if (gLog().isEnabled(Log::POOL)) gLog().write(Log::STORE, std::string("[STAT(3)]: ") +
-		strprintf("tx_ = %d, candidateTx_ = %d, postponedTx_ = %d, forward_ = %d, reverse_ = %d, usedUtxo_ = %d, freeUtxo_ = %d, %s#", 
-			tx_.size(), candidateTx_.size(), postponedTx_.size(), forward_.size(), reverse_.size(), usedUtxo_.size(), freeUtxo_.size(), ctx->tx()->chain().toHex().substr(0, 10)));
 
 	return false;
 }
