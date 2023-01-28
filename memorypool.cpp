@@ -63,6 +63,10 @@ bool MemoryPool::PoolStore::pushTransaction(TransactionContextPtr ctx) {
 	// push to actual
 	tx_[ctx->tx()->id()] = ctx;
 
+	if (gLog().isEnabled(Log::POOL)) gLog().write(Log::STORE, std::string("[STAT(1)]: ") +
+		strprintf("tx_ = %d, candidateTx_ = %d, postponedTx_ = %d, %s#", 
+			tx_.size(), candidateTx_.size(), postponedTx_.size(), ctx->tx()->chain().toHex().substr(0, 10)));
+
 	return true;
 }
 
@@ -89,6 +93,10 @@ void MemoryPool::PoolStore::remove(TransactionContextPtr ctx) {
 	forward_.erase(ctx->tx()->id()); // clean-up
 	reverse_.erase(ctx->tx()->id()); // clean-up
 	tx_.erase(ctx->tx()->id());
+
+	if (gLog().isEnabled(Log::POOL)) gLog().write(Log::STORE, std::string("[STAT(2)]: ") +
+		strprintf("tx_ = %d, candidateTx_ = %d, postponedTx_ = %d, forward_ = %d, reverse_ = %d, usedUtxo_ = %d, freeUtxo_ = %d, %s#", 
+			tx_.size(), candidateTx_.size(), postponedTx_.size(), forward_.size(), reverse_.size(), usedUtxo_.size(), freeUtxo_.size(), ctx->tx()->chain().toHex().substr(0, 10)));
 }
 
 bool MemoryPool::PoolStore::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, TransactionContextPtr ctx) {
@@ -112,6 +120,10 @@ bool MemoryPool::PoolStore::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, Tr
 		return true;
 	}
 
+	if (gLog().isEnabled(Log::POOL)) gLog().write(Log::STORE, std::string("[STAT(3)]: ") +
+		strprintf("tx_ = %d, candidateTx_ = %d, postponedTx_ = %d, forward_ = %d, reverse_ = %d, usedUtxo_ = %d, freeUtxo_ = %d, %s#", 
+			tx_.size(), candidateTx_.size(), postponedTx_.size(), forward_.size(), reverse_.size(), usedUtxo_.size(), freeUtxo_.size(), ctx->tx()->chain().toHex().substr(0, 10)));
+
 	return false;
 }
 
@@ -119,6 +131,10 @@ bool MemoryPool::PoolStore::popUnlinkedOut(const uint256& utxo, TransactionConte
 	//
 	if (gLog().isEnabled(Log::POOL)) gLog().write(Log::STORE, std::string("[PoolStore::popUnlinkedOut]: try to pop ") +
 		strprintf("utxo = %s, tx = ?, ctx = %s", utxo.toHex(), ctx->tx()->hash().toHex()));
+
+	if (gLog().isEnabled(Log::POOL)) gLog().write(Log::STORE, std::string("[STAT(4)]: ") +
+		strprintf("tx_ = %d, candidateTx_ = %d, postponedTx_ = %d, forward_ = %d, reverse_ = %d, usedUtxo_ = %d, freeUtxo_ = %d, %s#", 
+			tx_.size(), candidateTx_.size(), postponedTx_.size(), forward_.size(), reverse_.size(), usedUtxo_.size(), freeUtxo_.size(), ctx->tx()->chain().toHex().substr(0, 10)));
 
 	//
 	bool lExists = false;
@@ -370,6 +386,11 @@ bool MemoryPool::pushTransaction(TransactionContextPtr ctx) {
 
 			// 5. check if "qbit"
 			if (ctx->qbitTx()) qbitTxs_[ctx->tx()->id()] = ctx;
+
+			//
+			if (gLog().isEnabled(Log::POOL)) gLog().write(Log::STORE, std::string("[STAT(5)]: ") +
+				strprintf("qbitTxs_ = %d, %s#", 
+					qbitTxs_.size(), chain_.toHex().substr(0, 10)));
 		}
 	}
 
@@ -820,12 +841,16 @@ void MemoryPool::commit(BlockContextPtr ctx) {
 			reverseThreads_.erase(lRoot);
 		}
 	}
+
+	if (gLog().isEnabled(Log::POOL)) gLog().write(Log::STORE, std::string("[STAT(6)]: ") +
+		strprintf("qbitTxs_ = %d, %s#", 
+			qbitTxs_.size(), chain_.toHex().substr(0, 10)));
 }
 
 void MemoryPool::removeTransactions(BlockPtr block) {
 	//
 	if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[removeTransactions]: cleaning up mempool for ") + 
-		strprintf("%s/%s#", block->blockHeader().hash().toHex(), chain_.toHex().substr(0, 10)));	
+		strprintf("%s/%s#", block->blockHeader().hash().toHex(), chain_.toHex().substr(0, 10)));
 	//
 	PoolStorePtr lPoolStore = PoolStore::toStore(poolStore_);
 	PoolEntityStorePtr lPoolEntityStore = PoolEntityStore::toStore(poolEntityStore_);
