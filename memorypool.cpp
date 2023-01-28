@@ -90,13 +90,26 @@ void MemoryPool::PoolStore::remove(TransactionContextPtr ctx) {
 		freeUtxo_.erase(lInHash);
 	}
 
-	/*
-	for (std::vector<Transaction::Out>::iterator lOut = ctx->tx()->out().begin(); lOut != ctx->tx()->out().end(); lOut++) {
-		uint256 lOutHash = (*lOut).hash();
+	uint32_t lIndex = 0;
+	for (std::vector<Transaction::Out>::iterator lOut = ctx->tx()->out().begin(); lOut != ctx->tx()->out().end(); lOut++, lIndex++) {
+		//uint256 lOutHash = (*lOut).hash();
+		//usedUtxo_.erase(lOutHash);
+		//freeUtxo_.erase(lOutHash);
+
+		Transaction::Link lLink;
+		lLink.setChain(ctx->tx()->chain());
+		lLink.setAsset(ctx->tx()->out()[lIndex].asset());
+		lLink.setTx(ctx->tx()->id());
+		lLink.setIndex(lIndex);
+
+		Transaction::UnlinkedOutPtr lUTXO = Transaction::UnlinkedOut::instance(
+			lLink // link
+		);
+
+		uint256 lOutHash = lUTXO->hash();
 		usedUtxo_.erase(lOutHash);
 		freeUtxo_.erase(lOutHash);
 	}
-	*/
 
 	forward_.erase(ctx->tx()->id()); // clean-up
 	reverse_.erase(ctx->tx()->id()); // clean-up
