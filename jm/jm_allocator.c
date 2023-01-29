@@ -1390,10 +1390,6 @@ ulonglong_t _jm_arena_print_stats_internal(struct _jm_arena* arena, char* out, u
 	struct _jm_chunk* lCurrent = 0;
 	ulonglong_t lTotals = 0;
 
-	/////////////////////////////////////////////////////////////////////////////////
-	if (class_index == 7) print_ = !print_;
-	/////////////////////////////////////////////////////////////////////////////////
-
 	if (arena)
 	{
 		_jm_mutex_lock(&arena->mutex);
@@ -1666,6 +1662,10 @@ void _jm_arena_dump_chunk_internal(struct _jm_arena* arena, size_t chunk, int cl
 	char lFile[0x200] = {0};
 	char lInfo[0x200] = {0};
 	
+	/////////////////////////////////////////////////////////////////////////////////
+	if (class_index == 7) print_ = (!print_ ? 1 : 0);
+	/////////////////////////////////////////////////////////////////////////////////
+
 	int lHeader;
 	size_t lIdx;
 	
