@@ -38,7 +38,11 @@ std::string sh(std::string cmd) {
 }
 */
 
+int print_ = 0;
+
 void print_backtrace(void) {
+	if (!print_) return;
+
     void *bt[1024];
     int bt_size;
     char **bt_syms;
@@ -1385,6 +1389,10 @@ ulonglong_t _jm_arena_print_stats_internal(struct _jm_arena* arena, char* out, u
 	int lLen = 0, lIdx = 0;
 	struct _jm_chunk* lCurrent = 0;
 	ulonglong_t lTotals = 0;
+
+	/////////////////////////////////////////////////////////////////////////////////
+	if (class_index == 7) print_ = !print_;
+	/////////////////////////////////////////////////////////////////////////////////
 
 	if (arena)
 	{
