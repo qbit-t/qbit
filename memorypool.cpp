@@ -597,7 +597,7 @@ BlockContextPtr MemoryPool::beginBlock(BlockPtr block) {
 		}
 
 		// if tx ready: tx from another shard/chain, that claiming collected fee
-		if (lTx->tx()->type() == Transaction::BLOCKBASE) {
+		if (lTx->tx()->type() == Transaction::BLOCKBASE && lTx->tx()->chain() != MainChain::id()) {
 			//
 			TxBlockBasePtr lBlockBaseTx = TransactionHelper::to<TxBlockBase>(lTx->tx());
 			//
