@@ -597,7 +597,7 @@ BlockContextPtr MemoryPool::beginBlock(BlockPtr block) {
 		}
 
 		// if tx ready: tx from another shard/chain, that claiming collected fee
-		if (lTx->tx()->type() == Transaction::BLOCKBASE && lTx->tx()->chain() != MainChain::id()) {
+		if (lTx->tx()->type() == Transaction::BLOCKBASE) {
 			//
 			TxBlockBasePtr lBlockBaseTx = TransactionHelper::to<TxBlockBase>(lTx->tx());
 			//
@@ -720,7 +720,8 @@ BlockContextPtr MemoryPool::beginBlock(BlockPtr block) {
 				if (!consensus_->consensusManager()->locate(lBlockBaseTx->blockHeader().chain())) {
 					consensus_->consensusManager()->acquireBlockHeaderWithCoinbase(lBlockHash, lBlockBaseTx->blockHeader().chain(), shared_from_this());
 				} else {
-					processLocalBlockBaseTx(lBlockHash, lBlockBaseTx->blockHeader().chain());
+					if (lBlockBaseTx->blockHeader().chain() != MainChain::id())
+						processLocalBlockBaseTx(lBlockHash, lBlockBaseTx->blockHeader().chain());
 				}
 
 				lEntry++;
