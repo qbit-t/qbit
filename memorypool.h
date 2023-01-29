@@ -446,12 +446,10 @@ public:
 	// INetworkBlockHandlerWithCoinBase handler
 	void handleReply(const NetworkBlockHeader& blockHeader, TransactionPtr base) {
 		//
-		if (chain_ != MainChain::id()) {
-			boost::unique_lock<boost::recursive_mutex> lLock(confirmedBlocksMutex_);
-			confirmedBlocks_.insert(std::map<uint256, ConfirmedBlockInfo>::value_type(
-				const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().hash(), 
-				ConfirmedBlockInfo(blockHeader, base)));
-		}
+		boost::unique_lock<boost::recursive_mutex> lLock(confirmedBlocksMutex_);
+		confirmedBlocks_.insert(std::map<uint256, ConfirmedBlockInfo>::value_type(
+			const_cast<NetworkBlockHeader&>(blockHeader).blockHeader().hash(), 
+			ConfirmedBlockInfo(blockHeader, base)));
 	}
 
 	bool locateConfirmedBlock(const uint256& id, ConfirmedBlockInfo& block) {
