@@ -92,10 +92,6 @@ void MemoryPool::PoolStore::remove(TransactionContextPtr ctx) {
 
 	uint32_t lIndex = 0;
 	for (std::vector<Transaction::Out>::iterator lOut = ctx->tx()->out().begin(); lOut != ctx->tx()->out().end(); lOut++, lIndex++) {
-		//uint256 lOutHash = (*lOut).hash();
-		//usedUtxo_.erase(lOutHash);
-		//freeUtxo_.erase(lOutHash);
-
 		Transaction::Link lLink;
 		lLink.setChain(ctx->tx()->chain());
 		lLink.setAsset(ctx->tx()->out()[lIndex].asset());
@@ -111,8 +107,15 @@ void MemoryPool::PoolStore::remove(TransactionContextPtr ctx) {
 		freeUtxo_.erase(lOutHash);
 	}
 
-	forward_.erase(ctx->tx()->id()); // clean-up
-	reverse_.erase(ctx->tx()->id()); // clean-up
+	std::pair<std::multimap<uint256 /*from*/, uint256 /*to*/>::iterator,
+				std::multimap<uint256 /*from*/, uint256 /*to*/>::iterator> lRange = reverse_.equal_range(ctx->tx()->id());
+	for (std::multimap<uint256 /*to*/, uint256 /*from*/>::iterator lItem = lRange.first; lItem != lRange.second; lItem++) {
+		//
+		forward_.erase(lItem->second); // clean-up reverse
+	}
+
+	forward_.erase(ctx->tx()->id()); // clean-up direct
+	reverse_.erase(ctx->tx()->id()); // clean-up direct
 	tx_.erase(ctx->tx()->id());
 
 	if (gLog().isEnabled(Log::POOL)) gLog().write(Log::STORE, std::string("[STAT(2)]: ") +
@@ -410,8 +413,8 @@ bool MemoryPool::pushTransaction(TransactionContextPtr ctx) {
 
 			//
 			if (gLog().isEnabled(Log::POOL)) gLog().write(Log::STORE, std::string("[STAT(5)]: ") +
-				strprintf("qbitTxs_ = %d, %s#", 
-					qbitTxs_.size(), chain_.toHex().substr(0, 10)));
+				strprintf("qbitTxs_ = %d, map_ = %d, reverseMap_ = %d, threads_ = %d, reverseThreads_ = %d, %s#", 
+					qbitTxs_.size(), map_.size(), reverseMap_.size(), threads_.size(), reverseThreads_.size(), chain_.toHex().substr(0, 10)));
 		}
 	}
 
@@ -864,8 +867,8 @@ void MemoryPool::commit(BlockContextPtr ctx) {
 	}
 
 	if (gLog().isEnabled(Log::POOL)) gLog().write(Log::STORE, std::string("[STAT(6)]: ") +
-		strprintf("qbitTxs_ = %d, %s#", 
-			qbitTxs_.size(), chain_.toHex().substr(0, 10)));
+		strprintf("qbitTxs_ = %d, map_ = %d, reverseMap_ = %d, threads_ = %d, reverseThreads_ = %d, %s#", 
+			qbitTxs_.size(), map_.size(), reverseMap_.size(), threads_.size(), reverseThreads_.size(), chain_.toHex().substr(0, 10)));
 }
 
 void MemoryPool::removeTransactions(BlockPtr block) {
