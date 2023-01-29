@@ -685,7 +685,8 @@ BlockContextPtr MemoryPool::beginBlock(BlockPtr block) {
 					if (!consensus_->consensusManager()->locate(lBlockBaseTx->blockHeader().chain())) {
 						consensus_->consensusManager()->acquireBlockHeaderWithCoinbase(lBlockHash, lBlockBaseTx->blockHeader().chain(), shared_from_this());
 					} else {
-						processLocalBlockBaseTx(lBlockHash, lBlockBaseTx->blockHeader().chain());
+						if (lBlockBaseTx->blockHeader().chain() != MainChain::id())
+							processLocalBlockBaseTx(lBlockHash, lBlockBaseTx->blockHeader().chain());
 					}
 
 					lEntry++;
