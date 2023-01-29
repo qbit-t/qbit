@@ -413,8 +413,8 @@ bool MemoryPool::pushTransaction(TransactionContextPtr ctx) {
 
 			//
 			if (gLog().isEnabled(Log::POOL)) gLog().write(Log::STORE, std::string("[STAT(5)]: ") +
-				strprintf("qbitTxs_ = %d, map_ = %d, reverseMap_ = %d, threads_ = %d, reverseThreads_ = %d, %s#", 
-					qbitTxs_.size(), map_.size(), reverseMap_.size(), threads_.size(), reverseThreads_.size(), chain_.toHex().substr(0, 10)));
+				strprintf("qbitTxs_ = %d, map_ = %d, reverseMap_ = %d, threads_ = %d, reverseThreads_ = %d, confirmedBlocks_ = %d, %s#", 
+					qbitTxs_.size(), map_.size(), reverseMap_.size(), threads_.size(), reverseThreads_.size(), confirmedBlocks_.size(), chain_.toHex().substr(0, 10)));
 		}
 	}
 
@@ -867,8 +867,8 @@ void MemoryPool::commit(BlockContextPtr ctx) {
 	}
 
 	if (gLog().isEnabled(Log::POOL)) gLog().write(Log::STORE, std::string("[STAT(6)]: ") +
-		strprintf("qbitTxs_ = %d, map_ = %d, reverseMap_ = %d, threads_ = %d, reverseThreads_ = %d, %s#", 
-			qbitTxs_.size(), map_.size(), reverseMap_.size(), threads_.size(), reverseThreads_.size(), chain_.toHex().substr(0, 10)));
+		strprintf("qbitTxs_ = %d, map_ = %d, reverseMap_ = %d, threads_ = %d, reverseThreads_ = %d, confirmedBlocks_ = %d, %s#", 
+			qbitTxs_.size(), map_.size(), reverseMap_.size(), threads_.size(), reverseThreads_.size(), confirmedBlocks_.size(), chain_.toHex().substr(0, 10)));
 }
 
 void MemoryPool::removeTransactions(BlockPtr block) {
