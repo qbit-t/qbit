@@ -14,6 +14,65 @@
 	#include <signal.h>
 #endif
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#include <execinfo.h>
+//#include <string.h>
+//#include <errno.h>
+//#include <unistd.h>
+//#include <stdlib.h>
+//#include <zconf.h>
+
+/*
+std::string sh(std::string cmd) {
+    std::array<char, 128> buffer;
+    std::string result;
+    std::shared_ptr<FILE> pipe(popen(cmd.c_str(), "r"), pclose);
+    if (!pipe) throw std::runtime_error("popen() failed!");
+    while (!feof(pipe.get())) {
+        if (fgets(buffer.data(), 128, pipe.get()) != nullptr) {
+            result += buffer.data();
+        }
+    }
+    return result;
+}
+*/
+
+void print_backtrace(void) {
+    void *bt[1024];
+    int bt_size;
+    char **bt_syms;
+    int i;
+
+    bt_size = backtrace(bt, 1024);
+    bt_syms = backtrace_symbols(bt, bt_size);
+
+    for (i = 1; i < bt_size; i++) {
+    	printf("%s\n", bt_syms[i]);
+    }
+
+    //std::regex re("\\[(.+)\\]");
+
+    /*
+    for (i = 1; i < bt_size; i++) {
+        std::string sym = bt_syms[i];
+        std::smatch ms;
+        if (std::regex_search(sym, ms, re)) {
+            std::string addr = ms[1];
+            std::string cmd = "addr2line -e " + exec_path + " -f -C " + addr;
+            auto r = sh(cmd);
+            std::regex re2("\\n$");
+            auto r2 = std::regex_replace(r, re2, "");
+            std::cout << r2 << std::endl;
+        }
+    }
+    */
+
+    free(bt_syms);
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 //
 // prediction optimization
 //
@@ -869,6 +928,12 @@ JM_INLINE struct _jm_chunk* _jm_arena_pop_chunk(struct _jm_arena* arena, size_t 
 		_jm_chunk_init(lChunk); // re-init
 		_jm_flag_reset(lChunk->flags, JM_CHUNK_FLAG_PUSHED_DIRTY); // rseset flag
 	}
+
+	///////////////////////////////////////////////////////////////////////////////////////
+	if (lClassIndex == 7) {
+		print_backtrace();
+	}
+	///////////////////////////////////////////////////////////////////////////////////////
 
 	return lChunk;
 }
