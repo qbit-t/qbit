@@ -75,13 +75,13 @@ void print_backtrace(void) {
     free(bt_syms);
 }
 
-char* _jm_backtrace(size_t &length) {
+char* _jm_backtrace(size_t *length) {
 	void *bt[100];
 	int bt_size;
 	char **bt_syms;
 
-	length = backtrace(bt, 100);
-	return backtrace_symbols(bt, length);
+	*length = backtrace(bt, 100);
+	return backtrace_symbols(bt, *length);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -826,7 +826,7 @@ JM_INLINE struct _jm_data_block* _jm_chunk_block_alloc
 
 #ifdef JM_ALLOCATION_INFO
 	lBlock->file = (unsigned char*)file;
-	lBlock->func = (unsigned char*)_jm_backtrace(lBlock->line); //func;
+	lBlock->func = (unsigned char*)_jm_backtrace(&lBlock->line); //func;
 	//lBlock->line = line;
 #endif
 
