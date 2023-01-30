@@ -43,12 +43,12 @@ int print_ = 0;
 void print_backtrace(void) {
 	if (!print_) return;
 
-    void *bt[1024];
+    void *bt[100];
     int bt_size;
     char **bt_syms;
     int i;
 
-    bt_size = backtrace(bt, 1024);
+    bt_size = backtrace(bt, 100);
     bt_syms = backtrace_symbols(bt, bt_size);
 
     for (i = 1; i < bt_size; i++) {
@@ -73,6 +73,15 @@ void print_backtrace(void) {
     */
 
     free(bt_syms);
+}
+
+char* _jm_backtrace(size_t &length) {
+	void *bt[100];
+	int bt_size;
+	char **bt_syms;
+
+	length = backtrace(bt, 100);
+	return backtrace_symbols(bt, length);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -817,8 +826,8 @@ JM_INLINE struct _jm_data_block* _jm_chunk_block_alloc
 
 #ifdef JM_ALLOCATION_INFO
 	lBlock->file = (unsigned char*)file;
-	lBlock->func = (unsigned char*)func;
-	lBlock->line = line;
+	lBlock->func = (unsigned char*)_jm_backtrace(lBlock->line); //func;
+	//lBlock->line = line;
 #endif
 
 	return lBlock->block;
@@ -932,12 +941,6 @@ JM_INLINE struct _jm_chunk* _jm_arena_pop_chunk(struct _jm_arena* arena, size_t 
 		_jm_chunk_init(lChunk); // re-init
 		_jm_flag_reset(lChunk->flags, JM_CHUNK_FLAG_PUSHED_DIRTY); // rseset flag
 	}
-
-	///////////////////////////////////////////////////////////////////////////////////////
-	if (lClassIndex == 5) {
-		print_backtrace();
-	}
-	///////////////////////////////////////////////////////////////////////////////////////
 
 	return lChunk;
 }
@@ -1661,10 +1664,6 @@ void _jm_arena_dump_chunk_internal(struct _jm_arena* arena, size_t chunk, int cl
 {
 	char lFile[0x200] = {0};
 	char lInfo[0x200] = {0};
-	
-	/////////////////////////////////////////////////////////////////////////////////
-	if (class_index == 5) print_ = (!print_ ? 1 : 0);
-	/////////////////////////////////////////////////////////////////////////////////
 
 	int lHeader;
 	size_t lIdx;
@@ -1690,8 +1689,16 @@ void _jm_arena_dump_chunk_internal(struct _jm_arena* arena, size_t chunk, int cl
 				_jm_file_write(lHeader, lInfo, strlen(lInfo));
 
 #if defined(JM_ALLOCATION_INFO)
-				sprintf(lInfo, "%s - %s:%ld\n", lBlock->file, lBlock->func, lBlock->line);
+				//sprintf(lInfo, "%s - %s:%ld\n", lBlock->file, lBlock->func, lBlock->line);
+				//_jm_file_write(lHeader, lInfo, strlen(lInfo));
+				sprintf(lInfo, "%s\n", lBlock->file);
 				_jm_file_write(lHeader, lInfo, strlen(lInfo));
+
+				char** lStrings = (char**)lBlock->func;
+				for (size_t lI = 0; lI < lBlock->line; lI++) {
+					sprintf(lInfo, "%s\n", lStrings[lI]);
+					_jm_file_write(lHeader, lInfo, strlen(lInfo));
+				}
 #endif
 
 				_jm_file_write(lHeader, "<[", 2);
