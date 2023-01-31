@@ -398,7 +398,7 @@ bool Wallet::isUnlinkedOutExists(const uint256& utxo) {
 Transaction::UnlinkedOutPtr Wallet::findUnlinkedOut(const uint256& hash) {
 	//
 	Transaction::UnlinkedOut lUtxo;
-	if (utxo_.read(hash, lUtxo)) { // && isUnlinkedOutExistsGlobal(hash, lUtxo)) {
+	if (utxo_.read(hash, lUtxo) && isUnlinkedOutExistsGlobal(hash, lUtxo)) {
 		return Transaction::UnlinkedOut::instance(lUtxo);
 	}
 
@@ -463,7 +463,7 @@ void Wallet::balance(const uint256& asset, amount_t& pending, amount_t& actual) 
 			utxo_.remove(lUtxoId);
 		} else {
 			//
-			//if (!lUtxo->amount()) continue;
+			if (!lUtxo->amount()) continue;
 			//
 			if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[balance]: ") + 
 						strprintf("utxo FOUND %d/%s/%s", lUtxo->amount(), lUtxoId.toHex(), asset.toHex()));
@@ -471,7 +471,6 @@ void Wallet::balance(const uint256& asset, amount_t& pending, amount_t& actual) 
 			pending += lUtxo->amount();
 
 			// extra check
-			if (false)
 			{
 				uint64_t lHeight;
 				uint64_t lConfirms;
