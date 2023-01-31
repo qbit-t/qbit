@@ -647,8 +647,8 @@ void HttpGetBalance::run(const std::string& source, const HttpRequest& request, 
 				} else { 
 					amount_t lPending = 0, lActual = 0;
 					wallet_->balance(TxAssetType::qbitAsset(), lPending, lActual);
-					lPendingBalance = ((double)wallet_->pendingBalance()) / lScale;
-					lBalance = ((double)wallet_->balance()) / lScale;
+					lPendingBalance = ((double)lPending) / lScale;
+					lBalance = ((double)lActual) / lScale;
 				}
 			} else if (lState == IConsensus::SYNCHRONIZING) {
 				reply = HttpReply::stockReply("E_NODE_SYNCHRONIZING", "Synchronization is in progress..."); 
