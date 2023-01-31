@@ -470,6 +470,7 @@ void Wallet::balance(const uint256& asset, amount_t& pending, amount_t& actual) 
 			pending += lUtxo->amount();
 
 			// extra check
+			if (false)
 			{
 				uint64_t lHeight;
 				uint64_t lConfirms;
