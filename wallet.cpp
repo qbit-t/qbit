@@ -462,7 +462,7 @@ void Wallet::balance(const uint256& asset, amount_t& pending, amount_t& actual) 
 			utxo_.remove(lUtxoId);
 		} else {
 			//
-			if (!lUtxo->amount()) continue;
+			//if (!lUtxo->amount()) continue;
 			//
 			if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[balance]: ") + 
 						strprintf("utxo FOUND %d/%s/%s", lUtxo->amount(), lUtxoId.toHex(), asset.toHex()));
