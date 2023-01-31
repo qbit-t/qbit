@@ -1671,8 +1671,8 @@ void _jm_arena_dump_chunk_internal(struct _jm_arena* arena, size_t chunk, int cl
 	size_t lIdx;
 
 	////////////////////////////
-	if (path[0] == "o" && path[1] == "n") print_ = 1;
-	if (path[0] == "o" && path[1] == "f") print_ = 0;
+	if (path[0] == 'o' && path[1] == 'n') print_ = 1;
+	if (path[0] == 'o' && path[1] == 'f') print_ = 0;
 	////////////////////////////
 	
 	struct _jm_free_block* lBlock;
