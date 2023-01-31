@@ -825,7 +825,7 @@ JM_INLINE struct _jm_data_block* _jm_chunk_block_alloc
 	lBlock->next = lBlock->prev = 0; // unlink from free_block_list
 
 #ifdef JM_ALLOCATION_INFO
-	if (print_ && chunk->class_index == 5) {
+	if (chunk->class_index == 5 || chunk->class_index == 11) {
 		lBlock->file = (unsigned char*)file;
 		lBlock->func = (unsigned char*)_jm_backtrace(&lBlock->line); //func;
 	}
@@ -1671,7 +1671,7 @@ void _jm_arena_dump_chunk_internal(struct _jm_arena* arena, size_t chunk, int cl
 	size_t lIdx;
 
 	////////////////////////////
-	if (class_index == 5) print_ = (!print_ ? 1 : 0);
+	//if (class_index == 5) print_ = (!print_ ? 1 : 0);
 	////////////////////////////
 	
 	struct _jm_free_block* lBlock;
