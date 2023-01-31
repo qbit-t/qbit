@@ -313,7 +313,8 @@ bool Wallet::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, TransactionContex
 	uint256 lAssetId = utxo->out().asset();
 	if (ctx->tx()->isValue(utxo)) {
 		// update assets db
-		assets_.write(lAssetId, lUtxoId);
+		if (utxo->amount() > 0)
+			assets_.write(lAssetId, lUtxoId);
 	} else if (ctx->tx()->isEntity(utxo) && lAssetId != TxAssetType::nullAsset()) {
 		// update db
 		assetEntities_.write(lAssetId, lUtxoId);
