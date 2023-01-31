@@ -31,7 +31,6 @@ public:
 		pendingtxs_(settings_->dataPath() + "/wallet/pending_txs")
 	{
 		opened_ = false;
-		useUtxoCache_ = false;
 	}
 
 	Wallet(ISettingsPtr settings, IMemoryPoolPtr mempool, IEntityStorePtr entityStore) : 
@@ -44,7 +43,6 @@ public:
 		pendingtxs_(settings_->dataPath() + "/wallet/pending_txs")
 	{
 		opened_ = false;
-		useUtxoCache_ = false;
 	}
 
 	static IWalletPtr instance(ISettingsPtr settings, IMemoryPoolPtr mempool, IEntityStorePtr entityStore) {
@@ -93,11 +91,6 @@ public:
 	void balance(const uint256& /*asset*/, amount_t& /*pending*/, amount_t& /*actual*/);
 
 	void resetCache() {
-		boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
-
-		utxoCache_.clear();
-		assetsCache_.clear();
-		assetEntitiesCache_.clear();
 	}
 
 	bool prepareCache();	
@@ -215,11 +208,9 @@ private:
 	void collectCoinbaseUnlinkedOuts(std::list<Transaction::UnlinkedOutPtr>& /*list*/);
 
 	inline void cacheUtxo(Transaction::UnlinkedOutPtr utxo) {
-		if (useUtxoCache_) utxoCache_[utxo->hash()] = utxo;
 	}
 
 	inline void removeUtxo(const uint256& hash) {
-		if (useUtxoCache_) utxoCache_.erase(hash);
 	}
 
 	bool isUnlinkedOutExistsGlobal(const uint256& hash, Transaction::UnlinkedOut& utxo) {
@@ -277,21 +268,8 @@ private:
 	// pending tx
 	db::DbEntityContainer<uint256 /*tx*/, Transaction /*data*/> pendingtxs_;
 
-	// cache
-	// utxo/data
-	std::map<uint256 /*utxo*/, Transaction::UnlinkedOutPtr /*data*/> utxoCache_; // optionally
-	// asset presence
-	std::set<uint256 /*utxo*/> assetsUtxoPresence_;
-	// asset/utxo/data
-	std::map<uint256 /*asset*/, std::multimap<amount_t /*amount*/, uint256 /*utxo*/>> assetsCache_;
-	// entity/utxo/data
-	std::map<uint256 /*entity*/, std::map<uint256 /*utxo*/, Transaction::UnlinkedOutPtr /*data*/>> assetEntitiesCache_;
-
 	// flag
 	bool opened_;
-
-	// use utxo cache (in case of slow db functionality)
-	bool useUtxoCache_;
 
 	// cached keys
 	std::map<uint160 /*id*/, SKeyPtr> keysCache_;

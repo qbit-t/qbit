@@ -204,20 +204,7 @@ bool Wallet::prepareCache() {
 
 			if (utxo_.read(lUtxoId, lUtxo)) {
 				// if utxo exists
-				if (isUnlinkedOutExistsGlobal(lUtxoId, lUtxo)) {
-					//
-					if (assetsUtxoPresence_.find(lUtxoId) == assetsUtxoPresence_.end()) {
-						// utxo exists
-						Transaction::UnlinkedOutPtr lUtxoPtr = Transaction::UnlinkedOut::instance(lUtxo);
-						
-						// cache it
-						cacheUtxo(lUtxoPtr);
-
-						// make map
-						assetsCache_[lAssetId].insert(std::multimap<amount_t, uint256>::value_type(lUtxo.amount(), lUtxoId));
-						assetsUtxoPresence_.insert(lUtxoId);
-					}
-				} else {
+				if (!isUnlinkedOutExistsGlobal(lUtxoId, lUtxo)) {
 					lUtxoTransaction.remove(lUtxoId);
 				}
 			} else {
@@ -239,21 +226,12 @@ bool Wallet::prepareCache() {
 			lEntity.first(lEntityId); // entity hash
 
 			Transaction::UnlinkedOutPtr lUtxoPtr = findUnlinkedOut(lUtxoId);
-			if (lUtxoPtr) assetEntitiesCache_[lEntityId][lUtxoId] = lUtxoPtr;
-			else {
+			if (!lUtxoPtr) {
 				Transaction::UnlinkedOut lUtxo;
 				if (utxo_.read(lEntityId, lUtxo)) {
 					// if utxo exists
 					// TODO: all chains?
-					if (isUnlinkedOutExistsGlobal(lUtxoId, lUtxo)) {
-
-						// utxo exists
-						lUtxoPtr = Transaction::UnlinkedOut::instance(lUtxo);
-						
-						// cache it
-						cacheUtxo(lUtxoPtr);
-						assetEntitiesCache_[lEntityId][lUtxoId] = lUtxoPtr;
-					} else {
+					if (!isUnlinkedOutExistsGlobal(lUtxoId, lUtxo)) {
 						lUtxoTransaction.remove(lEntityId);
 					}
 				} else {
@@ -334,24 +312,9 @@ bool Wallet::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, TransactionContex
 
 	uint256 lAssetId = utxo->out().asset();
 	if (ctx->tx()->isValue(utxo)) {
-		//
-		{
-			boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
-			if (assetsUtxoPresence_.insert(lUtxoId).second) {
-				assetsCache_[lAssetId].insert(std::multimap<amount_t, uint256>::value_type(utxo->amount(), lUtxoId));
-			}
-		}
-
 		// update assets db
 		assets_.write(lAssetId, lUtxoId);
 	} else if (ctx->tx()->isEntity(utxo) && lAssetId != TxAssetType::nullAsset()) {
-		//
-		{
-			boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
-			// update cache
-			assetEntitiesCache_[lAssetId][lUtxoId] = utxo;
-		}
-
 		// update db
 		assetEntities_.write(lAssetId, lUtxoId);
 	}
@@ -393,32 +356,6 @@ bool Wallet::popUnlinkedOut(const uint256& hash, TransactionContextPtr ctx) {
 			strprintf("popped utxo = %s, tx = %s, ctx = %s/%s#", 
 				hash.toHex(), lUtxoPtr->out().tx().toHex(), ctx->tx()->id().toHex(), ctx->tx()->chain().toHex().substr(0, 10)));
 
-		{
-			boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
-			// try assets cache
-			std::map<uint256 /*asset*/, std::multimap<amount_t /*amount*/, uint256 /*utxo*/>>::iterator lAsset = assetsCache_.find(lAssetId);
-			if (lAsset != assetsCache_.end()) {
-				std::pair<std::multimap<amount_t /*amount*/, uint256 /*utxo*/>::iterator,
-							std::multimap<amount_t /*amount*/, uint256 /*utxo*/>::iterator> lRange = lAsset->second.equal_range(lUtxoPtr->amount());
-				for (std::multimap<amount_t /*amount*/, uint256 /*utxo*/>::iterator lItem = lRange.first; lItem != lRange.second; lItem++) {
-					if (lItem->second == hash) {
-						lAsset->second.erase(lItem);
-						assetsUtxoPresence_.erase(hash);
-						break;
-					}
-				}
-			}
-		}
-
-		{
-			boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
-			// try entities
-			std::map<uint256, std::map<uint256, Transaction::UnlinkedOutPtr>>::iterator lEntity = assetEntitiesCache_.find(lAssetId);
-			if (lEntity != assetEntitiesCache_.end()) {
-				lEntity->second.erase(hash);
-			}
-		}
-
 		// remove entry
 		removeUtxo(hash);
 		utxo_.remove(hash);
@@ -459,18 +396,9 @@ bool Wallet::isUnlinkedOutExists(const uint256& utxo) {
 
 Transaction::UnlinkedOutPtr Wallet::findUnlinkedOut(const uint256& hash) {
 	//
-	if (useUtxoCache_) {
-		std::map<uint256, Transaction::UnlinkedOutPtr>::iterator lUtxo = utxoCache_.find(hash);
-		if (lUtxo != utxoCache_.end()) {
-			if (isUnlinkedOutExistsGlobal(hash, (*lUtxo->second))) {
-				return lUtxo->second;
-			}
-		}
-	} else {
-		Transaction::UnlinkedOut lUtxo;
-		if (utxo_.read(hash, lUtxo) && isUnlinkedOutExistsGlobal(hash, lUtxo)) {
-			return Transaction::UnlinkedOut::instance(lUtxo);
-		}
+	Transaction::UnlinkedOut lUtxo;
+	if (utxo_.read(hash, lUtxo) && isUnlinkedOutExistsGlobal(hash, lUtxo)) {
+		return Transaction::UnlinkedOut::instance(lUtxo);
 	}
 
 	return nullptr;
@@ -488,24 +416,16 @@ Transaction::UnlinkedOutPtr Wallet::findLinkedOut(const uint256& hash) {
 
 Transaction::UnlinkedOutPtr Wallet::findUnlinkedOutByAsset(const uint256& asset, amount_t amount) {
 	//
-	boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
-	std::map<uint256 /*asset*/, std::multimap<amount_t /*amount*/, uint256 /*utxo*/>>::iterator lAsset = assetsCache_.find(asset);
-	if (lAsset != assetsCache_.end()) {
-		for (std::multimap<amount_t /*amount*/, uint256 /*utxo*/>::iterator lAmount = lAsset->second.begin(); 
-			lAmount != lAsset->second.end(); lAmount++) {
-			
-			if (lAmount->first >= amount) {
-				Transaction::UnlinkedOutPtr lUtxo = findUnlinkedOut(lAmount->second);
-
-				if (lUtxo == nullptr) {
-					// delete from store
-					utxo_.remove(lAmount->second);
-					assetsUtxoPresence_.erase(lAmount->second);
-					lAsset->second.erase(lAmount);
-				} else {
-					return lUtxo;
-				}
-			}
+	for (db::DbMultiContainer<uint256 /*asset*/, uint256 /*utxo*/>::Iterator lAsset = assets_.find(asset); lAsset.valid(); ++lAsset) {
+		uint256 lUtxoId = *lAsset; // utxo hash
+		Transaction::UnlinkedOutPtr lUtxo = findUnlinkedOut(lUtxoId);
+		//
+		if (lUtxo != nullptr) {
+			if (lUtxo->amount() >= amount)
+				return lUtxo;
+		} else {
+			// delete from store
+			utxo_.remove(lUtxoId);
 		}
 	}
 
@@ -528,99 +448,70 @@ amount_t Wallet::balance(const uint256& asset) {
 
 void Wallet::balance(const uint256& asset, amount_t& pending, amount_t& actual) {
 	//
-	std::map<uint256 /*asset*/, std::multimap<amount_t /*amount*/, uint256 /*utxo*/>> lAssetsCache;
-	{
-		boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
-		lAssetsCache = assetsCache_;
-	}
-	//
 	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[balance]: ") + strprintf("computing balance for %s", asset.toHex()));
 	//
-	amount_t lBalance = 0;
-	std::map<uint256 /*asset*/, std::multimap<amount_t /*amount*/, uint256 /*utxo*/>>::iterator lAsset = lAssetsCache.find(asset);
-	if (lAsset != lAssetsCache.end()) {
-		for (std::multimap<amount_t /*amount*/, uint256 /*utxo*/>::iterator lAmount = lAsset->second.begin(); 
-			lAmount != lAsset->second.end();) {
-
+	for (db::DbMultiContainer<uint256 /*asset*/, uint256 /*utxo*/>::Iterator lAsset = assets_.find(asset); lAsset.valid(); ++lAsset) {
+		uint256 lUtxoId = *lAsset; // utxo hash
+		Transaction::UnlinkedOutPtr lUtxo = findUnlinkedOut(lUtxoId);
+		//
+		if (lUtxo == nullptr) {
 			//
-			if (!lAmount->first) {
-				lAmount++;
-				continue;
-			}
+			if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[balance]: ") + 
+						strprintf("utxo NOT FOUND %s/%s", lUtxoId.toHex(), asset.toHex()));
+			// delete from store
+			utxo_.remove(lUtxoId);
+		} else {
+			//
+			if (!lUtxo->amount()) continue;
+			//
+			if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[balance]: ") + 
+						strprintf("utxo FOUND %d/%s/%s", lUtxo->amount(), lUtxoId.toHex(), asset.toHex()));
+			// available + pending
+			pending += lUtxo->amount();
 
-			Transaction::UnlinkedOutPtr lUtxo = findUnlinkedOut(lAmount->second);
+			// extra check
+			{
+				uint64_t lHeight;
+				uint64_t lConfirms;
+				ITransactionStorePtr lStore;
+				if (storeManager()) lStore = storeManager()->locate(lUtxo->out().chain());
+				else lStore = persistentStore_;
 
-			if (lUtxo == nullptr) {
-				//
-				if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[balance]: ") + 
-							strprintf("utxo NOT FOUND %s/%s", lAmount->second.toHex(), asset.toHex()));
-				// delete from store
-				utxo_.remove(lAmount->second);
-				{
-					boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
-					assetsUtxoPresence_.erase(lAmount->second);
-				}
-				
-				lAsset->second.erase(lAmount);
-				lAmount++;
-			} else {
-				//
-				if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[balance]: ") + 
-							strprintf("utxo FOUND %d/%s/%s", lAmount->first, lAmount->second.toHex(), asset.toHex()));
+				if (lStore) {
+					bool lCoinbase = false;
+					if (lStore->transactionHeight(lUtxo->out().tx(), lHeight, lConfirms, lCoinbase)) {
+						//
+						IMemoryPoolPtr lMempool;
+						if(mempoolManager()) lMempool = mempoolManager()->locate(lUtxo->out().chain()); // corresponding mempool
+						else lMempool = mempool_;
 
-				// available + pending
-				pending += lAmount->first;
-
-				// extra check
-				{
-					uint64_t lHeight;
-					uint64_t lConfirms;
-					ITransactionStorePtr lStore;
-					if (storeManager()) lStore = storeManager()->locate(lUtxo->out().chain());
-					else lStore = persistentStore_;
-
-					if (lStore) {
-						bool lCoinbase = false;
-						if (lStore->transactionHeight(lUtxo->out().tx(), lHeight, lConfirms, lCoinbase)) {
-							//
-							IMemoryPoolPtr lMempool;
-							if(mempoolManager()) lMempool = mempoolManager()->locate(lUtxo->out().chain()); // corresponding mempool
-							else lMempool = mempool_;
-
-							//
-							if (!lCoinbase && lConfirms < lMempool->consensus()->maturity()) {
-								if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[balance]: transaction is NOT MATURE ") + 
-									strprintf("%d/%d/%s/%s#", lConfirms, lMempool->consensus()->maturity(), lUtxo->out().tx().toHex(), lUtxo->out().chain().toHex().substr(0, 10)));
-								lAmount++;
-								continue; // skip UTXO
-							} else if (lCoinbase && lConfirms < lMempool->consensus()->coinbaseMaturity()) {
-								if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[balance]: COINBASE transaction is NOT MATURE ") + 
-									strprintf("%d/%d/%s/%s#", lConfirms, lMempool->consensus()->coinbaseMaturity(), lUtxo->out().tx().toHex(), lUtxo->out().chain().toHex().substr(0, 10)));
-								lAmount++;
-								continue; // skip UTXO
-							} else if (lUtxo->lock() && lUtxo->lock() > lHeight + lConfirms) {
-								if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[balance]: timelock is NOT REACHED ") + 
-									strprintf("%d/%d/%s/%s#", lUtxo->lock(), lHeight + lConfirms, lUtxo->out().tx().toHex(), lUtxo->out().chain().toHex().substr(0, 10)));
-								lAmount++;
-								continue; // skip UTXO
-							}
-						} else {
-							gLog().write(Log::WALLET, std::string("[balance]: transaction not found ") + 
-								strprintf("%s/%s#", lUtxo->out().tx().toHex(), lUtxo->out().chain().toHex().substr(0, 10)));
-							lAmount++;
+						//
+						if (!lCoinbase && lConfirms < lMempool->consensus()->maturity()) {
+							if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[balance]: transaction is NOT MATURE ") + 
+								strprintf("%d/%d/%s/%s#", lConfirms, lMempool->consensus()->maturity(), lUtxo->out().tx().toHex(), lUtxo->out().chain().toHex().substr(0, 10)));
+							continue; // skip UTXO
+						} else if (lCoinbase && lConfirms < lMempool->consensus()->coinbaseMaturity()) {
+							if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[balance]: COINBASE transaction is NOT MATURE ") + 
+								strprintf("%d/%d/%s/%s#", lConfirms, lMempool->consensus()->coinbaseMaturity(), lUtxo->out().tx().toHex(), lUtxo->out().chain().toHex().substr(0, 10)));
+							continue; // skip UTXO
+						} else if (lUtxo->lock() && lUtxo->lock() > lHeight + lConfirms) {
+							if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[balance]: timelock is NOT REACHED ") + 
+								strprintf("%d/%d/%s/%s#", lUtxo->lock(), lHeight + lConfirms, lUtxo->out().tx().toHex(), lUtxo->out().chain().toHex().substr(0, 10)));
 							continue; // skip UTXO
 						}
 					} else {
-						gLog().write(Log::WALLET, std::string("[collectUnlinkedOutsByAsset]: storage not found for ") + 
-							strprintf("%s#", lUtxo->out().chain().toHex().substr(0, 10)));
-						lAmount++;
+						gLog().write(Log::WALLET, std::string("[balance]: transaction not found ") + 
+							strprintf("%s/%s#", lUtxo->out().tx().toHex(), lUtxo->out().chain().toHex().substr(0, 10)));
 						continue; // skip UTXO
 					}
+				} else {
+					gLog().write(Log::WALLET, std::string("[collectUnlinkedOutsByAsset]: storage not found for ") + 
+						strprintf("%s#", lUtxo->out().chain().toHex().substr(0, 10)));
+					continue; // skip UTXO
 				}
-
-				actual += lAmount->first;
-				lAmount++;
 			}
+
+			actual += lUtxo->amount();
 		}
 	}
 
@@ -628,43 +519,29 @@ void Wallet::balance(const uint256& asset, amount_t& pending, amount_t& actual) 
 }
 
 void Wallet::collectUnlinkedOutsByAsset(const uint256& asset, amount_t amount, bool aggregate, std::list<Transaction::UnlinkedOutPtr>& list) {
-	//
-	if (!aggregate) collectUnlinkedOutsByAssetForward(asset, amount, list);
-	else collectUnlinkedOutsByAssetReverse(asset, amount, list);
+	// TODO: aggregate - consider to re-implement collection of dust
+	collectUnlinkedOutsByAssetReverse(asset, amount, list);
 }
 
 void Wallet::collectUnlinkedOutsByAssetReverse(const uint256& asset, amount_t amount, std::list<Transaction::UnlinkedOutPtr>& list) {
 	//
-	std::map<uint256 /*asset*/, std::multimap<amount_t /*amount*/, uint256 /*utxo*/>> lAssetsCache;
-	{
-		boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
-		lAssetsCache = assetsCache_;
-	}
-
-	std::map<uint256 /*asset*/, std::multimap<amount_t /*amount*/, uint256 /*utxo*/>>::iterator lAsset = lAssetsCache.find(asset);
 	amount_t lTotal = 0;
-	if (lAsset != lAssetsCache.end()) {
-		for (std::multimap<amount_t /*amount*/, uint256 /*utxo*/>::iterator lAmount = lAsset->second.begin(); 
-			lAmount != lAsset->second.end();) {
-						
+	for (db::DbMultiContainer<uint256 /*asset*/, uint256 /*utxo*/>::Iterator lAsset = assets_.find(asset); lAsset.valid(); ++lAsset) {
+		uint256 lUtxoId = *lAsset; // utxo hash
+		Transaction::UnlinkedOutPtr lUtxo = findUnlinkedOut(lUtxoId);
+		//
+		if (lUtxo == nullptr) {
 			//
-			if (!lAmount->first) {
-				lAmount++;
-				continue;
-			}
-
-			Transaction::UnlinkedOutPtr lUtxo = findUnlinkedOut(lAmount->second);
-			if (lUtxo == nullptr) {
-				// delete from store
-				utxo_.remove(lAmount->second);
-				{
-					boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
-					assetsUtxoPresence_.erase(lAmount->second);
-				}
-
-				lAsset->second.erase(lAmount);
-				continue;
-			}
+			if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[collectUnlinkedOutsByAssete]: ") + 
+						strprintf("utxo NOT FOUND %s/%s", lUtxoId.toHex(), asset.toHex()));
+			// delete from store
+			utxo_.remove(lUtxoId);
+		} else {
+			//
+			if (!lUtxo->amount()) continue;
+			//
+			if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[collectUnlinkedOutsByAsset]: ") + 
+						strprintf("utxo FOUND %d/%s/%s", lUtxo->amount(), lUtxoId.toHex(), asset.toHex()));
 
 			// extra check
 			{
@@ -686,44 +563,37 @@ void Wallet::collectUnlinkedOutsByAssetReverse(const uint256& asset, amount_t am
 						if (!lCoinbase && lConfirms < lMempool->consensus()->maturity()) {
 							if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[collectUnlinkedOutsByAsset]: transaction is NOT MATURE ") + 
 								strprintf("%d/%d/%s/%s#", lConfirms, lMempool->consensus()->maturity(), lUtxo->out().tx().toHex(), lUtxo->out().chain().toHex().substr(0, 10)));
-							lAmount++;
 							continue; // skip UTXO
 						} else if (lCoinbase && lConfirms < lMempool->consensus()->coinbaseMaturity()) {
 							if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[collectUnlinkedOutsByAsset]: COINBASE transaction is NOT MATURE ") + 
 								strprintf("%d/%d/%s/%s#", lConfirms, lMempool->consensus()->coinbaseMaturity(), lUtxo->out().tx().toHex(), lUtxo->out().chain().toHex().substr(0, 10)));
-							lAmount++;
 							continue; // skip UTXO
 						} else if (lUtxo->lock() && lUtxo->lock() > lHeight + lConfirms) {
 							if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[collectUnlinkedOutsByAsset]: timelock is NOT REACHED ") + 
 								strprintf("%d/%d/%s/%s#", lUtxo->lock(), lHeight + lConfirms, lUtxo->out().tx().toHex(), lUtxo->out().chain().toHex().substr(0, 10)));
-							lAmount++;
 							continue; // skip UTXO
 						}
 					} else {
 						gLog().write(Log::WALLET, std::string("[collectUnlinkedOutsByAsset]: transaction not found ") + 
 							strprintf("%s/%s#", lUtxo->out().tx().toHex(), lUtxo->out().chain().toHex().substr(0, 10)));
-						lAmount++;
 						continue; // skip UTXO
 					}
 				} else {
 					gLog().write(Log::WALLET, std::string("[collectUnlinkedOutsByAsset]: storage not found for ") + 
 						strprintf("%s#", lUtxo->out().chain().toHex().substr(0, 10)));
-					lAmount++;
 					continue; // skip UTXO
 				}
 			}
 
 			if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[collectUnlinkedOutsByAsset]: tx found for amount ") + 
-				strprintf("%d/%s/%s/%s#", lAmount->first, lUtxo->out().hash().toHex(), lUtxo->out().tx().toHex(), lUtxo->out().chain().toHex().substr(0, 10)));
+				strprintf("%d/%s/%s/%s#", lUtxo->amount(), lUtxo->out().hash().toHex(), lUtxo->out().tx().toHex(), lUtxo->out().chain().toHex().substr(0, 10)));
 
-			lTotal += lAmount->first;
+			lTotal += lUtxo->amount();
 			list.push_back(lUtxo);
 
 			if (lTotal >= amount) {
 				break;
 			}
-
-			lAmount++;
 		}
 	}
 
@@ -734,132 +604,22 @@ void Wallet::collectUnlinkedOutsByAssetReverse(const uint256& asset, amount_t am
 }
 
 void Wallet::collectUnlinkedOutsByAssetForward(const uint256& asset, amount_t amount, std::list<Transaction::UnlinkedOutPtr>& list) {
-	//
-	std::map<uint256 /*asset*/, std::multimap<amount_t /*amount*/, uint256 /*utxo*/>> lAssetsCache;
-	{
-		boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
-		lAssetsCache = assetsCache_;
-	}
-
-	std::map<uint256 /*asset*/, std::multimap<amount_t /*amount*/, uint256 /*utxo*/>>::iterator lAsset = lAssetsCache.find(asset);
-	amount_t lTotal = 0;
-	if (lAsset != lAssetsCache.end()) {
-		for (std::multimap<amount_t /*amount*/, uint256 /*utxo*/>::reverse_iterator lAmount = lAsset->second.rbegin(); 
-			lAmount != lAsset->second.rend();) {
-						
-			//
-			if (!lAmount->first) {
-				lAmount++;
-				continue;
-			}
-
-			Transaction::UnlinkedOutPtr lUtxo = findUnlinkedOut(lAmount->second);
-			if (lUtxo == nullptr) {
-				// delete from store
-				utxo_.remove(lAmount->second);
-				{
-					boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
-					assetsUtxoPresence_.erase(lAmount->second);
-				}
-
-				// TODO: need to remove from original map also
-				lAsset->second.erase(std::next(lAmount).base());
-				continue;
-			}
-
-			// extra check
-			{
-				uint64_t lHeight;
-				uint64_t lConfirms;
-				ITransactionStorePtr lStore;
-				if (storeManager()) lStore = storeManager()->locate(lUtxo->out().chain());
-				else lStore = persistentStore_;
-
-				if (lStore) {
-					bool lCoinbase = false;
-					if (lStore->transactionHeight(lUtxo->out().tx(), lHeight, lConfirms, lCoinbase)) {
-						//
-						IMemoryPoolPtr lMempool;
-						if(mempoolManager()) lMempool = mempoolManager()->locate(lUtxo->out().chain()); // corresponding mempool
-						else lMempool = mempool_;
-
-						//
-						if (!lCoinbase && lConfirms < lMempool->consensus()->maturity()) {
-							if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[collectUnlinkedOutsByAsset]: transaction is NOT MATURE ") + 
-								strprintf("%d/%d/%s/%s#", lConfirms, lMempool->consensus()->maturity(), lUtxo->out().tx().toHex(), lUtxo->out().chain().toHex().substr(0, 10)));
-							lAmount++;
-							continue; // skip UTXO
-						} else if (lCoinbase && lConfirms < lMempool->consensus()->coinbaseMaturity()) {
-							if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[collectUnlinkedOutsByAsset]: COINBASE transaction is NOT MATURE ") + 
-								strprintf("%d/%d/%s/%s#", lConfirms, lMempool->consensus()->coinbaseMaturity(), lUtxo->out().tx().toHex(), lUtxo->out().chain().toHex().substr(0, 10)));
-							lAmount++;
-							continue; // skip UTXO
-						} else if (lUtxo->lock() && lUtxo->lock() > lHeight + lConfirms) {
-							if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[collectUnlinkedOutsByAsset]: timelock is NOT REACHED ") + 
-								strprintf("%d/%d/%s/%s#", lUtxo->lock(), lHeight + lConfirms, lUtxo->out().tx().toHex(), lUtxo->out().chain().toHex().substr(0, 10)));
-							lAmount++;
-							continue; // skip UTXO
-						}
-					} else {
-						gLog().write(Log::WALLET, std::string("[collectUnlinkedOutsByAsset]: transaction not found ") + 
-							strprintf("%s/%s#", lUtxo->out().tx().toHex(), lUtxo->out().chain().toHex().substr(0, 10)));
-						lAmount++;
-						continue; // skip UTXO
-					}
-				} else {
-					gLog().write(Log::WALLET, std::string("[collectUnlinkedOutsByAsset]: storage not found for ") + 
-						strprintf("%s#", lUtxo->out().chain().toHex().substr(0, 10)));
-					lAmount++;
-					continue; // skip UTXO
-				}
-			}
-
-			if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[collectUnlinkedOutsByAsset]: tx found for amount ") + 
-				strprintf("%d/%s/%s/%s#", lAmount->first, lUtxo->out().hash().toHex(), lUtxo->out().tx().toHex(), lUtxo->out().chain().toHex().substr(0, 10)));
-
-			lTotal += lAmount->first;
-			list.push_back(lUtxo);
-
-			if (lTotal >= amount) {
-				break;
-			}
-
-			lAmount++;
-		}
-	}
-
-	if (lTotal < amount) list.clear(); // amount is unreachable
-
-	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[collectUnlinkedOutsByAsset]: total amount collected ") + 
-		strprintf("%d", lTotal));
+	// TODO: consider to re-implement
 }
 
 void Wallet::collectCoinbaseUnlinkedOuts(std::list<Transaction::UnlinkedOutPtr>& list) {
 	//
-	std::map<uint256 /*asset*/, std::multimap<amount_t /*amount*/, uint256 /*utxo*/>> lAssetsCache;
-	{
-		boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
-		lAssetsCache = assetsCache_;
-	}
-
-	std::map<uint256 /*asset*/, std::multimap<amount_t /*amount*/, uint256 /*utxo*/>>::iterator lAsset = lAssetsCache.find(TxAssetType::qbitAsset());
-	if (lAsset != lAssetsCache.end()) {
-		for (std::multimap<amount_t /*amount*/, uint256 /*utxo*/>::iterator lAmount = lAsset->second.begin(); 
-			lAmount != lAsset->second.end();) {
-						
+	for (db::DbMultiContainer<uint256 /*asset*/, uint256 /*utxo*/>::Iterator lAsset = assets_.find(TxAssetType::qbitAsset()); lAsset.valid(); ++lAsset) {
+		uint256 lUtxoId = *lAsset; // utxo hash
+		Transaction::UnlinkedOutPtr lUtxo = findUnlinkedOut(lUtxoId);
+		//
+		if (lUtxo == nullptr) {
 			//
-			if (!lAmount->first) {
-				lAmount++;
-				continue;
-			}
-
-			Transaction::UnlinkedOutPtr lUtxo = findUnlinkedOut(lAmount->second);
-			if (lUtxo == nullptr) {
-				//
-				lAmount++;
-				continue;
-			}
-
+			// delete from store
+			utxo_.remove(lUtxoId);
+		} else {
+			//
+			if (!lUtxo->amount()) continue;
 			// extra check
 			{
 				uint64_t lHeight;
@@ -880,31 +640,26 @@ void Wallet::collectCoinbaseUnlinkedOuts(std::list<Transaction::UnlinkedOutPtr>&
 						if (lConfirms < lMempool->consensus()->coinbaseMaturity() * 200) {
 							if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[collectCoinbaseUnlinkedOuts]: COINBASE transaction is NOT MATURE ") + 
 								strprintf("%d/%d/%s/%s#", lConfirms, lMempool->consensus()->coinbaseMaturity(), lUtxo->out().tx().toHex(), lUtxo->out().chain().toHex().substr(0, 10)));
-							lAmount++;
 							continue; // skip UTXO
 						}
 					} else {
-						lAmount++;
 						continue; // skip UTXO
 					}
 				} else {
 					gLog().write(Log::WALLET, std::string("[collectCoinbaseUnlinkedOuts]: storage not found for ") + 
 						strprintf("%s#", lUtxo->out().chain().toHex().substr(0, 10)));
-					lAmount++;
 					continue; // skip UTXO
 				}
 			}
 
 			if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[collectCoinbaseUnlinkedOuts]: tx found for amount ") + 
-				strprintf("%d/%s/%s/%s#", lAmount->first, lUtxo->out().hash().toHex(), lUtxo->out().tx().toHex(), lUtxo->out().chain().toHex().substr(0, 10)));
+				strprintf("%d/%s/%s/%s#", lUtxo->amount(), lUtxo->out().hash().toHex(), lUtxo->out().tx().toHex(), lUtxo->out().chain().toHex().substr(0, 10)));
 
 			list.push_back(lUtxo);
 
 			if (list.size() >= 500) {
 				break;
 			}
-
-			lAmount++;
 		}
 	}
 
@@ -1022,16 +777,12 @@ void Wallet::cleanUpData() {
 // dump utxo by asset
 void Wallet::dumpUnlinkedOutByAsset(const uint256& asset, std::stringstream& s) {
 	//
-	boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
-	std::map<uint256 /*asset*/, std::multimap<amount_t /*amount*/, uint256 /*utxo*/>>::iterator lAsset = assetsCache_.find(asset);
-	if (lAsset != assetsCache_.end()) {
-		for (std::multimap<amount_t /*amount*/, uint256 /*utxo*/>::reverse_iterator lAmount = lAsset->second.rbegin(); 
-			lAmount != lAsset->second.rend(); lAmount++) {
-			
-			Transaction::UnlinkedOutPtr lUtxo = findUnlinkedOut(lAmount->second);
-			if (lUtxo != nullptr) {
-				s << lUtxo->out().toString() << ", amount = " << lUtxo->amount() << "\n";
-			}
+	for (db::DbMultiContainer<uint256 /*asset*/, uint256 /*utxo*/>::Iterator lAsset = assets_.find(asset); lAsset.valid(); ++lAsset) {
+		uint256 lUtxoId = *lAsset; // utxo hash
+		Transaction::UnlinkedOutPtr lUtxo = findUnlinkedOut(lUtxoId);
+		//
+		if (lUtxo != nullptr) {
+			s << lUtxo->out().toString() << ", amount = " << lUtxo->amount() << "\n";
 		}
 	}
 }
@@ -1075,37 +826,6 @@ bool Wallet::rollback(TransactionContextPtr ctx) {
 			// recover
 			utxo_.write(lUtxoId, *(*lUtxo));
 			cacheUtxo((*lUtxo));
-
-			if (ctx->tx()->isValue(*lUtxo)) {
-				//
-				boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
-
-				// extract asset
-				std::map<uint256 /*asset*/, std::multimap<amount_t /*amount*/, uint256 /*utxo*/>>::iterator lAsset = assetsCache_.find(lAssetId);
-
-				// check assets cache
-				std::pair<std::multimap<amount_t, uint256>::iterator,
-							std::multimap<amount_t, uint256>::iterator> lRange = lAsset->second.equal_range((*lUtxo)->amount());
-
-				bool lFound = false;
-				for (std::multimap<amount_t, uint256>::iterator lAmount = lRange.first; lAmount != lRange.second; lAmount++) {
-					if (lAmount->second == lUtxoId) { lFound = true; break; }
-				}
-
-				if (!lFound) {
-					if (assetsUtxoPresence_.insert(lUtxoId).second)
-						assetsCache_[lAssetId].insert(std::multimap<amount_t, uint256>::value_type((*lUtxo)->amount(), lUtxoId));
-				}
-
-			} else if (ctx->tx()->isEntity(*lUtxo)) {
-				//
-				boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
-				// reconstruct entity
-				std::map<uint256, std::map<uint256, Transaction::UnlinkedOutPtr>>::iterator lEntity = assetEntitiesCache_.find(lAssetId);
-				if (lEntity != assetEntitiesCache_.end()) {
-					lEntity->second.insert(std::map<uint256, Transaction::UnlinkedOutPtr>::value_type(lUtxoId, *lUtxo));
-				}
-			}
 		}
 	}
 
@@ -1301,9 +1021,14 @@ TransactionContextPtr Wallet::createTxAssetType(const PKey& dest, const std::str
 }
 
 Transaction::UnlinkedOutPtr Wallet::findUnlinkedOutByEntity(const uint256& entity) {
-	std::map<uint256, std::map<uint256, Transaction::UnlinkedOutPtr>>::iterator lEntity = assetEntitiesCache_.find(entity);
-	if (lEntity != assetEntitiesCache_.end() && lEntity->second.size()) {
-		return lEntity->second.begin()->second;
+	//
+	for (db::DbMultiContainer<uint256 /*entity*/, uint256 /*utxo*/>::Iterator lEntity = assetEntities_.find(entity); lEntity.valid(); ++lEntity) {
+		uint256 lUtxoId = *lEntity; // utxo hash
+		Transaction::UnlinkedOutPtr lUtxo = findUnlinkedOut(lUtxoId);
+		//
+		if (lUtxo != nullptr) {
+			return lUtxo;
+		}
 	}
 
 	return nullptr;
