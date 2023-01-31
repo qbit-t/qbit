@@ -17,63 +17,9 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <execinfo.h>
-//#include <string.h>
-//#include <errno.h>
-//#include <unistd.h>
-//#include <stdlib.h>
-//#include <zconf.h>
-
-/*
-std::string sh(std::string cmd) {
-    std::array<char, 128> buffer;
-    std::string result;
-    std::shared_ptr<FILE> pipe(popen(cmd.c_str(), "r"), pclose);
-    if (!pipe) throw std::runtime_error("popen() failed!");
-    while (!feof(pipe.get())) {
-        if (fgets(buffer.data(), 128, pipe.get()) != nullptr) {
-            result += buffer.data();
-        }
-    }
-    return result;
-}
-*/
 
 int print_ = 0;
-
-void print_backtrace(void) {
-	if (!print_) return;
-
-    void *bt[100];
-    int bt_size;
-    char **bt_syms;
-    int i;
-
-    bt_size = backtrace(bt, 100);
-    bt_syms = backtrace_symbols(bt, bt_size);
-
-    for (i = 1; i < bt_size; i++) {
-    	printf("%s\n", bt_syms[i]);
-    }
-
-    //std::regex re("\\[(.+)\\]");
-
-    /*
-    for (i = 1; i < bt_size; i++) {
-        std::string sym = bt_syms[i];
-        std::smatch ms;
-        if (std::regex_search(sym, ms, re)) {
-            std::string addr = ms[1];
-            std::string cmd = "addr2line -e " + exec_path + " -f -C " + addr;
-            auto r = sh(cmd);
-            std::regex re2("\\n$");
-            auto r2 = std::regex_replace(r, re2, "");
-            std::cout << r2 << std::endl;
-        }
-    }
-    */
-
-    free(bt_syms);
-}
+int class_ = 0;
 
 char* _jm_backtrace(size_t *length) {
 	void *bt[100];
@@ -825,10 +771,12 @@ JM_INLINE struct _jm_data_block* _jm_chunk_block_alloc
 	lBlock->next = lBlock->prev = 0; // unlink from free_block_list
 
 #ifdef JM_ALLOCATION_INFO
-	if (print_ && (chunk->class_index == 5 || chunk->class_index == 11)) {
+	/////////////////////////
+	if (print_ && chunk->class_index == class_) {
 		lBlock->file = (unsigned char*)file;
 		lBlock->func = (unsigned char*)_jm_backtrace(&lBlock->line); //func;
 	}
+	/////////////////////////
 	//lBlock->line = line;
 #endif
 
@@ -1671,8 +1619,8 @@ void _jm_arena_dump_chunk_internal(struct _jm_arena* arena, size_t chunk, int cl
 	size_t lIdx;
 
 	////////////////////////////
-	if (path[0] == 'o' && path[1] == 'n') print_ = 1;
-	if (path[0] == 'o' && path[1] == 'f') print_ = 0;
+	if (path[0] == 'o' && path[1] == 'n') { print_ = 1; class_ = class_index; }
+	if (path[0] == 'o' && path[1] == 'f') { print_ = 0; class_ = 0; }
 	////////////////////////////
 	
 	struct _jm_free_block* lBlock;
