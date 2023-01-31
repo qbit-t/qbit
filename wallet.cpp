@@ -397,7 +397,7 @@ bool Wallet::isUnlinkedOutExists(const uint256& utxo) {
 Transaction::UnlinkedOutPtr Wallet::findUnlinkedOut(const uint256& hash) {
 	//
 	Transaction::UnlinkedOut lUtxo;
-	if (utxo_.read(hash, lUtxo) && isUnlinkedOutExistsGlobal(hash, lUtxo)) {
+	if (utxo_.read(hash, lUtxo)) { // && isUnlinkedOutExistsGlobal(hash, lUtxo)) {
 		return Transaction::UnlinkedOut::instance(lUtxo);
 	}
 
