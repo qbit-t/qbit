@@ -353,7 +353,9 @@ public:
 		shardEntities_("indexes_shard_entities", space_),
 		txUtxo_("indexes_tx_utxo", space_),
 		airDropAddressesTx_("indexes_airdrop_addresses", space_),
-		airDropPeers_("indexes_airdrop_peers", space_)
+		airDropPeers_("indexes_airdrop_peers", space_),
+		heightMap_(settings_->dataPath() + "/" + chain.toHex() + "/height_map"),
+		blockMap_(settings_->dataPath() + "/" + chain.toHex() + "/block_map")
 	{}
 
 	// stub
@@ -593,8 +595,10 @@ private:
 
 	//
 	boost::recursive_mutex storageMutex_;
-	std::map<uint64_t, uint256> heightMap_;
-	std::map<uint256, uint64_t> blockMap_;
+	// std::map<uint64_t, uint256> heightMap_;
+	// std::map<uint256, uint64_t> blockMap_;
+	db::DbContainer<uint64_t, uint256> heightMap_;
+	db::DbContainer<uint256, uint64_t> blockMap_;
 
 	//
 	std::map<uint256, NetworkBlockHeader> blocksQueue_;

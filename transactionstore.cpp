@@ -413,18 +413,18 @@ bool TransactionStore::transactionInfo(const uint256& tx, uint256& block, uint64
 	if (transactionsIdx_.read(tx, lIndex)) {
 		//
 		boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
-		std::map<uint256, uint64_t>::iterator lHeight = blockMap_.find(lIndex.block());
-
-		if (lHeight != blockMap_.end()) {
+		uint64_t lHeight;
+		if (blockMap_.read(lIndex.block(), lHeight)) {
 			if (!lIndex.index()) coinbase = true;
 			else coinbase = false;
-			height = lHeight->second;
+			height = lHeight;
 			block = lIndex.block();
 			index = lIndex.index();
 
-			std::map<uint64_t, uint256>::reverse_iterator lHead = heightMap_.rbegin();
-			if (lHead != heightMap_.rend() && lHead->first >= height) { 
-				confirms = (lHead->first - height) + 1; 
+			uint64_t lFirst;
+			db::DbContainer<uint64_t, uint256>::Iterator lHead = heightMap_.last();
+			if (lHead.valid() && lHead.first(lFirst) && lFirst >= height) { 
+				confirms = (lFirst - height) + 1; 
 			} else confirms = 0;
 
 			return true;
@@ -437,9 +437,9 @@ bool TransactionStore::transactionInfo(const uint256& tx, uint256& block, uint64
 bool TransactionStore::blockHeight(const uint256& block, uint64_t& height) {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
-	std::map<uint256, uint64_t>::iterator lHeight = blockMap_.find(block);
-	if (lHeight != blockMap_.end()) {
-		height = lHeight->second;
+	uint64_t lHeight;
+	if (blockMap_.read(block, lHeight)) {
+		height = lHeight;
 		return true;
 	}
 
@@ -449,9 +449,9 @@ bool TransactionStore::blockHeight(const uint256& block, uint64_t& height) {
 bool TransactionStore::blockHeaderHeight(const uint256& block, uint64_t& height, BlockHeader& header) {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
-	std::map<uint256, uint64_t>::iterator lHeight = blockMap_.find(block);
-	if (lHeight != blockMap_.end()) {
-		height = lHeight->second;
+	uint64_t lHeight;
+	if (blockMap_.read(block, lHeight)) {
+		height = lHeight;
 		return blockHeader(block, header);
 	}
 
@@ -568,8 +568,16 @@ void TransactionStore::invalidateHeightMap() {
 	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
 
 	//
-	heightMap_.clear();
-	blockMap_.clear();
+	heightMap_.close();
+	blockMap_.close();
+
+	//
+	rmpath((settings_->dataPath() + "/" + chain_.toHex() + std::string("/height_map")).c_str());
+	rmpath((settings_->dataPath() + "/" + chain_.toHex() + std::string("/block_map")).c_str());
+
+	//
+	heightMap_.open();
+	blockMap_.open();
 }
 
 bool TransactionStore::resyncHeight() {
@@ -618,16 +626,16 @@ bool TransactionStore::resyncHeight() {
 	}
 
 	//
+	invalidateHeightMap();
+
+	//
 	{
 		boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
 
-		//
-		heightMap_.clear();
-		blockMap_.clear();
-
 		for (std::list<uint256>::reverse_iterator lIter = lSeq.rbegin(); lIter != lSeq.rend(); lIter++) {
-			heightMap_.insert(std::map<uint64_t, uint256>::value_type(++lIndex, *lIter));
-			blockMap_.insert(std::map<uint256, uint64_t>::value_type(*lIter, lIndex));
+			//
+			heightMap_.write(++lIndex, *lIter);
+			blockMap_.write(*lIter, lIndex);
 		}
 	}
 
@@ -675,43 +683,44 @@ bool TransactionStore::resyncHeight(const uint256& to) {
 		// partial resync
 		boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
 		// locate last index
-		std::map<uint256, uint64_t>::iterator lBlockPtr = blockMap_.find(*lSeq.rbegin());
-		if (lBlockPtr != blockMap_.end()) {
+		uint64_t lHeight;
+		if (blockMap_.read(*lSeq.rbegin(), lHeight)) {
 			// "to" found
-			lLastIndex = lBlockPtr->second; // "to" index
+			lLastIndex = lHeight; // "to" index
 			// clean-up
 			std::list<uint256>::reverse_iterator lIter = ++(lSeq.rbegin()); // next from "to"
 			for (; lIter != lSeq.rend(); lIter++) {
-				std::map<uint256, uint64_t>::iterator lBlockIter = blockMap_.find(*lIter);
-				if (lBlockIter != blockMap_.end()) { 
-					heightMap_.erase(lBlockIter->second);
-					blockMap_.erase(lBlockIter);
+				if (blockMap_.read(*lIter, lHeight)) { 
+					heightMap_.remove(lHeight);
+					blockMap_.remove(*lIter);
 				}
 			}
 			// build up
 			lIter = ++(lSeq.rbegin()); // next from "to"
 			for (; lIter != lSeq.rend(); lIter++) {
-				if (!heightMap_.insert(std::map<uint64_t, uint256>::value_type(++lLastIndex, *lIter)).second) {
+				uint256 lHeaderId;
+				if (heightMap_.read(++lLastIndex, lHeaderId)) {
 					if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight/partial/warning]: height map is not clean, replacing for ") + 
 							strprintf("index = %d, block = %s, to = %s, last = %s, chain = %s#", 
 								lLastIndex, (*lIter).toHex(), to.toHex(), lastBlock_.toHex(), chain_.toHex().substr(0, 10)));
 					//
-					heightMap_.erase(lLastIndex);
-					heightMap_.insert(std::map<uint64_t, uint256>::value_type(lLastIndex, *lIter));
+					heightMap_.remove(lLastIndex);
+					heightMap_.write(lLastIndex, *lIter);
 				}
 
-				if (!blockMap_.insert(std::map<uint256, uint64_t>::value_type(*lIter, lLastIndex)).second) {
+				uint64_t lHeightId;
+				if (blockMap_.read(*lIter, lHeightId)) {
 					if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight/partial/warning]: block map is not clean, replacing for ") + 
 							strprintf("block = %s, to = %s, last = %s, chain = %s#", 
 								(*lIter).toHex(), to.toHex(), lastBlock_.toHex(), chain_.toHex().substr(0, 10)));
 					//
-					blockMap_.erase(*lIter);
-					blockMap_.insert(std::map<uint256, uint64_t>::value_type(*lIter, lLastIndex));
+					blockMap_.remove(*lIter);
+					blockMap_.write(*lIter, lLastIndex);
 				}
 			}
 			// check
-			std::map<uint64_t, uint256>::reverse_iterator lTop = heightMap_.rbegin();
-			if (lTop->second != lastBlock_) {
+			db::DbContainer<uint64_t, uint256>::Iterator lTop = heightMap_.last();
+			if (lTop.valid() && *lTop != lastBlock_) {
 				// full resync
 				lFull = true;
 				if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight/partial/error]: top is not last, making FULL resync for ") + 
@@ -1194,12 +1203,13 @@ bool TransactionStore::processBlocks(const uint256& from, const uint256& to, IMe
 uint64_t TransactionStore::currentHeight(BlockHeader& block) {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
-	if (heightMap_.size()) {
-		std::map<uint64_t, uint256>::reverse_iterator lHeader = heightMap_.rbegin();
+	uint64_t lHeight;
+	db::DbContainer<uint64_t, uint256>::Iterator lHeader = heightMap_.last();
+	if (lHeader.valid() && lHeader.first(lHeight)) {
 		// validate
-		if (headers_.read(lHeader->second, block)) {
-			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[currentHeight]: ") + strprintf("%d/%s/%s#", lHeader->first, block.hash().toHex(), chain_.toHex().substr(0, 10)));
-			return lHeader->first;
+		if (headers_.read(*lHeader, block)) {
+			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[currentHeight]: ") + strprintf("%d/%s/%s#", lHeight, block.hash().toHex(), chain_.toHex().substr(0, 10)));
+			return lHeight;
 		}
 	}
 
@@ -1210,9 +1220,10 @@ uint64_t TransactionStore::currentHeight(BlockHeader& block) {
 uint64_t TransactionStore::top() {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
-	if (heightMap_.size()) {
-		std::map<uint64_t, uint256>::reverse_iterator lHeader = heightMap_.rbegin();
-		return lHeader->first;
+	uint64_t lHeight;
+	db::DbContainer<uint64_t, uint256>::Iterator lHeader = heightMap_.last();
+	if (lHeader.valid() && lHeader.first(lHeight)) {
+		return lHeight;
 	}
 
 	return 0;
@@ -1221,16 +1232,16 @@ uint64_t TransactionStore::top() {
 uint64_t TransactionStore::pushNewHeight(const uint256& block) {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
-	uint64_t lHeight = 1;
-	if (heightMap_.size()) {
-		lHeight = heightMap_.rbegin()->first+1;
+	uint64_t lHeight = 1, lTopHeight = 0;
+	db::DbContainer<uint64_t, uint256>::Iterator lTop = heightMap_.last();
+	if (lTop.valid() && lTop.first(lTopHeight)) {
+		lHeight = lTopHeight + 1;
 	}
 
-	std::pair<std::map<uint64_t, uint256>::iterator, bool> lNewHeight = 
-		heightMap_.insert(std::map<uint64_t, uint256>::value_type(lHeight, block));
-	blockMap_.insert(std::map<uint256, uint64_t>::value_type(block, lHeight));
+	heightMap_.write(lHeight, block);
+	blockMap_.write(block, lHeight);
 
-	return lNewHeight.first->first;
+	return lHeight;
 }
 
 BlockHeader TransactionStore::currentBlockHeader() {
@@ -1340,17 +1351,17 @@ BlockPtr TransactionStore::block(uint64_t height) {
 	//
 	BlockHeader lHeader;
 	uint256 lHash;
+	bool lFound = false;
 	{
 		boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
-		std::map<uint64_t, uint256>::iterator lHeight = heightMap_.find(height);
-		if (lHeight != heightMap_.end()) {
-			lHash = lHeight->second;
+		if (heightMap_.read(height, lHash)) {
+			lFound = true;
 		} else {
 			return nullptr;
 		}
 	}
 
-	if (headers_.read(lHash, lHeader)) {
+	if (lFound && headers_.read(lHash, lHeader)) {
 		BlockTransactionsPtr lTransactions = transactions_.read(lHash);
 		if (lTransactions)
 			return Block::instance(lHeader, lTransactions);
@@ -1362,17 +1373,17 @@ BlockPtr TransactionStore::block(uint64_t height) {
 bool TransactionStore::blockHeader(uint64_t height, BlockHeader& header) {
 	//
 	uint256 lHash;
+	bool lFound = false;
 	{
 		boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
-		std::map<uint64_t, uint256>::iterator lHeight = heightMap_.find(height);
-		if (lHeight != heightMap_.end()) {
-			lHash = lHeight->second;
+		if (heightMap_.read(height, lHash)) {
+			lFound = true;
 		} else {
 			return false;
 		}
 	}
 
-	return headers_.read(lHash, header);
+	return lFound && headers_.read(lHash, header);
 }
 
 BlockPtr TransactionStore::block(const uint256& id) {
