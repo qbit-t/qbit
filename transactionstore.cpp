@@ -847,6 +847,7 @@ void TransactionStore::removeBlocks(const uint256& from, const uint256& to, bool
 					ltxo_.remove(lAction.utxo()); // sanity
 					utxoBlock_.remove(lAction.utxo()); // just for push
 					addressAssetUtxoIdx_.remove(lUtxoObj.address().id(), lUtxoObj.out().asset(), lAction.utxo());
+					wallet_->tryRemoveUnlinkedOut(lAction.utxo()); // try wallet
 					lTouchedTxs.insert(lUtxoObj.out().tx()); // mark as visited
 				} else {
 					// try main chain 
@@ -869,6 +870,7 @@ void TransactionStore::removeBlocks(const uint256& from, const uint256& to, bool
 					addressAssetUtxoIdx_.write(lUtxoObj.address().id(), lUtxoObj.out().asset(), lAction.utxo(), lUtxoObj.out().tx());
 					utxoBlock_.write(lAction.utxo(), lHash);
 					ltxo_.remove(lAction.utxo());
+					wallet_->tryRevertUnlinkedOut(lAction.utxo()); // try wallet
 					lTouchedTxs.insert(lUtxoObj.out().tx()); // mark as visited
 
 					if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[removeBlocks]: ") +
