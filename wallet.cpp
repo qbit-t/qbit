@@ -210,8 +210,6 @@ bool Wallet::close() {
 
 bool Wallet::prepareCache() {
 	//
-	boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
-
 	try {
 		// scan assets, check utxo and fill balance
 		db::DbMultiContainerShared<uint256 /*asset*/, uint256 /*utxo*/>::Transaction lAssetTransaction = assets_.transaction();
@@ -267,7 +265,10 @@ bool Wallet::prepareCache() {
 		lUtxoTransaction.commit();
 
 		// make changes to entities
-		lEntityTransaction.commit();		
+		lEntityTransaction.commit();
+
+		// try to re-check pending txs
+		checkPendingUtxo();
 
 		opened_ = true;
 
@@ -603,11 +604,12 @@ void Wallet::balance(const uint256& asset, amount_t& pending, amount_t& actual, 
 	//
 	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[balance]: ") + strprintf("computing balance for %s", asset.toHex()));
 	//
-	amount_t lAmount = 0, lPending = 0;
+	amount_t lAmount = 0, lNotConfirmed = 0;
 	if (balance_.read(asset, lAmount) && !rescan) {
 		//
 		pending = lAmount;
 		//
+		db::DbContainerShared<uint256 /*utxo*/, uint256 /*transaction*/>::Transaction lPendingTx = pendingUtxo_.transaction();
 		for (db::DbContainerShared<uint256 /*utxo*/, uint256 /*transaction*/>::Iterator lItem = pendingUtxo_.begin(); lItem.valid(); ++lItem) {
 			//
 			uint64_t lHeight;
@@ -622,7 +624,7 @@ void Wallet::balance(const uint256& asset, amount_t& pending, amount_t& actual, 
 
 			//
 			if (lUtxo == nullptr) {
-				pendingUtxo_.remove(lUtxoId);
+				lPendingTx.remove(lUtxoId);
 				continue;
 			}
 
@@ -638,25 +640,24 @@ void Wallet::balance(const uint256& asset, amount_t& pending, amount_t& actual, 
 					else lMempool = mempool_;
 
 					//
-					if (!lCoinbase && lConfirms < lMempool->consensus()->maturity()) {
-						continue; // skip UTXO
-					} else if (lCoinbase && lConfirms < lMempool->consensus()->coinbaseMaturity()) {
-						continue; // skip UTXO
-					} else if (lUtxo->lock() && lUtxo->lock() > lHeight + lConfirms) {
+					if ((!lCoinbase && lConfirms < lMempool->consensus()->maturity()) ||
+							(lCoinbase && lConfirms < lMempool->consensus()->coinbaseMaturity()) || 
+								(lUtxo->lock() && lUtxo->lock() > lHeight + lConfirms)) {
+						lNotConfirmed += lUtxo->amount();
 						continue; // skip UTXO
 					}
 
 					// remove utxo from pending
-					pendingUtxo_.remove(lUtxoId);
-
-					//
-					lPending += lUtxo->amount();
+					lPendingTx.remove(lUtxoId);
 				}
 			}
 		}
 
 		//
-		actual = pending - lPending;
+		lPendingTx.commit();
+
+		//
+		actual = pending - lNotConfirmed;
 	} else {
 		//
 		for (db::DbMultiContainerShared<uint256 /*asset*/, uint256 /*utxo*/>::Iterator lAsset = assets_.find(asset); lAsset.valid(); ++lAsset) {
