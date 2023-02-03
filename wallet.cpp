@@ -345,7 +345,7 @@ bool Wallet::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, TransactionContex
 				amount_t lAmount = 0;
 				balance_.read(lAssetId, lAmount);
 				lAmount += utxo->amount(); // return amount
-				balance_.write(lAssetId, lAmount);				
+				balance_.write(lAssetId, lAmount);
 			}
 
 			// TODO: do we need every-time check hehe?
@@ -605,7 +605,12 @@ void Wallet::balance(const uint256& asset, amount_t& pending, amount_t& actual, 
 	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[balance]: ") + strprintf("computing balance for %s", asset.toHex()));
 	//
 	amount_t lAmount = 0, lNotConfirmed = 0;
-	if (balance_.read(asset, lAmount) && !rescan) {
+	bool lProcess = false;
+	{
+		boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
+		lProcess = balance_.read(asset, lAmount);
+	}
+	if (lProcess && !rescan) {
 		//
 		pending = lAmount;
 		//
@@ -723,6 +728,12 @@ void Wallet::balance(const uint256& asset, amount_t& pending, amount_t& actual, 
 
 				actual += lUtxo->amount();
 			}
+		}
+
+		{
+			// update
+			boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
+			balance_.write(asset, pending);
 		}
 	}
 
