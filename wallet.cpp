@@ -440,11 +440,14 @@ bool Wallet::tryRemoveUnlinkedOut(const uint256& utxo) {
 		uint256 lAssetId = lUtxoPtr->out().asset();
 		if (lUtxoPtr->amount() > 0) {
 			//
-			boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
-			amount_t lAmount = 0;
-			balance_.read(lAssetId, lAmount);
-			if (lAmount >= lUtxoPtr->amount()) lAmount -= lUtxoPtr->amount(); // remove amount
-			balance_.write(lAssetId, lAmount);
+			assets_.remove(lAssetId, utxo);
+			{
+				boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
+				amount_t lAmount = 0;
+				balance_.read(lAssetId, lAmount);
+				if (lAmount >= lUtxoPtr->amount()) lAmount -= lUtxoPtr->amount(); // remove amount
+				balance_.write(lAssetId, lAmount);
+			}
 		}
 
 		utxo_.remove(utxo);
@@ -467,11 +470,14 @@ bool Wallet::tryRevertUnlinkedOut(const uint256& utxo) {
 		uint256 lAssetId = lUtxoPtr->out().asset();
 		if (lUtxoPtr->amount() > 0) {
 			//
-			boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
-			amount_t lAmount = 0;
-			balance_.read(lAssetId, lAmount);
-			lAmount += lUtxoPtr->amount(); // return amount
-			balance_.write(lAssetId, lAmount);
+			assets_.write(lAssetId, utxo, lUtxoPtr->out().tx());
+			{
+				boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
+				amount_t lAmount = 0;
+				balance_.read(lAssetId, lAmount);
+				lAmount += lUtxoPtr->amount(); // return amount
+				balance_.write(lAssetId, lAmount);
+			}
 		}
 
 		ltxo_.remove(utxo);
@@ -1069,20 +1075,25 @@ bool Wallet::rollback(TransactionContextPtr ctx) {
 		if (lUtxoPtr) {
 			//
 			if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[rollback]: remove utxo ") + 
-				strprintf("%s/%s/%s#", 
-					lUtxoId.toHex(), (*lUtxo)->out().tx().toHex(), (*lUtxo)->out().chain().toHex().substr(0, 10)));
+				strprintf("a = %d, %s/%s/%s#", 
+					lUtxoPtr->amount(), lUtxoId.toHex(), (*lUtxo)->out().tx().toHex(), (*lUtxo)->out().chain().toHex().substr(0, 10)));
 
 			// remove entry
 			removeUtxo(lUtxoId);
 			//
-			uint256 lAssetId = lUtxoPtr->out().asset();
-			if (lUtxoPtr->amount() > 0) {
+			uint256 lTx;
+			uint256 lAssetId = lUtxoPtr->out().asset(), lAssetIdA, lUtxoA;
+			db::DbTwoKeyContainerShared<uint256 /*asset*/, uint256 /*utxo*/, uint256 /*tx*/>::Iterator lAssetUtxo = assets_.find(lAssetId, lUtxoId);
+			if (lUtxoPtr->amount() > 0 && lAssetUtxo.valid() && lAssetUtxo.first(lAssetIdA, lUtxoA) && lUtxoA == lUtxoId) {
 				//
-				boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
-				amount_t lAmount = 0;
-				balance_.read(lAssetId, lAmount);
-				if (lAmount >= lUtxoPtr->amount()) lAmount -= lUtxoPtr->amount(); // remove amount
-				balance_.write(lAssetId, lAmount);
+				assets_.remove(lAssetId, lUtxoId);
+				{
+					boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
+					amount_t lAmount = 0;
+					balance_.read(lAssetId, lAmount);
+					if (lAmount >= lUtxoPtr->amount()) lAmount -= lUtxoPtr->amount(); // remove amount
+					balance_.write(lAssetId, lAmount);
+				}
 			}
 
 			//
@@ -1097,28 +1108,27 @@ bool Wallet::rollback(TransactionContextPtr ctx) {
 		// locate utxo
 		uint256 lUtxoId = (*lUtxo)->hash();
 		//
-		if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[rollback]: reconstruct utxo ") + 
-			strprintf("%s/%s/%s#", 
-				lUtxoId.toHex(), (*lUtxo)->out().tx().toHex(), (*lUtxo)->out().chain().toHex().substr(0, 10)));
-		//
 		ltxo_.remove(lUtxoId);
 		//
 		if (!findUnlinkedOut(lUtxoId)) {
 			//
 			if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[rollback]: reconstruct utxo ") + 
-				strprintf("%s/%s/%s#", 
-					lUtxoId.toHex(), (*lUtxo)->out().tx().toHex(), (*lUtxo)->out().chain().toHex().substr(0, 10)));
+				strprintf("a = %d, %s/%s/%s#", 
+					(*lUtxo)->amount(), lUtxoId.toHex(), (*lUtxo)->out().tx().toHex(), (*lUtxo)->out().chain().toHex().substr(0, 10)));
 			// recover
 			utxo_.write(lUtxoId, *(*lUtxo));
 			//
 			uint256 lAssetId = (*lUtxo)->out().asset();
 			if ((*lUtxo)->amount() > 0) {
 				//
-				boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
-				amount_t lAmount = 0;
-				balance_.read(lAssetId, lAmount);
-				lAmount += (*lUtxo)->amount(); // return amount
-				balance_.write(lAssetId, lAmount);
+				assets_.write(lAssetId, lUtxoId, (*lUtxo)->out().tx());
+				{
+					boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
+					amount_t lAmount = 0;
+					balance_.read(lAssetId, lAmount);
+					lAmount += (*lUtxo)->amount(); // return amount
+					balance_.write(lAssetId, lAmount);
+				}
 			}
 		}
 	}
