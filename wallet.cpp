@@ -663,6 +663,9 @@ void Wallet::balance(const uint256& asset, amount_t& pending, amount_t& actual, 
 
 					// remove utxo from pending
 					lPendingTx.remove(lUtxoId);
+				} else {
+					//
+					lNotConfirmed += lUtxo->amount();
 				}
 			}
 		}
@@ -1062,26 +1065,26 @@ bool Wallet::rollback(TransactionContextPtr ctx) {
 	for (std::list<Transaction::UnlinkedOutPtr>::iterator lUtxo = ctx->newUtxo().begin(); lUtxo != ctx->newUtxo().end(); lUtxo++) {
 		// locate utxo
 		uint256 lUtxoId = (*lUtxo)->hash();
-		Transaction::UnlinkedOutPtr lUtxoPtr = findUnlinkedOut(lUtxoId);
-		if (lUtxoPtr) {
-			//
-			if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[rollback]: remove utxo ") + 
-				strprintf("%s/%s/%s#", 
-					lUtxoId.toHex(), (*lUtxo)->out().tx().toHex(), (*lUtxo)->out().chain().toHex().substr(0, 10)));
-
-			// remove entry
-			removeUtxo(lUtxoId);
-			utxo_.remove(lUtxoId);
-		}
+		//
+		if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[rollback]: remove utxo ") + 
+			strprintf("%s/%s/%s#", 
+				lUtxoId.toHex(), (*lUtxo)->out().tx().toHex(), (*lUtxo)->out().chain().toHex().substr(0, 10)));
+		tryRemoveUnlinkedOut(lUtxoId);
 	}
+
 	ctx->newUtxo().clear();
 
 	// recover used utxos
 	for (std::list<Transaction::UnlinkedOutPtr>::iterator lUtxo = ctx->usedUtxo().begin(); lUtxo != ctx->usedUtxo().end(); lUtxo++) {
 		// locate utxo
 		uint256 lUtxoId = (*lUtxo)->hash();
-		uint256 lAssetId = (*lUtxo)->out().asset();
+		//
+		if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[rollback]: reconstruct utxo ") + 
+			strprintf("%s/%s/%s#", 
+				lUtxoId.toHex(), (*lUtxo)->out().tx().toHex(), (*lUtxo)->out().chain().toHex().substr(0, 10)));
+		tryRevertUnlinkedOut(lUtxoId);
 
+		/*
 		ltxo_.remove(lUtxoId);
 
 		if (!findUnlinkedOut(lUtxoId)) {
@@ -1093,6 +1096,7 @@ bool Wallet::rollback(TransactionContextPtr ctx) {
 			utxo_.write(lUtxoId, *(*lUtxo));
 			cacheUtxo((*lUtxo));
 		}
+		*/
 	}
 
 	ctx->usedUtxo().clear();
