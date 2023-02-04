@@ -212,15 +212,15 @@ bool Wallet::prepareCache() {
 	//
 	try {
 		// scan assets, check utxo and fill balance
-		db::DbMultiContainerShared<uint256 /*asset*/, uint256 /*utxo*/>::Transaction lAssetTransaction = assets_.transaction();
+		db::DbTwoKeyContainerShared<uint256 /*asset*/, uint256 /*utxo*/, uint256 /*tx*/>::Transaction lAssetTransaction = assets_.transaction();
 		// 
 		db::DbContainerShared<uint256 /*utxo*/, Transaction::UnlinkedOut /*data*/>::Transaction lUtxoTransaction = utxo_.transaction();
 
-		for (db::DbMultiContainerShared<uint256 /*asset*/, uint256 /*utxo*/>::Iterator lAsset = assets_.begin(); lAsset.valid(); ++lAsset) {
+		for (db::DbTwoKeyContainerShared<uint256 /*asset*/, uint256 /*utxo*/, uint256 /*tx*/>::Iterator lAsset = assets_.begin(); lAsset.valid(); ++lAsset) {
 			Transaction::UnlinkedOut lUtxo;
-			uint256 lUtxoId = *lAsset; // utxo hash
+			uint256 lUtxoId;
 			uint256 lAssetId;
-			lAsset.first(lAssetId); // asset hash
+			lAsset.first(lAssetId, lUtxoId); // asset hash, utxo hash
 
 			if (utxo_.read(lUtxoId, lUtxo)) {
 				// if utxo exists
@@ -237,10 +237,10 @@ bool Wallet::prepareCache() {
 		lAssetTransaction.commit();
 
 		// entity tx
-		db::DbMultiContainerShared<uint256 /*asset*/, uint256 /*utxo*/>::Transaction lEntityTransaction = assetEntities_.transaction();
+		db::DbTwoKeyContainerShared<uint256 /*asset*/, uint256 /*utxo*/, uint256 /*tx*/>::Transaction lEntityTransaction = assetEntities_.transaction();
 
 		// scan entities
-		for (db::DbMultiContainerShared<uint256 /*entity*/, uint256 /*utxo*/>::Iterator lEntity = assetEntities_.begin(); lEntity.valid(); ++lEntity) {
+		for (db::DbTwoKeyContainerShared<uint256 /*entity*/, uint256 /*utxo*/, uint256 /*tx*/>::Iterator lEntity = assetEntities_.begin(); lEntity.valid(); ++lEntity) {
 			uint256 lUtxoId = *lEntity; // utxo hash
 			uint256 lEntityId;
 			lEntity.first(lEntityId); // entity hash
@@ -337,8 +337,8 @@ bool Wallet::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, TransactionContex
 	if (ctx->tx()->isValue(utxo)) {
 		// update assets db
 		if (utxo->amount() > 0) {
-			assets_.write(lAssetId, lUtxoId); // write assets
-			pendingUtxo_.write(lUtxoId, ctx->tx()->id()); // write pendings
+			assets_.write(lAssetId, lUtxoId, utxo->out().tx()); // write assets
+			pendingUtxo_.write(lUtxoId, utxo->out().tx()); // write pendings
 			{
 				//
 				boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
@@ -353,7 +353,7 @@ bool Wallet::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, TransactionContex
 		}
 	} else if (ctx->tx()->isEntity(utxo) && lAssetId != TxAssetType::nullAsset()) {
 		// update db
-		assetEntities_.write(lAssetId, lUtxoId);
+		assetEntities_.write(lAssetId, lUtxoId, utxo->out().tx());
 	}
 
 	return true;
@@ -401,6 +401,7 @@ bool Wallet::popUnlinkedOut(const uint256& hash, TransactionContextPtr ctx) {
 		//
 		if (lUtxoPtr->amount() > 0) {
 			//
+			assets_.remove(lAssetId, hash);
 			pendingUtxo_.remove(hash);
 			{
 				boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
@@ -410,13 +411,13 @@ bool Wallet::popUnlinkedOut(const uint256& hash, TransactionContextPtr ctx) {
 				balance_.write(lAssetId, lAmount);
 			}
 
-			// TODO: do we need every-time check hehe?
+			// TODO: do we need every-time check here?
 			// checkPendingUtxo();
-		}		
+		} else {
+			// try entities
+			assetEntities_.remove(lAssetId, hash);
+		}
 
-		// assets_ entries is not cleaned at this point
-		// this index maintained on startup only
-		// TODO: make more robust index maintenance
 		return true;
 	}
 
@@ -473,7 +474,8 @@ bool Wallet::tryRevertUnlinkedOut(const uint256& utxo) {
 			balance_.write(lAssetId, lAmount);
 		}
 
-		utxo_.remove(utxo);
+		ltxo_.remove(utxo);
+		utxo_.write(utxo, lUtxo);
 
 		return true;
 	}
@@ -570,19 +572,26 @@ Transaction::UnlinkedOutPtr Wallet::findLinkedOut(const uint256& hash) {
 
 Transaction::UnlinkedOutPtr Wallet::findUnlinkedOutByAsset(const uint256& asset, amount_t amount) {
 	//
-	for (db::DbMultiContainerShared<uint256 /*asset*/, uint256 /*utxo*/>::Iterator lAsset = assets_.find(asset); lAsset.valid(); ++lAsset) {
+	db::DbTwoKeyContainerShared<uint256 /*asset*/, uint256 /*utxo*/, uint256 /*tx*/>::Transaction lAssetTransaction = assets_.transaction();
+	db::DbTwoKeyContainerShared<uint256 /*asset*/, uint256 /*utxo*/, uint256 /*tx*/>::Iterator lAsset = assets_.find(asset);
+	lAsset.setKey2Empty();
+	//
+	for (; lAsset.valid(); ++lAsset) {
 		uint256 lUtxoId = *lAsset; // utxo hash
 		Transaction::UnlinkedOutPtr lUtxo = findUnlinkedOut(lUtxoId);
 		//
 		if (lUtxo != nullptr) {
 			if (lUtxo->amount() >= amount)
+				lAssetTransaction.commit();
 				return lUtxo;
 		} else {
 			// delete from store
 			utxo_.remove(lUtxoId);
+			lAssetTransaction.remove(asset, lUtxoId);
 		}
 	}
 
+	lAssetTransaction.commit();
 	return nullptr;
 }
 
@@ -665,8 +674,15 @@ void Wallet::balance(const uint256& asset, amount_t& pending, amount_t& actual, 
 		actual = pending - lNotConfirmed;
 	} else {
 		//
-		for (db::DbMultiContainerShared<uint256 /*asset*/, uint256 /*utxo*/>::Iterator lAsset = assets_.find(asset); lAsset.valid(); ++lAsset) {
-			uint256 lUtxoId = *lAsset; // utxo hash
+		db::DbTwoKeyContainerShared<uint256 /*asset*/, uint256 /*utxo*/, uint256 /*tx*/>::Transaction lAssetTransaction = assets_.transaction();
+		db::DbTwoKeyContainerShared<uint256 /*asset*/, uint256 /*utxo*/, uint256 /*tx*/>::Iterator lAsset = assets_.find(asset);
+		lAsset.setKey2Empty();
+		//
+		for (; lAsset.valid(); ++lAsset) {
+			uint256 lAssetId;
+			uint256 lUtxoId;
+			lAsset.first(lAssetId, lUtxoId);
+			//
 			Transaction::UnlinkedOutPtr lUtxo = findUnlinkedOut(lUtxoId);
 			//
 			if (lUtxo == nullptr) {
@@ -674,6 +690,7 @@ void Wallet::balance(const uint256& asset, amount_t& pending, amount_t& actual, 
 				if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[balance]: ") + 
 							strprintf("utxo NOT FOUND %s/%s", lUtxoId.toHex(), asset.toHex()));
 				// delete from store
+				lAssetTransaction.remove(lAssetId, lUtxoId);
 				utxo_.remove(lUtxoId);
 			} else {
 				//
@@ -735,6 +752,8 @@ void Wallet::balance(const uint256& asset, amount_t& pending, amount_t& actual, 
 			boost::unique_lock<boost::recursive_mutex> lLock(cacheMutex_);
 			balance_.write(asset, pending);
 		}
+
+		lAssetTransaction.commit();
 	}
 
 	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[balance]: ") + strprintf("wallet balance for %s = %d", asset.toHex(), actual));
@@ -748,8 +767,15 @@ void Wallet::collectUnlinkedOutsByAsset(const uint256& asset, amount_t amount, b
 void Wallet::collectUnlinkedOutsByAssetReverse(const uint256& asset, amount_t amount, std::list<Transaction::UnlinkedOutPtr>& list) {
 	//
 	amount_t lTotal = 0;
-	for (db::DbMultiContainerShared<uint256 /*asset*/, uint256 /*utxo*/>::Iterator lAsset = assets_.find(asset); lAsset.valid(); ++lAsset) {
-		uint256 lUtxoId = *lAsset; // utxo hash
+	db::DbTwoKeyContainerShared<uint256 /*asset*/, uint256 /*utxo*/, uint256 /*tx*/>::Transaction lAssetTransaction = assets_.transaction();
+	db::DbTwoKeyContainerShared<uint256 /*asset*/, uint256 /*utxo*/, uint256 /*tx*/>::Iterator lAsset = assets_.find(asset);
+	lAsset.setKey2Empty();
+	//
+	for (; lAsset.valid(); ++lAsset) {
+		uint256 lAssetId;
+		uint256 lUtxoId;
+		lAsset.first(lAssetId, lUtxoId);
+		//
 		Transaction::UnlinkedOutPtr lUtxo = findUnlinkedOut(lUtxoId);
 		//
 		if (lUtxo == nullptr) {
@@ -758,6 +784,7 @@ void Wallet::collectUnlinkedOutsByAssetReverse(const uint256& asset, amount_t am
 						strprintf("utxo NOT FOUND %s/%s", lUtxoId.toHex(), asset.toHex()));
 			// delete from store
 			utxo_.remove(lUtxoId);
+			lAssetTransaction.remove(lAssetId, lUtxoId);
 		} else {
 			//
 			if (!lUtxo->amount()) continue;
@@ -819,6 +846,8 @@ void Wallet::collectUnlinkedOutsByAssetReverse(const uint256& asset, amount_t am
 		}
 	}
 
+	lAssetTransaction.commit();
+
 	if (lTotal < amount) list.clear(); // amount is unreachable
 
 	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[collectUnlinkedOutsByAsset]: total amount collected ") + 
@@ -831,14 +860,22 @@ void Wallet::collectUnlinkedOutsByAssetForward(const uint256& asset, amount_t am
 
 void Wallet::collectCoinbaseUnlinkedOuts(std::list<Transaction::UnlinkedOutPtr>& list) {
 	//
-	for (db::DbMultiContainerShared<uint256 /*asset*/, uint256 /*utxo*/>::Iterator lAsset = assets_.find(TxAssetType::qbitAsset()); lAsset.valid(); ++lAsset) {
-		uint256 lUtxoId = *lAsset; // utxo hash
+	db::DbTwoKeyContainerShared<uint256 /*asset*/, uint256 /*utxo*/, uint256 /*tx*/>::Transaction lAssetTransaction = assets_.transaction();
+	db::DbTwoKeyContainerShared<uint256 /*asset*/, uint256 /*utxo*/, uint256 /*tx*/>::Iterator lAsset = assets_.find(TxAssetType::qbitAsset());
+	lAsset.setKey2Empty();
+	//
+	for (; lAsset.valid(); ++lAsset) {
+		uint256 lAssetId;
+		uint256 lUtxoId;
+		lAsset.first(lAssetId, lUtxoId);
+		//
 		Transaction::UnlinkedOutPtr lUtxo = findUnlinkedOut(lUtxoId);
 		//
 		if (lUtxo == nullptr) {
 			//
 			// delete from store
 			utxo_.remove(lUtxoId);
+			lAssetTransaction.remove(lAssetId, lUtxoId);
 		} else {
 			//
 			if (!lUtxo->amount()) continue;
@@ -884,6 +921,8 @@ void Wallet::collectCoinbaseUnlinkedOuts(std::list<Transaction::UnlinkedOutPtr>&
 			}
 		}
 	}
+
+	lAssetTransaction.commit();
 
 	if (gLog().isEnabled(Log::WALLET)) gLog().write(Log::WALLET, std::string("[collectCoinbaseUnlinkedOuts]: total collected ") + 
 		strprintf("%d", list.size()));
@@ -1002,8 +1041,10 @@ void Wallet::cleanUpData() {
 // dump utxo by asset
 void Wallet::dumpUnlinkedOutByAsset(const uint256& asset, std::stringstream& s) {
 	//
-	for (db::DbMultiContainerShared<uint256 /*asset*/, uint256 /*utxo*/>::Iterator lAsset = assets_.find(asset); lAsset.valid(); ++lAsset) {
-		uint256 lUtxoId = *lAsset; // utxo hash
+	for (db::DbTwoKeyContainerShared<uint256 /*asset*/, uint256 /*utxo*/, uint256 /*tx*/>::Iterator lAsset = assets_.find(asset); lAsset.valid(); ++lAsset) {
+		uint256 lAssetId;
+		uint256 lUtxoId;
+		lAsset.first(lAssetId, lUtxoId);
 		Transaction::UnlinkedOutPtr lUtxo = findUnlinkedOut(lUtxoId);
 		//
 		if (lUtxo != nullptr) {
@@ -1247,7 +1288,9 @@ TransactionContextPtr Wallet::createTxAssetType(const PKey& dest, const std::str
 
 Transaction::UnlinkedOutPtr Wallet::findUnlinkedOutByEntity(const uint256& entity) {
 	//
-	for (db::DbMultiContainerShared<uint256 /*entity*/, uint256 /*utxo*/>::Iterator lEntity = assetEntities_.find(entity); lEntity.valid(); ++lEntity) {
+	db::DbTwoKeyContainerShared<uint256 /*entity*/, uint256 /*utxo*/, uint256 /*tx*/>::Iterator lEntity = assetEntities_.find(entity);
+	lEntity.setKey2Empty();
+	for (; lEntity.valid(); ++lEntity) {
 		uint256 lUtxoId = *lEntity; // utxo hash
 		Transaction::UnlinkedOutPtr lUtxo = findUnlinkedOut(lUtxoId);
 		//

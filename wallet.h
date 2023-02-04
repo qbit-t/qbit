@@ -279,9 +279,9 @@ private:
 	// linked outs
 	db::DbContainerShared<uint256 /*utxo*/, Transaction::UnlinkedOut /*data*/> ltxo_;
 	// unlinked outs by asset
-	db::DbMultiContainerShared<uint256 /*asset*/, uint256 /*utxo*/> assets_;
+	db::DbTwoKeyContainerShared<uint256 /*asset*/, uint256 /*utxo*/, uint256 /*tx*/> assets_;
 	// unlinked outs by asset entity
-	db::DbMultiContainerShared<uint256 /*entity*/, uint256 /*utxo*/> assetEntities_;
+	db::DbTwoKeyContainerShared<uint256 /*entity*/, uint256 /*utxo*/, uint256 /*tx*/> assetEntities_;
 	// pending tx
 	db::DbEntityContainerShared<uint256 /*tx*/, Transaction /*data*/> pendingtxs_;
 	// pre-calc
