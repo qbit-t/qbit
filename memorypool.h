@@ -509,11 +509,6 @@ private:
 		TransactionContextPtr lCtx = poolStore_->locateTransactionContext(tx);
 		if (lCtx) {
 			lPoolStore->remove(lCtx);
-
-			{
-				boost::unique_lock<boost::recursive_mutex> lLock(mempoolMutex_);
-				qbitTxs_.erase(lCtx->tx()->id());
-			}
 		}
 	}
 
@@ -538,8 +533,7 @@ private:
 	// weighted map
 	std::multimap<qunit_t /*fee rate*/, uint256 /*tx*/> map_;
 	std::map<uint256 /*tx*/, std::multimap<qunit_t /*fee rate*/, uint256 /*tx*/>::iterator> reverseMap_;
-	// qbit txs
-	std::map<uint256, TransactionContextPtr> qbitTxs_;
+
 	// threads
 	std::map<uint256 /*root*/, std::set<uint256 /*branch*/>> threads_;
 	std::map<uint256 /*branch*/, std::set<uint256 /*roots*/>> reverseThreads_;

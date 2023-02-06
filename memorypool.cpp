@@ -318,6 +318,12 @@ void MemoryPool::processCandidates() {
 }
 
 bool MemoryPool::pushTransaction(TransactionContextPtr ctx) {
+	// skip until reindexing; NOTICE: to allow normal processing - restart without '-reindex' switch needed
+	if ((consensus_->settings()->reindex() || consensus_->settings()->reindexShard() == chain_) &&
+			consensus_->chainState() != IConsensus::SYNCHRONIZED) {
+		// declined
+		return true;
+	}
 	//
 	if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[pushTransaction]: ") + 
 		strprintf("PUSHING transaction: %s/%s#",
@@ -408,13 +414,10 @@ bool MemoryPool::pushTransaction(TransactionContextPtr ctx) {
 						ctx->feeRate(), ctx->tx()->hash().toHex(), ctx->tx()->chain().toHex().substr(0, 10)));			
 			}
 
-			// 5. check if "qbit"
-			if (ctx->qbitTx()) qbitTxs_[ctx->tx()->id()] = ctx;
-
 			//
 			if (gLog().isEnabled(Log::POOL)) gLog().write(Log::STORE, std::string("[STAT(5)]: ") +
-				strprintf("qbitTxs_ = %d, map_ = %d, reverseMap_ = %d, threads_ = %d, reverseThreads_ = %d, confirmedBlocks_ = %d, %s#", 
-					qbitTxs_.size(), map_.size(), reverseMap_.size(), threads_.size(), reverseThreads_.size(), confirmedBlocks_.size(), chain_.toHex().substr(0, 10)));
+				strprintf("map_ = %d, reverseMap_ = %d, threads_ = %d, reverseThreads_ = %d, confirmedBlocks_ = %d, %s#", 
+					map_.size(), reverseMap_.size(), threads_.size(), reverseThreads_.size(), confirmedBlocks_.size(), chain_.toHex().substr(0, 10)));
 		}
 	}
 
@@ -848,7 +851,6 @@ void MemoryPool::commit(BlockContextPtr ctx) {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(mempoolMutex_);
 	for (std::list<BlockContext::_poolEntry>::iterator lEntry = ctx->poolEntries().begin(); lEntry != ctx->poolEntries().end(); lEntry++) {
-		qbitTxs_.erase((*lEntry)->second);
 		reverseMap_.erase((*lEntry)->second);
 		map_.erase(std::next(*lEntry).base());
 		//
@@ -868,8 +870,8 @@ void MemoryPool::commit(BlockContextPtr ctx) {
 	}
 
 	if (gLog().isEnabled(Log::POOL)) gLog().write(Log::STORE, std::string("[STAT(6)]: ") +
-		strprintf("qbitTxs_ = %d, map_ = %d, reverseMap_ = %d, threads_ = %d, reverseThreads_ = %d, confirmedBlocks_ = %d, %s#", 
-			qbitTxs_.size(), map_.size(), reverseMap_.size(), threads_.size(), reverseThreads_.size(), confirmedBlocks_.size(), chain_.toHex().substr(0, 10)));
+		strprintf("map_ = %d, reverseMap_ = %d, threads_ = %d, reverseThreads_ = %d, confirmedBlocks_ = %d, %s#", 
+			map_.size(), reverseMap_.size(), threads_.size(), reverseThreads_.size(), confirmedBlocks_.size(), chain_.toHex().substr(0, 10)));
 }
 
 void MemoryPool::removeTransactions(BlockPtr block) {
@@ -910,9 +912,6 @@ void MemoryPool::removeTransactions(BlockPtr block) {
 					}
 
 				}
-
-				// clean-up qbit txs
-				qbitTxs_.erase(*lTx);
 			}
 
 			//
@@ -961,9 +960,6 @@ void MemoryPool::removeTransactions(BlockPtr block) {
 						reverseThreads_.erase(lRoot);
 					}
 				}
-
-				// clean-up qbit txs
-				qbitTxs_.erase((*lTx)->id());
 			}
 
 			//
