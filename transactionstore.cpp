@@ -684,6 +684,7 @@ bool TransactionStore::resyncHeight(const uint256& to) {
 		boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
 		// locate last index
 		uint64_t lHeight;
+		uint256 lBlock;
 		if (blockMap_.read(*lSeq.rbegin(), lHeight)) {
 			// "to" found
 			lLastIndex = lHeight; // "to" index
@@ -703,29 +704,31 @@ bool TransactionStore::resyncHeight(const uint256& to) {
 					if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight/partial/warning]: height map is not clean, replacing for ") + 
 							strprintf("index = %d, block = %s, to = %s, last = %s, chain = %s#", 
 								lLastIndex, (*lIter).toHex(), to.toHex(), lastBlock_.toHex(), chain_.toHex().substr(0, 10)));
-					//
 					heightMap_.remove(lLastIndex);
-					heightMap_.write(lLastIndex, *lIter);
 				}
-
+				//
+				heightMap_.write(lLastIndex, *lIter);
+				//
 				uint64_t lHeightId;
 				if (blockMap_.read(*lIter, lHeightId)) {
 					if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight/partial/warning]: block map is not clean, replacing for ") + 
 							strprintf("block = %s, to = %s, last = %s, chain = %s#", 
 								(*lIter).toHex(), to.toHex(), lastBlock_.toHex(), chain_.toHex().substr(0, 10)));
-					//
 					blockMap_.remove(*lIter);
-					blockMap_.write(*lIter, lLastIndex);
 				}
+				//
+				blockMap_.write(*lIter, lLastIndex);
 			}
 			// check
+			uint64_t lLastHeight;
+			uint256 lLastBlock;
 			db::DbContainer<uint64_t, uint256>::Iterator lTop = heightMap_.last();
-			if (lTop.valid() && *lTop != lastBlock_) {
+			if (lTop.valid() && lTop.first(lLastHeight) && lTop.second(lLastBlock) && lLastBlock != lastBlock_) {
 				// full resync
 				lFull = true;
 				if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight/partial/error]: top is not last, making FULL resync for ") + 
-						strprintf("to = %s, last = %s, chain = %s#", 
-							to.toHex(), lastBlock_.toHex(), chain_.toHex().substr(0, 10)));
+						strprintf("to = %s, last = %s, lastHeight = %d / %s, chain = %s#", 
+							to.toHex(), lastBlock_.toHex(), lLastHeight, lLastBlock.toHex(), chain_.toHex().substr(0, 10)));
 			}
 		} else {
 			// full resync
