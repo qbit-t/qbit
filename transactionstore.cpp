@@ -1069,7 +1069,7 @@ void TransactionStore::erase(const uint256& from, const uint256& to) {
 // interval [..)
 bool TransactionStore::processBlocks(const uint256& from, const uint256& to, IMemoryPoolPtr pool, uint256& last, int& errorReason) {
 	//
-	std::list<BlockHeader> lHeadersSeq;
+	std::list<uint256> lHeadersSeq;
 	uint256 lHash = from;
 	uint256 lPrev = from;
 
@@ -1094,7 +1094,7 @@ bool TransactionStore::processBlocks(const uint256& from, const uint256& to, IMe
 				lDone = true;
 			} else {
 				//
-				lHeadersSeq.push_back(lHeader);
+				lHeadersSeq.push_back(lHash);
 				// next
 				lPrev = lHash;
 				lHash = lHeader.prev();				
@@ -1109,7 +1109,7 @@ bool TransactionStore::processBlocks(const uint256& from, const uint256& to, IMe
 			*/
 		} else {
 			//
-			lHeadersSeq.push_back(lHeader);
+			lHeadersSeq.push_back(lHash);
 			// next
 			lPrev = lHash;
 			lHash = lHeader.prev();
@@ -1121,36 +1121,39 @@ bool TransactionStore::processBlocks(const uint256& from, const uint256& to, IMe
 		strprintf("%d, %s-%s/%s#", lHeadersSeq.size(), from.toHex(), to.toHex(), chain_.toHex().substr(0, 10)));
 
 	// traverse
-	for (std::list<BlockHeader>::reverse_iterator lBlock = lHeadersSeq.rbegin(); lBlock != lHeadersSeq.rend(); lBlock++) {
+	for (std::list<uint256>::reverse_iterator lBlockId = lHeadersSeq.rbegin(); lBlockId != lHeadersSeq.rend(); lBlockId++) {
 		//
-		uint256 lBlockHash = (*lBlock).hash();
+		uint256 lBlockHash = (*lBlockId);
+		BlockHeader lBlock;
+		headers_.read(lBlockHash, lBlock); // load header
+		//
 		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlocks]: processing block ") +
 			strprintf("%s/%s#", lBlockHash.toHex(), chain_.toHex().substr(0, 10)));
 
 		// check sequence consistency
 		bool lExtended = true;
-		if (lMempool && !lMempool->consensus()->checkSequenceConsistency(*lBlock, lExtended)) {
+		if (lMempool && !lMempool->consensus()->checkSequenceConsistency(lBlock, lExtended)) {
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlocks/error]: check basic sequence consistency FAILED ") +
-				strprintf("block = %s, prev = %s, chain = %s#", lBlockHash.toHex(), (*lBlock).prev().toHex(), chain_.toHex().substr(0, 10)));
+				strprintf("block = %s, prev = %s, chain = %s#", lBlockHash.toHex(), lBlock.prev().toHex(), chain_.toHex().substr(0, 10)));
 			errorReason = ERROR_REASON_INTEGRITY_ERROR;
 			last = lBlockHash;
 			return false;
 		} else if (!lExtended && !settings_->reindex()) {
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlocks/error]: check extended sequence consistency FAILED ") +
-				strprintf("block = %s, prev = %s, chain = %s#", lBlockHash.toHex(), (*lBlock).prev().toHex(), chain_.toHex().substr(0, 10)));
+				strprintf("block = %s, prev = %s, chain = %s#", lBlockHash.toHex(), lBlock.prev().toHex(), chain_.toHex().substr(0, 10)));
 			errorReason = ERROR_REASON_EXTENDED_CHECK_NOT_PASSED;
 			last = lBlockHash;
 			return false;
 		}
 
 		//
-		BlockContextPtr lBlockCtx = BlockContext::instance(Block::instance(*lBlock)); // just header without transactions attached
+		BlockContextPtr lBlockCtx = BlockContext::instance(Block::instance(lBlock)); // just header without transactions attached
 		BlockTransactionsPtr lTransactions = transactions_.read(lBlockHash);
 		if (!lTransactions) {
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlocks/error]: transaction DATA is ABSENT for ") +
-				strprintf("block = %s, prev = %s, chain = %s#", lBlockHash.toHex(), (*lBlock).prev().toHex(), chain_.toHex().substr(0, 10)));
+				strprintf("block = %s, prev = %s, chain = %s#", lBlockHash.toHex(), lBlock.prev().toHex(), chain_.toHex().substr(0, 10)));
 			errorReason = ERROR_REASON_TX_DATA_MISSING;
-			last = (*lBlock).prev(); // suppose, that the previous one is good enouht
+			last = lBlock.prev(); // suppose, that the previous one is good enouht
 			return false;
 		}
 
@@ -1196,7 +1199,7 @@ bool TransactionStore::processBlocks(const uint256& from, const uint256& to, IMe
 			//
 			lBlockCtx->block()->compact(); // compact txs to just ids
 			if (pool) pool->removeTransactions(lBlockCtx->block());
-			last = (*lBlock).prev(); // suppose, that the previous one is good enouht
+			last = lBlock.prev(); // suppose, that the previous one is good enouht
 			errorReason = ERROR_REASON_TX_INTEGRITY_ERROR;
 			return false;
 		}
