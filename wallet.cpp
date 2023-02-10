@@ -430,6 +430,9 @@ bool Wallet::popUnlinkedOut(const uint256& hash, TransactionContextPtr ctx) {
 
 bool Wallet::tryRemoveUnlinkedOut(const uint256& utxo) {
 	//
+	if (!opened_) return false;
+
+	//
 	Transaction::UnlinkedOut lUtxo;
 	if (utxo_.read(utxo, lUtxo)) {
 		//
@@ -459,6 +462,9 @@ bool Wallet::tryRemoveUnlinkedOut(const uint256& utxo) {
 }
 
 bool Wallet::tryRevertUnlinkedOut(const uint256& utxo) {
+	//
+	if (!opened_) return false;
+
 	//
 	Transaction::UnlinkedOut lUtxo;
 	if (ltxo_.read(utxo, lUtxo)) {
