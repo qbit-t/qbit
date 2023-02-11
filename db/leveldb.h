@@ -505,7 +505,7 @@ public:
 			options_.filter_policy = leveldb::NewBloomFilterPolicy(10);
 			options_.compression = leveldb::kNoCompression;
 			options_.create_if_missing = true;
-			options_.max_open_files = 1000;
+			options_.max_open_files = 500;
 
 #ifndef MOBILE_PLATFORM
 			options_.info_log = new LevelDBLogger();
