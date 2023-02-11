@@ -2085,7 +2085,8 @@ void TransactionStore::reindexFull(const uint256& from, IMemoryPoolPtr pool) {
 		strprintf("%s#", chain_.toHex().substr(0, 10)));
 
 	// remove index, DO WE need really this? - that is totally new chain
-	removeBlocks(from, BlockHeader().hash(), false, 0);
+	bool lSkip = settings_->skipMainChainCleanUp() && chain_ == MainChain::id();
+	if (!lSkip) removeBlocks(from, BlockHeader().hash(), false, 0);
 
 	//
 	uint256 lLastBlock = lastBlock_;

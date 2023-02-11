@@ -197,6 +197,14 @@ public:
 		reindex_ = false;
 	}
 
+	bool skipMainChainCleanUp() { return skipMainChainCleanUp_; }
+	void setSkipMainChainCleanUp() {
+		skipMainChainCleanUp_ = true;
+	}
+	void resetSkipMainChainCleanUp() {
+		skipMainChainCleanUp_ = false;
+	}
+
 	bool resync() { return resync_; }
 	void setResync() {
 		resync_ = true;
@@ -278,6 +286,7 @@ private:
 	size_t clientSessionsLimit_ = 50;
 	bool qbitOnly_ = false;
 	bool reindex_ = false;
+	bool skipMainChainCleanUp_ = false;
 	bool resync_ = false;
 	std::string userName_;
 	uint256 reindexShard_;
@@ -677,6 +686,9 @@ int main(int argv, char** argc) {
 		} else if (std::string(argc[lIdx]) == std::string("-reindex")) {
 			//
 			lSettings->setReindex();
+		} else if (std::string(argc[lIdx]) == std::string("-skip-mainchain-cleanup")) {
+			//
+			lSettings->setSkipMainChainCleanUp();
 		} else if (std::string(argc[lIdx]) == std::string("-reindex-shard")) {
 			//
 			uint256 lShard; lShard.setHex(std::string(argc[++lIdx]));
