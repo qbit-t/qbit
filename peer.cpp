@@ -68,27 +68,55 @@ void Peer::clearQueues() {
 	}
 }
 
+void Peer::postTimeout(boost::system::error_code error) {
+	//
+	if (error != boost::asio::error::operation_aborted) {
+		//
+		boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
+		try {
+			if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, strprintf("[peer/error]: send timeout for %s", key()));
+			socket_->cancel();
+		} catch(const boost::system::system_error& ex) {
+			//
+			gLog().write(Log::GENERAL_ERROR, strprintf("[peer/sendTimeout/error]: cancel failed for %s | %s", key(), ex.what()));
+			// unsuccessfull cancel, we should force socket and peer to stop all activity
+			close(GENERAL_ERROR);
+		}
+	}	
+}
+
 void Peer::sendTimeout(int seconds) {
 	//
 	controlTimer_.reset(
 			new boost::asio::high_resolution_timer(
 				peerManager_->getContext(contextId_), boost::asio::chrono::high_resolution_clock::now() + boost::asio::chrono::seconds(seconds)));
-	controlTimer_->async_wait(strand_->wrap([this](boost::system::error_code error) {
-		//
-		if (error != boost::asio::error::operation_aborted) {
-			//
-			boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
-			try {
-				if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, strprintf("[peer/error]: send timeout for %s", key()));
-				socket_->cancel();
-			} catch(const boost::system::system_error& ex) {
-				//
-				gLog().write(Log::GENERAL_ERROR, strprintf("[peer/sendTimeout/error]: cancel failed for %s | %s", key(), ex.what()));
-				// unsuccessfull cancel, we should force socket and peer to stop all activity
-				close(GENERAL_ERROR);
-			}
+	controlTimer_->async_wait(strand_->wrap(boost::bind(
+				&Peer::postTimeout, shared_from_this(), boost::asio::placeholders::error)));
+}
+
+void Peer::postMessageAsync(std::list<DataStream>::iterator msg) {
+	//
+	bool lEnqueue = true;
+	{
+		boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
+		if (socketStatus_ != CONNECTED || (socket_ && !socket_->is_open()) || socket_ == nullptr)
+			lEnqueue = false; // skip further processing
+	}
+	//
+	if (lEnqueue) {
+		if (gLog().isEnabled(Log::NET))	gLog().write(Log::NET, strprintf("[peer]: queue message for %s, ctx = %d", key(), contextId_));
+		// push
+		bool lProcess = false;
+		{
+			boost::unique_lock<boost::mutex> lLock(rawOutMutex_);
+			lProcess = !outQueue_.size();
+			outQueue_.insert(outQueue_.end(),
+				OutMessage(msg, OutMessage::POSTPONED, epoch_));
 		}
-	}));
+		// process
+		if (lProcess) processPendingMessagesQueue();
+	} else
+		waitForMessage();	
 }
 
 bool Peer::sendMessageAsync(std::list<DataStream>::iterator msg) {
@@ -97,31 +125,8 @@ bool Peer::sendMessageAsync(std::list<DataStream>::iterator msg) {
 		boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
 		if (socketStatus_ == CONNECTED) {
 			if (gLog().isEnabled(Log::NET))	gLog().write(Log::NET, strprintf("[peer]: posting message for %s", key()));
-			strand_->post([this, msg]() {
-				//
-				bool lEnqueue = true;
-				{
-					boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
-					if (socketStatus_ != CONNECTED || (socket_ && !socket_->is_open()) || socket_ == nullptr)
-						lEnqueue = false; // skip further processing
-				}
-				//
-				if (lEnqueue) {
-					if (gLog().isEnabled(Log::NET))	gLog().write(Log::NET, strprintf("[peer]: queue message for %s, ctx = %d", key(), contextId_));
-					// push
-					bool lProcess = false;
-					{
-						boost::unique_lock<boost::mutex> lLock(rawOutMutex_);
-						lProcess = !outQueue_.size();
-						outQueue_.insert(outQueue_.end(),
-							OutMessage(msg, OutMessage::POSTPONED, epoch_));
-					}
-					// process
-					if (lProcess) processPendingMessagesQueue();
-				} else
-					waitForMessage();
-			});
-
+			strand_->post(boost::bind(
+					&Peer::postMessageAsync, shared_from_this(), msg));
 			return true;
 		}
 	}
