@@ -409,6 +409,7 @@ Item
 		clip: true
 		cacheBuffer: 500
 		reuseItems: true
+		useFeed: false
 
 		function adjust() {
 			//
@@ -497,6 +498,12 @@ Item
 						}
 					}
 				}
+			}
+
+			// manage feed
+			if (list.model.readyToFeed(lBeginIdx, 12)) {
+				//
+				modelLoader_.feed();
 			}
 		}
 

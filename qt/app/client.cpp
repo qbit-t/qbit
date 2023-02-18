@@ -617,6 +617,9 @@ int Client::open(QString secret) {
 		peerManager_->useExplicitPeersOnly();
 	}
 
+	// proto encryption (if absent - false)
+	peerManager_->setProtoEncryption(application_->getProtoEncryption());
+
 	// load current key
 	QString lCurrentKey = getProperty("Client.currentKey");
 	if (lCurrentKey != "") {

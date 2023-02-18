@@ -240,6 +240,7 @@ QuarkPage {
 		clip: true
 		cacheBuffer: 500
 		reuseItems: true
+		useFeed: false
 
 		model: buzzesThread_
 
@@ -320,6 +321,12 @@ QuarkPage {
 						}
 					}
 				}
+			}
+
+			// manage feed
+			if (list.model.readyToFeed(lBeginIdx, 12)) {
+				//
+				modelLoader.feed();
 			}
 		}
 

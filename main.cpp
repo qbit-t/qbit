@@ -571,6 +571,7 @@ int main(int argv, char** argc) {
 	bool lDebugFound = false;
 	bool lExplicitPeersOnly = false;
 	bool lNoConfig = false;
+	bool lNoProtoEncryption = false;
 	int lExternalPort = 0;
 	std::string lEndpointV4;
 	std::string lEndpointV6;
@@ -742,6 +743,9 @@ int main(int argv, char** argc) {
 		} else if (std::string(argc[lIdx]) == std::string("-no-config")) {
 			//
 			lNoConfig = true;
+		} else if (std::string(argc[lIdx]) == std::string("-no-proto-encryption")) {
+			//
+			lNoProtoEncryption = true;
 		} else if (std::string(argc[lIdx]) == std::string("-only-public-rest-api")) {
 			//
 			lSettings->allowOnlyPublicRestAPI();
@@ -947,6 +951,9 @@ int main(int argv, char** argc) {
 
 	// work with explicit peers
 	if (lExplicitPeersOnly) lNode->peerManager()->useExplicitPeersOnly();
+
+	// no encryption
+	if (lNoProtoEncryption) lNode->peerManager()->setProtoEncryption(false /*do not encrypt*/);
 
 	// add nodes
 	for (std::vector<std::string>::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {

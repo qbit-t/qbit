@@ -244,6 +244,7 @@ public:
 public:
 	class OrderKey {
 	public:
+		OrderKey() {}
 		OrderKey(Group key, uint64_t timestamp):
 			key_(key), timestamp_(timestamp) {}
 
@@ -996,6 +997,8 @@ public:
 		return lOrder/BUZZFEED_TIMEFRAME;
 	}
 
+	std::map<uint256 /*chain*/, Key /*buzz*/> lastItemsByChain() { Guard lLock(this); return lastItemsByChain_; }
+
 	void setupCallbacks(BuzzfeedItemPtr item) {
 		//		
 		buzzerInfo_ = item->buzzerInfo_;
@@ -1118,6 +1121,7 @@ protected:
 	std::multimap<OrderKey /*order*/, Key /*buzz*/> index_;
 	std::map<uint256 /*buzz*/, std::set<Key>> orphans_;
 	std::map<uint256 /*publisher*/, std::map<uint256 /*chain*/, uint64_t>> lastTimestamps_;
+	std::map<uint256 /*chain*/, Key /*buzz*/> lastItemsByChain_;
 	std::map<uint256 /*originalBuzz*/, std::map<Key, BuzzfeedItemPtr>> pendings_;
 	std::map<Key /*buzz*/, BuzzfeedItemPtr> suspicious_;
 	std::map<Key /*buzz*/, BuzzfeedItemPtr> unconfirmed_;

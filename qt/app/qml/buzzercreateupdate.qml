@@ -59,7 +59,7 @@ QuarkPage
         controller.showError(error);
     }
 
-	function initialize(action) {
+	function initialize(action, source) {
 		//
 		action_ = action; // CREATE | UPDATE
 		if (source) source_ = source;

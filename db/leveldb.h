@@ -235,6 +235,7 @@ public:
 	_iterator begin() {
 		leveldb::ReadOptions lOptions;
 		lOptions.verify_checksums = true;
+		lOptions.fill_cache = false;
 
 		leveldb::Iterator* lIterator = db_->NewIterator(lOptions);
 
@@ -252,6 +253,7 @@ public:
 	_iterator last() {
 		leveldb::ReadOptions lOptions;
 		lOptions.verify_checksums = true;
+		lOptions.fill_cache = false;
 
 		leveldb::Iterator* lIterator = db_->NewIterator(lOptions);
 
@@ -269,6 +271,7 @@ public:
 	_iterator find(const DataStream& k) {
 		leveldb::ReadOptions lOptions;
 		lOptions.verify_checksums = true;
+		lOptions.fill_cache = false;
 
 		leveldb::Iterator* lIterator = db_->NewIterator(lOptions);
 

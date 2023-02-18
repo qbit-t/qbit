@@ -1130,11 +1130,14 @@ void Buzzfeed::feed(std::vector<BuzzfeedItemPtr>& list, bool /*expanded*/) {
 	Guard lLock(this);
 	list_.clear();
 	index_.clear();
+	lastItemsByChain_.clear();
 	BuzzfeedItem::feed(list_);
 
 	// build index
-	for (size_t lItem = 0; lItem < list_.size(); lItem++) {
+	for (int lItem = (int)list_.size() - 1; lItem >= 0; lItem--) {
 		index_[list_[lItem]->key()] = lItem;
+		//
+		lastItemsByChain_.insert(std::map<uint256 /*chain*/, Key /*buzz*/>::value_type(list_[lItem]->buzzChainId(), list_[lItem]->key()));
 	}
 
 	//
@@ -1212,8 +1215,45 @@ void Buzzfeed::clear() {
 
 void Buzzfeed::collectLastItemsByChains(std::map<uint256, BuzzfeedItemPtr>& items) {
 	//
+	std::map<uint256, std::multimap<OrderKey, BuzzfeedItemPtr>> lOrder;
 	for (std::vector<BuzzfeedItemPtr>::reverse_iterator lItem = list_.rbegin(); lItem != list_.rend(); lItem++) {
 		//
-		items.insert(std::map<uint256, BuzzfeedItemPtr>::value_type((*lItem)->buzzChainId(), *lItem));
+		lOrder[(*lItem)->buzzChainId()].insert(std::multimap<OrderKey, BuzzfeedItemPtr>::value_type((*lItem)->order(), *lItem));
 	}
+
+	//
+	OrderKey lMaxKey;
+	uint256 lMaxKeyChain;
+	BuzzfeedItemPtr lMaxItem;
+	std::map<uint256, std::multimap<OrderKey, BuzzfeedItemPtr>>::iterator lChain;
+	for (lChain = lOrder.begin(); lChain != lOrder.end(); lChain++) {
+		//
+		if (lMaxKey < lChain->second.begin()->first) {
+			lMaxKey = lChain->second.begin()->first;
+			lMaxKeyChain = lChain->first;
+			lMaxItem = lChain->second.begin()->second;
+		}
+	}
+
+	//
+	for (lChain = lOrder.begin(); lChain != lOrder.end(); lChain++) {
+		if (lMaxKeyChain != lChain->first) {
+			//
+			std::multimap<OrderKey, BuzzfeedItemPtr>::iterator lNext = lChain->second.lower_bound(lMaxKey);
+			if (lNext != lChain->second.end()) {
+				items.insert(std::map<uint256, BuzzfeedItemPtr>::value_type(lNext->second->buzzChainId(), lNext->second));
+			}
+
+		} else {
+			// add default
+			items.insert(std::map<uint256, BuzzfeedItemPtr>::value_type(lMaxItem->buzzChainId(), lMaxItem));
+		}
+	}
+
+	//
+	/*
+	for (std::map<uint256, std::multimap<OrderKey, BuzzfeedItemPtr>>::iterator lChain = lOrder.begin(); lChain != lOrder.end(); lChain++) {
+		items.insert(std::map<uint256, BuzzfeedItemPtr>::value_type(lChain->second.begin()->second->buzzChainId(), lChain->second.begin()->second));
+	}
+	*/
 }

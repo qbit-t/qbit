@@ -25,6 +25,7 @@ ListView
     property real pullHeight: 0.0;
     property bool usePull: false;
 	property int feedDelta: 12;
+	property bool useFeed: true;
 
 	signal feedReady();
 
@@ -34,7 +35,7 @@ ListView
     {
 		currentIndexAtTop = indexAt(1, contentY);
 
-		if (model && (currentIndexAtTop + feedDelta > model.count /*|| lEffectiveBottom < 30*/)) {
+		if (useFeed && model && (currentIndexAtTop + feedDelta > model.count /*|| lEffectiveBottom < 30*/)) {
 			//console.log("[feed/onContentYChanged/fired]: lEffectiveBottom = " + lEffectiveBottom);
 			feedReady();
 		}

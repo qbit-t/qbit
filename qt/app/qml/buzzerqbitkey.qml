@@ -287,9 +287,9 @@ QuarkPage
 			id: backRect
 			x: 21
 			y: wordEditBox.y + wordEditBox.height
-			height: buzzerqbitkey_.height - (y + toolBar.height + (buzzerqbitkey_.showKeys ? 0 : linkButton.height + nameEditBox.height) + bottomOffset + 15 + 15 + 10) < 180 ?
+			height: buzzerqbitkey_.height - (y + toolBar.height + (buzzerqbitkey_.showKeys ? 0 : linkButton.height + nameEditBox.height) + bottomOffset + 15 + 10 + (buzzerqbitkey_.showKeys ? 0 : 15)) < 180 ?
 						180 :
-						buzzerqbitkey_.height - (y + toolBar.height + (buzzerqbitkey_.showKeys ? 0 : linkButton.height + nameEditBox.height) + bottomOffset + 15 + 15 + 10)
+						buzzerqbitkey_.height - (y + toolBar.height + (buzzerqbitkey_.showKeys ? 0 : linkButton.height + nameEditBox.height) + bottomOffset + 15 + 10 + (buzzerqbitkey_.showKeys ? 0 : 15))
 			width: parent.width - 43
 			color: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Box.background");
 		}
