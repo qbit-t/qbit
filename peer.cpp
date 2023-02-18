@@ -96,27 +96,17 @@ void Peer::sendTimeout(int seconds) {
 
 void Peer::postMessageAsync(std::list<DataStream>::iterator msg) {
 	//
-	bool lEnqueue = true;
+	if (gLog().isEnabled(Log::NET))	gLog().write(Log::NET, strprintf("[peer]: queue message for %s, ctx = %d", key(), contextId_));
+	// push
+	bool lProcess = false;
 	{
-		boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
-		if (socketStatus_ != CONNECTED || (socket_ && !socket_->is_open()) || socket_ == nullptr)
-			lEnqueue = false; // skip further processing
+		boost::unique_lock<boost::mutex> lLock(rawOutMutex_);
+		lProcess = !outQueue_.size();
+		outQueue_.insert(outQueue_.end(),
+			OutMessage(msg, OutMessage::POSTPONED, epoch_));
 	}
-	//
-	if (lEnqueue) {
-		if (gLog().isEnabled(Log::NET))	gLog().write(Log::NET, strprintf("[peer]: queue message for %s, ctx = %d", key(), contextId_));
-		// push
-		bool lProcess = false;
-		{
-			boost::unique_lock<boost::mutex> lLock(rawOutMutex_);
-			lProcess = !outQueue_.size();
-			outQueue_.insert(outQueue_.end(),
-				OutMessage(msg, OutMessage::POSTPONED, epoch_));
-		}
-		// process
-		if (lProcess) processPendingMessagesQueue();
-	} else
-		waitForMessage();	
+	// process
+	if (lProcess) processPendingMessagesQueue();
 }
 
 bool Peer::sendMessageAsync(std::list<DataStream>::iterator msg) {
