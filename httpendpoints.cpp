@@ -539,7 +539,7 @@ void HttpGetBalance::run(const std::string& source, const HttpRequest& request, 
 		"id": "curltext",
 		"method": "getbalance",
 		"params": [
-			"<asset_id>", 				-- (string, optional) asset
+			"<asset_id>", 				-- (string, optional) asset OR "rescan"
 			"<address>"					-- (string, optional) address
 		]
 	}
@@ -568,11 +568,13 @@ void HttpGetBalance::run(const std::string& source, const HttpRequest& request, 
 	if (const_cast<json::Document&>(data).find("params", lParams) && lParams.isArray()) {
 		// extract parameters
 		uint256 lAsset; // 0
+		bool lRescan = false;
 		if (lParams.size()) {
 			// param[0]
 			json::Value lP0 = lParams[0];
 			if (lP0.isString()) {
 				if (lP0.getString() == "*") lAsset = TxAssetType::qbitAsset();
+				else if (lP0.getString() == "rescan") lRescan = true;
 				else lAsset.setHex(lP0.getString()); 
 			} else { reply = HttpReply::stockReply(HttpReply::bad_request); return; }
 		}
@@ -641,14 +643,14 @@ void HttpGetBalance::run(const std::string& source, const HttpRequest& request, 
 			if (lState == IConsensus::SYNCHRONIZED) {
 				if (!lAsset.isNull()) { 
 					amount_t lPending = 0, lActual = 0;
-					wallet_->balance(lAsset, lPending, lActual);
+					wallet_->balance(lAsset, lPending, lActual, lRescan);
 					lPendingBalance = ((double)lPending) / lScale;
 					lBalance = ((double)lActual) / lScale;
 				} else { 
 					amount_t lPending = 0, lActual = 0;
-					wallet_->balance(TxAssetType::qbitAsset(), lPending, lActual);
-					lPendingBalance = ((double)wallet_->pendingBalance()) / lScale;
-					lBalance = ((double)wallet_->balance()) / lScale;
+					wallet_->balance(TxAssetType::qbitAsset(), lPending, lActual, lRescan);
+					lPendingBalance = ((double)lPending) / lScale;
+					lBalance = ((double)lActual) / lScale;
 				}
 			} else if (lState == IConsensus::SYNCHRONIZING) {
 				reply = HttpReply::stockReply("E_NODE_SYNCHRONIZING", "Synchronization is in progress..."); 

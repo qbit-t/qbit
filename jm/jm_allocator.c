@@ -14,6 +14,20 @@
 	#include <signal.h>
 #endif
 
+#if defined(__linux__)
+#include <execinfo.h>
+
+int _jm_collect_backtrace = 0;
+int _jm_collect_class = 0;
+
+char* _jm_backtrace(size_t *length) {
+	void* lBackTrace[100];
+	*length = backtrace(lBackTrace, 100);
+	return backtrace_symbols(lBackTrace, *length);
+}
+
+#endif
+
 //
 // prediction optimization
 //
@@ -753,6 +767,13 @@ JM_INLINE struct _jm_data_block* _jm_chunk_block_alloc
 	lBlock->next = lBlock->prev = 0; // unlink from free_block_list
 
 #ifdef JM_ALLOCATION_INFO
+#if defined(__linux__)	
+	if (_jm_collect_backtrace && chunk->class_index == _jm_collect_class) {
+		lBlock->file = (unsigned char*)file;
+		lBlock->func = (unsigned char*)_jm_backtrace(&lBlock->line);
+	}
+#else
+#endif
 	lBlock->file = (unsigned char*)file;
 	lBlock->func = (unsigned char*)func;
 	lBlock->line = line;
@@ -1592,10 +1613,20 @@ void _jm_arena_dump_chunk_internal(struct _jm_arena* arena, size_t chunk, int cl
 {
 	char lFile[0x200] = {0};
 	char lInfo[0x200] = {0};
-	
+
 	int lHeader;
 	size_t lIdx;
-	
+
+	if (path[0] == 'o' && path[1] == 'n') {
+		_jm_collect_backtrace = 1;
+		_jm_collect_class = class_index;
+		return; // turn on and return
+	} else if (path[0] == 'o' && path[1] == 'f') {
+		_jm_collect_backtrace = 0;
+		_jm_collect_class = 0;
+		return; // turn OFF and return
+	}
+
 	struct _jm_free_block* lBlock;
 	struct _jm_chunk* lCurrent = arena->root_chunks[class_index];
 
@@ -1617,8 +1648,19 @@ void _jm_arena_dump_chunk_internal(struct _jm_arena* arena, size_t chunk, int cl
 				_jm_file_write(lHeader, lInfo, strlen(lInfo));
 
 #if defined(JM_ALLOCATION_INFO)
+#if defined(__linux__)
+				sprintf(lInfo, "%s\n", lBlock->file);
+				_jm_file_write(lHeader, lInfo, strlen(lInfo));
+
+				char** lStrings = (char**)lBlock->func;
+				for (size_t lI = 0; lI < lBlock->line; lI++) {
+					sprintf(lInfo, "%s\n", lStrings[lI]);
+					_jm_file_write(lHeader, lInfo, strlen(lInfo));
+				}
+#else
 				sprintf(lInfo, "%s - %s:%ld\n", lBlock->file, lBlock->func, lBlock->line);
 				_jm_file_write(lHeader, lInfo, strlen(lInfo));
+#endif
 #endif
 
 				_jm_file_write(lHeader, "<[", 2);

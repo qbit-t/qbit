@@ -336,23 +336,26 @@ public:
 		settings_(settings),
 		storeManager_(storeManager),
 		opened_(false),
-		workingSettings_(settings_->dataPath() + "/" + chain.toHex() + "/settings"),
-		headers_(settings_->dataPath() + "/" + chain.toHex() + "/headers"), 
-		transactions_(settings_->dataPath() + "/" + chain.toHex() + "/transactions"), 
-		utxo_(settings_->dataPath() + "/" + chain.toHex() + "/utxo"), 
-		ltxo_(settings_->dataPath() + "/" + chain.toHex() + "/ltxo"), 
-		entities_(settings_->dataPath() + "/" + chain.toHex() + "/entities"), 
-		transactionsIdx_(settings_->dataPath() + "/" + chain.toHex() + "/indexes/transactions"), 
-		entitiesIdx_(settings_->dataPath() + "/" + chain.toHex() + "/indexes/entities"), 
-		addressAssetUtxoIdx_(settings_->dataPath() + "/" + chain.toHex() + "/indexes/utxo"),
-		blockUtxoIdx_(settings_->dataPath() + "/" + chain.toHex() + "/indexes/block_utxo"),
-		utxoBlock_(settings_->dataPath() + "/" + chain.toHex() + "/indexes/utxo_block"),
-		shards_(settings_->dataPath() + "/" + chain.toHex() + "/indexes/shards"),
-		entityUtxo_(settings_->dataPath() + "/" + chain.toHex() + "/indexes/entity_utxo"),
-		shardEntities_(settings_->dataPath() + "/" + chain.toHex() + "/indexes/shard_entities"),
-		txUtxo_(settings_->dataPath() + "/" + chain.toHex() + "/indexes/tx_utxo"),
-		airDropAddressesTx_(settings_->dataPath() + "/" + chain.toHex() + "/indexes/airdrop_addresses"),
-		airDropPeers_(settings_->dataPath() + "/" + chain.toHex() + "/indexes/airdrop_peers")
+		space_(std::make_shared<db::DbContainerSpace>(settings_->dataPath() + "/" + chain.toHex() + "/data")),
+		workingSettings_("settings", space_),
+		headers_("headers", space_),
+		transactions_("transactions", space_),
+		utxo_("utxo", space_),
+		ltxo_("ltxo", space_),
+		entities_("entities", space_),
+		transactionsIdx_("indexes_transactions", space_),
+		entitiesIdx_("indexes_entities", space_),
+		addressAssetUtxoIdx_("indexes_utxo", space_),
+		blockUtxoIdx_("indexes_block_utxo", space_),
+		utxoBlock_("indexes_utxo_block", space_),
+		shards_("indexes_shards", space_),
+		entityUtxo_("indexes_entity_utxo", space_),
+		shardEntities_("indexes_shard_entities", space_),
+		txUtxo_("indexes_tx_utxo", space_),
+		airDropAddressesTx_("indexes_airdrop_addresses", space_),
+		airDropPeers_("indexes_airdrop_peers", space_),
+		heightMap_(settings_->dataPath() + "/" + chain.toHex() + "/height_map"),
+		blockMap_(settings_->dataPath() + "/" + chain.toHex() + "/block_map")
 	{}
 
 	// stub
@@ -532,51 +535,57 @@ private:
 	bool synchronizing_ = false;
 
 	//
+	// container space
+	//
+
+	db::DbContainerSpacePtr space_;
+
+	//
 	// main data
 	//
 
 	// persistent settings
-	db::DbContainer<std::string /*name*/, std::string /*data*/> workingSettings_;
+	db::DbContainerShared<std::string /*name*/, std::string /*data*/> workingSettings_;
 	// block headers
-	db::DbContainer<uint256 /*block*/, BlockHeader /*data*/> headers_;
+	db::DbContainerShared<uint256 /*block*/, BlockHeader /*data*/> headers_;
 	// block transactions
-	db::DbEntityContainer<uint256 /*block*/, BlockTransactions /*data*/> transactions_;
+	db::DbEntityContainerShared<uint256 /*block*/, BlockTransactions /*data*/> transactions_;
 	// unlinked outs
-	db::DbContainer<uint256 /*utxo*/, Transaction::UnlinkedOut /*data*/> utxo_;	
+	db::DbContainerShared<uint256 /*utxo*/, Transaction::UnlinkedOut /*data*/> utxo_;	
 	// linked outs
-	db::DbContainer<uint256 /*utxo*/, Transaction::UnlinkedOut /*data*/> ltxo_;	
+	db::DbContainerShared<uint256 /*utxo*/, Transaction::UnlinkedOut /*data*/> ltxo_;	
 	// entities
-	db::DbContainer<std::string /*short name*/, uint256 /*tx*/> entities_;
+	db::DbContainerShared<std::string /*short name*/, uint256 /*tx*/> entities_;
 	// entities utxo
-	db::DbMultiContainer<std::string /*short name*/, uint256 /*utxo*/> entityUtxo_;
+	db::DbMultiContainerShared<std::string /*short name*/, uint256 /*utxo*/> entityUtxo_;
 	// shards by entity
-	db::DbMultiContainer<uint256 /*entity*/, uint256 /*shard*/> shards_;
+	db::DbMultiContainerShared<uint256 /*entity*/, uint256 /*shard*/> shards_;
 
 	//
 	// indexes
 	//
 
 	// tx-to-block|index
-	db::DbContainer<uint256 /*tx*/, TxBlockIndex /*block|index*/> transactionsIdx_;
+	db::DbContainerShared<uint256 /*tx*/, TxBlockIndex /*block|index*/> transactionsIdx_;
 	// address|asset|utxo -> tx
-	db::DbThreeKeyContainer<uint160 /*address*/, uint256 /*asset*/, uint256 /*utxo*/, uint256 /*tx*/> addressAssetUtxoIdx_;
+	db::DbThreeKeyContainerShared<uint160 /*address*/, uint256 /*asset*/, uint256 /*utxo*/, uint256 /*tx*/> addressAssetUtxoIdx_;
 	// block | utxo
-	db::DbMultiContainer<uint256 /*block*/, TxBlockAction /*utxo action*/> blockUtxoIdx_;
+	db::DbMultiContainerShared<uint256 /*block*/, TxBlockAction /*utxo action*/> blockUtxoIdx_;
 	// utxo | block
-	db::DbContainer<uint256 /*utxo*/, uint256 /*block*/> utxoBlock_;
+	db::DbContainerShared<uint256 /*utxo*/, uint256 /*block*/> utxoBlock_;
 	// shard | entities count
-	db::DbContainer<uint256 /*shard*/, uint32_t /*entities_count*/> shardEntities_;
+	db::DbContainerShared<uint256 /*shard*/, uint32_t /*entities_count*/> shardEntities_;
 	// tx | utxo
-	db::DbMultiContainer<uint256 /*tx*/, uint256 /*utxo*/> txUtxo_;
+	db::DbMultiContainerShared<uint256 /*tx*/, uint256 /*utxo*/> txUtxo_;
 	// entities names
-	db::DbContainer<std::string /*short name lower case*/, std::string /*entity name*/> entitiesIdx_;
+	db::DbContainerShared<std::string /*short name lower case*/, std::string /*entity name*/> entitiesIdx_;
 
 	//
 	// airdrop
 	//
 
-	db::DbContainer<uint160 /*address_id*/, uint256 /*tx*/> airDropAddressesTx_;
-	db::DbTwoKeyContainer<uint160 /*peer_key_id*/, uint160 /*address_id*/, uint256 /*tx*/> airDropPeers_;
+	db::DbContainerShared<uint160 /*address_id*/, uint256 /*tx*/> airDropAddressesTx_;
+	db::DbTwoKeyContainerShared<uint160 /*peer_key_id*/, uint160 /*address_id*/, uint256 /*tx*/> airDropPeers_;
 
 	//
 	boost::recursive_mutex storageCommitMutex_;
@@ -586,8 +595,10 @@ private:
 
 	//
 	boost::recursive_mutex storageMutex_;
-	std::map<uint64_t, uint256> heightMap_;
-	std::map<uint256, uint64_t> blockMap_;
+	// std::map<uint64_t, uint256> heightMap_;
+	// std::map<uint256, uint64_t> blockMap_;
+	db::DbContainer<uint64_t, uint256> heightMap_;
+	db::DbContainer<uint256, uint64_t> blockMap_;
 
 	//
 	std::map<uint256, NetworkBlockHeader> blocksQueue_;

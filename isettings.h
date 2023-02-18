@@ -87,6 +87,10 @@ public:
 	virtual void setReindex() {}
 	virtual void resetReindex() {}
 
+	virtual bool skipMainChainCleanUp() { return false; }
+	virtual void setSkipMainChainCleanUp() {}
+	virtual void resetSkipMainChainCleanUp() {}
+
 	virtual uint256 reindexShard() { return uint256(); }
 	virtual void setReindexShard(const uint256&) {}
 

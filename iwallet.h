@@ -58,6 +58,8 @@ public:
 	// new utxo and tx context to process deeply
 	virtual bool pushUnlinkedOut(Transaction::UnlinkedOutPtr, TransactionContextPtr) { throw qbit::exception("NOT_IMPL", "IWallet::pushUnlinkedOut - not implemented."); }
 	virtual bool popUnlinkedOut(const uint256&, TransactionContextPtr) { throw qbit::exception("NOT_IMPL", "IWallet::popUnlinkedOut - not implemented."); }
+	virtual bool tryRemoveUnlinkedOut(const uint256&) { throw qbit::exception("NOT_IMPL", "IWallet::tryRemoveUnlinkedOut - not implemented."); }
+	virtual bool tryRevertUnlinkedOut(const uint256&) { throw qbit::exception("NOT_IMPL", "IWallet::tryRevertUnlinkedOut - not implemented."); }
 	virtual bool isUnlinkedOutExists(const uint256&) { throw qbit::exception("NOT_IMPL", "IWallet::isUnlinkedOutExists - not implemented."); }
 	virtual bool isUnlinkedOutUsed(const uint256&) { throw qbit::exception("NOT_IMPL", "IWallet::isUnlinkedOutExists - not implemented."); }
 
@@ -126,8 +128,8 @@ public:
 
 	// wallet balance
 	virtual amount_t balance() { return 0; } // qbit balance
-	virtual amount_t balance(const uint256& asset) { return 0; }
-	virtual void balance(const uint256& asset, amount_t& pending, amount_t& actual) { pending = 0; actual = 0; }
+	virtual amount_t balance(const uint256& asset, bool rescan = false) { return 0; }
+	virtual void balance(const uint256& asset, amount_t& pending, amount_t& actual, bool rescan = false) { pending = 0; actual = 0; }
 
 	virtual amount_t pendingBalance() { return 0; } // qbit balance
 	virtual amount_t pendingBalance(const uint256& asset) { return 0; }

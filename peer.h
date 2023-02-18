@@ -291,7 +291,7 @@ public:
 		boost::unique_lock<boost::recursive_mutex> lLock(socketMutex_);
 		std::string lKey = key(socket_); 
 		if (lKey.size()) return lKey;
-		return endpoint_;
+		return endpoint_.size() ? endpoint_ : "(?)";
 	}
 
 	inline std::string key(SocketPtr socket) {
@@ -445,6 +445,7 @@ public:
 	// error processing
 	void processError(const std::string& context, std::list<DataStream>::iterator msg, const boost::system::error_code& error);	
 	bool sendMessageAsync(std::list<DataStream>::iterator msg);
+	void postMessageAsync(std::list<DataStream>::iterator msg);
 	void sendMessage(std::list<DataStream>::iterator msg);
 	void processPendingMessagesQueue();
 	StrandPtr strand() { return strand_; }
@@ -487,6 +488,7 @@ private:
 
 	void messageSentAsync(std::list<OutMessage>::iterator msg, const boost::system::error_code& error);
 	void sendTimeout(int seconds);
+	void postTimeout(boost::system::error_code error);
 
 private:
 	// internal processing

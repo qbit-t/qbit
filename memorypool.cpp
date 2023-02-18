@@ -63,6 +63,10 @@ bool MemoryPool::PoolStore::pushTransaction(TransactionContextPtr ctx) {
 	// push to actual
 	tx_[ctx->tx()->id()] = ctx;
 
+	if (gLog().isEnabled(Log::POOL)) gLog().write(Log::STORE, std::string("[STAT(1)]: ") +
+		strprintf("tx_ = %d, candidateTx_ = %d, postponedTx_ = %d, %s#", 
+			tx_.size(), candidateTx_.size(), postponedTx_.size(), ctx->tx()->chain().toHex().substr(0, 10)));
+
 	return true;
 }
 
@@ -86,9 +90,37 @@ void MemoryPool::PoolStore::remove(TransactionContextPtr ctx) {
 		freeUtxo_.erase(lInHash);
 	}
 
-	forward_.erase(ctx->tx()->id()); // clean-up
-	reverse_.erase(ctx->tx()->id()); // clean-up
+	uint32_t lIndex = 0;
+	for (std::vector<Transaction::Out>::iterator lOut = ctx->tx()->out().begin(); lOut != ctx->tx()->out().end(); lOut++, lIndex++) {
+		Transaction::Link lLink;
+		lLink.setChain(ctx->tx()->chain());
+		lLink.setAsset(ctx->tx()->out()[lIndex].asset());
+		lLink.setTx(ctx->tx()->id());
+		lLink.setIndex(lIndex);
+
+		Transaction::UnlinkedOutPtr lUTXO = Transaction::UnlinkedOut::instance(
+			lLink // link
+		);
+
+		uint256 lOutHash = lUTXO->hash();
+		usedUtxo_.erase(lOutHash);
+		freeUtxo_.erase(lOutHash);
+	}
+
+	std::pair<std::multimap<uint256 /*from*/, uint256 /*to*/>::iterator,
+				std::multimap<uint256 /*from*/, uint256 /*to*/>::iterator> lRange = reverse_.equal_range(ctx->tx()->id());
+	for (std::multimap<uint256 /*to*/, uint256 /*from*/>::iterator lItem = lRange.first; lItem != lRange.second; lItem++) {
+		//
+		forward_.erase(lItem->second); // clean-up reverse
+	}
+
+	forward_.erase(ctx->tx()->id()); // clean-up direct
+	reverse_.erase(ctx->tx()->id()); // clean-up direct
 	tx_.erase(ctx->tx()->id());
+
+	if (gLog().isEnabled(Log::POOL)) gLog().write(Log::STORE, std::string("[STAT(2)]: ") +
+		strprintf("tx_ = %d, candidateTx_ = %d, postponedTx_ = %d, forward_ = %d, reverse_ = %d, usedUtxo_ = %d, freeUtxo_ = %d, ctx->out() = %d, %s#", 
+			tx_.size(), candidateTx_.size(), postponedTx_.size(), forward_.size(), reverse_.size(), usedUtxo_.size(), freeUtxo_.size(), ctx->out().size(), ctx->tx()->chain().toHex().substr(0, 10)));
 }
 
 bool MemoryPool::PoolStore::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, TransactionContextPtr ctx) {
@@ -109,6 +141,10 @@ bool MemoryPool::PoolStore::pushUnlinkedOut(Transaction::UnlinkedOutPtr utxo, Tr
 			strprintf("utxo = %s, tx = %s, ctx = %s", 
 				lHash.toHex(), utxo->out().tx().toHex(), ctx->tx()->id().toHex()));
 
+		if (gLog().isEnabled(Log::POOL)) gLog().write(Log::STORE, std::string("[STAT(3)]: ") +
+			strprintf("tx_ = %d, candidateTx_ = %d, postponedTx_ = %d, forward_ = %d, reverse_ = %d, usedUtxo_ = %d, freeUtxo_ = %d, %s#", 
+				tx_.size(), candidateTx_.size(), postponedTx_.size(), forward_.size(), reverse_.size(), usedUtxo_.size(), freeUtxo_.size(), ctx->tx()->chain().toHex().substr(0, 10)));
+
 		return true;
 	}
 
@@ -119,6 +155,10 @@ bool MemoryPool::PoolStore::popUnlinkedOut(const uint256& utxo, TransactionConte
 	//
 	if (gLog().isEnabled(Log::POOL)) gLog().write(Log::STORE, std::string("[PoolStore::popUnlinkedOut]: try to pop ") +
 		strprintf("utxo = %s, tx = ?, ctx = %s", utxo.toHex(), ctx->tx()->hash().toHex()));
+
+	if (gLog().isEnabled(Log::POOL)) gLog().write(Log::STORE, std::string("[STAT(4)]: ") +
+		strprintf("tx_ = %d, candidateTx_ = %d, postponedTx_ = %d, forward_ = %d, reverse_ = %d, usedUtxo_ = %d, freeUtxo_ = %d, %s#", 
+			tx_.size(), candidateTx_.size(), postponedTx_.size(), forward_.size(), reverse_.size(), usedUtxo_.size(), freeUtxo_.size(), ctx->tx()->chain().toHex().substr(0, 10)));
 
 	//
 	bool lExists = false;
@@ -278,6 +318,12 @@ void MemoryPool::processCandidates() {
 }
 
 bool MemoryPool::pushTransaction(TransactionContextPtr ctx) {
+	// skip until reindexing; NOTICE: to allow normal processing - restart without '-reindex' switch needed
+	if ((consensus_->settings()->reindex() || consensus_->settings()->reindexShard() == chain_) &&
+			consensus_->chainState() != IConsensus::SYNCHRONIZED) {
+		// declined
+		return true;
+	}
 	//
 	if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[pushTransaction]: ") + 
 		strprintf("PUSHING transaction: %s/%s#",
@@ -368,8 +414,10 @@ bool MemoryPool::pushTransaction(TransactionContextPtr ctx) {
 						ctx->feeRate(), ctx->tx()->hash().toHex(), ctx->tx()->chain().toHex().substr(0, 10)));			
 			}
 
-			// 5. check if "qbit"
-			if (ctx->qbitTx()) qbitTxs_[ctx->tx()->id()] = ctx;
+			//
+			if (gLog().isEnabled(Log::POOL)) gLog().write(Log::STORE, std::string("[STAT(5)]: ") +
+				strprintf("map_ = %d, reverseMap_ = %d, threads_ = %d, reverseThreads_ = %d, confirmedBlocks_ = %d, %s#", 
+					map_.size(), reverseMap_.size(), threads_.size(), reverseThreads_.size(), confirmedBlocks_.size(), chain_.toHex().substr(0, 10)));
 		}
 	}
 
@@ -591,6 +639,7 @@ BlockContextPtr MemoryPool::beginBlock(BlockPtr block) {
 									} else {
 										if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[fillBlock]: approving blockbase transaction - ") + 
 												strprintf("%s/%s#", lBlockBaseTx->id().toHex(), lBlockInfo.base()->chain().toHex().substr(0, 10)));
+										removeConfirmedBlock(lBlockHash);
 									}
 								} else {
 									if (gLog().isEnabled(Log::GENERAL_ERROR)) gLog().write(Log::GENERAL_ERROR, std::string("[fillBlock]: amounts/addresses are NOT EQUALS - ") + 
@@ -802,7 +851,6 @@ void MemoryPool::commit(BlockContextPtr ctx) {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(mempoolMutex_);
 	for (std::list<BlockContext::_poolEntry>::iterator lEntry = ctx->poolEntries().begin(); lEntry != ctx->poolEntries().end(); lEntry++) {
-		qbitTxs_.erase((*lEntry)->second);
 		reverseMap_.erase((*lEntry)->second);
 		map_.erase(std::next(*lEntry).base());
 		//
@@ -820,12 +868,16 @@ void MemoryPool::commit(BlockContextPtr ctx) {
 			reverseThreads_.erase(lRoot);
 		}
 	}
+
+	if (gLog().isEnabled(Log::POOL)) gLog().write(Log::STORE, std::string("[STAT(6)]: ") +
+		strprintf("map_ = %d, reverseMap_ = %d, threads_ = %d, reverseThreads_ = %d, confirmedBlocks_ = %d, %s#", 
+			map_.size(), reverseMap_.size(), threads_.size(), reverseThreads_.size(), confirmedBlocks_.size(), chain_.toHex().substr(0, 10)));
 }
 
 void MemoryPool::removeTransactions(BlockPtr block) {
 	//
 	if (gLog().isEnabled(Log::POOL)) gLog().write(Log::POOL, std::string("[removeTransactions]: cleaning up mempool for ") + 
-		strprintf("%s/%s#", block->blockHeader().hash().toHex(), chain_.toHex().substr(0, 10)));	
+		strprintf("%s/%s#", block->blockHeader().hash().toHex(), chain_.toHex().substr(0, 10)));
 	//
 	PoolStorePtr lPoolStore = PoolStore::toStore(poolStore_);
 	PoolEntityStorePtr lPoolEntityStore = PoolEntityStore::toStore(poolEntityStore_);
@@ -860,9 +912,6 @@ void MemoryPool::removeTransactions(BlockPtr block) {
 					}
 
 				}
-
-				// clean-up qbit txs
-				qbitTxs_.erase(*lTx);
 			}
 
 			//
@@ -911,9 +960,6 @@ void MemoryPool::removeTransactions(BlockPtr block) {
 						reverseThreads_.erase(lRoot);
 					}
 				}
-
-				// clean-up qbit txs
-				qbitTxs_.erase((*lTx)->id());
 			}
 
 			//

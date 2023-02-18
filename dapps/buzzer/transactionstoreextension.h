@@ -190,31 +190,32 @@ public:
 	BuzzerTransactionStoreExtension(ISettingsPtr settings, ITransactionStorePtr store) : 
 		settings_(settings),
 		store_(store),
-		timeline_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/timeline"), 
-		conversations_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/conversations"), 
-		conversationsIndex_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/indexes/conversations"),
-		conversationsOrder_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/indexes/conversations_order"),
-		conversationsActivity_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/indexes/conversations_activity"),
-		globalTimeline_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/global_timeline"), 
-		hashTagTimeline_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/hashed_timeline"), 
-		hashTagUpdates_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/hash_tag_updates"), 
-		hashTags_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/hash_tags"), 
-		events_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/events"), 
-		subscriptionsIdx_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/indexes/subscriptions"),
-		publishersIdx_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/indexes/publishers"),
-		likesIdx_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/indexes/likes"),
-		rebuzzesIdx_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/indexes/rebuzzes"),
-		publisherUpdates_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/indexes/publisher_updates"),
-		subscriberUpdates_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/indexes/subscriber_updates"),
-		replies_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/replies"),		
-		//rebuzzes_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/rebuzzes"),
-		endorsements_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/endorsements"),
-		mistrusts_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/mistrusts"),
-		blocks_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/blocks"),
-		buzzInfo_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/buzz_info"),
-		buzzerStat_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/buzzer_stat"),
-		buzzerInfo_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/buzzer_info"),
-		hiddenIdx_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/indexes/hidden")
+		space_(std::make_shared<db::DbContainerSpace>(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/common")),
+		timeline_("buzzer_timeline", space_),
+		conversations_("buzzer_conversations", space_),
+		conversationsIndex_("buzzer_indexes_conversations", space_),
+		conversationsOrder_("buzzer_indexes_conversations_order", space_),
+		conversationsActivity_("buzzer_indexes_conversations_activity", space_),
+		globalTimeline_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/global_timeline"),
+		hashTagTimeline_("buzzer_hashed_timeline", space_),
+		hashTagUpdates_("buzzerhash_tag_updates", space_),
+		hashTags_("buzzer_hash_tags", space_),
+		events_("buzzer_events", space_), 
+		subscriptionsIdx_("buzzer_indexes_subscriptions", space_),
+		publishersIdx_("buzzer_indexes_publishers", space_),
+		likesIdx_("buzzer_indexes_likes", space_),
+		rebuzzesIdx_("buzzer_indexes_rebuzzes", space_),
+		publisherUpdates_("buzzer_indexes_publisher_updates", space_),
+		subscriberUpdates_("buzzer_indexes_subscriber_updates", space_),
+		replies_("buzzer_replies", space_),
+		//rebuzzes_("buzzer_rebuzzes", space_),
+		endorsements_("buzzer_endorsements", space_),
+		mistrusts_("buzzer_mistrusts", space_),
+		blocks_("buzzer_blocks", space_),
+		buzzInfo_("buzzer_buzz_info", space_),
+		buzzerStat_("buzzer_buzzer_stat", space_),
+		buzzerInfo_("buzzer_buzzer_info", space_),
+		hiddenIdx_("buzzer_indexes_hidden", space_)
 		{}
 
 	bool open();
@@ -386,8 +387,14 @@ private:
 	ITransactionStorePtr store_;
 	bool opened_ = false;
 
+	//
+	// container space
+	//
+
+	db::DbContainerSpacePtr space_;
+
 	// timeline: publisher | timestamp -> tx
-	db::DbTwoKeyContainer<
+	db::DbTwoKeyContainerShared<
 		uint256 /*publisher | conversation*/, 
 		uint64_t /*timestamp*/, 
 		uint256 /*buzz/reply/rebuzz/like/message...*/> timeline_;
@@ -397,27 +404,28 @@ private:
 	//
 
 	// buzzer | conversation
-	db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*conversation*/, ConversationInfo /*state*/> conversations_;
+	db::DbTwoKeyContainerShared<uint256 /*buzzer*/, uint256 /*conversation*/, ConversationInfo /*state*/> conversations_;
 
 	// buzzer conversations timestamp
-	db::DbTwoKeyContainer<
+	db::DbTwoKeyContainerShared<
 		uint256 /*buzzer*/, 
 		uint256 /*conversation*/,
 		uint64_t /*timestamp*/> conversationsIndex_;
 
 	// conversations ordering by timestamp
-	db::DbTwoKeyContainer<
+	db::DbTwoKeyContainerShared<
 		uint256 /*buzzer*/, 
 		uint64_t /*timestamp*/,
 		uint256 /*conversation*/> conversationsOrder_;
 	
 	// buzzer last activity
-	db::DbContainer<uint256 /*buzzer*/, uint64_t /*timestamp*/> conversationsActivity_;
+	db::DbContainerShared<uint256 /*buzzer*/, uint64_t /*timestamp*/> conversationsActivity_;
 
 	//
 
 	// global timeline: timeframe | score | publisher -> tx
-	// NOTICE: this index is not absolute unique, but very close
+	// NOTICE(1): this index is not absolute unique, but very close
+	// NOTICE(2): that is separate db container
 	db::DbFourKeyContainer<
 		uint64_t /*timeframe*/,
 		uint64_t /*score*/,
@@ -427,7 +435,7 @@ private:
 
 	// hash-tag indexed timeline: hash | timeframe | score | publisher -> tx
 	// NOTICE: this index is not absolute unique, but very close
-	db::DbFiveKeyContainer<
+	db::DbFiveKeyContainerShared<
 		uint160 /*hash*/, 
 		uint64_t /*timeframe*/, 
 		uint64_t /*score*/, 
@@ -436,7 +444,7 @@ private:
 		uint256 /*buzz/reply/rebuzz/like/...*/> hashTagTimeline_;
 
 	// last tag-key
-	db::DbContainer<uint160 /*hash*/, db::FiveKey<
+	db::DbContainerShared<uint160 /*hash*/, db::FiveKey<
 		uint160 /*hash*/, 
 		uint64_t /*timeframe*/, 
 		uint64_t /*score*/, 
@@ -444,28 +452,28 @@ private:
 		uint256 /*publisher*/>> hashTagUpdates_;
 
 	// tags map
-	db::DbContainer<std::string, std::string> hashTags_;
+	db::DbContainerShared<std::string, std::string> hashTags_;
 
 	// events: time | subscriber | tx -> type
-	db::DbThreeKeyContainer<
+	db::DbThreeKeyContainerShared<
 		uint256 /*subscriber*/, 
 		uint64_t /*timestamp*/, 
 		uint256 /*tx*/, 
 		unsigned short /*type - buzz/reply/rebuzz/like/...*/> events_;
 
 	// subscriber|publisher -> tx
-	db::DbTwoKeyContainer<uint256 /*subscriber*/, uint256 /*publisher*/, uint256 /*tx*/> subscriptionsIdx_;
+	db::DbTwoKeyContainerShared<uint256 /*subscriber*/, uint256 /*publisher*/, uint256 /*tx*/> subscriptionsIdx_;
 	// subscriber|publisher -> tx
-	db::DbTwoKeyContainer<uint256 /*publisher*/, uint256 /*subscriber*/, uint256 /*tx*/> publishersIdx_;
+	db::DbTwoKeyContainerShared<uint256 /*publisher*/, uint256 /*subscriber*/, uint256 /*tx*/> publishersIdx_;
 	// buzz | liker -> like_tx
-	db::DbTwoKeyContainer<uint256 /*buzz|rebuzz|reply*/, uint256 /*liker*/, uint256 /*like_tx*/> likesIdx_;
+	db::DbTwoKeyContainerShared<uint256 /*buzz|rebuzz|reply*/, uint256 /*liker*/, uint256 /*like_tx*/> likesIdx_;
 	// buzz | rebuzzer -> rebuzz_tx
-	db::DbTwoKeyContainer<uint256 /*buzz|rebuzz|reply*/, uint256 /*rebuzzer*/, uint256 /*rebuzz_tx*/> rebuzzesIdx_;
+	db::DbTwoKeyContainerShared<uint256 /*buzz|rebuzz|reply*/, uint256 /*rebuzzer*/, uint256 /*rebuzz_tx*/> rebuzzesIdx_;
 	// buzz | owner
-	db::DbContainer<uint256 /*buzz|rebuzz|reply*/, uint256 /*buzzer*/> hiddenIdx_;
+	db::DbContainerShared<uint256 /*buzz|rebuzz|reply*/, uint256 /*buzzer*/> hiddenIdx_;
 
 	// buzz | reply
-	db::DbThreeKeyContainer<
+	db::DbThreeKeyContainerShared<
 		uint256 /*buzz|rebuzz|reply*/, 
 		uint64_t /*timestamp*/, 
 		uint256 /*rebuzz|reply*/, 
@@ -475,21 +483,21 @@ private:
 	// db::DbThreeKeyContainer<uint256 /*buzz chain*/, uint256 /*buzz*/, uint256 /*rebuzz*/, uint256 /*publisher*/> rebuzzes_;
 
 	// buzz | info
-	db::DbContainer<uint256 /*buzz*/, BuzzInfo /*buzz info*/> buzzInfo_;
+	db::DbContainerShared<uint256 /*buzz*/, BuzzInfo /*buzz info*/> buzzInfo_;
 	// buzzer | info
-	db::DbContainer<uint256 /*buzz*/, uint256 /*buzz info*/> buzzerInfo_;
+	db::DbContainerShared<uint256 /*buzz*/, uint256 /*buzz info*/> buzzerInfo_;
 	// buzzer | stat
-	db::DbContainer<uint256 /*buzzer*/, BuzzerInfo /*buzzer info*/> buzzerStat_;
+	db::DbContainerShared<uint256 /*buzzer*/, BuzzerInfo /*buzzer info*/> buzzerStat_;
 	// publisher | timestamp
-	db::DbContainer<uint256 /*publisher*/, uint64_t /*timestamp*/> publisherUpdates_;
+	db::DbContainerShared<uint256 /*publisher*/, uint64_t /*timestamp*/> publisherUpdates_;
 	// subscriber | timestamp
-	db::DbContainer<uint256 /*subscriber*/, uint64_t /*timestamp*/> subscriberUpdates_;
+	db::DbContainerShared<uint256 /*subscriber*/, uint64_t /*timestamp*/> subscriberUpdates_;
 	// buzzer | endorser -> tx
-	db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*endoser*/, uint256 /*tx*/> endorsements_;
+	db::DbTwoKeyContainerShared<uint256 /*buzzer*/, uint256 /*endoser*/, uint256 /*tx*/> endorsements_;
 	// buzzer | mistruster -> tx
-	db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*mistruster*/, uint256 /*tx*/> mistrusts_;
+	db::DbTwoKeyContainerShared<uint256 /*buzzer*/, uint256 /*mistruster*/, uint256 /*tx*/> mistrusts_;
 	// buzzer | blocker -> tx
-	db::DbTwoKeyContainer<uint256 /*buzzer*/, uint256 /*blocker*/, uint256 /*tx*/> blocks_;
+	db::DbTwoKeyContainerShared<uint256 /*buzzer*/, uint256 /*blocker*/, uint256 /*tx*/> blocks_;
 };
 
 //

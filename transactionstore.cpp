@@ -112,7 +112,7 @@ bool TransactionStore::processBlockTransactions(ITransactionStorePtr store, IEnt
 
 		// check presence
 		uint256 lTxIdUtxo;
-		db::DbMultiContainer<uint256 /*tx*/, uint256 /*utxo*/>::Iterator lTxUtxo = txUtxo_.find(lCtx->tx()->id());
+		db::DbMultiContainerShared<uint256 /*tx*/, uint256 /*utxo*/>::Iterator lTxUtxo = txUtxo_.find(lCtx->tx()->id());
 		if (approxHeight && lTxUtxo.valid() && lTxUtxo.first(lTxIdUtxo) && lTxIdUtxo == lCtx->tx()->id() /* double check */) {
 			//
 			Transaction::UnlinkedOut lUtxo;
@@ -310,15 +310,15 @@ bool TransactionStore::processBlockTransactions(ITransactionStorePtr store, IEnt
 					entitiesIdx_.remove(lEntityName);
 
 					// iterate
-					db::DbMultiContainer<std::string /*short name*/, uint256 /*utxo*/>::Transaction lEntityUtxoTransaction = entityUtxo_.transaction();
-					for (db::DbMultiContainer<std::string /*short name*/, uint256 /*utxo*/>::Iterator lEntityUtxo = entityUtxo_.find(lTx->entityName()); lEntityUtxo.valid(); ++lEntityUtxo) {
+					db::DbMultiContainerShared<std::string /*short name*/, uint256 /*utxo*/>::Transaction lEntityUtxoTransaction = entityUtxo_.transaction();
+					for (db::DbMultiContainerShared<std::string /*short name*/, uint256 /*utxo*/>::Iterator lEntityUtxo = entityUtxo_.find(lTx->entityName()); lEntityUtxo.valid(); ++lEntityUtxo) {
 						lEntityUtxoTransaction.remove(lEntityUtxo);
 					}
 
 					lEntityUtxoTransaction.commit();
 
-					db::DbMultiContainer<uint256 /*entity*/, uint256 /*shard*/>::Transaction lShardsTransaction = shards_.transaction();
-					for (db::DbMultiContainer<uint256 /*entity*/, uint256 /*shard*/>::Iterator lShards = shards_.find(lTx->id()); lShards.valid(); ++lShards) {
+					db::DbMultiContainerShared<uint256 /*entity*/, uint256 /*shard*/>::Transaction lShardsTransaction = shards_.transaction();
+					for (db::DbMultiContainerShared<uint256 /*entity*/, uint256 /*shard*/>::Iterator lShards = shards_.find(lTx->id()); lShards.valid(); ++lShards) {
 						shardEntities_.remove(*lShards);
 						lShardsTransaction.remove(lShards);
 					}
@@ -413,18 +413,18 @@ bool TransactionStore::transactionInfo(const uint256& tx, uint256& block, uint64
 	if (transactionsIdx_.read(tx, lIndex)) {
 		//
 		boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
-		std::map<uint256, uint64_t>::iterator lHeight = blockMap_.find(lIndex.block());
-
-		if (lHeight != blockMap_.end()) {
+		uint64_t lHeight;
+		if (blockMap_.read(lIndex.block(), lHeight)) {
 			if (!lIndex.index()) coinbase = true;
 			else coinbase = false;
-			height = lHeight->second;
+			height = lHeight;
 			block = lIndex.block();
 			index = lIndex.index();
 
-			std::map<uint64_t, uint256>::reverse_iterator lHead = heightMap_.rbegin();
-			if (lHead != heightMap_.rend() && lHead->first >= height) { 
-				confirms = (lHead->first - height) + 1; 
+			uint64_t lFirst;
+			db::DbContainer<uint64_t, uint256>::Iterator lHead = heightMap_.last();
+			if (lHead.valid() && lHead.first(lFirst) && lFirst >= height) { 
+				confirms = (lFirst - height) + 1; 
 			} else confirms = 0;
 
 			return true;
@@ -437,9 +437,9 @@ bool TransactionStore::transactionInfo(const uint256& tx, uint256& block, uint64
 bool TransactionStore::blockHeight(const uint256& block, uint64_t& height) {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
-	std::map<uint256, uint64_t>::iterator lHeight = blockMap_.find(block);
-	if (lHeight != blockMap_.end()) {
-		height = lHeight->second;
+	uint64_t lHeight;
+	if (blockMap_.read(block, lHeight)) {
+		height = lHeight;
 		return true;
 	}
 
@@ -449,9 +449,9 @@ bool TransactionStore::blockHeight(const uint256& block, uint64_t& height) {
 bool TransactionStore::blockHeaderHeight(const uint256& block, uint64_t& height, BlockHeader& header) {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
-	std::map<uint256, uint64_t>::iterator lHeight = blockMap_.find(block);
-	if (lHeight != blockMap_.end()) {
-		height = lHeight->second;
+	uint64_t lHeight;
+	if (blockMap_.read(block, lHeight)) {
+		height = lHeight;
 		return blockHeader(block, header);
 	}
 
@@ -568,8 +568,16 @@ void TransactionStore::invalidateHeightMap() {
 	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
 
 	//
-	heightMap_.clear();
-	blockMap_.clear();
+	heightMap_.close();
+	blockMap_.close();
+
+	//
+	rmpath((settings_->dataPath() + "/" + chain_.toHex() + std::string("/height_map")).c_str());
+	rmpath((settings_->dataPath() + "/" + chain_.toHex() + std::string("/block_map")).c_str());
+
+	//
+	heightMap_.open();
+	blockMap_.open();
 }
 
 bool TransactionStore::resyncHeight() {
@@ -618,16 +626,16 @@ bool TransactionStore::resyncHeight() {
 	}
 
 	//
+	invalidateHeightMap();
+
+	//
 	{
 		boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
 
-		//
-		heightMap_.clear();
-		blockMap_.clear();
-
 		for (std::list<uint256>::reverse_iterator lIter = lSeq.rbegin(); lIter != lSeq.rend(); lIter++) {
-			heightMap_.insert(std::map<uint64_t, uint256>::value_type(++lIndex, *lIter));
-			blockMap_.insert(std::map<uint256, uint64_t>::value_type(*lIter, lIndex));
+			//
+			heightMap_.write(++lIndex, *lIter);
+			blockMap_.write(*lIter, lIndex);
 		}
 	}
 
@@ -675,48 +683,52 @@ bool TransactionStore::resyncHeight(const uint256& to) {
 		// partial resync
 		boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
 		// locate last index
-		std::map<uint256, uint64_t>::iterator lBlockPtr = blockMap_.find(*lSeq.rbegin());
-		if (lBlockPtr != blockMap_.end()) {
+		uint64_t lHeight;
+		uint256 lBlock;
+		if (blockMap_.read(*lSeq.rbegin(), lHeight)) {
 			// "to" found
-			lLastIndex = lBlockPtr->second; // "to" index
+			lLastIndex = lHeight; // "to" index
 			// clean-up
 			std::list<uint256>::reverse_iterator lIter = ++(lSeq.rbegin()); // next from "to"
 			for (; lIter != lSeq.rend(); lIter++) {
-				std::map<uint256, uint64_t>::iterator lBlockIter = blockMap_.find(*lIter);
-				if (lBlockIter != blockMap_.end()) { 
-					heightMap_.erase(lBlockIter->second);
-					blockMap_.erase(lBlockIter);
+				if (blockMap_.read(*lIter, lHeight)) { 
+					heightMap_.remove(lHeight);
+					blockMap_.remove(*lIter);
 				}
 			}
 			// build up
 			lIter = ++(lSeq.rbegin()); // next from "to"
 			for (; lIter != lSeq.rend(); lIter++) {
-				if (!heightMap_.insert(std::map<uint64_t, uint256>::value_type(++lLastIndex, *lIter)).second) {
+				uint256 lHeaderId;
+				if (heightMap_.read(++lLastIndex, lHeaderId)) {
 					if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight/partial/warning]: height map is not clean, replacing for ") + 
 							strprintf("index = %d, block = %s, to = %s, last = %s, chain = %s#", 
 								lLastIndex, (*lIter).toHex(), to.toHex(), lastBlock_.toHex(), chain_.toHex().substr(0, 10)));
-					//
-					heightMap_.erase(lLastIndex);
-					heightMap_.insert(std::map<uint64_t, uint256>::value_type(lLastIndex, *lIter));
+					heightMap_.remove(lLastIndex);
 				}
-
-				if (!blockMap_.insert(std::map<uint256, uint64_t>::value_type(*lIter, lLastIndex)).second) {
+				//
+				heightMap_.write(lLastIndex, *lIter);
+				//
+				uint64_t lHeightId;
+				if (blockMap_.read(*lIter, lHeightId)) {
 					if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight/partial/warning]: block map is not clean, replacing for ") + 
 							strprintf("block = %s, to = %s, last = %s, chain = %s#", 
 								(*lIter).toHex(), to.toHex(), lastBlock_.toHex(), chain_.toHex().substr(0, 10)));
-					//
-					blockMap_.erase(*lIter);
-					blockMap_.insert(std::map<uint256, uint64_t>::value_type(*lIter, lLastIndex));
+					blockMap_.remove(*lIter);
 				}
+				//
+				blockMap_.write(*lIter, lLastIndex);
 			}
 			// check
-			std::map<uint64_t, uint256>::reverse_iterator lTop = heightMap_.rbegin();
-			if (lTop->second != lastBlock_) {
+			uint64_t lLastHeight;
+			uint256 lLastBlock;
+			db::DbContainer<uint64_t, uint256>::Iterator lTop = heightMap_.last();
+			if (lTop.valid() && lTop.first(lLastHeight) && lTop.second(lLastBlock) && lLastBlock != lastBlock_) {
 				// full resync
 				lFull = true;
 				if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight/partial/error]: top is not last, making FULL resync for ") + 
-						strprintf("to = %s, last = %s, chain = %s#", 
-							to.toHex(), lastBlock_.toHex(), chain_.toHex().substr(0, 10)));
+						strprintf("to = %s, last = %s, lastHeight = %d / %s, chain = %s#", 
+							to.toHex(), lastBlock_.toHex(), lLastHeight, lLastBlock.toHex(), chain_.toHex().substr(0, 10)));
 			}
 		} else {
 			// full resync
@@ -806,13 +818,13 @@ void TransactionStore::removeBlocks(const uint256& from, const uint256& to, bool
 	BlockHeader lHeader;
 	while(lHash != to && headers_.read(lHash, lHeader) && (!limit || lLimit++ < limit)) {
 		// begin transaction
-		db::DbMultiContainer<uint256 /*block*/, TxBlockAction /*utxo action*/>::Transaction lBlockIdxTransaction = blockUtxoIdx_.transaction();
+		db::DbMultiContainerShared<uint256 /*block*/, TxBlockAction /*utxo action*/>::Transaction lBlockIdxTransaction = blockUtxoIdx_.transaction();
 		// prepare reverse queue
 		std::list<TxBlockAction> lQueue;
 		std::set<uint256> lTouchedTxs;
 		uint256 lNullUtxo;
 		// iterate
-		for (db::DbMultiContainer<uint256 /*block*/, TxBlockAction /*utxo action*/>::Iterator lUtxo = blockUtxoIdx_.find(lHash); lUtxo.valid(); ++lUtxo) {
+		for (db::DbMultiContainerShared<uint256 /*block*/, TxBlockAction /*utxo action*/>::Iterator lUtxo = blockUtxoIdx_.find(lHash); lUtxo.valid(); ++lUtxo) {
 			// check & push
 			if ((*lUtxo).utxo() != lNullUtxo) lQueue.push_back(*lUtxo);
 			// mark to remove
@@ -838,6 +850,7 @@ void TransactionStore::removeBlocks(const uint256& from, const uint256& to, bool
 					ltxo_.remove(lAction.utxo()); // sanity
 					utxoBlock_.remove(lAction.utxo()); // just for push
 					addressAssetUtxoIdx_.remove(lUtxoObj.address().id(), lUtxoObj.out().asset(), lAction.utxo());
+					wallet_->tryRemoveUnlinkedOut(lAction.utxo()); // try wallet
 					lTouchedTxs.insert(lUtxoObj.out().tx()); // mark as visited
 				} else {
 					// try main chain 
@@ -860,6 +873,7 @@ void TransactionStore::removeBlocks(const uint256& from, const uint256& to, bool
 					addressAssetUtxoIdx_.write(lUtxoObj.address().id(), lUtxoObj.out().asset(), lAction.utxo(), lUtxoObj.out().tx());
 					utxoBlock_.write(lAction.utxo(), lHash);
 					ltxo_.remove(lAction.utxo());
+					wallet_->tryRevertUnlinkedOut(lAction.utxo()); // try wallet
 					lTouchedTxs.insert(lUtxoObj.out().tx()); // mark as visited
 
 					if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[removeBlocks]: ") +
@@ -906,8 +920,8 @@ void TransactionStore::removeBlocks(const uint256& from, const uint256& to, bool
 				transactionsIdx_.remove((*lTx)->id());
 
 				// iterate
-				db::DbMultiContainer<uint256 /*tx*/, uint256 /*utxo*/>::Transaction lTxUtxoTransaction = txUtxo_.transaction();
-				for (db::DbMultiContainer<uint256 /*tx*/, uint256 /*utxo*/>::Iterator lTxUtxo = txUtxo_.find((*lTx)->id()); lTxUtxo.valid(); ++lTxUtxo) {
+				db::DbMultiContainerShared<uint256 /*tx*/, uint256 /*utxo*/>::Transaction lTxUtxoTransaction = txUtxo_.transaction();
+				for (db::DbMultiContainerShared<uint256 /*tx*/, uint256 /*utxo*/>::Iterator lTxUtxo = txUtxo_.find((*lTx)->id()); lTxUtxo.valid(); ++lTxUtxo) {
 					lTxUtxoTransaction.remove(lTxUtxo);
 
 					// double check for the "lost" utxo's
@@ -927,15 +941,15 @@ void TransactionStore::removeBlocks(const uint256& from, const uint256& to, bool
 					entitiesIdx_.remove(lEntityName);
 
 					// iterate
-					db::DbMultiContainer<std::string /*short name*/, uint256 /*utxo*/>::Transaction lEntityUtxoTransaction = entityUtxo_.transaction();
-					for (db::DbMultiContainer<std::string /*short name*/, uint256 /*utxo*/>::Iterator lEntityUtxo = entityUtxo_.find((*lTx)->entityName()); lEntityUtxo.valid(); ++lEntityUtxo) {
+					db::DbMultiContainerShared<std::string /*short name*/, uint256 /*utxo*/>::Transaction lEntityUtxoTransaction = entityUtxo_.transaction();
+					for (db::DbMultiContainerShared<std::string /*short name*/, uint256 /*utxo*/>::Iterator lEntityUtxo = entityUtxo_.find((*lTx)->entityName()); lEntityUtxo.valid(); ++lEntityUtxo) {
 						lEntityUtxoTransaction.remove(lEntityUtxo);
 					}
 
 					lEntityUtxoTransaction.commit();
 
-					db::DbMultiContainer<uint256 /*entity*/, uint256 /*shard*/>::Transaction lShardsTransaction = shards_.transaction();
-					for (db::DbMultiContainer<uint256 /*entity*/, uint256 /*shard*/>::Iterator lShards = shards_.find((*lTx)->id()); lShards.valid(); ++lShards) {
+					db::DbMultiContainerShared<uint256 /*entity*/, uint256 /*shard*/>::Transaction lShardsTransaction = shards_.transaction();
+					for (db::DbMultiContainerShared<uint256 /*entity*/, uint256 /*shard*/>::Iterator lShards = shards_.find((*lTx)->id()); lShards.valid(); ++lShards) {
 						shardEntities_.remove(*lShards);
 						lShardsTransaction.remove(lShards);
 					}
@@ -967,7 +981,7 @@ bool TransactionStore::collectUtxoByEntityName(const std::string& name, std::vec
 	std::map<uint32_t, Transaction::UnlinkedOutPtr> lUtxos;
 
 	// iterate
-	for (db::DbMultiContainer<std::string /*short name*/, uint256 /*utxo*/>::Iterator lUtxo = entityUtxo_.find(name); lUtxo.valid(); ++lUtxo) {
+	for (db::DbMultiContainerShared<std::string /*short name*/, uint256 /*utxo*/>::Iterator lUtxo = entityUtxo_.find(name); lUtxo.valid(); ++lUtxo) {
 		Transaction::UnlinkedOut lUtxoObj;
 		if (utxo_.read(*lUtxo, lUtxoObj)) {
 			lUtxos[lUtxoObj.out().index()] = Transaction::UnlinkedOut::instance(lUtxoObj);
@@ -990,7 +1004,7 @@ bool TransactionStore::entityCountByShards(const std::string& name, std::map<uin
 	uint256 lDAppTx;
 	if(entities_.read(name, lDAppTx)) {
 		//
-		for (db::DbMultiContainer<uint256 /*entity*/, uint256 /*shard*/>::Iterator lShard = shards_.find(lDAppTx); lShard.valid(); ++lShard) {
+		for (db::DbMultiContainerShared<uint256 /*entity*/, uint256 /*shard*/>::Iterator lShard = shards_.find(lDAppTx); lShard.valid(); ++lShard) {
 			//
 			uint32_t lCount = 0;
 			shardEntities_.read(*lShard, lCount);
@@ -1009,7 +1023,7 @@ bool TransactionStore::entityCountByDApp(const std::string& name, std::map<uint2
 	uint256 lDAppTx;
 	if(entities_.read(name, lDAppTx)) {
 		//
-		for (db::DbMultiContainer<uint256 /*entity*/, uint256 /*shard*/>::Iterator lShard = shards_.find(lDAppTx); lShard.valid(); ++lShard) {
+		for (db::DbMultiContainerShared<uint256 /*entity*/, uint256 /*shard*/>::Iterator lShard = shards_.find(lDAppTx); lShard.valid(); ++lShard) {
 			//
 			uint32_t lCount = 0;
 			uint32_t lMainCount = 0;
@@ -1055,7 +1069,7 @@ void TransactionStore::erase(const uint256& from, const uint256& to) {
 // interval [..)
 bool TransactionStore::processBlocks(const uint256& from, const uint256& to, IMemoryPoolPtr pool, uint256& last, int& errorReason) {
 	//
-	std::list<BlockHeader> lHeadersSeq;
+	std::list<uint256> lHeadersSeq;
 	uint256 lHash = from;
 	uint256 lPrev = from;
 
@@ -1080,7 +1094,7 @@ bool TransactionStore::processBlocks(const uint256& from, const uint256& to, IMe
 				lDone = true;
 			} else {
 				//
-				lHeadersSeq.push_back(lHeader);
+				lHeadersSeq.push_back(lHash);
 				// next
 				lPrev = lHash;
 				lHash = lHeader.prev();				
@@ -1095,7 +1109,7 @@ bool TransactionStore::processBlocks(const uint256& from, const uint256& to, IMe
 			*/
 		} else {
 			//
-			lHeadersSeq.push_back(lHeader);
+			lHeadersSeq.push_back(lHash);
 			// next
 			lPrev = lHash;
 			lHash = lHeader.prev();
@@ -1107,36 +1121,39 @@ bool TransactionStore::processBlocks(const uint256& from, const uint256& to, IMe
 		strprintf("%d, %s-%s/%s#", lHeadersSeq.size(), from.toHex(), to.toHex(), chain_.toHex().substr(0, 10)));
 
 	// traverse
-	for (std::list<BlockHeader>::reverse_iterator lBlock = lHeadersSeq.rbegin(); lBlock != lHeadersSeq.rend(); lBlock++) {
+	for (std::list<uint256>::reverse_iterator lBlockId = lHeadersSeq.rbegin(); lBlockId != lHeadersSeq.rend(); lBlockId++) {
 		//
-		uint256 lBlockHash = (*lBlock).hash();
+		uint256 lBlockHash = (*lBlockId);
+		BlockHeader lBlock;
+		headers_.read(lBlockHash, lBlock); // load header
+		//
 		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlocks]: processing block ") +
 			strprintf("%s/%s#", lBlockHash.toHex(), chain_.toHex().substr(0, 10)));
 
 		// check sequence consistency
 		bool lExtended = true;
-		if (lMempool && !lMempool->consensus()->checkSequenceConsistency(*lBlock, lExtended)) {
+		if (lMempool && !lMempool->consensus()->checkSequenceConsistency(lBlock, lExtended)) {
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlocks/error]: check basic sequence consistency FAILED ") +
-				strprintf("block = %s, prev = %s, chain = %s#", lBlockHash.toHex(), (*lBlock).prev().toHex(), chain_.toHex().substr(0, 10)));
+				strprintf("block = %s, prev = %s, chain = %s#", lBlockHash.toHex(), lBlock.prev().toHex(), chain_.toHex().substr(0, 10)));
 			errorReason = ERROR_REASON_INTEGRITY_ERROR;
 			last = lBlockHash;
 			return false;
 		} else if (!lExtended && !settings_->reindex()) {
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlocks/error]: check extended sequence consistency FAILED ") +
-				strprintf("block = %s, prev = %s, chain = %s#", lBlockHash.toHex(), (*lBlock).prev().toHex(), chain_.toHex().substr(0, 10)));
+				strprintf("block = %s, prev = %s, chain = %s#", lBlockHash.toHex(), lBlock.prev().toHex(), chain_.toHex().substr(0, 10)));
 			errorReason = ERROR_REASON_EXTENDED_CHECK_NOT_PASSED;
 			last = lBlockHash;
 			return false;
 		}
 
 		//
-		BlockContextPtr lBlockCtx = BlockContext::instance(Block::instance(*lBlock)); // just header without transactions attached
+		BlockContextPtr lBlockCtx = BlockContext::instance(Block::instance(lBlock)); // just header without transactions attached
 		BlockTransactionsPtr lTransactions = transactions_.read(lBlockHash);
 		if (!lTransactions) {
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[processBlocks/error]: transaction DATA is ABSENT for ") +
-				strprintf("block = %s, prev = %s, chain = %s#", lBlockHash.toHex(), (*lBlock).prev().toHex(), chain_.toHex().substr(0, 10)));
+				strprintf("block = %s, prev = %s, chain = %s#", lBlockHash.toHex(), lBlock.prev().toHex(), chain_.toHex().substr(0, 10)));
 			errorReason = ERROR_REASON_TX_DATA_MISSING;
-			last = (*lBlock).prev(); // suppose, that the previous one is good enouht
+			last = lBlock.prev(); // suppose, that the previous one is good enouht
 			return false;
 		}
 
@@ -1182,7 +1199,7 @@ bool TransactionStore::processBlocks(const uint256& from, const uint256& to, IMe
 			//
 			lBlockCtx->block()->compact(); // compact txs to just ids
 			if (pool) pool->removeTransactions(lBlockCtx->block());
-			last = (*lBlock).prev(); // suppose, that the previous one is good enouht
+			last = lBlock.prev(); // suppose, that the previous one is good enouht
 			errorReason = ERROR_REASON_TX_INTEGRITY_ERROR;
 			return false;
 		}
@@ -1194,12 +1211,13 @@ bool TransactionStore::processBlocks(const uint256& from, const uint256& to, IMe
 uint64_t TransactionStore::currentHeight(BlockHeader& block) {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
-	if (heightMap_.size()) {
-		std::map<uint64_t, uint256>::reverse_iterator lHeader = heightMap_.rbegin();
+	uint64_t lHeight;
+	db::DbContainer<uint64_t, uint256>::Iterator lHeader = heightMap_.last();
+	if (lHeader.valid() && lHeader.first(lHeight)) {
 		// validate
-		if (headers_.read(lHeader->second, block)) {
-			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[currentHeight]: ") + strprintf("%d/%s/%s#", lHeader->first, block.hash().toHex(), chain_.toHex().substr(0, 10)));
-			return lHeader->first;
+		if (headers_.read(*lHeader, block)) {
+			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[currentHeight]: ") + strprintf("%d/%s/%s#", lHeight, block.hash().toHex(), chain_.toHex().substr(0, 10)));
+			return lHeight;
 		}
 	}
 
@@ -1210,9 +1228,10 @@ uint64_t TransactionStore::currentHeight(BlockHeader& block) {
 uint64_t TransactionStore::top() {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
-	if (heightMap_.size()) {
-		std::map<uint64_t, uint256>::reverse_iterator lHeader = heightMap_.rbegin();
-		return lHeader->first;
+	uint64_t lHeight;
+	db::DbContainer<uint64_t, uint256>::Iterator lHeader = heightMap_.last();
+	if (lHeader.valid() && lHeader.first(lHeight)) {
+		return lHeight;
 	}
 
 	return 0;
@@ -1221,16 +1240,16 @@ uint64_t TransactionStore::top() {
 uint64_t TransactionStore::pushNewHeight(const uint256& block) {
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
-	uint64_t lHeight = 1;
-	if (heightMap_.size()) {
-		lHeight = heightMap_.rbegin()->first+1;
+	uint64_t lHeight = 1, lTopHeight = 0;
+	db::DbContainer<uint64_t, uint256>::Iterator lTop = heightMap_.last();
+	if (lTop.valid() && lTop.first(lTopHeight)) {
+		lHeight = lTopHeight + 1;
 	}
 
-	std::pair<std::map<uint64_t, uint256>::iterator, bool> lNewHeight = 
-		heightMap_.insert(std::map<uint64_t, uint256>::value_type(lHeight, block));
-	blockMap_.insert(std::map<uint256, uint64_t>::value_type(block, lHeight));
+	heightMap_.write(lHeight, block);
+	blockMap_.write(block, lHeight);
 
-	return lNewHeight.first->first;
+	return lHeight;
 }
 
 BlockHeader TransactionStore::currentBlockHeader() {
@@ -1340,17 +1359,17 @@ BlockPtr TransactionStore::block(uint64_t height) {
 	//
 	BlockHeader lHeader;
 	uint256 lHash;
+	bool lFound = false;
 	{
 		boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
-		std::map<uint64_t, uint256>::iterator lHeight = heightMap_.find(height);
-		if (lHeight != heightMap_.end()) {
-			lHash = lHeight->second;
+		if (heightMap_.read(height, lHash)) {
+			lFound = true;
 		} else {
 			return nullptr;
 		}
 	}
 
-	if (headers_.read(lHash, lHeader)) {
+	if (lFound && headers_.read(lHash, lHeader)) {
 		BlockTransactionsPtr lTransactions = transactions_.read(lHash);
 		if (lTransactions)
 			return Block::instance(lHeader, lTransactions);
@@ -1362,17 +1381,17 @@ BlockPtr TransactionStore::block(uint64_t height) {
 bool TransactionStore::blockHeader(uint64_t height, BlockHeader& header) {
 	//
 	uint256 lHash;
+	bool lFound = false;
 	{
 		boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
-		std::map<uint64_t, uint256>::iterator lHeight = heightMap_.find(height);
-		if (lHeight != heightMap_.end()) {
-			lHash = lHeight->second;
+		if (heightMap_.read(height, lHash)) {
+			lFound = true;
 		} else {
 			return false;
 		}
 	}
 
-	return headers_.read(lHash, header);
+	return lFound && headers_.read(lHash, header);
 }
 
 BlockPtr TransactionStore::block(const uint256& id) {
@@ -1395,29 +1414,65 @@ bool TransactionStore::open() {
 		try {
 			gLog().write(Log::INFO, std::string("[open]: opening store for ") + strprintf("%s", chain_.toHex()));
 
-			if (mkpath(std::string(settings_->dataPath() + "/" + chain_.toHex() + "/indexes").c_str(), 0777)) return false;
+			if (mkpath(std::string(settings_->dataPath() + "/" + chain_.toHex() + "/data").c_str(), 0777)) return false;
 
 			workingSettings_.open();
+			workingSettings_.attach();
+
 			headers_.open();
+			headers_.attach();
+
 			transactions_.open();
+			transactions_.attach();
+
 			utxo_.open();
+			utxo_.attach();
+
 			ltxo_.open();
+			ltxo_.attach();
+
 			entities_.open();
+			entities_.attach();
+
 			blockUtxoIdx_.open();
+			blockUtxoIdx_.attach();
+
 			utxoBlock_.open();
+			utxoBlock_.attach();
+
 			transactionsIdx_.open();
+			transactionsIdx_.attach();
+
 			entitiesIdx_.open();
+			entitiesIdx_.attach();
+
 			addressAssetUtxoIdx_.open();
+			addressAssetUtxoIdx_.attach();
+
 			shards_.open();
+			shards_.attach();
+
 			entityUtxo_.open();
+			entityUtxo_.attach();
+
 			shardEntities_.open();
+			shardEntities_.attach();
+
 			txUtxo_.open();
+			txUtxo_.attach();
 
 			if (settings_->supportAirdrop()) {
 				airDropAddressesTx_.open();
+				airDropAddressesTx_.attach();
+
 				airDropPeers_.open();
+				airDropPeers_.attach();
 			}
 
+			// finally - open space
+			space_->open();
+
+			// very first read begins here
 			std::string lLastBlock;
 			if (workingSettings_.read("lastBlock", lLastBlock)) {
 				lastBlock_.setHex(lLastBlock);
@@ -1429,7 +1484,7 @@ bool TransactionStore::open() {
 			resyncHeight();
 
 			// push shards
-			for (db::DbMultiContainer<uint256 /*entity*/, uint256 /*shard*/>::Iterator lShard = shards_.begin(); lShard.valid(); ++lShard) {
+			for (db::DbMultiContainerShared<uint256 /*entity*/, uint256 /*shard*/>::Iterator lShard = shards_.begin(); lShard.valid(); ++lShard) {
 				//
 				uint256 lDAppId;
 				gLog().write(Log::INFO, std::string("[open]: try to open shard ") + strprintf("%s/%s#", (*lShard).toHex(), chain_.toHex().substr(0, 10)));
@@ -1514,6 +1569,8 @@ bool TransactionStore::close() {
 		airDropPeers_.close();
 	}
 
+	space_->close();
+
 	if (extension_) extension_->close();
 
 	settings_.reset();
@@ -1526,7 +1583,7 @@ bool TransactionStore::enumUnlinkedOuts(const uint256& tx, std::vector<Transacti
 	//
 	bool lResult = false;
 	std::map<uint32_t, Transaction::UnlinkedOutPtr> lUtxos;
-	for (db::DbMultiContainer<uint256 /*tx*/, uint256 /*utxo*/>::Iterator lTxUtxo = txUtxo_.find(tx); lTxUtxo.valid(); ++lTxUtxo) {
+	for (db::DbMultiContainerShared<uint256 /*tx*/, uint256 /*utxo*/>::Iterator lTxUtxo = txUtxo_.find(tx); lTxUtxo.valid(); ++lTxUtxo) {
 		Transaction::UnlinkedOut lUtxo;
 		if (utxo_.read(*lTxUtxo, lUtxo)) {
 			lUtxos[lUtxo.out().index()] = Transaction::UnlinkedOut::instance(lUtxo);
@@ -1690,7 +1747,7 @@ EntityPtr TransactionStore::locateEntity(const std::string& entity) {
 
 void TransactionStore::selectUtxoByAddress(const PKey& address, std::vector<Transaction::NetworkUnlinkedOut>& utxo) {
 	//
-	for (db::DbThreeKeyContainer
+	for (db::DbThreeKeyContainerShared
 			<uint160 /*address*/, 
 				uint256 /*asset*/, 
 				uint256 /*utxo*/, 
@@ -1717,7 +1774,7 @@ void TransactionStore::selectUtxoByAddress(const PKey& address, std::vector<Tran
 void TransactionStore::selectUtxoByAddressAndAsset(const PKey& address, const uint256& asset, std::vector<Transaction::NetworkUnlinkedOut>& utxo) {
 	//
 	uint160 lId = address.id();
-	for (db::DbThreeKeyContainer
+	for (db::DbThreeKeyContainerShared
 			<uint160 /*address*/, 
 				uint256 /*asset*/, 
 				uint256 /*utxo*/, 
@@ -1747,7 +1804,7 @@ void TransactionStore::selectUtxoByRawAddressAndAsset(const PKey& address, const
 	//
 	int lCount = 0;
 	uint160 lId = address.id();
-	for (db::DbThreeKeyContainer
+	for (db::DbThreeKeyContainerShared
 			<uint160 /*address*/, 
 				uint256 /*asset*/, 
 				uint256 /*utxo*/, 
@@ -1774,7 +1831,7 @@ void TransactionStore::selectUtxoByRawAddressAndAsset(const PKey& address, const
 void TransactionStore::selectUtxoByRawTransaction(const uint256& tx, std::vector<Transaction::NetworkUnlinkedOut>& utxo) {
 	//
 	std::map<uint32_t, Transaction::NetworkUnlinkedOut> lUtxos;
-	db::DbMultiContainer<uint256 /*tx*/, uint256 /*utxo*/>::Iterator lTxRoot = txUtxo_.find(tx);
+	db::DbMultiContainerShared<uint256 /*tx*/, uint256 /*utxo*/>::Iterator lTxRoot = txUtxo_.find(tx);
 	for (; lTxRoot.valid(); ++lTxRoot) {
 		Transaction::UnlinkedOut lOut;
 		if (utxo_.read(*lTxRoot, lOut)) {
@@ -1797,7 +1854,7 @@ void TransactionStore::selectUtxoByTransaction(const uint256& tx, std::vector<Tr
 	transactionHeight(tx, lHeight, lConfirms, lCoinbase);
 	//
 	std::map<uint32_t, Transaction::NetworkUnlinkedOut> lUtxos;
-	db::DbMultiContainer<uint256 /*tx*/, uint256 /*utxo*/>::Iterator lTxRoot = txUtxo_.find(tx);
+	db::DbMultiContainerShared<uint256 /*tx*/, uint256 /*utxo*/>::Iterator lTxRoot = txUtxo_.find(tx);
 	for (; lTxRoot.valid(); ++lTxRoot) {
 		Transaction::UnlinkedOut lOut;
 		if (utxo_.read(*lTxRoot, lOut)) {
@@ -1833,7 +1890,7 @@ void TransactionStore::selectEntityNames(const std::string& name, std::vector<IE
 		std::string lArgName = name;
 		std::transform(lArgName.begin(), lArgName.end(), lArgName.begin(), ::tolower);
 		//
-		db::DbContainer<std::string, std::string>::Iterator lFromIndex = entitiesIdx_.find(lArgName);
+		db::DbContainerShared<std::string, std::string>::Iterator lFromIndex = entitiesIdx_.find(lArgName);
 		for (int lCount = 0; lFromIndex.valid() && names.size() < 6 && lCount < 100; ++lFromIndex, ++lCount) {
 			std::string lName;
 			if (lFromIndex.first(lName) && lName.find(lArgName) != std::string::npos && lControl.insert(*lFromIndex).second) {
@@ -2001,7 +2058,7 @@ bool TransactionStore::blockExists(const uint256& id) {
 
 bool TransactionStore::blockIndexed(const uint256& id) {
 	//
-	db::DbMultiContainer<uint256 /*block*/, TxBlockAction /*utxo action*/>::Iterator lAction = blockUtxoIdx_.find(id);
+	db::DbMultiContainerShared<uint256 /*block*/, TxBlockAction /*utxo action*/>::Iterator lAction = blockUtxoIdx_.find(id);
 	return lAction.valid();
 }
 
@@ -2028,7 +2085,8 @@ void TransactionStore::reindexFull(const uint256& from, IMemoryPoolPtr pool) {
 		strprintf("%s#", chain_.toHex().substr(0, 10)));
 
 	// remove index, DO WE need really this? - that is totally new chain
-	removeBlocks(from, BlockHeader().hash(), false, 0);
+	bool lSkip = settings_->skipMainChainCleanUp() && chain_ == MainChain::id();
+	if (!lSkip) removeBlocks(from, BlockHeader().hash(), false, 0);
 
 	//
 	uint256 lLastBlock = lastBlock_;

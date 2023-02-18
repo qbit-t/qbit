@@ -215,8 +215,6 @@ private:
 							} else if (!lMempool->consensus()->broadcastTransaction(lCtx, consensusManager_->wallet()->firstKey()->createPKey().id())) {
 								// error
 								gLog().write(Log::GENERAL_ERROR, std::string("[aggregate/error]: E_TX_NOT_BROADCASTED - Transaction is not broadcasted"));
-								// rollback transaction
-								consensusManager_->wallet()->rollback(lCtx);
 								// reset
 								lCtx = nullptr;
 							} else {
