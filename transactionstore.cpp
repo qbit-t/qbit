@@ -608,6 +608,10 @@ bool TransactionStore::resyncHeight() {
 		*/
 	}
 
+	//
+	invalidateHeightMap();
+
+	//
 	if (lHash != lNull && !lastBlock_.isNull()) {
 		/*
 		if (lHash == lHeader.hash()) {
@@ -624,9 +628,6 @@ bool TransactionStore::resyncHeight() {
 
 		return false;
 	}
-
-	//
-	invalidateHeightMap();
 
 	//
 	{
