@@ -803,7 +803,7 @@ private:
 					if (gLog().isEnabled(Log::NET)) gLog().write(Log::NET, std::string("[peerManager/touch]: active count = ") + strprintf("%d", active_[id].size()));
 					for (std::set<std::string /*endpoint*/>::iterator lPeer = active_[id].begin(); lPeer != active_[id].end(); lPeer++) {
 						// DAEMON - no need to support latency updates
-						if (!peers_[id][*lPeer]->state()->daemon())
+						if (!peers_[id][*lPeer]->state()->daemon() || (getMicroseconds() - peers_[id][*lPeer]->timestamp() > 30*1000*1000))
 							peers_[id][*lPeer]->ping();
 					}
 				}

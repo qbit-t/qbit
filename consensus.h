@@ -359,7 +359,11 @@ public:
 				directPeerMap_[lPeerId] = peer;
 			}
 
+			// push new state
 			pushState(peer->state());
+			// reset previous stats
+			peer->decReqHeaders();
+			peer->decReqBlocks();
 
 			if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, 
 				strprintf("[pushPeer]: peer pushed %s/%s/%s#", 
