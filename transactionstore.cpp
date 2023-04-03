@@ -1210,6 +1210,8 @@ bool TransactionStore::processBlocks(const uint256& from, const uint256& to, IMe
 
 uint64_t TransactionStore::currentHeight(BlockHeader& block) {
 	//
+	if (!opened_) return 0;
+	//
 	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
 	uint64_t lHeight;
 	db::DbContainer<uint64_t, uint256>::Iterator lHeader = heightMap_.last();
@@ -1226,6 +1228,8 @@ uint64_t TransactionStore::currentHeight(BlockHeader& block) {
 }
 
 uint64_t TransactionStore::top() {
+	//
+	if (!opened_) return 0;
 	//
 	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
 	uint64_t lHeight;
