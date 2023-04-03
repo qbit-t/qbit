@@ -352,6 +352,7 @@ public:
 	virtual void deactivate() { throw qbit::exception("NOT_IMPL", "IPeer::deactivate - not implemented."); }
 	virtual bool isOutbound() { throw qbit::exception("NOT_IMPL", "IPeer::isOutbound - not implemented."); }
 	virtual bool postponedTick() { throw qbit::exception("NOT_IMPL", "IPeer::postponedTick - not implemented."); }
+	virtual void resetStat() { throw qbit::exception("NOT_IMPL", "IPeer::resetStat - not implemented."); }
 
 	virtual bool onQuarantine() { throw qbit::exception("NOT_IMPL", "IPeer::onQuarantine - not implemented."); }
 

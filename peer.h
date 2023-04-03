@@ -732,6 +732,11 @@ private:
 		reqHeaders_.store(0, std::memory_order_relaxed);
 	}
 
+	void resetStat() {
+		decReqBlocks();
+		decReqHeaders();
+	}
+
 	uint32_t inQueueLength() {
 
 		boost::unique_lock<boost::mutex> lLock(rawInMutex_);
