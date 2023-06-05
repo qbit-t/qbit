@@ -87,6 +87,9 @@ public:
 	virtual void setReindex() {}
 	virtual void resetReindex() {}
 
+	virtual bool repairDb() { return false; }
+	virtual void setRepairDb() {}
+
 	virtual bool skipMainChainCleanUp() { return false; }
 	virtual void setSkipMainChainCleanUp() {}
 	virtual void resetSkipMainChainCleanUp() {}

@@ -327,6 +327,8 @@ public:
 	Container(const std::string& name) : name_(name) {}
 
 	inline bool open(bool useTypedComparer = true, uint32_t cache = 0) { return impl<key, value>::open(name_, useTypedComparer, cache); }
+	inline bool repair(bool useTypedComparer = true, uint32_t cache = 0) { return impl<key, value>::repair(name_, useTypedComparer, cache); }
+
 	inline void close() { impl<key, value>::close(); }
 	inline bool opened() { return impl<key, value>::opened(); }
 
@@ -589,6 +591,7 @@ public:
 	TwoKeyContainer(const std::string& name) : Container<TwoKey<key1, key2>, value, impl>(name) {}
 
 	inline bool open(bool useTypedComparer = true, uint32_t cache = 0) { return Container<TwoKey<key1, key2>, value, impl>::open(useTypedComparer, cache); }
+	inline bool repair(bool useTypedComparer = true, uint32_t cache = 0) { return Container<TwoKey<key1, key2>, value, impl>::repair(useTypedComparer, cache); }
 	inline void close() { Container<TwoKey<key1, key2>, value, impl>::close(); }
 	inline bool opened() { return Container<TwoKey<key1, key2>, value, impl>::opened(); }
 
@@ -754,6 +757,7 @@ public:
 	ThreeKeyContainer(const std::string& name) : Container<ThreeKey<key1, key2, key3>, value, impl>(name) {}
 
 	inline bool open(bool useTypedComparer = true, uint32_t cache = 0) { return Container<ThreeKey<key1, key2, key3>, value, impl>::open(useTypedComparer, cache); }
+	inline bool repair(bool useTypedComparer = true, uint32_t cache = 0) { return Container<ThreeKey<key1, key2, key3>, value, impl>::repair(useTypedComparer, cache); }
 	inline void close() { Container<ThreeKey<key1, key2, key3>, value, impl>::close(); }
 	inline bool opened() { return Container<ThreeKey<key1, key2, key3>, value, impl>::opened(); }	
 
@@ -943,6 +947,7 @@ public:
 	FourKeyContainer(const std::string& name) : Container<FourKey<key1, key2, key3, key4>, value, impl>(name) {}
 
 	inline bool open(bool useTypedComparer = true, uint32_t cache = 0) { return Container<FourKey<key1, key2, key3, key4>, value, impl>::open(useTypedComparer, cache); }
+	inline bool repair(bool useTypedComparer = true, uint32_t cache = 0) { return Container<FourKey<key1, key2, key3, key4>, value, impl>::repair(useTypedComparer, cache); }
 	inline void close() { Container<FourKey<key1, key2, key3, key4>, value, impl>::close(); }
 	inline bool opened() { return Container<FourKey<key1, key2, key3, key4>, value, impl>::opened(); }	
 
@@ -1157,6 +1162,7 @@ public:
 	FiveKeyContainer(const std::string& name) : Container<FiveKey<key1, key2, key3, key4, key5>, value, impl>(name) {}
 
 	inline bool open(bool useTypedComparer = true, uint32_t cache = 0) { return Container<FiveKey<key1, key2, key3, key4, key5>, value, impl>::open(useTypedComparer, cache); }
+	inline bool repair(bool useTypedComparer = true, uint32_t cache = 0) { return Container<FiveKey<key1, key2, key3, key4, key5>, value, impl>::repair(useTypedComparer, cache); }
 	inline void close() { Container<FiveKey<key1, key2, key3, key4, key5>, value, impl>::close(); }
 	inline bool opened() { return Container<FiveKey<key1, key2, key3, key4, key5>, value, impl>::opened(); }	
 
@@ -1297,6 +1303,7 @@ public:
 	EntityContainer(const std::string& name) : Container<key, value, impl>(name) {}
 
 	inline bool open(bool useTypedComparer = true, uint32_t cache = 0) { return Container<key, value, impl>::open(useTypedComparer, cache); }
+	inline bool repair(bool useTypedComparer = true, uint32_t cache = 0) { return Container<key, value, impl>::repair(useTypedComparer, cache); }
 	inline void close() { Container<key, value, impl>::close(); }
 	inline bool opened() { return Container<key, value, impl>::opened(); }	
 

@@ -169,7 +169,12 @@ bool Wallet::open(const std::string& /*secret*/) {
 			pendingUtxo_.attach();
 
 			// finally - open space
-			space_->open();			
+			if (settings_->repairDb()) {
+				gLog().write(Log::INFO, std::string("[open]: repairing wallet data..."));
+				space_->repair();
+			}
+			//
+			space_->open();	
 
 			//
 			gLog().write(Log::INFO, std::string("[wallet/open]: wallet storage opened..."));

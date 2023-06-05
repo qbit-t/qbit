@@ -19,6 +19,9 @@ public:
 	bool open() {
 		return LevelDbContainerSpace::open(name_, true, 0 /*cache*/);
 	}
+	bool repair() {
+		return LevelDbContainerSpace::repair(name_, true, 0 /*cache*/);
+	}
 private:
 	std::string name_;
 };

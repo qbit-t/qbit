@@ -262,6 +262,9 @@ public:
 	void enableIPV6Support() { ipv6Enabled_ = true; }
 	bool ipV6Enabled() { return ipv6Enabled_; }
 
+	bool repairDb() { return repairDb_; }
+	void setRepairDb() { repairDb_ = true; }
+
 	static ISettingsPtr instance() { return std::make_shared<NodeSettings>(); }
 	static ISettingsPtr instance(const std::string& dir, ISettingsPtr other) { return std::make_shared<NodeSettings>(dir, other); }
 
@@ -297,6 +300,7 @@ private:
 	uint64_t proofAssetLockTime_ = 0;
 	bool onlyPublicRestAPIAllowed_ = false;
 	bool ipv6Enabled_ = false;
+	bool repairDb_ = false;
 	PKey shadowKey_;
 	PKey changeKey_;
 	PKey mainKey_;
@@ -773,6 +777,9 @@ int main(int argv, char** argc) {
 					lSettings->addMinerRole();
 				}
 			}
+		} else if (std::string(argc[lIdx]) == std::string("-repair-db")) {
+			//
+			lSettings->setRepairDb();
 		}
 	}
 

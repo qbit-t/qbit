@@ -203,6 +203,7 @@ public:
 			options_.filter_policy = leveldb::NewBloomFilterPolicy(10);
 			options_.compression = leveldb::kNoCompression;
 			options_.create_if_missing = true;
+			options_.manifest_file_max_size = 1024*1024;
 
 #ifndef MOBILE_PLATFORM
 			options_.info_log = new LevelDBLogger();
@@ -218,6 +219,33 @@ public:
 
 			gLog().write(Log::DB, std::string("[leveldb]: Opened container ") + name_);
 		}
+
+		return true;
+	}
+
+	bool repair(const std::string& name, bool useTypedComparer = true, uint32_t cache = 0) {
+		name_ = name;
+
+		if (cache) {
+			options_.block_cache = leveldb::NewLRUCache(cache / 2);
+			options_.write_buffer_size = cache / 4;
+		}
+
+		options_.filter_policy = leveldb::NewBloomFilterPolicy(10);
+		options_.compression = leveldb::kNoCompression;
+		options_.create_if_missing = true;
+		options_.manifest_file_max_size = 1024*1024;
+
+#ifndef MOBILE_PLATFORM
+		options_.info_log = new LevelDBLogger();
+		if (useTypedComparer) options_.comparator = &defaultComparator;
+#endif
+		gLog().write(Log::DB, std::string("[leveldb]: Repairing container ") + name_);
+
+		leveldb::Status lStatus = leveldb::RepairDB(name_, options_);
+		if (!lStatus.ok()) error(lStatus);
+
+		gLog().write(Log::DB, std::string("[leveldb]: Repaired container ") + name_);
 
 		return true;
 	}
@@ -529,6 +557,34 @@ public:
 		return true;
 	}
 
+	bool repair(const std::string& name, bool useTypedComparer = true, uint32_t cache = 0) {
+		name_ = name;
+
+		if (cache) {
+			options_.block_cache = leveldb::NewLRUCache(cache / 2);
+			options_.write_buffer_size = cache / 4;
+		}
+
+		options_.filter_policy = leveldb::NewBloomFilterPolicy(10);
+		options_.compression = leveldb::kNoCompression;
+		options_.create_if_missing = true;
+		options_.max_open_files = 500;
+		options_.manifest_file_max_size = 1024*1024;
+
+#ifndef MOBILE_PLATFORM
+		options_.info_log = new LevelDBLogger();
+		if (useTypedComparer) options_.comparator = &defaultComparator;
+#endif
+		gLog().write(Log::DB, std::string("[leveldb]: Repairing container space ") + name_);
+
+		leveldb::Status lStatus = leveldb::RepairDB(name_, options_);
+		if (!lStatus.ok()) error(lStatus);
+
+		gLog().write(Log::DB, std::string("[leveldb]: Repaired container space ") + name_);
+
+		return true;
+	}
+
 	bool opened() { return db_ != nullptr; }
 
 	void close() {
@@ -732,6 +788,11 @@ public:
 		std::vector<unsigned char> lName; lName.insert(lName.end(), name_.begin(), name_.end());
 		hash_ = Hash160(lName);
 		useTypedComparer_ = useTypedComparer;
+		//
+		return true;
+	}
+
+	bool repair(const std::string& name, bool useTypedComparer = true, uint32_t cache = 0) {
 		//
 		return true;
 	}

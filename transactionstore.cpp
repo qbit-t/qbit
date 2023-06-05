@@ -1475,6 +1475,11 @@ bool TransactionStore::open() {
 			}
 
 			// finally - open space
+			if (settings_->repairDb()) {
+				gLog().write(Log::INFO, std::string("[open]: repairing store for ") + strprintf("%s", chain_.toHex()));
+				space_->repair();
+			}
+			//
 			space_->open();
 
 			// very first read begins here
