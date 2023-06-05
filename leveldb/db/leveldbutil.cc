@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#include <cstdio>
+#include <stdio.h>
 
 #include "leveldb/dumpfile.h"
 #include "leveldb/env.h"
@@ -28,7 +28,7 @@ bool HandleDumpCommand(Env* env, char** files, int num) {
   for (int i = 0; i < num; i++) {
     Status s = DumpFile(env, files[i], &printer);
     if (!s.ok()) {
-      std::fprintf(stderr, "%s\n", s.ToString().c_str());
+      fprintf(stderr, "%s\n", s.ToString().c_str());
       ok = false;
     }
   }
@@ -39,10 +39,9 @@ bool HandleDumpCommand(Env* env, char** files, int num) {
 }  // namespace leveldb
 
 static void Usage() {
-  std::fprintf(
-      stderr,
-      "Usage: leveldbutil command...\n"
-      "   dump files...         -- dump contents of specified files\n");
+  fprintf(stderr,
+          "Usage: leveldbutil command...\n"
+          "   dump files...         -- dump contents of specified files\n");
 }
 
 int main(int argc, char** argv) {

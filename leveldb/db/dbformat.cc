@@ -4,7 +4,8 @@
 
 #include "db/dbformat.h"
 
-#include <cstdio>
+#include <stdio.h>
+
 #include <sstream>
 
 #include "port/port.h"
@@ -126,7 +127,7 @@ LookupKey::LookupKey(const Slice& user_key, SequenceNumber s) {
   start_ = dst;
   dst = EncodeVarint32(dst, usize + 8);
   kstart_ = dst;
-  std::memcpy(dst, user_key.data(), usize);
+  memcpy(dst, user_key.data(), usize);
   dst += usize;
   EncodeFixed64(dst, PackSequenceAndType(s, kValueTypeForSeek));
   dst += 8;

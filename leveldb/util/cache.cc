@@ -2,12 +2,11 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "leveldb/cache.h"
-
-#include <cassert>
-#include <cstdio>
-#include <cstdlib>
-
 #include "port/port.h"
 #include "port/thread_annotations.h"
 #include "util/hash.h"
@@ -279,7 +278,7 @@ Cache::Handle* LRUCache::Insert(const Slice& key, uint32_t hash, void* value,
   e->hash = hash;
   e->in_cache = false;
   e->refs = 1;  // for the returned handle.
-  std::memcpy(e->key_data, key.data(), key.size());
+  memcpy(e->key_data, key.data(), key.size());
 
   if (capacity_ > 0) {
     e->refs++;  // for the cache's reference.

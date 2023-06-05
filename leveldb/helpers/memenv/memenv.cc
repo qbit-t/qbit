@@ -4,7 +4,8 @@
 
 #include "helpers/memenv/memenv.h"
 
-#include <cstring>
+#include <string.h>
+
 #include <limits>
 #include <map>
 #include <string>
@@ -93,7 +94,7 @@ class FileState {
       if (avail > bytes_to_copy) {
         avail = bytes_to_copy;
       }
-      std::memcpy(dst, blocks_[block] + block_offset, avail);
+      memcpy(dst, blocks_[block] + block_offset, avail);
 
       bytes_to_copy -= avail;
       dst += avail;
@@ -126,7 +127,7 @@ class FileState {
       if (avail > src_len) {
         avail = src_len;
       }
-      std::memcpy(blocks_.back() + offset, src, avail);
+      memcpy(blocks_.back() + offset, src, avail);
       src_len -= avail;
       src += avail;
       size_ += avail;
@@ -215,7 +216,7 @@ class WritableFileImpl : public WritableFile {
 
 class NoOpLogger : public Logger {
  public:
-  void Logv(const char* format, std::va_list ap) override {}
+  void Logv(const char* format, va_list ap) override {}
 };
 
 class InMemoryEnv : public EnvWrapper {
@@ -308,7 +309,7 @@ class InMemoryEnv : public EnvWrapper {
     return Status::OK();
   }
 
-  void RemoveFileInternal(const std::string& fname)
+  void DeleteFileInternal(const std::string& fname)
       EXCLUSIVE_LOCKS_REQUIRED(mutex_) {
     if (file_map_.find(fname) == file_map_.end()) {
       return;
@@ -318,19 +319,19 @@ class InMemoryEnv : public EnvWrapper {
     file_map_.erase(fname);
   }
 
-  Status RemoveFile(const std::string& fname) override {
+  Status DeleteFile(const std::string& fname) override {
     MutexLock lock(&mutex_);
     if (file_map_.find(fname) == file_map_.end()) {
       return Status::IOError(fname, "File not found");
     }
 
-    RemoveFileInternal(fname);
+    DeleteFileInternal(fname);
     return Status::OK();
   }
 
   Status CreateDir(const std::string& dirname) override { return Status::OK(); }
 
-  Status RemoveDir(const std::string& dirname) override { return Status::OK(); }
+  Status DeleteDir(const std::string& dirname) override { return Status::OK(); }
 
   Status GetFileSize(const std::string& fname, uint64_t* file_size) override {
     MutexLock lock(&mutex_);
@@ -349,7 +350,7 @@ class InMemoryEnv : public EnvWrapper {
       return Status::IOError(src, "File not found");
     }
 
-    RemoveFileInternal(target);
+    DeleteFileInternal(target);
     file_map_[target] = file_map_[src];
     file_map_.erase(src);
     return Status::OK();

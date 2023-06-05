@@ -4,11 +4,11 @@
 
 #include "table/filter_block.h"
 
-#include "gtest/gtest.h"
 #include "leveldb/filter_policy.h"
 #include "util/coding.h"
 #include "util/hash.h"
 #include "util/logging.h"
+#include "util/testharness.h"
 #include "util/testutil.h"
 
 namespace leveldb {
@@ -36,12 +36,12 @@ class TestHashFilter : public FilterPolicy {
   }
 };
 
-class FilterBlockTest : public testing::Test {
+class FilterBlockTest {
  public:
   TestHashFilter policy_;
 };
 
-TEST_F(FilterBlockTest, EmptyBuilder) {
+TEST(FilterBlockTest, EmptyBuilder) {
   FilterBlockBuilder builder(&policy_);
   Slice block = builder.Finish();
   ASSERT_EQ("\\x00\\x00\\x00\\x00\\x0b", EscapeString(block));
@@ -50,7 +50,7 @@ TEST_F(FilterBlockTest, EmptyBuilder) {
   ASSERT_TRUE(reader.KeyMayMatch(100000, "foo"));
 }
 
-TEST_F(FilterBlockTest, SingleChunk) {
+TEST(FilterBlockTest, SingleChunk) {
   FilterBlockBuilder builder(&policy_);
   builder.StartBlock(100);
   builder.AddKey("foo");
@@ -71,7 +71,7 @@ TEST_F(FilterBlockTest, SingleChunk) {
   ASSERT_TRUE(!reader.KeyMayMatch(100, "other"));
 }
 
-TEST_F(FilterBlockTest, MultiChunk) {
+TEST(FilterBlockTest, MultiChunk) {
   FilterBlockBuilder builder(&policy_);
 
   // First filter
@@ -121,7 +121,4 @@ TEST_F(FilterBlockTest, MultiChunk) {
 
 }  // namespace leveldb
 
-int main(int argc, char** argv) {
-  testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}
+int main(int argc, char** argv) { return leveldb::test::RunAllTests(); }

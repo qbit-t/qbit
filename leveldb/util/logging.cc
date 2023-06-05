@@ -4,9 +4,11 @@
 
 #include "util/logging.h"
 
-#include <cstdarg>
-#include <cstdio>
-#include <cstdlib>
+#include <errno.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 #include <limits>
 
 #include "leveldb/env.h"
@@ -16,7 +18,7 @@ namespace leveldb {
 
 void AppendNumberTo(std::string* str, uint64_t num) {
   char buf[30];
-  std::snprintf(buf, sizeof(buf), "%llu", static_cast<unsigned long long>(num));
+  snprintf(buf, sizeof(buf), "%llu", (unsigned long long)num);
   str->append(buf);
 }
 
@@ -27,8 +29,8 @@ void AppendEscapedStringTo(std::string* str, const Slice& value) {
       str->push_back(c);
     } else {
       char buf[10];
-      std::snprintf(buf, sizeof(buf), "\\x%02x",
-                    static_cast<unsigned int>(c) & 0xff);
+      snprintf(buf, sizeof(buf), "\\x%02x",
+               static_cast<unsigned int>(c) & 0xff);
       str->append(buf);
     }
   }

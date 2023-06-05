@@ -4,8 +4,9 @@
 
 #include "db/version_set.h"
 
+#include <stdio.h>
+
 #include <algorithm>
-#include <cstdio>
 
 #include "db/filename.h"
 #include "db/log_reader.h"
@@ -280,6 +281,7 @@ static bool NewestFirst(FileMetaData* a, FileMetaData* b) {
 
 void Version::ForEachOverlapping(Slice user_key, Slice internal_key, void* arg,
                                  bool (*func)(void*, int, FileMetaData*)) {
+  // TODO(sanjay): Change Version::Get() to use this function.
   const Comparator* ucmp = vset_->icmp_.user_comparator();
 
   // Search level-0 in order from newest to oldest.
@@ -323,80 +325,99 @@ void Version::ForEachOverlapping(Slice user_key, Slice internal_key, void* arg,
 
 Status Version::Get(const ReadOptions& options, const LookupKey& k,
                     std::string* value, GetStats* stats) {
+  Slice ikey = k.internal_key();
+  Slice user_key = k.user_key();
+  const Comparator* ucmp = vset_->icmp_.user_comparator();
+  Status s;
+
   stats->seek_file = nullptr;
   stats->seek_file_level = -1;
+  FileMetaData* last_file_read = nullptr;
+  int last_file_read_level = -1;
 
-  struct State {
-    Saver saver;
-    GetStats* stats;
-    const ReadOptions* options;
-    Slice ikey;
-    FileMetaData* last_file_read;
-    int last_file_read_level;
+  // We can search level-by-level since entries never hop across
+  // levels.  Therefore we are guaranteed that if we find data
+  // in a smaller level, later levels are irrelevant.
+  std::vector<FileMetaData*> tmp;
+  FileMetaData* tmp2;
+  for (int level = 0; level < config::kNumLevels; level++) {
+    size_t num_files = files_[level].size();
+    if (num_files == 0) continue;
 
-    VersionSet* vset;
-    Status s;
-    bool found;
-
-    static bool Match(void* arg, int level, FileMetaData* f) {
-      State* state = reinterpret_cast<State*>(arg);
-
-      if (state->stats->seek_file == nullptr &&
-          state->last_file_read != nullptr) {
-        // We have had more than one seek for this read.  Charge the 1st file.
-        state->stats->seek_file = state->last_file_read;
-        state->stats->seek_file_level = state->last_file_read_level;
+    // Get the list of files to search in this level
+    FileMetaData* const* files = &files_[level][0];
+    if (level == 0) {
+      // Level-0 files may overlap each other.  Find all files that
+      // overlap user_key and process them in order from newest to oldest.
+      tmp.reserve(num_files);
+      for (uint32_t i = 0; i < num_files; i++) {
+        FileMetaData* f = files[i];
+        if (ucmp->Compare(user_key, f->smallest.user_key()) >= 0 &&
+            ucmp->Compare(user_key, f->largest.user_key()) <= 0) {
+          tmp.push_back(f);
+        }
       }
+      if (tmp.empty()) continue;
 
-      state->last_file_read = f;
-      state->last_file_read_level = level;
-
-      state->s = state->vset->table_cache_->Get(*state->options, f->number,
-                                                f->file_size, state->ikey,
-                                                &state->saver, SaveValue);
-      if (!state->s.ok()) {
-        state->found = true;
-        return false;
+      std::sort(tmp.begin(), tmp.end(), NewestFirst);
+      files = &tmp[0];
+      num_files = tmp.size();
+    } else {
+      // Binary search to find earliest index whose largest key >= ikey.
+      uint32_t index = FindFile(vset_->icmp_, files_[level], ikey);
+      if (index >= num_files) {
+        files = nullptr;
+        num_files = 0;
+      } else {
+        tmp2 = files[index];
+        if (ucmp->Compare(user_key, tmp2->smallest.user_key()) < 0) {
+          // All of "tmp2" is past any data for user_key
+          files = nullptr;
+          num_files = 0;
+        } else {
+          files = &tmp2;
+          num_files = 1;
+        }
       }
-      switch (state->saver.state) {
-        case kNotFound:
-          return true;  // Keep searching in other files
-        case kFound:
-          state->found = true;
-          return false;
-        case kDeleted:
-          return false;
-        case kCorrupt:
-          state->s =
-              Status::Corruption("corrupted key for ", state->saver.user_key);
-          state->found = true;
-          return false;
-      }
-
-      // Not reached. Added to avoid false compilation warnings of
-      // "control reaches end of non-void function".
-      return false;
     }
-  };
 
-  State state;
-  state.found = false;
-  state.stats = stats;
-  state.last_file_read = nullptr;
-  state.last_file_read_level = -1;
+    for (uint32_t i = 0; i < num_files; ++i) {
+      if (last_file_read != nullptr && stats->seek_file == nullptr) {
+        // We have had more than one seek for this read.  Charge the 1st file.
+        stats->seek_file = last_file_read;
+        stats->seek_file_level = last_file_read_level;
+      }
 
-  state.options = &options;
-  state.ikey = k.internal_key();
-  state.vset = vset_;
+      FileMetaData* f = files[i];
+      last_file_read = f;
+      last_file_read_level = level;
 
-  state.saver.state = kNotFound;
-  state.saver.ucmp = vset_->icmp_.user_comparator();
-  state.saver.user_key = k.user_key();
-  state.saver.value = value;
+      Saver saver;
+      saver.state = kNotFound;
+      saver.ucmp = ucmp;
+      saver.user_key = user_key;
+      saver.value = value;
+      s = vset_->table_cache_->Get(options, f->number, f->file_size, ikey,
+                                   &saver, SaveValue);
+      if (!s.ok()) {
+        return s;
+      }
+      switch (saver.state) {
+        case kNotFound:
+          break;  // Keep searching in other files
+        case kFound:
+          return s;
+        case kDeleted:
+          s = Status::NotFound(Slice());  // Use empty error message for speed
+          return s;
+        case kCorrupt:
+          s = Status::Corruption("corrupted key for ", user_key);
+          return s;
+      }
+    }
+  }
 
-  ForEachOverlapping(state.saver.user_key, state.ikey, &state, &State::Match);
-
-  return state.found ? state.s : Status::NotFound(Slice());
+  return Status::NotFound(Slice());  // Use an empty error message for speed
 }
 
 bool Version::UpdateStats(const GetStats& stats) {
@@ -703,10 +724,10 @@ class VersionSet::Builder {
           const InternalKey& prev_end = v->files_[level][i - 1]->largest;
           const InternalKey& this_begin = v->files_[level][i]->smallest;
           if (vset_->icmp_.Compare(prev_end, this_begin) >= 0) {
-            std::fprintf(stderr, "overlapping ranges in same level %s vs. %s\n",
-                         prev_end.DebugString().c_str(),
-                         this_begin.DebugString().c_str());
-            std::abort();
+            fprintf(stderr, "overlapping ranges in same level %s vs. %s\n",
+                    prev_end.DebugString().c_str(),
+                    this_begin.DebugString().c_str());
+            abort();
           }
         }
       }
@@ -740,8 +761,8 @@ VersionSet::VersionSet(const std::string& dbname, const Options* options,
       icmp_(*cmp),
       next_file_number_(2),
       manifest_file_number_(0),  // Filled by Recover()
-      last_sequence_(0),
       manifest_file_size_(0),
+      last_sequence_(0),
       log_number_(0),
       prev_log_number_(0),
       descriptor_file_(nullptr),
@@ -798,6 +819,7 @@ Status VersionSet::LogAndApply(VersionEdit* edit, port::Mutex* mu) {
   }
   Finalize(v);
 
+  // check size and recreate
   if (descriptor_log_ != nullptr && options_->manifest_file_max_size > 0) {
     assert(descriptor_file_ != nullptr);
     if (manifest_file_size_ > options_->manifest_file_max_size) {
@@ -807,10 +829,10 @@ Status VersionSet::LogAndApply(VersionEdit* edit, port::Mutex* mu) {
       descriptor_file_ = nullptr;
       //
       std::string current_manifest_file = DescriptorFileName(dbname_, manifest_file_number_);
-      env_->RemoveFile(current_manifest_file);
+      env_->DeleteFile(current_manifest_file);
       //
-      manifest_file_number_ = NewFileNumber(); // next
-      manifest_file_size_ = 0; // set to zero
+      manifest_file_number_ = NewFileNumber();
+      manifest_file_size_ = 0;
     }
   }
 
@@ -845,7 +867,7 @@ Status VersionSet::LogAndApply(VersionEdit* edit, port::Mutex* mu) {
       }
       if (!s.ok()) {
         Log(options_->info_log, "MANIFEST write: %s\n", s.ToString().c_str());
-      }  else {
+      } else {
         manifest_file_size_ += record.size();
       }
     }
@@ -871,7 +893,7 @@ Status VersionSet::LogAndApply(VersionEdit* edit, port::Mutex* mu) {
       delete descriptor_file_;
       descriptor_log_ = nullptr;
       descriptor_file_ = nullptr;
-      env_->RemoveFile(new_manifest_file);
+      env_->DeleteFile(new_manifest_file);
     }
   }
 
@@ -917,7 +939,6 @@ Status VersionSet::Recover(bool* save_manifest) {
   uint64_t log_number = 0;
   uint64_t prev_log_number = 0;
   Builder builder(this, current_);
-  int read_records = 0;
 
   {
     LogReporter reporter;
@@ -927,7 +948,6 @@ Status VersionSet::Recover(bool* save_manifest) {
     Slice record;
     std::string scratch;
     while (reader.ReadRecord(&record, &scratch) && s.ok()) {
-      ++read_records;
       VersionEdit edit;
       s = edit.DecodeFrom(record);
       if (s.ok()) {
@@ -1002,10 +1022,6 @@ Status VersionSet::Recover(bool* save_manifest) {
     } else {
       *save_manifest = true;
     }
-  } else {
-    std::string error = s.ToString();
-    Log(options_->info_log, "Error recovering version set with %d records: %s",
-        read_records, error.c_str());
   }
 
   return s;
@@ -1125,12 +1141,11 @@ int VersionSet::NumLevelFiles(int level) const {
 const char* VersionSet::LevelSummary(LevelSummaryStorage* scratch) const {
   // Update code if kNumLevels changes
   static_assert(config::kNumLevels == 7, "");
-  std::snprintf(
-      scratch->buffer, sizeof(scratch->buffer), "files[ %d %d %d %d %d %d %d ]",
-      int(current_->files_[0].size()), int(current_->files_[1].size()),
-      int(current_->files_[2].size()), int(current_->files_[3].size()),
-      int(current_->files_[4].size()), int(current_->files_[5].size()),
-      int(current_->files_[6].size()));
+  snprintf(scratch->buffer, sizeof(scratch->buffer),
+           "files[ %d %d %d %d %d %d %d ]", int(current_->files_[0].size()),
+           int(current_->files_[1].size()), int(current_->files_[2].size()),
+           int(current_->files_[3].size()), int(current_->files_[4].size()),
+           int(current_->files_[5].size()), int(current_->files_[6].size()));
   return scratch->buffer;
 }
 
@@ -1527,7 +1542,7 @@ bool Compaction::IsTrivialMove() const {
 void Compaction::AddInputDeletions(VersionEdit* edit) {
   for (int which = 0; which < 2; which++) {
     for (size_t i = 0; i < inputs_[which].size(); i++) {
-      edit->RemoveFile(level_ + which, inputs_[which][i]->number);
+      edit->DeleteFile(level_ + which, inputs_[which][i]->number);
     }
   }
 }

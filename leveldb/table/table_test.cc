@@ -7,7 +7,6 @@
 #include <map>
 #include <string>
 
-#include "gtest/gtest.h"
 #include "db/dbformat.h"
 #include "db/memtable.h"
 #include "db/write_batch_internal.h"
@@ -19,6 +18,7 @@
 #include "table/block_builder.h"
 #include "table/format.h"
 #include "util/random.h"
+#include "util/testharness.h"
 #include "util/testutil.h"
 
 namespace leveldb {
@@ -123,7 +123,7 @@ class StringSource : public RandomAccessFile {
     if (offset + n > contents_.size()) {
       n = contents_.size() - offset;
     }
-    std::memcpy(scratch, &contents_[offset], n);
+    memcpy(scratch, &contents_[offset], n);
     *result = Slice(scratch, n);
     return Status::OK();
   }
@@ -219,12 +219,12 @@ class TableConstructor : public Constructor {
 
     for (const auto& kvp : data) {
       builder.Add(kvp.first, kvp.second);
-      EXPECT_LEVELDB_OK(builder.status());
+      ASSERT_TRUE(builder.status().ok());
     }
     Status s = builder.Finish();
-    EXPECT_LEVELDB_OK(s);
+    ASSERT_TRUE(s.ok()) << s.ToString();
 
-    EXPECT_EQ(sink.contents().size(), builder.FileSize());
+    ASSERT_EQ(sink.contents().size(), builder.FileSize());
 
     // Open the table
     source_ = new StringSource(sink.contents());
@@ -340,7 +340,7 @@ class DBConstructor : public Constructor {
     for (const auto& kvp : data) {
       WriteBatch batch;
       batch.Put(kvp.first, kvp.second);
-      EXPECT_TRUE(db_->Write(WriteOptions(), &batch).ok());
+      ASSERT_TRUE(db_->Write(WriteOptions(), &batch).ok());
     }
     return Status::OK();
   }
@@ -352,7 +352,7 @@ class DBConstructor : public Constructor {
 
  private:
   void NewDB() {
-    std::string name = testing::TempDir() + "table_testdb";
+    std::string name = test::TmpDir() + "/table_testdb";
 
     Options options;
     options.comparator = comparator_;
@@ -403,7 +403,7 @@ static const TestArgs kTestArgList[] = {
 };
 static const int kNumTestArgs = sizeof(kTestArgList) / sizeof(kTestArgList[0]);
 
-class Harness : public testing::Test {
+class Harness {
  public:
   Harness() : constructor_(nullptr) {}
 
@@ -485,13 +485,13 @@ class Harness : public testing::Test {
     Iterator* iter = constructor_->NewIterator();
     ASSERT_TRUE(!iter->Valid());
     KVMap::const_iterator model_iter = data.begin();
-    if (kVerbose) std::fprintf(stderr, "---\n");
+    if (kVerbose) fprintf(stderr, "---\n");
     for (int i = 0; i < 200; i++) {
       const int toss = rnd->Uniform(5);
       switch (toss) {
         case 0: {
           if (iter->Valid()) {
-            if (kVerbose) std::fprintf(stderr, "Next\n");
+            if (kVerbose) fprintf(stderr, "Next\n");
             iter->Next();
             ++model_iter;
             ASSERT_EQ(ToString(data, model_iter), ToString(iter));
@@ -500,7 +500,7 @@ class Harness : public testing::Test {
         }
 
         case 1: {
-          if (kVerbose) std::fprintf(stderr, "SeekToFirst\n");
+          if (kVerbose) fprintf(stderr, "SeekToFirst\n");
           iter->SeekToFirst();
           model_iter = data.begin();
           ASSERT_EQ(ToString(data, model_iter), ToString(iter));
@@ -511,7 +511,7 @@ class Harness : public testing::Test {
           std::string key = PickRandomKey(rnd, keys);
           model_iter = data.lower_bound(key);
           if (kVerbose)
-            std::fprintf(stderr, "Seek '%s'\n", EscapeString(key).c_str());
+            fprintf(stderr, "Seek '%s'\n", EscapeString(key).c_str());
           iter->Seek(Slice(key));
           ASSERT_EQ(ToString(data, model_iter), ToString(iter));
           break;
@@ -519,7 +519,7 @@ class Harness : public testing::Test {
 
         case 3: {
           if (iter->Valid()) {
-            if (kVerbose) std::fprintf(stderr, "Prev\n");
+            if (kVerbose) fprintf(stderr, "Prev\n");
             iter->Prev();
             if (model_iter == data.begin()) {
               model_iter = data.end();  // Wrap around to invalid value
@@ -532,7 +532,7 @@ class Harness : public testing::Test {
         }
 
         case 4: {
-          if (kVerbose) std::fprintf(stderr, "SeekToLast\n");
+          if (kVerbose) fprintf(stderr, "SeekToLast\n");
           iter->SeekToLast();
           if (keys.empty()) {
             model_iter = data.end();
@@ -609,7 +609,7 @@ class Harness : public testing::Test {
 };
 
 // Test empty table/block.
-TEST_F(Harness, Empty) {
+TEST(Harness, Empty) {
   for (int i = 0; i < kNumTestArgs; i++) {
     Init(kTestArgList[i]);
     Random rnd(test::RandomSeed() + 1);
@@ -620,7 +620,7 @@ TEST_F(Harness, Empty) {
 // Special test for a block with no restart entries.  The C++ leveldb
 // code never generates such blocks, but the Java version of leveldb
 // seems to.
-TEST_F(Harness, ZeroRestartPointsInBlock) {
+TEST(Harness, ZeroRestartPointsInBlock) {
   char data[sizeof(uint32_t)];
   memset(data, 0, sizeof(data));
   BlockContents contents;
@@ -639,7 +639,7 @@ TEST_F(Harness, ZeroRestartPointsInBlock) {
 }
 
 // Test the empty key
-TEST_F(Harness, SimpleEmptyKey) {
+TEST(Harness, SimpleEmptyKey) {
   for (int i = 0; i < kNumTestArgs; i++) {
     Init(kTestArgList[i]);
     Random rnd(test::RandomSeed() + 1);
@@ -648,7 +648,7 @@ TEST_F(Harness, SimpleEmptyKey) {
   }
 }
 
-TEST_F(Harness, SimpleSingle) {
+TEST(Harness, SimpleSingle) {
   for (int i = 0; i < kNumTestArgs; i++) {
     Init(kTestArgList[i]);
     Random rnd(test::RandomSeed() + 2);
@@ -657,7 +657,7 @@ TEST_F(Harness, SimpleSingle) {
   }
 }
 
-TEST_F(Harness, SimpleMulti) {
+TEST(Harness, SimpleMulti) {
   for (int i = 0; i < kNumTestArgs; i++) {
     Init(kTestArgList[i]);
     Random rnd(test::RandomSeed() + 3);
@@ -668,7 +668,7 @@ TEST_F(Harness, SimpleMulti) {
   }
 }
 
-TEST_F(Harness, SimpleSpecialKey) {
+TEST(Harness, SimpleSpecialKey) {
   for (int i = 0; i < kNumTestArgs; i++) {
     Init(kTestArgList[i]);
     Random rnd(test::RandomSeed() + 4);
@@ -677,15 +677,15 @@ TEST_F(Harness, SimpleSpecialKey) {
   }
 }
 
-TEST_F(Harness, Randomized) {
+TEST(Harness, Randomized) {
   for (int i = 0; i < kNumTestArgs; i++) {
     Init(kTestArgList[i]);
     Random rnd(test::RandomSeed() + 5);
     for (int num_entries = 0; num_entries < 2000;
          num_entries += (num_entries < 50 ? 1 : 200)) {
       if ((num_entries % 10) == 0) {
-        std::fprintf(stderr, "case %d of %d: num_entries = %d\n", (i + 1),
-                     int(kNumTestArgs), num_entries);
+        fprintf(stderr, "case %d of %d: num_entries = %d\n", (i + 1),
+                int(kNumTestArgs), num_entries);
       }
       for (int e = 0; e < num_entries; e++) {
         std::string v;
@@ -697,7 +697,7 @@ TEST_F(Harness, Randomized) {
   }
 }
 
-TEST_F(Harness, RandomizedLongDB) {
+TEST(Harness, RandomizedLongDB) {
   Random rnd(test::RandomSeed());
   TestArgs args = {DB_TEST, false, 16};
   Init(args);
@@ -714,12 +714,14 @@ TEST_F(Harness, RandomizedLongDB) {
   for (int level = 0; level < config::kNumLevels; level++) {
     std::string value;
     char name[100];
-    std::snprintf(name, sizeof(name), "leveldb.num-files-at-level%d", level);
+    snprintf(name, sizeof(name), "leveldb.num-files-at-level%d", level);
     ASSERT_TRUE(db()->GetProperty(name, &value));
     files += atoi(value.c_str());
   }
   ASSERT_GT(files, 0);
 }
+
+class MemTableTest {};
 
 TEST(MemTableTest, Simple) {
   InternalKeyComparator cmp(BytewiseComparator());
@@ -736,8 +738,8 @@ TEST(MemTableTest, Simple) {
   Iterator* iter = memtable->NewIterator();
   iter->SeekToFirst();
   while (iter->Valid()) {
-    std::fprintf(stderr, "key: '%s' -> '%s'\n", iter->key().ToString().c_str(),
-                 iter->value().ToString().c_str());
+    fprintf(stderr, "key: '%s' -> '%s'\n", iter->key().ToString().c_str(),
+            iter->value().ToString().c_str());
     iter->Next();
   }
 
@@ -748,12 +750,14 @@ TEST(MemTableTest, Simple) {
 static bool Between(uint64_t val, uint64_t low, uint64_t high) {
   bool result = (val >= low) && (val <= high);
   if (!result) {
-    std::fprintf(stderr, "Value %llu is not in range [%llu, %llu]\n",
-                 (unsigned long long)(val), (unsigned long long)(low),
-                 (unsigned long long)(high));
+    fprintf(stderr, "Value %llu is not in range [%llu, %llu]\n",
+            (unsigned long long)(val), (unsigned long long)(low),
+            (unsigned long long)(high));
   }
   return result;
 }
+
+class TableTest {};
 
 TEST(TableTest, ApproximateOffsetOfPlain) {
   TableConstructor c(BytewiseComparator());
@@ -792,7 +796,7 @@ static bool SnappyCompressionSupported() {
 
 TEST(TableTest, ApproximateOffsetOfCompressed) {
   if (!SnappyCompressionSupported()) {
-    std::fprintf(stderr, "skipping compression tests\n");
+    fprintf(stderr, "skipping compression tests\n");
     return;
   }
 
@@ -828,7 +832,4 @@ TEST(TableTest, ApproximateOffsetOfCompressed) {
 
 }  // namespace leveldb
 
-int main(int argc, char** argv) {
-  testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}
+int main(int argc, char** argv) { return leveldb::test::RunAllTests(); }

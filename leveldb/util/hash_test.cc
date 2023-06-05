@@ -3,10 +3,11 @@
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
 #include "util/hash.h"
-
-#include "gtest/gtest.h"
+#include "util/testharness.h"
 
 namespace leveldb {
+
+class HASH {};
 
 TEST(HASH, SignedUnsignedIssue) {
   const uint8_t data1[1] = {0x62};
@@ -40,7 +41,4 @@ TEST(HASH, SignedUnsignedIssue) {
 
 }  // namespace leveldb
 
-int main(int argc, char** argv) {
-  testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}
+int main(int argc, char** argv) { return leveldb::test::RunAllTests(); }

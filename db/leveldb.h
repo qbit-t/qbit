@@ -537,7 +537,7 @@ public:
 			options_.compression = leveldb::kNoCompression;
 			options_.create_if_missing = true;
 			options_.max_open_files = 500;
-			options_.manifest_file_max_size = 1024*1024;
+			options_.manifest_file_max_size = 1024*1024*1024;
 
 #ifndef MOBILE_PLATFORM
 			options_.info_log = new LevelDBLogger();
@@ -569,7 +569,7 @@ public:
 		options_.compression = leveldb::kNoCompression;
 		options_.create_if_missing = true;
 		options_.max_open_files = 500;
-		options_.manifest_file_max_size = 1024*1024;
+		options_.manifest_file_max_size = 1024*1024*1024;
 
 #ifndef MOBILE_PLATFORM
 		options_.info_log = new LevelDBLogger();

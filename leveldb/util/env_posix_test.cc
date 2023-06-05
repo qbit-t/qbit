@@ -13,11 +13,10 @@
 #include <unordered_set>
 #include <vector>
 
-#include "gtest/gtest.h"
 #include "leveldb/env.h"
 #include "port/port.h"
 #include "util/env_posix_test_helper.h"
-#include "util/testutil.h"
+#include "util/testharness.h"
 
 #if HAVE_O_CLOEXEC
 
@@ -169,7 +168,7 @@ namespace leveldb {
 static const int kReadOnlyFileLimit = 4;
 static const int kMMapLimit = 4;
 
-class EnvPosixTest : public testing::Test {
+class EnvPosixTest {
  public:
   static void SetFileLimits(int read_only_file_limit, int mmap_limit) {
     EnvPosixTestHelper::SetReadOnlyFDLimit(read_only_file_limit);
@@ -181,150 +180,150 @@ class EnvPosixTest : public testing::Test {
   Env* env_;
 };
 
-TEST_F(EnvPosixTest, TestOpenOnRead) {
+TEST(EnvPosixTest, TestOpenOnRead) {
   // Write some test data to a single file that will be opened |n| times.
   std::string test_dir;
-  ASSERT_LEVELDB_OK(env_->GetTestDirectory(&test_dir));
+  ASSERT_OK(env_->GetTestDirectory(&test_dir));
   std::string test_file = test_dir + "/open_on_read.txt";
 
-  FILE* f = std::fopen(test_file.c_str(), "we");
+  FILE* f = fopen(test_file.c_str(), "we");
   ASSERT_TRUE(f != nullptr);
   const char kFileData[] = "abcdefghijklmnopqrstuvwxyz";
   fputs(kFileData, f);
-  std::fclose(f);
+  fclose(f);
 
   // Open test file some number above the sum of the two limits to force
   // open-on-read behavior of POSIX Env leveldb::RandomAccessFile.
   const int kNumFiles = kReadOnlyFileLimit + kMMapLimit + 5;
   leveldb::RandomAccessFile* files[kNumFiles] = {0};
   for (int i = 0; i < kNumFiles; i++) {
-    ASSERT_LEVELDB_OK(env_->NewRandomAccessFile(test_file, &files[i]));
+    ASSERT_OK(env_->NewRandomAccessFile(test_file, &files[i]));
   }
   char scratch;
   Slice read_result;
   for (int i = 0; i < kNumFiles; i++) {
-    ASSERT_LEVELDB_OK(files[i]->Read(i, 1, &read_result, &scratch));
+    ASSERT_OK(files[i]->Read(i, 1, &read_result, &scratch));
     ASSERT_EQ(kFileData[i], read_result[0]);
   }
   for (int i = 0; i < kNumFiles; i++) {
     delete files[i];
   }
-  ASSERT_LEVELDB_OK(env_->RemoveFile(test_file));
+  ASSERT_OK(env_->DeleteFile(test_file));
 }
 
 #if HAVE_O_CLOEXEC
 
-TEST_F(EnvPosixTest, TestCloseOnExecSequentialFile) {
+TEST(EnvPosixTest, TestCloseOnExecSequentialFile) {
   std::unordered_set<int> open_fds;
   GetOpenFileDescriptors(&open_fds);
 
   std::string test_dir;
-  ASSERT_LEVELDB_OK(env_->GetTestDirectory(&test_dir));
+  ASSERT_OK(env_->GetTestDirectory(&test_dir));
   std::string file_path = test_dir + "/close_on_exec_sequential.txt";
-  ASSERT_LEVELDB_OK(WriteStringToFile(env_, "0123456789", file_path));
+  ASSERT_OK(WriteStringToFile(env_, "0123456789", file_path));
 
   leveldb::SequentialFile* file = nullptr;
-  ASSERT_LEVELDB_OK(env_->NewSequentialFile(file_path, &file));
+  ASSERT_OK(env_->NewSequentialFile(file_path, &file));
   CheckCloseOnExecDoesNotLeakFDs(open_fds);
   delete file;
 
-  ASSERT_LEVELDB_OK(env_->RemoveFile(file_path));
+  ASSERT_OK(env_->DeleteFile(file_path));
 }
 
-TEST_F(EnvPosixTest, TestCloseOnExecRandomAccessFile) {
+TEST(EnvPosixTest, TestCloseOnExecRandomAccessFile) {
   std::unordered_set<int> open_fds;
   GetOpenFileDescriptors(&open_fds);
 
   std::string test_dir;
-  ASSERT_LEVELDB_OK(env_->GetTestDirectory(&test_dir));
+  ASSERT_OK(env_->GetTestDirectory(&test_dir));
   std::string file_path = test_dir + "/close_on_exec_random_access.txt";
-  ASSERT_LEVELDB_OK(WriteStringToFile(env_, "0123456789", file_path));
+  ASSERT_OK(WriteStringToFile(env_, "0123456789", file_path));
 
   // Exhaust the RandomAccessFile mmap limit. This way, the test
   // RandomAccessFile instance below is backed by a file descriptor, not by an
   // mmap region.
   leveldb::RandomAccessFile* mmapped_files[kReadOnlyFileLimit] = {nullptr};
   for (int i = 0; i < kReadOnlyFileLimit; i++) {
-    ASSERT_LEVELDB_OK(env_->NewRandomAccessFile(file_path, &mmapped_files[i]));
+    ASSERT_OK(env_->NewRandomAccessFile(file_path, &mmapped_files[i]));
   }
 
   leveldb::RandomAccessFile* file = nullptr;
-  ASSERT_LEVELDB_OK(env_->NewRandomAccessFile(file_path, &file));
+  ASSERT_OK(env_->NewRandomAccessFile(file_path, &file));
   CheckCloseOnExecDoesNotLeakFDs(open_fds);
   delete file;
 
   for (int i = 0; i < kReadOnlyFileLimit; i++) {
     delete mmapped_files[i];
   }
-  ASSERT_LEVELDB_OK(env_->RemoveFile(file_path));
+  ASSERT_OK(env_->DeleteFile(file_path));
 }
 
-TEST_F(EnvPosixTest, TestCloseOnExecWritableFile) {
+TEST(EnvPosixTest, TestCloseOnExecWritableFile) {
   std::unordered_set<int> open_fds;
   GetOpenFileDescriptors(&open_fds);
 
   std::string test_dir;
-  ASSERT_LEVELDB_OK(env_->GetTestDirectory(&test_dir));
+  ASSERT_OK(env_->GetTestDirectory(&test_dir));
   std::string file_path = test_dir + "/close_on_exec_writable.txt";
-  ASSERT_LEVELDB_OK(WriteStringToFile(env_, "0123456789", file_path));
+  ASSERT_OK(WriteStringToFile(env_, "0123456789", file_path));
 
   leveldb::WritableFile* file = nullptr;
-  ASSERT_LEVELDB_OK(env_->NewWritableFile(file_path, &file));
+  ASSERT_OK(env_->NewWritableFile(file_path, &file));
   CheckCloseOnExecDoesNotLeakFDs(open_fds);
   delete file;
 
-  ASSERT_LEVELDB_OK(env_->RemoveFile(file_path));
+  ASSERT_OK(env_->DeleteFile(file_path));
 }
 
-TEST_F(EnvPosixTest, TestCloseOnExecAppendableFile) {
+TEST(EnvPosixTest, TestCloseOnExecAppendableFile) {
   std::unordered_set<int> open_fds;
   GetOpenFileDescriptors(&open_fds);
 
   std::string test_dir;
-  ASSERT_LEVELDB_OK(env_->GetTestDirectory(&test_dir));
+  ASSERT_OK(env_->GetTestDirectory(&test_dir));
   std::string file_path = test_dir + "/close_on_exec_appendable.txt";
-  ASSERT_LEVELDB_OK(WriteStringToFile(env_, "0123456789", file_path));
+  ASSERT_OK(WriteStringToFile(env_, "0123456789", file_path));
 
   leveldb::WritableFile* file = nullptr;
-  ASSERT_LEVELDB_OK(env_->NewAppendableFile(file_path, &file));
+  ASSERT_OK(env_->NewAppendableFile(file_path, &file));
   CheckCloseOnExecDoesNotLeakFDs(open_fds);
   delete file;
 
-  ASSERT_LEVELDB_OK(env_->RemoveFile(file_path));
+  ASSERT_OK(env_->DeleteFile(file_path));
 }
 
-TEST_F(EnvPosixTest, TestCloseOnExecLockFile) {
+TEST(EnvPosixTest, TestCloseOnExecLockFile) {
   std::unordered_set<int> open_fds;
   GetOpenFileDescriptors(&open_fds);
 
   std::string test_dir;
-  ASSERT_LEVELDB_OK(env_->GetTestDirectory(&test_dir));
+  ASSERT_OK(env_->GetTestDirectory(&test_dir));
   std::string file_path = test_dir + "/close_on_exec_lock.txt";
-  ASSERT_LEVELDB_OK(WriteStringToFile(env_, "0123456789", file_path));
+  ASSERT_OK(WriteStringToFile(env_, "0123456789", file_path));
 
   leveldb::FileLock* lock = nullptr;
-  ASSERT_LEVELDB_OK(env_->LockFile(file_path, &lock));
+  ASSERT_OK(env_->LockFile(file_path, &lock));
   CheckCloseOnExecDoesNotLeakFDs(open_fds);
-  ASSERT_LEVELDB_OK(env_->UnlockFile(lock));
+  ASSERT_OK(env_->UnlockFile(lock));
 
-  ASSERT_LEVELDB_OK(env_->RemoveFile(file_path));
+  ASSERT_OK(env_->DeleteFile(file_path));
 }
 
-TEST_F(EnvPosixTest, TestCloseOnExecLogger) {
+TEST(EnvPosixTest, TestCloseOnExecLogger) {
   std::unordered_set<int> open_fds;
   GetOpenFileDescriptors(&open_fds);
 
   std::string test_dir;
-  ASSERT_LEVELDB_OK(env_->GetTestDirectory(&test_dir));
+  ASSERT_OK(env_->GetTestDirectory(&test_dir));
   std::string file_path = test_dir + "/close_on_exec_logger.txt";
-  ASSERT_LEVELDB_OK(WriteStringToFile(env_, "0123456789", file_path));
+  ASSERT_OK(WriteStringToFile(env_, "0123456789", file_path));
 
   leveldb::Logger* file = nullptr;
-  ASSERT_LEVELDB_OK(env_->NewLogger(file_path, &file));
+  ASSERT_OK(env_->NewLogger(file_path, &file));
   CheckCloseOnExecDoesNotLeakFDs(open_fds);
   delete file;
 
-  ASSERT_LEVELDB_OK(env_->RemoveFile(file_path));
+  ASSERT_OK(env_->DeleteFile(file_path));
 }
 
 #endif  // HAVE_O_CLOEXEC
@@ -347,7 +346,5 @@ int main(int argc, char** argv) {
   // All tests currently run with the same read-only file limits.
   leveldb::EnvPosixTest::SetFileLimits(leveldb::kReadOnlyFileLimit,
                                        leveldb::kMMapLimit);
-
-  testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
+  return leveldb::test::RunAllTests();
 }

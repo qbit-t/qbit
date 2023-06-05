@@ -28,8 +28,9 @@
 
 #include "table/block_builder.h"
 
+#include <assert.h>
+
 #include <algorithm>
-#include <cassert>
 
 #include "leveldb/comparator.h"
 #include "leveldb/options.h"

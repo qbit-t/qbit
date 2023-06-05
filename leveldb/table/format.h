@@ -5,7 +5,8 @@
 #ifndef STORAGE_LEVELDB_TABLE_FORMAT_H_
 #define STORAGE_LEVELDB_TABLE_FORMAT_H_
 
-#include <cstdint>
+#include <stdint.h>
+
 #include <string>
 
 #include "leveldb/slice.h"

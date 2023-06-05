@@ -4,7 +4,7 @@
 
 #include "leveldb/dumpfile.h"
 
-#include <cstdio>
+#include <stdio.h>
 
 #include "db/dbformat.h"
 #include "db/filename.h"

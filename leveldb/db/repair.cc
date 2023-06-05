@@ -341,7 +341,7 @@ class Repairer {
       }
     }
     if (!s.ok()) {
-      env_->RemoveFile(copy);
+      env_->DeleteFile(copy);
     }
   }
 
@@ -372,8 +372,7 @@ class Repairer {
                     t.meta.largest);
     }
 
-    // std::fprintf(stderr,
-    //              "NewDescriptor:\n%s\n", edit_.DebugString().c_str());
+    // fprintf(stderr, "NewDescriptor:\n%s\n", edit_.DebugString().c_str());
     {
       log::Writer log(file);
       std::string record;
@@ -387,7 +386,7 @@ class Repairer {
     file = nullptr;
 
     if (!status.ok()) {
-      env_->RemoveFile(tmp);
+      env_->DeleteFile(tmp);
     } else {
       // Discard older manifests
       for (size_t i = 0; i < manifests_.size(); i++) {
@@ -399,7 +398,7 @@ class Repairer {
       if (status.ok()) {
         status = SetCurrentFile(env_, dbname_, 1);
       } else {
-        env_->RemoveFile(tmp);
+        env_->DeleteFile(tmp);
       }
     }
     return status;
