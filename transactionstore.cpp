@@ -590,14 +590,16 @@ bool TransactionStore::resyncHeight() {
 	uint256 lNull = BlockHeader().hash();
 
 	//
+	size_t lCount = 0;
 	std::list<uint256> lSeq;
 	while (lHash != lNull && headers_.read(lHash, lHeader)) {
 		// push
 		lSeq.push_back(lHash);
 		//
-		if (gLog().isEnabled(Log::DB)) gLog().write(Log::DB, std::string("[resyncHeight/info]: ") + 
-				strprintf("prev_block = %s, block = %s, chain = %s#", 
-					lHash.toHex(), lHeader.prev().toHex(), chain_.toHex().substr(0, 10)));
+		if (!(++lCount % 1000))
+			if (gLog().isEnabled(Log::DB)) gLog().write(Log::DB, std::string("[resyncHeight/info]: ") + 
+					strprintf("prev_block = %s, block = %s, chain = %s#", 
+						lHash.toHex(), lHeader.prev().toHex(), chain_.toHex().substr(0, 10)));
 		//
 		lHash = lHeader.prev();
 
