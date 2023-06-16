@@ -550,7 +550,7 @@ private:
 			if (lState != IConsensus::SYNCHRONIZED && lState != IConsensus::SYNCHRONIZING && lState != IConsensus::INDEXING) {
 				//
 				SynchronizationJobPtr lJob = consensus_->lastJob();
-				if (lJob && getTime() - lJob->timestamp() > consensus_->settings()->consensusSynchronizationLatency()) {
+				if (lJob && getTime() - lJob->timestamp() > ((lJob->type() == SynchronizationJob::FULL ? 5 : 1) * consensus_->settings()->consensusSynchronizationLatency())) {
 					consensus_->finishJob(nullptr); // force and restart job
 					if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::GENERAL_ERROR, std::string("[buzzer/validator/touch/error]: synchronization is seems to be stalled."));
 				} else {
@@ -565,7 +565,7 @@ private:
 			} else if (lState == IConsensus::SYNCHRONIZING) {
 				//
 				SynchronizationJobPtr lJob = consensus_->lastJob();
-				if (lJob && getTime() - lJob->timestamp() > consensus_->settings()->consensusSynchronizationLatency()) {
+				if (lJob && getTime() - lJob->timestamp() > ((lJob->type() == SynchronizationJob::FULL ? 5 : 1) * consensus_->settings()->consensusSynchronizationLatency())) {
 					consensus_->finishJob(nullptr); // force and restart job
 					if (gLog().isEnabled(Log::VALIDATOR)) gLog().write(Log::GENERAL_ERROR, std::string("[buzzer/validator/touch/error]: synchronization was stalled."));
 				} else {
