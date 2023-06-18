@@ -985,7 +985,9 @@ public:
 						job_->renew(); // in case if job was cancelled: current block is absent
 						job_->setNextBlock(lBlock); // set latest new
 					} else {
-						job_->setNextBlock(job_->currentBlock()); // reset to last one
+						uint256 lCurrentBlock = job_->currentBlock();
+						job_->setNextBlock(lCurrentBlock); // reset to last one
+						job_->setCurrentBlock(lCurrentBlock); // reset to the current
 					}
 
 					lPeer->second->synchronizeLargePartialTree(shared_from_this(), job_);
