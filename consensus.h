@@ -965,13 +965,13 @@ public:
 		// force
 		if (job == nullptr && job_) {
 			// TODO: check if we on GET_BLOCK_HEADER stage
-			if (job_->currentBlock() != uint256()) {
+			if (job_->currentBlock() != uint256() || job_->nextBlockInstant() != uint256()) {
 				// job stalled, try to restart
 				if (lPeers.size()) {
 					// 1. clean-up
 					if (settings_->isFullNode() || settings_->isNode()) {
 						for(std::multimap<uint32_t, IPeerPtr>::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
-								gLog().write(Log::CONSENSUS, strprintf("[finishJob]: cleaning up for %s# from %s/%d", chain_.toHex().substr(0, 10), lPeer->second->key(), lPeers.size()));
+								gLog().write(Log::CONSENSUS, strprintf("[finishJob]: cleaning up(0) for %s# from %s/%d", chain_.toHex().substr(0, 10), lPeer->second->key(), lPeers.size()));
 								lPeer->second->removeJob(chain_); // last job
 						}
 					}
@@ -986,8 +986,7 @@ public:
 						job_->setNextBlock(lBlock); // set latest new
 					} else {
 						uint256 lCurrentBlock = job_->currentBlock();
-						job_->setNextBlock(lCurrentBlock); // reset to last one
-						job_->setCurrentBlock(lCurrentBlock); // reset to the current
+						job_->setNextBlock(lCurrentBlock); // reset to the last one
 					}
 
 					lPeer->second->synchronizeLargePartialTree(shared_from_this(), job_);
@@ -1004,7 +1003,7 @@ public:
 		if (lPeers.size()) {
 			if (settings_->isFullNode() || settings_->isNode()) {
 				for(std::multimap<uint32_t, IPeerPtr>::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
-						gLog().write(Log::CONSENSUS, strprintf("[finishJob]: cleaning up for %s# from %s/%d", chain_.toHex().substr(0, 10), lPeer->second->key(), lPeers.size()));
+						gLog().write(Log::CONSENSUS, strprintf("[finishJob]: cleaning up(1) for %s# from %s/%d", chain_.toHex().substr(0, 10), lPeer->second->key(), lPeers.size()));
 						lPeer->second->removeJob(chain_); // last job
 				}
 			}

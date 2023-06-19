@@ -68,7 +68,11 @@ public:
 		return "UNDEFINED";
 	}
 
-	void cancel() { cancelled_ = true; }
+	void cancel() {
+		if (gLog().isEnabled(Log::CONSENSUS))
+			gLog().write(Log::CONSENSUS, strprintf("[synchronizationJob]: job cancelled for current %s, next %s.", currentBlock_.toHex(), nextBlock_.toHex()));
+		cancelled_ = true;
+	}
 	void renew() { cancelled_ = false; }
 	bool cancelled() { return cancelled_; }
 
