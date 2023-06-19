@@ -49,12 +49,20 @@ public:
 		LARGE_PARTIAL
 	};
 
+	enum Stage {
+		HEADER_FEED,
+		BLOCK_FEED
+	};
+
 public:
 	SynchronizationJob(const uint256& block, uint64_t delta, Type type) : height_(0), delta_(delta), block_(block), nextBlock_(block), type_(type) { time_ = getTime(); }
 	SynchronizationJob(const uint256& block, const uint256& lastBlock, uint64_t delta, uint64_t lastHeight, Type type) : height_(0), delta_(delta), block_(block), nextBlock_(block), lastBlock_(lastBlock), lastHeight_(lastHeight), type_(type) { time_ = getTime(); }
 	SynchronizationJob(uint64_t height, const uint256& block, Type type) : height_(height), delta_(0), block_(block), type_() { time_ = getTime(); }
 
 	Type type() { return type_; }
+	Stage stage() { return stage_; }
+
+	void toBlockFeed() { stage_ = BLOCK_FEED; }
 
 	uint64_t unique() { return timestamp_; }
 
@@ -107,12 +115,12 @@ public:
 		return workers_;
 	}
 
-	bool setNextBlock(const uint256& block) {
+	bool setNextBlock(const uint256& block, bool force = false) {
 		//
 		boost::unique_lock<boost::mutex> lLock(jobMutex_);
 		time_ = getTime(); // timestamp
-		if (((type_ == SynchronizationJob::LARGE_PARTIAL || type_ == SynchronizationJob::FULL) &&
-					queuedChunks_.find(block) == queuedChunks_.end()) || type_ == SynchronizationJob::PARTIAL) {
+		if (force || (((type_ == SynchronizationJob::LARGE_PARTIAL || type_ == SynchronizationJob::FULL) &&
+					queuedChunks_.find(block) == queuedChunks_.end()) || type_ == SynchronizationJob::PARTIAL)) {
 			nextBlock_ = block;
 			currentBlock_.setNull();
 			return true;
@@ -333,6 +341,7 @@ private:
 	std::list<Chunk> chunks_;
 	std::set<uint256> queuedChunks_;
 	Type type_;
+	Stage stage_ = HEADER_FEED;
 	bool cancelled_ = false;
 	bool resync_ = false;
 	uint64_t timestamp_ = qbit::getMicroseconds();

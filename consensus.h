@@ -964,7 +964,13 @@ public:
 
 		// force
 		if (job == nullptr && job_) {
-			// TODO: check if we on GET_BLOCK_HEADER stage
+			//
+			if (job_->stage() == SynchronizationJob::BLOCK_FEED) {
+				// continue
+				processPartialTreeHeaders(job_);
+				return;
+			}
+
 			if (job_->currentBlock() != uint256() || job_->nextBlockInstant() != uint256()) {
 				// job stalled, try to restart
 				if (lPeers.size()) {
@@ -983,15 +989,21 @@ public:
 
 					if (job_->cancelled()) {
 						job_->renew(); // in case if job was cancelled: current block is absent
-						job_->setNextBlock(lBlock); // set latest new
+						job_->setNextBlock(lBlock, true); // set latest new
 					} else {
 						uint256 lCurrentBlock = job_->currentBlock();
-						job_->setNextBlock(lCurrentBlock); // reset to the last one
+						job_->setNextBlock(lCurrentBlock, true); // reset to the last one
 					}
 
 					lPeer->second->synchronizeLargePartialTree(shared_from_this(), job_);
 
 					// 3. jump out
+					return;
+				} else {
+					if (gLog().isEnabled(Log::CONSENSUS))
+						gLog().write(Log::CONSENSUS, std::string("[finishJob]: peers is EMPTY for ") + 
+						strprintf("%d/%s-%s/%s#", lHeight, lBlock.toHex(), lLast.toHex(), chain_.toHex().substr(0, 10)));
+					// postpone current job
 					return;
 				}
 			} else {
@@ -1189,6 +1201,7 @@ public:
 				if (settings_->isFullNode() || settings_->isNode()) {
 					for(std::multimap<uint32_t, IPeerPtr>::iterator lPeer = lPeers.begin(); lPeer != lPeers.end(); lPeer++) {
 						if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, strprintf("[processPartialTreeHeaders]: starting block feed for %s# from %s/%d", chain_.toHex().substr(0, 10), lPeer->second->key(), lPeers.size()));
+						job->toBlockFeed();
 						lPeer->second->synchronizePendingBlocks(shared_from_this(), job);
 					}
 
