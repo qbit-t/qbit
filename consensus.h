@@ -1101,7 +1101,8 @@ public:
 						if (!lOurHeight) {
 							//
 							std::multimap<uint32_t, IPeerPtr>::iterator lPeer = lPeers.begin(); // this node -> get current block thread
-							if (!job_ || job_->nextBlockInstant().isNull()) { 
+							if (!job_ || (job_->nextBlockInstant().isNull() &&
+												job_->stage() != SynchronizationJob::BLOCK_FEED)) { 
 								//
 								if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[doSynchronize]: starting FULL synchronization ") + 
 									strprintf("%d/%s/%s#", lHeight, lBlock.toHex(), chain_.toHex().substr(0, 10)));
