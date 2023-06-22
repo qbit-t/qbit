@@ -856,9 +856,9 @@ public:
 				for (PeersSet::iterator lPeer = lPeers.begin(); !lFound && lPeer != lPeers.end(); lPeer++) {
 					PeersMap::iterator lPeerPtr = directPeerMap_.find(*lPeer);
 					if (lPeerPtr != directPeerMap_.end()) {
-						if (lPeerPtr->second->state()->minerOrValidator() &&
-							lPeerPtr->second->syncRequestsHeaders() < 5 &&
-							lPeerPtr->second->syncRequestsBlocks() < 5) {
+						if (lPeerPtr->second->state()->minerOrValidator() && (lPeers.size() == 1 ||
+							(lPeerPtr->second->syncRequestsHeaders() < 5 &&
+							lPeerPtr->second->syncRequestsBlocks() < 5))) {
 							lFound = true;
 							break;
 						}
@@ -889,9 +889,9 @@ public:
 								lPeerPtr->second->syncRequestsHeaders(), lPeerPtr->second->syncRequestsBlocks()));
 					}
 
-					if (lPeerPtr->second->state()->minerOrValidator() &&
-						lPeerPtr->second->syncRequestsHeaders() < 5 &&
-						lPeerPtr->second->syncRequestsBlocks() < 5) {
+					if (lPeerPtr->second->state()->minerOrValidator() && (lPeers.size() == 1 ||
+						(lPeerPtr->second->syncRequestsHeaders() < 5 &&
+						lPeerPtr->second->syncRequestsBlocks() < 5))) {
 						if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS,
 							strprintf("[locateSynchronizedRoot]: peer added %s/%s/%s#", 
 								lPeerPtr->second->key(), lPeerPtr->second->statusString(),
@@ -1162,6 +1162,8 @@ public:
 					return true;
 				}			
 			} else {
+				if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[doSynchronize]: there is NO peers for ") + 
+					strprintf("%s#", chain_.toHex().substr(0, 10)));
 				// there is no peers
 				boost::unique_lock<boost::recursive_mutex> lLock(transitionMutex_);
 				chainState_ = IConsensus::SYNCHRONIZED;
@@ -1216,6 +1218,8 @@ public:
 					return true;
 				}			
 			} else {
+				if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[processPartialTreeHeaders]: there is NO peers for ") + 
+					strprintf("%s#", chain_.toHex().substr(0, 10)));
 				// there is no peers
 				boost::unique_lock<boost::recursive_mutex> lLock(transitionMutex_);
 				chainState_ = IConsensus::NOT_SYNCHRONIZED;
