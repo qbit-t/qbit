@@ -282,6 +282,27 @@ public:
 		return uint256();
 	}
 
+	uint256 reacquirePendingBlockJob(IPeerPtr peer, uint64_t timeout) {
+		//
+		boost::unique_lock<boost::mutex> lLock(jobMutex_);
+
+		if (txWorkers_.size()) {
+			//
+			uint64_t lNow = getTime(); // timestamp
+			for (std::map<uint256, Agent>::iterator lWorker = txWorkers_.begin(); lWorker != txWorkers_.end(); lWorker++) {
+				//
+				if (lNow - lWorker->second.time_ > timeout) {
+					//
+					time_ = lNow;
+					lWorker->second = Agent(peer, lNow);
+					return lWorker->first;
+				}
+			}
+		}
+
+		return uint256();
+	}
+
 	std::map<uint256, Agent> pendingBlockJobs() {
 		boost::unique_lock<boost::mutex> lLock(jobMutex_);
 		return txWorkers_;

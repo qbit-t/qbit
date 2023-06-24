@@ -578,7 +578,11 @@ void Peer::synchronizePendingBlocks(IConsensusPtr consensus, SynchronizationJobP
 				// log
 				if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: pending blocks synchronization is NOT done, waiting for root = ") + strprintf("%s, %d, %s#", job->block().toHex(), job->pendingBlocks() + job->activeWorkers(), consensus->chain().toHex().substr(0, 10)));
 				//
-				return;
+				lBlockHeader = job->reacquirePendingBlockJob(shared_from_this(), 60);
+				if (lBlockHeader.isNull()) return;
+				else {
+					if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: try to re-acquire BLOCK data ") + strprintf("%s/%s#", lBlockHeader.toHex(), consensus->chain().toHex().substr(0, 10)) + std::string(" from ") + key());
+				}
 			} else {
 				// log
 				if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[peer]: pending blocks synchronization job is done, root = ") + strprintf("%s, %s#", job->block().toHex(), consensus->chain().toHex().substr(0, 10)));
