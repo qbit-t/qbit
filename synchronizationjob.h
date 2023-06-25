@@ -63,6 +63,7 @@ public:
 	Stage stage() { return stage_; }
 
 	void toBlockFeed() { stage_ = BLOCK_FEED; }
+	void toHeaderFeed() { stage_ = HEADER_FEED; }
 
 	uint64_t unique() { return timestamp_; }
 

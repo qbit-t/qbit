@@ -967,8 +967,8 @@ public:
 			//
 			if (job_->stage() == SynchronizationJob::BLOCK_FEED) {
 				// continue
-				processPartialTreeHeaders(job_);
-				return;
+				if (processPartialTreeHeaders(job_))
+					return;
 			}
 
 			if (job_->currentBlock() != uint256() || job_->nextBlockInstant() != uint256()) {
@@ -995,6 +995,7 @@ public:
 						job_->setNextBlock(lCurrentBlock, true); // reset to the last one
 					}
 
+					job_->toHeaderFeed();
 					lPeer->second->synchronizeLargePartialTree(shared_from_this(), job_);
 
 					// 3. jump out
