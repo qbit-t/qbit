@@ -1094,7 +1094,7 @@ public:
 						if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[doSynchronize]: starting FULL RESYNC for ") + 
 							strprintf("%d/%s-%s/%s#", lHeight, lBlock.toHex(), lLast.toHex(), chain_.toHex().substr(0, 10)));
 
-						job_ = SynchronizationJob::instance(lBlock, BlockHeader().hash(), 1000000000000, 0, SynchronizationJob::LARGE_PARTIAL);
+						job_ = SynchronizationJob::instance(settings_, chain_, lBlock, BlockHeader().hash(), 1000000000000, 0, SynchronizationJob::LARGE_PARTIAL);
 						job_->setResync(); // resync!
 						lPeer->second->synchronizeLargePartialTree(shared_from_this(), job_);
 						resync_ = false;
@@ -1108,7 +1108,7 @@ public:
 								if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[doSynchronize]: starting FULL synchronization ") + 
 									strprintf("%d/%s/%s#", lHeight, lBlock.toHex(), chain_.toHex().substr(0, 10)));
 
-								job_ = SynchronizationJob::instance(lBlock, BlockHeader().hash(), lHeight, 0, SynchronizationJob::FULL); // block from
+								job_ = SynchronizationJob::instance(settings_, chain_, lBlock, BlockHeader().hash(), lHeight, 0, SynchronizationJob::FULL); // block from
 								lPeer->second->synchronizeLargePartialTree(shared_from_this(), job_);
 							}
 						} else if (lHeight > lOurHeight && lHeight - lOurHeight < partialTreeThreshold()) {
@@ -1125,7 +1125,7 @@ public:
 							if (!job_ || job_->nextBlockInstant().isNull()) { 
 								if (gLog().isEnabled(Log::CONSENSUS)) gLog().write(Log::CONSENSUS, std::string("[doSynchronize]: starting PARTIAL tree synchronization ") + 
 									strprintf("%d/%s-%s/%s#", lHeight, lBlock.toHex(), lLast.toHex(), chain_.toHex().substr(0, 10)));
-								job_ = SynchronizationJob::instance(lBlock, lLast, lHeight - lOurHeight, lOurHeight, SynchronizationJob::PARTIAL); // block from
+								job_ = SynchronizationJob::instance(settings_, chain_, lBlock, lLast, lHeight - lOurHeight, lOurHeight, SynchronizationJob::PARTIAL); // block from
 								lPeer->second->synchronizePartialTree(shared_from_this(), job_);
 							}
 						} else {
@@ -1145,6 +1145,8 @@ public:
 										(lVeryLast ? "LAST" : lLast.toHex()), chain_.toHex().substr(0, 10)));
 
 								job_ = SynchronizationJob::instance(
+									settings_,
+									chain_,
 									lBlock,
 									lLast,
 									lHeight - lOurHeight,

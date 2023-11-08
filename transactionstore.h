@@ -355,7 +355,8 @@ public:
 		airDropAddressesTx_("indexes_airdrop_addresses", space_),
 		airDropPeers_("indexes_airdrop_peers", space_),
 		heightMap_(settings_->dataPath() + "/" + chain.toHex() + "/height_map"),
-		blockMap_(settings_->dataPath() + "/" + chain.toHex() + "/block_map")
+		blockMap_(settings_->dataPath() + "/" + chain.toHex() + "/block_map"),
+		blocksQueue_(settings_->dataPath() + "/" + chain.toHex() + "/block_queue")
 	{}
 
 	// stub
@@ -601,7 +602,8 @@ private:
 	db::DbContainer<uint256, uint64_t> blockMap_;
 
 	//
-	std::map<uint256, NetworkBlockHeader> blocksQueue_;
+	//std::map<uint256, NetworkBlockHeader> blocksQueue_;
+	db::DbContainer<uint256, NetworkBlockHeader> blocksQueue_;
 };
 
 } // qbit

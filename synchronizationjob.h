@@ -7,6 +7,9 @@
 
 #include "ipeer.h"
 #include "timestamp.h"
+#include "db/containers.h"
+#include "mkpath.h"
+#include "isettings.h"
 
 #include <boost/thread/thread.hpp>
 #include <boost/thread/mutex.hpp>
@@ -34,12 +37,29 @@ public:
 		Agent(IPeerPtr peer, uint64_t time) : peer_(peer), time_(time) {}
 	};
 
-	struct Chunk {
+	class Chunk {
+	public:
 		uint256 block_;
 		bool frameExists_ = false;
 		bool indexed_ = false;
 
+		Chunk() {}
 		Chunk(const uint256& block, bool frameExists, bool indexed) : block_(block), frameExists_(frameExists), indexed_(indexed) {}
+
+		ADD_SERIALIZE_METHODS;
+
+		template <typename Stream, typename Operation>
+		inline void serializationOp(Stream& s, Operation ser_action) {
+			if (ser_action.ForRead()) {
+				s >> block_;
+				s >> frameExists_;
+				s >> indexed_;
+			} else {
+				s << block_;
+				s << frameExists_;
+				s << indexed_;
+			}
+		}
 	};
 
 	enum Type {
@@ -55,9 +75,92 @@ public:
 	};
 
 public:
-	SynchronizationJob(const uint256& block, uint64_t delta, Type type) : height_(0), delta_(delta), block_(block), nextBlock_(block), type_(type) { time_ = getTime(); }
-	SynchronizationJob(const uint256& block, const uint256& lastBlock, uint64_t delta, uint64_t lastHeight, Type type) : height_(0), delta_(delta), block_(block), nextBlock_(block), lastBlock_(lastBlock), lastHeight_(lastHeight), type_(type) { time_ = getTime(); }
-	SynchronizationJob(uint64_t height, const uint256& block, Type type) : height_(height), delta_(0), block_(block), type_() { time_ = getTime(); }
+	SynchronizationJob(ISettingsPtr settings, const uint256& chain, const uint256& block, uint64_t delta, Type type) :
+		settings_(settings),
+		height_(0), delta_(delta), block_(block), nextBlock_(block), type_(type),
+		timestamp_(qbit::getMicroseconds()), chain_(chain),
+		tempspaceBlocks_(strprintf("%s/%s/b-%d", settings_->dataPath(), chain_.toHex(), timestamp_)),
+		tempspaceChunks_(strprintf("%s/%s/c-%d", settings_->dataPath(), chain_.toHex(), timestamp_)),
+		spaceBlocks_(std::make_shared<db::DbContainerSpace>(tempspaceBlocks_)),
+		spaceChunks_(std::make_shared<db::DbContainerSpace>(tempspaceChunks_)),
+		pendingBlocks_("pendingBlocks", spaceBlocks_),
+		pendingBlocksIndex_("pendingBlocksIndex", spaceBlocks_),
+		chunks_("chunks", spaceChunks_),
+		queuedChunks_("queuedChunks", spaceChunks_)		
+		{ open(); }
+	SynchronizationJob(ISettingsPtr settings, const uint256& chain, const uint256& block, const uint256& lastBlock, uint64_t delta, uint64_t lastHeight, Type type) :
+		height_(0), delta_(delta), block_(block),
+		nextBlock_(block), lastBlock_(lastBlock), lastHeight_(lastHeight), type_(type),
+		timestamp_(qbit::getMicroseconds()), chain_(chain),
+		tempspaceBlocks_(strprintf("%s/%s/b-%d", settings_->dataPath(), chain_.toHex(), timestamp_)),
+		tempspaceChunks_(strprintf("%s/%s/c-%d", settings_->dataPath(), chain_.toHex(), timestamp_)),
+		spaceBlocks_(std::make_shared<db::DbContainerSpace>(tempspaceBlocks_)),
+		spaceChunks_(std::make_shared<db::DbContainerSpace>(tempspaceChunks_)),
+		pendingBlocks_("pendingBlocks", spaceBlocks_),
+		pendingBlocksIndex_("pendingBlocksIndex", spaceBlocks_),
+		chunks_("chunks", spaceChunks_),
+		queuedChunks_("queuedChunks", spaceChunks_)		
+		{ open(); }
+	SynchronizationJob(ISettingsPtr settings, const uint256& chain, uint64_t height, const uint256& block, Type type) :
+		height_(height), delta_(0), block_(block), type_(),
+		timestamp_(qbit::getMicroseconds()), chain_(chain),
+		tempspaceBlocks_(strprintf("%s/%s/b-%d", settings_->dataPath(), chain_.toHex(), timestamp_)),
+		tempspaceChunks_(strprintf("%s/%s/c-%d", settings_->dataPath(), chain_.toHex(), timestamp_)),
+		spaceBlocks_(std::make_shared<db::DbContainerSpace>(tempspaceBlocks_)),
+		spaceChunks_(std::make_shared<db::DbContainerSpace>(tempspaceChunks_)),
+		pendingBlocks_("pendingBlocks", spaceBlocks_),
+		pendingBlocksIndex_("pendingBlocksIndex", spaceBlocks_),
+		chunks_("chunks", spaceChunks_),
+		queuedChunks_("queuedChunks", spaceChunks_)		
+		{ open(); }
+
+	~SynchronizationJob() {
+		closeBlocks();
+		closeChunks();
+	}
+
+	bool open() {
+		//
+		if (mkpath(tempspaceBlocks_.c_str(), 0777)) return false;
+
+		pendingBlocks_.open();
+		pendingBlocks_.attach();
+		pendingBlocksIndex_.open();
+		pendingBlocksIndex_.attach();
+		spaceBlocks_->open();
+
+		openChunks();
+
+		time_ = getTime();
+
+		return true;
+	}
+
+	bool openChunks() {
+		if (mkpath(tempspaceChunks_.c_str(), 0777)) return false;
+		chunks_.open();
+		chunks_.attach();
+		queuedChunks_.open();
+		queuedChunks_.attach();
+		spaceChunks_->open();
+
+		return true;
+	}
+
+	void closeBlocks() {
+		//
+		pendingBlocks_.close();
+		pendingBlocksIndex_.close();
+		spaceBlocks_->close();
+		rmpath(tempspaceBlocks_.c_str());
+	}
+
+	void closeChunks() {
+		chunks_.close();
+		queuedChunks_.close();
+		spaceChunks_->close();
+		rmpath(tempspaceChunks_.c_str());		
+	}
 
 	Type type() { return type_; }
 	Stage stage() { return stage_; }
@@ -121,7 +224,7 @@ public:
 		boost::unique_lock<boost::mutex> lLock(jobMutex_);
 		time_ = getTime(); // timestamp
 		if (force || (((type_ == SynchronizationJob::LARGE_PARTIAL || type_ == SynchronizationJob::FULL) &&
-					queuedChunks_.find(block) == queuedChunks_.end()) || type_ == SynchronizationJob::PARTIAL)) {
+					!queuedChunks_.read(block)) || type_ == SynchronizationJob::PARTIAL)) {
 			nextBlock_ = block;
 			currentBlock_.setNull();
 			return true;
@@ -190,46 +293,35 @@ public:
 	uint64_t height() { return height_; }
 	uint64_t delta() { return delta_; }
 
-	static SynchronizationJobPtr instance(uint64_t height, const uint256& block, Type type) { return std::make_shared<SynchronizationJob>(height, block, type); }
-	static SynchronizationJobPtr instance(const uint256& block, uint64_t delta, Type type) { return std::make_shared<SynchronizationJob>(block, delta, type); }
-	static SynchronizationJobPtr instance(const uint256& block, const uint256& lastBlock, uint64_t delta, uint64_t lastHeight, Type type) 
-	{ return std::make_shared<SynchronizationJob>(block, lastBlock, delta, lastHeight, type); }
+	static SynchronizationJobPtr instance(ISettingsPtr settings, const uint256& chain, uint64_t height, const uint256& block, Type type) {
+		return std::make_shared<SynchronizationJob>(settings, chain, height, block, type);
+	}
+	static SynchronizationJobPtr instance(ISettingsPtr settings, const uint256& chain, const uint256& block, uint64_t delta, Type type) {
+		return std::make_shared<SynchronizationJob>(settings, chain, block, delta, type);
+	}
+	static SynchronizationJobPtr instance(ISettingsPtr settings, const uint256& chain, const uint256& block, const uint256& lastBlock, uint64_t delta, uint64_t lastHeight, Type type) {
+		return std::make_shared<SynchronizationJob>(settings, chain, block, lastBlock, delta, lastHeight, type);
+	}
 
 	//
 	// pending blocks
 	void pushPendingBlock(const uint256& block) {
 		boost::unique_lock<boost::mutex> lLock(jobMutex_);
 		time_ = getTime(); // timestamp
-		std::pair<std::set<uint256>::iterator, bool> lExists = pendingBlocksIndex_.insert(block);
-		if (lExists.second) {
-			pendingBlocks_.push_back(block);
+		if (!pendingBlocksIndex_.read(block)) {
+			pendingBlocks_.write(block); pendingBlocksCount_++;
 		}
 	}
 
 	void registerPendingBlock(const uint256& block) {
 		boost::unique_lock<boost::mutex> lLock(jobMutex_);
 		time_ = getTime(); // timestamp
-		pendingBlocksIndex_.insert(block);
-	}
-
-	uint64_t pendingBlocksCount() {
-		boost::unique_lock<boost::mutex> lLock(jobMutex_);
-		return pendingBlocksIndex_.size();
-	}
-
-	uint256 lastPendingBlock() {
-		//
-		boost::unique_lock<boost::mutex> lLock(jobMutex_);
-		if (pendingBlocks_.size()) {
-			return *pendingBlocks_.rbegin();
-		}
-
-		return uint256();
+		pendingBlocksIndex_.write(block);
 	}
 
 	uint64_t pendingBlocks() {
 		boost::unique_lock<boost::mutex> lLock(jobMutex_);
-		return pendingBlocks_.size();
+		return pendingBlocksCount_;
 	}
 
 	uint64_t activeWorkers() {
@@ -239,15 +331,17 @@ public:
 
 	uint256 acquireNextPendingBlockJob(IPeerPtr peer) {
 		boost::unique_lock<boost::mutex> lLock(jobMutex_);
-		if (pendingBlocks_.size()) {
-			std::list<uint256>::iterator lBlock = pendingBlocks_.begin();
+		if (pendingBlocksCount_) {
+			db::DbList<uint256>::Iterator lBlock = pendingBlocks_.begin();
 			//
 			time_ = getTime(); // timestamp
 			//
 			std::pair<std::map<uint256, Agent>::iterator, bool> lResult = 
 				txWorkers_.insert(std::map<uint256, Agent>::value_type(*lBlock, Agent(peer, qbit::getTime())));
-			pendingBlocksIndex_.erase(*lBlock);
-			pendingBlocks_.pop_front();
+			pendingBlocksIndex_.remove(*lBlock);
+			pendingBlocks_.remove(lBlock);
+			if (pendingBlocksCount_-1 > 0) pendingBlocksCount_--;
+			else pendingBlocksCount_ = 0;
 			return lResult.first->first;
 		}
 
@@ -312,7 +406,7 @@ public:
 	bool hasPendingBlocks() {
 		//
 		boost::unique_lock<boost::mutex> lLock(jobMutex_);
-		return pendingBlocks_.size() || txWorkers_.size();
+		return pendingBlocksCount_ || txWorkers_.size();
 	}
 
 	void setResync() { resync_ = true; }
@@ -321,18 +415,18 @@ public:
 	void pushChunk(const uint256& block, bool frameExists, bool indexed) {
 		//
 		boost::unique_lock<boost::mutex> lLock(jobMutex_);
-		if (queuedChunks_.insert(block).second) {
-			chunks_.push_back(Chunk(block, frameExists, indexed));
+		if (!queuedChunks_.read(block)) {
+			chunks_.write(Chunk(block, frameExists, indexed));
 		}
 	}
 
 	uint256 analyzeLinkedChunks() {
 		//
 		boost::unique_lock<boost::mutex> lLock(jobMutex_);
-		for (std::list<Chunk>::reverse_iterator lChunk = chunks_.rbegin(); lChunk != chunks_.rend(); lChunk++) {
+		for (db::DbList<Chunk>::Iterator lChunk = chunks_.begin(); lChunk.valid(); lChunk++) {
 			//
-			if (!lChunk->indexed_) {
-				return lChunk->block_;
+			if (!(*lChunk).indexed_) {
+				return (*lChunk).block_;
 			}
 		}
 
@@ -342,8 +436,8 @@ public:
 	void clearChunks() {
 		//
 		boost::unique_lock<boost::mutex> lLock(jobMutex_);
-		chunks_.clear();
-		queuedChunks_.clear();
+		closeChunks();
+		openChunks();
 	}
 
 private:
@@ -358,15 +452,25 @@ private:
 	uint64_t time_;
 	std::map<uint64_t, Agent> workers_; // TODO: add timeout & check
 	std::map<uint256, Agent> txWorkers_; // TODO: add timeout & check
-	std::list<uint256> pendingBlocks_;
-	std::set<uint256> pendingBlocksIndex_;
-	std::list<Chunk> chunks_;
-	std::set<uint256> queuedChunks_;
+	//
+	db::DbContainerSpacePtr spaceBlocks_;
+	db::DbContainerSpacePtr spaceChunks_;
+	uint64_t pendingBlocksCount_ = 0;
+	//
 	Type type_;
 	Stage stage_ = HEADER_FEED;
 	bool cancelled_ = false;
 	bool resync_ = false;
-	uint64_t timestamp_ = qbit::getMicroseconds();
+	uint64_t timestamp_;
+	uint256 chain_;
+	std::string tempspaceBlocks_;
+	std::string tempspaceChunks_;
+	ISettingsPtr settings_;
+	//
+	db::DbList<uint256> pendingBlocks_;
+	db::DbSet<uint256> pendingBlocksIndex_;	
+	db::DbList<Chunk> chunks_;
+	db::DbSet<uint256> queuedChunks_;
 };
 
 } // qbit

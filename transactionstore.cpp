@@ -1473,6 +1473,8 @@ bool TransactionStore::open() {
 			txUtxo_.open();
 			txUtxo_.attach();
 
+			blocksQueue_.open();
+
 			if (settings_->supportAirdrop()) {
 				airDropAddressesTx_.open();
 				airDropAddressesTx_.attach();
@@ -1580,6 +1582,8 @@ bool TransactionStore::close() {
 	entityUtxo_.close();
 	shardEntities_.close();
 	txUtxo_.close();
+
+	blocksQueue_.close();
 
 	if (settings_->supportAirdrop()) {
 		airDropAddressesTx_.close();
@@ -2299,27 +2303,31 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 
 bool TransactionStore::enqueueBlock(const NetworkBlockHeader& block) {
 	//
-	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
+	//boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
 	uint256 lHash = const_cast<NetworkBlockHeader&>(block).blockHeader().hash();
-	if (blocksQueue_.find(lHash) == blocksQueue_.end()) {
-		blocksQueue_.insert(std::map<uint256, NetworkBlockHeader>::value_type(lHash, block));	
-		return true;
+
+	NetworkBlockHeader lHeader;
+	if (blocksQueue_.read(lHash, lHeader)) {
+		return false;
 	}
 
-	return false;
+	blocksQueue_.write(lHash, block);
+
+	return true;
 }
 
 void TransactionStore::dequeueBlock(const uint256& block) {
 	//
-	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
-	blocksQueue_.erase(block);	
+	//boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
+	blocksQueue_.remove(block);
 }
 
 bool TransactionStore::firstEnqueuedBlock(NetworkBlockHeader& block) {
 	//
-	boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
-	if (blocksQueue_.size()) {
-		block = blocksQueue_.begin()->second;
+	//boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
+	db::DbContainer<uint256, NetworkBlockHeader>::Iterator lFirst = blocksQueue_.begin();
+	if (lFirst.valid()) {
+		lFirst.second(block);
 		return true;
 	}
 

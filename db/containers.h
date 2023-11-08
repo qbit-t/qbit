@@ -118,6 +118,49 @@ private:
 	DbContainerSpacePtr space_;
 };
 
+template<typename value>
+class DbList: public Container<uint64_t, value, LevelDbContainerProxy> {
+public: 
+	DbList(const std::string& name, DbContainerSpacePtr space) : Container<uint64_t, value, LevelDbContainerProxy>(name) { space_ = space; }
+	void attach() {
+		//
+		this->attachTo(space_);
+	}
+
+	inline bool write(const value& v) {
+		//
+		return Container<uint64_t, value, LevelDbContainerProxy>::write(++idx_, v, sync);
+	}
+
+private:
+	DbContainerSpacePtr space_;
+	uint64_t idx_ = 0;
+};
+
+template<typename key>
+class DbSet: public Container<key, char, LevelDbContainerProxy> {
+public: 
+	DbSet(const std::string& name, DbContainerSpacePtr space) : Container<key, char, LevelDbContainerProxy>(name) { space_ = space; }
+	void attach() {
+		//
+		this->attachTo(space_);
+	}
+
+	inline bool write(const key& k) {
+		//
+		return Container<key, char, LevelDbContainerProxy>::write(k, (char)0, sync);
+	}
+
+	inline bool read(const key& k) {
+		//
+		char lV;
+		return Container<key, char, LevelDbContainerProxy>::read(k, lV);
+	}
+
+private:
+	DbContainerSpacePtr space_;
+};
+
 //
 
 template<typename key, typename value>
