@@ -453,10 +453,6 @@ private:
 	std::map<uint64_t, Agent> workers_; // TODO: add timeout & check
 	std::map<uint256, Agent> txWorkers_; // TODO: add timeout & check
 	//
-	db::DbContainerSpacePtr spaceBlocks_;
-	db::DbContainerSpacePtr spaceChunks_;
-	uint64_t pendingBlocksCount_ = 0;
-	//
 	Type type_;
 	Stage stage_ = HEADER_FEED;
 	bool cancelled_ = false;
@@ -467,10 +463,13 @@ private:
 	std::string tempspaceChunks_;
 	ISettingsPtr settings_;
 	//
+	db::DbContainerSpacePtr spaceBlocks_;
+	db::DbContainerSpacePtr spaceChunks_;
 	db::DbList<uint256> pendingBlocks_;
 	db::DbSet<uint256> pendingBlocksIndex_;	
 	db::DbList<Chunk> chunks_;
 	db::DbSet<uint256> queuedChunks_;
+	uint64_t pendingBlocksCount_ = 0;
 };
 
 } // qbit
