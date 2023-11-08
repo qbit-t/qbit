@@ -423,14 +423,15 @@ public:
 	uint256 analyzeLinkedChunks() {
 		//
 		boost::unique_lock<boost::mutex> lLock(jobMutex_);
+		uint256 lLastBlock = uint256();
 		for (db::DbList<Chunk>::Iterator lChunk = chunks_.begin(); lChunk.valid(); lChunk++) {
 			//
 			if (!(*lChunk).indexed_) {
-				return (*lChunk).block_;
+				lLastBlock = (*lChunk).block_;
 			}
 		}
 
-		return uint256();
+		return lLastBlock;
 	}
 
 	void clearChunks() {
