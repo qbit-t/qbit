@@ -1499,8 +1499,9 @@ bool TransactionStore::open() {
 
 			gLog().write(Log::INFO, std::string("[open]: lastBlock = ") + strprintf("%s/%s#", lastBlock_.toHex(), chain_.toHex().substr(0, 10)));
 
-			// make height index
-			resyncHeight();
+			// open height index
+			heightMap_.open();
+			blockMap_.open();
 
 			// push shards
 			for (db::DbMultiContainerShared<uint256 /*entity*/, uint256 /*shard*/>::Iterator lShard = shards_.begin(); lShard.valid(); ++lShard) {
