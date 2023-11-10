@@ -687,7 +687,7 @@ bool TransactionStore::resyncHeight(const uint256& to) {
 	bool lFull = false;
 	uint64_t lLastIndex = 0;
 	//
-	if (lSeq.size() <= lPartialTree && lSeq.size()) {
+	if (/*lSeq.size() <= lPartialTree &&*/ lSeq.size()) {
 		// partial resync
 		boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
 		// locate last index
@@ -745,7 +745,7 @@ bool TransactionStore::resyncHeight(const uint256& to) {
 					strprintf("to = %s, chain = %s#", 
 						to.toHex(), chain_.toHex().substr(0, 10)));
 		}
-	} else if (lSeq.size() > lPartialTree) {
+	} else if (false /*lSeq.size() > lPartialTree*/) {
 		lFull = true;
 		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight/partial/error]: subtree is LARGE, making FULL resync for ") + 
 				strprintf("to = %s, delta = %d, chain = %s#", 
