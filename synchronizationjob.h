@@ -309,6 +309,7 @@ public:
 		boost::unique_lock<boost::mutex> lLock(jobMutex_);
 		time_ = getTime(); // timestamp
 		if (!pendingBlocksIndex_.read(block)) {
+			pendingBlocksIndex_.write(block);
 			pendingBlocks_.write(block); pendingBlocksCount_++;
 		}
 	}
@@ -416,6 +417,7 @@ public:
 		//
 		boost::unique_lock<boost::mutex> lLock(jobMutex_);
 		if (!queuedChunks_.read(block)) {
+			queuedChunks_.write(block);
 			chunks_.write(Chunk(block, frameExists, indexed));
 		}
 	}
