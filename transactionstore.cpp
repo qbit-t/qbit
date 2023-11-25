@@ -590,29 +590,24 @@ bool TransactionStore::resyncHeight() {
 	uint256 lNull = BlockHeader().hash();
 
 	//
+	std::string lSeqPath = strprintf("%s/%s/s-%d", settings_->dataPath(), chain_.toHex(), qbit::getMicroseconds());
+	db::DbListContainer<uint256> lSeqHeaders(lSeqPath);
+	if (mkpath(lSeqPath.c_str(), 0777)) return false;
+	lSeqHeaders.open();
+
+	//
 	size_t lCount = 0;
 	std::list<uint256> lSeq;
 	while (lHash != lNull && headers_.read(lHash, lHeader)) {
 		// push
-		lSeq.push_back(lHash);
+		lSeqHeaders.write(lHash);
 		//
 		if (!(++lCount % 1000))
-			if (gLog().isEnabled(Log::DB)) gLog().write(Log::DB, std::string("[resyncHeight/info]: ") + 
-					strprintf("prev_block = %s, block = %s, chain = %s#", 
-						lHash.toHex(), lHeader.prev().toHex(), chain_.toHex().substr(0, 10)));
+			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight/info]: loading ") + 
+					strprintf("id = %d, prev_block = %s, block = %s, chain = %s#", 
+						lCount, lHash.toHex(), lHeader.prev().toHex(), chain_.toHex().substr(0, 10)));
 		//
 		lHash = lHeader.prev();
-
-		/*
-		// check block data
-		if (blockExists(lHash)) {
-			// push
-			lSeq.push_back(lHash);
-			lHash = lHeader.prev();
-		} else {
-			break;
-		}
-		*/
 	}
 
 	//
@@ -633,21 +628,31 @@ bool TransactionStore::resyncHeight() {
 						lHash.toHex(), lHeader.hash().toHex(), chain_.toHex().substr(0, 10)));
 		}
 
+		lSeqHeaders.close();
+		rmpath(lSeqPath.c_str());
+
 		return false;
 	}
 
 	//
 	{
 		boost::unique_lock<boost::recursive_mutex> lLock(storageMutex_);
-
-		for (std::list<uint256>::reverse_iterator lIter = lSeq.rbegin(); lIter != lSeq.rend(); lIter++) {
+		for (db::DbListContainer<uint256>::Iterator lIter = lSeqHeaders.last(); lIter.valid(); lIter--) {
 			//
 			heightMap_.write(++lIndex, *lIter);
 			blockMap_.write(*lIter, lIndex);
+
+			if (!(--lCount % 1000))
+				if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight/info]: writing ") + 
+						strprintf("id = %d, block = %s, chain = %s#", 
+							lCount, (*lIter).toHex(), chain_.toHex().substr(0, 10)));
 		}
 	}
 
 	if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[resyncHeight]: current ") + strprintf("height = %d, block = %s, chain = %s#", lIndex, lastBlock_.toHex(), chain_.toHex().substr(0, 10)));
+
+	lSeqHeaders.close();
+	rmpath(lSeqPath.c_str());
 
 	return true;
 }
@@ -1519,6 +1524,13 @@ bool TransactionStore::open() {
 			}
 
 			opened_ = true;
+
+			// post-open check
+			BlockHeader lHeader;
+			if (!currentHeight(lHeader) && !lastBlock_.isNull()) {
+				// try to reconstruct height&block map
+				resyncHeight();
+			}
 		}
 		catch(const std::exception& ex) {
 			gLog().write(Log::GENERAL_ERROR, std::string("[open/error]: ") + ex.what());

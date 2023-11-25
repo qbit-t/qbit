@@ -205,6 +205,19 @@ public:
 	DbFiveKeyContainer(const std::string& name) : FiveKeyContainer<key1, key2, key3, key4, key5, value, LevelDBContainer>(name) {}
 };
 
+template<typename value>
+class DbListContainer: public Container<uint64_t, value, LevelDBContainer> {
+public: 
+	DbListContainer(const std::string& name) : Container<uint64_t, value, LevelDBContainer>(name) {}
+	inline bool write(const value& v) {
+		//
+		return Container<uint64_t, value, LevelDBContainer>::write(++idx_, v, sync);
+	}
+
+private:
+	uint64_t idx_ = 0;
+};
+
 } // db
 } // qbit
 
