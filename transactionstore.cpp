@@ -1233,6 +1233,14 @@ uint64_t TransactionStore::currentHeight(BlockHeader& block) {
 		if (headers_.read(*lHeader, block)) {
 			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[currentHeight]: ") + strprintf("%d/%s/%s#", lHeight, block.hash().toHex(), chain_.toHex().substr(0, 10)));
 			return lHeight;
+		} else {
+			db::DbContainer<uint256, uint64_t>::Iterator lBlockHeader = blockMap_.find(lastBlock_);
+			if (lBlockHeader.valid() && lBlockHeader.second(lHeight)) {
+				if (headers_.read(lastBlock_, block)) {
+					if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[currentHeight/lastKnown]: ") + strprintf("%d/%s/%s#", lHeight, block.hash().toHex(), chain_.toHex().substr(0, 10)));
+					return lHeight;
+				}
+			}
 		}
 	}
 
