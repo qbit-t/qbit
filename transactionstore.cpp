@@ -1603,6 +1603,8 @@ bool TransactionStore::close() {
 	entityUtxo_.close();
 	shardEntities_.close();
 	txUtxo_.close();
+	heightMap_.close();
+	blockMap_.close();
 
 	blocksQueue_.close();
 
