@@ -2152,26 +2152,18 @@ void TransactionStore::reindexFull(const uint256& from, IMemoryPoolPtr pool) {
 	int lErrorReason = 0;
 	// process blocks
 	if (!processBlocks(from, BlockHeader().hash(), pool, lLastPrev, lErrorReason)) {
-		// try to rollback
-		//setLastBlock(lLastBlock);
-		//resyncHeight();
-
 		//
 		// NOTICE: reset to NULL block and invalidate height map
 		// we have consistency errors and let sync procedure will decide
 		//
 		BlockHeader lNull;
 		setLastBlock(lNull.hash());
-		invalidateHeightMap();
 	} else {
 		// new last
 		setLastBlock(from);
-		// build height map
-		if (!resyncHeight()) {
-			// try to rollback
-			setLastBlock(lLastBlock);
-			resyncHeight();
-		}
+		// NOTICE: heavy weight operation!!!
+		// re-build height map
+		resyncHeight();
 	}
 
 	//
@@ -2287,7 +2279,6 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 						lLastPrev.toHex(), chain_.toHex().substr(0, 10)));
 				// rollback
 				setLastBlock(lLastPrev);
-				resyncHeight();
 			} else {
 				//
 				gLog().write(Log::STORE, std::string("[reindex/error]: consistency errors occured, fallback to last known ") + 
@@ -2295,7 +2286,6 @@ bool TransactionStore::reindex(const uint256& from, const uint256& to, IMemoryPo
 						lLastPrev.toHex(), chain_.toHex().substr(0, 10)));
 				// rollback
 				setLastBlock(lLastPrev);
-				resyncHeight();
 			}
 		} else {
 			//
