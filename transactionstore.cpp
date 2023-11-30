@@ -1231,7 +1231,23 @@ uint64_t TransactionStore::currentHeight(BlockHeader& block) {
 	if (lHeader.valid() && lHeader.first(lHeight)) {
 		// validate
 		if (headers_.read(*lHeader, block)) {
-			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[currentHeight]: ") + strprintf("%d/%s/%s#", lHeight, block.hash().toHex(), chain_.toHex().substr(0, 10)));
+			if ((*lHeader) == lastBlock_) {
+				if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[currentHeight]: ") + strprintf("%d/%s/%s#", lHeight, block.hash().toHex(), chain_.toHex().substr(0, 10)));
+				return lHeight;
+			} else {
+				// lastBlock_ was rolled
+				if (!lastBlock_.isNull()) {
+					db::DbContainer<uint256, uint64_t>::Iterator lBlockHeader = blockMap_.find(lastBlock_);
+					if (lBlockHeader.valid() && lBlockHeader.second(lHeight)) {
+						if (headers_.read(lastBlock_, block)) {
+							if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[currentHeight/rolled]: ") + strprintf("%d/%s/%s#", lHeight, block.hash().toHex(), chain_.toHex().substr(0, 10)));
+							return lHeight;
+						}
+					}		
+				}
+			}
+			//
+			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[currentHeight/undefined]: ") + strprintf("%d/%s/%s#", lHeight, block.hash().toHex(), chain_.toHex().substr(0, 10)));
 			return lHeight;
 		} else {
 			db::DbContainer<uint256, uint64_t>::Iterator lBlockHeader = blockMap_.find(lastBlock_);
