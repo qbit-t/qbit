@@ -1,37 +1,37 @@
-// Copyright (c) 2019-2020 Andrew Demuskov
+// Copyright (c) 2019-2024 Andrew Demuskov
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef QBIT_TXBUZZER_CONVERSATION_H
-#define QBIT_TXBUZZER_CONVERSATION_H
+#ifndef QBIT_TXBUZZER_GROUP_INVITE_H
+#define QBIT_TXBUZZER_GROUP_INVITE_H
 
 #include "txbuzzer.h"
 
-#define TX_BUZZER_CONVERSATION_MY_IN 0
-#define TX_BUZZER_CONVERSATION_BUZZER_IN 1
+#define TX_BUZZER_GROUP_INVITE_MY_IN 0
+#define TX_BUZZER_GROUP_INVITE_GROUP_IN 1
+#define TX_BUZZER_GROUP_INVITE_MEMBER_IN 2
 
-#define TX_BUZZER_CONVERSATION_ACCEPT_OUT 0
-#define TX_BUZZER_CONVERSATION_DECLINE_OUT 1
-#define TX_BUZZER_CONVERSATION_MESSAGE_OUT 2
+#define TX_BUZZER_GROUP_INVITE_ACCEPT_OUT 0
+#define TX_BUZZER_GROUP_INVITE_DECLINE_OUT 1
 
 namespace qbit {
 
 //
-class TxBuzzerConversation: public TxEvent {
+class TxBuzzerGroupInvite: public TxEvent {
 public:
-	TxBuzzerConversation() { type_ = TX_BUZZER_CONVERSATION; }
+	TxBuzzerGroupInvite() { type_ = TX_BUZZER_GROUP_INVITE; }
 
 	ADD_INHERITABLE_SERIALIZE_METHODS;
 
 	template<typename Stream> void serialize(Stream& s) {
 		s << timestamp_;
-		s << counterparty_;
+		s << member_;
 		s << signature_;
 	}
 	
 	inline void deserialize(DataStream& s) {
 		s >> timestamp_;
-		s >> counterparty_;
+		s >> member_;
 		s >> signature_;
 	}
 
@@ -40,25 +40,30 @@ public:
 	inline void setTimestamp(uint64_t timestamp) { timestamp_ = timestamp; }
 	inline uint64_t timestamp() { return timestamp_; }
 
-	void setCountepartyAddress(const PKey& pkey) {
+	void setMemberAddress(const PKey& pkey) {
 		//
-		counterparty_.set<const unsigned char*>(pkey.begin(), pkey.end());
+		member_.set<const unsigned char*>(pkey.begin(), pkey.end());
 	}
 
-	void initiatorAddress(PKey& pkey) {
-		extractAddress(pkey);
+	void inviterAddress(PKey& pkey) {
+		extractAddress(pkey, TX_BUZZER_GROUP_INVITE_MY_IN);
 	}
 
-	void counterpartyAddress(PKey& pkey) {
-		pkey.set<const unsigned char*>(counterparty_.begin(), counterparty_.end());
+	void groupAddress(PKey& pkey) {
+		extractAddress(pkey, TX_BUZZER_GROUP_INVITE_GROUP_IN);
+	}
+
+	void memberAddress(PKey& pkey) {
+		pkey.set<const unsigned char*>(member_.begin(), member_.end());
 	}
 
 	/*
-	const uint256& buzzerInfo() const { return buzzerInfo_; }
-	void setBuzzerInfo(const uint256& buzzerInfo) { buzzerInfo_ = buzzerInfo; }
-
-	const uint256& buzzerInfoChain() const { return buzzerInfoChain_; }
-	void setBuzzerInfoChain(const uint256& buzzerInfoChain) { buzzerInfoChain_ = buzzerInfoChain; }
+	const uint256& group() const { return group_; }
+	void setGroup(const uint256& group) { group_ = group; }
+	*/
+	/*
+	const uint256& member() const { return member_; }
+	void setMember(const uint256& member) { member_ = member; }
 	*/
 
 	const uint512& signature() const { return signature_; }
@@ -66,11 +71,12 @@ public:
 
 	virtual bool isFeeFree() { return false; }
 
-	inline void makeSignature(const SKey& skey, const uint256& creator, const uint256& counterparty) {
+	inline void makeSignature(const SKey& skey, const uint256& group, const uint256& inviter, const uint256& member) {
 		//
 		DataStream lSource(SER_NETWORK, PROTOCOL_VERSION);
-		lSource << creator;
-		lSource << counterparty;
+		lSource << group;
+		lSource << inviter;
+		lSource << member;
 
 		uint256 lHash = Hash(lSource.begin(), lSource.end());
 		if (!const_cast<SKey&>(skey).sign(lHash, signature_)) {
@@ -79,11 +85,12 @@ public:
 	}
 
 	inline static bool verifySignature(const PKey& pkey, uint64_t timestamp,
-		const uint256& creator, const uint256& counterparty, const uint512& signature) {
+		const uint256& group, const uint256& inviter, const uint256& member, const uint512& signature) {
 		//
 		DataStream lSource(SER_NETWORK, PROTOCOL_VERSION);
-		lSource << creator;
-		lSource << counterparty;
+		lSource << group;
+		lSource << inviter;
+		lSource << member;
 
 		uint256 lHash = Hash(lSource.begin(), lSource.end());
 		return const_cast<PKey&>(pkey).verify(lHash, signature);
@@ -92,23 +99,17 @@ public:
 	//
 	Transaction::UnlinkedOutPtr addAcceptOut(const SKey& skey, const PKey& pkey) {
 		//
-		return addSpecialOut(skey, pkey, TX_BUZZER_ACCEPT_CONVERSATION);
+		return addDirectSpecialOut(skey, pkey, TX_BUZZER_GROUP_INVITE_ACCEPT_OUT);
 	}
 
 	//
 	Transaction::UnlinkedOutPtr addDeclineOut(const SKey& skey, const PKey& pkey) {
 		//
-		return addSpecialOut(skey, pkey, TX_BUZZER_DECLINE_CONVERSATION);
+		return addDirectSpecialOut(skey, pkey, TX_BUZZER_GROUP_INVITE_DECLINE_OUT);
 	}
 
-	//
-	Transaction::UnlinkedOutPtr addMessageOut(const SKey& skey, const PKey& pkey) {
-		//
-		return addSpecialOut(skey, pkey, TX_BUZZER_MESSAGE);
-	}
-
-	//
-	virtual In& addBuzzerIn(const SKey& skey, UnlinkedOutPtr utxo) {
+	// in[2] - member
+	virtual In& addMemberIn(const SKey& skey, UnlinkedOutPtr utxo) {
 		Transaction::In lIn;
 		lIn.out().setNull();
 		lIn.out().setChain(utxo->out().chain());
@@ -123,7 +124,7 @@ public:
 		return in_[in_.size()-1];
 	}
 
-	//
+	// in[0] - buzzer
 	virtual In& addMyBuzzerIn(const SKey& skey, UnlinkedOutPtr utxo) {
 		Transaction::In lIn;
 		lIn.out().setNull();
@@ -154,7 +155,38 @@ public:
 		return in_[in_.size()-1];
 	}
 
-	inline std::string name() { return "buzzer_init_conversation"; }
+	// in[1] - group
+	virtual In& addGroupIn(const SKey& skey, UnlinkedOutPtr utxo) {
+		Transaction::In lIn;
+		lIn.out().setNull();
+		lIn.out().setChain(utxo->out().chain());
+		lIn.out().setAsset(utxo->out().asset());
+		lIn.out().setTx(utxo->out().tx());
+		lIn.out().setIndex(utxo->out().index());
+
+		qbit::vector<unsigned char> lSource;
+		lIn.out().serialize(lSource);
+		
+		uint256 lHash = Hash(lSource.begin(), lSource.end());
+		uint512 lSig;
+
+		if (!const_cast<SKey&>(skey).sign(lHash, lSig)) {
+			throw qbit::exception("INVALID_SIGNATURE", "Signature creation failed.");
+		}
+
+		PKey lPKey = const_cast<SKey&>(skey).createPKey(); // pkey is allways the same
+		lIn.setOwnership(ByteCode() <<
+			OP(QMOV) 		<< REG(QS0) << CVAR(lPKey.get()) << 
+			OP(QMOV) 		<< REG(QS1) << CU512(lSig) <<
+			OP(QLHASH256) 	<< REG(QS2) <<
+			OP(QCHECKSIG)	<<
+			OP(QDETXO)); // entity/check/push
+
+		in_.push_back(lIn);
+		return in_[in_.size()-1];
+	}
+
+	inline std::string name() { return "buzzer_group_invite"; }
 
 	bool isValue(UnlinkedOutPtr utxo) {
 		return (utxo->out().asset() != TxAssetType::nullAsset()); 
@@ -170,19 +202,22 @@ public:
 		props["signature"] = strprintf("%s", signature_.toHex());
 
 		PKey lPKey;
-		extractAddress(lPKey);
+		extractAddress(lPKey, TX_BUZZER_GROUP_INVITE_GROUP_IN);
 
-		props["initiator"] = lPKey.toString();
-		props["counterparty"] = counterparty_.toString();
+		props["group"] = lPKey.toString();
+		props["member"] = member_.toString();
 	}
 
-private:
+protected:
 	//
-	Transaction::UnlinkedOutPtr addSpecialOut(const SKey& skey, const PKey& pkey, unsigned short specialOut) {
+	Transaction::UnlinkedOutPtr addDirectSpecialOut(const SKey& skey, const PKey& pkey, unsigned short specialOut) {
 		//
 		Transaction::Out lOut;
 		lOut.setAsset(TxAssetType::nullAsset());
 		lOut.setDestination(ByteCode() <<
+			OP(QMOV) 		<< REG(QD0) << CVAR(const_cast<PKey&>(pkey).get()) << 
+			OP(QEQADDR) 	<<
+			OP(QPEN) 		<<
 			OP(QPTXO)		<< // use in entity-based pushUnlinkedOut's
 			OP(QMOV)		<< REG(QR1) << CU16(specialOut) <<
 			OP(QCMPE)		<< REG(QTH1) << REG(QR1) <<
@@ -198,9 +233,9 @@ private:
 		return lUTXO;
 	}
 
-	inline bool extractAddress(PKey& pkey) {
+	inline bool extractAddress(PKey& pkey, size_t in) {
 		//
-		Transaction::In& lIn = (*in().begin());
+		Transaction::In& lIn = *(in()[in]);
 		VirtualMachine lVM(lIn.ownership());
 		lVM.execute();
 
@@ -216,17 +251,17 @@ private:
 protected:
 	uint64_t timestamp_;
 	uint512 signature_;
-	PKey counterparty_;
+	PKey member_;
 };
 
-typedef std::shared_ptr<TxBuzzerConversation> TxBuzzerConversationPtr;
+typedef std::shared_ptr<TxBuzzerGroupInvite> TxBuzzerGroupInvitePtr;
 
-class TxBuzzerConversationCreator: public TransactionCreator {
+class TxBuzzerGroupInviteCreator: public TransactionCreator {
 public:
-	TxBuzzerConversationCreator() {}
-	TransactionPtr create() { return std::make_shared<TxBuzzerConversation>(); }
+	TxBuzzerGroupInviteCreator() {}
+	TransactionPtr create() { return std::make_shared<TxBuzzerGroupInvite>(); }
 
-	static TransactionCreatorPtr instance() { return std::make_shared<TxBuzzerConversationCreator>(); }
+	static TransactionCreatorPtr instance() { return std::make_shared<TxBuzzerGroupInviteCreator>(); }
 };
 
 }

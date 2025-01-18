@@ -22,7 +22,7 @@ typedef LimitedString<256> asset_description_t;
 // out[2] - qbit fee change
 class TxAssetType: public Entity {
 public:
-	static inline uint256 qbitAsset() { return uint256S("0f690892c0c5ebc826a3c51321178ef816171bb81570d9c3b7573e102c6de601"); }
+	static inline uint256 qbitAsset() { return uint256S("0f690892c0c5ebc826a3c51321178ef816171bb81570d9c3b7573e102c6de602"); }
 	static inline uint256 nullAsset() { return uint256S("f000000000000000000000000000000000000000000000000000000000000000"); }
 
 public:

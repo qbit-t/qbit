@@ -186,6 +186,64 @@ public:
 		State state_ = ConversationInfo::PENDING;
 	};
 
+	class GroupInfo {
+	public:
+		enum Type {
+			PUBLIC = 0,
+			PRIVATE = 1
+		};
+
+	public:
+		GroupInfo() {}
+		GroupInfo(const uint256& id, const uint256& chain) : 
+			id_(id), chain_(chain) {}
+		GroupInfo(const uint256& id, const uint256& chain, GroupInfo::Type type) : 
+			id_(id), chain_(chain), type_(type) {}
+
+		ADD_SERIALIZE_METHODS;
+
+		template <typename Stream, typename Operation>
+		inline void serializationOp(Stream& s, Operation ser_action) {
+			READWRITE(id_);
+			READWRITE(chain_);
+			READWRITE(messageId_);
+			READWRITE(messageChain_);
+			READWRITE(membersCount_);
+
+			if (ser_action.ForRead()) {
+				unsigned char lType;
+				s >> lType;
+				type_ = (GroupInfo::Type)lType;
+			} else {
+				s << (unsigned char)type_;
+			}
+		}
+
+		const uint256& id() const { return id_; }
+		const uint256& chain() const { return chain_; }
+
+		const uint256& messageId() const { return messageId_; }
+		const uint256& messageChain() const { return messageChain_; }
+		void setMessage(const uint256& id, const uint256& chain) {
+			messageId_ = id;
+			messageChain_ = chain;
+		}
+
+		GroupInfo::Type type() const { return type_; }
+		void setType(GroupInfo::Type type) { type_ = type; }
+
+		uint32_t membersCount() const { return membersCount_; }
+		void setMembersCount(uint32_t membersCount) { membersCount_ = membersCount; }
+
+	private:
+		uint256 id_;
+		uint256 chain_;
+		uint256 messageId_;
+		uint256 messageChain_;
+		uint32_t membersCount_ = 0;
+		Type type_ = GroupInfo::PRIVATE;
+	};
+
 public:
 	BuzzerTransactionStoreExtension(ISettingsPtr settings, ITransactionStorePtr store) : 
 		settings_(settings),
@@ -196,6 +254,10 @@ public:
 		conversationsIndex_("buzzer_indexes_conversations", space_),
 		conversationsOrder_("buzzer_indexes_conversations_order", space_),
 		conversationsActivity_("buzzer_indexes_conversations_activity", space_),
+		groups_("buzzer_groups", space_),
+		groupInfo_("buzzer_group_info", space_),
+		membership_("buzzer_group_membership", space_),
+		groupInvitations_("buzzer_group_invitations", space_),
 		globalTimeline_(settings_->dataPath() + "/" + store->chain().toHex() + "/buzzer/global_timeline"),
 		hashTagTimeline_("buzzer_hashed_timeline", space_),
 		hashTagUpdates_("buzzerhash_tag_updates", space_),
@@ -270,6 +332,9 @@ private:
 	void processConversation(const uint256&, TransactionContextPtr);
 	void processAcceptConversation(const uint256&, TransactionContextPtr);
 	void processDeclineConversation(const uint256&, TransactionContextPtr);
+	void processGroupInvite(const uint256&, TransactionContextPtr);
+	void processGroupAcceptInvitation(const uint256&, TransactionContextPtr);
+	void processGroupDeclineInvitation(const uint256&, TransactionContextPtr);
 	void processMessage(const uint256&, TransactionContextPtr);
 	void processHide(const uint256&, TransactionContextPtr);
 	void processBuzzerHide(const uint256&, TransactionContextPtr);
@@ -400,26 +465,48 @@ private:
 		uint256 /*buzz/reply/rebuzz/like/message...*/> timeline_;
 
 	//
-	// conversations
+	// conversations & groups
 	//
 
-	// buzzer | conversation
+	// buzzer | conversation || group
 	db::DbTwoKeyContainerShared<uint256 /*buzzer*/, uint256 /*conversation*/, ConversationInfo /*state*/> conversations_;
 
 	// buzzer conversations timestamp
 	db::DbTwoKeyContainerShared<
 		uint256 /*buzzer*/, 
-		uint256 /*conversation*/,
+		uint256 /*conversation || group*/,
 		uint64_t /*timestamp*/> conversationsIndex_;
 
 	// conversations ordering by timestamp
 	db::DbTwoKeyContainerShared<
 		uint256 /*buzzer*/, 
 		uint64_t /*timestamp*/,
-		uint256 /*conversation*/> conversationsOrder_;
+		uint256 /*conversation || group*/> conversationsOrder_;
 	
 	// buzzer last activity
 	db::DbContainerShared<uint256 /*buzzer*/, uint64_t /*timestamp*/> conversationsActivity_;
+
+	// groups
+	db::DbTwoKeyContainerShared<
+		uint256 /*group*/, 
+		uint256 /*member*/, 
+		uint256 /*confirmation || 0x00*/> groups_;
+
+	// group info
+	db::DbContainerShared<uint256 /*group*/, GroupInfo /*group info*/> groupInfo_;
+
+	// groups membership idx
+	db::DbTwoKeyContainerShared<
+		uint256 /*buzzer*/,
+		uint256 /*group*/,
+		uint256 /*confirmation*/> membership_;
+
+	// group invitations
+	db::DbThreeKeyContainerShared<
+		uint256 /*inviter*/,
+		uint256 /*group*/,
+		uint256 /*invitee*/,
+		uint256 /*invitation*/> groupInvitations_;
 
 	//
 

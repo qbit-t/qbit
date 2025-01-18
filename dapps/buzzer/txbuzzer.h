@@ -37,22 +37,32 @@ typedef LimitedString<64> buzzer_name_t;
 #define TX_BUZZER_ACCEPT_CONVERSATION			Transaction::CUSTOM_15 //
 #define TX_BUZZER_DECLINE_CONVERSATION			Transaction::CUSTOM_16 //
 #define TX_BUZZER_MESSAGE						Transaction::CUSTOM_17 //
-#define TX_BUZZER_MESSAGE_REPLY					Transaction::CUSTOM_18 //
-#define TX_BUZZ_HIDE							Transaction::CUSTOM_19 //
-#define TX_BUZZER_HIDE							Transaction::CUSTOM_20 //
-#define TX_BUZZER_BLOCK							Transaction::CUSTOM_21 //
-#define TX_BUZZER_UNBLOCK						Transaction::CUSTOM_22 //
-#define TX_BUZZER_GROUP							Transaction::CUSTOM_23 //
-#define TX_BUZZER_GROUP_INVITE					Transaction::CUSTOM_24 //
-#define TX_BUZZER_GROUP_KEYS					Transaction::CUSTOM_25 //
-#define TX_BUZZER_GROUP_JOIN					Transaction::CUSTOM_26 //
-#define TX_BUZZER_GROUP_LEAVE					Transaction::CUSTOM_27 //
+#define TX_BUZZER_MESSAGE_SENT					Transaction::CUSTOM_18 //
+#define TX_BUZZER_MESSAGE_DELIVERED				Transaction::CUSTOM_19 //
+#define TX_BUZZER_MESSAGE_READ					Transaction::CUSTOM_20 //
+#define TX_BUZZER_MESSAGE_REPLY					Transaction::CUSTOM_21 //
+#define TX_BUZZ_HIDE							Transaction::CUSTOM_22 //
+#define TX_BUZZER_HIDE							Transaction::CUSTOM_23 //
+#define TX_BUZZER_BLOCK							Transaction::CUSTOM_24 //
+#define TX_BUZZER_UNBLOCK						Transaction::CUSTOM_25 //
 
-#define TX_BUZZER_RULE							Transaction::CUSTOM_28 //
-#define TX_BUZZER_RULE_ALLOWED_CONVERSATIONS	Transaction::CUSTOM_29 //
-#define TX_BUZZER_RULE_ALLOWED_GROUPS			Transaction::CUSTOM_30 //
+#define TX_BUZZER_GROUP							Transaction::CUSTOM_26 //
+#define TX_BUZZER_GROUP_INFO					Transaction::CUSTOM_27 //
+#define TX_BUZZER_GROUP_INVITE					Transaction::CUSTOM_28 //
+#define TX_BUZZER_GROUP_KEYS					Transaction::CUSTOM_29 //
+#define TX_BUZZER_GROUP_JOIN					Transaction::CUSTOM_30 //
+#define TX_BUZZER_GROUP_LEAVE					Transaction::CUSTOM_31 //
+#define TX_BUZZER_GROUP_INVITE_ACCEPT			Transaction::CUSTOM_32 //
+#define TX_BUZZER_GROUP_INVITE_DECLINE			Transaction::CUSTOM_33 //
 
-#define TX_BUZZER_ALIAS_SIZE 128 
+#define TX_BUZZER_RULE							Transaction::CUSTOM_34 //
+#define TX_BUZZER_RULE_ALLOWED_CONVERSATIONS	Transaction::CUSTOM_35 //
+#define TX_BUZZER_RULE_ALLOWED_GROUPS			Transaction::CUSTOM_36 //
+
+#define TX_BUZZER_ONLINE						Transaction::CUSTOM_37 //
+#define TX_BUZZER_OFFLINE						Transaction::CUSTOM_38 //
+
+#define TX_BUZZER_ALIAS_SIZE 128
 #define TX_BUZZER_DESCRIPTION_SIZE 512
 
 #define TX_BUZZER_SHARD_IN 1
@@ -64,6 +74,7 @@ typedef LimitedString<64> buzzer_name_t;
 #define TX_BUZZER_REPLY_OUT 4
 #define TX_BUZZER_BUZZ_OUT TX_BUZZER_REPLY_OUT
 #define TX_BUZZER_CONVERSATION_OUT 5
+#define TX_BUZZER_FOR_GROUP_OUT 6
 
 //
 // Endorse/mistrust model parameters
@@ -210,6 +221,12 @@ public:
 	Transaction::UnlinkedOutPtr addBuzzerConversationOut(const SKey& skey, const PKey& pkey) {
 		//
 		return addBuzzerSpecialOut(skey, pkey, TX_BUZZER_CONVERSATION);
+	}
+
+	Transaction::UnlinkedOutPtr addBuzzerGroupOut(const SKey& skey, const PKey& pkey) {
+		//
+		// TODO: here should be the TX_BUZZER_RULE -> TX_BUZZER_RULE_ALLOWED_GROUPS
+		return addBuzzerSpecialOut(skey, pkey, TX_BUZZER_GROUP);
 	}
 
 	virtual In& addDAppIn(const SKey& skey, UnlinkedOutPtr utxo) {

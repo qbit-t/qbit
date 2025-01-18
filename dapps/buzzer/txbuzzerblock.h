@@ -35,7 +35,7 @@ public:
 	inline void setBuzzer(const uint256& buzzer) { buzzer_ = buzzer; }
 	inline const uint256& buzzer() { return buzzer_; }
 	
-	virtual bool isFeeFee() { return true; }
+	virtual bool isFeeFree() { return true; }
 
 	virtual In& addMyBuzzerIn(const SKey& skey, UnlinkedOutPtr utxo) {
 		Transaction::In lIn;

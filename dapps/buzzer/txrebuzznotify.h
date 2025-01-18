@@ -40,7 +40,7 @@ public:
 
 	std::string name() { return "rebuzz_notify"; }
 
-	virtual bool isFeeFee() { return true; }
+	virtual bool isFeeFree() { return true; }
 
 	inline uint256 rebuzzChainId() { return rebuzzChainId_; }
 	inline void setRebuzzChainId(const uint256& rebuzzChainId) { rebuzzChainId_ = rebuzzChainId; }

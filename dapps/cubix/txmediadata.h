@@ -148,7 +148,7 @@ public:
 
 	virtual bool isContinuousData() { return true; }
 
-	virtual bool isFeeFee() { return true; }
+	virtual bool isFeeFree() { return true; }
 
 	virtual std::string entityName() { return Entity::emptyName(); }
 

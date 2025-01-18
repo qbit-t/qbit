@@ -377,7 +377,7 @@ TransactionAction::Result TxSpendOutVerify::execute(TransactionContextPtr wrappe
 			}			
 		}
 
-		if (!wrapper->tx()->isFeeFee() && wrapper->fee() == 0) {
+		if (!wrapper->tx()->isFeeFree() && wrapper->fee() == 0) {
 			std::string lError = "Fee is absent";
 			gLog().write(Log::GENERAL_ERROR, std::string("[TxSpendOutVerify]: ") + lError);
 			wrapper->tx()->setStatus(Transaction::DECLINED);
@@ -418,7 +418,7 @@ TransactionAction::Result TxBalanceVerify::execute(TransactionContextPtr wrapper
 			}
 		}
 
-		if (!wrapper->tx()->isFeeFee() && wrapper->fee() == 0) {
+		if (!wrapper->tx()->isFeeFree() && wrapper->fee() == 0) {
 			std::string lError = _getVMStateText(VirtualMachine::INVALID_FEE);
 			wrapper->tx()->setStatus(Transaction::DECLINED);
 			wrapper->addError(lError);
@@ -488,7 +488,7 @@ TransactionAction::Result TxAssetTypeVerify::execute(TransactionContextPtr wrapp
 			}
 		}
 
-		if (!wrapper->tx()->isFeeFee() && wrapper->fee() == 0) {
+		if (!wrapper->tx()->isFeeFree() && wrapper->fee() == 0) {
 			std::string lError = "Fee is absent";
 			gLog().write(Log::GENERAL_ERROR, std::string("[TxSpendOutVerify]: ") + lError);
 			wrapper->tx()->setStatus(Transaction::DECLINED);

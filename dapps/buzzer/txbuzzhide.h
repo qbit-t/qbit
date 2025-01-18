@@ -36,7 +36,7 @@ public:
 	const uint512& signature() const { return signature_; }
 	void setSignature(const uint512& signature) { signature_ = signature; }
 
-	virtual bool isFeeFee() { return true; }
+	virtual bool isFeeFree() { return true; }
 
 	inline void makeSignature(const SKey& skey, const uint256& buzz) {
 		//

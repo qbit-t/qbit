@@ -28,7 +28,7 @@ public:
 	virtual inline void setChain(const uint256& chain) { chain_ = chain; } // override default entity behavior 
 	inline void setTimestamp(uint64_t timestamp) { timestamp_ = timestamp; }
 
-	virtual bool isFeeFee() { return true; }
+	virtual bool isFeeFree() { return true; }
 
 	virtual In& addSubscriptionIn(const SKey& skey, UnlinkedOutPtr utxo) {
 		Transaction::In lIn;

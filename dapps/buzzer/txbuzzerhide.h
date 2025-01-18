@@ -30,7 +30,7 @@ public:
 	inline void setTimestamp(uint64_t timestamp) { timestamp_ = timestamp; }
 	inline uint64_t timestamp() { return timestamp_; }
 
-	virtual bool isFeeFee() { return true; }
+	virtual bool isFeeFree() { return true; }
 
 	virtual In& addMyBuzzerIn(const SKey& skey, UnlinkedOutPtr utxo) {
 		Transaction::In lIn;

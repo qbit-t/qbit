@@ -19,7 +19,7 @@ public:
 
 	inline std::string name() { return "buzzer_accept_conversation"; }
 
-	virtual bool isFeeFee() { return true; }
+	virtual bool isFeeFree() { return true; }
 
 	inline void makeSignature(const SKey& skey, const uint256& buzzer) {
 		//

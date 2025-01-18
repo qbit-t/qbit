@@ -43,7 +43,7 @@ public:
 		props["entity"] = entityName();
 	}
 
-	//
+	// out[0]
 	Transaction::UnlinkedOutPtr addBuzzerGroupOut(const SKey& skey, const PKey& pkey) {
 		//
 		Transaction::Out lOut;
@@ -68,7 +68,7 @@ public:
 		return lUTXO;
 	}
 
-	//
+	// out[1]
 	Transaction::UnlinkedOutPtr addBuzzerGroupInviteOut(const SKey& skey, const PKey& pkey) {
 		//
 		Transaction::Out lOut;
@@ -95,7 +95,7 @@ public:
 		return lUTXO;
 	}
 
-	//
+	// out[2]
 	Transaction::UnlinkedOutPtr addBuzzerGroupKeysOut(const SKey& skey, const PKey& pkey) {
 		//
 		Transaction::Out lOut;

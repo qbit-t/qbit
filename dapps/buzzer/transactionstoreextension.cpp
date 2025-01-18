@@ -766,6 +766,8 @@ bool BuzzerTransactionStoreExtension::pushEntity(const uint256& id, TransactionC
 		processUnsubscribe(id, ctx);
 	} else if (ctx->tx()->type() == TX_BUZZER) {
 		// do nothing
+	} else if (ctx->tx()->type() == TX_BUZZER_GROUP) {
+		// do nothing
 	} else if (ctx->tx()->type() == TX_BUZZ_LIKE) {
 		processLike(id, ctx);
 	} else if (ctx->tx()->type() == TX_BUZZ_REWARD) {
@@ -774,7 +776,7 @@ bool BuzzerTransactionStoreExtension::pushEntity(const uint256& id, TransactionC
 		processEndorse(id, ctx);
 	} else if (ctx->tx()->type() == TX_BUZZER_MISTRUST) {
 		processMistrust(id, ctx);
-	} else if (ctx->tx()->type() == TX_BUZZER_INFO) {
+	} else if (ctx->tx()->type() == TX_BUZZER_INFO || ctx->tx()->type() == TX_BUZZER_GROUP_INFO) { // for now the same
 		//
 		updateBuzzerInfo(
 			ctx->tx()->in()[TX_BUZZER_INFO_MY_IN].out().tx(),
@@ -786,6 +788,12 @@ bool BuzzerTransactionStoreExtension::pushEntity(const uint256& id, TransactionC
 		processAcceptConversation(id, ctx);
 	} else if (ctx->tx()->type() == TX_BUZZER_DECLINE_CONVERSATION) {
 		processDeclineConversation(id, ctx);
+	} else if (ctx->tx()->type() == TX_BUZZER_GROUP_INVITE) {
+		processGroupInvite(id, ctx);
+	} else if (ctx->tx()->type() == TX_BUZZER_GROUP_INVITE_ACCEPT) {
+		//processGroupAcceptInvitation(id, ctx);
+	} else if (ctx->tx()->type() == TX_BUZZER_GROUP_INVITE_DECLINE) {
+		//processGroupDeclineInvitation(id, ctx);
 	} else if (ctx->tx()->type() == TX_BUZZER_MESSAGE) {
 		processMessage(id, ctx);
 	} else if (ctx->tx()->type() == TX_BUZZ_HIDE) {
@@ -978,6 +986,71 @@ void BuzzerTransactionStoreExtension::processDeclineConversation(const uint256& 
 		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: DECLINED conversation for buzzer ") +
 			strprintf("%s/%s/%s#", lBuzzer.toHex(), ctx->tx()->id().toHex(), store_->chain().toHex().substr(0, 10)));
 	}
+}
+
+//
+//
+//
+
+void BuzzerTransactionStoreExtension::processGroupInvite(const uint256& id, TransactionContextPtr ctx) {
+	// TODO: very beginning
+	/*
+	if (ctx->tx()->type() == TX_BUZZER_GROUP_INVITE) {
+		//
+		if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: pushing group invitation ") +
+			strprintf("%s/%s#", ctx->tx()->id().toHex(), store_->chain().toHex().substr(0, 10)));
+		//
+		// that should be tx_event object
+		TxEventPtr lEvent = TransactionHelper::to<TxEvent>(ctx->tx());
+
+		// in[0] - inviter
+		uint256 lOriginator = lEvent->in()[TX_BUZZER_GROUP_INVITE_MY_IN].out().tx(); 
+		// in[1] - group
+		uint256 lGroup = lEvent->in()[TX_BUZZER_GROUP_INVITE_GROUP_IN].out().tx();
+		// in[2] - invitee
+		uint256 lMember = lEvent->in()[TX_BUZZER_GROUP_INVITE_MEMBER_IN].out().tx();
+
+		//
+		bool lAdded = false;
+		//
+		db::DbThreeKeyContainerShared<
+			uint256,
+			uint256,
+			uint256,
+			uint256>::Iterator lOriginatorConversation = conversations_.find(lOriginator, lEvent->id());
+		
+		if (!lOriginatorConversation.valid()) {
+			conversations_.write(lOriginator, lEvent->id(), ConversationInfo(lEvent->id(), lEvent->chain(), ConversationInfo::PENDING));
+			conversationsIndex_.write(lOriginator, lEvent->id(), lEvent->timestamp());
+			conversationsOrder_.write(lOriginator, lEvent->timestamp(), lEvent->id());
+			conversationsActivity_.write(lOriginator, lEvent->timestamp());
+
+			lAdded = true;
+
+			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: PUSHED conversation for originator ") +
+				strprintf("%s/%s/%s#", lOriginator.toHex(), ctx->tx()->id().toHex(), store_->chain().toHex().substr(0, 10)));
+		}
+
+		//
+		db::DbTwoKeyContainerShared<uint256, uint256, ConversationInfo>::Iterator 
+											lBuzzerConversation = conversations_.find(lBuzzer, lEvent->id());
+		if (!lBuzzerConversation.valid()) {
+			conversations_.write(lBuzzer, lEvent->id(), ConversationInfo(lEvent->id(), lEvent->chain(), ConversationInfo::PENDING));
+			conversationsIndex_.write(lBuzzer, lEvent->id(), lEvent->timestamp());
+			conversationsOrder_.write(lBuzzer, lEvent->timestamp(), lEvent->id());
+			conversationsActivity_.write(lBuzzer, lEvent->timestamp());
+
+			lAdded = true;
+			events_.write(lBuzzer, lEvent->timestamp(), lEvent->id(), lEvent->type());
+			subscriberUpdates(lBuzzer, lEvent->timestamp());
+
+			if (gLog().isEnabled(Log::STORE)) gLog().write(Log::STORE, std::string("[extension/pushEntity]: PUSHED conversation for buzzer ") +
+				strprintf("%s/%s/%s#", lBuzzer.toHex(), ctx->tx()->id().toHex(), store_->chain().toHex().substr(0, 10)));
+		}
+
+		if (lAdded) conversations_.write(lOriginator, lBuzzer, ConversationInfo(lEvent->id(), lEvent->chain(), ConversationInfo::PENDING));
+	}
+	*/
 }
 
 void BuzzerTransactionStoreExtension::processMessage(const uint256& id, TransactionContextPtr ctx) {

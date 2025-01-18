@@ -153,9 +153,9 @@ public:
 		return in_[in_.size()-1];
 	}
 
-	inline std::string name() { return "buzzer_info"; }
+	virtual inline std::string name() { return "buzzer_info"; }
 
-	virtual bool isFeeFee() { return true; }
+	virtual bool isFeeFree() { return true; }
 
 	virtual inline void setChain(const uint256& chain) { chain_ = chain; } // override default entity behavior	
 
@@ -184,7 +184,7 @@ public:
 		return false;
 	}	
 
-private:
+protected:
 	std::string name_;
 	std::vector<unsigned char> alias_;
 	std::vector<unsigned char> description_;
