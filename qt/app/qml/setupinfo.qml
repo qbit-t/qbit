@@ -91,7 +91,8 @@ QuarkPage
 			var lComponent = null;
 			var lPage = null;
 
-			lComponent = Qt.createComponent(buzzerApp.getLimited() ? "qrc:/qml/setupeula.qml" : "qrc:/qml/setupqbit.qml");
+			//lComponent = Qt.createComponent(buzzerApp.getLimited() ? "qrc:/qml/setupeula.qml" : "qrc:/qml/setupqbit.qml");
+			lComponent = Qt.createComponent("qrc:/qml/setupeula.qml");
 			lPage = lComponent.createObject(window);
 			lPage.controller = controller;
 

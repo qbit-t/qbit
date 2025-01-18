@@ -99,6 +99,12 @@ QString getLocalization(const QString& locale, const std::string& key) {
 	return QString::fromStdString(lValue.getString());
 }
 
+QString getProperty(const std::string& key) {
+	json::Value lProperties = gAppConfig["properties"];
+	json::Value lProperty = lProperties[key];
+	return QString::fromStdString(lProperty.getString());
+}
+
 //
 // client
 //
@@ -747,6 +753,20 @@ int main(int argc, char** argv) {
 	gCubixComposer->open();
 	gBuzzerComposer->open();
 #endif
+
+	// explicit peers only
+	/*
+	QString lExplicitPeersOnly = getProperty("Client.explicitPeersOnly");
+	if (lExplicitPeersOnly == "true") {
+		lPeerManager->useExplicitPeersOnly();
+	}
+	*/
+
+	//
+	lPeerManager->useExplicitPeersOnly();
+
+	// encrypted proto
+	lPeerManager->setProtoEncryption(true);
 
 	// peers
 	std::vector<std::string> lPeers;

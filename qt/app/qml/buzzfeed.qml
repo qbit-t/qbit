@@ -338,11 +338,17 @@ Item
 			}
 
 			onWidthChanged: {
+				/*
 				if (itemDelegate.buzzItem) {
 					var lHeight = itemDelegate.buzzItem.calculateHeight();
 					itemDelegate.buzzItem.width = list.width;
 					itemDelegate.height = lHeight;
 					itemDelegate.buzzItem.height = lHeight;
+				}
+				*/
+				if (buzzItem) {
+					buzzItem.width = list.width;
+					itemDelegate.height = buzzItem.calculateHeight();
 				}
 			}
 
@@ -363,9 +369,13 @@ Item
 			}
 
 			function calculatedHeightModified(value) {
+				/*
 				itemDelegate.height = value;
 				itemDelegate.buzzItem.height = value;
 				itemDelegate.adjustValue.push(value);
+				*/
+				itemDelegate.height = value;
+				buzzItem.height = value;
 			}
 
 			function bindItem() {

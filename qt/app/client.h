@@ -575,6 +575,8 @@ public:
 	Q_INVOKABLE QString newKeyPair();
 	Q_INVOKABLE QStringList keySeedWords(const QString&);
 
+	bool isSuspended() { return suspended_; }
+
 private:
 	//
 	void echoLog(unsigned int /*category*/, const std::string& message) {

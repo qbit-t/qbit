@@ -16,12 +16,12 @@ import "qrc:/qml"
 QuarkPage {
 	id: cameraPage_
 
-    width: parent.width
-    height: parent.height
+	//width: parent.width
+	//height: parent.height
 
 	Component.onCompleted: {
-        buzzerApp.lockPortraitOrientation();
-        closePageHandler = closePage;
+		//buzzerApp.lockPortraitOrientation();
+		closePageHandler = closePage;
 	}
 
     statusBarColor: buzzerApp.getColor(buzzerClient.theme, buzzerClient.themeSelector, "Window.statusBar")

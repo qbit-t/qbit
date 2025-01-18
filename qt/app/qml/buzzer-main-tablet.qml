@@ -48,13 +48,6 @@ QuarkPage
 		}
 
 		if (!checkBuzzerInfo.running) checkBuzzerInfo.start();
-
-		// NOTICE: start notificator service for the first time
-		var lValue = buzzerClient.getProperty("Client.runService");
-		if (lValue !== "true") {
-			buzzerApp.startNotificator();
-			buzzerClient.setProperty("Client.runService", "true");
-		}
 	}
 
 	onControllerChanged: {
@@ -211,6 +204,22 @@ QuarkPage
 				avatarDownloadCommand.url = infoLoaderCommand.avatarUrl;
 				avatarDownloadCommand.localFile = buzzerClient.getTempFilesPath() + "/" + infoLoaderCommand.avatarId;
 				avatarDownloadCommand.process();
+			}
+
+			// NOTICE: try to get permissions
+			// 1. post notifications
+			// 2. camera
+			if (Qt.platform.os == "android") {
+				buzzerApp.checkPermissionPostNotifications();
+				buzzerApp.checkPermissionCamera();
+			}
+
+			// NOTICE: start notificator service for the first time
+			var lValue = buzzerClient.getProperty("Client.runService");
+			if (lValue !== "true") {
+				// try to start
+				buzzerApp.startNotificator();
+				buzzerClient.setProperty("Client.runService", "true");
 			}
 		}
 

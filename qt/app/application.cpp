@@ -96,13 +96,17 @@ void Application::appStateChanged(Qt::ApplicationState state) {
 	if (state == Qt::ApplicationState::ApplicationSuspended /* || state == Qt::ApplicationState::ApplicationHidden ||
 			state == Qt::ApplicationState::ApplicationInactive*/)
     {
-		qInfo() << "[appStateChanged]: suspended";
-		client_.suspend();
-        emit appSuspending();
+		if (!client_.isSuspended()) {
+			qInfo() << "[appStateChanged]: suspended";
+			client_.suspend();
+			emit appSuspending();
+		}
 	} else if (state == Qt::ApplicationState::ApplicationActive) {
-		qInfo() << "[appStateChanged]: resumed";
-		client_.resume();
-		emit appRunning();
+		if (client_.isSuspended()) {
+			qInfo() << "[appStateChanged]: resumed";
+			client_.resume();
+			emit appRunning();
+		}
     }
 }
 
@@ -186,7 +190,7 @@ int Application::execute()
 
 	if (client_.getProperty("Client.runService") == "true")
     {
-        startNotificator();
+		startNotificator();
     }
 
 	//
@@ -918,6 +922,34 @@ bool Application::checkPermission() {
 		if(r == QtAndroid::PermissionResult::Denied) {
 			qDebug() << "Permission denied";
 			emit noDocumentsWorkLocation();
+			return false;
+		}
+   }
+   return true;
+}
+
+bool Application::checkPermissionPostNotifications() {
+	//
+	QtAndroid::PermissionResult r = QtAndroid::checkPermission("android.permission.POST_NOTIFICATIONS");
+	if(r == QtAndroid::PermissionResult::Denied) {
+		QtAndroid::requestPermissionsSync(QStringList() << "android.permission.POST_NOTIFICATIONS");
+		r = QtAndroid::checkPermission("android.permission.POST_NOTIFICATIONS");
+		if(r == QtAndroid::PermissionResult::Denied) {
+			qDebug() << "POST_NOTIFICATIONS permission denied";
+			return false;
+		}
+   }
+   return true;
+}
+
+bool Application::checkPermissionCamera() {
+	//
+	QtAndroid::PermissionResult r = QtAndroid::checkPermission("android.permission.CAMERA");
+	if(r == QtAndroid::PermissionResult::Denied) {
+		QtAndroid::requestPermissionsSync(QStringList() << "android.permission.CAMERA");
+		r = QtAndroid::checkPermission("android.permission.CAMERA");
+		if(r == QtAndroid::PermissionResult::Denied) {
+			qDebug() << "CAMERA permission denied";
 			return false;
 		}
    }

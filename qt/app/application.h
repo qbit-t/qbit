@@ -453,6 +453,8 @@ public:
 
 #if defined(Q_OS_ANDROID)
 	Q_INVOKABLE	bool checkPermission();
+	Q_INVOKABLE	bool checkPermissionPostNotifications();
+	Q_INVOKABLE	bool checkPermissionCamera();
 #endif
 
 public slots:

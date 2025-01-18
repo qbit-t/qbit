@@ -6,6 +6,7 @@ import android.util.Log;
 import android.content.BroadcastReceiver;
 import android.app.Notification;
 import android.app.NotificationManager;
+import android.app.Notification.Builder;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
@@ -27,6 +28,7 @@ import android.graphics.PorterDuff;
 import android.graphics.PorterDuff.Mode;
 import android.media.AudioAttributes;
 import android.os.Bundle;
+import android.content.pm.ServiceInfo;
 
 public class NotificatorService extends QtService
 {
@@ -52,10 +54,14 @@ public class NotificatorService extends QtService
 		instance_ = this;
         super.onCreate();
 
+		//
+		Log.i("buzzer-daemon", "starting service...");
+
         // Make intent
         Intent notificationIntent = new Intent(instance_, MainActivity.class);
-        PendingIntent pendingIntent =
-                PendingIntent.getActivity(instance_, 0, notificationIntent, 0);
+		PendingIntent pendingIntent =
+		        PendingIntent.getActivity(instance_, 0, notificationIntent,
+				    (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ? PendingIntent.FLAG_IMMUTABLE : 0));
 
         // Create the Foreground Service
         NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
@@ -68,17 +74,21 @@ public class NotificatorService extends QtService
             notificationBuilder = new Notification.Builder(this);
         }
 
-        Notification notification = notificationBuilder.setOngoing(true)
+	    /*Notification notification = */ notificationBuilder.setOngoing(true)
 		        .setSmallIcon(getNotificationIcon(0))
                 .setPriority(NotificationManager.IMPORTANCE_HIGH)
                 .setCategory(Notification.CATEGORY_SERVICE)
                 .setContentIntent(pendingIntent)
                 .setContentTitle("Notification service")
                 .setContentText("Active")
-                .setShowWhen(true)
-                .build();
+				.setShowWhen(true);
 
-        startForeground(ID_SERVICE, notification);
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+			notificationBuilder.setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE);
+			startForeground(ID_SERVICE, notificationBuilder.build() /*notification*/, ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA);
+		} else {
+		    startForeground(ID_SERVICE, notificationBuilder.build() /*notification*/);
+		}
     }
 
     public static Bitmap getCircleBitmap(Bitmap bitmap) {
@@ -133,8 +143,11 @@ public class NotificatorService extends QtService
 		notificationIntent.putExtra("txId", txId);
 		notificationIntent.putExtra("buzzer", name);
 
-        PendingIntent pendingIntent =
-		        PendingIntent.getActivity(instance_, Integer.parseInt(id), notificationIntent, PendingIntent.FLAG_ONE_SHOT);
+		PendingIntent pendingIntent = null;
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+		    pendingIntent = PendingIntent.getActivity(instance_, Integer.parseInt(id), notificationIntent, PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_IMMUTABLE);
+		else
+		    pendingIntent = PendingIntent.getActivity(instance_, Integer.parseInt(id), notificationIntent, PendingIntent.FLAG_ONE_SHOT);
 
         NotificationManager notificationManager = (NotificationManager)instance_.getSystemService(Context.NOTIFICATION_SERVICE);
 
@@ -247,9 +260,11 @@ public class NotificatorService extends QtService
     }
 
     public static void startNotificatorService(Context ctx) {
+		Log.i("buzzer-daemon", "try to start service(0)...");
 		if (!isServiceRunning(ctx, "app.buzzer.mobile.NotificatorService")) {
 			Intent lIntent = new Intent(ctx, NotificatorService.class);
 			lIntent.putExtra("buzzer", "none");
+			Log.i("buzzer-daemon", "try to start service(1)...");
 			ctx.startService(lIntent);
 		}
     }

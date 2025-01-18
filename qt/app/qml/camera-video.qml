@@ -24,12 +24,12 @@ QuarkPage {
 	property var localPath: buzzerClient.getTempFilesPath() + "/" + buzzerClient.generateRandom()
 	signal videoReady(var path, var duration, var orientation, var preview);
 
-    width: parent.width
-    height: parent.height
+	//width: parent.width
+	//height: parent.height
 
 	Component.onCompleted: {
 		orientationSensor.start();
-		buzzerApp.lockPortraitOrientation();
+		//buzzerApp.lockPortraitOrientation();
         closePageHandler = closePage;
     }
 

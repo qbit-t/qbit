@@ -37,7 +37,7 @@ android {
      * Changing them manually might break the compilation!
      *******************************************************/
 
-    compileSdkVersion androidCompileSdkVersion.toInteger()
+    compileSdkVersion 31 /*androidCompileSdkVersion.toInteger()*/
 
     buildToolsVersion '28.0.3'
 
@@ -66,6 +66,6 @@ android {
     defaultConfig {
         resConfig "en"
 		minSdkVersion = 23
-		targetSdkVersion = 30
+		targetSdkVersion = 33
     }
 }

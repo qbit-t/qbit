@@ -11,7 +11,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti -Wno-nonnull")
 
 # Version
-add_definitions(-DQBIT_VERSION_MAJOR=0)
+add_definitions(-DQBIT_VERSION_MAJOR=1)
 add_definitions(-DQBIT_VERSION_MINOR=1)
 add_definitions(-DQBIT_VERSION_REVISION=0)
 add_definitions(-DQBIT_VERSION_BUILD=1)

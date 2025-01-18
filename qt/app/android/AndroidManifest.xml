@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<manifest package="app.buzzer.mobile" xmlns:android="http://schemas.android.com/apk/res/android" android:versionName="1.6.100" android:versionCode="10610001" android:installLocation="auto">
+<manifest package="app.buzzer.mobile" xmlns:android="http://schemas.android.com/apk/res/android" android:versionName="1.6.101" android:versionCode="10610102" android:installLocation="auto">
     <!-- The following comment will be replaced upon deployment with default permissions based on the dependencies of the application.
 	     Remove the comment if you do not require these default permissions. -->
 		<!-- %%INSERT_PERMISSIONS -->
@@ -19,15 +19,20 @@
 	<uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
 	<uses-permission android:name="android.permission.USE_FINGERPRINT"/>
 	<uses-permission android:name="android.permission.RECORD_AUDIO"/>
+	<!-- uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION"/ -->
+	<uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+	<uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+	<!-- uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
+	<uses-permission android:name="android.permission.BLUETOOTH_SCAN"/ -->
 
     <!-- The following comment will be replaced upon deployment with default features based on the dependencies of the application.
 	     Remove the comment if you do not require these default features. -->
 		<!-- %%INSERT_FEATURES -->
-	<!-- uses-sdk android:minSdkVersion="23" android:targetSdkVersion="29"/ -->
+	<!-- uses-sdk android:minSdkVersion="23" android:targetSdkVersion="33"/ -->
 	<supports-screens android:largeScreens="true" android:normalScreens="true" android:anyDensity="true" android:smallScreens="true"/>
 
     <application android:hardwareAccelerated="true" android:name="org.qtproject.qt5.android.bindings.QtApplication" android:label="Buzzer" android:extractNativeLibs="true" android:icon="@drawable/icon">
-	    <activity android:configChanges="orientation|uiMode|screenLayout|screenSize|smallestScreenSize|layoutDirection|locale|fontScale|keyboard|keyboardHidden|navigation|mcc|mnc|density" android:name="app.buzzer.mobile.MainActivity" android:label="Buzzer" android:screenOrientation="unspecified" android:launchMode="singleInstance" android:theme="@style/LoadingTheme" android:windowSoftInputMode="adjustNothing">
+	    <activity android:exported="true" android:configChanges="orientation|uiMode|screenLayout|screenSize|smallestScreenSize|layoutDirection|locale|fontScale|keyboard|keyboardHidden|navigation|mcc|mnc|density" android:name="app.buzzer.mobile.MainActivity" android:label="Buzzer" android:screenOrientation="unspecified" android:launchMode="singleInstance" android:theme="@style/LoadingTheme" android:windowSoftInputMode="adjustNothing">
 		    <intent-filter>
 			    <action android:name="android.intent.action.MAIN"/>
 				<category android:name="android.intent.category.LAUNCHER"/>
@@ -122,7 +127,7 @@
 			</intent-filter>
 		</receiver>
 
-        <service android:process=":qt" android:name="app.buzzer.mobile.NotificatorService" android:enabled="true" android:exported="true">
+        <service android:process=":qt" android:name="app.buzzer.mobile.NotificatorService" android:enabled="true" android:exported="true" android:foregroundServiceType="camera">
 		    <!-- android:process=":qt" is needed to force the service to run on a separate process than the Activity -->
 
             <!-- Application arguments -->

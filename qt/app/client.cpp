@@ -1293,6 +1293,7 @@ void Client::suspend() {
 void Client::resume() {
 	//
 	if (!opened_) return;
+	if (!suspended_) return;
 	//
 	suspended_ = false;
 	//
